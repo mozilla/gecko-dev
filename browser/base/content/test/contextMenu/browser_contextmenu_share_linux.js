@@ -3,33 +3,16 @@
 
 "use strict";
 
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
 const BASE = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
   "https://example.com"
 );
 const TEST_URL = BASE + "browser_contextmenu_shareurl.html";
 
-// Setup spies for observing function calls from WindowsUIUtils.
-let shareUrlSpy = sinon.spy();
-
-SharingUtils.testOnlyMockUIUtils({
-  shareUrl(url, title) {
-    shareUrlSpy(url, title);
-  },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIWindowsUIUtils]),
-});
-
-registerCleanupFunction(function () {
-  SharingUtils.testOnlyMockUIUtils(null);
-});
-
 /**
- * Test the "Share" item in the tab contextmenu on Windows.
+ * Test the "Share" item in the tab contextmenu on Linux.
  */
-add_task(async function test_contextmenu_share_win() {
+add_task(async function test_contextmenu_share_linux() {
   await BrowserTestUtils.withNewTab(TEST_URL, async () => {
     await openTabContextMenu(gBrowser.selectedTab);
 
@@ -39,17 +22,13 @@ add_task(async function test_contextmenu_share_win() {
       "hidden"
     );
     let itemCreated = contextMenu.querySelector(".share-tab-url-item");
+    ok(itemCreated, "Got Share item on Linux");
+    await SimpleTest.promiseClipboardChange(TEST_URL, () =>
+      contextMenu.activateItem(itemCreated)
+    );
+    ok(true, "Copied to clipboard.");
 
-    ok(itemCreated, "Got Share item on Windows 10");
-
-    info("Test the correct URL is shared when Share is selected.");
-    EventUtils.synthesizeMouseAtCenter(itemCreated, {});
     await contextMenuClosedPromise;
-
-    ok(shareUrlSpy.calledOnce, "shareUrl called");
-    let [url, title] = shareUrlSpy.getCall(0).args;
-    is(url, TEST_URL, "Shared correct URL");
-    is(title, "Sharing URL", "Shared correct URL");
   });
 });
 

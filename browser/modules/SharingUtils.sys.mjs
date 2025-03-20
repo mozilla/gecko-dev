@@ -7,6 +7,8 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { BrowserUtils } from "resource://gre/modules/BrowserUtils.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
+const APPLE_COPY_LINK = "com.apple.share.CopyLink.invite";
+
 let lazy = {};
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {
@@ -26,20 +28,16 @@ class SharingUtilsCls {
       return;
     }
 
-    // We only support "share URL" on macOS and on Windows:
-    if (AppConstants.platform != "macosx" && AppConstants.platform != "win") {
-      return;
-    }
-
     let shareURL = insertAfterEl.nextElementSibling;
     if (!shareURL?.matches(".share-tab-url-item")) {
       shareURL = this.#createShareURLMenuItem(insertAfterEl);
     }
 
     shareURL.browserToShare = Cu.getWeakReference(browser);
-    if (AppConstants.platform == "win") {
-      // We disable the item on Windows, as there's no submenu.
-      // On macOS, we handle this inside the menupopup.
+    if (AppConstants.platform != "macosx") {
+      // On macOS, we keep the item enabled and handle enabled state
+      // inside the menupopup.
+      // Everywhere else, we disable the item, as there's no submenu.
       shareURL.hidden = !BrowserUtils.getShareableURL(browser.currentURI);
     }
   }
@@ -51,18 +49,21 @@ class SharingUtilsCls {
     let menu = insertAfterEl.parentNode;
     let shareURL = null;
     let document = insertAfterEl.ownerDocument;
-    if (AppConstants.platform == "win") {
-      shareURL = this.#buildShareURLItem(document);
-    } else if (AppConstants.platform == "macosx") {
-      shareURL = this.#buildShareURLMenu(document);
+    if (AppConstants.platform != "win" && AppConstants.platform != "macosx") {
+      shareURL = this.#buildCopyLinkItem(document);
+    } else {
+      if (AppConstants.platform == "win") {
+        shareURL = this.#buildShareURLItem(document);
+      } else if (AppConstants.platform == "macosx") {
+        shareURL = this.#buildShareURLMenu(document);
+      }
+      let l10nID =
+        menu.id == "tabContextMenu"
+          ? "tab-context-share-url"
+          : "menu-file-share-url";
+      document.l10n.setAttributes(shareURL, l10nID);
     }
-    shareURL.className = "share-tab-url-item";
-
-    let l10nID =
-      menu.id == "tabContextMenu"
-        ? "tab-context-share-url"
-        : "menu-file-share-url";
-    document.l10n.setAttributes(shareURL, l10nID);
+    shareURL.classList.add("share-tab-url-item");
 
     menu.insertBefore(shareURL, insertAfterEl.nextSibling);
     return shareURL;
@@ -86,6 +87,32 @@ class SharingUtilsCls {
     menuPopup.addEventListener("popupshowing", this);
     menu.appendChild(menuPopup);
     return menu;
+  }
+
+  /**
+   * Return a menuitem that only copies the link. Useful for
+   * OSes where we do not yet have full share support, like Linux.
+   *
+   * We currently also use this on macOS because for some reason Apple does not
+   * provide the share service option for this.
+   */
+  #buildCopyLinkItem(document) {
+    let shareURLMenuItem = document.createXULElement("menuitem");
+    document.l10n.setAttributes(shareURLMenuItem, "menu-share-copy-link");
+    shareURLMenuItem.classList.add("share-copy-link");
+
+    if (AppConstants.platform == "macosx") {
+      shareURLMenuItem.classList.add("menuitem-iconic");
+      shareURLMenuItem.setAttribute(
+        "image",
+        "chrome://global/skin/icons/link.svg"
+      );
+    } else {
+      // On macOS the command handling happens by virtue of the submenu
+      // command event listener.
+      shareURLMenuItem.addEventListener("command", this);
+    }
+    return shareURLMenuItem;
   }
 
   /**
@@ -136,6 +163,16 @@ class SharingUtilsCls {
     let currentURI = gURLBar.makeURIReadable(urlToShare).displaySpec;
     let services = lazy.MacSharingService.getSharingProviders(currentURI);
 
+    // Apple seems reluctant to provide copy link as a feature. Add it at the
+    // start if it's not there.
+    if (!services.some(s => s.name == APPLE_COPY_LINK)) {
+      let item = this.#buildCopyLinkItem(document);
+      if (!shouldEnable) {
+        item.setAttribute("disabled", "true");
+      }
+      menuPopup.appendChild(item);
+    }
+
     services.forEach(share => {
       let item = document.createXULElement("menuitem");
       item.classList.add("menuitem-iconic");
@@ -181,16 +218,16 @@ class SharingUtilsCls {
     let { urlToShare, titleToShare } = this.getDataToShare(target);
     let currentURI = gURLBar.makeURIReadable(urlToShare).displaySpec;
 
-    if (AppConstants.platform == "win") {
+    if (event.target.classList.contains("share-copy-link")) {
+      BrowserUtils.copyLink(currentURI, titleToShare);
+    } else if (AppConstants.platform == "win") {
       lazy.WindowsUIUtils.shareUrl(currentURI, titleToShare);
-      return;
-    }
-
-    // On macOSX platforms
-    let shareName = event.target.getAttribute("share-name");
-
-    if (shareName) {
-      lazy.MacSharingService.shareUrl(shareName, currentURI, titleToShare);
+    } else {
+      // On macOSX platforms
+      let shareName = event.target.getAttribute("share-name");
+      if (shareName) {
+        lazy.MacSharingService.shareUrl(shareName, currentURI, titleToShare);
+      }
     }
   }
 

@@ -60,6 +60,9 @@ skip-if = ["os == 'linux' && socketprocess_networking"]
 ["browser_contextmenu_save_blocked.js"]
 skip-if = ["os == 'linux' && socketprocess_networking"]
 
+["browser_contextmenu_share_linux.js"]
+run-if = ["os == 'linux'"]
+
 ["browser_contextmenu_share_macosx.js"]
 https_first_disabled = true
 support-files = ["browser_contextmenu_shareurl.html"]

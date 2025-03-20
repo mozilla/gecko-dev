@@ -44,5 +44,5 @@ interface nsIWindowsUIUtils : nsISupports
   /**
    * Share URL
    */
-  void shareUrl(in AString shareTitle, in AString urlToShare);
+  void shareUrl(in AString urlToShare, in AString shareTitle);
 };
