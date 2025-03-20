@@ -1437,9 +1437,19 @@ export let FormAutofillPrompter = {
     }
     storage.notifyUsed(changedGUID);
 
-    const hintId = `confirmation-hint-${type}-${
-      oldRecord ? "updated" : "created"
-    }`;
-    showConfirmation(browser, hintId);
+    const messageIdMap = {
+      "credit-card": {
+        created: "confirmation-hint-credit-card-created",
+        updated: "confirmation-hint-credit-card-updated",
+      },
+      address: {
+        created: "confirmation-hint-address-created",
+        updated: "confirmation-hint-address-updated",
+      },
+    };
+    showConfirmation(
+      browser,
+      messageIdMap[type][oldRecord ? "updated" : "created"]
+    );
   },
 };
