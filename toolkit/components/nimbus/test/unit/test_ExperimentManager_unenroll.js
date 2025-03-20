@@ -585,7 +585,7 @@ add_task(async function test_check_unseen_enrollments_telemetry_events() {
 
   Assert.equal(events[3].extra.status, "Disqualified");
   Assert.equal(events[3].extra.reason, "Error");
-  Assert.equal(events[3].extra.error_string, "invalid-branch");
+  Assert.equal(events[3].extra.error_string, "invalid-feature");
   Assert.equal(events[3].extra.branch, "control");
   Assert.equal(events[3].extra.slug, slugs[3]);
 
