@@ -13,9 +13,9 @@ add_setup(async () => {
   Services.prefs.setBoolPref("testBoolPref", true);
   Services.prefs.setCharPref("testCharPref", "hello");
 
-  SelectableProfileService.constructor.initialSharedPrefs.splice(
+  SelectableProfileService.constructor.permanentSharedPrefs.splice(
     0,
-    SelectableProfileService.constructor.initialSharedPrefs.length,
+    SelectableProfileService.constructor.permanentSharedPrefs.length,
     "testPrefInt0",
     "testBoolPref",
     "testCharPref"

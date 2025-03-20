@@ -131,3 +131,50 @@ add_task(async function testEnabled() {
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
+
+// Tests for the small addition to the privacy section
+add_task(async function testPrivacyInfoEnabled() {
+  ok(SelectableProfileService.isEnabled, "service should be enabled");
+  await openPreferencesViaOpenPreferencesAPI("privacy", {
+    leaveOpen: true,
+  });
+  let doc = gBrowser.contentDocument;
+  let profilesNote = doc.getElementById("preferences-privacy-profiles");
+
+  ok(BrowserTestUtils.isVisible(profilesNote), "The profiles note is visible");
+
+  // Verify that clicking the button shows the manage screen in a subdialog.
+  let promiseSubDialogLoaded = promiseLoadSubDialog("about:profilemanager");
+  let profilesButton = doc.getElementById("dataCollectionViewProfiles");
+  profilesButton.click();
+  await promiseSubDialogLoaded;
+
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+add_task(async function testPrivacyInfoHiddenWhenDisabled() {
+  // Adjust the mocks so that `SelectableProfileService.isEnabled` is false.
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.profiles.enabled", false],
+      ["toolkit.profiles.storeID", ""],
+    ],
+  });
+  gProfileService.currentProfile.storeID = null;
+  await SelectableProfileService.uninit();
+  await SelectableProfileService.init();
+
+  ok(!SelectableProfileService.isEnabled, "service should not be enabled");
+
+  await openPreferencesViaOpenPreferencesAPI("privacy", {
+    leaveOpen: true,
+  });
+  let profilesNote = gBrowser.contentDocument.getElementById(
+    "preferences-privacy-profiles"
+  );
+
+  ok(!BrowserTestUtils.isVisible(profilesNote), "The profiles note is hidden");
+
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  await SpecialPowers.popPrefEnv();
+});

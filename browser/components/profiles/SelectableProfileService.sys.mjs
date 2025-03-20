@@ -105,9 +105,24 @@ class SelectableProfileServiceClass extends EventEmitter {
   #windowActivated = null;
   #isEnabled = false;
 
-  // The initial preferences that will be shared amongst profiles. Only used during database
-  // creation, after that the set in the database is used.
-  static initialSharedPrefs = ["toolkit.telemetry.cachedProfileGroupID"];
+  // The preferences that must be permanently stored in the database and kept
+  // consistent amongst profiles.
+  static permanentSharedPrefs = [
+    "app.shield.optoutstudies.enabled",
+    "browser.crashReports.unsubmittedCheck.autoSubmit2",
+    "browser.discovery.enabled",
+    "browser.urlbar.quicksuggest.dataCollection.enabled",
+    "datareporting.policy.currentPolicyVersion",
+    "datareporting.policy.dataSubmissionEnabled",
+    "datareporting.policy.dataSubmissionPolicyAcceptedVersion",
+    "datareporting.policy.dataSubmissionPolicyBypassNotification",
+    "datareporting.policy.dataSubmissionPolicyNotifiedTime",
+    "datareporting.policy.minimumPolicyVersion",
+    "datareporting.policy.minimumPolicyVersion.channel-beta",
+    "datareporting.usage.uploadEnabled",
+    "toolkit.telemetry.cachedProfileGroupID",
+  ];
+
   // Preferences that were previously shared but should now be ignored.
   static ignoredSharedPrefs = [
     "browser.profiles.enabled",
@@ -587,7 +602,10 @@ class SelectableProfileServiceClass extends EventEmitter {
       this.#observedPrefs.add(prefName);
     }
 
-    if (!Services.prefs.prefHasUserValue(prefName)) {
+    if (
+      !SelectableProfileServiceClass.permanentSharedPrefs.includes(prefName) &&
+      !Services.prefs.prefHasUserValue(prefName)
+    ) {
       await this.#deleteDBPref(prefName);
       return;
     }
@@ -1181,7 +1199,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     await this.init();
 
     // Flush our shared prefs into the database.
-    for (let prefName of SelectableProfileServiceClass.initialSharedPrefs) {
+    for (let prefName of SelectableProfileServiceClass.permanentSharedPrefs) {
       await this.flushSharedPrefToDatabase(prefName);
     }
 

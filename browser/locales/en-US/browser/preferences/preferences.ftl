@@ -1490,6 +1490,8 @@ collection-header2 = { -brand-short-name } Data Collection and Use
 
 preferences-collection-description = We strive to provide you with choices and collect only the minimal data necessary to improve { -brand-product-name } for everyone.
 preferences-collection-privacy-notice = View Privacy Notice
+preferences-across-profiles = These settings apply to every { -brand-product-name } profile on this device.
+preferences-view-profiles = View all profiles
 
 collection-health-report-telemetry-disabled = You’re no longer allowing { -vendor-short-name } to capture technical and interaction data. All past data will be deleted within 30 days.
 collection-health-report-telemetry-disabled-link = Learn more

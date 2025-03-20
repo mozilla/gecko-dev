@@ -78,6 +78,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
 ChromeUtils.defineESModuleGetters(this, {
   DoHConfigController: "resource:///modules/DoHConfig.sys.mjs",
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
+  SelectableProfileService:
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
 });
 
 const SANITIZE_ON_SHUTDOWN_MAPPINGS = {
@@ -942,6 +944,7 @@ var gPrivacyPane = {
     this.networkCookieBehaviorReadPrefs();
     this._initTrackingProtectionExtensionControl();
     this._initThirdPartyCertsToggle();
+    this._initProfilesInfo();
 
     Preferences.get("privacy.trackingprotection.enabled").on(
       "change",
@@ -3529,5 +3532,25 @@ var gPrivacyPane = {
         gPrivacyPane.updateDoHStatus();
         break;
     }
+  },
+
+  _initProfilesInfo() {
+    setEventListener(
+      "dataCollectionViewProfiles",
+      "click",
+      gMainPane.manageProfiles
+    );
+
+    let listener = () => gPrivacyPane.updateProfilesPrivacyInfo();
+    SelectableProfileService.on("enableChanged", listener);
+    window.addEventListener("unload", () =>
+      SelectableProfileService.off("enableChanged", listener)
+    );
+    this.updateProfilesPrivacyInfo();
+  },
+
+  updateProfilesPrivacyInfo() {
+    let profilesInfo = document.getElementById("preferences-privacy-profiles");
+    profilesInfo.hidden = !SelectableProfileService.isEnabled;
   },
 };
