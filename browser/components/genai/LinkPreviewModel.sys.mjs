@@ -19,6 +19,7 @@ const MIN_WORD_COUNT = 5;
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  Progress: "chrome://global/content/ml/Utils.sys.mjs",
 });
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -233,10 +234,11 @@ export const LinkPreviewModel = {
    *
    * @param {string} inputText
    * @param {object} callbacks for progress and error
+   * @param {Function} callbacks.onDownload optional for download active
    * @param {Function} callbacks.onText optional for text chunks
    * @param {Function} callbacks.onError optional for error
    */
-  async generateTextAI(inputText, { onText, onError } = {}) {
+  async generateTextAI(inputText, { onDownload, onText, onError } = {}) {
     const processedInput = this.preprocessText(inputText);
     // Asssume generated text is approximately the same length as the input.
     const nPredict = Math.ceil(processedInput.length / CHARACTERS_PER_TOKEN);
@@ -251,25 +253,34 @@ export const LinkPreviewModel = {
 
     let engine;
     try {
-      engine = await lazy.createEngine({
-        backend: "wllama",
-        engineId: "wllamapreview",
-        kvCacheDtype: "q8_0",
-        modelFile: "smollm2-360m-instruct-q8_0.gguf",
-        modelHubRootUrl: "https://model-hub.mozilla.org",
-        modelHubUrlTemplate: "{model}/{revision}",
-        modelId: "HuggingFaceTB/SmolLM2-360M-Instruct-GGUF",
-        modelRevision: "main",
-        numBatch: numContext,
-        numContext,
-        numUbatch: numContext,
-        runtimeFilename: "wllama.wasm",
-        taskName: "wllama-text-generation",
-        timeoutMS: -1,
-        useMlock: false,
-        useMmap: true,
-        ...JSON.parse(lazy.config),
-      });
+      engine = await lazy.createEngine(
+        {
+          backend: "wllama",
+          engineId: "wllamapreview",
+          kvCacheDtype: "q8_0",
+          modelFile: "smollm2-360m-instruct-q8_0.gguf",
+          modelHubRootUrl: "https://model-hub.mozilla.org",
+          modelHubUrlTemplate: "{model}/{revision}",
+          modelId: "HuggingFaceTB/SmolLM2-360M-Instruct-GGUF",
+          modelRevision: "main",
+          numBatch: numContext,
+          numContext,
+          numUbatch: numContext,
+          runtimeFilename: "wllama.wasm",
+          taskName: "wllama-text-generation",
+          timeoutMS: -1,
+          useMlock: false,
+          useMmap: true,
+          ...JSON.parse(lazy.config),
+        },
+        data => {
+          if (data.type == lazy.Progress.ProgressType.DOWNLOAD) {
+            onDownload?.(
+              data.statusText != lazy.Progress.ProgressStatusText.DONE
+            );
+          }
+        }
+      );
 
       const postProcessor = new SentencePostProcessor();
       for await (const val of engine.runWithGenerator({

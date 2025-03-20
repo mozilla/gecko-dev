@@ -4,6 +4,9 @@
 const { LinkPreview } = ChromeUtils.importESModule(
   "moz-src:///browser/components/genai/LinkPreview.sys.mjs"
 );
+const { LinkPreviewModel } = ChromeUtils.importESModule(
+  "moz-src:///browser/components/genai/LinkPreviewModel.sys.mjs"
+);
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -110,7 +113,15 @@ add_task(async function test_link_preview_panel_shown() {
     set: [["browser.ml.linkPreview.enabled", true]],
   });
 
-  const stub = sinon.stub(LinkPreview, "generateKeyPoints");
+  let onDownload, toResolve;
+  const stub = sinon
+    .stub(LinkPreviewModel, "generateTextAI")
+    .callsFake(async (text, options) => {
+      onDownload = options.onDownload;
+      toResolve = Promise.withResolvers();
+      return toResolve.promise;
+    });
+
   window.dispatchEvent(
     new KeyboardEvent("keydown", {
       bubbles: true,
@@ -128,6 +139,28 @@ add_task(async function test_link_preview_panel_shown() {
   await BrowserTestUtils.waitForEvent(panel, "popupshown");
 
   is(stub.callCount, 1, "would have generated key points");
+
+  const card = panel.querySelector("link-preview-card");
+  ok(card, "card created for link preview");
+  ok(card.generating, "initially marked as generating");
+  ok(!card.showWait, "initially assume not waiting");
+  ok(!LinkPreview.downloadingModel, "initially assume not downloading");
+
+  onDownload(true);
+
+  ok(card.showWait, "switched to waiting when download initiates");
+  ok(LinkPreview.downloadingModel, "shared waiting for download");
+
+  onDownload(false);
+
+  ok(!card.showWait, "no longer waiting after download complete");
+  ok(!LinkPreview.downloadingModel, "downloading updated");
+  ok(card.generating, "still generating");
+
+  toResolve.resolve();
+  await LinkPreview.lastRequest;
+
+  ok(!card.generating, "done generating");
 
   panel.remove();
   stub.restore();

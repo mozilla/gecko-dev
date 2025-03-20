@@ -12,6 +12,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
 });
 
+// TODO put in actual link probably same as labs bug 1951144
+const FEEDBACK_LINK =
+  "https://docs.google.com/spreadsheets/d/1hsG7UXGJRN8D4ViaETICDyA0gbBArzmib1qTylmIu8M";
+
 /**
  * Class representing a link preview element.
  *
@@ -19,9 +23,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 class LinkPreviewCard extends MozLitElement {
   static properties = {
-    generating: { type: Number },
+    generating: { type: Number }, // 0 = off, 1-4 = generating & dots state
     keyPoints: { type: Array },
     pageData: { type: Object },
+    showWait: { type: Boolean },
   };
 
   constructor() {
@@ -61,11 +66,13 @@ class LinkPreviewCard extends MozLitElement {
   updated(properties) {
     if (properties.has("generating")) {
       if (this.generating > 0) {
+        // Count up to 4 so that we can show 0 to 3 dots.
         this.dotsTimeout = setTimeout(
-          () => (this.generating = (this.generating % 3) + 1),
+          () => (this.generating = (this.generating % 4) + 1),
           500
         );
       } else {
+        // Setting to false or 0 means we're done generating.
         clearTimeout(this.dotsTimeout);
       }
     }
@@ -87,15 +94,14 @@ class LinkPreviewCard extends MozLitElement {
       metaData["og:title"] ||
       metaData["twitter:title"] ||
       metaData["html:title"] ||
-      pageUrl ||
-      "";
+      "This link can’t be previewed";
 
     const description =
       articleData.excerpt ||
       metaData["og:description"] ||
       metaData["twitter:description"] ||
       metaData.description ||
-      "";
+      "No Reason. Just ’cause. (better error handling incoming)";
 
     const imageUrl =
       metaData["og:image"] || metaData["twitter:image:src"] || "";
@@ -136,14 +142,31 @@ class LinkPreviewCard extends MozLitElement {
           ? html`
               <div class="ai-content">
                 <h3>
-                  Generat${this.generating ? "ing" : "ed"} key
-                  points${".".repeat(this.generating)}
+                  ${this.generating
+                    ? "Generating key points" + ".".repeat(this.generating - 1)
+                    : "Key points"}
                 </h3>
                 <ul>
                   ${this.keyPoints.map(item => html`<li>${item}</li>`)}
                 </ul>
                 <hr />
-                <p>AI-generated content may be inaccurate</p>
+                ${this.showWait
+                  ? html`<p>
+                      This may take a moment the first time you preview a link.
+                      Key points should appear more quickly next time.
+                    </p>`
+                  : ""}
+                <p>
+                  Key points are AI-generated and may be wrong.
+                  <a @click=${this.handleLink} href=${FEEDBACK_LINK}>
+                    Foxfooding feedback
+                  </a>
+                </p>
+                <p>
+                  <a @click=${this.handleLink} href=${pageUrl}>
+                    Visit original page
+                  </a>
+                </p>
               </div>
             `
           : ""}

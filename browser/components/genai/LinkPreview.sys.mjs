@@ -24,6 +24,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 export const LinkPreview = {
+  // Shared downloading state to use across multiple previews
+  downloadingModel: false,
   keyboardComboActive: false,
   _windowStates: new Map(),
   linkPreviewPanelId: "link-preview-panel",
@@ -189,6 +191,8 @@ export const LinkPreview = {
   createOGCard(doc, pageData) {
     const ogCard = doc.createElement("link-preview-card");
     ogCard.pageData = pageData;
+    // Assume we need to wait if another generate is downloading.
+    ogCard.showWait = this.downloadingModel;
 
     if (pageData.article.textContent) {
       this.generateKeyPoints(ogCard);
@@ -222,8 +226,14 @@ export const LinkPreview = {
       await lazy.LinkPreviewModel.generateTextAI(
         ogCard.pageData.article.textContent,
         {
+          onDownload: state => {
+            ogCard.showWait = state;
+            this.downloadingModel = state;
+          },
           onError: console.error,
-          onText(text) {
+          onText: text => {
+            // Clear waiting in case a different generate handled download.
+            ogCard.showWait = false;
             ogCard.addKeyPoint(text);
             if (--expected == 0) {
               ogCard.generating = false;
