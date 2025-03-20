@@ -76,35 +76,27 @@ export function generateInlinePreview(selectedFrame) {
       curLevel <= levels && scopes && scopes.bindings;
       curLevel++
     ) {
+      // All the bindings from the platform scopes
       const bindings = getScopeBindings(scopes);
-      const previewBindings = Object.keys(bindings).map(async name => {
-        // We want to show values of properties of objects only and not
-        // function calls on other data types like someArr.forEach etc..
-        let properties = null;
-        const objectGrip = bindings[name].value;
-        if (objectGrip.actor && objectGrip.class === "Object") {
-          properties = await client.loadObjectProperties(
-            {
-              name,
-              path: name,
-              contents: { value: objectGrip },
-            },
+
+      // Generate the previews for all the bindings
+      const allPreviewBindingsComplete = Object.keys(bindings).map(
+        async name => {
+          // Get previews for this binding
+          const previews = await generatePreviewsForBinding(
+            originalAstScopes[curLevel]?.bindings[name],
+            pausedOnLine,
+            name,
+            bindings[name].value,
+            client,
             selectedFrame.thread
           );
+
+          allPreviews.push(...previews);
         }
+      );
+      await Promise.all(allPreviewBindingsComplete);
 
-        const previewsFromBindings = getBindingValues(
-          originalAstScopes,
-          pausedOnLine,
-          name,
-          bindings[name].value,
-          curLevel,
-          properties
-        );
-
-        allPreviews.push(...previewsFromBindings);
-      });
-      await Promise.all(previewBindings);
       // Bailout if we resumed or moved to another frame while fetching the values from the backend
       validateSelectedFrame(getState(), selectedFrame);
 
@@ -141,7 +133,6 @@ export function generateInlinePreview(selectedFrame) {
 }
 
 /**
- * Gets the bindings for the scope
  * Merge both variables and arguments into a unique "bindings" objects, where arguments overrides variables.
  *
  * @param {Object} scopes
@@ -157,29 +148,37 @@ function getScopeBindings(scopes) {
   return bindings;
 }
 
-function getBindingValues(
-  originalAstScopes,
+/**
+ * Generates the previews from the binding information
+ *
+ * @param {Object} bindingData - Scope binding data from the AST about a particular variable/argument at a particular level in the scope.
+ * @param {Number} pausedOnLine - The current line we are paused on
+ * @param {String} name - Name of binding from the platfom scopes
+ * @param {String} value - Value of the binding from the platform scopes
+ * @param {Object} client - Client object for loading properties
+ * @param {Object} thread - Thread used to get the expressions values
+ * @returns
+ */
+async function generatePreviewsForBinding(
+  bindingData,
   pausedOnLine,
   name,
   value,
-  curLevel,
-  properties
+  client,
+  thread
 ) {
-  const previews = [];
-
-  const binding = originalAstScopes[curLevel]?.bindings[name];
-  if (!binding) {
-    return previews;
+  if (!bindingData) {
+    return [];
   }
 
   // Show a variable only once ( an object and it's child property are
   // counted as different )
   const identifiers = new Set();
-
+  const previews = [];
   // We start from end as we want to show values besides variable
   // located nearest to the breakpoint
-  for (let i = binding.refs.length - 1; i >= 0; i--) {
-    const ref = binding.refs[i];
+  for (let i = bindingData.refs.length - 1; i >= 0; i--) {
+    const ref = bindingData.refs[i];
     // Subtracting 1 from line as codemirror lines are 0 indexed
     const line = ref.start.line - 1;
     const column = ref.start.column;
@@ -188,11 +187,12 @@ function getBindingValues(
       continue;
     }
 
-    const { displayName, displayValue } = getExpressionNameAndValue(
+    const { displayName, displayValue } = await getExpressionNameAndValue(
       name,
       value,
       ref,
-      properties
+      client,
+      thread
     );
 
     // Variable with same name exists, display value of current or
@@ -214,15 +214,33 @@ function getBindingValues(
   return previews;
 }
 
-function getExpressionNameAndValue(
-  name,
-  value,
-  // TODO: Add data type to ref
-  ref,
-  properties
-) {
+/**
+ * Get the name and value details to be displayed in the inline preview
+ *
+ * @param {String} name - Binding name
+ * @param {String} value - Binding value which is the Enviroment object actor form
+ * @param {Object} ref - Binding reference
+ * @param {Object} client - Client object for loading properties
+ * @param {String} thread - Thread used to get the expression values
+ * @returns
+ */
+async function getExpressionNameAndValue(name, value, ref, client, thread) {
   let displayName = name;
   let displayValue = value;
+
+  // We want to show values of properties of objects only and not
+  // function calls on other data types like someArr.forEach etc..
+  let properties = null;
+  if (value.actor && value.class === "Object") {
+    properties = await client.loadObjectProperties(
+      {
+        name,
+        path: name,
+        contents: { value },
+      },
+      thread
+    );
+  }
 
   // Only variables of type Object will have properties
   if (properties) {
