@@ -31,6 +31,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.theme.layout.AcornLayout
 import mozilla.components.lib.state.ext.observeAsState
@@ -85,6 +86,8 @@ fun SetupChecklist(
             CheckListView(setupChecklistState.checklistItems, onChecklistItemClicked)
 
             if (allTasksCompleted) {
+                Divider()
+
                 RemoveChecklistButton(labelRemoveChecklistButton, onRemoveChecklistButtonClicked)
             }
         }

@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.theme.AcornTheme
 import org.mozilla.fenix.R
@@ -46,9 +47,15 @@ fun CheckListView(
     onChecklistItemClicked: (ChecklistItem) -> Unit,
 ) {
     LazyColumn {
-        items(checkListItems) { item ->
+        itemsIndexed(checkListItems) { index, item ->
             when (item) {
-                is ChecklistItem.Group -> GroupWithTasks(item, onChecklistItemClicked)
+                is ChecklistItem.Group -> GroupWithTasks(
+                    group = item,
+                    onChecklistItemClicked = onChecklistItemClicked,
+                    // No divider for the last group, in case it is the last element
+                    // in the parent composable.
+                    addDivider = index != checkListItems.size - 1,
+                )
                 is ChecklistItem.Task -> Task(item, onChecklistItemClicked)
             }
         }
@@ -100,12 +107,17 @@ private fun Task(
 private fun GroupWithTasks(
     group: ChecklistItem.Group,
     onChecklistItemClicked: (ChecklistItem) -> Unit,
+    addDivider: Boolean,
 ) {
     Column {
         Group(group, onChecklistItemClicked)
 
         if (group.isExpanded) {
             group.tasks.forEach { task -> Task(task, onChecklistItemClicked) }
+        }
+
+        if (addDivider) {
+            Divider()
         }
     }
 }
