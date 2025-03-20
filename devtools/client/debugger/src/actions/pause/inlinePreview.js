@@ -76,13 +76,7 @@ export function generateInlinePreview(selectedFrame) {
       curLevel <= levels && scopes && scopes.bindings;
       curLevel++
     ) {
-      const bindings = { ...scopes.bindings.variables };
-      scopes.bindings.arguments.forEach(argument => {
-        Object.keys(argument).forEach(key => {
-          bindings[key] = argument[key];
-        });
-      });
-
+      const bindings = getScopeBindings(scopes);
       const previewBindings = Object.keys(bindings).map(async name => {
         // We want to show values of properties of objects only and not
         // function calls on other data types like someArr.forEach etc..
@@ -144,6 +138,23 @@ export function generateInlinePreview(selectedFrame) {
       previews,
     });
   };
+}
+
+/**
+ * Gets the bindings for the scope
+ * Merge both variables and arguments into a unique "bindings" objects, where arguments overrides variables.
+ *
+ * @param {Object} scopes
+ * @returns
+ */
+function getScopeBindings(scopes) {
+  const bindings = { ...scopes.bindings.variables };
+  scopes.bindings.arguments.forEach(argument => {
+    Object.keys(argument).forEach(key => {
+      bindings[key] = argument[key];
+    });
+  });
+  return bindings;
 }
 
 function getBindingValues(
