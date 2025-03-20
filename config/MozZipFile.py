@@ -6,7 +6,6 @@ import os
 import time
 import zipfile
 
-import six
 from filelock import SoftFileLock
 
 
@@ -19,7 +18,7 @@ class ZipFile(zipfile.ZipFile):
 
     def __init__(self, file, mode="r", compression=zipfile.ZIP_STORED, lock=False):
         if lock:
-            assert isinstance(file, six.text_type)
+            assert isinstance(file, str)
             self.lockfile = SoftFileLock(file + ".lck")
             self.lockfile.acquire()
         else:

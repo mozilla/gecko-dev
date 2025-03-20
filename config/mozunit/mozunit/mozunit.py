@@ -11,8 +11,6 @@ from unittest import TestResult as _TestResult
 from unittest import TextTestRunner as _TestRunner
 
 import pytest
-import six
-from six import BytesIO, StringIO
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -137,8 +135,8 @@ def _mocked_file(cls):
     return MockedFile
 
 
-MockedStringFile = _mocked_file(StringIO)
-MockedBytesFile = _mocked_file(BytesIO)
+MockedStringFile = _mocked_file(io.StringIO)
+MockedBytesFile = _mocked_file(io.BytesIO)
 
 
 def normcase(path):
@@ -209,19 +207,17 @@ class _MockBaseOpen(object):
         raise NotImplementedError("subclass must implement")
 
 
-class _MockPy2Open(_MockBaseOpen):
-    def _mocked_file(self, name, mode, content=None):
-        content = six.ensure_binary(content or b"")
-        return MockedBytesFile(self, name, content)
-
-
 class _MockOpen(_MockBaseOpen):
     def _mocked_file(self, name, mode, content=None):
         if "b" in mode:
-            content = six.ensure_binary(content or b"")
+            content = content or b""
+            if isinstance(content, str):
+                content = content.encode()
             return MockedBytesFile(self, name, content)
         else:
-            content = six.ensure_text(content or "")
+            content = content or ""
+            if isinstance(content, bytes):
+                content = content.decode()
             return MockedStringFile(self, name, content)
 
 
@@ -254,24 +250,23 @@ class MockedOpen(object):
             self.files[normcase(os.path.abspath(name))] = content
 
     def __enter__(self):
-        import six.moves.builtins
+        import builtins
 
-        self.open = six.moves.builtins.open
+        self.open = open
         self.io_open = io.open
         self._orig_path_exists = os.path.exists
         self._orig_path_isdir = os.path.isdir
         self._orig_path_isfile = os.path.isfile
-        builtin_cls = _MockPy2Open if six.PY2 else _MockOpen
-        six.moves.builtins.open = builtin_cls(self.open, self.files)
+        builtins.open = _MockOpen(self.open, self.files)
         io.open = _MockOpen(self.io_open, self.files)
         os.path.exists = self._wrapped_exists
         os.path.isdir = self._wrapped_isdir
         os.path.isfile = self._wrapped_isfile
 
     def __exit__(self, type, value, traceback):
-        import six.moves.builtins
+        import builtins
 
-        six.moves.builtins.open = self.open
+        builtins.open = self.open
         io.open = self.io_open
         os.path.exists = self._orig_path_exists
         os.path.isdir = self._orig_path_isdir

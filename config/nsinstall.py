@@ -16,7 +16,6 @@ import sys
 from optparse import OptionParser
 
 import mozfile
-import six
 
 
 def _nsinstall_internal(argv):
@@ -165,7 +164,7 @@ def _nsinstall_internal(argv):
 
 
 def nsinstall(argv):
-    return _nsinstall_internal([six.ensure_text(arg, "utf-8") for arg in argv])
+    return _nsinstall_internal([arg for arg in argv])
 
 
 if __name__ == "__main__":

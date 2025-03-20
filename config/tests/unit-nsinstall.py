@@ -9,7 +9,6 @@ from tempfile import mkdtemp
 
 import mozunit
 import nsinstall as nsinstall_module
-import six
 from nsinstall import nsinstall
 
 NSINSTALL_PATH = nsinstall_module.__file__
@@ -33,13 +32,7 @@ class TestNsinstall(unittest.TestCase):
         self.tmpdir = mkdtemp()
 
     def tearDown(self):
-        # Unicode strings means non-ASCII children can be deleted properly on
-        # Windows
-        if sys.stdin.encoding is None:
-            tmpdir = six.ensure_text(self.tmpdir)
-        else:
-            tmpdir = six.ensure_text(self.tmpdir, sys.stdin.encoding)
-        rmtree(tmpdir)
+        rmtree(self.tmpdir)
 
     # utility methods for tests
     def touch(self, file, dir=None):
