@@ -101,7 +101,8 @@ static const RedirEntry kRedirMap[] = {
      nsIAboutModule::IS_SECURE_CHROME_UI},
 #else
     {"config", "chrome://geckoview/content/config.xhtml",
-     nsIAboutModule::IS_SECURE_CHROME_UI},
+     nsIAboutModule::IS_SECURE_CHROME_UI |
+         nsIAboutModule::HIDE_FROM_ABOUTABOUT},
 #endif
 #ifdef MOZ_CRASHREPORTER
     {"crashes", "chrome://global/content/crashes.html",
