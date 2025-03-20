@@ -6,7 +6,6 @@ package org.mozilla.fenix.checklist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -119,17 +118,15 @@ private fun Group(
 ) {
     Row(
         modifier = Modifier
-            .padding(
-                horizontal = 16.dp,
-                vertical = 8.dp,
-            )
             .fillMaxWidth()
+            .height(56.dp)
             .clickable { onChecklistItemClicked(group) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 16.dp),
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
@@ -148,12 +145,11 @@ private fun Group(
 
         Icon(
             painter = painterResource(id = R.drawable.ic_arrowhead_down),
-            tint = FirefoxTheme.colors.textPrimary,
             contentDescription = "",
             modifier = Modifier
-                .size(26.dp)
-                .padding(1.dp)
+                .padding(16.dp)
                 .rotate(if (group.isExpanded) ROTATE_180 else 0f),
+            tint = FirefoxTheme.colors.iconPrimary,
         )
     }
 }
