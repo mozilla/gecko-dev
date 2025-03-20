@@ -2349,6 +2349,18 @@ void Document::AccumulatePageLoadTelemetry(
             static_cast<uint32_t>(timeToRequestStart.ToMilliseconds()));
       }
     }
+
+    TimeStamp secureConnectStart;
+    TimeStamp connectEnd;
+    timedChannel->GetSecureConnectionStart(&secureConnectStart);
+    timedChannel->GetConnectEnd(&connectEnd);
+    if (secureConnectStart && connectEnd) {
+      TimeDuration tlsHandshakeTime = connectEnd - secureConnectStart;
+      if (tlsHandshakeTime > zeroDuration) {
+        aEventTelemetryDataOut.tlsHandshakeTime = mozilla::Some(
+            static_cast<uint32_t>(tlsHandshakeTime.ToMilliseconds()));
+      }
+    }
   }
 
   aEventTelemetryDataOut.features = mozilla::Some(mPageloadEventFeatures);

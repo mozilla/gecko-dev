@@ -39,6 +39,7 @@ struct ParamTraits<mozilla::glean::perf::PageLoadExtra> {
     WriteParam(aWriter, aParam.loadTime);
     WriteParam(aWriter, aParam.loadType);
     WriteParam(aWriter, aParam.timeToRequestStart);
+    WriteParam(aWriter, aParam.tlsHandshakeTime);
     WriteParam(aWriter, aParam.responseTime);
     WriteParam(aWriter, aParam.httpVer);
     WriteParam(aWriter, aParam.redirectCount);
@@ -56,6 +57,7 @@ struct ParamTraits<mozilla::glean::perf::PageLoadExtra> {
            ReadParam(aReader, &aResult->loadTime) &&
            ReadParam(aReader, &aResult->loadType) &&
            ReadParam(aReader, &aResult->timeToRequestStart) &&
+           ReadParam(aReader, &aResult->tlsHandshakeTime) &&
            ReadParam(aReader, &aResult->responseTime) &&
            ReadParam(aReader, &aResult->httpVer) &&
            ReadParam(aReader, &aResult->redirectCount) &&
