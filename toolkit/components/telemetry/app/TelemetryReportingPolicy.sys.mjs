@@ -18,7 +18,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   OnboardingMessageProvider:
     "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs",
-  WinTaskbarJumpList: "resource:///modules/WindowsJumpLists.sys.mjs",
 });
 
 const LOGGER_NAME = "Toolkit.Telemetry";
@@ -884,14 +883,7 @@ var TelemetryReportingPolicyImpl = {
     this._log.trace(
       "_notifyUserViaModal: modal displayed, waiting for user interaction"
     );
-
-    // Clear the Windows jump list to limit opening new windows while the modal
-    // is displayed
-    lazy.WinTaskbarJumpList.blockJumpList();
-
     await p;
-    // Restore Windows jump list
-    lazy.WinTaskbarJumpList.unblockJumpList();
 
     this._log.trace("_notifyUserViaModal: user interacted with modal");
 

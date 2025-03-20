@@ -322,9 +322,6 @@ export var WinTaskbarJumpList = {
   _builder: null,
   _pbBuilder: null,
   _builtPb: false,
-  // Is showing jump lists currently blocked, such as when waiting for the user
-  // to interact with the preonboarding modal?
-  _blocked: false,
   _shuttingDown: false,
 
   /**
@@ -355,15 +352,11 @@ export var WinTaskbarJumpList = {
 
     // jump list refresh timer
     this._updateTimer();
-
-    if (this._blocked) {
-      this._builder._deleteActiveJumpList();
-    }
   },
 
   update: function WTBJL_update() {
-    // are we disabled via prefs or currently blocked? don't do anything!
-    if (!this._enabled || this._blocked) {
+    // are we disabled via prefs? don't do anything!
+    if (!this._enabled) {
       return;
     }
 
@@ -507,18 +500,6 @@ export var WinTaskbarJumpList = {
 
   name: "WinTaskbarJumpList",
 
-  blockJumpList: function WTBJL_clearJumpList() {
-    this._blocked = true;
-    if (this._builder) {
-      this._builder._deleteActiveJumpList();
-    }
-  },
-
-  unblockJumpList: function WTBJL_updateJumpList() {
-    this._blocked = false;
-    this.update();
-  },
-
   notify: function WTBJL_notify() {
     // Add idle observer on the first notification so it doesn't hit startup.
     this._updateIdleObserver();
@@ -531,7 +512,7 @@ export var WinTaskbarJumpList = {
     switch (aTopic) {
       case "nsPref:changed":
         if (this._enabled && !lazy._prefs.getBoolPref(PREF_TASKBAR_ENABLED)) {
-          this._builder._deleteActiveJumpList();
+          this._deleteActiveJumpList();
         }
         this._refreshPrefs();
         this._updateTimer();
