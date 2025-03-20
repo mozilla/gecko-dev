@@ -55,7 +55,7 @@
   <string name="menu_settings">Mpustazzioni</string>
   <string name="menu_about">Nfurmazzioni</string>
   <string name="menu_help">Ajutu</string>
-  <string name="menu_rights">I to diritti</string>
+  <string name="menu_rights" moz:removedIn="137">I to diritti</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s è un prugramma lìbbiru e a còdici graputu fattu di Mozilla e autri cuntribbutura.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s è un prugramma lìbbiru e a còdici graputu fattu di Mozilla e autri cuntribbutura.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s è dispunìbbili sutta i tèrmini dâ &lt;a href="%2$s"&gt;Licenza Pùbblica Mozilla&lt;/a&gt; e autri licenzi a còdici graputu.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s è dispunìbbili sutta i tèrmini dâ &lt;a href="%2$s"&gt;Licenza Pùbblica Mozilla&lt;/a&gt; e autri licenzi a còdici graputu.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nun ài nuḍḍu dirittu o licenza ncapu ê merchi dâ Funnazzioni Mozilla, o autri parti, nchiusi i nomi o i merchi di Mozilla, Firefox o %1$s. Po\' attruvari cchiù assai nfurmazzioni &lt;a href="%2$s"&gt;cca&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nun ài nuḍḍu dirittu o licenza ncapu ê merchi dâ Funnazzioni Mozilla, o autri parti, nchiusi i nomi o i merchi di Mozilla, Firefox o %1$s. Po\' attruvari cchiù assai nfurmazzioni &lt;a href="%2$s"&gt;cca&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Cc\'è dispunìbbili u còdici funti superchiu pi %1$s sutta assai &lt;a href="%2$s"&gt;autri licenzi lìbbiri e a còdici graputu&lt;/a&gt;.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Cc\'è dispunìbbili u còdici funti superchiu pi %1$s sutta assai &lt;a href="%2$s"&gt;autri licenzi lìbbiri e a còdici graputu&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s usa macari i listi di bloccu furnuti di Disconnect, Inc. comu travagghi spartuti e nnipinnenti sutta â &lt;a href="%2$s"&gt;Licenza Pùbblica Ginirali GNU v3&lt;/a&gt;, e sunnu dispunìbbili &lt;a href="%3$s"&gt;cca&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s usa macari i listi di bloccu furnuti di Disconnect, Inc. comu travagghi spartuti e nnipinnenti sutta â &lt;a href="%2$s"&gt;Licenza Pùbblica Ginirali GNU v3&lt;/a&gt;, e sunnu dispunìbbili &lt;a href="%3$s"&gt;cca&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Nomu utenti</string>
   <string name="gv_prompt_password_hint">Chiavi</string>

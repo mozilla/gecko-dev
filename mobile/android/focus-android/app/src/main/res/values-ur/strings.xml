@@ -55,7 +55,7 @@
   <string name="menu_settings">سیٹنگیں</string>
   <string name="menu_about">کے بارے میں</string>
   <string name="menu_help">مدد</string>
-  <string name="menu_rights">آپ کے حقوق</string>
+  <string name="menu_rights" moz:removedIn="137">آپ کے حقوق</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -55,7 +55,7 @@
   <string name="menu_settings">सेटिङ्गहरू</string>
   <string name="menu_about">बारेमा</string>
   <string name="menu_help">सहयोग</string>
-  <string name="menu_rights">तपाईंका अधिकारहरु</string>
+  <string name="menu_rights" moz:removedIn="137">तपाईंका अधिकारहरु</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.

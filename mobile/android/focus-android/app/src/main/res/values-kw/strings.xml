@@ -55,7 +55,7 @@
   <string name="menu_settings">Dewisyow</string>
   <string name="menu_about">A-dro</string>
   <string name="menu_help">Gweres</string>
-  <string name="menu_rights">Dha Wiryow</string>
+  <string name="menu_rights" moz:removedIn="137">Dha Wiryow</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -541,32 +541,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s yw medhelweyth rydh ha fenten ygor gwrys gans Mozilla ha kevriysi erel.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s yw medhelweyth rydh ha fenten ygor gwrys gans Mozilla ha kevriysi erel.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">Y hwrer %1$s kavadow dhis der ambosow an &lt;a href="%2$s"&gt;Leshyans Poblek Mozilla&lt;/a&gt; ha leshyansow fenten-ygor erel.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Y hwrer %1$s kavadow dhis der ambosow an &lt;a href="%2$s"&gt;Leshyans Poblek Mozilla&lt;/a&gt; ha leshyansow fenten-ygor erel.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nyns yw grontys dhis gwiryow po leshyansow vytholl dhe werthnosow an Fondyans Mozilla po py rannbarth pynag, ynna an henwyn po avenyow Mozilla, Firefox, po %1$s. Y hyllir kavos kedhlow ynwedhek &lt;a href="%2$s"&gt;omma&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nyns yw grontys dhis gwiryow po leshyansow vytholl dhe werthnosow an Fondyans Mozilla po py rannbarth pynag, ynna an henwyn po avenyow Mozilla, Firefox, po %1$s. Y hyllir kavos kedhlow ynwedhek &lt;a href="%2$s"&gt;omma&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Kod pennfenten a %1$s yw kavadow yn-dann lies &lt;a href="%2$s"&gt;leshyans&lt;/a&gt; rydh ha fenten-ygor.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Kod pennfenten a %1$s yw kavadow yn-dann lies &lt;a href="%2$s"&gt;leshyans&lt;/a&gt; rydh ha fenten-ygor.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s a wra devnydh ynwedh a lies rol-lettya proviys gans Disconnect, Inc. avel oberennow dihaval hag anserghek yn-dann an &lt;a href="%2$s"&gt;Leshyans Poblek Ollgemmyn GNU v3&lt;/a&gt; ha kavadow &lt;a href="%3$s"&gt;omma&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s a wra devnydh ynwedh a lies rol-lettya proviys gans Disconnect, Inc. avel oberennow dihaval hag anserghek yn-dann an &lt;a href="%2$s"&gt;Leshyans Poblek Ollgemmyn GNU v3&lt;/a&gt; ha kavadow &lt;a href="%3$s"&gt;omma&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Hanow devnydhyer</string>
   <string name="gv_prompt_password_hint">Ger tremena</string>

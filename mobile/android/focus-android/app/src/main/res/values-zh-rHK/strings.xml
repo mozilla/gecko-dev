@@ -55,7 +55,7 @@
   <string name="menu_settings">設定</string>
   <string name="menu_about">關於</string>
   <string name="menu_help">說明</string>
-  <string name="menu_rights">你嘅權利</string>
+  <string name="menu_rights" moz:removedIn="137">你嘅權利</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -478,7 +478,7 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s 係免費同開放源代碼嘅軟件，係由 Mozilla 同其他貢獻者一齊整出嚟㗎。</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s 係免費同開放源代碼嘅軟件，係由 Mozilla 同其他貢獻者一齊整出嚟㗎。</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">使用者名稱</string>
   <string name="gv_prompt_password_hint">密碼</string>

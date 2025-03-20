@@ -714,7 +714,7 @@
 
     Widget description for widget picker screen
   -->
-  <string name="widget_picket_description">Dechreuwch chwiliad cyflym</string>
+  <string name="widget_picket_description">Dechreuwch chwilio cyflym</string>
   <!--
     Search Widget
 
@@ -3522,4 +3522,12 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Dangos testun cudd</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Clirio testun</string>
+  <!--
+    Setup checklist component
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">Tasg wedi\'i chwblhau</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">Eicon tasg</string>
 </resources>

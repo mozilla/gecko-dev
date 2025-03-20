@@ -55,7 +55,8 @@
   <string name="menu_settings">Inställningar</string>
   <string name="menu_about">Om</string>
   <string name="menu_help">Hjälp</string>
-  <string name="menu_rights">Dina rättigheter</string>
+  <string name="menu_rights" moz:removedIn="137">Dina rättigheter</string>
+  <string name="menu_terms_of_use">Användarvillkor</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +572,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s är gratis och öppen källkodsprogramvara utvecklad av Mozilla och andra bidragsgivare.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s är gratis och öppen källkodsprogramvara utvecklad av Mozilla och andra bidragsgivare.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s är tillgänglig för dig enligt villkoren i &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; och andra open source-licenser.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s är tillgänglig för dig enligt villkoren i &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; och andra open source-licenser.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Du är inte beviljad några rättigheter eller licenser till varumärken som tillhör Mozilla Foundation eller någon part, däribland Mozilla, Firefox eller %1$s namn eller logotyper. Ytterligare information kan hittas &lt;a href="%2$s"&gt;här&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Du är inte beviljad några rättigheter eller licenser till varumärken som tillhör Mozilla Foundation eller någon part, däribland Mozilla, Firefox eller %1$s namn eller logotyper. Ytterligare information kan hittas &lt;a href="%2$s"&gt;här&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Ytterligare källkod för %1$s finns tillgänglig under flera andra gratis och open source-&lt;a href="%2$s"&gt;licenser&lt;/a&gt;.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Ytterligare källkod för %1$s finns tillgänglig under flera andra gratis och open source-&lt;a href="%2$s"&gt;licenser&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s använder också blocklistor som tillhandahålls av Disconnect, Inc. som separata och oberoende verk under &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; och tillgänglig &lt;a href="%3$s"&gt;här&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s använder också blocklistor som tillhandahålls av Disconnect, Inc. som separata och oberoende verk under &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; och tillgänglig &lt;a href="%3$s"&gt;här&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Användarnamn</string>
   <string name="gv_prompt_password_hint">Lösenord</string>

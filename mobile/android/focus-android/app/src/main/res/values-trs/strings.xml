@@ -55,7 +55,7 @@
   <string name="menu_settings">Nagi\'iaj</string>
   <string name="menu_about">Doj rayi\'î</string>
   <string name="menu_help">Sa ruguñu\'unj un</string>
-  <string name="menu_rights">Nej sa tna\'uej rayi\'ît</string>
+  <string name="menu_rights" moz:removedIn="137">Nej sa tna\'uej rayi\'ît</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -535,32 +535,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s ‘ngō software chre nī sa huā nî’nïnj ï huin man giri Mozilla nī a’ngô nej duguî’ rugûñu’ūnj.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s ‘ngō software chre nī sa huā nî’nïnj ï huin man giri Mozilla nī a’ngô nej duguî’ rugûñu’ūnj.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s huā guendâ gārāsunt sanī da’huît gārayinat nuguan’ &lt;a href="%2$s"&gt;si’hiaj Mozilla&lt;/a&gt; Nī a’ngô nej nuguan’ tna’huēj rayi’î nej sun nan.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s huā guendâ gārāsunt sanī da’huît gārayinat nuguan’ &lt;a href="%2$s"&gt;si’hiaj Mozilla&lt;/a&gt; Nī a’ngô nej nuguan’ tna’huēj rayi’î nej sun nan.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nitāj si â’nïnj fundación Mozilla ganè’ nej rasuun nīka nī ngà ‘ngō yiko’ li, dàj rû’ si yugui nej %1$s asi da’nga’ nīka, Firefox. Ga’ue narì’t doj nuguan’ a’min rayi’î &lt;a href="%2$s"&gt;hiūj nan&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nitāj si â’nïnj fundación Mozilla ganè’ nej rasuun nīka nī ngà ‘ngō yiko’ li, dàj rû’ si yugui nej %1$s asi da’nga’ nīka, Firefox. Ga’ue narì’t doj nuguan’ a’min rayi’î &lt;a href="%2$s"&gt;hiūj nan&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">‘Ngō da’nga’ natà’ guendâ %1$s nūn man ngà &lt;a href="%2$s"&gt;nej lisênsia huā nî’nïnj ïn&lt;/a&gt;.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">‘Ngō da’nga’ natà’ guendâ %1$s nūn man ngà &lt;a href="%2$s"&gt;nej lisênsia huā nî’nïnj ïn&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s arâj sunj nej nuguan’ narikî Disconnect,Inc. dàj rû’ nej sun huā ninïïn &lt;a href="%2$s"&gt;GNU ‘iaj Licencia Yumàn’ v3&lt;/a&gt;, nī nunj &lt;a href="%3$s"&gt;hiūj nan&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s arâj sunj nej nuguan’ narikî Disconnect,Inc. dàj rû’ nej sun huā ninïïn &lt;a href="%2$s"&gt;GNU ‘iaj Licencia Yumàn’ v3&lt;/a&gt;, nī nunj &lt;a href="%3$s"&gt;hiūj nan&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Si yugui re\'</string>
   <string name="gv_prompt_password_hint">Da\'nga\' huìi</string>

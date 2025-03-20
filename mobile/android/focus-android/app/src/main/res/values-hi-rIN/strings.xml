@@ -55,7 +55,7 @@
   <string name="menu_settings">सेटिंग</string>
   <string name="menu_about">परिचय</string>
   <string name="menu_help">सहायता</string>
-  <string name="menu_rights">आपके अधिकार</string>
+  <string name="menu_rights" moz:removedIn="137">आपके अधिकार</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -439,7 +439,7 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s Mozilla और अन्य योगदानकर्ताओं द्वारा बनाया गया स्वतंत्र और मुक्त स्रोत सॉफ्टवेयर है।</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s Mozilla और अन्य योगदानकर्ताओं द्वारा बनाया गया स्वतंत्र और मुक्त स्रोत सॉफ्टवेयर है।</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">उपयोगकर्ता नाम</string>
   <string name="gv_prompt_password_hint">पासवर्ड</string>

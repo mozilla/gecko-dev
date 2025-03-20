@@ -55,7 +55,7 @@
   <string name="menu_settings">Atô</string>
   <string name="menu_about">Bhaih</string>
   <string name="menu_help">Beunantu</string>
-  <string name="menu_rights">Hak Droeneuh</string>
+  <string name="menu_rights" moz:removedIn="137">Hak Droeneuh</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:moz="http://mozac.org/tools" xmlns:tools="http://schemas.android.com/tools">
   <!--
     #######################################################################################
 
@@ -48,7 +48,7 @@
   <string name="menu_settings">Achustes</string>
   <string name="menu_about">Quanto a</string>
   <string name="menu_help">Aduyar</string>
-  <string name="menu_rights">Los tuyos dreitos</string>
+  <string name="menu_rights" moz:removedIn="137">Los tuyos dreitos</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -353,7 +353,7 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s ye software libre y de codigo ubierto, feito per Mozilla y atros colaboradors.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s ye software libre y de codigo ubierto, feito per Mozilla y atros colaboradors.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Nombre d\'usuario</string>
   <string name="gv_prompt_password_hint">Clau</string>

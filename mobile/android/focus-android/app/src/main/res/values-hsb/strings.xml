@@ -55,7 +55,8 @@
   <string name="menu_settings">Nastajenja</string>
   <string name="menu_about">Wo</string>
   <string name="menu_help">Pomoc</string>
-  <string name="menu_rights">Waše prawa</string>
+  <string name="menu_rights" moz:removedIn="137">Waše prawa</string>
+  <string name="menu_terms_of_use">Wužiwanske wuměnjenja</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +572,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s je darmotna softwara wotewrjeneho žórła wot Mozilla a druhich sobuskutkowarjow.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s je darmotna softwara wotewrjeneho žórła wot Mozilla a druhich sobuskutkowarjow.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s so pod wuměnjenjemi licency &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; a druhimi licencami wotewrjeneho žórła k dispoziciji staja.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s so pod wuměnjenjemi licency &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; a druhimi licencami wotewrjeneho žórła k dispoziciji staja.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Njegarantuja wam žane prawa abo licency na wikowanskich znamjenjach załožby Mozilla Foundation abo někajkeje druheje strony, inkluziwnje mjena abo loga Mozilla, Firefox abo %1$s. Přidatne informacije namakaće &lt;a href="%2$s"&gt;tu&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Njegarantuja wam žane prawa abo licency na wikowanskich znamjenjach załožby Mozilla Foundation abo někajkeje druheje strony, inkluziwnje mjena abo loga Mozilla, Firefox abo %1$s. Přidatne informacije namakaće &lt;a href="%2$s"&gt;tu&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Přidatny žórłowy kod za %1$s je pod wšelakich druhich swobodnych &lt;a href="%2$s"&gt;licencach&lt;/a&gt; wotewrjeneho žórła k dispoziciji.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Přidatny žórłowy kod za %1$s je pod wšelakich druhich swobodnych &lt;a href="%2$s"&gt;licencach&lt;/a&gt; wotewrjeneho žórła k dispoziciji.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s tež blokowanske lisćiny poskićene wot Disconnect, Inc. jako separatne a njewotwisne dźěła pod licencu &lt;a href="%2$s"&gt;General Public Licence v3&lt;/a&gt; wužiwa, kotrež su &lt;a href="%3$s"&gt;tu&lt;/a&gt; k dispoziciji.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s tež blokowanske lisćiny poskićene wot Disconnect, Inc. jako separatne a njewotwisne dźěła pod licencu &lt;a href="%2$s"&gt;General Public Licence v3&lt;/a&gt; wužiwa, kotrež su &lt;a href="%3$s"&gt;tu&lt;/a&gt; k dispoziciji.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Wužiwarske mjeno</string>
   <string name="gv_prompt_password_hint">Hesło</string>

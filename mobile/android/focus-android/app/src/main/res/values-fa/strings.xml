@@ -55,7 +55,7 @@
   <string name="menu_settings">تنظیمات</string>
   <string name="menu_about">درباره</string>
   <string name="menu_help">راهنما</string>
-  <string name="menu_rights">حقوق شما</string>
+  <string name="menu_rights" moz:removedIn="137">حقوق شما</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -511,32 +511,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s نرم‌افزاری آزاد و متن‌باز است که توسط موزیلا و سایر مشارکت کنندگان ساخته شده است.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s نرم‌افزاری آزاد و متن‌باز است که توسط موزیلا و سایر مشارکت کنندگان ساخته شده است.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s تحت شرایط &lt;a href="%2$s"&gt;پروانه عمومی موزیلا&lt;/a&gt; و سایر مجوزهای متن‌ باز در اختیار شما قرار می‌گیرد.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s تحت شرایط &lt;a href="%2$s"&gt;پروانه عمومی موزیلا&lt;/a&gt; و سایر مجوزهای متن‌ باز در اختیار شما قرار می‌گیرد.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">شما از حقی در خصوص علائم تجاری بنیاد موزیلا و یا هر شخص ثالثی، از جمله نام یا نشان موزیلا،  فایرفاکس یا %1$s برخوردار نیستید. اطلاعات بیشتر در &lt;a href="%2$s"&gt; اینجا&lt;/a&gt; قابل دسترسی است.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">شما از حقی در خصوص علائم تجاری بنیاد موزیلا و یا هر شخص ثالثی، از جمله نام یا نشان موزیلا،  فایرفاکس یا %1$s برخوردار نیستید. اطلاعات بیشتر در &lt;a href="%2$s"&gt; اینجا&lt;/a&gt; قابل دسترسی است.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">کد منبع بیشتری برای %1$sتحت تعداد دیگری از &lt;a href="%2$s"&gt;پروانه‌های&lt;/a&gt; آزاد و متن‌باز در دسترس است.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">کد منبع بیشتری برای %1$sتحت تعداد دیگری از &lt;a href="%2$s"&gt;پروانه‌های&lt;/a&gt; آزاد و متن‌باز در دسترس است.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s همچنین از فهرست‌های مسدودی فراهم شده توسط Disconnect استفاده می‌کند. به عنوان کارهای جدا و مستقل تحت &lt;a href="%2$s"&gt;نگارش 3 پروانه جامع همگانی گنو&lt;/a&gt; و &lt;a href="%3$s"&gt;اینجا&lt;/a&gt; در دسترس است.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s همچنین از فهرست‌های مسدودی فراهم شده توسط Disconnect استفاده می‌کند. به عنوان کارهای جدا و مستقل تحت &lt;a href="%2$s"&gt;نگارش 3 پروانه جامع همگانی گنو&lt;/a&gt; و &lt;a href="%3$s"&gt;اینجا&lt;/a&gt; در دسترس است.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">نام کاربری</string>
   <string name="gv_prompt_password_hint">کلمه عبور</string>

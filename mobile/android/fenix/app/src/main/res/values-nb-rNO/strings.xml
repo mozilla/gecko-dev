@@ -587,6 +587,8 @@
   <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Blokker annonser effektivt.</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+  <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Beskyttelse mot sporing. Stopp usynlige sporingsmekanismer og annonser som spionerer på deg.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
   <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -645,6 +647,8 @@
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Firefox brukervilkår</string>
   <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
   <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">Firefox bryr seg om personvernet ditt. Les mer i vår %1$s.</string>
+  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+  <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Firefox bryr seg om personvernet ditt. Les mer i vår %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">Personvernbestemmelser</string>
   <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
@@ -653,16 +657,35 @@
   <string name="onboarding_term_of_service_line_three_link_text">Behandle</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Hjelp oss med å utvikle Firefox</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Når du deler hvordan du oppdaget Firefox og at du bruker den, hjelper du oss å introdusere nettleseren vår for flere mennesker.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Del minimalt med data med Mozillas markedsføringsteknologipartnere. Disse dataene blir aldri solgt eller brukt til å vise deg annonser.</string>
+  <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+  <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hvordan vi bruker dataene</string>
+  <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Bekreft og begynn å surfe</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">En siste ting</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Del hvordan du oppdaget Firefox, og at du bruker den, med Mozillas markedsføringspartnere. Disse dataene selges aldri.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Godkjenn og begynn å surfe</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Velg plassering for verktøylinjen</string>
+  <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Hold søking innen rekkevidde.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">Lagre og fortsett</string>
   <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_top_option">Topp</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Bunn</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">Stort overskriftsbilde av verktøylinjens utvalgsvisning som viser en illustrert verktøylinje.</string>
+  <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+  <string name="onboarding_customize_toolbar_placement_bottom_content_description">Bilde av den nederste verktøylinjen</string>
+  <string name="onboarding_customize_toolbar_placement_top_content_description">Bilde av den øverste verktøylinjen</string>
   <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ikke nå</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
@@ -677,6 +700,10 @@
   <string name="onboarding_customize_theme_light_option">Lyst</string>
   <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_system_option">Samme som systemet</string>
+  <!-- Onboarding theme selection card content description for the main image. -->
+  <string name="onboarding_customize_theme_main_image_content_description">Stort overskriftsbilde av temavalgsvisningen som viser illustrerte kunstner- og byggeverktøy.</string>
+  <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+  <string name="onboarding_customize_theme_content_description">Bilde av %1$s-temaet</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ikke nå</string>
   <!--
@@ -1121,6 +1148,15 @@
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Data om enheten din, maskinvarekonfigurasjon og bruk hjelper oss med å forbedre Firefox-funksjoner, ytelse og stabilitet.</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Markedsføringsdata</string>
+  <!-- Preference switch for campaign measurement data (marketing data) collection -->
+  <string name="preferences_marketing_data_2">Kampanjemålingsdata</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+  <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Del informasjon om hvordan du oppdaget Firefox med Mozillas markedsføringspartnere. Dette hjelper oss å vokse Firefox og et bedre internett</string>
+  <!--
+    Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
+  -->
+  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Del hvordan du oppdaget Firefox og at du bruker den med Mozillas markedsføringsteknologipartnere.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Les mer om markedsføringsdata</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1333,8 +1369,18 @@
     Title for the list of tabs in the current private session
   -->
   <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Private faner</string>
+  <!--
+    Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs
+  -->
+  <string name="tabs_header_private_tabs_counter_title">Private faner åpne: %1$s. Trykk for å bytte fane.</string>
   <!-- Title for the list of tabs in the synced tabs -->
   <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Synkroniserte faner</string>
+  <!--
+    Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs
+  -->
+  <string name="tabs_header_synced_tabs_counter_title">Synkroniserte faner åpne: %1$s. Trykk for å bytte fane.</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Legg til fane</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -2156,6 +2202,8 @@
   <string name="etp_redirect_trackers_description">Fjerner infokapsler satt av omdirigeringer til kjente sporingsnettsteder.</string>
   <!-- Preference for fingerprinting protection for the custom protection settings -->
   <string name="etp_suspected_fingerprinters_title">Mistenkt nettleseravtrykksporere</string>
+  <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+  <string name="etp_suspected_fingerprinters_description">Aktiverer beskytelse mot fingeravtrykksporing for å stoppe mistenkte fingeravtrykksporere.</string>
   <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_known_fingerprinters_title">Kjente nettleseravtrykksporere</string>
   <!--
@@ -2188,6 +2236,26 @@
   <string name="preference_doh_info_description">Informasjon</string>
   <!-- Content description for the "Add Site" button -->
   <string name="preference_doh_add_site_description">Legg til nettsted</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Standardbeskyttelse</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s bestemmer når sikker DNS skal brukes for å beskytte personvernet ditt.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Bruk leverandøren du velger</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Bruk din standard DNS-resolver hvis det er et problem med den sikre DNS-leverandøren</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Bruk en lokal leverandør, hvis mulig. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Slå av når VPN, foreldrekontroll eller bedriftspolicyer er aktive</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Slå av når et nettverk forteller %1$s at det ikke skal bruke sikker DNS. %2$s</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Økt beskyttelse</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Du kontrollerer når du skal bruke sikker DNS og velger leverandør.</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">Bruk leverandøren du velger</string>
   <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_info_2">Bruk bare standard DNS-resolver hvis det er et problem med sikker DNS</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
@@ -2246,6 +2314,8 @@
   <string name="about_privacy_notice">Personvernbestemmelser</string>
   <!-- About page link text to open know your rights link -->
   <string name="about_know_your_rights">Kjenn dine rettigheter</string>
+  <!-- About page link text to open terms of use link -->
+  <string name="about_terms_of_use" tools:ignore="UnusedResources">Vilkår for bruk</string>
   <!-- About page link text to open licensing information link -->
   <string name="about_licensing_information">Lisensinformasjon</string>
   <!-- About page link text to open a screen with libraries that are used -->

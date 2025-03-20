@@ -55,7 +55,7 @@
   <string name="menu_settings">Rregullime</string>
   <string name="menu_about">Rreth</string>
   <string name="menu_help">Ndihmë</string>
-  <string name="menu_rights">Të drejtat Tuaja</string>
+  <string name="menu_rights" moz:removedIn="137">Të drejtat Tuaja</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -571,32 +571,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s është &lt;em&gt;software&lt;/em&gt; i lirë dhe me burim të hapët, i krijuar nga Mozilla dhe kontribues të tjerë.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s është &lt;em&gt;software&lt;/em&gt; i lirë dhe me burim të hapët, i krijuar nga Mozilla dhe kontribues të tjerë.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ju jepet sipas kushteve të &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; dhe licencash të tjera burimi të hapët.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s ju jepet sipas kushteve të &lt;a href="%2$s"&gt;Mozilla Public License&lt;/a&gt; dhe licencash të tjera burimi të hapët.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nuk ju jepet ndonjë e drejtë apo licenca mbi shenjat tregtare të Mozilla Foundation-it apo cilësdo palë tjetër, përfshi emrat apo stemat e Mozilla-s, Firefox-it apo %1$s. Hollësi shtesë mund të gjeni &lt;a href="%2$s"&gt;këtu&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">Nuk ju jepet ndonjë e drejtë apo licenca mbi shenjat tregtare të Mozilla Foundation-it apo cilësdo palë tjetër, përfshi emrat apo stemat e Mozilla-s, Firefox-it apo %1$s. Hollësi shtesë mund të gjeni &lt;a href="%2$s"&gt;këtu&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">Më tepër kod burim për %1$s ka sipas &lt;a href="%2$s"&gt;licencash&lt;/a&gt; të tjera të ndryshme programesh të lira dhe me burim të hapët.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">Më tepër kod burim për %1$s ka sipas &lt;a href="%2$s"&gt;licencash&lt;/a&gt; të tjera të ndryshme programesh të lira dhe me burim të hapët.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">%1$s përdor gjithashtu një listë ndalimesh të furnizuar nga Disconnect, Inc., si vepra më vete dhe të pavarura, nën &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; dhe të passhme prej &lt;a href="%3$s"&gt;këtu&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">%1$s përdor gjithashtu një listë ndalimesh të furnizuar nga Disconnect, Inc., si vepra më vete dhe të pavarura, nën &lt;a href="%2$s"&gt;GNU General Public License v3&lt;/a&gt; dhe të passhme prej &lt;a href="%3$s"&gt;këtu&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">Emër përdoruesi</string>
   <string name="gv_prompt_password_hint">Fjalëkalim</string>

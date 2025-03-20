@@ -14,6 +14,8 @@
   <string name="content_description_private_browsing_button">فعّل التصفّح الخاص</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_disable_private_browsing_button">عطّل التصفّح الخاص</string>
+  <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+  <string name="content_description_private_browsing">التصفح الخاص</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">ابحث أو أدخِل عنوانا</string>
   <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -230,6 +232,8 @@
   <string name="browser_menu_discover_more_extensions">اكتشف المزيد من الامتدادات</string>
   <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
   <string name="browser_menu_extensions_disabled_description">معطل مؤقتا</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+  <string name="browser_menu_no_extensions_installed_description">لا توجد امتدادات مفعلة</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">معلومات الحساب</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -246,8 +250,12 @@
   <string name="browser_menu_open_in_regular_tab">افتح في لسان عادي</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">أضِف إلى شاشة البداية</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen">إضافة التطبيق إلى الشاشة الرئيسية</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen_2">أضِف إلى شاشة البداية…</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen_2">إضافة التطبيق إلى الشاشة الرئيسية…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">قد تحتاج أجهزة Xiaomi إلى أذونات إضافية لإضافة اختصارات إلى الشاشة الرئيسية. يرجى التحقق من إعداداتك.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -322,6 +330,10 @@
   <string name="browser_menu_tools">الأدوات</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description">العودة إلى القائمة الرئيسية</string>
+  <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+  <string name="browser_main_menu_content_description_help_button">المساعدة</string>
+  <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+  <string name="browser_main_menu_content_description_settings_button">إعدادات</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
@@ -341,6 +353,8 @@
   <string name="browser_menu_turn_off_reader_view">أوقف منظور القارئ</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page">ترجِم الصفحة…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter">الإبلاغ عن موقع لا يعمل…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -415,6 +429,11 @@
   <!-- Header text for the search selector menu -->
   <string name="search_header_menu_item_2">ابحث هذه المرة في:</string>
   <!--
+    Content description (not visible, for screen readers etc.): Search engine icon.
+    %s is the search engine name (for example: DuckDuckGo).
+  -->
+  <string name="search_engine_icon_content_description_1">محرك البحث: %s</string>
+  <!--
     Home onboarding
 
     Home onboarding dialog welcome screen title text.
@@ -472,8 +491,80 @@
   <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">فعّل التنبيهات</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">ليس الآن</string>
+  <!--
+    Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">جرب أداة البحث في فايرفوكس</string>
   <!-- Text for the button to dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ليس الآن</string>
+  <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_explore_more_extensions_2">استكشف المزيد من الامتدادات</string>
+  <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_start_browsing_button_2">ابدأ التصفح</string>
+  <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+  <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">حظر الإعلانات بفعالية وكفاءة.</string>
+  <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">جوهرة مكافحة التعقب. أوقف أدوات التعقب غير المرئية وإعلانات التجسس.</string>
+  <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">البحث بالصورة</string>
+  <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">شاهد صورة مثيرة للاهتمام وتعرف على المزيد عنها.</string>
+  <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+  <string name="onboarding_add_on_reviews_label">مراجعات: %1$s</string>
+  <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">ساعدنا في جعل Firefox أفضل</string>
+  <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_title">إرسال تقارير الأعطال تلقائيا</string>
+  <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">اطلع على المزيد</string>
+  <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">تعرف على المزيد حول بيانات الاستخدام</string>
+  <string name="onboarding_preferences_dialog_usage_data_learn_more_2">اطلع على المزيد</string>
+  <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_positive_button">تم</string>
+  <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">إلغاء</string>
+  <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
+  <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">مرحبا بكم في Firefox</string>
+  <!-- Terms of service sub header label. -->
+  <string name="onboarding_terms_of_service_sub_header" tools:ignore="UnusedResources" moz:removedIn="136">تصفح الويب بسرعة وأمان.</string>
+  <!-- Terms of service sub header label. -->
+  <string name="onboarding_terms_of_service_sub_header_2">تصفح الويب بسرعة وأمان</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label">موافقة ومتابعة</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+  <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">بنود الخدمة</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
+  <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">شروط استخدام Firefox</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+  <string name="onboarding_term_of_service_line_two_link_text">تنويه الخصوصية</string>
+  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">للمساعدة في تحسين المتصفح، يرسل Firefox بيانات التشخيص والتفاعل إلى Mozilla. %1$s</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+  <string name="onboarding_term_of_service_line_three_link_text">إدارة</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">ساعدنا في تنمية Firefox</string>
+  <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+  <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">كيف نستخدم البيانات</string>
+  <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">تأكيد وبدء التصفح</string>
+  <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+  <string name="onboarding_save_and_continue_button">حفظ ومتابعة</string>
+  <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_top_option">الأعلى</string>
+  <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_bottom_option">الأسفل</string>
+  <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ليس الآن</string>
+  <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+  <string name="onboarding_save_and_start_button">حفظ وبدأ التصفح</string>
+  <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_system_option">النظام التلقائي</string>
+  <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+  <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ليس الآن</string>
   <!--
     Search Widget
 
@@ -531,6 +622,8 @@
   <string name="preferences_category_advanced">متقدّم</string>
   <!-- Preference category for privacy and security settings -->
   <string name="preferences_category_privacy_security">الخصوصية والأمان</string>
+  <!-- Preference for advanced site settings -->
+  <string name="preferences_site_settings">إعدادات الموقع</string>
   <!-- Preference for private browsing options -->
   <string name="preferences_private_browsing_options">التصفّح الخاص</string>
   <!-- Preference for opening links in a private tab -->
@@ -850,6 +943,8 @@
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">شارك بيانات المتصفح فيما يتعلق بالأداء و الاستخدام و العتاد و التخصيصات مع Mozilla لمساعدتنا في جعل %1$s أفضل</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">بيانات التسويق</string>
+  <!-- Learn more link for crash reporting preference -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">تعرف على المزيد حول تقارير الأعطال</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">الدراسات</string>
   <!-- Summary for studies preferences -->

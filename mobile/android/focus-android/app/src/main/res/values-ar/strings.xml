@@ -55,7 +55,8 @@
   <string name="menu_settings">الإعدادات</string>
   <string name="menu_about">عن</string>
   <string name="menu_help">مساعدة</string>
-  <string name="menu_rights">حقوقك</string>
+  <string name="menu_rights" moz:removedIn="137">حقوقك</string>
+  <string name="menu_terms_of_use">شروط الاستخدام</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -329,12 +330,16 @@
   <string name="preference_mozilla_telemetry_summary">اطّلع على المزيد</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
   <string name="preference_mozilla_telemetry_summary2">تحاول موزيلا ألا تجمع أكثر مما تحتاجه لإتاحة %1$s و تحسينه للجميع.</string>
+  <string name="preference_daily_usage_ping_description">يساعد هذا Mozilla على تقدير عدد المستخدمين النشطين.</string>
+  <string name="preference_daily_usage_ping_learn_more">اطلع على المزيد</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">تنويه الخصوصية</string>
   <!-- In-app link (in settings) to Focus licensing information. -->
   <string name="preference_licensing_info">معلومات الترخيص</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">المكتبات التي نستخدمها</string>
+  <!-- Link to Focus Crash reports list. -->
+  <string name="preference_crashes">الانهيارات</string>
   <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">‏%s | المكتبات مفتوحة المصدر</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
@@ -460,8 +465,30 @@
   <string name="onboarding_first_screen_title">مرحبًا بك في %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">سريع. خاص. دون مشتتات.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">بالاستمرار فإنك توافق على %1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">شروط استخدام Firefox.</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">يهتم Firefox بخصوصيتك. تعرّف على المزيد في قسم %1$s</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">تنويه الخصوصية.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">فلنبدأ</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">موافقة ومتابعة</string>
   <!--
     Onboarding second screen: Title
 
@@ -543,32 +570,32 @@
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
   -->
-  <string name="your_rights_content1">%1$s برمجية حرة مفتوحة المصدر صنعتها موزيلا ومساهمين آخرين.</string>
+  <string name="your_rights_content1" moz:removedIn="137">%1$s برمجية حرة مفتوحة المصدر صنعتها موزيلا ومساهمين آخرين.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/)
   -->
-  <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote">إن %1$s مُتاح لك وفق بنود &lt;a href="%2$s"&gt;رخصة موزيلا العامة&lt;/a&gt; وترخيصات المصادر المفتوحة الأخرى.</string>
+  <string name="your_rights_content2" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">إن %1$s مُتاح لك وفق بنود &lt;a href="%2$s"&gt;رخصة موزيلا العامة&lt;/a&gt; وترخيصات المصادر المفتوحة الأخرى.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/)
   -->
-  <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">لا يعطيك هذا أي حقوق أو تراخيص للعلامات التجارية لمؤسسة موزيلا أو أي طرف آخر، متضمنًا على سبيل المثال لا الحصر الأسماء والشعارات الآتية: Mozilla، وFirefox و%1$s. يمكنك الاطلاع على مزيد من المعلومات &lt;a href="%2$s"&gt;من هنا&lt;/a&gt;.</string>
+  <string name="your_rights_content3" moz:removedIn="137" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote">لا يعطيك هذا أي حقوق أو تراخيص للعلامات التجارية لمؤسسة موزيلا أو أي طرف آخر، متضمنًا على سبيل المثال لا الحصر الأسماء والشعارات الآتية: Mozilla، وFirefox و%1$s. يمكنك الاطلاع على مزيد من المعلومات &lt;a href="%2$s"&gt;من هنا&lt;/a&gt;.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.
   -->
-  <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote">تُتاح النصوص المصدرية الإضافية المستعملة في %1$s وفق مختلف &lt;a href="%2$s"&gt;الرخص&lt;/a&gt; الحرة والمفتوحة المصدر.</string>
+  <string name="your_rights_content4" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">تُتاح النصوص المصدرية الإضافية المستعملة في %1$s وفق مختلف &lt;a href="%2$s"&gt;الرخص&lt;/a&gt; الحرة والمفتوحة المصدر.</string>
   <!--
     Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists)
   -->
-  <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote">كما يستعمل %1$s قوائم الحجب التي توفّرها شركة Disconnect, Inc كأعمال منفصلة ومستقلّة برخصة &lt;a href="%2$s"&gt;غنو العمومية الإصدارة الثالثة&lt;/a&gt;، وهي متاحة &lt;a href="%3$s"&gt;هنا&lt;/a&gt;.</string>
+  <string name="your_rights_content5" moz:removedIn="137" tools:ignore="IncorrectStraightDoubleQuote">كما يستعمل %1$s قوائم الحجب التي توفّرها شركة Disconnect, Inc كأعمال منفصلة ومستقلّة برخصة &lt;a href="%2$s"&gt;غنو العمومية الإصدارة الثالثة&lt;/a&gt;، وهي متاحة &lt;a href="%3$s"&gt;هنا&lt;/a&gt;.</string>
   <!-- Text shown in prompts for GeckoView -->
   <string name="gv_prompt_username_hint">اسم المستخدم</string>
   <string name="gv_prompt_password_hint">كلمة السر</string>
