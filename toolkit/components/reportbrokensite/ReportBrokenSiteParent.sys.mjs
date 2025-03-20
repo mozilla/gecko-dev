@@ -315,11 +315,12 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
   async #getScreenshot(browsingContext, format, quality) {
     const zoom = browsingContext.fullZoom;
     const scale = browsingContext.topChromeWindow?.devicePixelRatio || 1;
+    const devicePixelRatio = scale * zoom;
     const wgp = browsingContext.currentWindowGlobal;
 
     const image = await wgp.drawSnapshot(
       undefined, // rect
-      scale * zoom,
+      devicePixelRatio,
       "white",
       undefined // resetScrollPosition
     );
@@ -341,14 +342,14 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
       reader.readAsDataURL(blob);
     });
 
-    return dataURL;
+    return { devicePixelRatio, screenshot: dataURL };
   }
 
   async receiveMessage(msg) {
     switch (msg.name) {
       case "GetWebcompatInfoFromParentProcess": {
         const { format, quality } = msg.data;
-        const screenshot = await this.#getScreenshot(
+        const { devicePixelRatio, screenshot } = await this.#getScreenshot(
           msg.target.browsingContext,
           format,
           quality
@@ -360,6 +361,7 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
         return {
           antitracking: this.#getAntitrackingInfo(msg.target.browsingContext),
           browser: await this.#getBrowserInfo(),
+          devicePixelRatio,
           screenshot,
         };
       }
