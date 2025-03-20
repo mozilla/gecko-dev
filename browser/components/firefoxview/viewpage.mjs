@@ -13,11 +13,10 @@ import "chrome://browser/content/firefoxview/fxview-search-textbox.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/firefoxview/fxview-tab-list.mjs";
 
-import { placeLinkOnClipboard } from "./helpers.mjs";
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   DeferredTask: "resource://gre/modules/DeferredTask.sys.mjs",
 });
 
@@ -76,7 +75,7 @@ export class ViewPageContent extends MozLitElement {
   }
 
   copyLink(e) {
-    placeLinkOnClipboard(this.triggerNode.title, this.triggerNode.url);
+    lazy.BrowserUtils.copyLink(this.triggerNode.url, this.triggerNode.title);
     this.recordContextMenuTelemetry("copy-link", e);
   }
 

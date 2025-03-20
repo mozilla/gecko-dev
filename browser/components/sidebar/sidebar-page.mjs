@@ -13,7 +13,7 @@ const { LightweightThemeConsumer } = ChromeUtils.importESModule(
   "resource://gre/modules/LightweightThemeConsumer.sys.mjs"
 );
 ChromeUtils.defineESModuleGetters(lazy, {
-  placeLinkOnClipboard: "chrome://browser/content/firefoxview/helpers.mjs",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
 });
 
 export class SidebarPage extends MozLitElement {
@@ -127,7 +127,10 @@ export class SidebarPage extends MozLitElement {
         break;
       case "sidebar-history-context-copy-link":
       case "sidebar-synced-tabs-context-copy-link":
-        lazy.placeLinkOnClipboard(this.triggerNode.title, this.triggerNode.url);
+        lazy.BrowserUtils.copyLink(
+          this.triggerNode.url,
+          this.triggerNode.title
+        );
         break;
     }
   }
