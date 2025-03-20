@@ -89,7 +89,7 @@ robolectric = "4.14.1"
 
 # Third party library versions
 adjust = "5.1.0"
-sentry = "8.4.0"
+sentry = "8.5.0"
 
 [libraries]
 
