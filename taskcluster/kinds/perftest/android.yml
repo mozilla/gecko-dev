@@ -603,7 +603,7 @@ hw-a55-record-websites:
 
 hw-a55-background-resource-fenix:
     worker-type: t-bitbar-gw-perf-a55
-    run-on-projects: [mozilla-central]
+    run-on-projects: [trunk-only]
     description: Run background resource test with Fenix on a Samsung A55
     treeherder:
         symbol: perftest-fenix(background-rsrc)
@@ -657,7 +657,7 @@ hw-a55-background-resource-chrome:
 
 hw-a55-foreground-resource-fenix:
     worker-type: t-bitbar-gw-perf-a55
-    run-on-projects: [mozilla-central]
+    run-on-projects: [trunk-only]
     description: Run background resource test with Fenix on a Samsung A55
     treeherder:
         symbol: perftest-fenix(foreground-rsrc)
