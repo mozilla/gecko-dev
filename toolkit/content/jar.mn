@@ -90,6 +90,8 @@ toolkit.jar:
    content/global/elements/moz-box-base.mjs      (widgets/moz-box/moz-box-base.mjs)
    content/global/elements/moz-box-button.css    (widgets/moz-box/moz-box-button.css)
    content/global/elements/moz-box-button.mjs    (widgets/moz-box/moz-box-button.mjs)
+   content/global/elements/moz-box-item.css    (widgets/moz-box/moz-box-item.css)
+   content/global/elements/moz-box-item.mjs    (widgets/moz-box/moz-box-item.mjs)
    content/global/elements/moz-button.css    (widgets/moz-button/moz-button.css)
    content/global/elements/moz-button.mjs    (widgets/moz-button/moz-button.mjs)
    content/global/elements/moz-button-group.css    (widgets/moz-button-group/moz-button-group.css)

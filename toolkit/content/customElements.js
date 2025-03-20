@@ -822,6 +822,7 @@
             "moz-box-button",
             "chrome://global/content/elements/moz-box-button.mjs",
           ],
+          ["moz-box-item", "chrome://global/content/elements/moz-box-item.mjs"],
           ["moz-button", "chrome://global/content/elements/moz-button.mjs"],
           [
             "moz-button-group",

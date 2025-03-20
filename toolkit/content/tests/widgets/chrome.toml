@@ -28,6 +28,8 @@ skip-if = [
 
 ["test_moz_box_button.html"]
 
+["test_moz_box_item.html"]
+
 ["test_moz_button.html"]
 
 ["test_moz_button_group.html"]

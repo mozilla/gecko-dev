@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MozBoxItem Tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-box-item.mjs"
+    ></script>
+    <script src="lit-test-helpers.js"></script>
+    <script>
+      let html;
+      let testHelpers = new LitTestHelpers();
+
+      add_setup(async function setup() {
+        ({ html } = await testHelpers.setupLit());
+        let templateFn = attrs => html`
+          <moz-box-item ${attrs}></moz-box-item>
+        `;
+        testHelpers.setupTests({ templateFn });
+      });
+
+      add_task(async function testMozBoxItemProperties() {
+        const TEST_LABEL = "this is a test";
+        let labelledTemplate = testHelpers.templateFn({ label: TEST_LABEL });
+        let renderTarget = await testHelpers.renderTemplate(labelledTemplate);
+        let item = renderTarget.firstElementChild;
+
+        ok(item, "The box item renders.");
+        is(item.label, TEST_LABEL, "The box item has the expected label.");
+        is(
+          item.labelEl.textContent.trim(),
+          TEST_LABEL,
+          "The box item label is rendered."
+        );
+
+        const TEST_DESCRIPTION = "This is a description";
+        item.description = TEST_DESCRIPTION;
+        await item.updateComplete;
+
+        is(
+          item.descriptionEl.textContent.trim(),
+          TEST_DESCRIPTION,
+          "The item supports setting a description."
+        );
+
+        const ICON_SRC = "chrome://global/skin/icons/edit-copy.svg";
+        item.iconSrc = ICON_SRC;
+        await item.updateComplete;
+
+        is(
+          item.iconEl.getAttribute("src"),
+          ICON_SRC,
+          "The item supports setting an icon."
+        );
+      });
+
+      add_task(async function testMozBoxItemContentSlot() {
+        let slottedTemplate = testHelpers.templateFn();
+        let renderTarget = await testHelpers.renderTemplate(slottedTemplate);
+        let item = renderTarget.firstElementChild;
+
+        const SLOTTED_MESSAGE = "This is slotted content";
+        let slottedContent = document.createElement("p");
+        slottedContent.textContent = SLOTTED_MESSAGE;
+
+        item.append(slottedContent);
+        await item.updateComplete;
+
+        ok(item.defaultSlotEl, "Content slot exists.");
+        is(
+          item.defaultSlotEl.assignedElements()[0],
+          slottedContent,
+          "The expected element is slotted."
+        );
+        ok(
+          !item.labelEl,
+          "Label element is not rendered when slotted content is present."
+        );
+        ok(
+          !item.descriptionEl,
+          "Description element is not rendered when slotted content is present."
+        );
+      });
+    </script>
+  </head>
+  <body>
+    <p id="display"></p>
+    <div id="content" style="display: none"></div>
+    <pre id="test"></pre>
+  </body>
+</html>
