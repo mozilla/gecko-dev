@@ -84,7 +84,7 @@ private fun Task(
             modifier = Modifier
                 .weight(1f)
                 .semantics { heading() },
-            style = FirefoxTheme.typography.headline7,
+            style = FirefoxTheme.typography.subtitle1,
             color = FirefoxTheme.colors.textPrimary,
         )
 
@@ -134,7 +134,7 @@ private fun Group(
         ) {
             Text(
                 text = group.title,
-                style = FirefoxTheme.typography.headline7,
+                style = FirefoxTheme.typography.subtitle1,
                 color = FirefoxTheme.colors.textPrimary,
                 modifier = Modifier.semantics { heading() },
             )
