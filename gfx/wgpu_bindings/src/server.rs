@@ -1109,8 +1109,8 @@ pub extern "C" fn wgpu_vkimage_create_with_dma_buf(
                     .drm_format_modifiers(&modifiers);
 
                 let extent = vk::Extent3D {
-                    width: width,
-                    height: height,
+                    width,
+                    height,
                     depth: 1,
                 };
 
@@ -1247,8 +1247,8 @@ pub extern "C" fn wgpu_vkimage_create_with_dma_buf(
 
                 Some(VkImageHandle {
                     device: device.handle(),
-                    image: image,
-                    memory: memory,
+                    image,
+                    memory,
                     memory_size: memory_req.size,
                     memory_type_index: index as u32,
                     modifier: image_modifier_properties.drm_format_modifier,
@@ -1771,8 +1771,8 @@ impl Global {
 
                     Some(VkImageHolder {
                         device: device.handle(),
-                        image: image,
-                        memory: memory,
+                        image,
+                        memory,
                         fn_destroy_image: device.fp_v1_0().destroy_image,
                         fn_free_memory: device.fp_v1_0().free_memory,
                     })
