@@ -60,7 +60,7 @@ material = "1.12.0"
 osslicenses-plugin = "0.10.6"
 play-review = "2.0.2"
 play-services-ads-id = "18.1.0"
-play-services-base = "18.5.0"
+play-services-base = "18.6.0"
 play-services-fido = "21.1.0"
 protobuf = "4.29.0" # Keep Protobuf in sync with the version used by AppServices.
 
