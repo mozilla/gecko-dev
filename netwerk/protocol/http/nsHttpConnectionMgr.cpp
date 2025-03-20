@@ -1037,6 +1037,8 @@ bool nsHttpConnectionMgr::DispatchPendingQ(
   nsresult rv;
   bool dispatchedSuccessfully = false;
 
+  nsTArray<RefPtr<PendingTransactionInfo>> fallbackToH1;
+
   // if !considerAll iterate the pending list until one is dispatched
   // successfully. Keep iterating afterwards only until a transaction fails to
   // dispatch. if considerAll == true then try and dispatch all items.
@@ -1056,6 +1058,9 @@ bool nsHttpConnectionMgr::DispatchPendingQ(
             ("  removing pending transaction based on "
              "TryDispatchTransaction returning hard error %" PRIx32 "\n",
              static_cast<uint32_t>(rv)));
+        if (rv == NS_ERROR_HTTP2_FALLBACK_TO_HTTP1) {
+          fallbackToH1.AppendElement(pendingTransInfo);
+        }
       }
       if (pendingQ.RemoveElement(pendingTransInfo)) {
         // pendingTransInfo is now potentially destroyed
@@ -1069,6 +1074,21 @@ bool nsHttpConnectionMgr::DispatchPendingQ(
     if (dispatchedSuccessfully && !considerAll) break;
 
     ++i;
+  }
+
+  if (!fallbackToH1.IsEmpty()) {
+    RefPtr<nsHttpConnectionMgr> self(this);
+    NS_DispatchToCurrentThread(NS_NewRunnableFunction(
+        "nsHttpConnectionMgr::DispatchPendingQ",
+        [self{std::move(self)}, fallbackToH1 = std::move(fallbackToH1)]() {
+          for (auto pendingTrans : fallbackToH1) {
+            nsresult rv =
+                self->ProcessNewTransaction(pendingTrans->Transaction());
+            if (NS_FAILED(rv)) {
+              pendingTrans->Transaction()->Close(rv);
+            }
+          }
+        }));
   }
   return dispatchedSuccessfully;
 }
@@ -1427,65 +1447,30 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
       (!StaticPrefs::network_http_http2_enabled() ||
        (caps & NS_HTTP_DISALLOW_SPDY)),
       (!nsHttpHandler::IsHttp3Enabled() || (caps & NS_HTTP_DISALLOW_HTTP3)));
-  if (conn) {
-    LOG(("TryingDispatchTransaction: an active h2 connection exists"));
-    ExtendedCONNECTSupport extendedConnect = conn->GetExtendedCONNECTSupport();
-    if (trans->IsWebsocketUpgrade() || trans->IsForWebTransport()) {
-      RefPtr<nsHttpConnection> connTCP = do_QueryObject(conn);
-      if (connTCP) {
-        LOG(("TryingDispatchTransaction: extended CONNECT"));
-        if (extendedConnect == ExtendedCONNECTSupport::NO_SUPPORT) {
-          LOG((
-              "TryingDispatchTransaction: no support for extended CONNECT over "
-              "Http2"));
-          // This is a transaction wants to do extended CONNECT and we already
-          // have a h2 connection that do not support it, we should disable h2
-          // for this transaction.
-          trans->DisableSpdy();
-          caps &= NS_HTTP_DISALLOW_SPDY;
-          trans->MakeSticky();
-        } else if (extendedConnect == ExtendedCONNECTSupport::SUPPORTED) {
-          LOG(("TryingDispatchTransaction: extended CONNECT supported"));
 
-          // No limit for number of websockets, dispatch transaction to the
-          // tunnel
-          RefPtr<nsHttpConnection> connToTunnel;
-          connTCP->CreateTunnelStream(trans, getter_AddRefs(connToTunnel),
-                                      true);
-          ent->InsertIntoExtendedCONNECTConns(connToTunnel);
-          trans->SetConnection(nullptr);
-          connToTunnel
-              ->SetInSpdyTunnel();  // tells conn it is already in tunnel
-          if (trans->IsWebsocketUpgrade()) {
-            trans->SetIsHttp2Websocket(true);
-          }
-          nsresult rv = DispatchTransaction(ent, trans, connToTunnel);
-          // need to undo NonSticky bypass for transaction reset to continue
-          // for correct websocket upgrade handling
-          trans->MakeSticky();
-          trans->SetResettingForTunnelConn(false);
-          return rv;
-        } else {
-          // if we aren't sure that extended CONNECT is supported yet or we are
-          // already at the connection limit then we queue the transaction
-          LOG(
-              ("TryingDispatchTransaction: unsure if extended CONNECT "
-               "supported"));
-          return NS_ERROR_NOT_AVAILABLE;
-        }
-      }
+  if (trans->IsWebsocketUpgrade() || trans->IsForWebTransport()) {
+    LOG(("TryingDispatchTransaction: extended CONNECT"));
+    RefPtr<nsHttpConnection> connTCP = do_QueryObject(conn);
+    if (connTCP) {
+      return TryDispatchExtendedCONNECTransaction(ent, trans, connTCP);
     } else {
-      if ((caps & NS_HTTP_ALLOW_KEEPALIVE) ||
-          (caps & NS_HTTP_ALLOW_SPDY_WITHOUT_KEEPALIVE) ||
-          !conn->IsExperienced()) {
-        LOG(("   dispatch to spdy: [conn=%p]\n", conn.get()));
-        trans->RemoveDispatchedAsBlocking(); /* just in case */
-        nsresult rv = DispatchTransaction(ent, trans, conn);
-        NS_ENSURE_SUCCESS(rv, rv);
-        return NS_OK;
+      if (!ent->GetAllowExtendedConnect()) {
+        return NS_ERROR_HTTP2_FALLBACK_TO_HTTP1;
       }
-      unusedSpdyPersistentConnection = conn;
     }
+  } else if (conn) {
+    LOG(("TryingDispatchTransaction: an active h2 connection exists"));
+
+    if ((caps & NS_HTTP_ALLOW_KEEPALIVE) ||
+        (caps & NS_HTTP_ALLOW_SPDY_WITHOUT_KEEPALIVE) ||
+        !conn->IsExperienced()) {
+      LOG(("   dispatch to spdy: [conn=%p]\n", conn.get()));
+      trans->RemoveDispatchedAsBlocking(); /* just in case */
+      nsresult rv = DispatchTransaction(ent, trans, conn);
+      NS_ENSURE_SUCCESS(rv, rv);
+      return NS_OK;
+    }
+    unusedSpdyPersistentConnection = conn;
   }
 
   // If this is not a blocking transaction and the request context for it is
@@ -1645,6 +1630,67 @@ nsresult nsHttpConnectionMgr::TryDispatchTransactionOnIdleConn(
     return NS_OK;
   }
 
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+nsresult nsHttpConnectionMgr::TryDispatchExtendedCONNECTransaction(
+    ConnectionEntry* aEnt, nsHttpTransaction* aTrans, nsHttpConnection* aConn) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  MOZ_ASSERT(aTrans->IsWebsocketUpgrade() || aTrans->IsForWebTransport());
+  MOZ_ASSERT(aConn);
+
+  LOG(
+      ("nsHttpConnectionMgr::TryDispatchExtendedCONNECTransaction"
+       "[aTrans=%p aEnt=%p ci=%s caps=%x]\n",
+       aTrans, aEnt, aEnt->mConnInfo->HashKey().get(),
+       uint32_t(aTrans->Caps())));
+
+  ExtendedCONNECTSupport extendedConnect = aConn->GetExtendedCONNECTSupport();
+  if (extendedConnect == ExtendedCONNECTSupport::NO_SUPPORT) {
+    LOG(
+        ("TryDispatchExtendedCONNECTransaction: no support for extended "
+         "CONNECT over "
+         "Http2"));
+    // This is a transaction wants to do extended CONNECT and we already
+    // have a h2 connection that do not support it, we should disable h2
+    // for this transaction.
+    aTrans->DisableSpdy();
+    aTrans->MakeSticky();
+    aEnt->SetAllowExtendedConnect(false);
+    // WebTransport doesn’t allow to fall back to HTTP/1.1.
+    if (aTrans->IsForWebTransport()) {
+      return NS_ERROR_CONNECTION_REFUSED;
+    }
+
+    return NS_ERROR_HTTP2_FALLBACK_TO_HTTP1;
+  }
+
+  if (extendedConnect == ExtendedCONNECTSupport::SUPPORTED) {
+    LOG(("TryDispatchExtendedCONNECTransaction: extended CONNECT supported"));
+
+    // No limit for number of websockets, dispatch transaction to the
+    // tunnel
+    RefPtr<nsHttpConnection> connToTunnel;
+    aConn->CreateTunnelStream(aTrans, getter_AddRefs(connToTunnel), true);
+    aEnt->InsertIntoExtendedCONNECTConns(connToTunnel);
+    aTrans->SetConnection(nullptr);
+    connToTunnel->SetInSpdyTunnel();  // tells conn it is already in tunnel
+    if (aTrans->IsWebsocketUpgrade()) {
+      aTrans->SetIsHttp2Websocket(true);
+    }
+    nsresult rv = DispatchTransaction(aEnt, aTrans, connToTunnel);
+    // need to undo NonSticky bypass for transaction reset to continue
+    // for correct websocket upgrade handling
+    aTrans->MakeSticky();
+    aTrans->SetResettingForTunnelConn(false);
+    return rv;
+  }
+
+  // if we aren't sure that extended CONNECT is supported yet or we are
+  // already at the connection limit then we queue the transaction
+  LOG(
+      ("TryDispatchExtendedCONNECTransaction: unsure if extended CONNECT "
+       "supported"));
   return NS_ERROR_NOT_AVAILABLE;
 }
 
@@ -2192,7 +2238,15 @@ void nsHttpConnectionMgr::OnMsgNewTransaction(int32_t priority,
   LOG(("nsHttpConnectionMgr::OnMsgNewTransaction [trans=%p]\n", trans));
   trans->SetPriority(priority);
   nsresult rv = ProcessNewTransaction(trans);
-  if (NS_FAILED(rv)) trans->Close(rv);  // for whatever its worth
+
+  if (rv == NS_ERROR_HTTP2_FALLBACK_TO_HTTP1) {
+    LOG(("ProcessNewTransaction again for trans%p", trans));
+    rv = ProcessNewTransaction(trans);
+  }
+
+  if (NS_FAILED(rv)) {
+    trans->Close(rv);  // for whatever its worth
+  }
 }
 
 void nsHttpConnectionMgr::OnMsgNewTransactionWithStickyConn(int32_t priority,
@@ -2222,6 +2276,12 @@ void nsHttpConnectionMgr::OnMsgNewTransactionWithStickyConn(int32_t priority,
   }
 
   nsresult rv = ProcessNewTransaction(data->mTrans);
+
+  if (rv == NS_ERROR_HTTP2_FALLBACK_TO_HTTP1) {
+    LOG(("ProcessNewTransaction again for trans%p", data->mTrans.get()));
+    rv = ProcessNewTransaction(data->mTrans);
+  }
+
   if (NS_FAILED(rv)) {
     data->mTrans->Close(rv);  // for whatever its worth
   }
