@@ -527,31 +527,32 @@ TEST_F(APZScrollHandoffTester, OpposingConstrainedAxes_Bug1201098) {
 }
 #endif
 
-// Test that flinging in a direction where one component of the fling goes into
-// overscroll but the other doesn't, results in just the one component being
-// handed off to the parent, while the original APZC continues flinging in the
-// other direction.
-TEST_F(APZScrollHandoffTesterMock, PartialFlingHandoff) {
+// Test the behaviour when flinging diagonally and there is room to scroll in
+// one direction but not the other. In the direction where there is room to
+// scroll, the fling should continue. In the direction where there is no room
+// to scroll, the fling should stop without being handed off to the parent.
+TEST_F(APZScrollHandoffTesterMock, DiagonalFlingNoHandoff) {
   SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
 
   CreateScrollHandoffLayerTree1();
 
   // Fling up and to the left. The child APZC has room to scroll up, but not
-  // to the left, so the horizontal component of the fling should be handed
-  // off to the parent APZC.
+  // to the left.
   QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID + 1);
   Pan(manager, ScreenIntPoint(90, 90), ScreenIntPoint(55, 55));
 
   RefPtr<TestAsyncPanZoomController> parent = ApzcOf(layers[0]);
   RefPtr<TestAsyncPanZoomController> child = ApzcOf(layers[1]);
 
-  // Advance the child's fling animation once to give the partial handoff
+  // Advance the child's fling animation once to give any potential handoff
   // a chance to occur.
   mcc->AdvanceByMillis(10);
   child->AdvanceAnimations(mcc->GetSampleTime());
 
-  // Assert that partial handoff has occurred.
+  // Assert that the child is still flinging but the parent is not (no handoff
+  // occurred).
   child->AssertStateIsFling();
+  parent->AssertStateIsReset();
 }
 
 // Here we test that if two flings are happening simultaneously, overscroll
