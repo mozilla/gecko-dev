@@ -43,3 +43,20 @@ widget:
       - krosylight@mozilla.com
       - dom-core@mozilla.com
     expires: never
+
+  notify_idle:
+    type: timing_distribution
+    description: >
+      Time spent checking for and notifying listeners that the user is idle (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram IDLE_NOTIFY_IDLE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731004
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=731004
+    notification_emails:
+      - froydnj@mozilla.com
+    expires: never
+    telemetry_mirror: IDLE_NOTIFY_IDLE_MS
