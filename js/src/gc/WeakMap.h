@@ -16,6 +16,7 @@
 #include "gc/ZoneAllocator.h"
 #include "js/HashTable.h"
 #include "js/HeapAPI.h"
+#include "vm/JSObject.h"
 
 namespace JS {
 class Zone;
@@ -119,8 +120,10 @@ class WeakMapBase : public mozilla::LinkedListElement<WeakMapBase> {
   // marked members' mid-collection.
   static bool markZoneIteratively(JS::Zone* zone, GCMarker* marker);
 
-  // Add zone edges for weakmaps with key delegates in a different zone.
-  [[nodiscard]] static bool findSweepGroupEdgesForZone(JS::Zone* zone);
+  // Add zone edges for weakmaps in zone |mapZone| with key delegates in a
+  // different zone.
+  [[nodiscard]] static bool findSweepGroupEdgesForZone(JS::Zone* atomsZone,
+                                                       JS::Zone* mapZone);
 
   // Sweep the marked weak maps in a zone, updating moved keys.
   static void sweepZoneAfterMinorGC(JS::Zone* zone);
@@ -147,7 +150,7 @@ class WeakMapBase : public mozilla::LinkedListElement<WeakMapBase> {
   // Instance member functions called by the above. Instantiations of WeakMap
   // override these with definitions appropriate for their Key and Value types.
   virtual void trace(JSTracer* tracer) = 0;
-  virtual bool findSweepGroupEdges() = 0;
+  virtual bool findSweepGroupEdges(Zone* atomsZone) = 0;
   virtual void traceWeakEdges(JSTracer* trc) = 0;
   virtual void traceMappings(WeakMapTracer* tracer) = 0;
   virtual void clearAndCompact() = 0;
@@ -189,6 +192,10 @@ class WeakMapBase : public mozilla::LinkedListElement<WeakMapBase> {
   // color it was marked.
   mozilla::Atomic<uint32_t, mozilla::Relaxed> mapColor_;
 
+  // Cached information about keys to speed up findSweepGroupEdges.
+  bool mayHaveKeyDelegates = false;
+  bool mayHaveSymbolKeys = false;
+
   friend class JS::Zone;
 };
 
@@ -210,7 +217,6 @@ class WeakMap
   };
 
   using Base::all;
-  using Base::clear;
   using Base::count;
   using Base::empty;
   using Base::has;
@@ -259,12 +265,14 @@ class WeakMap
   template <typename KeyInput, typename ValueInput>
   [[nodiscard]] bool add(AddPtr& p, KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
+    keyWriteBarrier(std::forward<KeyInput>(k));
     return Base::add(p, std::forward<KeyInput>(k), std::forward<ValueInput>(v));
   }
 
   template <typename KeyInput, typename ValueInput>
   [[nodiscard]] bool relookupOrAdd(AddPtr& p, KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
+    keyWriteBarrier(std::forward<KeyInput>(k));
     return Base::relookupOrAdd(p, std::forward<KeyInput>(k),
                                std::forward<ValueInput>(v));
   }
@@ -272,19 +280,28 @@ class WeakMap
   template <typename KeyInput, typename ValueInput>
   [[nodiscard]] bool put(KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
+    keyWriteBarrier(std::forward<KeyInput>(k));
     return Base::put(std::forward<KeyInput>(k), std::forward<ValueInput>(v));
   }
 
   template <typename KeyInput, typename ValueInput>
   [[nodiscard]] bool putNew(KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
+    keyWriteBarrier(std::forward<KeyInput>(k));
     return Base::putNew(std::forward<KeyInput>(k), std::forward<ValueInput>(v));
   }
 
   template <typename KeyInput, typename ValueInput>
   void putNewInfallible(KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
+    keyWriteBarrier(std::forward<KeyInput>(k));
     Base::putNewInfallible(std::forward(k), std::forward<KeyInput>(k));
+  }
+
+  void clear() {
+    Base::clear();
+    mayHaveSymbolKeys = false;
+    mayHaveKeyDelegates = false;
   }
 
 #ifdef DEBUG
@@ -309,7 +326,7 @@ class WeakMap
 
   // Find sweep group edges for delegates, if the key type has delegates. (If
   // not, the optimizer should make this a nop.)
-  bool findSweepGroupEdges() override;
+  bool findSweepGroupEdges(Zone* atomsZone) override;
 
 #if DEBUG
   void assertEntriesNotAboutToBeFinalized();
@@ -331,10 +348,26 @@ class WeakMap
     JS::ExposeObjectToActiveJS(obj);
   }
 
+  void keyWriteBarrier(const JS::Value& v) {
+    if (v.isSymbol()) {
+      mayHaveSymbolKeys = true;
+    }
+    if (v.isObject()) {
+      keyWriteBarrier(&v.toObject());
+    }
+  }
+  void keyWriteBarrier(JSObject* key) {
+    JSObject* delegate = UncheckedUnwrapWithoutExpose(key);
+    if (delegate != key || ObjectMayBeSwapped(key)) {
+      mayHaveKeyDelegates = true;
+    }
+  }
+  void keyWriteBarrier(BaseScript* key) {}
+
   void traceWeakEdges(JSTracer* trc) override;
 
   void clearAndCompact() override {
-    Base::clear();
+    clear();
     Base::compact();
   }
 

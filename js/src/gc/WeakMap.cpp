@@ -132,9 +132,10 @@ bool WeakMapBase::markZoneIteratively(JS::Zone* zone, GCMarker* marker) {
   return markedAny;
 }
 
-bool WeakMapBase::findSweepGroupEdgesForZone(JS::Zone* zone) {
-  for (WeakMapBase* m : zone->gcWeakMapList()) {
-    if (!m->findSweepGroupEdges()) {
+bool WeakMapBase::findSweepGroupEdgesForZone(JS::Zone* atomsZone,
+                                             JS::Zone* mapZone) {
+  for (WeakMapBase* m : mapZone->gcWeakMapList()) {
+    if (!m->findSweepGroupEdges(atomsZone)) {
       return false;
     }
   }
