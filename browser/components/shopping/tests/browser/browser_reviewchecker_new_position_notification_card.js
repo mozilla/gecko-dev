@@ -115,7 +115,7 @@ add_task(async function test_new_position_notification_card_visibility() {
     set: [
       ["browser.shopping.experience2023.newPositionCard.hasSeen", false],
       ["sidebar.position_start", true],
-      ["browser.shopping.experience2023.autoClose.userEnabled", false],
+      ["browser.shopping.experience2023.autoOpen.userEnabled", false],
     ],
   });
   /* First, load a non PDP so that we can then make RC auto open once we

@@ -299,8 +299,8 @@ add_task(async function test_integrated_sidebar_empty_states() {
     BrowserTestUtils.startLoadingURIString(browser, "about:newtab");
     await BrowserTestUtils.browserLoaded(browser);
 
-    // Set review checker to show because it will be hidden by default
-    // on an unsupported page with auto-close enabled
+    // Set review checker to show because it will be closed by default
+    // on an unsupported page with auto-open enabled.
     await SidebarController.show("viewReviewCheckerSidebar");
     await reviewCheckerSidebarUpdated("about:newtab");
 
@@ -595,143 +595,12 @@ add_task(
 );
 
 /**
- * Tests that the auto-close toggle component is rendered as expected
- * and that auto-close toggle UI and browser.shopping.experience2023.autoClose.userEnabled
- * pref update correctly when the toggle is clicked.
- */
-add_task(async function test_settings_auto_close_toggle() {
-  await Services.fog.testFlushAllChildren();
-  Services.fog.testResetFOG();
-
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.shopping.experience2023.autoClose.userEnabled", true]],
-  });
-
-  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function () {
-    await SidebarController.show("viewReviewCheckerSidebar");
-    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
-
-    await withReviewCheckerSidebar(async () => {
-      let shoppingContainer = await ContentTaskUtils.waitForCondition(
-        () =>
-          content.document.querySelector("shopping-container")?.wrappedJSObject,
-        "Review Checker is loaded"
-      );
-
-      await shoppingContainer.updateComplete;
-
-      let shoppingSettings = shoppingContainer.settingsEl;
-      ok(shoppingSettings, "Got the shopping-settings element");
-
-      let autoCloseToggle = shoppingSettings.autoCloseToggleEl;
-      ok(autoCloseToggle, "There should be an auto-close toggle");
-      ok(
-        autoCloseToggle.hasAttribute("pressed"),
-        "Toggle should have enabled state"
-      );
-
-      let toggleStateChangePromise = ContentTaskUtils.waitForCondition(() => {
-        return !autoCloseToggle.hasAttribute("pressed");
-      }, "Waiting for auto-close toggle state to be disabled");
-      let autoCloseUserEnabledPromise = ContentTaskUtils.waitForEvent(
-        content.document,
-        "autoCloseEnabledByUserChanged"
-      );
-      let autoClosePrefChange = ContentTaskUtils.waitForCondition(
-        () =>
-          !SpecialPowers.getBoolPref(
-            "browser.shopping.experience2023.autoClose.userEnabled"
-          ),
-        "Auto-close pref should be false, but isn't"
-      );
-
-      autoCloseToggle.click();
-
-      Promise.all([
-        await toggleStateChangePromise,
-        await autoCloseUserEnabledPromise,
-        await autoClosePrefChange,
-      ]);
-
-      // Make sure that clicking the toggle updates the pref
-      ok(
-        !SpecialPowers.getBoolPref(
-          "browser.shopping.experience2023.autoClose.userEnabled"
-        ),
-        "autoOpen.userEnabled pref should be false"
-      );
-    });
-    await Services.fog.testFlushAllChildren();
-    let toggledEvents =
-      Glean.shopping.surfaceAutoCloseSettingToggled.testGetValue();
-
-    Assert.equal(toggledEvents.length, 1);
-    Assert.equal(toggledEvents[0].category, "shopping");
-    Assert.equal(toggledEvents[0].name, "surface_auto_close_setting_toggled");
-  });
-  await SpecialPowers.popPrefEnv();
-});
-
-/* Tests that the auto-close toggle UI and browser.shopping.experience2023.autoClose.userEnabled
- *  pref are updated when auto-close pref is changed outside of toggle action.
- */
-add_task(async function test_settings_auto_close_disabled() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.shopping.experience2023.autoClose.userEnabled", true]],
-  });
-
-  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function () {
-    await SidebarController.show("viewReviewCheckerSidebar");
-    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
-
-    await withReviewCheckerSidebar(async () => {
-      let shoppingContainer = await ContentTaskUtils.waitForCondition(
-        () =>
-          content.document.querySelector("shopping-container")?.wrappedJSObject,
-        "Review Checker is loaded"
-      );
-
-      await shoppingContainer.updateComplete;
-
-      let shoppingSettings = shoppingContainer.settingsEl;
-      ok(shoppingSettings, "Got the shopping-settings element");
-
-      let autoCloseToggle = shoppingSettings.autoCloseToggleEl;
-      ok(autoCloseToggle, "There should be an auto-close toggle");
-      ok(
-        autoCloseToggle.hasAttribute("pressed"),
-        "Toggle should initially have enabled state"
-      );
-
-      // Confirm that pref update updates the UI and sends autoClose event
-      let toggleStateChangePromise = ContentTaskUtils.waitForCondition(() => {
-        return !autoCloseToggle.hasAttribute("pressed");
-      }, "Waiting for auto-close toggle state to be disabled");
-      let autoCloseUserEnabledPromise = ContentTaskUtils.waitForEvent(
-        content.document,
-        "autoCloseEnabledByUserChanged"
-      );
-
-      await SpecialPowers.popPrefEnv();
-
-      await SpecialPowers.pushPrefEnv({
-        set: [["browser.shopping.experience2023.autoClose.userEnabled", false]],
-      });
-
-      Promise.all([
-        await toggleStateChangePromise,
-        await autoCloseUserEnabledPromise,
-      ]);
-    });
-  });
-  await SpecialPowers.popPrefEnv();
-});
-
-/**
  * Tests that about:blank is treated as an unsupported site
  * and renders the loading state as a result.
  */
 add_task(async function test_about_blank_unsupported() {
+  SidebarController.hide();
+
   await BrowserTestUtils.withNewTab(ABOUT_BLANK, async function () {
     await SidebarController.show("viewReviewCheckerSidebar");
 

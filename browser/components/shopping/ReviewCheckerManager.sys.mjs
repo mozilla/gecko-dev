@@ -21,13 +21,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "autoClose",
-  "browser.shopping.experience2023.autoClose.userEnabled",
-  true
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "hasSeenNewPositionCard",
   "browser.shopping.experience2023.newPositionCard.hasSeen",
   null
@@ -256,7 +249,7 @@ export class ReviewCheckerManager {
     let isSupportedSite = lazy.isSupportedSiteURL(aLocationURI);
     let isProductURL = lazy.isProductURL(aLocationURI);
 
-    if (lazy.autoClose && !isSupportedSite && !isProductURL) {
+    if (this.#canAutoOpen() && !isSupportedSite && !isProductURL) {
       this.hideSidebar();
     }
 
