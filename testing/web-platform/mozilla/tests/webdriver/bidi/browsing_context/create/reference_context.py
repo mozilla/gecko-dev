@@ -26,6 +26,7 @@ def assert_tab_order(session, expected_context_ids):
         assert context_ids == expected_context_ids
 
 
+@pytest.mark.allow_system_access
 async def test_reference_context(bidi_session, current_session):
     # Create a new window with a tab tab1
     result = await bidi_session.browsing_context.create(type_hint="window")

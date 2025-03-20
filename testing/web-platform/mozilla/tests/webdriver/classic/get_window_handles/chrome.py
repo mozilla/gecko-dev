@@ -1,3 +1,4 @@
+import pytest
 from support.context import using_context
 from tests.support.asserts import assert_success
 
@@ -8,12 +9,14 @@ def get_window_handles(session):
     )
 
 
+@pytest.mark.allow_system_access
 def test_basic(session):
     with using_context(session, "chrome"):
         response = get_window_handles(session)
         assert_success(response, session.handles)
 
 
+@pytest.mark.allow_system_access
 def test_different_handles_than_content_scope(session):
     response = get_window_handles(session)
     content_handles = assert_success(response)
@@ -27,6 +30,7 @@ def test_different_handles_than_content_scope(session):
     assert len(content_handles) == 1
 
 
+@pytest.mark.allow_system_access
 def test_multiple_windows_and_tabs(session):
     session.new_window(type_hint="window")
     session.new_window(type_hint="tab")
