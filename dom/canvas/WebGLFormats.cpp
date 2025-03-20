@@ -292,6 +292,7 @@ static void InitFormatInfo() {
 #define FOO(x) EffectiveFormat::x, #x, LOCAL_GL_ ## x
 
     // GLES 3.0.4, p130-132, table 3.13
+    //           |     format        | renderable | filterable |
     AddFormatInfo(FOO(R8            ),  1,  8, 0, 0, 0,  0,0, UnsizedFormat::R   , false, ComponentType::NormUInt);
     AddFormatInfo(FOO(R8_SNORM      ),  1,  8, 0, 0, 0,  0,0, UnsizedFormat::R   , false, ComponentType::NormInt );
     AddFormatInfo(FOO(RG8           ),  2,  8, 8, 0, 0,  0,0, UnsizedFormat::RG  , false, ComponentType::NormUInt);
@@ -821,30 +822,32 @@ std::unique_ptr<FormatUsageAuthority> FormatUsageAuthority::CreateForWebGL1(
     }
   };
 
-  // GLES 2.0.25, p117, Table 4.5
-  // RGBA8 is made renderable in WebGL 1.0, "Framebuffer Object Attachments"
-  //                              render filter
-  //                              able   able
-  fnSet(EffectiveFormat::RGBA8, true, true);
-  fnSet(EffectiveFormat::RGBA4, true, true);
-  fnSet(EffectiveFormat::RGB5_A1, true, true);
-  fnSet(EffectiveFormat::RGB565, true, true);
+  // Largely from GLES 2.0.25, p117, Table 4.5, but also:
+  // * RGBA8: Made renderable in WebGL 1.0, "Framebuffer Object Attachments".
+  // * RGB8: Not guaranteed by ES2 to be renderable, but we should allow it for
+  //   web-compat. Min-capability mode should mark this as non-renderable.
 
-  // RGB8 is not guaranteed to be renderable, but we should allow it for
-  // web-compat. Min-capability mode should mark this as non-renderable.
-  fnSet(EffectiveFormat::RGB8, true, true);
+  constexpr bool ALWAYS = true;  // For better contrast with `false` in tables.
 
-  fnSet(EffectiveFormat::Luminance8Alpha8, false, true);
-  fnSet(EffectiveFormat::Luminance8, false, true);
-  fnSet(EffectiveFormat::Alpha8, false, true);
-
-  fnSet(EffectiveFormat::DEPTH_COMPONENT16, true, true);
-  fnSet(EffectiveFormat::DEPTH_COMPONENT24, true,
-        true);  // Requires WEBGL_depth_texture.
-  fnSet(EffectiveFormat::STENCIL_INDEX8, true, false);
-
+  // clang-format off
+  //   |              format              | renderable | filterable |
+  fnSet(EffectiveFormat::RGBA8            , ALWAYS     , ALWAYS     );
+  fnSet(EffectiveFormat::RGBA4            , ALWAYS     , ALWAYS     );
+  fnSet(EffectiveFormat::RGB5_A1          , ALWAYS     , ALWAYS     );
+  fnSet(EffectiveFormat::RGB565           , ALWAYS     , ALWAYS     );
+  fnSet(EffectiveFormat::RGB8             , ALWAYS     , ALWAYS     );
+  // "Legacy" formats
+  fnSet(EffectiveFormat::Luminance8Alpha8 , false      , ALWAYS     );
+  fnSet(EffectiveFormat::Luminance8       , false      , ALWAYS     );
+  fnSet(EffectiveFormat::Alpha8           , false      , ALWAYS     );
+  // Depth/stencil
+  fnSet(EffectiveFormat::DEPTH_COMPONENT16, ALWAYS     , ALWAYS     );
+  fnSet(EffectiveFormat::DEPTH_COMPONENT24, ALWAYS     , ALWAYS     );
+  fnSet(EffectiveFormat::STENCIL_INDEX8   , ALWAYS     , false      );
   // Added in WebGL 1.0 spec:
-  fnSet(EffectiveFormat::DEPTH24_STENCIL8, true, true);
+  fnSet(EffectiveFormat::DEPTH24_STENCIL8 , ALWAYS     , ALWAYS     );
+  //   |              format              | renderable | filterable |
+  // clang-format on
 
   ////////////////////////////////////
   // RB formats
@@ -1005,81 +1008,85 @@ std::unique_ptr<FormatUsageAuthority> FormatUsageAuthority::CreateForWebGL2(
     }
   };
 
-#define FOO(x) LOCAL_GL_##x, EffectiveFormat::x
+  constexpr bool ALWAYS = true;  // For better contrast with `false` in tables.
+
+  // clang-format off
+#define _(x)  LOCAL_GL_##x, EffectiveFormat::x
 
   // GLES 3.0.4, p128-129 "Required Texture Formats"
   // GLES 3.0.4, p130-132, table 3.13
-  //                                   render filter
-  //                                    able   able
-  fnAllowES3TexFormat(FOO(R8), true, true);
-  fnAllowES3TexFormat(FOO(R8_SNORM), false, true);
-  fnAllowES3TexFormat(FOO(RG8), true, true);
-  fnAllowES3TexFormat(FOO(RG8_SNORM), false, true);
-  fnAllowES3TexFormat(FOO(RGB8), true, true);
-  fnAllowES3TexFormat(FOO(RGB8_SNORM), false, true);
-  fnAllowES3TexFormat(FOO(RGB565), true, true);
-  fnAllowES3TexFormat(FOO(RGBA4), true, true);
-  fnAllowES3TexFormat(FOO(RGB5_A1), true, true);
-  fnAllowES3TexFormat(FOO(RGBA8), true, true);
-  fnAllowES3TexFormat(FOO(RGBA8_SNORM), false, true);
-  fnAllowES3TexFormat(FOO(RGB10_A2), true, true);
-  fnAllowES3TexFormat(FOO(RGB10_A2UI), true, false);
+  //                 |     format          | renderable | filterable |
+  fnAllowES3TexFormat(_(R8)                , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(R8_SNORM)          , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RG8)               , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(RG8_SNORM)         , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB8)              , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB8_SNORM)        , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB565)            , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(RGBA4)             , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB5_A1)           , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(RGBA8)             , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(RGBA8_SNORM)       , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB10_A2)          , ALWAYS     , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB10_A2UI)        , ALWAYS     , false      );
 
-  fnAllowES3TexFormat(FOO(SRGB8), false, true);
-  fnAllowES3TexFormat(FOO(SRGB8_ALPHA8), true, true);
+  fnAllowES3TexFormat(_(SRGB8)             , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(SRGB8_ALPHA8)      , ALWAYS     , ALWAYS     );
+  //                 |     format          | renderable | filterable |
+  fnAllowES3TexFormat(_(R16F)              , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RG16F)             , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB16F)            , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RGBA16F)           , false      , ALWAYS     );
 
-  fnAllowES3TexFormat(FOO(R16F), false, true);
-  fnAllowES3TexFormat(FOO(RG16F), false, true);
-  fnAllowES3TexFormat(FOO(RGB16F), false, true);
-  fnAllowES3TexFormat(FOO(RGBA16F), false, true);
+  fnAllowES3TexFormat(_(R32F)              , false      , false      );
+  fnAllowES3TexFormat(_(RG32F)             , false      , false      );
+  fnAllowES3TexFormat(_(RGB32F)            , false      , false      );
+  fnAllowES3TexFormat(_(RGBA32F)           , false      , false      );
 
-  fnAllowES3TexFormat(FOO(R32F), false, false);
-  fnAllowES3TexFormat(FOO(RG32F), false, false);
-  fnAllowES3TexFormat(FOO(RGB32F), false, false);
-  fnAllowES3TexFormat(FOO(RGBA32F), false, false);
+  fnAllowES3TexFormat(_(R11F_G11F_B10F)    , false      , ALWAYS     );
+  fnAllowES3TexFormat(_(RGB9_E5)           , false      , ALWAYS     );
+  //                 |     format          | renderable | filterable |
+  fnAllowES3TexFormat(_(R8I)               , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(R8UI)              , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(R16I)              , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(R16UI)             , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(R32I)              , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(R32UI)             , ALWAYS     , false      );
 
-  fnAllowES3TexFormat(FOO(R11F_G11F_B10F), false, true);
-  fnAllowES3TexFormat(FOO(RGB9_E5), false, true);
+  fnAllowES3TexFormat(_(RG8I)              , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RG8UI)             , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RG16I)             , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RG16UI)            , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RG32I)             , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RG32UI)            , ALWAYS     , false      );
+  //                 |     format          | renderable | filterable |
+  fnAllowES3TexFormat(_(RGB8I)             , false      , false      );
+  fnAllowES3TexFormat(_(RGB8UI)            , false      , false      );
+  fnAllowES3TexFormat(_(RGB16I)            , false      , false      );
+  fnAllowES3TexFormat(_(RGB16UI)           , false      , false      );
+  fnAllowES3TexFormat(_(RGB32I)            , false      , false      );
+  fnAllowES3TexFormat(_(RGB32UI)           , false      , false      );
 
-  fnAllowES3TexFormat(FOO(R8I), true, false);
-  fnAllowES3TexFormat(FOO(R8UI), true, false);
-  fnAllowES3TexFormat(FOO(R16I), true, false);
-  fnAllowES3TexFormat(FOO(R16UI), true, false);
-  fnAllowES3TexFormat(FOO(R32I), true, false);
-  fnAllowES3TexFormat(FOO(R32UI), true, false);
+  fnAllowES3TexFormat(_(RGBA8I)            , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RGBA8UI)           , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RGBA16I)           , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RGBA16UI)          , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RGBA32I)           , ALWAYS     , false      );
+  fnAllowES3TexFormat(_(RGBA32UI)          , ALWAYS     , false      );
+  //                 |     format          | renderable | filterable |
+  fnAllowES3TexFormat(_(DEPTH_COMPONENT16) , ALWAYS     , false      ); // [1]
+  fnAllowES3TexFormat(_(DEPTH_COMPONENT24) , ALWAYS     , false      ); // [1]
+  fnAllowES3TexFormat(_(DEPTH_COMPONENT32F), ALWAYS     , false      ); // [1]
+  fnAllowES3TexFormat(_(DEPTH24_STENCIL8)  , ALWAYS     , false      ); // [1]
+  fnAllowES3TexFormat(_(DEPTH32F_STENCIL8) , ALWAYS     , false      ); // [1]
 
-  fnAllowES3TexFormat(FOO(RG8I), true, false);
-  fnAllowES3TexFormat(FOO(RG8UI), true, false);
-  fnAllowES3TexFormat(FOO(RG16I), true, false);
-  fnAllowES3TexFormat(FOO(RG16UI), true, false);
-  fnAllowES3TexFormat(FOO(RG32I), true, false);
-  fnAllowES3TexFormat(FOO(RG32UI), true, false);
+  // [1]: Sized depth or depth-stencil formats are not filterable
+  //      per GLES 3.0.6 p161.
+  //      Specifically, they're texture-incomplete if depth-compare:none and
+  //      not NEAREST.
 
-  fnAllowES3TexFormat(FOO(RGB8I), false, false);
-  fnAllowES3TexFormat(FOO(RGB8UI), false, false);
-  fnAllowES3TexFormat(FOO(RGB16I), false, false);
-  fnAllowES3TexFormat(FOO(RGB16UI), false, false);
-  fnAllowES3TexFormat(FOO(RGB32I), false, false);
-  fnAllowES3TexFormat(FOO(RGB32UI), false, false);
-
-  fnAllowES3TexFormat(FOO(RGBA8I), true, false);
-  fnAllowES3TexFormat(FOO(RGBA8UI), true, false);
-  fnAllowES3TexFormat(FOO(RGBA16I), true, false);
-  fnAllowES3TexFormat(FOO(RGBA16UI), true, false);
-  fnAllowES3TexFormat(FOO(RGBA32I), true, false);
-  fnAllowES3TexFormat(FOO(RGBA32UI), true, false);
-
-  // Sized depth or depth-stencil formats are not filterable
-  // per GLES 3.0.6 p161.
-  // Specifically, they're texture-incomplete if depth-compare:none and
-  // not NEAREST.
-  fnAllowES3TexFormat(FOO(DEPTH_COMPONENT16), true, false);
-  fnAllowES3TexFormat(FOO(DEPTH_COMPONENT24), true, false);
-  fnAllowES3TexFormat(FOO(DEPTH_COMPONENT32F), true, false);
-  fnAllowES3TexFormat(FOO(DEPTH24_STENCIL8), true, false);
-  fnAllowES3TexFormat(FOO(DEPTH32F_STENCIL8), true, false);
-
-#undef FOO
+#undef _
+  // clang-format on
 
   // GLES 3.0.4, p206, "Required Renderbuffer Formats":
   // "Implementations are also required to support STENCIL_INDEX8. Requesting
