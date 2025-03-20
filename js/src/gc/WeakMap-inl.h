@@ -115,7 +115,7 @@ WeakMap<K, V>::WeakMap(JSContext* cx, JSObject* memOf)
 
 template <class K, class V>
 WeakMap<K, V>::WeakMap(JS::Zone* zone, JSObject* memOf)
-    : Base(zone), WeakMapBase(memOf, zone) {
+    : WeakMapBase(memOf, zone), map_(zone) {
   static_assert(std::is_same_v<typename RemoveBarrier<K>::Type, K>);
   static_assert(std::is_same_v<typename RemoveBarrier<V>::Type, V>);
 
@@ -256,7 +256,7 @@ void WeakMap<K, V>::trace(JSTracer* trc) {
   }
 
   // Always trace all values (unless weakMapAction() is Skip).
-  for (Range r = Base::all(); !r.empty(); r.popFront()) {
+  for (Range r = all(); !r.empty(); r.popFront()) {
     TraceEdge(trc, &r.front().value(), "WeakMap entry value");
   }
 }
@@ -320,7 +320,7 @@ void WeakMap<K, V>::traceWeakEdges(JSTracer* trc) {
 // memberOf can be nullptr, which means that the map is not part of a JSObject.
 template <class K, class V>
 void WeakMap<K, V>::traceMappings(WeakMapTracer* tracer) {
-  for (Range r = Base::all(); !r.empty(); r.popFront()) {
+  for (Range r = all(); !r.empty(); r.popFront()) {
     gc::Cell* key = gc::ToMarkable(r.front().key());
     gc::Cell* value = gc::ToMarkable(r.front().value());
     if (key && value) {
@@ -389,7 +389,7 @@ size_t WeakMap<K, V>::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
 #if DEBUG
 template <class K, class V>
 void WeakMap<K, V>::assertEntriesNotAboutToBeFinalized() {
-  for (Range r = Base::all(); !r.empty(); r.popFront()) {
+  for (Range r = all(); !r.empty(); r.popFront()) {
     K k = r.front().key();
     MOZ_ASSERT(!gc::IsAboutToBeFinalizedUnbarriered(k));
     JSObject* delegate = gc::detail::GetDelegate(k);
@@ -406,7 +406,7 @@ void WeakMap<K, V>::assertEntriesNotAboutToBeFinalized() {
 template <class K, class V>
 bool WeakMap<K, V>::checkMarking() const {
   bool ok = true;
-  for (Range r = Base::all(); !r.empty(); r.popFront()) {
+  for (Range r = all(); !r.empty(); r.popFront()) {
     gc::Cell* key = gc::ToMarkable(r.front().key());
     gc::Cell* value = gc::ToMarkable(r.front().value());
     if (key && value) {

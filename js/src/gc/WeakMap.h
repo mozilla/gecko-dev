@@ -200,40 +200,42 @@ class WeakMapBase : public mozilla::LinkedListElement<WeakMapBase> {
 };
 
 template <class Key, class Value>
-class WeakMap
-    : private HashMap<HeapPtr<Key>, HeapPtr<Value>,
-                      StableCellHasher<HeapPtr<Key>>, ZoneAllocPolicy>,
-      public WeakMapBase {
- public:
-  using Base = HashMap<HeapPtr<Key>, HeapPtr<Value>,
-                       StableCellHasher<HeapPtr<Key>>, ZoneAllocPolicy>;
-
-  using Lookup = typename Base::Lookup;
-  using Entry = typename Base::Entry;
-  using Range = typename Base::Range;
-  using Ptr = typename Base::Ptr;
-  using AddPtr = typename Base::AddPtr;
-
-  struct Enum : public Base::Enum {
-    explicit Enum(WeakMap& map) : Base::Enum(static_cast<Base&>(map)) {}
-  };
-
-  using Base::all;
-  using Base::count;
-  using Base::empty;
-  using Base::has;
-  using Base::shallowSizeOfExcludingThis;
-  using Base::shallowSizeOfIncludingThis;
-
-  // Resolve ambiguity with LinkedListElement<>::remove.
-  using Base::remove;
-
+class WeakMap : public WeakMapBase {
   using BarrieredKey = HeapPtr<Key>;
   using BarrieredValue = HeapPtr<Value>;
+
+  using Map = HashMap<HeapPtr<Key>, HeapPtr<Value>,
+                      StableCellHasher<HeapPtr<Key>>, ZoneAllocPolicy>;
+  Map map_;
+
+ public:
+  using Lookup = typename Map::Lookup;
+  using Entry = typename Map::Entry;
+  using Range = typename Map::Range;
+  using Ptr = typename Map::Ptr;
+  using AddPtr = typename Map::AddPtr;
+
+  struct Enum : public Map::Enum {
+    explicit Enum(WeakMap& map) : Map::Enum(map.map()) {}
+  };
 
   explicit WeakMap(JSContext* cx, JSObject* memOf = nullptr);
   explicit WeakMap(JS::Zone* zone, JSObject* memOf = nullptr);
   ~WeakMap() override;
+
+  Range all() const { return map().all(); }
+  uint32_t count() const { return map().count(); }
+  bool empty() const { return map().empty(); }
+  bool has(const Lookup& lookup) const { return map().has(lookup); }
+  void remove(const Lookup& lookup) { return map().remove(lookup); }
+  void remove(Ptr ptr) { return map().remove(ptr); }
+
+  size_t shallowSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+    return map().shallowSizeOfExcludingThis(aMallocSizeOf);
+  }
+  size_t shallowSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+    return aMallocSizeOf(this) + shallowSizeOfExcludingThis(aMallocSizeOf);
+  }
 
   // Get the value associated with a key, or a default constructed Value if the
   // key is not present in the map.
@@ -248,17 +250,17 @@ class WeakMap
   // Add a read barrier to prevent an incorrectly gray value from escaping the
   // weak map. See the UnmarkGrayTracer::onChild comment in gc/Marking.cpp.
   Ptr lookup(const Lookup& l) const {
-    Ptr p = Base::lookup(l);
+    Ptr p = map().lookup(l);
     if (p) {
       valueReadBarrier(p->value());
     }
     return p;
   }
 
-  Ptr lookupUnbarriered(const Lookup& l) const { return Base::lookup(l); }
+  Ptr lookupUnbarriered(const Lookup& l) const { return map().lookup(l); }
 
   AddPtr lookupForAdd(const Lookup& l) {
-    AddPtr p = Base::lookupForAdd(l);
+    AddPtr p = map().lookupForAdd(l);
     if (p) {
       valueReadBarrier(p->value());
     }
@@ -269,14 +271,14 @@ class WeakMap
   [[nodiscard]] bool add(AddPtr& p, KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
     keyWriteBarrier(std::forward<KeyInput>(k));
-    return Base::add(p, std::forward<KeyInput>(k), std::forward<ValueInput>(v));
+    return map().add(p, std::forward<KeyInput>(k), std::forward<ValueInput>(v));
   }
 
   template <typename KeyInput, typename ValueInput>
   [[nodiscard]] bool relookupOrAdd(AddPtr& p, KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
     keyWriteBarrier(std::forward<KeyInput>(k));
-    return Base::relookupOrAdd(p, std::forward<KeyInput>(k),
+    return map().relookupOrAdd(p, std::forward<KeyInput>(k),
                                std::forward<ValueInput>(v));
   }
 
@@ -284,25 +286,25 @@ class WeakMap
   [[nodiscard]] bool put(KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
     keyWriteBarrier(std::forward<KeyInput>(k));
-    return Base::put(std::forward<KeyInput>(k), std::forward<ValueInput>(v));
+    return map().put(std::forward<KeyInput>(k), std::forward<ValueInput>(v));
   }
 
   template <typename KeyInput, typename ValueInput>
   [[nodiscard]] bool putNew(KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
     keyWriteBarrier(std::forward<KeyInput>(k));
-    return Base::putNew(std::forward<KeyInput>(k), std::forward<ValueInput>(v));
+    return map().putNew(std::forward<KeyInput>(k), std::forward<ValueInput>(v));
   }
 
   template <typename KeyInput, typename ValueInput>
   void putNewInfallible(KeyInput&& k, ValueInput&& v) {
     MOZ_ASSERT(gc::ToMarkable(k));
     keyWriteBarrier(std::forward<KeyInput>(k));
-    Base::putNewInfallible(std::forward(k), std::forward<KeyInput>(k));
+    map().putNewInfallible(std::forward(k), std::forward<KeyInput>(k));
   }
 
   void clear() {
-    Base::clear();
+    map().clear();
     mayHaveSymbolKeys = false;
     mayHaveKeyDelegates = false;
   }
@@ -310,7 +312,7 @@ class WeakMap
 #ifdef DEBUG
   template <typename KeyInput, typename ValueInput>
   bool hasEntry(KeyInput&& key, ValueInput&& value) {
-    Ptr p = Base::lookup(std::forward<KeyInput>(key));
+    Ptr p = map().lookup(std::forward<KeyInput>(key));
     return p && p->value() == value;
   }
 #endif
@@ -344,6 +346,9 @@ class WeakMap
 #endif
 
  private:
+  Map& map() { return map_; }
+  const Map& map() const { return map_; }
+
   static void valueReadBarrier(const JS::Value& v) {
     JS::ExposeValueToActiveJS(v);
   }
@@ -370,8 +375,8 @@ class WeakMap
   void traceWeakEdges(JSTracer* trc) override;
 
   void clearAndCompact() override {
-    clear();
-    Base::compact();
+    map().clear();
+    map().compact();
   }
 
   // memberOf can be nullptr, which means that the map is not part of a
