@@ -61,11 +61,12 @@
                 android:elevation="24dp"
                 android:visibility="gone" />
 
-            <org.mozilla.fenix.crashes.CrashContentView
-                android:id="@+id/crash_reporter_view"
+            <ViewStub
+                android:id="@+id/crashReporterViewStub"
+                android:inflatedId="@+id/crash_reporter_view"
+                android:layout="@layout/browser_layout_crash_reporter"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone" />
+                android:layout_height="match_parent" />
 
             <FrameLayout
                 android:id="@+id/startDownloadDialogContainer"

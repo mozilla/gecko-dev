@@ -74,13 +74,13 @@ class CrashContentIntegrationTest {
             browserStore = browserStore,
             appStore = appStore,
             toolbar = toolbar,
-            crashReporterView = crashReporterView,
             components = components,
             settings = settings,
             navController = mockk(),
             sessionId = sessionId,
         )
         val controllerCaptor = slot<CrashReporterController>()
+        integration.viewProvider = { crashReporterView }
         integration.start()
         browserStore.dispatch(CrashAction.SessionCrashedAction(sessionId))
         coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
@@ -107,13 +107,13 @@ class CrashContentIntegrationTest {
             browserStore = browserStore,
             appStore = appStore,
             toolbar = mockk(),
-            crashReporterView = crashReporterView,
             components = mockk(),
             settings = settings,
             navController = mockk(),
             sessionId = sessionId,
         )
 
+        integration.viewProvider = { crashReporterView }
         integration.start()
         browserStore.dispatch(CrashAction.RestoreCrashedSessionAction(sessionId))
         coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
@@ -133,7 +133,6 @@ class CrashContentIntegrationTest {
                 browserStore = browserStore,
                 appStore = appStore,
                 toolbar = mockk(),
-                crashReporterView = crashReporterView,
                 components = mockk(),
                 settings = settings,
                 navController = mockk(),
@@ -141,6 +140,7 @@ class CrashContentIntegrationTest {
             ),
         )
 
+        integration.viewProvider = { crashReporterView }
         integration.start()
         appStore.dispatch(AppAction.OrientationChange(orientation = OrientationMode.fromInteger(Configuration.ORIENTATION_LANDSCAPE)))
         coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
@@ -160,7 +160,6 @@ class CrashContentIntegrationTest {
                 browserStore = browserStore,
                 appStore = appStore,
                 toolbar = mockk(),
-                crashReporterView = crashReporterView,
                 components = mockk(),
                 settings = settings,
                 navController = mockk(),
@@ -170,13 +169,53 @@ class CrashContentIntegrationTest {
         val scopeTwo = TestScope()
         integration.scope = scopeTwo
 
+        integration.viewProvider = { crashReporterView }
         integration.start()
         integration.stop()
+        integration.viewProvider = { crashReporterView }
         integration.start()
         appStore.dispatch(AppAction.OrientationChange(orientation = OrientationMode.fromInteger(Configuration.ORIENTATION_LANDSCAPE)))
         coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
         scopeTwo.advanceUntilIdle()
 
         verify { integration.updateVerticalMargins() }
+    }
+
+    @Test
+    fun `GIVEN integration was stopped and then restarted without view provider THEN crash reporter view is not updated`() {
+        val crashReporterLayoutParams: MarginLayoutParams = mockk(relaxed = true)
+        val crashReporterView: CrashContentView = mockk(relaxed = true) {
+            every { layoutParams } returns crashReporterLayoutParams
+        }
+        val toolbar: BrowserToolbar = mockk(relaxed = true) {
+            every { height } returns 33
+        }
+        val components: Components = mockk()
+        val integration = CrashContentIntegration(
+            context = testContext,
+            browserStore = browserStore,
+            appStore = appStore,
+            toolbar = toolbar,
+            components = components,
+            settings = settings,
+            navController = mockk(),
+            sessionId = sessionId,
+        )
+        val controllerCaptor = slot<CrashReporterController>()
+        integration.viewProvider = { crashReporterView }
+        integration.start()
+
+        // When the view is stopped and restarted without updating the view provider
+        integration.stop()
+        integration.start()
+
+        // When a crashed session event is received
+        browserStore.dispatch(CrashAction.SessionCrashedAction(sessionId))
+        coroutinesTestRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        // Then we never show the crash reporter view because it has been detached
+        verify(exactly = 0) {
+            crashReporterView.show(capture(controllerCaptor))
+        }
     }
 }

@@ -31,17 +31,34 @@ import org.mozilla.fenix.utils.Settings
 /**
  * Helper for observing [BrowserStore] and show an in-app crash reporter for tabs with content crashes.
  *
+ * Note that you have to call `integration.viewProvider` to set the provider that will provide
+ *
  * @param context [Context] of the host fragment that is used for accessing settings and for using extension functions.
  * @param browserStore [BrowserStore] observed for any changes related to [EngineState.crashed].
  * @param appStore [AppStore] that tracks all content crashes in the current app session until the user
  * decides to either send or dismiss all crash reports.
  * @param toolbar [BrowserToolbar] that will be expanded when showing the in-app crash reporter.
- * @param crashReporterView [CrashContentView] which will be shown if the current tab is marked as crashed.
  * @param components [Components] allowing interactions with other app features.
  * @param settings [Settings] allowing to check whether crash reporting is enabled or not.
  * @param navController [NavController] used to navigate to other parts of the app.
  * @param sessionId [String] Id of the tab or custom tab which should be observed for [EngineState.crashed]
- * depending on which [crashReporterView] will be shown or hidden.
+ * depending on which the [CrashContentView] provided by [viewProvider] will be shown or hidden.
+ *
+ * Sample usage:
+ *
+ * ```kotlin
+ * class MyFragment {
+ *
+ *   override fun onCreateView(view: View, savedInstanceState: Bundle) {
+ *      //...
+ *      val integration = CrashContentIntegration(...)
+ *
+ *      // set the view provider. it will be automatically cleared when the lifecycle gets to the
+ *      // `STOPPED` state
+ *      integration.viewProvider = { binding.crashContentView }
+ *   }
+ * }
+ * ```
  */
 
 @Suppress("LongParameterList")
@@ -50,15 +67,22 @@ class CrashContentIntegration(
     private val browserStore: BrowserStore,
     private val appStore: AppStore,
     private val toolbar: BrowserToolbar,
-    private val crashReporterView: CrashContentView,
     private val components: Components,
     private val settings: Settings,
     private val navController: NavController,
     private val sessionId: String?,
 ) : LifecycleAwareFeature {
 
+    /**
+     * Nullable provider to provide the [CrashContentView]
+     * which will be shown if the current tab is marked as crashed.
+     */
+    internal var viewProvider: (() -> CrashContentView)? = null
+
     @VisibleForTesting
     lateinit var scope: CoroutineScope
+    private val crashReporterView: CrashContentView?
+        get() = viewProvider?.invoke()
 
     override fun start() {
         scope = MainScope().apply {
@@ -70,7 +94,7 @@ class CrashContentIntegration(
                         if (tab.engineState.crashed) {
                             toolbar.expand()
 
-                            crashReporterView.apply {
+                            crashReporterView?.apply {
                                 val controller = CrashReporterController(
                                     sessionId = tab.id,
                                     currentNumberOfTabs = if (tab.content.private) {
@@ -89,7 +113,7 @@ class CrashContentIntegration(
                                 updateVerticalMargins()
                             }
                         } else {
-                            crashReporterView.hide()
+                            crashReporterView?.hide()
                         }
                     }
             }
@@ -106,12 +130,13 @@ class CrashContentIntegration(
     }
 
     override fun stop() {
+        viewProvider = null
         scope.cancel()
     }
 
     @VisibleForTesting
-    internal fun updateVerticalMargins() {
-        with(crashReporterView.layoutParams as MarginLayoutParams) {
+    internal fun updateVerticalMargins() = crashReporterView?.apply {
+        with(layoutParams as MarginLayoutParams) {
             val includeTabStrip = sessionId == null && context.isTabStripEnabled()
             topMargin = settings.getTopToolbarHeight(includeTabStrip)
             bottomMargin = settings.getBottomToolbarHeight(context)

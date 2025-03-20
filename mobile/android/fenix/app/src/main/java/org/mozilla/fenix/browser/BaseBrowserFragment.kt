@@ -202,6 +202,7 @@ import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.crashes.CrashContentIntegration
+import org.mozilla.fenix.crashes.CrashContentView
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
 import org.mozilla.fenix.databinding.FragmentBrowserBinding
 import org.mozilla.fenix.downloads.DownloadService
@@ -1098,12 +1099,16 @@ abstract class BaseBrowserFragment :
                 browserStore = requireComponents.core.store,
                 appStore = requireComponents.appStore,
                 toolbar = browserToolbarView.view,
-                crashReporterView = binding.crashReporterView,
                 components = requireComponents,
                 settings = context.settings(),
                 navController = findNavController(),
                 sessionId = customTabSessionId,
-            ),
+            ).apply {
+                viewProvider = {
+                    view.findViewById(R.id.crash_reporter_view)
+                        ?: binding.crashReporterViewStub.inflate() as CrashContentView
+                }
+            },
             owner = this,
             view = view,
         )
