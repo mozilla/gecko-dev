@@ -14,5 +14,3 @@ mlmodel-description =
   Placeholder text. On-device AI Models are optional components that get added to { -brand-short-name } when they are first needed by a feature or extension you use.
 
   They process your queries on your device, meaning they are more private than online AI providers, but sometimes slower depending on the performance of your device. <a data-l10n-name="learn-more">Learn more</a>
-
-addon-detail-file-size-label = File size
