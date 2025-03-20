@@ -77,6 +77,7 @@ const allUnits = [
     "concentr-permille",
     "concentr-permillion",
     "concentr-permyriad",
+    "concentr-portion-per-1e9",
     "consumption-liter-per-100-kilometer",
     "consumption-liter-per-kilometer",
     "consumption-mile-per-gallon",
