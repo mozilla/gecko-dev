@@ -69,29 +69,6 @@ namespace TelemetryStopwatch {
   boolean cancel(HistogramID histogram, optional object? obj = null);
 
   /**
-   * Returns the elapsed time for a particular stopwatch. Primarily for
-   * debugging purposes. Must be called prior to finish.
-   *
-   * @param histogram - a string which must be a valid histogram name.
-   *                    if an invalid name is given, the function will
-   *                    throw.
-   *
-   * @param obj - Optional parameter which associates the histogram
-   *              timer with the given object.
-   *
-   * @param canceledOkay - Optional parameter which will suppress any
-   *                       warnings that normally fire when a stopwatch
-   *                       is finished after being cancelled. Defaults
-   *                       to false.
-   *
-   * @returns Time in milliseconds or -1 if the stopwatch was not
-   *          found.
-   */
-  long timeElapsed(HistogramID histogram,
-                   optional object? obj = null,
-                   optional boolean canceledOkay = false);
-
-  /**
    * Stops the timer associated with the given histogram (and object),
    * calculates the time delta between start and finish, and adds the value
    * to the histogram.

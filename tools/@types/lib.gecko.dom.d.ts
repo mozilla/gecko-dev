@@ -24614,7 +24614,6 @@ declare namespace TelemetryStopwatch {
     function running(histogram: HistogramID, obj?: any): boolean;
     function setTestModeEnabled(testing?: boolean): void;
     function start(histogram: HistogramID, obj?: any, options?: TelemetryStopwatchOptions): boolean;
-    function timeElapsed(histogram: HistogramID, obj?: any, canceledOkay?: boolean): number;
 }
 
 declare namespace TestUtils {
