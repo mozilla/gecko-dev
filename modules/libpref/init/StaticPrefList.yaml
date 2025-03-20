@@ -5533,12 +5533,6 @@
   value: false
   mirror: always
 
-# Whether to make the document name getter follow the spec.
-- name: dom.document.name_getter_follow_spec.enabled
-  type: bool
-  value: true
-  mirror: always
-
 #---------------------------------------------------------------------------
 # Prefs starting with "editor"
 #---------------------------------------------------------------------------

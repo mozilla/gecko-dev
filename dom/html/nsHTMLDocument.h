@@ -70,11 +70,9 @@ class nsHTMLDocument : public mozilla::dom::Document {
   bool IsViewSource() const { return mViewSource; }
 
   // Returns whether an object was found for aName.
-  bool ResolveNameForWindow(JSContext* aCx, const nsAString& aName,
-                            JS::MutableHandle<JS::Value> aRetVal,
-                            mozilla::ErrorResult& aError);
-
-  void GetSupportedNamesForWindow(nsTArray<nsString>& aNames);
+  bool ResolveName(JSContext* aCx, const nsAString& aName,
+                   JS::MutableHandle<JS::Value> aRetval,
+                   mozilla::ErrorResult& aError);
 
   /**
    * Called when form->BindToTree() is called so that document knows
@@ -111,9 +109,15 @@ class nsHTMLDocument : public mozilla::dom::Document {
                              JS::Handle<JSObject*> aGivenProto) override;
   bool IsRegistrableDomainSuffixOfOrEqualTo(const nsAString& aHostSuffixString,
                                             const nsACString& aOrigHost);
-  void NamedGetter(JSContext* aCx, const nsAString& aName, bool& aFound,
-                   JS::MutableHandle<JSObject*> aRetVal,
-                   mozilla::ErrorResult& aRv);
+  void NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
+                   JS::MutableHandle<JSObject*> aRetval,
+                   mozilla::ErrorResult& rv) {
+    JS::Rooted<JS::Value> v(cx);
+    if ((aFound = ResolveName(cx, aName, &v, rv))) {
+      SetUseCounter(mozilla::eUseCounter_custom_HTMLDocumentNamedGetterHit);
+      aRetval.set(v.toObjectOrNull());
+    }
+  }
   void GetSupportedNames(nsTArray<nsString>& aNames);
   // We're picking up GetLocation from Document
   already_AddRefed<mozilla::dom::Location> GetLocation() const {

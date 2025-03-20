@@ -552,11 +552,6 @@ void IdentifierMapEntry::Traverse(
                                      "mIdentifierMap mNameContentList");
   aCallback->NoteXPCOMChild(static_cast<nsINodeList*>(mNameContentList));
 
-  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*aCallback,
-                                     "mIdentifierMap mDocumentNameContentList");
-  aCallback->NoteXPCOMChild(
-      static_cast<nsINodeList*>(mDocumentNameContentList));
-
   if (mImageElement) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*aCallback,
                                        "mIdentifierMap mImageElement element");
@@ -566,8 +561,8 @@ void IdentifierMapEntry::Traverse(
 }
 
 bool IdentifierMapEntry::IsEmpty() {
-  return mIdContentList->IsEmpty() && !mNameContentList &&
-         !mDocumentNameContentList && !mChangeCallbacks && !mImageElement;
+  return mIdContentList->IsEmpty() && !mNameContentList && !mChangeCallbacks &&
+         !mImageElement;
 }
 
 bool IdentifierMapEntry::HasNameElement() const {
@@ -662,7 +657,6 @@ void IdentifierMapEntry::ClearAndNotify() {
     FireChangeCallbacks(currentElement, nullptr);
   }
   mNameContentList = nullptr;
-  mDocumentNameContentList = nullptr;
   if (mImageElement) {
     SetImageElement(nullptr);
   }
@@ -765,26 +759,6 @@ void IdentifierMapEntry::RemoveNameElement(Element* aElement) {
   if (mNameContentList) {
     mNameContentList->RemoveElement(aElement);
   }
-}
-
-void IdentifierMapEntry::AddDocumentNameElement(
-    Document* aDocument, nsGenericHTMLElement* aElement) {
-  if (!mDocumentNameContentList) {
-    mDocumentNameContentList = new dom::SimpleHTMLCollection(aDocument);
-  }
-
-  mDocumentNameContentList->AppendElement(aElement);
-}
-
-void IdentifierMapEntry::RemoveDocumentNameElement(
-    nsGenericHTMLElement* aElement) {
-  if (mDocumentNameContentList) {
-    mDocumentNameContentList->RemoveElement(aElement);
-  }
-}
-
-bool IdentifierMapEntry::HasDocumentNameElement() const {
-  return mDocumentNameContentList && mDocumentNameContentList->Length() != 0;
 }
 
 bool IdentifierMapEntry::HasIdElementExposedAsHTMLDocumentProperty() const {
@@ -4323,9 +4297,10 @@ static void IncrementExpandoGeneration(Document& aDoc) {
 }
 
 void Document::AddToNameTable(Element* aElement, nsAtom* aName) {
-  MOZ_ASSERT(nsGenericHTMLElement::ShouldExposeNameAsWindowProperty(aElement),
-             "Only put elements that need to be exposed as window['name'] in "
-             "the named table.");
+  MOZ_ASSERT(
+      nsGenericHTMLElement::ShouldExposeNameAsHTMLDocumentProperty(aElement),
+      "Only put elements that need to be exposed as document['name'] in "
+      "the named table.");
 
   IdentifierMapEntry* entry = mIdentifierMap.PutEntry(aName);
 
@@ -4351,35 +4326,6 @@ void Document::RemoveFromNameTable(Element* aElement, nsAtom* aName) {
   if (!entry->HasNameElement() &&
       !entry->HasIdElementExposedAsHTMLDocumentProperty()) {
     IncrementExpandoGeneration(*this);
-  }
-}
-
-void Document::AddToDocumentNameTable(nsGenericHTMLElement* aElement,
-                                      nsAtom* aName) {
-  MOZ_ASSERT(
-      nsGenericHTMLElement::ShouldExposeIdAsHTMLDocumentProperty(aElement) ||
-          nsGenericHTMLElement::ShouldExposeNameAsHTMLDocumentProperty(
-              aElement),
-      "Only put elements that need to be exposed as document['name'] in "
-      "the document named table.");
-
-  if (IdentifierMapEntry* entry = mIdentifierMap.PutEntry(aName)) {
-    entry->AddDocumentNameElement(this, aElement);
-  }
-}
-
-void Document::RemoveFromDocumentNameTable(nsGenericHTMLElement* aElement,
-                                           nsAtom* aName) {
-  if (mIdentifierMap.Count() == 0) {
-    return;
-  }
-
-  if (IdentifierMapEntry* entry = mIdentifierMap.GetEntry(aName)) {
-    entry->RemoveDocumentNameElement(aElement);
-    nsBaseContentList* list = entry->GetDocumentNameContentList();
-    if (!list || list->Length() == 0) {
-      IncrementExpandoGeneration(*this);
-    }
   }
 }
 

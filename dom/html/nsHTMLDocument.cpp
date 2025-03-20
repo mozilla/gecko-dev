@@ -549,90 +549,9 @@ void nsHTMLDocument::RemovedForm() { --mNumForms; }
 
 int32_t nsHTMLDocument::GetNumFormsSynchronous() const { return mNumForms; }
 
-// https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem
-void nsHTMLDocument::NamedGetter(JSContext* aCx, const nsAString& aName,
-                                 bool& aFound,
-                                 JS::MutableHandle<JSObject*> aRetVal,
-                                 mozilla::ErrorResult& aRv) {
-  if (!StaticPrefs::dom_document_name_getter_follow_spec_enabled()) {
-    JS::Rooted<JS::Value> v(aCx);
-    if ((aFound = ResolveNameForWindow(aCx, aName, &v, aRv))) {
-      SetUseCounter(mozilla::eUseCounter_custom_HTMLDocumentNamedGetterHit);
-      aRetVal.set(v.toObjectOrNull());
-    }
-    return;
-  }
-
-  aFound = false;
-  aRetVal.set(nullptr);
-
-  // Step 1. Let elements be the list of named elements with the name name that
-  // are in a document tree with the Document as their root.
-  IdentifierMapEntry* entry = mIdentifierMap.GetEntry(aName);
-  if (!entry) {
-    return;
-  }
-
-  nsBaseContentList* list = entry->GetDocumentNameContentList();
-  if (!list || list->Length() == 0) {
-    return;
-  }
-
-  JS::Rooted<JS::Value> v(aCx);
-  if (list->Length() == 1) {
-    nsIContent* element = list->Item(0);
-    if (auto iframe = HTMLIFrameElement::FromNode(element)) {
-      // Step 2. If elements has only one element, and that element is an iframe
-      // element, and that iframe element's content navigable is not null, then
-      // return the active WindowProxy of the element's content navigable.
-      Nullable<WindowProxyHolder> win = iframe->GetContentWindow();
-      if (win.IsNull()) {
-        return;
-      }
-
-      if (!ToJSValue(aCx, win.Value(), &v)) {
-        aRv.NoteJSContextException(aCx);
-        return;
-      }
-    } else {
-      // Step 3. Otherwise, if elements has only one element, return that
-      // element.
-      if (!ToJSValue(aCx, element, &v)) {
-        aRv.NoteJSContextException(aCx);
-        return;
-      }
-    }
-  } else {
-    // Step 4. Otherwise, return an HTMLCollection rooted at the Document node,
-    // whose filter matches only named elements with the name name.
-    if (!ToJSValue(aCx, list, &v)) {
-      aRv.NoteJSContextException(aCx);
-      return;
-    }
-  }
-
-  SetUseCounter(mozilla::eUseCounter_custom_HTMLDocumentNamedGetterHit);
-  aFound = true;
-  aRetVal.set(&v.toObject());
-}
-
-void nsHTMLDocument::GetSupportedNames(nsTArray<nsString>& aNames) {
-  if (!StaticPrefs::dom_document_name_getter_follow_spec_enabled()) {
-    GetSupportedNamesForWindow(aNames);
-    return;
-  }
-
-  for (const auto& entry : mIdentifierMap) {
-    if (entry.HasDocumentNameElement()) {
-      aNames.AppendElement(entry.GetKeyAsString());
-    }
-  }
-}
-
-bool nsHTMLDocument::ResolveNameForWindow(JSContext* aCx,
-                                          const nsAString& aName,
-                                          JS::MutableHandle<JS::Value> aRetval,
-                                          ErrorResult& aError) {
+bool nsHTMLDocument::ResolveName(JSContext* aCx, const nsAString& aName,
+                                 JS::MutableHandle<JS::Value> aRetval,
+                                 ErrorResult& aError) {
   IdentifierMapEntry* entry = mIdentifierMap.GetEntry(aName);
   if (!entry) {
     return false;
@@ -674,7 +593,7 @@ bool nsHTMLDocument::ResolveNameForWindow(JSContext* aCx,
   return true;
 }
 
-void nsHTMLDocument::GetSupportedNamesForWindow(nsTArray<nsString>& aNames) {
+void nsHTMLDocument::GetSupportedNames(nsTArray<nsString>& aNames) {
   for (const auto& entry : mIdentifierMap) {
     if (entry.HasNameElement() ||
         entry.HasIdElementExposedAsHTMLDocumentProperty()) {

@@ -108,20 +108,11 @@ class IdentifierMapEntry : public PLDHashEntryHdr {
 
   enum { ALLOW_MEMMOVE = false };
 
-  bool IsEmpty();
-
   void AddNameElement(nsINode* aDocument, Element* aElement);
   void RemoveNameElement(Element* aElement);
+  bool IsEmpty();
   nsBaseContentList* GetNameContentList() { return mNameContentList; }
   bool HasNameElement() const;
-
-  void AddDocumentNameElement(Document* aDocument,
-                              nsGenericHTMLElement* aElement);
-  void RemoveDocumentNameElement(nsGenericHTMLElement* aElement);
-  bool HasDocumentNameElement() const;
-  nsBaseContentList* GetDocumentNameContentList() {
-    return mDocumentNameContentList;
-  }
 
   /**
    * Returns the element if we know the element associated with this
@@ -230,8 +221,6 @@ class IdentifierMapEntry : public PLDHashEntryHdr {
   OwningAtomOrString mKey;
   dom::TreeOrderedArray<Element*> mIdContentList;
   RefPtr<nsBaseContentList> mNameContentList;
-  // The content list for the document named getter.
-  RefPtr<nsBaseContentList> mDocumentNameContentList;
   UniquePtr<nsTHashtable<ChangeCallbackEntry> > mChangeCallbacks;
   RefPtr<Element> mImageElement;
 };
