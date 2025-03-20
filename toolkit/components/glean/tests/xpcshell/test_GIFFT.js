@@ -779,9 +779,10 @@ add_task(async function test_gifft_labeled_timing_dist() {
     "Only two samples"
   );
 
-  // Ensure that `labeled_timing_distribution` mirrors calls to
+  // Note that `labeled_timing_distribution` does not mirror calls to
   // * accumulateSamples
   // * accumulateSingleSamples
+  // See bug 1943453 for more details.
   Glean.testOnly.whereHasTheTimeGone["hourglass sands"].accumulateSamples([
     1, 2, 3,
   ]);
@@ -792,9 +793,7 @@ add_task(async function test_gifft_labeled_timing_dist() {
   data = Telemetry.getKeyedHistogramById(
     "TELEMETRY_TEST_MIRROR_FOR_LABELED_TIMING"
   ).snapshot();
-  Assert.ok("hourglass sands" in data, "Has the key");
-  data = data["hourglass sands"];
-  Assert.equal(data.sum, 7);
+  Assert.ok(!("hourglass sands" in data), "Doesn't have the key");
 });
 
 add_task(async function test_gifft_labeled_quantity() {
