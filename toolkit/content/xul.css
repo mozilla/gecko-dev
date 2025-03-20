@@ -260,6 +260,12 @@ browser {
   contain: size;
 }
 
+/* Double :fullscreen to have more specificity than the fullscreen spec's rule */
+browser:fullscreen:fullscreen {
+  -moz-top-layer: none !important;
+  position: static !important;
+}
+
 /*********** popup notification ************/
 popupnotification {
   flex-direction: column;
