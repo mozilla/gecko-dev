@@ -163,17 +163,11 @@ static bool GetOrAddWeakMapEntry(JSContext* cx, Handle<WeakMapObject*> mapObj,
     return false;
   }
 
-  ValueValueWeakMap* map = mapObj->getMap();
-  if (!map) {
-    auto newMap = cx->make_unique<ValueValueWeakMap>(cx, mapObj.get());
-    if (!newMap) {
-      return false;
-    }
-    map = newMap.release();
-    InitReservedSlot(mapObj, WeakCollectionObject::DataSlot, map,
-                     MemoryUse::WeakMapObject);
+  if (!EnsureObjectHasWeakMap(cx, mapObj)) {
+    return false;
   }
 
+  ValueValueWeakMap* map = mapObj->getMap();
   ValueValueWeakMap::AddPtr addPtr = map->lookupForAdd(key);
   if (!addPtr) {
     if (key.isObject()) {

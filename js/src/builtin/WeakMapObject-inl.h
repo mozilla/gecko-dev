@@ -27,18 +27,26 @@ static bool TryPreserveReflector(JSContext* cx, HandleObject obj) {
   return true;
 }
 
+static MOZ_ALWAYS_INLINE bool EnsureObjectHasWeakMap(JSContext* cx,
+                                                    WeakCollectionObject* obj) {
+  if (obj->getMap()) {
+    return true;
+  }
+  auto newMap = cx->make_unique<ValueValueWeakMap>(cx, obj);
+  if (!newMap) {
+    return false;
+  }
+  ValueValueWeakMap* map = newMap.release();
+  InitReservedSlot(obj, WeakCollectionObject::DataSlot, map,
+                   MemoryUse::WeakMapObject);
+  return true;
+}
+
 static MOZ_ALWAYS_INLINE bool WeakCollectionPutEntryInternal(
     JSContext* cx, Handle<WeakCollectionObject*> obj, HandleValue key,
     HandleValue value) {
-  ValueValueWeakMap* map = obj->getMap();
-  if (!map) {
-    auto newMap = cx->make_unique<ValueValueWeakMap>(cx, obj.get());
-    if (!newMap) {
-      return false;
-    }
-    map = newMap.release();
-    InitReservedSlot(obj, WeakCollectionObject::DataSlot, map,
-                     MemoryUse::WeakMapObject);
+  if (!EnsureObjectHasWeakMap(cx, obj)) {
+    return false;
   }
 
   if (key.isObject()) {
@@ -62,7 +70,7 @@ static MOZ_ALWAYS_INLINE bool WeakCollectionPutEntryInternal(
                     gc::ToMarkable(value)->zoneFromAnyThread()->isAtomsZone());
   MOZ_ASSERT_IF(value.isObject(),
                 value.toObject().compartment() == obj->compartment());
-  if (!map->put(key, value)) {
+  if (!obj->getMap()->put(key, value)) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
