@@ -3978,8 +3978,8 @@ ParentLayerPoint AsyncPanZoomController::AttemptFling(
 
   // We may have a pre-existing velocity for whatever reason (for example,
   // a previously handed off fling). We don't want to clobber that.
-  APZC_LOG("%p accepting fling with velocity %s\n", this,
-           ToString(aHandoffState.mVelocity).c_str());
+  APZC_LOG_DETAIL("accepting fling with velocity %s\n", this,
+                  ToString(aHandoffState.mVelocity).c_str());
   ParentLayerPoint residualVelocity = aHandoffState.mVelocity;
   if (mX.CanScroll()) {
     mX.SetVelocity(mX.GetVelocity() + aHandoffState.mVelocity.x);
@@ -3987,6 +3987,11 @@ ParentLayerPoint AsyncPanZoomController::AttemptFling(
   }
   if (mY.CanScroll()) {
     mY.SetVelocity(mY.GetVelocity() + aHandoffState.mVelocity.y);
+    residualVelocity.y = 0;
+  }
+
+  if (!aHandoffState.mIsHandoff && aHandoffState.mScrolledApzc == this) {
+    residualVelocity.x = 0;
     residualVelocity.y = 0;
   }
 
