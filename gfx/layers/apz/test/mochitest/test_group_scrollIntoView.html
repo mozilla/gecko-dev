@@ -11,7 +11,11 @@
 let prefs = [];
 
 var subtests = [
-  {"file": "helper_scrollIntoView_in_nested_fixed_elements.html", prefs},
+  {"file": "helper_scrollIntoView_in_nested_fixed_elements.html",
+   "prefs": [...prefs,
+             ["layout.scroll_fixed_content_into_view_visually", true]]
+  },
+  {"file": "helper_scrollIntoView_bug1950744.html", prefs},
 ];
 
 if (isApzEnabled()) {

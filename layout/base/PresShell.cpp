@@ -3838,6 +3838,9 @@ void PresShell::ScrollFrameIntoVisualViewport(Maybe<nsPoint>& aDestination,
     // the root scroll container in the frame tree walking up loop in
     // ScrollFrameIntoView, it means the target element is inside a
     // position:fixed subtree.
+    if (!StaticPrefs::layout_scroll_fixed_content_into_view_visually()) {
+      return;
+    }
 
     const nsSize visualViewportSize =
         rootScrollContainer->GetVisualViewportSize();
