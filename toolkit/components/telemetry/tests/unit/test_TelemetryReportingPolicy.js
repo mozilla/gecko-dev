@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
+  WinTaskbarJumpList: "resource:///modules/WindowsJumpLists.sys.mjs",
 });
 
 const { Policy, TelemetryReportingPolicy } = ChromeUtils.importESModule(
@@ -115,6 +116,23 @@ function unsetMinimumPolicyVersion() {
 
   // And the common one.
   Services.prefs.clearUserPref(TelemetryUtils.Preferences.MinimumPolicyVersion);
+}
+
+function enrollInPreonboardingExperiment(version) {
+  return ExperimentFakes.enrollWithFeatureConfig(
+    {
+      featureId: NimbusFeatures.preonboarding.featureId,
+      value: {
+        enabled: true,
+        currentPolicyVersion: version,
+        minimumPolicyVersion: version,
+        firstRunURL: `http://mochi.test/v${version}`,
+        // Needed to opt into the modal flow, but not actually used in this test.
+        screens: [{ id: "test" }],
+      },
+    },
+    { isRollout: false }
+  );
 }
 
 add_setup(async function test_setup() {
@@ -572,20 +590,7 @@ add_task(skipIfNotBrowser(), async function test_feature_prefs() {
 });
 
 async function doOneModalFlow(version) {
-  let doCleanup = await ExperimentFakes.enrollWithFeatureConfig(
-    {
-      featureId: NimbusFeatures.preonboarding.featureId,
-      value: {
-        enabled: true,
-        currentPolicyVersion: version,
-        minimumPolicyVersion: version,
-        firstRunURL: `http://mochi.test/v${version}`,
-        // Needed to opt into the modal flow, but not actually used in this test.
-        screens: [{ id: "test" }],
-      },
-    },
-    { isRollout: false }
-  );
+  let doCleanup = await enrollInPreonboardingExperiment(version);
 
   let displayStub = sinon.stub(Policy, "showModal").returns(true);
 
@@ -792,6 +797,42 @@ add_task(
     );
 
     doCleanup();
+  }
+);
+
+add_task(
+  skipIfNotBrowser(),
+  async function test_jumplist_blocking_on_modal_display_and_unblocking_after_interaction() {
+    fakeResetAcceptedPolicy();
+    Services.prefs.clearUserPref(TelemetryUtils.Preferences.FirstRun);
+    let blockStub = sinon.stub(WinTaskbarJumpList, "blockJumpList");
+    let unblockStub = sinon.stub(WinTaskbarJumpList, "unblockJumpList");
+
+    let doCleanup = await enrollInPreonboardingExperiment(900);
+
+    // This will notify the user via a modal.
+    TelemetryReportingPolicy.reset();
+    await Policy.fakeSessionRestoreNotification();
+
+    Assert.ok(
+      blockStub.calledOnce,
+      "Jump list should be blocked when modal is presented."
+    );
+
+    let p = TelemetryReportingPolicy.ensureUserIsNotified;
+
+    fakeInteractWithModal();
+
+    await p;
+
+    Assert.ok(
+      unblockStub.calledOnce,
+      "Jump list should be unblocked after user interacts with modal"
+    );
+
+    doCleanup();
+
+    sinon.restore();
   }
 );
 
