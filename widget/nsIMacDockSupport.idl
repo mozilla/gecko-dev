@@ -93,6 +93,6 @@ interface nsIMacDockSupport : nsISupports
    * The `aLaunchOptions` parameter can control aspects of how the bundle is
    * launched.
    */
-  void launchAppBundle(in nsIFile aAppBundle, in Array<ACString> aArgs,
+  void launchAppBundle(in nsIFile aAppBundle, in Array<AString> aArgs,
                        [optional] in nsIAppBundleLaunchOptions aLaunchOptions);
 };

@@ -512,7 +512,7 @@ nsresult nsMacDockSupport::EnsureAppIsPinnedToDock(
 }
 
 nsresult nsMacDockSupport::LaunchAppBundle(
-    nsIFile* aAppBundle, const nsTArray<nsCString>& aArgs,
+    nsIFile* aAppBundle, const nsTArray<nsString>& aArgs,
     nsIAppBundleLaunchOptions* aLaunchOptions) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
