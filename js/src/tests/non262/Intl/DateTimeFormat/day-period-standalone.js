@@ -10,7 +10,7 @@ const tests = [
       // ICU bug: https://unicode-org.atlassian.net/projects/ICU/issues/ICU-12278
       date: new Date("2019-01-01T00:00:00"),
       locales: {
-          en: { narrow: "at night", short: "at night", long: "at night" },
+          en: { narrow: "in the morning", short: "in the morning", long: "in the morning" },
           de: { narrow: "nachts", short: "nachts", long: "nachts" },
           th: { narrow: "กลางคืน", short: "กลางคืน", long: "กลางคืน" },
           ja: { narrow: "夜中", short: "夜中", long: "夜中" },
@@ -19,7 +19,7 @@ const tests = [
   {
       date: new Date("2019-01-01T03:00:00"),
       locales: {
-          en: { narrow: "at night", short: "at night", long: "at night" },
+          en: { narrow: "in the morning", short: "in the morning", long: "in the morning" },
           de: { narrow: "nachts", short: "nachts", long: "nachts" },
           th: { narrow: "กลางคืน", short: "กลางคืน", long: "กลางคืน" },
           ja: { narrow: "夜中", short: "夜中", long: "夜中" },
@@ -28,7 +28,7 @@ const tests = [
   {
       date: new Date("2019-01-01T04:00:00"),
       locales: {
-          en: { narrow: "at night", short: "at night", long: "at night" },
+          en: { narrow: "in the morning", short: "in the morning", long: "in the morning" },
           de: { narrow: "nachts", short: "nachts", long: "nachts" },
           th: { narrow: "กลางคืน", short: "กลางคืน", long: "กลางคืน" },
           ja: { narrow: "朝", short: "朝", long: "朝" },
@@ -37,7 +37,7 @@ const tests = [
   {
       date: new Date("2019-01-01T05:00:00"),
       locales: {
-          en: { narrow: "at night", short: "at night", long: "at night" },
+          en: { narrow: "in the morning", short: "in the morning", long: "in the morning" },
           de: { narrow: "morgens", short: "morgens", long: "morgens" },
           th: { narrow: "กลางคืน", short: "กลางคืน", long: "กลางคืน" },
           ja: { narrow: "朝", short: "朝", long: "朝" },

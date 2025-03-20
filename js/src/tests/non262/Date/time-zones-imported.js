@@ -864,9 +864,9 @@ inTimeZone("Pacific/Apia", () => {
   let utc = new DateTime.UTC(2011, Month.December, 29, DayOfWeek.Thursday, 10, 0, 0);
 
   assertDate(local, utc, TimeZone(-10), {
-    String: "Thu Dec 29 2011 00:00:00 GMT-1000 (Apia Daylight Time)",
+    String: "Thu Dec 29 2011 00:00:00 GMT-1000 (Samoa Daylight Time)",
     DateString: "Thu Dec 29 2011",
-    TimeString: "00:00:00 GMT-1000 (Apia Daylight Time)",
+    TimeString: "00:00:00 GMT-1000 (Samoa Daylight Time)",
     UTCString: "Thu, 29 Dec 2011 10:00:00 GMT",
     ISOString: "2011-12-29T10:00:00.000Z",
     LocaleString: "Thu, 12/29/2011, 12:00:00 AM GMT-10",
@@ -881,9 +881,9 @@ inTimeZone("Pacific/Apia", () => {
   let utc = new DateTime.UTC(2011, Month.December, 30, DayOfWeek.Friday, 10, 0, 0);
 
   assertDate(local, utc, TimeZone(+14), {
-    String: "Sat Dec 31 2011 00:00:00 GMT+1400 (Apia Daylight Time)",
+    String: "Sat Dec 31 2011 00:00:00 GMT+1400 (Samoa Daylight Time)",
     DateString: "Sat Dec 31 2011",
-    TimeString: "00:00:00 GMT+1400 (Apia Daylight Time)",
+    TimeString: "00:00:00 GMT+1400 (Samoa Daylight Time)",
     UTCString: "Fri, 30 Dec 2011 10:00:00 GMT",
     ISOString: "2011-12-30T10:00:00.000Z",
     LocaleString: "Sat, 12/31/2011, 12:00:00 AM GMT+14",
@@ -898,9 +898,9 @@ inTimeZone("Pacific/Apia", () => {
   let utc = new DateTime.UTC(2012, Month.April, 1, DayOfWeek.Sunday, 11, 0, 0);
 
   assertDate(local, utc, TimeZone(+13), {
-    String: "Mon Apr 02 2012 00:00:00 GMT+1300 (Apia Standard Time)",
+    String: "Mon Apr 02 2012 00:00:00 GMT+1300 (Samoa Standard Time)",
     DateString: "Mon Apr 02 2012",
-    TimeString: "00:00:00 GMT+1300 (Apia Standard Time)",
+    TimeString: "00:00:00 GMT+1300 (Samoa Standard Time)",
     UTCString: "Sun, 01 Apr 2012 11:00:00 GMT",
     ISOString: "2012-04-01T11:00:00.000Z",
     LocaleString: "Mon, 04/02/2012, 12:00:00 AM GMT+13",

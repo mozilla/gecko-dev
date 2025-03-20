@@ -751,6 +751,14 @@ slow script test262/staging/sm/TypedArray/forEach.js
 slow script test262/staging/sm/TypedArray/every-and-some.js
 slow script test262/staging/sm/TypedArray/map-and-filter.js
 
+# https://github.com/tc39/test262/pull/4428
+skip script test262/intl402/DateTimeFormat/prototype/formatToParts/dayPeriod-short-en.js
+skip script test262/intl402/DateTimeFormat/prototype/formatToParts/dayPeriod-narrow-en.js
+skip script test262/intl402/DateTimeFormat/prototype/formatToParts/dayPeriod-long-en.js
+skip script test262/intl402/DateTimeFormat/prototype/format/dayPeriod-short-en.js
+skip script test262/intl402/DateTimeFormat/prototype/format/dayPeriod-narrow-en.js
+skip script test262/intl402/DateTimeFormat/prototype/format/dayPeriod-long-en.js
+
 
 ##############################################
 # Enable Iterator Helpers tests in the shell #
