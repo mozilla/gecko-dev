@@ -469,3 +469,435 @@ cycle_collector:
       - dev-telemetry-gc-alerts@mozilla.org
     expires: never
     telemetry_mirror: DEFERRED_FINALIZE_ASYNC
+
+memory:
+  resident_fast:
+    type: memory_distribution
+    description: >
+      Resident memory size (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_RESIDENT_FAST.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1226196
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1870550
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1226196
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1870550
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_RESIDENT_FAST
+
+  resident_peak:
+    type: memory_distribution
+    description: >
+      Peak resident memory size (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_RESIDENT_PEAK.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1551648
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1870550
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1551648
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1870550
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+      - amccreight@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_RESIDENT_PEAK
+
+  total:
+    type: memory_distribution
+    description: >
+      Total Memory Across All Processes (KB) (inaccurate WRT shared memory. See
+      MemoryTelemetry.cpp)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_TOTAL.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1198209
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1511918
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1198209
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1511918
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+      - amccreight@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_TOTAL
+
+  distribution_among_content:
+    type: labeled_custom_distribution
+    description: >
+      Absolute difference of each content process' USS and the mean of USS's,
+      normalized by the mean, in percentage. It will be recorded with the rest
+      of the memory probes when gatherMemory is called, if at least 2 content
+      processes are alive. Example: in case of 4 content processes with USS's:
+      1G, 500MB, 1G, 1.5G, the reported numbers will be: 0, 50, 0, 50. Which
+      indicates that 2 processes used 50% more or 50% less memory than the
+      avarage and 2 used exactly as much as the avarage.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram MEMORY_DISTRIBUTION_AMONG_CONTENT.
+    range_min: 1
+    range_max: 200
+    bucket_count: 100
+    histogram_type: linear
+    unit: percentage
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1344174
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1344174
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_DISTRIBUTION_AMONG_CONTENT
+
+  unique:
+    type: memory_distribution
+    description: >
+      Unique Set Size (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_UNIQUE.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1198209
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1870550
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1198209
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1870550
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_UNIQUE
+
+  vsize:
+    type: memory_distribution
+    description: >
+      Virtual memory size (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_VSIZE.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_VSIZE
+
+  vsize_max_contiguous:
+    type: memory_distribution
+    description: >
+      Maximum-sized block of contiguous virtual memory (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_VSIZE_MAX_CONTIGUOUS.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_VSIZE_MAX_CONTIGUOUS
+
+  js_compartments_system:
+    type: custom_distribution
+    description: >
+      Total JavaScript compartments used for add-ons and internals.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_JS_COMPARTMENTS_SYSTEM.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: compartments
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_JS_COMPARTMENTS_SYSTEM
+
+  js_compartments_user:
+    type: custom_distribution
+    description: >
+      Total JavaScript compartments used for web pages
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_JS_COMPARTMENTS_USER.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: compartments
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_JS_COMPARTMENTS_USER
+
+  js_realms_system:
+    type: custom_distribution
+    description: >
+      Total JavaScript realms used for add-ons and internals.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_JS_REALMS_SYSTEM.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: realms
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1518077
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1518077
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+      - jdemooij@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_JS_REALMS_SYSTEM
+
+  js_realms_user:
+    type: custom_distribution
+    description: >
+      Total JavaScript realms used for web pages.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_JS_REALMS_USER.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 50
+    histogram_type: exponential
+    unit: realms
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1518077
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1518077
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+      - jdemooij@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_JS_REALMS_USER
+
+  js_gc_heap:
+    type: memory_distribution
+    description: >
+      Memory used by the garbage-collected JavaScript heap (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_JS_GC_HEAP.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_JS_GC_HEAP
+
+  storage_sqlite:
+    type: memory_distribution
+    description: >
+      Memory used by SQLite (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_STORAGE_SQLITE.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_STORAGE_SQLITE
+
+  images_content_used_uncompressed:
+    type: memory_distribution
+    description: >
+      Memory used for uncompressed, in-use content images (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_IMAGES_CONTENT_USED_UNCOMPRESSED.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_IMAGES_CONTENT_USED_UNCOMPRESSED
+
+  heap_allocated:
+    type: memory_distribution
+    description: >
+      Heap memory allocated (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_HEAP_ALLOCATED.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_HEAP_ALLOCATED
+
+  heap_overhead_fraction:
+    type: custom_distribution
+    description: >
+      Fraction of committed heap memory that is overhead (percentage).
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram MEMORY_HEAP_OVERHEAD_FRACTION.
+    range_min: 1
+    range_max: 100
+    bucket_count: 25
+    histogram_type: linear
+    unit: percentage
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1252375
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1252375
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_HEAP_OVERHEAD_FRACTION
+
+  ghost_windows:
+    type: custom_distribution
+    description: >
+      Number of ghost windows
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram GHOST_WINDOWS.
+    range_min: 1
+    range_max: 128
+    bucket_count: 32
+    histogram_type: exponential
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: GHOST_WINDOWS
+
+  low_memory_events_physical:
+    type: custom_distribution
+    description: >
+      Number of low-physical-memory events fired since last ping
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram LOW_MEMORY_EVENTS_PHYSICAL.
+    range_min: 1
+    range_max: 1024
+    bucket_count: 21
+    histogram_type: exponential
+    unit: events
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=711490
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1451005
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=711490
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1451005
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: LOW_MEMORY_EVENTS_PHYSICAL
+
+  page_faults_hard:
+    type: custom_distribution
+    description: >
+      Hard page faults (since last telemetry ping)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PAGE_FAULTS_HARD.
+    range_min: 8
+    range_max: 65536
+    bucket_count: 13
+    histogram_type: exponential
+    unit: page faults
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: PAGE_FAULTS_HARD
+
+  collection_time:
+    type: timing_distribution
+    description: >
+      Time spent gathering memory telemetry in milliseconds
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_COLLECTION_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1786864
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1786864
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_COLLECTION_TIME
+
+  free_purged_pages:
+    type: timing_distribution
+    description: >
+      Time(ms) to purge dirty heap pages.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_FREE_PURGED_PAGES_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_FREE_PURGED_PAGES_MS
+
+  unique_content_startup:
+    type: memory_distribution
+    description: >
+      Unique Set Size of Content Process at Startup (KB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MEMORY_UNIQUE_CONTENT_STARTUP.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1494827
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1494827
+    notification_emails:
+      - amccreight@mozilla.com
+      - memshrink-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEMORY_UNIQUE_CONTENT_STARTUP

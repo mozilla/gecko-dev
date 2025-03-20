@@ -16,6 +16,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SimpleEnumerator.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/ContentParent.h"
@@ -61,12 +62,10 @@ namespace {
 
 enum class PrevValue : uint32_t {
 #ifdef XP_WIN
-  LOW_MEMORY_EVENTS_VIRTUAL,
-  LOW_MEMORY_EVENTS_COMMIT_SPACE,
-  LOW_MEMORY_EVENTS_PHYSICAL,
+  low_memory_events_physical,
 #endif
 #if defined(XP_LINUX) && !defined(ANDROID)
-  PAGE_FAULTS_HARD,
+  page_faults_hard,
 #endif
   SIZE_,
 };
@@ -76,26 +75,6 @@ enum class PrevValue : uint32_t {
 constexpr uint32_t kUninitialized = ~0;
 
 static uint32_t gPrevValues[uint32_t(PrevValue::SIZE_)];
-
-static uint32_t PrevValueIndex(Telemetry::HistogramID aId) {
-  switch (aId) {
-#ifdef XP_WIN
-    case Telemetry::LOW_MEMORY_EVENTS_VIRTUAL:
-      return uint32_t(PrevValue::LOW_MEMORY_EVENTS_VIRTUAL);
-    case Telemetry::LOW_MEMORY_EVENTS_COMMIT_SPACE:
-      return uint32_t(PrevValue::LOW_MEMORY_EVENTS_COMMIT_SPACE);
-    case Telemetry::LOW_MEMORY_EVENTS_PHYSICAL:
-      return uint32_t(PrevValue::LOW_MEMORY_EVENTS_PHYSICAL);
-#endif
-#if defined(XP_LINUX) && !defined(ANDROID)
-    case Telemetry::PAGE_FAULTS_HARD:
-      return uint32_t(PrevValue::PAGE_FAULTS_HARD);
-#endif
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unexpected histogram ID");
-      return 0;
-  }
-}
 
 /*
  * Because even in "idle" processes there may be some background events,
@@ -258,57 +237,6 @@ nsresult MemoryTelemetry::Shutdown() {
   return NS_OK;
 }
 
-static inline void HandleMemoryReport(Telemetry::HistogramID aId,
-                                      int32_t aUnits, uint64_t aAmount,
-                                      const nsCString& aKey = VoidCString()) {
-  uint32_t val;
-  switch (aUnits) {
-    case nsIMemoryReporter::UNITS_BYTES:
-      val = uint32_t(aAmount / 1024);
-      break;
-
-    case nsIMemoryReporter::UNITS_PERCENTAGE:
-      // UNITS_PERCENTAGE amounts are 100x greater than their raw value.
-      val = uint32_t(aAmount / 100);
-      break;
-
-    case nsIMemoryReporter::UNITS_COUNT:
-      val = uint32_t(aAmount);
-      break;
-
-    case nsIMemoryReporter::UNITS_COUNT_CUMULATIVE: {
-      // If the reporter gives us a cumulative count, we'll report the
-      // difference in its value between now and our previous ping.
-
-      uint32_t idx = PrevValueIndex(aId);
-      uint32_t prev = gPrevValues[idx];
-      gPrevValues[idx] = aAmount;
-
-      if (prev == kUninitialized) {
-        // If this is the first time we're reading this reporter, store its
-        // current value but don't report it in the telemetry ping, so we
-        // ignore the effect startup had on the reporter.
-        return;
-      }
-      val = aAmount - prev;
-      break;
-    }
-
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unexpected aUnits value");
-      return;
-  }
-
-  // Note: The reference equality check here should allow the compiler to
-  // optimize this case out at compile time when we weren't given a key,
-  // while IsEmpty() or IsVoid() most likely will not.
-  if (&aKey == &VoidCString()) {
-    Telemetry::Accumulate(aId, val);
-  } else {
-    Telemetry::Accumulate(aId, aKey, val);
-  }
-}
-
 nsresult MemoryTelemetry::GatherReports(
     const std::function<void()>& aCompletionCallback) {
   auto cleanup = MakeScopeExit([&]() {
@@ -324,19 +252,36 @@ nsresult MemoryTelemetry::GatherReports(
   MOZ_DIAGNOSTIC_ASSERT(mgr);
   NS_ENSURE_TRUE(mgr, NS_ERROR_FAILURE);
 
-#define RECORD(id, metric, units)                                       \
-  do {                                                                  \
-    int64_t amt;                                                        \
-    nsresult rv = mgr->Get##metric(&amt);                               \
-    if (NS_SUCCEEDED(rv)) {                                             \
-      HandleMemoryReport(Telemetry::id, nsIMemoryReporter::units, amt); \
-    } else if (rv != NS_ERROR_NOT_AVAILABLE) {                          \
-      NS_WARNING("Failed to retrieve memory telemetry for " #metric);   \
-    }                                                                   \
+#define RECORD_OUTER(metric, inner)                                   \
+  do {                                                                \
+    int64_t amt;                                                      \
+    nsresult rv = mgr->Get##metric(&amt);                             \
+    if (NS_SUCCEEDED(rv)) {                                           \
+      inner                                                           \
+    } else if (rv != NS_ERROR_NOT_AVAILABLE) {                        \
+      NS_WARNING("Failed to retrieve memory telemetry for " #metric); \
+    }                                                                 \
   } while (0)
+#define RECORD_COUNT(id, metric) \
+  RECORD_OUTER(metric, glean::memory::id.AccumulateSingleSample(amt);)
+#define RECORD_BYTES(id, metric) \
+  RECORD_OUTER(metric, glean::memory::id.Accumulate(amt / 1024);)
+#define RECORD_PERCENTAGE(id, metric) \
+  RECORD_OUTER(metric, glean::memory::id.AccumulateSingleSample(amt / 100);)
+#define RECORD_COUNT_CUMULATIVE(id, metric)                               \
+  RECORD_OUTER(                                                           \
+      metric, uint32_t prev = gPrevValues[uint32_t(PrevValue::id)];       \
+      gPrevValues[uint32_t(PrevValue::id)] = amt;                         \
+                                                                          \
+      /* If this is the first time we're reading this reporter, store its \
+       * current value but don't report it in the telemetry ping, so we   \
+       * ignore the effect startup had on the reporter. */                \
+      if (prev != kUninitialized) {                                       \
+        glean::memory::id.AccumulateSingleSample(amt - prev);             \
+      })
 
   // GHOST_WINDOWS is opt-out as of Firefox 55
-  RECORD(GHOST_WINDOWS, GhostWindows, UNITS_COUNT);
+  RECORD_COUNT(ghost_windows, GhostWindows);
 
   // If we're running in the parent process, collect data from all processes for
   // the MEMORY_TOTAL histogram.
@@ -367,32 +312,26 @@ nsresult MemoryTelemetry::GatherReports(
 
   // Collect cheap or main-thread only metrics synchronously, on the main
   // thread.
-  RECORD(MEMORY_JS_GC_HEAP, JSMainRuntimeGCHeap, UNITS_BYTES);
-  RECORD(MEMORY_JS_COMPARTMENTS_SYSTEM, JSMainRuntimeCompartmentsSystem,
-         UNITS_COUNT);
-  RECORD(MEMORY_JS_COMPARTMENTS_USER, JSMainRuntimeCompartmentsUser,
-         UNITS_COUNT);
-  RECORD(MEMORY_JS_REALMS_SYSTEM, JSMainRuntimeRealmsSystem, UNITS_COUNT);
-  RECORD(MEMORY_JS_REALMS_USER, JSMainRuntimeRealmsUser, UNITS_COUNT);
-  RECORD(MEMORY_IMAGES_CONTENT_USED_UNCOMPRESSED, ImagesContentUsedUncompressed,
-         UNITS_BYTES);
-  RECORD(MEMORY_STORAGE_SQLITE, StorageSQLite, UNITS_BYTES);
+  RECORD_BYTES(js_gc_heap, JSMainRuntimeGCHeap);
+  RECORD_COUNT(js_compartments_system, JSMainRuntimeCompartmentsSystem);
+  RECORD_COUNT(js_compartments_user, JSMainRuntimeCompartmentsUser);
+  RECORD_COUNT(js_realms_system, JSMainRuntimeRealmsSystem);
+  RECORD_COUNT(js_realms_user, JSMainRuntimeRealmsUser);
+  RECORD_BYTES(images_content_used_uncompressed, ImagesContentUsedUncompressed);
+  RECORD_BYTES(storage_sqlite, StorageSQLite);
 #ifdef XP_WIN
-  RECORD(LOW_MEMORY_EVENTS_PHYSICAL, LowMemoryEventsPhysical,
-         UNITS_COUNT_CUMULATIVE);
+  RECORD_COUNT_CUMULATIVE(low_memory_events_physical, LowMemoryEventsPhysical);
 #endif
 #if defined(XP_LINUX) && !defined(ANDROID)
-  RECORD(PAGE_FAULTS_HARD, PageFaultsHard, UNITS_COUNT_CUMULATIVE);
+  RECORD_COUNT_CUMULATIVE(page_faults_hard, PageFaultsHard);
 #endif
 
 #ifdef HAVE_JEMALLOC_STATS
   jemalloc_stats_t stats;
   jemalloc_stats(&stats);
-  HandleMemoryReport(Telemetry::MEMORY_HEAP_ALLOCATED,
-                     nsIMemoryReporter::UNITS_BYTES, mgr->HeapAllocated(stats));
-  HandleMemoryReport(Telemetry::MEMORY_HEAP_OVERHEAD_FRACTION,
-                     nsIMemoryReporter::UNITS_PERCENTAGE,
-                     mgr->HeapOverheadFraction(stats));
+  glean::memory::heap_allocated.Accumulate(mgr->HeapAllocated(stats) / 1024);
+  glean::memory::heap_overhead_fraction.AccumulateSingleSample(
+      mgr->HeapOverheadFraction(stats) / 100);
 #endif
 
 #ifdef MOZ_PHC
@@ -408,17 +347,17 @@ nsresult MemoryTelemetry::GatherReports(
   // asynchronously, on a background thread.
   RefPtr<Runnable> runnable = NS_NewRunnableFunction(
       "MemoryTelemetry::GatherReports", [mgr, completionRunnable]() mutable {
-        Telemetry::AutoTimer<Telemetry::MEMORY_COLLECTION_TIME> autoTimer;
-        RECORD(MEMORY_VSIZE, Vsize, UNITS_BYTES);
+        auto timer = glean::memory::collection_time.Measure();
+        RECORD_BYTES(vsize, Vsize);
 #if !defined(HAVE_64BIT_BUILD) || !defined(XP_WIN)
-        RECORD(MEMORY_VSIZE_MAX_CONTIGUOUS, VsizeMaxContiguous, UNITS_BYTES);
+        RECORD_BYTES(vsize_max_contiguous, VsizeMaxContiguous);
 #endif
-        RECORD(MEMORY_RESIDENT_FAST, ResidentFast, UNITS_BYTES);
-        RECORD(MEMORY_RESIDENT_PEAK, ResidentPeak, UNITS_BYTES);
+        RECORD_BYTES(resident_fast, ResidentFast);
+        RECORD_BYTES(resident_peak, ResidentPeak);
 // Although we can measure unique memory on MacOS we choose not to, because
 // doing so is too slow for telemetry.
 #ifndef XP_MACOSX
-        RECORD(MEMORY_UNIQUE, ResidentUnique, UNITS_BYTES);
+        RECORD_BYTES(unique, ResidentUnique);
 #endif
 
         if (completionRunnable) {
@@ -556,8 +495,7 @@ nsresult MemoryTelemetry::FinishGatheringTotalMemory(
   // detailed explaination see:
   // https://groups.google.com/a/mozilla.org/g/dev-platform/c/WGNOtjHdsdA
   if (aTotalMemory) {
-    HandleMemoryReport(Telemetry::MEMORY_TOTAL, nsIMemoryReporter::UNITS_BYTES,
-                       aTotalMemory.value());
+    glean::memory::total.Accumulate(aTotalMemory.value() / 1024);
   }
 
   if (aChildSizes.Length() > 1) {
@@ -594,8 +532,8 @@ nsresult MemoryTelemetry::FinishGatheringTotalMemory(
     for (auto size : aChildSizes) {
       int64_t diff = llabs(size - mean) * 100 / mean;
 
-      HandleMemoryReport(Telemetry::MEMORY_DISTRIBUTION_AMONG_CONTENT,
-                         nsIMemoryReporter::UNITS_COUNT, diff, key);
+      glean::memory::distribution_among_content.Get(key).AccumulateSingleSample(
+          diff);
     }
   }
 

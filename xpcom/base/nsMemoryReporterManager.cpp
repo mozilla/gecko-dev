@@ -36,7 +36,7 @@
 #include "mozilla/RDDProcessManager.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Services.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/dom/MemoryReportTypes.h"
 #include "mozilla/dom/ContentParent.h"
@@ -417,7 +417,7 @@ static void XMappingIter(int64_t& aVsize, int64_t& aResident,
                                                                 bool aDoPurge) {
 #  ifdef HAVE_JEMALLOC_STATS
   if (aDoPurge) {
-    Telemetry::AutoTimer<Telemetry::MEMORY_FREE_PURGED_PAGES_MS> timer;
+    auto timer = glean::memory::free_purged_pages.Measure();
     jemalloc_purge_freed_pages();
   }
 #  endif

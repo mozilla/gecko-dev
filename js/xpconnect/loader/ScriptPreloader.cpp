@@ -24,6 +24,7 @@
 #include "mozilla/StaticPrefs_javascript.h"
 #include "mozilla/TaskController.h"
 #include "mozilla/glean/JsXpconnectMetrics.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/Unused.h"
@@ -385,8 +386,7 @@ void ScriptPreloader::FinishContentStartup() {
   // privileged processes record this value at a different time, leading to
   // a higher value which skews the telemetry.
   if (sProcessType != ProcessType::PrivilegedAbout) {
-    mozilla::Telemetry::Accumulate(
-        mozilla::Telemetry::MEMORY_UNIQUE_CONTENT_STARTUP,
+    mozilla::glean::memory::unique_content_startup.Accumulate(
         nsMemoryReporterManager::ResidentUnique() / 1024);
   }
 #endif
