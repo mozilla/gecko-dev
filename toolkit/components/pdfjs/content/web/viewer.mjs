@@ -10197,7 +10197,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.246";
+    const viewerVersion = "5.0.254";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -12234,12 +12234,7 @@ class SignatureManager {
     }
   }
   #disableButtons(value) {
-    this.#clearButton.disabled = this.#addButton.disabled = !value;
-    if (value) {
-      this.#saveContainer.removeAttribute("disabled");
-    } else {
-      this.#saveContainer.setAttribute("disabled", true);
-    }
+    this.#saveCheckbox.disabled = this.#clearButton.disabled = this.#addButton.disabled = !value;
   }
   #initTypeTab(reset) {
     if (reset) {
@@ -12577,10 +12572,11 @@ class SignatureManager {
     const svg = svgFactory.create(1, 1, true);
     button.append(svg);
     const span = document.createElement("span");
+    span.ariaHidden = true;
     button.append(span);
     button.classList.add("toolbarAddSignatureButton");
     button.type = "button";
-    button.title = span.textContent = description;
+    span.textContent = description;
     button.tabIndex = 0;
     const path = svgFactory.createElement("path");
     svg.append(path);
@@ -15162,8 +15158,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.246";
-const pdfjsBuild = "a4fea2daf";
+const pdfjsVersion = "5.0.254";
+const pdfjsBuild = "3103747c8";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
