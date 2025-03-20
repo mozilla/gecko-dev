@@ -4,13 +4,11 @@
 
 package org.mozilla.fenix.downloads.listscreen.middleware
 
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.FileSizeFormatter
@@ -23,7 +21,6 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import org.mozilla.fenix.ext.getBaseDomainUrl
-import java.io.File
 import java.time.Instant
 
 /**
@@ -32,14 +29,12 @@ import java.time.Instant
  * @param browserStore [BrowserStore] instance to get the download items from.
  * @param fileSizeFormatter [FileSizeFormatter] used to format the size of the file item.
  * @param scope The [CoroutineScope] that will be used to launch coroutines.
- * @param ioDispatcher The [CoroutineDispatcher] that will be used for IO operations.
  * @param dateTimeProvider The [DateTimeProvider] that will be used to get the current date.
  */
 class DownloadUIMapperMiddleware(
     private val browserStore: BrowserStore,
     private val fileSizeFormatter: FileSizeFormatter,
     private val scope: CoroutineScope,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val dateTimeProvider: DateTimeProvider = DateTimeProviderImpl(),
 ) : Middleware<DownloadUIState, DownloadUIAction> {
 
@@ -50,7 +45,11 @@ class DownloadUIMapperMiddleware(
     ) {
         next(action)
         when (action) {
-            is DownloadUIAction.Init -> update(context.store)
+            is DownloadUIAction.Init -> {
+                browserStore.dispatch(DownloadAction.RemoveDeletedDownloads)
+                update(context.store)
+            }
+
             else -> {
                 // no - op
             }
@@ -62,7 +61,6 @@ class DownloadUIMapperMiddleware(
             browserStore.flow()
                 .distinctUntilChangedBy { it.downloads }
                 .map { it.downloads.toFileItemsList() }
-                .map { it.filterExistsOnDisk(ioDispatcher) }
                 .collect {
                     store.dispatch(DownloadUIAction.UpdateFileItems(it))
                 }
@@ -112,14 +110,3 @@ class DownloadUIMapperMiddleware(
         private const val NUM_DAYS_IN_LAST_30_DAYS_PERIOD = 30L
     }
 }
-
-/**
- * Returns a filtered list of [FileItem]s containing only items that are present on the disk.
- * If a user has deleted the downloaded item it should not show on the downloaded list.
- */
-suspend fun List<FileItem>.filterExistsOnDisk(dispatcher: CoroutineDispatcher): List<FileItem> =
-    withContext(dispatcher) {
-        filter {
-            File(it.filePath).exists()
-        }
-    }

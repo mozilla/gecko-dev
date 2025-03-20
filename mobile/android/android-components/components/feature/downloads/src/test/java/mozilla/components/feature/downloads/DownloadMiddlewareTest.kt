@@ -659,4 +659,44 @@ class DownloadMiddlewareTest {
 
             verify(downloadStorage).remove(download)
         }
+
+    @Test
+    fun `WHEN RemoveDeletedDownloads is called THEN if the file doesn't exist, the download is deleted and browser state is updated`() =
+        runTestOnMain {
+            val downloadStorage = mock<DownloadStorage>()
+            val downloadMiddleware = DownloadMiddleware(
+                applicationContext = mock(),
+                AbstractFetchDownloadService::class.java,
+                coroutineContext = dispatcher,
+                downloadStorage = downloadStorage,
+            )
+
+            val tempFile = File.createTempFile(
+                "test",
+                "tmp",
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path),
+            )
+            val download = DownloadState(
+                id = "1",
+                url = tempFile.toURI().toURL().toString(),
+                fileName = tempFile.name,
+            )
+            assertEquals(download.filePath, tempFile.path)
+            whenever(downloadStorage.getDownloadsList()).thenReturn(listOf(download))
+
+            val store = BrowserStore(
+                initialState = BrowserState(downloads = mapOf(download.id to download)),
+                middleware = listOf(downloadMiddleware),
+            )
+
+            assertTrue(store.state.downloads.isNotEmpty())
+            tempFile.delete()
+
+            store.dispatch(DownloadAction.RemoveDeletedDownloads).joinBlocking()
+
+            dispatcher.scheduler.advanceUntilIdle()
+            store.waitUntilIdle()
+
+            verify(downloadStorage).remove(download)
+        }
 }

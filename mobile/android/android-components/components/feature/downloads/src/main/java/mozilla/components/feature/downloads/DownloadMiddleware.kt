@@ -63,6 +63,7 @@ class DownloadMiddleware(
             is DownloadAction.RemoveAllDownloadsAction -> removeDownloads()
             is DownloadAction.UpdateDownloadAction -> updateDownload(action.download, context)
             is DownloadAction.RestoreDownloadsStateAction -> restoreDownloads(context.store)
+            is DownloadAction.RemoveDeletedDownloads -> removeDeletedDownloads(context.store)
             is ContentAction.CancelDownloadAction -> closeDownloadResponse(context.store, action.sessionId)
             is DownloadAction.AddDownloadAction -> {
                 if (!action.download.private && !saveDownload(context.store, action.download)) {
@@ -126,6 +127,12 @@ class DownloadMiddleware(
                 }
                 logger.debug("Updated download ${updated.fileName} on the storage")
             }
+        }
+    }
+
+    private fun removeDeletedDownloads(store: Store<BrowserState, BrowserAction>) = scope.launch {
+        downloadStorage.getDownloadsList().filter { !File(it.filePath).exists() }.forEach { download ->
+            store.dispatch(DownloadAction.RemoveDownloadAction(download.id))
         }
     }
 

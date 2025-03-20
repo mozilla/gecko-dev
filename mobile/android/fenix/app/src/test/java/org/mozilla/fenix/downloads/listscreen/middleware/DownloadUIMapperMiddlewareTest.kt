@@ -5,12 +5,16 @@
 package org.mozilla.fenix.downloads.listscreen.middleware
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.state.action.BrowserAction
+import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,7 +25,6 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import org.mozilla.fenix.downloads.listscreen.store.HeaderItem
-import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -30,7 +33,6 @@ class DownloadUIMapperMiddlewareTest {
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
-    private val dispatcher = coroutinesTestRule.testDispatcher
     private val scope = coroutinesTestRule.scope
 
     private val fakeFormatter = FakeFileSizeFormatter()
@@ -74,15 +76,14 @@ class DownloadUIMapperMiddlewareTest {
                 contentType = "text/plain",
             ),
         )
-        val browserStore = BrowserStore(initialState = BrowserState(downloads = downloads))
+        val captureActionsMiddleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
 
-        File("downloads").mkdirs()
-        val file1 = File("downloads/1.pdf")
-        val file3 = File("downloads/3.pdf")
-
-        // Create files
-        file1.createNewFile()
-        file3.createNewFile()
+        val browserStore = BrowserStore(
+            initialState = BrowserState(downloads = downloads),
+            middleware = listOf(
+                captureActionsMiddleware,
+            ),
+        )
 
         val downloadsStore = DownloadUIStore(
             initialState = DownloadUIState.INITIAL,
@@ -91,13 +92,10 @@ class DownloadUIMapperMiddlewareTest {
                     browserStore = browserStore,
                     fileSizeFormatter = fakeFormatter,
                     scope = scope,
-                    ioDispatcher = dispatcher,
                     dateTimeProvider = fakeDateTimeProvider,
                 ),
             ),
         )
-        downloadsStore.waitUntilIdle()
-        dispatcher.scheduler.advanceUntilIdle()
         downloadsStore.waitUntilIdle()
 
         val expectedList =
@@ -128,9 +126,9 @@ class DownloadUIMapperMiddlewareTest {
                 ),
             )
 
-        // Cleanup files
-        file1.delete()
-        file3.delete()
+        assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
+
+        assertNotNull(captureActionsMiddleware.findLastAction(DownloadAction.RemoveDeletedDownloads::class))
 
         assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
     }
@@ -163,10 +161,6 @@ class DownloadUIMapperMiddlewareTest {
         )
         val browserStore = BrowserStore(initialState = BrowserState(downloads = downloads))
 
-        File("downloads").mkdirs()
-        val file1 = File("downloads/1.pdf")
-        file1.createNewFile()
-
         val downloadsStore = DownloadUIStore(
             initialState = DownloadUIState.INITIAL,
             middleware = listOf(
@@ -174,12 +168,9 @@ class DownloadUIMapperMiddlewareTest {
                     browserStore = browserStore,
                     fileSizeFormatter = fakeFormatter,
                     scope = scope,
-                    ioDispatcher = dispatcher,
                 ),
             ),
         )
-        downloadsStore.waitUntilIdle()
-        dispatcher.scheduler.advanceUntilIdle()
         downloadsStore.waitUntilIdle()
 
         val expectedList = listOf(
@@ -198,8 +189,6 @@ class DownloadUIMapperMiddlewareTest {
         )
 
         assertEquals(expectedList, downloadsStore.state.itemsToDisplay)
-
-        file1.delete()
     }
 
     private fun LocalDate.toEpochMilli(zoneId: ZoneId): Long {
