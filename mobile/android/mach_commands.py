@@ -300,12 +300,8 @@ def android_install_geckoview_test_runner(command_context, args):
 def android_install_fenix_release(command_context, args):
     gradle(
         command_context,
-        ["installFenixRelease"] + args,
+        ["-p", "mobile/android/fenix", "installFenixRelease"] + args,
         verbose=True,
-        gradle_path=mozpath.join(
-            command_context.topsrcdir, "mobile", "android", "fenix", "gradlew"
-        ),
-        topsrcdir=mozpath.join(command_context.topsrcdir, "mobile", "android", "fenix"),
     )
     return 0
 
