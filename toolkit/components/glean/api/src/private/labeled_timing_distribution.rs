@@ -199,18 +199,46 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
 
     pub fn accumulate_samples(&self, samples: Vec<i64>) {
         #[cfg(feature = "with_gecko")]
-        if gecko_profiler::can_accept_markers() {
-            gecko_profiler::add_marker(
-                "TimingDistribution::accumulate",
-                super::profiler_utils::TelemetryProfilerCategory,
-                Default::default(),
-                TimingDistributionMetricMarker::new(
-                    self.id,
-                    Some(self.label.clone()),
-                    None,
-                    Some(TDMPayload::from_samples_signed(&samples)),
-                ),
-            );
+        {
+            if gecko_profiler::can_accept_markers() {
+                gecko_profiler::add_marker(
+                    "TimingDistribution::accumulate",
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    Default::default(),
+                    TimingDistributionMetricMarker::new(
+                        self.id,
+                        Some(self.label.clone()),
+                        None,
+                        Some(TDMPayload::from_samples_signed(&samples)),
+                    ),
+                );
+            }
+            extern "C" {
+                fn GIFFT_LabeledTimingDistributionAccumulateRawMillis(
+                    metric_id: u32,
+                    label: &nsACString,
+                    sample_ms: u32,
+                );
+            }
+            let id = &self
+                .id
+                .metric_id()
+                .expect("Cannot perform GIFFT calls without a MetricId");
+            for sample in samples.iter() {
+                let sample = (*sample).try_into().unwrap_or_else(|_| {
+                    // TODO: Instrument this error
+                    log::warn!("Sample larger than fits into 32-bytes. Saturating at u32::MAX.");
+                    u32::MAX
+                });
+                // SAFETY: We're only loaning to C++ data we don't later use.
+                unsafe {
+                    GIFFT_LabeledTimingDistributionAccumulateRawMillis(
+                        id.0,
+                        &nsCString::from(&self.label),
+                        sample, // Assumed to be millis.
+                    );
+                }
+            }
         }
         self.inner.inner_accumulate_samples(samples);
     }
@@ -235,18 +263,44 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
 
     pub fn accumulate_single_sample(&self, sample: i64) {
         #[cfg(feature = "with_gecko")]
-        if gecko_profiler::can_accept_markers() {
-            gecko_profiler::add_marker(
-                "TimingDistribution::accumulate",
-                super::profiler_utils::TelemetryProfilerCategory,
-                Default::default(),
-                TimingDistributionMetricMarker::new(
-                    self.id,
-                    Some(self.label.clone()),
-                    None,
-                    Some(TDMPayload::Sample(sample.clone())),
-                ),
-            );
+        {
+            if gecko_profiler::can_accept_markers() {
+                gecko_profiler::add_marker(
+                    "TimingDistribution::accumulate",
+                    super::profiler_utils::TelemetryProfilerCategory,
+                    Default::default(),
+                    TimingDistributionMetricMarker::new(
+                        self.id,
+                        Some(self.label.clone()),
+                        None,
+                        Some(TDMPayload::Sample(sample.clone())),
+                    ),
+                );
+            }
+            extern "C" {
+                fn GIFFT_LabeledTimingDistributionAccumulateRawMillis(
+                    metric_id: u32,
+                    label: &nsACString,
+                    sample_ms: u32,
+                );
+            }
+            let id = &self
+                .id
+                .metric_id()
+                .expect("Cannot perform GIFFT calls without a MetricId");
+            let gifft_sample = sample.try_into().unwrap_or_else(|_| {
+                // TODO: Instrument this error
+                log::warn!("Sample larger than fits into 32-bytes. Saturating at u32::MAX.");
+                u32::MAX
+            });
+            // SAFETY: We're only loaning to C++ data we don't later use.
+            unsafe {
+                GIFFT_LabeledTimingDistributionAccumulateRawMillis(
+                    id.0,
+                    &nsCString::from(&self.label),
+                    gifft_sample, // Assumed to be millis.
+                );
+            }
         }
         self.inner.inner_accumulate_single_sample(sample);
     }
