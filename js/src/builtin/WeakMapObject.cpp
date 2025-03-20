@@ -170,27 +170,9 @@ static bool GetOrAddWeakMapEntry(JSContext* cx, Handle<WeakMapObject*> mapObj,
   ValueValueWeakMap* map = mapObj->getMap();
   ValueValueWeakMap::AddPtr addPtr = map->lookupForAdd(key);
   if (!addPtr) {
-    if (key.isObject()) {
-      RootedObject keyObj(cx, &key.toObject());
-
-      // Preserve wrapped native keys to prevent wrapper optimization.
-      if (!TryPreserveReflector(cx, keyObj)) {
-        return false;
-      }
-
-      RootedObject delegate(cx, UncheckedUnwrapWithoutExpose(keyObj));
-      if (delegate && !TryPreserveReflector(cx, delegate)) {
-        return false;
-      }
+    if (!PreserveReflectorAndAssertValidEntry(cx, mapObj, key, value)) {
+      return false;
     }
-    MOZ_ASSERT_IF(key.isObject(),
-                  key.toObject().compartment() == mapObj->compartment());
-    MOZ_ASSERT_IF(
-        value.isGCThing(),
-        gc::ToMarkable(value)->zoneFromAnyThread() == mapObj->zone() ||
-            gc::ToMarkable(value)->zoneFromAnyThread()->isAtomsZone());
-    MOZ_ASSERT_IF(value.isObject(),
-                  value.toObject().compartment() == mapObj->compartment());
     if (!map->add(addPtr, key, value)) {
       JS_ReportOutOfMemory(cx);
       return false;

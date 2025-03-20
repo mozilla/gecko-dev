@@ -42,13 +42,9 @@ static MOZ_ALWAYS_INLINE bool EnsureObjectHasWeakMap(JSContext* cx,
   return true;
 }
 
-static MOZ_ALWAYS_INLINE bool WeakCollectionPutEntryInternal(
+static MOZ_ALWAYS_INLINE bool PreserveReflectorAndAssertValidEntry(
     JSContext* cx, Handle<WeakCollectionObject*> obj, HandleValue key,
     HandleValue value) {
-  if (!EnsureObjectHasWeakMap(cx, obj)) {
-    return false;
-  }
-
   if (key.isObject()) {
     RootedObject keyObj(cx, &key.toObject());
 
@@ -70,6 +66,20 @@ static MOZ_ALWAYS_INLINE bool WeakCollectionPutEntryInternal(
                     gc::ToMarkable(value)->zoneFromAnyThread()->isAtomsZone());
   MOZ_ASSERT_IF(value.isObject(),
                 value.toObject().compartment() == obj->compartment());
+  return true;
+}
+
+static MOZ_ALWAYS_INLINE bool WeakCollectionPutEntryInternal(
+    JSContext* cx, Handle<WeakCollectionObject*> obj, HandleValue key,
+    HandleValue value) {
+  if (!EnsureObjectHasWeakMap(cx, obj)) {
+    return false;
+  }
+
+  if (!PreserveReflectorAndAssertValidEntry(cx, obj, key, value)) {
+    return false;
+  }
+
   if (!obj->getMap()->put(key, value)) {
     JS_ReportOutOfMemory(cx);
     return false;
