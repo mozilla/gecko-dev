@@ -1930,11 +1930,13 @@
       }
 
       let tabs = this.visibleTabs;
-      if (!tabs.length) {
+      let numPinned = gBrowser.pinnedTabCount;
+
+      if (tabs.length <= numPinned) {
+        // There are no unpinned tabs left.
         return;
       }
 
-      let numPinned = gBrowser.pinnedTabCount;
       let isEndTab = aClosingTab && aClosingTab._tPos > tabs.at(-1)._tPos;
 
       if (!this._tabDefaultMaxWidth) {

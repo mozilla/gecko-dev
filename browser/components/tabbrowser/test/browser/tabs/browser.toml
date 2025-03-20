@@ -424,6 +424,9 @@ skip-if = [
 ["browser_selectTabAtIndex.js"]
 tags = "vertical-tabs"
 
+["browser_standalonePinnedTab.js"]
+tags = "vertical-tabs"
+
 ["browser_switch_by_scrolling.js"]
 tags = "vertical-tabs"
 
