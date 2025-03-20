@@ -1,5 +1,4 @@
 import pytest
-
 from support.context import using_context
 from support.helpers import clear_pref
 from webdriver import error
