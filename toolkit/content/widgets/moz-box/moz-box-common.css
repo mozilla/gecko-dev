@@ -8,7 +8,7 @@
     --box-border-radius: var(--border-radius-medium);
     --box-border-radius-inner: calc(var(--box-border-radius) - var(--border-width));
     --box-padding: var(--space-large);
-    --box-icon-margin-block: calc((1lh - var(--icon-size-default)) / 2);
+    --box-icon-size: var(--icon-size-default);
 
     border: var(--box-border);
     border-radius: var(--box-border-radius);
@@ -16,31 +16,44 @@
   }
 
   .text-content {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    row-gap: var(--space-xxsmall);
+    display: grid;
+    place-items: center start;
+    gap: var(--space-xxsmall) var(--space-small);
+    grid-template-columns: var(--box-icon-size) 1fr;
+    grid-template-areas:
+      "label label";
 
-    &.has-icon .description {
-      margin-inline-start: calc(var(--icon-size-default) + var(--space-small));
+    &.has-icon {
+      grid-template-areas:
+        "icon label";
+    }
+
+    &.has-description {
+      grid-template-areas:
+        "label label"
+        "description description";
+    }
+
+    &.has-icon.has-description {
+      grid-template-areas:
+        "icon label"
+        "description description";
     }
   }
 
-  .label-wrapper {
-    display: flex;
-    align-items: center;
-    gap: var(--space-small);
+  .label {
+    grid-area: label;
   }
 
   .icon {
-    width: var(--icon-size-default);
-    height: var(--icon-size-default);
+    grid-area: icon;
+    width: var(--box-icon-size);
+    height: var(--box-icon-size);
     -moz-context-properties: fill;
     fill: var(--icon-color);
+  }
 
-    .label-wrapper & {
-      margin-block: var(--box-icon-margin-block);
-      align-self: flex-start;
-    }
+  .description {
+    grid-area: description;
   }
 }

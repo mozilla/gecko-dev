@@ -26,7 +26,7 @@ moz-box-item-label-description =
   },
 };
 
-const Template = ({ l10nId, iconSrc, slottedContent }) => html`
+const Template = ({ l10nId, iconSrc, slottedContent, layout }) => html`
   <style>
     .container {
       width: 300px;
@@ -47,14 +47,18 @@ const Template = ({ l10nId, iconSrc, slottedContent }) => html`
     }
   </style>
   <div class="container">
-    <moz-box-item data-l10n-id=${l10nId} iconsrc=${ifDefined(iconSrc)}>
+    <moz-box-item
+      data-l10n-id=${l10nId}
+      iconsrc=${ifDefined(iconSrc)}
+      layout=${ifDefined(layout)}
+    >
       ${slottedContent
         ? html`<div class="slotted">
             <img src="chrome://global/skin/illustrations/security-error.svg" />
             <span>This is an example message</span>
             <span class="text-deemphasized">
-              Message description would go down here</span
-            >
+              Message description would go down here
+            </span>
           </div>`
         : ""}
     </moz-box-item>
@@ -84,4 +88,11 @@ WithIcon.args = {
 export const WithSlottedContent = Template.bind({});
 WithSlottedContent.args = {
   slottedContent: true,
+};
+
+export const LargeIconLayout = Template.bind({});
+LargeIconLayout.args = {
+  ...WithIcon.args,
+  iconSrc: "chrome://global/skin/icons/info.svg",
+  layout: "large-icon",
 };

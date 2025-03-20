@@ -56,9 +56,10 @@ export default class MozBoxBase extends MozLitElement {
       class=${classMap({
         "text-content": true,
         "has-icon": this.iconSrc,
+        "has-description": this.description,
       })}
     >
-      ${this.labelTemplate()}${this.descriptionTemplate()}
+      ${this.iconTemplate()}${this.labelTemplate()}${this.descriptionTemplate()}
     </div>`;
   }
 
@@ -66,9 +67,7 @@ export default class MozBoxBase extends MozLitElement {
     if (!this.label) {
       return "";
     }
-    return html`<span class="label-wrapper">
-      ${this.iconTemplate()}<span class="label">${this.label}</span>
-    </span>`;
+    return html`<span class="label">${this.label}</span>`;
   }
 
   iconTemplate() {

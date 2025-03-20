@@ -89,6 +89,49 @@
           "Description element is not rendered when slotted content is present."
         );
       });
+
+      add_task(async function testMozBoxItemLayouts() {
+        let layoutTemplate = testHelpers.templateFn({
+          label: "Testing layouts",
+          description: "Some description",
+          iconSrc: "chrome://global/skin/icons/info.svg",
+        });
+        let renderTarget = await testHelpers.renderTemplate(layoutTemplate);
+        let item = renderTarget.firstElementChild;
+
+        ok(item.iconEl, "Item displays an icon.");
+        let iconStyles = window.getComputedStyle(item.iconEl);
+        let defaultIconSize = iconStyles.getPropertyValue(
+          "--icon-size-default"
+        );
+        is(
+          iconStyles.height,
+          defaultIconSize,
+          "default layout uses the default icon height."
+        );
+        is(
+          iconStyles.width,
+          defaultIconSize,
+          "default layout uses the default icon width."
+        );
+
+        item.layout = "large-icon";
+        await item.updateComplete;
+
+        ok(item.iconEl, "Item still displays an icon.");
+        iconStyles = window.getComputedStyle(item.iconEl);
+        let largeIconSize = iconStyles.getPropertyValue("--icon-size-xlarge");
+        is(
+          iconStyles.height,
+          largeIconSize,
+          "icon-start layout uses a larger icon height."
+        );
+        is(
+          iconStyles.width,
+          largeIconSize,
+          "icon-star layout uses a larger icon width."
+        );
+      });
     </script>
   </head>
   <body>

@@ -13,12 +13,22 @@ import MozBoxBase from "./moz-box-base.mjs";
  * @property {string} label - Label for the button.
  * @property {string} description - Descriptive text for the button.
  * @property {string} iconSrc - The src for an optional icon shown next to the label.
+ * @property {string} layout - Layout style for the box content, either "default" or "large-icon".
  * @slot default - Slot for the box item's content, which overrides label and description.
  */
 export default class MozBoxItem extends MozBoxBase {
+  static properties = {
+    layout: { type: String, reflect: true },
+  };
+
   static queries = {
     defaultSlotEl: "slot:not([name])",
   };
+
+  constructor() {
+    super();
+    this.layout = "default";
+  }
 
   stylesTemplate() {
     return html`${super.stylesTemplate()}

@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+:host([layout="large-icon"]) {
+  --box-icon-size: var(--icon-size-xlarge);
+
+  .text-content.has-icon.has-description {
+    grid-template-areas:
+      "icon label"
+      "icon description";
+  }
+}
+
 .box-container {
   padding: var(--box-padding);
   display: flex;
