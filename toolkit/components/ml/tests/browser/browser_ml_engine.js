@@ -1297,3 +1297,88 @@ add_task(async function test_override_ml_pipeline_options_unsafe_options() {
   await EngineProcess.destroyMLEngine();
   await cleanup();
 });
+
+add_task(async function test_q8_by_default() {
+  const { cleanup, remoteClients } = await setup();
+
+  info("Get the engine");
+  const engineInstance = await createEngine({
+    taskName: "moz-echo",
+    modelId: "Xenova/distilbart-cnn-6-6",
+    modelHub: "huggingface",
+  });
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output.echo,
+    "This gets echoed.",
+    "The text gets echoed exercising the whole flow."
+  );
+
+  Assert.equal(
+    (await inferencePromise).output.dtype,
+    "q8",
+    "dtype should be set to q8"
+  );
+
+  // the model hub sets the revision
+  Assert.equal(
+    (await inferencePromise).output.modelRevision,
+    "main",
+    "modelRevision should be main"
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});
+
+add_task(async function test_hub_by_default() {
+  const { cleanup, remoteClients } = await setup();
+
+  info("Get the engine");
+  const engineInstance = await createEngine({
+    taskName: "moz-echo",
+  });
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  Assert.equal(
+    (await inferencePromise).output.echo,
+    "This gets echoed.",
+    "The text gets echoed exercising the whole flow."
+  );
+
+  Assert.equal(
+    (await inferencePromise).output.modelHubUrlTemplate,
+    "{model}/{revision}",
+    "Default template should be model/revision"
+  );
+
+  Assert.equal(
+    (await inferencePromise).output.modelRevision,
+    "main",
+    "modelRevision should be main"
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+});

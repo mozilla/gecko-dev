@@ -319,8 +319,11 @@ export class ONNXPipeline {
 
     lazy.console.debug("Transformers.js env", transformers.env);
 
-    const device = config.device || "wasm";
-    const dtype = config.dtype || "fp32";
+    // Defaults for transformers.js if they are null in PipelineOptions.
+    const device = (config.device = config.device || "wasm");
+    const dtype = (config.dtype = config.dtype || "q8");
+    const modelRevision = (config.modelRevision =
+      config.modelRevision || "main");
 
     lazy.console.debug(
       `Setting up pipeline for ${device} using ${dtype} quantization.`
@@ -331,10 +334,10 @@ export class ONNXPipeline {
 
       // use the model revision of the tokenizer or processor don't have one
       if (!config.tokenizerRevision) {
-        config.tokenizerRevision = config.modelRevision;
+        config.tokenizerRevision = modelRevision;
       }
       if (!config.processorRevision) {
-        config.processorRevision = config.modelRevision;
+        config.processorRevision = modelRevision;
       }
 
       this.#pipelineFunction = config.pipelineFunction;
@@ -346,10 +349,10 @@ export class ONNXPipeline {
         this.#model = transformers[config.modelClass].from_pretrained(
           config.modelId,
           {
-            revision: config.modelRevision,
+            revision: modelRevision,
             device,
             dtype,
-            use_external_data_format: config.useExternalDataFormat,
+            use_external_data_format: config.useExternalDataFormat ?? false,
           }
         );
       }
@@ -434,12 +437,6 @@ export class ONNXPipeline {
       // generic pipeline function
       config = {
         pipelineFunction: null,
-        taskName,
-        modelId: options.modelId,
-        modelRevision: options.modelRevision || "default",
-        dtype: options.dtype || "fp16",
-        device: options.device || "wasm",
-        useExternalDataFormat: options.useExternalDataFormat ?? false,
       };
     } else {
       // Loading the config defaults for the task

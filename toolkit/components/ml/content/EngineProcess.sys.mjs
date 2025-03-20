@@ -320,19 +320,27 @@ const PIPELINE_TEST_NAMES = ["moz-echo", "test-echo"];
 
 /**
  * This class encapsulates the options for a pipeline process.
+ *
+ * DO NOT SET A DEFAULT VALUE HERE - KEEP IT TO NULL, except engineId.
+ *
+ * Options should be set to null here, and each pipeline backend is
+ * responsible for setting a default value when appropriate.
+ *
+ * If there's a non null value here it might override a value defined by the
+ * caller.
  */
 export class PipelineOptions {
-  /**
-   * External model data file list.
-   */
-  useExternalDataFormat = false;
-
   /**
    * The identifier for the engine to be used by the pipeline.
    *
    * @type {?string}
    */
   engineId = DEFAULT_ENGINE_ID;
+
+  /**
+   * External model data file list.
+   */
+  useExternalDataFormat = false;
 
   /**
    * The name of the feature to be used by the pipeline.
