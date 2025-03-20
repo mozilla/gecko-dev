@@ -450,6 +450,42 @@ void MediaDecodeTask::ShutdownDecoder() {
   mDecoder = nullptr;
 }
 
+static void UpmixPreviousData(
+    const RefPtr<ThreadSharedFloatArrayBufferList>& aOldBuffers,
+    const RefPtr<ThreadSharedFloatArrayBufferList>& aNewBuffers,
+    const uint32_t aCopyCount, const uint32_t aPrevChannelCount,
+    const uint32_t aChannelCount) {
+  if (aCopyCount > 0) {
+    // Copy all existing buffers
+    for (uint32_t i = 0; i < aPrevChannelCount; ++i) {
+      const float* src = aOldBuffers->GetData(i);
+      float* dst = aNewBuffers->GetDataForWrite(i);
+      AudioBufferCopyWithScale(src, 1.0, dst, aCopyCount);
+    }
+
+    // Upmix from channel 0 to create new channels if needed
+    for (uint32_t i = aPrevChannelCount; i < aChannelCount; ++i) {
+      const float* src = aOldBuffers->GetData(0);
+      float* dst = aNewBuffers->GetDataForWrite(i);
+      AudioBufferCopyWithScale(src, 1.0, dst, aCopyCount);
+    }
+  }
+}
+
+static RefPtr<ThreadSharedFloatArrayBufferList> CreateChannelBuffers(
+    const uint32_t aChannelCount, const uint32_t aResampledFrames) {
+  // This buffer has separate channel arrays that could be transferred to
+  // JS::NewArrayBufferWithContents(), but AudioBuffer::RestoreJSChannelData()
+  // does not yet take advantage of this.
+  RefPtr<ThreadSharedFloatArrayBufferList> buffer =
+      ThreadSharedFloatArrayBufferList::Create(aChannelCount, aResampledFrames,
+                                               fallible);
+  if (!buffer) {
+    LOG("MediaDecodeTask: Could not create final buffer (f32)");
+    return nullptr;
+  }
+  return buffer;
+}
 void MediaDecodeTask::FinishDecode() {
   MOZ_ASSERT(OnPSupervisorTaskQueue());
 
@@ -484,39 +520,16 @@ void MediaDecodeTask::FinishDecode() {
   // Allocate contiguous channel buffers.  Note that if we end up resampling,
   // we may write fewer bytes than mResampledFrames to the output buffer, in
   // which case writeIndex will tell us how many valid samples we have.
+  auto newBuffers = CreateChannelBuffers(channelCount, resampledFrames);
+  if (!newBuffers) {
+    ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
+  }
   mDecodeJob.mBuffer.mChannelData.SetLength(channelCount);
-#if AUDIO_OUTPUT_FORMAT == AUDIO_FORMAT_FLOAT32
-  // This buffer has separate channel arrays that could be transferred to
-  // JS::NewArrayBufferWithContents(), but AudioBuffer::RestoreJSChannelData()
-  // does not yet take advantage of this.
-  RefPtr<ThreadSharedFloatArrayBufferList> buffer =
-      ThreadSharedFloatArrayBufferList::Create(channelCount, resampledFrames,
-                                               fallible);
-  if (!buffer) {
-    LOG("MediaDecodeTask: Could not create final buffer (f32)");
-    ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
-    return;
-  }
   for (uint32_t i = 0; i < channelCount; ++i) {
-    mDecodeJob.mBuffer.mChannelData[i] = buffer->GetData(i);
+    mDecodeJob.mBuffer.mChannelData[i] = newBuffers->GetData(i);
   }
-#else
-  CheckedInt<size_t> bufferSize(sizeof(AudioDataValue));
-  bufferSize *= resampledFrames;
-  bufferSize *= channelCount;
-  RefPtr<SharedBuffer> buffer = SharedBuffer::Create(bufferSize);
-  if (!buffer) {
-    LOG("MediaDecodeTask: Could not create final buffer (i16)");
-    ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
-    return;
-  }
-  auto data = static_cast<AudioDataValue*>(floatBuffer->Data());
-  for (uint32_t i = 0; i < channelCount; ++i) {
-    mDecodeJob.mBuffer.mChannelData[i] = data;
-    data += resampledFrames;
-  }
-#endif
-  mDecodeJob.mBuffer.mBuffer = std::move(buffer);
+
+  mDecodeJob.mBuffer.mBuffer = std::move(newBuffers);
   mDecodeJob.mBuffer.mVolume = 1.0f;
   mDecodeJob.mBuffer.mBufferFormat = AUDIO_OUTPUT_FORMAT;
 
@@ -527,14 +540,32 @@ void MediaDecodeTask::FinishDecode() {
       // The packet contains no audio frames, skip it.
       continue;
     }
+
     audioData->EnsureAudioBuffer();  // could lead to a copy :(
+
+    // Edge case - incoming packet has more channels than we've allocated
+    // memory for. Allocate additional channel buffers and upmix.
+    if (channelCount < audioData->mChannels) {
+      LOG("MediaDecodeTask: Expected %u channels, found %u. Adding channels.",
+          channelCount, audioData->mChannels);
+      newBuffers = CreateChannelBuffers(audioData->mChannels, resampledFrames);
+      if (!newBuffers) {
+        ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
+      }
+      RefPtr<ThreadSharedFloatArrayBufferList> oldBuffers =
+          mDecodeJob.mBuffer.mBuffer->AsThreadSharedFloatArrayBufferList();
+      UpmixPreviousData(oldBuffers, newBuffers, writeIndex, channelCount,
+                        audioData->mChannels);
+      mDecodeJob.mBuffer.mChannelData.SetLength(audioData->mChannels);
+      for (uint32_t i = 0; i < audioData->mChannels; ++i) {
+        mDecodeJob.mBuffer.mChannelData[i] = newBuffers->GetData(i);
+      }
+      mDecodeJob.mBuffer.mBuffer = std::move(newBuffers);
+      channelCount = audioData->mChannels;
+    }
+
     const AudioDataValue* bufferData =
         static_cast<AudioDataValue*>(audioData->mAudioBuffer->Data());
-
-    // Channel count check for 1905287
-    MOZ_DIAGNOSTIC_ASSERT(audioData->mChannels <= channelCount,
-                          "MediaDecodeTask: "
-                          "AudioData has more channels than AudioInfo!");
 
     if (sampleRate != destSampleRate) {
       const uint32_t maxOutSamples = resampledFrames - writeIndex;
