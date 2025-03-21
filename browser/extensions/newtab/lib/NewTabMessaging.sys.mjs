@@ -68,6 +68,13 @@ export class NewTabMessaging {
           },
         })
       );
+      // Also force visibility for messages sent from about:asrouter during dev
+      this.store.dispatch(
+        ac.AlsoToPreloaded({
+          type: at.MESSAGE_TOGGLE_VISIBILITY,
+          data: false,
+        })
+      );
     }
   }
 

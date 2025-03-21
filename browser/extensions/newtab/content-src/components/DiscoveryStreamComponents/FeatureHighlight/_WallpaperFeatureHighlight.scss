@@ -1,24 +1,57 @@
-// Custom font sizing for feature highlight
-:root {
-  --newtab-feature-highlight-content-font-size: 11px;
-}
-
 // Default overrides from Feature Highlight
 .wallpaper-feature-highlight {
   .icon.icon-dismiss {
+    // change background property to use transparent background
+    background: transparent url('chrome://global/skin/icons/close.svg');
+    background-size: var(--size-item-small);
+    height: var(--size-item-small);
+    width: var(--size-item-small);
     position: absolute;
-    inset-block-start: 0;
-    inset-inline-end: 0;
+    margin: 0;
+    inset-block-start: calc(var(--space-large) + 2px);
+    inset-inline-end: calc(var(--space-large) + 2px);
+
+    @media (prefers-color-scheme: dark) {
+      // override color so that it is visible on white image background
+      --dark-icon-color: var(--color-gray-70);
+
+      color: var(--dark-icon-color);
+    }
+
+    &:hover {
+      --dark-icon-hover: var(--color-gray-60);
+
+      color: var(--dark-icon-hover);
+    }
   }
 
   .feature-highlight .feature-highlight-modal {
-    width: 248px;
+    --arrow-size: 24px;
 
-    &.inset-inline-start {
-      inset-inline-end: 0;
+    width: auto;
+    padding: var(--space-large);
+
+    .content-wrapper {
+      margin-block: 0;
+    }
+
+    .message-icon {
+      display: none;
+    }
+
+    &.inset-inline-end {
+      inset-inline-start: 0;
 
       &::after {
-        inset-inline-end: 0;
+        inset-inline-start: 0;
+      }
+    }
+
+    &.inset-inline-start {
+      inset-inline-end: 50px;
+
+      &::after {
+        inset-inline-end: calc(calc(var(--arrow-size) / 2) * -1);
       }
     }
 
@@ -30,51 +63,35 @@
       }
     }
 
-    p {
-      font-size: var(--newtab-feature-highlight-content-font-size);
+    &.inset-block-start {
+      inset-block-end: 0;
+      margin-block-end: 0;
+
+      &::after {
+        inset-block-end: var(--arrow-size);
+      }
+    }
+
+    .title {
+      font-weight: var(--font-weight-bold);
+      margin-block: var(--space-xsmall);
+    }
+
+    .subtitle {
+      margin-block: 0 var(--space-xsmall);
+    }
+
+    .button-wrapper {
+      display: block;
+      text-align: end;
     }
 
     // Message Arrow Pointer
     &::after {
-      height: 12px;
-      width: 12px;
+      height: var(--arrow-size);
+      width: var(--arrow-size);
+      box-shadow: 4px -4px 6px -2px rgba(0, 0, 0, 15%);
+      pointer-events: none;
     }
-  }
-}
-
-.customize-icon {
-  -moz-context-properties: fill;
-  fill: var(--icon-color);
-  background-image: url('chrome://browser/skin/customize.svg');
-  background-size: var(--icon-size-default);
-  height: var(--icon-size-default);
-  width: var(--icon-size-default);
-}
-
-.highlightHeader {
-  font-weight: var(--font-weight-bold);
-  margin-block-end: var(--space-small);
-}
-
-.highlight-Content {
-  margin-block-end: var(--space-xsmall);
-}
-
-.wallpaper-feature-highlight-content {
-  padding-inline-end: var(--space-large);
-
-  span {
-    display: block;
-  }
-
-  button {
-    appearance: none;
-    border-radius: var(--border-radius-small);
-    padding: var(--space-xsmall) var(--space-large);
-    border-color: transparent;
-    display: block;
-    margin-inline-start: auto;
-    background-color: var(--button-background-color);
-    margin-block-start: var(--space-small);
   }
 }
