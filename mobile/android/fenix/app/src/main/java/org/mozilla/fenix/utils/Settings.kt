@@ -406,6 +406,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
+    /**
+     * The daily usage ping is not normally tied to normal telemetry.  We set the default value to
+     * [isTelemetryEnabled] because this setting was added in early 2025 and we want to make
+     * sure that users who upgrade and had telemetry disabled don't start sending the
+     * daily usage ping telemetry.
+     */
     var isDailyUsagePingEnabled by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_daily_usage_ping),
         default = isTelemetryEnabled,
