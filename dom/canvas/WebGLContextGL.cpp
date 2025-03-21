@@ -1468,6 +1468,48 @@ void WebGLContext::CompileShader(WebGLShader& shader) {
   shader.CompileShader();
 }
 
+Maybe<webgl::ShaderPrecisionFormat> WebGLContext::GetShaderPrecisionFormat(
+    GLenum shadertype, GLenum precisiontype) const {
+  const FuncScope funcScope(*this, "getShaderPrecisionFormat");
+  if (IsContextLost()) return Nothing();
+
+  switch (shadertype) {
+    case LOCAL_GL_FRAGMENT_SHADER:
+    case LOCAL_GL_VERTEX_SHADER:
+      break;
+    default:
+      ErrorInvalidEnumInfo("shadertype", shadertype);
+      return Nothing();
+  }
+
+  switch (precisiontype) {
+    case LOCAL_GL_LOW_FLOAT:
+    case LOCAL_GL_MEDIUM_FLOAT:
+    case LOCAL_GL_HIGH_FLOAT:
+    case LOCAL_GL_LOW_INT:
+    case LOCAL_GL_MEDIUM_INT:
+    case LOCAL_GL_HIGH_INT:
+      break;
+    default:
+      ErrorInvalidEnumInfo("precisiontype", precisiontype);
+      return Nothing();
+  }
+
+  GLint range[2], precision;
+
+  if (mDisableFragHighP && shadertype == LOCAL_GL_FRAGMENT_SHADER &&
+      (precisiontype == LOCAL_GL_HIGH_FLOAT ||
+       precisiontype == LOCAL_GL_HIGH_INT)) {
+    precision = 0;
+    range[0] = 0;
+    range[1] = 0;
+  } else {
+    gl->fGetShaderPrecisionFormat(shadertype, precisiontype, range, &precision);
+  }
+
+  return Some(webgl::ShaderPrecisionFormat{range[0], range[1], precision});
+}
+
 void WebGLContext::ShaderSource(WebGLShader& shader,
                                 const std::string& source) const {
   const FuncScope funcScope(*this, "shaderSource");

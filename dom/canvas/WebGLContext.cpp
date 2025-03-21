@@ -6,7 +6,6 @@
 #include "WebGLContext.h"
 
 #include <algorithm>
-#include <array>
 #include <bitset>
 #include <queue>
 #include <regex>
@@ -669,41 +668,6 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext* host,
     }
     return types;
   };
-
-  // -
-
-  constexpr auto SHADER_TYPES = to_array<GLenum>({
-      LOCAL_GL_VERTEX_SHADER,
-      LOCAL_GL_FRAGMENT_SHADER,
-  });
-  constexpr auto PRECISIONS = to_array<GLenum>({
-      LOCAL_GL_LOW_FLOAT,
-      LOCAL_GL_MEDIUM_FLOAT,
-      LOCAL_GL_HIGH_FLOAT,
-      LOCAL_GL_LOW_INT,
-      LOCAL_GL_MEDIUM_INT,
-      LOCAL_GL_HIGH_INT,
-  });
-  for (const auto& shaderType : SHADER_TYPES) {
-    for (const auto& precisionType : PRECISIONS) {
-      auto spf = webgl::ShaderPrecisionFormat{};
-
-      GLint range[2] = {};
-      GLint precision = 0;
-      webgl->gl->fGetShaderPrecisionFormat(shaderType, precisionType, range,
-                                           &precision);
-      spf.rangeMin = LazyAssertedCast(range[0]);
-      spf.rangeMax = LazyAssertedCast(range[1]);
-      spf.precision = LazyAssertedCast(precision);
-
-      out->shaderPrecisions[{shaderType, precisionType}] = spf;
-    }
-  }
-
-  if (webgl->mDisableFragHighP) {
-    out->shaderPrecisions[{LOCAL_GL_FRAGMENT_SHADER, LOCAL_GL_HIGH_FLOAT}] = {};
-    out->shaderPrecisions[{LOCAL_GL_FRAGMENT_SHADER, LOCAL_GL_HIGH_INT}] = {};
-  }
 
   // -
 

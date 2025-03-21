@@ -407,6 +407,11 @@ class HostWebGLContext final : public SupportsWeakPtr {
     return mContext->GetRenderbufferParameter(*obj, pname);
   }
 
+  Maybe<webgl::ShaderPrecisionFormat> GetShaderPrecisionFormat(
+      GLenum shaderType, GLenum precisionType) const {
+    return mContext->GetShaderPrecisionFormat(shaderType, precisionType);
+  }
+
   webgl::GetUniformData GetUniform(ObjectId id, uint32_t loc) const {
     const auto obj = ById<WebGLProgram>(id);
     if (!obj) return {};
