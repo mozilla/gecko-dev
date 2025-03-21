@@ -1844,6 +1844,26 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
               return;
             }
 
+            nsCOMPtr<nsIObserverService> obsServ =
+                mozilla::services::GetObserverService();
+            // This message is only used for testing purposes, so avoid
+            // serializing the string here if no one is observing this message.
+            // This message is only really useful if we're in a timeout
+            // situation, otherwise dlp-response is fine.
+            if (obsServ->HasObservers("dlp-response-received-raw")) {
+              std::string responseString = aResponse->SerializeAsString();
+              nsTArray<char16_t> responseArray;
+              responseArray.SetLength(responseString.size() + 1);
+              for (size_t i = 0; i < responseString.size(); ++i) {
+                // Since NotifyObservers() expects a null-terminated string,
+                // make sure none of these values are 0.
+                responseArray[i] = responseString[i] + 0xFF00;
+              }
+              responseArray[responseString.size()] = 0;
+              obsServ->NotifyObservers(owner, "dlp-response-received-raw",
+                                       responseArray.Elements());
+            }
+
             // Note that the response we got may be for a different request, so
             // look up the user action id again.
             Maybe<nsCString> maybeUserActionId;

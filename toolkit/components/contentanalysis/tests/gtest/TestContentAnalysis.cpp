@@ -7,6 +7,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/media/MediaUtils.h"
@@ -85,7 +86,7 @@ class ContentAnalysisTest : public testing::Test {
   static void TearDownTestSuite() { mAgentInfo.TerminateProcess(); }
 
   static void StartAgent() {
-    mAgentInfo = LaunchAgentNormal(L"block", mPipeName);
+    mAgentInfo = LaunchAgentNormal(L"block", L"warn", mPipeName);
   }
 
   void TearDown() override {
@@ -308,6 +309,18 @@ RefPtr<ContentAnalysisDiagnosticInfo> ContentAnalysisTest::GetDiagnosticInfo(
   return diagnosticInfo;
 }
 
+template <typename T>
+void ParseFromWideModifiedString(T* aTarget, const char16_t* aData) {
+  std::wstring dataWideString(reinterpret_cast<const wchar_t*>(aData));
+  std::vector<uint8_t> dataVector(dataWideString.size());
+  for (size_t i = 0; i < dataWideString.size(); ++i) {
+    // Since this data is really bytes and not a null-terminated string, the
+    // calling code adds 0xFF00 to every member to ensure there are no 0 values.
+    dataVector[i] = static_cast<uint8_t>(dataWideString[i] - 0xFF00);
+  }
+  EXPECT_TRUE(aTarget->ParseFromArray(dataVector.data(), dataVector.size()));
+}
+
 class RawAcknowledgementObserver final : public nsIObserver {
  public:
   NS_DECL_ISUPPORTS
@@ -329,16 +342,9 @@ NS_IMPL_ISUPPORTS(RawAcknowledgementObserver, nsIObserver);
 NS_IMETHODIMP RawAcknowledgementObserver::Observe(nsISupports* aSubject,
                                                   const char* aTopic,
                                                   const char16_t* aData) {
-  std::wstring dataWideString(reinterpret_cast<const wchar_t*>(aData));
-  std::vector<uint8_t> dataVector(dataWideString.size());
-  for (size_t i = 0; i < dataWideString.size(); ++i) {
-    // Since this data is really bytes and not a null-terminated string, the
-    // calling code adds 0xFF00 to every member to ensure there are no 0 values.
-    dataVector[i] = static_cast<uint8_t>(dataWideString[i] - 0xFF00);
-  }
-  content_analysis::sdk::ContentAnalysisAcknowledgement request;
-  EXPECT_TRUE(request.ParseFromArray(dataVector.data(), dataVector.size()));
-  mAcknowledgements.push_back(std::move(request));
+  content_analysis::sdk::ContentAnalysisAcknowledgement acknowledgement;
+  ParseFromWideModifiedString(&acknowledgement, aData);
+  mAcknowledgements.push_back(std::move(acknowledgement));
   return NS_OK;
 }
 
@@ -363,16 +369,57 @@ NS_IMPL_ISUPPORTS(RawRequestObserver, nsIObserver);
 NS_IMETHODIMP RawRequestObserver::Observe(nsISupports* aSubject,
                                           const char* aTopic,
                                           const char16_t* aData) {
-  std::wstring dataWideString(reinterpret_cast<const wchar_t*>(aData));
-  std::vector<uint8_t> dataVector(dataWideString.size());
-  for (size_t i = 0; i < dataWideString.size(); ++i) {
-    // Since this data is really bytes and not a null-terminated string, the
-    // calling code adds 0xFF00 to every member to ensure there are no 0 values.
-    dataVector[i] = static_cast<uint8_t>(dataWideString[i] - 0xFF00);
-  }
   content_analysis::sdk::ContentAnalysisRequest request;
-  EXPECT_TRUE(request.ParseFromArray(dataVector.data(), dataVector.size()));
+  ParseFromWideModifiedString(&request, aData);
   mRequests.push_back(std::move(request));
+  return NS_OK;
+}
+
+class RawAgentResponseObserver final : public nsIObserver {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  const std::vector<content_analysis::sdk::ContentAnalysisResponse>&
+  GetResponses() {
+    return mResponses;
+  }
+
+ private:
+  ~RawAgentResponseObserver() = default;
+  std::vector<content_analysis::sdk::ContentAnalysisResponse> mResponses;
+};
+
+NS_IMPL_ISUPPORTS(RawAgentResponseObserver, nsIObserver);
+
+NS_IMETHODIMP RawAgentResponseObserver::Observe(nsISupports* aSubject,
+                                                const char* aTopic,
+                                                const char16_t* aData) {
+  content_analysis::sdk::ContentAnalysisResponse response;
+  ParseFromWideModifiedString(&response, aData);
+  mResponses.push_back(std::move(response));
+  return NS_OK;
+}
+
+class ResponseObserver final : public nsIObserver {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  nsCOMArray<nsIContentAnalysisResponse>& GetResponses() { return mResponses; }
+
+ private:
+  ~ResponseObserver() = default;
+  nsCOMArray<nsIContentAnalysisResponse> mResponses;
+};
+
+NS_IMPL_ISUPPORTS(ResponseObserver, nsIObserver);
+
+NS_IMETHODIMP ResponseObserver::Observe(nsISupports* aSubject,
+                                        const char* aTopic,
+                                        const char16_t* aData) {
+  nsCOMPtr<nsIContentAnalysisResponse> response = do_QueryInterface(aSubject);
+  mResponses.AppendElement(response.get());
   return NS_OK;
 }
 
@@ -390,9 +437,7 @@ nsresult ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
         if (timedOut->mValue) {
           return;
         }
-        bool shouldAllow;
-        MOZ_ALWAYS_SUCCEEDS(result->GetShouldAllowContent(&shouldAllow));
-        EXPECT_EQ(false, shouldAllow);
+        EXPECT_EQ(false, result->GetShouldAllowContent());
         EXPECT_EQ(false, aExpectFailure);
         gotResponse = true;
       },
@@ -494,14 +539,10 @@ void SendRequestAndExpectResponse(
             do_QueryInterface(result);
         EXPECT_TRUE(response);
         if (expectedShouldAllow.isSome()) {
-          bool shouldAllow = false;
-          MOZ_ALWAYS_SUCCEEDS(response->GetShouldAllowContent(&shouldAllow));
-          EXPECT_EQ(*expectedShouldAllow, shouldAllow);
+          EXPECT_EQ(*expectedShouldAllow, response->GetShouldAllowContent());
         }
         if (expectedAction.isSome()) {
-          nsIContentAnalysisResponse::Action action;
-          MOZ_ALWAYS_SUCCEEDS(response->GetAction(&action));
-          EXPECT_EQ(*expectedAction, action);
+          EXPECT_EQ(*expectedAction, response->GetAction());
         }
         if (expectedIsCached.isSome()) {
           bool isCached;
@@ -709,6 +750,8 @@ TEST_F(ContentAnalysisTest, TerminateAgent_SendAllowedTextToAgent_GetError) {
 TEST_F(ContentAnalysisTest,
        TerminateAgent_SendAllowedTextToAgentWithDefaultAllow_GetAllowResponse) {
   MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kDefaultResultPref, 2));
+  auto ignore = MakeScopeExit(
+      [&] { MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kDefaultResultPref)); });
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow(L"allow");
   mAgentInfo.TerminateProcess();
@@ -722,11 +765,12 @@ TEST_F(ContentAnalysisTest,
   StartAgent();
 
   SendSimpleRequestAndWaitForResponse();
-  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kDefaultResultPref));
 }
 
 TEST_F(ContentAnalysisTest, CheckRawRequestWithText) {
   MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, 65));
+  auto ignore = MakeScopeExit(
+      [&] { MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref)); });
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow(L"allow");
   nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
@@ -739,6 +783,10 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithText) {
   auto rawRequestObserver = MakeRefPtr<RawRequestObserver>();
   MOZ_ALWAYS_SUCCEEDS(
       obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(
+        obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
+  });
   time_t now = time(nullptr);
 
   SendRequestAndExpectResponse(mContentAnalysis, request, Nothing(), Nothing(),
@@ -755,10 +803,6 @@ TEST_F(ContentAnalysisTest, CheckRawRequestWithText) {
   const auto& request_text = requests[0].text_content();
   EXPECT_EQ(nsCString("allow"),
             nsCString(request_text.data(), request_text.size()));
-
-  MOZ_ALWAYS_SUCCEEDS(
-      obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
-  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
 }
 
 TEST_F(ContentAnalysisTest, CheckRawRequestWithFile) {
@@ -944,6 +988,155 @@ TEST_F(ContentAnalysisTest, CheckGivenUserActionIdsMustMatch) {
   EXPECT_EQ(rv, NS_ERROR_INVALID_ARG);
 }
 
+enum class WarnDialogResponse {
+  // Simulate clicking "Allow" on warn dialog
+  Allow,
+  // Simulate clicking "Block" on warn dialog
+  Block
+};
+
+enum class AutoAcknowledge { Yes, No };
+
+enum class WaitForAgentResponseToRespondToWarn { Yes, No };
+
+void SendRequestAndExpectWarnResponse(
+    RefPtr<ContentAnalysis> contentAnalysis,
+    nsCOMPtr<nsIContentAnalysisRequest>& request,
+    WarnDialogResponse aWarnDialogResponse,
+    WaitForAgentResponseToRespondToWarn aWaitForAgent =
+        WaitForAgentResponseToRespondToWarn::No,
+    AutoAcknowledge aAutoAcknowledge = AutoAcknowledge::No) {
+  nsCString requestToken;
+  MOZ_ALWAYS_SUCCEEDS(request->GetRequestToken(requestToken));
+  if (requestToken.IsEmpty()) {
+    requestToken = GenerateUUID();
+    MOZ_ALWAYS_SUCCEEDS(request->SetRequestToken(requestToken));
+  }
+  std::atomic<bool> gotResponse = false;
+  // Make timedOut a RefPtr so if we get a response from content analysis
+  // after this function has finished we can safely check that (and don't
+  // start accessing stack values that don't exist anymore)
+  RefPtr timedOut = MakeRefPtr<media::Refcountable<BoolStruct>>();
+  bool warnDialogResponseIsAllow =
+      aWarnDialogResponse == WarnDialogResponse::Allow;
+  auto callback = MakeRefPtr<ContentAnalysisCallback>(
+      [&, timedOut](nsIContentAnalysisResult* result) {
+        if (timedOut->mValue) {
+          return;
+        }
+        nsCOMPtr<nsIContentAnalysisResponse> response =
+            do_QueryInterface(result);
+        EXPECT_TRUE(response);
+        EXPECT_EQ(warnDialogResponseIsAllow, response->GetShouldAllowContent());
+        EXPECT_EQ(warnDialogResponseIsAllow
+                      ? nsIContentAnalysisResponse::Action::eAllow
+                      : nsIContentAnalysisResponse::Action::eBlock,
+                  response->GetAction());
+        nsCString responseRequestToken;
+        MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(responseRequestToken));
+        EXPECT_EQ(requestToken, responseRequestToken);
+        gotResponse = true;
+      },
+      [&gotResponse, timedOut](nsresult error) {
+        if (timedOut->mValue) {
+          return;
+        }
+        const char* errorName = mozilla::GetStaticErrorName(error);
+        errorName = errorName ? errorName : "";
+        printf("Got error response code %s(%x)\n", errorName, error);
+        // Errors should not have errorCode NS_OK
+        EXPECT_NE(NS_OK, error);
+        gotResponse = true;
+        FAIL() << "Got error response";
+      });
+
+  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto responseObserver = MakeRefPtr<ResponseObserver>();
+  MOZ_ALWAYS_SUCCEEDS(
+      obsServ->AddObserver(responseObserver, "dlp-response", false));
+  auto agentResponseObserver = MakeRefPtr<RawAgentResponseObserver>();
+  if (aWaitForAgent == WaitForAgentResponseToRespondToWarn::Yes) {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
+        agentResponseObserver, "dlp-response-received-raw", false));
+  }
+
+  MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
+      requests, aAutoAcknowledge == AutoAcknowledge::Yes, callback));
+
+  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
+
+  mozilla::SpinEventLoopUntil(
+      "Waiting for ContentAnalysis warn response"_ns, [&, timedOut]() {
+        if (timedOut->mValue) {
+          return true;
+        }
+        for (auto* response : responseObserver->GetResponses()) {
+          nsCString responseRequestToken;
+          MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(responseRequestToken));
+          if (requestToken == responseRequestToken) {
+            EXPECT_EQ(nsIContentAnalysisResponse::Action::eWarn,
+                      response->GetAction());
+            return true;
+          }
+        }
+        return false;
+      });
+  if (aWaitForAgent == WaitForAgentResponseToRespondToWarn::Yes) {
+    mozilla::SpinEventLoopUntil(
+        "Waiting for agent response"_ns, [&, timedOut]() {
+          if (timedOut->mValue) {
+            return true;
+          }
+          for (const auto& response : agentResponseObserver->GetResponses()) {
+            nsCString responseRequestToken(response.request_token());
+            if (requestToken == responseRequestToken) {
+              return true;
+            }
+          }
+          return false;
+        });
+  }
+  EXPECT_EQ(NS_OK, contentAnalysis->RespondToWarnDialog(
+                       requestToken, warnDialogResponseIsAllow));
+  // Result should happen immediately
+  timer->Cancel();
+  EXPECT_TRUE(gotResponse);
+  EXPECT_FALSE(timedOut->mValue);
+  if (aWaitForAgent == WaitForAgentResponseToRespondToWarn::Yes) {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(agentResponseObserver,
+                                                "dlp-response-received-raw"));
+  }
+  MOZ_ALWAYS_SUCCEEDS(
+      obsServ->RemoveObserver(responseObserver, "dlp-response"));
+}
+
+TEST_F(ContentAnalysisTest, WarnWithUserRespondingAllow) {
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString warn(L"warn");
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(warn),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  SendRequestAndExpectWarnResponse(mContentAnalysis, request,
+                                   WarnDialogResponse::Allow);
+}
+
+TEST_F(ContentAnalysisTest, WarnWithUserRespondingBlock) {
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString warn(L"warn");
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(warn),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  SendRequestAndExpectWarnResponse(mContentAnalysis, request,
+                                   WarnDialogResponse::Block);
+}
+
 TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
   // Submit a request to the agent and then timeout before we get a response.
   // When we do get a response later, check that we acknowledge as TOO_LATE.
@@ -951,6 +1144,8 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
   // always takes 100ms for requests in tests.  TODO: can we further reduce
   // these?
   MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
+  auto ignore = MakeScopeExit(
+      [&] { MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref)); });
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow1(L"allowMe");
   nsCOMPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
@@ -964,7 +1159,10 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
   auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
   MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
       rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
-
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(
+        rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw"));
+  });
   SendRequestAndExpectResponse(
       mContentAnalysis, request1, Some(false) /* expectedShouldAllow */,
       Some(nsIContentAnalysisResponse::Action::eCanceled),
@@ -998,10 +1196,6 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
 
   timer->Cancel();
   EXPECT_FALSE(hitTimeout->mValue);
-
-  MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(rawAcknowledgementObserver,
-                                              "dlp-acknowledgement-sent-raw"));
-  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
 }
 
 TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeoutWithDefaultTimeoutAllow) {
@@ -1010,6 +1204,10 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeoutWithDefaultTimeoutAllow) {
   // pref.
   MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
   MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutResultPref, 2));
+  auto ignore = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+  });
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow1(L"allowMe");
   nsCOMPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
@@ -1023,7 +1221,10 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeoutWithDefaultTimeoutAllow) {
   auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
   MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
       rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
-
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(
+        rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw"));
+  });
   SendRequestAndExpectResponse(mContentAnalysis, request1,
                                Some(true) /* expectedShouldAllow */,
                                Some(nsIContentAnalysisResponse::Action::eAllow),
@@ -1050,16 +1251,205 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeoutWithDefaultTimeoutAllow) {
         }
         return false;
       });
+}
 
-  MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(rawAcknowledgementObserver,
-                                              "dlp-acknowledgement-sent-raw"));
-  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
-  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+void WaitForTooLateAcknowledgement(
+    RawAcknowledgementObserver* aObserver, const nsCString& aRequestToken,
+    content_analysis::sdk::ContentAnalysisAcknowledgement_FinalAction
+        aExpectedFinalAction) {
+  mozilla::SpinEventLoopUntil(
+      "Waiting for ContentAnalysis acknowledgement"_ns, [&]() {
+        auto acknowledgements = aObserver->GetAcknowledgements();
+        nsCString requestToken;
+        for (const auto& acknowledgement : acknowledgements) {
+          if (nsCString(acknowledgement.request_token()) == aRequestToken) {
+            EXPECT_EQ(aExpectedFinalAction, acknowledgement.final_action());
+            EXPECT_EQ(
+                ::content_analysis::sdk::ContentAnalysisAcknowledgement_Status::
+                    ContentAnalysisAcknowledgement_Status_TOO_LATE,
+                acknowledgement.status());
+            return true;
+          }
+        }
+        return false;
+      });
+}
+
+TEST_F(ContentAnalysisTest,
+       CheckBrowserReportsTimeoutWithDefaultTimeoutWarnAndUserAllow) {
+  // Submit a request to the agent and then timeout before we get a response.
+  // When we do get a response later, check that we respect the timeout_result
+  // pref.
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutResultPref, 1));
+  auto ignore = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+  });
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allowMe");
+  nsCString requestToken = GenerateUUID();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  MOZ_ALWAYS_SUCCEEDS(request->SetRequestToken(requestToken));
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
+  MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
+      rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(
+        rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw"));
+  });
+
+  SendRequestAndExpectWarnResponse(
+      mContentAnalysis, request, WarnDialogResponse::Allow,
+      WaitForAgentResponseToRespondToWarn::No, AutoAcknowledge::Yes);
+
+  WaitForTooLateAcknowledgement(
+      rawAcknowledgementObserver, requestToken,
+      ::content_analysis::sdk::ContentAnalysisAcknowledgement_FinalAction::
+          ContentAnalysisAcknowledgement_FinalAction_ALLOW);
+}
+
+TEST_F(
+    ContentAnalysisTest,
+    CheckBrowserReportsTimeoutWithDefaultTimeoutWarnAndUserAllowAfterAgentResponse) {
+  // Submit a request to the agent and then timeout before we get a response.
+  // When we do get a response later, check that we respect the timeout_result
+  // pref.
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutResultPref, 1));
+  auto ignore = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+  });
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allowMe");
+  nsCString requestToken = GenerateUUID();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  MOZ_ALWAYS_SUCCEEDS(request->SetRequestToken(requestToken));
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
+  MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
+      rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(
+        rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw"));
+  });
+
+  SendRequestAndExpectWarnResponse(
+      mContentAnalysis, request, WarnDialogResponse::Allow,
+      WaitForAgentResponseToRespondToWarn::Yes, AutoAcknowledge::Yes);
+
+  // Disabling this until bug 1953778 is fixed.
+  /*WaitForTooLateAcknowledgement(rawAcknowledgementObserver, requestToken,
+    ::content_analysis::sdk::
+                          ContentAnalysisAcknowledgement_FinalAction::
+                              ContentAnalysisAcknowledgement_FinalAction_ALLOW
+  );*/
+}
+
+TEST_F(ContentAnalysisTest,
+       CheckBrowserReportsTimeoutWithDefaultTimeoutWarnAndUserBlock) {
+  // Submit a request to the agent and then timeout before we get a response.
+  // When we do get a response later, check that we respect the timeout_result
+  // pref.
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutResultPref, 1));
+  auto ignore = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+  });
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allowMe");
+  nsCString requestToken = GenerateUUID();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  MOZ_ALWAYS_SUCCEEDS(request->SetRequestToken(requestToken));
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
+  MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
+      rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(
+        rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw"));
+  });
+
+  SendRequestAndExpectWarnResponse(
+      mContentAnalysis, request, WarnDialogResponse::Block,
+      WaitForAgentResponseToRespondToWarn::No, AutoAcknowledge::Yes);
+
+  WaitForTooLateAcknowledgement(
+      rawAcknowledgementObserver, requestToken,
+      ::content_analysis::sdk::ContentAnalysisAcknowledgement_FinalAction::
+          ContentAnalysisAcknowledgement_FinalAction_BLOCK);
+}
+
+TEST_F(
+    ContentAnalysisTest,
+    CheckBrowserReportsTimeoutWithDefaultTimeoutWarnAndUserBlockAfterAgentResponse) {
+  // Submit a request to the agent and then timeout before we get a response.
+  // When we do get a response later, check that we respect the timeout_result
+  // pref.
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutResultPref, 1));
+  auto ignore = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+  });
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allowMe");
+  nsCString requestToken = GenerateUUID();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  MOZ_ALWAYS_SUCCEEDS(request->SetRequestToken(requestToken));
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
+  MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
+      rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(
+        rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw"));
+  });
+
+  SendRequestAndExpectWarnResponse(
+      mContentAnalysis, request, WarnDialogResponse::Block,
+      WaitForAgentResponseToRespondToWarn::Yes, AutoAcknowledge::Yes);
+
+  // Disabling this until bug 1953778 is fixed.
+  /*WaitForTooLateAcknowledgement(rawAcknowledgementObserver, requestToken,
+    ::content_analysis::sdk::
+                          ContentAnalysisAcknowledgement_FinalAction::
+                              ContentAnalysisAcknowledgement_FinalAction_BLOCK
+  );*/
 }
 
 TEST_F(ContentAnalysisTest,
        SendMultipleBatchFilesToAgent_GetResponsesAndCheckTimeouts) {
   MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, 65));
+  auto ignore = MakeScopeExit(
+      [&] { MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref)); });
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsCOMPtr<nsIFile> blockFile = GetFileFromLocalDirectory(L"blockedFile.txt");
   nsCOMPtr<nsIFile> allowFile = GetFileFromLocalDirectory(L"allowedFile.txt");
@@ -1075,6 +1465,10 @@ TEST_F(ContentAnalysisTest,
   auto rawRequestObserver = MakeRefPtr<RawRequestObserver>();
   MOZ_ALWAYS_SUCCEEDS(
       obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
+  auto ignore2 = MakeScopeExit([&] {
+    MOZ_ALWAYS_SUCCEEDS(
+        obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
+  });
   time_t now = time(nullptr);
 
   auto promise = ContentAnalysis::CheckFilesInBatchMode(
@@ -1123,10 +1517,6 @@ TEST_F(ContentAnalysisTest,
   t = requests[1].expires_at();
   secs_remaining = t - now;
   EXPECT_LE(abs(secs_remaining - (65 * 2)), 8);
-
-  MOZ_ALWAYS_SUCCEEDS(
-      obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
-  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
 }
 
 TEST_F(ContentAnalysisTest, GetDiagnosticInfo_Initial) {

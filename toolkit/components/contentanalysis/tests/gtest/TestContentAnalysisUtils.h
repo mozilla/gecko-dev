@@ -32,7 +32,8 @@ void GeneratePipeName(const wchar_t* prefix, nsString& pipeName);
 void LaunchAgentWithCommandLineArguments(const nsString& cmdLineArguments,
                                          const nsString& pipeName,
                                          MozAgentInfo& agentInfo);
-MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock);
 MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock,
+                               const wchar_t* aToWarn = L"warn");
+MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock, const wchar_t* aToWarn,
                                const nsString& pipeName);
 #endif

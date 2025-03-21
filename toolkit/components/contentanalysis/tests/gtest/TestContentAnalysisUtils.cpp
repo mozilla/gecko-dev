@@ -10,20 +10,22 @@
 #include <rpc.h>
 #include <windows.h>
 
-MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock) {
+MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock,
+                               const wchar_t* aToWarn /* = L"warn" */) {
   nsString pipeName;
   GeneratePipeName(L"contentanalysissdk-gtest-", pipeName);
-  return LaunchAgentNormal(aToBlock, pipeName);
+  return LaunchAgentNormal(aToBlock, aToWarn, pipeName);
 }
 
-MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock,
+MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock, const wchar_t* aToWarn,
                                const nsString& pipeName) {
   nsString cmdLineArguments;
   if (aToBlock && aToBlock[0] != 0) {
-    cmdLineArguments.Append(L" --toblock=.*");
+    cmdLineArguments.Append(L" --toblock=");
     cmdLineArguments.Append(aToBlock);
-    cmdLineArguments.Append(L".*");
   }
+  cmdLineArguments.Append(L" --towarn=");
+  cmdLineArguments.Append(aToWarn);
   cmdLineArguments.Append(L" --user");
   cmdLineArguments.Append(L" --path=");
   cmdLineArguments.Append(pipeName);
