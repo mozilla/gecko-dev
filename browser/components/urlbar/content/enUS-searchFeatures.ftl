@@ -322,3 +322,7 @@ urlbar-search-mode-actions-en = Actions
 ## Add search engine dialog
 
 add-engine-suggest-url = Search suggestion URL, use %s in place of the search term
+
+# Variables:
+#   $name (string) - Name of a search engine.
+edit-engine-name-warning-duplicate = There already is a search engine with the name “{ $name }”. Please choose another name.

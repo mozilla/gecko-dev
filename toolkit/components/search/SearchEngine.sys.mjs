@@ -470,7 +470,7 @@ export class EngineURL {
 }
 
 /**
- * SearchEngine represents WebExtension based search engines.
+ * SearchEngine is the base class that all search engine classes inherit from.
  *
  * @implements {nsISearchEngine}
  */

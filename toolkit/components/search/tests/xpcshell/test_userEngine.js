@@ -58,3 +58,54 @@ add_task(async function test_user_engine() {
   });
   await Services.search.removeEngine(engine);
 });
+
+add_task(async function test_user_engine_rename() {
+  let engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user?q={searchTerms}",
+  });
+
+  let promiseEngineChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  let success = engine.wrappedJSObject.rename("user2");
+  await promiseEngineChanged;
+  Assert.ok(true, "Received change notification.");
+
+  Assert.ok(success, "Should have renamed the engine.");
+  Assert.equal(engine.name, "user2", "Name was changed.");
+  Assert.ok(
+    !!Services.search.getEngineByName("user2"),
+    "Should be found under the new name."
+  );
+  Assert.ok(
+    !Services.search.getEngineByName("user"),
+    "Should not be found under the old name."
+  );
+  await Services.search.removeEngine(engine);
+});
+
+add_task(async function test_user_engine_rename_duplicate() {
+  let engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user?q={searchTerms}",
+  });
+  let engine2 = await Services.search.addUserEngine({
+    name: "user2",
+    url: "https://example.com/user?q={searchTerms}",
+  });
+
+  let success = engine.wrappedJSObject.rename("user2");
+  Assert.ok(!success, "Engine was not renamed.");
+  Assert.equal(engine.name, "user", "Should have kept the name.");
+
+  Assert.notEqual(
+    Services.search.getEngineByName("user").id,
+    Services.search.getEngineByName("user2").id,
+    "Should both be available."
+  );
+
+  await Services.search.removeEngine(engine);
+  await Services.search.removeEngine(engine2);
+});

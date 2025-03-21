@@ -124,4 +124,23 @@ export class UserSearchEngine extends SearchEngine {
   get telemetryId() {
     return `other-${this.name}`;
   }
+
+  /**
+   * Changes the name of the engine if the new name is available.
+   *
+   * @param {string} newName
+   *   The new name.
+   * @returns {bool}
+   *   Whether the name was changed successfully.
+   */
+  rename(newName) {
+    if (newName == this.name) {
+      return true;
+    } else if (Services.search.getEngineByName(newName)) {
+      return false;
+    }
+    this._name = newName;
+    lazy.SearchUtils.notifyAction(this, lazy.SearchUtils.MODIFIED_TYPE.CHANGED);
+    return true;
+  }
 }

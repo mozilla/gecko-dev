@@ -349,7 +349,8 @@ interface nsISearchService : nsISupports
   void restoreDefaultEngines();
 
   /**
-   * Returns an engine with the specified alias.
+   * Returns the first search engine matching the provided alias
+   * (case-insensitive).
    *
    * @param   alias
    *          The search engine's alias.

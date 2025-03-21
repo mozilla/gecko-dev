@@ -392,11 +392,24 @@ export class SearchService {
     return this._engines.get(engineId) || null;
   }
 
+  /**
+   * Returns the first search engine matching the provided alias
+   * (case-insensitive).
+   *
+   * @param {string} alias
+   *  The alias to look for.
+   * @returns {Promise<?SearchEngine>}
+   *  The first search engine matching the alias or null.
+   */
   async getEngineByAlias(alias) {
     await this.init();
-    for (var engine of this._engines.values()) {
-      if (engine && engine.aliases.includes(alias)) {
-        return engine;
+    alias = alias.toLocaleLowerCase();
+
+    for (let engine of this._engines.values()) {
+      for (let engineAlias of engine.aliases) {
+        if (engineAlias.toLocaleLowerCase() == alias) {
+          return engine;
+        }
       }
     }
     return null;
