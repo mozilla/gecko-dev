@@ -1,26 +1,3 @@
-use super::TargetInfo;
-
-impl TargetInfo<'_> {
-    /// The versioned LLVM/Clang target triple.
-    pub(crate) fn versioned_llvm_target(&self, version: &str) -> String {
-        // Only support versioned Apple targets for now.
-        assert_eq!(self.vendor, "apple");
-
-        let mut components = self.llvm_target.split("-");
-        let arch = components.next().expect("llvm_target should have arch");
-        let vendor = components.next().expect("llvm_target should have vendor");
-        let os = components.next().expect("LLVM target should have os");
-        let environment = components.next();
-        assert_eq!(components.next(), None, "too many LLVM target components");
-
-        if let Some(env) = environment {
-            format!("{arch}-{vendor}-{os}{version}-{env}")
-        } else {
-            format!("{arch}-{vendor}-{os}{version}")
-        }
-    }
-}
-
 /// Rust and Clang don't really agree on naming, so do a best-effort
 /// conversion to support out-of-tree / custom target-spec targets.
 pub(crate) fn guess_llvm_target_triple(
@@ -42,8 +19,7 @@ pub(crate) fn guess_llvm_target_triple(
         os => os,
     };
     let env = match env {
-        "newlib" | "nto70" | "nto71" | "nto71_iosock" | "ohos" | "p1" | "p2" | "relibc" | "sgx"
-        | "uclibc" => "",
+        "newlib" | "nto70" | "nto71" | "ohos" | "p1" | "p2" | "relibc" | "sgx" | "uclibc" => "",
         env => env,
     };
     let abi = match abi {

@@ -99,6 +99,7 @@ impl Tool {
         fn is_zig_cc(path: &Path, cargo_output: &CargoOutput) -> bool {
             run_output(
                 Command::new(path).arg("--version"),
+                path,
                 // tool detection issues should always be shown as warnings
                 cargo_output,
             )
@@ -124,6 +125,7 @@ impl Tool {
             // stdin is set to null to ensure that the help output is never paginated.
             let accepts_cl_style_flags = run(
                 Command::new(path).args(args).arg("-?").stdin(Stdio::null()),
+                path,
                 &{
                     // the errors are not errors!
                     let mut cargo_output = cargo_output.clone();
@@ -200,6 +202,7 @@ impl Tool {
 
             let stdout = run_output(
                 Command::new(path).arg("-E").arg(tmp.path()),
+                path,
                 &compiler_detect_output,
             )?;
             let stdout = String::from_utf8_lossy(&stdout);
@@ -207,6 +210,7 @@ impl Tool {
             if stdout.contains("-Wslash-u-filename") {
                 let stdout = run_output(
                     Command::new(path).arg("-E").arg("--").arg(tmp.path()),
+                    path,
                     &compiler_detect_output,
                 )?;
                 let stdout = String::from_utf8_lossy(&stdout);

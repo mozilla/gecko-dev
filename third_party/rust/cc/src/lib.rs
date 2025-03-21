@@ -232,7 +232,7 @@ use std::io::{self, Write};
 use std::path::{Component, Path, PathBuf};
 #[cfg(feature = "parallel")]
 use std::process::Child;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::{
     atomic::{AtomicU8, Ordering::Relaxed},
     Arc, RwLock,
@@ -653,12 +653,7 @@ impl Build {
     /// ```
     ///
     pub fn try_flags_from_environment(&mut self, environ_key: &str) -> Result<&mut Build, Error> {
-        let flags = self.envflags(environ_key)?.ok_or_else(|| {
-            Error::new(
-                ErrorKind::EnvVarNotFound,
-                format!("could not find environment variable {environ_key}"),
-            )
-        })?;
+        let flags = self.envflags(environ_key)?;
         self.flags.extend(
             flags
                 .into_iter()
@@ -1337,6 +1332,8 @@ impl Build {
 
         let mut cmd = compiler.to_command();
         let is_arm = matches!(target.arch, "aarch64" | "arm");
+        let clang = compiler.is_like_clang();
+        let gnu = compiler.family == ToolFamily::Gnu;
         command_add_output_file(
             &mut cmd,
             &obj,
@@ -1344,8 +1341,8 @@ impl Build {
                 cuda: self.cuda,
                 is_assembler_msvc: false,
                 msvc: compiler.is_like_msvc(),
-                clang: compiler.is_like_clang(),
-                gnu: compiler.is_like_gnu(),
+                clang,
+                gnu,
                 is_asm: false,
                 is_arm,
             },
@@ -1357,18 +1354,14 @@ impl Build {
 
         cmd.arg(&src);
 
+        // On MSVC skip the CRT by setting the entry point to `main`.
+        // This way we don't need to add the default library paths.
         if compiler.is_like_msvc() {
-            // On MSVC we need to make sure the LIB directory is included
-            // so the CRT can be found.
-            for (key, value) in &tool.env {
-                if key == "LIB" {
-                    cmd.env("LIB", value);
-                    break;
-                }
-            }
+            // Flags from _LINK_ are appended to the linker arguments.
+            cmd.env("_LINK_", "-entry:main");
         }
 
-        let output = cmd.current_dir(out_dir).output()?;
+        let output = cmd.output()?;
         let is_supported = output.status.success() && output.stderr.is_empty();
 
         self.build_cache
@@ -1601,8 +1594,8 @@ impl Build {
 
         if objs.len() <= 1 {
             for obj in objs {
-                let mut cmd = self.create_compile_object_cmd(obj)?;
-                run(&mut cmd, &self.cargo_output)?;
+                let (mut cmd, name) = self.create_compile_object_cmd(obj)?;
+                run(&mut cmd, &name, &self.cargo_output)?;
             }
 
             return Ok(());
@@ -1630,8 +1623,12 @@ impl Build {
         // acquire the appropriate tokens, Once all objects have been compiled
         // we wait on all the processes and propagate the results of compilation.
 
-        let pendings =
-            Cell::new(Vec::<(Command, KillOnDrop, parallel::job_token::JobToken)>::new());
+        let pendings = Cell::new(Vec::<(
+            Command,
+            Cow<'static, Path>,
+            KillOnDrop,
+            parallel::job_token::JobToken,
+        )>::new());
         let is_disconnected = Cell::new(false);
         let has_made_progress = Cell::new(false);
 
@@ -1652,8 +1649,14 @@ impl Build {
 
                 cell_update(&pendings, |mut pendings| {
                     // Try waiting on them.
-                    pendings.retain_mut(|(cmd, child, _token)| {
-                        match try_wait_on_child(cmd, &mut child.0, &mut stdout, &mut child.1) {
+                    pendings.retain_mut(|(cmd, program, child, _token)| {
+                        match try_wait_on_child(
+                            cmd,
+                            program,
+                            &mut child.0,
+                            &mut stdout,
+                            &mut child.1,
+                        ) {
                             Ok(Some(())) => {
                                 // Task done, remove the entry
                                 has_made_progress.set(true);
@@ -1692,14 +1695,14 @@ impl Build {
         };
         let spawn_future = async {
             for obj in objs {
-                let mut cmd = self.create_compile_object_cmd(obj)?;
+                let (mut cmd, program) = self.create_compile_object_cmd(obj)?;
                 let token = tokens.acquire().await?;
-                let mut child = spawn(&mut cmd, &self.cargo_output)?;
+                let mut child = spawn(&mut cmd, &program, &self.cargo_output)?;
                 let mut stderr_forwarder = StderrForwarder::new(&mut child);
                 stderr_forwarder.set_non_blocking()?;
 
                 cell_update(&pendings, |mut pendings| {
-                    pendings.push((cmd, KillOnDrop(child, stderr_forwarder), token));
+                    pendings.push((cmd, program, KillOnDrop(child, stderr_forwarder), token));
                     pendings
                 });
 
@@ -1738,29 +1741,43 @@ impl Build {
         check_disabled()?;
 
         for obj in objs {
-            let mut cmd = self.create_compile_object_cmd(obj)?;
-            run(&mut cmd, &self.cargo_output)?;
+            let (mut cmd, name) = self.create_compile_object_cmd(obj)?;
+            run(&mut cmd, &name, &self.cargo_output)?;
         }
 
         Ok(())
     }
 
-    fn create_compile_object_cmd(&self, obj: &Object) -> Result<Command, Error> {
+    fn create_compile_object_cmd(
+        &self,
+        obj: &Object,
+    ) -> Result<(Command, Cow<'static, Path>), Error> {
         let asm_ext = AsmFileExt::from_path(&obj.src);
         let is_asm = asm_ext.is_some();
         let target = self.get_target()?;
         let msvc = target.env == "msvc";
         let compiler = self.try_get_compiler()?;
+        let clang = compiler.is_like_clang();
+        let gnu = compiler.family == ToolFamily::Gnu;
 
         let is_assembler_msvc = msvc && asm_ext == Some(AsmFileExt::DotAsm);
-        let mut cmd = if is_assembler_msvc {
-            self.msvc_macro_assembler()?
+        let (mut cmd, name) = if is_assembler_msvc {
+            let (cmd, name) = self.msvc_macro_assembler()?;
+            (cmd, Cow::Borrowed(Path::new(name)))
         } else {
             let mut cmd = compiler.to_command();
             for (a, b) in self.env.iter() {
                 cmd.env(a, b);
             }
-            cmd
+            (
+                cmd,
+                compiler
+                    .path
+                    .file_name()
+                    .ok_or_else(|| Error::new(ErrorKind::IOError, "Failed to get compiler path."))
+                    .map(PathBuf::from)
+                    .map(Cow::Owned)?,
+            )
         };
         let is_arm = matches!(target.arch, "aarch64" | "arm");
         command_add_output_file(
@@ -1770,8 +1787,8 @@ impl Build {
                 cuda: self.cuda,
                 is_assembler_msvc,
                 msvc: compiler.is_like_msvc(),
-                clang: compiler.is_like_clang(),
-                gnu: compiler.is_like_gnu(),
+                clang,
+                gnu,
                 is_asm,
                 is_arm,
             },
@@ -1800,7 +1817,7 @@ impl Build {
             self.fix_env_for_apple_os(&mut cmd)?;
         }
 
-        Ok(cmd)
+        Ok((cmd, name))
     }
 
     /// This will return a result instead of panicking; see [`Self::expand()`] for
@@ -1835,7 +1852,12 @@ impl Build {
 
         cmd.args(self.files.iter().map(std::ops::Deref::deref));
 
-        run_output(&mut cmd, &self.cargo_output)
+        let name = compiler
+            .path
+            .file_name()
+            .ok_or_else(|| Error::new(ErrorKind::IOError, "Failed to get compiler path."))?;
+
+        run_output(&mut cmd, name, &self.cargo_output)
     }
 
     /// Run the compiler, returning the macro-expanded version of the input files.
@@ -1892,17 +1914,78 @@ impl Build {
 
         let mut cmd = self.get_base_compiler()?;
 
-        // The flags below are added in roughly the following order:
-        // 1. Default flags
-        //   - Controlled by `cc-rs`.
-        // 2. `rustc`-inherited flags
-        //   - Controlled by `rustc`.
-        // 3. Builder flags
-        //   - Controlled by the developer using `cc-rs` in e.g. their `build.rs`.
-        // 4. Environment flags
-        //   - Controlled by the end user.
-        //
-        // This is important to allow later flags to override previous ones.
+        // Disable default flag generation via `no_default_flags` or environment variable
+        let no_defaults = self.no_default_flags || self.getenv_boolean("CRATE_CC_NO_DEFAULTS");
+
+        if !no_defaults {
+            self.add_default_flags(&mut cmd, &target, &opt_level)?;
+        }
+
+        if let Some(ref std) = self.std {
+            let separator = match cmd.family {
+                ToolFamily::Msvc { .. } => ':',
+                ToolFamily::Gnu | ToolFamily::Clang { .. } => '=',
+            };
+            cmd.push_cc_arg(format!("-std{}{}", separator, std).into());
+        }
+
+        for directory in self.include_directories.iter() {
+            cmd.args.push("-I".into());
+            cmd.args.push(directory.as_os_str().into());
+        }
+
+        if let Ok(flags) = self.envflags(if self.cpp { "CXXFLAGS" } else { "CFLAGS" }) {
+            for arg in flags {
+                cmd.push_cc_arg(arg.into());
+            }
+        }
+
+        // If warnings and/or extra_warnings haven't been explicitly set,
+        // then we set them only if the environment doesn't already have
+        // CFLAGS/CXXFLAGS, since those variables presumably already contain
+        // the desired set of warnings flags.
+
+        if self.warnings.unwrap_or(!self.has_flags()) {
+            let wflags = cmd.family.warnings_flags().into();
+            cmd.push_cc_arg(wflags);
+        }
+
+        if self.extra_warnings.unwrap_or(!self.has_flags()) {
+            if let Some(wflags) = cmd.family.extra_warnings_flags() {
+                cmd.push_cc_arg(wflags.into());
+            }
+        }
+
+        for flag in self.flags.iter() {
+            cmd.args.push((**flag).into());
+        }
+
+        // Add cc flags inherited from matching rustc flags
+        if self.inherit_rustflags {
+            self.add_inherited_rustflags(&mut cmd, &target)?;
+        }
+
+        for flag in self.flags_supported.iter() {
+            if self
+                .is_flag_supported_inner(flag, &cmd, &target)
+                .unwrap_or(false)
+            {
+                cmd.push_cc_arg((**flag).into());
+            }
+        }
+
+        for (key, value) in self.definitions.iter() {
+            if let Some(ref value) = *value {
+                cmd.args.push(format!("-D{}={}", key, value).into());
+            } else {
+                cmd.args.push(format!("-D{}", key).into());
+            }
+        }
+
+        if self.warnings_into_errors {
+            let warnings_to_errors_flag = cmd.family.warnings_to_errors_flag().into();
+            cmd.push_cc_arg(warnings_to_errors_flag);
+        }
 
         // Copied from <https://github.com/rust-lang/rust/blob/5db81020006d2920fc9c62ffc0f4322f90bffa04/compiler/rustc_codegen_ssa/src/back/linker.rs#L27-L38>
         //
@@ -1915,78 +1998,6 @@ impl Build {
             cmd.env.push(("VSLANG".into(), "1033".into()));
         } else {
             cmd.env.push(("LC_ALL".into(), "C".into()));
-        }
-
-        // Disable default flag generation via `no_default_flags` or environment variable
-        let no_defaults = self.no_default_flags || self.getenv_boolean("CRATE_CC_NO_DEFAULTS");
-        if !no_defaults {
-            self.add_default_flags(&mut cmd, &target, &opt_level)?;
-        }
-
-        // Specify various flags that are not considered part of the default flags above.
-        // FIXME(madsmtm): Should these be considered part of the defaults? If no, why not?
-        if let Some(ref std) = self.std {
-            let separator = match cmd.family {
-                ToolFamily::Msvc { .. } => ':',
-                ToolFamily::Gnu | ToolFamily::Clang { .. } => '=',
-            };
-            cmd.push_cc_arg(format!("-std{}{}", separator, std).into());
-        }
-        for directory in self.include_directories.iter() {
-            cmd.args.push("-I".into());
-            cmd.args.push(directory.as_os_str().into());
-        }
-        if self.warnings_into_errors {
-            let warnings_to_errors_flag = cmd.family.warnings_to_errors_flag().into();
-            cmd.push_cc_arg(warnings_to_errors_flag);
-        }
-
-        // If warnings and/or extra_warnings haven't been explicitly set,
-        // then we set them only if the environment doesn't already have
-        // CFLAGS/CXXFLAGS, since those variables presumably already contain
-        // the desired set of warnings flags.
-        let envflags = self.envflags(if self.cpp { "CXXFLAGS" } else { "CFLAGS" })?;
-        if self.warnings.unwrap_or(envflags.is_none()) {
-            let wflags = cmd.family.warnings_flags().into();
-            cmd.push_cc_arg(wflags);
-        }
-        if self.extra_warnings.unwrap_or(envflags.is_none()) {
-            if let Some(wflags) = cmd.family.extra_warnings_flags() {
-                cmd.push_cc_arg(wflags.into());
-            }
-        }
-
-        // Add cc flags inherited from matching rustc flags.
-        if self.inherit_rustflags {
-            self.add_inherited_rustflags(&mut cmd, &target)?;
-        }
-
-        // Set flags configured in the builder (do this second-to-last, to allow these to override
-        // everything above).
-        for flag in self.flags.iter() {
-            cmd.args.push((**flag).into());
-        }
-        for flag in self.flags_supported.iter() {
-            if self
-                .is_flag_supported_inner(flag, &cmd, &target)
-                .unwrap_or(false)
-            {
-                cmd.push_cc_arg((**flag).into());
-            }
-        }
-        for (key, value) in self.definitions.iter() {
-            if let Some(ref value) = *value {
-                cmd.args.push(format!("-D{}={}", key, value).into());
-            } else {
-                cmd.args.push(format!("-D{}", key).into());
-            }
-        }
-
-        // Set flags from the environment (do this last, to allow these to override everything else).
-        if let Some(flags) = &envflags {
-            for arg in flags {
-                cmd.push_cc_arg(arg.into());
-            }
         }
 
         Ok(cmd)
@@ -2183,34 +2194,21 @@ impl Build {
 
                     // Pass `--target` with the LLVM target to configure Clang for cross-compiling.
                     //
-                    // This is **required** for cross-compilation, as it's the only flag that
-                    // consistently forces Clang to change the "toolchain" that is responsible for
-                    // parsing target-specific flags:
-                    // https://github.com/rust-lang/cc-rs/issues/1388
-                    // https://github.com/llvm/llvm-project/blob/llvmorg-19.1.7/clang/lib/Driver/Driver.cpp#L1359-L1360
-                    // https://github.com/llvm/llvm-project/blob/llvmorg-19.1.7/clang/lib/Driver/Driver.cpp#L6347-L6532
+                    // NOTE: In the past, we passed this, along with the deployment version in here
+                    // on Apple targets, but versioned targets were found to have poor compatibility
+                    // with older versions of Clang, especially around comes to configuration files.
                     //
-                    // This can be confusing, because on e.g. host macOS, you can usually get by
-                    // with `-arch` and `-mtargetos=`. But that only works because the _default_
-                    // toolchain is `Darwin`, which enables parsing of darwin-specific options.
+                    // Instead, we specify `-arch` along with `-mmacosx-version-min=`, `-mtargetos=`
+                    // and similar flags in `.apple_flags()`.
                     //
-                    // NOTE: In the past, we passed the deployment version in here on all Apple
-                    // targets, but versioned targets were found to have poor compatibility with
-                    // older versions of Clang, especially when it comes to configuration files:
-                    // https://github.com/rust-lang/cc-rs/issues/1278
-                    //
-                    // So instead, we pass the deployment target with `-m*-version-min=`, and only
-                    // pass it here on visionOS and Mac Catalyst where that option does not exist:
-                    // https://github.com/rust-lang/cc-rs/issues/1383
-                    let clang_target = if target.os == "visionos" || target.abi == "macabi" {
-                        Cow::Owned(
-                            target.versioned_llvm_target(&self.apple_deployment_target(target)),
-                        )
-                    } else {
-                        Cow::Borrowed(target.llvm_target)
-                    };
-
-                    cmd.push_cc_arg(format!("--target={clang_target}").into());
+                    // Note that Clang errors when both `-mtargetos=` and `-target` are specified,
+                    // so we omit this entirely on Apple targets (it's redundant when specifying
+                    // both the `-arch` and the deployment target / OS flag) (in theory we _could_
+                    // specify this on some of the Apple targets that use the older
+                    // `-m*-version-min=`, but for consistency we omit it entirely).
+                    if target.vendor != "apple" {
+                        cmd.push_cc_arg(format!("--target={}", target.llvm_target).into());
+                    }
                 }
             }
             ToolFamily::Msvc { clang_cl } => {
@@ -2224,16 +2222,7 @@ impl Build {
                         cmd.push_cc_arg("-m64".into());
                     } else if target.arch == "x86" {
                         cmd.push_cc_arg("-m32".into());
-                        // See
-                        // <https://learn.microsoft.com/en-us/cpp/build/reference/arch-x86?view=msvc-170>.
-                        //
-                        // NOTE: Rust officially supported Windows targets all require SSE2 as part
-                        // of baseline target features.
-                        //
-                        // NOTE: The same applies for STL. See: -
-                        // <https://github.com/microsoft/STL/issues/3922>, and -
-                        // <https://github.com/microsoft/STL/pull/4741>.
-                        cmd.push_cc_arg("-arch:SSE2".into());
+                        cmd.push_cc_arg("-arch:IA32".into());
                     } else {
                         cmd.push_cc_arg(format!("--target={}", target.llvm_target).into());
                     }
@@ -2468,7 +2457,13 @@ impl Build {
         Ok(())
     }
 
-    fn msvc_macro_assembler(&self) -> Result<Command, Error> {
+    fn has_flags(&self) -> bool {
+        let flags_env_var_name = if self.cpp { "CXXFLAGS" } else { "CFLAGS" };
+        let flags_env_var_value = self.getenv_with_target_prefixes(flags_env_var_name);
+        flags_env_var_value.is_ok()
+    }
+
+    fn msvc_macro_assembler(&self) -> Result<(Command, &'static str), Error> {
         let target = self.get_target()?;
         let tool = if target.arch == "x86_64" {
             "ml64.exe"
@@ -2523,7 +2518,7 @@ impl Build {
             cmd.arg("-safeseh");
         }
 
-        Ok(cmd)
+        Ok((cmd, tool))
     }
 
     fn assemble(&self, lib_name: &str, dst: &Path, objs: &[Object]) -> Result<(), Error> {
@@ -2551,7 +2546,7 @@ impl Build {
             let dlink = out_dir.join(lib_name.to_owned() + "_dlink.o");
             let mut nvcc = self.get_compiler().to_command();
             nvcc.arg("--device-link").arg("-o").arg(&dlink).arg(dst);
-            run(&mut nvcc, &self.cargo_output)?;
+            run(&mut nvcc, "nvcc", &self.cargo_output)?;
             self.assemble_progressive(dst, &[dlink.as_path()])?;
         }
 
@@ -2579,12 +2574,12 @@ impl Build {
             // Non-msvc targets (those using `ar`) need a separate step to add
             // the symbol table to archives since our construction command of
             // `cq` doesn't add it for us.
-            let mut ar = self.try_get_archiver()?;
+            let (mut ar, cmd, _any_flags) = self.get_ar()?;
 
             // NOTE: We add `s` even if flags were passed using $ARFLAGS/ar_flag, because `s`
             // here represents a _mode_, not an arbitrary flag. Further discussion of this choice
             // can be seen in https://github.com/rust-lang/cc-rs/pull/763.
-            run(ar.arg("s").arg(dst), &self.cargo_output)?;
+            run(ar.arg("s").arg(dst), &cmd, &self.cargo_output)?;
         }
 
         Ok(())
@@ -2593,7 +2588,7 @@ impl Build {
     fn assemble_progressive(&self, dst: &Path, objs: &[&Path]) -> Result<(), Error> {
         let target = self.get_target()?;
 
-        let (mut cmd, program, any_flags) = self.try_get_archiver_and_flags()?;
+        let (mut cmd, program, any_flags) = self.get_ar()?;
         if target.env == "msvc" && !program.to_string_lossy().contains("llvm-ar") {
             // NOTE: -out: here is an I/O flag, and so must be included even if $ARFLAGS/ar_flag is
             // in use. -nologo on the other hand is just a regular flag, and one that we'll skip if
@@ -2611,7 +2606,7 @@ impl Build {
                 cmd.arg(dst);
             }
             cmd.args(objs);
-            run(&mut cmd, &self.cargo_output)?;
+            run(&mut cmd, &program, &self.cargo_output)?;
         } else {
             // Set an environment variable to tell the OSX archiver to ensure
             // that all dates listed in the archive are zero, improving
@@ -2640,7 +2635,11 @@ impl Build {
             // NOTE: We add cq here regardless of whether $ARFLAGS/ar_flag have been used because
             // it dictates the _mode_ ar runs in, which the setter of $ARFLAGS/ar_flag can't
             // dictate. See https://github.com/rust-lang/cc-rs/pull/763 for further discussion.
-            run(cmd.arg("cq").arg(dst).args(objs), &self.cargo_output)?;
+            run(
+                cmd.arg("cq").arg(dst).args(objs),
+                &program,
+                &self.cargo_output,
+            )?;
         }
 
         Ok(())
@@ -2649,29 +2648,21 @@ impl Build {
     fn apple_flags(&self, cmd: &mut Tool) -> Result<(), Error> {
         let target = self.get_target()?;
 
-        // This is a Darwin/Apple-specific flag that works both on GCC and Clang, but it is only
-        // necessary on GCC since we specify `-target` on Clang.
+        // Add `-arch` on all compilers. This is a Darwin/Apple-specific flag
+        // that works both on GCC and Clang.
         // https://gcc.gnu.org/onlinedocs/gcc/Darwin-Options.html#:~:text=arch
         // https://clang.llvm.org/docs/CommandGuide/clang.html#cmdoption-arch
-        if cmd.is_like_gnu() {
-            let arch = map_darwin_target_from_rust_to_compiler_architecture(&target);
-            cmd.args.push("-arch".into());
-            cmd.args.push(arch.into());
-        }
+        let arch = map_darwin_target_from_rust_to_compiler_architecture(&target);
+        cmd.args.push("-arch".into());
+        cmd.args.push(arch.into());
 
-        // Pass the deployment target via `-mmacosx-version-min=`, `-miphoneos-version-min=` and
-        // similar. Also necessary on GCC, as it forces a compilation error if the compiler is not
-        // configured for Darwin: https://gcc.gnu.org/onlinedocs/gcc/Darwin-Options.html
+        // Pass the deployment target via `-mmacosx-version-min=`, `-mtargetos=` and similar.
         //
-        // On visionOS and Mac Catalyst, there is no -m*-version-min= flag:
-        // https://github.com/llvm/llvm-project/issues/88271
-        // And the workaround to use `-mtargetos=` cannot be used with the `--target` flag that we
-        // otherwise specify. So we avoid emitting that, and put the version in `--target` instead.
-        if cmd.is_like_gnu() || !(target.os == "visionos" || target.abi == "macabi") {
-            let min_version = self.apple_deployment_target(&target);
-            cmd.args
-                .push(target.apple_version_flag(&min_version).into());
-        }
+        // It is also necessary on GCC, as it forces a compilation error if the compiler is not
+        // configured for Darwin: https://gcc.gnu.org/onlinedocs/gcc/Darwin-Options.html
+        let min_version = self.apple_deployment_target(&target);
+        cmd.args
+            .push(target.apple_version_flag(&min_version).into());
 
         // AppleClang sometimes requires sysroot even on macOS
         if cmd.is_xctoolchain_clang() || target.os != "macos" {
@@ -3102,6 +3093,10 @@ impl Build {
         }
     }
 
+    fn get_ar(&self) -> Result<(Command, PathBuf, bool), Error> {
+        self.try_get_archiver_and_flags()
+    }
+
     /// Get the archiver (ar) that's in use for this configuration.
     ///
     /// You can use [`Command::get_program`] to get just the path to the command.
@@ -3134,8 +3129,8 @@ impl Build {
     fn try_get_archiver_and_flags(&self) -> Result<(Command, PathBuf, bool), Error> {
         let (mut cmd, name) = self.get_base_archiver()?;
         let mut any_flags = false;
-        if let Some(flags) = self.envflags("ARFLAGS")? {
-            any_flags = true;
+        if let Ok(flags) = self.envflags("ARFLAGS") {
+            any_flags |= !flags.is_empty();
             cmd.args(flags);
         }
         for flag in &self.ar_flags {
@@ -3181,7 +3176,7 @@ impl Build {
     /// see [`Self::get_ranlib`] for the complete description.
     pub fn try_get_ranlib(&self) -> Result<Command, Error> {
         let mut cmd = self.get_base_ranlib()?;
-        if let Some(flags) = self.envflags("RANLIBFLAGS")? {
+        if let Ok(flags) = self.envflags("RANLIBFLAGS") {
             cmd.args(flags);
         }
         Ok(cmd)
@@ -3245,6 +3240,7 @@ impl Build {
                 }
             });
 
+        let default = tool.to_string();
         let tool = match tool_opt {
             Some(t) => t,
             None => {
@@ -3305,7 +3301,7 @@ impl Build {
                     self.cmd(&name)
                 } else if self.get_is_cross_compile()? {
                     match self.prefix_for_target(&self.get_raw_target()?) {
-                        Some(prefix) => {
+                        Some(p) => {
                             // GCC uses $target-gcc-ar, whereas binutils uses $target-ar -- try both.
                             // Prefer -ar if it exists, as builds of `-gcc-ar` have been observed to be
                             // outright broken (such as when targeting freebsd with `--disable-lto`
@@ -3313,31 +3309,24 @@ impl Build {
                             // fails to find one).
                             //
                             // The same applies to ranlib.
-                            let chosen = ["", "-gcc"]
-                                .iter()
-                                .filter_map(|infix| {
-                                    let target_p = format!("{prefix}{infix}-{tool}");
-                                    let status = Command::new(&target_p)
-                                        .arg("--version")
-                                        .stdin(Stdio::null())
-                                        .stdout(Stdio::null())
-                                        .stderr(Stdio::null())
-                                        .status()
-                                        .ok()?;
-                                    status.success().then_some(target_p)
-                                })
-                                .next()
-                                .unwrap_or_else(|| tool.to_string());
+                            let mut chosen = default;
+                            for &infix in &["", "-gcc"] {
+                                let target_p = format!("{}{}-{}", p, infix, tool);
+                                if Command::new(&target_p).output().is_ok() {
+                                    chosen = target_p;
+                                    break;
+                                }
+                            }
                             name = chosen.into();
                             self.cmd(&name)
                         }
                         None => {
-                            name = tool.into();
+                            name = default.into();
                             self.cmd(&name)
                         }
                     }
                 } else {
-                    name = tool.into();
+                    name = default.into();
                     self.cmd(&name)
                 }
             }
@@ -3668,8 +3657,7 @@ impl Build {
         })
     }
 
-    /// The list of environment variables to check for a given env, in order of priority.
-    fn target_envs(&self, env: &str) -> Result<[String; 4], Error> {
+    fn getenv_with_target_prefixes(&self, var_base: &str) -> Result<Arc<OsStr>, Error> {
         let target = self.get_raw_target()?;
         let kind = if self.get_is_cross_compile()? {
             "TARGET"
@@ -3677,55 +3665,33 @@ impl Build {
             "HOST"
         };
         let target_u = target.replace('-', "_");
-
-        Ok([
-            format!("{env}_{target}"),
-            format!("{env}_{target_u}"),
-            format!("{kind}_{env}"),
-            env.to_string(),
-        ])
-    }
-
-    /// Get a single-valued environment variable with target variants.
-    fn getenv_with_target_prefixes(&self, env: &str) -> Result<Arc<OsStr>, Error> {
-        // Take from first environment variable in the environment.
         let res = self
-            .target_envs(env)?
-            .iter()
-            .filter_map(|env| self.getenv(env))
-            .next();
+            .getenv(&format!("{}_{}", var_base, target))
+            .or_else(|| self.getenv(&format!("{}_{}", var_base, target_u)))
+            .or_else(|| self.getenv(&format!("{}_{}", kind, var_base)))
+            .or_else(|| self.getenv(var_base));
 
         match res {
             Some(res) => Ok(res),
             None => Err(Error::new(
                 ErrorKind::EnvVarNotFound,
-                format!("could not find environment variable {env}"),
+                format!("Could not find environment variable {}.", var_base),
             )),
         }
     }
 
-    /// Get values from CFLAGS-style environment variable.
-    fn envflags(&self, env: &str) -> Result<Option<Vec<String>>, Error> {
-        // Collect from all environment variables, in reverse order as in
-        // `getenv_with_target_prefixes` precedence (so that `CFLAGS_$TARGET`
-        // can override flags in `TARGET_CFLAGS`, which overrides those in
-        // `CFLAGS`).
-        let mut any_set = false;
-        let mut res = vec![];
-        for env in self.target_envs(env)?.iter().rev() {
-            if let Some(var) = self.getenv(env) {
-                any_set = true;
+    fn envflags(&self, name: &str) -> Result<Vec<String>, Error> {
+        let env_os = self.getenv_with_target_prefixes(name)?;
+        let env = env_os.to_string_lossy();
 
-                let var = var.to_string_lossy();
-                if self.get_shell_escaped_flags() {
-                    res.extend(Shlex::new(&var));
-                } else {
-                    res.extend(var.split_ascii_whitespace().map(ToString::to_string));
-                }
-            }
+        if self.get_shell_escaped_flags() {
+            Ok(Shlex::new(&env).collect())
+        } else {
+            Ok(env
+                .split_ascii_whitespace()
+                .map(ToString::to_string)
+                .collect())
         }
-
-        Ok(if any_set { Some(res) } else { None })
     }
 
     fn fix_env_for_apple_os(&self, cmd: &mut Command) -> Result<(), Error> {
@@ -3777,6 +3743,7 @@ impl Build {
                 .arg("--show-sdk-path")
                 .arg("--sdk")
                 .arg(sdk),
+            "xcrun",
             &self.cargo_output,
         )?;
 
@@ -3833,6 +3800,7 @@ impl Build {
                     .arg("--show-sdk-version")
                     .arg("--sdk")
                     .arg(sdk),
+                "xcrun",
                 &self.cargo_output,
             )
             .ok()?;
@@ -4003,6 +3971,7 @@ impl Build {
     ) -> Option<PathBuf> {
         let search_dirs = run_output(
             cc.arg("-print-search-dirs"),
+            "cc",
             // this doesn't concern the compilation so we always want to show warnings.
             cargo_output,
         )
