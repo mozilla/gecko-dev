@@ -266,6 +266,34 @@ const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterU8 extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (!Number.isInteger(value)) {
+            throw new UniFFITypeError(`${value} is not an integer`);
+        }
+        if (value < 0 || value > 256) {
+            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
+        }
+    }
+    static computeSize(_value) {
+        return 1;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeUint8(value)
+    }
+    static read(dataStream) {
+        return dataStream.readUint8()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterI64 extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
@@ -406,6 +434,264 @@ export class FfiConverterTypeCustomTypesDemo extends FfiConverterArrayBuffer {
     }
 }
 
+
+/**
+ * ExplicitValuedEnum
+ */
+export const ExplicitValuedEnum = {
+    /**
+     * FIRST
+     */
+    FIRST: 1,
+    /**
+     * SECOND
+     */
+    SECOND: 2,
+    /**
+     * FOURTH
+     */
+    FOURTH: 4,
+    /**
+     * TENTH
+     */
+    TENTH: 10,
+    /**
+     * ELEVENTH
+     */
+    ELEVENTH: 11,
+    /**
+     * THIRTEENTH
+     */
+    THIRTEENTH: 13,
+};
+
+Object.freeze(ExplicitValuedEnum);
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeExplicitValuedEnum extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(ExplicitValuedEnum);
+
+    static read(dataStream) {
+        switch (dataStream.readInt32()) {
+            case 1:
+                return ExplicitValuedEnum.FIRST
+            case 2:
+                return ExplicitValuedEnum.SECOND
+            case 3:
+                return ExplicitValuedEnum.FOURTH
+            case 4:
+                return ExplicitValuedEnum.TENTH
+            case 5:
+                return ExplicitValuedEnum.ELEVENTH
+            case 6:
+                return ExplicitValuedEnum.THIRTEENTH
+            default:
+                throw new UniFFITypeError("Unknown ExplicitValuedEnum variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === ExplicitValuedEnum.FIRST) {
+            dataStream.writeInt32(1);
+            return;
+        }
+        if (value === ExplicitValuedEnum.SECOND) {
+            dataStream.writeInt32(2);
+            return;
+        }
+        if (value === ExplicitValuedEnum.FOURTH) {
+            dataStream.writeInt32(3);
+            return;
+        }
+        if (value === ExplicitValuedEnum.TENTH) {
+            dataStream.writeInt32(4);
+            return;
+        }
+        if (value === ExplicitValuedEnum.ELEVENTH) {
+            dataStream.writeInt32(5);
+            return;
+        }
+        if (value === ExplicitValuedEnum.THIRTEENTH) {
+            dataStream.writeInt32(6);
+            return;
+        }
+        throw new UniFFITypeError("Unknown ExplicitValuedEnum variant");
+    }
+
+    static computeSize(value) {
+        return 4;
+    }
+
+    static checkType(value) {
+        // Check that the value is a valid enum variant
+        if (!this.#validValues.includes(value)) {
+            throw new UniFFITypeError(`${value} is not a valid value for ExplicitValuedEnum`);
+        }
+      }
+}
+
+
+
+/**
+ * GappedEnum
+ */
+export const GappedEnum = {
+    /**
+     * ONE
+     */
+    ONE: 10,
+    /**
+     * TWO
+     */
+    TWO: 11,
+    /**
+     * THREE
+     */
+    THREE: 14,
+};
+
+Object.freeze(GappedEnum);
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeGappedEnum extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(GappedEnum);
+
+    static read(dataStream) {
+        switch (dataStream.readInt32()) {
+            case 1:
+                return GappedEnum.ONE
+            case 2:
+                return GappedEnum.TWO
+            case 3:
+                return GappedEnum.THREE
+            default:
+                throw new UniFFITypeError("Unknown GappedEnum variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === GappedEnum.ONE) {
+            dataStream.writeInt32(1);
+            return;
+        }
+        if (value === GappedEnum.TWO) {
+            dataStream.writeInt32(2);
+            return;
+        }
+        if (value === GappedEnum.THREE) {
+            dataStream.writeInt32(3);
+            return;
+        }
+        throw new UniFFITypeError("Unknown GappedEnum variant");
+    }
+
+    static computeSize(value) {
+        return 4;
+    }
+
+    static checkType(value) {
+        // Check that the value is a valid enum variant
+        if (!this.#validValues.includes(value)) {
+            throw new UniFFITypeError(`${value} is not a valid value for GappedEnum`);
+        }
+      }
+}
+
+
+
+/**
+ * SequentialEnum
+ */
+export const SequentialEnum = {
+    /**
+     * FIRST
+     */
+    FIRST: 0,
+    /**
+     * SECOND
+     */
+    SECOND: 1,
+    /**
+     * FOURTH
+     */
+    FOURTH: 2,
+    /**
+     * TENTH
+     */
+    TENTH: 3,
+    /**
+     * ELEVENTH
+     */
+    ELEVENTH: 4,
+    /**
+     * THIRTEENTH
+     */
+    THIRTEENTH: 5,
+};
+
+Object.freeze(SequentialEnum);
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeSequentialEnum extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(SequentialEnum);
+
+    static read(dataStream) {
+        switch (dataStream.readInt32()) {
+            case 1:
+                return SequentialEnum.FIRST
+            case 2:
+                return SequentialEnum.SECOND
+            case 3:
+                return SequentialEnum.FOURTH
+            case 4:
+                return SequentialEnum.TENTH
+            case 5:
+                return SequentialEnum.ELEVENTH
+            case 6:
+                return SequentialEnum.THIRTEENTH
+            default:
+                throw new UniFFITypeError("Unknown SequentialEnum variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === SequentialEnum.FIRST) {
+            dataStream.writeInt32(1);
+            return;
+        }
+        if (value === SequentialEnum.SECOND) {
+            dataStream.writeInt32(2);
+            return;
+        }
+        if (value === SequentialEnum.FOURTH) {
+            dataStream.writeInt32(3);
+            return;
+        }
+        if (value === SequentialEnum.TENTH) {
+            dataStream.writeInt32(4);
+            return;
+        }
+        if (value === SequentialEnum.ELEVENTH) {
+            dataStream.writeInt32(5);
+            return;
+        }
+        if (value === SequentialEnum.THIRTEENTH) {
+            dataStream.writeInt32(6);
+            return;
+        }
+        throw new UniFFITypeError("Unknown SequentialEnum variant");
+    }
+
+    static computeSize(value) {
+        return 4;
+    }
+
+    static checkType(value) {
+        // Check that the value is a valid enum variant
+        if (!this.#validValues.includes(value)) {
+            throw new UniFFITypeError(`${value} is not a valid value for SequentialEnum`);
+        }
+      }
+}
+
+
 // Export the FFIConverter object to make external types work.
 export class FfiConverterOptionalTypeCustomTypesDemo extends FfiConverterArrayBuffer {
     static checkType(value) {
@@ -440,6 +726,61 @@ export class FfiConverterOptionalTypeCustomTypesDemo extends FfiConverterArrayBu
             return 1;
         }
         return 1 + FfiConverterTypeCustomTypesDemo.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterMapStringU8 extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const map = {};
+        for (let i = 0; i < len; i++) {
+            const key = FfiConverterString.read(dataStream);
+            const value = FfiConverterU8.read(dataStream);
+            map[key] = value;
+        }
+
+        return map;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(Object.keys(value).length);
+        for (const key in value) {
+            FfiConverterString.write(dataStream, key);
+            FfiConverterU8.write(dataStream, value[key]);
+        }
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const key in value) {
+            size += FfiConverterString.computeSize(key);
+            size += FfiConverterU8.computeSize(value[key]);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        for (const key in value) {
+            try {
+                FfiConverterString.checkType(key);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("(key)");
+                }
+                throw e;
+            }
+
+            try {
+                FfiConverterU8.checkType(value[key]);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${key}]`);
+                }
+                throw e;
+            }
+        }
     }
 }
 
@@ -496,6 +837,35 @@ export class FfiConverterTypeUrl extends FfiConverter {
 
 
 /**
+ * echoSequentialValue
+ * @returns {SequentialEnum}
+ */
+export function echoSequentialValue(value) {
+
+        const liftResult = (result) => FfiConverterTypeSequentialEnum.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterTypeSequentialEnum.checkType(value)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                103, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_sequential_value
+                FfiConverterTypeSequentialEnum.lower(value),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
  * getCustomTypesDemo
  * @returns {CustomTypesDemo}
  */
@@ -513,8 +883,193 @@ export function getCustomTypesDemo(demo) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                103, // custom_types:uniffi_uniffi_custom_types_fn_func_get_custom_types_demo
+                104, // custom_types:uniffi_uniffi_custom_types_fn_func_get_custom_types_demo
                 FfiConverterOptionalTypeCustomTypesDemo.lower(demo),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
+ * getSequentialDiscriminant
+ * @returns {number}
+ */
+export function getSequentialDiscriminant(value) {
+
+        const liftResult = (result) => FfiConverterU8.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterTypeSequentialEnum.checkType(value)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                105, // custom_types:uniffi_uniffi_custom_types_fn_func_get_sequential_discriminant
+                FfiConverterTypeSequentialEnum.lower(value),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
+ * echoExplicitValue
+ * @returns {ExplicitValuedEnum}
+ */
+export function echoExplicitValue(value) {
+
+        const liftResult = (result) => FfiConverterTypeExplicitValuedEnum.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterTypeExplicitValuedEnum.checkType(value)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                106, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_explicit_value
+                FfiConverterTypeExplicitValuedEnum.lower(value),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
+ * echoGappedValue
+ * @returns {GappedEnum}
+ */
+export function echoGappedValue(value) {
+
+        const liftResult = (result) => FfiConverterTypeGappedEnum.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterTypeGappedEnum.checkType(value)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                107, // custom_types:uniffi_uniffi_custom_types_fn_func_echo_gapped_value
+                FfiConverterTypeGappedEnum.lower(value),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
+ * getExplicitDiscriminant
+ * @returns {number}
+ */
+export function getExplicitDiscriminant(value) {
+
+        const liftResult = (result) => FfiConverterU8.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterTypeExplicitValuedEnum.checkType(value)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                108, // custom_types:uniffi_uniffi_custom_types_fn_func_get_explicit_discriminant
+                FfiConverterTypeExplicitValuedEnum.lower(value),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
+ * getExplicitEnumValues
+ * @returns {object}
+ */
+export function getExplicitEnumValues() {
+
+        const liftResult = (result) => FfiConverterMapStringU8.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                109, // custom_types:uniffi_uniffi_custom_types_fn_func_get_explicit_enum_values
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
+ * getGappedDiscriminant
+ * @returns {number}
+ */
+export function getGappedDiscriminant(value) {
+
+        const liftResult = (result) => FfiConverterU8.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterTypeGappedEnum.checkType(value)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsyncWrapper(
+                110, // custom_types:uniffi_uniffi_custom_types_fn_func_get_gapped_discriminant
+                FfiConverterTypeGappedEnum.lower(value),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}
+
+/**
+ * getGappedEnumValues
+ * @returns {object}
+ */
+export function getGappedEnumValues() {
+
+        const liftResult = (result) => FfiConverterMapStringU8.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                111, // custom_types:uniffi_uniffi_custom_types_fn_func_get_gapped_enum_values
             )
         }
         try {

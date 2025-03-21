@@ -1646,8 +1646,9 @@ RemoteCommand.CloseTab = class extends RemoteCommand{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeRemoteCommand extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Match Python's approach: wire format uses 1-based sequential indices
         switch (dataStream.readInt32()) {
-            case 1:
+            case 1: // Use 1-based index like Python
                 return new RemoteCommand.CloseTab(
                     FfiConverterString.read(dataStream)
                     );
@@ -1676,7 +1677,7 @@ export class FfiConverterTypeRemoteCommand extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!(value instanceof RemoteCommand)) {
+      if (value === undefined || value === null || !(value instanceof RemoteCommand)) {
         throw new UniFFITypeError(`${value} is not a subclass instance of RemoteCommand`);
       }
     }

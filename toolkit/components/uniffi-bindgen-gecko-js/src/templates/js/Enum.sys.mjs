@@ -4,13 +4,15 @@
 export const {{ enum_.js_name() }} = {
     {%- for variant in enum_.variants() %}
     {{ variant.js_docstring(true, 4) -}}
-    {{ variant.js_name(true) }}: {{loop.index}},
+    {{ variant.js_name(true) }}: {% match enum_.variant_discriminant(loop.index0) %}{% when Ok with (value) %}{{ value }}{% when Err with (err) %}{{ loop.index0 }}{% endmatch %},
     {%- endfor %}
 };
 
 Object.freeze({{ enum_.js_name() }});
 // Export the FFIConverter object to make external types work.
 export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
+    static #validValues = Object.values({{ enum_.js_name() }});
+
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             {%- for variant in enum_.variants() %}
@@ -37,10 +39,11 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > {{ enum_.variants().len() }}) {
-          throw new UniFFITypeError(`${value} is not a valid value for {{ enum_.js_name() }}`);
+        // Check that the value is a valid enum variant
+        if (!this.#validValues.includes(value)) {
+            throw new UniFFITypeError(`${value} is not a valid value for {{ enum_.js_name() }}`);
+        }
       }
-    }
 }
 
 {%- else -%}
@@ -67,9 +70,10 @@ export class {{ enum_.js_name() }} {}
 // Export the FFIConverter object to make external types work.
 export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Match Python's approach: wire format uses 1-based sequential indices
         switch (dataStream.readInt32()) {
             {%- for variant in enum_.variants() %}
-            case {{ loop.index }}:
+            case {{ loop.index }}: // Use 1-based index like Python
                 return new {{ enum_.js_name() }}.{{ variant.js_name(false)  }}(
                     {%- for field in variant.fields() %}
                     {{ field.ffi_converter() }}.read(dataStream){%- if loop.last %}{% else %}, {%- endif %}
@@ -109,7 +113,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!(value instanceof {{ enum_.js_name() }})) {
+      if (value === undefined || value === null || !(value instanceof {{ enum_.js_name() }})) {
         throw new UniFFITypeError(`${value} is not a subclass instance of {{ enum_.js_name() }}`);
       }
     }
