@@ -56,15 +56,15 @@ suites:
     toolkit/components/ml/tests/browser:
         description: "Performance tests running through Mochitest for ML Models"
         tests:
-            "ML Test Model": ""
-            "ML Test Multi Model": ""
-            "ML Suggest Feature": ""
-            "ML Suggest Inference Model": ""
-            "ML Autofill Model": ""
-            "ML Summarizer Model": ""
+            "browser_ml_engine_perf.js": ""
+            "browser_ml_engine_multi_perf.js": ""
+            "browser_ml_suggest_feature_perf.js": ""
+            "browser_ml_suggest_inference.js": ""
+            "browser_ml_autofill_perf.js": ""
+            "browser_ml_summarizer_perf.js": ""
             "ML Smart Tab Clustering": ""
-            "ML Smart Tab Model": ""
-            "ML Llama Summarizer Model": ""
+            "browser_ml_smart_tab_perf.js": ""
+            "browser_ml_llama_summarizer_perf.js": ""
 
     intl/benchmarks/test/xpcshell:
         description: "Performance tests running through XPCShell for Intl code"

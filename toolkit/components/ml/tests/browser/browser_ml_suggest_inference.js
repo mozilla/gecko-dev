@@ -16,7 +16,7 @@ for (let metric of METRICS) {
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "ML Suggest Inference Model",
+  name: "browser_ml_suggest_inference.js",
   description: "Template test for ML suggest Inference Model",
   options: {
     default: {
