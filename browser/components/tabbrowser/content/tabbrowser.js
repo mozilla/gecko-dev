@@ -1177,9 +1177,8 @@
 
       let newTab = this.getTabForBrowser(newBrowser);
 
-      let timerId;
       if (!aForceUpdate) {
-        timerId = Glean.browserTabswitch.update.start();
+        TelemetryStopwatch.start("FX_TAB_SWITCH_UPDATE_MS");
 
         if (gMultiProcessBrowser) {
           this._asyncTabSwitching = true;
@@ -1403,7 +1402,7 @@
       }
 
       if (!aForceUpdate) {
-        Glean.browserTabswitch.update.stopAndAccumulate(timerId);
+        TelemetryStopwatch.finish("FX_TAB_SWITCH_UPDATE_MS");
       }
     }
 
@@ -4276,7 +4275,7 @@
             this._getSwitcher().warmupTab(toBlurTo);
           }
         } else if (!skipPermitUnload && this._hasBeforeUnload(tab)) {
-          let timerId = Glean.browserTabclose.permitUnloadTime.start();
+          TelemetryStopwatch.start("FX_TAB_CLOSE_PERMIT_UNLOAD_TIME_MS", tab);
           // We need to block while calling permitUnload() because it
           // processes the event queue and may lead to another removeTab()
           // call before permitUnload() returns.
@@ -4288,8 +4287,9 @@
             tab.linkedBrowser.asyncPermitUnload("dontUnload").then(
               ({ permitUnload }) => {
                 tab._pendingPermitUnload = false;
-                Glean.browserTabclose.permitUnloadTime.stopAndAccumulate(
-                  timerId
+                TelemetryStopwatch.finish(
+                  "FX_TAB_CLOSE_PERMIT_UNLOAD_TIME_MS",
+                  tab
                 );
                 if (tab.closing) {
                   // The tab was closed by the user while we were in permitUnload, don't
@@ -4312,8 +4312,9 @@
               err => {
                 console.error("error while calling asyncPermitUnload", err);
                 tab._pendingPermitUnload = false;
-                Glean.browserTabclose.permitUnloadTime.stopAndAccumulate(
-                  timerId
+                TelemetryStopwatch.finish(
+                  "FX_TAB_CLOSE_PERMIT_UNLOAD_TIME_MS",
+                  tab
                 );
               }
             )
@@ -4569,11 +4570,14 @@
 
       // Telemetry stopwatches may already be running if removeTab gets
       // called again for an already closing tab.
-      if (!aTab._closeTimeAnimTimerId && !aTab._closeTimeNoAnimTimerId) {
+      if (
+        !TelemetryStopwatch.running("FX_TAB_CLOSE_TIME_ANIM_MS", aTab) &&
+        !TelemetryStopwatch.running("FX_TAB_CLOSE_TIME_NO_ANIM_MS", aTab)
+      ) {
         // Speculatevely start both stopwatches now. We'll cancel one of
         // the two later depending on whether we're animating.
-        aTab._closeTimeAnimTimerId = Glean.browserTabclose.timeAnim.start();
-        aTab._closeTimeNoAnimTimerId = Glean.browserTabclose.timeNoAnim.start();
+        TelemetryStopwatch.start("FX_TAB_CLOSE_TIME_ANIM_MS", aTab);
+        TelemetryStopwatch.start("FX_TAB_CLOSE_TIME_NO_ANIM_MS", aTab);
       }
 
       // Handle requests for synchronously removing an already
@@ -4600,10 +4604,8 @@
           skipSessionStore,
         })
       ) {
-        Glean.browserTabclose.timeAnim.cancel(aTab._closeTimeAnimTimerId);
-        aTab._closeTimeAnimTimerId = null;
-        Glean.browserTabclose.timeNoAnim.cancel(aTab._closeTimeNoAnimTimerId);
-        aTab._closeTimeNoAnimTimerId = null;
+        TelemetryStopwatch.cancel("FX_TAB_CLOSE_TIME_ANIM_MS", aTab);
+        TelemetryStopwatch.cancel("FX_TAB_CLOSE_TIME_NO_ANIM_MS", aTab);
         return;
       }
 
@@ -4635,15 +4637,13 @@
         tabWidth == 0 /* fade-in transition hasn't moved yet */
       ) {
         // We're not animating, so we can cancel the animation stopwatch.
-        Glean.browserTabclose.timeAnim.cancel(aTab._closeTimeAnimTimerId);
-        aTab._closeTimeAnimTimerId = null;
+        TelemetryStopwatch.cancel("FX_TAB_CLOSE_TIME_ANIM_MS", aTab);
         this._endRemoveTab(aTab);
         return;
       }
 
       // We're animating, so we can cancel the non-animation stopwatch.
-      Glean.browserTabclose.timeNoAnim.cancel(aTab._closeTimeNoAnimTimerId);
-      aTab._closeTimeNoAnimTimerId = null;
+      TelemetryStopwatch.cancel("FX_TAB_CLOSE_TIME_NO_ANIM_MS", aTab);
 
       aTab.style.maxWidth = ""; // ensure that fade-out transition happens
       aTab.removeAttribute("fadein");
@@ -4706,7 +4706,7 @@
           }
         }
 
-        let timerId = Glean.browserTabclose.permitUnloadTime.start();
+        TelemetryStopwatch.start("FX_TAB_CLOSE_PERMIT_UNLOAD_TIME_MS", aTab);
 
         // We need to block while calling permitUnload() because it
         // processes the event queue and may lead to another removeTab()
@@ -4715,7 +4715,7 @@
         let { permitUnload } = browser.permitUnload();
         aTab._pendingPermitUnload = false;
 
-        Glean.browserTabclose.permitUnloadTime.stopAndAccumulate(timerId);
+        TelemetryStopwatch.finish("FX_TAB_CLOSE_PERMIT_UNLOAD_TIME_MS", aTab);
 
         // If we were closed during onbeforeunload, we return false now
         // so we don't (try to) close the same tab again. Of course, we
@@ -4997,18 +4997,16 @@
       // closeWindow might wait an arbitrary length of time if we're supposed
       // to warn about closing the window, so we'll just stop the tab close
       // stopwatches here instead.
-      if (aTab._closeTimeAnimTimerId) {
-        Glean.browserTabclose.timeAnim.stopAndAccumulate(
-          aTab._closeTimeAnimTimerId
-        );
-        aTab._closeTimeAnimTimerId = null;
-      }
-      if (aTab._closeTimeNoAnimTimerId) {
-        Glean.browserTabclose.timeNoAnim.stopAndAccumulate(
-          aTab._closeTimeNoAnimTimerId
-        );
-        aTab._closeTimeNoAnimTimerId = null;
-      }
+      TelemetryStopwatch.finish(
+        "FX_TAB_CLOSE_TIME_ANIM_MS",
+        aTab,
+        true /* aCanceledOkay */
+      );
+      TelemetryStopwatch.finish(
+        "FX_TAB_CLOSE_TIME_NO_ANIM_MS",
+        aTab,
+        true /* aCanceledOkay */
+      );
 
       if (aCloseWindow) {
         this._windowIsClosing = closeWindow(

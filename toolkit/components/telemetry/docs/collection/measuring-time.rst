@@ -9,7 +9,7 @@ From JavaScript
 ===============
 JavaScript can measure elapsed time using TelemetryStopwatch.
 
-``TelemetryStopwatch`` is a helper that simplifies recording elapsed time (in milliseconds) into histograms.
+``TelemetryStopwatch`` is a helper that simplifies recording elapsed time (in milliseconds) into histograms (plain or keyed).
 
 API:
 
@@ -24,6 +24,14 @@ API:
       running(histogramId, aObject);
       cancel(histogramId, aObject);
       finish(histogramId, aObject);
+      // Start, check if running, cancel & finish recording elapsed time into a
+      // keyed histogram.
+      // |key| specifies the key to record into.
+      // |aObject| is optional and used as above.
+      startKeyed(histogramId, key, aObject);
+      runningKeyed(histogramId, key, aObject);
+      cancelKeyed(histogramId, key, aObject);
+      finishKeyed(histogramId, key, aObject);
     };
 
 Example:

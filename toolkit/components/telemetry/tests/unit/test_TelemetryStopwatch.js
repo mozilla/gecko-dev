@@ -3,11 +3,12 @@
 
 const HIST_NAME = "TELEMETRY_SEND_SUCCESS";
 const HIST_NAME2 = "RANGE_CHECKSUM_ERRORS";
+const KEYED_HIST = { id: "TELEMETRY_INVALID_PING_TYPE_SUBMITTED", key: "TEST" };
 
 var refObj = {},
   refObj2 = {};
 
-var originalCount1, originalCount2;
+var originalCount1, originalCount2, originalCount3;
 
 function run_test() {
   let histogram = Telemetry.getHistogramById(HIST_NAME);
@@ -17,6 +18,10 @@ function run_test() {
   histogram = Telemetry.getHistogramById(HIST_NAME2);
   snapshot = histogram.snapshot();
   originalCount2 = Object.values(snapshot.values).reduce((a, b) => (a += b), 0);
+
+  histogram = Telemetry.getKeyedHistogramById(KEYED_HIST.id);
+  snapshot = histogram.snapshot()[KEYED_HIST.key] || { values: [] };
+  originalCount3 = Object.values(snapshot.values).reduce((a, b) => (a += b), 0);
 
   Assert.ok(TelemetryStopwatch.start("mark1"));
   Assert.ok(TelemetryStopwatch.start("mark2"));
@@ -109,6 +114,52 @@ function run_test() {
   Assert.ok(!TelemetryStopwatch.finish(HIST_NAME));
   Assert.ok(!TelemetryStopwatch.finish(HIST_NAME, refObj));
 
+  // Verify that keyed histograms can be started.
+  Assert.ok(!TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY1"));
+  Assert.ok(!TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY2"));
+  Assert.ok(!TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY1", refObj));
+  Assert.ok(!TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY2", refObj));
+
+  Assert.ok(TelemetryStopwatch.startKeyed("HISTOGRAM", "KEY1"));
+  Assert.ok(TelemetryStopwatch.startKeyed("HISTOGRAM", "KEY2"));
+  Assert.ok(TelemetryStopwatch.startKeyed("HISTOGRAM", "KEY1", refObj));
+  Assert.ok(TelemetryStopwatch.startKeyed("HISTOGRAM", "KEY2", refObj));
+
+  Assert.ok(TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY1"));
+  Assert.ok(TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY2"));
+  Assert.ok(TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY1", refObj));
+  Assert.ok(TelemetryStopwatch.runningKeyed("HISTOGRAM", "KEY2", refObj));
+
+  // Restarting keyed histograms should fail.
+  Assert.ok(!TelemetryStopwatch.startKeyed("HISTOGRAM", "KEY1"));
+  Assert.ok(!TelemetryStopwatch.startKeyed("HISTOGRAM", "KEY1", refObj));
+
+  // Finishing a stopwatch of a non existing histogram should return false.
+  Assert.ok(!TelemetryStopwatch.finishKeyed("HISTOGRAM", "KEY2"));
+  Assert.ok(!TelemetryStopwatch.finishKeyed("HISTOGRAM", "KEY2", refObj));
+
+  // Starting & finishing a keyed stopwatch for an existing histogram should work.
+  Assert.ok(TelemetryStopwatch.startKeyed(KEYED_HIST.id, KEYED_HIST.key));
+  Assert.ok(TelemetryStopwatch.finishKeyed(KEYED_HIST.id, KEYED_HIST.key));
+  // Verify that TS.finish deleted the timers
+  Assert.ok(!TelemetryStopwatch.runningKeyed(KEYED_HIST.id, KEYED_HIST.key));
+
+  // Verify that they can be used again
+  Assert.ok(TelemetryStopwatch.startKeyed(KEYED_HIST.id, KEYED_HIST.key));
+  Assert.ok(TelemetryStopwatch.finishKeyed(KEYED_HIST.id, KEYED_HIST.key));
+
+  Assert.ok(!TelemetryStopwatch.finishKeyed("unknown-mark", "unknown-key"));
+  Assert.ok(!TelemetryStopwatch.finishKeyed(KEYED_HIST.id, "unknown-key"));
+
+  // Verify that keyed histograms can only be canceled through "keyed" API.
+  Assert.ok(TelemetryStopwatch.startKeyed(KEYED_HIST.id, KEYED_HIST.key));
+  Assert.throws(
+    () => TelemetryStopwatch.cancel(KEYED_HIST.id, KEYED_HIST.key),
+    /is not an object/
+  );
+  Assert.ok(TelemetryStopwatch.cancelKeyed(KEYED_HIST.id, KEYED_HIST.key));
+  Assert.ok(!TelemetryStopwatch.cancelKeyed(KEYED_HIST.id, KEYED_HIST.key));
+
   finishTest();
 }
 
@@ -131,5 +182,15 @@ function finishTest() {
     newCount - originalCount2,
     3,
     "The correct number of histograms were added for histogram 2."
+  );
+
+  histogram = Telemetry.getKeyedHistogramById(KEYED_HIST.id);
+  snapshot = histogram.snapshot()[KEYED_HIST.key];
+  newCount = Object.values(snapshot.values).reduce((a, b) => (a += b), 0);
+
+  Assert.equal(
+    newCount - originalCount3,
+    2,
+    "The correct number of histograms were added for histogram 3."
   );
 }

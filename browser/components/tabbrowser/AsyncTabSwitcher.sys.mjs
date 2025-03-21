@@ -1402,18 +1402,18 @@ export class AsyncTabSwitcher {
     // the parent process might not even get MozAfterPaint delivered for it), so just
     // give up measuring this for now. :(
     Glean.performanceInteraction.tabSwitchComposite.cancel(
-      this._tabswitchCompositeTimerId
+      this._tabswitchTimerId
     );
-    this._tabswitchCompositeTimerId = null;
+    this._tabswitchTimerId = null;
   }
 
   notePaint(event) {
     if (this.switchPaintId != -1 && event.transactionId >= this.switchPaintId) {
-      if (this._tabswitchCompositeTimerId) {
+      if (this._tabswitchTimerId) {
         Glean.performanceInteraction.tabSwitchComposite.stopAndAccumulate(
-          this._tabswitchCompositeTimerId
+          this._tabswitchTimerId
         );
-        this._tabswitchCompositeTimerId = null;
+        this._tabswitchTimerId = null;
       }
       let { innerWindowId } = this.window.windowGlobalChild;
       ChromeUtils.addProfilerMarker("AsyncTabSwitch:Composited", {
@@ -1424,17 +1424,15 @@ export class AsyncTabSwitcher {
   }
 
   noteStartTabSwitch() {
-    if (this._tabswitchTotalTimerId) {
-      Glean.browserTabswitch.total.cancel(this._tabswitchTotalTimerId);
-    }
-    this._tabswitchTotalTimerId = Glean.browserTabswitch.total.start();
+    TelemetryStopwatch.cancel("FX_TAB_SWITCH_TOTAL_E10S_MS", this.window);
+    TelemetryStopwatch.start("FX_TAB_SWITCH_TOTAL_E10S_MS", this.window);
 
-    if (this._tabswitchCompositeTimerId) {
+    if (this._tabswitchTimerId) {
       Glean.performanceInteraction.tabSwitchComposite.cancel(
-        this._tabswitchCompositeTimerId
+        this._tabswitchTimerId
       );
     }
-    this._tabswitchCompositeTimerId =
+    this._tabswitchTimerId =
       Glean.performanceInteraction.tabSwitchComposite.start();
     let { innerWindowId } = this.window.windowGlobalChild;
     ChromeUtils.addProfilerMarker("AsyncTabSwitch:Start", { innerWindowId });
@@ -1443,11 +1441,13 @@ export class AsyncTabSwitcher {
   noteFinishTabSwitch() {
     // After this point the tab has switched from the content thread's point of view.
     // The changes will be visible after the next refresh driver tick + composite.
-    if (this._tabswitchTotalTimerId) {
-      Glean.browserTabswitch.total.stopAndAccumulate(
-        this._tabswitchTotalTimerId
-      );
-      this._tabswitchTotalTimerId = null;
+    let time = TelemetryStopwatch.timeElapsed(
+      "FX_TAB_SWITCH_TOTAL_E10S_MS",
+      this.window
+    );
+    if (time != -1) {
+      TelemetryStopwatch.finish("FX_TAB_SWITCH_TOTAL_E10S_MS", this.window);
+      this.log("DEBUG: tab switch time = " + time);
       let { innerWindowId } = this.window.windowGlobalChild;
       ChromeUtils.addProfilerMarker("AsyncTabSwitch:Finish", { innerWindowId });
     }
@@ -1457,15 +1457,20 @@ export class AsyncTabSwitcher {
     this.assert(!this.spinnerTab);
     let browser = this.requestedTab.linkedBrowser;
     this.assert(browser.isRemoteBrowser);
-    this._tabswitchSpinnerTimerId =
-      Glean.browserTabswitch.spinnerVisible.start();
+    TelemetryStopwatch.start("FX_TAB_SWITCH_SPINNER_VISIBLE_MS", this.window);
+    // We have a second, similar probe for capturing recordings of
+    // when the spinner is displayed for very long periods.
+    TelemetryStopwatch.start(
+      "FX_TAB_SWITCH_SPINNER_VISIBLE_LONG_MS",
+      this.window
+    );
     let { innerWindowId } = this.window.windowGlobalChild;
     ChromeUtils.addProfilerMarker("AsyncTabSwitch:SpinnerShown", {
       innerWindowId,
     });
-    Glean.browserTabswitch.spinnerVisibleTrigger[this._loadTimerClearedBy].add(
-      1
-    );
+    Services.telemetry
+      .getHistogramById("FX_TAB_SWITCH_SPINNER_VISIBLE_TRIGGER")
+      .add(this._loadTimerClearedBy);
     if (AppConstants.NIGHTLY_BUILD) {
       Services.obs.notifyObservers(null, "tabswitch-spinner");
     }
@@ -1473,11 +1478,18 @@ export class AsyncTabSwitcher {
 
   noteSpinnerHidden() {
     this.assert(this.spinnerTab);
-    this.log("DEBUG: spinner hidden");
-    Glean.browserTabswitch.spinnerVisible.stopAndAccumulate(
-      this._tabswitchSpinnerTimerId
+    this.log(
+      "DEBUG: spinner time = " +
+        TelemetryStopwatch.timeElapsed(
+          "FX_TAB_SWITCH_SPINNER_VISIBLE_MS",
+          this.window
+        )
     );
-    this._tabswitchSpinnerTimerId = null;
+    TelemetryStopwatch.finish("FX_TAB_SWITCH_SPINNER_VISIBLE_MS", this.window);
+    TelemetryStopwatch.finish(
+      "FX_TAB_SWITCH_SPINNER_VISIBLE_LONG_MS",
+      this.window
+    );
     let { innerWindowId } = this.window.windowGlobalChild;
     ChromeUtils.addProfilerMarker("AsyncTabSwitch:SpinnerHidden", {
       innerWindowId,

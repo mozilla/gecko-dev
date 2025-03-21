@@ -108,6 +108,9 @@ with Files("PrivateBrowsingUtils.sys.mjs"):
 with Files("Promise*.sys.mjs"):
     BUG_COMPONENT = ("Toolkit", "Async Tooling")
 
+with Files("ResponsivenessMonitor.sys.mjs"):
+    BUG_COMPONENT = ("Firefox", "Migration")
+
 with Files("ShortcutUtils.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Toolbars and Customization")
 
@@ -199,6 +202,7 @@ EXTRA_JS_MODULES += [
     "Region.sys.mjs",
     "RemotePageAccessManager.sys.mjs",
     "ResetProfile.sys.mjs",
+    "ResponsivenessMonitor.sys.mjs",
     "SelectionUtils.sys.mjs",
     "ServiceRequest.sys.mjs",
     "ShortcutUtils.sys.mjs",
