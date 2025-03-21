@@ -303,30 +303,33 @@ export class _ExperimentManager {
       };
       if (!this.sessions.get(source)?.has(slug)) {
         lazy.log.debug(`Stopping study for recipe ${slug}`);
+
+        let reason;
+        if (recipeMismatches.includes(slug)) {
+          reason = "targeting-mismatch";
+          statusTelemetry.status = ENROLLMENT_STATUS.DISQUALIFIED;
+          statusTelemetry.reason = ENROLLMENT_STATUS_REASONS.NOT_TARGETED;
+        } else if (invalidRecipes.includes(slug)) {
+          reason = "invalid-recipe";
+        } else if (invalidBranches.has(slug)) {
+          reason = "invalid-branch";
+        } else if (invalidFeatures.has(slug)) {
+          reason = "invalid-feature";
+        } else if (missingLocale.includes(slug)) {
+          reason = "l10n-missing-locale";
+        } else if (missingL10nIds.has(slug)) {
+          reason = "l10n-missing-entry";
+        } else {
+          reason = "recipe-not-seen";
+          statusTelemetry.status = ENROLLMENT_STATUS.WAS_ENROLLED;
+        }
+        if (!statusTelemetry.status) {
+          statusTelemetry.status = ENROLLMENT_STATUS.DISQUALIFIED;
+          statusTelemetry.reason = ENROLLMENT_STATUS_REASONS.ERROR;
+          statusTelemetry.error_string = reason;
+        }
+
         try {
-          let reason;
-          if (recipeMismatches.includes(slug)) {
-            reason = "targeting-mismatch";
-            statusTelemetry.status = ENROLLMENT_STATUS.DISQUALIFIED;
-            statusTelemetry.reason = ENROLLMENT_STATUS_REASONS.NOT_TARGETED;
-          } else if (invalidRecipes.includes(slug)) {
-            reason = "invalid-recipe";
-          } else if (invalidBranches.has(slug) || invalidFeatures.has(slug)) {
-            reason = "invalid-branch";
-          } else if (missingLocale.includes(slug)) {
-            reason = "l10n-missing-locale";
-          } else if (missingL10nIds.has(slug)) {
-            reason = "l10n-missing-entry";
-          } else {
-            reason = "recipe-not-seen";
-            statusTelemetry.status = ENROLLMENT_STATUS.WAS_ENROLLED;
-            statusTelemetry.branch = branch.slug;
-          }
-          if (!statusTelemetry.status) {
-            statusTelemetry.status = ENROLLMENT_STATUS.DISQUALIFIED;
-            statusTelemetry.reason = ENROLLMENT_STATUS_REASONS.ERROR;
-            statusTelemetry.error_string = reason;
-          }
           this.unenroll(slug, reason);
         } catch (err) {
           console.error(err);
