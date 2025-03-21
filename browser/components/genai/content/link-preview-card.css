@@ -4,28 +4,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-.og-card-img img {
+.og-card {
+    --og-main-font-size: 1.4rem;
+    background-color: light-dark(rgba(0,0,0,0.05), rgba(255,255,255,0.05));
+    font-size: 1.2em;
+}
+
+.og-card-img {
+    border-radius: var(--border-radius-small);
     height: 100px;
     object-fit: cover;
     width: 100%;
 }
 
 .og-card-content {
-    border-radius: var(--border-radius-medium);
-    box-shadow: var(--box-shadow-card);
+    background-color: var(--panel-background);
+    border-bottom: 1px solid var(--panel-border-color);
+    border-radius: var(--panel-border-radius);
+    color: var(--text-color-deemphasized);
     display: flex;
     flex-direction: column;
-    gap: var(--space-medium);
-    padding: var(--space-large);
-}
-
-.site-name {
-    color: var(--text-color-deemphasized);
-    font-size: 1.3em;
+    gap: var(--space-large);
+    padding: var(--og-padding);
 }
 
 .og-card-title {
-    font-size: 1.4em;
+    font-size: var(--og-main-font-size);
     font-weight: var(--font-weight-bold);
     margin: 0;
     overflow: hidden;
@@ -33,24 +37,23 @@
 }
 
 .og-card-description {
-    font-size: 1.2em;
+    font-size: var(--og-main-font-size);
     margin: 0;
     overflow: hidden;
     -webkit-line-clamp: 3;
 }
 
 .ai-content {
-    background-color: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.1));
-    padding: var(--space-large);
+    padding: var(--og-padding);
 
     > h3 {
-        font-size: 1.3em;
+        font-size: var(--og-main-font-size);
         font-weight: var(--font-weight-bold);
         margin: 0;
     }
 
     > ul {
-        font-size: 1.2em;
+        font-size: var(--og-main-font-size);
         padding-inline-start: var(--space-large);
     }
 
@@ -60,5 +63,9 @@
 
     > hr {
         border-color: var(--border-color-card);
+    }
+
+    > p {
+        margin-block: var(--space-medium) 0;
     }
 }

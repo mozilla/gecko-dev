@@ -190,6 +190,7 @@ export const LinkPreview = {
    */
   createOGCard(doc, pageData) {
     const ogCard = doc.createElement("link-preview-card");
+    ogCard.style.width = "100%";
     ogCard.pageData = pageData;
     // Assume we need to wait if another generate is downloading.
     ogCard.showWait = this.downloadingModel;
@@ -259,7 +260,7 @@ export const LinkPreview = {
     const openPopup = () => {
       const { _x: x, _y: y } = win.MousePosTracker;
       // Open near the mouse offsetting so link in the card can be clicked.
-      panel.openPopup(doc.documentElement, "overlap", x - 20, y - 150);
+      panel.openPopup(doc.documentElement, "overlap", x - 20, y - 160);
     };
 
     // Reuse the existing panel if the url is the same.
@@ -281,16 +282,22 @@ export const LinkPreview = {
       panel.id = this.linkPreviewPanelId;
       panel.setAttribute("noautofocus", true);
       panel.setAttribute("type", "arrow");
-      panel.style.width = "300px";
+      panel.style.width = "362px";
+      panel.style.setProperty("--og-padding", "var(--space-xlarge)");
+      // Match the radius of the image extended out by the padding.
+      panel.style.setProperty(
+        "--panel-border-radius",
+        "calc(var(--border-radius-small) + var(--og-padding))"
+      );
     }
     panel.previewUrl = url;
+    panel.replaceChildren();
 
     const browsingContext = win.browsingContext;
     const actor = browsingContext.currentWindowGlobal.getActor("LinkPreview");
-    //TODO: figure out how to get read duration data from Reader mode
     const pageData = await actor.fetchPageData(url);
     const ogCard = this.createOGCard(doc, pageData);
-    panel.replaceChildren(ogCard);
+    panel.append(ogCard);
     ogCard.addEventListener("LinkPreviewCard:dismiss", () => panel.hidePopup());
 
     openPopup();

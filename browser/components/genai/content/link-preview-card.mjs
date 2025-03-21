@@ -103,8 +103,12 @@ class LinkPreviewCard extends MozLitElement {
       metaData.description ||
       "No Reason. Just ’cause. (better error handling incoming)";
 
-    const imageUrl =
-      metaData["og:image"] || metaData["twitter:image:src"] || "";
+    let imageUrl = metaData["og:image"] || metaData["twitter:image:src"] || "";
+    if (!imageUrl.startsWith("https://")) {
+      imageUrl = "";
+    }
+    const readingTimeMinsFast = articleData.readingTimeMinsFast || "";
+    const readingTimeMinsSlow = articleData.readingTimeMinsSlow || "";
 
     return html`
       <link
@@ -112,14 +116,10 @@ class LinkPreviewCard extends MozLitElement {
         href="chrome://browser/content/genai/content/link-preview-card.css"
       />
       <div class="og-card">
-        ${imageUrl
-          ? html`
-              <div class="og-card-img">
-                <img src=${imageUrl} alt=${title} />
-              </div>
-            `
-          : ""}
         <div class="og-card-content">
+          ${imageUrl
+            ? html` <img class="og-card-img" src=${imageUrl} alt=${title} /> `
+            : ""}
           ${siteName
             ? html`
                 <div class="page-info-and-card-setting-container">
@@ -136,6 +136,13 @@ class LinkPreviewCard extends MozLitElement {
             : ""}
           ${description
             ? html`<p class="og-card-description">${description}</p>`
+            : ""}
+          ${readingTimeMinsFast && readingTimeMinsSlow
+            ? html`<div class="og-card-reading-time">
+                ${readingTimeMinsFast === readingTimeMinsSlow
+                  ? `${readingTimeMinsFast} min${readingTimeMinsFast > 1 ? "s" : ""} reading time`
+                  : `${readingTimeMinsFast}-${readingTimeMinsSlow} mins reading time`}
+              </div>`
             : ""}
         </div>
         ${this.generating || this.keyPoints.length

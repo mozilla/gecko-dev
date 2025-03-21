@@ -164,11 +164,17 @@ export class LinkPreviewChild extends JSWindowActorChild {
     try {
       const article = await lazy.ReaderMode.parseDocument(doc);
       if (article) {
-        //TODO include other fields like sitename from article
-        const { title, byline, textContent, length, siteName, excerpt } =
-          article;
+        const {
+          title,
+          byline,
+          textContent,
+          length,
+          siteName,
+          excerpt,
+          readingTimeMinsSlow,
+          readingTimeMinsFast,
+        } = article;
 
-        //TODO getReadingTime from Readermode
         return {
           title,
           byline,
@@ -176,6 +182,8 @@ export class LinkPreviewChild extends JSWindowActorChild {
           length,
           siteName,
           excerpt,
+          readingTimeMinsFast,
+          readingTimeMinsSlow,
         };
       }
     } catch (error) {
