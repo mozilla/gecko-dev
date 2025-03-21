@@ -145,6 +145,7 @@ data class OnboardingMarketingData(
     val bodyOneText: String,
     val bodyOneLinkText: String,
     val bodyTwoText: String,
+    val newLayout: Boolean? = false,
 )
 
 /**
