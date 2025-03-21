@@ -33,7 +33,7 @@ class nsSystemAlertsService : public nsIAlertsService,
   void AddListener(const nsAString& aAlertName,
                    nsAlertsIconListener* aListener);
 
-  nsTHashMap<nsStringHashKey, nsAlertsIconListener*> mActiveListeners;
+  nsTHashMap<nsStringHashKey, RefPtr<nsAlertsIconListener>> mActiveListeners;
 
  private:
   bool mSuppressForScreenSharing = false;

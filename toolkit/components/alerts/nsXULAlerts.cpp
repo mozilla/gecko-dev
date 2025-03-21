@@ -379,3 +379,15 @@ nsXULAlerts::CloseAlert(const nsAString& aAlertName, bool aContextClosed) {
   }
   return NS_OK;
 }
+
+NS_IMETHODIMP nsXULAlerts::Teardown() {
+  mPendingPersistentAlerts.Clear();
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsXULAlerts::PbmTeardown() {
+  // Usually XUL alerts close after a few seconds without being listed anywhere,
+  // but those with requireInteraction: true would still need an explicit
+  // closure.
+  return NS_ERROR_NOT_IMPLEMENTED;
+}

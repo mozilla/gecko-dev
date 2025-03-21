@@ -366,6 +366,16 @@ OSXNotificationCenter::CloseAlert(const nsAString& aAlertName,
   NS_OBJC_END_TRY_BLOCK_RETURN(NS_ERROR_FAILURE);
 }
 
+NS_IMETHODIMP OSXNotificationCenter::Teardown() {
+  mPendingAlerts.Clear();
+  mActiveAlerts.Clear();
+  return NS_OK;
+}
+
+NS_IMETHODIMP OSXNotificationCenter::PbmTeardown() {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 void OSXNotificationCenter::CloseAlertCocoaString(NSString* aAlertName) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 

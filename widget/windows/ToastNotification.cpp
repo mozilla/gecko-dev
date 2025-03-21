@@ -58,7 +58,7 @@ using IVectorView_ScheduledToastNotification =
 LazyLogModule sWASLog("WindowsAlertsService");
 
 NS_IMPL_ISUPPORTS(ToastNotification, nsIAlertsService, nsIWindowsAlertsService,
-                  nsIAlertsDoNotDisturb, nsIObserver)
+                  nsIAlertsDoNotDisturb)
 
 ToastNotification::ToastNotification() = default;
 
@@ -79,15 +79,6 @@ nsresult ToastNotification::Init() {
 
   MOZ_LOG(sWASLog, LogLevel::Info,
           ("Using AUMID: '%s'", NS_ConvertUTF16toUTF8(mAumid.ref()).get()));
-
-  nsCOMPtr<nsIObserverService> obsServ =
-      mozilla::services::GetObserverService();
-  if (obsServ) {
-    Unused << NS_WARN_IF(
-        NS_FAILED(obsServ->AddObserver(this, "last-pb-context-exited", false)));
-    Unused << NS_WARN_IF(
-        NS_FAILED(obsServ->AddObserver(this, "quit-application", false)));
-  }
 
   return NS_OK;
 }
@@ -338,34 +329,32 @@ ToastNotification::SetSuppressForScreenSharing(bool aSuppress) {
   return NS_OK;
 }
 
-NS_IMETHODIMP
-ToastNotification::Observe(nsISupports* aSubject, const char* aTopic,
-                           const char16_t* aData) {
-  nsDependentCString topic(aTopic);
-
+NS_IMETHODIMP ToastNotification::Teardown() {
   for (auto iter = mActiveHandlers.Iter(); !iter.Done(); iter.Next()) {
     RefPtr<ToastNotificationHandler> handler = iter.UserData();
 
-    auto removeNotification = [&]() {
-      // The handlers' destructors will do the right thing (de-register with
-      // Windows).
-      iter.Remove();
+    // The handlers' destructors will do the right thing (de-register with
+    // Windows).
+    iter.Remove();
 
-      // Break the cycle between the handler and the MSCOM notification so the
-      // handler's destructor will be called.
-      handler->UnregisterHandler();
-    };
-
-    if (topic == "last-pb-context-exited"_ns) {
-      if (handler->IsPrivate()) {
-        handler->HideAlert();
-        removeNotification();
-      }
-    } else if (topic == "quit-application"_ns) {
-      removeNotification();
-    }
+    // Break the cycle between the handler and the MSCOM notification so the
+    // handler's destructor will be called.
+    handler->UnregisterHandler();
   }
+  return NS_OK;
+}
 
+NS_IMETHODIMP ToastNotification::PbmTeardown() {
+  for (auto iter = mActiveHandlers.Iter(); !iter.Done(); iter.Next()) {
+    RefPtr<ToastNotificationHandler> handler = iter.UserData();
+    if (!handler->IsPrivate()) {
+      continue;
+    }
+
+    iter.Remove();
+    handler->HideAlert();
+    handler->UnregisterHandler();
+  }
   return NS_OK;
 }
 

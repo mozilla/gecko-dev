@@ -3,7 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsIObserverService.h"
 #include "xpcpublic.h"
+#include "mozilla/AppShutdown.h"
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_alerts.h"
 #include "nsServiceManagerUtils.h"
 #include "nsXULAlerts.h"
@@ -24,10 +28,29 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS(nsAlertsService, nsIAlertsService, nsIAlertsDoNotDisturb)
+NS_IMPL_ISUPPORTS(nsAlertsService, nsIAlertsService, nsIAlertsDoNotDisturb,
+                  nsIObserver)
 
 nsAlertsService::nsAlertsService() : mBackend(nullptr) {
   mBackend = do_GetService(NS_SYSTEMALERTSERVICE_CONTRACTID);
+}
+
+nsresult nsAlertsService::Init() {
+  if (nsCOMPtr<nsIObserverService> obsServ =
+          mozilla::services::GetObserverService()) {
+    (void)NS_WARN_IF(
+        NS_FAILED(obsServ->AddObserver(this, "last-pb-context-exited", false)));
+  }
+
+  // The shutdown callback holds a strong reference and thus makes sure this
+  // runs at shutdown.
+  //
+  // Note that the purpose of this shutdown cleanup is to make the leak checker
+  // happy, and an early exit(0) without calling it should not break anything.
+  // (See also bug 1606879)
+  RunOnShutdown([self = RefPtr{this}]() { self->Teardown(); });
+
+  return NS_OK;
 }
 
 nsAlertsService::~nsAlertsService() = default;
@@ -105,6 +128,12 @@ NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification* aAlert,
   nsAutoString cookie;
   nsresult rv = aAlert->GetCookie(cookie);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+    // Bailing out without calling alertfinished, because we do not want to
+    // propagate an error to observers during shutdown.
+    return NS_OK;
+  }
 
   // Check if there is an optional service that handles system-level
   // notifications
@@ -205,4 +234,38 @@ already_AddRefed<nsIAlertsDoNotDisturb> nsAlertsService::GetDNDBackend() {
 
   nsCOMPtr<nsIAlertsDoNotDisturb> alertsDND(do_QueryInterface(backend));
   return alertsDND.forget();
+}
+
+NS_IMETHODIMP nsAlertsService::Observe(nsISupports* aSubject,
+                                       const char* aTopic,
+                                       const char16_t* aData) {
+  nsDependentCString topic(aTopic);
+  if (topic == "last-pb-context-exited"_ns) {
+    return PbmTeardown();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsAlertsService::Teardown() {
+  nsCOMPtr<nsIAlertsService> backend;
+  // Try the system notification service.
+  if (ShouldUseSystemBackend()) {
+    backend = mBackend;
+  }
+  if (!backend) {
+    backend = nsXULAlerts::GetInstance();
+  }
+  return backend->Teardown();
+}
+
+NS_IMETHODIMP nsAlertsService::PbmTeardown() {
+  nsCOMPtr<nsIAlertsService> backend;
+  // Try the system notification service.
+  if (ShouldUseSystemBackend()) {
+    backend = mBackend;
+  }
+  if (!backend) {
+    backend = nsXULAlerts::GetInstance();
+  }
+  return backend->PbmTeardown();
 }

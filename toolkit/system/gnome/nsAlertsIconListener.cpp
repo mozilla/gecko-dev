@@ -106,8 +106,7 @@ static already_AddRefed<GdkPixbuf> GetPixbufFromImgRequest(
   return nsImageToPixbuf::ImageToPixbuf(image);
 }
 
-NS_IMPL_ISUPPORTS(nsAlertsIconListener, nsIAlertNotificationImageListener,
-                  nsIObserver, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(nsAlertsIconListener, nsIAlertNotificationImageListener)
 
 nsAlertsIconListener::nsAlertsIconListener(
     nsSystemAlertsService* aBackend, nsIAlertNotification* aAlertNotification,
@@ -181,10 +180,6 @@ nsresult nsAlertsIconListener::ShowAlert(GdkPixbuf* aPixbuf) {
                                           nullptr, nullptr);
 
   if (!mNotification) return NS_ERROR_OUT_OF_MEMORY;
-
-  nsCOMPtr<nsIObserverService> obsServ =
-      do_GetService("@mozilla.org/observer-service;1");
-  if (obsServ) obsServ->AddObserver(this, "quit-application", true);
 
   if (aPixbuf) notify_notification_set_icon_from_pixbuf(mNotification, aPixbuf);
 
@@ -282,18 +277,18 @@ void nsAlertsIconListener::SendClosed() {
   NotifyFinished();
 }
 
-NS_IMETHODIMP
-nsAlertsIconListener::Observe(nsISupports* aSubject, const char* aTopic,
-                              const char16_t* aData) {
+void nsAlertsIconListener::Disconnect() {
+  if (!mNotification) {
+    // Already disconnected
+    return;
+  }
+
   // We need to close any open notifications upon application exit, otherwise
   // we will leak since libnotify holds a ref for us.
-  if (!nsCRT::strcmp(aTopic, "quit-application") && mNotification) {
-    g_signal_handler_disconnect(mNotification, mClosureHandler);
-    g_object_unref(mNotification);
-    mNotification = nullptr;
-    Release();  // equivalent to NS_RELEASE(this)
-  }
-  return NS_OK;
+  g_signal_handler_disconnect(mNotification, mClosureHandler);
+  g_object_unref(mNotification);
+  mNotification = nullptr;
+  Release();  // equivalent to NS_RELEASE(this)
 }
 
 nsresult nsAlertsIconListener::Close() {

@@ -94,6 +94,19 @@ NS_IMETHODIMP nsSystemAlertsService::SetSuppressForScreenSharing(
   return NS_OK;
 }
 
+NS_IMETHODIMP nsSystemAlertsService::Teardown() {
+  for (auto iter = mActiveListeners.Iter(); !iter.Done(); iter.Next()) {
+    RefPtr<nsAlertsIconListener> listener = iter.Data().forget();
+    iter.Remove();
+    listener->Disconnect();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsSystemAlertsService::PbmTeardown() {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 bool nsSystemAlertsService::IsActiveListener(const nsAString& aAlertName,
                                              nsAlertsIconListener* aListener) {
   return mActiveListeners.Get(aAlertName) == aListener;

@@ -20,13 +20,10 @@ class nsSystemAlertsService;
 
 struct NotifyNotification;
 
-class nsAlertsIconListener : public nsIAlertNotificationImageListener,
-                             public nsIObserver,
-                             public nsSupportsWeakReference {
+class nsAlertsIconListener : public nsIAlertNotificationImageListener {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIALERTNOTIFICATIONIMAGELISTENER
-  NS_DECL_NSIOBSERVER
 
   nsAlertsIconListener(nsSystemAlertsService* aBackend,
                        nsIAlertNotification* aAlertNotification,
@@ -39,6 +36,7 @@ class nsAlertsIconListener : public nsIAlertNotificationImageListener,
   void SendCallback();
   void SendActionCallback(const nsAString& aActionName);
   void SendClosed();
+  void Disconnect();
 
  protected:
   virtual ~nsAlertsIconListener();

@@ -129,6 +129,13 @@ AndroidAlerts::CloseAlert(const nsAString& aAlertName, bool aContextClosed) {
   return NS_OK;
 }
 
+NS_IMETHODIMP AndroidAlerts::Teardown() {
+  mNotificationsMap.Clear();
+  return NS_OK;
+}
+
+NS_IMETHODIMP AndroidAlerts::PbmTeardown() { return NS_ERROR_NOT_IMPLEMENTED; }
+
 void AndroidAlerts::NotifyListener(const nsAString& aName, const char* aTopic,
                                    const char16_t* aCookie) {
   if (!sListenerMap) {

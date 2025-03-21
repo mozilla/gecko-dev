@@ -308,6 +308,15 @@ interface nsIAlertsService : nsISupports
    */
   void closeAlert([optional] in AString aName, [optional] in boolean aContextClosed);
 
+  /**
+   * Clean up all resources used to listen to alerts.
+   */
+  void teardown();
+
+  /**
+   * Close all alerts opened for Private Browsing Mode.
+   */
+  void pbmTeardown();
 };
 
 [scriptable, uuid(c5d63e3a-259d-45a8-b964-8377967cb4d2)]
