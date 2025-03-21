@@ -34,3 +34,17 @@ add_task(async function testUriNewTab() {
 
   await BrowserTestUtils.closeWindow(win);
 });
+
+add_task(async function testToolbarCustomizer() {
+  let win = await openTaskbarTabWindow();
+  win.gCustomizeMode.enter();
+
+  is(
+    window.gBrowser.openTabs.length,
+    2,
+    "The toolbar customizer tab should've opened in the regular Firefox window"
+  );
+
+  BrowserTestUtils.removeTab(window.gBrowser.selectedTab);
+  await BrowserTestUtils.closeWindow(win);
+});

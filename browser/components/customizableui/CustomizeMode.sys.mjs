@@ -372,7 +372,7 @@ export class CustomizeMode {
   /**
    * Kicks off the process of entering customize mode for the window that this
    * CustomizeMode instance was constructed with. If this window happens to be
-   * a popup window, the opener window will enter customize mode.
+   * a popup window or web app window, the opener window will enter customize mode.
    *
    * Entering customize mode is a multistep asynchronous operation, but this
    * method returns immediately while this operation is underway. A
@@ -383,9 +383,13 @@ export class CustomizeMode {
    * window.
    */
   enter() {
-    if (!this.#window.toolbar.visible) {
+    if (
+      !this.#window.toolbar.visible ||
+      this.#window.document.documentElement.hasAttribute("taskbartab")
+    ) {
       let w = lazy.URILoadingHelper.getTargetWindow(this.#window, {
         skipPopups: true,
+        skipTaskbarTabs: true,
       });
       if (w) {
         w.gCustomizeMode.enter();
@@ -395,6 +399,7 @@ export class CustomizeMode {
         Services.obs.removeObserver(obs, "browser-delayed-startup-finished");
         w = lazy.URILoadingHelper.getTargetWindow(this.#window, {
           skipPopups: true,
+          skipTaskbarTabs: true,
         });
         w.gCustomizeMode.enter();
       };
