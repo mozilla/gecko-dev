@@ -13,6 +13,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
+import androidx.core.content.edit
 import org.mozilla.fenix.GleanMetrics.AppExitInfo
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.getPreferenceKey
@@ -135,13 +136,12 @@ object ApplicationExitInfoMetrics {
         context: Context,
         mostRecentProcessExitTimestamp: Long,
     ) {
-        preferences(context)
-            .edit()
-            .putLong(
+        preferences(context).edit {
+            putLong(
                 context.getPreferenceKey(R.string.pref_key_application_exit_info_last_handled_time),
                 mostRecentProcessExitTimestamp,
             )
-            .apply()
+        }
     }
 
     private fun String.toProcessType(): String {

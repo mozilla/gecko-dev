@@ -7,6 +7,7 @@ package org.mozilla.samples.glean
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import androidx.core.content.edit
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.glean.net.ConceptFetchHttpUploader
 import mozilla.components.service.nimbus.Nimbus
@@ -69,10 +70,7 @@ class GleanApplication : Application() {
         // Set a sample value for a metric.
         Basic.os.set("Android")
 
-        settings
-            .edit()
-            .putBoolean(PREF_IS_FIRST_RUN, false)
-            .apply()
+        settings.edit { putBoolean(PREF_IS_FIRST_RUN, false) }
     }
 
     /**

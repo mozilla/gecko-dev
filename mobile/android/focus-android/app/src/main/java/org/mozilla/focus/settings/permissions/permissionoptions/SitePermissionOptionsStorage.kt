@@ -6,6 +6,7 @@ package org.mozilla.focus.settings.permissions.permissionoptions
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import mozilla.components.support.ktx.android.content.isPermissionGranted
@@ -142,12 +143,11 @@ class SitePermissionOptionsStorage(private val context: Context) {
         sitePermission: SitePermission,
     ) {
         val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
-        with(sharedPref.edit()) {
+        sharedPref.edit {
             putString(
                 context.getString(getSitePermissionPreferenceId(sitePermission)),
                 context.getString(sitePermissionOption.prefKeyId),
             )
-            apply()
         }
     }
 

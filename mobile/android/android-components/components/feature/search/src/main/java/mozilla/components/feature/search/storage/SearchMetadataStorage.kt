@@ -6,6 +6,7 @@ package mozilla.components.feature.search.storage
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import mozilla.components.feature.search.middleware.SearchMiddleware
 
 private const val PREFERENCE_FILE = "mozac_feature_search_metadata"
@@ -47,19 +48,17 @@ internal class SearchMetadataStorage(
      * Sets the ID (and optionally name) of the default search engine the user has picked.
      */
     override suspend fun setUserSelectedSearchEngine(id: String, name: String?) {
-        preferences.value.edit()
-            .putString(PREFERENCE_KEY_USER_SELECTED_SEARCH_ENGINE_ID, id)
-            .putString(PREFERENCE_KEY_USER_SELECTED_SEARCH_ENGINE_NAME, name)
-            .apply()
+        preferences.value.edit {
+            putString(PREFERENCE_KEY_USER_SELECTED_SEARCH_ENGINE_ID, id)
+            putString(PREFERENCE_KEY_USER_SELECTED_SEARCH_ENGINE_NAME, name)
+        }
     }
 
     /**
      * Sets the list of IDs of hidden search engines.
      */
     override suspend fun setHiddenSearchEngines(ids: List<String>) {
-        preferences.value.edit()
-            .putStringSet(PREFERENCE_KEY_HIDDEN_SEARCH_ENGINES, ids.toSet())
-            .apply()
+        preferences.value.edit { putStringSet(PREFERENCE_KEY_HIDDEN_SEARCH_ENGINES, ids.toSet()) }
     }
 
     /**
@@ -87,17 +86,13 @@ internal class SearchMetadataStorage(
     }
 
     override suspend fun setDisabledSearchEngineIds(ids: List<String>) {
-        preferences.value.edit()
-            .putStringSet(PREFERENCE_KEY_DISABLED_SEARCH_ENGINE_ID, ids.toSet())
-            .apply()
+        preferences.value.edit { putStringSet(PREFERENCE_KEY_DISABLED_SEARCH_ENGINE_ID, ids.toSet()) }
     }
 
     /**
      * Sets the list of IDs of additional search engines that the user explicitly added.
      */
     override suspend fun setAdditionalSearchEngines(ids: List<String>) {
-        preferences.value.edit()
-            .putStringSet(PREFERENCE_KEY_ADDITIONAL_SEARCH_ENGINES, ids.toSet())
-            .apply()
+        preferences.value.edit { putStringSet(PREFERENCE_KEY_ADDITIONAL_SEARCH_ENGINES, ids.toSet()) }
     }
 }

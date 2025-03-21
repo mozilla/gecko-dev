@@ -9,6 +9,7 @@ import android.content.SharedPreferences
 import android.os.StrictMode
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.OAuthAccount
@@ -100,7 +101,7 @@ class AccountAbnormalities(
         // fxa state and our flag will be removed.
         val hasAccountNow = authenticatedAccount != null
         if (hadAccountPrior && !hasAccountNow) {
-            prefs.edit().putBoolean(KEY_HAS_ACCOUNT, false).apply()
+            prefs.edit { putBoolean(KEY_HAS_ACCOUNT, false) }
 
             logger.warn("Missing expected account on startup")
 
@@ -144,7 +145,7 @@ class AccountAbnormalities(
 
         // We don't check if KEY_HAS_ACCOUNT was already true: we will see onAuthenticated on every
         // startup, so any combination of "new value" and "previous value" for this flag is normal.
-        prefs.edit().putBoolean(KEY_HAS_ACCOUNT, true).apply()
+        prefs.edit { putBoolean(KEY_HAS_ACCOUNT, true) }
     }
 
     override fun onLoggedOut() {
@@ -152,7 +153,7 @@ class AccountAbnormalities(
 
         onAuthenticatedCalled = false
 
-        prefs.edit().putBoolean(KEY_HAS_ACCOUNT, false).apply()
+        prefs.edit { putBoolean(KEY_HAS_ACCOUNT, false) }
 
         // If we're in the process of logging out (via userRequestedLogout), do nothing.
         synchronized(this) {

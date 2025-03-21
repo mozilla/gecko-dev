@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.settings
 
+import androidx.core.content.edit
 import mozilla.components.support.ktx.android.content.PreferencesHolder
 import mozilla.components.support.ktx.android.content.booleanPreference
 import kotlin.properties.ReadWriteProperty
@@ -31,7 +32,7 @@ private class LazyPreference(val key: String, val default: () -> Boolean) :
         thisRef.preferences.getBoolean(key, default())
 
     override fun setValue(thisRef: PreferencesHolder, property: KProperty<*>, value: Boolean) =
-        thisRef.preferences.edit().putBoolean(key, value).apply()
+        thisRef.preferences.edit { putBoolean(key, value) }
 }
 
 /**

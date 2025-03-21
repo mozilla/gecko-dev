@@ -6,6 +6,7 @@ package mozilla.components.feature.search.region
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -50,18 +51,18 @@ internal class RegionManager(
 ) {
     private var homeRegion: String?
         get() = preferences.value.getString(PREFERENCE_KEY_HOME_REGION, null)
-        set(value) = preferences.value.edit().putString(PREFERENCE_KEY_HOME_REGION, value).apply()
+        set(value) = preferences.value.edit { putString(PREFERENCE_KEY_HOME_REGION, value) }
 
     private var currentRegion: String?
         get() = preferences.value.getString(PREFERENCE_KEY_CURRENT_REGION, null)
-        set(value) = preferences.value.edit().putString(PREFERENCE_KEY_CURRENT_REGION, value).apply()
+        set(value) = preferences.value.edit { putString(PREFERENCE_KEY_CURRENT_REGION, value) }
 
     private var firstSeen: Long?
         get() = preferences.value.getLong(PREFERENCE_KEY_REGION_FIRST_SEEN, 0)
         set(value) = if (value == null) {
-            preferences.value.edit().remove(PREFERENCE_KEY_REGION_FIRST_SEEN).apply()
+            preferences.value.edit { remove(PREFERENCE_KEY_REGION_FIRST_SEEN) }
         } else {
-            preferences.value.edit().putLong(PREFERENCE_KEY_REGION_FIRST_SEEN, value).apply()
+            preferences.value.edit { putLong(PREFERENCE_KEY_REGION_FIRST_SEEN, value) }
         }
 
     fun region(): RegionState? {

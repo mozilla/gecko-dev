@@ -6,6 +6,7 @@ package mozilla.components.lib.dataprotect
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import mozilla.components.support.base.Component
 import mozilla.components.support.base.facts.Action
 import mozilla.components.support.base.facts.Fact
@@ -114,12 +115,13 @@ class SecurePrefsReliabilityExperiment(private val context: Context) {
                     } catch (e: Exception) {
                         emitFact(Actions.WRITE, Values.FAIL, mapOf("javaClass" to e.nameForTelemetry()))
                     }
-                    prefs().edit().putBoolean(PREF_DID_STORE_VALUE, true).apply()
+                    prefs().edit { putBoolean(PREF_DID_STORE_VALUE, true) }
                 }
+
                 // reset our experiment in case of detected failures. this lets us measure the failure rate
                 Values.LOST, Values.CORRUPTED, Values.PRESENT_UNEXPECTED -> {
                     securePrefs.clear()
-                    prefs().edit().clear().apply()
+                    prefs().edit { clear() }
                     emitFact(Actions.RESET, Values.SUCCESS_RESET)
                 }
                 else -> {

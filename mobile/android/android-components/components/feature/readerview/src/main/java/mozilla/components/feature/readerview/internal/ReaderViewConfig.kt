@@ -7,6 +7,7 @@ package mozilla.components.feature.readerview.internal
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.res.Configuration
+import androidx.core.content.edit
 import mozilla.components.feature.readerview.ReaderViewFeature
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.ACTION_CHANGE_FONT_SIZE
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.ACTION_MESSAGE_KEY
@@ -54,7 +55,7 @@ internal class ReaderViewConfig(
         set(value) {
             if (colorSchemeCache != value) {
                 colorSchemeCache = value
-                prefs.edit().putString(COLOR_SCHEME_KEY, value.name).apply()
+                prefs.edit { putString(COLOR_SCHEME_KEY, value.name) }
                 sendMessage(ReaderViewFeature.ACTION_SET_COLOR_SCHEME) { put(ACTION_VALUE, value.name) }
             }
         }
@@ -69,7 +70,7 @@ internal class ReaderViewConfig(
         set(value) {
             if (fontTypeCache != value) {
                 fontTypeCache = value
-                prefs.edit().putString(FONT_TYPE_KEY, value.name).apply()
+                prefs.edit { putString(FONT_TYPE_KEY, value.name) }
                 sendMessage(ACTION_SET_FONT_TYPE) { put(ACTION_VALUE, value.value) }
             }
         }
@@ -85,7 +86,7 @@ internal class ReaderViewConfig(
             if (fontSizeCache != value) {
                 val diff = value - fontSize
                 fontSizeCache = value
-                prefs.edit().putInt(FONT_SIZE_KEY, value).apply()
+                prefs.edit { putInt(FONT_SIZE_KEY, value) }
                 sendMessage(ACTION_CHANGE_FONT_SIZE) { put(ACTION_VALUE, diff) }
             }
         }

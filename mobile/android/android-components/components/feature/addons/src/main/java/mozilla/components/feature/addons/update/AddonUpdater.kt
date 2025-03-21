@@ -15,6 +15,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.edit
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.Data
@@ -510,16 +511,13 @@ class DefaultAddonUpdater(
 
         fun clear(context: Context) {
             val settings = getSharedPreferences(context)
-            settings.edit().clear().apply()
+            settings.edit { clear() }
         }
 
         private fun getSettings(context: Context) = getSharedPreferences(context)
 
         private fun setData(context: Context, allowSet: MutableSet<String>) {
-            getSettings(context)
-                .edit()
-                .putStringSet(KEY_ALLOWED_SET, allowSet)
-                .apply()
+            getSettings(context).edit { putStringSet(KEY_ALLOWED_SET, allowSet) }
         }
 
         private fun getData(context: Context): MutableSet<String> {

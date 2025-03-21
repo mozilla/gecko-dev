@@ -5,6 +5,7 @@
 package mozilla.components.service.fxa.manager
 
 import android.content.Context
+import androidx.core.content.edit
 import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.sync.toSyncEngine
 
@@ -43,14 +44,14 @@ class SyncEnginesStorage(private val context: Context) {
      * @param status New state.
      */
     fun setStatus(engine: SyncEngine, status: Boolean) {
-        storage().edit().putBoolean(engine.nativeName, status).apply()
+        storage().edit { putBoolean(engine.nativeName, status) }
     }
 
     /**
      * Clears out any stored [SyncEngine] state.
      */
     internal fun clear() {
-        storage().edit().clear().apply()
+        storage().edit { clear() }
     }
 
     private fun storage() = context.getSharedPreferences(SYNC_ENGINES_KEY, Context.MODE_PRIVATE)

@@ -6,6 +6,7 @@ package org.mozilla.fenix.whatsnew
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import java.util.concurrent.TimeUnit
 
@@ -41,9 +42,7 @@ class SharedPreferenceWhatsNewStorage(private val sharedPreference: SharedPrefer
     }
 
     override fun setVersion(version: WhatsNewVersion) {
-        sharedPreference.edit()
-            .putString(WhatsNewStorage.PREFERENCE_KEY_APP_NAME, version.version)
-            .apply()
+        sharedPreference.edit { putString(WhatsNewStorage.PREFERENCE_KEY_APP_NAME, version.version) }
     }
 
     override fun getWhatsNewHasBeenCleared(): Boolean {
@@ -51,9 +50,7 @@ class SharedPreferenceWhatsNewStorage(private val sharedPreference: SharedPrefer
     }
 
     override fun setWhatsNewHasBeenCleared(cleared: Boolean) {
-        sharedPreference.edit()
-            .putBoolean(WhatsNewStorage.PREFERENCE_KEY_WHATS_NEW_CLEARED, cleared)
-            .apply()
+        sharedPreference.edit { putBoolean(WhatsNewStorage.PREFERENCE_KEY_WHATS_NEW_CLEARED, cleared) }
     }
 
     override fun getDaysSinceUpdate(): Long {
@@ -62,8 +59,6 @@ class SharedPreferenceWhatsNewStorage(private val sharedPreference: SharedPrefer
     }
 
     override fun setDateOfUpdate(day: Long) {
-        sharedPreference.edit()
-            .putLong(WhatsNewStorage.PREFERENCE_KEY_UPDATE_DAY, day)
-            .apply()
+        sharedPreference.edit { putLong(WhatsNewStorage.PREFERENCE_KEY_UPDATE_DAY, day) }
     }
 }

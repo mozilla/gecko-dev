@@ -21,6 +21,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -984,11 +985,9 @@ class BrowserFragment :
 
     private fun setShouldRequestDesktop(enabled: Boolean) {
         if (enabled) {
-            PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
-                .putBoolean(
-                    requireContext().getString(R.string.has_requested_desktop),
-                    true,
-                ).apply()
+            PreferenceManager.getDefaultSharedPreferences(requireContext()).edit {
+                putBoolean(requireContext().getString(R.string.has_requested_desktop), true)
+            }
         }
         requireComponents.sessionUseCases.requestDesktopSite(enabled, tab.id)
     }

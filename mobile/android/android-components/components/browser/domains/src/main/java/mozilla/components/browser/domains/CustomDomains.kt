@@ -6,6 +6,7 @@ package mozilla.components.browser.domains
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 /**
  * Contains functionality to manage custom domains for auto-completion.
@@ -33,10 +34,7 @@ object CustomDomains {
      * @param domains list of domains
      */
     fun save(context: Context, domains: List<String>) {
-        preferences(context)
-            .edit()
-            .putString(KEY_DOMAINS, domains.joinToString(separator = SEPARATOR))
-            .apply()
+        preferences(context).edit { putString(KEY_DOMAINS, domains.joinToString(separator = SEPARATOR)) }
     }
 
     /**

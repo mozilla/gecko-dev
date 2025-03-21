@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.SwitchCompat
+import androidx.core.content.edit
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.recyclerview.widget.RecyclerView
@@ -59,8 +60,7 @@ class StudiesView(
 
             settings.isExperimentationEnabled = isChecked
             val experimentsKey = context.getPreferenceKey(R.string.pref_key_experimentation_v2)
-            context.settings().preferences.edit().putBoolean(experimentsKey, isChecked)
-                .commit()
+            context.settings().preferences.edit(commit = true) { putBoolean(experimentsKey, isChecked) }
 
             experiments.globalUserParticipation = isChecked
         }

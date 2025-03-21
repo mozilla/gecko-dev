@@ -14,6 +14,7 @@ import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.edit
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
@@ -132,7 +133,9 @@ class CrashReporterActivity : AppCompatActivity() {
     }
 
     private fun sendCrashReportIfNeeded(then: () -> Unit) {
-        sharedPreferences.edit().putBoolean(PREFERENCE_KEY_SEND_REPORT, binding.sendCheckbox.isChecked).apply()
+        sharedPreferences.edit {
+            putBoolean(PREFERENCE_KEY_SEND_REPORT, binding.sendCheckbox.isChecked)
+        }
 
         if (!binding.sendCheckbox.isChecked) {
             then()

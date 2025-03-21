@@ -6,6 +6,7 @@ package org.mozilla.focus.locale.screen
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import org.jetbrains.annotations.VisibleForTesting
 import org.mozilla.focus.R
@@ -68,9 +69,8 @@ class LanguageStorage(private val context: Context) {
      * @property languageTag the tag of the language
      */
     fun saveCurrentLanguageInSharePref(languageTag: String) {
-        with(sharedPref.edit()) {
+        sharedPref.edit {
             putString(localePrefKey, languageTag)
-            apply()
         }
     }
 

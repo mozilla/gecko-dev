@@ -19,6 +19,7 @@ import android.widget.Toast
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.edit
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
@@ -531,8 +532,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         preferenceRemoteDebugging?.isVisible = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
         preferenceRemoteDebugging?.setOnPreferenceChangeListener<Boolean> { preference, newValue ->
-            preference.context.settings().preferences.edit()
-                .putBoolean(preference.key, newValue).apply()
+            preference.context.settings().preferences.edit { putBoolean(preference.key, newValue) }
             requireComponents.core.engine.settings.remoteDebuggingEnabled = newValue
             true
         }
@@ -678,8 +678,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         if (visible) {
             preferenceAllowDomesticChinaFxAServer?.onPreferenceChangeListener =
                 Preference.OnPreferenceChangeListener { preference, newValue ->
-                    preference.context.settings().preferences.edit()
-                        .putBoolean(preference.key, newValue as Boolean).apply()
+                    preference.context.settings().preferences.edit {
+                        putBoolean(preference.key, newValue as Boolean)
+                    }
                     updateFxAAllowDomesticChinaServerMenu()
                     Toast.makeText(
                         context,

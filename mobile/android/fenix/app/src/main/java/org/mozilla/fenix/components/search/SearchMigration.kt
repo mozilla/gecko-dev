@@ -6,6 +6,7 @@ package org.mozilla.fenix.components.search
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.feature.search.ext.parseLegacySearchEngine
 import mozilla.components.feature.search.middleware.SearchMiddleware
@@ -37,9 +38,7 @@ internal class SearchMigration(
             defaultSearchEngineName = context.components.settings.defaultSearchEngineName,
         )
 
-        preferences.edit()
-            .putBoolean(PREF_KEY_MIGRATED, true)
-            .apply()
+        preferences.edit { putBoolean(PREF_KEY_MIGRATED, true) }
 
         return values
     }

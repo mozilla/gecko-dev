@@ -6,6 +6,7 @@ package mozilla.components.service.sync.autofill
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import mozilla.appservices.autofill.AutofillApiException
 import mozilla.appservices.autofill.decryptString
 import mozilla.appservices.autofill.encryptString
@@ -92,10 +93,9 @@ class AutofillCrypto(
         securePrefs.putString(AUTOFILL_KEY, key)
         // To detect key corruption or absence, use the newly generated key to encrypt a known string.
         // See isKeyValid below.
-        plaintextPrefs
-            .edit()
-            .putString(CANARY_PHRASE_CIPHERTEXT_KEY, encryptString(key, CANARY_PHRASE_PLAINTEXT))
-            .apply()
+        plaintextPrefs.edit {
+            putString(CANARY_PHRASE_CIPHERTEXT_KEY, encryptString(key, CANARY_PHRASE_PLAINTEXT))
+        }
     }
 
     override suspend fun recoverFromKeyLoss(reason: KeyGenerationReason.RecoveryNeeded) {

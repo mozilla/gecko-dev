@@ -7,6 +7,7 @@ package mozilla.components.feature.push
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -275,11 +276,11 @@ class AutoPushFeature(
     }
 
     private fun saveToken(context: Context, value: String) {
-        preferences(context).edit().putString(PREF_TOKEN, value).apply()
+        preferences(context).edit { putString(PREF_TOKEN, value) }
     }
 
     private fun deleteToken(context: Context) {
-        preferences(context).edit().remove(PREF_TOKEN).apply()
+        preferences(context).edit { remove(PREF_TOKEN) }
     }
 
     private fun preferences(context: Context): SharedPreferences =

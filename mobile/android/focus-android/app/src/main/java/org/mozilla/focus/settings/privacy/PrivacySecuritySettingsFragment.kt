@@ -148,10 +148,9 @@ class PrivacySecuritySettingsFragment :
         if (!requireContext().canUseBiometricFeature()) {
             switch?.isChecked = false
             switch?.isEnabled = false
-            preferenceManager.sharedPreferences
-                ?.edit()
-                ?.putBoolean(resources.getString(R.string.pref_key_biometric), false)
-                ?.apply()
+            preferenceManager.sharedPreferences?.edit {
+                putBoolean(resources.getString(R.string.pref_key_biometric), false)
+            }
         } else {
             switch?.isEnabled = true
         }

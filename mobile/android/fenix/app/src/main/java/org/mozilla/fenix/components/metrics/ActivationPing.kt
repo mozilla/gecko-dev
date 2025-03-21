@@ -7,6 +7,7 @@ package org.mozilla.fenix.components.metrics
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,7 +46,7 @@ class ActivationPing(private val context: Context) {
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun markAsTriggered() {
-        prefs.edit().putBoolean("ping_sent", true).apply()
+        prefs.edit { putBoolean("ping_sent", true) }
     }
 
     /**

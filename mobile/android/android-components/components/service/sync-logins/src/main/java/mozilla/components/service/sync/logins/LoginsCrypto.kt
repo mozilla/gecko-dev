@@ -6,6 +6,7 @@ package mozilla.components.service.sync.logins
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import mozilla.appservices.logins.KeyRegenerationEventReason
 import mozilla.appservices.logins.checkCanary
 import mozilla.appservices.logins.createCanary
@@ -56,10 +57,9 @@ class LoginsCrypto(
         securePrefs.putString(LOGINS_KEY, key)
         // To detect key corruption or absence, use the newly generated key to encrypt a known string.
         // See isKeyValid below.
-        plaintextPrefs
-            .edit()
-            .putString(CANARY_PHRASE_CIPHERTEXT_KEY, createCanary(CANARY_PHRASE_PLAINTEXT, key))
-            .apply()
+        plaintextPrefs.edit {
+            putString(CANARY_PHRASE_CIPHERTEXT_KEY, createCanary(CANARY_PHRASE_PLAINTEXT, key))
+        }
     }
 
     override fun createKey(): String {

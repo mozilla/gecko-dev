@@ -7,6 +7,7 @@ package mozilla.components.service.fxa.sync
 import android.content.Context
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -546,8 +547,7 @@ fun getLastSynced(context: Context): Long {
 }
 
 internal fun clearSyncState(context: Context) {
-    context.getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE)
-        .edit().clear().apply()
+    context.getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit { clear() }
 }
 
 internal fun getSyncState(context: Context): String? {
@@ -563,17 +563,13 @@ internal fun getSyncState(context: Context): String? {
  * @param lastSyncedTime - the last synced time in milliseconds
  */
 fun setLastSynced(context: Context, lastSyncedTime: Long) {
-    context
-        .getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE)
-        .edit()
-        .putLong(SYNC_LAST_SYNCED_KEY, lastSyncedTime)
-        .apply()
+    context.getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit {
+        putLong(SYNC_LAST_SYNCED_KEY, lastSyncedTime)
+    }
 }
 
 internal fun setSyncState(context: Context, state: String) {
-    context
-        .getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE)
-        .edit()
-        .putString(SYNC_STATE_KEY, state)
-        .apply()
+    context.getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit {
+        putString(SYNC_STATE_KEY, state)
+    }
 }

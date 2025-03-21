@@ -10,6 +10,7 @@ import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.core.os.ConfigurationCompat
 import mozilla.components.support.base.R
 import java.util.Locale
@@ -128,13 +129,13 @@ object LocaleManager {
         fun save(context: Context, localeCode: String?) {
             val settings = getSharedPreferences(context)
             val key = context.getString(R.string.mozac_support_base_locale_preference_key_locale)
-            settings.edit().putString(key, localeCode).apply()
+            settings.edit { putString(key, localeCode) }
             currentLocal = localeCode
         }
 
         fun clear(context: Context) {
             val settings = getSharedPreferences(context)
-            settings.edit().clear().apply()
+            settings.edit { clear() }
             currentLocal = null
         }
 

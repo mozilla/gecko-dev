@@ -6,6 +6,7 @@ package mozilla.components.feature.accounts.push.cache
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
 import mozilla.components.feature.accounts.push.FxaPushSupportFeature
@@ -32,7 +33,7 @@ internal class PushScopeProperty(
         val scope = FxaPushSupportFeature.PUSH_SCOPE_PREFIX + randomUuid
 
         if (!prefs.contains(PREF_FXA_SCOPE)) {
-            prefs.edit().putString(PREF_FXA_SCOPE, scope).apply()
+            prefs.edit { putString(PREF_FXA_SCOPE, scope) }
 
             return@withContext scope
         }

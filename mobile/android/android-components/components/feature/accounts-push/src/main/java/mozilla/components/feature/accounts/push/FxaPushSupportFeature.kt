@@ -6,6 +6,7 @@ package mozilla.components.feature.accounts.push
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
@@ -142,9 +143,7 @@ internal class AccountObserver(
         push.unsubscribe(fxaPushScope)
 
         // Delete cached value of last verified timestamp when we log out.
-        preference(context).edit()
-            .remove(PREF_LAST_VERIFIED)
-            .apply()
+        preference(context).edit { remove(PREF_LAST_VERIFIED) }
     }
 }
 

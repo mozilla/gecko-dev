@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,7 +54,7 @@ class FirstSessionPing(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun markAsTriggered() {
-        prefs.edit().putBoolean("ping_sent", true).apply()
+        prefs.edit { putBoolean("ping_sent", true) }
     }
 
     /**

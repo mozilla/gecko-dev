@@ -7,6 +7,7 @@ package org.mozilla.fenix.debugsettings.addresses
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 private const val SHARED_PREFS_FILENAME = "ADDRESSES_DEBUG_LOCALES"
 
@@ -58,7 +59,7 @@ class SharedPrefsAddressesDebugLocalesRepository(
         prefs.getBoolean(locale.name, false)
 
     override fun setLocaleEnabled(locale: DebugLocale, enabled: Boolean) =
-        prefs.edit().putBoolean(locale.name, enabled).apply()
+        prefs.edit { putBoolean(locale.name, enabled) }
 }
 
 /**

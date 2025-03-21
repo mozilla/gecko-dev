@@ -6,6 +6,7 @@ package mozilla.components.support.base.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import mozilla.components.support.base.log.logger.Logger
 import org.json.JSONException
 import org.json.JSONObject
@@ -48,7 +49,7 @@ abstract class SharedPreferencesCache<T>(val context: Context) {
         // see if this actually happens in the wild. An alternative is to swallow this error and
         // log an error message, but we're very unlikely to notice any problems in that case.
         val s = obj.toJSON().toString() as String? ?: throw IllegalStateException("Failed to stringify")
-        cache().edit().putString(cacheKey, s).apply()
+        cache().edit { putString(cacheKey, s) }
     }
 
     /**
@@ -68,7 +69,7 @@ abstract class SharedPreferencesCache<T>(val context: Context) {
      * Clear cached values.
      */
     fun clear() {
-        cache().edit().clear().apply()
+        cache().edit { clear() }
     }
 
     private fun cache(): SharedPreferences {

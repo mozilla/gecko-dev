@@ -11,6 +11,7 @@ import android.content.SharedPreferences
 import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
@@ -391,7 +392,7 @@ open class DefaultComponents(private val applicationContext: Context) {
                     preferences.getBoolean(PREF_LAUNCH_EXTERNAL_APP, false)
                 },
             ) { checked ->
-                preferences.edit().putBoolean(PREF_LAUNCH_EXTERNAL_APP, checked).apply()
+                preferences.edit { putBoolean(PREF_LAUNCH_EXTERNAL_APP, checked) }
             },
         )
 
@@ -402,7 +403,7 @@ open class DefaultComponents(private val applicationContext: Context) {
                     preferences.getBoolean(PREF_GLOBAL_PRIVACY_CONTROL, false)
                 },
             ) { checked ->
-                preferences.edit().putBoolean(PREF_GLOBAL_PRIVACY_CONTROL, checked).apply()
+                preferences.edit { putBoolean(PREF_GLOBAL_PRIVACY_CONTROL, checked) }
                 engine.settings.globalPrivacyControlEnabled = checked
                 sessionUseCases.reload()
             },

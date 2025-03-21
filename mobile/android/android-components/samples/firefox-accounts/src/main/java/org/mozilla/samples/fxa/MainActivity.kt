@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.app.ActivityCompat
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -110,7 +111,9 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         }
 
         findViewById<View>(R.id.buttonLogout).setOnClickListener {
-            getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit().putString(FXA_STATE_KEY, "").apply()
+            getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit {
+                putString(FXA_STATE_KEY, "")
+            }
             val txtView: TextView = findViewById(R.id.txtView)
             txtView.text = getString(R.string.logged_out)
         }
@@ -194,8 +197,9 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
                 displayProfile(it)
             }
             account.toJSONString().let {
-                getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE)
-                    .edit().putString(FXA_STATE_KEY, it).apply()
+                getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit {
+                    putString(FXA_STATE_KEY, it)
+                }
             }
         }
     }
