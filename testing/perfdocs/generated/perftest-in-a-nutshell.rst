@@ -161,7 +161,7 @@ You can also find the profiles in the artifacts tab of the Raptor test:
    :scale: 50%
    :align: center
 
-To generate the profiles locally, you can pass the flags ``--extra-profiler-run`` or ``--gecko-profile`` which repeat the test for an extra iteration with the profiler enabled, or run the test from the beginning with the profiler enabled for three iterations, respectively. It's also possible to specify more configuration such as the profiled threads, the sampling interval or the profiler features being enabled. The parameters used in a profiling run can be copied directly from the about:profiling page in any Nightly build: click the button at the top of the page, then pick the option "Copy parameters for performance tests".
+To generate the profiles locally, you can pass the flags ``--extra-profiler-run`` or ``--gecko-profile`` which repeat the test for an extra iteration with the profiler enabled, or run the test from the beginning with the profiler enabled for three iterations, respectively.
 
 Side-by-Side
 ------------

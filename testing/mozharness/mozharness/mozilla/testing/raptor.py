@@ -284,10 +284,7 @@ class Raptor(
                     "dest": "gecko_profile",
                     "action": "store_true",
                     "default": False,
-                    "help": (
-                        "Whether to profile the test run and save the profile results. "
-                        "Copy paste the parameters used in this profiling run directly from about:profiling in Nightly."
-                    ),
+                    "help": "Whether to profile the test run and save the profile results.",
                 },
             ],
             [

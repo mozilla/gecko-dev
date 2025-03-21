@@ -438,10 +438,7 @@ class GeckoProfile(TryConfig):
                 "dest": "profile",
                 "action": "store_true",
                 "default": False,
-                "help": (
-                    "Create and upload a gecko profile during talos/raptor tasks. "
-                    "Copy paste the parameters used in this profiling run directly from about:profiling in Nightly."
-                ),
+                "help": "Create and upload a gecko profile during talos/raptor tasks.",
             },
         ],
         [

@@ -14,6 +14,7 @@
  * @typedef {import("../@types/perf").PreferenceFront} PreferenceFront
  * @typedef {import("../@types/perf").PerformancePref} PerformancePref
  * @typedef {import("../@types/perf").RecordingSettings} RecordingSettings
+ * @typedef {import("../@types/perf").RestartBrowserWithEnvironmentVariable} RestartBrowserWithEnvironmentVariable
  * @typedef {import("../@types/perf").GetActiveBrowserID} GetActiveBrowserID
  * @typedef {import("../@types/perf").MinimallyTypedGeckoProfile} MinimallyTypedGeckoProfile
  * @typedef {import("../@types/perf").ProfilerViewMode} ProfilerViewMode
@@ -144,12 +145,10 @@ function sharedLibrariesFromProfile(profile) {
 /**
  * Restarts the browser with a given environment variable set to a value.
  *
- * @param {Record<string, string>} env
+ * @type {RestartBrowserWithEnvironmentVariable}
  */
-function restartBrowserWithEnvironmentVariable(env) {
-  for (const [envName, envValue] of Object.entries(env)) {
-    Services.env.set(envName, envValue);
-  }
+function restartBrowserWithEnvironmentVariable(envName, value) {
+  Services.env.set(envName, value);
 
   Services.startup.quit(
     Services.startup.eForceQuit | Services.startup.eRestart

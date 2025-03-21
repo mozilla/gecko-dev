@@ -26,8 +26,6 @@ support-files = [
 
 ["browser_aboutprofiling-interval.js"]
 
-["browser_aboutprofiling-more-actions-menu.js"]
-
 ["browser_aboutprofiling-presets-custom.js"]
 
 ["browser_aboutprofiling-presets.js"]

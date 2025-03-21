@@ -187,6 +187,15 @@ export type ReceiveProfile = (
 ) => void;
 
 /**
+ * This is the type signature for a function to restart the browser with a given
+ * environment variable. Currently only implemented for the popup.
+ */
+export type RestartBrowserWithEnvironmentVariable = (
+  envName: string,
+  value: string
+) => void;
+
+/**
  * This is the type signature for the event listener that's called once the
  * profile has been obtained.
  */
@@ -388,12 +397,6 @@ export interface PerformancePref {
    * button in the customization palette.
    */
   PopupFeatureFlag: "devtools.performance.popup.feature-flag";
-  /**
-   * This preference controls whether about:profiling contains some Firefox
-   * developer-specific options. For example when true the "more actions" menu
-   * contains items to copy parameters to use with mach try perf.
-   */
-  AboutProfilingHasDeveloperOptions: "devtools.performance.aboutprofiling.has-developer-options";
 }
 
 /* The next 2 types bring some duplication from gecko.d.ts, but this is simpler

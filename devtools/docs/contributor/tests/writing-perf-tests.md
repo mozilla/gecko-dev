@@ -130,10 +130,8 @@ Also, you can record a profile while running the test. To do that, execute:
 ```
 ./mach talos-test --suite damp --subtest ${your-test-name} --cycles 1 --tppagecycles 1 --gecko-profile --gecko-profile-entries 100000000
 ```
-`--gecko-profile` enables the profiler<br>
+`--gecko-profile` enables the profiler
 `--gecko-profile-entries` defines the profiler buffer size, which needs to be large while recording performance tests
-
-It's also possible to specify more configuration such as the profiled threads, the sampling interval or the profiler features being enabled. The parameters used in a profiling run can be copied directly from the about:profiling page in any Nightly build: click the button at the top of the page, then pick the option "Copy parameters for performance tests".
 
 Once it is done executing, the profile lives in a zip file you have to uncompress like this:
 ```

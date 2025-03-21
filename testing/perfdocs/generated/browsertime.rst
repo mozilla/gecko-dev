@@ -276,8 +276,6 @@ To run gecko profiling using Raptor-Browsertime you can add the ``--gecko-profil
 
   ./mach raptor -t amazon --gecko-profile
 
-It's also possible to specify more configuration such as the profiled threads, the sampling interval or the profiler features being enabled. The parameters used in a profiling run can be copied directly from the about:profiling page in any Nightly build: click the button at the top of the page, then pick the option "Copy parameters for performance tests".
-
 Note that vanilla Browsertime does support Gecko Profiling but **it does not symbolicate the profiles** so it is **not recommended** to use for debugging performance regressions/improvements.
 
 Gathering a Chrome trace with Raptor-Browsertime

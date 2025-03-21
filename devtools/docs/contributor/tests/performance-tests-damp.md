@@ -46,8 +46,6 @@ to focus on just one subtest run:
 ./mach talos-test --suite damp --subtests custom.webconsole --cycles 1 --tppagecycles 1 --gecko-profile --gecko-profile-entries 100000000
 ```
 
-It's also possible to specify more configuration such as the profiled threads, the sampling interval or the profiler features being enabled. The parameters used in a profiling run can be copied directly from the about:profiling page in any Nightly build: click the button at the top of the page, then pick the option "Copy parameters for performance tests".
-
 ## How to run it on try?
 
 ```bash
