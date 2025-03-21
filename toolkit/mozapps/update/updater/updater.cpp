@@ -3355,8 +3355,8 @@ int NS_main(int argc, NS_tchar** argv) {
               "Skipping update to avoid elevation prompt from silent update.");
     } else {
       UpdateServerThreadArgs threadArgs;
-      threadArgs.argc = suiArgc;
-      threadArgs.argv = suiArgv.get();
+      threadArgs.argc = argc;
+      threadArgs.argv = const_cast<const NS_tchar**>(argv);
       threadArgs.marChannelID = gMARStrings.MARChannelID.get();
 
       Thread t1;
@@ -3705,7 +3705,8 @@ int NS_main(int argc, NS_tchar** argv) {
 
           // If the update couldn't be started, then set useService to false so
           // we do the update the old way.
-          DWORD launchResult = LaunchServiceSoftwareUpdateCommand(serviceArgc, (LPCWSTR*)argv);
+          DWORD launchResult =
+              LaunchServiceSoftwareUpdateCommand(serviceArgc, (LPCWSTR*)argv);
           useService = (launchResult == ERROR_SUCCESS);
           // If the command was launched then wait for the service to be done.
           if (useService) {
