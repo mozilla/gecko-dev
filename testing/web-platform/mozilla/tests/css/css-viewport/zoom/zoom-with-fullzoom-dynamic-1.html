@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<!-- This test verifies that css 'zoom' properly stacks with full-page zoom, in
+     subdocuments, particularly when the full-page-zoom is dynamically adjusted
+     after pageload. This test has a 3x css-zoom that gets applied to the
+     iframe, which combines with a 5x css-zoom on the root node inside the
+     iframe; and then after flushing paints, this test adds an additional 2x
+     full-page-zoom factor. This test's expectation is that these zoom factors
+     all stack to forma  2*3*5=30x effective zoom inside the iframe. -->
+<link rel="match" href="zoom-with-fullzoom-dynamic-1-ref.html">
+<style>
+  iframe {
+      border: 0;
+      zoom: 3;
+      /* If we left the iframe at its default 300x150 size, it'd overflow
+       * the WPT harness's viewport when its 3x CSS 'zoom' is applied,
+       * which would give test failures from scrollbars showing up. To avoid
+       * that, we set it to 50x50. This is still large enough to hold the
+       * content, and small enough to avoid overflow when scaled by the
+       * zoom factors in this test.
+       */
+      width: 50px;
+      height: 50px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<script>
+  // Ensure the original zoom level is restored after the screenshot.
+  const originalZoom = SpecialPowers.getFullZoom(window);
+  window.addEventListener("beforeunload", () => {
+      SpecialPowers.setFullZoom(window, originalZoom);
+  });
+
+  async function go() {
+    // Start out with a double-rAF, to flush paints from pageload:
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => requestAnimationFrame(r));
+
+    // Increase the full-page-zoom factor, and then (after it takes effect)
+    // take the reftest snapshot.
+    SpecialPowers.setFullZoom(window, 2);
+    addEventListener("resize", () => {
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  }
+</script>
+<body onload="go()">
+  <iframe srcdoc="<!DOCTYPE html><html style='zoom:5'><body style='margin:0'><div style='width:5px;height:5px;background:blue'></div></body>">
+  </iframe>
+</body>
+</html>
