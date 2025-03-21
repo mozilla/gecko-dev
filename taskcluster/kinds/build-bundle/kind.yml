@@ -24,8 +24,6 @@ task-defaults:
         build_platform: android
     run:
         gradle-package-command: bundle
-        gradle-extra-options:
-            - -Paab
 
 tasks:
     focus-debug:

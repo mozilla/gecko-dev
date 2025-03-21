@@ -12,6 +12,8 @@ if (gradle.mozconfig.substs.MOZILLA_OFFICIAL) {
     apply plugin: 'com.google.android.gms.oss-licenses-plugin'
 }
 
+def isAppBundle = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
+
 def versionCodeGradle = "$project.rootDir/tools/gradle/versionCode.gradle"
 if (findProject(":geckoview") != null) {
     versionCodeGradle = "$project.rootDir/mobile/android/focus-android/tools/gradle/versionCode.gradle"
@@ -146,7 +148,7 @@ android {
 
     splits {
         abi {
-            enable true
+            enable = !isAppBundle
 
             reset()
 
@@ -397,7 +399,10 @@ android.applicationVariants.configureEach { variant ->
 
         variant.outputs.each { output ->
             def abi = output.getFilter(FilterConfiguration.FilterType.ABI.name())
-            def aab = project.hasProperty("aab")
+            if (isAppBundle) {
+                abi = "AAB"
+            }
+
             // We use the same version code generator, that we inherited from Fennec, across all channels - even on
             // channels that never shipped a Fennec build.
 
@@ -408,24 +413,21 @@ android.applicationVariants.configureEach { variant ->
 
             def versionCodeOverride = baseVersionCode
 
-            if (aab) {
+            if (abi == "AAB") {
                 // AAB version code is odd
                 versionCodeOverride = versionCodeOverride + 1
-                project.logger.debug("versionCode for AAB = $versionCodeOverride")
-            } else {
-                if (abi == "x86_64") {
+            } else if (abi == "x86_64") {
                     versionCodeOverride = versionCodeOverride + 6
-                } else if (abi == "x86") {
-                    versionCodeOverride = versionCodeOverride + 4
-                } else if (abi == "arm64-v8a") {
-                    versionCodeOverride = versionCodeOverride + 2
-                } else if (abi == "armeabi-v7a") {
-                    versionCodeOverride = versionCodeOverride + 0
-                } else {
-                    throw new RuntimeException("Unknown ABI: " + abi)
-                }
-                project.logger.debug("versionCode for $abi = $versionCodeOverride")
+            } else if (abi == "x86") {
+                versionCodeOverride = versionCodeOverride + 4
+            } else if (abi == "arm64-v8a") {
+                versionCodeOverride = versionCodeOverride + 2
+            } else if (abi == "armeabi-v7a") {
+                versionCodeOverride = versionCodeOverride + 0
+            } else {
+                throw new RuntimeException("Unknown ABI: " + abi)
             }
+            project.logger.debug("versionCode for $abi = $versionCodeOverride")
 
             if (versionName != null) {
                 output.versionNameOverride = versionName
