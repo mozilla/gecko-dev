@@ -4,6 +4,11 @@
   <string name="mozac_feature_applinks_open_in">Abrir en…</string>
   <!-- The description to warn users that their private browsing session changes -->
   <string name="mozac_feature_applinks_confirm_dialog_title">¿Quies abrir el conteníu na aplicación? La to actividá yá nun va ser privada.</string>
+  <!--
+    The description to warn users that their private browsing session changes
+    %s is a placeholder that will be replaced by an app name
+  -->
+  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">¿Quies abrir el conteníu na aplicación «%s»? La to actividá yá nun va ser privada.</string>
   <!-- The title of the prompt that warns users their normal browsing session is trying to open another app -->
   <string name="mozac_feature_applinks_normal_confirm_dialog_title">Apertura n\'otra aplicación</string>
   <!--

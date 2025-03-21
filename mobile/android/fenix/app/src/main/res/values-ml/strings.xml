@@ -822,6 +822,8 @@
   <string name="preferences_override_account_server">ഇഷ്ടനുസൃത മോസില്ല അക്കൗണ്ടു് സേവനദാതാവു്</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">ഇഷ്‌ടാനുസൃത സമന്വയ സെർവർ</string>
+  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
+  <string name="toast_override_account_sync_server_done">ഫയർ‌ഫോക്സ് അകൗണ്ട്/സമന്വയ പ്രദായിണി പുതുച്ചു. മാറ്റങ്ങൾ പ്രയോഗിക്കുന്നതിന് പ്രയോഗത്തിൽ  നിന്നു പുറത്തുകടക്കുന്നു…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">അക്കൗണ്ട്</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1414,6 +1416,26 @@
   <string name="download_time_period_last_30_days">കഴിഞ്ഞ 30 ദിവസങ്ങൾ</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">പഴയതു്</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">എല്ലാം</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">പടങ്ങളും</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">ദൃശ്യങ്ങളും</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">രേഖകളും</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other">വേറെ</string>
+  <!--
+    Description of a downloaded item, displayed in the downloads list.
+    %1$s: The size of the downloaded file.
+    %2$s: The URL of the downloaded file.
+  -->
+  <string name="download_item_description">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 
