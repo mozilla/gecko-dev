@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.NightMode
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.scale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.mapNotNull
@@ -257,12 +258,13 @@ class CustomTabsToolbarFeature(
         buttonConfig?.let { config ->
             val icon = config.icon
             val scaledIconSize = icon.resizeMaintainingAspectRatio(ACTION_BUTTON_MAX_DRAWABLE_DP_SIZE)
-            val drawableIcon = Bitmap.createScaledBitmap(
-                icon,
-                scaledIconSize.width.dpToPx(context.resources.displayMetrics),
-                scaledIconSize.height.dpToPx(context.resources.displayMetrics),
-                true,
-            ).toDrawable(context.resources)
+            val drawableIcon = icon
+                .scale(
+                    scaledIconSize.width.dpToPx(context.resources.displayMetrics),
+                    scaledIconSize.height.dpToPx(context.resources.displayMetrics),
+                    filter = true,
+                )
+                .toDrawable(context.resources)
 
             if (config.tint || forceActionButtonTinting) {
                 drawableIcon.setTint(readableColor)

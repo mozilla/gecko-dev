@@ -7,6 +7,7 @@ package mozilla.components.browser.icons.processor
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.annotation.VisibleForTesting
+import androidx.core.graphics.scale
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.support.images.DesiredSize
@@ -58,7 +59,7 @@ class ResizingProcessor(
      */
     @VisibleForTesting
     internal fun resize(bitmap: Bitmap, targetSize: Int) = try {
-        Bitmap.createScaledBitmap(bitmap, targetSize, targetSize, true)
+        bitmap.scale(targetSize, targetSize, filter = true)
     } catch (e: OutOfMemoryError) {
         // There's not enough memory to create a resized copy of the bitmap in memory. Let's just
         // use what we have.
