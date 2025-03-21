@@ -1592,7 +1592,7 @@ const nsACString& ContentParent::GetRemoteType() const { return mRemoteType; }
 
 static StaticRefPtr<nsIAsyncShutdownClient> sXPCOMShutdownClient;
 static StaticRefPtr<nsIAsyncShutdownClient> sProfileBeforeChangeClient;
-static StaticRefPtr<nsIAsyncShutdownClient> sQuitApplicationGrantedClient;
+static StaticRefPtr<nsIAsyncShutdownClient> sAppShutdownConfirmedClient;
 
 void ContentParent::Init() {
   MOZ_ASSERT(sXPCOMShutdownClient);
@@ -3600,8 +3600,8 @@ ContentParent::BlockShutdown(nsIAsyncShutdownClient* aClient) {
     // shutdown and eventually cancel content JS.
     SignalImpendingShutdownToContentJS();
 
-    if (sQuitApplicationGrantedClient) {
-      Unused << sQuitApplicationGrantedClient->RemoveBlocker(this);
+    if (sAppShutdownConfirmedClient) {
+      Unused << sAppShutdownConfirmedClient->RemoveBlocker(this);
     }
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
     mBlockShutdownCalled = false;
@@ -3702,13 +3702,11 @@ static void InitShutdownClients() {
         ClearOnShutdown(&sProfileBeforeChangeClient);
       }
     }
-    // TODO: ShutdownPhase::AppShutdownConfirmed is not mapping to
-    // QuitApplicationGranted, see bug 1762840 comment 4.
     if (!AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-      rv = svc->GetQuitApplicationGranted(getter_AddRefs(client));
+      rv = svc->GetAppShutdownConfirmed(getter_AddRefs(client));
       if (NS_SUCCEEDED(rv)) {
-        sQuitApplicationGrantedClient = client.forget();
-        ClearOnShutdown(&sQuitApplicationGrantedClient);
+        sAppShutdownConfirmedClient = client.forget();
+        ClearOnShutdown(&sAppShutdownConfirmedClient);
       }
     }
   }
@@ -3727,8 +3725,8 @@ void ContentParent::AddShutdownBlockers() {
     sProfileBeforeChangeClient->AddBlocker(
         this, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__, u""_ns);
   }
-  if (sQuitApplicationGrantedClient) {
-    sQuitApplicationGrantedClient->AddBlocker(
+  if (sAppShutdownConfirmedClient) {
+    sAppShutdownConfirmedClient->AddBlocker(
         this, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__, u""_ns);
   }
 }
@@ -3749,8 +3747,8 @@ void ContentParent::RemoveShutdownBlockers() {
   if (sProfileBeforeChangeClient) {
     Unused << sProfileBeforeChangeClient->RemoveBlocker(this);
   }
-  if (sQuitApplicationGrantedClient) {
-    Unused << sQuitApplicationGrantedClient->RemoveBlocker(this);
+  if (sAppShutdownConfirmedClient) {
+    Unused << sAppShutdownConfirmedClient->RemoveBlocker(this);
   }
 }
 
