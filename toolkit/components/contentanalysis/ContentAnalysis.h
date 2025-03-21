@@ -307,8 +307,8 @@ class ContentAnalysis final : public nsIContentAnalysis,
   void IssueResponse(ContentAnalysisResponse* response,
                      nsCString&& aUserActionId, bool aAutoAcknowledge);
   void NotifyResponseObservers(ContentAnalysisResponse* aResponse,
-                               nsCString&& aUserActionId,
-                               bool aAutoAcknowledge);
+                               nsCString&& aUserActionId, bool aAutoAcknowledge,
+                               bool aIsTimeout);
   void NotifyObserversAndMaybeIssueResponse(ContentAnalysisResponse* aResponse,
                                             nsCString&& aUserActionId,
                                             bool aAutoAcknowledge);
@@ -452,6 +452,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
     RefPtr<ContentAnalysisResponse> mResponse;
     nsCString mUserActionId;
     bool mAutoAcknowledge;
+    bool mWasTimeout;
   };
   // Request token to warn response map.
   nsTHashMap<nsCString, WarnResponseData> mWarnResponseDataMap;
