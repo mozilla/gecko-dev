@@ -902,6 +902,11 @@ workers:
             implementation: generic-worker
             os: windows
             worker-type: '{alias}'
+        win10-64-2009-hw:
+            provisioner: releng-hardware
+            implementation: generic-worker
+            os: windows
+            worker-type: '{alias}'
         win11-64-2009-hw:
             provisioner: releng-hardware
             implementation: generic-worker
