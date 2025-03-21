@@ -1326,8 +1326,6 @@
     <string name="download_multi_select_title">%1$d selected</string>
     <!-- Text for the button to remove a single download item -->
     <string name="download_delete_item_1">Remove</string>
-    <!-- Text for the button to share the download URL -->
-    <string name="download_share_url">Share URL</string>
     <!-- Time period headers for downloads -->
     <!-- Text for the header that groups the downloads for today -->
     <string name="download_time_period_today">Today</string>

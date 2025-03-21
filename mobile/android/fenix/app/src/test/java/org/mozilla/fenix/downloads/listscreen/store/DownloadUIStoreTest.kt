@@ -9,7 +9,6 @@ import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -95,26 +94,10 @@ class DownloadUIStoreTest {
         assertEquals(store.state.mode, DownloadUIState.Mode.Editing(setOf(fileItem)))
     }
 
-    @Test
-    fun shareUrlClicked() {
-        val initialState = oneItemDefaultState()
-        val store = DownloadUIStore(initialState)
-
-        store.dispatch(DownloadUIAction.ShareUrlClicked(fileItem))
-        assertSame(initialState, store.state)
-    }
-
     private fun emptyDefaultState(): DownloadUIState = DownloadUIState(
         items = listOf(),
         mode = DownloadUIState.Mode.Normal,
         pendingDeletionIds = emptySet(),
-    )
-
-    private fun oneItemDefaultState(): DownloadUIState = DownloadUIState(
-        items = listOf(fileItem),
-        mode = DownloadUIState.Mode.Normal,
-        pendingDeletionIds = emptySet(),
-        isDeletingItems = false,
     )
 
     private fun oneItemEditState(): DownloadUIState = DownloadUIState(

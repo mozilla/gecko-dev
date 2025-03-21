@@ -37,7 +37,6 @@ import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
-import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIShareMiddleware
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
@@ -66,7 +65,6 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
                     fileSizeFormatter = requireComponents.core.fileSizeFormatter,
                     scope = viewModelScope,
                 ),
-                DownloadUIShareMiddleware(applicationContext = requireContext().applicationContext),
             ),
         )
     }

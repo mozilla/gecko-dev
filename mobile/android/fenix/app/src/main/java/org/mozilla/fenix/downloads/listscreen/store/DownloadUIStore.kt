@@ -70,6 +70,5 @@ private fun downloadStateReducer(
         is DownloadUIAction.ContentTypeSelected -> state.copy(userSelectedContentTypeFilter = action.contentTypeFilter)
 
         DownloadUIAction.Init -> state
-        is DownloadUIAction.ShareUrlClicked -> state
     }
 }
