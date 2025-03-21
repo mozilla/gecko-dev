@@ -16065,7 +16065,7 @@
 # This allows us to collect telemetry information about potential issues.
 - name: security.browser_xhtml_csp.report-only
   type: bool
-  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 # Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
