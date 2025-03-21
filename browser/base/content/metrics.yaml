@@ -449,6 +449,25 @@ browser.engagement:
     expires: never
     telemetry_mirror: BROWSER_ENGAGEMENT_BOOKMARKS_TOOLBAR_BOOKMARK_OPENED
 
+  total_top_visits:
+    type: labeled_counter
+    description: >
+      Count the number of times a new top page was starting to load
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram FX_TOTAL_TOP_VISITS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_TOTAL_TOP_VISITS
+
 networking:
   captive_portal_banner_displayed:
     type: counter
@@ -488,3 +507,99 @@ networking:
       - abort
       - dismiss
     telemetry_mirror: NETWORKING_CAPTIVE_PORTAL_BANNER_DISPLAY_TIME
+
+browser.timings:
+  tab_click:
+    type: timing_distribution
+    description: >
+      Firefox: Time in ms spent on switching tabs in response to a tab click
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_TAB_CLICK_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_TAB_CLICK_MS
+
+  new_window:
+    type: timing_distribution
+    description: >
+      Firefox: Time taken to open a new browser window (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_NEW_WINDOW_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_NEW_WINDOW_MS
+
+  page_load:
+    type: timing_distribution
+    description: >
+      Firefox: Time taken to load a page (ms). This includes all static
+      contents, no dynamic content. Page reloads and loading of about: pages are
+      not included.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram FX_PAGE_LOAD_MS_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1504247
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1549519
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1504247
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1549519
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - product-metrics-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_PAGE_LOAD_MS_2
+
+  page_reload_normal:
+    type: timing_distribution
+    description: >
+      Firefox: Time taken to reload a page (ms) when using the
+      LOAD_RELOAD_NORMAL flag
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram FX_PAGE_RELOAD_NORMAL_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1549519
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1549519
+    notification_emails:
+      - sefeng@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+      - product-metrics-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_PAGE_RELOAD_NORMAL_MS
+
+  page_reload_skip_cache:
+    type: timing_distribution
+    description: >
+      Firefox: Time taken to reload a page (ms) when caches are skipped
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram FX_PAGE_RELOAD_SKIP_CACHE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1549519
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1549519
+    notification_emails:
+      - sefeng@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+      - product-metrics-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_PAGE_RELOAD_SKIP_CACHE_MS

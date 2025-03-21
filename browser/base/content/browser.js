@@ -1723,8 +1723,7 @@ function toOpenWindowByType(inType, uri, features) {
  * @return a reference to the new window.
  */
 function OpenBrowserWindow(options = {}) {
-  let telemetryObj = {};
-  TelemetryStopwatch.start("FX_NEW_WINDOW_MS", telemetryObj);
+  let timerId = Glean.browserTimings.newWindow.start();
 
   let win = BrowserWindowTracker.openWindow({
     openerWindow: window,
@@ -1734,7 +1733,7 @@ function OpenBrowserWindow(options = {}) {
   win.addEventListener(
     "MozAfterPaint",
     () => {
-      TelemetryStopwatch.finish("FX_NEW_WINDOW_MS", telemetryObj);
+      Glean.browserTimings.newWindow.stopAndAccumulate(timerId);
     },
     { once: true }
   );
@@ -2911,52 +2910,53 @@ var TabsProgressListener = {
       aWebProgress.isTopLevel &&
       (!aRequest.originalURI || aRequest.originalURI.scheme != "about")
     ) {
-      let histogram = "FX_PAGE_LOAD_MS_2";
-      let recordLoadTelemetry = true;
+      let metricName = "pageLoad";
 
       if (aWebProgress.loadType & Ci.nsIDocShell.LOAD_CMD_RELOAD) {
         // loadType is constructed by shifting loadFlags, this is why we need to
         // do the same shifting here.
         // https://searchfox.org/mozilla-central/rev/11cfa0462a6b5d8c5e2111b8cfddcf78098f0141/docshell/base/nsDocShellLoadTypes.h#22
         if (aWebProgress.loadType & (kSkipCacheFlags << 16)) {
-          histogram = "FX_PAGE_RELOAD_SKIP_CACHE_MS";
+          metricName = "pageReloadSkipCache";
         } else if (aWebProgress.loadType == Ci.nsIDocShell.LOAD_CMD_RELOAD) {
-          histogram = "FX_PAGE_RELOAD_NORMAL_MS";
+          metricName = "pageReloadNormal";
         } else {
-          recordLoadTelemetry = false;
+          metricName = "";
         }
       }
 
-      let stopwatchRunning = TelemetryStopwatch.running(histogram, aBrowser);
+      const timerIdField = `_${metricName}TimerId`;
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
         if (aStateFlags & Ci.nsIWebProgressListener.STATE_START) {
-          if (stopwatchRunning) {
-            // Oops, we're seeing another start without having noticed the previous stop.
-            if (recordLoadTelemetry) {
-              TelemetryStopwatch.cancel(histogram, aBrowser);
+          if (metricName) {
+            if (aBrowser[timerIdField]) {
+              // Oops, we're seeing another start without having noticed the previous stop.
+              Glean.browserTimings[metricName].cancel(aBrowser[timerIdField]);
             }
+            aBrowser[timerIdField] = Glean.browserTimings[metricName].start();
           }
-          if (recordLoadTelemetry) {
-            TelemetryStopwatch.start(histogram, aBrowser);
-          }
-          Services.telemetry.getHistogramById("FX_TOTAL_TOP_VISITS").add(true);
+          Glean.browserEngagement.totalTopVisits.true.add();
         } else if (
           aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-          stopwatchRunning /* we won't see STATE_START events for pre-rendered tabs */
+          /* we won't see STATE_START events for pre-rendered tabs */
+          metricName &&
+          aBrowser[timerIdField]
         ) {
-          if (recordLoadTelemetry) {
-            TelemetryStopwatch.finish(histogram, aBrowser);
-            BrowserTelemetryUtils.recordSiteOriginTelemetry(browserWindows());
-          }
+          Glean.browserTimings[metricName].stopAndAccumulate(
+            aBrowser[timerIdField]
+          );
+          aBrowser[timerIdField] = null;
+          BrowserTelemetryUtils.recordSiteOriginTelemetry(browserWindows());
         }
       } else if (
         aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+        /* we won't see STATE_START events for pre-rendered tabs */
         aStatus == Cr.NS_BINDING_ABORTED &&
-        stopwatchRunning /* we won't see STATE_START events for pre-rendered tabs */
+        metricName &&
+        aBrowser[timerIdField]
       ) {
-        if (recordLoadTelemetry) {
-          TelemetryStopwatch.cancel(histogram, aBrowser);
-        }
+        Glean.browserTimings[metricName].cancel(aBrowser[timerIdField]);
+        aBrowser[timerIdField] = null;
       }
     }
   },
