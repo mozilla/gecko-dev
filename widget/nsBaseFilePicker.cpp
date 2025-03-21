@@ -122,9 +122,7 @@ NS_IMETHODIMP nsBaseFilePicker::Init(BrowsingContext* aBrowsingContext,
                                      const nsAString& aTitle,
                                      nsIFilePicker::Mode aMode) {
   MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(aBrowsingContext,
-             "Null bc passed to filepicker, no file "
-             "picker for you!");
+  NS_ENSURE_ARG_POINTER(aBrowsingContext);
 
   nsCOMPtr<nsIWidget> widget =
       aBrowsingContext->Canonical()->GetParentProcessWidgetContaining();
