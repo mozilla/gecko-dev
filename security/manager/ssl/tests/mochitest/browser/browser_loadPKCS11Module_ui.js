@@ -285,7 +285,7 @@ async function testModuleNameHelper(moduleName, acceptButtonShouldBeDisabled) {
   let moduleNameBox = win.document.getElementById("device_name");
   moduleNameBox.value = moduleName;
   // this makes this not a great test, but it's the easiest way to simulate this
-  moduleNameBox.onchange();
+  moduleNameBox.dispatchEvent(new Event("change", { bubbles: true }));
 
   let dialogNode = win.document.querySelector("dialog");
   Assert.equal(

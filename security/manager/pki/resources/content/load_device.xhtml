@@ -3,6 +3,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
+
 <!DOCTYPE window>
 
 <window
@@ -36,18 +38,12 @@
         id="device_name"
         data-l10n-id="load-device-modname-default"
         data-l10n-attrs="value"
-        onchange="validateModuleName();"
       />
     </hbox>
     <hbox align="center">
       <label data-l10n-id="load-device-filename" control="device_path" />
       <html:input id="device_path" />
-      <button
-        id="browse"
-        flex="1"
-        data-l10n-id="load-device-browse"
-        oncommand="onBrowseBtnPress();"
-      />
+      <button id="browse" flex="1" data-l10n-id="load-device-browse" />
     </hbox>
     <label id="helpText" value="" />
   </dialog>

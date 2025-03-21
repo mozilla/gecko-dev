@@ -81,3 +81,12 @@ function validateModuleName() {
     dialogNode.setAttribute("buttondisabledaccept", true);
   }
 }
+
+window.addEventListener("load", () => {
+  document
+    .getElementById("device_name")
+    .addEventListener("change", () => validateModuleName());
+  document
+    .getElementById("browse")
+    .addEventListener("command", () => onBrowseBtnPress());
+});
