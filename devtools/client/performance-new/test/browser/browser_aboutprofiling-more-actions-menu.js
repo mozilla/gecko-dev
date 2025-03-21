@@ -3,8 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
+
+async function waitForClipboard() {
+  return waitUntil(() => navigator.clipboard.readText());
+}
+
 add_task(async function test() {
   info("Test the more actions button in about:profiling.");
+  info(
+    "Set the preference devtools.performance.aboutprofiling.has-developer-options to true"
+  );
+  await SpecialPowers.pushPrefEnv({
+    set: [["devtools.performance.aboutprofiling.has-developer-options", true]],
+  });
 
   await withAboutProfiling(async (document, browser) => {
     info("Test that there is a button to show a menu with more actions.");
@@ -24,12 +35,71 @@ add_task(async function test() {
     // tells the utility function to generate a mousedown then a mouseup, that
     // is a click.
     await BrowserTestUtils.synthesizeMouseAtCenter("moz-button", {}, browser);
-    const item = await getElementFromDocumentByText(
+    let item = await getElementFromDocumentByText(
       document,
       "with startup profiling"
     );
     ok(item, "The item to restart with startup profiling has been displayed");
     // Skipping clicking on the item, we don't want to actually restart firefox
-    // during the test.
+    // during the test. But most of the code is common with the below use case
+    // "copy environment variables".
+
+    info("Will copy environment variables for startup profiling");
+    SpecialPowers.cleanupAllClipboard();
+    item = await getElementFromDocumentByText(
+      document,
+      "Copy environment variables"
+    );
+    ok(
+      item,
+      "The item to copy environment variables for startup profiling is present in the menu"
+    );
+    EventUtils.sendMouseEvent({ type: "click" }, item);
+    is(
+      await waitForClipboard(),
+      "MOZ_PROFILER_STARTUP='1' MOZ_PROFILER_STARTUP_INTERVAL='1' MOZ_PROFILER_STARTUP_ENTRIES='134217728' MOZ_PROFILER_STARTUP_FEATURES='screenshots,js,stackwalk,cpu,processcpu,memory' MOZ_PROFILER_STARTUP_FILTERS='GeckoMain,Compositor,Renderer,SwComposite,DOM Worker'",
+      "The clipboard contains the environment variables suitable for startup profiling."
+    );
+
+    info("Will copy parameters for performance tests profiling");
+    SpecialPowers.cleanupAllClipboard();
+    await BrowserTestUtils.synthesizeMouseAtCenter("moz-button", {}, browser);
+    item = await getElementFromDocumentByText(document, "performance tests");
+    ok(
+      item,
+      "The item to copy the parameters to performance tests is present in the menu"
+    );
+    EventUtils.sendMouseEvent({ type: "click" }, item);
+
+    is(
+      await waitForClipboard(),
+      "--gecko-profile --gecko-profile-interval 1 --gecko-profile-entries 134217728 --gecko-profile-features 'screenshots,js,stackwalk,cpu,processcpu,memory' --gecko-profile-threads 'GeckoMain,Compositor,Renderer,SwComposite,DOM Worker'",
+      "The clipboard contains the parameters suitable for performance tests."
+    );
+    SpecialPowers.cleanupAllClipboard();
+
+    // With the preference set to false, the items aren't present
+    info(
+      "Set the preference devtools.performance.aboutprofiling.has-developer-options to false"
+    );
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["devtools.performance.aboutprofiling.has-developer-options", false],
+      ],
+    });
+    await BrowserTestUtils.synthesizeMouseAtCenter("moz-button", {}, browser);
+    await getElementFromDocumentByText(document, "with startup profiling");
+    // The item that's always present is now displayed
+    ok(
+      !maybeGetElementFromDocumentByText(
+        document,
+        "Copy environment variables"
+      ),
+      "The item to copy environment variables is not present."
+    );
+    ok(
+      !maybeGetElementFromDocumentByText(document, "performance tests"),
+      "the item to copy the parameters for performance tests is not present."
+    );
   });
 });

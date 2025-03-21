@@ -700,6 +700,13 @@ pref("devtools.performance.recording.power.external-url", "");
 pref("devtools.performance.recording.markers.external-url", "");
 // The popup will display some introductory text the first time it is displayed.
 pref("devtools.performance.popup.intro-displayed", false);
+// This preference controls whether the "more actions" menu in about:profiling
+// contains entries that help Firefox developers.
+#if defined(NIGHTLY_BUILD) || !defined(MOZILLA_OFFICIAL)
+  pref("devtools.performance.aboutprofiling.has-developer-options", true);
+#else
+  pref("devtools.performance.aboutprofiling.has-developer-options", false);
+#endif
 
 // Compatibility preferences
 // Stringified array of target browsers that users investigate.
