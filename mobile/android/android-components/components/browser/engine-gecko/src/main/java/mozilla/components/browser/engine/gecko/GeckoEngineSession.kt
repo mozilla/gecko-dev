@@ -4,10 +4,10 @@
 
 package mozilla.components.browser.engine.gecko
 
-import android.net.Uri
 import android.os.Build
 import android.view.WindowManager
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -178,7 +178,7 @@ class GeckoEngineSession(
     ) {
         notifyObservers { onLoadUrl() }
 
-        val scheme = Uri.parse(url).normalizeScheme().scheme
+        val scheme = url.toUri().normalizeScheme().scheme
         if (BLOCKED_SCHEMES.contains(scheme) && !shouldLoadJSSchemes(scheme, flags)) {
             logger.error("URL scheme not allowed. Aborting load.")
             return
@@ -522,7 +522,7 @@ class GeckoEngineSession(
         val mPrefix = "m."
         val mobilePrefix = "mobile."
 
-        val uri = Uri.parse(url)
+        val uri = url.toUri()
         val authority = uri.authority?.lowercase(Locale.ROOT) ?: return null
 
         val foundPrefix = when {
@@ -532,7 +532,7 @@ class GeckoEngineSession(
         }
 
         foundPrefix?.let {
-            val mobileUri = Uri.parse(url).buildUpon().authority(authority.substring(it.length))
+            val mobileUri = url.toUri().buildUpon().authority(authority.substring(it.length))
             overrideUrl = mobileUri.toString()
         }
 

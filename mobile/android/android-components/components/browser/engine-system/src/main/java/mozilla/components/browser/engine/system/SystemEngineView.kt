@@ -184,7 +184,7 @@ class SystemEngineView @JvmOverloads constructor(
                     onLoadingStateChange(false)
                     onSecurityChange(
                         secure = cert != null,
-                        host = cert?.let { Uri.parse(url).host },
+                        host = cert?.let { url.toUri().host },
                         issuer = cert?.issuedBy?.oName,
                     )
                 }
@@ -220,7 +220,7 @@ class SystemEngineView @JvmOverloads constructor(
 
                 val (matches, stringCategory) = getOrCreateUrlMatcher(resources, it).matches(
                     resourceUri,
-                    Uri.parse(session?.currentUrl),
+                    session?.currentUrl?.toUri() ?: Uri.EMPTY,
                 )
 
                 if (!request.isForMainFrame && matches) {

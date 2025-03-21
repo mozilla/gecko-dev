@@ -4,7 +4,7 @@
 
 package mozilla.components.feature.accounts.push.ext
 
-import android.net.Uri
+import androidx.core.net.toUri
 
 /**
  * Removes all expect the [lastSegmentToTake] of the [Uri.getLastPathSegment] result.
@@ -18,7 +18,7 @@ import android.net.Uri
  * ```
  */
 fun String.redactPartialUri(lastSegmentToTake: Int = 20, shortForm: String = "redacted..."): String {
-    val uri = Uri.parse(this)
+    val uri = this.toUri()
     val end = shortForm + uri.lastPathSegment?.takeLast(lastSegmentToTake)
     val path = uri
         .pathSegments

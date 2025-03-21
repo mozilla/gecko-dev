@@ -5,7 +5,7 @@
 package mozilla.components.feature.accounts
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -98,7 +98,7 @@ class FirefoxAccountsAuthFeature(
             isSubframeRequest: Boolean,
         ): RequestInterceptor.InterceptionResponse? {
             if (uri.startsWith(redirectUrl)) {
-                val parsedUri = Uri.parse(uri)
+                val parsedUri = uri.toUri()
                 val code = parsedUri.getQueryParameter("code")
 
                 if (code != null) {

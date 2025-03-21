@@ -7,9 +7,9 @@ package mozilla.components.feature.app.links
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import androidx.fragment.app.FragmentManager
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.SessionState
@@ -116,7 +116,7 @@ class AppLinksInterceptor(
         isDirectNavigation: Boolean,
         isSubframeRequest: Boolean,
     ): RequestInterceptor.InterceptionResponse? {
-        val encodedUri = Uri.parse(uri)
+        val encodedUri = uri.toUri()
         val uriScheme = encodedUri.scheme
         val engineSupportsScheme = engineSupportedSchemes.contains(uriScheme)
         val isAllowedRedirect = (isRedirect && !isSubframeRequest)
@@ -383,7 +383,7 @@ class AppLinksInterceptor(
 
         @VisibleForTesting
         internal fun getCacheKey(url: String, appIntent: Intent?, tabId: String?): Int? {
-            return Uri.parse(url)?.let { uri ->
+            return url.toUri().let { uri ->
                 when {
                     appIntent?.component?.packageName != null -> appIntent.component?.packageName
                     !uri.isHttpOrHttps -> uri.scheme

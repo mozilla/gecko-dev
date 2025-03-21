@@ -5,7 +5,6 @@
 package org.mozilla.fenix.debugsettings.ui
 
 import android.content.Intent
-import android.net.Uri
 import android.os.StrictMode
 import android.widget.Toast
 import androidx.compose.runtime.Composable
@@ -13,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -90,7 +90,7 @@ fun FenixOverlay(
                     clipboardHandler = context.components.clipboardHandler,
                     openDebugView = { debugViewLink ->
                         val intent = Intent(Intent.ACTION_VIEW)
-                        intent.data = Uri.parse(debugViewLink)
+                        intent.data = debugViewLink.toUri()
                         context.startActivity(intent)
                     },
                     showToast = { pingType ->

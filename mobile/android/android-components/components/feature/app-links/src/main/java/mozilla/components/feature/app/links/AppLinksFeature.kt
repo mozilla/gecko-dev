@@ -6,8 +6,8 @@ package mozilla.components.feature.app.links
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import androidx.fragment.app.FragmentManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -151,7 +151,7 @@ class AppLinksFeature(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun loadUrlIfSchemeSupported(tab: SessionState, url: String) {
-        val schemeSupported = engineSupportedSchemes.contains(Uri.parse(url).scheme)
+        val schemeSupported = engineSupportedSchemes.contains(url.toUri().scheme)
         if (schemeSupported) {
             loadUrlUseCase?.invoke(
                 url = url,

@@ -339,7 +339,7 @@ class Browsers private constructor(
         private const val SAMPLE_BROWSER_HTTPS_URL = "https://www.mozilla.org/index.html"
 
         // Sample URL handled by traditional web browsers. Used to find installed (basic) web browsers.
-        private val SAMPLE_BROWSER_URI = Uri.parse(SAMPLE_BROWSER_HTTP_URL)
+        private val SAMPLE_BROWSER_URI = SAMPLE_BROWSER_HTTP_URL.toUri()
 
         /**
          * Returns `true` is the provided [packageName] matches a known browser.
@@ -359,7 +359,7 @@ class Browsers private constructor(
          * Collect information about all installed browsers that can handle the specified URL and return a [Browsers]
          * object containing that data.
          */
-        fun forUrl(context: Context, url: String) = Browsers(context, Uri.parse(url))
+        fun forUrl(context: Context, url: String) = Browsers(context, url.toUri())
 
         /**
          * Finds all the [ResolveInfo] for the installed browsers.

@@ -5,7 +5,7 @@
 package mozilla.components.concept.engine.webextension
 
 import android.graphics.Bitmap
-import android.net.Uri
+import androidx.core.net.toUri
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.Settings
 import org.json.JSONObject
@@ -162,7 +162,7 @@ abstract class WebExtension(
      * Checks whether or not this extension is built-in (packaged with the
      * APK file) or coming from an external source.
      */
-    open fun isBuiltIn(): Boolean = Uri.parse(url).scheme == "resource"
+    open fun isBuiltIn(): Boolean = url.toUri().scheme == "resource"
 
     /**
      * Checks whether or not this extension is enabled.

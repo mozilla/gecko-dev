@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.AtomicFile
 import android.util.Base64
+import androidx.core.net.toUri
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.feature.search.middleware.SearchExtraParams
 import org.xmlpull.v1.XmlPullParser
@@ -173,7 +174,7 @@ internal class SearchEngineReader(
 
     @Throws(XmlPullParserException::class, IOException::class)
     private fun readUri(parser: XmlPullParser, template: String): Uri {
-        var uri = Uri.parse(template)
+        var uri = template.toUri()
 
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.eventType != XmlPullParser.START_TAG) {

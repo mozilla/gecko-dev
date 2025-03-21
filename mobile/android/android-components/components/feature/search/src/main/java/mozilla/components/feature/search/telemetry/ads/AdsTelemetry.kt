@@ -4,8 +4,8 @@
 
 package mozilla.components.feature.search.telemetry.ads
 
-import android.net.Uri
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.search.telemetry.BaseSearchTelemetry
@@ -47,7 +47,7 @@ class AdsTelemetry : BaseSearchTelemetry() {
         cachedCookies = message.getJSONArray(ADS_MESSAGE_COOKIES_KEY).toList()
 
         val urls = message.getJSONArray(ADS_MESSAGE_DOCUMENT_URLS_KEY).toList<String>()
-        val uri = Uri.parse(message.getString(ADS_MESSAGE_SESSION_URL_KEY))
+        val uri = message.getString(ADS_MESSAGE_SESSION_URL_KEY).toUri()
         val provider = getProviderForUrl(message.getString(ADS_MESSAGE_SESSION_URL_KEY))
 
         provider?.let {
@@ -74,7 +74,7 @@ class AdsTelemetry : BaseSearchTelemetry() {
         if (url == null) {
             return
         }
-        val uri = Uri.parse(url) ?: return
+        val uri = url.toUri()
         val provider = getProviderForUrl(url) ?: return
         val paramSet = uri.queryParameterNames
         val containsQueryParam = provider.queryParamNames?.any { paramSet.contains(it) }

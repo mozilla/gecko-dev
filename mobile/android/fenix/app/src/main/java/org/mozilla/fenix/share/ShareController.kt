@@ -17,6 +17,7 @@ import android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -264,7 +265,7 @@ class DefaultShareController(
             // now and needs a clean fix once we have a reader specific protocol
             // e.g. ext+reader://
             // https://github.com/mozilla-mobile/android-components/issues/2879
-            Uri.parse(url).getQueryParameter("url") ?: url
+            url.toUri().getQueryParameter("url") ?: url
         } else {
             url
         }

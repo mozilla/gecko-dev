@@ -6,7 +6,6 @@ package org.mozilla.samples.fxa
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
@@ -15,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -149,7 +149,7 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         val data = intent.dataString
 
         if (Intent.ACTION_VIEW == action && data != null) {
-            val url = Uri.parse(data)
+            val url = data.toUri()
             val code = url.getQueryParameter("code")!!
             val state = url.getQueryParameter("state")!!
             displayAndPersistProfile(code, state)
@@ -178,8 +178,8 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
             .setShowTitle(true)
             .build()
 
-        customTabsIntent.intent.data = Uri.parse(url)
-        customTabsIntent.launchUrl(this@MainActivity, Uri.parse(url))
+        customTabsIntent.intent.data = url.toUri()
+        customTabsIntent.launchUrl(this@MainActivity, url.toUri())
     }
 
     private fun openWebView(url: String) {

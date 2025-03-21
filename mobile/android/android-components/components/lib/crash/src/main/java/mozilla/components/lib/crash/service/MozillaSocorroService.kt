@@ -7,10 +7,10 @@ package mozilla.components.lib.crash.service
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.pm.PackageInfoCompat
+import androidx.core.net.toUri
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
@@ -556,7 +556,7 @@ class MozillaSocorroService(
     }
 
     internal fun buildServerUrl(versionName: String): String =
-        Uri.parse("https://crash-reports.mozilla.com/submit")
+        "https://crash-reports.mozilla.com/submit".toUri()
             .buildUpon()
             .appendQueryParameter("id", appId)
             .appendQueryParameter("version", versionName)

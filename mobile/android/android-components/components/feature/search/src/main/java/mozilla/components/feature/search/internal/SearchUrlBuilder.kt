@@ -6,6 +6,7 @@ package mozilla.components.feature.search.internal
 
 import android.net.Uri
 import android.text.TextUtils
+import androidx.core.net.toUri
 import mozilla.components.browser.state.search.OS_SEARCH_ENGINE_TERMS_PARAM
 import mozilla.components.browser.state.search.SearchEngine
 import java.io.UnsupportedEncodingException
@@ -79,10 +80,10 @@ private fun paramSubstitution(template: String, query: String, inputEncoding: St
 
 private fun normalize(input: String): String {
     val trimmedInput = input.trim { it <= ' ' }
-    var uri = Uri.parse(trimmedInput)
+    var uri = trimmedInput.toUri()
 
     if (TextUtils.isEmpty(uri.scheme)) {
-        uri = Uri.parse("http://$trimmedInput")
+        uri = "http://$trimmedInput".toUri()
     }
 
     return uri.toString()

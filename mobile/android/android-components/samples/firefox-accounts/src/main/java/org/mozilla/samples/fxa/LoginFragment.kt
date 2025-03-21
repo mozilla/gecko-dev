@@ -7,7 +7,6 @@ package org.mozilla.samples.fxa
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +14,7 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 
 class LoginFragment : Fragment() {
@@ -44,7 +44,7 @@ class LoginFragment : Fragment() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 if (url != null && url.startsWith(redirectUrl)) {
-                    val uri = Uri.parse(url)
+                    val uri = url.toUri()
                     val code = uri.getQueryParameter("code")
                     val state = uri.getQueryParameter("state")
                     if (code != null && state != null) {

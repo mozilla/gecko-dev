@@ -11,10 +11,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
-import android.net.Uri
 import android.os.SystemClock
 import android.provider.Browser.EXTRA_APPLICATION_ID
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.pm.isPackageInstalled
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
@@ -111,7 +111,7 @@ class AppLinksUseCases(
 
             val redirectData = createBrowsableIntents(url)
             val isAppIntentHttpOrHttps = redirectData.appIntent?.data?.isHttpOrHttps ?: false
-            val isEngineSupportedScheme = ENGINE_SUPPORTED_SCHEMES.contains(Uri.parse(url).scheme)
+            val isEngineSupportedScheme = ENGINE_SUPPORTED_SCHEMES.contains(url.toUri().scheme)
             val isBrowserRedirect = redirectData.resolveInfo?.activityInfo?.packageName?.let { packageName ->
                 installedBrowsers.isInstalled(packageName)
             } ?: false

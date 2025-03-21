@@ -5,7 +5,7 @@
 package org.mozilla.fenix.components
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,7 +30,7 @@ class Services(
         FirefoxAccountsAuthFeature(accountManager, FxaServer.REDIRECT_URL) { context, authUrl ->
             var url = authUrl
             if (context.settings().useReactFxAServer) {
-                url = Uri.parse(url)
+                url = url.toUri()
                     .buildUpon()
                     .appendQueryParameter("forceExperiment", "generalizedReactApp")
                     .appendQueryParameter("forceExperimentGroup", "react")

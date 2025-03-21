@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.system.matcher
 import android.net.Uri
 import android.text.TextUtils
 import android.util.JsonReader
+import androidx.core.net.toUri
 import java.util.ArrayList
 
 /**
@@ -32,7 +33,7 @@ internal class Safelist {
      * @param host the resources URI as string ("bar.com")
      */
     fun contains(host: String, resource: String): Boolean {
-        return contains(Uri.parse(host), Uri.parse(resource))
+        return contains(host.toUri(), resource.toUri())
     }
 
     /**

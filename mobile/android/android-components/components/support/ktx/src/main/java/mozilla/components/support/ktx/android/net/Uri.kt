@@ -11,6 +11,7 @@ import android.os.Build
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.sanitizeFileName
 import java.io.File
@@ -153,7 +154,7 @@ fun Uri.toFileUri(context: Context, dirToCopy: String = "/temps"): Uri {
     } catch (e: IOException) {
         Logger("Uri.kt").warn("Could not convert uri to file uri", e)
     }
-    return Uri.parse("file:///${Uri.encode(temporalFile.absolutePath)}")
+    return "file:///${Uri.encode(temporalFile.absolutePath)}".toUri()
 }
 
 @VisibleForTesting

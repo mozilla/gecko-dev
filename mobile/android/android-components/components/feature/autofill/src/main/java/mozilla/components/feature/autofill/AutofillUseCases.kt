@@ -7,11 +7,11 @@ package mozilla.components.feature.autofill
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.view.autofill.AutofillManager
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import mozilla.components.support.base.log.logger.Logger
 
 /**
@@ -65,7 +65,7 @@ class AutofillUseCases(
         }
 
         val intent = Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE)
-        intent.data = Uri.parse("package:${context.packageName}")
+        intent.data = "package:${context.packageName}".toUri()
         context.startActivity(intent)
     }
 

@@ -4,7 +4,7 @@
 
 package mozilla.components.service.fxa
 
-import android.net.Uri
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -107,7 +107,7 @@ class FirefoxAccount internal constructor(
     ) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "begin oauth flow", { null }) {
             val url = inner.beginOAuthFlow(scopes.toTypedArray(), entryPoint.entryName)
-            val state = Uri.parse(url).getQueryParameter("state")!!
+            val state = url.toUri().getQueryParameter("state")!!
             AuthFlowUrl(state, url)
         }
     }
@@ -122,7 +122,7 @@ class FirefoxAccount internal constructor(
         // actual value doesn't matter much)
         handleFxaExceptions(logger, "begin oauth pairing flow", { null }) {
             val url = inner.beginPairingFlow(pairingUrl, scopes.toTypedArray(), entryPoint.entryName)
-            val state = Uri.parse(url).getQueryParameter("state")!!
+            val state = url.toUri().getQueryParameter("state")!!
             AuthFlowUrl(state, url)
         }
     }

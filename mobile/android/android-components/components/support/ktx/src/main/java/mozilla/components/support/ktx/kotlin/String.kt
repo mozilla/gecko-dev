@@ -404,7 +404,7 @@ inline fun <C, R> C?.ifNullOrEmpty(defaultValue: () -> R): C where C : CharSeque
  * For example this method will return "facebook.com" for "https://www.facebook.com/foobar".
  */
 fun String.getRepresentativeSnippet(): String {
-    val uri = Uri.parse(this)
+    val uri = this.toUri()
 
     val host = uri.hostWithoutCommonPrefixes
     if (!host.isNullOrEmpty()) {

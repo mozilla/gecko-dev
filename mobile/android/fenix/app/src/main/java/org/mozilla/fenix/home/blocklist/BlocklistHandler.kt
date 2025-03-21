@@ -4,8 +4,8 @@
 
 package org.mozilla.fenix.home.blocklist
 
-import android.net.Uri
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import mozilla.components.support.ktx.kotlin.sha1
 import org.mozilla.fenix.ext.containsQueryParameters
 import org.mozilla.fenix.home.bookmarks.Bookmark
@@ -62,7 +62,7 @@ class BlocklistHandler(private val settings: Settings) {
     @JvmName("filterContileRecentTab")
     fun List<RecentTab>.filterContile(): List<RecentTab> = filterNot {
         it is RecentTab.Tab &&
-            Uri.parse(it.state.content.url).containsQueryParameters(settings.frecencyFilterQuery)
+            it.state.content.url.toUri().containsQueryParameters(settings.frecencyFilterQuery)
     }
 
     /**
@@ -94,7 +94,7 @@ class BlocklistHandler(private val settings: Settings) {
     @JvmName("filterContileRecentSyncedTab")
     fun RecentSyncedTabState.filterContile() = if (this is RecentSyncedTabState.Success) {
         val filteredTabs = this.tabs.filterNot {
-            Uri.parse(it.url).containsQueryParameters(settings.frecencyFilterQuery)
+            it.url.toUri().containsQueryParameters(settings.frecencyFilterQuery)
         }
         if (filteredTabs.isEmpty()) {
             RecentSyncedTabState.None
@@ -124,7 +124,7 @@ class BlocklistHandler(private val settings: Settings) {
     @JvmName("filterContileRecentlyVisited")
     fun List<RecentlyVisitedItem>.filterContile(): List<RecentlyVisitedItem> = filterNot {
         it is RecentlyVisitedItem.RecentHistoryHighlight &&
-            Uri.parse(it.url).containsQueryParameters(settings.frecencyFilterQuery)
+            it.url.toUri().containsQueryParameters(settings.frecencyFilterQuery)
     }
 
     private fun blocklistContainsUrl(blocklist: Set<String>, url: String): Boolean =

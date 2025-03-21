@@ -4,9 +4,9 @@
 
 package mozilla.components.support.ktx.util
 
-import android.net.Uri
 import android.text.TextUtils
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import androidx.core.text.TextDirectionHeuristicCompat
 import androidx.core.text.TextDirectionHeuristicsCompat
 import java.util.regex.Pattern
@@ -33,9 +33,9 @@ object URLStringUtils {
      */
     fun toNormalizedURL(string: String): String {
         val trimmedInput = string.trim()
-        var uri = Uri.parse(trimmedInput)
+        var uri = trimmedInput.toUri()
         if (TextUtils.isEmpty(uri.scheme)) {
-            uri = Uri.parse("http://$trimmedInput")
+            uri = "http://$trimmedInput".toUri()
         } else {
             uri = uri.normalizeScheme()
         }

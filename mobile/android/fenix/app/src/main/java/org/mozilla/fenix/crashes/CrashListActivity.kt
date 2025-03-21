@@ -5,7 +5,7 @@
 package org.mozilla.fenix.crashes
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.ui.AbstractCrashListActivity
 import org.mozilla.fenix.ext.components
@@ -18,7 +18,7 @@ class CrashListActivity : AbstractCrashListActivity() {
 
     override fun onCrashServiceSelected(url: String) {
         val intent = Intent(Intent.ACTION_VIEW)
-        intent.data = Uri.parse(url)
+        intent.data = url.toUri()
         intent.`package` = packageName
         startActivity(intent)
         finish()

@@ -250,7 +250,7 @@ fun Context.email(
     subject: String = getString(R.string.mozac_support_ktx_share_dialog_title),
 ): Boolean {
     return try {
-        val intent = Intent(ACTION_SENDTO, Uri.parse("mailto:$address"))
+        val intent = Intent(ACTION_SENDTO, "mailto:$address".toUri())
         intent.putExtra(EXTRA_SUBJECT, subject)
 
         val emailIntent = Intent.createChooser(
@@ -281,7 +281,7 @@ fun Context.call(
     subject: String = getString(R.string.mozac_support_ktx_share_dialog_title),
 ): Boolean {
     return try {
-        val intent = Intent(ACTION_DIAL, Uri.parse("tel:$phoneNumber"))
+        val intent = Intent(ACTION_DIAL, "tel:$phoneNumber".toUri())
         intent.putExtra(EXTRA_SUBJECT, subject)
 
         val callIntent = Intent.createChooser(

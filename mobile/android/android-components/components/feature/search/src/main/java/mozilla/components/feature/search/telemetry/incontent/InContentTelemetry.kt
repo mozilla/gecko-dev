@@ -4,8 +4,8 @@
 
 package mozilla.components.feature.search.telemetry.incontent
 
-import android.net.Uri
 import androidx.annotation.VisibleForTesting
+import androidx.core.net.toUri
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.search.telemetry.BaseSearchTelemetry
@@ -49,7 +49,7 @@ class InContentTelemetry : BaseSearchTelemetry() {
     @VisibleForTesting
     internal fun trackPartnerUrlTypeMetric(url: String, cookies: List<JSONObject>) {
         val provider = getProviderForUrl(url) ?: return
-        val uri = Uri.parse(url)
+        val uri = url.toUri()
         val paramSet = uri.queryParameterNames
         val containsQueryParam = provider.queryParamNames?.any { paramSet.contains(it) }
         if (containsQueryParam == false) {

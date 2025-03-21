@@ -6,7 +6,7 @@ package mozilla.components.feature.pwa
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.feature.pwa.ext.putUrlOverride
@@ -54,7 +54,7 @@ class WebAppInterceptor(
      * @param uri target URL for the new intent
      */
     private fun createIntentFromUri(startUrl: String, urlOverride: String = startUrl): Intent {
-        return Intent(WebAppIntentProcessor.ACTION_VIEW_PWA, Uri.parse(startUrl)).apply {
+        return Intent(WebAppIntentProcessor.ACTION_VIEW_PWA, startUrl.toUri()).apply {
             this.addCategory(Intent.CATEGORY_DEFAULT)
             this.putUrlOverride(urlOverride)
         }

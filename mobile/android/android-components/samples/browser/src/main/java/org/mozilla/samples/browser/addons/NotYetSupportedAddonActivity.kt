@@ -5,13 +5,13 @@
 package org.mozilla.samples.browser.addons
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -74,7 +74,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
             recyclerView.adapter = adapter
 
             view.findViewById<View>(R.id.learn_more_label).setOnClickListener {
-                val intent = Intent(Intent.ACTION_VIEW).setData(Uri.parse(LEARN_MORE_URL))
+                val intent = Intent(Intent.ACTION_VIEW).setData(LEARN_MORE_URL.toUri())
                 startActivity(intent)
             }
         }

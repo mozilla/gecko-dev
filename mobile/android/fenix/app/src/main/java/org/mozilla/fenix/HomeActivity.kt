@@ -12,7 +12,6 @@ import android.content.Intent
 import android.content.Intent.ACTION_MAIN
 import android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
 import android.content.res.Configuration
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
@@ -35,6 +34,7 @@ import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.doOnAttach
 import androidx.lifecycle.lifecycleScope
@@ -791,7 +791,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     override fun onProvideAssistContent(outContent: AssistContent?) {
         super.onProvideAssistContent(outContent)
         val currentTabUrl = components.core.store.state.selectedTab?.content?.url
-        outContent?.webUri = currentTabUrl?.let { Uri.parse(it) }
+        outContent?.webUri = currentTabUrl?.let { it.toUri() }
     }
 
     @CallSuper
