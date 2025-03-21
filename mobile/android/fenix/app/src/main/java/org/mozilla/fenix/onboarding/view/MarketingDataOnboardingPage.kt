@@ -82,24 +82,13 @@ fun MarketingDataOnboardingPage(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (state.marketingData?.newLayout == true) {
-                    Spacer(modifier = Modifier.height(70.dp))
+                Image(
+                    painter = painterResource(id = state.imageRes),
+                    contentDescription = null,
+                    modifier = Modifier.height(imageHeight(boxWithConstraintsScope)),
+                )
 
-                    Image(
-                        painter = painterResource(id = state.imageRes),
-                        contentDescription = null,
-                        modifier = Modifier.height(400.dp),
-                    )
-                } else {
-                    // Existing layout without additional space and image height change
-                    Image(
-                        painter = painterResource(id = state.imageRes),
-                        contentDescription = null,
-                        modifier = Modifier.height(imageHeight(boxWithConstraintsScope)),
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-                }
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Text(
                     text = state.title,
@@ -108,9 +97,7 @@ fun MarketingDataOnboardingPage(
                     style = FirefoxTheme.typography.headline5,
                 )
 
-                if (state.marketingData?.newLayout != true) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     modifier = Modifier.padding(horizontal = 20.dp),
@@ -184,10 +171,6 @@ fun MarketingDataOnboardingPage(
                     text = state.primaryButton.text,
                     onClick = { onMarketingDataContinueClick(checkboxChecked) },
                 )
-
-                if (state.marketingData?.newLayout == true) {
-                    Spacer(modifier = Modifier.height(40.dp))
-                }
             }
         }
     }
@@ -210,7 +193,6 @@ private fun MarketingDataOnboardingPagePreview() {
                     bodyOneText = stringResource(id = R.string.onboarding_marketing_learn_more),
                     bodyOneLinkText = stringResource(id = R.string.onboarding_marketing_learn_more),
                     bodyTwoText = stringResource(id = R.string.onboarding_marketing_opt_in_checkbox),
-                    newLayout = false,
                 ),
             ),
             onMarketingDataLearnMoreClick = {},

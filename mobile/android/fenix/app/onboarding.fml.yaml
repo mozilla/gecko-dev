@@ -430,10 +430,6 @@ objects:
         type: Text
         description: The text for line two of the body.
         default: ""
-      new-layout:
-        type: Boolean
-        description: Enables new marketing card layout.
-        default: false
 
 enums:
 
