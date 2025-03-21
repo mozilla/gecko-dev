@@ -326,17 +326,6 @@ pub impl Enum {
             None => format_docstring(&self.js_name(), spaces),
         }
     }
-
-    // Get the discriminant value for a variant at the given index
-    fn variant_discriminant(&self, idx: &usize) -> Result<u64, String> {
-        // We need to return the actual discriminant values from the Rust enum
-        match self.variant_discr(*idx) {
-            Ok(Literal::UInt(v, _, _)) => Ok(v),
-            Ok(Literal::Int(v, _, _)) if v >= 0 => Ok(v as u64),
-            Ok(other) => Err(format!("Unexpected literal type for enum discriminant: {:?}", other)),
-            Err(e) => Err(format!("Failed to get discriminant: {}", e)),
-        }
-    }
 }
 
 #[ext(name=VariantJSExt)]

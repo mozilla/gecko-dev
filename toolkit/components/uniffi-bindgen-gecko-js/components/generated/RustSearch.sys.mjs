@@ -1965,18 +1965,16 @@ export const JsonEngineMethod = {
     /**
      * POST
      */
-    POST: 2,
+    POST: 1,
     /**
      * GET
      */
-    GET: 1,
+    GET: 2,
 };
 
 Object.freeze(JsonEngineMethod);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeJsonEngineMethod extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(JsonEngineMethod);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2005,11 +2003,10 @@ export class FfiConverterTypeJsonEngineMethod extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for JsonEngineMethod`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 2) {
+          throw new UniFFITypeError(`${value} is not a valid value for JsonEngineMethod`);
       }
+    }
 }
 
 
@@ -2103,8 +2100,6 @@ export const SearchApplicationName = {
 Object.freeze(SearchApplicationName);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchApplicationName extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(SearchApplicationName);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2151,11 +2146,10 @@ export class FfiConverterTypeSearchApplicationName extends FfiConverterArrayBuff
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for SearchApplicationName`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 5) {
+          throw new UniFFITypeError(`${value} is not a valid value for SearchApplicationName`);
       }
+    }
 }
 
 
@@ -2181,8 +2175,6 @@ export const SearchDeviceType = {
 Object.freeze(SearchDeviceType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchDeviceType extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(SearchDeviceType);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2217,11 +2209,10 @@ export class FfiConverterTypeSearchDeviceType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for SearchDeviceType`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for SearchDeviceType`);
       }
+    }
 }
 
 
@@ -2233,18 +2224,16 @@ export const SearchEngineClassification = {
     /**
      * GENERAL
      */
-    GENERAL: 2,
+    GENERAL: 1,
     /**
      * UNKNOWN
      */
-    UNKNOWN: 1,
+    UNKNOWN: 2,
 };
 
 Object.freeze(SearchEngineClassification);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchEngineClassification extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(SearchEngineClassification);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2273,11 +2262,10 @@ export class FfiConverterTypeSearchEngineClassification extends FfiConverterArra
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for SearchEngineClassification`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 2) {
+          throw new UniFFITypeError(`${value} is not a valid value for SearchEngineClassification`);
       }
+    }
 }
 
 
@@ -2316,8 +2304,6 @@ export const SearchUpdateChannel = {
 Object.freeze(SearchUpdateChannel);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(SearchUpdateChannel);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2370,11 +2356,10 @@ export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for SearchUpdateChannel`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 6) {
+          throw new UniFFITypeError(`${value} is not a valid value for SearchUpdateChannel`);
       }
+    }
 }
 
 

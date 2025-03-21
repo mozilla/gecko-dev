@@ -1316,22 +1316,20 @@ export const QuotaReason = {
     /**
      * TOTAL_BYTES
      */
-    TOTAL_BYTES: 0,
+    TOTAL_BYTES: 1,
     /**
      * ITEM_BYTES
      */
-    ITEM_BYTES: 1,
+    ITEM_BYTES: 2,
     /**
      * MAX_ITEMS
      */
-    MAX_ITEMS: 2,
+    MAX_ITEMS: 3,
 };
 
 Object.freeze(QuotaReason);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeQuotaReason extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(QuotaReason);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -1366,11 +1364,10 @@ export class FfiConverterTypeQuotaReason extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for QuotaReason`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for QuotaReason`);
       }
+    }
 }
 
 

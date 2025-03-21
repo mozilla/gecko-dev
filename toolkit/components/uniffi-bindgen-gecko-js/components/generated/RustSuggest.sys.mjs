@@ -2217,22 +2217,20 @@ export const AmpMatchingStrategy = {
      * This eliminates keywords that for terms related to the "real" keywords, for example
      * misspellings like "underarmor" instead of "under armor"'.
      */
-    NO_KEYWORD_EXPANSION: 0,
+    NO_KEYWORD_EXPANSION: 1,
     /**
      * Use FTS matching against the full keywords, joined together.
      */
-    FTS_AGAINST_FULL_KEYWORDS: 1,
+    FTS_AGAINST_FULL_KEYWORDS: 2,
     /**
      * Use FTS matching against the title field
      */
-    FTS_AGAINST_TITLE: 2,
+    FTS_AGAINST_TITLE: 3,
 };
 
 Object.freeze(AmpMatchingStrategy);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(AmpMatchingStrategy);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2267,11 +2265,10 @@ export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for AmpMatchingStrategy`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for AmpMatchingStrategy`);
       }
+    }
 }
 
 
@@ -2283,22 +2280,20 @@ export const GeonameMatchType = {
     /**
      * For U.S. states, abbreviations are the usual two-letter codes ("CA").
      */
-    ABBREVIATION: 0,
+    ABBREVIATION: 1,
     /**
      * AIRPORT_CODE
      */
-    AIRPORT_CODE: 1,
+    AIRPORT_CODE: 2,
     /**
      * This includes any names that aren't abbreviations or airport codes.
      */
-    NAME: 2,
+    NAME: 3,
 };
 
 Object.freeze(GeonameMatchType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(GeonameMatchType);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2333,11 +2328,10 @@ export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for GeonameMatchType`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for GeonameMatchType`);
       }
+    }
 }
 
 
@@ -2349,18 +2343,16 @@ export const GeonameType = {
     /**
      * CITY
      */
-    CITY: 0,
+    CITY: 1,
     /**
      * REGION
      */
-    REGION: 1,
+    REGION: 2,
 };
 
 Object.freeze(GeonameType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(GeonameType);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2389,11 +2381,10 @@ export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for GeonameType`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 2) {
+          throw new UniFFITypeError(`${value} is not a valid value for GeonameType`);
       }
+    }
 }
 
 
@@ -2405,23 +2396,21 @@ export const InterruptKind = {
     /**
      * Interrupt read operations like [SuggestStore::query]
      */
-    READ: 0,
+    READ: 1,
     /**
      * Interrupt write operations.  This mostly means [SuggestStore::ingest], but
      * [SuggestStore::dismiss_suggestion] may also be interrupted.
      */
-    WRITE: 1,
+    WRITE: 2,
     /**
      * Interrupt both read and write operations,
      */
-    READ_WRITE: 2,
+    READ_WRITE: 3,
 };
 
 Object.freeze(InterruptKind);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(InterruptKind);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -2456,11 +2445,10 @@ export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for InterruptKind`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 3) {
+          throw new UniFFITypeError(`${value} is not a valid value for InterruptKind`);
       }
+    }
 }
 
 
@@ -2634,9 +2622,8 @@ SuggestProviderConfig.Weather = class extends SuggestProviderConfig{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuffer {
     static read(dataStream) {
-        // Match Python's approach: wire format uses 1-based sequential indices
         switch (dataStream.readInt32()) {
-            case 1: // Use 1-based index like Python
+            case 1:
                 return new SuggestProviderConfig.Weather(
                     FfiConverterF64.read(dataStream),
                     FfiConverterI32.read(dataStream)
@@ -2668,7 +2655,7 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
     }
 
     static checkType(value) {
-      if (value === undefined || value === null || !(value instanceof SuggestProviderConfig)) {
+      if (!(value instanceof SuggestProviderConfig)) {
         throw new UniFFITypeError(`${value} is not a subclass instance of SuggestProviderConfig`);
       }
     }
@@ -2887,9 +2874,8 @@ Suggestion.Exposure = class extends Suggestion{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
     static read(dataStream) {
-        // Match Python's approach: wire format uses 1-based sequential indices
         switch (dataStream.readInt32()) {
-            case 1: // Use 1-based index like Python
+            case 1:
                 return new Suggestion.Amp(
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
@@ -2906,14 +2892,14 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterF64.read(dataStream),
                     FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
                     );
-            case 2: // Use 1-based index like Python
+            case 2:
                 return new Suggestion.Pocket(
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
                     FfiConverterF64.read(dataStream),
                     FfiConverterBool.read(dataStream)
                     );
-            case 3: // Use 1-based index like Python
+            case 3:
                 return new Suggestion.Wikipedia(
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
@@ -2921,7 +2907,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterOptionalstring.read(dataStream),
                     FfiConverterString.read(dataStream)
                     );
-            case 4: // Use 1-based index like Python
+            case 4:
                 return new Suggestion.Amo(
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
@@ -2932,7 +2918,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterString.read(dataStream),
                     FfiConverterF64.read(dataStream)
                     );
-            case 5: // Use 1-based index like Python
+            case 5:
                 return new Suggestion.Yelp(
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
@@ -2943,14 +2929,14 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterBool.read(dataStream),
                     FfiConverterString.read(dataStream)
                     );
-            case 6: // Use 1-based index like Python
+            case 6:
                 return new Suggestion.Mdn(
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
                     FfiConverterF64.read(dataStream)
                     );
-            case 7: // Use 1-based index like Python
+            case 7:
                 return new Suggestion.Weather(
                     FfiConverterOptionalstring.read(dataStream),
                     FfiConverterOptionalstring.read(dataStream),
@@ -2959,7 +2945,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterOptionalf64.read(dataStream),
                     FfiConverterF64.read(dataStream)
                     );
-            case 8: // Use 1-based index like Python
+            case 8:
                 return new Suggestion.Fakespot(
                     FfiConverterString.read(dataStream),
                     FfiConverterString.read(dataStream),
@@ -2972,7 +2958,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterF64.read(dataStream),
                     FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
                     );
-            case 9: // Use 1-based index like Python
+            case 9:
                 return new Suggestion.Exposure(
                     FfiConverterString.read(dataStream),
                     FfiConverterF64.read(dataStream)
@@ -3178,7 +3164,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (value === undefined || value === null || !(value instanceof Suggestion)) {
+      if (!(value instanceof Suggestion)) {
         throw new UniFFITypeError(`${value} is not a subclass instance of Suggestion`);
       }
     }
@@ -3231,8 +3217,6 @@ export const SuggestionProvider = {
 Object.freeze(SuggestionProvider);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(SuggestionProvider);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -3303,11 +3287,10 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for SuggestionProvider`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 9) {
+          throw new UniFFITypeError(`${value} is not a valid value for SuggestionProvider`);
       }
+    }
 }
 
 

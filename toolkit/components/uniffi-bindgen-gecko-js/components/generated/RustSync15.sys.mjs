@@ -311,34 +311,32 @@ export const DeviceType = {
     /**
      * DESKTOP
      */
-    DESKTOP: 0,
+    DESKTOP: 1,
     /**
      * MOBILE
      */
-    MOBILE: 1,
+    MOBILE: 2,
     /**
      * TABLET
      */
-    TABLET: 2,
+    TABLET: 3,
     /**
      * VR
      */
-    VR: 3,
+    VR: 4,
     /**
      * TV
      */
-    TV: 4,
+    TV: 5,
     /**
      * UNKNOWN
      */
-    UNKNOWN: 5,
+    UNKNOWN: 6,
 };
 
 Object.freeze(DeviceType);
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
-    static #validValues = Object.values(DeviceType);
-
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
@@ -391,11 +389,10 @@ export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-        // Check that the value is a valid enum variant
-        if (!this.#validValues.includes(value)) {
-            throw new UniFFITypeError(`${value} is not a valid value for DeviceType`);
-        }
+      if (!Number.isInteger(value) || value < 1 || value > 6) {
+          throw new UniFFITypeError(`${value} is not a valid value for DeviceType`);
       }
+    }
 }
 
 
