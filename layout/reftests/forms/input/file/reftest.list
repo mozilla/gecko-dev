@@ -1,8 +1,8 @@
-skip-if(ThreadSanitizer) fuzzy(0-1,0-34) == simple.html chrome://reftest/content/forms/input/file/simple-ref.xhtml
-fuzzy(0-1,0-17) == rtl.html chrome://reftest/content/forms/input/file/rtl-ref.xhtml
-fuzzy(0-1,0-34) == size.html chrome://reftest/content/forms/input/file/simple-ref.xhtml
-fuzzy(0-1,0-10) == background.html chrome://reftest/content/forms/input/file/background-ref.xhtml
-fuzzy-if(gtkWidget,0-1,0-10) == style.html chrome://reftest/content/forms/input/file/style-ref.xhtml
+skip-if(ThreadSanitizer) fuzzy(0-1,0-34) == simple.html simple-ref.html
+fuzzy(0-1,0-17) == rtl.html rtl-ref.html
+fuzzy(0-1,0-34) == size.html simple-ref.html
+fuzzy(0-1,0-10) == background.html background-ref.html
+fuzzy-if(gtkWidget,0-1,0-10) == style.html style-ref.html
 != width-clip.html width-clip-ref.html
 == color-inherit.html color-inherit-ref.html
 fuzzy(0-1,0-5) fuzzy-if(cocoaWidget,0-46,0-134) == dynamic-max-width.html dynamic-max-width-ref.html # bug 1496542 for webrender, bug 1724582 for appleSilicon

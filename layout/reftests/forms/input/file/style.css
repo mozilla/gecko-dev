@@ -1,11 +1,5 @@
 :root { color-scheme: light }
 
-vbox, hbox {
-  margin-top: 8px;
-  margin-left: 8px;
-  display: block;
-}
-
 .file {
   /* Copy of input properties that apply of forms.css below this */
   color: inherit;
@@ -26,7 +20,6 @@ vbox, hbox {
   overflow:hidden;
 
   -moz-appearance: none;
-  -moz-binding: none;
   cursor: default;
   border: none;
   background-color: transparent;
