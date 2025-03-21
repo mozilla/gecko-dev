@@ -38,7 +38,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 
 #include "mozilla/net/NeckoCommon.h"
@@ -584,9 +583,7 @@ Predictor::PredictNative(nsIURI* targetURI, nsIURI* sourceURI,
 
   nsCOMPtr<nsICacheStorage> cacheDiskStorage;
 
-  OriginAttributes oa = originAttributes;
-  StoragePrincipalHelper::UpdateOriginAttributesForNetworkState(uriKey, oa);
-  RefPtr<LoadContextInfo> lci = new LoadContextInfo(false, oa);
+  RefPtr<LoadContextInfo> lci = new LoadContextInfo(false, originAttributes);
 
   nsresult rv = mCacheStorageService->DiskCacheStorage(
       lci, getter_AddRefs(cacheDiskStorage));
@@ -1353,9 +1350,7 @@ Predictor::LearnNative(nsIURI* targetURI, nsIURI* sourceURI,
 
   nsCOMPtr<nsICacheStorage> cacheDiskStorage;
 
-  OriginAttributes oa = originAttributes;
-  StoragePrincipalHelper::UpdateOriginAttributesForNetworkState(uriKey, oa);
-  RefPtr<LoadContextInfo> lci = new LoadContextInfo(false, oa);
+  RefPtr<LoadContextInfo> lci = new LoadContextInfo(false, originAttributes);
 
   rv = mCacheStorageService->DiskCacheStorage(lci,
                                               getter_AddRefs(cacheDiskStorage));
@@ -2294,10 +2289,7 @@ void Predictor::UpdateCacheabilityInternal(
 
   nsCOMPtr<nsICacheStorage> cacheDiskStorage;
 
-  OriginAttributes oa = originAttributes;
-  StoragePrincipalHelper::UpdateOriginAttributesForNetworkState(
-      sourceURI ? sourceURI : targetURI, oa);
-  RefPtr<LoadContextInfo> lci = new LoadContextInfo(false, oa);
+  RefPtr<LoadContextInfo> lci = new LoadContextInfo(false, originAttributes);
 
   rv = mCacheStorageService->DiskCacheStorage(lci,
                                               getter_AddRefs(cacheDiskStorage));

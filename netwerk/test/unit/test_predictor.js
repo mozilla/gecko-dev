@@ -53,14 +53,12 @@ var Verifier = function _verifier(
   testing,
   expected_prefetches,
   expected_preconnects,
-  expected_preresolves,
-  oa
+  expected_preresolves
 ) {
   this.verifying = testing;
   this.expected_prefetches = expected_prefetches;
   this.expected_preconnects = expected_preconnects;
   this.expected_preresolves = expected_preresolves;
-  this.origin_attributes = oa;
 };
 
 Verifier.prototype = {
@@ -69,7 +67,6 @@ Verifier.prototype = {
   expected_prefetches: null,
   expected_preconnects: null,
   expected_preresolves: null,
-  origin_attributes,
 
   getInterface: function verifier_getInterface(iid) {
     return this.QueryInterface(iid);
@@ -101,22 +98,17 @@ Verifier.prototype = {
 
     dump("checking validity of entry for " + uri.spec + "\n");
     var checker = new ValidityChecker(this, status);
-    let loadContextInfo = Services.loadContextInfo.custom(
-      false,
-      this.origin_attributes
-    );
     asyncOpenCacheEntry(
       uri.spec,
       "disk",
       Ci.nsICacheStorage.OPEN_NORMALLY,
-      loadContextInfo,
+      Services.loadContextInfo.default,
       checker
     );
   },
 
   onPredictPreconnect: function verifier_onPredictPreconnect(uri) {
     var origin = extract_origin(uri);
-    dump("onPredictPreconnect " + origin + "\n");
     var index = this.expected_preconnects.indexOf(origin);
     if (index == -1 && !this.complete) {
       Assert.ok(false, "Got preconnect for unexpected uri " + origin);
@@ -178,12 +170,8 @@ var prepListener = {
   },
 };
 
-function open_and_continue(uris, continueCallback, originAttributes = {}) {
-  let loadContextInfo = Services.loadContextInfo.custom(
-    false,
-    originAttributes
-  );
-  var ds = Services.cache2.diskCacheStorage(loadContextInfo);
+function open_and_continue(uris, continueCallback) {
+  var ds = Services.cache2.diskCacheStorage(Services.loadContextInfo.default);
 
   prepListener.init(uris.length, continueCallback);
   for (var i = 0; i < uris.length; ++i) {
@@ -226,10 +214,14 @@ function continue_test_pageload() {
     "http://localhost:4443/jquery.js",
     "http://localhost:4444/image.png",
   ];
-  let oa = { partitionKey: "(http,localhost,4444)" };
 
   // This is necessary to learn the origin stuff
-  predictor.learn(pageload_toplevel, null, predictor.LEARN_LOAD_TOPLEVEL, oa);
+  predictor.learn(
+    pageload_toplevel,
+    null,
+    predictor.LEARN_LOAD_TOPLEVEL,
+    origin_attributes
+  );
   do_timeout(0, () => {
     // allow the learn() to run on the main thread
     var preconns = [];
@@ -239,7 +231,7 @@ function continue_test_pageload() {
       sruri,
       pageload_toplevel,
       predictor.LEARN_LOAD_SUBRESOURCE,
-      oa
+      origin_attributes
     );
     do_timeout(0, () => {
       preconns.push(extract_origin(sruri));
@@ -249,7 +241,7 @@ function continue_test_pageload() {
         sruri,
         pageload_toplevel,
         predictor.LEARN_LOAD_SUBRESOURCE,
-        oa
+        origin_attributes
       );
       do_timeout(0, () => {
         preconns.push(extract_origin(sruri));
@@ -259,17 +251,17 @@ function continue_test_pageload() {
           sruri,
           pageload_toplevel,
           predictor.LEARN_LOAD_SUBRESOURCE,
-          oa
+          origin_attributes
         );
         do_timeout(0, () => {
           preconns.push(extract_origin(sruri));
 
-          var verifier = new Verifier("pageload", [], preconns, [], oa);
+          var verifier = new Verifier("pageload", [], preconns, []);
           predictor.predict(
             pageload_toplevel,
             null,
             predictor.PREDICT_LOAD,
-            oa,
+            origin_attributes,
             verifier
           );
         });
@@ -279,17 +271,13 @@ function continue_test_pageload() {
 }
 
 function test_pageload() {
-  open_and_continue(
-    [pageload_toplevel],
-    function () {
-      if (running_single_process) {
-        continue_test_pageload();
-      } else {
-        sendCommand("continue_test_pageload();");
-      }
-    },
-    { partitionKey: "(http,localhost,4444)" }
-  );
+  open_and_continue([pageload_toplevel], function () {
+    if (running_single_process) {
+      continue_test_pageload();
+    } else {
+      sendCommand("continue_test_pageload();");
+    }
+  });
 }
 
 const redirect_inituri = newURI("http://localhost:4443/redirect");
@@ -474,8 +462,12 @@ function continue_test_origin() {
     "http://localhost:4443/jquery.js",
     "http://localhost:4444/image.png",
   ];
-  let oa = { partitionKey: "(http,localhost,4444)" };
-  predictor.learn(origin_toplevel, null, predictor.LEARN_LOAD_TOPLEVEL, oa);
+  predictor.learn(
+    origin_toplevel,
+    null,
+    predictor.LEARN_LOAD_TOPLEVEL,
+    origin_attributes
+  );
   do_timeout(0, () => {
     var preconns = [];
 
@@ -484,7 +476,7 @@ function continue_test_origin() {
       sruri,
       origin_toplevel,
       predictor.LEARN_LOAD_SUBRESOURCE,
-      oa
+      origin_attributes
     );
     do_timeout(0, () => {
       var origin = extract_origin(sruri);
@@ -497,7 +489,7 @@ function continue_test_origin() {
         sruri,
         origin_toplevel,
         predictor.LEARN_LOAD_SUBRESOURCE,
-        oa
+        origin_attributes
       );
       do_timeout(0, () => {
         var origin1 = extract_origin(sruri);
@@ -510,7 +502,7 @@ function continue_test_origin() {
           sruri,
           origin_toplevel,
           predictor.LEARN_LOAD_SUBRESOURCE,
-          oa
+          origin_attributes
         );
         do_timeout(0, () => {
           var origin2 = extract_origin(sruri);
@@ -524,7 +516,7 @@ function continue_test_origin() {
             loaduri,
             null,
             predictor.PREDICT_LOAD,
-            oa,
+            origin_attributes,
             verifier
           );
         });
@@ -546,7 +538,6 @@ function test_origin() {
 var httpserv = null;
 var prefetch_tluri;
 var prefetch_sruri;
-var prefetch_oa;
 
 function prefetchHandler(metadata, response) {
   response.setStatusLine(metadata.httpVersion, 200, "OK");
@@ -598,14 +589,10 @@ function test_prefetch_setup() {
   var sruri = "http://127.0.0.1:" + httpserv.identity.primaryPort + "/cat.jpg";
   prefetch_tluri = newURI(tluri);
   prefetch_sruri = newURI(sruri);
-  prefetch_oa = {
-    partitionKey: "(http,127.0.0.1," + httpserv.identity.primaryPort + ")",
-  };
   if (!running_single_process && !is_child_process()) {
     // Give the child process access to these values
     sendCommand('prefetch_tluri = newURI("' + tluri + '");');
     sendCommand('prefetch_sruri = newURI("' + sruri + '");');
-    sendCommand('prefetch_oa = { partitionKey: "' + prefetch_oa + '";');
   }
 
   run_next_test();
@@ -623,50 +610,42 @@ function test_prefetch_prime() {
     return;
   }
 
-  open_and_continue(
-    [prefetch_tluri],
-    function () {
-      if (running_single_process) {
-        predictor.learn(
-          prefetch_tluri,
-          null,
-          predictor.LEARN_LOAD_TOPLEVEL,
-          prefetch_oa
-        );
-        predictor.learn(
-          prefetch_sruri,
-          prefetch_tluri,
-          predictor.LEARN_LOAD_SUBRESOURCE,
-          prefetch_oa
-        );
-      } else {
-        sendCommand(
-          "predictor.learn(prefetch_tluri, null, predictor.LEARN_LOAD_TOPLEVEL, prefetch_oa);"
-        );
-        sendCommand(
-          "predictor.learn(prefetch_sruri, prefetch_tluri, predictor.LEARN_LOAD_SUBRESOURCE, prefetch_oa);"
-        );
-      }
-    },
-    prefetch_oa
-  );
+  open_and_continue([prefetch_tluri], function () {
+    if (running_single_process) {
+      predictor.learn(
+        prefetch_tluri,
+        null,
+        predictor.LEARN_LOAD_TOPLEVEL,
+        origin_attributes
+      );
+      predictor.learn(
+        prefetch_sruri,
+        prefetch_tluri,
+        predictor.LEARN_LOAD_SUBRESOURCE,
+        origin_attributes
+      );
+    } else {
+      sendCommand(
+        "predictor.learn(prefetch_tluri, null, predictor.LEARN_LOAD_TOPLEVEL, origin_attributes);"
+      );
+      sendCommand(
+        "predictor.learn(prefetch_sruri, prefetch_tluri, predictor.LEARN_LOAD_SUBRESOURCE, origin_attributes);"
+      );
+    }
 
-  var channel = NetUtil.newChannel({
-    uri: prefetch_sruri.asciiSpec,
-    loadUsingSystemPrincipal: true,
-  }).QueryInterface(Ci.nsIHttpChannel);
-  channel.requestMethod = "GET";
-  channel.referrerInfo = new ReferrerInfo(
-    Ci.nsIReferrerInfo.EMPTY,
-    true,
-    prefetch_tluri
-  );
-  let cookieJarSettings = Cc["@mozilla.org/cookieJarSettings;1"].createInstance(
-    Ci.nsICookieJarSettings
-  );
-  cookieJarSettings.initWithURI(prefetch_tluri, false);
-  channel.loadInfo.cookieJarSettings = cookieJarSettings;
-  channel.asyncOpen(prefetchListener);
+    // This runs in the parent or only process
+    var channel = NetUtil.newChannel({
+      uri: prefetch_sruri.asciiSpec,
+      loadUsingSystemPrincipal: true,
+    }).QueryInterface(Ci.nsIHttpChannel);
+    channel.requestMethod = "GET";
+    channel.referrerInfo = new ReferrerInfo(
+      Ci.nsIReferrerInfo.EMPTY,
+      true,
+      prefetch_tluri
+    );
+    channel.asyncOpen(prefetchListener);
+  });
 }
 
 function test_prefetch() {
@@ -690,12 +669,12 @@ function test_prefetch() {
 
 function continue_test_prefetch() {
   var prefetches = [prefetch_sruri.asciiSpec];
-  var verifier = new Verifier("prefetch", prefetches, [], [], prefetch_oa);
+  var verifier = new Verifier("prefetch", prefetches, [], []);
   predictor.predict(
     prefetch_tluri,
     null,
     predictor.PREDICT_LOAD,
-    prefetch_oa,
+    origin_attributes,
     verifier
   );
 }
