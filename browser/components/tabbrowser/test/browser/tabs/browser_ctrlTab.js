@@ -151,11 +151,11 @@ add_task(async function () {
   {
     info("Bug 1731050: test hidden tabs");
     checkTabs(1);
-    await BrowserTestUtils.addTab(gBrowser);
-    await BrowserTestUtils.addTab(gBrowser);
-    await BrowserTestUtils.addTab(gBrowser);
-    await BrowserTestUtils.addTab(gBrowser);
-    FirefoxViewHandler.tab = await BrowserTestUtils.addTab(gBrowser);
+    BrowserTestUtils.addTab(gBrowser);
+    BrowserTestUtils.addTab(gBrowser);
+    BrowserTestUtils.addTab(gBrowser);
+    BrowserTestUtils.addTab(gBrowser);
+    FirefoxViewHandler.tab = BrowserTestUtils.addTab(gBrowser);
 
     gBrowser.hideTab(FirefoxViewHandler.tab);
     FirefoxViewHandler.openTab();
@@ -201,8 +201,8 @@ add_task(async function () {
       set: [["browser.pagethumbnails.capturing_disabled", false]],
     });
 
-    await BrowserTestUtils.addTab(gBrowser);
-    await BrowserTestUtils.addTab(gBrowser);
+    BrowserTestUtils.addTab(gBrowser);
+    BrowserTestUtils.addTab(gBrowser);
 
     let tab = await BrowserTestUtils.openNewForegroundTab(
       gBrowser,
