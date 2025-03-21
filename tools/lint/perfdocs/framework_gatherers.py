@@ -495,14 +495,9 @@ class MozperftestGatherer(FrameworkGatherer):
             test_list = test_manifest.active_tests(exists=False, disabled=True)
             for test in test_list:
                 si = ScriptInfo(test["path"])
-                if si["name"].endswith(".js"):
-                    cleaned_name = si["name"]
-                else:
-                    cleaned_name = si["name"].replace(".", "")
-
-                self.script_infos[cleaned_name] = si
+                self.script_infos[si["name"].replace(".", "")] = si
                 self._test_list.setdefault(suite_name.replace("\\", "/"), {}).update(
-                    {cleaned_name: {"path": str(path)}}
+                    {si["name"].replace(".", ""): {"path": str(path)}}
                 )
 
         return self._test_list

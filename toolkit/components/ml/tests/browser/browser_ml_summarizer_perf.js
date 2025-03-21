@@ -50,7 +50,7 @@ for (const model of [distilBartModel, qwenModel]) {
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "browser_ml_summarizer_perf.js",
+  name: "ML Summarizer Model",
   description: "Template test for latency for Summarizer model",
   options: {
     default: {

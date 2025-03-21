@@ -61,7 +61,7 @@ for (const model of [smollm2Model]) {
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "browser_ml_llama_summarizer_perf.js",
+  name: "ML Llama Summarizer Model",
   description:
     "Template test for latency for Summarizer model using Llama.cpp WASM",
   options: {

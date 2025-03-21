@@ -81,7 +81,7 @@ for (let metric of METRICS) {
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "browser_ml_engine_multi_perf.js",
+  name: "ML Test Multi Model",
   description: "Testing model execution concurrently",
   options: {
     default: {

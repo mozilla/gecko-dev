@@ -4,7 +4,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "browser_ml_autofill_perf.js",
+  name: "ML Autofill Model",
   description: "Template test for latency for ML Autofill model",
   options: {
     default: {

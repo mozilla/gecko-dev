@@ -4,7 +4,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "browser_ml_smart_tab_perf.js",
+  name: "ML Smart Tab Model",
   description: "Testing Smart Tab Models",
   options: {
     default: {
