@@ -3389,8 +3389,12 @@ nsresult nsNavHistoryFolderResultNode::OnItemMoved(
     // an add because that will lose your tree state.
 
     // adjust bookmark indices
-    ReindexRange(aOldIndex + 1, INT32_MAX, -1);
-    ReindexRange(aNewIndex, INT32_MAX, 1);
+    int32_t maxIndex = std::max(node->mBookmarkIndex, aNewIndex);
+    // When moving multiple bookmarks, we are notified one bookmark at a time.
+    // Since previously moved bookmarks may have shifted this bookmark's index,
+    // we can't trust the passed-in oldIndex.
+    ReindexRange(node->mBookmarkIndex + 1, maxIndex, -1);
+    ReindexRange(aNewIndex, maxIndex, 1);
 
     MOZ_ASSERT(node, "Can't find folder that is moving!");
     if (!node) {

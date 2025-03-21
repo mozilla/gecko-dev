@@ -151,6 +151,8 @@ skip-if = ["verify && debug && os == 'win'"]
 
 ["browser_library_bookmark_clear_visits.js"]
 
+["browser_library_bookmark_move.js"]
+
 ["browser_library_bookmark_pages.js"]
 
 ["browser_library_bulk_tag_bookmarks.js"]
