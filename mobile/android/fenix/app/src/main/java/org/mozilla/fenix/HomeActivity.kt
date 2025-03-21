@@ -1269,12 +1269,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         additionalHeaders: Map<String, String>? = null,
     ) {
         val startTime = components.core.engine.profiler?.getProfilerTime()
-        val mode = browsingModeManager.mode
-
-        val private = when (mode) {
-            BrowsingMode.Private -> true
-            BrowsingMode.Normal -> false
-        }
+        val private = browsingModeManager.mode.isPrivate
 
         // In situations where we want to perform a search but have no search engine (e.g. the user
         // has removed all of them, or we couldn't load any) we will pass searchTermOrURL to Gecko
@@ -1297,7 +1292,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             }
         } else {
             if (newTab) {
-                val searchUseCase = if (mode.isPrivate) {
+                val searchUseCase = if (private) {
                     components.useCases.searchUseCases.newPrivateTabSearch
                 } else {
                     components.useCases.searchUseCases.newTabSearch
