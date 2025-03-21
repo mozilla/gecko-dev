@@ -1,0 +1,24 @@
+commit e0ed3f234d8038d43db713812adedd2f26a56dd7
+Author: Henrik Skupin <mail@hskupin.info>
+Date:   Tue Jan 21 17:08:36 2025 +0000
+
+    Bug 1934281 - [puppeteer] Skip test "$$eval should handle many elements" which is causing the error summary log to overflow.
+
+diff --git a/remote/test/puppeteer/test/TestExpectations.json b/remote/test/puppeteer/test/TestExpectations.json
+index 1c325a905afa..cc41a5e2c717 100644
+--- a/remote/test/puppeteer/test/TestExpectations.json
++++ b/remote/test/puppeteer/test/TestExpectations.json
+@@ -209,6 +209,13 @@
+     "expectations": ["SKIP"],
+     "comment": "TODO: add a comment explaining why this expectation is required (include links to issues)"
+   },
++  {
++    "testIdPattern": "[ariaqueryhandler.spec] AriaQueryHandler queryAllArray $$eval should handle many elements",
++    "platforms": ["darwin", "linux", "win32"],
++    "parameters": ["firefox", "webDriverBiDi"],
++    "expectations": ["SKIP"],
++    "comment": "Causes to exceed the allowed log size for error summary for CI jobs"
++  },
+   {
+     "testIdPattern": "[ariaqueryhandler.spec] AriaQueryHandler queryOne (Chromium web test) should find by role \"heading\"",
+     "platforms": ["darwin", "linux", "win32"],
