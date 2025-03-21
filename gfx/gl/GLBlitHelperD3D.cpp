@@ -221,7 +221,7 @@ bool GLBlitHelper::BlitDescriptor(const layers::SurfaceDescriptorD3D10& desc,
   if (!d3d) return false;
 
   const auto& gpuProcessTextureId = desc.gpuProcessTextureId();
-  const auto& arrayIndex = desc.arrayIndex();
+  auto arrayIndex = desc.arrayIndex();
   const auto& format = desc.format();
   const auto& clipSize = desc.size();
 
@@ -245,6 +245,7 @@ bool GLBlitHelper::BlitDescriptor(const layers::SurfaceDescriptorD3D10& desc,
           textureMap->GetSharedHandle(gpuProcessTextureId.ref());
       if (handle.isSome()) {
         tex = OpenSharedTexture(d3d, (WindowsHandle)handle.ref());
+        arrayIndex = 0;
       }
     }
   } else if (desc.handle()) {
