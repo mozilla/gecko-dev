@@ -4,6 +4,10 @@
 
 "use strict";
 
+// spawnInNewReaderTab calls SpecialPowers.spawn, which injects ContentTaskUtils
+// in the scope of the callback. Eslint doesn't know about that.
+/* global ContentTaskUtils */
+
 registerCleanupFunction(teardown);
 
 add_task(async function testNarrate() {

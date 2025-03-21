@@ -3,6 +3,10 @@
 
 "use strict";
 
+// runInPage calls ContentTask.spawn, which injects ContentTaskUtils in the
+// scope of the callback. Eslint doesn't know about that.
+/* global ContentTaskUtils */
+
 add_task(async function test_about_translations_language_directions() {
   const { runInPage, cleanup } = await openAboutTranslations({
     languagePairs: [
