@@ -31,6 +31,7 @@ export class ASRouterParentProcessMessageHandler {
       case msg.DOORHANGER_TELEMETRY:
       case msg.SPOTLIGHT_TELEMETRY:
       case msg.MENU_MESSAGE_TELEMETRY:
+      case msg.NEWTAB_MESSAGE_TELEMETRY:
       case msg.TOAST_NOTIFICATION_TELEMETRY: {
         return this.handleTelemetry({ type, data });
       }

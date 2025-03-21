@@ -173,6 +173,11 @@ for (const type of [
   "INIT",
   "INLINE_SELECTION_CLICK",
   "INLINE_SELECTION_IMPRESSION",
+  "MESSAGE_CLICK",
+  "MESSAGE_DISMISS",
+  "MESSAGE_IMPRESSION",
+  "MESSAGE_SET",
+  "MESSAGE_TOGGLE_VISIBILITY",
   "NEW_TAB_INIT",
   "NEW_TAB_INITIAL_STATE",
   "NEW_TAB_LOAD",
@@ -6805,6 +6810,15 @@ const INITIAL_STATE = {
     recentSavesEnabled: false,
     showTopicSelection: false,
   },
+  // Messages received from ASRouter to render in newtab
+  Messages: {
+    // messages received from ASRouter are initially visible
+    isHidden: false,
+    // portID for that tab that was sent the message
+    portID: "",
+    // READONLY Message data received from ASRouter
+    messageData: {},
+  },
   Notifications: {
     showNotifications: false,
     toastCounter: 0,
@@ -7231,6 +7245,24 @@ function Sections(prevState = INITIAL_STATE.Sections, action) {
           ),
         })
       );
+    default:
+      return prevState;
+  }
+}
+
+function Messages(prevState = INITIAL_STATE.Messages, action) {
+  switch (action.type) {
+    case actionTypes.MESSAGE_SET:
+      if (prevState.messageData.messageType) {
+        return prevState;
+      }
+      return {
+        ...prevState,
+        messageData: action.data.message,
+        portID: action.data.portID || "",
+      };
+    case actionTypes.MESSAGE_TOGGLE_VISIBILITY:
+      return { ...prevState, isHidden: action.data };
     default:
       return prevState;
   }
@@ -7681,6 +7713,7 @@ const reducers = {
   Prefs,
   Dialog,
   Sections,
+  Messages,
   Notifications,
   Pocket,
   Personalization: Reducers_sys_Personalization,
@@ -13920,6 +13953,7 @@ const Base = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Prefs: state.Prefs,
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
+  Messages: state.Messages,
   Notifications: state.Notifications,
   Search: state.Search,
   Wallpapers: state.Wallpapers,

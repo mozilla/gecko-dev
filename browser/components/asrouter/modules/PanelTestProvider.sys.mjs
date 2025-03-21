@@ -1350,6 +1350,17 @@ const MESSAGES = () => [
     },
     testingTriggerContext: "app_menu",
   },
+  {
+    id: "TEST_NEWTAB_MESSAGE",
+    template: "newtab_message",
+    content: {
+      messageType: "CustomWallpaperHighlight",
+    },
+    trigger: {
+      id: "newtabMessageCheck",
+    },
+    groups: [],
+  },
 ];
 
 export const PanelTestProvider = {

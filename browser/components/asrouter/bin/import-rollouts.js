@@ -139,6 +139,10 @@ async function getMessageValidators(skipValidation) {
       "./content-src/templates/OnboardingMessage/MenuMessage.schema.json",
       { common: true }
     ),
+    newtab_message: await getValidator(
+      "./content-src/templates/OnboardingMessage/NewtabMessage.schema.json",
+      { common: true }
+    ),
   };
 
   messageValidators.milestone_message = messageValidators.cfr_doorhanger;
