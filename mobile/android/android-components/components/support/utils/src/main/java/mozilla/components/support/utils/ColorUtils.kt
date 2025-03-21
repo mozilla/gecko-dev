@@ -7,6 +7,7 @@ package mozilla.components.support.utils
 import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.toColorInt
 
 /**
  * Default color for disabled views in normal mode for light and dark theme.
@@ -30,9 +31,9 @@ object ColorUtils {
     @JvmStatic
     fun getDisabledReadableTextColor(@ColorInt backgroundColor: Int): Int {
         return if (isDark(backgroundColor)) {
-            Color.parseColor(LIGHT_GRAY_HEX)
+            LIGHT_GRAY_HEX.toColorInt()
         } else {
-            Color.parseColor(DARK_GRAY_HEX)
+            DARK_GRAY_HEX.toColorInt()
         }
     }
 

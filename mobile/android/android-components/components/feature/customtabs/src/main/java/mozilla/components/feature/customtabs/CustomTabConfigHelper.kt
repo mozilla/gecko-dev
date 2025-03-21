@@ -13,7 +13,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
@@ -57,6 +56,7 @@ import androidx.browser.customtabs.CustomTabsIntent.TOOLBAR_ACTION_BUTTON_ID
 import androidx.browser.customtabs.CustomTabsSessionToken
 import androidx.browser.customtabs.TrustedWebUtils.EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY
 import androidx.core.content.ContextCompat.getColor
+import androidx.core.graphics.toColorInt
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.state.selector.findCustomTab
@@ -406,7 +406,7 @@ fun ColorSchemeParams?.getToolbarContrastColorDisabled(
     } else {
         // When in private mode disabled elements need to have enough contrast to
         // differentiate themselves from the background and also from other enabled elements.
-        Color.parseColor(LIGHT_GRAY_HEX)
+        LIGHT_GRAY_HEX.toColorInt()
     }
 }
 

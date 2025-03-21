@@ -4,8 +4,8 @@
 
 package mozilla.components.concept.engine.manifest
 
-import android.graphics.Color
 import androidx.annotation.ColorInt
+import androidx.core.graphics.toColorInt
 import mozilla.components.concept.engine.manifest.parser.ShareTargetParser
 import mozilla.components.concept.engine.manifest.parser.parseIcons
 import mozilla.components.concept.engine.manifest.parser.serializeEnumName
@@ -138,7 +138,7 @@ private fun parseColor(color: String?): Int? {
     }
 
     return try {
-        Color.parseColor(color)
+        color.toColorInt()
     } catch (e: IllegalArgumentException) {
         null
     }

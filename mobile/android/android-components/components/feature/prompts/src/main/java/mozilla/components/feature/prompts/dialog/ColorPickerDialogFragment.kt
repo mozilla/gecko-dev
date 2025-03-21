@@ -14,6 +14,7 @@ import android.view.View
 import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
+import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.prompts.R
@@ -153,7 +154,7 @@ internal fun Int.toColorItem(selected: Boolean = false): ColorItem {
 
 internal fun String.toColor(): Int {
     return try {
-        Color.parseColor(this)
+        this.toColorInt()
     } catch (e: IllegalArgumentException) {
         Color.BLACK
     }
