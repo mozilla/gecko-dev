@@ -15,7 +15,6 @@ module.exports = {
     Assert: false,
     BrowserTestUtils: false,
     ContentTask: false,
-    ContentTaskUtils: false,
     EventUtils: false,
     IOUtils: false,
     PathUtils: false,
