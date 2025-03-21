@@ -218,6 +218,7 @@ nsDocumentOpenInfo::OnDataAvailable(nsIRequest* request, nsIInputStream* inStr,
   // if we have retarged to the end stream listener, then forward the call....
   // otherwise, don't do anything
 
+  mReceivedData = true;
   nsresult rv = NS_OK;
 
   if (m_targetStreamListener)
@@ -240,9 +241,63 @@ nsDocumentOpenInfo::OnDataFinished(nsresult aStatus) {
   return NS_OK;
 }
 
+/* static */
+nsresult nsDocumentOpenInfo::CheckContentLengthDiscrepancy(
+    nsIRequest* request) {
+  // Blank page with content length discrepancy is allowed
+  if (mReceivedData ||
+      mozilla::StaticPrefs::
+          browser_http_blank_page_with_error_response_enabled()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
+  if (!httpChannel) {
+    return NS_OK;
+  }
+
+  uint64_t decodedBodySize;
+  if (NS_FAILED(httpChannel->GetDecodedBodySize(&decodedBodySize)) ||
+      decodedBodySize != 0) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIURI> uri;
+  if (NS_SUCCEEDED(httpChannel->GetURI(getter_AddRefs(uri))) &&
+      uri->SchemeIs("view-source")) {
+    return NS_OK;
+  }
+
+  uint32_t responseCode = 0;
+  if (NS_SUCCEEDED(httpChannel->GetResponseStatus(&responseCode))) {
+    if (responseCode >= 500) {
+      LOG(
+          ("  Returning NS_ERROR_NET_ERROR_RESPONSE from "
+           "nsDocumentOpenInfo::CheckContentLengthDiscrepancy due to 5xx "
+           "responses with no content"));
+      return NS_ERROR_NET_ERROR_RESPONSE;
+    }
+    if (responseCode >= 400) {
+      LOG(
+          ("  Returning NS_ERROR_NET_EMPTY_RESPONSE from "
+           "nsDocumentOpenInfo::CheckContentLengthDiscrepancy due to 4xx "
+           "responses with no content"));
+      return NS_ERROR_NET_EMPTY_RESPONSE;
+    }
+  }
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsDocumentOpenInfo::OnStopRequest(nsIRequest* request,
                                                 nsresult aStatus) {
   LOG(("[0x%p] nsDocumentOpenInfo::OnStopRequest", this));
+
+  // Bug 1945855 - Show error page for 4xx/5xx responses with no content,
+  // whether the Content-Length header is missing or lying
+  nsresult rv = CheckContentLengthDiscrepancy(request);
+  if (NS_FAILED(rv)) {
+    aStatus = rv;
+  }
 
   if (m_targetStreamListener) {
     nsCOMPtr<nsIStreamListener> listener(m_targetStreamListener);

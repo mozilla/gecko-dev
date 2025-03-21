@@ -17,7 +17,8 @@ async function test_blankPage(
   page,
   expectedL10nID,
   responseStatus,
-  responseStatusText
+  responseStatusText,
+  header = "show" // show (zero content-length), hide (no content-length), or lie (non-empty content-length)
 ) {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.http.blank_page_with_error_response.enabled", false]],
@@ -27,7 +28,7 @@ async function test_blankPage(
   let pageLoaded;
   const uri = `${page}?status=${encodeURIComponent(
     responseStatus
-  )}&message=${encodeURIComponent(responseStatusText)}`;
+  )}&message=${encodeURIComponent(responseStatusText)}&header=${encodeURIComponent(header)}`;
 
   // Simulating loading the page
   await BrowserTestUtils.openNewForegroundTab(
@@ -89,6 +90,46 @@ add_task(async function test_blankPage_5xx() {
   );
 });
 
+add_task(async function test_blankPage_withoutHeader_4xx() {
+  await test_blankPage(
+    BLANK_PAGE,
+    "httpErrorPage-title",
+    400,
+    "Bad Request",
+    "hide"
+  );
+});
+
+add_task(async function test_blankPage_withoutHeader_5xx() {
+  await test_blankPage(
+    BLANK_PAGE,
+    "serverError-title",
+    503,
+    "Service Unavailable",
+    "hide"
+  );
+});
+
+add_task(async function test_blankPage_lyingHeader_4xx() {
+  await test_blankPage(
+    BLANK_PAGE,
+    "httpErrorPage-title",
+    400,
+    "Bad Request",
+    "lie"
+  );
+});
+
+add_task(async function test_blankPage_lyingHeader_5xx() {
+  await test_blankPage(
+    BLANK_PAGE,
+    "serverError-title",
+    503,
+    "Service Unavailable",
+    "lie"
+  );
+});
+
 add_task(async function test_emptyPage_viewSource() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.http.blank_page_with_error_response.enabled", false]],
@@ -96,7 +137,7 @@ add_task(async function test_emptyPage_viewSource() {
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
-    `view-source:${BLANK_PAGE}?status=503&message=Service%20Unavailable`,
+    `view-source:${BLANK_PAGE}?status=503&message=Service%20Unavailable&header=show`,
     true // wait for the load to complete
   );
   let browser = tab.linkedBrowser;

@@ -80,6 +80,11 @@ class nsDocumentOpenInfo : public nsIThreadRetargetableStreamListener {
    */
   nsresult Prepare();
 
+  // Check for a page with empty body + missing/any content-length.
+  // Return NS_ERROR_NET_ERROR_RESPONSE for 5xx and NS_ERROR_NET_EMPTY_RESPONSE
+  // for 4xx, respectively. Otherwise, return NS_OK.
+  nsresult CheckContentLengthDiscrepancy(nsIRequest* request);
+
   // Call this (from OnStartRequest) to attempt to find an nsIStreamListener to
   // take the data off our hands.
   nsresult DispatchContent(nsIRequest* request);
@@ -213,6 +218,13 @@ class nsDocumentOpenInfo : public nsIThreadRetargetableStreamListener {
    * docshell
    */
   bool mAllowListenerConversions = true;
+
+  /**
+   * Tracks whether any data was received in OnDataAvailable.
+   * Used to detect cases where the response has no Content-Length
+   * header and an empty body.
+   */
+  bool mReceivedData = false;
 };
 
 #endif /* nsURILoader_h__ */
