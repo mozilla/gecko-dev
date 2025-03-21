@@ -1064,6 +1064,7 @@ pref("browser.tabs.groups.enabled", true);
 pref("browser.tabs.groups.enabled", false);
 #endif
 pref("browser.tabs.groups.smart.enabled", false);
+pref("browser.tabs.groups.smart.optin", false);
 
 pref("browser.tabs.dragDrop.createGroup.delayMS", 240);
 pref("browser.tabs.dragDrop.expandGroup.delayMS", 350);

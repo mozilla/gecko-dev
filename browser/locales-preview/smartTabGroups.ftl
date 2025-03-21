@@ -26,3 +26,17 @@ tab-group-editor-no-tabs-found =
     .label = As you open similar tabs, { -brand-short-name } will suggest them for this group.
 
 tab-group-suggestions-disclaimer = { -brand-short-name } uses AI to <a data-l10n-name="support">suggest tabs and group names.</a> Some suggestions may be inaccurate.
+
+# This is the label for the User setting for turning on/off Smart Tab Grouping. The label belongs in preferences/preferences.ftl
+settings-tabs-show-group-and-tab-suggestions =
+    .label = Enable tab group name and tab suggestions
+
+# Title appears when user is shown the optin flow to use smart tab grouping
+tab-group-suggestions-optin-title = Suggest more of my tabs
+
+# Message appears when user is shown the optin flow to use smart tab grouping
+tab-group-suggestions-optin-message = { -brand-short-name } uses AI to read your open tabs’ titles and descriptions to suggest more tabs and group names. This happens right on your device.
+
+tab-group-suggestions-optin-title-download = Finding suggestions
+
+tab-group-suggestions-optin-message-download = This may take a moment.
