@@ -4,22 +4,7 @@
 // @ts-check
 
 /**
- * @template P
- * @typedef {import("react-redux").ResolveThunks<P>} ResolveThunks<P>
- */
-
-/**
- * @typedef {Object} StateProps
- * @property {boolean?} isSupportedPlatform
- * @property {PageContext} pageContext
- * @property {string | null} promptEnvRestart
- * @property {(() => void) | undefined} openRemoteDevTools
- */
-
-/**
- * @typedef {StateProps} Props
  * @typedef {import("../../@types/perf").State} StoreState
- * @typedef {import("../../@types/perf").PageContext} PageContext
  */
 
 "use strict";
@@ -27,6 +12,9 @@
 const {
   PureComponent,
   createFactory,
+  createElement: h,
+  Fragment,
+  createRef,
 } = require("resource://devtools/client/shared/vendor/react.mjs");
 const {
   connect,
@@ -50,6 +38,67 @@ const selectors = require("resource://devtools/client/performance-new/store/sele
 const {
   restartBrowserWithEnvironmentVariable,
 } = require("resource://devtools/client/performance-new/shared/browser.js");
+
+/**
+ * This component implements the button that triggers the menu that makes it
+ * possible to show more actions.
+ * @extends {React.PureComponent}
+ */
+class MoreActionsButton extends PureComponent {
+  _menuRef = createRef();
+
+  /**
+   * See the part "Showing the menu" in
+   * https://searchfox.org/mozilla-central/rev/4bacdbc8ac088f2ee516daf42c535fab2bc24a04/toolkit/content/widgets/panel-list/README.stories.md
+   * Strangely our React's type doesn't have the `detail` property for
+   * MouseEvent, so we're defining it manually.
+   * @param {React.MouseEvent & { detail: number }} e
+   */
+  handleClickOrMousedown = e => {
+    // The menu is toggled either for a "mousedown", or for a keyboard enter
+    // (which triggers a "click" event with 0 clicks (detail == 0)).
+    if (this._menuRef.current && (e.type == "mousedown" || e.detail === 0)) {
+      this._menuRef.current.toggle(e.nativeEvent, e.currentTarget);
+    }
+  };
+
+  render() {
+    return h(
+      Fragment,
+      null,
+      Localized(
+        {
+          id: "perftools-menu-more-actions-button",
+          attrs: { title: true },
+        },
+        h("moz-button", {
+          iconsrc: "chrome://global/skin/icons/more.svg",
+          "aria-expanded": "false",
+          "aria-haspopup": "menu",
+          onClick: this.handleClickOrMousedown,
+          onMouseDown: this.handleClickOrMousedown,
+        })
+      ),
+      h(
+        "panel-list",
+        { ref: this._menuRef },
+        h("panel-item", null, "To be continued")
+      )
+    );
+  }
+}
+
+/**
+ * @typedef {import("../../@types/perf").PageContext} PageContext
+ *
+ * @typedef {Object} StateProps
+ * @property {boolean?} isSupportedPlatform
+ * @property {PageContext} pageContext
+ * @property {string | null} promptEnvRestart
+ * @property {(() => void) | undefined} openRemoteDevTools
+ *
+ * @typedef {StateProps} Props
+ */
 
 /**
  * This is the top level component for the about:profiling page. It shares components
@@ -115,9 +164,13 @@ class AboutProfiling extends PureComponent {
 
       div(
         { className: "perf-intro" },
-        h1(
-          { className: "perf-intro-title" },
-          Localized({ id: "perftools-intro-title" })
+        div(
+          { className: "perf-intro-title-bar" },
+          h1(
+            { className: "perf-intro-title" },
+            Localized({ id: "perftools-intro-title" })
+          ),
+          h(MoreActionsButton)
         ),
         div(
           { className: "perf-intro-row" },

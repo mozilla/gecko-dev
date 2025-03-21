@@ -10,6 +10,12 @@
 
 /* Intro */
 
+.perf-intro-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .perf-intro-row {
   margin: 1.7em 0;
   display: flex;
