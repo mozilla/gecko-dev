@@ -3521,4 +3521,12 @@
   <string name="text_field_eye_trailing_icon_default_content_description">顯示隱藏文字</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">清除文字</string>
+  <!--
+    Setup checklist component
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">已完成的任務</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">任務圖示</string>
 </resources>

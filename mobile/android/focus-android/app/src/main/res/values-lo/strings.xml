@@ -56,6 +56,7 @@
   <string name="menu_about">ກ່ຽວກັບ</string>
   <string name="menu_help">ວິທີໃຊ້</string>
   <string name="menu_rights" moz:removedIn="137">ສິດທິຂອງທ່ານ</string>
+  <string name="menu_terms_of_use">ເງື່ອນໄຂການນໍາໃຊ້</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.

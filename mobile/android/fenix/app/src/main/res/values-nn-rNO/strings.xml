@@ -362,6 +362,8 @@
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Lesevising, Omset, Rapporter øydelagd nettstad, Skriv ut, Del, Opne app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_with_translate_without_report_site">Lesevising, omset, skriv ut, del, opne app</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_report_site_2">Lesevising, Rapporter øydelagd nettstad, Skriv ut, Del, Opne app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_without_report_site">Lesevising, Skriv ut, Del, Opne app</string>
   <!--
@@ -585,8 +587,12 @@
   <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Blokker annonsar effektivt.</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+  <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Vern mot sporing. Stopp usynlege sporingsmekanismar og annonsar som spionerer på deg.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
+  <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Ser du eit interessant bilde og vil vite meir om det.</string>
   <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -607,10 +613,15 @@
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Hjelp oss med å gjere Firefox betre</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_title">Send inn krasjrapportar automatisk</string>
+  <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Krasjrapporter lèt oss diagnostisere og fikse problem med nettlesaren. Rapportar kan innehalde personlege eller sensitive data.</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Les meir</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_usage_data_title">Send tekniske data og samhandlingsdata til Mozilla</string>
+  <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">Data om eininga di, maskinvarekonfigurasjon, og korleis du brukar Firefox bidreg til å forbetre funksjonar, yting og stabilitet for brukarar overalt.</string>
+  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">Data om eininga di, maskinvarekonfigurasjonen og korleis du brukar Firefox bidreg til å forbetre funksjonar, yting og stabilitet for alle.</string>
   <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Les meir om bruksdata</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Les meir</string>
@@ -634,12 +645,22 @@
   <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Tenestevilkår</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Firefox brukarvilkår</string>
+  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+  <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">Firefox bryr seg om personvernet ditt. Les meir i %1$sa vår.</string>
+  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+  <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Firefox bryr seg om personvernet ditt. Les meir i %1$sa vår.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">Personvernerklæring</string>
+  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">For å hjelpe til med å forbetre nettlesaren sender Firefox diagnose- og interaksjonsdata til Mozilla. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Handsam</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Hjelp oss med å utvikle Firefox</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Når du deler korleis du oppdaga Firefox og at du brukar han, hjelper du oss med å introdusere nettlesaren vår for fleire menneske.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Del minimalt med data med Mozillas marknadsføringsteknologipartnarar. Desse dataa blir aldri selde eller brukte til å vise deg annonsar.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Korleis vi brukar dataa</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
