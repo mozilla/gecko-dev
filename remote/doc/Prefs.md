@@ -52,3 +52,13 @@ content processes should be retried when a browsing context is replaced due
 to cross-origin navigation, or made inactive when a page moved into BFCache.
 
 Introduced in Firefox 132, the preference is set to `true` by default.
+
+### `remote.system-access-check.enabled`
+
+Temporary preference to allow WebDriver clients to disable the system access checks
+when trying to switch with Marionette into chrome scope (parent process) testing.
+
+Instead of switching the preference value, the client should ideally fix the breakage
+by passing `-remote-allow-system-access` as an argument to the Firefox binary.
+
+Introduced in Firefox 138, the preference is set to `true` by default.
