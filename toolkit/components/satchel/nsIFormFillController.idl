@@ -10,7 +10,6 @@ interface nsIAutoCompleteResult;
 webidl Document;
 webidl Element;
 webidl Event;
-webidl HTMLInputElement;
 
 /*
  * nsIFormFillController is an interface for controlling form fill behavior
@@ -25,9 +24,9 @@ webidl HTMLInputElement;
 interface nsIFormFillController : nsISupports
 {
   /*
-   * The input element the form fill controller is currently bound to.
+   * The input or textarea element the form fill controller is currently bound to.
    */
-  readonly attribute HTMLInputElement focusedInput;
+  readonly attribute Element focusedElement;
 
   /*
    * Whether the autocomplete popup on a password field was automatically opened
@@ -39,9 +38,9 @@ interface nsIFormFillController : nsISupports
    * Mark the specified <input> element as being managed by autocomplete entry provider.
    * Autocomplete requests will be handed off to the AutoCompleteChild.
    *
-   * @param aInput - The HTML <input> element to mark
+   * @param aElement - The HTML <input> or <textarea> element to mark
    */
-  [can_run_script] void markAsAutoCompletableField(in HTMLInputElement aInput);
+  [can_run_script] void markAsAutoCompletableField(in Element aElement);
 
   /*
    * Open the autocomplete popup, if possible.

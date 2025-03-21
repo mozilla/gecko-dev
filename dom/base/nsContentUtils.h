@@ -2652,10 +2652,11 @@ class nsContentUtils {
    * NOTE: the caller has to make sure autocomplete makes sense for the
    * element's type.
    *
-   * @param aInput the input element to check. NOTE: aInput can't be null.
+   * @param aElement the input or textarea element to check. NOTE: aElement
+   * can't be null.
    * @return whether the input element has autocomplete enabled.
    */
-  static bool IsAutocompleteEnabled(mozilla::dom::HTMLInputElement* aInput);
+  static bool IsAutocompleteEnabled(mozilla::dom::Element* aElement);
 
   enum AutocompleteAttrState : uint8_t {
     eAutocompleteAttrState_Unknown = 1,

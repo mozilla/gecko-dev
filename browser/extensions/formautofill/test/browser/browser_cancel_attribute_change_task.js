@@ -58,7 +58,7 @@ add_task(
             "@mozilla.org/satchel/form-fill-controller;1"
           ].getService(Ci.nsIFormFillController);
           Assert.equal(
-            formFillController.focusedInput?.id,
+            formFillController.focusedElement?.id,
             "address-level1",
             "formFillController has correct focusedInput"
           );

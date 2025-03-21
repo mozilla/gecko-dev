@@ -167,7 +167,7 @@ class HTMLTextAreaElement final : public TextControlElement,
                                 ValidityStateType aType) override;
 
   // Web IDL binding methods
-  void GetAutocomplete(DOMString& aValue);
+  void GetAutocomplete(nsAString& aValue);
   void SetAutocomplete(const nsAString& aValue, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::autocomplete, aValue, aRv);
   }
