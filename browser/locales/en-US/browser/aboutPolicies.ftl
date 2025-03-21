@@ -4,6 +4,9 @@
 
 about-policies-title = Enterprise Policies
 
+aboutpolicies-page-heading =
+  .heading = About Policies
+
 # 'Active' is used to describe the policies that are currently active
 active-policies-tab = Active
 errors-tab = Errors
