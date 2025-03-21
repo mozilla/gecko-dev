@@ -233,6 +233,21 @@ struct BoolStruct {
   bool mValue = false;
 };
 
+RefPtr<CancelableRunnable> QueueTimeoutToMainThread(
+    RefPtr<media::Refcountable<BoolStruct>> aTimedOut) {
+  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
+      "timeout", [&] { aTimedOut->mValue = true; });
+#if defined(MOZ_ASAN)
+  // This can be pretty slow on ASAN builds (bug 1895256)
+  constexpr uint32_t kCATimeout = 25000;
+#else
+  constexpr uint32_t kCATimeout = 10000;
+#endif
+  EXPECT_EQ(NS_OK,
+            NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout));
+  return timer;
+}
+
 RefPtr<ContentAnalysisDiagnosticInfo> ContentAnalysisTest::GetDiagnosticInfo(
     RefPtr<ContentAnalysis> contentAnalysis) {
   dom::AutoJSAPI jsapi;
@@ -408,19 +423,7 @@ nsresult ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
     return rv;
   }
 
-  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
-      "SendRequestsCancelAndExpectResponse timeout", [&] {
-        if (!gotResponse) {
-          timedOut->mValue = true;
-        }
-      });
-#if defined(MOZ_ASAN)
-  // This can be pretty slow on ASAN builds (bug 1895256)
-  constexpr uint32_t kCATimeout = 25000;
-#else
-  constexpr uint32_t kCATimeout = 10000;
-#endif
-  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout);
+  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
 
   // The user action ID should be set by now, whether we set it or not.
   nsAutoCString userActionId;
@@ -539,19 +542,8 @@ void SendRequestAndExpectResponse(
   AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
   MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
       requests, true, callback));
-  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
-      "SendRequestAndExpectResponse timeout", [&] {
-        if (!gotResponse.load() && !gotAcknowledgement.load()) {
-          timedOut->mValue = true;
-        }
-      });
-#if defined(MOZ_ASAN)
-  // This can be pretty slow on ASAN builds (bug 1895256)
-  constexpr uint32_t kCATimeout = 25000;
-#else
-  constexpr uint32_t kCATimeout = 10000;
-#endif
-  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout);
+  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
+
   mozilla::SpinEventLoopUntil(
       "Waiting for ContentAnalysis result"_ns, [&, timedOut]() {
         if (timedOut->mValue) {
@@ -633,19 +625,8 @@ void SendRequestAndExpectNoAgentResponse(
   AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
   MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
       requests, false, callback));
-  RefPtr<CancelableRunnable> timer =
-      NS_NewCancelableRunnableFunction("Content Analysis timeout", [&] {
-        if (!gotResponse.load()) {
-          timedOut->mValue = true;
-        }
-      });
-#if defined(MOZ_ASAN)
-  // This can be pretty slow on ASAN builds (bug 1895256)
-  constexpr uint32_t kCATimeout = 25000;
-#else
-  constexpr uint32_t kCATimeout = 10000;
-#endif
-  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout);
+
+  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
   mozilla::SpinEventLoopUntil(
       "Waiting for ContentAnalysis result"_ns,
       [&, timedOut]() { return gotResponse.load() || timedOut->mValue; });
@@ -661,19 +642,6 @@ nsCOMPtr<nsIFile> GetFileFromLocalDirectory(const std::wstring& filename) {
   nsString relativePath(filename.c_str(), filename.length());
   MOZ_ALWAYS_SUCCEEDS(file->AppendRelativePath(relativePath));
   return file;
-}
-
-void YieldMainThread(uint32_t timeInMs) {
-  std::atomic<bool> timeExpired = false;
-  // The timer gets cleared on the main thread, so we need to yield the main
-  // thread for this to work
-  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
-      "Content Analysis yielding", [&] { timeExpired = true; });
-  // Wait for longer than the cache timeout
-  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), timeInMs);
-  mozilla::SpinEventLoopUntil("Waiting for Content Analysis yielding"_ns,
-                              [&]() { return timeExpired.load(); });
-  timer->Cancel();
 }
 
 TEST_F(ContentAnalysisTest, SendAllowedTextToAgent_GetAllowedResponse) {
@@ -1003,18 +971,8 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
       Some(false) /* expectIsCached */);
 
   // The request returns before the ack is sent.  Give it some time to catch up.
-  bool hitTimeout = false;
-  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
-      "SendRequestsCancelAndExpectResponse timeout",
-      [&] { hitTimeout = true; });
-
-#if defined(MOZ_ASAN)
-  // This can be pretty slow on ASAN builds (bug 1895256)
-  constexpr uint32_t kCATimeoutMs = 25000;
-#else
-  constexpr uint32_t kCATimeoutMs = 10000;
-#endif
-  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeoutMs);
+  RefPtr hitTimeout = MakeRefPtr<media::Refcountable<BoolStruct>>();
+  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(hitTimeout);
 
   mozilla::SpinEventLoopUntil(
       "Waiting for ContentAnalysis acknowledgement"_ns, [&]() {
@@ -1035,11 +993,11 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
             return true;
           }
         }
-        return hitTimeout;
+        return hitTimeout->mValue;
       });
 
   timer->Cancel();
-  EXPECT_FALSE(hitTimeout);
+  EXPECT_FALSE(hitTimeout->mValue);
 
   MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(rawAcknowledgementObserver,
                                               "dlp-acknowledgement-sent-raw"));
@@ -1147,19 +1105,7 @@ TEST_F(ContentAnalysisTest,
         FAIL() << "Got error response";
       });
 
-  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
-      "SendMultipleBatchFilesToAgent_GetResponses timeout", [&] {
-        if (!gotResponse.load()) {
-          timedOut->mValue = true;
-        }
-      });
-#if defined(MOZ_ASAN)
-  // This can be pretty slow on ASAN builds (bug 1895256)
-  constexpr uint32_t kCATimeout = 25000;
-#else
-  constexpr uint32_t kCATimeout = 10000;
-#endif
-  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout);
+  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
 
   mozilla::SpinEventLoopUntil(
       "Waiting for ContentAnalysis results"_ns,
