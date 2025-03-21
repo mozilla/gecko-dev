@@ -115,7 +115,6 @@ add_task(async function test_new_position_notification_card_visibility() {
     set: [
       ["browser.shopping.experience2023.newPositionCard.hasSeen", false],
       ["sidebar.position_start", true],
-      ["browser.shopping.experience2023.autoClose.userEnabled", false],
     ],
   });
   /* First, load a non PDP so that we can then make RC auto open once we
@@ -203,6 +202,8 @@ add_task(async function test_new_position_notification_card_visibility() {
       NON_PDP_PAGE
     );
     await browserLoadedPromise;
+
+    await SidebarController.show("viewReviewCheckerSidebar");
 
     await withReviewCheckerSidebar(async _args => {
       let shoppingContainer = await ContentTaskUtils.waitForCondition(
