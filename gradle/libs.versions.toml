@@ -67,6 +67,7 @@ play-services-fido = "21.1.0"
 protobuf = "4.29.0" # Keep Protobuf in sync with the version used by AppServices.
 
 # Gradle plugins
+kotlin-dsl = "5.2.0"
 protobuf-plugin = "0.9.4"
 scip-java = "0.10.4"
 
@@ -241,6 +242,7 @@ adjust = { group = "com.adjust.sdk", name = "adjust-android", version.ref = "adj
 
 [plugins]
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin"}
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin"}
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-dsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlin-dsl" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp-plugin" }
