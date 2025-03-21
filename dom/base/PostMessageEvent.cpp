@@ -14,7 +14,6 @@
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/RootedDictionary.h"
-#include "mozilla/dom/WindowContext.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -53,13 +52,6 @@ PostMessageEvent::~PostMessageEvent() = default;
 
 // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230, bug 1535398)
 MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP PostMessageEvent::Run() {
-  if (mCallerWindowID) {
-    RefPtr<WindowContext> wc = WindowContext::GetById(mCallerWindowID);
-    if (!wc || !wc->IsCurrent()) {
-      mSource = nullptr;
-    }
-  }
-
   // Note: We don't init this AutoJSAPI with targetWindow, because we do not
   // want exceptions during message deserialization to trigger error events on
   // targetWindow.
