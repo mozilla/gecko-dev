@@ -131,6 +131,9 @@
 
     #elementIndex;
     get elementIndex() {
+      if (!this.visible) {
+        throw new Error("Tab is not visible, so does not have an elementIndex");
+      }
       // Make sure the index is up to date.
       this.container.ariaFocusableItems;
       return this.#elementIndex;

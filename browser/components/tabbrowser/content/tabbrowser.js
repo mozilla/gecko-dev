@@ -805,7 +805,7 @@
     }
 
     pinTab(aTab) {
-      if (aTab.pinned) {
+      if (aTab.pinned || aTab == FirefoxViewHandler.tab) {
         return;
       }
 
@@ -2901,10 +2901,13 @@
       if (tabIndex < 0) {
         return -1;
       }
-      if (tabIndex >= this.tabs.length) {
-        return this.tabContainer.ariaFocusableItems.length;
+      let tab;
+      while ((tab = this.tabs.at(tabIndex)) && !tab.visible) {
+        tabIndex++;
       }
-      return this.tabs.at(tabIndex).elementIndex;
+      return tab?.visible
+        ? tab.elementIndex
+        : this.tabContainer.ariaFocusableItems.length;
     }
 
     /**
@@ -6015,7 +6018,7 @@
      */
     #handleTabMove(aTab, moveActionCallback) {
       let wasFocused = document.activeElement == this.selectedTab;
-      let oldPosition = this.isTab(aTab) && aTab.elementIndex;
+      let oldPosition = this.isTab(aTab) && aTab._tPos;
 
       moveActionCallback();
 
@@ -6040,7 +6043,7 @@
       }
       // Pinning/unpinning vertical tabs, and moving tabs into tab groups, both bypass moveTabTo.
       // We still want to check whether its worth dispatching an event.
-      if (this.isTab(aTab) && oldPosition != aTab.elementIndex) {
+      if (this.isTab(aTab) && oldPosition != aTab._tPos) {
         let evt = document.createEvent("UIEvents");
         evt.initUIEvent("TabMove", true, false, window, oldPosition);
         aTab.dispatchEvent(evt);
