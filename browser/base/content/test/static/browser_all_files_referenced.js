@@ -332,9 +332,6 @@ var allowlist = [
 
   // A QA and dev debug tool.
   { file: "chrome://browser/content/places/interactionsViewer.html" },
-
-  // Referenced by the assorted genai features, not implimented directly yet.
-  { file: "chrome://browser/content/genai/content/model-optin.mjs" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD) {

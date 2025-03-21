@@ -11,6 +11,13 @@
     "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
   );
 
+  ChromeUtils.importESModule(
+    "chrome://browser/content/genai/content/model-optin.mjs",
+    {
+      global: "current",
+    }
+  );
+
   class MozTabbrowserTabGroupMenu extends MozXULElement {
     static COLORS = [
       "blue",
@@ -181,6 +188,12 @@
       </html:moz-button-group>
     `;
 
+    static optinSection = /*html*/ `
+      <html:div
+        id="tab-group-suggestions-optin-container">
+      </html:div>
+    `;
+
     static markup = /*html*/ `
     <panel
         type="arrow"
@@ -248,7 +261,8 @@
       ${this.loadingSection}
       ${this.loadingActions}
       ${this.suggestionsSection}
-      
+      ${this.optinSection}
+
     </panel>
        `;
 
@@ -275,6 +289,8 @@
       EDIT_AI_WITH_NO_SUGGESTIONS: 9,
       LOADING: 10,
       ERROR: 11,
+      // Optin for STG AI
+      OPTIN: 12,
     };
 
     #tabGroupMain;
@@ -308,16 +324,32 @@
     #suggestionsLoadCancel;
     #suggestionsSeparator;
     #smartTabGroupingManager;
+    #suggestionsOptinContainer;
+    #suggestionsOptin;
 
     constructor() {
       super();
-      this.smartTabGroupsEnabled = false;
       XPCOMUtils.defineLazyPreferenceGetter(
         this,
         "smartTabGroupsEnabled",
         "browser.tabs.groups.smart.enabled",
         false,
         this.#onSmartTabGroupsPrefChange.bind(this)
+      );
+
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "smartTabGroupsUserEnabled",
+        "browser.tabs.groups.smart.userEnabled",
+        true,
+        this.#onSmartTabGroupsPrefChange.bind(this)
+      );
+
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "smartTabGroupsOptin",
+        "browser.tabs.groups.smart.optin",
+        false
       );
     }
 
@@ -425,6 +457,35 @@
       this.#suggestionsMessage.iconSrc = icon;
     }
 
+    #initSmartTabGroupsOptin() {
+      this.suggestionState = MozTabbrowserTabGroupMenu.State.OPTIN;
+
+      // Init optin component
+      this.#suggestionsOptin = document.createElement("model-optin");
+      this.#suggestionsOptin.headingL10nId =
+        "tab-group-suggestions-optin-title";
+      this.#suggestionsOptin.messageL10nId =
+        "tab-group-suggestions-optin-message";
+      this.#suggestionsOptin.headingIcon = MozTabbrowserTabGroupMenu.AI_ICON;
+
+      // On Confirm
+      this.#suggestionsOptin.addEventListener("MlModelOptinConfirm", () => {
+        Services.prefs.setBoolPref("browser.tabs.groups.smart.optin", true);
+        this.#handleFirstDownloadAndSuggest();
+      });
+
+      // On Deny
+      this.#suggestionsOptin.addEventListener("MlModelOptinDeny", () => {
+        this.SmartTabGroupingManager.terminateProcess();
+        this.suggestionState = this.createMode
+          ? MozTabbrowserTabGroupMenu.State.CREATE_AI_INITIAL
+          : MozTabbrowserTabGroupMenu.State.EDIT_AI_INITIAL;
+        this.#setFormToDisabled(false);
+      });
+
+      this.#suggestionsOptinContainer.appendChild(this.#suggestionsOptin);
+    }
+
     #initSuggestions() {
       const { SmartTabGroupingManager } = ChromeUtils.importESModule(
         "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs"
@@ -438,8 +499,12 @@
       this.#suggestionButton.iconSrc = this.smartTabGroupsEnabled
         ? MozTabbrowserTabGroupMenu.AI_ICON
         : "";
+
+      // If user has not opted in, show the optin flow
       this.#suggestionButton.addEventListener("click", () => {
-        this.#handleSmartSuggest();
+        !this.smartTabGroupsOptin
+          ? this.#initSmartTabGroupsOptin()
+          : this.#handleSmartSuggest();
       });
 
       // Init Suggestions UI
@@ -485,6 +550,9 @@
       });
       this.#suggestionsSeparator = this.querySelector(
         "#tab-group-suggestions-separator"
+      );
+      this.#suggestionsOptinContainer = this.querySelector(
+        "#tab-group-suggestions-optin-container"
       );
 
       // Init Loading UI
@@ -642,7 +710,7 @@
       this.#panel.openPopup(group.firstChild, {
         position: this.#panelPosition,
       });
-      this.#initMlGroupLabel();
+      this.smartTabGroupsOptin && this.#initMlGroupLabel();
     }
 
     /*
@@ -814,6 +882,50 @@
           checkbox.checked = false;
         });
       this.#selectedSuggestedTabs = [];
+    }
+
+    /**
+     * Set the state of the form to disabled or enabled
+     * @param {boolean} state
+     */
+    #setFormToDisabled(state) {
+      const toolbarButtons =
+        this.#tabGroupMain.querySelectorAll("toolbarbutton");
+
+      toolbarButtons.forEach(button => {
+        button.disabled = state;
+      });
+
+      this.#nameField.disabled = state;
+
+      const swatches = this.#swatchesContainer.querySelectorAll("input");
+      swatches.forEach(input => {
+        input.disabled = state;
+      });
+    }
+
+    async #handleFirstDownloadAndSuggest() {
+      this.#setFormToDisabled(true);
+      this.#suggestionsOptin.isLoading = true;
+      this.#suggestionsOptin.headingL10nId =
+        "tab-group-suggestions-optin-title-download";
+      this.#suggestionsOptin.messageL10nId =
+        "tab-group-suggestions-optin-message-download";
+      this.#suggestionsOptin.headingIcon = "";
+
+      // Init progress with value to show determiniate progress
+      this.#suggestionsOptin.progressStatus = 0;
+      await this.#smartTabGroupingManager.preloadAllModels(prog => {
+        this.#suggestionsOptin.progressStatus = prog.percentage;
+      });
+
+      // Clean up optin UI
+      this.#setFormToDisabled(false);
+      this.#suggestionsOptin.isHidden = true;
+
+      // Continue on with the suggest flow
+      this.#initMlGroupLabel();
+      this.#handleSmartSuggest();
     }
 
     async #handleSmartSuggest() {
@@ -999,6 +1111,7 @@
       this.#selectedSuggestedTabs = [];
       this.#suggestions.innerHTML = "";
       this.#showSmartSuggestionsContainer(false);
+      this.#suggestionsOptinContainer.innerHTML = "";
     }
 
     #renderSuggestionState() {
@@ -1116,6 +1229,12 @@
         // ERROR
         case MozTabbrowserTabGroupMenu.State.ERROR:
           //TODO
+          break;
+
+        case MozTabbrowserTabGroupMenu.State.OPTIN:
+          this.#showSuggestionButton(false);
+          this.#showSuggestionsDisclaimer(false);
+          this.#showDefaultTabGroupActions(false);
           break;
       }
     }
