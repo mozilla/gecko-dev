@@ -188,21 +188,36 @@ interface nsIAsyncShutdownService: nsISupports {
 
   /**
    * Barrier for notification profile-before-change.
+   *
+   * Maps to ShutdownPhase::AppShutdown
    */
   readonly attribute nsIAsyncShutdownClient profileBeforeChange;
 
   /**
    * Barrier for notification profile-change-teardown.
+   *
+   * Maps to ShutdownPhase::AppShutdownTeardown.
    */
   readonly attribute nsIAsyncShutdownClient profileChangeTeardown;
 
   /**
+   * Barrier for notification quit-application.
+   *
+   * Maps to ShutdownPhase::AppShutdownConfirmed.
+   */
+  readonly attribute nsIAsyncShutdownClient appShutdownConfirmed;
+
+  /**
    * Barrier for notification quit-application-granted.
+   *
+   * Deprecated, does not map to any phase in ShutdownPhase.
    */
   readonly attribute nsIAsyncShutdownClient quitApplicationGranted;
 
   /**
    * Barrier for notification profile-before-change-telemetry.
+   *
+   * Maps to ShutdownPhase::AppShutdownTelemetry.
    */
   readonly attribute nsIAsyncShutdownClient sendTelemetry;
 
@@ -211,11 +226,15 @@ interface nsIAsyncShutdownService: nsISupports {
 
   /**
    * Barrier for notification web-workers-shutdown.
+   *
+   * Deprecated, does not map to any phase in ShutdownPhase.
    */
   readonly attribute nsIAsyncShutdownClient webWorkersShutdown;
 
   /**
    * Barrier for notification xpcom-will-shutdown.
+   *
+   * Maps to ShutdownPhase::XPCOMWillShutdown.
    */
   readonly attribute nsIAsyncShutdownClient xpcomWillShutdown;
 

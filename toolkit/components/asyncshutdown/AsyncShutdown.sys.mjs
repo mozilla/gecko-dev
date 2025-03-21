@@ -1092,28 +1092,40 @@ Barrier.prototype = Object.freeze({
 });
 
 // List of well-known phases
-// Ideally, phases should be registered from the component that decides
-// when they start/stop. For compatibility with existing startup/shutdown
-// mechanisms, we register a few phases here.
+// This list must match the pre-defined barriers from nsAsyncShutdownService
+// ctor in order to avoid surprises!
+// While in theory you could add barriers for arbitrary notifications, in
+// practice we use this only during shutdown and there we should use it only
+// for phases that match with phases in ShutdownPhase.h / nsIAppStartup.idl.
+// Not all those phases have a predefined barrier here.
 
-// Parent process
+// Parent process only
 if (!isContent) {
-  AsyncShutdown.profileChangeTeardown = getPhase("profile-change-teardown");
-  AsyncShutdown.profileBeforeChange = getPhase("profile-before-change");
-  AsyncShutdown.sendTelemetry = getPhase("profile-before-change-telemetry");
-}
-
-// Notifications that fire in the parent and content process, but should
-// only have phases in the parent process.
-if (!isContent) {
+  // TODO: No mapping to ShutdownPhase, this barrier should go away.
   AsyncShutdown.quitApplicationGranted = getPhase("quit-application-granted");
+
+  // ShutdownPhase::AppShutdownConfirmed
+  AsyncShutdown.appShutdownConfirmed = getPhase("quit-application");
+
+  // ShutdownPhase::AppShutdownTeardown
+  AsyncShutdown.profileChangeTeardown = getPhase("profile-change-teardown");
+
+  // ShutdownPhase::AppShutdown
+  AsyncShutdown.profileBeforeChange = getPhase("profile-before-change");
+
+  // ShutdownPhase::AppShutdownTelemetry
+  AsyncShutdown.sendTelemetry = getPhase("profile-before-change-telemetry");
 }
 
 // Don't add a barrier for content-child-shutdown because this
 // makes it easier to cause shutdown hangs.
 
 // All processes
+
+// TODO: No mapping to ShutdownPhase, this might go away.
 AsyncShutdown.webWorkersShutdown = getPhase("web-workers-shutdown");
+
+// ShutdownPhase::XPCOMWillShutdown
 AsyncShutdown.xpcomWillShutdown = getPhase("xpcom-will-shutdown");
 
 AsyncShutdown.Barrier = Barrier;

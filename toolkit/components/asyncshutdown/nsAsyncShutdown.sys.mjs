@@ -209,12 +209,14 @@ export function nsAsyncShutdownService() {
 
   for (let _k of [
     // Parent process
+    "quitApplicationGranted",
+    "appShutdownConfirmed",
     "profileBeforeChange",
     "profileChangeTeardown",
-    "quitApplicationGranted",
     "sendTelemetry",
 
     // Child processes
+    // TODO: This seems obsolete from AsyncShutdown.sys.mjs ?
     "contentChildShutdown",
 
     // All processes
