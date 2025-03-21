@@ -4582,6 +4582,22 @@ function undoCloseWindow(aIndex) {
 }
 
 /**
+ * This is a temporary hack to connect a Help menu item for reporting
+ * site issues to the WebCompat team's Site Compatability Reporter
+ * WebExtension, which ships by default and is enabled on pre-release
+ * channels.
+ *
+ * Once we determine if Help is the right place for it, we'll do something
+ * slightly better than this.
+ *
+ * See bug 1690573.
+ */
+function ReportSiteIssue() {
+  let subject = { wrappedJSObject: gBrowser.selectedTab };
+  Services.obs.notifyObservers(subject, "report-site-issue");
+}
+
+/**
  * When the browser is being controlled from out-of-process,
  * e.g. when Marionette or the remote debugging protocol is used,
  * we add a visual hint to the browser UI to indicate to the user

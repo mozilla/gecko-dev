@@ -85,6 +85,9 @@ document.addEventListener(
         case "troubleShooting":
           openTroubleshootingPage();
           break;
+        case "help_reportSiteIssue":
+          ReportSiteIssue();
+          break;
         case "menu_HelpPopup_reportPhishingtoolmenu":
           openUILink(gSafeBrowsing.getReportURL("Phish"), event, {
             triggeringPrincipal:

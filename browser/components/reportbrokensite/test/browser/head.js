@@ -30,6 +30,7 @@ const PREFS = {
   REASON: "ui.new-webcompat-reporter.reason-dropdown",
   SEND_MORE_INFO: "ui.new-webcompat-reporter.send-more-info-link",
   NEW_REPORT_ENDPOINT: "ui.new-webcompat-reporter.new-report-endpoint",
+  REPORT_SITE_ISSUE_ENABLED: "extensions.webcompat-reporter.enabled",
   TOUCH_EVENTS: "dom.w3c_touch_events.enabled",
   USE_ACCESSIBILITY_THEME: "ui.useAccessibilityTheme",
 };
@@ -156,6 +157,14 @@ function ensureReportBrokenSitePreffedOff() {
   Services.prefs.setBoolPref(PREFS.REPORTER_ENABLED, false);
 }
 
+function ensureReportSiteIssuePreffedOn() {
+  Services.prefs.setBoolPref(PREFS.REPORT_SITE_ISSUE_ENABLED, true);
+}
+
+function ensureReportSiteIssuePreffedOff() {
+  Services.prefs.setBoolPref(PREFS.REPORT_SITE_ISSUE_ENABLED, false);
+}
+
 function ensureSendMoreInfoEnabled() {
   Services.prefs.setBoolPref(PREFS.SEND_MORE_INFO, true);
 }
@@ -193,10 +202,6 @@ function isMenuItemDisabled(menuItem, itemDesc) {
   ok(menuItem.disabled, `${itemDesc} menu item is disabled`);
 }
 
-function waitForWebcompatComTab(gBrowser) {
-  return BrowserTestUtils.waitForNewTab(gBrowser, NEW_REPORT_ENDPOINT_TEST_URL);
-}
-
 class ReportBrokenSiteHelper {
   sourceMenu = undefined;
   win = undefined;
@@ -226,18 +231,14 @@ class ReportBrokenSiteHelper {
     return this.openPanel?.hasAttribute("panelopen");
   }
 
-  async click(triggerMenuItem) {
-    const window = triggerMenuItem.ownerGlobal;
-    await EventUtils.synthesizeMouseAtCenter(triggerMenuItem, {}, window);
-  }
-
   async open(triggerMenuItem) {
+    const window = triggerMenuItem.ownerGlobal;
     const shownPromise = BrowserTestUtils.waitForEvent(
       this.mainView,
       "ViewShown"
     );
     const focusPromise = BrowserTestUtils.waitForEvent(this.URLInput, "focus");
-    await this.click(triggerMenuItem);
+    await EventUtils.synthesizeMouseAtCenter(triggerMenuItem, {}, window);
     await shownPromise;
     await focusPromise;
   }
@@ -287,7 +288,7 @@ class ReportBrokenSiteHelper {
   }
 
   async clickSendMoreInfo() {
-    const newTabPromise = waitForWebcompatComTab(this.win.gBrowser);
+    const newTabPromise = this.waitForSendMoreInfoTab();
     EventUtils.synthesizeMouseAtCenter(this.sendMoreInfoLink, {}, this.win);
     const newTab = await newTabPromise;
     const receivedData = await SpecialPowers.spawn(
@@ -564,6 +565,10 @@ class MenuHelper {
     throw new Error("Should be defined in derived class");
   }
 
+  get reportSiteIssue() {
+    throw new Error("Should be defined in derived class");
+  }
+
   get popup() {
     throw new Error("Should be defined in derived class");
   }
@@ -588,31 +593,16 @@ class MenuHelper {
     return isMenuItemHidden(this.reportBrokenSite, this.menuDescription);
   }
 
-  async clickReportBrokenSiteAndAwaitWebCompatTabData() {
-    const newTabPromise = waitForWebcompatComTab(this.win.gBrowser);
-    await this.clickReportBrokenSite();
-    const newTab = await newTabPromise;
-    const receivedData = await SpecialPowers.spawn(
-      newTab.linkedBrowser,
-      [],
-      async function () {
-        await content.wrappedJSObject.messageArrived;
-        return content.wrappedJSObject.message;
-      }
-    );
-
-    this.win.gBrowser.removeCurrentTab();
-    return receivedData;
+  isReportSiteIssueDisabled() {
+    return isMenuItemDisabled(this.reportSiteIssue, this.menuDescription);
   }
 
-  async clickReportBrokenSite() {
-    if (!this.opened) {
-      await this.open();
-    }
-    isMenuItemEnabled(this.reportBrokenSite, this.menuDescription);
-    const rbs = new ReportBrokenSiteHelper(this);
-    await rbs.click(this.reportBrokenSite);
-    return rbs;
+  isReportSiteIssueEnabled() {
+    return isMenuItemEnabled(this.reportSiteIssue, this.menuDescription);
+  }
+
+  isReportSiteIssueHidden() {
+    return isMenuItemHidden(this.reportSiteIssue, this.menuDescription);
   }
 
   async openReportBrokenSite() {
@@ -645,12 +635,48 @@ class AppMenuHelper extends MenuHelper {
     return this.getViewNode("appMenu-report-broken-site-button");
   }
 
+  get reportSiteIssue() {
+    return undefined;
+  }
+
   get popup() {
     return this.win.document.getElementById("appMenu-popup");
   }
 
   async open() {
     await new CustomizableUITestUtils(this.win).openMainMenu();
+  }
+
+  async close() {
+    if (this.opened) {
+      await new CustomizableUITestUtils(this.win).hideMainMenu();
+    }
+  }
+}
+
+class AppMenuHelpSubmenuHelper extends MenuHelper {
+  menuDescription = "AppMenu help sub-menu";
+
+  get reportBrokenSite() {
+    return this.getViewNode("appMenu_help_reportBrokenSite");
+  }
+
+  get reportSiteIssue() {
+    return this.getViewNode("appMenu_help_reportSiteIssue");
+  }
+
+  get popup() {
+    return this.win.document.getElementById("appMenu-popup");
+  }
+
+  async open() {
+    await new CustomizableUITestUtils(this.win).openMainMenu();
+
+    const anchor = this.win.document.getElementById("PanelUI-menu-button");
+    this.win.PanelUI.showHelpView(anchor);
+
+    const appMenuHelpSubview = this.getViewNode("PanelUI-helpView");
+    await BrowserTestUtils.waitForEvent(appMenuHelpSubview, "ViewShown");
   }
 
   async close() {
@@ -669,6 +695,10 @@ class HelpMenuHelper extends MenuHelper {
 
   get reportBrokenSite() {
     return this.win.document.getElementById("help_reportBrokenSite");
+  }
+
+  get reportSiteIssue() {
+    return this.win.document.getElementById("help_reportSiteIssue");
   }
 
   get popup() {
@@ -692,12 +722,6 @@ class HelpMenuHelper extends MenuHelper {
     );
     this.reportBrokenSite.click();
     await shownPromise;
-    return new ReportBrokenSiteHelper(this);
-  }
-
-  async clickReportBrokenSite() {
-    await this.open();
-    this.reportBrokenSite.click();
     return new ReportBrokenSiteHelper(this);
   }
 
@@ -736,6 +760,10 @@ class ProtectionsPanelHelper extends MenuHelper {
     return this.getViewNode("protections-popup-report-broken-site-button");
   }
 
+  get reportSiteIssue() {
+    return undefined;
+  }
+
   get popup() {
     this.win.gProtectionsHandler._initializePopup();
     return this.win.document.getElementById("protections-popup");
@@ -764,6 +792,10 @@ class ProtectionsPanelHelper extends MenuHelper {
 
 function AppMenu(win = window) {
   return new AppMenuHelper(win);
+}
+
+function AppMenuHelpSubmenu(win = window) {
+  return new AppMenuHelpSubmenuHelper(win);
 }
 
 function HelpMenu(win = window) {

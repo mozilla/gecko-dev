@@ -12,7 +12,31 @@
 
 add_common_setup();
 
-add_task(async function testMenus() {
+add_task(async function testAppMenuHelpSubmenuItemIsHidden() {
+  ensureReportBrokenSitePreffedOn();
+  const menu = AppMenuHelpSubmenu();
+  await menu.open();
+  isMenuItemHidden(menu.reportBrokenSite);
+  await menu.close();
+
+  ensureReportBrokenSitePreffedOff();
+  await menu.open();
+  isMenuItemHidden(menu.reportBrokenSite);
+  await menu.close();
+
+  await BrowserTestUtils.withNewTab(REPORTABLE_PAGE_URL, async function () {
+    await menu.open();
+    isMenuItemHidden(menu.reportBrokenSite);
+    await menu.close();
+
+    ensureReportBrokenSitePreffedOn();
+    await menu.open();
+    isMenuItemHidden(menu.reportBrokenSite);
+    await menu.close();
+  });
+});
+
+add_task(async function testOtherMenus() {
   ensureReportBrokenSitePreffedOff();
 
   const appMenu = AppMenu();

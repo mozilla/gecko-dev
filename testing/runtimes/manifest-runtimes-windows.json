@@ -193,6 +193,7 @@
     "browser/extensions/newtab/test/browser/abouthomecache/browser.ini": 10.38,
     "browser/extensions/newtab/test/browser/browser.ini": 52.48,
     "browser/extensions/pdfjs/test/browser.ini": 7.41,
+    "browser/extensions/report-site-issue/test/browser/browser.ini": 10.17,
     "browser/modules/test/browser/browser.ini": 109.91,
     "browser/modules/test/browser/formValidation/browser.ini": 0.78,
     "caps/tests/mochitest/browser.ini": 1.63,
