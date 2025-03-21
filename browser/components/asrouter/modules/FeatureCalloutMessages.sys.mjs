@@ -337,7 +337,7 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType != null",
+        "('browser.tabs.groups.enabled' | preferenceValue) && userPrefs.cfrFeatures && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType != null",
       trigger: {
         id: "tabGroupSaved",
       },
@@ -401,7 +401,7 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType == null",
+        "('browser.tabs.groups.enabled' | preferenceValue) && userPrefs.cfrFeatures && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType == null",
       trigger: {
         id: "tabGroupSaved",
       },
@@ -464,7 +464,7 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType != null",
+        "('browser.tabs.groups.enabled' | preferenceValue) && userPrefs.cfrFeatures && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType != null",
       trigger: {
         id: "tabGroupCreated",
       },
@@ -528,7 +528,7 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType == null",
+        "('browser.tabs.groups.enabled' | preferenceValue) && userPrefs.cfrFeatures && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType == null",
       trigger: {
         id: "tabGroupCreated",
       },
@@ -537,6 +537,130 @@ const MESSAGES = () => {
       },
       skip_in_tests:
         "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    // Appears after a browser restart if Session Restore is disabled, to direct
+    // users to tab groups that were saved automatically. Anchored to the alltabs-button.
+    {
+      id: "SESSION_RESTORE_TAB_GROUP_CALLOUT",
+      template: "feature_callout",
+      groups: [],
+      content: {
+        id: "SESSION_RESTORE_TAB_GROUP_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "SESSION_RESTORE_TAB_GROUP_CALLOUT_ALLTABS_BUTTON",
+            anchors: [
+              {
+                selector: "#alltabs-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              padding: 16,
+              width: "330px",
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 16px",
+                alignment: "top",
+              },
+              title: {
+                string_id: "tab-groups-onboarding-session-restore-title",
+              },
+              primary_button: {
+                label: {
+                  string_id: "tab-groups-onboarding-dismiss",
+                },
+                action: {
+                  dismiss: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "('browser.tabs.groups.enabled' | preferenceValue) && userPrefs.cfrFeatures && previousSessionEnd && ('browser.startup.page' | preferenceValue != 3) && savedTabGroups >= 1 && alltabsButtonAreaType != null",
+      trigger: {
+        id: "defaultBrowserCheck",
+      },
+      priority: 2,
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests: "not tested in automation",
+    },
+    // Appears after a browser restart if Session Restore is disabled, to direct
+    // users to tab groups that were saved automatically, for users who have
+    // removed the alltabs button. Anchored to the urlbar.
+    {
+      id: "SESSION_RESTORE_TAB_GROUP_CALLOUT",
+      template: "feature_callout",
+      groups: [],
+      content: {
+        id: "SESSION_RESTORE_TAB_GROUP_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "SESSION_RESTORE_TAB_GROUP_CALLOUT_URLBAR",
+            anchors: [
+              {
+                selector: ".urlbar-input-box",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topcenter",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              padding: 16,
+              width: "330px",
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 16px",
+                alignment: "top",
+              },
+              title: {
+                string_id:
+                  "tab-groups-onboarding-saved-groups-no-alltabs-button-title-2",
+              },
+              primary_button: {
+                label: {
+                  string_id: "tab-groups-onboarding-dismiss",
+                },
+                action: {
+                  dismiss: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "('browser.tabs.groups.enabled' | preferenceValue) && userPrefs.cfrFeatures && previousSessionEnd && ('browser.startup.page' | preferenceValue != 3) && savedTabGroups >= 1 && alltabsButtonAreaType == null",
+      trigger: {
+        id: "defaultBrowserCheck",
+      },
+      priority: 2,
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests: "not tested in automation",
     },
     {
       id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
