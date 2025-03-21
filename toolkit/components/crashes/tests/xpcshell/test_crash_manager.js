@@ -286,7 +286,7 @@ add_task(async function test_main_crash_event_file() {
     TelemetrySessionId: sessionId,
     MinidumpSha256Hash: sha256Hash,
     StackTraces: stackTraces,
-    ThisShouldNot: "end-up-in-the-ping",
+    TestKey: "this-should-not-end-up-in-the-ping",
   });
 
   await m.createEventsFile(
@@ -327,7 +327,7 @@ add_task(async function test_main_crash_event_file() {
     "The saved environment should be present"
   );
   Assert.equal(
-    found.payload.metadata.ThisShouldNot,
+    found.payload.metadata.TestKey,
     undefined,
     "Non-allowed fields should be filtered out"
   );
@@ -732,7 +732,7 @@ add_task(async function test_child_process_crash_ping() {
       StackTraces: stackTraces,
       MinidumpSha256Hash: sha256Hash,
       ipc_channel_error: "ShutDownKill",
-      ThisShouldNot: "end-up-in-the-ping",
+      TestKey: "this-should-not-end-up-in-the-ping",
     });
     await m._pingPromise;
 
@@ -753,7 +753,7 @@ add_task(async function test_child_process_crash_ping() {
     );
 
     Assert.equal(
-      found.payload.metadata.ThisShouldNot,
+      found.payload.metadata.TestKey,
       undefined,
       "Non-allowed fields should be filtered out"
     );
@@ -776,7 +776,7 @@ add_task(async function test_child_process_crash_ping() {
     await m.addCrash(p, m.CRASH_TYPE_CRASH, id, DUMMY_DATE, {
       StackTraces: stackTraces,
       MinidumpSha256Hash: sha256Hash,
-      ThisShouldNot: "end-up-in-the-ping",
+      TestKey: "this-should-not-end-up-in-the-ping",
     });
     await m._pingPromise;
 
