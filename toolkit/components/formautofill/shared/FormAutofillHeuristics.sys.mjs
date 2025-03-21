@@ -943,6 +943,11 @@ export const FormAutofillHeuristics = {
       fieldNames = fieldNames.filter(name =>
         FIELDNAMES_FOR_SELECT_ELEMENT.includes(name)
       );
+    } else if (HTMLTextAreaElement.isInstance(element)) {
+      const FIELDNAMES_FOR_TEXT_AREA_ELEMENT = ["street-address"];
+      fieldNames = fieldNames.filter(name =>
+        FIELDNAMES_FOR_TEXT_AREA_ELEMENT.includes(name)
+      );
     }
 
     return fieldNames;
@@ -1050,6 +1055,7 @@ export const FormAutofillHeuristics = {
 
     // Find a matched field name using regexp-based heuristics
     const matchedFieldNames = this._findMatchedFieldNames(element, fields);
+
     return [matchedFieldNames, inferredInfo];
   },
 
