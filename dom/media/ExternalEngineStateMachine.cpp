@@ -1022,10 +1022,10 @@ void ExternalEngineStateMachine::OnLoadedFirstFrame() {
   AssertOnTaskQueue();
   // We will wait until receive the first video frame.
   if (mInfo->HasVideo() && !mHasReceivedFirstDecodedVideoFrame) {
-    LOGV("Hasn't received first decoded video frame");
+    LOG("Hasn't received first decoded video frame");
     return;
   }
-  LOGV("OnLoadedFirstFrame");
+  LOG("OnLoadedFirstFrame");
   MediaDecoderEventVisibility visibility =
       mSentFirstFrameLoadedEvent ? MediaDecoderEventVisibility::Suppressed
                                  : MediaDecoderEventVisibility::Observable;
@@ -1039,6 +1039,7 @@ void ExternalEngineStateMachine::OnLoadedData() {
   AssertOnTaskQueue();
   // In case the external engine doesn't send the first frame loaded event
   // correctly.
+  LOG("OnLoadedData");
   if (!mSentFirstFrameLoadedEvent) {
     OnLoadedFirstFrame();
   }
@@ -1047,12 +1048,14 @@ void ExternalEngineStateMachine::OnLoadedData() {
 
 void ExternalEngineStateMachine::OnWaiting() {
   AssertOnTaskQueue();
+  LOG("OnWaiting");
   mOnNextFrameStatus.Notify(
       MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_BUFFERING);
 }
 
 void ExternalEngineStateMachine::OnPlaying() {
   AssertOnTaskQueue();
+  LOG("OnPlaying");
   mOnNextFrameStatus.Notify(MediaDecoderOwner::NEXT_FRAME_AVAILABLE);
 }
 
@@ -1087,10 +1090,12 @@ void ExternalEngineStateMachine::OnBufferingStarted() {
   if (HasVideo()) {
     WaitForData(MediaData::Type::VIDEO_DATA);
   }
+  LOG("OnBufferingStarted, hasAudio=%d, hasVideo=%d", HasAudio(), HasVideo());
 }
 
 void ExternalEngineStateMachine::OnBufferingEnded() {
   AssertOnTaskQueue();
+  LOG("OnBufferingEnded");
   mOnNextFrameStatus.Notify(MediaDecoderOwner::NEXT_FRAME_AVAILABLE);
 }
 
@@ -1114,6 +1119,9 @@ void ExternalEngineStateMachine::OnTimeupdate() {
   if (mDuration.Ref().ref() < mCurrentPosition.Ref()) {
     mDuration = Some(mCurrentPosition.Ref());
   }
+  LOG("OnTimeupdate, current time=%" PRId64 ", duration=%" PRId64,
+      mCurrentPosition.Ref().ToMicroseconds(),
+      mDuration.Ref()->ToMicroseconds());
 }
 
 void ExternalEngineStateMachine::NotifyEventInternal(
@@ -1121,7 +1129,6 @@ void ExternalEngineStateMachine::NotifyEventInternal(
   AssertOnTaskQueue();
   AUTO_PROFILER_LABEL("ExternalEngineStateMachine::NotifyEventInternal",
                       MEDIA_PLAYBACK);
-  LOG("Receive event %s", ExternalEngineEventToStr(aEvent));
   if (mState.IsShutdownEngine()) {
     return;
   }
