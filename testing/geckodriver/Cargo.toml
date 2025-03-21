@@ -22,7 +22,7 @@ repository = "https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodrive
 
 [dependencies]
 anyhow = "1"
-base64 = "0.21"
+base64 = "0.22"
 chrono = "0.4.6"
 clap = { version = "4", default-features = false, features = ["cargo", "std", "suggestions", "wrap_help", "string"] }
 # Depend on flate2 to enable the rust backend (the default) for flate2 used by the zip crate.

@@ -358,7 +358,7 @@ name = "authrs_bridge"
 version = "0.1.0"
 dependencies = [
  "authenticator",
- "base64 0.21.999",
+ "base64 0.22.1",
  "cstr",
  "log",
  "moz_task",
@@ -734,7 +734,7 @@ dependencies = [
 name = "cert_storage"
 version = "0.0.1"
 dependencies = [
- "base64 0.21.999",
+ "base64 0.22.1",
  "byteorder",
  "clubcard",
  "clubcard-crlite",
@@ -1221,7 +1221,7 @@ dependencies = [
 name = "crypto_hash"
 version = "0.1.0"
 dependencies = [
- "base64 0.21.999",
+ "base64 0.22.1",
  "digest",
  "libc",
  "md-5",
@@ -2304,7 +2304,7 @@ name = "geckodriver"
 version = "0.36.0"
 dependencies = [
  "anyhow",
- "base64 0.21.999",
+ "base64 0.22.1",
  "chrono",
  "clap",
  "flate2",
@@ -2900,7 +2900,7 @@ dependencies = [
 name = "http3server"
 version = "0.1.1"
 dependencies = [
- "base64 0.21.999",
+ "base64 0.22.1",
  "bindgen 0.69.4",
  "cfg-if",
  "http",
@@ -7197,7 +7197,7 @@ version = "0.3.100"
 name = "webdriver"
 version = "0.52.0"
 dependencies = [
- "base64 0.21.999",
+ "base64 0.22.1",
  "bytes",
  "cookie",
  "http",

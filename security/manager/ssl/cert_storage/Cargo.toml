@@ -6,7 +6,7 @@ authors = ["Dana Keeler <dkeeler@mozilla.com>", "Mark Goodwin <mgoodwin@mozilla.
 license = "MPL-2.0"
 
 [dependencies]
-base64 = "0.21.0"
+base64 = "0.22.0"
 byteorder = "1.2.7"
 clubcard = "0.3"
 clubcard-crlite = "0.3"

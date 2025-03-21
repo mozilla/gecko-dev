@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-base64 = "0.21"
+base64 = "0.22"
 digest = "0.10.2"
 libc = "0.2"
 md-5 = "0.10.2"
