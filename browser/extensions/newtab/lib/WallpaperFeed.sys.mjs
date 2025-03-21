@@ -271,9 +271,7 @@ export class WallpaperFeed {
 
       await IOUtils.remove(filePath, { ignoreAbsent: true });
 
-      this.store.dispatch(
-        ac.SetPref("newtabWallpapers.customWallpaper.uuid", uuid)
-      );
+      Services.prefs.clearUserPref(PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID);
 
       this.store.dispatch(
         ac.BroadcastToContent({
