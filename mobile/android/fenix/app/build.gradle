@@ -270,6 +270,8 @@ android {
     lint {
         lintConfig file("lint.xml")
         baseline file("lint-baseline.xml")
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1952578
+        disable 'UseKtx'
     }
     packaging {
         resources {
