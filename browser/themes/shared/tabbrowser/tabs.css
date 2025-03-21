@@ -1200,10 +1200,6 @@
       border-color: var(--focus-outline-color);
     }
 
-    input:disabled + & {
-      opacity: 0.5;
-    }
-
     input:focus-visible + & {
       outline: 1px solid var(--focus-outline-color);
       outline-offset: 1px;

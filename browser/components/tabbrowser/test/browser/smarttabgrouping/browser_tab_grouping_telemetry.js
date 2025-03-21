@@ -20,7 +20,6 @@ async function setup(enableSmartTab = true) {
     set: [
       ["browser.tabs.groups.enabled", true],
       ["browser.tabs.groups.smart.enabled", enableSmartTab],
-      ["browser.tabs.groups.smart.optin", true],
     ],
   });
   sinon
