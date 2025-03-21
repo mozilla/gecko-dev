@@ -526,3 +526,62 @@ pictureinpicture:
       - mconley@mozilla.com
     expires: never
     telemetry_mirror: PICTUREINPICTURE_TOGGLE_ENABLED
+
+  window_open_duration:
+    type: timing_distribution
+    description: >
+      The length of time (in seconds) that a Picture-in-Picture window was open.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1560590
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1683100
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1756703
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1560590
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1683100
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1756703
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION
+
+  background_tab_playing_duration:
+    type: timing_distribution
+    description: >
+      The length of time (in seconds) that a video was in Picture-in-Picture
+      mode in a background tab.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram
+      FX_PICTURE_IN_PICTURE_BACKGROUND_TAB_PLAYING_DURATION.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817042
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817042
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_PICTURE_IN_PICTURE_BACKGROUND_TAB_PLAYING_DURATION
+
+  foreground_tab_playing_duration:
+    type: timing_distribution
+    description: >
+      The length of time (in seconds) that a video was in Picture-in-Picture
+      mode in a foreground tab.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram
+      FX_PICTURE_IN_PICTURE_FOREGROUND_TAB_PLAYING_DURATION.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817042
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1817042
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_PICTURE_IN_PICTURE_FOREGROUND_TAB_PLAYING_DURATION

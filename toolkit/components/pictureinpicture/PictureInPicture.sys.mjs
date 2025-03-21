@@ -41,10 +41,6 @@ const TOGGLE_POSITION_PREF =
 const TOGGLE_POSITION_RIGHT = "right";
 const TOGGLE_POSITION_LEFT = "left";
 const RESIZE_MARGIN_PX = 16;
-const BACKGROUND_DURATION_HISTOGRAM_ID =
-  "FX_PICTURE_IN_PICTURE_BACKGROUND_TAB_PLAYING_DURATION";
-const FOREGROUND_DURATION_HISTOGRAM_ID =
-  "FX_PICTURE_IN_PICTURE_FOREGROUND_TAB_PLAYING_DURATION";
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -435,29 +431,29 @@ export var PictureInPicture = {
       if (gBrowser?.selectedBrowser == browser) {
         // If there are any background stopwatches running for this window, finish
         // them and switch to foreground.
-        if (TelemetryStopwatch.running(BACKGROUND_DURATION_HISTOGRAM_ID, win)) {
-          TelemetryStopwatch.finish(BACKGROUND_DURATION_HISTOGRAM_ID, win);
+        if (win._backgroundTabTimerId) {
+          Glean.pictureinpicture.backgroundTabPlayingDuration.stopAndAccumulate(
+            win._backgroundTabTimerId
+          );
+          win._backgroundTabTimerId = null;
         }
-        if (
-          !TelemetryStopwatch.running(FOREGROUND_DURATION_HISTOGRAM_ID, win)
-        ) {
-          TelemetryStopwatch.start(FOREGROUND_DURATION_HISTOGRAM_ID, win, {
-            inSeconds: true,
-          });
+        if (!win._foregroundTabTimerId) {
+          win._foregroundTabTimerId =
+            Glean.pictureinpicture.foregroundTabPlayingDuration.start();
         }
       } else {
         // If there are any foreground stopwatches running for this window, finish
         // them and switch to background.
-        if (TelemetryStopwatch.running(FOREGROUND_DURATION_HISTOGRAM_ID, win)) {
-          TelemetryStopwatch.finish(FOREGROUND_DURATION_HISTOGRAM_ID, win);
+        if (win._foregroundTabTimerId) {
+          Glean.pictureinpicture.foregroundTabPlayingDuration.stopAndAccumulate(
+            win._foregroundTabTimerId
+          );
+          win._foregroundTabTimerId = null;
         }
 
-        if (
-          !TelemetryStopwatch.running(BACKGROUND_DURATION_HISTOGRAM_ID, win)
-        ) {
-          TelemetryStopwatch.start(BACKGROUND_DURATION_HISTOGRAM_ID, win, {
-            inSeconds: true,
-          });
+        if (!win._backgroundTabTimerId) {
+          win._backgroundTabTimerId =
+            Glean.pictureinpicture.backgroundTabPlayingDuration.start();
         }
       }
     }
@@ -933,17 +929,20 @@ export var PictureInPicture = {
    * @param {Window} window
    */
   unload(window) {
-    TelemetryStopwatch.finish(
-      "FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION",
-      window
+    Glean.pictureinpicture.windowOpenDuration.stopAndAccumulate(
+      window._openDurationTimerId
     );
 
-    if (TelemetryStopwatch.running(BACKGROUND_DURATION_HISTOGRAM_ID, window)) {
-      TelemetryStopwatch.finish(BACKGROUND_DURATION_HISTOGRAM_ID, window);
-    } else if (
-      TelemetryStopwatch.running(FOREGROUND_DURATION_HISTOGRAM_ID, window)
-    ) {
-      TelemetryStopwatch.finish(FOREGROUND_DURATION_HISTOGRAM_ID, window);
+    if (window._backgroundTabTimerId) {
+      Glean.pictureinpicture.backgroundTabPlayingDuration.stopAndAccumulate(
+        window._backgroundTabTimerId
+      );
+      window._backgroundTabTimerId = null;
+    } else if (window._foregroundTabTimerId) {
+      Glean.pictureinpicture.foregroundTabPlayingDuration.stopAndAccumulate(
+        window._foregroundTabTimerId
+      );
+      window._foregroundTabTimerId = null;
     }
 
     let browser = this.weakWinToBrowser.get(window);
@@ -1011,13 +1010,8 @@ export var PictureInPicture = {
       null
     );
 
-    TelemetryStopwatch.start(
-      "FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION",
-      pipWindow,
-      {
-        inSeconds: true,
-      }
-    );
+    pipWindow._openDurationTimerId =
+      Glean.pictureinpicture.windowOpenDuration.start();
 
     pipWindow.windowUtils.setResizeMargin(RESIZE_MARGIN_PX);
 
