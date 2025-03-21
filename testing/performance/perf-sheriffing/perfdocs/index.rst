@@ -34,13 +34,12 @@ and tag the sheriff. If you still have no-one responding you can message any of 
 on Slack or Matrix:
 
 - `@afinder <https://people.mozilla.org/p/afinder>`_
-- `@alexandrui <https://people.mozilla.org/p/alexandrui>`_
 - `@andra <https://people.mozilla.org/p/andraesanu>`_
-- `@andrej <https://people.mozilla.org/p/andrej>`_
 - `@beatrice <https://people.mozilla.org/p/bacasandrei>`_
+- `@florin.bilt <https://people.mozilla.org/p/fbilt>`_
 - `@sparky <https://people.mozilla.org/p/sparky>`_ (reach out to only if all others unreachable)
 
-All of the team is in EET (Eastern European Time) except for @andrej and @sparky who are in EST (Eastern Standard Time).
+All of the team is in EET (Eastern European Time) except for @sparky who is in EST (Eastern Standard Time).
 
 1.3 Regression and Improvement Definition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -112,3 +111,99 @@ performance changes differ based on the harness:
 - AWSY >= 0.25%
 - Build metrics installer size >= 100kb
 - Talos, Browsertime, Build Metrics >= 2%
+
+3 How to Handle Inactive Alerts
+-------------------------------
+
+Inactive performance alerts are those alerts which have had no activity in 1 week. This section covers how performance sheriffs should handle inactive performance alerts that are found in the daily email sent to the `perfalert-activity group <https://groups.google.com/a/mozilla.com/g/perfalert-activity/about>`_.
+
+3.1 Process
+~~~~~~~~~~~
+
+The following is the general process that needs to be taken for the alerts in the email:
+
+ #. Open the email titled ``[bugbot][autofix] PerfAlert regressions with 1 week(s) of inactivity for the DATE`` to find bugs that are inactive.
+
+    - These occur at most daily.
+
+ #. Open one of the bugs mentioned in the email.
+
+ #. Check if the developer has previously responded to the bug.
+
+ #. Find the developer (regression author) being needinfo’ed by the BugBot.
+
+ #. (Optional) Check on `people.mozilla.org <https://people.mozilla.org>`_ to find the person’s Matrix/Slack information if needed.
+
+ #. Find the developer in a public channel.
+
+    - ``#developers`` on Matrix is the most likely place you can find them.
+
+ #. Reach out to them with a message like the following:
+
+    - **If the patch has had a response from the regressor author:**
+
+      ::
+
+       Hello, could you provide an update on this performance regression or close it if it makes sense to (with a follow-up bug if needed)? <PERFORMANCE-ALERT-BUG-LINK>
+
+    - **If the patch has never had a response from the regressor author:**
+
+      ::
+
+       Hello, could you provide an update on this performance regression or close it if it makes sense to (with a follow-up bug if needed)? In accordance with our `regression policy <https://www.mozilla.org/en-US/about/governance/policies/regressions/>`_, we're considering backing out your patch due to a lack of comments/activity: <PERFORMANCE-ALERT-BUG-LINK>
+
+3.2 Handling Responses
+~~~~~~~~~~~~~~~~~~~~~~
+
+For Bugs with a Response from the Regressor Author
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Depending on the developer's response, one of four things may happen:
+
+ #. **Developer provides an update on the alert bug:**
+
+    - No other action is needed. If this has happened multiple times on the bug, you can add the ``backlog-deferred`` keyword to prevent the BugBot rule from triggering again on the alert.
+
+ #. **Developer asks for clarification on the process or isn’t sure what to do:**
+
+    - Point them to this documentation. Explain the possible resolutions and what we expect of them.
+
+ #. **Developer does not respond:**
+
+    - Wait for 1 full business day for the response. If there is still no response, find and ping their manager (can be in private) from `people.mozilla.org <https://people.mozilla.org>`_.
+
+      - If there is a response from the manager, you can proceed with one of the other options.
+
+ #. **Developer does not want to close the bug and needs time to investigate:**
+
+    - Add the ``backlog-deferred`` keyword to prevent BugBot from triggering on this bug again in the future.
+
+For Bugs with No Previous Response from the Regressor Author
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Depending on the developer's response, one of five things may happen:
+
+ #. **Developer agrees to a backout:**
+
+    - Reach out to a sheriff in ``#sheriffs`` on Matrix to request the backout.
+
+      - Ensure that they understand that if they’re actively working on it, they can provide an update on the alert bug to prevent a backout.
+      - Ensure that they understand that they can close the bug with ``WONTFIX``/``INCOMPLETE`` if they aren’t actively working on it, or they think it isn’t a big issue. They can file a follow-up bug to look into the issue further in the future.
+
+ #. **Developer provides an update on the alert bug:**
+
+    - No other action is needed. If this has happened multiple times on the bug, you can add the ``backlog-deferred`` keyword to prevent the BugBot rule from triggering again on the alert.
+
+ #. **Developer asks for clarification on the process or isn’t sure what to do:**
+
+    - Point them to this documentation. Explain the possible resolutions and what we expect of them.
+
+ #. **Developer does not respond:**
+
+    - Wait for 1 full business day for the response. If there is still no response, find and ping their manager (can be in private) from `people.mozilla.org <https://people.mozilla.org>`_.
+
+      - If there is a response from the manager/developer, you can proceed with one of the other options. If not, request a backout.
+
+ #. **Developer does not want to close the bug and needs time to investigate:**
+
+    - Ask them to provide a comment in the bug stating this. Add the ``backlog-deferred`` keyword to prevent the BugBot from triggering on this bug again in the future.
