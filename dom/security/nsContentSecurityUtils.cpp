@@ -1270,6 +1270,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://browser/content/setDesktopBackground.xhtml"_ns,
     "chrome://browser/content/spotlight.html"_ns,
     "chrome://devtools/content/debugger/index.html"_ns,
+    "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://devtools/content/framework/toolbox-options.html"_ns,
     "chrome://devtools/content/inspector/index.xhtml"_ns,
     "chrome://devtools/content/inspector/markup/markup.xhtml"_ns,
@@ -1329,6 +1330,7 @@ static nsLiteralCString sImgSrcDataBlobAllowList[] = {
     "chrome://browser/content/sidebar/sidebar-syncedtabs.html"_ns,
     "chrome://browser/content/spotlight.html"_ns,
     "chrome://devtools/content/application/index.html"_ns,
+    "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://devtools/content/inspector/index.xhtml"_ns,
     "chrome://devtools/content/inspector/markup/markup.xhtml"_ns,
     "chrome://devtools/content/netmonitor/index.html"_ns,
@@ -1347,13 +1349,16 @@ static nsLiteralCString sImgSrcHttpsAllowList[] = {
     "about:settings"_ns,
     "about:welcome"_ns,
     "chrome://devtools/content/application/index.html"_ns,
+    "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
     "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
 };
 // img-src http:
 //  UNSAFE! Do not use.
 static nsLiteralCString sImgSrcHttpAllowList[] = {
-    "about:addons"_ns, "chrome://devtools/content/application/index.html"_ns,
+    "about:addons"_ns,
+    "chrome://devtools/content/application/index.html"_ns,
+    "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
     "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
     // STOP! Do not add anything to this list.
@@ -1922,7 +1927,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://browser/content/shopping/review-checker.xhtml"_ns,
       "chrome://browser/content/webext-panels.xhtml"_ns,
       "chrome://browser/content/webrtcIndicator.xhtml"_ns,
-      "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
       "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
       "chrome://devtools/content/shared/webextension-fallback.html"_ns,
       "chrome://devtools/skin/images/alert.svg"_ns,
