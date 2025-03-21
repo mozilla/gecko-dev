@@ -58,16 +58,6 @@ const {
  * @extends {React.PureComponent<Props>}
  */
 class AboutProfiling extends PureComponent {
-  handleRestart = () => {
-    const { promptEnvRestart } = this.props;
-    if (!promptEnvRestart) {
-      throw new Error(
-        "handleRestart() should only be called when promptEnvRestart exists."
-      );
-    }
-    restartBrowserWithEnvironmentVariable(promptEnvRestart, "1");
-  };
-
   render() {
     const {
       isSupportedPlatform,
@@ -97,7 +87,11 @@ class AboutProfiling extends PureComponent {
                 {
                   className: "perf-photon-button perf-photon-button-micro",
                   type: "button",
-                  onClick: this.handleRestart,
+                  onClick: () => {
+                    restartBrowserWithEnvironmentVariable({
+                      [promptEnvRestart]: "1",
+                    });
+                  },
                 },
                 Localized({ id: "perftools-button-restart" })
               )
