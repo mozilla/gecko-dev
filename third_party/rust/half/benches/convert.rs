@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Bencher, BenchmarkId, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Bencher, BenchmarkId, Criterion};
 use half::prelude::*;
 use std::{f32, f64, iter};
 
@@ -113,7 +113,9 @@ fn bench_slice_f32_to_f16(c: &mut Criterion) {
     ];
     c.bench_function(
         "HalfFloatSliceExt::convert_from_f32_slice/constants",
-        |b: &mut Bencher<'_>| b.iter(|| constant_buffer.convert_from_f32_slice(&constants)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&mut constant_buffer).convert_from_f32_slice(black_box(&constants)))
+        },
     );
 
     let large: Vec<_> = iter::repeat(0)
@@ -124,7 +126,9 @@ fn bench_slice_f32_to_f16(c: &mut Criterion) {
     let mut large_buffer = [f16::ZERO; SIMD_LARGE_BENCH_SLICE_LEN];
     c.bench_function(
         "HalfFloatSliceExt::convert_from_f32_slice/large",
-        |b: &mut Bencher<'_>| b.iter(|| large_buffer.convert_from_f32_slice(&large)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&mut large_buffer).convert_from_f32_slice(black_box(&large)))
+        },
     );
 }
 
@@ -145,7 +149,9 @@ fn bench_slice_f64_to_f16(c: &mut Criterion) {
     ];
     c.bench_function(
         "HalfFloatSliceExt::convert_from_f64_slice/constants",
-        |b: &mut Bencher<'_>| b.iter(|| constant_buffer.convert_from_f64_slice(&constants)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&mut constant_buffer).convert_from_f64_slice(black_box(&constants)))
+        },
     );
 
     let large: Vec<_> = iter::repeat(0)
@@ -156,7 +162,9 @@ fn bench_slice_f64_to_f16(c: &mut Criterion) {
     let mut large_buffer = [f16::ZERO; SIMD_LARGE_BENCH_SLICE_LEN];
     c.bench_function(
         "HalfFloatSliceExt::convert_from_f64_slice/large",
-        |b: &mut Bencher<'_>| b.iter(|| large_buffer.convert_from_f64_slice(&large)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&mut large_buffer).convert_from_f64_slice(black_box(&large)))
+        },
     );
 }
 
@@ -177,7 +185,9 @@ fn bench_slice_f16_to_f32(c: &mut Criterion) {
     ];
     c.bench_function(
         "HalfFloatSliceExt::convert_to_f32_slice/constants",
-        |b: &mut Bencher<'_>| b.iter(|| constants.convert_to_f32_slice(&mut constant_buffer)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&constants).convert_to_f32_slice(black_box(&mut constant_buffer)))
+        },
     );
 
     let large: Vec<_> = iter::repeat(0)
@@ -188,7 +198,9 @@ fn bench_slice_f16_to_f32(c: &mut Criterion) {
     let mut large_buffer = [0f32; SIMD_LARGE_BENCH_SLICE_LEN];
     c.bench_function(
         "HalfFloatSliceExt::convert_to_f32_slice/large",
-        |b: &mut Bencher<'_>| b.iter(|| large.convert_to_f32_slice(&mut large_buffer)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&large).convert_to_f32_slice(black_box(&mut large_buffer)))
+        },
     );
 }
 
@@ -209,7 +221,9 @@ fn bench_slice_f16_to_f64(c: &mut Criterion) {
     ];
     c.bench_function(
         "HalfFloatSliceExt::convert_to_f64_slice/constants",
-        |b: &mut Bencher<'_>| b.iter(|| constants.convert_to_f64_slice(&mut constant_buffer)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&constants).convert_to_f64_slice(black_box(&mut constant_buffer)))
+        },
     );
 
     let large: Vec<_> = iter::repeat(0)
@@ -220,7 +234,9 @@ fn bench_slice_f16_to_f64(c: &mut Criterion) {
     let mut large_buffer = [0f64; SIMD_LARGE_BENCH_SLICE_LEN];
     c.bench_function(
         "HalfFloatSliceExt::convert_to_f64_slice/large",
-        |b: &mut Bencher<'_>| b.iter(|| large.convert_to_f64_slice(&mut large_buffer)),
+        |b: &mut Bencher<'_>| {
+            b.iter(|| black_box(&large).convert_to_f64_slice(black_box(&mut large_buffer)))
+        },
     );
 }
 

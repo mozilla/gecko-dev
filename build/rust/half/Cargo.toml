@@ -1,0 +1,15 @@
+[package]
+name = "half"
+version = "1.999.999"
+edition = "2018"
+license = "MIT OR Apache-2.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.half]
+version = "2.5.0"
+
+default-features = false
+
+[features]

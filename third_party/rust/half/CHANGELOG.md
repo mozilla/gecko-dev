@@ -5,6 +5,134 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
+## [2.5.0] - 2024-03-13 <a name="2.5.0"></a>
+### Changed
+- Updated optional dependencies to latest major versions: 
+  * `zercopy` 0.6 -> 0.8
+  * `rand` 0.8 -> 0.9
+  * `rand_distr` 0.4 -> 0.5
+  * `rkyv` 0.7 -> 0.8
+  * (dev) `criterion` 0.4 -> 0.5
+- Minimum supported Rust version has been changed to 1.81 due to above dependency updates.
+- Minor restructing of included license file locations to be more consistent with crates ecosystem.
+
+### Added
+- Added support for `arbitrary` crate. Fixes [#110]. By [@FL33TW00D].
+- New `num-traits` implementations: `FromBytes` and `ToBytes` for `f16` and `bf16`. By [@kpreid].
+
+### Fixed
+- Suppressed unexpected_cfg lint warnings on newer versions of stable Rust.
+- Resolved ambiguous rustdoc warnings due to new unstable `f16` primitive in compiler.
+
+## [2.4.1] - 2024-04-06 <a name="2.4.1"></a>
+### Fixed
+- Missing macro import causing build failure on `no_std` + `alloc` feature set. Fixes [#107].
+- Clippy warning on nightly rust.
+
+## [2.4.0] - 2024-02-25 <a name="2.4.0"></a>
+### Added
+- Optional `rkyv` support. Fixes [#100], by [@comath].
+- New `num-traits` implementations: `AsPrimitive<f16>` for `bf16` and `AsPrimitive<bf16>` for
+  `f16`, allowing lossy conversions between the two types. By [@charles-r-earp].
+- `Cargo.lock` added to vcs as is now recommended for library crates.
+### Fixed
+- Remove some unit NaN conversion sign tests due to non-deterministic hardware. Fixes [#103].
+- Redundant import warnings on nightly Rust.
+
+## [2.3.1] - 2023-06-24 <a name="2.3.1"></a>
+### Fixed
+- Compile error on x86 (not x86_64) targets. Fixes [#93].
+
+## [2.3.0] - 2023-06-24 <a name="2.3.0"></a>
+### Added
+- Support for Kani Rust Verifier. By [@cameron1024].
+- Support for `rand_distr::Distribution` implementations behind `rand_distr` optional cargo
+  feature. By [@coreylowman].
+- Floating point formatting options in `Display` and `Debug` implementations. By [@eiz].
+
+### Changed
+- **Breaking Change** Minimum supported Rust version is now 1.70.
+- **Breaking Change** Minimum supported Rust version policy reverted to original policy of allowing
+  minimum supported Rust version updates for minor releases instead of only major to avoid
+  segmentation and allow optimizing hardware implementations without unnecessary major releases.
+- Hardware intrinsics/assembly is finally available on stable Rust, including using hardware
+  feature detection (`std` only), including:
+    - AArch64 now uses FP16 hardware instructions for conversions and math operations when
+    available.
+    - x86/x86-64 now uses F16C hardware instructions for conversions (but no math operations) when
+    available. Fixes [#54].
+
+### Deprecated
+- `use-intrinsics` cargo feature no longer used. Hardware support will now always be used whenever
+  possible. A future version may output deprecation warnings if this feature is enabled.
+
+### Fixed
+- Improve code generation of `leading_zeros` functions by inlining. By [@encounter].
+- `Sum` implementation of `bf16` incorrectly performed product instead of sum. By [@wx-csy].
+- Compile failed when `serde` cargo feature enabled but `std` not enabled.
+- Incorrect black boxing of benchmark tests.
+- Rustdoc cfg display on docs.rs not getting enabled.
+
+## [2.2.1] - 2023-01-08 <a name="2.2.1"></a>
+### Changed
+- Reduced unnecessary bounds checks for SIMD operations on slices. By [@Shnatsel].
+- Further slice conversion optimizations for slices. Resolves [#66].
+
+## [2.2.0] - 2022-12-30 <a name="2.2.0"></a>
+### Added
+- Add `serialize_as_f32` and `serialize_as_string` functions when `serde` cargo feature is enabled.
+  They allowing customizing the serialization by using 
+  `#[serde(serialize_with="f16::serialize_as_f32")]` attribute in serde derive macros. Closes [#60].
+- Deserialize now supports deserializing from `f32`, `f64`, and string values in addition to its
+  previous default deserialization. Closes [#60].
+
+### Changed
+- Add `#[inline]` on fallback functions, which improved conversion execution on non-nightly rust 
+  by up to 50%. By [@Shnatsel].
+
+## [2.1.0] - 2022-07-18 <a name="2.1.0"></a>
+### Added
+- Add support for target_arch `spirv`. Some traits and functions are unavailble on this
+  architecture. By [@charles-r-earp].
+- Add `total_cmp` method to both float types. Closes [#55], by [@joseluis].
+
+## [2.0.0] - 2022-06-21 <a name="2.0.0"></a>
+### Changed
+- **Breaking Change** Minimum supported Rust version is now 1.58.
+- **Breaking Change** `std` is now enabled as a default cargo feature. Disable default features to
+  continue using `no_std` support.
+- Migrated to Rust Edition 2021.
+- Added `#[must_use]` attributes to functions, as appropriate.
+
+### Fixed
+- Fix a soundness bug with `slice::as_ptr` not correctly using mutable reference. By [@Nilstrieb].
+
+### Added
+- Added `const` conversion methods to both `f16` and `bf16`. These methods never use hardware
+  intrinsics, unlike the current conversion methods, which is why they are separated into new
+  methods. The following `const` methods were added:
+  - `from_f32_const`
+  - `from_f64_const`
+  - `to_f32_const`
+  - `to_f64_const`
+- Added `Neg` trait support for borrowed values `&f16` and `&bf16`. By [@pthariensflame].
+- Added `AsPrimitive` implementations from and to self, `usize`, and `isize`. By [@kali].
+
+### Removed
+- **Breaking Change** The deprecated `serialize` cargo feature has been removed. Use `serde` cargo
+  feature instead.
+- **Breaking Change** The deprecated `consts` module has been removed. Use associated constants on
+  `f16` instead.
+- **Breaking Change** The following deprecated functions have been removed:
+  - `f16::as_bits`
+  - `slice::from_bits_mut`
+  - `slice::to_bits_mut`
+  - `slice::from_bits`
+  - `slice::to_bits`
+  - `vec::from_bits`
+  - `vec::to_bits`
+
 ## [1.8.2] - 2021-10-22 <a name="1.8.2"></a>
 ### Fixed
 - Remove cargo resolver=2 from manifest to resolve errors in older versions of Rust that still
@@ -214,6 +342,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 [#24]: https://github.com/starkat99/half-rs/issues/24
 [#37]: https://github.com/starkat99/half-rs/issues/37
 [#48]: https://github.com/starkat99/half-rs/issues/48
+[#55]: https://github.com/starkat99/half-rs/issues/55
+[#60]: https://github.com/starkat99/half-rs/issues/60
+[#66]: https://github.com/starkat99/half-rs/issues/66
+[#54]: https://github.com/starkat99/half-rs/issues/54
+[#93]: https://github.com/starkat99/half-rs/issues/54
+[#100]: https://github.com/starkat99/half-rs/issues/100
+[#103]: https://github.com/starkat99/half-rs/issues/103
+[#107]: https://github.com/starkat99/half-rs/issues/107
+[#110]: https://github.com/starkat99/half-rs/issues/110
 
 [@tspiteri]: https://github.com/tspiteri
 [@PSeitz]: https://github.com/PSeitz
@@ -224,9 +361,31 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 [@bzm3r]: https://github.com/bzm3r
 [@charles-r-earp]: https://github.com/charles-r-earp
 [@samcrow]: https://github.com/samcrow
+[@pthariensflame]: https://github.com/pthariensflame
+[@kali]: https://github.com/kali
+[@Nilstrieb]: https://github.com/Nilstrieb
+[@joseluis]: https://github.com/joseluis
+[@Shnatsel]: https://github.com/Shnatsel
+[@cameron1024]: https://github.com/cameron1024
+[@encounter]: https://github.com/encounter
+[@coreylowman]: https://github.com/coreylowman
+[@wx-csy]: https://github.com/wx-csy
+[@eiz]: https://github.com/eiz
+[@comath]: https://github.com/comath
+[@FL33TW00D]: https://github.com/FL33TW00D
+[@kpreid]: https://github.com/kpreid
 
 
-[Unreleased]: https://github.com/starkat99/half-rs/compare/v1.8.2...HEAD
+[Unreleased]: https://github.com/starkat99/half-rs/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/starkat99/half-rs/compare/v2.4.1...v2.5.0
+[2.4.1]: https://github.com/starkat99/half-rs/compare/v2.4.0...v2.4.1
+[2.4.0]: https://github.com/starkat99/half-rs/compare/v2.3.1...v2.4.0
+[2.3.1]: https://github.com/starkat99/half-rs/compare/v2.3.0...v2.3.1
+[2.3.0]: https://github.com/starkat99/half-rs/compare/v2.2.1...v2.3.0
+[2.2.1]: https://github.com/starkat99/half-rs/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/starkat99/half-rs/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/starkat99/half-rs/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/starkat99/half-rs/compare/v1.8.2...v2.0.0
 [1.8.2]: https://github.com/starkat99/half-rs/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/starkat99/half-rs/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/starkat99/half-rs/compare/v1.7.1...v1.8.0

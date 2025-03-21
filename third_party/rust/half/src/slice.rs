@@ -1,5 +1,5 @@
-//! Contains utility functions and traits to convert between slices of [`u16`] bits and [`f16`] or
-//! [`bf16`] numbers.
+//! Contains utility functions and traits to convert between slices of [`u16`] bits and [`struct@f16`] or
+//! [`struct@bf16`] numbers.
 //!
 //! The utility [`HalfBitsSliceExt`] sealed extension trait is implemented for `[u16]` slices,
 //! while the utility [`HalfFloatSliceExt`] sealed extension trait is implemented for both `[f16]`
@@ -7,16 +7,17 @@
 //! larger buffers of floating point values, and are automatically included in the
 //! [`prelude`][crate::prelude] module.
 
-use crate::{bf16, binary16::convert, f16};
+use crate::{bf16, binary16::arch, f16};
 #[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+#[allow(unused_imports)]
+use alloc::{vec, vec::Vec};
 use core::slice;
 
 /// Extensions to `[f16]` and `[bf16]` slices to support conversion and reinterpret operations.
 ///
 /// This trait is sealed and cannot be implemented outside of this crate.
 pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
-    /// Reinterprets a slice of [`f16`] or [`bf16`] numbers as a slice of [`u16`] bits.
+    /// Reinterprets a slice of [`struct@f16`] or [`struct@bf16`] numbers as a slice of [`u16`] bits.
     ///
     /// This is a zero-copy operation. The reinterpreted slice has the same lifetime and memory
     /// location as `self`.
@@ -30,9 +31,10 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
     ///
     /// assert_eq!(int_buffer, [float_buffer[0].to_bits(), float_buffer[1].to_bits(), float_buffer[2].to_bits()]);
     /// ```
+    #[must_use]
     fn reinterpret_cast(&self) -> &[u16];
 
-    /// Reinterprets a mutable slice of [`f16`] or [`bf16`] numbers as a mutable slice of [`u16`].
+    /// Reinterprets a mutable slice of [`struct@f16`] or [`struct@bf16`] numbers as a mutable slice of [`u16`].
     /// bits
     ///
     /// This is a zero-copy operation. The transmuted slice has the same lifetime as the original,
@@ -56,9 +58,10 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
     /// // Note that we need to drop int_buffer before using float_buffer again or we will get a borrow error.
     /// assert_eq!(float_buffer, [f16::from_f32(0.), f16::from_f32(2.), f16::from_f32(3.)]);
     /// ```
+    #[must_use]
     fn reinterpret_cast_mut(&mut self) -> &mut [u16];
 
-    /// Converts all of the elements of a `[f32]` slice into [`f16`] or [`bf16`] values in `self`.
+    /// Converts all of the elements of a `[f32]` slice into [`struct@f16`] or [`struct@bf16`] values in `self`.
     ///
     /// The length of `src` must be the same as `self`.
     ///
@@ -87,7 +90,7 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
     /// ```
     fn convert_from_f32_slice(&mut self, src: &[f32]);
 
-    /// Converts all of the elements of a `[f64]` slice into [`f16`] or [`bf16`] values in `self`.
+    /// Converts all of the elements of a `[f64]` slice into [`struct@f16`] or [`struct@bf16`] values in `self`.
     ///
     /// The length of `src` must be the same as `self`.
     ///
@@ -116,7 +119,7 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
     /// ```
     fn convert_from_f64_slice(&mut self, src: &[f64]);
 
-    /// Converts all of the [`f16`] or [`bf16`] elements of `self` into [`f32`] values in `dst`.
+    /// Converts all of the [`struct@f16`] or [`struct@bf16`] elements of `self` into [`f32`] values in `dst`.
     ///
     /// The length of `src` must be the same as `self`.
     ///
@@ -144,7 +147,7 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
     /// ```
     fn convert_to_f32_slice(&self, dst: &mut [f32]);
 
-    /// Converts all of the [`f16`] or [`bf16`] elements of `self` into [`f64`] values in `dst`.
+    /// Converts all of the [`struct@f16`] or [`struct@bf16`] elements of `self` into [`f64`] values in `dst`.
     ///
     /// The length of `src` must be the same as `self`.
     ///
@@ -174,7 +177,7 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
 
     // Because trait is sealed, we can get away with different interfaces between features.
 
-    /// Converts all of the [`f16`] or [`bf16`] elements of `self` into [`f32`] values in a new
+    /// Converts all of the [`struct@f16`] or [`struct@bf16`] elements of `self` into [`f32`] values in a new
     /// vector
     ///
     /// The conversion operation is vectorized over the slice, meaning the conversion may be more
@@ -193,10 +196,10 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
     /// assert_eq!(vec, vec![1., 2., 3., 4.]);
     /// ```
     #[cfg(any(feature = "alloc", feature = "std"))]
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[must_use]
     fn to_f32_vec(&self) -> Vec<f32>;
 
-    /// Converts all of the [`f16`] or [`bf16`] elements of `self` into [`f64`] values in a new
+    /// Converts all of the [`struct@f16`] or [`struct@bf16`] elements of `self` into [`f64`] values in a new
     /// vector.
     ///
     /// The conversion operation is vectorized over the slice, meaning the conversion may be more
@@ -215,7 +218,7 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
     /// assert_eq!(vec, vec![1., 2., 3., 4.]);
     /// ```
     #[cfg(feature = "alloc")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+    #[must_use]
     fn to_f64_vec(&self) -> Vec<f64>;
 }
 
@@ -223,9 +226,9 @@ pub trait HalfFloatSliceExt: private::SealedHalfFloatSlice {
 ///
 /// This trait is sealed and cannot be implemented outside of this crate.
 pub trait HalfBitsSliceExt: private::SealedHalfBitsSlice {
-    /// Reinterprets a slice of [`u16`] bits as a slice of [`f16`] or [`bf16`] numbers.
+    /// Reinterprets a slice of [`u16`] bits as a slice of [`struct@f16`] or [`struct@bf16`] numbers.
     ///
-    /// `H` is the type to cast to, and must be either the [`f16`] or [`bf16`] type.
+    /// `H` is the type to cast to, and must be either the [`struct@f16`] or [`struct@bf16`] type.
     ///
     /// This is a zero-copy operation. The reinterpreted slice has the same lifetime and memory
     /// location as `self`.
@@ -243,14 +246,15 @@ pub trait HalfBitsSliceExt: private::SealedHalfBitsSlice {
     /// // The following is also valid in Rust.
     /// let typed_buffer = int_buffer.reinterpret_cast::<f16>();
     /// ```
+    #[must_use]
     fn reinterpret_cast<H>(&self) -> &[H]
     where
         H: crate::private::SealedHalf;
 
-    /// Reinterprets a mutable slice of [`u16`] bits as a mutable slice of [`f16`] or [`bf16`]
+    /// Reinterprets a mutable slice of [`u16`] bits as a mutable slice of [`struct@f16`] or [`struct@bf16`]
     /// numbers.
     ///
-    /// `H` is the type to cast to, and must be either the [`f16`] or [`bf16`] type.
+    /// `H` is the type to cast to, and must be either the [`struct@f16`] or [`struct@bf16`] type.
     ///
     /// This is a zero-copy operation. The transmuted slice has the same lifetime as the original,
     /// which prevents mutating `self` as long as the returned `&mut [f16]` is borrowed.
@@ -277,6 +281,7 @@ pub trait HalfBitsSliceExt: private::SealedHalfBitsSlice {
     /// // The following is also valid in Rust.
     /// let typed_buffer = int_buffer.reinterpret_cast_mut::<f16>();
     /// ```
+    #[must_use]
     fn reinterpret_cast_mut<H>(&mut self) -> &mut [H]
     where
         H: crate::private::SealedHalf;
@@ -305,13 +310,14 @@ impl HalfFloatSliceExt for [f16] {
 
     #[inline]
     fn reinterpret_cast_mut(&mut self) -> &mut [u16] {
-        let pointer = self.as_ptr() as *mut u16;
+        let pointer = self.as_mut_ptr().cast::<u16>();
         let length = self.len();
         // SAFETY: We are reconstructing full length of original slice, using its same lifetime,
         // and the size of elements are identical
         unsafe { slice::from_raw_parts_mut(pointer, length) }
     }
 
+    #[inline]
     fn convert_from_f32_slice(&mut self, src: &[f32]) {
         assert_eq!(
             self.len(),
@@ -319,26 +325,10 @@ impl HalfFloatSliceExt for [f16] {
             "destination and source slices have different lengths"
         );
 
-        let mut chunks = src.chunks_exact(4);
-        let mut chunk_count = 0usize; // Not using .enumerate() because we need this value for remainder
-        for chunk in &mut chunks {
-            let vec = convert::f32x4_to_f16x4(chunk);
-            let dst_idx = chunk_count * 4;
-            self[dst_idx..dst_idx + 4].copy_from_slice(vec.reinterpret_cast());
-            chunk_count += 1;
-        }
-
-        // Process remainder
-        if !chunks.remainder().is_empty() {
-            let mut buf = [0f32; 4];
-            buf[..chunks.remainder().len()].copy_from_slice(chunks.remainder());
-            let vec = convert::f32x4_to_f16x4(&buf);
-            let dst_idx = chunk_count * 4;
-            self[dst_idx..dst_idx + chunks.remainder().len()]
-                .copy_from_slice(vec[..chunks.remainder().len()].reinterpret_cast());
-        }
+        arch::f32_to_f16_slice(src, self.reinterpret_cast_mut())
     }
 
+    #[inline]
     fn convert_from_f64_slice(&mut self, src: &[f64]) {
         assert_eq!(
             self.len(),
@@ -346,26 +336,10 @@ impl HalfFloatSliceExt for [f16] {
             "destination and source slices have different lengths"
         );
 
-        let mut chunks = src.chunks_exact(4);
-        let mut chunk_count = 0usize; // Not using .enumerate() because we need this value for remainder
-        for chunk in &mut chunks {
-            let vec = convert::f64x4_to_f16x4(chunk);
-            let dst_idx = chunk_count * 4;
-            self[dst_idx..dst_idx + 4].copy_from_slice(vec.reinterpret_cast());
-            chunk_count += 1;
-        }
-
-        // Process remainder
-        if !chunks.remainder().is_empty() {
-            let mut buf = [0f64; 4];
-            buf[..chunks.remainder().len()].copy_from_slice(chunks.remainder());
-            let vec = convert::f64x4_to_f16x4(&buf);
-            let dst_idx = chunk_count * 4;
-            self[dst_idx..dst_idx + chunks.remainder().len()]
-                .copy_from_slice(vec[..chunks.remainder().len()].reinterpret_cast());
-        }
+        arch::f64_to_f16_slice(src, self.reinterpret_cast_mut())
     }
 
+    #[inline]
     fn convert_to_f32_slice(&self, dst: &mut [f32]) {
         assert_eq!(
             self.len(),
@@ -373,26 +347,10 @@ impl HalfFloatSliceExt for [f16] {
             "destination and source slices have different lengths"
         );
 
-        let mut chunks = self.chunks_exact(4);
-        let mut chunk_count = 0usize; // Not using .enumerate() because we need this value for remainder
-        for chunk in &mut chunks {
-            let vec = convert::f16x4_to_f32x4(chunk.reinterpret_cast());
-            let dst_idx = chunk_count * 4;
-            dst[dst_idx..dst_idx + 4].copy_from_slice(&vec);
-            chunk_count += 1;
-        }
-
-        // Process remainder
-        if !chunks.remainder().is_empty() {
-            let mut buf = [0u16; 4];
-            buf[..chunks.remainder().len()].copy_from_slice(chunks.remainder().reinterpret_cast());
-            let vec = convert::f16x4_to_f32x4(&buf);
-            let dst_idx = chunk_count * 4;
-            dst[dst_idx..dst_idx + chunks.remainder().len()]
-                .copy_from_slice(&vec[..chunks.remainder().len()]);
-        }
+        arch::f16_to_f32_slice(self.reinterpret_cast(), dst)
     }
 
+    #[inline]
     fn convert_to_f64_slice(&self, dst: &mut [f64]) {
         assert_eq!(
             self.len(),
@@ -400,46 +358,23 @@ impl HalfFloatSliceExt for [f16] {
             "destination and source slices have different lengths"
         );
 
-        let mut chunks = self.chunks_exact(4);
-        let mut chunk_count = 0usize; // Not using .enumerate() because we need this value for remainder
-        for chunk in &mut chunks {
-            let vec = convert::f16x4_to_f64x4(chunk.reinterpret_cast());
-            let dst_idx = chunk_count * 4;
-            dst[dst_idx..dst_idx + 4].copy_from_slice(&vec);
-            chunk_count += 1;
-        }
-
-        // Process remainder
-        if !chunks.remainder().is_empty() {
-            let mut buf = [0u16; 4];
-            buf[..chunks.remainder().len()].copy_from_slice(chunks.remainder().reinterpret_cast());
-            let vec = convert::f16x4_to_f64x4(&buf);
-            let dst_idx = chunk_count * 4;
-            dst[dst_idx..dst_idx + chunks.remainder().len()]
-                .copy_from_slice(&vec[..chunks.remainder().len()]);
-        }
+        arch::f16_to_f64_slice(self.reinterpret_cast(), dst)
     }
 
     #[cfg(any(feature = "alloc", feature = "std"))]
     #[inline]
+    #[allow(clippy::uninit_vec)]
     fn to_f32_vec(&self) -> Vec<f32> {
-        let mut vec = Vec::with_capacity(self.len());
-        // SAFETY: convert will initialize every value in the vector without reading them,
-        // so this is safe to do instead of double initialize from resize, and we're setting it to
-        // same value as capacity.
-        unsafe { vec.set_len(self.len()) };
+        let mut vec = vec![0f32; self.len()];
         self.convert_to_f32_slice(&mut vec);
         vec
     }
 
     #[cfg(any(feature = "alloc", feature = "std"))]
     #[inline]
+    #[allow(clippy::uninit_vec)]
     fn to_f64_vec(&self) -> Vec<f64> {
-        let mut vec = Vec::with_capacity(self.len());
-        // SAFETY: convert will initialize every value in the vector without reading them,
-        // so this is safe to do instead of double initialize from resize, and we're setting it to
-        // same value as capacity.
-        unsafe { vec.set_len(self.len()) };
+        let mut vec = vec![0f64; self.len()];
         self.convert_to_f64_slice(&mut vec);
         vec
     }
@@ -457,13 +392,14 @@ impl HalfFloatSliceExt for [bf16] {
 
     #[inline]
     fn reinterpret_cast_mut(&mut self) -> &mut [u16] {
-        let pointer = self.as_ptr() as *mut u16;
+        let pointer = self.as_mut_ptr().cast::<u16>();
         let length = self.len();
         // SAFETY: We are reconstructing full length of original slice, using its same lifetime,
         // and the size of elements are identical
         unsafe { slice::from_raw_parts_mut(pointer, length) }
     }
 
+    #[inline]
     fn convert_from_f32_slice(&mut self, src: &[f32]) {
         assert_eq!(
             self.len(),
@@ -477,6 +413,7 @@ impl HalfFloatSliceExt for [bf16] {
         }
     }
 
+    #[inline]
     fn convert_from_f64_slice(&mut self, src: &[f64]) {
         assert_eq!(
             self.len(),
@@ -490,6 +427,7 @@ impl HalfFloatSliceExt for [bf16] {
         }
     }
 
+    #[inline]
     fn convert_to_f32_slice(&self, dst: &mut [f32]) {
         assert_eq!(
             self.len(),
@@ -503,6 +441,7 @@ impl HalfFloatSliceExt for [bf16] {
         }
     }
 
+    #[inline]
     fn convert_to_f64_slice(&self, dst: &mut [f64]) {
         assert_eq!(
             self.len(),
@@ -518,24 +457,18 @@ impl HalfFloatSliceExt for [bf16] {
 
     #[cfg(any(feature = "alloc", feature = "std"))]
     #[inline]
+    #[allow(clippy::uninit_vec)]
     fn to_f32_vec(&self) -> Vec<f32> {
-        let mut vec = Vec::with_capacity(self.len());
-        // SAFETY: convert will initialize every value in the vector without reading them,
-        // so this is safe to do instead of double initialize from resize, and we're setting it to
-        // same value as capacity.
-        unsafe { vec.set_len(self.len()) };
+        let mut vec = vec![0f32; self.len()];
         self.convert_to_f32_slice(&mut vec);
         vec
     }
 
     #[cfg(any(feature = "alloc", feature = "std"))]
     #[inline]
+    #[allow(clippy::uninit_vec)]
     fn to_f64_vec(&self) -> Vec<f64> {
-        let mut vec = Vec::with_capacity(self.len());
-        // SAFETY: convert will initialize every value in the vector without reading them,
-        // so this is safe to do instead of double initialize from resize, and we're setting it to
-        // same value as capacity.
-        unsafe { vec.set_len(self.len()) };
+        let mut vec = vec![0f64; self.len()];
         self.convert_to_f64_slice(&mut vec);
         vec
     }
@@ -566,46 +499,6 @@ impl HalfBitsSliceExt for [u16] {
         // and the size of elements are identical
         unsafe { slice::from_raw_parts_mut(pointer, length) }
     }
-}
-
-#[doc(hidden)]
-#[deprecated(
-    since = "1.4.0",
-    note = "use `HalfBitsSliceExt::reinterpret_cast_mut` instead"
-)]
-#[inline]
-pub fn from_bits_mut(bits: &mut [u16]) -> &mut [f16] {
-    bits.reinterpret_cast_mut()
-}
-
-#[doc(hidden)]
-#[deprecated(
-    since = "1.4.0",
-    note = "use `HalfFloatSliceExt::reinterpret_cast_mut` instead"
-)]
-#[inline]
-pub fn to_bits_mut(bits: &mut [f16]) -> &mut [u16] {
-    bits.reinterpret_cast_mut()
-}
-
-#[doc(hidden)]
-#[deprecated(
-    since = "1.4.0",
-    note = "use `HalfBitsSliceExt::reinterpret_cast` instead"
-)]
-#[inline]
-pub fn from_bits(bits: &[u16]) -> &[f16] {
-    bits.reinterpret_cast()
-}
-
-#[doc(hidden)]
-#[deprecated(
-    since = "1.4.0",
-    note = "use `HalfFloatSliceExt::reinterpret_cast` instead"
-)]
-#[inline]
-pub fn to_bits(bits: &[f16]) -> &[u16] {
-    bits.reinterpret_cast()
 }
 
 #[allow(clippy::float_cmp)]
