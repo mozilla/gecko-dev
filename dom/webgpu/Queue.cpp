@@ -14,6 +14,7 @@
 #include "ipc/WebGPUChild.h"
 #include "mozilla/Casting.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/OffscreenCanvas.h"
@@ -248,6 +249,16 @@ void Queue::CopyExternalImageToTexture(
       }
 
       sfeResult = nsLayoutUtils::SurfaceFromImageBitmap(bitmap, surfaceFlags);
+      break;
+    }
+    case decltype(aSource.mSource)::Type::eHTMLImageElement: {
+      const auto& image = aSource.mSource.GetAsHTMLImageElement();
+      if (image->NaturalWidth() == 0 || image->NaturalHeight() == 0) {
+        aRv.ThrowInvalidStateError("Zero-sized HTMLImageElement");
+        return;
+      }
+
+      sfeResult = nsLayoutUtils::SurfaceFromElement(image, surfaceFlags);
       break;
     }
     case decltype(aSource.mSource)::Type::eHTMLCanvasElement: {

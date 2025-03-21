@@ -930,6 +930,7 @@ dictionary GPUCopyExternalImageDestInfo
 };
 
 typedef (ImageBitmap or
+         HTMLImageElement or
          HTMLCanvasElement or
          OffscreenCanvas) GPUCopyExternalImageSource;
 
