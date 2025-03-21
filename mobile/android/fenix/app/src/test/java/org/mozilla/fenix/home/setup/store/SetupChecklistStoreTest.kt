@@ -6,6 +6,8 @@ package org.mozilla.fenix.home.setup.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -129,6 +131,44 @@ class SetupChecklistStoreTest {
 
         val result = (store.state.checklistItems[0] as ChecklistItem.Group).tasks[1].isCompleted
         assertEquals(initialState, result)
+    }
+
+    @Test
+    fun `GIVEN an expanded group WHEN another group is clicked THEN the previously expanded group is collapsed`() {
+        val expandedGroup = ChecklistItem.Group(
+            title = "A cool group",
+            tasks = listOf(
+                ChecklistItem.Task(
+                    type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
+                    title = "A cool task",
+                    icon = R.drawable.ic_addons_extensions,
+                    isCompleted = false,
+                ),
+            ),
+            isExpanded = true,
+        )
+        val anotherGroup = ChecklistItem.Group(
+            title = "A cooler group",
+            tasks = listOf(
+                ChecklistItem.Task(
+                    type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
+                    title = "A cooler task",
+                    icon = R.drawable.ic_addons_extensions,
+                    isCompleted = false,
+                ),
+            ),
+            isExpanded = false,
+        )
+        val store = buildStore(checklistItems = listOf(expandedGroup, anotherGroup))
+
+        // Verify that the expanded group is expanded, and the other one is not
+        assertTrue((store.state.checklistItems[0] as ChecklistItem.Group).isExpanded)
+        assertFalse((store.state.checklistItems[1] as ChecklistItem.Group).isExpanded)
+        store.testDispatch(SetupChecklistAction.ChecklistItemClicked(anotherGroup))
+
+        // Verify that the expanded group was collapsed, and the other one got expanded
+        assertFalse((store.state.checklistItems[0] as ChecklistItem.Group).isExpanded)
+        assertTrue((store.state.checklistItems[1] as ChecklistItem.Group).isExpanded)
     }
 
     private fun buildStore(checklistItems: List<ChecklistItem>) = SetupChecklistStore(
