@@ -12,7 +12,6 @@
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Telemetry.h"
 #include "mozIStorageAsyncStatement.h"
 #include "mozIStorageError.h"
 #include "mozIStorageFunction.h"
@@ -913,8 +912,7 @@ CookiePersistentStorage::OpenDBResult CookiePersistentStorage::TryInitDB(
 
   // This block provides scope for the Telemetry AutoTimer
   {
-    Telemetry::AutoTimer<Telemetry::MOZ_SQLITE_COOKIES_OPEN_READAHEAD_MS>
-        telemetry;
+    auto timer = glean::network_cookies::sqlite_open_readahead.Measure();
     ReadAheadFile(mCookieFile);
 
     // open a connection to the cookie database, and only cache our connection

@@ -3063,3 +3063,21 @@ glam_experiment:
       - tlong@mozilla.com
       - efilho@mozilla.com
     expires: 146
+
+network.cookies:
+  sqlite_open_readahead:
+    type: timing_distribution
+    description: >
+      Time spent on cookie DB open with readahead (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MOZ_SQLITE_COOKIES_OPEN_READAHEAD_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: MOZ_SQLITE_COOKIES_OPEN_READAHEAD_MS
