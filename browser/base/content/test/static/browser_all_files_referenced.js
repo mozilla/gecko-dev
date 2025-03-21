@@ -112,9 +112,6 @@ var gExceptionPaths = [
   // The formautofill add-on.
   "resource://builtin-addons/formautofill/",
 
-  // The webcompat add-on.
-  "resource://builtin-addons/webcompat/",
-
   // The newtab add-on
   "resource://builtin-addons/newtab/",
   "resource://newtab/",
@@ -281,6 +278,8 @@ var allowlist = [
     file: "resource://app/localization/en-US/browser/touchbar/touchbar.ftl",
     platforms: ["linux", "win"],
   },
+  // Referenced by the webcompat system addon for localization
+  { file: "resource://gre/localization/en-US/toolkit/about/aboutCompat.ftl" },
 
   // dom/media/mediacontrol/MediaControlService.cpp
   { file: "resource://gre/localization/en-US/dom/media.ftl" },
