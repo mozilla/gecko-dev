@@ -69,3 +69,6 @@ if CONFIG["CC_TYPE"] == "clang-cl":
     AllowCompilerWarnings()  # workaround for bug 1090497
 
 TEST_DIRS += ["test"]
+
+if CONFIG["NIGHTLY_BUILD"]:
+    DEFINES["NON_RANDOM_ARENA_IDS"] = True
