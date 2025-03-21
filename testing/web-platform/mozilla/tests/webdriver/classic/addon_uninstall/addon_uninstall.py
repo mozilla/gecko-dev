@@ -11,6 +11,7 @@ def test_uninstall_nonexistent_addon(session):
     assert_error(response, "unknown error")
 
 
+@pytest.mark.allow_system_access
 @pytest.mark.parametrize(
     "filename, temporary",
     [("firefox/signed.xpi", True), ("firefox/unsigned.xpi", False)],
