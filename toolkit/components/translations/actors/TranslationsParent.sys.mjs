@@ -2111,17 +2111,16 @@ export class TranslationsParent extends JSWindowActorParent {
 
     TranslationsParent.#maybeStartObservingPrefs();
 
-    const { promise, resolve } = Promise.withResolvers();
-    const records = new Map();
-    const now = Date.now();
-    const client = TranslationsParent.#getTranslationModelsRemoteClient();
-
     // Load the models. If no data is present, then there will be an initial sync.
     // Rely on Remote Settings for the syncing strategy for receiving updates.
     lazy.console.log(`Getting remote language models.`);
+    const now = Date.now();
+
+    const { promise, resolve } = Promise.withResolvers();
+    const client = TranslationsParent.#getTranslationModelsRemoteClient();
 
     /** @type {TranslationModelRecord[]} */
-    const translationModelRecords =
+    const maxSupportedVersionRecords =
       await TranslationsParent.getMaxSupportedVersionRecords(client, {
         minSupportedMajorVersion:
           TranslationsParent.LANGUAGE_MODEL_MAJOR_VERSION_MIN,
@@ -2137,17 +2136,29 @@ export class TranslationsParent extends JSWindowActorParent {
           )}`,
       });
 
-    if (translationModelRecords.length === 0) {
+    if (maxSupportedVersionRecords.length === 0) {
       throw new Error("Unable to retrieve the translation models.");
     }
 
-    for (const record of TranslationsParent.#ensureLanguagePairsHavePivots(
-      translationModelRecords
-    )) {
-      if (record.fileType === "lex" && !lazy.useLexicalShortlist) {
-        // Do not include lexical shortlists if our config is set to not use them.
-        continue;
-      }
+    // Filter out language pairs that do not have pivot coverage.
+    const pivotFilteredRecords =
+      TranslationsParent.#ensureLanguagePairsHavePivots(
+        maxSupportedVersionRecords
+      );
+
+    // Exclude the lexical shortlist records based on the pref configuration.
+    const lexFilteredRecords = lazy.useLexicalShortlist
+      ? pivotFilteredRecords
+      : pivotFilteredRecords.filter(r => r.fileType !== "lex");
+
+    // For each language-pair key, find the version of the "model" file-type record
+    // and discard records that do not match that version exactly.
+    const versionFilteredRecords =
+      TranslationsParent.#filterByModelVersion(lexFilteredRecords);
+
+    // Build a final mapping of id to record.
+    const records = new Map();
+    for (const record of versionFilteredRecords) {
       records.set(record.id, record);
     }
 
@@ -2246,6 +2257,61 @@ export class TranslationsParent extends JSWindowActorParent {
       return true;
     });
     return after;
+  }
+
+  /**
+   * Finds the version of the "model" file-type record for each language-pair key
+   * and retains only records that match that version exactly.
+   *
+   * Even though we retrieve our records via getMaxSupportedVersionRecords(), it is
+   * possible that the maximum version for each record type is not the same. For example,
+   * if we upgraded a model from a shared-vocab configuration to a split-vocab configuration,
+   * then we might have a leftover shared "vocab" file of version `N.M`, while the rest of the
+   * newly updated files for that language pair are all at version `N.M+1`.
+   *
+   * In such a case, we want to ignore the file from the older version, since it is not
+   * intended to be utilized in the current config. The version of the "model" file-type
+   * record is guaranteed to be the exact intended version for the current configuration.
+   *
+   * @param {TranslationModelRecord[]} records
+   * @returns {TranslationModelRecord[]} The records after filtering.
+   */
+  static #filterByModelVersion(records) {
+    const recordGroups = new Map();
+    for (const record of records) {
+      const key = TranslationsParent.nonPivotKey(
+        record.fromLang,
+        record.toLang,
+        record.variant
+      );
+
+      let recordGroup = recordGroups.get(key);
+      if (!recordGroup) {
+        recordGroup = [];
+        recordGroups.set(key, recordGroup);
+      }
+
+      recordGroup.push(record);
+    }
+
+    const filteredRecords = [];
+    for (const [key, groupedRecords] of recordGroups) {
+      const modelRecordVersion = groupedRecords.find(
+        ({ fileType }) => fileType === "model"
+      )?.version;
+
+      if (!modelRecordVersion) {
+        throw new Error(`No model file found for "${key}".`);
+      }
+
+      for (const record of groupedRecords) {
+        if (record.version === modelRecordVersion) {
+          filteredRecords.push(record);
+        }
+      }
+    }
+
+    return filteredRecords;
   }
 
   /**

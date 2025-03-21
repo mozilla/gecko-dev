@@ -1400,21 +1400,35 @@ function createAttachmentMock(
 const RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB = 3;
 
 /**
+ * The count of records per mocked language pair in Remote Settings utilizing a split-vocab config.
+ */
+const RECORDS_PER_LANGUAGE_PAIR_SPLIT_VOCAB = 4;
+
+/**
  * The count of files that are downloaded for a mocked language pair in Remote Settings.
  */
-function downloadedFilesPerLanguagePair() {
+function downloadedFilesPerLanguagePair(splitVocab = false) {
+  const expectedRecords = splitVocab
+    ? RECORDS_PER_LANGUAGE_PAIR_SPLIT_VOCAB
+    : RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB;
+
   return Services.prefs.getBoolPref(USE_LEXICAL_SHORTLIST_PREF)
-    ? RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB
-    : RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB - 1;
+    ? expectedRecords
+    : expectedRecords - 1;
 }
 
-function createRecordsForLanguagePair(fromLang, toLang) {
+function createRecordsForLanguagePair(fromLang, toLang, splitVocab = false) {
   const records = [];
   const lang = fromLang + toLang;
   const models = [
     { fileType: "model", name: `model.${lang}.intgemm.alphas.bin` },
-    { fileType: "vocab", name: `vocab.${lang}.spm` },
     { fileType: "lex", name: `lex.50.50.${lang}.s2t.bin` },
+    ...(splitVocab
+      ? [
+          { fileType: "srcvocab", name: `srcvocab.${lang}.spm` },
+          { fileType: "trgvocab", name: `trgvocab.${lang}.spm` },
+        ]
+      : [{ fileType: "vocab", name: `vocab.${lang}.spm` }]),
   ];
 
   const attachment = {
@@ -1426,9 +1440,15 @@ function createRecordsForLanguagePair(fromLang, toLang) {
     isDownloaded: false,
   };
 
-  if (models.length !== RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB) {
-    throw new Error("Files per language pair was wrong.");
-  }
+  const expectedLength = splitVocab
+    ? RECORDS_PER_LANGUAGE_PAIR_SPLIT_VOCAB
+    : RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB;
+
+  is(
+    models.length,
+    expectedLength,
+    "The number of records per language pair should match the expected length."
+  );
 
   for (const { fileType, name } of models) {
     records.push({
