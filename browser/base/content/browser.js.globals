@@ -39,11 +39,6 @@
   "UpdateUrlbarSearchSplitterState",
   "UpdatePopupNotificationsVisibility",
   "PageProxyClickHandler",
-  "browserDragAndDrop",
-  "homeButtonObserver",
-  "openHomeDialog",
-  "newTabButtonObserver",
-  "newWindowButtonObserver",
   "OpenSearchManager",
   "CreateContainerTabMenu",
   "FillHistoryMenu",
@@ -259,5 +254,6 @@
   "gFindBarInitialized",
   "gFindBarPromise",
   "SelectableProfileService",
-  "ActionsProviderContextualSearch"
+  "ActionsProviderContextualSearch",
+  "ToolbarDropHandler"
 ]

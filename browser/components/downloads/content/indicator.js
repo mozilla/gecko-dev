@@ -571,7 +571,7 @@ const DownloadsIndicatorView = {
   },
 
   onDragOver(aEvent) {
-    browserDragAndDrop.dragOver(aEvent);
+    ToolbarDropHandler.onDragOver(aEvent);
   },
 
   onDrop(aEvent) {
@@ -582,7 +582,7 @@ const DownloadsIndicatorView = {
       return;
     }
 
-    let links = browserDragAndDrop.dropLinks(aEvent);
+    let links = Services.droppedLinkHandler.dropLinks(aEvent);
     if (!links.length) {
       return;
     }

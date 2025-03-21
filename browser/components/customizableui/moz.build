@@ -24,6 +24,7 @@ EXTRA_JS_MODULES += [
     "PanelMultiView.sys.mjs",
     "SearchWidgetTracker.sys.mjs",
     "ToolbarContextMenu.sys.mjs",
+    "ToolbarDropHandler.sys.mjs",
 ]
 
 SPHINX_TREES["docs"] = "docs"

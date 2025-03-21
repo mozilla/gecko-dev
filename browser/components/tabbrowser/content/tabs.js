@@ -1261,7 +1261,7 @@
         // Pass true to disallow dropping javascript: or data: urls
         let links;
         try {
-          links = browserDragAndDrop.dropLinks(event, true);
+          links = Services.droppedLinkHandler.dropLinks(event, true);
         } catch (ex) {}
 
         if (!links || links.length === 0) {
@@ -1280,9 +1280,9 @@
         let replace = !!targetTab;
         let newIndex = this.#getDropIndex(event);
         let urls = links.map(link => link.url);
-        let csp = browserDragAndDrop.getCsp(event);
+        let csp = Services.droppedLinkHandler.getCsp(event);
         let triggeringPrincipal =
-          browserDragAndDrop.getTriggeringPrincipal(event);
+          Services.droppedLinkHandler.getTriggeringPrincipal(event);
 
         (async () => {
           if (
@@ -3185,7 +3185,7 @@
         }
       }
 
-      if (browserDragAndDrop.canDropLink(event)) {
+      if (Services.droppedLinkHandler.canDropLink(event, true)) {
         return "link";
       }
       return "none";
