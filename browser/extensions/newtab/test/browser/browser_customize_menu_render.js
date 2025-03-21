@@ -1,9 +1,5 @@
 "use strict";
 
-// test_newtab calls SpecialPowers.spawn, which injects ContentTaskUtils in the
-// scope of the callback. Eslint doesn't know about that.
-/* global ContentTaskUtils */
-
 // Test that the customization menu is rendered.
 test_newtab({
   test: async function test_render_customizeMenu() {

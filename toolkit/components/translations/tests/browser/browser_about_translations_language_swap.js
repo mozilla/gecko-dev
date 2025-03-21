@@ -3,10 +3,6 @@
 
 "use strict";
 
-// runInPage calls ContentTask.spawn, which injects ContentTaskUtils in the
-// scope of the callback. Eslint doesn't know about that.
-/* global ContentTaskUtils */
-
 /**
  * Test the language swap behaviour.
  */

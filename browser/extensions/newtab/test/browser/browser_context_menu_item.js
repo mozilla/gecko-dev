@@ -1,9 +1,5 @@
 "use strict";
 
-// test_tab calls SpecialPowers.spawn, which injects ContentTaskUtils in the
-// scope of the callback. Eslint doesn't know about that.
-/* global ContentTaskUtils */
-
 // Test that we do not set icons in individual tile and card context menus on
 // newtab page.
 test_newtab({

@@ -4,10 +4,6 @@
 
 "use strict";
 
-// test_newtab calls SpecialPowers.spawn, which injects ContentTaskUtils in the
-// scope of the callback. Eslint doesn't know about that.
-/* global ContentTaskUtils */
-
 test_newtab({
   async before() {
     // Some reason test-linux1804-64-qr/debug can end up with example.com, so

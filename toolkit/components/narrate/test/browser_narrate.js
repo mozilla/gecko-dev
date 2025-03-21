@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
-// spawnInNewReaderTab calls SpecialPowers.spawn, which injects ContentTaskUtils
-// in the scope of the callback. Eslint doesn't know about that.
-/* global ContentTaskUtils */
 
 registerCleanupFunction(teardown);
 

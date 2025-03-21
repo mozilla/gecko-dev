@@ -102,11 +102,6 @@ addMessageListener("content-task:spawn", async function (msg) {
   }
   /* eslint-enable no-unused-vars */
 
-  // Note that ContentTaskUtils is imported above, so it's also available in the
-  // scope of the eval.
-  // If more variables are made available, don't forget to update
-  // tools/lint/eslint/eslint-plugin-mozilla/lib/rules/import-content-task-globals.js.
-
   try {
     let runnablestr = `
       (() => {

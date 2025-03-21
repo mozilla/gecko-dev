@@ -10,10 +10,6 @@ Services.scriptloader.loadSubScript(
   EventUtils
 );
 
-const { ContentTaskUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/ContentTaskUtils.sys.mjs"
-);
-
 function getRecordedKeypressCount() {
   let snapshot = Services.telemetry.getSnapshotForHistograms("main", false);
 

@@ -39,12 +39,6 @@ module.exports = {
               value
             );
           }
-
-          helpers.addVarToScope(
-            "ContentTaskUtils",
-            context.sourceCode.getScope(node),
-            false /* writable ? */
-          );
         },
       "CallExpression[callee.object.name='SpecialPowers'][callee.property.name='spawn']":
         function (node) {
