@@ -185,29 +185,6 @@ void AccumulateTimeDelta(HistogramID id, const nsCString& key, TimeStamp start,
 
 const char* GetHistogramName(HistogramID id);
 
-template <HistogramID id>
-class MOZ_RAII AutoTimer {
- public:
-  explicit AutoTimer(TimeStamp aStart = TimeStamp::Now()) : start(aStart) {}
-
-  explicit AutoTimer(const nsCString& aKey, TimeStamp aStart = TimeStamp::Now())
-      : start(aStart), key(aKey) {
-    MOZ_ASSERT(!aKey.IsEmpty(), "The key must not be empty.");
-  }
-
-  ~AutoTimer() {
-    if (key.IsEmpty()) {
-      AccumulateTimeDelta(id, start);
-    } else {
-      AccumulateTimeDelta(id, key, start);
-    }
-  }
-
- private:
-  const TimeStamp start;
-  const nsCString key;
-};
-
 /**
  * Indicates whether Telemetry base data recording is turned on. Added for
  * future uses.

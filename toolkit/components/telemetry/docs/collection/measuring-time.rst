@@ -74,43 +74,5 @@ API:
 
 .. code-block:: cpp
 
-    // This helper class is the preferred way to record elapsed time.
-    template<HistogramID id>
-    class AutoTimer {
-      // Record into a plain histogram.
-      explicit AutoTimer(TimeStamp aStart = TimeStamp::Now());
-      // Record into a keyed histogram, with key |aKey|.
-      explicit AutoTimer(const nsCString& aKey,
-                         TimeStamp aStart = TimeStamp::Now());
-    };
-
-    // If the Histogram id is not known at compile time:
-    class RuntimeAutoTimer {
-      // Record into a plain histogram.
-      explicit RuntimeAutoTimer(Telemetry::HistogramID aId,
-                            TimeStamp aStart = TimeStamp::Now());
-      // Record into a keyed histogram, with key |aKey|.
-      explicit RuntimeAutoTimer(Telemetry::HistogramID aId,
-                            const nsCString& aKey,
-                            TimeStamp aStart = TimeStamp::Now());
-    };
-
     void AccumulateTimeDelta(HistogramID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
     void AccumulateTimeDelta(HistogramID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now());
-
-Example:
-
-.. code-block:: cpp
-
-    {
-      Telemetry::AutoTimer<Telemetry::FIND_PLUGINS> telemetry;
-      // ... scan disk for plugins.
-    }
-    // When leaving the scope, AutoTimers destructor will record the time that passed.
-
-    // If the histogram id is not known at compile time.
-    {
-      Telemetry::RuntimeAutoTimer telemetry(Telemetry::FIND_PLUGINS);
-      // ... scan disk for plugins.
-    }
-    // When leaving the scope, AutoTimers destructor will record the time that passed.

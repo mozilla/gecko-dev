@@ -348,15 +348,3 @@ Probes in native code can also use the `nsITelemetry <https://searchfox.org/mozi
 .. warning::
 
   Telemetry accumulations are designed to be cheap, not free. If you wish to accumulate values in a performance-sensitive piece of code, store the accumualtions locally and accumulate after the performance-sensitive piece ("hot path") has completed.
-
-The ``Telemetry.h`` header also declares the helper classes ``AutoTimer`` and ``AutoCounter``. Objects of these types automatically record a histogram value when they go out of scope:
-
-.. code-block:: cpp
-
-  nsresult
-  nsPluginHost::StopPluginInstance(nsNPAPIPluginInstance* aInstance)
-  {
-    Telemetry::AutoTimer<Telemetry::PLUGIN_SHUTDOWN_MS> timer;
-    ...
-    return NS_OK;
-  }
