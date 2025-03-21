@@ -87,7 +87,9 @@ OggDemuxer::nsAutoOggSyncState::~nsAutoOggSyncState() {
 rlbox_sandbox_ogg* OggDemuxer::CreateSandbox() {
   rlbox_sandbox_ogg* sandbox = new rlbox_sandbox_ogg();
 #ifdef MOZ_WASM_SANDBOXING_OGG
-  bool success = sandbox->create_sandbox(false /* infallible */);
+  bool success = sandbox->create_sandbox(/* shouldAbortOnFailure = */ false,
+                                         /* custom capacity = */ nullptr,
+                                         "rlbox_wasm2c_ogg");
 #else
   bool success = sandbox->create_sandbox();
 #endif

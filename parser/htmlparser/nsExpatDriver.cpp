@@ -1450,7 +1450,8 @@ RLBoxExpatSandboxPool::CreateSandboxData(uint64_t aSize) {
 #ifdef MOZ_WASM_SANDBOXING_EXPAT
   const w2c_mem_capacity capacity =
       get_valid_wasm2c_memory_capacity(aSize, true /* 32-bit wasm memory*/);
-  bool create_ok = sandbox->create_sandbox(/* infallible = */ false, &capacity);
+  bool create_ok = sandbox->create_sandbox(/* shouldAbortOnFailure = */ false,
+                                           &capacity, "rlbox_wasm2c_expat");
 #else
   bool create_ok = sandbox->create_sandbox();
 #endif

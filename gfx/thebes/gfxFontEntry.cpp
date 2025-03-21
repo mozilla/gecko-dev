@@ -655,7 +655,13 @@ struct gfxFontEntry::GrSandboxData {
       grGetGlyphAdvanceCallback;
 
   GrSandboxData() {
+#if defined(MOZ_WASM_SANDBOXING_GRAPHITE)
+    sandbox.create_sandbox(/* shouldAbortOnFailure = */ true,
+                           /* custom capacity = */ nullptr,
+                           "rlbox_wasm2c_graphite");
+#else
     sandbox.create_sandbox();
+#endif
     grGetTableCallback =
         sandbox.register_callback(gfxFontEntryCallbacks::GrGetTable);
     grReleaseTableCallback =
