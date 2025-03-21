@@ -43,7 +43,7 @@ add_task(
     info("Publishing Japanese as a source language in Remote Settings.");
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToCreate: recordsForJaEn,
-      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
     });
 
     await SelectTranslationsTestUtils.openPanel(runInPage, {
@@ -72,7 +72,7 @@ add_task(
     info("Removing Japanese as a source language from Remote Settings.");
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToDelete: recordsForJaEn,
-      expectedDeletedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+      expectedDeletedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
     });
 
     await SelectTranslationsTestUtils.openPanel(runInPage, {
@@ -96,7 +96,7 @@ add_task(
     info("Publishing Japanese as a target language in Remote Settings.");
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToCreate: recordsForEnJa,
-      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
     });
 
     await SelectTranslationsTestUtils.openPanel(runInPage, {
@@ -127,7 +127,7 @@ add_task(
     info("Republishing Japanese as a source language in Remote Settings.");
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToCreate: recordsForJaEn,
-      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
     });
 
     await SelectTranslationsTestUtils.openPanel(runInPage, {

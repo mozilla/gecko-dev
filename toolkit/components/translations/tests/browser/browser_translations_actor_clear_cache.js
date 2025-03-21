@@ -44,7 +44,7 @@ add_task(async function test_delete_cache() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToCreate,
-    expectedCreatedRecordsCount: 5 * RECORDS_PER_LANGUAGE_PAIR,
+    expectedCreatedRecordsCount: 5 * RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
   });
 
   const cleanupLocales = await mockLocales({

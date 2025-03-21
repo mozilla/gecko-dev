@@ -2748,7 +2748,7 @@ export class TranslationsParent extends JSWindowActorParent {
     ];
 
     /** @type {LanguageTranslationModelFiles} */
-    const results = {};
+    const languageModelFiles = {};
 
     // Use Promise.all to download (or retrieve from cache) the model files in parallel.
     await Promise.all(
@@ -2782,7 +2782,7 @@ export class TranslationsParent extends JSWindowActorParent {
         /** @type {{buffer: ArrayBuffer }} */
         const { buffer } = await client.attachments.download(record);
 
-        results[record.fileType] = {
+        languageModelFiles[record.fileType] = {
           buffer,
           record,
         };
@@ -2802,30 +2802,30 @@ export class TranslationsParent extends JSWindowActorParent {
     // Validate that all of the files we expected were actually available and
     // downloaded.
 
-    if (!results.model) {
+    if (!languageModelFiles.model) {
       throw new Error(
         `No model file was found for "${sourceLanguage}" to "${targetLanguage}."`
       );
     }
 
-    if (!results.lex && lazy.useLexicalShortlist) {
+    if (!languageModelFiles.lex && lazy.useLexicalShortlist) {
       throw new Error(
         `No lex file was found for "${sourceLanguage}" to "${targetLanguage}."`
       );
     }
 
-    if (results.vocab) {
-      if (results.srcvocab) {
+    if (languageModelFiles.vocab) {
+      if (languageModelFiles.srcvocab) {
         throw new Error(
           `A srcvocab and vocab file were both included for "${sourceLanguage}" to "${targetLanguage}." Only one is needed.`
         );
       }
-      if (results.trgvocab) {
+      if (languageModelFiles.trgvocab) {
         throw new Error(
           `A trgvocab and vocab file were both included for "${sourceLanguage}" to "${targetLanguage}." Only one is needed.`
         );
       }
-    } else if (!results.srcvocab || !results.trgvocab) {
+    } else if (!languageModelFiles.srcvocab || !languageModelFiles.trgvocab) {
       throw new Error(
         `No vocab files were provided for "${sourceLanguage}" to "${targetLanguage}."`
       );
@@ -2836,7 +2836,7 @@ export class TranslationsParent extends JSWindowActorParent {
       sourceLanguage,
       targetLanguage,
       variant,
-      languageModelFiles: results,
+      languageModelFiles,
     };
   }
 

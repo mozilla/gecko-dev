@@ -145,7 +145,7 @@ add_task(async function test_translations_actor_sync_create_models() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToCreate,
-    expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+    expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
   });
 
   const updatedModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -211,7 +211,7 @@ add_task(
 
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToCreate,
-      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
     });
 
     const updatedModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -278,7 +278,7 @@ add_task(
 
     await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
       recordsToCreate,
-      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+      expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
     });
 
     const updatedModelsPromise = TranslationsParent.getTranslationModelPayload(
@@ -332,7 +332,7 @@ add_task(async function test_translations_actor_sync_rollback_models() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToCreate: newRecords,
-    expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+    expectedCreatedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
   });
 
   const decoder = new TextDecoder();
@@ -350,7 +350,7 @@ add_task(async function test_translations_actor_sync_rollback_models() {
 
   await modifyRemoteSettingsRecords(remoteClients.translationModels.client, {
     recordsToDelete: newRecords,
-    expectedDeletedRecordsCount: RECORDS_PER_LANGUAGE_PAIR,
+    expectedDeletedRecordsCount: RECORDS_PER_LANGUAGE_PAIR_SHARED_VOCAB,
   });
 
   const rolledBackModelsPromise = TranslationsParent.getTranslationModelPayload(
