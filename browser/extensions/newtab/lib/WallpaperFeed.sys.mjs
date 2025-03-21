@@ -231,9 +231,7 @@ export class WallpaperFeed {
       await IOUtils.makeDirectory(wallpaperDir, { ignoreExisting: true });
 
       let uuid = Services.uuid.generateUUID().toString().slice(1, -1);
-      this.store.dispatch(
-        ac.SetPref("newtabWallpapers.customWallpaper.uuid", uuid)
-      );
+      Services.prefs.setStringPref(PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID, uuid);
 
       const filePath = PathUtils.join(wallpaperDir, uuid);
 
