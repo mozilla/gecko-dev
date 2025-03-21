@@ -11097,6 +11097,8 @@
   type: RelaxedAtomicBool
 #if defined(MOZ_WIDGET_GTK)
   value: true
+#elif defined(XP_WIN)
+  value: @IS_NIGHTLY_BUILD@
 #else
   value: false
 #endif
