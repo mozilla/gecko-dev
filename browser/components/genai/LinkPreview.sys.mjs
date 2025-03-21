@@ -17,11 +17,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false,
   (_pref, _old, val) => LinkPreview.onEnabledPref(val)
 );
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "outputSentences",
-  "browser.ml.linkPreview.outputSentences"
-);
 
 export const LinkPreview = {
   // Shared downloading state to use across multiple previews
@@ -223,7 +218,6 @@ export const LinkPreview = {
     }
 
     try {
-      let expected = lazy.outputSentences;
       await lazy.LinkPreviewModel.generateTextAI(
         ogCard.pageData.article.textContent,
         {
@@ -236,9 +230,6 @@ export const LinkPreview = {
             // Clear waiting in case a different generate handled download.
             ogCard.showWait = false;
             ogCard.addKeyPoint(text);
-            if (--expected == 0) {
-              ogCard.generating = false;
-            }
           },
         }
       );

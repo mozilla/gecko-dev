@@ -187,9 +187,15 @@ export class LlamaPipeline {
    * @param {string | string[]} options.prompt - The input prompt or an array of chat messages.
    * @param {number} [options.nPredict=100] - The number of tokens to generate.
    * @param {boolean} [options.skipPrompt=true] - If true, skips processing the prompt tokens.
+   * @param {int} [options.stopTokens=[]] - List of custom token IDs for stopping the generation.
+   * @param {int} [options.useCache=false] - If true, it skips re-evaluating the conversation history.
+   *                                         Specifically, if a new prompt shares the same prefix as a previous prompt,
+   *                                         the cached computation (kv-cache) for that prefix will be reused, avoiding redundant computation.
    * @param {float} [options.temp=0] - The sampling temperature.
    * @param {float} [options.topP=0] - The top probabilities to use for top-p sampling.
    * @param {int} [options.topK=0] - The top-k tokens to use for top-k sampling.
+   * @param {object} [options.extraWllamaSamplingConfig={}] - Additional sampling settings. For details, refer to
+   *                                                    github.com/ngxson/wllama/blob/2.2.1/src/wllama.ts#L118
    * @param {string|null} [requestId=null] - An optional identifier for tracking the request.
    * @param {?function(ProgressAndStatusCallbackParams):void|null} [inferenceProgressCallback=null] - A callback function to track inference progress.
    *        It receives an object containing:
@@ -208,9 +214,12 @@ export class LlamaPipeline {
       prompt,
       nPredict = 100,
       skipPrompt = true,
+      stopTokens = [],
+      useCache = false,
       temp = 0,
       topP = 0,
       topK = 0,
+      ...extraWllamaSamplingConfig
     } = {},
     requestId = null,
     inferenceProgressCallback = null,
@@ -229,6 +238,7 @@ export class LlamaPipeline {
         temp,
         top_p: topP,
         top_k: topK,
+        ...extraWllamaSamplingConfig,
       };
 
       let promptTokens = null;
@@ -264,7 +274,8 @@ export class LlamaPipeline {
         {
           nPredict,
           sampling: configSampling,
-          useCache: false,
+          useCache,
+          stopTokens,
           onNewToken: (token, piece, _currentText) => {
             if (!isPromptDone) {
               isPromptDone = true;

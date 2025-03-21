@@ -90,20 +90,36 @@ add_task(function test_text_processing_prefs() {
  */
 add_task(function test_sentence_post_processor() {
   const processor = new SentencePostProcessor();
-  Assert.equal(processor.put("Hello "), "", "no sentence yet");
-  Assert.equal(processor.put("world. "), "", "sentence complete but not next");
-  Assert.equal(
+  Assert.deepEqual(
+    processor.put("Hello "),
+    { sentence: "", abort: false },
+    "no sentence yet"
+  );
+  Assert.deepEqual(
+    processor.put("world. "),
+    { sentence: "", abort: false },
+    "sentence complete but not next"
+  );
+  Assert.deepEqual(
     processor.put("How "),
-    "Hello world. ",
+    { sentence: "Hello world. ", abort: false },
     "previous sentence complete"
   );
-  Assert.equal(
+  Assert.deepEqual(
     processor.put("are you today? I'm"),
-    "How are you today? ",
+    { sentence: "How are you today? ", abort: false },
     "question complete"
   );
-  Assert.equal(processor.put(" fine. And"), "I'm fine. ", "response complete");
-  Assert.equal(processor.put("you? Good"), "", "hit limit");
+  Assert.deepEqual(
+    processor.put(" fine. And"),
+    { sentence: "I'm fine. ", abort: true },
+    "response complete"
+  );
+  Assert.deepEqual(
+    processor.put("you? Good"),
+    { sentence: "", abort: true },
+    "hit limit"
+  );
   Assert.equal(processor.flush(), "", "still nothing at limit");
 });
 
@@ -112,13 +128,33 @@ add_task(function test_sentence_post_processor() {
  */
 add_task(function test_sentence_post_processor_limits() {
   const processor = new SentencePostProcessor(1);
-  Assert.equal(processor.put("Hi. There. "), "Hi. ", "first sentence");
-  Assert.equal(processor.put("Nope."), "", "no more sentences");
+  Assert.deepEqual(
+    processor.put("Hi. There. "),
+    { sentence: "Hi. ", abort: true },
+    "first sentence"
+  );
+  Assert.deepEqual(
+    processor.put("Nope."),
+    { sentence: "", abort: true },
+    "no more sentences"
+  );
 
   Services.prefs.setIntPref("browser.ml.linkPreview.outputSentences", 2);
   const viaPref = new SentencePostProcessor();
-  Assert.equal(viaPref.put("Hi. There. "), "Hi. ", "first sentence");
-  Assert.equal(viaPref.put("Yup. "), "There. ", "second sentence");
-  Assert.equal(viaPref.put("Nope."), "", "no more sentences");
+  Assert.deepEqual(
+    viaPref.put("Hi. There. "),
+    { sentence: "Hi. ", abort: false },
+    "first sentence"
+  );
+  Assert.deepEqual(
+    viaPref.put("Yup. "),
+    { sentence: "There. ", abort: true },
+    "second sentence"
+  );
+  Assert.deepEqual(
+    viaPref.put("Nope."),
+    { sentence: "", abort: true },
+    "no more sentences"
+  );
   Services.prefs.clearUserPref("browser.ml.linkPreview.outputSentences");
 });
