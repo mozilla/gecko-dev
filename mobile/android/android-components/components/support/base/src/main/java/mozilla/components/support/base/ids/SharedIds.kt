@@ -6,17 +6,18 @@ package mozilla.components.support.base.ids
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 private const val KEY_NEXT_ID = "nextId"
 private const val KEY_LAST_USED_PREFIX = "lastUsed."
 private const val KEY_ID_PREFIX = "id."
 
 /**
- * Internal helper to create unique and stable [Int] ids based on [String] tags.
+ * Internal helper to create unique and stable [Int] IDs based on [String] tags.
  *
- * @param fileName The shared preference file that should be used to save id assignments.
- * @param idLifeTime The maximum time an id can be unused until it is cleared
- * @param offset The [Int] offset from which this instance should start providing ids.
+ * @param fileName The shared preference file that should be used to save ID assignments.
+ * @param idLifeTime The maximum time an ID can be unused until it is cleared.
+ * @param offset The [Int] offset from which this instance should start providing IDs.
  */
 internal class SharedIds(
     private val fileName: String,
@@ -29,26 +30,26 @@ internal class SharedIds(
     @Synchronized
     fun getIdForTag(context: Context, tag: String): Int {
         val preferences = preferences(context)
-        val editor = preferences.edit()
         val key = tagToKey(tag)
         val lastUsedKey = tagToLastUsedKey(tag)
 
-        removeExpiredIds(preferences, editor)
+        removeExpiredIds(preferences)
 
-        // First check if we already have an id for this tag
-        val id = preferences.getInt(key, -1)
-        if (id != -1) {
-            editor.putLong(lastUsedKey, now()).apply()
-            return id
+        // First, check if we already have an ID for this tag
+        val existingId = preferences.getInt(key, -1)
+        if (existingId != -1) {
+            // Update the last used timestamp
+            preferences.edit { putLong(lastUsedKey, now()) }
+            return existingId
         }
 
-        // If we do not have an id for this tag then use the next available one and save that.
+        // If no ID exists, assign the next available one
         val nextId = preferences.getInt(KEY_NEXT_ID, offset)
-
-        editor.putInt(KEY_NEXT_ID, nextId + 1) // Ignoring overflow for now.
-        editor.putInt(key, nextId)
-        editor.putLong(lastUsedKey, now())
-        editor.apply()
+        preferences.edit {
+            putInt(KEY_NEXT_ID, nextId + 1) // Increment the next ID, ignoring overflow for now
+            putInt(key, nextId) // Assign the current next ID to the tag
+            putLong(lastUsedKey, now()) // Update the last used timestamp
+        }
 
         return nextId
     }
@@ -59,19 +60,18 @@ internal class SharedIds(
     @Synchronized
     fun getNextIdForTag(context: Context, tag: String): Int {
         val preferences = preferences(context)
-        val editor = preferences.edit()
         val key = tagToKey(tag)
         val lastUsedKey = tagToLastUsedKey(tag)
 
-        removeExpiredIds(preferences, editor)
+        removeExpiredIds(preferences)
 
-        // always use the next available one and save that.
+        // Always use the next available one and save that
         val nextId = preferences.getInt(KEY_NEXT_ID, offset)
-
-        editor.putInt(KEY_NEXT_ID, nextId + 1) // Ignoring overflow for now.
-        editor.putInt(key, nextId)
-        editor.putLong(lastUsedKey, now())
-        editor.apply()
+        preferences.edit {
+            putInt(KEY_NEXT_ID, nextId + 1) // Increment the next ID, ignoring overflow for now
+            putInt(key, nextId) // Assign the current next ID to the tag
+            putLong(lastUsedKey, now()) // Update the last used timestamp
+        }
 
         return nextId
     }
@@ -89,24 +89,31 @@ internal class SharedIds(
     }
 
     /**
-     * Remove all expired notification ids.
+     * Remove all expired notification IDs.
+     *
+     * @param preferences The [SharedPreferences] instance.
      */
-    private fun removeExpiredIds(preferences: SharedPreferences, editor: SharedPreferences.Editor) {
-        preferences.all.entries.filter { entry ->
-            entry.key.startsWith(KEY_LAST_USED_PREFIX)
-        }.filter { entry ->
-            val lastUsed = entry.value as Long
-            lastUsed < now() - idLifeTime
-        }.forEach { entry ->
-            val lastUsedKey = entry.key
-            val tag = lastUsedKey.substring(KEY_LAST_USED_PREFIX.length)
-            editor.remove(tagToKey(tag))
-            editor.remove(lastUsedKey)
-            editor.apply()
+    private fun removeExpiredIds(preferences: SharedPreferences) {
+        val expiredEntries = preferences.all.entries
+            .filter { it.key.startsWith(KEY_LAST_USED_PREFIX) }
+            .filter {
+                val lastUsed = it.value as? Long
+                lastUsed != null && lastUsed < (now() - idLifeTime)
+            }
+
+        if (expiredEntries.isNotEmpty()) {
+            preferences.edit {
+                expiredEntries.forEach { entry ->
+                    val lastUsedKey = entry.key
+                    val tag = lastUsedKey.removePrefix(KEY_LAST_USED_PREFIX)
+                    remove(tagToKey(tag))
+                    remove(lastUsedKey)
+                }
+            }
         }
     }
 
-    fun clear(context: Context) { preferences(context).edit().clear().apply() }
+    fun clear(context: Context) { preferences(context).edit { clear() } }
 
     internal var now: () -> Long = { System.currentTimeMillis() }
 }
