@@ -45,6 +45,54 @@ Message identifiers are also used as the ultimate fall back in case of run-time
 errors. Having a descriptive message ID would make such fall back more useful
 for the user.
 
+Avoid Generating Identifiers at Run-time
+----------------------------------------
+
+Generating identifiers at run-time relying on variables should be avoided unless
+the number of strings to manage is particularly large.
+
+Consider for example these Fluent strings and associated JavaScript code:
+
+.. code-block:: fluent
+
+  bar-tooltip-social = Social Media Trackers
+  bar-tooltip-cookie = Cross-Site Tracking Cookies
+  bar-tooltip-tracker = Tracking Content
+  bar-tooltip-fingerprinter = Fingerprinters
+  bar-tooltip-cryptominer = Cryptominers
+
+
+.. code-block:: javascript
+
+  document.l10n.setAttributes(div, `bar-tooltip-${type}`);
+
+
+From a developer perspective, this code is clean and intuitive, but it creates
+two distinct problems:
+
+- Updating one of the strings in the group requires either updating all of them,
+  forcing retranslation, or updating the code logic to support exceptions.
+- Finding unused strings in the codebase becomes impossible, as the message
+  identifier is never spelled out.
+
+Potentially, the code above can also lead to generating a missing identifiers,
+while that's harder with an explicit list.
+
+An explicit map or object is the preferred approach to deal with these cases:
+
+
+.. code-block:: javascript
+
+  const messageIDs = {
+    social: "bar-tooltip-social",
+    cookie: "bar-tooltip-cookie",
+    tracker: "bar-tooltip-tracker",
+    cryptominer: "bar-tooltip-cryptominer",
+    fingerprinter: "bar-tooltip-fingerprinter",
+  };
+  document.l10n.setAttributes(div, messageIDs[type]);
+
+
 Comments
 ========
 
