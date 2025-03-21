@@ -388,6 +388,7 @@ already_AddRefed<BindGroupLayout> Device::CreateBindGroupLayout(
           break;
       }
       e.has_dynamic_offset = entry.mBuffer.Value().mHasDynamicOffset;
+      e.min_binding_size = entry.mBuffer.Value().mMinBindingSize;
     }
     if (entry.mTexture.WasPassed()) {
       e.ty = ffi::WGPURawBindingType_SampledTexture;
