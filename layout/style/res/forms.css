@@ -908,7 +908,7 @@ input:is([type=date], [type=time], [type=datetime-local]):is(:disabled, :read-on
   color: GrayText;
 }
 
-input:autofill, select:autofill, textarea:autofill {
+input:autofill, select:autofill {
   background-color: -moz-autofill-background !important;
   background-image: none !important;
   color: FieldText !important;

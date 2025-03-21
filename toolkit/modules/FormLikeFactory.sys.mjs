@@ -105,9 +105,7 @@ export let FormLikeFactory = {
     // be computed when it's eventually needed (if ever).
     ChromeUtils.defineLazyGetter(formLike, "elements", function () {
       let elements = [];
-      for (let el of aDocumentRoot.querySelectorAll(
-        "input, select, textarea"
-      )) {
+      for (let el of aDocumentRoot.querySelectorAll("input, select")) {
         // Exclude elements inside the rootElement that are already in a <form> as
         // they will be handled by their own FormLike.
         if (!el.form || aOptions.ignoreForm) {
@@ -146,8 +144,7 @@ export let FormLikeFactory = {
     if (
       (!HTMLInputElement.isInstance(aField) &&
         !HTMLIFrameElement.isInstance(aField) &&
-        !HTMLSelectElement.isInstance(aField) &&
-        !HTMLTextAreaElement.isInstance(aField)) ||
+        !HTMLSelectElement.isInstance(aField)) ||
       !aField.ownerDocument
     ) {
       throw new Error("createFromField requires a field in a document");

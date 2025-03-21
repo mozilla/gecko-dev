@@ -36,8 +36,6 @@ skip-if = [
 
 ["browser_autofill_address_select_match_isoid.js"]
 
-["browser_autofill_address_textarea.js"]
-
 ["browser_autofill_creditCard_name.js"]
 
 ["browser_autofill_creditCard_type.js"]

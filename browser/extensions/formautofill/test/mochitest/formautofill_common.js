@@ -196,10 +196,7 @@ async function triggerAutofillAndCheckProfile(profile) {
         element.addEventListener(
           "input",
           event => {
-            if (
-              (element.tagName == "INPUT" && element.type == "text") ||
-              element.tagName == "TEXTAREA"
-            ) {
+            if (element.tagName == "INPUT" && element.type == "text") {
               if (hadEditor) {
                 ok(
                   beforeInputFired,

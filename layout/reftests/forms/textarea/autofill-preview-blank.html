@@ -1,8 +1,0 @@
-<!doctype html>
-<textarea></textarea>
-<script>
-  let textarea = SpecialPowers.wrap(document.querySelector("textarea"));
-  SpecialPowers.Cc["@mozilla.org/satchel/form-fill-controller;1"].getService(SpecialPowers.Ci.nsIFormFillController).markAsAutoCompletableField(textarea);
-  textarea.getBoundingClientRect();
-  textarea.autofillState = "preview";
-</script>

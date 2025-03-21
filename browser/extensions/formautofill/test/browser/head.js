@@ -524,10 +524,7 @@ async function focusUpdateSubmitForm(target, args, submit = true) {
 
     for (const [selector, value] of Object.entries(obj.newValues)) {
       element = form.querySelector(selector);
-      if (
-        content.HTMLInputElement.isInstance(element) ||
-        content.HTMLTextAreaElement.isInstance(element)
-      ) {
+      if (content.HTMLInputElement.isInstance(element)) {
         element.setUserInput(value);
       } else if (
         content.HTMLSelectElement.isInstance(element) &&
@@ -1014,7 +1011,7 @@ function verifySectionAutofillResult(section, result, expectedSection) {
 function getSelectorFromFieldDetail(fieldDetail) {
   // identifier is set with `${element.id}/${element.name}`;
   const id = fieldDetail.identifier.split("/")[0];
-  return `input#${id}, select#${id}, textarea#${id}`;
+  return `input#${id}, select#${id}`;
 }
 
 /**
@@ -1131,11 +1128,7 @@ async function findContext(browser, selector) {
         // TODO: replace the following with an approach that can precisely find the
         // element we want without basing on visibility.
         const e = content.document.querySelector(selector);
-        if (
-          e &&
-          (content.HTMLInputElement.isInstance(e) ||
-            content.HTMLTextAreaElement.isInstance(e))
-        ) {
+        if (e && content.HTMLInputElement.isInstance(e)) {
           return !!(
             e.checkVisibility({
               checkOpacity: true,

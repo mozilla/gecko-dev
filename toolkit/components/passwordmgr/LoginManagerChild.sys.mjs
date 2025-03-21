@@ -1402,19 +1402,19 @@ export class LoginManagerChild extends JSWindowActorChild {
         break;
       }
       case "PasswordManager:OnFieldAutoComplete": {
-        const { focusedElement } = lazy.gFormFillService;
+        const { focusedInput } = lazy.gFormFillService;
         const login = lazy.LoginHelper.vanillaObjectToLogin(msg.data);
-        this.onFieldAutoComplete(focusedElement, login);
+        this.onFieldAutoComplete(focusedInput, login);
         break;
       }
       case "PasswordManager:FillGeneratedPassword": {
-        const { focusedElement } = lazy.gFormFillService;
-        this.filledWithGeneratedPassword(focusedElement);
+        const { focusedInput } = lazy.gFormFillService;
+        this.filledWithGeneratedPassword(focusedInput);
         break;
       }
       case "PasswordManager:FillRelayUsername": {
-        const { focusedElement } = lazy.gFormFillService;
-        this.fillRelayUsername(focusedElement, msg.data);
+        const { focusedInput } = lazy.gFormFillService;
+        this.fillRelayUsername(focusedInput, msg.data);
         break;
       }
     }
@@ -1429,7 +1429,7 @@ export class LoginManagerChild extends JSWindowActorChild {
       return;
     }
 
-    if (inputElement != lazy.gFormFillService.focusedElement) {
+    if (inputElement != lazy.gFormFillService.focusedInput) {
       lazy.log("Could not open popup on input that's no longer focused.");
       return;
     }
@@ -3044,7 +3044,7 @@ export class LoginManagerChild extends JSWindowActorChild {
         lazy.LoginManagerTelemetry.recordAutofillResult(autofillResult);
 
         if (usernameField) {
-          let focusedElement = lazy.gFormFillService.focusedElement;
+          let focusedElement = lazy.gFormFillService.focusedInput;
           if (
             usernameField == focusedElement &&
             ![
