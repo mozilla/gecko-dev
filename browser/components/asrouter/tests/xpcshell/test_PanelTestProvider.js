@@ -28,7 +28,6 @@ add_task(async function test_PanelTestProvider() {
     toast_notification: 3,
     bookmarks_bar_button: 1,
     menu_message: 1,
-    newtab_message: 1,
   };
 
   const EXPECTED_TOTAL_MESSAGE_COUNT = Object.values(

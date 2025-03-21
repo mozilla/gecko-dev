@@ -38,9 +38,6 @@ function useIntersectionObserver(callback, threshold = 0.3) {
         observer.observe(el);
       }
     });
-
-    // Cleanup function to disconnect observer on unmount
-    return () => observer.disconnect();
   }, [callback, threshold]);
 
   return elementsRef;

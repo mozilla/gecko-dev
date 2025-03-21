@@ -1477,16 +1477,6 @@ export class _ASRouter {
       case "menu_message":
         lazy.MenuMessage.showMenuMessage(browser, message, trigger, force);
         break;
-      case "newtab_message": {
-        let targetBrowser = force ? null : browser;
-        let messageWithBrowser = {
-          targetBrowser,
-          message,
-          dispatch: this.dispatchCFRAction,
-        };
-        Services.obs.notifyObservers(messageWithBrowser, "newtab-message");
-        break;
-      }
     }
 
     return { message };

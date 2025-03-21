@@ -72,7 +72,7 @@ export function FeatureHighlight({
       </button>
       <div className={`feature-highlight-modal ${position} ${openedClassname}`}>
         <div className="message-icon">{icon}</div>
-        <p className="content-wrapper">{message}</p>
+        <p>{message}</p>
         <button
           data-l10n-id="feature-highlight-dismiss-button"
           className="icon icon-dismiss"

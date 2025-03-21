@@ -173,11 +173,6 @@ for (const type of [
   "INIT",
   "INLINE_SELECTION_CLICK",
   "INLINE_SELECTION_IMPRESSION",
-  "MESSAGE_CLICK",
-  "MESSAGE_DISMISS",
-  "MESSAGE_IMPRESSION",
-  "MESSAGE_SET",
-  "MESSAGE_TOGGLE_VISIBILITY",
   "NEW_TAB_INIT",
   "NEW_TAB_INITIAL_STATE",
   "NEW_TAB_LOAD",
@@ -2885,9 +2880,7 @@ function FeatureHighlight({
     className: `feature-highlight-modal ${position} ${openedClassname}`
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "message-icon"
-  }, icon), /*#__PURE__*/external_React_default().createElement("p", {
-    className: "content-wrapper"
-  }, message), /*#__PURE__*/external_React_default().createElement("button", {
+  }, icon), /*#__PURE__*/external_React_default().createElement("p", null, message), /*#__PURE__*/external_React_default().createElement("button", {
     "data-l10n-id": "feature-highlight-dismiss-button",
     className: "icon icon-dismiss",
     onClick: onDismissClick
@@ -6812,15 +6805,6 @@ const INITIAL_STATE = {
     recentSavesEnabled: false,
     showTopicSelection: false,
   },
-  // Messages received from ASRouter to render in newtab
-  Messages: {
-    // messages received from ASRouter are initially visible
-    isHidden: false,
-    // portID for that tab that was sent the message
-    portID: "",
-    // READONLY Message data received from ASRouter
-    messageData: {},
-  },
   Notifications: {
     showNotifications: false,
     toastCounter: 0,
@@ -7247,24 +7231,6 @@ function Sections(prevState = INITIAL_STATE.Sections, action) {
           ),
         })
       );
-    default:
-      return prevState;
-  }
-}
-
-function Messages(prevState = INITIAL_STATE.Messages, action) {
-  switch (action.type) {
-    case actionTypes.MESSAGE_SET:
-      if (prevState.messageData.messageType) {
-        return prevState;
-      }
-      return {
-        ...prevState,
-        messageData: action.data.message,
-        portID: action.data.portID || "",
-      };
-    case actionTypes.MESSAGE_TOGGLE_VISIBILITY:
-      return { ...prevState, isHidden: action.data };
     default:
       return prevState;
   }
@@ -7715,7 +7681,6 @@ const reducers = {
   Prefs,
   Dialog,
   Sections,
-  Messages,
   Notifications,
   Pocket,
   Personalization: Reducers_sys_Personalization,
@@ -10126,9 +10091,6 @@ function useIntersectionObserver(callback, threshold = 0.3) {
         observer.observe(el);
       }
     });
-
-    // Cleanup function to disconnect observer on unmount
-    return () => observer.disconnect();
   }, [callback, threshold]);
   return elementsRef;
 }
@@ -13221,25 +13183,108 @@ function TopicSelection({
 
 
 
+
+const WallpaperFeatureHighlight_INTERSECTION_RATIO = 1;
+const WallpaperFeatureHighlight_VISIBLE = "visible";
+const WallpaperFeatureHighlight_VISIBILITY_CHANGE_EVENT = "visibilitychange";
+const WALLPAPER_HIGHLIGHT_DISMISSED_PREF = "newtabWallpapers.highlightDismissed";
 function WallpaperFeatureHighlight({
   position,
   dispatch,
-  handleDismiss,
-  handleClose,
-  handleClick
+  windowObj = globalThis
 }) {
-  const onToggleClick = (0,external_React_namespaceObject.useCallback)(elementId => {
-    dispatch({
-      type: actionTypes.SHOW_PERSONALIZE
-    });
-    dispatch(actionCreators.UserEvent({
-      event: "SHOW_PERSONALIZE"
+  const [highlightVisibilityTimeoutID, setHighlightVisibilityTimeoutID] = (0,external_React_namespaceObject.useState)("");
+  const heightElement = (0,external_React_namespaceObject.useRef)(null);
+  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const highlightHeaderText = prefs["newtabWallpapers.highlightHeaderText"];
+  const highlightContentText = prefs["newtabWallpapers.highlightContentText"];
+  const highlightCtaText = prefs["newtabWallpapers.highlightCtaText"];
+
+  // Event triggered by the CTA click event in the FeatureHighlight component.
+  const onToggleClick = (0,external_React_namespaceObject.useCallback)(() => {
+    dispatch(actionCreators.SetPref(WALLPAPER_HIGHLIGHT_DISMISSED_PREF, true));
+    dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.WALLPAPERS_FEATURE_HIGHLIGHT_CTA_CLICKED
     }));
-    handleClick(elementId);
-    handleDismiss();
-  }, [dispatch, handleDismiss, handleClick]);
+  }, [dispatch]);
+
+  // Event triggered by the onDismiss click event in the FeatureHighlight component.
+  const onDismissCallback = (0,external_React_namespaceObject.useCallback)(() => {
+    dispatch(actionCreators.SetPref(WALLPAPER_HIGHLIGHT_DISMISSED_PREF, true));
+    dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.WALLPAPERS_FEATURE_HIGHLIGHT_DISMISSED
+    }));
+  }, [dispatch]);
+
+  // Event triggered by the onOutsideClick click event in the FeatureHighlight component.
+  const onOutsideClickCallback = () => {
+    clearTimeout(highlightVisibilityTimeoutID);
+  };
+
+  // Update the counter everytime the Wallpaper Highlight is viewed for more than 3 seconds
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const options = {
+      threshold: WallpaperFeatureHighlight_INTERSECTION_RATIO
+    };
+    const intersectionObserver = new windowObj.IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= WallpaperFeatureHighlight_INTERSECTION_RATIO)) {
+        intersectionObserver.unobserve(heightElement.current);
+
+        // Set the timeout ID so that it can be cleared independently
+        // if there is an outside click detected
+        setHighlightVisibilityTimeoutID(setTimeout(() => {
+          dispatch(actionCreators.OnlyToMain({
+            type: actionTypes.WALLPAPERS_FEATURE_HIGHLIGHT_SEEN
+          }));
+        }, 3000));
+      }
+    }, options);
+    const onVisibilityChange = () => {
+      intersectionObserver.observe(heightElement.current);
+      windowObj.document.removeEventListener(WallpaperFeatureHighlight_VISIBILITY_CHANGE_EVENT, onVisibilityChange);
+    };
+    if (heightElement.current) {
+      if (windowObj.document.visibilityState === WallpaperFeatureHighlight_VISIBLE) {
+        intersectionObserver.observe(heightElement.current);
+      } else {
+        windowObj.document.addEventListener(WallpaperFeatureHighlight_VISIBILITY_CHANGE_EVENT, onVisibilityChange);
+      }
+    }
+    return () => {
+      intersectionObserver?.disconnect();
+      windowObj.document.removeEventListener(WallpaperFeatureHighlight_VISIBILITY_CHANGE_EVENT, onVisibilityChange);
+    };
+  }, [dispatch, windowObj]);
+  let header = /*#__PURE__*/external_React_default().createElement("span", {
+    className: "highlightHeader",
+    "data-l10n-id": "newtab-wallpaper-feature-highlight-header"
+  });
+  let content = /*#__PURE__*/external_React_default().createElement("span", {
+    className: "highlightContent",
+    "data-l10n-id": "newtab-wallpaper-feature-highlight-content"
+  });
+  let button = /*#__PURE__*/external_React_default().createElement("button", {
+    onClick: onToggleClick,
+    "data-l10n-id": "newtab-wallpaper-feature-highlight-button"
+  });
+  if (highlightHeaderText) {
+    header = /*#__PURE__*/external_React_default().createElement("span", {
+      className: "highlightHeader"
+    }, highlightHeaderText);
+  }
+  if (highlightContentText) {
+    content = /*#__PURE__*/external_React_default().createElement("span", {
+      className: "highlightContent"
+    }, highlightContentText);
+  }
+  if (highlightCtaText) {
+    button = /*#__PURE__*/external_React_default().createElement("button", {
+      onClick: onToggleClick
+    }, highlightCtaText);
+  }
   return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "wallpaper-feature-highlight"
+    className: "wallpaper-feature-highlight",
+    ref: heightElement
   }, /*#__PURE__*/external_React_default().createElement(FeatureHighlight, {
     position: position,
     "data-l10n-id": "feature-highlight-wallpaper",
@@ -13247,127 +13292,19 @@ function WallpaperFeatureHighlight({
     dispatch: dispatch,
     message: /*#__PURE__*/external_React_default().createElement("div", {
       className: "wallpaper-feature-highlight-content"
-    }, /*#__PURE__*/external_React_default().createElement("img", {
-      src: "chrome://newtab/content/data/content/assets/custom-wp-highlight.png",
-      alt: "",
-      width: "320",
-      height: "195"
-    }), /*#__PURE__*/external_React_default().createElement("p", {
-      className: "title",
-      "data-l10n-id": "newtab-custom-wallpaper-title"
-    }), /*#__PURE__*/external_React_default().createElement("p", {
-      className: "subtitle",
-      "data-l10n-id": "newtab-custom-wallpaper-subtitle"
-    }), /*#__PURE__*/external_React_default().createElement("span", {
-      className: "button-wrapper"
-    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
-      type: "default",
-      onClick: () => onToggleClick("open-customize-menu"),
-      "data-l10n-id": "newtab-custom-wallpaper-cta"
-    }))),
+    }, header, content, button),
+    icon: /*#__PURE__*/external_React_default().createElement("div", {
+      className: "customize-icon"
+    }),
     toggle: /*#__PURE__*/external_React_default().createElement("div", {
       className: "icon icon-help"
     }),
     openedOverride: true,
     showButtonIcon: false,
-    dismissCallback: handleDismiss,
-    outsideClickCallback: handleClose
+    dismissCallback: onDismissCallback,
+    outsideClickCallback: onOutsideClickCallback
   }));
 }
-;// CONCATENATED MODULE: ./content-src/components/MessageWrapper/MessageWrapper.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-
-
-
-function MessageWrapper({
-  children,
-  dispatch
-}) {
-  const message = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
-  const [isIntersecting, setIsIntersecting] = (0,external_React_namespaceObject.useState)(false);
-  const [hasRun, setHasRun] = (0,external_React_namespaceObject.useState)();
-  const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
-    setIsIntersecting(true);
-    const isVisible = document?.visibilityState && document.visibilityState === "visible";
-    // only send impression if messageId is defined and tab is visible
-    if (isVisible && message.messageData.id) {
-      setHasRun(true);
-      dispatch(actionCreators.AlsoToMain({
-        type: actionTypes.MESSAGE_IMPRESSION,
-        data: message.messageData
-      }));
-    }
-  }, [dispatch, message]);
-  (0,external_React_namespaceObject.useEffect)(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && !hasRun) {
-        handleIntersection();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [handleIntersection, hasRun]);
-  const ref = useIntersectionObserver(handleIntersection);
-  const handleClose = (0,external_React_namespaceObject.useCallback)(() => {
-    const action = {
-      type: actionTypes.MESSAGE_TOGGLE_VISIBILITY,
-      data: true
-    };
-    if (message.portID) {
-      dispatch(actionCreators.OnlyToOneContent(action, message.portID));
-    } else {
-      dispatch(actionCreators.AlsoToMain(action));
-    }
-  }, [dispatch, message]);
-  function handleDismiss() {
-    const {
-      id
-    } = message.messageData;
-    if (id) {
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.MESSAGE_DISMISS,
-        data: {
-          message: message.messageData
-        }
-      }));
-    }
-    handleClose();
-  }
-  function handleClick(elementId) {
-    const {
-      id
-    } = message.messageData;
-    if (id) {
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.MESSAGE_CLICK,
-        data: {
-          message: message.messageData,
-          source: elementId || ""
-        }
-      }));
-    }
-  }
-
-  // only display the message if `isHidden` is false
-  return !message.isHidden && /*#__PURE__*/external_React_default().createElement("div", {
-    ref: el => {
-      ref.current = [el];
-    },
-    className: "message-wrapper"
-  }, /*#__PURE__*/external_React_default().cloneElement(children, {
-    isIntersecting,
-    handleDismiss,
-    handleClose,
-    handleClick
-  }));
-}
-
 ;// CONCATENATED MODULE: ./content-src/components/Base/Base.jsx
 function Base_extends() { Base_extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return Base_extends.apply(this, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13389,9 +13326,9 @@ function Base_extends() { Base_extends = Object.assign ? Object.assign.bind() : 
 
 
 
-
 const Base_VISIBLE = "visible";
 const Base_VISIBILITY_CHANGE_EVENT = "visibilitychange";
+const Base_WALLPAPER_HIGHLIGHT_DISMISSED_PREF = "newtabWallpapers.highlightDismissed";
 const Base_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED = "discoverystream.thumbsUpDown.searchTopsitesCompact";
 const PREF_INFERRED_PERSONALIZATION_SYSTEM = "discoverystream.sections.personalization.inferred.enabled";
@@ -13772,14 +13709,47 @@ class BaseContent extends (external_React_default()).PureComponent {
       }
     }
   }
+
+  // Contains all the logic to show the wallpapers Feature Highlight
   shouldShowWallpapersHighlight() {
-    if (!this.props.Messages?.messageData) {
+    const prefs = this.props.Prefs.values;
+
+    // If wallpapers (or v2 wallpapers) are not enabled, don't show the highlight.
+    const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
+    if (!wallpapersV2Enabled) {
       return false;
     }
+
+    // If user has interacted/dismissed the highlight, don't show
+    const wallpapersHighlightDismissed = prefs[Base_WALLPAPER_HIGHLIGHT_DISMISSED_PREF];
+    if (wallpapersHighlightDismissed) {
+      return false;
+    }
+
+    // If the user has selected a wallpaper, don't show the pop-up
+    const activeWallpaper = prefs[`newtabWallpapers.wallpaper`];
+    if (activeWallpaper) {
+      this.props.dispatch(actionCreators.SetPref(Base_WALLPAPER_HIGHLIGHT_DISMISSED_PREF, true));
+      return false;
+    }
+
+    // If the user has seen* the highlight more than three times
+    // *Seen means they loaded HNT page and the highlight was observed for more than 3 seconds
     const {
-      messageData
-    } = this.props.Messages;
-    return messageData?.content?.messageType === "CustomWallpaperHighlight";
+      highlightSeenCounter
+    } = this.props.Wallpapers;
+    if (highlightSeenCounter.value > 3) {
+      return false;
+    }
+
+    // Show the highlight if available
+    const wallpapersHighlightEnabled = prefs["newtabWallpapers.highlightEnabled"];
+    if (wallpapersHighlightEnabled) {
+      return true;
+    }
+
+    // Default return value
+    return false;
   }
   getRGBColors(input) {
     if (input.length !== 7) {
@@ -13911,12 +13881,10 @@ class BaseContent extends (external_React_default()).PureComponent {
       mayHaveWeather: mayHaveWeather,
       spocMessageVariant: spocMessageVariant,
       showing: customizeMenuVisible
-    }), this.shouldShowWallpapersHighlight() && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+    }), this.shouldShowWallpapersHighlight() && /*#__PURE__*/external_React_default().createElement(WallpaperFeatureHighlight, {
+      position: "inset-block-end inset-inline-start",
       dispatch: this.props.dispatch
-    }, /*#__PURE__*/external_React_default().createElement(WallpaperFeatureHighlight, {
-      position: "inset-block-start inset-inline-start",
-      dispatch: this.props.dispatch
-    }))), /*#__PURE__*/external_React_default().createElement("div", {
+    })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "weatherWrapper"
     }, weatherEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather, null))), /*#__PURE__*/external_React_default().createElement("div", {
       className: outerClassName,
@@ -13952,7 +13920,6 @@ const Base = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Prefs: state.Prefs,
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
-  Messages: state.Messages,
   Notifications: state.Notifications,
   Search: state.Search,
   Wallpapers: state.Wallpapers,

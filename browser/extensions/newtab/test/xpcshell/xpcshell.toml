@@ -17,8 +17,6 @@ skip-if = ["socketprocess_networking"] # Bug 1759035
 
 ["test_HighlightsFeed.js"]
 
-["test_NewTabMessaging.js"]
-
 ["test_PlacesFeed.js"]
 
 ["test_Store.js"]
