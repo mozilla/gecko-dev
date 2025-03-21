@@ -211,9 +211,6 @@ class ConnectionEntry {
 
   const nsTArray<RefPtr<nsIWebTransportHash>>& GetServerCertHashes();
 
-  bool GetAllowExtendedConnect() const { return mAllowExtendedConnect; }
-  void SetAllowExtendedConnect(bool aValue) { mAllowExtendedConnect = aValue; }
-
  private:
   void InsertIntoIdleConnections_internal(nsHttpConnection* conn);
   void RemoveFromIdleConnectionsIndex(size_t inx);
@@ -241,7 +238,6 @@ class ConnectionEntry {
   ~ConnectionEntry();
 
   bool mRetriedDifferentIPFamilyForHttp3 = false;
-  bool mAllowExtendedConnect = true;
 };
 
 }  // namespace net
