@@ -1650,7 +1650,10 @@ class ArenaCollection {
       MutexAutoLock lock(mLock);
       mDefaultMaxDirtyPageModifier = aModifier;
       for (auto* arena : iter()) {
-        arena->UpdateMaxDirty();
+        // We can only update max-dirty for main-thread-only arenas from the main thread.
+        if (!arena->IsMainThreadOnly() || IsOnMainThreadWeak()) {
+          arena->UpdateMaxDirty();
+	}
       }
     }
   }
@@ -1687,13 +1690,6 @@ class ArenaCollection {
   };
 
   Iterator iter() MOZ_REQUIRES(mLock) {
-    if (IsOnMainThreadWeak()) {
-      return Iterator(&mArenas, &mPrivateArenas, &mMainThreadArenas);
-    }
-    return Iterator(&mArenas, &mPrivateArenas);
-  }
-
-  Iterator iter_all() {
     return Iterator(&mArenas, &mPrivateArenas, &mMainThreadArenas);
   }
 
@@ -5860,7 +5856,7 @@ inline void MozJemalloc::jemalloc_stats_lite(jemalloc_stats_lite_t* aStats) {
 
   {
     MutexAutoLock lock(gArenas.mLock);
-    for (auto arena : gArenas.iter_all()) {
+    for (auto arena : gArenas.iter()) {
       // We don't need to lock the arena to access these fields.
       aStats->allocated_bytes += arena->AllocatedBytes();
       aStats->num_operations += arena->Operations();
@@ -6047,7 +6043,10 @@ inline void MozJemalloc::jemalloc_reset_small_alloc_randomization(
 
   MutexAutoLock lock(gArenas.mLock);
   for (auto* arena : gArenas.iter()) {
-    arena->ResetSmallAllocRandomization();
+    // We can only initialize the PRNG for main-thread-only arenas from the main thread.
+    if (!arena->IsMainThreadOnly() || gArenas.IsOnMainThreadWeak()) {
+      arena->ResetSmallAllocRandomization();
+    }
   }
 }
 
