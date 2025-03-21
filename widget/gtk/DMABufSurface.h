@@ -95,6 +95,8 @@ class DMABufSurface {
   constexpr static const char* sSurfaceTypeNames[] = {"RGBA", "YUV"};
 #endif
 
+  nsAutoCString GetDebugTag() const;
+
   // Import surface from SurfaceDescriptor. This is usually
   // used to copy surface from another process over IPC.
   // When a global reference counter was created for the surface

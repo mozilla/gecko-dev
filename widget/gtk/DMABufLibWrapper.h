@@ -13,6 +13,7 @@
 #include "mozilla/widget/DMABufFormats.h"
 #include <mutex>
 
+#undef LOGDMABUF
 #ifdef MOZ_LOGGING
 #  include "mozilla/Logging.h"
 #  include "nsTArray.h"
