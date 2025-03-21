@@ -136,9 +136,12 @@ class QATests(SnapTestsBase):
         self._driver.execute_script(
             "arguments[0].volume = arguments[1]", video, ref_volume * 0.25
         )
+        new_volume = video.get_property("volume")
         assert (
-            video.get_property("volume") == ref_volume * 0.25
-        ), "<video> sound volume increased"
+            new_volume == ref_volume * 0.25
+        ), "<video> sound volume increased from {} to {} but got {}".format(
+            ref_volume, ref_volume * 0.25, new_volume
+        )
 
         self._logger.info("find video: done")
 
