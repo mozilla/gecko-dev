@@ -169,7 +169,14 @@ document.addEventListener("DOMContentLoaded", () => {
             div.setAttribute("role", "img");
             div.setAttribute("data-type", type);
             div.style.height = `${dataHeight}%`;
-            document.l10n.setAttributes(div, `bar-tooltip-${type}`, {
+            const messageIDs = {
+              social: "bar-tooltip-social",
+              cookie: "bar-tooltip-cookie",
+              tracker: "bar-tooltip-tracker",
+              cryptominer: "bar-tooltip-cryptominer",
+              fingerprinter: "bar-tooltip-fingerprinter",
+            };
+            document.l10n.setAttributes(div, messageIDs[type], {
               count: content[type],
               percentage: dataHeight,
             });
