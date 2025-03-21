@@ -84,7 +84,6 @@
   "restoreLastClosedTabOrWindowOrSession",
   "undoCloseTab",
   "undoCloseWindow",
-  "ReportSiteIssue",
   "gRemoteControl",
   "gPrivateBrowsingUI",
   "switchToTabHavingURI",
