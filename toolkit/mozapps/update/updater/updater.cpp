@@ -288,18 +288,6 @@ static bool sUsingService = false;
 // that iteration will run with `gIsElevated == true`.
 static bool gIsElevated = false;
 
-// `argv` indices for standard invocation. Does not apply to other methods of
-// invocation including when `--openAppBundle`, or `-dmgInstall` are used.
-static const int kPatchDirIndex = 1;
-static const int kInstallDirIndex = 2;
-static const int kApplyToDirIndex = 3;
-// Note that this is the first optional argument.
-static const int kWaitPidIndex = 4;
-static const int kCallbackWorkingDirIndex = 5;
-// This indicates the entry in `argv` that is the callback binary path. All
-// arguments after this one are treated as arguments to the callback.
-static const int kCallbackIndex = 6;
-
 // This string contains the MAR channel IDs that are later extracted by one of
 // the `ReadMARChannelIDsFrom` variants.
 MOZ_RUNINIT static MARChannelStringTable gMARStrings;
@@ -2890,7 +2878,8 @@ void freeArguments(int argc, char** argv) {
 }
 #endif
 
-int LaunchCallbackAndPostProcessApps(int argc, NS_tchar** argv
+int LaunchCallbackAndPostProcessApps(int argc, NS_tchar** argv,
+                                     int callbackIndex
 #ifdef XP_WIN
                                      ,
                                      HANDLE updateLockFileHandle
@@ -2924,7 +2913,7 @@ int LaunchCallbackAndPostProcessApps(int argc, NS_tchar** argv
   umaskContext.reset();
 #endif
 
-  if (argc > kCallbackIndex) {
+  if (argc > callbackIndex) {
 #if defined(XP_WIN)
     if (gSucceeded) {
       LOG(("Launching Windows post update process"));
@@ -2963,8 +2952,8 @@ int LaunchCallbackAndPostProcessApps(int argc, NS_tchar** argv
 #endif
 
     raii_output_finish.call();
-    LaunchCallbackApp(argv[kCallbackWorkingDirIndex], argc - kCallbackIndex,
-                      argv + kCallbackIndex, sUsingService);
+    LaunchCallbackApp(argv[5], argc - callbackIndex, argv + callbackIndex,
+                      sUsingService);
 #ifdef XP_MACOSX
   } else {  // isElevated
     LOG(
@@ -3025,6 +3014,11 @@ int NS_main(int argc, NS_tchar** argv) {
       return 0;
 #endif
   }
+
+  // The callback is the remaining arguments starting at callbackIndex.
+  // The argument specified by callbackIndex is the callback executable and the
+  // argument prior to callbackIndex is the working directory.
+  const int callbackIndex = 6;
 
   // `isDMGInstall` is only ever true for macOS, but we are declaring it here
   // to avoid a ton of extra #ifdef's.
@@ -3098,7 +3092,7 @@ int NS_main(int argc, NS_tchar** argv) {
     // launched when these arguments are provided whether the update was
     // successful or not. All remaining arguments are optional and are passed to
     // the callback when it is launched.
-    if (argc < kWaitPidIndex) {
+    if (argc < 4) {
       fprintf(stderr,
               "Usage: updater patch-dir install-dir apply-to-dir [wait-pid "
               "[callback-working-dir callback-path args...]]\n");
@@ -3125,7 +3119,7 @@ int NS_main(int argc, NS_tchar** argv) {
   }  // if (!isDMGInstall)
 
   // The directory containing the update information.
-  NS_tstrncpy(gPatchDirPath, argv[kPatchDirIndex], MAXPATHLEN);
+  NS_tstrncpy(gPatchDirPath, argv[1], MAXPATHLEN);
   gPatchDirPath[MAXPATHLEN - 1] = NS_T('\0');
 
 #ifdef XP_WIN
@@ -3163,13 +3157,13 @@ int NS_main(int argc, NS_tchar** argv) {
   if (!isDMGInstall) {
     // This check is also performed in workmonitor.cpp since the maintenance
     // service can be called directly.
-    if (!IsValidFullPath(argv[kPatchDirIndex])) {
+    if (!IsValidFullPath(argv[1])) {
       // Since the status file is written to the patch directory and the patch
       // directory is invalid don't write the status file.
       fprintf(stderr,
               "The patch directory path is not valid for this "
               "application (" LOG_S ")\n",
-              argv[kPatchDirIndex]);
+              argv[1]);
 #ifdef XP_MACOSX
       if (isElevated) {
         freeArguments(argc, argv);
@@ -3181,12 +3175,12 @@ int NS_main(int argc, NS_tchar** argv) {
 
     // This check is also performed in workmonitor.cpp since the maintenance
     // service can be called directly.
-    if (!IsValidFullPath(argv[kInstallDirIndex])) {
+    if (!IsValidFullPath(argv[2])) {
       WriteStatusFile(INVALID_INSTALL_DIR_PATH_ERROR);
       fprintf(stderr,
               "The install directory path is not valid for this "
               "application (" LOG_S ")\n",
-              argv[kInstallDirIndex]);
+              argv[2]);
 #ifdef XP_MACOSX
       if (isElevated) {
         freeArguments(argc, argv);
@@ -3202,7 +3196,7 @@ int NS_main(int argc, NS_tchar** argv) {
   // We copy this string because we need to remove trailing slashes.  The C++
   // standard says that it's always safe to write to strings pointed to by argv
   // elements, but I don't necessarily believe it.
-  NS_tstrncpy(gInstallDirPath, argv[kInstallDirIndex], MAXPATHLEN);
+  NS_tstrncpy(gInstallDirPath, argv[2], MAXPATHLEN);
   gInstallDirPath[MAXPATHLEN - 1] = NS_T('\0');
   NS_tchar* slash = NS_tstrrchr(gInstallDirPath, NS_SLASH);
   if (slash && !slash[1]) {
@@ -3265,13 +3259,13 @@ int NS_main(int argc, NS_tchar** argv) {
   // If there is a PID specified and it is not '0' then wait for the process to
   // exit.
   NS_tpid pid = 0;
-  if (argc > kWaitPidIndex) {
-    pid = NS_tatoi(argv[kWaitPidIndex]);
+  if (argc > 4) {
+    pid = NS_tatoi(argv[4]);
     if (pid == -1) {
       // This is a signal from the parent process that the updater should stage
       // the update.
       sStagedUpdate = true;
-    } else if (NS_tstrstr(argv[kWaitPidIndex], NS_T("/replace"))) {
+    } else if (NS_tstrstr(argv[4], NS_T("/replace"))) {
       // We're processing a request to replace the application with a staged
       // update.
       sReplaceRequest = true;
@@ -3281,12 +3275,12 @@ int NS_main(int argc, NS_tchar** argv) {
   if (!isDMGInstall) {
     // This check is also performed in workmonitor.cpp since the maintenance
     // service can be called directly.
-    if (!IsValidFullPath(argv[kApplyToDirIndex])) {
+    if (!IsValidFullPath(argv[3])) {
       WriteStatusFile(INVALID_WORKING_DIR_PATH_ERROR);
       fprintf(stderr,
               "The working directory path is not valid for this "
               "application (" LOG_S ")\n",
-              argv[kApplyToDirIndex]);
+              argv[3]);
 #ifdef XP_MACOSX
       if (isElevated) {
         freeArguments(argc, argv);
@@ -3299,20 +3293,20 @@ int NS_main(int argc, NS_tchar** argv) {
     // We copy this string because we need to remove trailing slashes.  The C++
     // standard says that it's always safe to write to strings pointed to by
     // argv elements, but I don't necessarily believe it.
-    NS_tstrncpy(gWorkingDirPath, argv[kApplyToDirIndex], MAXPATHLEN);
+    NS_tstrncpy(gWorkingDirPath, argv[3], MAXPATHLEN);
     gWorkingDirPath[MAXPATHLEN - 1] = NS_T('\0');
     slash = NS_tstrrchr(gWorkingDirPath, NS_SLASH);
     if (slash && !slash[1]) {
       *slash = NS_T('\0');
     }
 
-    if (argc > kCallbackIndex) {
-      if (!IsValidFullPath(argv[kCallbackIndex])) {
+    if (argc > callbackIndex) {
+      if (!IsValidFullPath(argv[callbackIndex])) {
         WriteStatusFile(INVALID_CALLBACK_PATH_ERROR);
         fprintf(stderr,
                 "The callback file path is not valid for this "
                 "application (" LOG_S ")\n",
-                argv[kCallbackIndex]);
+                argv[callbackIndex]);
 #ifdef XP_MACOSX
         if (isElevated) {
           freeArguments(argc, argv);
@@ -3324,13 +3318,13 @@ int NS_main(int argc, NS_tchar** argv) {
 
       size_t len = NS_tstrlen(gInstallDirPath);
       NS_tchar callbackInstallDir[MAXPATHLEN] = {NS_T('\0')};
-      NS_tstrncpy(callbackInstallDir, argv[kCallbackIndex], len);
+      NS_tstrncpy(callbackInstallDir, argv[callbackIndex], len);
       if (NS_tstrcmp(gInstallDirPath, callbackInstallDir) != 0) {
         WriteStatusFile(INVALID_CALLBACK_DIR_ERROR);
         fprintf(stderr,
                 "The callback file must be located in the "
                 "installation directory (" LOG_S ")\n",
-                argv[kCallbackIndex]);
+                argv[callbackIndex]);
 #ifdef XP_MACOSX
         if (isElevated) {
           freeArguments(argc, argv);
@@ -3341,7 +3335,7 @@ int NS_main(int argc, NS_tchar** argv) {
       }
 
       sUpdateSilently =
-          ShouldRunSilently(argc - kCallbackIndex, argv + kCallbackIndex);
+          ShouldRunSilently(argc - callbackIndex, argv + callbackIndex);
     }
 
   }  // if (!isDMGInstall)
@@ -3355,8 +3349,7 @@ int NS_main(int argc, NS_tchar** argv) {
   }
 
 #ifdef XP_MACOSX
-  if (!isElevated &&
-      (!IsRecursivelyWritable(argv[kInstallDirIndex]) || isDMGInstall)) {
+  if (!isElevated && (!IsRecursivelyWritable(argv[2]) || isDMGInstall)) {
     // If the app directory isn't recursively writeable or if this is a DMG
     // install, an elevated helper process is required.
     if (sUpdateSilently) {
@@ -3390,7 +3383,8 @@ int NS_main(int argc, NS_tchar** argv) {
       t1.Join();
     }
 
-    LaunchCallbackAndPostProcessApps(argc, argv, std::move(umaskContext));
+    LaunchCallbackAndPostProcessApps(argc, argv, callbackIndex,
+                                     std::move(umaskContext));
     return gSucceeded ? 0 : 1;
   }
 #endif
@@ -3532,7 +3526,7 @@ int NS_main(int argc, NS_tchar** argv) {
     // maintenance service or with the 'runas' verb when write access is denied
     // to the installation directory.
     if (!sUsingService &&
-        (argc > kCallbackIndex || sStagedUpdate || sReplaceRequest)) {
+        (argc > callbackIndex || sStagedUpdate || sReplaceRequest)) {
       LOG(("Checking whether elevation is needed"));
 
       NS_tchar updateLockFilePath[MAXPATHLEN];
@@ -3558,7 +3552,7 @@ int NS_main(int argc, NS_tchar** argv) {
         // <install_dir>\<app_name>.exe.update_in_progress.lock
         NS_tsnprintf(updateLockFilePath,
                      sizeof(updateLockFilePath) / sizeof(updateLockFilePath[0]),
-                     NS_T("%s.update_in_progress.lock"), argv[kCallbackIndex]);
+                     NS_T("%s.update_in_progress.lock"), argv[callbackIndex]);
       }
 
       // The update_in_progress.lock file should only exist during an update. In
@@ -3811,8 +3805,7 @@ int NS_main(int argc, NS_tchar** argv) {
           LOG(("Skipping update to avoid UAC prompt from background task."));
           output_finish();
 
-          LaunchCallbackApp(argv[kCallbackWorkingDirIndex],
-                            argc - kCallbackIndex, argv + kCallbackIndex,
+          LaunchCallbackApp(argv[5], argc - callbackIndex, argv + callbackIndex,
                             sUsingService);
           return 0;
         }
@@ -3939,9 +3932,8 @@ int NS_main(int argc, NS_tchar** argv) {
         // updater.
         LOG(("Update complete"));
         output_finish();
-        if (argc > kCallbackIndex) {
-          LaunchCallbackApp(argv[kCallbackWorkingDirIndex],
-                            argc - kCallbackIndex, argv + kCallbackIndex,
+        if (argc > callbackIndex) {
+          LaunchCallbackApp(argv[5], argc - callbackIndex, argv + callbackIndex,
                             sUsingService);
         }
         return 0;
@@ -4008,15 +4000,15 @@ int NS_main(int argc, NS_tchar** argv) {
       LOG(("NS_main: unable to find apply to dir: " LOG_S, gWorkingDirPath));
       output_finish();
       EXIT_WHEN_ELEVATED(updateLockFileHandle, 1);
-      if (argc > kCallbackIndex) {
-        LaunchCallbackApp(argv[kCallbackWorkingDirIndex], argc - kCallbackIndex,
-                          argv + kCallbackIndex, sUsingService);
+      if (argc > callbackIndex) {
+        LaunchCallbackApp(argv[5], argc - callbackIndex, argv + callbackIndex,
+                          sUsingService);
       }
       return 1;
     }
 
     HANDLE callbackFile = INVALID_HANDLE_VALUE;
-    if (argc > kCallbackIndex) {
+    if (argc > callbackIndex) {
       // If the callback executable is specified it must exist for a successful
       // update.  It is important we null out the whole buffer here because
       // later we make the assumption that the callback application is inside
@@ -4024,16 +4016,16 @@ int NS_main(int argc, NS_tchar** argv) {
       // lead to stack corruption which causes crashes and other problems.
       NS_tchar callbackLongPath[MAXPATHLEN];
       ZeroMemory(callbackLongPath, sizeof(callbackLongPath));
-      NS_tchar* targetPath = argv[kCallbackIndex];
+      NS_tchar* targetPath = argv[callbackIndex];
       NS_tchar buffer[MAXPATHLEN * 2] = {NS_T('\0')};
       size_t bufferLeft = MAXPATHLEN * 2;
       if (sReplaceRequest) {
         // In case of replace requests, we should look for the callback file in
         // the destination directory.
         size_t commonPrefixLength =
-            PathCommonPrefixW(argv[kCallbackIndex], gInstallDirPath, nullptr);
+            PathCommonPrefixW(argv[callbackIndex], gInstallDirPath, nullptr);
         NS_tchar* p = buffer;
-        NS_tstrncpy(p, argv[kCallbackIndex], commonPrefixLength);
+        NS_tstrncpy(p, argv[callbackIndex], commonPrefixLength);
         p += commonPrefixLength;
         bufferLeft -= commonPrefixLength;
         NS_tstrncpy(p, gInstallDirPath + commonPrefixLength, bufferLeft);
@@ -4048,9 +4040,9 @@ int NS_main(int argc, NS_tchar** argv) {
         NS_tchar installDir[MAXPATHLEN];
         NS_tstrcpy(installDir, gInstallDirPath);
         size_t callbackPrefixLength =
-            PathCommonPrefixW(argv[kCallbackIndex], installDir, nullptr);
+            PathCommonPrefixW(argv[callbackIndex], installDir, nullptr);
         NS_tstrncpy(p,
-                    argv[kCallbackIndex] +
+                    argv[callbackIndex] +
                         std::max(callbackPrefixLength, commonPrefixLength),
                     bufferLeft);
         targetPath = buffer;
@@ -4062,9 +4054,8 @@ int NS_main(int argc, NS_tchar** argv) {
         LOG(("NS_main: unable to find callback file: " LOG_S, targetPath));
         output_finish();
         EXIT_WHEN_ELEVATED(updateLockFileHandle, 1);
-        if (argc > kCallbackIndex) {
-          LaunchCallbackApp(argv[kCallbackWorkingDirIndex],
-                            argc - kCallbackIndex, argv + kCallbackIndex,
+        if (argc > callbackIndex) {
+          LaunchCallbackApp(argv[5], argc - callbackIndex, argv + callbackIndex,
                             sUsingService);
         }
         return 1;
@@ -4100,7 +4091,7 @@ int NS_main(int argc, NS_tchar** argv) {
             sizeof(gCallbackBackupPath) / sizeof(gCallbackBackupPath[0]);
         const int callbackBackupPathLen =
             NS_tsnprintf(gCallbackBackupPath, callbackBackupPathBufSize,
-                         NS_T("%s" CALLBACK_BACKUP_EXT), argv[kCallbackIndex]);
+                         NS_T("%s" CALLBACK_BACKUP_EXT), argv[callbackIndex]);
 
         if (callbackBackupPathLen < 0 ||
             callbackBackupPathLen >=
@@ -4117,7 +4108,7 @@ int NS_main(int argc, NS_tchar** argv) {
 
         // Make a copy of the callback executable so it can be read when
         // patching.
-        if (!CopyFileW(argv[kCallbackIndex], gCallbackBackupPath, false)) {
+        if (!CopyFileW(argv[callbackIndex], gCallbackBackupPath, false)) {
           DWORD copyFileError = GetLastError();
           if (copyFileError == ERROR_ACCESS_DENIED) {
             WriteStatusFile(WRITE_ERROR_ACCESS_DENIED);
@@ -4126,12 +4117,11 @@ int NS_main(int argc, NS_tchar** argv) {
           }
           LOG(("NS_main: failed to copy callback file " LOG_S
                " into place at " LOG_S,
-               argv[kCallbackIndex], gCallbackBackupPath));
+               argv[callbackIndex], gCallbackBackupPath));
           output_finish();
           EXIT_WHEN_ELEVATED(updateLockFileHandle, 1);
-          LaunchCallbackApp(argv[kCallbackWorkingDirIndex],
-                            argc - kCallbackIndex, argv + kCallbackIndex,
-                            sUsingService);
+          LaunchCallbackApp(argv[callbackIndex], argc - callbackIndex,
+                            argv + callbackIndex, sUsingService);
           return 1;
         }
 
@@ -4172,7 +4162,7 @@ int NS_main(int argc, NS_tchar** argv) {
             LOG((
                 "NS_main: callback app file in use, failed to exclusively open "
                 "executable file: " LOG_S,
-                argv[kCallbackIndex]));
+                argv[callbackIndex]));
             if (lastWriteError == ERROR_ACCESS_DENIED) {
               WriteStatusFile(WRITE_ERROR_ACCESS_DENIED);
             } else {
@@ -4190,7 +4180,7 @@ int NS_main(int argc, NS_tchar** argv) {
             LOG((
                 "NS_main: callback app file in use, failed to exclusively open "
                 "executable file from background task: " LOG_S,
-                argv[kCallbackIndex]));
+                argv[callbackIndex]));
             WriteStatusFile(BACKGROUND_TASK_SHARING_VIOLATION);
 
             proceedWithoutExclusive = false;
@@ -4205,16 +4195,15 @@ int NS_main(int argc, NS_tchar** argv) {
             }
             output_finish();
             EXIT_WHEN_ELEVATED(updateLockFileHandle, 1);
-            LaunchCallbackApp(argv[kCallbackWorkingDirIndex],
-                              argc - kCallbackIndex, argv + kCallbackIndex,
-                              sUsingService);
+            LaunchCallbackApp(argv[5], argc - callbackIndex,
+                              argv + callbackIndex, sUsingService);
             return 1;
           }
 
           LOG(
               ("NS_main: callback app file in use, continuing without "
                "exclusive access for executable file: " LOG_S,
-               argv[kCallbackIndex]));
+               argv[callbackIndex]));
         }
       }
     }
@@ -4257,7 +4246,7 @@ int NS_main(int argc, NS_tchar** argv) {
     t.Join();
 
 #ifdef XP_WIN
-    if (argc > kCallbackIndex && !sReplaceRequest) {
+    if (argc > callbackIndex && !sReplaceRequest) {
       if (callbackFile != INVALID_HANDLE_VALUE) {
         CloseHandle(callbackFile);
       }
@@ -4313,7 +4302,7 @@ int NS_main(int argc, NS_tchar** argv) {
 
   LOG(("Running LaunchCallbackAndPostProcessApps"));
 
-  int retVal = LaunchCallbackAndPostProcessApps(argc, argv
+  int retVal = LaunchCallbackAndPostProcessApps(argc, argv, callbackIndex
 #ifdef XP_WIN
                                                 ,
                                                 updateLockFileHandle
