@@ -170,6 +170,7 @@ void nsSubDocumentFrame::UpdateEmbeddedBrowsingContextDependentData() {
   mIsInObjectOrEmbed = bc->IsEmbedderTypeObjectOrEmbed();
   MaybeUpdateRemoteStyle();
   MaybeUpdateEmbedderColorScheme();
+  MaybeUpdateEmbedderZoom();
   PropagateIsUnderHiddenEmbedderElement(
       PresShell()->IsUnderHiddenEmbedderElement() ||
       !StyleVisibility()->IsVisible());
@@ -827,6 +828,31 @@ void nsSubDocumentFrame::MaybeUpdateEmbedderColorScheme() {
   }
 
   Unused << bc->SetEmbedderColorSchemes(schemes);
+}
+
+void nsSubDocumentFrame::MaybeUpdateEmbedderZoom() {
+  nsFrameLoader* fl = mFrameLoader.get();
+  if (!fl) {
+    return;
+  }
+
+  BrowsingContext* bc = fl->GetExtantBrowsingContext();
+  if (!bc || bc->IsTop()) {
+    // Don't propagate zoom from the top browsing context, i.e. the browser
+    // frontend. (If we did propagate at that level, we wouldn't be able to
+    // reliably handle per-tab zoom levels, because the top level context's
+    // propagated zoom level would replace the per-tab zoom levels.)
+    return;
+  }
+
+  // The zoom that we propagate to our child document is the full-page-zoom
+  // level, *combined with* the EffectiveZoom (i.e. the css 'zoom') of this
+  // embedding frame.
+  auto newZoom = Style()->EffectiveZoom().Zoom(PresContext()->GetFullZoom());
+  if (bc->GetFullZoom() == newZoom) {
+    return;
+  }
+  Unused << bc->SetFullZoom(newZoom);
 }
 
 void nsSubDocumentFrame::MaybeUpdateRemoteStyle(

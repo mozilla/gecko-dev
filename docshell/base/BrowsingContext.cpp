@@ -3511,8 +3511,16 @@ void BrowsingContext::DidSet(FieldIndex<IDX_FullZoom>, float aOldValue) {
     }
 
     for (BrowsingContext* child : Children()) {
+      // When passing the outer document's full-zoom down to the inner
+      // document, scale by the effective CSS 'zoom' on the embedder element:
+      auto fullZoom = GetFullZoom();
+      if (auto* elem = child->GetEmbedderElement()) {
+        if (auto* frame = elem->GetPrimaryFrame()) {
+          fullZoom = frame->Style()->EffectiveZoom().Zoom(fullZoom);
+        }
+      }
       // Setting full zoom on a discarded context has no effect.
-      Unused << child->SetFullZoom(GetFullZoom());
+      Unused << child->SetFullZoom(fullZoom);
     }
   }
 
