@@ -2375,6 +2375,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         featureFlag = true,
     )
 
+    var bookmarkListSortOrder by stringPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_bookmark_list_sort_order),
+        default = "",
+    )
+
     var lastSavedInFolderGuid by stringPreference(
         key = appContext.getPreferenceKey(R.string.pref_last_folder_saved_in),
         default = "",

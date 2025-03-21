@@ -8,11 +8,52 @@ import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.lib.state.State
 import org.mozilla.fenix.R
 
+internal sealed class BookmarksListSortOrder {
+    abstract val asString: String
+    abstract val comparator: Comparator<BookmarkItem>
+
+    data class Created(val ascending: Boolean) : BookmarksListSortOrder() {
+        override val asString: String
+            get() = "created-$ascending"
+
+        override val comparator: Comparator<BookmarkItem>
+            get() = compareBy<BookmarkItem> { it.dateAdded }.let {
+                if (ascending) it.reversed() else it
+            }
+    }
+
+    data class Alphabetical(val ascending: Boolean) : BookmarksListSortOrder() {
+        override val asString: String
+            get() = "alphabetical-$ascending"
+
+        override val comparator: Comparator<BookmarkItem>
+            get() = compareByDescending<BookmarkItem> { it.title.lowercase() }.let {
+                if (ascending) it.reversed() else it
+            }
+    }
+
+    companion object {
+        val default: BookmarksListSortOrder
+            get() = Alphabetical(true)
+
+        fun fromString(value: String, default: BookmarksListSortOrder = Alphabetical(true)): BookmarksListSortOrder {
+            return when (value) {
+                "created-true" -> Created(true)
+                "created-false" -> Created(false)
+                "alphabetical-true" -> Alphabetical(true)
+                "alphabetical-false" -> Alphabetical(false)
+                else -> default
+            }
+        }
+    }
+}
+
 /**
  * Represents the state of the Bookmarks list screen and its various subscreens.
  *
  * @property bookmarkItems Bookmark items to be displayed in the current list screen.
  * @property selectedItems The bookmark items that are currently selected by the user for bulk actions.
+ * @property sortOrder Describes how to sort the bookmark list.
  * @property recursiveSelectedCount the total number of children of the [selectedItems] found in bookmark storage.
  * @property currentFolder the [BookmarkItem.Folder] that is currently being displayed.
  * @property isSignedIntoSync State representing if the user is currently signed into sync.
@@ -28,6 +69,7 @@ import org.mozilla.fenix.R
 internal data class BookmarksState(
     val bookmarkItems: List<BookmarkItem>,
     val selectedItems: List<BookmarkItem>,
+    val sortOrder: BookmarksListSortOrder,
     val recursiveSelectedCount: Int?,
     val currentFolder: BookmarkItem.Folder,
     val isSignedIntoSync: Boolean,
@@ -48,6 +90,7 @@ internal data class BookmarksState(
         val default: BookmarksState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder("", ""),
             isSignedIntoSync = false,
@@ -62,12 +105,6 @@ internal data class BookmarksState(
         )
     }
 }
-
-internal val BookmarkItem.title: String
-    get() = when (this) {
-        is BookmarkItem.Folder -> this.title
-        is BookmarkItem.Bookmark -> this.title
-    }
 
 internal fun BookmarksState.undoSnackbarText(): Pair<Int, String> = bookmarksSnackbarState.let { state ->
     when {

@@ -43,6 +43,7 @@ private const val WARN_OPEN_ALL_SIZE = 15
  * @param showUrlCopiedSnackbar Invoked when a bookmark url is copied.
  * @param getBrowsingMode Invoked when retrieving the app's current [BrowsingMode].
  * @param openTab Invoked when opening a tab when a bookmark is clicked.
+ * @param saveBookmarkSortOrder Invoked to persist the new sort order.
  * @param lastSavedFolderCache used to cache the last folder you edited a bookmark in.
  * @param ioDispatcher Coroutine dispatcher for IO operations.
  */
@@ -62,6 +63,7 @@ internal class BookmarksMiddleware(
     private val showUrlCopiedSnackbar: () -> Unit,
     private val getBrowsingMode: () -> BrowsingMode,
     private val openTab: (url: String, openInNewTab: Boolean) -> Unit,
+    private val saveBookmarkSortOrder: suspend (BookmarksListSortOrder) -> Unit,
     private val lastSavedFolderCache: LastSavedFolderCache,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : Middleware<BookmarksState, BookmarksAction> {
@@ -402,7 +404,6 @@ internal class BookmarksMiddleware(
     }
 
     private fun BookmarkNode.childItems(): List<BookmarkItem> = this.children
-        ?.sortedByDescending { it.lastModified }
         ?.mapNotNull { node ->
             Result.runCatching {
                 when (node.type) {
@@ -410,11 +411,13 @@ internal class BookmarksMiddleware(
                         url = node.url!!,
                         title = node.title ?: node.url ?: "",
                         previewImageUrl = node.url!!,
+                        dateAdded = node.dateAdded,
                         guid = node.guid,
                     )
 
                     BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
                         title = node.title!!,
+                        dateAdded = node.dateAdded,
                         guid = node.guid,
                     )
 
@@ -548,7 +551,9 @@ internal class BookmarksMiddleware(
                 preReductionState.selectedItems.filterIsInstance<BookmarkItem.Bookmark>()
                     .forEach { shareBookmark(it.url, it.title) }
             }
-
+            is BookmarksListMenuAction.SortMenu -> scope.launch {
+                saveBookmarkSortOrder(store.state.sortOrder)
+            }
             is BookmarksListMenuAction.MultiSelect.DeleteClicked,
             is BookmarksListMenuAction.Folder.DeleteClicked,
             is BookmarksListMenuAction.Bookmark.DeleteClicked,

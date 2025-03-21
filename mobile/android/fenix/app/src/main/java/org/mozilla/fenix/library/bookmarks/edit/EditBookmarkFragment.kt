@@ -165,6 +165,7 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                                         )
                                     },
                                     lastSavedFolderCache = context.settings().lastSavedFolderCache,
+                                    saveBookmarkSortOrder = {},
                                 ),
                             ),
                             lifecycleHolder = lifecycleHolder,

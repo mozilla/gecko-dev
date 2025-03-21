@@ -61,6 +61,7 @@ class BookmarksMiddlewareTest {
     private lateinit var getBrowsingMode: () -> BrowsingMode
     private lateinit var openTab: (String, Boolean) -> Unit
     private lateinit var lastSavedFolderCache: LastSavedFolderCache
+    private lateinit var saveSortOrder: suspend (BookmarksListSortOrder) -> Unit
     private val resolveFolderTitle = { node: BookmarkNode ->
         friendlyRootTitle(
             mock(),
@@ -92,6 +93,7 @@ class BookmarksMiddlewareTest {
         getBrowsingMode = { BrowsingMode.Normal }
         openTab = { _, _ -> }
         lastSavedFolderCache = mock()
+        saveSortOrder = { }
     }
 
     @Test
@@ -106,7 +108,7 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN bookmarks in storage and not signed into sync WHEN store is initialized THEN bookmarks will be sorted by last modified date`() = runTestOnMain {
+    fun `GIVEN bookmarks in storage and not signed into sync WHEN store is initialized THEN bookmarks will be loaded`() = runTestOnMain {
         val reverseOrderByModifiedBookmarks = List(5) {
             generateBookmark(
                 guid = "$it",
@@ -131,14 +133,34 @@ class BookmarksMiddlewareTest {
         val middleware = buildMiddleware()
 
         val store = middleware.makeStore()
-
-        val bookmarksConvertedToSortedItems = reverseOrderByModifiedBookmarks
-            .map {
-                BookmarkItem.Bookmark(url = it.url!!, title = it.title!!, previewImageUrl = it.url!!, guid = it.guid)
-            }
-            .reversed()
         assertEquals(5, store.state.bookmarkItems.size)
-        assertEquals(bookmarksConvertedToSortedItems, store.state.bookmarkItems)
+    }
+
+    @Test
+    fun `GIVEN a bookmarks store WHEN SortMenuItem is clicked THEN Save the new sort order`() = runTestOnMain {
+        val root = BookmarkNode(
+            type = BookmarkNodeType.FOLDER,
+            guid = BookmarkRoot.Mobile.id,
+            parentGuid = null,
+            position = 0U,
+            title = "mobile",
+            url = null,
+            dateAdded = 0,
+            lastModified = 0,
+            children = listOf(),
+        )
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(root)
+        var newSortOrder = BookmarksListSortOrder.default
+        saveSortOrder = {
+            newSortOrder = it
+        }
+        val middleware = buildMiddleware()
+
+        val store = middleware.makeStore()
+        store.dispatch(BookmarksListMenuAction.SortMenu.NewestClicked)
+        store.waitUntilIdle()
+        assertEquals(BookmarksListSortOrder.Created(true), newSortOrder)
     }
 
     @Test
@@ -1380,6 +1402,7 @@ class BookmarksMiddlewareTest {
         getBrowsingMode = getBrowsingMode,
         openTab = openTab,
         ioDispatcher = coroutineRule.testDispatcher,
+        saveBookmarkSortOrder = saveSortOrder,
         lastSavedFolderCache = lastSavedFolderCache,
     )
 

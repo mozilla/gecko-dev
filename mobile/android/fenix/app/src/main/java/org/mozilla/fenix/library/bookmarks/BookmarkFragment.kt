@@ -68,6 +68,7 @@ import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.setTextColor
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.library.LibraryPageFragment
+import org.mozilla.fenix.library.bookmarks.ui.BookmarksListSortOrder
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksScreen
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
@@ -122,7 +123,12 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                         )
 
                         BookmarksStore(
-                            initialState = BookmarksState.default,
+                            initialState = BookmarksState.default.copy(
+                                sortOrder = BookmarksListSortOrder.fromString(
+                                    value = requireContext().settings().bookmarkListSortOrder,
+                                    default = BookmarksListSortOrder.Alphabetical(true),
+                                ),
+                            ),
                             middleware = listOf(
                                 BookmarksTelemetryMiddleware(),
                                 BookmarksSyncMiddleware(requireComponents.backgroundServices.syncStore, lifecycleScope),
@@ -182,6 +188,9 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                                 EngineSession.LoadUrlFlags.ALLOW_JAVASCRIPT_URL,
                                             ),
                                         )
+                                    },
+                                    saveBookmarkSortOrder = {
+                                        lifecycleHolder.context.settings().bookmarkListSortOrder = it.asString
                                     },
                                     lastSavedFolderCache = context.settings().lastSavedFolderCache,
                                 ),

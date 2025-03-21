@@ -60,6 +60,13 @@ internal sealed class BookmarksListMenuAction : BookmarksAction {
         data object OpenInPrivateTabsClicked : MultiSelect()
         data object ShareClicked : MultiSelect()
     }
+
+    internal sealed class SortMenu : BookmarksListMenuAction() {
+        data object NewestClicked : SortMenu()
+        data object OldestClicked : SortMenu()
+        data object AtoZClicked : SortMenu()
+        data object ZtoAClicked : SortMenu()
+    }
 }
 
 internal data class FolderClicked(val item: BookmarkItem.Folder) : BookmarksAction

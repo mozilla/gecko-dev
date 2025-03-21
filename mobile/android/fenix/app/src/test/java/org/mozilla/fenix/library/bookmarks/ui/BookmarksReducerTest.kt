@@ -120,6 +120,27 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a bookmark list WHEN the sort menu items are clicked THEN resort the bookmark list`() {
+        val firefox = generateBookmark(1, title = "Firefox", dateAdded = 1)
+        val mozilla = generateBookmark(2, title = "Mozilla", dateAdded = 3)
+        val lockwise = generateFolder(3, title = "Lockwise", dateAdded = 2)
+        val items = listOf(firefox, lockwise, mozilla)
+        val state = BookmarksState.default.copy(bookmarkItems = items)
+
+        val zToA = bookmarksReducer(state, BookmarksListMenuAction.SortMenu.ZtoAClicked)
+        assertEquals(listOf(mozilla, lockwise, firefox), zToA.bookmarkItems)
+
+        val aToZ = bookmarksReducer(zToA, BookmarksListMenuAction.SortMenu.AtoZClicked)
+        assertEquals(listOf(firefox, lockwise, mozilla), aToZ.bookmarkItems)
+
+        val newest = bookmarksReducer(aToZ, BookmarksListMenuAction.SortMenu.NewestClicked)
+        assertEquals(listOf(mozilla, lockwise, firefox), newest.bookmarkItems)
+
+        val oldest = bookmarksReducer(newest, BookmarksListMenuAction.SortMenu.OldestClicked)
+        assertEquals(listOf(firefox, lockwise, mozilla), oldest.bookmarkItems)
+    }
+
+    @Test
     fun `GIVEN there are already selected items WHEN clicking an unselected folder THEN it is added to selected items`() {
         val folder1 = generateFolder(1)
         val folder2 = generateFolder(2)
@@ -850,10 +871,12 @@ class BookmarksReducerTest {
         url: String = "url",
         title: String = "title",
         previewImageUrl: String = "previewImageUrl",
-    ) = BookmarkItem.Bookmark(url, title, previewImageUrl, "$num")
+        dateAdded: Long = 0,
+    ) = BookmarkItem.Bookmark(url, title, previewImageUrl, "$num", dateAdded)
 
     private fun generateFolder(
         num: Int = 0,
         title: String = "title",
-    ) = BookmarkItem.Folder(title, "$num")
+        dateAdded: Long = 0,
+    ) = BookmarkItem.Folder(title, "$num", dateAdded = dateAdded)
 }

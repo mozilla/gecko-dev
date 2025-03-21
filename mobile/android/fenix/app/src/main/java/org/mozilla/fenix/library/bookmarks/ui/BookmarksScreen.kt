@@ -384,6 +384,7 @@ private fun BookmarksListTopBar(
     }
     val folderTitle by store.observeAsState(store.state.currentFolder.title) { store.state.currentFolder.title }
     var showMenu by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
 
     val backgroundColor = if (selectedItems.isEmpty()) {
         FirefoxTheme.colors.layer1
@@ -430,6 +431,24 @@ private fun BookmarksListTopBar(
             actions = {
                 when {
                     selectedItems.isEmpty() -> {
+                        Box {
+                            IconButton(onClick = { showSortMenu = true }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.mozac_ic_filter),
+                                    contentDescription = stringResource(
+                                        R.string.content_description_menu,
+                                    ),
+                                    tint = iconColor,
+                                )
+                            }
+
+                            BookmarkSortOverflowMenu(
+                                showMenu = showSortMenu,
+                                onDismissRequest = { showSortMenu = false },
+                                store = store,
+                            )
+                        }
+
                         if (isCurrentFolderDesktopRoot) {
                             Unit
                         } else {
@@ -793,6 +812,44 @@ private fun EmptyList(
             }
         }
     }
+}
+
+@Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927718
+private fun BookmarkSortOverflowMenu(
+    showMenu: Boolean,
+    onDismissRequest: () -> Unit,
+    store: BookmarksStore,
+) {
+    val sortOrder by store.observeAsState(store.state.sortOrder) { store.state.sortOrder }
+
+    val menuItems = listOf(
+        MenuItem(
+            title = stringResource(R.string.bookmark_sort_menu_newest),
+            isChecked = sortOrder == BookmarksListSortOrder.Created(ascending = true),
+            onClick = { store.dispatch(BookmarksListMenuAction.SortMenu.NewestClicked) },
+        ),
+        MenuItem(
+            title = stringResource(R.string.bookmark_sort_menu_oldest),
+            isChecked = sortOrder == BookmarksListSortOrder.Created(ascending = false),
+            onClick = { store.dispatch(BookmarksListMenuAction.SortMenu.OldestClicked) },
+        ),
+        MenuItem(
+            title = stringResource(R.string.bookmark_sort_menu_a_to_z),
+            isChecked = sortOrder == BookmarksListSortOrder.Alphabetical(ascending = true),
+            onClick = { store.dispatch(BookmarksListMenuAction.SortMenu.AtoZClicked) },
+        ),
+        MenuItem(
+            title = stringResource(R.string.bookmark_sort_menu_z_to_a),
+            isChecked = sortOrder == BookmarksListSortOrder.Alphabetical(ascending = false),
+            onClick = { store.dispatch(BookmarksListMenuAction.SortMenu.ZtoAClicked) },
+        ),
+    )
+    ContextualMenu(
+        menuItems = menuItems,
+        showMenu = showMenu,
+        onDismissRequest = onDismissRequest,
+    )
 }
 
 @Composable
@@ -1255,6 +1312,7 @@ private fun EditBookmarkScreenPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
@@ -1309,6 +1367,7 @@ private fun BookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = bookmarkItems,
                 selectedItems = listOf(),
+                sortOrder = BookmarksListSortOrder.default,
                 recursiveSelectedCount = null,
                 currentFolder = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
@@ -1342,6 +1401,7 @@ private fun EmptyBookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = listOf(),
                 selectedItems = listOf(),
+                sortOrder = BookmarksListSortOrder.default,
                 recursiveSelectedCount = null,
                 currentFolder = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
@@ -1374,6 +1434,7 @@ private fun AddFolderPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
@@ -1411,6 +1472,7 @@ private fun SelectFolderPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,

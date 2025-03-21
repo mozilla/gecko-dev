@@ -452,6 +452,7 @@
     <!-- Bookmarks -->
     <string name="pref_key_use_new_bookmarks_ui" translatable="false">pref_key_use_new_bookmarks_ui</string>
     <string name="pref_last_folder_saved_in" translatable="false">pref_last_folder_saved_in</string>
+    <string name="pref_key_bookmark_list_sort_order" translatable="false">pref_key_bookmark_list_sort_order</string>
 
     <!-- DNS over HTTPS Secret settings -->
     <string name="pref_key_doh_settings_enabled" translatable="false">pref_key_doh_settings_enabled</string>

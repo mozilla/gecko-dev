@@ -1451,6 +1451,14 @@
     <string name="bookmark_menu_delete_button">Delete</string>
     <!--Bookmark overflow menu save button -->
     <string name="bookmark_menu_save_button">Save</string>
+    <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+    <string name="bookmark_sort_menu_newest">Sort by newest</string>
+    <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+    <string name="bookmark_sort_menu_oldest">Sort by oldest</string>
+    <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+    <string name="bookmark_sort_menu_a_to_z">Sort by A to Z</string>
+    <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+    <string name="bookmark_sort_menu_z_to_a">Sort by Z to A</string>
     <!-- Bookmark multi select title in app bar
      %1$d is the number of bookmarks selected -->
     <string name="bookmarks_multi_select_title">%1$d selected</string>

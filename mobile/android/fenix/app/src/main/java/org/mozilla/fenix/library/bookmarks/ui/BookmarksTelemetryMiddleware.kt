@@ -152,6 +152,7 @@ internal class BookmarksTelemetryMiddleware : Middleware<BookmarksState, Bookmar
             is InitEdit,
             is InitEditLoaded,
             is ReceivedSyncSignInUpdate,
+            is BookmarksListMenuAction.SortMenu,
             FirstSyncCompleted,
             ViewDisposed,
             -> Unit
