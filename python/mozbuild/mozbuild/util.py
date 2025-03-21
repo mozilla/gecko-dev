@@ -18,6 +18,7 @@ import re
 import subprocess
 import sys
 from io import BytesIO, StringIO
+from pathlib import Path
 
 import six
 
@@ -250,7 +251,11 @@ class FileAvoidWrite(BytesIO):
                 buf = six.ensure_binary(buf)
             else:
                 buf = six.ensure_text(buf)
-            with _open(self.name, writemode) as file:
+            path = Path(self.name)
+            if path.is_symlink():
+                # Migration to code autogeneration can encounter with existing symlinks, e.g. bug 1953858.
+                path.unlink()
+            with _open(path, writemode) as file:
                 file.write(buf)
 
         self._generate_diff(buf, old_content)
