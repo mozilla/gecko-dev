@@ -294,3 +294,86 @@ tabgroup:
     labels:
       - inside
       - outside
+
+browser.tabswitch:
+  update:
+    type: timing_distribution
+    description: >
+      Firefox: Time in ms spent updating UI in response to a tab switch
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_TAB_SWITCH_UPDATE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_TAB_SWITCH_UPDATE_MS
+
+  total:
+    type: timing_distribution
+    description: >
+      Firefox: Time in ms between tab selection and tab content paint in e10s
+      windows
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_TAB_SWITCH_TOTAL_E10S_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1156592
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1156592
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_TAB_SWITCH_TOTAL_E10S_MS
+
+  spinner_visible:
+    type: timing_distribution
+    description: >
+      Firefox: If the spinner interstitial displays during tab switching,
+      records the time in ms the graphic is visible
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_TAB_SWITCH_SPINNER_VISIBLE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1156592
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1156592
+    notification_emails:
+      - mconley@mozilla.com
+      - dothayer@mozilla.com
+    expires: never
+    telemetry_mirror: FX_TAB_SWITCH_SPINNER_VISIBLE_MS
+
+  spinner_visible_trigger:
+    type: labeled_counter
+    description: >
+      Diagnostic probe to aid in categorizing tab switch spinners. Records what
+      most recently set the loadTimer to null if a spinner was displayed.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram FX_TAB_SWITCH_SPINNER_VISIBLE_TRIGGER.
+    labels:
+      - none
+      - preActions
+      - postActions
+      - onLoadTimeout
+      - onLayersReady
+      - onSizeModeOrOcc
+      - onEndSwapDocShells
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1442068
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1442068
+    notification_emails:
+      - dothayer@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_TAB_SWITCH_SPINNER_VISIBLE_TRIGGER
