@@ -24,6 +24,7 @@ import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.withTranslation
 import androidx.core.text.HtmlCompat
 import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.ktx.android.util.spToPx
@@ -229,14 +230,13 @@ class CustomViewFinder @JvmOverloads constructor(
 
     /** Draws text below the ViewFinder.  */
     private fun drawMessage(canvas: Canvas) {
-        canvas.save()
-        canvas.translate(
+        canvas.withTranslation(
             viewFinderRectangle.left.toFloat(),
             viewFinderRectangle.bottom.toFloat() +
                 SCAN_MESSAGE_TOP_PADDING_DP.dpToPx(resources.displayMetrics),
-        )
-        scanMessageLayout?.draw(canvas)
-        canvas.restore()
+        ) {
+            scanMessageLayout?.draw(this)
+        }
     }
 
     /** Sets the color for the Overlay.  */

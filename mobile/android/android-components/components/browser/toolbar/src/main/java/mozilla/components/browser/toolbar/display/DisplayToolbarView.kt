@@ -10,6 +10,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.graphics.withTranslation
 import mozilla.components.browser.toolbar.R
 
 /**
@@ -39,13 +40,9 @@ class DisplayToolbarView @JvmOverloads constructor(
     // Overriding draw instead of onDraw since we want to draw the background before the actual
     // (transparent) background (with a ripple effect) is drawn.
     override fun draw(canvas: Canvas) {
-        canvas.save()
-        canvas.translate(backgroundView.x, backgroundView.y)
-
-        backgroundView.drawable?.draw(canvas)
-
-        canvas.restore()
-
+        canvas.withTranslation(backgroundView.x, backgroundView.y) {
+            backgroundView.drawable?.draw(this)
+        }
         super.draw(canvas)
     }
 }
