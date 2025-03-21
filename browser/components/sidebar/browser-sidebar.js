@@ -1140,7 +1140,7 @@ var SidebarController = {
             ? fromTranslate + widthGrowth
             : fromTranslate - widthGrowth;
         }
-      } else if (isSidebar && !this._positionStart) {
+      } else if (isSidebar) {
         fromTranslate += sidebarOnLeft ? -widthGrowth : widthGrowth;
       }
 
@@ -1158,12 +1158,21 @@ var SidebarController = {
       }
       // We want to keep the buttons in place during the animation, for which
       // we might need to compensate.
-      animations.push(
-        this.sidebarMain.animate(
-          [{ translate: "0" }, { translate: `${-toTranslate}px 0 0` }],
-          options
-        )
-      );
+      if (!this._state.launcherExpanded) {
+        animations.push(
+          this.sidebarMain.animate(
+            [{ translate: "0" }, { translate: `${-toTranslate}px 0 0` }],
+            options
+          )
+        );
+      } else {
+        animations.push(
+          this.sidebarMain.animate(
+            [{ translate: `${-fromTranslate}px 0 0` }, { translate: "0" }],
+            options
+          )
+        );
+      }
     }
     this._ongoingAnimations = animations;
     this.sidebarContainer.toggleAttribute("sidebar-ongoing-animations", true);
