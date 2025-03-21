@@ -77,7 +77,30 @@ data class FileItem(
         ),
         Document(
             stringRes = R.string.download_content_type_filter_document,
-            predicate = { it in listOf("application/pdf", "text/plain") },
+            predicate = {
+                // We extract MIME types corresponding to documents from the list of the most common
+                // MIME types from MDN.
+                // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types/Common_types
+                it?.startsWith("text/") == true || it in listOf(
+                    "application/vnd.ms-excel",
+                    "application/msword",
+                    "application/vnd.ms-powerpoint",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    "application/vnd.oasis.opendocument.text",
+                    "application/vnd.oasis.opendocument.spreadsheet",
+                    "application/vnd.oasis.opendocument.presentation",
+                    "application/pdf",
+                    "application/rtf",
+                    "application/epub+zip",
+                    "application/vnd.amazon.ebook",
+                    "application/xml",
+                    "application/json",
+                    "application/vnd.apple.keynote",
+                    "application/x-abiword",
+                )
+            },
         ),
         Other(
             stringRes = R.string.download_content_type_filter_other,
