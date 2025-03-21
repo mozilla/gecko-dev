@@ -199,9 +199,7 @@ export const InsecurePasswordUtils = {
       passwordSafety = 5;
     }
 
-    Services.telemetry
-      .getHistogramById("PWMGR_LOGIN_PAGE_SAFETY")
-      .add(passwordSafety);
+    Glean.pwmgr.loginPageSafety.accumulateSingleSample(passwordSafety);
   },
 };
 

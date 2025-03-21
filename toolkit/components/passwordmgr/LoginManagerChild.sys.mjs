@@ -1820,9 +1820,7 @@ export class LoginManagerChild extends JSWindowActorChild {
       this._fetchLoginsFromParentAndFillForm(formLike);
     }
 
-    Services.telemetry
-      .getHistogramById("PWMGR_IS_USERNAME_ONLY_FORM")
-      .add(!!usernameField);
+    Glean.pwmgr.isUsernameOnlyForm[usernameField ? "true" : "false"].add();
   }
 
   #onDOMInputPasswordAdded(event) {

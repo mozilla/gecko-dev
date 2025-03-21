@@ -213,7 +213,13 @@ export class LoginManagerPrompter {
       type == "password-save"
         ? "PWMGR_PROMPT_REMEMBER_ACTION"
         : "PWMGR_PROMPT_UPDATE_ACTION";
-    const histogram = Services.telemetry.getHistogramById(histogramName);
+    const histogramAdd = sample => {
+      if (type == "password-save") {
+        Glean.pwmgr.promptRememberAction.accumulateSingleSample(sample);
+      } else {
+        Glean.pwmgr.promptUpdateAction.accumulateSingleSample(sample);
+      }
+    };
 
     const chromeDoc = browser.ownerDocument;
     let currentNotification;
@@ -436,11 +442,6 @@ export class LoginManagerPrompter {
       }
     };
 
-    const supportedHistogramNames = {
-      PWMGR_PROMPT_REMEMBER_ACTION: true,
-      PWMGR_PROMPT_UPDATE_ACTION: true,
-    };
-
     const mainButton = this.getLabelAndAccessKey(initialMessageIds.mainButton);
 
     // The main action is the "Save" or "Update" button.
@@ -479,10 +480,7 @@ export class LoginManagerPrompter {
             }
           }
         }
-        histogram.add(PROMPT_ADD_OR_UPDATE);
-        if (!supportedHistogramNames[histogramName]) {
-          throw new Error("Unknown histogram");
-        }
+        histogramAdd(PROMPT_ADD_OR_UPDATE);
 
         showConfirmation(browser, eventTypeMapping[type].confirmationHintFtlId);
         // The popup does not wait until this promise is resolved, but is
@@ -518,7 +516,7 @@ export class LoginManagerPrompter {
         label: secondaryButton.label,
         accessKey: secondaryButton.accessKey,
         callback: () => {
-          histogram.add(PROMPT_NOTNOW_OR_DONTUPDATE);
+          histogramAdd(PROMPT_NOTNOW_OR_DONTUPDATE);
           Services.obs.notifyObservers(
             null,
             "weave:telemetry:histogram",
@@ -537,7 +535,7 @@ export class LoginManagerPrompter {
         label: neverSaveButton.label,
         accessKey: neverSaveButton.accessKey,
         callback: () => {
-          histogram.add(PROMPT_NEVER);
+          histogramAdd(PROMPT_NEVER);
           Services.obs.notifyObservers(
             null,
             "weave:telemetry:histogram",
@@ -559,7 +557,7 @@ export class LoginManagerPrompter {
         label: updatePasswordButtonDelete.label,
         accessKey: updatePasswordButtonDelete.accessKey,
         callback: async () => {
-          histogram.add(PROMPT_DELETE);
+          histogramAdd(PROMPT_DELETE);
           Services.obs.notifyObservers(
             null,
             "weave:telemetry:histogram",
@@ -606,7 +604,7 @@ export class LoginManagerPrompter {
 
                 // Record the first time this instance of the doorhanger is shown.
                 if (!this.timeShown) {
-                  histogram.add(PROMPT_DISPLAYED);
+                  histogramAdd(PROMPT_DISPLAYED);
                   Services.obs.notifyObservers(
                     null,
                     "weave:telemetry:histogram",
