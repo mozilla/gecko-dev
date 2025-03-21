@@ -18,6 +18,7 @@ pub(crate) struct RustcCodegenFlags<'a> {
     force_frame_pointers: Option<bool>,
     no_redzone: Option<bool>,
     soft_float: Option<bool>,
+    dwarf_version: Option<u32>,
 }
 
 impl<'this> RustcCodegenFlags<'this> {
@@ -86,6 +87,10 @@ impl<'this> RustcCodegenFlags<'this> {
             }
         }
 
+        fn arg_to_u32(arg: impl AsRef<str>) -> Option<u32> {
+            arg.as_ref().parse().ok()
+        }
+
         let (flag, value) = if let Some((flag, value)) = flag.split_once('=') {
             (flag, Some(value))
         } else {
@@ -147,6 +152,14 @@ impl<'this> RustcCodegenFlags<'this> {
             "-Zbranch-protection" | "-Cbranch-protection" => {
                 self.branch_protection =
                     Some(flag_ok_or(value, "-Zbranch-protection must have a value")?);
+            }
+            // https://doc.rust-lang.org/beta/unstable-book/compiler-flags/dwarf-version.html
+            // FIXME: Drop the -Z variant and update the doc link once the option is stablized
+            "-Zdwarf-version" | "-Cdwarf-version" => {
+                self.dwarf_version = Some(value.and_then(arg_to_u32).ok_or(Error::new(
+                    ErrorKind::InvalidFlag,
+                    "-Zdwarf-version must have a value",
+                ))?);
             }
             _ => {}
         }
@@ -249,6 +262,11 @@ impl<'this> RustcCodegenFlags<'this> {
                     "-mhard-float"
                 };
                 push_if_supported(cc_flag.into());
+            }
+            // https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-gdwarf-2
+            // https://gcc.gnu.org/onlinedocs/gcc/Debugging-Options.html#index-gdwarf
+            if let Some(value) = self.dwarf_version {
+                push_if_supported(format!("-gdwarf-{value}").into());
             }
         }
 
@@ -390,6 +408,7 @@ mod tests {
             "-Crelocation-model=pic",
             "-Csoft-float=yes",
             "-Zbranch-protection=bti,pac-ret,leaf",
+            "-Zdwarf-version=5",
             // Set flags we don't recognise but rustc supports next
             // rustc flags
             "--cfg",
@@ -496,6 +515,7 @@ mod tests {
                 relocation_model: Some("pic"),
                 soft_float: Some(true),
                 branch_protection: Some("bti,pac-ret,leaf"),
+                dwarf_version: Some(5),
             },
         );
     }

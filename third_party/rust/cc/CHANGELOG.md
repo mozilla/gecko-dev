@@ -6,6 +6,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.16](https://github.com/rust-lang/cc-rs/compare/cc-v1.2.15...cc-v1.2.16) - 2025-02-28
+
+### Fixed
+
+- force windows compiler to run in `out_dir` to prevent artifacts in cwd (#1415)
+
+### Other
+
+- use `/arch:SSE2` for `x86` target arch (#1425)
+- Regenerate windows-sys binding ([#1422](https://github.com/rust-lang/cc-rs/pull/1422))
+- Regenerate target info ([#1418](https://github.com/rust-lang/cc-rs/pull/1418))
+- Add LIB var when compiling flag_check (#1417)
+- Change flag ordering ([#1403](https://github.com/rust-lang/cc-rs/pull/1403))
+- Fix archiver detection for musl cross compilation ([#1404](https://github.com/rust-lang/cc-rs/pull/1404))
+
+## [1.2.15](https://github.com/rust-lang/cc-rs/compare/cc-v1.2.14...cc-v1.2.15) - 2025-02-21
+
+### Other
+
+- Regenerate target info ([#1406](https://github.com/rust-lang/cc-rs/pull/1406))
+- Always read from all `CFLAGS`-style flags ([#1401](https://github.com/rust-lang/cc-rs/pull/1401))
+- Simplify the error output on failed `Command` invocation ([#1397](https://github.com/rust-lang/cc-rs/pull/1397))
+
+## [1.2.14](https://github.com/rust-lang/cc-rs/compare/cc-v1.2.13...cc-v1.2.14) - 2025-02-14
+
+### Other
+
+- Regenerate target info ([#1398](https://github.com/rust-lang/cc-rs/pull/1398))
+- Add support for setting `-gdwarf-{version}` based on RUSTFLAGS ([#1395](https://github.com/rust-lang/cc-rs/pull/1395))
+- Add support for alternative network stack io-sock on QNX 7.1 aarch64 and x86_64 ([#1312](https://github.com/rust-lang/cc-rs/pull/1312))
+
+## [1.2.13](https://github.com/rust-lang/cc-rs/compare/cc-v1.2.12...cc-v1.2.13) - 2025-02-08
+
+### Other
+
+- Fix cross-compiling for Apple platforms ([#1389](https://github.com/rust-lang/cc-rs/pull/1389))
+
 ## [1.2.12](https://github.com/rust-lang/cc-rs/compare/cc-v1.2.11...cc-v1.2.12) - 2025-02-04
 
 ### Other
