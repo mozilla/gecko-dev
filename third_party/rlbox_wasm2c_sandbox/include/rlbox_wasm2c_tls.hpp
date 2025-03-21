@@ -1,5 +1,5 @@
 #pragma once
-
+// IWYU pragma: private, include "rlbox_wasm2c_sandbox.hpp"
 #include <stdint.h>
 
 namespace rlbox {

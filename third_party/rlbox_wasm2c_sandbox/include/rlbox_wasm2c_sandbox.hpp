@@ -9,7 +9,6 @@
 #include "rlbox_helpers.hpp"
 
 #include <cstdint>
-#include <iostream>
 #include <limits>
 #include <map>
 #include <memory>
@@ -52,44 +51,59 @@
 #  endif
 #endif
 
-#define DEFINE_RLBOX_WASM2C_MODULE_TYPE(modname)                               \
-  struct rlbox_wasm2c_module_type_##modname                                    \
-  {                                                                            \
-    using instance_t = w2c_##modname;                                          \
-                                                                               \
-    using create_instance_t = void (*)(instance_t*,                            \
-                                       struct w2c_env*,                        \
-                                       struct w2c_wasi__snapshot__preview1*);  \
-    static constexpr create_instance_t create_instance =                       \
-      &wasm2c_##modname##_instantiate;                                         \
-                                                                               \
-    using free_instance_t = void (*)(instance_t*);                             \
-    static constexpr free_instance_t free_instance = &wasm2c_##modname##_free; \
-                                                                               \
-    using get_func_type_t = wasm_rt_func_type_t (*)(uint32_t, uint32_t, ...);  \
-    static constexpr get_func_type_t get_func_type =                           \
-      &wasm2c_##modname##_get_func_type;                                       \
-                                                                               \
-    static constexpr const uint64_t* initial_memory_pages =                    \
-      &wasm2c_##modname##_min_env_memory;                                      \
-    static constexpr const uint8_t* is_memory_64 =                             \
-      &wasm2c_##modname##_is64_env_memory;                                     \
-    static constexpr const uint32_t* initial_func_elements =                   \
-      &wasm2c_##modname##_min_env_0x5F_indirect_function_table;                \
-                                                                               \
-    static constexpr const char* prefix = #modname;                            \
-                                                                               \
-    /* A function that returns the address of the func specified as a          \
-     * constexpr string */                                                     \
-    /* Unfortunately, there is no way to implement the below in C++. */        \
-    /* Implement this to fully support multiple static modules. */             \
-    /* static constexpr void* dlsym_in_w2c_module(const char* func_name) { */  \
-    /*    return &w2c_##modname##_%func%; */                                   \
-    /* } */                                                                    \
-                                                                               \
-    static constexpr auto malloc_address = &w2c_##modname##_malloc;            \
-    static constexpr auto free_address = &w2c_##modname##_free;                \
+#define DEFINE_RLBOX_WASM2C_MODULE_TYPE(modname)                                   \
+  struct rlbox_wasm2c_module_type_##modname                                        \
+  {                                                                                \
+    using instance_t = w2c_##modname;                                              \
+                                                                                   \
+    using create_instance_imported_t = void (*)(instance_t*,                       \
+                                       struct w2c_env*,                            \
+                                       struct w2c_wasi__snapshot__preview1*);      \
+    using create_instance_exported_t = void (*)(instance_t*,                       \
+                                       struct w2c_wasi__snapshot__preview1*);      \
+    static constexpr auto create_instance =                                        \
+      &wasm2c_##modname##_instantiate;                                             \
+                                                                                   \
+    using free_instance_t = void (*)(instance_t*);                                 \
+    static constexpr free_instance_t free_instance = &wasm2c_##modname##_free;     \
+                                                                                   \
+    using get_func_type_t = wasm_rt_func_type_t (*)(uint32_t, uint32_t, ...);      \
+    static constexpr get_func_type_t get_func_type =                               \
+      &wasm2c_##modname##_get_func_type;                                           \
+                                                                                   \
+    static constexpr const char* prefix = #modname;                                \
+                                                                                   \
+    /* A function that returns the address of the func specified as a              \
+     * constexpr string */                                                         \
+    /* Unfortunately, there is no way to implement the below in C++. */            \
+    /* Implement this to fully support multiple static modules. */                 \
+    /* static constexpr void* dlsym_in_w2c_module(const char* func_name) { */      \
+    /*    return &w2c_##modname##_%func%; */                                       \
+    /* } */                                                                        \
+                                                                                   \
+    static constexpr auto malloc_address = &w2c_##modname##_malloc;                \
+    static constexpr auto free_address = &w2c_##modname##_free;                    \
+                                                                                   \
+  };                                                                               \
+  extern "C" {                                                                     \
+    /* Declarations for imported memory and tables */                              \
+    extern const uint64_t wasm2c_##modname##_min_env_memory;                       \
+    extern const uint8_t wasm2c_##modname##_is64_env_memory;                       \
+    extern const uint32_t wasm2c_##modname##_min_env_0x5F_indirect_function_table; \
+    /* Declarations for exported memory and tables */                              \
+    extern wasm_rt_memory_t* w2c_##modname##_memory(w2c_##modname*);               \
+    extern wasm_rt_funcref_table_t* w2c_##modname##_0x5F_indirect_function_table(  \
+      w2c_##modname*);                                                             \
   }
+
+#define DEFINE_RLBOX_WASM2C_IMPORTED_MODULE_ATTRIBS(modname)                           \
+  constexpr const uint64_t* initial_memory_pages = &wasm2c_##modname##_min_env_memory; \
+  constexpr const uint8_t* is_memory_64 = &wasm2c_##modname##_is64_env_memory;         \
+  constexpr const uint32_t* initial_func_elements = &wasm2c_##modname##_min_env_0x5F_indirect_function_table;
+
+#define DEFINE_RLBOX_WASM2C_EXPORTED_MODULE_ATTRIBS(modname)                               \
+  constexpr const auto get_exported_memory = &w2c_##modname##_memory;                      \
+  constexpr const auto get_exported_table = &w2c_##modname##_0x5F_indirect_function_table; \
 
 // wasm_module_name module name used when compiling with wasm2c
 #ifndef RLBOX_WASM2C_MODULE_NAME
@@ -100,6 +114,13 @@
 #define INVOKE_DEFINE_RLBOX_WASM2C_MODULE_TYPE(modname)                        \
   DEFINE_RLBOX_WASM2C_MODULE_TYPE(modname)
 
+#define INVOKE_DEFINE_RLBOX_WASM2C_IMPORTED_MODULE_ATTRIBS(modname)           \
+  DEFINE_RLBOX_WASM2C_IMPORTED_MODULE_ATTRIBS(modname)
+
+#define INVOKE_DEFINE_RLBOX_WASM2C_EXPORTED_MODULE_ATTRIBS(modname)           \
+  DEFINE_RLBOX_WASM2C_EXPORTED_MODULE_ATTRIBS(modname)
+
+// Define the base wasm2c module type
 INVOKE_DEFINE_RLBOX_WASM2C_MODULE_TYPE(RLBOX_WASM2C_MODULE_NAME);
 
 // Concat after macro expansion
@@ -308,8 +329,14 @@ private:
   struct w2c_wasi__snapshot__preview1 wasi_env{ 0 };
   bool instance_initialized = false;
   bool minwasi_init_inst_succeeded = false;
-  wasm_rt_memory_t sandbox_memory_info{ 0 };
-  mutable wasm_rt_funcref_table_t sandbox_callback_table{ 0 };
+  // Only used if memory and tables are imported
+  wasm_rt_memory_t local_sandbox_memory_info{ 0 };
+  mutable wasm_rt_funcref_table_t local_sandbox_callback_table{ 0 };
+  // Pointers to actual memory and table. This points to
+  // local_sandbox_memory_info and local_sandbox_callback_table if the Wasm
+  // module imports the memory and table.
+  wasm_rt_memory_t* sandbox_memory_info{ 0 };
+  mutable wasm_rt_funcref_table_t* sandbox_callback_table{ 0 };
   uintptr_t heap_base = 0;
   size_t return_slot_size = 0;
   T_PointerType return_slot = 0;
@@ -469,6 +496,10 @@ protected:
     return nullptr;
   }
 
+  using create_instance_t = std::remove_cv_t<decltype(RLBOX_WASM_MODULE_TYPE_CURR::create_instance)>;
+  static constexpr bool is_imported_memory_and_table = std::is_same_v<create_instance_t, RLBOX_WASM_MODULE_TYPE_CURR::create_instance_imported_t>;
+  static constexpr bool is_exported_memory_and_table = std::is_same_v<create_instance_t, RLBOX_WASM_MODULE_TYPE_CURR::create_instance_exported_t>;
+
 public:
 #define FALLIBLE_DYNAMIC_CHECK(infallible, cond, msg)                          \
   if (infallible) {                                                            \
@@ -491,7 +522,8 @@ public:
    */
   inline bool impl_create_sandbox(
     bool infallible = true,
-    const w2c_mem_capacity* custom_capacity = nullptr)
+    const w2c_mem_capacity* custom_capacity = nullptr,
+    const char* instance_name = nullptr)
   {
     FALLIBLE_DYNAMIC_CHECK(
       infallible, instance_initialized == false, "Sandbox already initialized");
@@ -515,34 +547,54 @@ public:
         infallible, custom_capacity->is_valid, "Invalid capacity");
     }
 
-    sandbox_memory_info = create_wasm2c_memory(
-      *RLBOX_WASM_MODULE_TYPE_CURR::initial_memory_pages, custom_capacity);
-    FALLIBLE_DYNAMIC_CHECK(infallible,
-                           sandbox_memory_info.data != nullptr,
-                           "Could not allocate a heap for the wasm2c sandbox");
+    static_assert(is_imported_memory_and_table || is_exported_memory_and_table,
+      "Wasm modules memories and tables must either be imported or exported");
 
-    FALLIBLE_DYNAMIC_CHECK(infallible,
-                           *RLBOX_WASM_MODULE_TYPE_CURR::is_memory_64 == 0,
-                           "Does not support Wasm with memory64");
+    if constexpr (is_imported_memory_and_table) {
+      sandbox_memory_info = &local_sandbox_memory_info;
+      sandbox_callback_table = &local_sandbox_callback_table;
 
-    const uint32_t max_table_size = 0xffffffffu; /* this means unlimited */
-    wasm_rt_allocate_funcref_table(
-      &sandbox_callback_table,
-      *RLBOX_WASM_MODULE_TYPE_CURR::initial_func_elements,
-      max_table_size);
+      INVOKE_DEFINE_RLBOX_WASM2C_IMPORTED_MODULE_ATTRIBS(RLBOX_WASM2C_MODULE_NAME);
 
-    sandbox_memory_env.sandbox_memory_info = &sandbox_memory_info;
-    sandbox_memory_env.sandbox_callback_table = &sandbox_callback_table;
-    wasi_env.instance_memory = &sandbox_memory_info;
-    RLBOX_WASM_MODULE_TYPE_CURR::create_instance(
-      &wasm2c_instance, &sandbox_memory_env, &wasi_env);
+      *sandbox_memory_info = create_wasm2c_memory(
+        *initial_memory_pages, custom_capacity, instance_name? instance_name : "rlbox_wasm2c");
+      FALLIBLE_DYNAMIC_CHECK(infallible,
+                            sandbox_memory_info->data != nullptr,
+                            "Could not allocate a heap for the wasm2c sandbox");
+
+      FALLIBLE_DYNAMIC_CHECK(infallible,
+                            *is_memory_64 == 0,
+                            "Does not support Wasm with memory64");
+
+      const uint32_t max_table_size = 0xffffffffu; /* this means unlimited */
+      wasm_rt_allocate_funcref_table(
+        sandbox_callback_table,
+        *initial_func_elements,
+        max_table_size);
+
+      sandbox_memory_env.sandbox_memory_info = sandbox_memory_info;
+      sandbox_memory_env.sandbox_callback_table = sandbox_callback_table;
+      wasi_env.instance_memory = sandbox_memory_info;
+
+      auto create_instance_func = (RLBOX_WASM_MODULE_TYPE_CURR::create_instance_imported_t) RLBOX_WASM_MODULE_TYPE_CURR::create_instance;
+      create_instance_func(&wasm2c_instance, &sandbox_memory_env, &wasi_env);
+    } else {
+      INVOKE_DEFINE_RLBOX_WASM2C_EXPORTED_MODULE_ATTRIBS(RLBOX_WASM2C_MODULE_NAME);
+      sandbox_memory_info = get_exported_memory(&wasm2c_instance);
+      sandbox_callback_table = get_exported_table(&wasm2c_instance);
+
+      wasi_env.instance_memory = sandbox_memory_info;
+
+      auto create_instance_func = (RLBOX_WASM_MODULE_TYPE_CURR::create_instance_exported_t) RLBOX_WASM_MODULE_TYPE_CURR::create_instance;
+      create_instance_func(&wasm2c_instance, &wasi_env);
+    }
 
     heap_base = reinterpret_cast<uintptr_t>(impl_get_memory_location());
 
-    if constexpr (sizeof(uintptr_t) != sizeof(uint32_t)) {
-      // On larger platforms, check that the heap is aligned to the pointer size
-      // i.e. 32-bit pointer => aligned to 4GB. The implementations of
-      // impl_get_unsandboxed_pointer_no_ctx and
+    if constexpr (is_imported_memory_and_table && sizeof(uintptr_t) != sizeof(uint32_t)) {
+      // On larger platforms, with imported memory check that the heap is
+      // aligned to the pointer size i.e. 32-bit pointer => aligned to 4GB. The
+      // implementations of impl_get_unsandboxed_pointer_no_ctx and
       // impl_get_sandboxed_pointer_no_ctx below rely on this.
       uintptr_t heap_offset_mask = std::numeric_limits<T_PointerType>::max();
       FALLIBLE_DYNAMIC_CHECK(infallible,
@@ -568,14 +620,15 @@ public:
       RLBOX_WASM_MODULE_TYPE_CURR::free_instance(&wasm2c_instance);
     }
 
-    if (sandbox_memory_info.data) {
-      destroy_wasm2c_memory(&sandbox_memory_info);
-      sandbox_memory_info.data = nullptr;
-    }
-
-    if (sandbox_callback_table.data) {
-      wasm_rt_free_funcref_table(&sandbox_callback_table);
-      sandbox_callback_table.data = nullptr;
+    if constexpr (is_imported_memory_and_table) {
+      if (sandbox_memory_info && sandbox_memory_info->data) {
+        destroy_wasm2c_memory(sandbox_memory_info);
+        sandbox_memory_info = nullptr;
+      }
+      if (sandbox_callback_table && sandbox_callback_table->data) {
+        wasm_rt_free_funcref_table(sandbox_callback_table);
+        sandbox_callback_table = nullptr;
+      }
     }
 
     if (minwasi_init_inst_succeeded) {
@@ -620,17 +673,19 @@ public:
           reinterpret_cast<wasm_rt_function_ptr_t>(const_cast<void*>(p));
         func_val.module_instance = &wasm2c_instance;
 
-        sandbox_callback_table.data[slot_number] = func_val;
+        sandbox_callback_table->data[slot_number] = func_val;
         internal_callbacks[p] = slot_number;
         slot_assignments[slot_number] = p;
       }
       return static_cast<T_PointerType>(slot_number);
     } else {
-      if constexpr (sizeof(uintptr_t) == sizeof(uint32_t)) {
+      // if imported memory on a 64-bit platform, we can assume that the heap is
+      // aligned and let integer truncation handle the conversion
+      if constexpr (is_imported_memory_and_table && sizeof(uintptr_t) != sizeof(uint32_t)) {
+        return static_cast<T_PointerType>(reinterpret_cast<uintptr_t>(p));
+      } else {
         return static_cast<T_PointerType>(reinterpret_cast<uintptr_t>(p) -
                                           heap_base);
-      } else {
-        return static_cast<T_PointerType>(reinterpret_cast<uintptr_t>(p));
       }
     }
   }
@@ -642,11 +697,9 @@ public:
     rlbox_wasm2c_sandbox* (*expensive_sandbox_finder)(
       const void* example_unsandboxed_ptr))
   {
-    // on 32-bit platforms we don't assume the heap is aligned
-    if constexpr (sizeof(uintptr_t) == sizeof(uint32_t)) {
-      auto sandbox = expensive_sandbox_finder(example_unsandboxed_ptr);
-      return sandbox->template impl_get_unsandboxed_pointer<T>(p);
-    } else {
+    // if imported memory on a 64-bit platform, we can assume that the heap is
+    // aligned
+    if constexpr (is_imported_memory_and_table && sizeof(uintptr_t) != sizeof(uint32_t)) {
       if constexpr (std::is_function_v<std::remove_pointer_t<T>>) {
         // swizzling function pointers needs access to the function pointer
         // tables and thus cannot be done without context
@@ -662,6 +715,9 @@ public:
         uintptr_t ret = computed_heap_base | p;
         return reinterpret_cast<void*>(ret);
       }
+    } else {
+      auto sandbox = expensive_sandbox_finder(example_unsandboxed_ptr);
+      return sandbox->template impl_get_unsandboxed_pointer<T>(p);
     }
   }
 
@@ -672,11 +728,9 @@ public:
     rlbox_wasm2c_sandbox* (*expensive_sandbox_finder)(
       const void* example_unsandboxed_ptr))
   {
-    // on 32-bit platforms we don't assume the heap is aligned
-    if constexpr (sizeof(uintptr_t) == sizeof(uint32_t)) {
-      auto sandbox = expensive_sandbox_finder(example_unsandboxed_ptr);
-      return sandbox->template impl_get_sandboxed_pointer<T>(p);
-    } else {
+    // if imported memory on a 64-bit platform, we can assume that the heap is
+    // aligned
+    if constexpr (is_imported_memory_and_table && sizeof(uintptr_t) != sizeof(uint32_t)) {
       if constexpr (std::is_function_v<std::remove_pointer_t<T>>) {
         // swizzling function pointers needs access to the function pointer
         // tables and thus cannot be done without context
@@ -689,6 +743,9 @@ public:
                         std::numeric_limits<T_PointerType>::max();
         return static_cast<T_PointerType>(ret);
       }
+    } else {
+      auto sandbox = expensive_sandbox_finder(example_unsandboxed_ptr);
+      return sandbox->template impl_get_sandboxed_pointer<T>(p);
     }
   }
 
@@ -712,11 +769,11 @@ public:
     return !(impl_is_pointer_in_sandbox_memory(p));
   }
 
-  inline size_t impl_get_total_memory() { return sandbox_memory_info.size; }
+  inline size_t impl_get_total_memory() { return sandbox_memory_info->size; }
 
   inline void* impl_get_memory_location() const
   {
-    return sandbox_memory_info.data;
+    return sandbox_memory_info->data;
   }
 
   template<typename T, typename T_Converted, typename... T_Args>
@@ -858,10 +915,10 @@ private:
       return ret;
     }
 
-    const uint32_t curr_size = sandbox_callback_table.size;
+    const uint32_t curr_size = sandbox_callback_table->size;
 
     detail::dynamic_check(
-      curr_size < sandbox_callback_table.max_size,
+      curr_size < sandbox_callback_table->max_size,
       "Could not find an empty row in Wasm instance table. This would "
       "happen if you have registered too many callbacks, or unsandboxed "
       "too many function pointers.");
@@ -869,7 +926,7 @@ private:
     wasm_rt_funcref_t func_val{ 0 };
     // on success, this returns the previous number of elements in the table
     const uint32_t ret =
-      wasm_rt_grow_funcref_table(&sandbox_callback_table, 1, func_val);
+      wasm_rt_grow_funcref_table(sandbox_callback_table, 1, func_val);
 
     detail::dynamic_check(
       ret != 0 && ret != (uint32_t)-1,
@@ -929,7 +986,7 @@ public:
     func_val.module_instance = &wasm2c_instance;
 
     const uint32_t slot_number = new_callback_slot();
-    sandbox_callback_table.data[slot_number] = func_val;
+    sandbox_callback_table->data[slot_number] = func_val;
 
     callback_unique_keys[found_loc] = key;
     callbacks[found_loc] = callback;
@@ -962,7 +1019,7 @@ public:
         if (callback_unique_keys[i] == key) {
           const uint32_t slot_number = callback_slot_assignment[i];
           wasm_rt_funcref_t func_val{ 0 };
-          sandbox_callback_table.data[slot_number] = func_val;
+          sandbox_callback_table->data[slot_number] = func_val;
 
           callback_unique_keys[i] = nullptr;
           callbacks[i] = nullptr;
