@@ -94,7 +94,12 @@ class ScreenOrientation final : public DOMEventTargetHelper {
 
   nsCOMPtr<nsIRunnable> DispatchChangeEventAndResolvePromise();
 
-  LockPermission GetLockOrientationPermission(bool aCheckSandbox) const;
+  // The common safety checks
+  static bool CommonSafetyChecks(nsPIDOMWindowInner* aOwner,
+                                 Document* aDocument, ErrorResult& aRv);
+
+  static LockPermission GetLockOrientationPermission(nsPIDOMWindowInner* aOwner,
+                                                     Document* aDocument);
 
   // Gets the responsible document as defined in the spec.
   Document* GetResponsibleDocument() const;
