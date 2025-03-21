@@ -12,6 +12,7 @@ import android.graphics.Paint
 import android.graphics.Shader.TileMode
 import android.util.Base64
 import androidx.annotation.CheckResult
+import androidx.core.graphics.createBitmap
 import java.io.ByteArrayOutputStream
 
 /**
@@ -37,7 +38,7 @@ private const val BITMAP_COMPRESSION_QUALITY = 100
  */
 @CheckResult
 fun Bitmap.withRoundedCorners(cornerRadiusPx: Float, config: Config): Bitmap {
-    val roundedBitmap = Bitmap.createBitmap(width, height, config)
+    val roundedBitmap = createBitmap(width, height, config)
     val canvas = Canvas(roundedBitmap)
     val paint = Paint().apply {
         isAntiAlias = true

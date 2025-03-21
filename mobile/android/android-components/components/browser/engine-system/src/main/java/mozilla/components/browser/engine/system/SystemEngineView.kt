@@ -43,6 +43,7 @@ import android.widget.FrameLayout
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import kotlinx.coroutines.runBlocking
@@ -750,7 +751,7 @@ class SystemEngineView @JvmOverloads constructor(
     }
 
     private fun createThumbnailUsingDrawingView(view: View, onFinish: (Bitmap?) -> Unit) {
-        val outBitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val outBitmap = createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(outBitmap)
         view.draw(canvas)
         onFinish(outBitmap)
@@ -758,7 +759,7 @@ class SystemEngineView @JvmOverloads constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createThumbnailUsingPixelCopy(view: View, onFinish: (Bitmap?) -> Unit) {
-        val out = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val out = createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         val viewRect = view.getRectWithViewLocation()
         val window = (context as Activity).window
 

@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SearchState
@@ -282,7 +283,7 @@ private fun SearchEngineShortcutsPreview() {
 }
 
 private fun generateFakeEnginesList(): List<SearchEngine> {
-    val dummyBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+    val dummyBitmap = createBitmap(1, 1, Bitmap.Config.ARGB_8888)
     dummyBitmap.eraseColor(Color.BLUE)
 
     return listOf(
@@ -306,7 +307,7 @@ private fun generateFakeEngines(
     return SearchEngine(
         id = id,
         name = name,
-        icon = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888).apply {
+        icon = createBitmap(1, 1, Bitmap.Config.ARGB_8888).apply {
             eraseColor(Color.BLUE)
         },
         type = type,

@@ -6,7 +6,6 @@ package mozilla.components.browser.icons.generator
 
 import android.content.Context
 import android.content.res.Resources
-import android.graphics.Bitmap
 import android.graphics.Bitmap.Config.ARGB_8888
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -17,6 +16,7 @@ import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
 import androidx.annotation.DimenRes
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.browser.icons.R
@@ -38,7 +38,7 @@ class DefaultIconGenerator(
         val size = context.resources.getDimension(request.size.dimen)
         val sizePx = size.toInt()
 
-        val bitmap = Bitmap.createBitmap(sizePx, sizePx, ARGB_8888)
+        val bitmap = createBitmap(sizePx, sizePx, ARGB_8888)
         val canvas = Canvas(bitmap)
 
         val backgroundColor = request.color ?: pickColor(context.resources, request.url)
