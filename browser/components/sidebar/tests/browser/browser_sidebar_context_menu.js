@@ -288,10 +288,8 @@ add_task(async function test_toggle_vertical_tabs_from_sidebar_button() {
     toggleMenuItem.click();
   });
   await waitForTabstripOrientation("vertical");
-  await TestUtils.waitForCondition(
-    () => gBrowser.tabContainer.verticalMode,
-    "Vertical tabs are enabled."
-  );
+  ok(gBrowser.tabContainer.verticalMode, "Vertical tabs are enabled.");
+
   Assert.equal(
     Services.prefs.getStringPref("sidebar.visibility"),
     "always-show",
@@ -319,10 +317,7 @@ add_task(async function test_toggle_vertical_tabs_from_sidebar_button() {
     toggleMenuItem.click();
   });
   await waitForTabstripOrientation("horizontal");
-  await TestUtils.waitForCondition(
-    () => !gBrowser.tabContainer.verticalMode,
-    "Vertical tabs are disabled."
-  );
+  ok(!gBrowser.tabContainer.verticalMode, "Vertical tabs are disabled.");
   Assert.equal(
     Services.prefs.getStringPref("sidebar.visibility"),
     "hide-sidebar",

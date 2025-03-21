@@ -32,10 +32,13 @@ add_task(async function test_dom_fullscreen() {
   );
 
   sidebarMain.expanded = true;
-  await TestUtils.waitForCondition(
-    () => sidebarMain.expanded,
-    "Sidebar main is expanded"
+  info("Waiting for sidebar main to be expanded");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebarMain,
+    { attributes: true, attributeFilter: ["expanded"] },
+    () => sidebarMain.expanded
   );
+  ok(sidebarMain.expanded, "Sidebar main is expanded");
 
   await BrowserTestUtils.withNewTab({ gBrowser, url }, async browser => {
     // the newly opened tab should have focus

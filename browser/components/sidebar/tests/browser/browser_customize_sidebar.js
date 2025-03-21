@@ -17,27 +17,40 @@ registerCleanupFunction(() => {
 
 async function showCustomizePanel(win) {
   await win.SidebarController.show("viewCustomizeSidebar");
+  // `.show()` can return before the pane has fired its `load` event if
+  // we were already trying to load that same pane in the same browser.
+  // This should be fixed in SidebarController, bug 1954987
+  if (win.SidebarController.browser.contentDocument.readyState != "complete") {
+    await BrowserTestUtils.waitForEvent(
+      win.SidebarController.browser,
+      "load",
+      true
+    );
+  }
   const document = win.SidebarController.browser.contentDocument;
-  return TestUtils.waitForCondition(async () => {
-    const component = document.querySelector("sidebar-customize");
-    if (
-      !component?.positionInput ||
-      (win.SidebarController.sidebarVerticalTabsEnabled &&
-        !component?.visibilityInput)
-    ) {
-      return false;
+  let customizeComponent = document.querySelector("sidebar-customize");
+  info("Waiting for customize panel children to be present");
+  await BrowserTestUtils.waitForMutationCondition(
+    customizeComponent.shadowRoot,
+    { subTree: true, childList: true },
+    () => {
+      if (win.SidebarController.sidebarVerticalTabsEnabled) {
+        return (
+          customizeComponent?.positionInput &&
+          customizeComponent?.visibilityInput
+        );
+      }
+      return customizeComponent?.positionInput;
     }
-    return component;
-  }, "Customize panel is shown.");
+  );
+
+  ok(true, "Customize panel is shown.");
+  return customizeComponent;
 }
 
 add_task(async function test_customize_sidebar_actions() {
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const { document } = win;
-  await toggleSidebarPanel(win, "viewCustomizeSidebar");
-  let customizeDocument = win.SidebarController.browser.contentDocument;
-  const customizeComponent =
-    customizeDocument.querySelector("sidebar-customize");
+  const { document } = window;
+  const customizeComponent = await showCustomizePanel(window);
   const sidebar = document.querySelector("sidebar-main");
   let toolEntrypointsCount = sidebar.toolButtons.length;
   let checkedInputs = Array.from(customizeComponent.toolInputs).filter(
@@ -65,7 +78,7 @@ add_task(async function test_customize_sidebar_actions() {
     toolInput.click();
     await BrowserTestUtils.waitForCondition(
       () => {
-        let toggledTool = win.SidebarController.toolsAndExtensions.get(
+        let toggledTool = window.SidebarController.toolsAndExtensions.get(
           toolInput.name
         );
         return toggledTool.disabled === !toolDisabledInitialState;
@@ -86,7 +99,7 @@ add_task(async function test_customize_sidebar_actions() {
     toolInput.click();
     await BrowserTestUtils.waitForCondition(
       () => {
-        let toggledTool = win.SidebarController.toolsAndExtensions.get(
+        let toggledTool = window.SidebarController.toolsAndExtensions.get(
           toolInput.name
         );
         return toggledTool.disabled === toolDisabledInitialState;
@@ -115,13 +128,10 @@ add_task(async function test_customize_sidebar_actions() {
       );
     }
   }
-
-  await BrowserTestUtils.closeWindow(win);
 });
 
 add_task(async function test_customize_not_added_in_menubar() {
-  let win = await BrowserTestUtils.openNewBrowserWindow();
-  const { document } = win;
+  const { document } = window;
   if (document.hasPendingL10nMutations) {
     await BrowserTestUtils.waitForEvent(document, "L10nMutationsFinished");
   }
@@ -133,54 +143,35 @@ add_task(async function test_customize_not_added_in_menubar() {
     ),
     "The View > Sidebars menu doesn't include any option for 'customize'."
   );
-
-  await BrowserTestUtils.closeWindow(win);
 });
 
 add_task(async function test_manage_preferences_navigation() {
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const { SidebarController } = win;
-  const { contentWindow } = SidebarController.browser;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
   await sidebar.updateComplete;
-  await toggleSidebarPanel(win, "viewCustomizeSidebar");
-  let customizeDocument = win.SidebarController.browser.contentDocument;
-  const customizeComponent =
-    customizeDocument.querySelector("sidebar-customize");
+  const customizeComponent = await showCustomizePanel(window);
   let manageSettings =
     customizeComponent.shadowRoot.getElementById("manage-settings");
   manageSettings.querySelector("a").scrollIntoView();
+  manageSettings.querySelector("a").click();
 
-  EventUtils.synthesizeMouseAtCenter(
-    manageSettings.querySelector("a"),
-    {},
-    contentWindow
-  );
-  await BrowserTestUtils.waitForCondition(
-    () =>
-      win.gBrowser.selectedTab.linkedBrowser.currentURI.spec ==
-      "about:preferences",
-    "Navigated to about:preferences tab"
+  await BrowserTestUtils.browserLoaded(
+    window.gBrowser,
+    false,
+    "about:preferences"
   );
   is(
-    win.gBrowser.selectedTab.linkedBrowser.currentURI.spec,
+    window.gBrowser.selectedTab.linkedBrowser.currentURI.spec,
     "about:preferences",
     "Manage Settings link navigates to about:preferences."
   );
-
-  await BrowserTestUtils.closeWindow(win);
 });
 
 add_task(async function test_customize_position_setting() {
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const { document } = win;
-  const panel = await showCustomizePanel(win);
+  const { document } = window;
+  const panel = await showCustomizePanel(window);
   const sidebarBox = document.getElementById("sidebar-box");
-  await BrowserTestUtils.waitForCondition(
-    () => BrowserTestUtils.isVisible(sidebarBox),
-    "Sidebar panel is visible"
-  );
+  ok(BrowserTestUtils.isVisible(sidebarBox), "Sidebar panel is visible");
 
   ok(
     !panel.positionInput.checked,
@@ -194,7 +185,7 @@ add_task(async function test_customize_position_setting() {
   EventUtils.synthesizeMouseAtCenter(
     panel.positionInput,
     {},
-    win.SidebarController.browser.contentWindow
+    window.SidebarController.browser.contentWindow
   );
   await panel.updateComplete;
   ok(panel.positionInput.checked, "Sidebar is positioned on the right");
@@ -206,7 +197,12 @@ add_task(async function test_customize_position_setting() {
     () => BrowserTestUtils.isVisible(newSidebarBox),
     "Sidebar panel is visible"
   );
-
+  info("Waiting for position input checked");
+  await BrowserTestUtils.waitForMutationCondition(
+    newPanel.positionInput,
+    { attributes: true, attributeFilter: ["checked"] },
+    () => newPanel.positionInput.checked
+  );
   ok(newPanel.positionInput.checked, "Position setting persists.");
   is(
     newSidebarBox.style.order,
@@ -214,7 +210,6 @@ add_task(async function test_customize_position_setting() {
     "Sidebar box should have an order of 3 when on the right"
   );
 
-  await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
   Services.prefs.clearUserPref("sidebar.position_start");
 });
@@ -232,37 +227,38 @@ add_task(async function test_customize_visibility_setting() {
     Services.prefs.removeObserver(SIDEBAR_VISIBILITY_PREF, prefObserver)
   );
 
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const panel = await showCustomizePanel(win);
+  const panel = await showCustomizePanel(window);
   ok(!panel.visibilityInput.checked, "Always show is enabled by default.");
   ok(
-    !win.SidebarController.sidebarContainer.hidden,
+    !window.SidebarController.sidebarContainer.hidden,
     "Launcher is shown by default."
   );
-  EventUtils.synthesizeMouseAtCenter(
-    panel.visibilityInput,
-    {},
-    win.SidebarController.browser.contentWindow
-  );
+  panel.visibilityInput.click();
   await panel.updateComplete;
   ok(panel.visibilityInput.checked, "Hide sidebar is enabled.");
   ok(
-    win.SidebarController.sidebarContainer.hidden,
+    window.SidebarController.sidebarContainer.hidden,
     "Launcher is hidden by default."
   );
+  window.SidebarController.hide();
   await deferredPrefChange.promise;
   const newPrefValue = Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF);
   is(newPrefValue, "hide-sidebar", "Visibility preference updated.");
 
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
-  const newPanel = await showCustomizePanel(newWin);
-  ok(newPanel.visibilityInput.checked, "Visibility setting persists.");
   ok(
-    win.SidebarController.sidebarContainer.hidden,
+    newWin.SidebarController.sidebarContainer.hidden,
     "Launcher is hidden by default in new window."
   );
+  const newPanel = await showCustomizePanel(newWin);
+  info("Waiting for visibility input checked");
+  await BrowserTestUtils.waitForMutationCondition(
+    newPanel.visibilityInput,
+    { attributes: true, attributeFilter: ["checked"] },
+    () => newPanel.visibilityInput.checked
+  );
+  ok(newPanel.visibilityInput.checked, "Visibility setting persists.");
 
-  await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
 
   Services.prefs.clearUserPref(SIDEBAR_VISIBILITY_PREF);
@@ -270,21 +266,15 @@ add_task(async function test_customize_visibility_setting() {
 });
 
 add_task(async function test_vertical_tabs_setting() {
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  await waitForTabstripOrientation("horizontal", win);
-  const panel = await showCustomizePanel(win);
+  const panel = await showCustomizePanel(window);
   ok(
     !panel.verticalTabsInput.checked,
     "Horizontal tabs is enabled by default."
   );
-  EventUtils.synthesizeMouseAtCenter(
-    panel.verticalTabsInput,
-    {},
-    win.SidebarController.browser.contentWindow
-  );
+  panel.verticalTabsInput.click();
   await panel.updateComplete;
   ok(panel.verticalTabsInput.checked, "Vertical tabs is enabled.");
-  await waitForTabstripOrientation("vertical", win);
+  await waitForTabstripOrientation("vertical", window);
 
   const newPrefValue = Services.prefs.getBoolPref(TAB_DIRECTION_PREF);
   is(newPrefValue, true, "Vertical tabs pref updated.");
@@ -292,17 +282,21 @@ add_task(async function test_vertical_tabs_setting() {
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   await waitForTabstripOrientation("vertical", newWin);
   const newPanel = await showCustomizePanel(newWin);
+  info("Waiting for vertical tabs input checked");
+  await BrowserTestUtils.waitForMutationCondition(
+    newPanel.verticalTabsInput,
+    { attributes: true, attributeFilter: ["checked"] },
+    () => newPanel.verticalTabsInput.checked
+  );
   ok(newPanel.verticalTabsInput.checked, "Vertical tabs setting persists.");
 
-  await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
 
   Services.prefs.clearUserPref(TAB_DIRECTION_PREF);
 });
 
 add_task(async function test_keyboard_navigation_away_from_settings_link() {
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const panel = await showCustomizePanel(win);
+  const panel = await showCustomizePanel(window);
   const manageSettingsLink = panel.shadowRoot.querySelector(
     "#manage-settings a[href='about:preferences']"
   );
@@ -313,7 +307,7 @@ add_task(async function test_keyboard_navigation_away_from_settings_link() {
     manageSettingsLink,
     "Settings link is focused"
   );
-  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);
+  EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, window);
   await panel.updateComplete;
 
   Assert.notEqual(
@@ -321,8 +315,6 @@ add_task(async function test_keyboard_navigation_away_from_settings_link() {
     manageSettingsLink,
     "Settings link is not focused"
   );
-
-  await BrowserTestUtils.closeWindow(win);
 });
 
 add_task(async function test_settings_synchronized_across_windows() {

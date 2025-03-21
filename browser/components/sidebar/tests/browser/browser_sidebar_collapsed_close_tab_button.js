@@ -103,9 +103,13 @@ add_task(async function test_toggle_collapse_close_button() {
   // Expand the sidebar and make sure the collased close button no longer shows
   await SidebarController.initializeUIState({ launcherExpanded: true });
   await sidebar.updateComplete;
-  await TestUtils.waitForCondition(() => {
-    return window.SidebarController._state.launcherExpanded;
-  }, "Sidebar launcher is expanded");
+  info("Waiting for sidebar to be expanded");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebar,
+    { attributes: true, attributeFilter: ["expanded"] },
+    () => sidebar.expanded
+  );
+  info("Sidebar launcher is expanded");
   computedStyle = window.getComputedStyle(
     gBrowser.selectedTab.querySelector(".tab-close-button")
   );

@@ -19,6 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 add_setup(async () => {
+  await SidebarController.init();
   await SidebarController.promiseInitialized;
   await SidebarController.sidebarMain?.updateComplete;
 });
@@ -52,25 +53,34 @@ add_task(async function test_sidebar_expand() {
   });
   await waitForTabstripOrientation("vertical");
   // Vertical tabs are expanded by default
-  Assert.ok(SidebarController.sidebarMain.expanded, "Sidebar is expanded.");
-
-  info("Collapse the sidebar.");
-
-  EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
-
-  await BrowserTestUtils.waitForMutationCondition(
-    SidebarController.sidebarMain,
-    { attributes: true, attributeFilter: ["expanded"] },
-    () => !SidebarController.sidebarMain.expanded
-  );
-
-  info("Re-expand the sidebar.");
-  EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
+  info("Waiting for sidebar main to be expanded");
   await BrowserTestUtils.waitForMutationCondition(
     SidebarController.sidebarMain,
     { attributes: true, attributeFilter: ["expanded"] },
     () => SidebarController.sidebarMain.expanded
   );
+  info("Sidebar is expanded.");
+
+  info("Collapse the sidebar.");
+
+  EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
+  info("Waiting for sidebar main to be collapsed");
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarMain,
+    { attributes: true, attributeFilter: ["expanded"] },
+    () => !SidebarController.sidebarMain.expanded
+  );
+  info("Sidebar is collapsed.");
+
+  info("Re-expand the sidebar.");
+  EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
+  info("Waiting for sidebar main to be expanded");
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarMain,
+    { attributes: true, attributeFilter: ["expanded"] },
+    () => SidebarController.sidebarMain.expanded
+  );
+  info("Sidebar is expanded.");
 
   const events = Glean.sidebar.expand.testGetValue();
   Assert.equal(events?.length, 2, "Two events were reported.");
@@ -637,11 +647,14 @@ async function testIconClick(expanded) {
   Assert.ok(!SidebarController._state.panelOpen, "No panel is open");
 
   info("Click the icon for the extension.");
-  const extensionButton = await TestUtils.waitForCondition(
-    () => sidebarMain.extensionButtons[0],
-    "Extension button is present"
+  info("Waiting for sidebar main to visible and extension button present");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebarMain,
+    { subTree: true, childList: true },
+    () =>
+      BrowserTestUtils.isVisible(sidebarMain) && sidebarMain.extensionButtons[0]
   );
-  EventUtils.synthesizeMouseAtCenter(extensionButton, {});
+  EventUtils.synthesizeMouseAtCenter(sidebarMain.extensionButtons[0], {});
 
   const events = Glean.sidebar.addonIconClick.testGetValue();
   Assert.equal(events?.length, 1, "One event was reported.");

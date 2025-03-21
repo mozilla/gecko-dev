@@ -59,12 +59,10 @@ add_task(async function test_extension_sidebar_actions() {
   // Panel can be updated.
   await sendMessage(extension, "set-panel", "1.html");
   const panelUrl = `moz-extension://${extension.uuid}/1.html`;
-  await TestUtils.waitForCondition(() => {
-    const browser = SidebarController.browser.contentDocument.getElementById(
-      "webext-panels-browser"
-    );
-    return browser.currentURI.spec === panelUrl;
-  }, "The new panel is visible.");
+  const browser = SidebarController.browser.contentDocument.getElementById(
+    "webext-panels-browser"
+  );
+  await BrowserTestUtils.browserLoaded(browser, false, panelUrl);
 
   await extension.unload();
   await sidebar.updateComplete;
@@ -147,9 +145,12 @@ add_task(async function test_open_new_private_window_after_install() {
   const { document } = privateWin;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
-  await TestUtils.waitForCondition(
-    () => sidebar.extensionButtons,
-    "Extensions container is shown."
+
+  info("Waiting for extension buttons to be present");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebar,
+    { childList: true, subTree: true },
+    () => !!sidebar.extensionButtons
   );
   is(
     sidebar.extensionButtons.length,
@@ -197,11 +198,14 @@ add_task(async function test_customize_sidebar_extensions() {
   );
 
   // Test manage extension
+  let browserLoaded = BrowserTestUtils.browserLoaded(
+    win.gBrowser,
+    false,
+    "about:addons"
+  );
   extensionLink.click();
-  await TestUtils.waitForCondition(() => {
-    let spec = win.gBrowser.selectedTab.linkedBrowser.documentURI.spec;
-    return spec.startsWith("about:addons");
-  }, "about:addons is the new opened tab");
+  await browserLoaded;
+  info("about:addons is the new opened tab");
 
   await extension.unload();
   await sidebar.updateComplete;
@@ -265,11 +269,14 @@ add_task(async function test_extensions_keyboard_navigation() {
   );
 
   info("Press Enter key.");
+  let browserLoaded = BrowserTestUtils.browserLoaded(
+    win.gBrowser,
+    false,
+    "about:addons"
+  );
   EventUtils.synthesizeKey("KEY_Enter", {}, win);
-  await TestUtils.waitForCondition(() => {
-    let spec = win.gBrowser.selectedTab.linkedBrowser.documentURI.spec;
-    return spec.startsWith("about:addons");
-  }, "about:addons is the new opened tab");
+  await browserLoaded;
+  info("about:addons is the new opened tab");
 
   await extension.unload();
   await extension2.unload();

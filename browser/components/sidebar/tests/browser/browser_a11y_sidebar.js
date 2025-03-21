@@ -32,10 +32,13 @@ function isActiveElement(el) {
 add_task(async function test_keyboard_navigation() {
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
-  const toolButtons = await TestUtils.waitForCondition(
-    () => sidebar.toolButtons,
-    "Tool buttons are shown."
+  info("Waiting for tool buttons to be present");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebar,
+    { subTree: true, childList: true },
+    () => !!sidebar.toolButtons.length
   );
+  const toolButtons = sidebar.toolButtons;
 
   toolButtons[0].focus();
   ok(isActiveElement(toolButtons[0]), "First tool button is focused.");
@@ -89,10 +92,13 @@ add_task(async function test_keyboard_navigation() {
 add_task(async function test_menu_items_labeled() {
   const { document, SidebarController } = win;
   const sidebar = document.querySelector("sidebar-main");
-  const allButtons = await TestUtils.waitForCondition(
-    () => sidebar.allButtons,
-    "All buttons are shown."
+  info("Waiting for tool buttons to be present");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebar,
+    { subTree: true, childList: true },
+    () => !!sidebar.toolButtons.length
   );
+  const allButtons = sidebar.allButtons;
   const dynamicTooltips = Object.keys(SidebarController.sidebarMain.tooltips);
 
   await SidebarController.initializeUIState({ launcherExpanded: false });
@@ -164,9 +170,11 @@ add_task(async function test_keyboard_navigation_vertical_tabs() {
   });
   await waitForTabstripOrientation("vertical");
   const sidebar = document.querySelector("sidebar-main");
-  const toolButtons = await TestUtils.waitForCondition(
-    () => sidebar.toolButtons,
-    "Tool buttons are shown."
+  info("Waiting for tool buttons to be present");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebar,
+    { subTree: true, childList: true },
+    () => !!sidebar.toolButtons.length
   );
   const newTabButton = sidebar.querySelector("#tabs-newtab-button");
 
@@ -191,7 +199,7 @@ add_task(async function test_keyboard_navigation_vertical_tabs() {
 
   info("Tab to get to tools.");
   EventUtils.synthesizeKey("KEY_Tab", {}, win);
-  ok(isActiveElement(toolButtons[0]), "First tool button is focused.");
+  ok(isActiveElement(sidebar.toolButtons[0]), "First tool button is focused.");
 
   info("Shift+Tab back to new tab button.");
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);

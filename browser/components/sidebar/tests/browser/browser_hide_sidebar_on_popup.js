@@ -16,9 +16,11 @@ async function test_sidebar_hidden_on_popup() {
   const { document } = win;
 
   const sidebar = document.getElementById("sidebar-main");
-  await BrowserTestUtils.waitForCondition(
-    () => BrowserTestUtils.isVisible(sidebar),
-    "Sidebar is visible"
+  info("Waiting for sidebar to be visible");
+  await BrowserTestUtils.waitForMutationCondition(
+    sidebar,
+    { attributes: true, attributeFilter: ["hidden"] },
+    () => BrowserTestUtils.isVisible(sidebar)
   );
   is(sidebar.hidden, false, "Sidebar is shown initially");
 

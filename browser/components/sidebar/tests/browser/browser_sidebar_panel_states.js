@@ -26,6 +26,7 @@ add_task(async function test_enable_revamp_with_open_sidebar() {
 
   // the new sidebar launcher element should be visible
   // and the switcher from the old sidebar should be hidden now
+  info("Waiting for sidebar main to be visible and header hidden");
   let sidebarVisibilitiesChanged = Promise.all([
     BrowserTestUtils.waitForMutationCondition(
       sidebarLauncher,

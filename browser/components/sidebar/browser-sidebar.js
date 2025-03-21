@@ -1304,7 +1304,7 @@ var SidebarController = {
 
   _loadSidebarExtension(commandID) {
     let sidebar = this.sidebars.get(commandID);
-    if (typeof sidebar.onload === "function") {
+    if (typeof sidebar?.onload === "function") {
       sidebar.onload();
     }
   },

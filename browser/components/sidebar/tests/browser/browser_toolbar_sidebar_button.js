@@ -102,13 +102,22 @@ add_task(async function test_expanded_state_for_always_show() {
       { attributes: true, attributeFilter: ["expanded"] },
       () => Boolean(component.expanded) == expanded
     );
+    ok(true, expanded ? "Sidebar is expanded." : "Sidebar is collapsed.");
     info(
       `Waiting for button to become ${expanded ? "highlighted" : "not highlighted"}`
     );
     await BrowserTestUtils.waitForMutationCondition(
       button,
-      { attributes: true, attributeFilter: ["checked"] },
-      () => Boolean(button.checked) == expanded
+      { attributes: true, attributeFilter: ["checked", "expanded"] },
+      () =>
+        Boolean(button.checked) == expanded &&
+        button.hasAttribute("expanded") == expanded
+    );
+    ok(
+      true,
+      expanded
+        ? "Toolbar button is highlighted and expanded attribute is present.."
+        : "Toolbar button is not highlighted and expanded attribute is absent."
     );
     Assert.deepEqual(
       document.l10n.getAttributes(button),
@@ -122,13 +131,6 @@ add_task(async function test_expanded_state_for_always_show() {
             : { shortcut: "Alt+Ctrl+Z" },
       },
       "Toolbar button has the correct tooltip."
-    );
-    Assert.equal(
-      button.hasAttribute("expanded"),
-      expanded,
-      expanded
-        ? "Toolbar button expanded attribute is present."
-        : "Toolbar button expanded attribute is absent."
     );
   };
 
@@ -232,7 +234,11 @@ add_task(async function test_states_for_hide_sidebar() {
     await BrowserTestUtils.waitForMutationCondition(
       container,
       { attributes: true, attributeFilter: ["hidden"] },
-      () => Boolean(container.hidden) == hidden
+      () => container.hidden == hidden
+    );
+    ok(
+      true,
+      hidden ? "Sidebar container is hidden." : "Sidebar container is shown."
     );
     info("Waiting for component to be not expanded");
     await BrowserTestUtils.waitForMutationCondition(
@@ -240,11 +246,16 @@ add_task(async function test_states_for_hide_sidebar() {
       { attributes: true, attributeFilter: ["expanded"] },
       () => !component.expanded
     );
+    ok(true, "Sidebar should not be expanded");
     info("Waiting for button to be highlighted");
     await BrowserTestUtils.waitForMutationCondition(
       button,
-      { attributes: true, attributeFilter: ["checked"] },
-      () => Boolean(button.checked) == !hidden
+      { attributes: true, attributeFilter: ["checked", "expanded"] },
+      () => button.checked == !hidden && !button.hasAttribute("expanded")
+    );
+    ok(
+      true,
+      "Toolbar button checked state is correct and expanded attribute is absent."
     );
     Assert.deepEqual(
       document.l10n.getAttributes(button),
@@ -258,10 +269,6 @@ add_task(async function test_states_for_hide_sidebar() {
             : { shortcut: "Alt+Ctrl+Z" },
       },
       "Toolbar button has the correct tooltip."
-    );
-    await TestUtils.waitForCondition(
-      () => !button.hasAttribute("expanded"),
-      "Toolbar button expanded attribute is absent."
     );
   };
 
@@ -326,7 +333,11 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
     await BrowserTestUtils.waitForMutationCondition(
       container,
       { attributes: true, attributeFilter: ["hidden"] },
-      () => Boolean(container.hidden) == hidden
+      () => container.hidden == hidden
+    );
+    ok(
+      true,
+      hidden ? "Sidebar container is hidden." : "Sidebar container is shown."
     );
     info(
       `Waiting for component to be ${expanded ? "expanded" : "not expanded"}`
@@ -336,13 +347,19 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
       { attributes: true, attributeFilter: ["expanded"] },
       () => Boolean(component.expanded) == expanded
     );
+    ok(true, expanded ? "Sidebar is expanded." : "Sidebar is collapsed.");
     info(
       `Waiting for button to be ${hidden ? "not highlighted" : "highlighted"}`
     );
     await BrowserTestUtils.waitForMutationCondition(
       button,
-      { attributes: true, attributeFilter: ["checked"] },
-      () => Boolean(button.checked) == !hidden
+      { attributes: true, attributeFilter: ["checked", "expanded"] },
+      () =>
+        button.checked == !hidden && button.hasAttribute("expanded") == expanded
+    );
+    ok(
+      true,
+      `Toolbar button checked state is correct and expanded attribute is ${expanded ? "present" : "absent"}.`
     );
     Assert.deepEqual(
       document.l10n.getAttributes(button),
@@ -356,12 +373,6 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
             : { shortcut: "Alt+Ctrl+Z" },
       },
       "Toolbar button has the correct tooltip."
-    );
-    await TestUtils.waitForCondition(
-      () => button.hasAttribute("expanded") == expanded,
-      expanded
-        ? "Toolbar button expanded attribute is present."
-        : "Toolbar button expanded attribute is absent."
     );
   };
 
