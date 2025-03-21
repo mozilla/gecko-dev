@@ -586,7 +586,7 @@ class RuleRewriter {
     // to put the new declaration at.
     // e.g. if we have `body { color: red; &>span {}; }`, we want to put the new property
     // after `color: red` but before `&>span`.
-    let nestedDeclarationIndex = -1;
+    let insertIndex = -1;
     // Don't try to find the index if we can already see there's no nested rules
     if (this.result.includes("{")) {
       // Create a rule with the initial rule text so we can check for children rules
@@ -599,30 +599,42 @@ class RuleRewriter {
         const nestedRuleColumn = InspectorUtils.getRuleColumn(nestedRule);
         // We need to account for the new line we added for the parent rule,
         // and then remove 1 again since the InspectorUtils method returns 1-based values
-        const actualLine = nestedRuleLine - 2;
+        let actualLine = nestedRuleLine - 2;
         const actualColumn = nestedRuleColumn - 1;
 
-        let lineOffset = 0;
-        for (let i = 0; i < actualLine; i++) {
-          lineOffset = this.result.indexOf("\n", lineOffset);
+        // First, we compute the index in the original rule text corresponding to the
+        // nested rule line number.
+        insertIndex = 0;
+        for (
+          ;
+          insertIndex < this.result.length && actualLine > 0;
+          insertIndex++
+        ) {
+          if (this.result[insertIndex] === "\n") {
+            actualLine--;
+          }
         }
 
-        nestedDeclarationIndex = lineOffset + actualColumn;
+        // If the property doesn't add a new line, we need to insert the declaration
+        // before the nested declaration. When the property does add a new line,
+        // insertIndex already has the correct position.
+        if (!this.hasNewLine) {
+          insertIndex += actualColumn;
+        }
       }
     }
 
-    if (nestedDeclarationIndex == -1) {
+    if (insertIndex == -1) {
       this.result += newText;
     } else {
       this.result =
-        this.result.substring(0, nestedDeclarationIndex) +
+        this.result.substring(0, insertIndex) +
         newText +
-        this.result.substring(nestedDeclarationIndex);
+        this.result.substring(insertIndex);
     }
 
     if (this.decl) {
-      // Still want to copy in the declaration previously at this
-      // index.
+      // Still want to copy in the declaration previously at this index.
       this.completeCopying(this.decl.offsets[0]);
     }
   }
