@@ -92,7 +92,8 @@ The tool is built to be conservative about the number of tests to run, so if you
       --env ENV             Set an environment variable, of the form FOO=BAR. Can
                             be passed in multiple times.
       --gecko-profile       Create and upload a gecko profile during talos/raptor
-                            tasks.
+                            tasks. Copy paste the parameters used in this profiling
+                            run directly from about:profiling in Nightly.
       --gecko-profile-interval GECKO_PROFILE_INTERVAL
                             How frequently to take samples (ms)
       --gecko-profile-entries GECKO_PROFILE_ENTRIES
