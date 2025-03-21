@@ -3,11 +3,11 @@ use crate::{
     alphabet,
     alphabet::Alphabet,
     engine::{Config, DecodeMetadata, DecodePaddingMode},
-    DecodeError,
+    DecodeSliceError,
 };
 use core::convert::TryInto;
 
-mod decode;
+pub(crate) mod decode;
 pub(crate) mod decode_suffix;
 
 pub use decode::GeneralPurposeEstimate;
@@ -19,6 +19,8 @@ pub(crate) const INVALID_VALUE: u8 = 255;
 /// - It uses no vector CPU instructions, so it will work on any system.
 /// - It is reasonably fast (~2-3GiB/s).
 /// - It is not constant-time, though, so it is vulnerable to timing side-channel attacks. For loading cryptographic keys, etc, it is suggested to use the forthcoming constant-time implementation.
+
+#[derive(Debug, Clone)]
 pub struct GeneralPurpose {
     encode_table: [u8; 64],
     decode_table: [u8; 256],
@@ -171,7 +173,7 @@ impl super::Engine for GeneralPurpose {
         input: &[u8],
         output: &mut [u8],
         estimate: Self::DecodeEstimate,
-    ) -> Result<DecodeMetadata, DecodeError> {
+    ) -> Result<DecodeMetadata, DecodeSliceError> {
         decode::decode_helper(
             input,
             estimate,

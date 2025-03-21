@@ -138,8 +138,11 @@ redox_syscall = { path = "build/rust/redox_syscall" }
 # Patch hermit-abi to an empty crate
 hermit-abi = { path = "build/rust/hermit-abi" }
 
-# Patch base64 0.13 to 0.21
-base64 = { path = "build/rust/base64" }
+# Patch base64 0.13 to 0.22
+base64_13 = { package = "base64", path = "build/rust/base64_13" }
+
+# Patch base64 0.21 to 0.22
+base64_21 = { package = "base64", path = "build/rust/base64" }
 
 # Patch wasi 0.10 to 0.13
 wasi_0_10 = { package = "wasi", path = "build/rust/wasi-0.10" }

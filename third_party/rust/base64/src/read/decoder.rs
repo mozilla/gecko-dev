@@ -1,4 +1,4 @@
-use crate::{engine::Engine, DecodeError, PAD_BYTE};
+use crate::{engine::Engine, DecodeError, DecodeSliceError, PAD_BYTE};
 use std::{cmp, fmt, io};
 
 // This should be large, but it has to fit on the stack.
@@ -35,37 +35,39 @@ pub struct DecoderReader<'e, E: Engine, R: io::Read> {
     /// Where b64 data is read from
     inner: R,
 
-    // Holds b64 data read from the delegate reader.
+    /// Holds b64 data read from the delegate reader.
     b64_buffer: [u8; BUF_SIZE],
-    // The start of the pending buffered data in b64_buffer.
+    /// The start of the pending buffered data in `b64_buffer`.
     b64_offset: usize,
-    // The amount of buffered b64 data.
+    /// The amount of buffered b64 data after `b64_offset` in `b64_len`.
     b64_len: usize,
-    // Since the caller may provide us with a buffer of size 1 or 2 that's too small to copy a
-    // decoded chunk in to, we have to be able to hang on to a few decoded bytes.
-    // Technically we only need to hold 2 bytes but then we'd need a separate temporary buffer to
-    // decode 3 bytes into and then juggle copying one byte into the provided read buf and the rest
-    // into here, which seems like a lot of complexity for 1 extra byte of storage.
-    decoded_buffer: [u8; DECODED_CHUNK_SIZE],
-    // index of start of decoded data
+    /// Since the caller may provide us with a buffer of size 1 or 2 that's too small to copy a
+    /// decoded chunk in to, we have to be able to hang on to a few decoded bytes.
+    /// Technically we only need to hold 2 bytes, but then we'd need a separate temporary buffer to
+    /// decode 3 bytes into and then juggle copying one byte into the provided read buf and the rest
+    /// into here, which seems like a lot of complexity for 1 extra byte of storage.
+    decoded_chunk_buffer: [u8; DECODED_CHUNK_SIZE],
+    /// Index of start of decoded data in `decoded_chunk_buffer`
     decoded_offset: usize,
-    // length of decoded data
+    /// Length of decoded data after `decoded_offset` in `decoded_chunk_buffer`
     decoded_len: usize,
-    // used to provide accurate offsets in errors
-    total_b64_decoded: usize,
-    // offset of previously seen padding, if any
+    /// Input length consumed so far.
+    /// Used to provide accurate offsets in errors
+    input_consumed_len: usize,
+    /// offset of previously seen padding, if any
     padding_offset: Option<usize>,
 }
 
+// exclude b64_buffer as it's uselessly large
 impl<'e, E: Engine, R: io::Read> fmt::Debug for DecoderReader<'e, E, R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("DecoderReader")
             .field("b64_offset", &self.b64_offset)
             .field("b64_len", &self.b64_len)
-            .field("decoded_buffer", &self.decoded_buffer)
+            .field("decoded_chunk_buffer", &self.decoded_chunk_buffer)
             .field("decoded_offset", &self.decoded_offset)
             .field("decoded_len", &self.decoded_len)
-            .field("total_b64_decoded", &self.total_b64_decoded)
+            .field("input_consumed_len", &self.input_consumed_len)
             .field("padding_offset", &self.padding_offset)
             .finish()
     }
@@ -80,10 +82,10 @@ impl<'e, E: Engine, R: io::Read> DecoderReader<'e, E, R> {
             b64_buffer: [0; BUF_SIZE],
             b64_offset: 0,
             b64_len: 0,
-            decoded_buffer: [0; DECODED_CHUNK_SIZE],
+            decoded_chunk_buffer: [0; DECODED_CHUNK_SIZE],
             decoded_offset: 0,
             decoded_len: 0,
-            total_b64_decoded: 0,
+            input_consumed_len: 0,
             padding_offset: None,
         }
     }
@@ -100,7 +102,7 @@ impl<'e, E: Engine, R: io::Read> DecoderReader<'e, E, R> {
         debug_assert!(copy_len <= self.decoded_len);
 
         buf[..copy_len].copy_from_slice(
-            &self.decoded_buffer[self.decoded_offset..self.decoded_offset + copy_len],
+            &self.decoded_chunk_buffer[self.decoded_offset..self.decoded_offset + copy_len],
         );
 
         self.decoded_offset += copy_len;
@@ -131,6 +133,10 @@ impl<'e, E: Engine, R: io::Read> DecoderReader<'e, E, R> {
     /// caller's responsibility to choose the number of b64 bytes to decode correctly.
     ///
     /// Returns a Result with the number of decoded bytes written to `buf`.
+    ///
+    /// # Panics
+    ///
+    /// panics if `buf` is too small
     fn decode_to_buf(&mut self, b64_len_to_decode: usize, buf: &mut [u8]) -> io::Result<usize> {
         debug_assert!(self.b64_len >= b64_len_to_decode);
         debug_assert!(self.b64_offset + self.b64_len <= BUF_SIZE);
@@ -144,22 +150,35 @@ impl<'e, E: Engine, R: io::Read> DecoderReader<'e, E, R> {
                 buf,
                 self.engine.internal_decoded_len_estimate(b64_len_to_decode),
             )
-            .map_err(|e| match e {
-                DecodeError::InvalidByte(offset, byte) => {
-                    // This can be incorrect, but not in a way that probably matters to anyone:
-                    // if there was padding handled in a previous decode, and we are now getting
-                    // InvalidByte due to more padding, we should arguably report InvalidByte with
-                    // PAD_BYTE at the original padding position (`self.padding_offset`), but we
-                    // don't have a good way to tie those two cases together, so instead we
-                    // just report the invalid byte as if the previous padding, and its possibly
-                    // related downgrade to a now invalid byte, didn't happen.
-                    DecodeError::InvalidByte(self.total_b64_decoded + offset, byte)
+            .map_err(|dse| match dse {
+                DecodeSliceError::DecodeError(de) => {
+                    match de {
+                        DecodeError::InvalidByte(offset, byte) => {
+                            match (byte, self.padding_offset) {
+                                // if there was padding in a previous block of decoding that happened to
+                                // be correct, and we now find more padding that happens to be incorrect,
+                                // to be consistent with non-reader decodes, record the error at the first
+                                // padding
+                                (PAD_BYTE, Some(first_pad_offset)) => {
+                                    DecodeError::InvalidByte(first_pad_offset, PAD_BYTE)
+                                }
+                                _ => {
+                                    DecodeError::InvalidByte(self.input_consumed_len + offset, byte)
+                                }
+                            }
+                        }
+                        DecodeError::InvalidLength(len) => {
+                            DecodeError::InvalidLength(self.input_consumed_len + len)
+                        }
+                        DecodeError::InvalidLastSymbol(offset, byte) => {
+                            DecodeError::InvalidLastSymbol(self.input_consumed_len + offset, byte)
+                        }
+                        DecodeError::InvalidPadding => DecodeError::InvalidPadding,
+                    }
                 }
-                DecodeError::InvalidLength => DecodeError::InvalidLength,
-                DecodeError::InvalidLastSymbol(offset, byte) => {
-                    DecodeError::InvalidLastSymbol(self.total_b64_decoded + offset, byte)
+                DecodeSliceError::OutputSliceTooSmall => {
+                    unreachable!("buf is sized correctly in calling code")
                 }
-                DecodeError::InvalidPadding => DecodeError::InvalidPadding,
             })
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
@@ -176,8 +195,8 @@ impl<'e, E: Engine, R: io::Read> DecoderReader<'e, E, R> {
 
         self.padding_offset = self.padding_offset.or(decode_metadata
             .padding_offset
-            .map(|offset| self.total_b64_decoded + offset));
-        self.total_b64_decoded += b64_len_to_decode;
+            .map(|offset| self.input_consumed_len + offset));
+        self.input_consumed_len += b64_len_to_decode;
         self.b64_offset += b64_len_to_decode;
         self.b64_len -= b64_len_to_decode;
 
@@ -283,7 +302,7 @@ impl<'e, E: Engine, R: io::Read> io::Read for DecoderReader<'e, E, R> {
                 let to_decode = cmp::min(self.b64_len, BASE64_CHUNK_SIZE);
 
                 let decoded = self.decode_to_buf(to_decode, &mut decoded_chunk[..])?;
-                self.decoded_buffer[..decoded].copy_from_slice(&decoded_chunk[..decoded]);
+                self.decoded_chunk_buffer[..decoded].copy_from_slice(&decoded_chunk[..decoded]);
 
                 self.decoded_offset = 0;
                 self.decoded_len = decoded;

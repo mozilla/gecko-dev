@@ -5,7 +5,8 @@
 //!
 //! # Examples
 //!
-//! ```
+#![cfg_attr(feature = "alloc", doc = "```")]
+#![cfg_attr(not(feature = "alloc"), doc = "```ignore")]
 //! use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 //!
 //! assert_eq!("c29tZSBieXRlcw", &BASE64_STANDARD_NO_PAD.encode(b"some bytes"));

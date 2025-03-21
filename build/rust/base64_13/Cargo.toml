@@ -1,6 +1,6 @@
 [package]
 name = "base64"
-version = "0.21.999"
+version = "0.13.999"
 edition = "2018"
 license = "MPL-2.0"
 

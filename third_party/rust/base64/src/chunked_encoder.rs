@@ -2,9 +2,9 @@ use crate::{
     encode::add_padding,
     engine::{Config, Engine},
 };
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 use alloc::string::String;
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 use core::str;
 
 /// The output mechanism for ChunkedEncoder's encoded bytes.
@@ -47,19 +47,19 @@ impl<'e, E: Engine + ?Sized> ChunkedEncoder<'e, E> {
 }
 
 // A really simple sink that just appends to a string
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 pub(crate) struct StringSink<'a> {
     string: &'a mut String,
 }
 
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 impl<'a> StringSink<'a> {
     pub(crate) fn new(s: &mut String) -> StringSink {
         StringSink { string: s }
     }
 }
 
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 impl<'a> Sink for StringSink<'a> {
     type Error = ();
 

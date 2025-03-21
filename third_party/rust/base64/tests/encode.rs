@@ -44,3 +44,34 @@ fn encode_all_bytes_url() {
         &engine::GeneralPurpose::new(&URL_SAFE, PAD).encode(bytes)
     );
 }
+
+#[test]
+fn encoded_len_unpadded() {
+    assert_eq!(0, encoded_len(0, false).unwrap());
+    assert_eq!(2, encoded_len(1, false).unwrap());
+    assert_eq!(3, encoded_len(2, false).unwrap());
+    assert_eq!(4, encoded_len(3, false).unwrap());
+    assert_eq!(6, encoded_len(4, false).unwrap());
+    assert_eq!(7, encoded_len(5, false).unwrap());
+    assert_eq!(8, encoded_len(6, false).unwrap());
+    assert_eq!(10, encoded_len(7, false).unwrap());
+}
+
+#[test]
+fn encoded_len_padded() {
+    assert_eq!(0, encoded_len(0, true).unwrap());
+    assert_eq!(4, encoded_len(1, true).unwrap());
+    assert_eq!(4, encoded_len(2, true).unwrap());
+    assert_eq!(4, encoded_len(3, true).unwrap());
+    assert_eq!(8, encoded_len(4, true).unwrap());
+    assert_eq!(8, encoded_len(5, true).unwrap());
+    assert_eq!(8, encoded_len(6, true).unwrap());
+    assert_eq!(12, encoded_len(7, true).unwrap());
+}
+#[test]
+fn encoded_len_overflow() {
+    let max_size = usize::MAX / 4 * 3 + 2;
+    assert_eq!(2, max_size % 3);
+    assert_eq!(Some(usize::MAX), encoded_len(max_size, false));
+    assert_eq!(None, encoded_len(max_size + 1, false));
+}

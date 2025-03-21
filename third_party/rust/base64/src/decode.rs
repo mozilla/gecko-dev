@@ -1,5 +1,5 @@
 use crate::engine::{general_purpose::STANDARD, DecodeEstimate, Engine};
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 use alloc::vec::Vec;
 use core::fmt;
 #[cfg(any(feature = "std", test))]
@@ -9,18 +9,20 @@ use std::error;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DecodeError {
     /// An invalid byte was found in the input. The offset and offending byte are provided.
-    /// Padding characters (`=`) interspersed in the encoded form will be treated as invalid bytes.
+    ///
+    /// Padding characters (`=`) interspersed in the encoded form are invalid, as they may only
+    /// be present as the last 0-2 bytes of input.
+    ///
+    /// This error may also indicate that extraneous trailing input bytes are present, causing
+    /// otherwise valid padding to no longer be the last bytes of input.
     InvalidByte(usize, u8),
-    /// The length of the input is invalid.
-    /// A typical cause of this is stray trailing whitespace or other separator bytes.
-    /// In the case where excess trailing bytes have produced an invalid length *and* the last byte
-    /// is also an invalid base64 symbol (as would be the case for whitespace, etc), `InvalidByte`
-    /// will be emitted instead of `InvalidLength` to make the issue easier to debug.
-    InvalidLength,
+    /// The length of the input, as measured in valid base64 symbols, is invalid.
+    /// There must be 2-4 symbols in the last input quad.
+    InvalidLength(usize),
     /// The last non-padding input symbol's encoded 6 bits have nonzero bits that will be discarded.
     /// This is indicative of corrupted or truncated Base64.
-    /// Unlike `InvalidByte`, which reports symbols that aren't in the alphabet, this error is for
-    /// symbols that are in the alphabet but represent nonsensical encodings.
+    /// Unlike [DecodeError::InvalidByte], which reports symbols that aren't in the alphabet,
+    /// this error is for symbols that are in the alphabet but represent nonsensical encodings.
     InvalidLastSymbol(usize, u8),
     /// The nature of the padding was not as configured: absent or incorrect when it must be
     /// canonical, or present when it must be absent, etc.
@@ -30,8 +32,10 @@ pub enum DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Self::InvalidByte(index, byte) => write!(f, "Invalid byte {}, offset {}.", byte, index),
-            Self::InvalidLength => write!(f, "Encoded text cannot have a 6-bit remainder."),
+            Self::InvalidByte(index, byte) => {
+                write!(f, "Invalid symbol {}, offset {}.", byte, index)
+            }
+            Self::InvalidLength(len) => write!(f, "Invalid input length: {}", len),
             Self::InvalidLastSymbol(index, byte) => {
                 write!(f, "Invalid last symbol {}, offset {}.", byte, index)
             }
@@ -48,9 +52,7 @@ impl error::Error for DecodeError {}
 pub enum DecodeSliceError {
     /// A [DecodeError] occurred
     DecodeError(DecodeError),
-    /// The provided slice _may_ be too small.
-    ///
-    /// The check is conservative (assumes the last triplet of output bytes will all be needed).
+    /// The provided slice is too small.
     OutputSliceTooSmall,
 }
 
@@ -83,7 +85,7 @@ impl From<DecodeError> for DecodeSliceError {
 ///
 /// See [Engine::decode].
 #[deprecated(since = "0.21.0", note = "Use Engine::decode")]
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 pub fn decode<T: AsRef<[u8]>>(input: T) -> Result<Vec<u8>, DecodeError> {
     STANDARD.decode(input)
 }
@@ -93,7 +95,7 @@ pub fn decode<T: AsRef<[u8]>>(input: T) -> Result<Vec<u8>, DecodeError> {
 /// See [Engine::decode].
 ///Returns a `Result` containing a `Vec<u8>`.
 #[deprecated(since = "0.21.0", note = "Use Engine::decode")]
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 pub fn decode_engine<E: Engine, T: AsRef<[u8]>>(
     input: T,
     engine: &E,
@@ -104,7 +106,7 @@ pub fn decode_engine<E: Engine, T: AsRef<[u8]>>(
 /// Decode from string reference as octets.
 ///
 /// See [Engine::decode_vec].
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 #[deprecated(since = "0.21.0", note = "Use Engine::decode_vec")]
 pub fn decode_engine_vec<E: Engine, T: AsRef<[u8]>>(
     input: T,
@@ -336,5 +338,49 @@ mod tests {
                 &decode_buf[offset + decode_bytes_written..]
             );
         }
+    }
+}
+
+#[allow(deprecated)]
+#[cfg(test)]
+mod coverage_gaming {
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn decode_error() {
+        let _ = format!("{:?}", DecodeError::InvalidPadding.clone());
+        let _ = format!(
+            "{} {} {} {}",
+            DecodeError::InvalidByte(0, 0),
+            DecodeError::InvalidLength(0),
+            DecodeError::InvalidLastSymbol(0, 0),
+            DecodeError::InvalidPadding,
+        );
+    }
+
+    #[test]
+    fn decode_slice_error() {
+        let _ = format!("{:?}", DecodeSliceError::OutputSliceTooSmall.clone());
+        let _ = format!(
+            "{} {}",
+            DecodeSliceError::OutputSliceTooSmall,
+            DecodeSliceError::DecodeError(DecodeError::InvalidPadding)
+        );
+        let _ = DecodeSliceError::OutputSliceTooSmall.source();
+        let _ = DecodeSliceError::DecodeError(DecodeError::InvalidPadding).source();
+    }
+
+    #[test]
+    fn deprecated_fns() {
+        let _ = decode("");
+        let _ = decode_engine("", &crate::prelude::BASE64_STANDARD);
+        let _ = decode_engine_vec("", &mut Vec::new(), &crate::prelude::BASE64_STANDARD);
+        let _ = decode_engine_slice("", &mut [], &crate::prelude::BASE64_STANDARD);
+    }
+
+    #[test]
+    fn decoded_len_est() {
+        assert_eq!(3, decoded_len_estimate(4));
     }
 }

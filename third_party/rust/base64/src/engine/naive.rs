@@ -4,10 +4,9 @@ use crate::{
         general_purpose::{self, decode_table, encode_table},
         Config, DecodeEstimate, DecodeMetadata, DecodePaddingMode, Engine,
     },
-    DecodeError, PAD_BYTE,
+    DecodeError, DecodeSliceError,
 };
-use alloc::ops::BitOr;
-use std::ops::{BitAnd, Shl, Shr};
+use std::ops::{BitAnd, BitOr, Shl, Shr};
 
 /// Comparatively simple implementation that can be used as something to compare against in tests
 pub struct Naive {
@@ -112,63 +111,40 @@ impl Engine for Naive {
         input: &[u8],
         output: &mut [u8],
         estimate: Self::DecodeEstimate,
-    ) -> Result<DecodeMetadata, DecodeError> {
-        if estimate.rem == 1 {
-            // trailing whitespace is so common that it's worth it to check the last byte to
-            // possibly return a better error message
-            if let Some(b) = input.last() {
-                if *b != PAD_BYTE
-                    && self.decode_table[*b as usize] == general_purpose::INVALID_VALUE
-                {
-                    return Err(DecodeError::InvalidByte(input.len() - 1, *b));
-                }
-            }
+    ) -> Result<DecodeMetadata, DecodeSliceError> {
+        let complete_nonterminal_quads_len = general_purpose::decode::complete_quads_len(
+            input,
+            estimate.rem,
+            output.len(),
+            &self.decode_table,
+        )?;
 
-            return Err(DecodeError::InvalidLength);
-        }
-
-        let mut input_index = 0_usize;
-        let mut output_index = 0_usize;
         const BOTTOM_BYTE: u32 = 0xFF;
 
-        // can only use the main loop on non-trailing chunks
-        if input.len() > Self::DECODE_INPUT_CHUNK_SIZE {
-            // skip the last chunk, whether it's partial or full, since it might
-            // have padding, and start at the beginning of the chunk before that
-            let last_complete_chunk_start_index = estimate.complete_chunk_len
-                - if estimate.rem == 0 {
-                    // Trailing chunk is also full chunk, so there must be at least 2 chunks, and
-                    // this won't underflow
-                    Self::DECODE_INPUT_CHUNK_SIZE * 2
-                } else {
-                    // Trailing chunk is partial, so it's already excluded in
-                    // complete_chunk_len
-                    Self::DECODE_INPUT_CHUNK_SIZE
-                };
+        for (chunk_index, chunk) in input[..complete_nonterminal_quads_len]
+            .chunks_exact(4)
+            .enumerate()
+        {
+            let input_index = chunk_index * 4;
+            let output_index = chunk_index * 3;
 
-            while input_index <= last_complete_chunk_start_index {
-                let chunk = &input[input_index..input_index + Self::DECODE_INPUT_CHUNK_SIZE];
-                let decoded_int: u32 = self.decode_byte_into_u32(input_index, chunk[0])?.shl(18)
-                    | self
-                        .decode_byte_into_u32(input_index + 1, chunk[1])?
-                        .shl(12)
-                    | self.decode_byte_into_u32(input_index + 2, chunk[2])?.shl(6)
-                    | self.decode_byte_into_u32(input_index + 3, chunk[3])?;
+            let decoded_int: u32 = self.decode_byte_into_u32(input_index, chunk[0])?.shl(18)
+                | self
+                    .decode_byte_into_u32(input_index + 1, chunk[1])?
+                    .shl(12)
+                | self.decode_byte_into_u32(input_index + 2, chunk[2])?.shl(6)
+                | self.decode_byte_into_u32(input_index + 3, chunk[3])?;
 
-                output[output_index] = decoded_int.shr(16_u8).bitand(BOTTOM_BYTE) as u8;
-                output[output_index + 1] = decoded_int.shr(8_u8).bitand(BOTTOM_BYTE) as u8;
-                output[output_index + 2] = decoded_int.bitand(BOTTOM_BYTE) as u8;
-
-                input_index += Self::DECODE_INPUT_CHUNK_SIZE;
-                output_index += 3;
-            }
+            output[output_index] = decoded_int.shr(16_u8).bitand(BOTTOM_BYTE) as u8;
+            output[output_index + 1] = decoded_int.shr(8_u8).bitand(BOTTOM_BYTE) as u8;
+            output[output_index + 2] = decoded_int.bitand(BOTTOM_BYTE) as u8;
         }
 
         general_purpose::decode_suffix::decode_suffix(
             input,
-            input_index,
+            complete_nonterminal_quads_len,
             output,
-            output_index,
+            complete_nonterminal_quads_len / 4 * 3,
             &self.decode_table,
             self.config.decode_allow_trailing_bits,
             self.config.decode_padding_mode,

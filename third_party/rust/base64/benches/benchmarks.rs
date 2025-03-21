@@ -39,8 +39,7 @@ fn do_decode_bench_slice(b: &mut Bencher, &size: &usize) {
     fill(&mut v);
     let encoded = STANDARD.encode(&v);
 
-    let mut buf = Vec::new();
-    buf.resize(size, 0);
+    let mut buf = vec![0; size];
     b.iter(|| {
         STANDARD.decode_slice(&encoded, &mut buf).unwrap();
         black_box(&buf);
@@ -52,8 +51,7 @@ fn do_decode_bench_stream(b: &mut Bencher, &size: &usize) {
     fill(&mut v);
     let encoded = STANDARD.encode(&v);
 
-    let mut buf = Vec::new();
-    buf.resize(size, 0);
+    let mut buf = vec![0; size];
     buf.truncate(0);
 
     b.iter(|| {
@@ -96,18 +94,16 @@ fn do_encode_bench_reuse_buf(b: &mut Bencher, &size: &usize) {
 fn do_encode_bench_slice(b: &mut Bencher, &size: &usize) {
     let mut v: Vec<u8> = Vec::with_capacity(size);
     fill(&mut v);
-    let mut buf = Vec::new();
     // conservative estimate of encoded size
-    buf.resize(v.len() * 2, 0);
+    let mut buf = vec![0; v.len() * 2];
     b.iter(|| STANDARD.encode_slice(&v, &mut buf).unwrap());
 }
 
 fn do_encode_bench_stream(b: &mut Bencher, &size: &usize) {
     let mut v: Vec<u8> = Vec::with_capacity(size);
     fill(&mut v);
-    let mut buf = Vec::new();
+    let mut buf = Vec::with_capacity(size * 2);
 
-    buf.reserve(size * 2);
     b.iter(|| {
         buf.clear();
         let mut stream_enc = write::EncoderWriter::new(&mut buf, &STANDARD);

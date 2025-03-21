@@ -1,101 +1,127 @@
-//! # Getting started
+//! Correct, fast, and configurable [base64][] decoding and encoding. Base64
+//! transports binary data efficiently in contexts where only plain text is
+//! allowed.
 //!
-//! 1. Perhaps one of the preconfigured engines in [engine::general_purpose] will suit, e.g.
-//! [engine::general_purpose::STANDARD_NO_PAD].
-//!     - These are re-exported in [prelude] with a `BASE64_` prefix for those who prefer to
-//!       `use base64::prelude::*` or equivalent, e.g. [prelude::BASE64_STANDARD_NO_PAD]
-//! 1. If not, choose which alphabet you want. Most usage will want [alphabet::STANDARD] or [alphabet::URL_SAFE].
-//! 1. Choose which [Engine] implementation you want. For the moment there is only one: [engine::GeneralPurpose].
-//! 1. Configure the engine appropriately using the engine's `Config` type.
-//!     - This is where you'll select whether to add padding (when encoding) or expect it (when
-//!     decoding). If given the choice, prefer no padding.
-//! 1. Build the engine using the selected alphabet and config.
+//! [base64]: https://developer.mozilla.org/en-US/docs/Glossary/Base64
 //!
-//! For more detail, see below.
+//! # Usage
 //!
-//! ## Alphabets
+//! Use an [`Engine`] to decode or encode base64, configured with the base64
+//! alphabet and padding behavior best suited to your application.
 //!
-//! An [alphabet::Alphabet] defines what ASCII symbols are used to encode to or decode from.
+//! ## Engine setup
 //!
-//! Constants in [alphabet] like [alphabet::STANDARD] or [alphabet::URL_SAFE] provide commonly used
-//! alphabets, but you can also build your own custom [alphabet::Alphabet] if needed.
+//! There is more than one way to encode a stream of bytes as “base64”.
+//! Different applications use different encoding
+//! [alphabets][alphabet::Alphabet] and
+//! [padding behaviors][engine::general_purpose::GeneralPurposeConfig].
 //!
-//! ## Engines
+//! ### Encoding alphabet
 //!
-//! Once you have an `Alphabet`, you can pick which `Engine` you want. A few parts of the public
-//! API provide a default, but otherwise the user must provide an `Engine` to use.
+//! Almost all base64 [alphabets][alphabet::Alphabet] use `A-Z`, `a-z`, and
+//! `0-9`, which gives nearly 64 characters (26 + 26 + 10 = 62), but they differ
+//! in their choice of their final 2.
 //!
-//! See [Engine] for more.
+//! Most applications use the [standard][alphabet::STANDARD] alphabet specified
+//! in [RFC 4648][rfc-alphabet].  If that’s all you need, you can get started
+//! quickly by using the pre-configured
+//! [`STANDARD`][engine::general_purpose::STANDARD] engine, which is also available
+//! in the [`prelude`] module as shown here, if you prefer a minimal `use`
+//! footprint.
 //!
-//! ## Config
+#![cfg_attr(feature = "alloc", doc = "```")]
+#![cfg_attr(not(feature = "alloc"), doc = "```ignore")]
+//! use base64::prelude::*;
 //!
-//! In addition to an `Alphabet`, constructing an `Engine` also requires an [engine::Config]. Each
-//! `Engine` has a corresponding `Config` implementation since different `Engine`s may offer different
-//! levels of configurability.
-//!
-//! # Encoding
-//!
-//! Several different encoding methods on [Engine] are available to you depending on your desire for
-//! convenience vs performance.
-//!
-//! | Method                   | Output                       | Allocates                      |
-//! | ------------------------ | ---------------------------- | ------------------------------ |
-//! | [Engine::encode]         | Returns a new `String`       | Always                         |
-//! | [Engine::encode_string]  | Appends to provided `String` | Only if `String` needs to grow |
-//! | [Engine::encode_slice]   | Writes to provided `&[u8]`   | Never - fastest                |
-//!
-//! All of the encoding methods will pad as per the engine's config.
-//!
-//! # Decoding
-//!
-//! Just as for encoding, there are different decoding methods available.
-//!
-//! | Method                   | Output                        | Allocates                      |
-//! | ------------------------ | ----------------------------- | ------------------------------ |
-//! | [Engine::decode]         | Returns a new `Vec<u8>`       | Always                         |
-//! | [Engine::decode_vec]     | Appends to provided `Vec<u8>` | Only if `Vec` needs to grow    |
-//! | [Engine::decode_slice]   | Writes to provided `&[u8]`    | Never - fastest                |
-//!
-//! Unlike encoding, where all possible input is valid, decoding can fail (see [DecodeError]).
-//!
-//! Input can be invalid because it has invalid characters or invalid padding. The nature of how
-//! padding is checked depends on the engine's config.
-//! Whitespace in the input is invalid, just like any other non-base64 byte.
-//!
-//! # `Read` and `Write`
-//!
-//! To decode a [std::io::Read] of b64 bytes, wrap a reader (file, network socket, etc) with
-//! [read::DecoderReader].
-//!
-//! To write raw bytes and have them b64 encoded on the fly, wrap a [std::io::Write] with
-//! [write::EncoderWriter].
-//!
-//! There is some performance overhead (15% or so) because of the necessary buffer shuffling --
-//! still fast enough that almost nobody cares. Also, these implementations do not heap allocate.
-//!
-//! # `Display`
-//!
-//! See [display] for how to transparently base64 data via a `Display` implementation.
-//!
-//! # Examples
-//!
-//! ## Using predefined engines
-//!
-//! ```
-//! use base64::{Engine as _, engine::general_purpose};
-//!
-//! let orig = b"data";
-//! let encoded: String = general_purpose::STANDARD_NO_PAD.encode(orig);
-//! assert_eq!("ZGF0YQ", encoded);
-//! assert_eq!(orig.as_slice(), &general_purpose::STANDARD_NO_PAD.decode(encoded).unwrap());
-//!
-//! // or, URL-safe
-//! let encoded_url = general_purpose::URL_SAFE_NO_PAD.encode(orig);
+//! # fn main() -> Result<(), base64::DecodeError> {
+//! assert_eq!(BASE64_STANDARD.decode(b"+uwgVQA=")?, b"\xFA\xEC\x20\x55\0");
+//! assert_eq!(BASE64_STANDARD.encode(b"\xFF\xEC\x20\x55\0"), "/+wgVQA=");
+//! # Ok(())
+//! # }
 //! ```
 //!
-//! ## Custom alphabet, config, and engine
+//! [rfc-alphabet]: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 //!
+//! Other common alphabets are available in the [`alphabet`] module.
+//!
+//! #### URL-safe alphabet
+//!
+//! The standard alphabet uses `+` and `/` as its two non-alphanumeric tokens,
+//! which cannot be safely used in URL’s without encoding them as `%2B` and
+//! `%2F`.
+//!
+//! To avoid that, some applications use a [“URL-safe” alphabet][alphabet::URL_SAFE],
+//! which uses `-` and `_` instead. To use that alternative alphabet, use the
+//! [`URL_SAFE`][engine::general_purpose::URL_SAFE] engine. This example doesn't
+//! use [`prelude`] to show what a more explicit `use` would look like.
+//!
+#![cfg_attr(feature = "alloc", doc = "```")]
+#![cfg_attr(not(feature = "alloc"), doc = "```ignore")]
+//! use base64::{engine::general_purpose::URL_SAFE, Engine as _};
+//!
+//! # fn main() -> Result<(), base64::DecodeError> {
+//! assert_eq!(URL_SAFE.decode(b"-uwgVQA=")?, b"\xFA\xEC\x20\x55\0");
+//! assert_eq!(URL_SAFE.encode(b"\xFF\xEC\x20\x55\0"), "_-wgVQA=");
+//! # Ok(())
+//! # }
 //! ```
+//!
+//! ### Padding characters
+//!
+//! Each base64 character represents 6 bits (2⁶ = 64) of the original binary
+//! data, and every 3 bytes of input binary data will encode to 4 base64
+//! characters (8 bits × 3 = 6 bits × 4 = 24 bits).
+//!
+//! When the input is not an even multiple of 3 bytes in length, [canonical][]
+//! base64 encoders insert padding characters at the end, so that the output
+//! length is always a multiple of 4:
+//!
+//! [canonical]: https://datatracker.ietf.org/doc/html/rfc4648#section-3.5
+//!
+#![cfg_attr(feature = "alloc", doc = "```")]
+#![cfg_attr(not(feature = "alloc"), doc = "```ignore")]
+//! use base64::{engine::general_purpose::STANDARD, Engine as _};
+//!
+//! assert_eq!(STANDARD.encode(b""),    "");
+//! assert_eq!(STANDARD.encode(b"f"),   "Zg==");
+//! assert_eq!(STANDARD.encode(b"fo"),  "Zm8=");
+//! assert_eq!(STANDARD.encode(b"foo"), "Zm9v");
+//! ```
+//!
+//! Canonical encoding ensures that base64 encodings will be exactly the same,
+//! byte-for-byte, regardless of input length. But the `=` padding characters
+//! aren’t necessary for decoding, and they may be omitted by using a
+//! [`NO_PAD`][engine::general_purpose::NO_PAD] configuration:
+//!
+#![cfg_attr(feature = "alloc", doc = "```")]
+#![cfg_attr(not(feature = "alloc"), doc = "```ignore")]
+//! use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
+//!
+//! assert_eq!(STANDARD_NO_PAD.encode(b""),    "");
+//! assert_eq!(STANDARD_NO_PAD.encode(b"f"),   "Zg");
+//! assert_eq!(STANDARD_NO_PAD.encode(b"fo"),  "Zm8");
+//! assert_eq!(STANDARD_NO_PAD.encode(b"foo"), "Zm9v");
+//! ```
+//!
+//! The pre-configured `NO_PAD` engines will reject inputs containing padding
+//! `=` characters. To encode without padding and still accept padding while
+//! decoding, create an [engine][engine::general_purpose::GeneralPurpose] with
+//! that [padding mode][engine::DecodePaddingMode].
+//!
+#![cfg_attr(feature = "alloc", doc = "```")]
+#![cfg_attr(not(feature = "alloc"), doc = "```ignore")]
+//! # use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
+//! assert_eq!(STANDARD_NO_PAD.decode(b"Zm8="), Err(base64::DecodeError::InvalidPadding));
+//! ```
+//!
+//! ### Further customization
+//!
+//! Decoding and encoding behavior can be customized by creating an
+//! [engine][engine::GeneralPurpose] with an [alphabet][alphabet::Alphabet] and
+//! [padding configuration][engine::GeneralPurposeConfig]:
+//!
+#![cfg_attr(feature = "alloc", doc = "```")]
+#![cfg_attr(not(feature = "alloc"), doc = "```ignore")]
 //! use base64::{engine, alphabet, Engine as _};
 //!
 //! // bizarro-world base64: +/ as the first symbols instead of the last
@@ -115,6 +141,81 @@
 //!
 //! ```
 //!
+//! ## Memory allocation
+//!
+//! The [decode][Engine::decode()] and [encode][Engine::encode()] engine methods
+//! allocate memory for their results – `decode` returns a `Vec<u8>` and
+//! `encode` returns a `String`. To instead decode or encode into a buffer that
+//! you allocated, use one of the alternative methods:
+//!
+//! #### Decoding
+//!
+//! | Method                     | Output                        | Allocates memory              |
+//! | -------------------------- | ----------------------------- | ----------------------------- |
+//! | [`Engine::decode`]         | returns a new `Vec<u8>`       | always                        |
+//! | [`Engine::decode_vec`]     | appends to provided `Vec<u8>` | if `Vec` lacks capacity       |
+//! | [`Engine::decode_slice`]   | writes to provided `&[u8]`    | never
+//!
+//! #### Encoding
+//!
+//! | Method                     | Output                       | Allocates memory               |
+//! | -------------------------- | ---------------------------- | ------------------------------ |
+//! | [`Engine::encode`]         | returns a new `String`       | always                         |
+//! | [`Engine::encode_string`]  | appends to provided `String` | if `String` lacks capacity     |
+//! | [`Engine::encode_slice`]   | writes to provided `&[u8]`   | never                          |
+//!
+//! ## Input and output
+//!
+//! The `base64` crate can [decode][Engine::decode()] and
+//! [encode][Engine::encode()] values in memory, or
+//! [`DecoderReader`][read::DecoderReader] and
+//! [`EncoderWriter`][write::EncoderWriter] provide streaming decoding and
+//! encoding for any [readable][std::io::Read] or [writable][std::io::Write]
+//! byte stream.
+//!
+//! #### Decoding
+//!
+#![cfg_attr(feature = "std", doc = "```")]
+#![cfg_attr(not(feature = "std"), doc = "```ignore")]
+//! # use std::io;
+//! use base64::{engine::general_purpose::STANDARD, read::DecoderReader};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let mut input = io::stdin();
+//! let mut decoder = DecoderReader::new(&mut input, &STANDARD);
+//! io::copy(&mut decoder, &mut io::stdout())?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! #### Encoding
+//!
+#![cfg_attr(feature = "std", doc = "```")]
+#![cfg_attr(not(feature = "std"), doc = "```ignore")]
+//! # use std::io;
+//! use base64::{engine::general_purpose::STANDARD, write::EncoderWriter};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let mut output = io::stdout();
+//! let mut encoder = EncoderWriter::new(&mut output, &STANDARD);
+//! io::copy(&mut io::stdin(), &mut encoder)?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! #### Display
+//!
+//! If you only need a base64 representation for implementing the
+//! [`Display`][std::fmt::Display] trait, use
+//! [`Base64Display`][display::Base64Display]:
+//!
+//! ```
+//! use base64::{display::Base64Display, engine::general_purpose::STANDARD};
+//!
+//! let value = Base64Display::new(b"\0\x01\x02\x03", &STANDARD);
+//! assert_eq!("base64: AAECAw==", format!("base64: {}", value));
+//! ```
+//!
 //! # Panics
 //!
 //! If length calculations result in overflowing `usize`, a panic will result.
@@ -127,8 +228,7 @@
     unused_extern_crates,
     unused_import_braces,
     unused_results,
-    variant_size_differences,
-    warnings
+    variant_size_differences
 )]
 #![forbid(unsafe_code)]
 // Allow globally until https://github.com/rust-lang/rust-clippy/issues/8768 is resolved.
@@ -136,10 +236,8 @@
 #![allow(clippy::single_component_path_imports)]
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 
-#[cfg(all(feature = "alloc", not(any(feature = "std", test))))]
+#[cfg(any(feature = "alloc", test))]
 extern crate alloc;
-#[cfg(any(feature = "std", test))]
-extern crate std as alloc;
 
 // has to be included at top level because of the way rstest_reuse defines its macros
 #[cfg(test)]
@@ -159,14 +257,14 @@ pub mod alphabet;
 
 mod encode;
 #[allow(deprecated)]
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 pub use crate::encode::{encode, encode_engine, encode_engine_string};
 #[allow(deprecated)]
 pub use crate::encode::{encode_engine_slice, encoded_len, EncodeSliceError};
 
 mod decode;
 #[allow(deprecated)]
-#[cfg(any(feature = "alloc", feature = "std", test))]
+#[cfg(any(feature = "alloc", test))]
 pub use crate::decode::{decode, decode_engine, decode_engine_vec};
 #[allow(deprecated)]
 pub use crate::decode::{decode_engine_slice, decoded_len_estimate, DecodeError, DecodeSliceError};

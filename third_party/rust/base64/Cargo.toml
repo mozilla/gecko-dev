@@ -13,11 +13,8 @@
 edition = "2018"
 rust-version = "1.48.0"
 name = "base64"
-version = "0.21.3"
-authors = [
-    "Alice Maz <alice@alicemaz.com>",
-    "Marshall Pierce <marshall@mpierce.org>",
-]
+version = "0.22.1"
+authors = ["Marshall Pierce <marshall@mpierce.org>"]
 description = "encodes and decodes base64 as bytes or utf8"
 documentation = "https://docs.rs/base64"
 readme = "README.md"
@@ -41,30 +38,48 @@ debug = 2
 [profile.test]
 opt-level = 3
 
+[[example]]
+name = "base64"
+required-features = ["std"]
+
+[[test]]
+name = "tests"
+required-features = ["alloc"]
+
+[[test]]
+name = "encode"
+required-features = ["alloc"]
+
 [[bench]]
 name = "benchmarks"
 harness = false
+required-features = ["std"]
+
+[dev-dependencies.clap]
+version = "3.2.25"
+features = ["derive"]
 
 [dev-dependencies.criterion]
 version = "0.4.0"
 
-[dev-dependencies.lazy_static]
-version = "1.4.0"
+[dev-dependencies.once_cell]
+version = "1"
 
 [dev-dependencies.rand]
 version = "0.8.5"
 features = ["small_rng"]
 
 [dev-dependencies.rstest]
-version = "0.12.0"
+version = "0.13.0"
 
 [dev-dependencies.rstest_reuse]
-version = "0.3.0"
+version = "0.6.0"
 
-[dev-dependencies.structopt]
-version = "0.3.26"
+[dev-dependencies.strum]
+version = "0.25"
+features = ["derive"]
 
 [features]
 alloc = []
 default = ["std"]
-std = []
+std = ["alloc"]

@@ -1,3 +1,29 @@
+# 0.22.1
+
+- Correct the symbols used for the predefined `alphabet::BIN_HEX`.
+
+# 0.22.0
+
+- `DecodeSliceError::OutputSliceTooSmall` is now conservative rather than precise. That is, the error will only occur if the decoded output _cannot_ fit, meaning that `Engine::decode_slice` can now be used with exactly-sized output slices. As part of this, `Engine::internal_decode` now returns `DecodeSliceError` instead of `DecodeError`, but that is not expected to affect any external callers.
+- `DecodeError::InvalidLength` now refers specifically to the _number of valid symbols_ being invalid (i.e. `len % 4 == 1`), rather than just the number of input bytes. This avoids confusing scenarios when based on interpretation you could make a case for either `InvalidLength` or `InvalidByte` being appropriate.
+- Decoding is somewhat faster (5-10%)
+
+# 0.21.7
+
+- Support getting an alphabet's contents as a str via `Alphabet::as_str()`
+
+# 0.21.6
+
+- Improved introductory documentation and example
+
+# 0.21.5
+
+- Add `Debug` and `Clone` impls for the general purpose Engine
+
+# 0.21.4
+
+- Make `encoded_len` `const`, allowing the creation of arrays sized to encode compile-time-known data lengths
+
 # 0.21.3
 
 - Implement `source` instead of `cause` on Error types
@@ -12,7 +38,8 @@
 # 0.21.1
 
 - Remove the possibility of panicking during decoded length calculations
-- `DecoderReader` no longer sometimes erroneously ignores padding  [#226](https://github.com/marshallpierce/rust-base64/issues/226)
+- `DecoderReader` no longer sometimes erroneously ignores
+  padding  [#226](https://github.com/marshallpierce/rust-base64/issues/226)
 
 ## Breaking changes
 
@@ -64,7 +91,8 @@ precisely, see the following table.
 
 ## Breaking changes
 
-- Re-exports of preconfigured engines in `engine` are removed in favor of `base64::prelude::...` that are better suited to those who wish to `use` the entire path to a name.
+- Re-exports of preconfigured engines in `engine` are removed in favor of `base64::prelude::...` that are better suited
+  to those who wish to `use` the entire path to a name.
 
 # 0.21.0-beta.1
 
