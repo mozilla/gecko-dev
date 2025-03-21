@@ -1,6 +1,9 @@
 {
   "test_custom_fonts": {
-    "reference": "test_custom_fonts_ref_2404.png"
+    "reference": "test_custom_fonts_ref_2404.png",
+    "esr-128core22": {
+      "reference": "test_custom_fonts_ref_2404-esr-128.png"
+    }
   },
   "test_h264_mov": {},
   "test_he_aac": {},
