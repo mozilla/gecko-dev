@@ -20,7 +20,6 @@ const { SelectableProfileService } = ChromeUtils.importESModule(
 export class ProfileSelector extends MozLitElement {
   static properties = {
     profiles: { type: Array },
-    showSelector: { type: Boolean },
   };
 
   static queries = {
@@ -94,8 +93,6 @@ export class ProfileSelector extends MozLitElement {
     await this.selectableProfileService.init();
     await this.selectableProfileService.maybeSetupDataStore();
     this.profiles = await this.selectableProfileService.getAllProfiles();
-    this.showSelector =
-      this.selectableProfileService.groupToolkitProfile.showProfileSelector;
 
     if (!this.profiles.length) {
       this.selectableProfileService.setShowProfileSelectorWindow(false);
@@ -113,11 +110,10 @@ export class ProfileSelector extends MozLitElement {
   }
 
   handleCheckboxToggle() {
-    this.showSelector = this.checkbox.checked;
-    let state = this.showSelector ? "enabled" : "disabled";
+    let state = this.checkbox.checked ? "enabled" : "disabled";
     Glean.profilesSelectorWindow.showAtStartup.record({ value: state });
     this.selectableProfileService.setShowProfileSelectorWindow(
-      this.showSelector
+      this.checkbox.checked
     );
   }
 
@@ -184,15 +180,9 @@ export class ProfileSelector extends MozLitElement {
       <moz-checkbox
         @click=${this.handleCheckboxToggle}
         data-l10n-id="profile-window-checkbox-label-2"
-        ?checked=${this.showSelector}
-      >
-        ${!this.showSelector
-          ? html`<span
-              slot="description"
-              data-l10n-id="profile-window-checkbox-subcopy"
-            ></span>`
-          : null}
-      </moz-checkbox>`;
+        ?checked=${this.selectableProfileService.groupToolkitProfile
+          .showProfileSelector}
+      ></moz-checkbox>`;
   }
 }
 
