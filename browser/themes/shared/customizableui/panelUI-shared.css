@@ -2313,13 +2313,13 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 }
 
 #profile-icon-image {
-  width: 75px;
-  height: 75px;
+  width: 90px;
+  height: 90px;
   -moz-context-properties: fill, stroke;
   fill: var(--appmenu-profiles-theme-bg);
   stroke: var(--appmenu-profiles-theme-fg);
   border: 4px solid var(--panel-background);
-  border-radius: 40px;
+  border-radius: var(--border-radius-circle);
 }
 
 #current-profile {
