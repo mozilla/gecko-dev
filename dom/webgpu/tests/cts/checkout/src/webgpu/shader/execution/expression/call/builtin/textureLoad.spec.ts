@@ -756,13 +756,14 @@ Parameters:
       .combine('format', kPossibleStorageTextureFormats)
       .beginSubcases()
       .combine('samplePoints', kSamplePointMethods)
+      .combine('baseMipLevel', [0, 1] as const)
       .combine('C', ['i32', 'u32'] as const)
   )
   .beforeAllSubcases(t =>
     t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures')
   )
   .fn(async t => {
-    const { format, stage, samplePoints, C } = t.params;
+    const { format, stage, samplePoints, C, baseMipLevel } = t.params;
 
     t.skipIfTextureFormatNotSupported(format);
     t.skipIfTextureFormatNotUsableAsStorageTexture(format);
@@ -774,12 +775,17 @@ Parameters:
       format,
       size,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
+      mipLevelCount: 3,
+    };
+    const viewDescriptor = {
+      baseMipLevel,
+      mipLevelCount: 1,
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
-
+    const softwareTexture = { texels, descriptor, viewDescriptor };
     const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
       method: samplePoints,
-      descriptor,
+      softwareTexture,
       hashInputs: [stage, format, samplePoints, C],
     }).map(({ coords }) => {
       return {
@@ -789,7 +795,6 @@ Parameters:
       };
     });
     const textureType = `texture_storage_2d<${format}, read>`;
-    const viewDescriptor = {};
     const sampler = undefined;
     const results = await doTextureCalls(
       t,
@@ -802,7 +807,7 @@ Parameters:
     );
     const res = await checkCallResults(
       t,
-      { texels, descriptor, viewDescriptor },
+      softwareTexture,
       textureType,
       sampler,
       calls,
@@ -837,12 +842,20 @@ Parameters:
       .combine('C', ['i32', 'u32'] as const)
       .combine('A', ['i32', 'u32'] as const)
       .combine('depthOrArrayLayers', [1, 8] as const)
+      .combine('baseMipLevel', [0, 1] as const)
+      .combine('baseArrayLayer', [0, 1] as const)
+      .unless(t => t.depthOrArrayLayers === 1 && t.baseArrayLayer !== 0)
   )
-  .beforeAllSubcases(t =>
-    t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures')
-  )
+  .beforeAllSubcases(t => {
+    t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
+    t.skipIf(
+      t.isCompatibility && t.params.baseArrayLayer !== 0,
+      'compatibility mode does not support array layer sub ranges'
+    );
+  })
   .fn(async t => {
-    const { format, stage, samplePoints, C, A, depthOrArrayLayers } = t.params;
+    const { format, stage, samplePoints, C, A, depthOrArrayLayers, baseMipLevel, baseArrayLayer } =
+      t.params;
 
     t.skipIfTextureFormatNotSupported(format);
     t.skipIfTextureFormatNotUsableAsStorageTexture(format);
@@ -856,13 +869,21 @@ Parameters:
       size,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
       ...(t.isCompatibility && { textureBindingViewDimension: '2d-array' }),
+      mipLevelCount: 3,
+    };
+    const viewDescriptor: GPUTextureViewDescriptor = {
+      dimension: '2d-array',
+      baseMipLevel,
+      mipLevelCount: 1,
+      baseArrayLayer,
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+    const softwareTexture = { texels, descriptor, viewDescriptor };
 
     const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
       method: samplePoints,
-      descriptor,
-      arrayIndex: { num: texture.depthOrArrayLayers, type: A },
+      softwareTexture,
+      arrayIndex: { num: texture.depthOrArrayLayers - baseArrayLayer, type: A },
       hashInputs: [stage, format, samplePoints, C, A],
     }).map(({ coords, arrayIndex }) => {
       return {
@@ -874,9 +895,6 @@ Parameters:
       };
     });
     const textureType = `texture_storage_2d_array<${format}, read>`;
-    const viewDescriptor: GPUTextureViewDescriptor = {
-      dimension: '2d-array',
-    };
     const sampler = undefined;
     const results = await doTextureCalls(
       t,

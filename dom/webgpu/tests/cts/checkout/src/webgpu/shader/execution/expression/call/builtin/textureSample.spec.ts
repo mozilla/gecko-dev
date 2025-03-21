@@ -154,9 +154,10 @@ Parameters:
       .combine('offset', [false, true] as const)
       .beginSubcases()
       .combine('samplePoints', kSamplePointMethods)
+      .combine('baseMipLevel', [0, 1] as const)
   )
   .fn(async t => {
-    const { format, samplePoints, modeU, modeV, filt: minFilter, offset } = t.params;
+    const { format, samplePoints, modeU, modeV, filt: minFilter, offset, baseMipLevel } = t.params;
     skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
     // We want at least 4 blocks or something wide enough for 3 mip levels.
@@ -168,7 +169,11 @@ Parameters:
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
       mipLevelCount: 3,
     };
+    const viewDescriptor = {
+      baseMipLevel,
+    };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+    const softwareTexture = { texels, descriptor, viewDescriptor };
     const sampler: GPUSamplerDescriptor = {
       addressModeU: kShortAddressModeToAddressMode[modeU],
       addressModeV: kShortAddressModeToAddressMode[modeV],
@@ -180,7 +185,7 @@ Parameters:
     const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
       sampler,
       method: samplePoints,
-      descriptor,
+      softwareTexture,
       derivatives: true,
       offset,
       hashInputs: [format, samplePoints, modeU, modeV, minFilter, offset],
@@ -193,7 +198,6 @@ Parameters:
         offset,
       };
     });
-    const viewDescriptor = {};
     const textureType = 'texture_2d<f32>';
     const results = await doTextureCalls(
       t,
@@ -874,7 +878,7 @@ Parameters:
     const { format, samplePoints, A, mode } = t.params;
     t.skipIfTextureFormatNotSupported(format);
     t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
-    t.skipIfTextureViewDimensionNotSupportedDeprecated('cube-array');
+    t.skipIfTextureViewDimensionNotSupported('cube-array');
 
     const viewDimension: GPUTextureViewDimension = 'cube-array';
     const size = chooseTextureSize({

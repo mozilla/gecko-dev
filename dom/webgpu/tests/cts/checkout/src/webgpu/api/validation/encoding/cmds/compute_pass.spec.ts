@@ -9,9 +9,9 @@ import { makeValueTestVariant } from '../../../../../common/util/util.js';
 import { kBufferUsages } from '../../../../capability_info.js';
 import { GPUConst } from '../../../../constants.js';
 import { kResourceStates, ResourceState } from '../../../../gpu_test.js';
-import { ValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   createComputePipeline(state: 'valid' | 'invalid'): GPUComputePipeline {
     if (state === 'valid') {
       return this.createNoOpComputePipeline();
@@ -67,9 +67,7 @@ setPipeline should generate an error iff using an 'invalid' pipeline.
 g.test('pipeline,device_mismatch')
   .desc('Tests setPipeline cannot be called with a compute pipeline created from another device')
   .paramsSubcasesOnly(u => u.combine('mismatched', [true, false]))
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { mismatched } = t.params;
     const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -193,9 +191,7 @@ g.test('indirect_dispatch_buffer,device_mismatch')
     `Tests dispatchWorkgroupsIndirect cannot be called with an indirect buffer created from another device`
   )
   .paramsSubcasesOnly(u => u.combine('mismatched', [true, false]))
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { mismatched } = t.params;
 

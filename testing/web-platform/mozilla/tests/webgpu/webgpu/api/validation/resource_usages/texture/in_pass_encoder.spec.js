@@ -9,11 +9,10 @@ import { GPUConst } from '../../../../constants.js';
 import {
   kDepthStencilFormats,
   kDepthStencilFormatResolvedAspect,
-  kTextureFormatInfo,
-  isMultisampledTextureFormatDeprecated } from
+  isStencilTextureFormat,
+  isDepthTextureFormat } from
 '../../../../format_info.js';
-import { MaxLimitsTestMixin } from '../../../../gpu_test.js';
-import { ValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
 
 
 
@@ -30,7 +29,7 @@ const kTextureBindingTypes = [
 
 
 const SIZE = 32;
-class TextureUsageTracking extends ValidationTest {
+class TextureUsageTracking extends AllFeaturesMaxLimitsValidationTest {
   createTestTexture(
   options =
 
@@ -268,7 +267,7 @@ class TextureUsageTracking extends ValidationTest {
   }
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(TextureUsageTracking));
+export const g = makeTestGroup(TextureUsageTracking);
 
 const BASE_LEVEL = 1;
 const TOTAL_LEVELS = 6;
@@ -680,13 +679,13 @@ combine('aspect0', ['all', 'depth-only', 'stencil-only']).
 combine('aspect1', ['all', 'depth-only', 'stencil-only']).
 unless(
   (p) =>
-  p.aspect0 === 'stencil-only' && !kTextureFormatInfo[p.format].stencil ||
-  p.aspect1 === 'stencil-only' && !kTextureFormatInfo[p.format].stencil
+  p.aspect0 === 'stencil-only' && !isStencilTextureFormat(p.format) ||
+  p.aspect1 === 'stencil-only' && !isStencilTextureFormat(p.format)
 ).
 unless(
   (p) =>
-  p.aspect0 === 'depth-only' && !kTextureFormatInfo[p.format].depth ||
-  p.aspect1 === 'depth-only' && !kTextureFormatInfo[p.format].depth
+  p.aspect0 === 'depth-only' && !isDepthTextureFormat(p.format) ||
+  p.aspect1 === 'depth-only' && !isDepthTextureFormat(p.format)
 ).
 combineWithParams([
 {
@@ -703,8 +702,8 @@ combineWithParams([
 unless(
   // Can't sample a multiplanar texture without selecting an aspect.
   (p) =>
-  !!kTextureFormatInfo[p.format].depth &&
-  !!kTextureFormatInfo[p.format].stencil && (
+  isDepthTextureFormat(p.format) &&
+  isStencilTextureFormat(p.format) && (
   p.aspect0 === 'all' && p.type0 === 'sampled-texture' ||
   p.aspect1 === 'all' && p.type1 === 'sampled-texture')
 ).
@@ -724,15 +723,11 @@ unless(
   // Depth-stencil attachment views must encompass all aspects of the texture. Invalid
   // cases are for depth-stencil textures when the aspect is not 'all'.
   p.type1 === 'render-target' &&
-  !!kTextureFormatInfo[p.format].depth &&
-  !!kTextureFormatInfo[p.format].stencil &&
+  isDepthTextureFormat(p.format) &&
+  isStencilTextureFormat(p.format) &&
   p.aspect1 !== 'all'
 )
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
-}).
 fn((t) => {
   const {
     compute,
@@ -749,6 +744,7 @@ fn((t) => {
     _usageSuccess
   } = t.params;
 
+  t.skipIfTextureFormatNotSupported(format);
   t.skipIf(t.isCompatibility, 'sub ranges of layers are not supported in compat mode');
 
   const texture = t.createTestTexture({
@@ -775,8 +771,8 @@ fn((t) => {
     aspect: aspect1
   });
   const view1ResolvedFormat = kDepthStencilFormatResolvedAspect[format][aspect1];
-  const view1HasDepth = kTextureFormatInfo[view1ResolvedFormat].depth;
-  const view1HasStencil = kTextureFormatInfo[view1ResolvedFormat].stencil;
+  const view1HasDepth = isDepthTextureFormat(view1ResolvedFormat);
+  const view1HasStencil = isStencilTextureFormat(view1ResolvedFormat);
 
   const encoder = t.device.createCommandEncoder();
   // Color attachment's size should match depth/stencil attachment's size. Note that if
@@ -813,8 +809,8 @@ fn((t) => {
       case 'stencil-only':
         return 'uint';
       case 'all':
-        assert(kTextureFormatInfo[format].depth !== kTextureFormatInfo[format].stencil);
-        if (kTextureFormatInfo[format].stencil) {
+        assert(isDepthTextureFormat(format) !== isStencilTextureFormat(format));
+        if (isStencilTextureFormat(format)) {
           return 'uint';
         }
         return 'depth';
@@ -1157,9 +1153,9 @@ fn((t) => {
 
   t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(type0, GPUShaderStage.FRAGMENT);
   t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(type1, GPUShaderStage.FRAGMENT);
-  t.skipIf(
-    _sampleCount > 1 && !isMultisampledTextureFormatDeprecated('r32float', t.isCompatibility)
-  );
+  if (_sampleCount > 1) {
+    t.skipIfTextureFormatNotMultisampled('r32float');
+  }
 
   // Two bindings are attached to the same texture view.
   const usage =

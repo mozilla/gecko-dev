@@ -46,7 +46,7 @@ subresourceRange) =>
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
     });
 
-    const commandEncoder = t.device.createCommandEncoder();
+    const commandEncoder = t.device.createCommandEncoder({ label: 'checkContentsByTextureCopy' });
     commandEncoder.copyTextureToTexture(
       { texture, mipLevel: level, origin: { x: 0, y: 0, z: layer } },
       { texture: dst, mipLevel: 0 },

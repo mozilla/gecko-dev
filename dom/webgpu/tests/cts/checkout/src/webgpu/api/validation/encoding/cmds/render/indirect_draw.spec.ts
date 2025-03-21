@@ -5,13 +5,13 @@ Validation tests for drawIndirect/drawIndexedIndirect on render pass and render 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUConst } from '../../../../../constants.js';
 import { kResourceStates } from '../../../../../gpu_test.js';
-import { ValidationTest } from '../../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
 
 import { kRenderEncodeTypeParams } from './render.js';
 
 const kIndirectDrawTestParams = kRenderEncodeTypeParams.combine('indexed', [true, false] as const);
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   makeIndexBuffer(): GPUBuffer {
     return this.createBufferTracked({
       size: 16,
@@ -55,9 +55,7 @@ g.test('indirect_buffer,device_mismatch')
     'Tests draw(Indexed)Indirect cannot be called with an indirect buffer created from another device'
   )
   .paramsSubcasesOnly(kIndirectDrawTestParams.combine('mismatched', [true, false]))
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { encoderType, indexed, mismatched } = t.params;
 

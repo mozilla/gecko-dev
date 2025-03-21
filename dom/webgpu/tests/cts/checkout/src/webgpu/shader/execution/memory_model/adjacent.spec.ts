@@ -4,10 +4,10 @@ This is especially interesting when the scalar type is narrower than 32-bits.
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { PRNG } from '../../../util/prng.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Algorithm: with N invocations, N is even:
 //     srcBuffer: An array of random scalar values.  Avoids unsupported values like infinity and NaN.
@@ -47,7 +47,7 @@ type Pattern = 0 | 1 | 2 | 3;
 const kAddressSpaces = ['workgroup', 'storage'] as const;
 const kPatterns = [0, 1, 2, 3] as const;
 
-interface AdjacentWritesTest extends GPUTest {
+interface AdjacentWritesTest extends AllFeaturesMaxLimitsGPUTest {
   params: {
     pattern: Pattern;
     addressSpace: AddressSpace;
@@ -266,7 +266,7 @@ g.test('f16')
     `Check that writes by different invocations to adjacent f16 values in an array do not interfere with each other.`
   )
   .params(u => u.combine('addressSpace', kAddressSpaces).combine('pattern', kPatterns))
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('shader-f16');
-  })
-  .fn(t => runTest(t));
+  .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    runTest(t);
+  });

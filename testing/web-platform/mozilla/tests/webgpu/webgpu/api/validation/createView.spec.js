@@ -216,7 +216,7 @@ fn((t) => {
     arrayLayerCount
   } = t.params;
 
-  t.skipIfTextureViewDimensionNotSupportedDeprecated(viewDimension);
+  t.skipIfTextureViewDimensionNotSupported(viewDimension);
 
   const kWidth = 1 << kLevels - 1; // 32
   const textureDescriptor = {

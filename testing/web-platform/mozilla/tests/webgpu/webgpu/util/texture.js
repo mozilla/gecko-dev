@@ -644,7 +644,7 @@ desc)
   });
 
   // Copy the texel view into each mip level layer.
-  const commandEncoder = t.device.createCommandEncoder();
+  const commandEncoder = t.device.createCommandEncoder({ label: 'createTextureFromTexelViews' });
   const resourcesToDestroy = [];
   for (let mipLevel = 0; mipLevel < texelViews.length; mipLevel++) {
     const {

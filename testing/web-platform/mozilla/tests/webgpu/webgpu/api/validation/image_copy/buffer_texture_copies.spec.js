@@ -14,9 +14,9 @@ import {
 '../../../format_info.js';
 import { align } from '../../../util/math.js';
 import { kBufferCopyAlignment, kBytesPerRowAlignment } from '../../../util/texture/layout.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-class ImageCopyTest extends ValidationTest {
+class ImageCopyTest extends AllFeaturesMaxLimitsValidationTest {
   testCopyBufferToTexture(
   source,
   destination,
@@ -70,12 +70,9 @@ u //
 beginSubcases().
 combine('aspect', ['all', 'depth-only', 'stencil-only'])
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  t.selectDeviceForTextureFormatOrSkipTestCase(format);
-}).
 fn((t) => {
   const { format, aspect } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const textureSize = { width: 1, height: 1, depthOrArrayLayers: 1 };
   const texture = t.createTextureTracked({
@@ -135,12 +132,9 @@ combine('copySize', [
 { width: 4, height: 4, depthOrArrayLayers: 3 }]
 )
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  t.selectDeviceForTextureFormatOrSkipTestCase(format);
-}).
 fn((t) => {
   const { format, aspect, copyType, copySize } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const texture = t.createTextureTracked({
     size: copySize,
@@ -242,12 +236,9 @@ depthStencilBufferTextureCopySupported(param.copyType, param.format, param.aspec
 beginSubcases().
 combine('offset', [1, 2, 4, 6, 8])
 ).
-beforeAllSubcases((t) => {
-  const { format } = t.params;
-  t.selectDeviceForTextureFormatOrSkipTestCase(format);
-}).
 fn((t) => {
   const { format, aspect, copyType, offset } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
 
   const textureSize = { width: 4, height: 4, depthOrArrayLayers: 1 };
 
@@ -422,9 +413,7 @@ combineWithParams([
 { bufMismatched: false, texMismatched: true }]
 )
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { copyType, bufMismatched, texMismatched } = t.params;
 

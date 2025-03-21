@@ -3,6 +3,7 @@
 
 /* eslint-disable no-sparse-arrays */
 
+import { globalTestConfig } from '../common/framework/test_config.js';
 import {
   keysOf,
   makeTable,
@@ -773,7 +774,7 @@ const [kLimitInfoKeys, kLimitInfoDefaults, kLimitInfoData] =
  * Feature levels corresponding to core WebGPU and WebGPU
  * in compatibility mode. They can be passed to
  * getDefaultLimits though if you have access to an adapter
- * it's preferred to use getDefaultLimitsForAdapter.
+ * it's preferred to use getDefaultLimits or getDefaultLimitsForCTS
  */
 export const kFeatureLevels = ['core', 'compatibility'] as const;
 export type FeatureLevel = (typeof kFeatureLevels)[number];
@@ -809,16 +810,21 @@ export function getDefaultLimits(featureLevel: FeatureLevel) {
   return kLimitInfos[featureLevel];
 }
 
-export function getDefaultLimitsForAdapter(adapter: GPUAdapter) {
-  // MAINTENANCE_TODO: Remove casts once we have a standardized way to do this
-  // (see https://github.com/gpuweb/gpuweb/pull/5037#issuecomment-2576110161).
-  const adapterExtensions = adapter as unknown as {
-    featureLevel?: string;
-  };
-  const featureLevel =
-    adapterExtensions.featureLevel === 'core' || adapter.features.has('core-features-and-limits')
-      ? 'core'
-      : 'compatibility';
+/**
+ * The CTS is generally designed to run in a single feature level.
+ * Use this function get the default limits for the CTS's feature level
+ * This is needed if you can not use the device limits as you have not yet
+ * created a device. An adapter can not tell you if it supports compatibility
+ * mode. The only way to know is to request a device without `core-features-and-limits`.
+ * If the device you get back doesn't have `core-features-and-limits` then it's
+ * a compatibility device.
+ */
+export function getDefaultLimitsForCTS() {
+  return getDefaultLimits(globalTestConfig.compatibility ? 'compatibility' : 'core');
+}
+
+export function getDefaultLimitsForDevice(device: GPUDevice) {
+  const featureLevel = device.features.has('core-features-and-limits') ? 'core' : 'compatibility';
   return getDefaultLimits(featureLevel);
 }
 

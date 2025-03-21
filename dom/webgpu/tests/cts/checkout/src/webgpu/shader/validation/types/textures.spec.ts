@@ -6,7 +6,7 @@ import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import {
   getTextureFormatType,
   isTextureFormatPossiblyStorageReadable,
-  isTextureFormatUsableAsStorageFormat,
+  isTextureFormatUsableAsStorageFormatInCreateShaderModule,
   kAllTextureFormats,
   kColorTextureFormats,
 } from '../../../format_info.js';
@@ -110,9 +110,10 @@ Besides, the shader compilation should always pass regardless of whether the for
   )
   .fn(t => {
     const { format, access, comma } = t.params;
-    // bgra8unorm is considered a valid storage format at shader compilation stage
-    const isFormatValid =
-      isTextureFormatUsableAsStorageFormat(t.device, format) || format === 'bgra8unorm';
+    const isFormatValid = isTextureFormatUsableAsStorageFormatInCreateShaderModule(
+      t.device,
+      format
+    );
     const isAccessValid = kAccessModes.includes(access);
     const wgsl = `@group(0) @binding(0) var tex: texture_storage_2d<${format}, ${access}${comma}>;`;
     t.expectCompileResult(isFormatValid && isAccessValid, wgsl);

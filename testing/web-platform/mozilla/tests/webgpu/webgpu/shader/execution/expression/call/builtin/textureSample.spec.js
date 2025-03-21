@@ -153,10 +153,11 @@ combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('offset', [false, true]).
 beginSubcases().
-combine('samplePoints', kSamplePointMethods)
+combine('samplePoints', kSamplePointMethods).
+combine('baseMipLevel', [0, 1])
 ).
 fn(async (t) => {
-  const { format, samplePoints, modeU, modeV, filt: minFilter, offset } = t.params;
+  const { format, samplePoints, modeU, modeV, filt: minFilter, offset, baseMipLevel } = t.params;
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
@@ -168,7 +169,11 @@ fn(async (t) => {
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
     mipLevelCount: 3
   };
+  const viewDescriptor = {
+    baseMipLevel
+  };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+  const softwareTexture = { texels, descriptor, viewDescriptor };
   const sampler = {
     addressModeU: kShortAddressModeToAddressMode[modeU],
     addressModeV: kShortAddressModeToAddressMode[modeV],
@@ -180,7 +185,7 @@ fn(async (t) => {
   const calls = generateTextureBuiltinInputs2D(50, {
     sampler,
     method: samplePoints,
-    descriptor,
+    softwareTexture,
     derivatives: true,
     offset,
     hashInputs: [format, samplePoints, modeU, modeV, minFilter, offset]
@@ -193,7 +198,6 @@ fn(async (t) => {
       offset
     };
   });
-  const viewDescriptor = {};
   const textureType = 'texture_2d<f32>';
   const results = await doTextureCalls(
     t,
@@ -874,7 +878,7 @@ fn(async (t) => {
   const { format, samplePoints, A, mode } = t.params;
   t.skipIfTextureFormatNotSupported(format);
   t.skipIfDepthTextureCanNotBeUsedWithNonComparisonSampler();
-  t.skipIfTextureViewDimensionNotSupportedDeprecated('cube-array');
+  t.skipIfTextureViewDimensionNotSupported('cube-array');
 
   const viewDimension = 'cube-array';
   const size = chooseTextureSize({

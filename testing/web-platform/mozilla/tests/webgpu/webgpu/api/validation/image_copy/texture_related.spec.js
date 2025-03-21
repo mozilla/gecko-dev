@@ -5,9 +5,12 @@ import { assert } from '../../../../common/util/util.js';
 import { kTextureDimensions, kTextureUsages } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import {
+  getBlockInfoForColorTextureFormat,
+  getBlockInfoForSizedTextureFormat,
+  getBlockInfoForTextureFormat,
+  isDepthOrStencilTextureFormat,
   kColorTextureFormats,
   kSizedTextureFormats,
-  kTextureFormatInfo,
   textureDimensionAndFormatCompatible } from
 '../../../format_info.js';
 import { kResourceStates } from '../../../gpu_test.js';
@@ -70,9 +73,7 @@ desc('Tests the image copies cannot be called with a texture created from anothe
 paramsSubcasesOnly((u) =>
 u.combine('method', kImageCopyTypes).combine('mismatched', [true, false])
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { method, mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -266,11 +267,6 @@ combine('copyHeightModifier', [0, -1])
 // need to examine depth dimension via copyDepthModifier to determine whether it is a full copy for a 3D texture.
 .expand('copyDepthModifier', ({ dimension: d }) => d === '3d' ? [0, -1] : [0])
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const {
     method,
@@ -282,8 +278,9 @@ fn((t) => {
     copyHeightModifier,
     copyDepthModifier
   } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForSizedTextureFormat(format);
 
-  const info = kTextureFormatInfo[format];
   const size = { width: 32 * info.blockWidth, height: 32 * info.blockHeight, depthOrArrayLayers };
   if (dimension === '1d') {
     size.height = 1;
@@ -299,7 +296,7 @@ fn((t) => {
 
   let success = true;
   if (
-  (info.depth || info.stencil) && (
+  isDepthOrStencilTextureFormat(format) && (
   copyWidthModifier !== 0 || copyHeightModifier !== 0 || copyDepthModifier !== 0))
   {
     success = false;
@@ -353,15 +350,11 @@ combine('coordinateToTest', ['x', 'y', 'z']).
 unless((p) => p.dimension === '1d' && p.coordinateToTest !== 'x').
 expand('valueToCoordinate', texelBlockAlignmentTestExpanderForValueToCoordinate)
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { valueToCoordinate, coordinateToTest, format, method, depthOrArrayLayers, dimension } =
   t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForTextureFormat(format);
   const size = { width: 0, height: 0, depthOrArrayLayers };
   const origin = { x: 0, y: 0, z: 0 };
   let success = true;
@@ -411,14 +404,10 @@ combine('coordinateToTest', ['width', 'height', 'depthOrArrayLayers']).
 unless((p) => p.dimension === '1d' && p.coordinateToTest !== 'width').
 expand('valueToCoordinate', texelBlockAlignmentTestExpanderForValueToCoordinate)
 ).
-beforeAllSubcases((t) => {
-  const info = kTextureFormatInfo[t.params.format];
-  t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-  t.selectDeviceOrSkipTestCase(info.feature);
-}).
 fn((t) => {
   const { valueToCoordinate, coordinateToTest, dimension, format, method } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  const info = getBlockInfoForColorTextureFormat(format);
   const size = { width: 0, height: 0, depthOrArrayLayers: 0 };
   const origin = { x: 0, y: 0, z: 0 };
   let success = true;
@@ -438,7 +427,7 @@ fn((t) => {
   const texture = t.createAlignedTexture(format, size, origin, dimension);
 
   const bytesPerRow = align(
-    Math.max(1, Math.ceil(size.width / info.blockWidth)) * info.color.bytes,
+    Math.max(1, Math.ceil(size.width / info.blockWidth)) * info.bytesPerBlock,
     256
   );
   const rowsPerImage = Math.ceil(size.height / info.blockHeight);
@@ -483,7 +472,7 @@ fn((t) => {
     dimension
   } = t.params;
   const format = 'rgba8unorm';
-  const info = kTextureFormatInfo[format];
+  const info = getBlockInfoForColorTextureFormat(format);
 
   const origin = [0, 0, 0];
   const copySize = [0, 0, 0];

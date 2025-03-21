@@ -8,7 +8,6 @@ import { assert } from '../../../../../common/util/util.js';
 import { kCanvasTextureFormats } from '../../../../capability_info.js';
 import {
   getBlockInfoForTextureFormat,
-  getRequiredFeatureForTextureFormat,
   isDepthOrStencilTextureFormat,
   isTextureFormatPossiblyStorageReadable,
   isTextureFormatPossiblyUsableAsColorRenderAttachment,
@@ -33,7 +32,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -63,7 +62,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -94,7 +93,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -145,7 +144,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -241,7 +240,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -283,7 +282,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -339,7 +338,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -400,7 +399,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {
@@ -431,7 +430,7 @@ beforeAllSubcases((t) => {
   const { format, enable_required_feature } = t.params;
 
   if (enable_required_feature) {
-    t.selectDeviceOrSkipTestCase(getRequiredFeatureForTextureFormat(format));
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   }
 }).
 fn((t) => {

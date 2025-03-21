@@ -20,7 +20,7 @@ import { makeTestGroup } from '../../common/framework/test_group.js';
 import { keysOf } from '../../common/util/data_tables.js';
 import { getGPU } from '../../common/util/navigator_gpu.js';
 import { assert, objectEquals, unreachable } from '../../common/util/util.js';
-import { getDefaultLimitsForAdapter, kLimits } from '../capability_info.js';
+import { getDefaultLimitsForDevice, kLimits } from '../capability_info.js';
 import { AllFeaturesMaxLimitsGPUTest, GPUTest } from '../gpu_test.js';
 
 // MAINTENANCE_TODO: Remove this filter when these limits are added to the spec.
@@ -35,6 +35,10 @@ type ResourceInfo = {
   getters: readonly string[];
   settable: readonly string[];
   sameObject: readonly string[];
+  // Note: some of the tests need to be skipped in compatibility mode related to 'gpu'.
+  // This is because getGPU() doesn't return the actual `navigator.gpu` in compatibility mode.
+  // Instead it returns something that's wrapped to request compatibility mode.
+  skipInCompatibility?: boolean;
 };
 const kResourceInfo: { [key: string]: ResourceInfo } = {
   gpu: {
@@ -45,6 +49,7 @@ const kResourceInfo: { [key: string]: ResourceInfo } = {
     getters: ['wgslLanguageFeatures'],
     settable: [],
     sameObject: ['wgslLanguageFeatures'],
+    skipInCompatibility: true,
   },
   buffer: {
     create(t: GPUTest) {
@@ -222,6 +227,9 @@ g.test('obj,Object_keys')
   .params(u => u.combine('type', kResources))
   .fn(t => {
     const { type } = t.params;
+    const { skipInCompatibility } = kResourceInfo[type];
+    t.skipIf(t.isCompatibility && !!skipInCompatibility, 'skipped in compatibility mode');
+
     const obj = createResource(t, type);
     t.expect(objectEquals([...Object.keys(obj)], []), `[...Object.keys(${type})] === []`);
   });
@@ -231,6 +239,9 @@ g.test('obj,spread')
   .params(u => u.combine('type', kResources))
   .fn(t => {
     const { type } = t.params;
+    const { skipInCompatibility } = kResourceInfo[type];
+    t.skipIf(t.isCompatibility && !!skipInCompatibility, 'skipped in compatibility mode');
+
     const obj = createResource(t, type);
     t.expect(objectEquals({ ...obj }, {}), `{ ...${type} ] === {}`);
   });
@@ -260,6 +271,9 @@ g.test('obj,getOwnPropertyDescriptors')
   .params(u => u.combine('type', kResources))
   .fn(t => {
     const { type } = t.params;
+    const { skipInCompatibility } = kResourceInfo[type];
+    t.skipIf(t.isCompatibility && !!skipInCompatibility, 'skipped in compatibility mode');
+
     const obj = createResource(t, type);
     t.expect(
       objectEquals(Object.getOwnPropertyDescriptors(obj), {}),
@@ -336,7 +350,7 @@ g.test('limits')
     const device = await t.requestDeviceTracked(adapter, {
       requiredLimits: obj.limits as unknown as Record<string, number>,
     });
-    const defaultLimits = getDefaultLimitsForAdapter(adapter);
+    const defaultLimits = getDefaultLimitsForDevice(device);
     for (const [key, { default: defaultLimit }] of Object.entries(defaultLimits)) {
       if (isUnspecifiedLimit(key)) {
         continue;
@@ -453,7 +467,9 @@ g.test('method_replacement')
   .params(u => u.combine('type', kResources))
   .fn(t => {
     const { type } = t.params;
-    const { requiredKeys, getters } = kResourceInfo[type];
+    const { requiredKeys, getters, skipInCompatibility } = kResourceInfo[type];
+    t.skipIf(t.isCompatibility && !!skipInCompatibility, 'skipped in compatibility mode');
+
     const gettersSet = new Set<string>(getters);
     const methods = requiredKeys.filter(k => !gettersSet.has(k));
 

@@ -267,7 +267,7 @@ fn main(
     ],
   });
 
-  const encoder = t.device.createCommandEncoder();
+  const encoder = t.device.createCommandEncoder({ label: 'runAccuracyTest' });
   const pass = encoder.beginComputePass();
   pass.setPipeline(pipeline);
   pass.setBindGroup(0, bg);
@@ -397,7 +397,7 @@ export async function runComputeTest(
     ],
   });
 
-  const encoder = t.device.createCommandEncoder();
+  const encoder = t.device.createCommandEncoder({ label: 'runComputeTest' });
   const pass = encoder.beginComputePass();
   pass.setPipeline(pipeline);
   pass.setBindGroup(0, bg);
@@ -558,7 +558,7 @@ fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
     format,
   });
 
-  const encoder = t.device.createCommandEncoder();
+  const encoder = t.device.createCommandEncoder({ label: 'runFragmentTest' });
   const pass = encoder.beginRenderPass({
     colorAttachments: [
       {

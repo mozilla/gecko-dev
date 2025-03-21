@@ -56,7 +56,9 @@ export async function getProvokingVertexForFlatInterpolationEitherSampling(
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
 
-    const encoder = device.createCommandEncoder();
+    const encoder = device.createCommandEncoder({
+      label: 'getProvokingVertexForFlatInterpolationEitherSampling',
+    });
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {

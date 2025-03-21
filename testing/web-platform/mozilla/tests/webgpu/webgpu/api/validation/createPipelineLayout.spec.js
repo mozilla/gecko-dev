@@ -12,15 +12,14 @@ import {
   kBufferBindingTypes } from
 '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
-import { MaxLimitsTestMixin } from '../../gpu_test.js';
 
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
 function clone(descriptor) {
   return JSON.parse(JSON.stringify(descriptor));
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(ValidationTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('number_of_dynamic_buffers_exceeds_the_maximum_value').
 desc(
@@ -145,9 +144,7 @@ paramsSubcasesOnly([
 { layout0Mismatched: true, layout1Mismatched: false },
 { layout0Mismatched: false, layout1Mismatched: true }]
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { layout0Mismatched, layout1Mismatched } = t.params;
 

@@ -16,9 +16,9 @@ TODO:
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kDefaultVertexShaderCode, getShaderWithEntryPoint } from '../../../util/shader.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 const kEntryPointTestCases = [
   { shaderModuleEntryPoint: 'main', stageEntryPoint: 'main' },

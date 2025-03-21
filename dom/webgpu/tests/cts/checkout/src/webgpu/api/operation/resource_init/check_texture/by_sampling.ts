@@ -138,7 +138,7 @@ export const checkContentsBySampling: CheckContents = (
         ],
       });
 
-      const commandEncoder = t.device.createCommandEncoder();
+      const commandEncoder = t.device.createCommandEncoder({ label: 'checkContentsBySampling' });
       const pass = commandEncoder.beginComputePass();
       pass.setPipeline(computePipeline);
       pass.setBindGroup(0, bindGroup);

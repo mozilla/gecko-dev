@@ -355,12 +355,10 @@ Params:
       .expand('index_buffer_offset', p => (p.indexed ? ([0, 16] as const) : [undefined]))
       .expand('base_vertex', p => (p.indexed ? ([0, 9] as const) : [undefined]))
   )
-  .beforeAllSubcases(t => {
-    if (t.params.first_instance > 0 && t.params.indirect) {
-      t.selectDeviceOrSkipTestCase('indirect-first-instance');
-    }
-  })
   .fn(t => {
+    if (t.params.first_instance > 0 && t.params.indirect) {
+      t.skipIfDeviceDoesNotHaveFeature('indirect-first-instance');
+    }
     t.checkTriangleDraw({
       firstIndex: t.params.first,
       count: t.params.count,

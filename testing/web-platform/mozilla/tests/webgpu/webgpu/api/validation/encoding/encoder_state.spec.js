@@ -18,9 +18,9 @@ TODO:
 - ?
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { objectEquals } from '../../../../common/util/util.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   beginRenderPass(commandEncoder, view) {
     return commandEncoder.beginRenderPass({
       colorAttachments: [

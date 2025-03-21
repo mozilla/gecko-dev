@@ -12,9 +12,9 @@ import {
   waitForNextTask } from
 '../../web_platform/util.js';
 
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
-class GPUExternalTextureExpireTest extends ValidationTest {
+class GPUExternalTextureExpireTest extends AllFeaturesMaxLimitsValidationTest {
   submitCommandBuffer(bindGroup, success) {
     const kHeight = 16;
     const kWidth = 16;

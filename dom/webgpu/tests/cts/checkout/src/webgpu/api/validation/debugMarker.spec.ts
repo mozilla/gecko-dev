@@ -4,9 +4,9 @@ Test validation of pushDebugGroup, popDebugGroup, and insertDebugMarker.
 
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   beginRenderPass(commandEncoder: GPUCommandEncoder): GPURenderPassEncoder {
     const attachmentTexture = this.createTextureTracked({
       format: 'rgba8unorm',

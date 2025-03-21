@@ -5,19 +5,21 @@ copyTextureToTexture tests.
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { kTextureUsages, kTextureDimensions } from '../../../../capability_info.js';
 import {
-  kTextureFormatInfo,
   kAllTextureFormats,
   kCompressedTextureFormats,
   kDepthStencilFormats,
-  kFeaturesForFormats,
-  filterFormatsByFeature,
   textureDimensionAndFormatCompatible,
+  getBlockInfoForTextureFormat,
+  getBaseFormatForTextureFormat,
+  canCopyFromAllAspectsOfTextureFormat,
+  canCopyToAllAspectsOfTextureFormat,
+  ColorTextureFormat,
 } from '../../../../format_info.js';
 import { kResourceStates } from '../../../../gpu_test.js';
 import { align, lcm } from '../../../../util/math.js';
-import { ValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   TestCopyTextureToTexture(
     source: GPUTexelCopyTextureInfo,
     destination: GPUTexelCopyTextureInfo,
@@ -45,13 +47,11 @@ class F extends ValidationTest {
     format: GPUTextureFormat,
     mipLevel: number
   ): Required<GPUExtent3DDict> {
+    const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
     const virtualWidthAtLevel = Math.max(textureSize.width >> mipLevel, 1);
     const virtualHeightAtLevel = Math.max(textureSize.height >> mipLevel, 1);
-    const physicalWidthAtLevel = align(virtualWidthAtLevel, kTextureFormatInfo[format].blockWidth);
-    const physicalHeightAtLevel = align(
-      virtualHeightAtLevel,
-      kTextureFormatInfo[format].blockHeight
-    );
+    const physicalWidthAtLevel = align(virtualWidthAtLevel, blockWidth);
+    const physicalHeightAtLevel = align(virtualHeightAtLevel, blockHeight);
 
     switch (dimension) {
       case '1d':
@@ -118,9 +118,7 @@ g.test('texture,device_mismatch')
     { srcMismatched: true, dstMismatched: false },
     { srcMismatched: false, dstMismatched: true },
   ] as const)
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { srcMismatched, dstMismatched } = t.params;
 
@@ -358,28 +356,26 @@ Test the formats of textures in copyTextureToTexture must be copy-compatible.
   )
   .params(u =>
     u
-      .combine('srcFormatFeature', kFeaturesForFormats)
-      .combine('dstFormatFeature', kFeaturesForFormats)
-      .beginSubcases()
-      .expand('srcFormat', ({ srcFormatFeature }) =>
-        filterFormatsByFeature(srcFormatFeature, kAllTextureFormats)
-      )
-      .expand('dstFormat', ({ dstFormatFeature }) =>
-        filterFormatsByFeature(dstFormatFeature, kAllTextureFormats)
-      )
+      .combine('srcFormat', kAllTextureFormats)
+      .filter(t => canCopyFromAllAspectsOfTextureFormat(t.srcFormat))
+      .combine('dstFormat', kAllTextureFormats)
+      .filter(t => canCopyToAllAspectsOfTextureFormat(t.dstFormat))
+      .filter(t => {
+        const srcInfo = getBlockInfoForTextureFormat(t.srcFormat);
+        const dstInfo = getBlockInfoForTextureFormat(t.dstFormat);
+        return (
+          srcInfo.blockWidth === dstInfo.blockWidth && srcInfo.blockHeight === dstInfo.blockHeight
+        );
+      })
   )
-  .beforeAllSubcases(t => {
-    const { srcFormatFeature, dstFormatFeature } = t.params;
-    t.selectDeviceOrSkipTestCase([srcFormatFeature, dstFormatFeature]);
-  })
   .fn(t => {
     const { srcFormat, dstFormat } = t.params;
 
-    t.skipIfTextureFormatNotSupportedDeprecated(srcFormat, dstFormat);
-    t.skipIfCopyTextureToTextureNotSupportedForFormatDeprecated(srcFormat, dstFormat);
+    t.skipIfTextureFormatNotSupported(srcFormat, dstFormat);
+    t.skipIfCopyTextureToTextureNotSupportedForFormat(srcFormat, dstFormat);
 
-    const srcFormatInfo = kTextureFormatInfo[srcFormat];
-    const dstFormatInfo = kTextureFormatInfo[dstFormat];
+    const srcFormatInfo = getBlockInfoForTextureFormat(srcFormat);
+    const dstFormatInfo = getBlockInfoForTextureFormat(dstFormat);
 
     const textureSize = {
       width: lcm(srcFormatInfo.blockWidth, dstFormatInfo.blockWidth),
@@ -400,8 +396,10 @@ Test the formats of textures in copyTextureToTexture must be copy-compatible.
     });
 
     // Allow copy between compatible format textures.
-    const srcBaseFormat = kTextureFormatInfo[srcFormat].baseFormat ?? srcFormat;
-    const dstBaseFormat = kTextureFormatInfo[dstFormat].baseFormat ?? dstFormat;
+    const srcBaseFormat =
+      getBaseFormatForTextureFormat(srcFormat as ColorTextureFormat) ?? srcFormat;
+    const dstBaseFormat =
+      getBaseFormatForTextureFormat(dstFormat as ColorTextureFormat) ?? dstFormat;
     const isSuccess = srcBaseFormat === dstBaseFormat;
 
     t.TestCopyTextureToTexture(
@@ -448,13 +446,10 @@ Note: this is only tested for 2D textures as it is the only dimension compatible
       .combine('srcCopyLevel', [1, 2])
       .combine('dstCopyLevel', [0, 1])
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
-  })
   .fn(t => {
     const { format, copyBoxOffsets, srcTextureSize, dstTextureSize, srcCopyLevel, dstCopyLevel } =
       t.params;
+    t.skipIfTextureFormatNotSupported(format);
     const kMipLevelCount = 3;
 
     const srcTexture = t.createTextureTracked({
@@ -704,12 +699,9 @@ Test the validations on the member 'aspect' of GPUTexelCopyTextureInfo in CopyTe
       .combine('sourceAspect', ['all', 'depth-only', 'stencil-only'] as const)
       .combine('destinationAspect', ['all', 'depth-only', 'stencil-only'] as const)
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
-  })
   .fn(t => {
     const { format, sourceAspect, destinationAspect } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
 
     const kTextureSize = { width: 16, height: 8, depthOrArrayLayers: 1 };
 
@@ -783,14 +775,13 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
       .combine('srcCopyLevel', [0, 1, 2])
       .combine('dstCopyLevel', [0, 1, 2])
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.selectDeviceOrSkipTestCase(kTextureFormatInfo[format].feature);
-    t.skipIfCopyTextureToTextureNotSupportedForFormat(format);
-  })
   .fn(t => {
     const { format, dimension, copyBoxOffsets, srcCopyLevel, dstCopyLevel } = t.params;
-    const { blockWidth, blockHeight } = kTextureFormatInfo[format];
+
+    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfCopyTextureToTextureNotSupportedForFormat(format);
+
+    const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
 
     const kTextureSize = {
       width: 15 * blockWidth,
@@ -840,14 +831,11 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
     const copyDepth =
       kTextureSize.depthOrArrayLayers + copyBoxOffsets.depthOrArrayLayers - copyOrigin.z;
 
-    const texelBlockWidth = kTextureFormatInfo[format].blockWidth;
-    const texelBlockHeight = kTextureFormatInfo[format].blockHeight;
-
     const isSuccessForCompressedFormats =
-      copyOrigin.x % texelBlockWidth === 0 &&
-      copyOrigin.y % texelBlockHeight === 0 &&
-      copyWidth % texelBlockWidth === 0 &&
-      copyHeight % texelBlockHeight === 0;
+      copyOrigin.x % blockWidth === 0 &&
+      copyOrigin.y % blockHeight === 0 &&
+      copyWidth % blockWidth === 0 &&
+      copyHeight % blockHeight === 0;
 
     {
       const isSuccess =

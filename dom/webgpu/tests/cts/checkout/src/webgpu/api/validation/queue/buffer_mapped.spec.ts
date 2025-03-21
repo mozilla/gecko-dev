@@ -20,9 +20,9 @@ operations to ensure the mapping state is only considered when a command buffer 
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   async runBufferDependencyTest(usage: number, callback: Function): Promise<void> {
     const bufferDesc = {
       size: 8,

@@ -8,7 +8,7 @@ import { attemptGarbageCollection } from '../../common/util/collect_garbage.js';
 import { keysOf } from '../../common/util/data_tables.js';
 import { getGPU } from '../../common/util/navigator_gpu.js';
 import { assert, iterRange } from '../../common/util/util.js';
-import { getDefaultLimitsForAdapter } from '../../webgpu/capability_info.js';
+import { getDefaultLimitsForCTS } from '../../webgpu/capability_info.js';
 
 export const g = makeTestGroup(Fixture);
 
@@ -34,7 +34,7 @@ async function createDeviceAndComputeCommands(t: Fixture, adapter: GPUAdapter) {
   // Constants are computed such that per run, this function should allocate roughly 2G
   // worth of data. This should be sufficient as we run these creation functions many
   // times. If the data backing the created objects is not recycled we should OOM.
-  const limitInfo = getDefaultLimitsForAdapter(adapter);
+  const limitInfo = getDefaultLimitsForCTS();
   const kNumPipelines = 64;
   const kNumBindgroups = 128;
   const kNumBufferElements =

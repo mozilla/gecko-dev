@@ -13,7 +13,7 @@ runRefTest(t => {
     const colorAttachment = ctx.getCurrentTexture();
     const colorAttachmentView = colorAttachment.createView();
 
-    const encoder = t.device.createCommandEncoder();
+    const encoder = t.device.createCommandEncoder({ label: 'runRefTest' });
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {

@@ -97,15 +97,10 @@ unless(
 combine('mipLevel', [0, 1, 2]).
 unless((t) => t.viewDimension === '1d' && t.mipLevel !== 0)
 ).
-beforeAllSubcases((t) => {
-  if (t.params.format === 'bgra8unorm') {
-    t.selectDeviceOrSkipTestCase('bgra8unorm-storage');
-  } else {
-    t.skipIfTextureFormatNotUsableAsStorageTextureDeprecated(t.params.format);
-  }
-}).
 fn((t) => {
   const { format, stage, access, viewDimension, mipLevel } = t.params;
+  t.skipIfTextureFormatNotUsableAsReadWriteStorageTexture(format);
+
   const { componentType } = getTextureFormatTypeInfo(format);
   const values = inputArray(format);
 
@@ -367,10 +362,8 @@ struct VOut {
 
 g.test('bgra8unorm_swizzle').
 desc('Test bgra8unorm swizzling').
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('bgra8unorm-storage');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('bgra8unorm-storage');
   const values = [
   { r: -1.1, g: 0.6, b: 0.4, a: 1 },
   { r: 1.1, g: 0.6, b: 0.4, a: 1 },

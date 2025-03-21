@@ -3,9 +3,9 @@ Tests using a destroyed query set on a queue.
 `;
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { ValidationTest } from '../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('beginOcclusionQuery')
   .desc(
@@ -34,8 +34,8 @@ Tests that use a destroyed query set in timestamp query on {non-pass, compute, r
   `
   )
   .params(u => u.beginSubcases().combine('querySetState', ['valid', 'destroyed'] as const))
-  .beforeAllSubcases(t => t.selectDeviceOrSkipTestCase('timestamp-query'))
   .fn(t => {
+    t.skipIfDeviceDoesNotSupportQueryType('timestamp');
     const querySet = t.createQuerySetWithState(t.params.querySetState, {
       type: 'timestamp',
       count: 2,

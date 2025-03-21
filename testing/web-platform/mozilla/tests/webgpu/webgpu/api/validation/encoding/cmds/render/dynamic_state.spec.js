@@ -23,9 +23,8 @@ TODO: ensure existing tests cover these notes. Note many of these may be operati
 >     - {0, max}
 >     - used with a simple pipeline that {does, doesn't} use it
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { MaxLimitsTestMixin } from '../../../../../gpu_test.js';
 import { nextAfterF32 } from '../../../../../util/math.js';
-import { ValidationTest } from '../../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
 
 
 
@@ -43,7 +42,7 @@ import { ValidationTest } from '../../../validation_test.js';
 
 
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   testViewportCall(
   success,
   v,
@@ -130,7 +129,7 @@ class F extends ValidationTest {
   }
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(F));
+export const g = makeTestGroup(F);
 
 g.test('setViewport,width_height_nonnegative').
 desc(

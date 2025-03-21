@@ -120,7 +120,7 @@ fn frag(@builtin(position) position: vec4f) -> @location(0) vec4u {
   const bytesPerRow = align(width * 16, 256);
 
   const results = [];
-  const encoder = t.device.createCommandEncoder();
+  const encoder = t.device.createCommandEncoder({ label: 'runFWidthTest' });
   for (let c = 0; c < cases.length; c += kNumCasesPerUniformBuffer) {
     // Create uniform buffer to hold the inputs.
     const inputBuffer = t.createBufferTracked({

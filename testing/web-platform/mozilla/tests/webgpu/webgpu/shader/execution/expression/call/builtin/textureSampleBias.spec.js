@@ -417,6 +417,7 @@ combine('A', ['i32', 'u32'])
 ).
 fn(async (t) => {
   const { format, samplePoints, A, mode, filt: minFilter } = t.params;
+  t.skipIfTextureViewDimensionNotSupported('cube-array');
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   const viewDimension = 'cube-array';

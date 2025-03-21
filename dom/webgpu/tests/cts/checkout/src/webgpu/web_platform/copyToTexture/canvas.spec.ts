@@ -623,7 +623,7 @@ g.test('copy_contents_from_gpu_context_canvas')
       .combine('height', [1, 2, 4, 15])
   )
   .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
+    t.usesMismatchedDevice();
   })
   .fn(t => {
     t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);

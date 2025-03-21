@@ -15,9 +15,9 @@ import {
   getAPIBindGroupLayoutForResource,
   doResourcesMatch,
 } from './utils.js';
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   getShaderModule(
     shaderStage: TShaderStage = 'compute',
     entryPoint: string = 'main'
@@ -93,9 +93,7 @@ g.test('shader_module,device_mismatch')
     'Tests createComputePipeline(Async) cannot be called with a shader module created from another device'
   )
   .paramsSubcasesOnly(u => u.combine('isAsync', [true, false]).combine('mismatched', [true, false]))
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { isAsync, mismatched } = t.params;
 
@@ -121,9 +119,7 @@ g.test('pipeline_layout,device_mismatch')
     'Tests createComputePipeline(Async) cannot be called with a pipeline layout created from another device'
   )
   .paramsSubcasesOnly(u => u.combine('isAsync', [true, false]).combine('mismatched', [true, false]))
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { isAsync, mismatched } = t.params;
     const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -515,10 +511,8 @@ clarity on whether values like f16.positive.last_castable_pipeline_override woul
         },
       ] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('shader-f16');
     const { isAsync, constants, _success } = t.params;
 
     const descriptor = {
@@ -718,7 +712,7 @@ g.test('resource_compatibility')
         !t.hasLanguageFeature('readonly_and_readwrite_storage_textures'),
       'Storage textures require language feature'
     );
-    t.skipIfTextureViewDimensionNotSupportedDeprecated(wgslResource.texture?.viewDimension);
+    t.skipIfTextureViewDimensionNotSupported(wgslResource.texture?.viewDimension);
 
     const layout = t.device.createPipelineLayout({
       bindGroupLayouts: [

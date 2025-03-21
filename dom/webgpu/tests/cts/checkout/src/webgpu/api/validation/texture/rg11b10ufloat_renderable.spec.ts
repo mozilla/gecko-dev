@@ -4,9 +4,9 @@ Tests for capabilities added by rg11b10ufloat-renderable flag.
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUConst } from '../../../constants.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('create_texture')
   .desc(
@@ -17,10 +17,8 @@ Note, the createTexture tests cover these validation cases where this feature is
 `
   )
   .params(u => u.combine('sampleCount', [1, 4]))
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('rg11b10ufloat-renderable');
     const { sampleCount } = t.params;
     const descriptor = {
       size: [1, 1, 1],
@@ -38,10 +36,8 @@ Test that it is valid to begin render pass with rg11b10ufloat texture format
 iff rg11b10ufloat-renderable feature is enabled. Single sampled case.
 `
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('rg11b10ufloat-renderable');
     const texture = t.createTextureTracked({
       size: [1, 1, 1],
       format: 'rg11b10ufloat',
@@ -70,10 +66,8 @@ Test that it is valid to begin render pass with rg11b10ufloat texture format
 iff rg11b10ufloat-renderable feature is enabled. MSAA and resolve case.
 `
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('rg11b10ufloat-renderable');
     const renderTexture = t.createTextureTracked({
       size: [1, 1, 1],
       format: 'rg11b10ufloat',
@@ -109,10 +103,8 @@ Test that it is valid to begin render bundle encoder with rg11b10ufloat texture
 format iff rg11b10ufloat-renderable feature is enabled.
 `
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('rg11b10ufloat-renderable');
     t.device.createRenderBundleEncoder({
       colorFormats: ['rg11b10ufloat'],
     });
@@ -125,10 +117,8 @@ Test that it is valid to create render pipeline with rg11b10ufloat texture forma
 in descriptor.fragment.targets iff rg11b10ufloat-renderable feature is enabled.
 `
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('rg11b10ufloat-renderable');
     t.device.createRenderPipeline({
       layout: 'auto',
       vertex: {

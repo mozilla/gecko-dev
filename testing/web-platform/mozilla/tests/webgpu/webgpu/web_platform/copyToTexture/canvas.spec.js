@@ -623,7 +623,7 @@ combine('width', [1, 2, 4, 15]).
 combine('height', [1, 2, 4, 15])
 ).
 beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
+  t.usesMismatchedDevice();
 }).
 fn((t) => {
   t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);

@@ -4,8 +4,9 @@ import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kTextureDimensions } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import {
+  getBlockInfoForSizedTextureFormat,
+  isDepthOrStencilTextureFormat,
   kSizedTextureFormats,
-  kTextureFormatInfo,
   textureDimensionAndFormatCompatible,
 } from '../../../format_info.js';
 import { kResourceStates } from '../../../gpu_test.js';
@@ -62,9 +63,7 @@ g.test('buffer,device_mismatch')
   .paramsSubcasesOnly(u =>
     u.combine('method', ['CopyB2T', 'CopyT2B'] as const).combine('mismatched', [true, false])
   )
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { method, mismatched } = t.params;
     const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -170,9 +169,9 @@ Test that bytesPerRow must be a multiple of 256 for CopyB2T and CopyT2B if it is
       .unless(p => p.dimension === '1d' && p.copyHeightInBlocks > 1)
       // Depth/stencil format copies must copy the whole subresource.
       .unless(p => {
-        const info = kTextureFormatInfo[p.format];
         return (
-          (!!info.depth || !!info.stencil) && p.copyHeightInBlocks !== p._textureHeightInBlocks
+          isDepthOrStencilTextureFormat(p.format) &&
+          p.copyHeightInBlocks !== p._textureHeightInBlocks
         );
       })
       // bytesPerRow must be specified and it must be equal or greater than the bytes size of each row if we are copying multiple rows.
@@ -180,19 +179,16 @@ Test that bytesPerRow must be a multiple of 256 for CopyB2T and CopyT2B if it is
       .filter(
         ({ format, bytesPerRow, copyHeightInBlocks }) =>
           (bytesPerRow === undefined && copyHeightInBlocks <= 1) ||
-          (bytesPerRow !== undefined && bytesPerRow >= kTextureFormatInfo[format].bytesPerBlock)
+          (bytesPerRow !== undefined &&
+            bytesPerRow >= getBlockInfoForSizedTextureFormat(format).bytesPerBlock)
       )
   )
-  .beforeAllSubcases(t => {
-    const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-    t.selectDeviceOrSkipTestCase(info.feature);
-  })
   .fn(t => {
     const { method, dimension, format, bytesPerRow, copyHeightInBlocks, _textureHeightInBlocks } =
       t.params;
+    t.skipIfTextureFormatNotSupported(format);
 
-    const info = kTextureFormatInfo[format];
+    const info = getBlockInfoForSizedTextureFormat(format);
 
     const buffer = t.createBufferTracked({
       size: 512 * 8 * 16,

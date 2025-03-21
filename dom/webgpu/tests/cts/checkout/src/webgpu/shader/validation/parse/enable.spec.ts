@@ -82,6 +82,13 @@ enable f16;`,
     enable f16;`,
     pass: true,
   },
+  in_comment_f16: {
+    code: `
+    /* enable f16; */
+    var<private> v: f16;
+    `,
+    pass: false,
+  },
 };
 
 g.test('enable')

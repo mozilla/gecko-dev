@@ -417,6 +417,7 @@ Parameters:
   )
   .fn(async t => {
     const { format, samplePoints, A, mode, filt: minFilter } = t.params;
+    t.skipIfTextureViewDimensionNotSupported('cube-array');
     skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
     const viewDimension: GPUTextureViewDimension = 'cube-array';

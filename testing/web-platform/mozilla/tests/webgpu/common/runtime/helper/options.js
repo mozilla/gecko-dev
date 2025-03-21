@@ -61,7 +61,7 @@ searchParams = getWindowURL().searchParams)
 
 export const kDefaultCTSOptions = {
   worker: null,
-  debug: true,
+  debug: false,
   compatibility: false,
   forceFallbackAdapter: false,
   enforceDefaultLimits: false,

@@ -61,7 +61,7 @@ export interface CTSOptions {
 
 export const kDefaultCTSOptions: CTSOptions = {
   worker: null,
-  debug: true,
+  debug: false,
   compatibility: false,
   forceFallbackAdapter: false,
   enforceDefaultLimits: false,

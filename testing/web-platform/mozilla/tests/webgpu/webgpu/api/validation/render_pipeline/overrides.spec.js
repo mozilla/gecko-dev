@@ -442,10 +442,8 @@ combineWithParams([
 }]
 )
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const { isAsync, vertexConstants, _success } = t.params;
 
   t.doCreateRenderPipelineTest(isAsync, _success, {
@@ -485,9 +483,6 @@ TODO(#2060): Tighten the cases around the valid/invalid boundary once we have WG
 clarity on whether values like f16.positive.last_f64_castable would be valid. See issue.
 `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase({ requiredFeatures: ['shader-f16'] });
-}).
 params((u) =>
 u //
 .combine('isAsync', [true, false]).
@@ -515,6 +510,7 @@ combineWithParams([
 )
 ).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('shader-f16');
   const { isAsync, fragmentConstants, _success } = t.params;
 
   const descriptor = t.getDescriptor({

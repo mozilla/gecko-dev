@@ -12,7 +12,7 @@ import { GPUConst } from '../../../constants.js';
 import {
   computeBytesPerSampleFromFormats,
   kDepthStencilFormats,
-  kPossiblyRenderableColorTextureFormats,
+  kPossibleColorRenderableTextureFormats,
   isTextureFormatColorRenderable,
   isDepthTextureFormat,
   isStencilTextureFormat,
@@ -205,7 +205,7 @@ desc(
 ).
 params((u) =>
 u.
-combine('format', kPossiblyRenderableColorTextureFormats).
+combine('format', kPossibleColorRenderableTextureFormats).
 beginSubcases().
 combine(
   'attachmentCount',
@@ -1160,7 +1160,7 @@ desc(
   if and only if they support 'resolve'.
   `
 ).
-params((u) => u.combine('format', kPossiblyRenderableColorTextureFormats)).
+params((u) => u.combine('format', kPossibleColorRenderableTextureFormats)).
 fn((t) => {
   const { format } = t.params;
   t.skipIfTextureFormatNotSupported(format);

@@ -7,7 +7,7 @@ and parameters as expect.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { kVertexFormatInfo } from '../../../../../capability_info.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { ValidationTest } from '../../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
 
 type VertexAttrib<A> = A & { shaderLocation: number };
 type VertexBuffer<V, A> = V & {
@@ -98,7 +98,7 @@ function callDraw(
 }
 
 function makeTestPipeline(
-  test: ValidationTest,
+  test: AllFeaturesMaxLimitsValidationTest,
   buffers: VertexState<
     { stepMode: GPUVertexStepMode; arrayStride: number },
     {
@@ -133,7 +133,7 @@ function makeTestPipeline(
 }
 
 function makeTestPipelineWithVertexAndInstanceBuffer(
-  test: ValidationTest,
+  test: AllFeaturesMaxLimitsValidationTest,
   arrayStride: number,
   attributeFormat: GPUVertexFormat,
   attributeOffset: number = 0
@@ -190,7 +190,7 @@ const kDefaultParameterForIndexedDraw = {
   indexBufferSize: 2 * 200, // exact required bound size for index buffer
 };
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test(`unused_buffer_bound`)
   .desc(

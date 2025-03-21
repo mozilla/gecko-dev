@@ -6,11 +6,11 @@ GPURenderPassEncoder when the encoder is not finished.
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
 import { unreachable } from '../../../../common/util/util.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
 import { beginRenderPassWithQuerySet } from './queries/common.js';
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   createRenderPipelineForTest(): GPURenderPipeline {
     return this.device.createRenderPipeline({
       layout: 'auto',
@@ -165,15 +165,11 @@ g.test('non_pass_commands')
       .beginSubcases()
       .combine('finishBeforeCommand', [false, true])
   )
-  .beforeAllSubcases(t => {
-    switch (t.params.command) {
-      case 'writeTimestamp':
-        t.selectDeviceOrSkipTestCase('timestamp-query');
-        break;
-    }
-  })
   .fn(t => {
     const { command, finishBeforeCommand } = t.params;
+    if (command === 'writeTimestamp') {
+      t.skipIfDeviceDoesNotSupportQueryType('timestamp');
+    }
 
     const srcBuffer = t.createBufferTracked({
       size: 16,
@@ -304,14 +300,13 @@ g.test('render_pass_commands')
       .beginSubcases()
       .combine('finishBeforeCommand', [false, true])
   )
-  .beforeAllSubcases(t => {
-    const { command } = t.params;
-    if (command === 'multiDrawIndirect' || command === 'multiDrawIndexedIndirect') {
-      t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
-    }
-  })
   .fn(t => {
     const { command, finishBeforeCommand } = t.params;
+    if (command === 'multiDrawIndirect' || command === 'multiDrawIndexedIndirect') {
+      t.skipIfDeviceDoesNotHaveFeature(
+        'chromium-experimental-multi-draw-indirect' as GPUFeatureName
+      );
+    }
 
     const querySet = t.createQuerySetTracked({ type: 'occlusion', count: 1 });
     const encoder = t.device.createCommandEncoder();

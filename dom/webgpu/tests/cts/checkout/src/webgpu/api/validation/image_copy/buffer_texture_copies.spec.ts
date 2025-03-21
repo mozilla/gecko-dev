@@ -14,9 +14,9 @@ import {
 } from '../../../format_info.js';
 import { align } from '../../../util/math.js';
 import { kBufferCopyAlignment, kBytesPerRowAlignment } from '../../../util/texture/layout.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-class ImageCopyTest extends ValidationTest {
+class ImageCopyTest extends AllFeaturesMaxLimitsValidationTest {
   testCopyBufferToTexture(
     source: GPUTexelCopyBufferInfo,
     destination: GPUTexelCopyTextureInfo,
@@ -70,12 +70,9 @@ g.test('depth_stencil_format,copy_usage_and_aspect')
       .beginSubcases()
       .combine('aspect', ['all', 'depth-only', 'stencil-only'] as const)
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.selectDeviceForTextureFormatOrSkipTestCase(format);
-  })
   .fn(t => {
     const { format, aspect } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
 
     const textureSize = { width: 1, height: 1, depthOrArrayLayers: 1 };
     const texture = t.createTextureTracked({
@@ -135,12 +132,9 @@ g.test('depth_stencil_format,copy_buffer_size')
         { width: 4, height: 4, depthOrArrayLayers: 3 },
       ])
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.selectDeviceForTextureFormatOrSkipTestCase(format);
-  })
   .fn(t => {
     const { format, aspect, copyType, copySize } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
 
     const texture = t.createTextureTracked({
       size: copySize,
@@ -242,12 +236,9 @@ g.test('depth_stencil_format,copy_buffer_offset')
       .beginSubcases()
       .combine('offset', [1, 2, 4, 6, 8])
   )
-  .beforeAllSubcases(t => {
-    const { format } = t.params;
-    t.selectDeviceForTextureFormatOrSkipTestCase(format);
-  })
   .fn(t => {
     const { format, aspect, copyType, offset } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
 
     const textureSize = { width: 4, height: 4, depthOrArrayLayers: 1 };
 
@@ -422,9 +413,7 @@ g.test('device_mismatch')
         { bufMismatched: false, texMismatched: true },
       ] as const)
   )
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { copyType, bufMismatched, texMismatched } = t.params;
 

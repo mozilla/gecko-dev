@@ -136,7 +136,7 @@ subresourceRange) =>
       resolveTarget = resolveTexture.createView();
     }
 
-    const commandEncoder = t.device.createCommandEncoder();
+    const commandEncoder = t.device.createCommandEncoder({ label: 'checkContents' });
     commandEncoder.pushDebugGroup('checkContentsWithDepthStencil');
 
     const pass = commandEncoder.beginRenderPass({

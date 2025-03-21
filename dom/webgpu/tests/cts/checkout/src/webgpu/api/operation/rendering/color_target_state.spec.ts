@@ -205,15 +205,13 @@ g.test('blending,GPUBlendComponent')
         return needsBlendConstant ? [{ r: 0.91, g: 0.82, b: 0.73, a: 0.64 }] : [undefined];
       })
   )
-  .beforeAllSubcases(t => {
+  .fn(t => {
     if (
       IsDualSourceBlendingFactor(t.params.srcFactor) ||
       IsDualSourceBlendingFactor(t.params.dstFactor)
     ) {
-      t.selectDeviceOrSkipTestCase('dual-source-blending');
+      t.skipIfDeviceDoesNotHaveFeature('dual-source-blending');
     }
-  })
-  .fn(t => {
     const textureFormat: GPUTextureFormat = kBlendingGPUBlendComponentFormat;
     const srcColor = t.params.srcColor;
     const srcColor1 = t.params.srcColor1;

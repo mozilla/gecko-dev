@@ -6,9 +6,12 @@ import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
 import { kTextureDimensions } from '../../../capability_info.js';
 import {
-  kTextureFormatInfo,
   kSizedTextureFormats,
   textureDimensionAndFormatCompatible,
+  getBlockInfoForTextureFormat,
+  isDepthOrStencilTextureFormat,
+  getBlockInfoForSizedTextureFormat,
+  getBlockInfoForColorTextureFormat,
 } from '../../../format_info.js';
 import { align } from '../../../util/math.js';
 import {
@@ -58,7 +61,7 @@ Test that rowsPerImage must be at least the copy height (if defined).
     const { rowsPerImage, copyHeightInBlocks, copyDepth, dimension, size, method } = t.params;
 
     const format = 'rgba8unorm';
-    const copyHeight = copyHeightInBlocks * kTextureFormatInfo[format].blockHeight;
+    const copyHeight = copyHeightInBlocks * getBlockInfoForTextureFormat(format).blockHeight;
 
     const texture = t.createTextureTracked({
       size,
@@ -162,26 +165,19 @@ Test the computation of requiredBytesInCopy by computing the minimum data size f
       // If the format is a depth/stencil format, its copy size must equal to subresource's size.
       // So filter out depth/stencil cases where the rounded-up texture size would be different from the copy size.
       .filter(({ format, copyWidthInBlocks, copyHeightInBlocks, copyDepth }) => {
-        const info = kTextureFormatInfo[format];
         return (
-          (!info.depth && !info.stencil) ||
+          !isDepthOrStencilTextureFormat(format) ||
           (copyWidthInBlocks > 0 && copyHeightInBlocks > 0 && copyDepth > 0)
         );
       })
       .unless(p => p.dimension === '1d' && (p.copyHeightInBlocks > 1 || p.copyDepth > 1))
       .expand('offset', p => {
-        const info = kTextureFormatInfo[p.format];
-        if (info.depth || info.stencil) {
+        if (isDepthOrStencilTextureFormat(p.format)) {
           return [p._offsetMultiplier * 4];
         }
-        return [p._offsetMultiplier * info.color.bytes];
+        return [p._offsetMultiplier * getBlockInfoForSizedTextureFormat(p.format).bytesPerBlock];
       })
   )
-  .beforeAllSubcases(t => {
-    const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-    t.selectDeviceOrSkipTestCase(info.feature);
-  })
   .fn(t => {
     const {
       offset,
@@ -194,7 +190,8 @@ Test the computation of requiredBytesInCopy by computing the minimum data size f
       dimension,
       method,
     } = t.params;
-    const info = kTextureFormatInfo[format];
+    t.skipIfTextureFormatNotSupported(format);
+    const info = getBlockInfoForSizedTextureFormat(format);
 
     // In the CopyB2T and CopyT2B cases we need to have bytesPerRow 256-aligned,
     // to make this happen we align the bytesInACompleteRow value and multiply
@@ -248,16 +245,15 @@ Test that rowsPerImage has no alignment constraints.
       .beginSubcases()
       .expand('rowsPerImage', texelBlockAlignmentTestExpanderForRowsPerImage)
       // Copy height is info.blockHeight, so rowsPerImage must be equal or greater than it.
-      .filter(({ rowsPerImage, format }) => rowsPerImage >= kTextureFormatInfo[format].blockHeight)
+      .filter(
+        ({ rowsPerImage, format }) =>
+          rowsPerImage >= getBlockInfoForSizedTextureFormat(format).blockHeight
+      )
   )
-  .beforeAllSubcases(t => {
-    const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-    t.selectDeviceOrSkipTestCase(info.feature);
-  })
   .fn(t => {
     const { rowsPerImage, format, method } = t.params;
-    const info = kTextureFormatInfo[format];
+    t.skipIfTextureFormatNotSupported(format);
+    const info = getBlockInfoForSizedTextureFormat(format);
 
     const size = { width: info.blockWidth, height: info.blockHeight, depthOrArrayLayers: 1 };
     const texture = t.createTextureTracked({
@@ -293,14 +289,10 @@ Test the alignment requirement on the linear data offset (block size, or 4 for d
       .beginSubcases()
       .expand('offset', texelBlockAlignmentTestExpanderForOffset)
   )
-  .beforeAllSubcases(t => {
-    const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-    t.selectDeviceOrSkipTestCase(info.feature);
-  })
   .fn(t => {
     const { format, offset, method } = t.params;
-    const info = kTextureFormatInfo[format];
+    t.skipIfTextureFormatNotSupported(format);
+    const info = getBlockInfoForSizedTextureFormat(format);
 
     const size = { width: info.blockWidth, height: info.blockHeight, depthOrArrayLayers: 1 };
     const texture = t.createTextureTracked({
@@ -311,10 +303,10 @@ Test the alignment requirement on the linear data offset (block size, or 4 for d
 
     let success = false;
     if (method === 'WriteTexture') success = true;
-    if (info.depth || info.stencil) {
+    if (isDepthOrStencilTextureFormat(format)) {
       if (offset % 4 === 0) success = true;
     } else {
-      if (offset % info.color.bytes === 0) success = true;
+      if (offset % info.bytesPerBlock === 0) success = true;
     }
 
     t.testRun({ texture }, { offset, bytesPerRow: 256 }, size, {
@@ -348,7 +340,7 @@ Test that bytesPerRow, if specified must be big enough for a full copy row.
       .combine('copyDepth', [1, 2])
       .unless(p => p.dimension === '1d' && (p.copyHeightInBlocks > 1 || p.copyDepth > 1))
       .expandWithParams(p => {
-        const info = kTextureFormatInfo[p.format];
+        const info = getBlockInfoForSizedTextureFormat(p.format);
         // We currently have a built-in assumption that for all formats, 128 % bytesPerBlock === 0.
         // This assumption ensures that all division below results in integers.
         assert(128 % info.bytesPerBlock === 0);
@@ -366,7 +358,7 @@ Test that bytesPerRow, if specified must be big enough for a full copy row.
             bytesPerRow: 256,
             widthInBlocks: 256 / info.bytesPerBlock,
             copyWidthInBlocks: 256 / info.bytesPerBlock - 1,
-            _success: !(info.stencil || info.depth),
+            _success: !isDepthOrStencilTextureFormat(p.format),
           },
           // Unaligned bytesPerRow should not work unless the method is 'WriteTexture'.
           {
@@ -398,11 +390,6 @@ Test that bytesPerRow, if specified must be big enough for a full copy row.
         ];
       })
   )
-  .beforeAllSubcases(t => {
-    const info = kTextureFormatInfo[t.params.format];
-    t.skipIfTextureFormatNotSupportedDeprecated(t.params.format);
-    t.selectDeviceOrSkipTestCase(info.feature);
-  })
   .fn(t => {
     const {
       method,
@@ -414,7 +401,8 @@ Test that bytesPerRow, if specified must be big enough for a full copy row.
       copyDepth,
       _success,
     } = t.params;
-    const info = kTextureFormatInfo[format];
+    t.skipIfTextureFormatNotSupported(format);
+    const info = getBlockInfoForSizedTextureFormat(format);
 
     // We create an aligned texture using the widthInBlocks which may be different from the
     // copyWidthInBlocks. This allows us to test scenarios where the two may be different.
@@ -462,9 +450,9 @@ Test that the offset cannot be larger than the linear data size (even for an emp
     const { offsetInBlocks, dataSizeInBlocks, method } = t.params;
 
     const format = 'rgba8unorm';
-    const info = kTextureFormatInfo[format];
-    const offset = offsetInBlocks * info.color.bytes;
-    const dataSize = dataSizeInBlocks * info.color.bytes;
+    const info = getBlockInfoForColorTextureFormat(format);
+    const offset = offsetInBlocks * info.bytesPerBlock;
+    const dataSize = dataSizeInBlocks * info.bytesPerBlock;
 
     const texture = t.createTextureTracked({
       size: { width: 4, height: 4, depthOrArrayLayers: 1 },

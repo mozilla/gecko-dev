@@ -4,8 +4,8 @@
 Buffer Usages Validation Tests in Render Pass and Compute Pass.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { assert, unreachable } from '../../../../../common/util/util.js';
-import { MaxLimitsTestMixin } from '../../../../gpu_test.js';
-import { ValidationTest } from '../../validation_test.js';
+
+import { AllFeaturesMaxLimitsValidationTest } from '../../validation_test.js';
 
 const kBoundBufferSize = 256;
 
@@ -32,7 +32,7 @@ function resourceVisibilityToVisibility(resourceVisibility) {
   return resourceVisibility === 'compute' ? GPUShaderStage.COMPUTE : GPUShaderStage.FRAGMENT;
 }
 
-export class BufferResourceUsageTest extends ValidationTest {
+export class BufferResourceUsageTest extends AllFeaturesMaxLimitsValidationTest {
   createBindGroupLayoutForTest(
   type,
   resourceVisibility)
@@ -180,7 +180,7 @@ numRequired)
   }
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(BufferResourceUsageTest));
+export const g = makeTestGroup(BufferResourceUsageTest);
 
 g.test('subresources,buffer_usage_in_one_compute_pass_with_no_dispatch').
 desc(

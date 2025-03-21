@@ -1803,10 +1803,8 @@ combine('size', kSizes).
 beginSubcases().
 combineWithParams([{ format: 'rgba32uint' }])
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('subgroups');
-}).
 fn(async (t) => {
+  t.skipIfDeviceDoesNotHaveFeature('subgroups');
   const fsShader = `
 enable subgroups;
 

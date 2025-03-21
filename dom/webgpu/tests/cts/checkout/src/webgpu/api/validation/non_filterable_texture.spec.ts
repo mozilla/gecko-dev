@@ -5,7 +5,7 @@ Tests that non-filterable textures used with filtering samplers generate a valid
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { keysOf } from '../../../common/util/data_tables.js';
 
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
 const kNonFilterableCaseInfo: Record<GPUTextureSampleType, { type: string; component: string }> = {
   sint: { type: 'i32', component: '0,' },
@@ -16,7 +16,7 @@ const kNonFilterableCaseInfo: Record<GPUTextureSampleType, { type: string; compo
 };
 const kNonFilterableCases = keysOf(kNonFilterableCaseInfo);
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('non_filterable_texture_with_filtering_sampler')
   .desc(
@@ -30,13 +30,11 @@ g.test('non_filterable_texture_with_filtering_sampler')
       .combine('viewDimension', ['2d', '2d-array', 'cube', 'cube-array'] as const)
       .combine('sameGroup', [true, false] as const)
   )
-  .beforeAllSubcases(t =>
-    t.skipIfTextureViewDimensionNotSupportedDeprecated(t.params.viewDimension)
-  )
   .fn(t => {
     const { device } = t;
     const { pipeline, async, sampleType, viewDimension, sameGroup } = t.params;
     const { type, component } = kNonFilterableCaseInfo[sampleType];
+    t.skipIfTextureViewDimensionNotSupported(viewDimension);
 
     const coord = viewDimension.startsWith('2d') ? 'vec2f(0)' : 'vec3f(0)';
     const dimensionSuffix = viewDimension.replace('-', '_');

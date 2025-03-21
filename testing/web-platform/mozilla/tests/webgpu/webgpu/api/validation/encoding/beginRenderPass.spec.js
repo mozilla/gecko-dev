@@ -22,9 +22,9 @@ Notes:
 >     - all possible {depth, stencil} store ops
 >     - depthReadOnly {t,f}, stencilReadOnly {t,f}
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { ValidationTest } from '../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('color_attachments,device_mismatch').
 desc(
@@ -62,9 +62,7 @@ paramsSubcasesOnly([
   target1Mismatched: true
 }]
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { view0Mismatched, target0Mismatched, view1Mismatched, target1Mismatched } = t.params;
   const mismatched = view0Mismatched || target0Mismatched || view1Mismatched || target1Mismatched;
@@ -111,9 +109,7 @@ desc(
   'Tests beginRenderPass cannot be called with a depth stencil attachment whose texture view is created from another device'
 ).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { mismatched } = t.params;
 
@@ -150,9 +146,7 @@ desc(
   'Tests beginRenderPass cannot be called with an occlusion query set created from another device'
 ).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
@@ -175,11 +169,9 @@ desc(
   `
 ).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase(['timestamp-query']);
-  t.selectMismatchedDeviceOrSkipTestCase('timestamp-query');
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
+  t.skipIfDeviceDoesNotSupportQueryType('timestamp');
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 

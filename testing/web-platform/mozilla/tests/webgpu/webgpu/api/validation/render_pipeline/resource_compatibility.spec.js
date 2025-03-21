@@ -4,7 +4,6 @@
 Tests for resource compatibility between pipeline layout and shader modules
   `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
-import { MaxLimitsTestMixin } from '../../../gpu_test.js';
 import {
   kAPIResources,
   getWGSLShaderForResource,
@@ -14,7 +13,7 @@ import {
 
 import { CreateRenderPipelineValidationTest } from './common.js';
 
-export const g = makeTestGroup(MaxLimitsTestMixin(CreateRenderPipelineValidationTest));
+export const g = makeTestGroup(CreateRenderPipelineValidationTest);
 
 g.test('resource_compatibility').
 desc(
@@ -84,7 +83,7 @@ fn((t) => {
       'Storage textures can not be used in fragment shaders because maxStorageTexturesInFragmentStage === 0'
     );
   }
-  t.skipIfTextureViewDimensionNotSupportedDeprecated(wgslResource.texture?.viewDimension);
+  t.skipIfTextureViewDimensionNotSupported(wgslResource.texture?.viewDimension);
   const emptyVS = `
 @vertex
 fn main() -> @builtin(position) vec4f {

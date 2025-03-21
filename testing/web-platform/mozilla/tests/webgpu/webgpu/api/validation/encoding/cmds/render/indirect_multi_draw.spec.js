@@ -10,13 +10,13 @@ import {
   kMaxUnsignedLongLongValue } from
 '../../../../../constants.js';
 import { kResourceStates } from '../../../../../gpu_test.js';
-import { ValidationTest } from '../../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
 
 const kIndirectMultiDrawTestParams = kUnitCaseParamsBuilder.
 combine('indexed', [true, false]).
 combine('useDrawCountBuffer', [true, false]);
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   makeIndexBuffer() {
     return this.createBufferTracked({
       size: 16,
@@ -33,10 +33,6 @@ desc(
 Tests indirect and draw count buffers must be valid.
   `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect');
-}).
-
 paramsSubcasesOnly(
   kIndirectMultiDrawTestParams.
   combine('indirectState', kResourceStates).
@@ -52,6 +48,7 @@ paramsSubcasesOnly(
   )
 ).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect');
   const { indexed, indirectState, useDrawCountBuffer, drawCountState } = t.params;
   const indirectBuffer = t.createBufferWithState(indirectState, {
     size: 256,
@@ -96,11 +93,9 @@ paramsSubcasesOnly(
   // drawCountMismatched only matters if useDrawCountBuffer=true
   .filter((p) => p.useDrawCountBuffer || !p.drawCountMismatched)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect');
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect');
   const { indexed, useDrawCountBuffer, indirectMismatched, drawCountMismatched } = t.params;
 
   const indirectDevice = indirectMismatched ? t.mismatchedDevice : t.device;
@@ -140,9 +135,6 @@ desc(
 Tests indirect and draw count buffers must have 'Indirect' usage.
   `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect');
-}).
 paramsSubcasesOnly(
   kIndirectMultiDrawTestParams.
   combine('indirectUsage', [
@@ -157,6 +149,7 @@ paramsSubcasesOnly(
   )
 ).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect');
   const { indexed, indirectUsage, useDrawCountBuffer, drawCountUsage } = t.params;
 
   const indirectBuffer = t.createBufferTracked({
@@ -192,9 +185,6 @@ desc(
 Tests indirect and draw count offsets must be a multiple of 4.
   `
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect');
-}).
 paramsSubcasesOnly(
   kIndirectMultiDrawTestParams.combineWithParams([
   // Valid
@@ -209,6 +199,7 @@ paramsSubcasesOnly(
   )
 ).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect');
   const { indexed, indirectOffset, useDrawCountBuffer, drawCountOffset } = t.params;
 
   const indirectBuffer = t.createBufferTracked({
@@ -287,10 +278,8 @@ combine('indexed', [true, false]) //
   yield { offset: 0, maxDrawCount: kMaxUnsignedLongValue, bufferSize: 1024 };
 })
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect');
   const { indexed, offset, maxDrawCount, bufferSize } = t.params;
 
   const indirectBuffer = t.createBufferTracked({
@@ -336,10 +325,8 @@ combine('indexed', [true, false]) //
 { offset: kMaxUnsignedLongLongValue, bufferSize: 1024 }]
 )
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect');
-}).
 fn((t) => {
+  t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect');
   const { indexed, bufferSize, offset } = t.params;
 
   const indirectBuffer = t.createBufferTracked({

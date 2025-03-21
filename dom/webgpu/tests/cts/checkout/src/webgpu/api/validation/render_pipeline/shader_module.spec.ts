@@ -28,9 +28,7 @@ g.test('device_mismatch')
       { vertex_mismatched: false, fragment_mismatched: true, _success: false },
     ])
   )
-  .beforeAllSubcases(t => {
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
     const { isAsync, vertex_mismatched, fragment_mismatched, _success } = t.params;
 

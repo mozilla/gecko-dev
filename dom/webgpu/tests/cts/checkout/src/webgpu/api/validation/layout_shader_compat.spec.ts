@@ -12,9 +12,8 @@ import {
   ValidBindableResource,
 } from '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
-import { MaxLimitsTestMixin } from '../../gpu_test.js';
 
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
 type BindableResourceType = ValidBindableResource | 'readonlyStorageBuf';
 const kBindableResources = [
@@ -93,7 +92,7 @@ const bindGroupLayoutEntryContents = {
   },
 } as const;
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   createPipelineLayout(
     bindingInPipelineLayout: BindableResourceType,
     visibility: number
@@ -157,7 +156,7 @@ const BindingResourceCompatibleWithShaderStages = function (
   return true;
 };
 
-export const g = makeTestGroup(MaxLimitsTestMixin(F));
+export const g = makeTestGroup(F);
 
 g.test('pipeline_layout_shader_exact_match')
   .desc(

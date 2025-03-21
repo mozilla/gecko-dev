@@ -300,7 +300,7 @@ export class TextureZeroInitTest extends AllFeaturesMaxLimitsGPUTest {
   texture,
   subresourceRange)
   {
-    const commandEncoder = this.device.createCommandEncoder();
+    const commandEncoder = this.device.createCommandEncoder({ label: 'initializeWithStoreOp' });
     commandEncoder.pushDebugGroup('initializeWithStoreOp');
 
     for (const viewDescriptor of this.generateTextureViewDescriptorsForRendering(
@@ -374,7 +374,7 @@ export class TextureZeroInitTest extends AllFeaturesMaxLimitsGPUTest {
       [largestWidth, largestHeight, largestDepth]
     );
 
-    const commandEncoder = this.device.createCommandEncoder();
+    const commandEncoder = this.device.createCommandEncoder({ label: 'initializeWithCopy' });
 
     for (const { level, layer } of subresourceRange.each()) {
       const [width, height, depth] = virtualMipSize(this.p.dimension, textureSize, level);
@@ -414,7 +414,7 @@ export class TextureZeroInitTest extends AllFeaturesMaxLimitsGPUTest {
   }
 
   discardTexture(texture, subresourceRange) {
-    const commandEncoder = this.device.createCommandEncoder();
+    const commandEncoder = this.device.createCommandEncoder({ label: 'discardTexture' });
     commandEncoder.pushDebugGroup('discardTexture');
 
     for (const desc of this.generateTextureViewDescriptorsForRendering('all', subresourceRange)) {

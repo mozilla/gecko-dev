@@ -10,13 +10,13 @@ import {
   kMaxUnsignedLongLongValue,
 } from '../../../../../constants.js';
 import { kResourceStates } from '../../../../../gpu_test.js';
-import { ValidationTest } from '../../../validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from '../../../validation_test.js';
 
 const kIndirectMultiDrawTestParams = kUnitCaseParamsBuilder
   .combine('indexed', [true, false] as const)
   .combine('useDrawCountBuffer', [true, false] as const);
 
-class F extends ValidationTest {
+class F extends AllFeaturesMaxLimitsValidationTest {
   makeIndexBuffer(): GPUBuffer {
     return this.createBufferTracked({
       size: 16,
@@ -33,10 +33,6 @@ g.test('buffers_state')
 Tests indirect and draw count buffers must be valid.
   `
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
-  })
-
   .paramsSubcasesOnly(
     kIndirectMultiDrawTestParams
       .combine('indirectState', kResourceStates)
@@ -52,6 +48,7 @@ Tests indirect and draw count buffers must be valid.
       )
   )
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
     const { indexed, indirectState, useDrawCountBuffer, drawCountState } = t.params;
     const indirectBuffer = t.createBufferWithState(indirectState, {
       size: 256,
@@ -96,11 +93,9 @@ g.test('buffers,device_mismatch')
       // drawCountMismatched only matters if useDrawCountBuffer=true
       .filter(p => p.useDrawCountBuffer || !p.drawCountMismatched)
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
-    t.selectMismatchedDeviceOrSkipTestCase(undefined);
-  })
+  .beforeAllSubcases(t => t.usesMismatchedDevice())
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
     const { indexed, useDrawCountBuffer, indirectMismatched, drawCountMismatched } = t.params;
 
     const indirectDevice = indirectMismatched ? t.mismatchedDevice : t.device;
@@ -140,9 +135,6 @@ g.test('indirect_buffer_usage')
 Tests indirect and draw count buffers must have 'Indirect' usage.
   `
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
-  })
   .paramsSubcasesOnly(
     kIndirectMultiDrawTestParams
       .combine('indirectUsage', [
@@ -157,6 +149,7 @@ Tests indirect and draw count buffers must have 'Indirect' usage.
       ] as const)
   )
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
     const { indexed, indirectUsage, useDrawCountBuffer, drawCountUsage } = t.params;
 
     const indirectBuffer = t.createBufferTracked({
@@ -192,9 +185,6 @@ g.test('offsets_alignment')
 Tests indirect and draw count offsets must be a multiple of 4.
   `
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
-  })
   .paramsSubcasesOnly(
     kIndirectMultiDrawTestParams.combineWithParams([
       // Valid
@@ -209,6 +199,7 @@ Tests indirect and draw count offsets must be a multiple of 4.
     ] as const)
   )
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
     const { indexed, indirectOffset, useDrawCountBuffer, drawCountOffset } = t.params;
 
     const indirectBuffer = t.createBufferTracked({
@@ -287,10 +278,8 @@ Tests multi indirect draw calls with various indirect offsets and buffer sizes w
         yield { offset: 0, maxDrawCount: kMaxUnsignedLongValue, bufferSize: 1024 };
       })
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
     const { indexed, offset, maxDrawCount, bufferSize } = t.params;
 
     const indirectBuffer = t.createBufferTracked({
@@ -336,10 +325,8 @@ Tests multi indirect draw calls with various draw count offsets, and draw count 
         { offset: kMaxUnsignedLongLongValue, bufferSize: 1024 },
       ])
   )
-  .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
-  })
   .fn(t => {
+    t.skipIfDeviceDoesNotHaveFeature('chromium-experimental-multi-draw-indirect' as GPUFeatureName);
     const { indexed, bufferSize, offset } = t.params;
 
     const indirectBuffer = t.createBufferTracked({

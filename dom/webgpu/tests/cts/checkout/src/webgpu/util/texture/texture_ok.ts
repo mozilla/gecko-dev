@@ -185,7 +185,7 @@ function createTextureCopyForMapRead(
     size: byteLength,
   });
 
-  const cmd = t.device.createCommandEncoder();
+  const cmd = t.device.createCommandEncoder({ label: 'createTextureCopyForMapRead' });
   cmd.copyTextureToBuffer(source, { buffer, bytesPerRow, rowsPerImage }, copySize);
   t.device.queue.submit([cmd.finish()]);
 

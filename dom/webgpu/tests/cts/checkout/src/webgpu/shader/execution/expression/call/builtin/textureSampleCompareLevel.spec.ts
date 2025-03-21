@@ -393,12 +393,10 @@ Parameters:
       .combine('A', ['i32', 'u32'] as const)
       .combine('compare', kCompareFunctions)
   )
-  .beforeAllSubcases(t => {
-    t.skipIfTextureViewDimensionNotSupportedDeprecated('cube-array');
-    t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-  })
   .fn(async t => {
     const { format, A, stage, samplePoints, mode, filt: minFilter, compare } = t.params;
+    t.skipIfTextureViewDimensionNotSupported('cube-array');
+    t.skipIfTextureFormatNotSupported(t.params.format);
 
     const viewDimension: GPUTextureViewDimension = 'cube-array';
     const size = chooseTextureSize({ minSize: 8, minBlocks: 2, format, viewDimension });

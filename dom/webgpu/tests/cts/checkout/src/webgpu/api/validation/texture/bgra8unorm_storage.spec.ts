@@ -7,9 +7,9 @@ import { assert } from '../../../../common/util/util.js';
 import { kTextureUsages } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import { kAllCanvasTypes, createCanvas } from '../../../util/create_elements.js';
-import { ValidationTest } from '../validation_test.js';
+import { UniqueFeaturesAndLimitsValidationTest } from '../validation_test.js';
 
-class BGRA8UnormStorageValidationTests extends ValidationTest {
+class BGRA8UnormStorageValidationTests extends UniqueFeaturesAndLimitsValidationTest {
   testCreateShaderModuleWithBGRA8UnormStorage(
     shaderType: 'fragment' | 'compute',
     success: boolean
@@ -126,7 +126,12 @@ with 'bgra8unorm-storage' enabled.
 `
   )
   .beforeAllSubcases(t => {
-    t.selectDeviceOrSkipTestCase('bgra8unorm-storage');
+    t.selectDeviceOrSkipTestCase({
+      requiredFeatures: ['bgra8unorm-storage'],
+      requiredLimits: {
+        maxStorageTexturesInFragmentStage: 1,
+      },
+    });
   })
   .params(u =>
     u

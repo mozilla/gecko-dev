@@ -4,7 +4,6 @@ Test other buffer usage validation rules that are not tests in ./in_pass_encoder
 
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../../common/util/util.js';
-import { MaxLimitsTestMixin } from '../../../../gpu_test.js';
 
 import {
   BufferUsage,
@@ -13,7 +12,7 @@ import {
   skipIfStorageBuffersUsedAndNotAvailableInStages,
 } from './in_pass_encoder.spec.js';
 
-export const g = makeTestGroup(MaxLimitsTestMixin(BufferResourceUsageTest));
+export const g = makeTestGroup(BufferResourceUsageTest);
 
 const kBufferSize = 256;
 

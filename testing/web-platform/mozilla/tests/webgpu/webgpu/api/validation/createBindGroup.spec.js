@@ -368,7 +368,7 @@ fn((t) => {
     dimension: getTextureDimensionFromView(dimension)
   });
 
-  t.skipIfTextureViewDimensionNotSupportedDeprecated(viewDimension, dimension);
+  t.skipIfTextureViewDimensionNotSupported(viewDimension, dimension);
   if (t.isCompatibility && texture.dimension === '2d') {
     if (depthOrArrayLayers === 1) {
       t.skipIf(
@@ -661,9 +661,7 @@ desc(
   'Tests createBindGroup cannot be called with a bind group layout created from another device'
 ).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const mismatched = t.params.mismatched;
 
@@ -721,9 +719,7 @@ combineWithParams([
 ).
 combine('visibilityMask', [kAllShaderStages, GPUConst.ShaderStage.COMPUTE])
 ).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { entry, resource0Mismatched, resource1Mismatched, visibilityMask } = t.params;
 
@@ -1131,9 +1127,7 @@ fn((t) => {
 g.test('sampler,device_mismatch').
 desc(`Tests createBindGroup cannot be called with a sampler created from another device.`).
 paramsSubcasesOnly((u) => u.combine('mismatched', [true, false])).
-beforeAllSubcases((t) => {
-  t.selectMismatchedDeviceOrSkipTestCase(undefined);
-}).
+beforeAllSubcases((t) => t.usesMismatchedDevice()).
 fn((t) => {
   const { mismatched } = t.params;
 

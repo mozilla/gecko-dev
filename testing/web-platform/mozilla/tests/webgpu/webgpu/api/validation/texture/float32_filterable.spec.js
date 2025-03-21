@@ -4,9 +4,9 @@
 Tests for capabilities added by float32-filterable flag.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kTextureSampleTypes } from '../../../capability_info.js';
-import { ValidationTest } from '../validation_test.js';
+import { UniqueFeaturesAndLimitsValidationTest } from '../validation_test.js';
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(UniqueFeaturesAndLimitsValidationTest);
 
 const kFloat32Formats = ['r32float', 'rg32float', 'rgba32float'];
 

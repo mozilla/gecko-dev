@@ -19,10 +19,13 @@ import {
 
   getBindingLimitForBindingType } from
 '../../capability_info.js';
-import { kAllTextureFormats, kTextureFormatInfo } from '../../format_info.js';
-import { MaxLimitsTestMixin } from '../../gpu_test.js';
+import {
+  isTextureFormatUsableAsReadWriteStorageTexture,
+  isTextureFormatUsableAsStorageFormat,
+  kAllTextureFormats } from
+'../../format_info.js';
 
-import { ValidationTest } from './validation_test.js';
+import { AllFeaturesMaxLimitsValidationTest } from './validation_test.js';
 
 function clone(descriptor) {
   return JSON.parse(JSON.stringify(descriptor));
@@ -74,7 +77,7 @@ function isValidBGLEntryForStages(device, visibility, entry) {
   true;
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(ValidationTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsValidationTest);
 
 g.test('duplicate_bindings').
 desc('Test that uniqueness of binding numbers across entries is enforced.').
@@ -505,16 +508,16 @@ u //
 .combine('format', kAllTextureFormats) //
 .combine('access', kStorageTextureAccessValues)
 ).
-beforeAllSubcases((t) => {
-  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
-  t.skipIfTextureFormatNotUsableAsStorageTextureDeprecated(t.params.format);
-}).
 fn((t) => {
   const { format, access } = t.params;
-  const info = kTextureFormatInfo[format];
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
 
   const success =
-  info.color?.storage && !(access === 'read-write' && !info.color?.readWriteStorage);
+  isTextureFormatUsableAsStorageFormat(t.device, format) &&
+  !(
+  access === 'read-write' && !isTextureFormatUsableAsReadWriteStorageTexture(t.device, format));
+
 
   t.expectValidationError(() => {
     t.device.createBindGroupLayout({

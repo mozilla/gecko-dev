@@ -10,7 +10,7 @@ import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { getGPU } from '../../../../common/util/navigator_gpu.js';
 import { assert, assertReject, raceWithRejectOnTimeout } from '../../../../common/util/util.js';
 import {
-  getDefaultLimitsForAdapter,
+  getDefaultLimitsForCTS,
   kFeatureNames,
   kLimits,
   kLimitClasses,
@@ -54,7 +54,7 @@ g.test('default')
       );
     }
     // All limits should be defaults.
-    const limitInfo = getDefaultLimitsForAdapter(adapter);
+    const limitInfo = getDefaultLimitsForCTS();
     for (const limit of kLimits) {
       t.expect(
         device.limits[limit] === limitInfo[limit].default,
@@ -274,7 +274,7 @@ g.test('limits,supported')
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
 
-    const limitInfo = getDefaultLimitsForAdapter(adapter);
+    const limitInfo = getDefaultLimitsForCTS();
     let value: number | undefined = -1;
     let result: number = -1;
     switch (limitValue) {
@@ -351,7 +351,7 @@ g.test('limit,better_than_supported')
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
 
-    const limitInfo = getDefaultLimitsForAdapter(adapter);
+    const limitInfo = getDefaultLimitsForCTS();
     const value = adapter.limits[limit]! * mul + add;
     const requiredLimits = {
       [limit]: clamp(value, { min: 0, max: limitInfo[limit].maximumValue }),
@@ -397,7 +397,7 @@ g.test('limit,out_of_range')
     const gpu = getGPU(t.rec);
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
-    const limitInfo = getDefaultLimitsForAdapter(adapter)[limit];
+    const limitInfo = getDefaultLimitsForCTS()[limit];
 
     const requiredLimits = {
       [limit]: value,
@@ -455,7 +455,7 @@ g.test('limit,worse_than_default')
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
 
-    const limitInfo = getDefaultLimitsForAdapter(adapter);
+    const limitInfo = getDefaultLimitsForCTS();
     const value = limitInfo[limit].default * mul + add;
     const requiredLimits = {
       [limit]: clamp(value, { min: 0, max: limitInfo[limit].maximumValue }),
@@ -518,18 +518,12 @@ g.test('always_returns_device')
       const device = await t.requestDeviceTracked(adapter);
       assert(device instanceof GPUDevice, 'requestDevice must return a device or throw');
 
-      if (featureLevel === 'core') {
+      if (featureLevel === 'core' && adapter.features.has('core-features-and-limits')) {
+        // Check if the device supports core, when featureLevel is core and adapter supports core.
         // This check is to make sure something lower-level is not forcing compatibility mode.
 
-        // MAINTENANCE_TODO: Simplify this check (and typecast) once we standardize how to do this.
-        const adapterExtensions = adapter as unknown as {
-          featureLevel?: string;
-        };
         t.expect(
-          // Old version of Compat design.
-          adapterExtensions.featureLevel === 'core' ||
-            // Current version of Compat design.
-            device.features.has('core-features-and-limits'),
+          device.features.has('core-features-and-limits'),
           'must not get a Compatibility adapter if not requested'
         );
       }

@@ -2,7 +2,7 @@ export const description = `
 Tests for non-atomic memory synchronization within a workgroup in the presence of a WebGPU barrier`;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 
 import {
   MemoryModelTestParams,
@@ -15,7 +15,7 @@ import {
   ResultType,
 } from './memory_model_setup.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // A reasonable parameter set, determined heuristically.
 const memoryModelTestParams: MemoryModelTestParams = {
@@ -202,9 +202,6 @@ g.test('workgroup_barrier_store_load')
       .combine('normalBarrier', [true, false] as const)
   )
   .beforeAllSubcases(t => {
-    if (t.params.accessValueType === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
     t.skipIf(
       !t.params.normalBarrier && t.params.memType !== MemoryType.NonAtomicWorkgroupClass,
       'workgroupUniformLoad does not have storage memory semantics'
@@ -215,6 +212,9 @@ g.test('workgroup_barrier_store_load')
     );
   })
   .fn(async t => {
+    if (t.params.accessValueType === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     t.skipIf(
       t.params.memType === MemoryType.NonAtomicTextureClass &&
         !t.hasLanguageFeature('readonly_and_readwrite_storage_textures'),
@@ -267,9 +267,6 @@ g.test('workgroup_barrier_load_store')
       .combine('normalBarrier', [true, false] as const)
   )
   .beforeAllSubcases(t => {
-    if (t.params.accessValueType === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
     t.skipIf(
       !t.params.normalBarrier && t.params.memType !== MemoryType.NonAtomicWorkgroupClass,
       'workgroupUniformLoad does not have storage memory semantics'
@@ -280,6 +277,9 @@ g.test('workgroup_barrier_load_store')
     );
   })
   .fn(async t => {
+    if (t.params.accessValueType === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     t.skipIf(
       t.params.memType === MemoryType.NonAtomicTextureClass &&
         !t.hasLanguageFeature('readonly_and_readwrite_storage_textures'),
@@ -332,9 +332,6 @@ g.test('workgroup_barrier_store_store')
       .combine('normalBarrier', [true, false] as const)
   )
   .beforeAllSubcases(t => {
-    if (t.params.accessValueType === 'f16') {
-      t.selectDeviceOrSkipTestCase('shader-f16');
-    }
     t.skipIf(
       !t.params.normalBarrier && t.params.memType !== MemoryType.NonAtomicWorkgroupClass,
       'workgroupUniformLoad does not have storage memory semantics'
@@ -345,6 +342,9 @@ g.test('workgroup_barrier_store_store')
     );
   })
   .fn(async t => {
+    if (t.params.accessValueType === 'f16') {
+      t.skipIfDeviceDoesNotHaveFeature('shader-f16');
+    }
     t.skipIf(
       t.params.memType === MemoryType.NonAtomicTextureClass &&
         !t.hasLanguageFeature('readonly_and_readwrite_storage_textures'),
