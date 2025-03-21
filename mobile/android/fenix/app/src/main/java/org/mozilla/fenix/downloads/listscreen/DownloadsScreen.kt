@@ -120,6 +120,7 @@ fun DownloadsScreen(
                     }
                 },
                 onDeleteClick = onItemDeleteClick,
+                onShareUrlClick = { downloadsStore.dispatch(DownloadUIAction.ShareUrlClicked(it)) },
                 modifier = Modifier.fillMaxHeight(),
             )
         }
@@ -134,6 +135,7 @@ private fun DownloadsContent(
     onClick: (FileItem) -> Unit,
     onSelectionChange: (FileItem, Boolean) -> Unit,
     onDeleteClick: (FileItem) -> Unit,
+    onShareUrlClick: (FileItem) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
 
@@ -164,6 +166,7 @@ private fun DownloadsContent(
                         isSelected = state.mode.selectedItems.contains(listItem),
                         isMenuIconVisible = state.isNormalMode,
                         onDeleteClick = onDeleteClick,
+                        onShareUrlClick = onShareUrlClick,
                         modifier = modifier
                             .animateItem()
                             .combinedClickable(
@@ -203,6 +206,7 @@ private fun FileListItem(
     isMenuIconVisible: Boolean,
     modifier: Modifier = Modifier,
     onDeleteClick: (FileItem) -> Unit,
+    onShareUrlClick: (FileItem) -> Unit,
 ) {
     SelectableListItem(
         label = fileItem.fileName ?: fileItem.url,
@@ -233,6 +237,11 @@ private fun FileListItem(
 
                     DropdownMenu(
                         menuItems = listOf(
+                            MenuItem.TextItem(
+                                text = Text.Resource(R.string.download_share_url),
+                                onClick = { onShareUrlClick(fileItem) },
+                                level = MenuItem.FixedItem.Level.Default,
+                            ),
                             MenuItem.TextItem(
                                 text = Text.Resource(R.string.download_delete_item_1),
                                 onClick = { onDeleteClick(fileItem) },
