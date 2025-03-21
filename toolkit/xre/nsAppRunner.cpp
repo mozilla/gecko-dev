@@ -1682,20 +1682,6 @@ nsXULAppInfo::GetUserCanElevate(bool* aUserCanElevate) {
 }
 #endif
 
-// Get the CrashReporter::Annotation referred to by the `aKey` string. This
-// wraps `CrashReporter::AnnotationFromString` to assert the annotation string
-// is valid in debug builds, and otherwise returns an NS_ERROR_INVALID_ARG if
-// it is invalid.
-static Result<CrashReporter::Annotation, nsresult> GetCrashAnnotation(
-    const nsACString& aKey) {
-  auto maybeAnnotation = CrashReporter::AnnotationFromString(aKey);
-  MOZ_ASSERT(maybeAnnotation.isSome(),
-             "Invalid annotation identifier; ensure it exists in "
-             "CrashAnnotations.yaml");
-  NS_ENSURE_TRUE(maybeAnnotation.isSome(), Err(NS_ERROR_INVALID_ARG));
-  return maybeAnnotation.extract();
-}
-
 NS_IMETHODIMP
 nsXULAppInfo::GetCrashReporterEnabled(bool* aEnabled) {
   *aEnabled = CrashReporter::GetEnabled();
@@ -1809,14 +1795,14 @@ nsXULAppInfo::GetExtraFileForID(const nsAString& aId, nsIFile** aExtraFile) {
 NS_IMETHODIMP
 nsXULAppInfo::AnnotateCrashReport(const nsACString& key,
                                   JS::Handle<JS::Value> data, JSContext* cx) {
-  CrashReporter::Annotation annotation;
-  MOZ_TRY_VAR(annotation, GetCrashAnnotation(key));
+  auto annotation = CrashReporter::AnnotationFromString(key);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
   switch (data.type()) {
     case JS::ValueType::Int32:
-      CrashReporter::RecordAnnotationU32(annotation, data.toInt32());
+      CrashReporter::RecordAnnotationU32(*annotation, data.toInt32());
       break;
     case JS::ValueType::Boolean:
-      CrashReporter::RecordAnnotationBool(annotation, data.toBoolean());
+      CrashReporter::RecordAnnotationBool(*annotation, data.toBoolean());
       break;
     case JS::ValueType::String: {
       JSString* value = data.toString();
@@ -1834,7 +1820,7 @@ nsXULAppInfo::AnnotateCrashReport(const nsACString& key,
 
       buffer.SetLength(written);
 
-      CrashReporter::RecordAnnotationNSCString(annotation, buffer);
+      CrashReporter::RecordAnnotationNSCString(*annotation, buffer);
     } break;
     default:
       return NS_ERROR_INVALID_ARG;
@@ -1844,9 +1830,9 @@ nsXULAppInfo::AnnotateCrashReport(const nsACString& key,
 
 NS_IMETHODIMP
 nsXULAppInfo::RemoveCrashReportAnnotation(const nsACString& key) {
-  CrashReporter::Annotation annotation;
-  MOZ_TRY_VAR(annotation, GetCrashAnnotation(key));
-  CrashReporter::UnrecordAnnotation(annotation);
+  auto annotation = CrashReporter::AnnotationFromString(key);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
+  CrashReporter::UnrecordAnnotation(*annotation);
   return NS_OK;
 }
 
@@ -1860,18 +1846,20 @@ nsXULAppInfo::IsAnnotationValid(const nsACString& aValue, bool* aIsValid) {
 NS_IMETHODIMP
 nsXULAppInfo::IsAnnotationAllowedForPing(const nsACString& aValue,
                                          bool* aIsAllowed) {
-  CrashReporter::Annotation annotation;
-  MOZ_TRY_VAR(annotation, GetCrashAnnotation(aValue));
-  *aIsAllowed = CrashReporter::IsAnnotationAllowedForPing(annotation);
+  auto annotation = CrashReporter::AnnotationFromString(aValue);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
+  *aIsAllowed = CrashReporter::IsAnnotationAllowedForPing(*annotation);
+
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULAppInfo::IsAnnotationAllowedForReport(const nsACString& aValue,
                                            bool* aIsAllowed) {
-  CrashReporter::Annotation annotation;
-  MOZ_TRY_VAR(annotation, GetCrashAnnotation(aValue));
-  *aIsAllowed = CrashReporter::IsAnnotationAllowedForReport(annotation);
+  auto annotation = CrashReporter::AnnotationFromString(aValue);
+  NS_ENSURE_TRUE(annotation.isSome(), NS_ERROR_INVALID_ARG);
+  *aIsAllowed = CrashReporter::IsAnnotationAllowedForReport(*annotation);
+
   return NS_OK;
 }
 
