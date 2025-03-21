@@ -661,3 +661,19 @@ Element* nsCoreUtils::GetAriaActiveDescendantElement(Element* aElement) {
 
   return nullptr;
 }
+
+bool nsCoreUtils::IsTrimmedWhitespaceBeforeHardLineBreak(nsIFrame* aFrame) {
+  if (!aFrame->GetRect().IsEmpty() ||
+      !aFrame->HasAnyStateBits(TEXT_END_OF_LINE)) {
+    return false;
+  }
+  // Normally, accessibility calls nsIFrame::GetRenderedText with
+  // TrailingWhitespace::NoTrim. Using TrailingWhitespace::Trim instead trims 0
+  // width whitespace before a hard line break, resulting in an empty string if
+  // that is all the frame contains. Note that TrailingWhitespace::Trim does
+  // *not* trim whitespace before a soft line break (wrapped line).
+  nsIFrame::RenderedText text = aFrame->GetRenderedText(
+      0, UINT32_MAX, nsIFrame::TextOffsetType::OffsetsInContentText,
+      nsIFrame::TrailingWhitespace::Trim);
+  return text.mString.IsEmpty();
+}

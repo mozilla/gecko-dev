@@ -1306,7 +1306,7 @@ LocalAccessible* nsAccessibilityService::CreateAccessible(
     // Ignore not rendered text nodes and whitespace text nodes between table
     // cells.
     if (text.mString.IsEmpty() ||
-        (text.mString.EqualsLiteral(" ") && frame->GetRect().IsEmpty()) ||
+        nsCoreUtils::IsTrimmedWhitespaceBeforeHardLineBreak(frame) ||
         (aContext->IsTableRow() &&
          nsCoreUtils::IsWhitespaceString(text.mString))) {
       if (aIsSubtreeHidden) *aIsSubtreeHidden = true;

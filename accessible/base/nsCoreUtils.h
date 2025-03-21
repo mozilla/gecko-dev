@@ -336,6 +336,17 @@ class nsCoreUtils {
                                                        nsINode* aStartAncestor);
 
   static Element* GetAriaActiveDescendantElement(Element* aElement);
+
+  /**
+   * Return true if the given text frame is 0 width whitespace before a hard
+   * line break.  This is not visible and is semantically irrelevant. This can
+   * happen if there is whitespace before an invisible element at the end of a
+   * block. For example:
+   * <div><span>a</span> <span hidden>b</span></div>
+   * This results in a text node for "a" and a text node for " ". This function
+   * will return true for the latter node.
+   */
+  static bool IsTrimmedWhitespaceBeforeHardLineBreak(nsIFrame* aFrame);
 };
 
 #endif
