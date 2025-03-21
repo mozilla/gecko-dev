@@ -340,12 +340,12 @@ internal class BookmarksMiddleware(
                     rootNode.children?.find { it.guid == BookmarkRoot.Mobile.id }?.let {
                         val newChildren = listOf(desktopRoot) + it.children.orEmpty()
                         it.copy(children = newChildren)
-                    }?.let { collectFolders(it) }
+                    }?.let { collectFolders(it, shouldCollect = { node -> !state.isGuidBeingMoved(node.guid) }) }
                 }
             } else {
                 bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = true)
                     ?.let { rootNode ->
-                        collectFolders(rootNode)
+                        collectFolders(rootNode, shouldCollect = { node -> !state.isGuidBeingMoved(node.guid) })
                     }
             }
 
@@ -426,9 +426,10 @@ internal class BookmarksMiddleware(
     private fun collectFolders(
         node: BookmarkNode,
         indentation: Int = 0,
+        shouldCollect: (BookmarkNode) -> Boolean = { _ -> true },
         folders: MutableList<SelectFolderItem> = mutableListOf(),
     ): List<SelectFolderItem> {
-        if (node.type == BookmarkNodeType.FOLDER) {
+        if (node.type == BookmarkNodeType.FOLDER && shouldCollect(node)) {
             folders.add(
                 SelectFolderItem(
                     indentation = indentation,
@@ -440,7 +441,7 @@ internal class BookmarksMiddleware(
             )
 
             node.children?.forEach { child ->
-                folders.addAll(collectFolders(child, indentation + 1))
+                folders.addAll(collectFolders(child, indentation + 1, shouldCollect))
             }
         }
 

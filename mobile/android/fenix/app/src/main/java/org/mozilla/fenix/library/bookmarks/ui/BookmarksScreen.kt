@@ -632,10 +632,6 @@ private fun SelectFolderScreen(
                 .padding(vertical = 16.dp),
         ) {
             items(state?.folders ?: listOf()) { folder ->
-                if (store.state.isGuidBeingMoved(folder.guid)) {
-                    return@items
-                }
-
                 if (folder.isDesktopRoot) {
                     Row(modifier = Modifier.padding(start = (40 * folder.indentation).dp)) {
                         // We need to account for not having an icon

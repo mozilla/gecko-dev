@@ -631,6 +631,29 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN a folder with subfolders WHEN select folder sub screen view is loaded THEN load folders into sub screen state without the selected folder`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        val rootNode = generateBookmarkFolder("parent", "first", BookmarkRoot.Mobile.id).copy(
+            children = generateBookmarkFolders("parent"),
+        )
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = true)).thenReturn(rootNode)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
+                bookmarksEditFolderState = BookmarksEditFolderState(
+                    parent = BookmarkItem.Folder("Bookmarks", "guid0"),
+                    folder = BookmarkItem.Folder("first", "parent"),
+                ),
+            ),
+        )
+
+        store.dispatch(SelectFolderAction.ViewAppeared)
+
+        assertEquals(0, store.state.bookmarksSelectFolderState?.folders?.count())
+    }
+
+    @Test
     fun `GIVEN bookmarks in storage and not signed into sync but have pre-existing desktop bookmarks saved WHEN select folder sub screen view is loaded THEN load folders, including desktop folders into sub screen state`() = runTestOnMain {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(1u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Root.id, recursive = true)).thenReturn(generateDesktopRootTree())
