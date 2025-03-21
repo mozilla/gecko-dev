@@ -275,18 +275,29 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
     rightBlockElement = *afterRightBlockChild.GetContainerParentAs<Element>();
   }
 
-  auto atStartOfRightText = [&]() -> EditorDOMPoint {
+  auto atStartOfRightText = [&]() MOZ_NEVER_INLINE_DEBUG -> EditorDOMPoint {
     if (!StaticPrefs::editor_white_space_normalization_blink_compatible()) {
       return EditorDOMPoint();  // Don't need to normalize now.
     }
-    const EditorRawDOMPointInText atFirstChar =
-        WSRunScanner(Scan::All, EditorRawDOMPoint(&aRightBlockElement, 0u),
-                     BlockInlineCheck::UseComputedDisplayOutsideStyle)
-            .GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
-                EditorRawDOMPoint(&aRightBlockElement, 0u));
-    if (atFirstChar.IsSet() && atFirstChar.IsCharASCIISpaceOrNBSP() &&
-        HTMLEditUtils::IsSimplyEditableNode(*atFirstChar.ContainerAs<Text>())) {
-      return atFirstChar.To<EditorDOMPoint>();
+    const WSRunScanner scanner(
+        Scan::All, EditorRawDOMPoint(&aRightBlockElement, 0u),
+        BlockInlineCheck::UseComputedDisplayOutsideStyle);
+    for (EditorRawDOMPointInText atFirstChar =
+             scanner.GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+                 EditorRawDOMPoint(&aRightBlockElement, 0u));
+         atFirstChar.IsSet();
+         atFirstChar =
+             scanner.GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+                 atFirstChar.AfterContainer<EditorRawDOMPoint>())) {
+      if (atFirstChar.IsContainerEmpty()) {
+        continue;  // Ignore empty text node.
+      }
+      if (atFirstChar.IsCharASCIISpaceOrNBSP() &&
+          HTMLEditUtils::IsSimplyEditableNode(
+              *atFirstChar.ContainerAs<Text>())) {
+        return atFirstChar.To<EditorDOMPoint>();
+      }
+      break;
     }
     return EditorDOMPoint();
   }();
@@ -594,18 +605,29 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
     return Err(NS_ERROR_UNEXPECTED);
   }
 
-  auto atStartOfRightText = [&]() -> EditorDOMPoint {
+  auto atStartOfRightText = [&]() MOZ_NEVER_INLINE_DEBUG -> EditorDOMPoint {
     if (!StaticPrefs::editor_white_space_normalization_blink_compatible()) {
       return EditorDOMPoint();  // Don't need to normalize now.
     }
-    const EditorRawDOMPointInText atFirstChar =
-        WSRunScanner(Scan::All, EditorRawDOMPoint(&aRightBlockElement, 0u),
-                     BlockInlineCheck::UseComputedDisplayOutsideStyle)
-            .GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
-                EditorRawDOMPoint(&aRightBlockElement, 0u));
-    if (atFirstChar.IsSet() && atFirstChar.IsCharASCIISpaceOrNBSP() &&
-        HTMLEditUtils::IsSimplyEditableNode(*atFirstChar.ContainerAs<Text>())) {
-      return atFirstChar.To<EditorDOMPoint>();
+    const WSRunScanner scanner(
+        Scan::All, EditorRawDOMPoint(&aRightBlockElement, 0u),
+        BlockInlineCheck::UseComputedDisplayOutsideStyle);
+    for (EditorRawDOMPointInText atFirstChar =
+             scanner.GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+                 EditorRawDOMPoint(&aRightBlockElement, 0u));
+         atFirstChar.IsSet();
+         atFirstChar =
+             scanner.GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+                 atFirstChar.AfterContainer<EditorRawDOMPoint>())) {
+      if (atFirstChar.IsContainerEmpty()) {
+        continue;  // Ignore empty text node.
+      }
+      if (atFirstChar.IsCharASCIISpaceOrNBSP() &&
+          HTMLEditUtils::IsSimplyEditableNode(
+              *atFirstChar.ContainerAs<Text>())) {
+        return atFirstChar.To<EditorDOMPoint>();
+      }
+      break;
     }
     return EditorDOMPoint();
   }();
@@ -924,18 +946,29 @@ Result<MoveNodeResult, nsresult> WhiteSpaceVisibilityKeeper::
       return afterLastVisibleThingOrError.propagateErr();
     }
   }
-  auto atStartOfRightText = [&]() -> EditorDOMPoint {
+  auto atStartOfRightText = [&]() MOZ_NEVER_INLINE_DEBUG -> EditorDOMPoint {
     if (!StaticPrefs::editor_white_space_normalization_blink_compatible()) {
       return EditorDOMPoint();  // Don't need to normalize now.
     }
-    const EditorRawDOMPointInText atFirstChar =
-        WSRunScanner(Scan::All, EditorRawDOMPoint(&aRightBlockElement, 0u),
-                     BlockInlineCheck::UseComputedDisplayOutsideStyle)
-            .GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
-                EditorRawDOMPoint(&aRightBlockElement, 0u));
-    if (atFirstChar.IsSet() && atFirstChar.IsCharASCIISpaceOrNBSP() &&
-        HTMLEditUtils::IsSimplyEditableNode(*atFirstChar.ContainerAs<Text>())) {
-      return atFirstChar.To<EditorDOMPoint>();
+    const WSRunScanner scanner(
+        Scan::All, EditorRawDOMPoint(&aRightBlockElement, 0u),
+        BlockInlineCheck::UseComputedDisplayOutsideStyle);
+    for (EditorRawDOMPointInText atFirstChar =
+             scanner.GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+                 EditorRawDOMPoint(&aRightBlockElement, 0u));
+         atFirstChar.IsSet();
+         atFirstChar =
+             scanner.GetInclusiveNextCharPoint<EditorRawDOMPointInText>(
+                 atFirstChar.AfterContainer<EditorRawDOMPoint>())) {
+      if (atFirstChar.IsContainerEmpty()) {
+        continue;  // Ignore empty text node.
+      }
+      if (atFirstChar.IsCharASCIISpaceOrNBSP() &&
+          HTMLEditUtils::IsSimplyEditableNode(
+              *atFirstChar.ContainerAs<Text>())) {
+        return atFirstChar.To<EditorDOMPoint>();
+      }
+      break;
     }
     return EditorDOMPoint();
   }();
