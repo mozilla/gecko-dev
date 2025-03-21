@@ -34,8 +34,6 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
   const { devicePixelRatio, hasTouchScreen } = graphics;
   const { antitracking, languages, useragentString } = tabInfo;
 
-  const addons = overrides.addons || [];
-  const experiments = overrides.experiments || [];
   const atOverrides = overrides.antitracking;
   const blockList = atOverrides?.blockList ?? antitracking.blockList;
   const hasMixedActiveContentBlocked =
@@ -68,8 +66,6 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
     forcedAcceleratedLayers: "layers.acceleration.force-enabled",
     globalPrivacyControlEnabled: "privacy.globalprivacycontrol.enabled",
     installtriggerEnabled: "extensions.InstallTrigger.enabled",
-    h1InSectionUseragentStylesEnabled:
-      "layout.css.h1-in-section-ua-styles.enabled",
     opaqueResponseBlocking: "browser.opaqueResponseBlocking",
     resistFingerprintingEnabled: "privacy.resistFingerprinting",
     softwareWebrender: "gfx.webrender.software",
@@ -87,12 +83,10 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
     blockList,
     details: {
       additionalData: {
-        addons,
         applicationName,
         blockList,
         buildId: snapshot.application.buildID,
         devicePixelRatio: parseInt(devicePixelRatio),
-        experiments,
         finalUserAgent: useragentString,
         fissionEnabled,
         gfxData: {
@@ -260,8 +254,6 @@ async function testSendMoreInfo(tab, menu, expectedOverrides = {}) {
     });
     ok(isScreenshotValid, "Got a valid screenshot");
   }
-
-  filterFrameworkDetectorFails(message.details, expected.details);
 
   ok(areObjectsEqual(message, expected), "sent info matches expectations");
 

@@ -187,32 +187,20 @@ const FrameworkDetector = {
   },
 
   checkWindow(window) {
-    try {
-      const script = `
-        (function() {
-          function ${FrameworkDetector.hasFastClickPageScript};
-          function ${FrameworkDetector.hasMobifyPageScript};
-          function ${FrameworkDetector.hasMarfeelPageScript};
-          const win = window.wrappedJSObject || window;
-          return {
-            fastclick: hasFastClickPageScript(win),
-            mobify: hasMobifyPageScript(win),
-            marfeel: hasMarfeelPageScript(win),
-          }
-        })();
-      `;
-      return RunScriptInFrame(window, script);
-    } catch (e) {
-      console.error(
-        "GetWebcompatInfoFromParentProcess: Error detecting JS frameworks",
-        e
-      );
-      return {
-        fastclick: false,
-        mobify: false,
-        marfeel: false,
-      };
-    }
+    const script = `
+      (function() {
+        function ${FrameworkDetector.hasFastClickPageScript};
+        function ${FrameworkDetector.hasMobifyPageScript};
+        function ${FrameworkDetector.hasMarfeelPageScript};
+        const win = window.wrappedJSObject || window;
+        return {
+          fastclick: hasFastClickPageScript(win),
+          mobify: hasMobifyPageScript(win),
+          marfeel: hasMarfeelPageScript(win),
+        }
+      })();
+    `;
+    return RunScriptInFrame(window, script);
   },
 };
 
@@ -221,40 +209,31 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
     return Promise.all([
       this.#getConsoleLogs(docShell),
       this.sendQuery("GetWebcompatInfoFromParentProcess", SCREENSHOT_FORMAT),
-    ])
-      .then(([consoleLog, infoFromParent]) => {
-        const { antitracking, browser, devicePixelRatio, screenshot } =
-          infoFromParent;
+    ]).then(([consoleLog, infoFromParent]) => {
+      const { antitracking, browser, screenshot } = infoFromParent;
 
-        const win = docShell.domWindow;
+      const win = docShell.domWindow;
 
-        const frameworks = FrameworkDetector.checkWindow(win);
-        const { languages, userAgent } = win.navigator;
+      const devicePixelRatio = win.devicePixelRatio;
+      const frameworks = FrameworkDetector.checkWindow(win);
+      const { languages, userAgent } = win.navigator;
 
-        if (browser.platform.name !== "linux") {
-          delete browser.prefs["layers.acceleration.force-enabled"];
-        }
+      if (browser.platform.name !== "linux") {
+        delete browser.prefs["layers.acceleration.force-enabled"];
+      }
 
-        return {
-          antitracking,
-          browser,
-          consoleLog,
-          devicePixelRatio,
-          frameworks,
-          languages,
-          screenshot,
-          url: win.location.href,
-          userAgent,
-        };
-      })
-      .catch(err => {
-        // Log more output if the actor wasn't just being destroyed.
-        if (err.name !== "AbortError") {
-          // eslint-disable-next-line no-console
-          console.trace("#getWebCompatInfo error", err);
-        }
-        throw err;
-      });
+      return {
+        antitracking,
+        browser,
+        consoleLog,
+        devicePixelRatio,
+        frameworks,
+        languages,
+        screenshot,
+        url: win.location.href,
+        userAgent,
+      };
+    });
   }
 
   async #getConsoleLogs() {
@@ -315,16 +294,7 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
 
       message.blockList = blockList;
 
-      const {
-        addons,
-        app,
-        experiments,
-        graphics,
-        locales,
-        prefs,
-        platform,
-        security,
-      } = browser;
+      const { app, graphics, locales, prefs, platform, security } = browser;
 
       const {
         applicationName,
@@ -345,12 +315,10 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
       } = platform;
 
       const additionalData = {
-        addons,
         applicationName,
         blockList,
         buildId,
         devicePixelRatio,
-        experiments,
         finalUserAgent: userAgent,
         fissionEnabled,
         gfxData: graphics,

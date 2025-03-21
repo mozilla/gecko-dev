@@ -17,33 +17,9 @@ object WebCompatTestData {
             "isPrivateBrowsing": false
           },
           "browser": {
-            "addons": [
-              {
-                "id": "id.temp",
-                "name": "name1",
-                "temporary": true,
-                "version": "version1"
-              }, {
-                "id": "id.perm",
-                "name": "name2",
-                "temporary": false,
-                "version": "version2"
-              }
-            ],
             "app": {
               "defaultUserAgent": "testDefaultUserAgent"
             },
-            "experiments": [
-              {
-                "branch": "branch1",
-                "slug": "slug1",
-                "kind": "kind1"
-              }, {
-                "branch": "branch2",
-                "slug": "slug2",
-                "kind": "kind2"
-              }
-            ],
             "graphics": {
               "devices": [
                 { "id": "device1" },
@@ -102,33 +78,9 @@ object WebCompatTestData {
             "isPrivateBrowsing": false
           },
           "browser": {
-            "addons": [
-              {
-                "id": "id.temp",
-                "name": "name1",
-                "temporary": true,
-                "version": "version1"
-              }, {
-                "id": "id.perm",
-                "name": "name2",
-                "temporary": false,
-                "version": "version2"
-              }
-            ],
             "app": {
               "defaultUserAgent": "testDefaultUserAgent"
             },
-            "experiments": [
-              {
-                "branch": "branch1",
-                "slug": "slug1",
-                "kind": "kind1"
-              }, {
-                "branch": "branch2",
-                "slug": "slug2",
-                "kind": "kind2"
-              }
-            ],
             "graphics": {
               "devices": [
                 { "id": "device1" },

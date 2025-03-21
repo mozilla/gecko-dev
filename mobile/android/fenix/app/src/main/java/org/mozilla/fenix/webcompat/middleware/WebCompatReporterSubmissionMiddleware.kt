@@ -9,7 +9,6 @@ import kotlinx.coroutines.launch
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReport
-import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfo
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfoApp
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfoGraphics
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfoPrefs
@@ -88,31 +87,6 @@ class WebCompatReporterSubmissionMiddleware(
     }
 
     private fun setBrowserInfoMetrics(browserInfo: WebCompatInfoDto.WebCompatBrowserDto) {
-        val addons = BrokenSiteReportBrowserInfo.AddonsObject()
-        for (addon in browserInfo.addons) {
-            addons.add(
-                BrokenSiteReportBrowserInfo.AddonsObjectItem(
-                    id = addon.id,
-                    name = addon.name,
-                    temporary = addon.temporary,
-                    version = addon.version,
-                ),
-            )
-        }
-        BrokenSiteReportBrowserInfo.addons.set(addons)
-
-        val experiments = BrokenSiteReportBrowserInfo.ExperimentsObject()
-        for (experiment in browserInfo.experiments) {
-            experiments.add(
-                BrokenSiteReportBrowserInfo.ExperimentsObjectItem(
-                    branch = experiment.branch,
-                    slug = experiment.slug,
-                    kind = experiment.kind,
-                ),
-            )
-        }
-        BrokenSiteReportBrowserInfo.experiments.set(experiments)
-
         browserInfo.app?.let {
             BrokenSiteReportBrowserInfoApp.defaultUseragentString.set(it.defaultUserAgent)
         }

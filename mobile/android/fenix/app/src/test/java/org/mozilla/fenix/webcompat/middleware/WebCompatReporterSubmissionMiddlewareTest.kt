@@ -22,7 +22,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReport
-import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfo
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfoApp
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfoGraphics
 import org.mozilla.fenix.GleanMetrics.BrokenSiteReportBrowserInfoPrefs
@@ -78,16 +77,6 @@ class WebCompatReporterSubmissionMiddlewareTest {
             assertEquals(
                 false,
                 BrokenSiteReportTabInfoAntitracking.isPrivateBrowsing.testGetValue(),
-            )
-
-            assertEquals(
-                BrokenSiteReportBrowserInfo.AddonsObject(),
-                BrokenSiteReportBrowserInfo.addons.testGetValue(),
-            )
-
-            assertEquals(
-                BrokenSiteReportBrowserInfo.ExperimentsObject(),
-                BrokenSiteReportBrowserInfo.experiments.testGetValue(),
             )
 
             assertEquals(
@@ -219,19 +208,6 @@ class WebCompatReporterSubmissionMiddlewareTest {
             assertNull(BrokenSiteReportTabInfoAntitracking.hasTrackingContentBlocked.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.isPrivateBrowsing.testGetValue())
 
-            assertNull(BrokenSiteReportBrowserInfo.addons.testGetValue())
-            assertNull(BrokenSiteReportBrowserInfo.experiments.testGetValue())
-
-            assertEquals(
-                BrokenSiteReportBrowserInfo.AddonsObject(),
-                BrokenSiteReportBrowserInfo.addons.testGetValue(),
-            )
-
-            assertEquals(
-                BrokenSiteReportBrowserInfo.ExperimentsObject(),
-                BrokenSiteReportBrowserInfo.experiments.testGetValue(),
-            )
-
             assertEquals(
                 "testDefaultUserAgent",
                 BrokenSiteReportBrowserInfoApp.defaultUseragentString.testGetValue(),
@@ -256,16 +232,6 @@ class WebCompatReporterSubmissionMiddlewareTest {
             assertEquals(
                 """[{"id":"monitor1"},{"id":"monitor2"},{"id":"monitor3"}]""",
                 BrokenSiteReportBrowserInfoGraphics.monitorsJson.testGetValue(),
-            )
-
-            assertEquals(
-                BrokenSiteReportBrowserInfo.AddonsObject(),
-                BrokenSiteReportBrowserInfo.addons.testGetValue(),
-            )
-
-            assertEquals(
-                BrokenSiteReportBrowserInfo.ExperimentsObject(),
-                BrokenSiteReportBrowserInfo.experiments.testGetValue(),
             )
 
             assertEquals(
@@ -351,9 +317,6 @@ class WebCompatReporterSubmissionMiddlewareTest {
             assertNull(BrokenSiteReportTabInfoAntitracking.hasTrackingContentBlocked.testGetValue())
             assertNull(BrokenSiteReportTabInfoAntitracking.isPrivateBrowsing.testGetValue())
 
-            assertNull(BrokenSiteReportBrowserInfo.addons.testGetValue())
-            assertNull(BrokenSiteReportBrowserInfo.experiments.testGetValue())
-
             assertNull(BrokenSiteReportBrowserInfoApp.defaultUseragentString.testGetValue())
 
             assertNull(BrokenSiteReportBrowserInfoGraphics.devicesJson.testGetValue())
@@ -426,16 +389,8 @@ class WebCompatReporterSubmissionMiddlewareTest {
                     isPrivateBrowsing = false,
                 ),
                 browser = WebCompatInfoDto.WebCompatBrowserDto(
-                    addons = listOf(
-                        WebCompatInfoDto.WebCompatBrowserDto.AddonDto(id = "id.temp", name = "name1", temporary = true, version = "version1"),
-                        WebCompatInfoDto.WebCompatBrowserDto.AddonDto(id = "id.perm", name = "name2", temporary = false, version = "version2"),
-                    ),
                     app = WebCompatInfoDto.WebCompatBrowserDto.AppDto(
                         defaultUserAgent = "testDefaultUserAgent",
-                    ),
-                    experiments = listOf(
-                        WebCompatInfoDto.WebCompatBrowserDto.ExperimentDto(branch = "branch1", slug = "slug1", kind = "kind1"),
-                        WebCompatInfoDto.WebCompatBrowserDto.ExperimentDto(branch = "branch2", slug = "slug2", kind = "kind2"),
                     ),
                     graphics = WebCompatInfoDto.WebCompatBrowserDto.GraphicsDto(
                         devices = buildJsonArray {

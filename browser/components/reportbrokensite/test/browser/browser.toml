@@ -6,18 +6,12 @@ support-files = [
   "sendMoreInfoTestEndpoint.html",
 ]
 
-["browser_addon_data_sent.js"]
-support-files = [ "send_more_info.js" ]
-
 ["browser_antitracking_data_sent.js"]
 support-files = [ "send_more_info.js" ]
 
 ["browser_back_buttons.js"]
 
 ["browser_error_messages.js"]
-
-["browser_experiment_data_sent.js"]
-support-files = [ "send_more_info.js" ]
 
 ["browser_keyboard_navigation.js"]
 
