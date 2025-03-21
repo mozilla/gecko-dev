@@ -880,6 +880,9 @@ pref("browser.shopping.experience2023.autoOpen.enabled", false);
 // Opens the shopping sidebar automatically when viewing a PDP.
 pref("browser.shopping.experience2023.autoOpen.userEnabled", true);
 
+// Close the shopping sidebar automatically when viewing an unsupported site.
+pref("browser.shopping.experience2023.autoClose.userEnabled", true);
+
 // Number of times the sidebar has been closed in a session
 pref("browser.shopping.experience2023.sidebarClosedCount", 0);
 

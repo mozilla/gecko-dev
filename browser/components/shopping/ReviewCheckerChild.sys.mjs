@@ -62,6 +62,17 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "autoCloseEnabledByUser",
+  "browser.shopping.experience2023.autoClose.userEnabled",
+  true,
+  function autoCloseEnabledByUserChanged() {
+    for (let actor of gAllActors) {
+      actor.autoCloseEnabledByUserChanged();
+    }
+  }
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "isSidebarStartPosition",
   "sidebar.position_start"
 );
@@ -118,6 +129,10 @@ export class ReviewCheckerChild extends RemotePageChild {
 
   get autoOpenEnabledByUser() {
     return lazy.autoOpenEnabledByUser;
+  }
+
+  get autoCloseEnabledByUser() {
+    return lazy.autoCloseEnabledByUser;
   }
 
   get isSidebarStartPosition() {
@@ -315,6 +330,14 @@ export class ReviewCheckerChild extends RemotePageChild {
    */
   autoOpenEnabledByUserChanged() {
     this.updateAutoOpenEnabledByUser(this.autoOpenEnabledByUser);
+  }
+
+  /**
+   * Update auto-close to user's pref value.
+   *
+   */
+  autoCloseEnabledByUserChanged() {
+    this.updateAutoCloseEnabledByUser(this.autoCloseEnabledByUser);
   }
 
   /**
@@ -634,6 +657,7 @@ export class ReviewCheckerChild extends RemotePageChild {
       adsEnabledByUser: lazy.adsEnabledByUser,
       autoOpenEnabled: lazy.autoOpenEnabled,
       autoOpenEnabledByUser: lazy.autoOpenEnabledByUser,
+      autoCloseEnabledByUser: lazy.autoCloseEnabledByUser,
       showOnboarding: !this.canFetchAndShowData,
       data: null,
       recommendationData: null,
@@ -751,6 +775,17 @@ export class ReviewCheckerChild extends RemotePageChild {
   updateAutoOpenEnabledByUser(autoOpenEnabledByUser) {
     this.sendToContent("autoOpenEnabledByUserChanged", {
       autoOpenEnabledByUser,
+    });
+  }
+
+  /**
+   * Updates if auto close has been enabled or disable in the content settings.
+   *
+   * @param {bool} autoCloseEnabledByUser
+   */
+  updateAutoCloseEnabledByUser(autoCloseEnabledByUser) {
+    this.sendToContent("autoCloseEnabledByUserChanged", {
+      autoCloseEnabledByUser,
     });
   }
 

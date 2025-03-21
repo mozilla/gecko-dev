@@ -13,6 +13,8 @@ const AUTO_OPEN_ENABLED_PREF =
   "browser.shopping.experience2023.autoOpen.enabled";
 const AUTO_OPEN_USER_ENABLED_PREF =
   "browser.shopping.experience2023.autoOpen.userEnabled";
+const AUTO_CLOSE_USER_ENABLED_PREF =
+  "browser.shopping.experience2023.autoClose.userEnabled";
 
 function assertSidebarState(isOpen) {
   let { SidebarController } = window;
@@ -226,8 +228,7 @@ add_task(async function test_auto_close_product_page_rc_sidebar() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.shopping.experience2023.optedIn", 1],
-      ["browser.shopping.experience2023.autoOpen.enabled", true],
-      ["browser.shopping.experience2023.autoOpen.userEnabled", true],
+      ["browser.shopping.experience2023.autoClose.userEnabled", true],
     ],
   });
 
@@ -255,8 +256,7 @@ add_task(async function test_auto_close_supported_site_rc_sidebar() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.shopping.experience2023.optedIn", 1],
-      ["browser.shopping.experience2023.autoOpen.enabled", true],
-      ["browser.shopping.experience2023.autoOpen.userEnabled", true],
+      ["browser.shopping.experience2023.autoClose.userEnabled", true],
     ],
   });
 
@@ -283,8 +283,7 @@ add_task(async function test_auto_close_unsupported_site_rc_sidebar() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.shopping.experience2023.optedIn", 1],
-      ["browser.shopping.experience2023.autoOpen.enabled", true],
-      ["browser.shopping.experience2023.autoOpen.userEnabled", true],
+      ["browser.shopping.experience2023.autoClose.userEnabled", true],
     ],
   });
 
@@ -309,10 +308,7 @@ add_task(async function test_auto_close_unsupported_site_rc_sidebar() {
  */
 add_task(async function test_auto_close_on_tab_switch() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.shopping.experience2023.autoOpen.enabled", true],
-      ["browser.shopping.experience2023.autoOpen.userEnabled", true],
-    ],
+    set: [["browser.shopping.experience2023.autoClose.userEnabled", true]],
   });
 
   await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function () {
@@ -332,15 +328,14 @@ add_task(async function test_auto_close_on_tab_switch() {
 });
 
 /* Tests that the sidebar stays open when navigating to an unsupported site
- *  within the same tab with auto-open disabled
+ *  within the same tab with auto-close disabled
  */
 
-add_task(async function test_auto_open_disabled_unsupported_site_rc_sidebar() {
+add_task(async function test_auto_close_disabled_unsupported_site_rc_sidebar() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.shopping.experience2023.optedIn", 1],
-      ["browser.shopping.experience2023.autoOpen.enabled", TreeColumn],
-      ["browser.shopping.experience2023.autoOpen.userEnabled", false],
+      ["browser.shopping.experience2023.autoClose.userEnabled", false],
     ],
   });
 
