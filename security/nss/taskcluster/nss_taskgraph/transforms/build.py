@@ -152,7 +152,7 @@ def set_gyp_command(config, jobs):
         command = script + " --python=python3"
         if "64" not in platform:
             command += " -t ia32"
-        if attributes["build_type"] == "opt":
+        if attributes["build_type"] in ("opt", "opt-static"):
             command += " --opt"
         if "fips" in attributes["build_type"]:
             command += " --enable-fips"
@@ -161,7 +161,7 @@ def set_gyp_command(config, jobs):
         if attributes.get("nspr"):
             command += " --nspr-only --nspr-test-build --nspr-test-run"
         if attributes.get("static"):
-            command += " --static"
+            command += " --static -Ddisable_libpkix=1"
         if attributes.get("fuzz"):
             command += " --disable-tests -Ddisable_libpkix=1 --fuzz"
             job.setdefault("worker", {}).setdefault("env", {}).update({

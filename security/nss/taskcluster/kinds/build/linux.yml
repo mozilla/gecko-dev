@@ -53,6 +53,9 @@ linux64/opt-make:
     description: "Linux 64 (opt, make)"
     attributes:
         make: true
+    worker:
+        env:
+            BUILD_OPT: "1"
 
 linux64/opt-fips:
     description: "Linux 64 (FIPS opt)"

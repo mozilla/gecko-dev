@@ -2400,15 +2400,28 @@ sftk_handleSpecial(SFTKSlot *slot, CK_MECHANISM *mech,
     switch (mechInfo->special) {
         case SFTKFIPSDH: {
             SECItem dhPrime;
+            SECItem dhBase;
+            SECItem dhGenerator;
+            PRBool fipsOk = PR_FALSE;
             const SECItem *dhSubPrime;
             CK_RV crv = sftk_Attribute2SecItem(NULL, &dhPrime,
                                                source, CKA_PRIME);
             if (crv != CKR_OK) {
                 return PR_FALSE;
             }
-            dhSubPrime = sftk_VerifyDH_Prime(&dhPrime, PR_TRUE);
+            crv = sftk_Attribute2SecItem(NULL, &dhBase, source, CKA_BASE);
+            if (crv != CKR_OK) {
+                return PR_FALSE;
+            }
+            dhSubPrime = sftk_VerifyDH_Prime(&dhPrime, &dhGenerator, PR_TRUE);
+            fipsOk = (dhSubPrime) ? PR_TRUE : PR_FALSE;
+            if (fipsOk && (SECITEM_CompareItem(&dhBase, &dhGenerator) != 0)) {
+                fipsOk = PR_FALSE;
+            }
+
             SECITEM_ZfreeItem(&dhPrime, PR_FALSE);
-            return (dhSubPrime) ? PR_TRUE : PR_FALSE;
+            SECITEM_ZfreeItem(&dhBase, PR_FALSE);
+            return fipsOk;
         }
         case SFTKFIPSNone:
             return PR_FALSE;

@@ -43,6 +43,7 @@ static void nss_cms_decoder_update_filter(void *arg, const char *data,
 static SECStatus nss_cms_before_data(NSSCMSDecoderContext *p7dcx);
 static SECStatus nss_cms_after_data(NSSCMSDecoderContext *p7dcx);
 static SECStatus nss_cms_after_end(NSSCMSDecoderContext *p7dcx);
+static void nss_cms_decoder_update(void *p7ecx, const char *data, unsigned long len);
 static void nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
                                       const unsigned char *data,
                                       unsigned long len,
@@ -294,7 +295,7 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
     }
 
     /* now set up the parent to hand decoded data to the next level decoder */
-    p7dcx->cb = (NSSCMSContentCallback)NSS_CMSDecoder_Update;
+    p7dcx->cb = (NSSCMSContentCallback)nss_cms_decoder_update;
     p7dcx->cb_arg = childp7dcx;
 
     PORT_ArenaUnmark(poolp, mark);
@@ -554,6 +555,15 @@ done:
 loser:
     if (buf)
         PORT_Free(buf);
+}
+
+/*
+ * nss_cms_decoder_update - deliver decoded data to the next higher level!
+ */
+static void
+nss_cms_decoder_update(void *p7ecx, const char *data, unsigned long len)
+{
+    (void)NSS_CMSDecoder_Update((NSSCMSDecoderContext *)p7ecx, data, len);
 }
 
 /*

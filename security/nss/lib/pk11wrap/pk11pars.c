@@ -437,6 +437,8 @@ static const oidValDef kxOptList[] = {
     { CIPHER_NAME("ECDHE-RSA"), SEC_OID_TLS_ECDHE_RSA, NSS_USE_ALG_IN_SSL_KX },
     { CIPHER_NAME("ECDH-ECDSA"), SEC_OID_TLS_ECDH_ECDSA, NSS_USE_ALG_IN_SSL_KX },
     { CIPHER_NAME("ECDH-RSA"), SEC_OID_TLS_ECDH_RSA, NSS_USE_ALG_IN_SSL_KX },
+    { CIPHER_NAME("TLS-REQUIRE-EMS"), SEC_OID_TLS_REQUIRE_EMS, NSS_USE_ALG_IN_SSL_KX },
+
 };
 
 static const oidValDef smimeKxOptList[] = {
@@ -791,6 +793,79 @@ secmod_getOperationString(NSSPolicyOperation operation)
             break;
     }
     return "invalid";
+}
+
+/* Allow external applications fetch the policy oid based on the internal
+ * string mapping used by the configuration system. The search can be
+ * narrowed by supplying the name of the table (list) that the policy
+ * is on. The value 'Any' allows the policy to be searched on all lists */
+SECOidTag
+SECMOD_PolicyStringToOid(const char *policy, const char *list)
+{
+    PRBool any = (PORT_Strcasecmp(list, "Any") == 0) ? PR_TRUE : PR_FALSE;
+    int len = PORT_Strlen(policy);
+    int i, j;
+
+    for (i = 0; i < PR_ARRAY_SIZE(algOptLists); i++) {
+        const algListsDef *algOptList = &algOptLists[i];
+        if (any || (PORT_Strcasecmp(algOptList->description, list) == 0)) {
+            for (j = 0; j < algOptList->entries; j++) {
+                const oidValDef *algOpt = &algOptList->list[j];
+                unsigned name_size = algOpt->name_size;
+                if (len == name_size &&
+                    PORT_Strcasecmp(algOpt->name, policy) == 0) {
+                    return algOpt->oid;
+                }
+            }
+        }
+    }
+    return SEC_OID_UNKNOWN;
+}
+
+/* Allow external applications fetch the NSS option based on the internal
+ * string mapping used by the configuration system. */
+PRUint32
+SECMOD_PolicyStringToOpt(const char *policy)
+{
+    int len = PORT_Strlen(policy);
+    int i;
+
+    for (i = 0; i < PR_ARRAY_SIZE(freeOptList); i++) {
+        const optionFreeDef *freeOpt = &freeOptList[i];
+        unsigned name_size = freeOpt->name_size;
+        if (len == name_size &&
+            PORT_Strcasecmp(freeOpt->name, policy) == 0) {
+            return freeOpt->option;
+        }
+    }
+    return 0;
+}
+
+/* Allow external applications map policy flags to their string equivalance.
+ * Some strings represent more than one flag. If more than one flag is included
+ * the returned string is the string that contains any of the
+ * supplied flags unless exact is specified. If exact is specified, then the
+ * returned value matches all the included flags and only those flags. For
+ * Example: 'ALL-SIGNATURE' has the bits NSS_USE_ALG_IN_CERTSIGNATURE|
+ * NSS_USE_ALG_IN_SMIME_SIGNATURE|NSS_USE_ALG_IN_ANY_SIGNATURE. If you ask for
+ * NSS_USE_ALG_IN_CERT_SIGNATURE|NSS_USE_ALG_IN_SMIME_SIGNATURE and don't set
+ * exact, this function will return 'ALL-SIGNATURE' if you do set exact, you must
+ * include all three bits in value to get 'All-SIGNATURE'*/
+const char *
+SECMOD_FlagsToPolicyString(PRUint32 val, PRBool exact)
+{
+    int i;
+
+    for (i = 0; i < PR_ARRAY_SIZE(policyFlagList); i++) {
+        const policyFlagDef *policy = &policyFlagList[i];
+        if (exact && (policy->flag == val)) {
+            return policy->name;
+        }
+        if (!exact && ((policy->flag & val) == policy->flag)) {
+            return policy->name;
+        }
+    }
+    return NULL;
 }
 
 static SECStatus

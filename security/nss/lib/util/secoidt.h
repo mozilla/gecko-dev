@@ -534,6 +534,8 @@ typedef enum {
 
     SEC_OID_MLKEM768X25519 = 389,
 
+    SEC_OID_TLS_REQUIRE_EMS = 390,
+
     SEC_OID_TOTAL
 } SECOidTag;
 

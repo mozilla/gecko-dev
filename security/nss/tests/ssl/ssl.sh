@@ -1025,9 +1025,9 @@ ssl_policy_selfserv()
   # UNIX-like OS's. Other OS's can't properly clean up the child processes
   # when our test suite kills the parent, so just use the single process 
   # self serve for them
-  if [ "${OS_ARCH}" != "WINNT" ]; then
-      SERVER_OPTIONS="-M 3 ${SERVER_OPTIONS}"
-  fi
+  # if [ "${OS_ARCH}" != "WINNT" ]; then
+  #    SERVER_OPTIONS="-M 3 ${SERVER_OPTIONS}"
+  # fi
   
   start_selfserv $CIPHER_SUITES
 
@@ -1597,7 +1597,7 @@ ssl_run_tests()
     do
         case "${SSL_TEST}" in
         "policy")
-            if [ "${TEST_MODE}" = "SHARED_DB" ] ; then
+            if using_sql ; then
                 ssl_policy_listsuites
                 ssl_policy_selfserv
                 ssl_policy_pkix_ocsp

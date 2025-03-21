@@ -277,7 +277,7 @@ y
 n
 CERTSCRIPT
 
-certutil -S -z noise -g 1024 -d . -n server12 -s "CN=Honest Achmed,O=Foo,ST=CA,C=US" -t ,, -c ica4 -m 46 -v 235 -1 -2 -5 <<CERTSCRIPT
+certutil -S -z noise -g 1024 -d . -n server12 -s "CN=Certified pre-owned,O=Foo,ST=CA,C=US" -t ,, -c ica4 -m 46 -v 235 -1 -2 -5 <<CERTSCRIPT
 0
 2
 3

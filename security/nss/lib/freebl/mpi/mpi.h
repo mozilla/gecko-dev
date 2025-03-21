@@ -45,6 +45,11 @@ SEC_BEGIN_PROTOS
 #define MP_UNDEF -5  /* answer is undefined   */
 #define MP_LAST_CODE MP_UNDEF
 
+/* Comparison constants */
+#define MP_LT -1
+#define MP_EQ 0
+#define MP_GT 1
+
 typedef unsigned int mp_sign;
 typedef unsigned int mp_size;
 typedef int mp_err;

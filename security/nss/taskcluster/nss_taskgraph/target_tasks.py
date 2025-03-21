@@ -30,6 +30,8 @@ PLATFORM_ALIASES = {
 def filter_platform(platform, task):
     if "build_platform" not in task.attributes:
         return False
+    if platform == "all":
+        return True
     task_platform = task.attributes["build_platform"]
     # Check the platform name.
     keep = task_platform == PLATFORM_ALIASES.get(platform, platform)

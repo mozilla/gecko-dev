@@ -90,14 +90,6 @@ extern const float s_logv_2[];
 
 /* }}} */
 
-/* {{{ Comparison constants */
-
-#define MP_LT -1
-#define MP_EQ 0
-#define MP_GT 1
-
-/* }}} */
-
 /* {{{ private function declarations */
 
 void s_mp_setz(mp_digit *dp, mp_size count);                     /* zero digits           */

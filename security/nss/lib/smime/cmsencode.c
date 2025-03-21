@@ -36,8 +36,8 @@ struct NSSCMSEncoderContextStr {
 
 static SECStatus nss_cms_before_data(NSSCMSEncoderContext *p7ecx);
 static SECStatus nss_cms_after_data(NSSCMSEncoderContext *p7ecx);
-static SECStatus nss_cms_encoder_update(NSSCMSEncoderContext *p7ecx,
-                                        const char *data, unsigned long len);
+static void nss_cms_encoder_update(void *p7ecx,
+                                   const char *data, unsigned long len);
 static SECStatus nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
                                            const unsigned char *data, unsigned long len,
                                            PRBool final, PRBool innermost);
@@ -473,12 +473,12 @@ done:
  *
  * no recursion here because we REALLY want to end up at the next higher encoder!
  */
-static SECStatus
-nss_cms_encoder_update(NSSCMSEncoderContext *p7ecx, const char *data, unsigned long len)
+static void
+nss_cms_encoder_update(void *p7ecx, const char *data, unsigned long len)
 {
     /* XXX Error handling needs help.  Return what?  Do "Finish" on failure? */
-    return nss_cms_encoder_work_data(p7ecx, NULL, (const unsigned char *)data,
-                                     len, PR_FALSE, PR_FALSE);
+    (void)nss_cms_encoder_work_data((NSSCMSEncoderContext *)p7ecx, NULL, (const unsigned char *)data,
+                                    len, PR_FALSE, PR_FALSE);
 }
 
 /*

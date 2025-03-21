@@ -93,4 +93,37 @@ TEST_P(TlsConnectGenericPre13, ConnectNormalResumeWithExtendedMasterSecret) {
   Connect();
 }
 
+TEST_P(TlsConnectGenericPre13, ConnectExtendedMasterSecretWithPolicy) {
+  server_->SetPolicy(SEC_OID_TLS_REQUIRE_EMS, NSS_USE_ALG_IN_SSL_KX, 0);
+  client_->SetPolicy(SEC_OID_TLS_REQUIRE_EMS, NSS_USE_ALG_IN_SSL_KX, 0);
+  EnableExtendedMasterSecret();
+  Connect();
+}
+
+TEST_P(TlsConnectGenericPre13, ConnectNoExtendedMasterSecretWithServerPolicy) {
+  server_->SetPolicy(SEC_OID_TLS_REQUIRE_EMS, NSS_USE_ALG_IN_SSL_KX, 0);
+  ConnectExpectAlert(server_, kTlsAlertHandshakeFailure);
+  server_->CheckErrorCode(SSL_ERROR_MISSING_EXTENDED_MASTER_SECRET);
+}
+
+TEST_P(TlsConnectGenericPre13, ConnectNoExtendedMasterSecretWithClientPolicy) {
+  client_->SetPolicy(SEC_OID_TLS_REQUIRE_EMS, NSS_USE_ALG_IN_SSL_KX, 0);
+  ConnectExpectFailOneSide(TlsAgent::CLIENT);
+  client_->CheckErrorCode(SSL_ERROR_MISSING_EXTENDED_MASTER_SECRET);
+}
+
+TEST_P(TlsConnectGenericPre13, ConnectNoExtendedMasterSecretClientWithPolicy) {
+  server_->SetPolicy(SEC_OID_TLS_REQUIRE_EMS, NSS_USE_ALG_IN_SSL_KX, 0);
+  server_->EnableExtendedMasterSecret();
+  ConnectExpectAlert(server_, kTlsAlertHandshakeFailure);
+  server_->CheckErrorCode(SSL_ERROR_MISSING_EXTENDED_MASTER_SECRET);
+}
+
+TEST_P(TlsConnectGenericPre13, ConnectNoExtendedMasterSecretServerWithPolicy) {
+  client_->SetPolicy(SEC_OID_TLS_REQUIRE_EMS, NSS_USE_ALG_IN_SSL_KX, 0);
+  client_->EnableExtendedMasterSecret();
+  ConnectExpectFailOneSide(TlsAgent::CLIENT);
+  client_->CheckErrorCode(SSL_ERROR_MISSING_EXTENDED_MASTER_SECRET);
+}
+
 }  // namespace nss_test

@@ -324,10 +324,11 @@ CERT_DecodeCertPackage(char *certbuf,
         /* check entire length if definite length */
         if (seqLen || seqLenLen) {
             if (certlen != (seqLen + seqLenLen + 2L)) {
-                if (certlen > (seqLen + seqLenLen + 2L))
+                if (certlen > (seqLen + seqLenLen + 2L)) {
                     PORT_SetError(SEC_ERROR_EXTRA_INPUT);
-                else
+                } else {
                     PORT_SetError(SEC_ERROR_INPUT_LEN);
+                }
                 goto notder;
             }
         }

@@ -195,7 +195,7 @@
   0 noECC  SSL3   d    disallow=dsa Disallow DSA Signatures Explicitly
   1 noECC  SSL3   d    disallow=rsa-pkcs Disallow RSA PKCS 1 Signatures Explicitly
   1 noECC  SSL3   d    allow=rsa-min=16384:key-size-flags=key-size-verify Restrict RSA keys on signature verification
-  1 noECC  SSL3   d    allow=rsa-min=16384:key-size-flags=key-size-sign Restrict RSA keys on signing
+  0 noECC  SSL3   d    allow=rsa-min=16384:key-size-flags=key-size-sign Restrict RSA keys on signing
   1 noECC  SSL3   d    allow=rsa-min=16384:key-size-flags=key-size-ssl Restrict RSA keys when used in SSL
   0 noECC  SSL3   d    allow=rsa-min=1023 Restrict RSA keys when used in SSL
 # test default settings

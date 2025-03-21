@@ -1,3 +1,4 @@
 [libfuzzer]
 len_control = 100
 max_len = 16777215
+rss_limit_mb = 4096

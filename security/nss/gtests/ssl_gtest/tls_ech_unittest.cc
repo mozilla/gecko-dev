@@ -2479,6 +2479,26 @@ TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriter) {
   Connect();
 }
 
+TEST_F(TlsConnectStreamTls13, EchCustomExtensionWriterZeroRtt) {
+  EnsureTlsSetup();
+  SetupEch(client_, server_);
+  SetupForZeroRtt();
+
+  client_->Set0RttEnabled(true);
+  server_->Set0RttEnabled(true);
+  ASSERT_EQ(SECSuccess, SSL_InstallExtensionHooks(
+                            client_->ssl_fd(), 62028, EmptyExtensionWriter,
+                            nullptr, NoopExtensionHandler, nullptr));
+  SetupEch(client_, server_);
+  ExpectResumption(RESUME_TICKET);
+
+  ZeroRttSendReceive(true, true);
+  Handshake();
+  ExpectEarlyDataAccepted(true);
+  CheckConnected();
+  SendReceive();
+}
+
 TEST_F(TlsConnectStreamTls13Ech, EchCustomExtensionWriterOuterOnly) {
   EnsureTlsSetup();
   SetupEch(client_, server_);

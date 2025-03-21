@@ -3005,7 +3005,11 @@ SEC_ASN1DecoderFinish(SEC_ASN1DecoderContext *cx)
     SECStatus rv;
 
     if (!cx || cx->status == needBytes) {
-        PORT_SetError(SEC_ERROR_BAD_DER);
+        if (0 == PORT_GetError()) {
+            /* don't clobber a real reason for the failure like bad password
+             * or invalid algorithm */
+            PORT_SetError(SEC_ERROR_BAD_DER);
+        }
         rv = SECFailure;
     } else {
         rv = SECSuccess;

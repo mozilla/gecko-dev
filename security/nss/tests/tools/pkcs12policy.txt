@@ -72,6 +72,10 @@
 # CERT-DECRYPT-FAILED      18 (PK12UERR_DECODEVALIBAGS)
 # INTEGRITY-DECRYPT_FAILED 17 (PK12UERR_DECODEVERIFY)
 #
+# NOTE: pk12util has historically had problems distinguishing between
+# CERT-DECRYPT-FAILED and INTEGRITY-DECRYPT_FAILED until it's actually sorted,
+# some tests failure codes may change as pk12util gets improved.
+#
 # The tests below uses the error codes when if forces policy failures
 # on particular operations.
 #
@@ -83,12 +87,12 @@
  28  x disallow=aes128-cbc disallow_all_allow=all/legacy AES-128-CBC AES-256-CBC SHA-256  Disallow AES-128-CBC, key_encrypt=AES-128-CBC (write)
   0 19 allow=all disallow=aes128-cbc AES-128-CBC AES-256-CBC SHA-256 Disallow AES-128-CBC, key_decrypt=AES-128-CBC (read)
  27  x disallow=aes128-cbc disallow_all_allow=all/legacy AES-256-CBC AES-128-CBC SHA-256  Disallow AES-128-CBC, cert_encrypt=AES-128-CBC (write cert)
-  0 18 allow=all disallow=aes128-cbc AES-256-CBC AES-128-CBC SHA-256 Disallow AES-128-CBC, cert_decrypt=AES-128-CBC (read cert)
+  0 17 allow=all disallow=aes128-cbc AES-256-CBC AES-128-CBC SHA-256 Disallow AES-128-CBC, cert_decrypt=AES-128-CBC (read cert)
   0  0 allow=all allow=all PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC4 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC SHA-1  allow all, RC4 and RC2
  28  x disallow=rc4 allow=all PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC4 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC SHA-1  disallow rc4 (write), RC4 and RC2
  27  x disallow=rc2 allow=all PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC4 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC SHA-1  disallow rc2 (write), RC4 and RC2
   0 19 allow_all disallow=rc4 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC4 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC SHA-1  disallow rc4 (read), RC4 and RC2
-  0 18 allow_all disallow=rc2 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC4 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC SHA-1  disallow rc2 (read), RC4 and RC2
+  0 17 allow_all disallow=rc2 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC4 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC SHA-1  disallow rc2 (read), RC4 and RC2
 # integrity policy check the various has based controls.
 #  NOTE: md4, md2, and md5 are turned off by policy by default for encrypting
 # (decrypting is fine). To be enabled, you must allow=all or allow=mdX on the
@@ -101,11 +105,11 @@
  27  x disallow=md2 allow=all PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow md2 on write
  29  x disallow=sha256_allow=md2 allow=all PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow sha256 on write
   0 19 allow=all disallow=sha1 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow sha1 on read
-  0 18 allow=all disallow=md2 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow md2 on read
+  0 17 allow=all disallow=md2 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow md2 on read
   0 17 allow=all disallow=sha256 PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow sha256 on read
   0  0 allow=all disallow=md2/pkcs12-encrypt PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow md2 on read
   0  0 allow=all disallow=sha1/pkcs12-encrypt PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow sha1 on read
   0  0 allow=all disallow=sha256/pkcs12-encrypt PKCS_#12_V2_PBE_With_SHA-1_And_128_Bit_RC2_CBC PKCS_#5_Password_Based_Encryption_with_MD2_and_DES-CBC SHA-256 Disallow sha256 on read
-  0  0 allow=all allow=all AES-128-CBC AES-128-CBC HMAC_SHA-256
- 29  x disallow=hmac-sha256 allow=all AES-128-CBC AES-128-CBC HMAC_SHA-256
-  0 18 allow=all disallow=hmac-sha256 AES-128-CBC AES-128-CBC HMAC_SHA-256
+  0  0 allow=all allow=all AES-128-CBC AES-128-CBC HMAC_SHA-256 Allow all with hmac
+ 29  x disallow=hmac-sha256 allow=all AES-128-CBC AES-128-CBC HMAC_SHA-256 Disallow hmac on write
+  0 17 allow=all disallow=hmac-sha256 AES-128-CBC AES-128-CBC HMAC_SHA-256 Disallow hmac on read

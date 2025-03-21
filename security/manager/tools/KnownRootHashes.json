@@ -782,7 +782,17 @@
       "label": "TWCA_CYBER_Root_CA",
       "binNumber": 152,
       "sha256Fingerprint": "P2O7KBS+F07ItkOc8I1tVvC3xAWIOlZIozRCTWs+xVg="
+    },
+    {
+      "label": "D_TRUST_EV_Root_CA_2_2023",
+      "binNumber": 153,
+      "sha256Fingerprint": "joIhsufUAHg2oWcvDcwpnDO8B9MW8TL6GiBtWHFQ8c4="
+    },
+    {
+      "label": "D_TRUST_BR_Root_CA_2_2023",
+      "binNumber": 154,
+      "sha256Fingerprint": "BVLm+D/fZej6lnDmZt8opOITQLUQy+UlZvl8T7lLK9E="
     }
   ],
-  "maxBin": 152
+  "maxBin": 154
 }

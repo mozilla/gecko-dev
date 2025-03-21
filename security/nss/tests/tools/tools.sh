@@ -160,6 +160,7 @@ import_p12_file()
 
   ${BINDIR}/pk12util -i ${1} -d ${3} -k ${R_PWFILE} -w ${R_PWFILE} 2>&1
   ret=$?
+  echo "return=$ret expect=${4}"
   html_msg $ret ${4} "Importing ${1} (pk12util -i)"
   check_tmpfile
 }
@@ -208,6 +209,7 @@ export_p12_file()
                        ${CERT_CIPHER_OPT} "${CERT_CIPHER}" \
                        ${HASH_ALG_OPT} "${HASH_ALG}" 2>&1
   ret=$?
+  echo "return=$ret expect=${7}"
   html_msg $ret ${7} "Exporting with [${4}:${5}:${6}] (pk12util -o)"
   check_tmpfile
   if [ ${7} -eq 0 ]; then
@@ -591,7 +593,7 @@ tools_p12()
   tools_p12_export_with_invalid_ciphers
   tools_p12_import_old_files
   tools_p12_import_pbmac1_samples
-  if [ "${TEST_MODE}" = "SHARED_DB" ] ; then
+  if using_sql; then
     tools_p12_import_rsa_pss_private_key
     tools_p12_policy
   fi

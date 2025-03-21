@@ -1664,7 +1664,7 @@ CK_RV
 sdb_GetMetaData(SDB *sdb, const char *id, SECItem *item1, SECItem *item2)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3 *sqlDB = sdb_p->sqlXactDB;
+    sqlite3 *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;

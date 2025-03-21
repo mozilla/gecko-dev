@@ -850,6 +850,8 @@ sec_pkcs7_decoder_notify(void *arg, PRBool before, void *dest, int depth)
 
         case SEC_OID_PKCS7_DIGESTED_DATA:
             digd = cinfo->content.digestedData;
+            if (digd == NULL)
+                break;
 
             /*
              * XXX Want to do the digest or not?  Maybe future enhancement...

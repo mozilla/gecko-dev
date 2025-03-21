@@ -365,6 +365,15 @@ NSS=trustOrder=100
       LC_ALL=C egrep -v '^[[:space:]]*(#|$)' "$1"
     }
 
+    using_sql()
+    {
+        dbtype=$(nssdefaults --dbtype)
+        if [ ${dbtype##*: } = "sql" ]; then
+            return 0; # success case for bash
+        fi
+        return 1; # fail case for bash
+    }
+
 #directory name init
     SCRIPTNAME=init.sh
 

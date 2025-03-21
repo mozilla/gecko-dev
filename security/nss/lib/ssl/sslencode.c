@@ -43,8 +43,8 @@ sslBuffer_Grow(sslBuffer *b, unsigned int newLen)
     /* If buf is non-NULL, space must be non-zero;
      * if buf is NULL, space must be zero. */
     PORT_Assert((b->buf && b->space) || (!b->buf && !b->space));
-    newLen = PR_MAX(newLen, b->len + 1024);
     if (newLen > b->space) {
+        newLen = PR_MAX(newLen, b->space + 2048);
         unsigned char *newBuf;
         if (b->buf) {
             newBuf = (unsigned char *)PORT_Realloc(b->buf, newLen);

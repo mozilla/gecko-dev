@@ -2094,10 +2094,11 @@ PK11_MatchItem(PK11SlotInfo *slot, CK_OBJECT_HANDLE searchID,
 
     if ((theTemplate[0].ulValueLen == 0) || (theTemplate[0].ulValueLen == -1)) {
         PORT_DestroyCheapArena(&tmpArena);
-        if (matchclass == CKO_CERTIFICATE)
+        if (matchclass == CKO_CERTIFICATE) {
             PORT_SetError(SEC_ERROR_BAD_KEY);
-        else
+        } else {
             PORT_SetError(SEC_ERROR_NO_KEY);
+        }
         return CK_INVALID_HANDLE;
     }
 

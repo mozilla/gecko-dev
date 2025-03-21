@@ -1898,6 +1898,9 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
 
     ODE(SEC_OID_MLKEM768X25519,
         "ML-KEM-768+X25519 key exchange", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
+    ODE(SEC_OID_TLS_REQUIRE_EMS,
+        "TLS Require EMS", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
+
 };
 
 /* PRIVATE EXTENDED SECOID Table
@@ -2191,6 +2194,8 @@ SECOID_Init(void)
 
     /* turn off NSS_USE_POLICY_IN_SSL by default */
     xOids[SEC_OID_APPLY_SSL_POLICY].notPolicyFlags = NSS_USE_POLICY_IN_SSL;
+    /* turn off TLS REQUIRE EMS by default */
+    xOids[SEC_OID_TLS_REQUIRE_EMS].notPolicyFlags = ~0;
 
     envVal = PR_GetEnvSecure("NSS_HASH_ALG_SUPPORT");
     if (envVal)

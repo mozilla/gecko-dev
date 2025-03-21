@@ -49,6 +49,7 @@ NSS_SRCDIRS = \
  makepqg  \
  multinit \
  nss-policy-check \
+ nssdefaults \
  ocspclnt  \
  ocspresp \
  oidcalc  \

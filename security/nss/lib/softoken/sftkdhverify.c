@@ -6726,11 +6726,18 @@ static const SECItem subprime_tls_8192 = { siBuffer,
                                            (unsigned char *)subprime_tls_8192_data,
                                            sizeof(subprime_tls_8192_data) };
 
+/* generator for all the groups is 2 */
+static const unsigned char generator_2_data[] = { 2 };
+
+static const SECItem generator_2 = { siBuffer,
+                                     (unsigned char *)generator_2_data,
+                                     sizeof(generator_2_data) };
+
 /*
  * verify that dhPrime matches one of our known primes
  */
 const SECItem *
-sftk_VerifyDH_Prime(SECItem *dhPrime, PRBool isFIPS)
+sftk_VerifyDH_Prime(SECItem *dhPrime, SECItem *g, PRBool isFIPS)
 {
     /* use the length to decide which primes to check */
     switch (dhPrime->len) {
@@ -6741,56 +6748,78 @@ sftk_VerifyDH_Prime(SECItem *dhPrime, PRBool isFIPS)
             }
             if (PORT_Memcmp(dhPrime->data, prime_ike_1536,
                             sizeof(prime_ike_1536)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_ike_1536;
             }
             break;
         case 2048 / PR_BITS_PER_BYTE:
             if (PORT_Memcmp(dhPrime->data, prime_tls_2048,
                             sizeof(prime_tls_2048)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_tls_2048;
             }
             if (PORT_Memcmp(dhPrime->data, prime_ike_2048,
                             sizeof(prime_ike_2048)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_ike_2048;
             }
             break;
         case 3072 / PR_BITS_PER_BYTE:
             if (PORT_Memcmp(dhPrime->data, prime_tls_3072,
                             sizeof(prime_tls_3072)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_tls_3072;
             }
             if (PORT_Memcmp(dhPrime->data, prime_ike_3072,
                             sizeof(prime_ike_3072)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_ike_3072;
             }
             break;
         case 4096 / PR_BITS_PER_BYTE:
             if (PORT_Memcmp(dhPrime->data, prime_tls_4096,
                             sizeof(prime_tls_4096)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_tls_4096;
             }
             if (PORT_Memcmp(dhPrime->data, prime_ike_4096,
                             sizeof(prime_ike_4096)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_ike_4096;
             }
             break;
         case 6144 / PR_BITS_PER_BYTE:
             if (PORT_Memcmp(dhPrime->data, prime_tls_6144,
                             sizeof(prime_tls_6144)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_tls_6144;
             }
             if (PORT_Memcmp(dhPrime->data, prime_ike_6144,
                             sizeof(prime_ike_6144)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_ike_6144;
             }
             break;
         case 8192 / PR_BITS_PER_BYTE:
             if (PORT_Memcmp(dhPrime->data, prime_tls_8192,
                             sizeof(prime_tls_8192)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_tls_8192;
             }
             if (PORT_Memcmp(dhPrime->data, prime_ike_8192,
                             sizeof(prime_ike_8192)) == 0) {
+                if (g)
+                    *g = generator_2;
                 return &subprime_ike_8192;
             }
             break;

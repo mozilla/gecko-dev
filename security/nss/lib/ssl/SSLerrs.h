@@ -435,7 +435,7 @@ ER3(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM, (SSL_ERROR_BASE + 135),
     "The peer used an unsupported combination of signature and hash algorithm.")
 
 ER3(SSL_ERROR_MISSING_EXTENDED_MASTER_SECRET, (SSL_ERROR_BASE + 136),
-    "The peer tried to resume without a correct extended_master_secret extension")
+    "The peer did not use an extended master secret when required, either due to policy or because the previous session had it enabled")
 
 ER3(SSL_ERROR_UNEXPECTED_EXTENDED_MASTER_SECRET, (SSL_ERROR_BASE + 137),
     "The peer tried to resume with an unexpected extended_master_secret extension")

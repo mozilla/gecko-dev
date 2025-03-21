@@ -445,7 +445,7 @@ cleanup:
 PRBool
 KEA_Verify(SECItem *Y, SECItem *prime, SECItem *subPrime)
 {
-    mp_int p, q, y, r;
+    mp_int p, q, y, r, psub1;
     mp_err err;
     int cmp = 1; /* default is false */
     if (!Y || !prime || !subPrime) {
@@ -456,13 +456,30 @@ KEA_Verify(SECItem *Y, SECItem *prime, SECItem *subPrime)
     MP_DIGITS(&q) = 0;
     MP_DIGITS(&y) = 0;
     MP_DIGITS(&r) = 0;
+    MP_DIGITS(&psub1) = 0;
     CHECK_MPI_OK(mp_init(&p));
     CHECK_MPI_OK(mp_init(&q));
     CHECK_MPI_OK(mp_init(&y));
     CHECK_MPI_OK(mp_init(&r));
+    CHECK_MPI_OK(mp_init(&psub1));
     SECITEM_TO_MPINT(*prime, &p);
     SECITEM_TO_MPINT(*subPrime, &q);
     SECITEM_TO_MPINT(*Y, &y);
+    CHECK_MPI_OK(mp_sub_d(&p, 1, &psub1));
+    /*
+     * We check that the public value isn't zero (which isn't in the
+     * group), one (subgroup of order one) or p-1 (subgroup of order 2). We
+     * also check that the public value is less than p, to avoid being fooled
+     * by values like p+1 or 2*p-1.
+     * This check is required by SP-800-56Ar3. It's also done in derive,
+     * but this is only called in various FIPS cases, so put it here to help
+     * reviewers find it.
+     */
+    if (mp_cmp_d(&y, 1) <= 0 ||
+        mp_cmp(&y, &psub1) >= 0) {
+        err = MP_BADARG;
+        goto cleanup;
+    }
     /* compute r = y**q mod p */
     CHECK_MPI_OK(mp_exptmod(&y, &q, &p, &r));
     /* compare to 1 */
@@ -472,6 +489,7 @@ cleanup:
     mp_clear(&q);
     mp_clear(&y);
     mp_clear(&r);
+    mp_clear(&psub1);
     if (err) {
         MP_TO_SEC_ERROR(err);
         return PR_FALSE;

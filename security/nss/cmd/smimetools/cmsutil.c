@@ -1635,7 +1635,8 @@ main(int argc, char **argv)
                                    NULL, NULL);    /* detached digests    */
         if (!ecx) {
             fprintf(stderr, "%s: cannot create encoder context.\n", progName);
-            exit(1);
+            exitstatus = 1;
+            goto loser;
         }
         if (cms_verbose) {
             fprintf(stderr, "input len [%d]\n", input.len);
@@ -1650,13 +1651,18 @@ main(int argc, char **argv)
             if (rv) {
                 fprintf(stderr,
                         "%s: failed to add data to encoder.\n", progName);
-                exit(1);
+                (void)NSS_CMSEncoder_Finish(ecx);
+                PORT_FreeArena(arena, PR_FALSE);
+                exitstatus = 1;
+                goto loser;
             }
         }
         rv = NSS_CMSEncoder_Finish(ecx);
         if (rv) {
             SECU_PrintError(progName, "failed to encode data");
-            exit(1);
+            PORT_FreeArena(arena, PR_FALSE);
+            exitstatus = 1;
+            goto loser;
         }
 
         if (cms_verbose) {
@@ -1668,6 +1674,7 @@ main(int argc, char **argv)
         }
         PORT_FreeArena(arena, PR_FALSE);
     }
+loser:
     if (cmsg)
         NSS_CMSMessage_Destroy(cmsg);
     if (outFile != stdout)

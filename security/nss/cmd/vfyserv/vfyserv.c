@@ -340,16 +340,19 @@ client_main(int connections)
     /* Setup network connection. */
     prStatus = PR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
     if (prStatus != PR_SUCCESS) {
+        PORT_Free(hostName);
         exitErr("PR_GetHostByName");
     }
 
     rv = PR_EnumerateHostEnt(0, &hostEntry, port, &addr);
     if (rv < 0) {
+        PORT_Free(hostName);
         exitErr("PR_EnumerateHostEnt");
     }
 
     secStatus = launch_thread(&threadMGR, do_connects, &addr, 1);
     if (secStatus != SECSuccess) {
+        PORT_Free(hostName);
         exitErr("launch_thread");
     }
 
@@ -440,6 +443,8 @@ main(int argc, char **argv)
                 Usage(progName);
         }
     }
+    PL_DestroyOptState(optstate);
+    optstate = NULL;
 
     if (port == 0) {
         port = 443;
@@ -461,6 +466,8 @@ main(int argc, char **argv)
     /* Initialize the NSS libraries. */
     if (certDir) {
         secStatus = NSS_Init(certDir);
+        PR_Free(certDir);
+        certDir = NULL;
     } else {
         secStatus = NSS_NoDB_Init(NULL);
 
