@@ -15,6 +15,9 @@ const { cleanupStorePrefCache } = ExperimentFakes;
 const { ExperimentStore } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentStore.sys.mjs"
 );
+const { NimbusTelemetry } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/Telemetry.sys.mjs"
+);
 const { TelemetryEnvironment } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryEnvironment.sys.mjs"
 );
@@ -26,13 +29,6 @@ const { RemoteSettingsExperimentLoader } = ChromeUtils.importESModule(
 );
 
 const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
-
-const globalSandbox = sinon.createSandbox();
-globalSandbox.spy(TelemetryEnvironment, "setExperimentInactive");
-globalSandbox.spy(TelemetryEvents, "sendEvent");
-registerCleanupFunction(() => {
-  globalSandbox.restore();
-});
 
 /**
  * FOG requires a little setup in order to test it
@@ -151,89 +147,85 @@ add_task(async function test_enroll_optin_recipe_branch_selection() {
   await assertEmptyStore(manager.store);
 });
 
-add_task(
-  async function test_setExperimentActive_sendEnrollmentTelemetry_called() {
-    const manager = ExperimentFakes.manager();
-    const sandbox = sinon.createSandbox();
-    sandbox.spy(manager, "setExperimentActive");
-    sandbox.spy(manager, "sendEnrollmentTelemetry");
+add_task(async function test_setExperimentActive_recordEnrollment_called() {
+  const manager = ExperimentFakes.manager();
+  const sandbox = sinon.createSandbox();
+  sandbox.spy(NimbusTelemetry, "setExperimentActive");
+  sandbox.spy(NimbusTelemetry, "recordEnrollment");
 
-    // Clear any pre-existing data in Glean
-    Services.fog.testResetFOG();
+  // Clear any pre-existing data in Glean
+  Services.fog.testResetFOG();
 
-    await manager.onStartup();
+  await manager.onStartup();
 
-    // Ensure there is no experiment active with the id in FOG
-    Assert.equal(
-      undefined,
-      Services.fog.testGetExperimentData("foo"),
-      "no active experiment exists before enrollment"
-    );
+  // Ensure there is no experiment active with the id in FOG
+  Assert.equal(
+    undefined,
+    Services.fog.testGetExperimentData("foo"),
+    "no active experiment exists before enrollment"
+  );
 
-    // Check that there aren't any Glean enrollment events yet
-    var enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
-    Assert.equal(
-      undefined,
-      enrollmentEvents,
-      "no Glean enrollment events before enrollment"
-    );
+  // Check that there aren't any Glean enrollment events yet
+  var enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
+  Assert.equal(
+    undefined,
+    enrollmentEvents,
+    "no Glean enrollment events before enrollment"
+  );
 
-    await manager.enroll(
-      ExperimentFakes.recipe("foo"),
-      "test_setExperimentActive_sendEnrollmentTelemetry_called"
-    );
-    const experiment = manager.store.get("foo");
+  await manager.enroll(
+    ExperimentFakes.recipe("foo"),
+    "test_setExperimentActive_sendEnrollmentTelemetry_called"
+  );
+  const experiment = manager.store.get("foo");
 
-    Assert.equal(
-      manager.setExperimentActive.calledWith(experiment),
-      true,
-      "should call setExperimentActive after an enrollment"
-    );
+  Assert.equal(
+    NimbusTelemetry.setExperimentActive.calledWith(experiment),
+    true,
+    "should call setExperimentActive after an enrollment"
+  );
 
-    Assert.equal(
-      manager.sendEnrollmentTelemetry.calledWith(experiment),
-      true,
-      "should call sendEnrollmentTelemetry after an enrollment"
-    );
+  Assert.equal(
+    NimbusTelemetry.recordEnrollment.calledWith(experiment),
+    true,
+    "should call recordEnrollment after an enrollment"
+  );
 
-    // Test Glean experiment API interaction
-    Assert.notEqual(
-      undefined,
-      Services.fog.testGetExperimentData(experiment.slug),
-      "Glean.setExperimentActive called with `foo` feature"
-    );
+  // Test Glean experiment API interaction
+  Assert.notEqual(
+    undefined,
+    Services.fog.testGetExperimentData(experiment.slug),
+    "Glean.setExperimentActive called with `foo` feature"
+  );
 
-    // Check that the Glean enrollment event was recorded.
-    enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
-    // We expect only one event
-    Assert.equal(1, enrollmentEvents.length);
-    // And that one event matches the expected enrolled experiment
-    Assert.equal(
-      experiment.slug,
-      enrollmentEvents[0].extra.experiment,
-      "Glean.nimbusEvents.enrollment recorded with correct experiment slug"
-    );
-    Assert.equal(
-      experiment.branch.slug,
-      enrollmentEvents[0].extra.branch,
-      "Glean.nimbusEvents.enrollment recorded with correct branch slug"
-    );
-    Assert.equal(
-      experiment.experimentType,
-      enrollmentEvents[0].extra.experiment_type,
-      "Glean.nimbusEvents.enrollment recorded with correct experiment type"
-    );
+  // Check that the Glean enrollment event was recorded.
+  enrollmentEvents = Glean.nimbusEvents.enrollment.testGetValue("events");
+  // We expect only one event
+  Assert.equal(1, enrollmentEvents.length);
+  // And that one event matches the expected enrolled experiment
+  Assert.equal(
+    experiment.slug,
+    enrollmentEvents[0].extra.experiment,
+    "Glean.nimbusEvents.enrollment recorded with correct experiment slug"
+  );
+  Assert.equal(
+    experiment.branch.slug,
+    enrollmentEvents[0].extra.branch,
+    "Glean.nimbusEvents.enrollment recorded with correct branch slug"
+  );
+  Assert.equal(
+    experiment.experimentType,
+    enrollmentEvents[0].extra.experiment_type,
+    "Glean.nimbusEvents.enrollment recorded with correct experiment type"
+  );
 
-    manager.unenroll("foo", "test-cleanup");
+  manager.unenroll("foo", "test-cleanup");
 
-    await assertEmptyStore(manager.store);
-  }
-);
+  await assertEmptyStore(manager.store);
+  sandbox.restore();
+});
 
-add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
-  globalSandbox.reset();
-  globalSandbox.spy(TelemetryEnvironment, "setExperimentActive");
-  globalSandbox.spy(TelemetryEvents.sendEvent);
+add_task(async function test_setRolloutActive_recordEnrollment_called() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
   const rolloutRecipe = {
@@ -241,8 +233,10 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
     branches: [ExperimentFakes.rollout("rollout").branch],
     isRollout: true,
   };
-  sandbox.spy(manager, "setExperimentActive");
-  sandbox.spy(manager, "sendEnrollmentTelemetry");
+  sandbox.spy(TelemetryEnvironment, "setExperimentActive");
+  sandbox.spy(TelemetryEvents, "sendEvent");
+  sandbox.spy(NimbusTelemetry, "setExperimentActive");
+  sandbox.spy(NimbusTelemetry, "recordEnrollment");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -264,31 +258,27 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
     "no Glean enrollment events before enrollment"
   );
 
-  let result = await manager.enroll(
-    rolloutRecipe,
-    "test_setRolloutActive_sendEnrollmentTelemetry_called"
-  );
+  let result = await manager.enroll(rolloutRecipe, "test");
 
   const enrollment = manager.store.get("rollout");
 
   Assert.ok(!!result && !!enrollment, "Enrollment was successful");
 
-  Assert.equal(
+  Assert.ok(
     TelemetryEnvironment.setExperimentActive.called,
-    true,
     "should call setExperimentActive"
   );
   Assert.ok(
-    manager.setExperimentActive.calledWith(enrollment),
+    NimbusTelemetry.setExperimentActive.calledWith(enrollment),
     "Should call setExperimentActive with the rollout"
   );
   Assert.equal(
-    manager.setExperimentActive.firstCall.args[0].experimentType,
+    NimbusTelemetry.setExperimentActive.firstCall.args[0].experimentType,
     "rollout",
     "Should have the correct experimentType"
   );
   Assert.equal(
-    manager.sendEnrollmentTelemetry.calledWith(enrollment),
+    NimbusTelemetry.recordEnrollment.calledWith(enrollment),
     true,
     "should call sendEnrollmentTelemetry after an enrollment"
   );
@@ -340,8 +330,7 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
   manager.unenroll("rollout", "test-cleanup");
 
   await assertEmptyStore(manager.store);
-
-  globalSandbox.restore();
+  sandbox.restore();
 });
 
 // /**
@@ -353,7 +342,7 @@ add_task(async function test_setRolloutActive_sendEnrollmentTelemetry_called() {
 add_task(async function test_failure_name_conflict() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
-  sandbox.spy(manager, "sendFailureTelemetry");
+  sandbox.spy(NimbusTelemetry, "recordEnrollmentFailure");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -378,11 +367,7 @@ add_task(async function test_failure_name_conflict() {
   );
 
   Assert.equal(
-    manager.sendFailureTelemetry.calledWith(
-      "enrollFailed",
-      "foo",
-      "name-conflict"
-    ),
+    NimbusTelemetry.recordEnrollmentFailure.calledWith("foo", "name-conflict"),
     true,
     "should send failure telemetry if a conflicting experiment exists"
   );
@@ -406,12 +391,13 @@ add_task(async function test_failure_name_conflict() {
   manager.unenroll("foo", "test-cleanup");
 
   await assertEmptyStore(manager.store);
+  sandbox.restore();
 });
 
 add_task(async function test_failure_group_conflict() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
-  sandbox.spy(manager, "sendFailureTelemetry");
+  sandbox.spy(NimbusTelemetry, "recordEnrollmentFailure");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -458,8 +444,7 @@ add_task(async function test_failure_group_conflict() {
   );
 
   Assert.equal(
-    manager.sendFailureTelemetry.calledWith(
-      "enrollFailed",
+    NimbusTelemetry.recordEnrollmentFailure.calledWith(
       "bar",
       "feature-conflict"
     ),
@@ -486,18 +471,21 @@ add_task(async function test_failure_group_conflict() {
   manager.unenroll("foo", "test-cleanup");
 
   await assertEmptyStore(manager.store);
+  sandbox.restore();
 });
 
 add_task(async function test_rollout_failure_group_conflict() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
-  const rollout = ExperimentFakes.rollout("rollout-enrollment");
   const recipe = {
     ...ExperimentFakes.recipe("rollout-recipe"),
-    branches: [rollout.branch],
     isRollout: true,
   };
-  sandbox.spy(manager, "sendFailureTelemetry");
+  const conflictingRecipe = {
+    ...recipe,
+    slug: "conflicting-rollout-recipe",
+  };
+  sandbox.spy(NimbusTelemetry, "recordEnrollmentFailure");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -512,22 +500,22 @@ add_task(async function test_rollout_failure_group_conflict() {
     "no Glean enroll_failed events before failure"
   );
 
-  // simulate adding an experiment with a conflicting group "pink"
-  await manager.store.addEnrollment(rollout);
+  await manager.enroll(recipe);
 
   Assert.equal(
-    await manager.enroll(recipe, "test_rollout_failure_group_conflict"),
+    await manager.enroll(
+      conflictingRecipe,
+      "test_rollout_failure_group_conflict"
+    ),
     null,
     "should not enroll if there is a feature conflict"
   );
 
-  Assert.equal(
-    manager.sendFailureTelemetry.calledWith(
-      "enrollFailed",
-      recipe.slug,
+  Assert.ok(
+    NimbusTelemetry.recordEnrollmentFailure.calledWith(
+      conflictingRecipe.slug,
       "feature-conflict"
     ),
-    true,
     "should send failure telemetry if a feature conflict exists"
   );
 
@@ -537,7 +525,7 @@ add_task(async function test_rollout_failure_group_conflict() {
   Assert.equal(1, failureEvents.length);
   // And that event matches the expected experiment and reason
   Assert.equal(
-    recipe.slug,
+    conflictingRecipe.slug,
     failureEvents[0].extra.experiment,
     "Glean.nimbusEvents.enroll_failed recorded with correct experiment slug"
   );
@@ -547,9 +535,10 @@ add_task(async function test_rollout_failure_group_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("rollout-enrollment", "test-cleanup");
+  manager.unenroll("rollout-recipe", "test-cleanup");
 
   await assertEmptyStore(manager.store);
+  sandbox.restore();
 });
 
 add_task(async function test_rollout_experiment_no_conflict() {
@@ -558,7 +547,7 @@ add_task(async function test_rollout_experiment_no_conflict() {
   const experiment = ExperimentFakes.recipe("experiment");
   const rollout = ExperimentFakes.recipe("rollout", { isRollout: true });
 
-  sandbox.spy(manager, "sendFailureTelemetry");
+  sandbox.spy(NimbusTelemetry, "recordEnrollmentFailure");
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
@@ -591,7 +580,7 @@ add_task(async function test_rollout_experiment_no_conflict() {
   );
 
   Assert.ok(
-    manager.sendFailureTelemetry.notCalled,
+    NimbusTelemetry.recordEnrollmentFailure.notCalled,
     "Should send failure telemetry if a feature conflict exists"
   );
 
@@ -608,6 +597,7 @@ add_task(async function test_rollout_experiment_no_conflict() {
   });
 
   await assertEmptyStore(manager.store);
+  sandbox.restore();
 });
 
 add_task(async function test_sampling_check() {
@@ -737,7 +727,7 @@ add_task(async function test_forceEnroll_cleanup() {
   await manager.onStartup();
   await manager.enroll(existingRecipe, "test_forceEnroll_cleanup");
 
-  let setExperimentActiveSpy = sandbox.spy(manager, "setExperimentActive");
+  sandbox.spy(NimbusTelemetry, "setExperimentActive");
   manager.forceEnroll(forcedRecipe, forcedRecipe.branches[0]);
 
   Assert.ok(unenrollStub.called, "Unenrolled from existing experiment");
@@ -746,9 +736,12 @@ add_task(async function test_forceEnroll_cleanup() {
     existingRecipe.slug,
     "Called with existing recipe slug"
   );
-  Assert.ok(setExperimentActiveSpy.calledOnce, "Activated forced experiment");
+  Assert.ok(
+    NimbusTelemetry.setExperimentActive.calledOnce,
+    "Activated forced experiment"
+  );
   Assert.equal(
-    setExperimentActiveSpy.firstCall.args[0].slug,
+    NimbusTelemetry.setExperimentActive.firstCall.args[0].slug,
     `optin-${forcedRecipe.slug}`,
     "Called with forced experiment slug"
   );
