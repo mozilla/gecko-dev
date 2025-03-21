@@ -48,6 +48,7 @@ targets = [
 angle = ["wgpu-core-deps-apple/angle"]
 api_log_info = []
 counters = ["wgpu-types/counters"]
+default = ["std"]
 dx12 = ["wgpu-core-deps-windows-linux-android/dx12"]
 fragile-send-sync-non-atomic-wasm = ["wgpu-hal/fragile-send-sync-non-atomic-wasm"]
 gles = [
@@ -59,6 +60,7 @@ indirect-validation = ["naga/wgsl-in"]
 metal = ["wgpu-core-deps-apple/metal"]
 noop = []
 observe_locks = [
+    "std",
     "dep:ron",
     "serde/serde_derive",
 ]
@@ -84,11 +86,14 @@ spirv = [
     "dep:bytemuck",
 ]
 static-dxc = ["wgpu-hal/static-dxc"]
+std = []
 strict_asserts = ["wgpu-types/strict_asserts"]
 trace = [
-    "dep:ron",
     "serde",
+    "std",
+    "dep:ron",
     "naga/serialize",
+    "wgpu-types/trace",
 ]
 vulkan = ["wgpu-core-deps-windows-linux-android/vulkan"]
 vulkan-portability = ["wgpu-core-deps-apple/vulkan-portability"]
@@ -111,7 +116,7 @@ default-features = false
 version = "2.9"
 
 [dependencies.bytemuck]
-version = "1.21"
+version = "1.22"
 features = [
     "derive",
     "extern_crate_alloc",
@@ -142,7 +147,7 @@ version = "24.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
-version = "1.20.3"
+version = "1.21.1"
 features = ["std"]
 default-features = false
 

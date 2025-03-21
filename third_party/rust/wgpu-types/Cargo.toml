@@ -55,6 +55,7 @@ std = [
     "thiserror/std",
 ]
 strict_asserts = []
+trace = ["std"]
 
 [lib]
 name = "wgpu_types"
@@ -87,7 +88,7 @@ features = ["derive"]
 default-features = false
 
 [dev-dependencies.serde_json]
-version = "1.0.139"
+version = "1.0.140"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
 version = "0.3.70"

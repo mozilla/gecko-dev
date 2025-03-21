@@ -408,18 +408,23 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
     new_queue_id: id::QueueId,
     mut error_buf: ErrorBuffer,
 ) {
-    let desc: wgc::device::DeviceDescriptor = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    let trace_string = std::env::var("WGPU_TRACE").ok().map(|s| {
-        let idx = TRACE_IDX.fetch_add(1, Ordering::Relaxed);
-        let path = format!("{}/{}/", s, idx);
+    let mut desc: wgc::device::DeviceDescriptor =
+        bincode::deserialize(byte_buf.as_slice()).unwrap();
 
-        if std::fs::create_dir_all(&path).is_err() {
-            log::warn!("Failed to create directory {:?} for wgpu recording.", path);
+    desc.trace = match desc.trace {
+        wgt::Trace::Directory(s) => {
+            let idx = TRACE_IDX.fetch_add(1, Ordering::Relaxed);
+            let path = s.join(idx.to_string());
+
+            if std::fs::create_dir_all(&path).is_err() {
+                log::warn!("Failed to create directory {:?} for wgpu recording.", path);
+            }
+
+            wgt::Trace::Directory(path)
         }
+        other => other,
+    };
 
-        path
-    });
-    let trace_path = trace_string.as_deref();
     // TODO: in https://github.com/gfx-rs/wgpu/pull/3626/files#diff-033343814319f5a6bd781494692ea626f06f6c3acc0753a12c867b53a646c34eR97
     // which introduced the queue id parameter, the queue id is also the device id. I don't know how applicable this is to
     // other situations (this one in particular).
@@ -551,7 +556,6 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
                 self_id,
                 hal_device.into(),
                 &desc,
-                trace_path,
                 Some(new_device_id),
                 Some(new_queue_id),
             );
@@ -562,13 +566,8 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
         }
     }
 
-    let res = global.adapter_request_device(
-        self_id,
-        &desc,
-        trace_path,
-        Some(new_device_id),
-        Some(new_queue_id),
-    );
+    let res =
+        global.adapter_request_device(self_id, &desc, Some(new_device_id), Some(new_queue_id));
     if let Err(err) = res {
         error_buf.init(err);
     }

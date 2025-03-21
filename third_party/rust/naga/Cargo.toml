@@ -53,6 +53,7 @@ default = []
 deserialize = [
     "dep:serde",
     "bitflags/serde",
+    "half/serde",
     "hashbrown/serde",
     "indexmap/serde",
 ]
@@ -66,6 +67,7 @@ msl-out-if-target-apple = []
 serialize = [
     "dep:serde",
     "bitflags/serde",
+    "half/serde",
     "hashbrown/serde",
     "indexmap/serde",
 ]
@@ -89,6 +91,7 @@ path = "src/lib.rs"
 
 [dependencies]
 log = "0.4"
+num-traits = "0.2.16"
 
 [dependencies.arbitrary]
 version = "1.4"
@@ -108,6 +111,13 @@ version = "2.9"
 
 [dependencies.codespan-reporting]
 version = "0.11.0"
+
+[dependencies.half]
+version = "2.5"
+features = [
+    "arbitrary",
+    "num-traits",
+]
 
 [dependencies.hashbrown]
 version = "0.14.5"
@@ -138,7 +148,7 @@ version = "1"
 default-features = false
 
 [dependencies.serde]
-version = "1.0.218"
+version = "1.0.219"
 features = [
     "default",
     "derive",

@@ -157,7 +157,7 @@ mod foreign {
             queue::{QueueSubmitError, QueueWriteError},
             DeviceError,
         },
-        instance::{RequestAdapterError, RequestDeviceError},
+        instance::RequestDeviceError,
         pipeline::{
             CreateComputePipelineError, CreateRenderPipelineError, CreateShaderModuleError,
         },
@@ -166,13 +166,16 @@ mod foreign {
             CreateTextureError, CreateTextureViewError, DestroyError,
         },
     };
+    use wgt::RequestAdapterError;
 
     use super::{ErrorBufferType, HasErrorBufferType};
 
     impl HasErrorBufferType for RequestAdapterError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                RequestAdapterError::NotFound => ErrorBufferType::Validation,
+                RequestAdapterError::NotFound { .. } | RequestAdapterError::EnvNotSet => {
+                    ErrorBufferType::Validation
+                }
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
