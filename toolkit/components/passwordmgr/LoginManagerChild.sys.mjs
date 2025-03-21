@@ -56,7 +56,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LoginFormFactory: "resource://gre/modules/shared/LoginFormFactory.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   LoginRecipesContent: "resource://gre/modules/LoginRecipes.sys.mjs",
-  LoginManagerTelemetry: "resource://gre/modules/LoginManagerTelemetry.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -3039,7 +3038,7 @@ export class LoginManagerChild extends JSWindowActorChild {
       if (!userTriggered) {
         // Ignore fills as a result of user action for this probe.
 
-        lazy.LoginManagerTelemetry.recordAutofillResult(autofillResult);
+        Glean.pwmgr.formAutofillResult[autofillResult].add(1);
 
         if (usernameField) {
           let focusedElement = lazy.gFormFillService.focusedInput;

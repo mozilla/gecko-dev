@@ -11227,18 +11227,6 @@
     "n_buckets": 20,
     "description": "Sanitize: Time it takes to sanitize the open windows list (ms). On Android, this is the time it takes to close all open tabs (ms)."
   },
-  "PWMGR_FORM_AUTOFILL_RESULT": {
-    "record_in_processes": ["content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["seceng-telemetry@mozilla.com", "loines@mozilla.com"],
-    "bug_numbers": [1340021, 1545172],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 20,
-    "description": "The result of auto-filling a login form. See http://mzl.la/1Mbs6jL for bucket descriptions.",
-    "record_into_store": ["main"]
-  },
   "PWMGR_LOGIN_PAGE_SAFETY": {
     "record_in_processes": ["content"],
     "products": ["firefox", "fennec"],
