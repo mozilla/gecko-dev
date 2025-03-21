@@ -121,7 +121,8 @@ class SnapTestsBase:
         with open(exp, "r") as j:
             self._expectations = json.load(j)
 
-        rv = False
+        # exit code ; will be set to 1 at first assertion failure
+        ec = 0
         first_tab = self._driver.window_handles[0]
         channel = self.update_channel()
         if self.is_esr_128():
@@ -154,7 +155,7 @@ class SnapTestsBase:
                 else:
                     self._logger.test_end(m, status="FAIL")
             except Exception as ex:
-                rv = False
+                ec = 1
                 test_status = "ERROR"
                 if isinstance(ex, AssertionError):
                     test_status = "FAIL"
@@ -200,9 +201,9 @@ class SnapTestsBase:
         if not "TEST_NO_QUIT" in os.environ.keys():
             self._driver.quit()
 
-        self._logger.info("Exiting with {}".format(rv))
+        self._logger.info("Exiting with {}".format(ec))
         self._logger.suite_end()
-        sys.exit(0 if rv is True else 1)
+        sys.exit(ec)
 
     def get_screenshot_destination(self, name):
         final_name = name
@@ -338,18 +339,21 @@ class SnapTestsBase:
                     "data:image/png;base64,{}".format(diff_b64.decode("utf-8"))
                 )
 
+            differences_png = "differences_{}".format(exp["reference"])
             with open(
-                self.get_screenshot_destination("differences.png"), "wb"
+                self.get_screenshot_destination(differences_png), "wb"
             ) as diff_screenshot:
                 diff_screenshot.write(buffered.getvalue())
 
+            current_rendering_png = "current_rendering_{}".format(exp["reference"])
             with open(
-                self.get_screenshot_destination("current_rendering.png"), "wb"
+                self.get_screenshot_destination(current_rendering_png), "wb"
             ) as current_screenshot:
                 svg_png_cropped.save(current_screenshot)
 
+            reference_rendering_png = "reference_rendering_{}".format(exp["reference"])
             with open(
-                self.get_screenshot_destination("reference_rendering.png"), "wb"
+                self.get_screenshot_destination(reference_rendering_png), "wb"
             ) as current_screenshot:
                 svg_ref.save(current_screenshot)
 
