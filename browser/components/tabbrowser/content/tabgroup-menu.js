@@ -24,6 +24,18 @@
       "red",
     ];
 
+    static MESSAGE_IDS = {
+      blue: "tab-group-editor-color-selector2-blue",
+      purple: "tab-group-editor-color-selector2-purple",
+      cyan: "tab-group-editor-color-selector2-cyan",
+      orange: "tab-group-editor-color-selector2-orange",
+      yellow: "tab-group-editor-color-selector2-yellow",
+      pink: "tab-group-editor-color-selector2-pink",
+      green: "tab-group-editor-color-selector2-green",
+      gray: "tab-group-editor-color-selector2-gray",
+      red: "tab-group-editor-color-selector2-red",
+    };
+
     static AI_ICON = "chrome://global/skin/icons/highlights.svg";
 
     static headerSection = /*html*/ `
@@ -502,7 +514,7 @@
         label.classList.add("tab-group-editor-swatch");
         label.setAttribute(
           "data-l10n-id",
-          `tab-group-editor-color-selector2-${colorCode}`
+          MozTabbrowserTabGroupMenu.MESSAGE_IDS[colorCode]
         );
         label.htmlFor = input.id;
         label.style.setProperty(
