@@ -25,6 +25,9 @@ import "chrome://global/content/elements/moz-label.mjs";
  * @property {string} iconSrc - Path to the icon that should be displayed in the button.
  * @property {string} ariaLabelAttribute - Internal, map aria-label attribute to the ariaLabel JS property.
  * @property {string} hasVisibleLabel - Internal, tracks whether or not the button has a visible label.
+ * @property {boolean} attention - Show a dot notification on the button if true.
+ * @property {string} iconPosition - The icon's position relative to the button label.
+ *   Options: start, end.
  * @property {HTMLButtonElement} buttonEl - The internal button element in the shadow DOM.
  * @property {HTMLButtonElement} slotEl - The internal slot element in the shadow DOM.
  * @cssproperty [--button-outer-padding-inline] - Used to set the outer inline padding of toolbar style buttons
@@ -54,6 +57,7 @@ export default class MozButton extends MozLitElement {
     hasVisibleLabel: { type: Boolean, state: true },
     accessKey: { type: String, mapped: true, fluent: true },
     attention: { type: Boolean },
+    iconPosition: { type: String },
   };
 
   static queries = {
@@ -69,6 +73,7 @@ export default class MozButton extends MozLitElement {
     this.disabled = false;
     this.hasVisibleLabel = !!this.label;
     this.attention = false;
+    this.iconPosition = "start";
   }
 
   // Delegate clicks on host to the button element.
@@ -87,6 +92,13 @@ export default class MozButton extends MozLitElement {
       return this.label;
     }
     return html`<slot @slotchange=${this.checkForLabelText}></slot>`;
+  }
+
+  iconTemplate(position) {
+    if (this.iconSrc && position == this.iconPosition) {
+      return html`<img src=${this.iconSrc} role="presentation" />`;
+    }
+    return null;
   }
 
   render() {
@@ -112,9 +124,7 @@ export default class MozButton extends MozLitElement {
           type=${this.type}
           size=${this.size}
         >
-          ${this.iconSrc
-            ? html`<img src=${this.iconSrc} role="presentation" />`
-            : ""}
+          ${this.iconTemplate("start")}
           <label
             is="moz-label"
             shownaccesskey=${ifDefined(this.accessKey)}
@@ -122,6 +132,7 @@ export default class MozButton extends MozLitElement {
           >
             ${this.labelTemplate()}
           </label>
+          ${this.iconTemplate("end")}
         </span>
       </button>
     `;

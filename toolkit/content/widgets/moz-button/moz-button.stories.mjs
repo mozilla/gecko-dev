@@ -25,6 +25,10 @@ export default {
       options: ["default", "primary", "destructive", "icon", "icon ghost"],
       control: { type: "select" },
     },
+    iconPosition: {
+      options: ["start", "end"],
+      control: { type: "select" },
+    },
   },
   parameters: {
     actions: {
@@ -54,6 +58,7 @@ const Template = ({
   clickHandler,
   showOuterPadding,
   attention,
+  iconPosition,
 }) => html`
   <style>
     .show-outer-padding {
@@ -69,7 +74,8 @@ const Template = ({
     ?disabled=${disabled}
     iconSrc=${ifDefined(iconSrc)}
     accesskey=${ifDefined(accesskey)}
-    attention=${attention}
+    ?attention=${attention}
+    iconPosition=${ifDefined(iconPosition)}
     class=${classMap({ "show-outer-padding": showOuterPadding })}
   ></moz-button>
 `;
@@ -83,6 +89,7 @@ Default.args = {
   disabled: false,
   showOuterPadding: false,
   attention: false,
+  iconPosition: "start",
 };
 export const DefaultSmall = Template.bind({});
 DefaultSmall.args = {
@@ -127,6 +134,11 @@ IconText.args = {
   ...Default.args,
   iconSrc: "chrome://global/skin/icons/edit-copy.svg",
   l10nId: "moz-button-labelled",
+};
+export const IconPositionEnd = Template.bind({});
+IconPositionEnd.args = {
+  ...IconText.args,
+  iconPosition: "end",
 };
 export const WithAccesskey = Template.bind({});
 WithAccesskey.args = {
