@@ -55,7 +55,7 @@ default.locale
 
 # Bug 1713693 - empty-shim.txt, an intentionally blank file used by SmartBlock (0 bytes)
 #ifdef MOZ_GTK
-browser/chrome/browser/builtin-addons/webcompat/shims/empty-shim.txt
+browser/features/webcompat@mozilla.org/shims/empty-shim.txt
 removed-files
 #endif
 

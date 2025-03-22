@@ -293,6 +293,12 @@ const startupPhases = {
       close: 1,
     },
     {
+      path: "XREAppFeat:webcompat@mozilla.org.xpi",
+      condition: LINUX,
+      ignoreIfUnused: true, // Sometimes happens in the previous phase
+      close: 1,
+    },
+    {
       // We only hit this for new profiles.
       path: "XREAppDist:distribution.ini",
       // check we're not msix to disambiguate from the next entry...
