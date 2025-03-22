@@ -1,0 +1,107 @@
+const TEST_URL_0 =
+  "https://example.com/browser/dom/tests/browser/page_scriptCache_partition.html";
+
+const TEST_URL_1 =
+  "https://example.org/browser/dom/tests/browser/page_scriptCache_partition.html";
+
+const TEST_SCRIPT_URL =
+  "https://example.net/browser/dom/tests/browser/counter_server.sjs";
+
+async function testScriptCacheAndPartition({ enableCache, enablePartition }) {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["dom.script_loader.navigation_cache", enableCache],
+      ["privacy.partition.network_state", enablePartition],
+    ],
+  });
+  registerCleanupFunction(() => SpecialPowers.popPrefEnv());
+
+  const response1 = await fetch(TEST_SCRIPT_URL + "?reset");
+  is(await response1.text(), "reset", "Server state should be reset");
+
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
+
+  async function getCounter() {
+    return SpecialPowers.spawn(tab.linkedBrowser, [], () => {
+      const iframe = content.document.querySelector("iframe");
+      return SpecialPowers.spawn(iframe, [], () => {
+        return content.document.body.getAttribute("counter");
+      });
+    });
+  }
+
+  async function load(url) {
+    const loadedPromise = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    tab.linkedBrowser.loadURI(Services.io.newURI(url), {
+      triggeringPrincipal: tab.linkedBrowser.nodePrincipal,
+    });
+    await loadedPromise;
+  }
+
+  // Loading script from the different top-level frame domain should use
+  // separate cache for each partition, if the partitioning is enabled.
+  //
+  // Each top-level document are loaded into separate processes, say,
+  // process A for TEST_URL_0 (example.com), and process B for TEST_URL_1
+  // (example.org).
+  //
+  // If Fission is enabled, the iframe (example.net) is loaded into yet another
+  // process C, both with the TEST_URL_0 load and the TEST_URL_1 load.
+  // In this case, they share single SharedScriptCache instance.
+  // If partitioning is enabled, the cache for the script loaded by the iframe
+  // should be separated for each.
+  // If partitioning is disabled, the cache for the script loaded by the iframe
+  // should be shared.
+  //
+  // If Fission is not enabled, the iframe is loaded into process A and B,
+  // and they don't share the cache entry in SharedScriptCache.
+  //
+  // If navigation cache is not enabled, then the partitioning is done by
+  // the Necko side, and the Necko cache should also be partitioned.
+  const tab = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    url: TEST_URL_0,
+  });
+  is(await getCounter(), "0");
+
+  await load(TEST_URL_1);
+  is(await getCounter(), enablePartition ? "1" : "0");
+
+  // Reloading the page should use the cached script, for each partition.
+  await load(TEST_URL_0);
+  is(await getCounter(), "0");
+
+  await load(TEST_URL_1);
+  is(await getCounter(), enablePartition ? "1" : "0");
+
+  BrowserTestUtils.removeTab(tab);
+}
+
+add_task(async function testNoCacheNoPartition() {
+  await testScriptCacheAndPartition({
+    enableCache: false,
+    enablePartition: false,
+  });
+});
+
+add_task(async function testNoCachePartition() {
+  await testScriptCacheAndPartition({
+    enableCache: false,
+    enablePartition: true,
+  });
+});
+
+add_task(async function testCacheNoPartition() {
+  await testScriptCacheAndPartition({
+    enableCache: true,
+    enablePartition: false,
+  });
+});
+
+add_task(async function testCachePartition() {
+  await testScriptCacheAndPartition({
+    enableCache: true,
+    enablePartition: true,
+  });
+});
