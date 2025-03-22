@@ -7,8 +7,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   TelemetryEvents: "resource://normandy/lib/TelemetryEvents.sys.mjs",
-
-  REASON_PREFFLIPS_FAILED: "resource://nimbus/lib/PrefFlipsFeature.sys.mjs",
 });
 
 const LEGACY_TELEMETRY_EVENT_OBJECT = "nimbus_experiment";
@@ -22,7 +20,70 @@ const LegacyTelemetryEvents = Object.freeze({
   VALIDATION_FAILED: "validationFailed",
 });
 
+const EnrollmentStatus = Object.freeze({
+  ENROLLED: "Enrolled",
+  NOT_ENROLLED: "NotEnrolled",
+  DISQUALIFIED: "Disqualified",
+  WAS_ENROLLED: "WasEnrolled",
+  ERROR: "Error",
+});
+
+const EnrollmentStatusReason = Object.freeze({
+  QUALIFIED: "Qualified",
+  OPT_IN: "OptIn",
+  OPT_OUT: "OptOut",
+  NOT_SELECTED: "NotSelected",
+  NOT_TARGETED: "NotTargeted",
+  ENROLLMENTS_PAUSED: "EnrollmentsPaused",
+  FEATURE_CONFLICT: "FeatureConflict",
+  ERROR: "Error",
+});
+
+const EnrollmentFailureReason = Object.freeze({
+  FEATURE_CONFLICT: "feature-conflict",
+  NAME_CONFLICT: "name-conflict",
+});
+
+const UnenrollmentFailureReason = Object.freeze({
+  ALREADY_UNENROLLED: "already-unenrolled",
+  DOES_NOT_EXIST: "does-not-exist",
+});
+
+const ValidationFailureReason = Object.freeze({
+  INVALID_BRANCH: "invalid-branch",
+  INVALID_FEATURE: "invalid-feature",
+  INVALID_RECIPE: "invalid-recipe",
+  L10N_MISSING_ENTRY: "l10n-missing-entry",
+  L10N_MISSING_LOCALE: "l10n-missing-locale",
+});
+
+const UnenrollReason = Object.freeze({
+  BRANCH_REMOVED: "branch-removed",
+  BUCKETING: "bucketing",
+  CHANGED_PREF: "changed-pref",
+  INDIVIDUAL_OPT_OUT: "individual-opt-out",
+  PREF_FLIPS_CONFLICT: "prefFlips-conflict",
+  PREF_FLIPS_FAILED: "prefFlips-failed",
+  PREF_VARIABLE_CHANGED: "pref-variable-changed",
+  PREF_VARIABLE_MISSING: "pref-variable-missing",
+  PREF_VARIABLE_NO_LONGER: "pref-variable-no-longer",
+  RECIPE_NOT_SEEN: "recipe-not-seen",
+  STUDIES_OPT_OUT: "studies-opt-out",
+  TARGETING_MISMATCH: "targeting-mismatch",
+  UNKNOWN: "unknown",
+
+  // Validation failure can cause unenrollment.
+  ...ValidationFailureReason,
+});
+
 export const NimbusTelemetry = {
+  EnrollmentFailureReason,
+  EnrollmentStatus,
+  EnrollmentStatusReason,
+  UnenrollReason,
+  UnenrollmentFailureReason,
+  ValidationFailureReason,
+
   recordEnrollment(enrollment) {
     this.setExperimentActive(enrollment);
     lazy.TelemetryEvents.sendEvent(
@@ -117,9 +178,15 @@ export const NimbusTelemetry = {
           reason,
           branch: branchSlug,
         },
-        reason === "changed-pref" ? { changedPref: changedPref.name } : {},
-        reason === "prefFlips-conflict" ? { conflictingSlug } : {},
-        reason === lazy.REASON_PREFFLIPS_FAILED ? { prefType, prefName } : {}
+        reason === UnenrollReason.CHANGED_PREF
+          ? { changedPref: changedPref.name }
+          : {},
+        reason === UnenrollReason.PREF_FLIPS_CONFLICT
+          ? { conflictingSlug }
+          : {},
+        reason === UnenrollReason.PREF_FLIPS_FAILED
+          ? { prefType, prefName }
+          : {}
       )
     );
 
@@ -130,11 +197,13 @@ export const NimbusTelemetry = {
           branch: branchSlug,
           reason,
         },
-        reason === "changed-pref" ? { changed_pref: changedPref.name } : {},
-        reason === "prefFlips-conflict"
+        reason === UnenrollReason.CHANGED_PREF
+          ? { changed_pref: changedPref.name }
+          : {},
+        reason === UnenrollReason.PREF_FLIPS_CONFLICT
           ? { conflicting_slug: conflictingSlug }
           : {},
-        reason === lazy.REASON_PREFFLIPS_FAILED
+        reason === UnenrollReason.PREF_FLIPS_FAILED
           ? {
               pref_type: prefType,
               pref_name: prefName,
@@ -177,10 +246,12 @@ export const NimbusTelemetry = {
   ) {
     const extra = Object.assign(
       { reason },
-      reason === "invalid-branch" ? { branch } : {},
-      reason === "invalid-feature" ? { feature } : {},
-      reason === "l10n-missing-locale" ? { locale } : {},
-      reason === "l10n-missing-entry" ? { l10n_ids, locale } : {}
+      reason === ValidationFailureReason.INVALID_BRANCH ? { branch } : {},
+      reason === ValidationFailureReason.INVALID_FEATURE ? { feature } : {},
+      reason === ValidationFailureReason.L10N_MISSING_ENTRY
+        ? { l10n_ids, locale }
+        : {},
+      reason === ValidationFailureReason.L10N_MISSING_LOCALE ? { locale } : {}
     );
 
     lazy.TelemetryEvents.sendEvent(

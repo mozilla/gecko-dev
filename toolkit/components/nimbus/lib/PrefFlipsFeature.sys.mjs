@@ -6,11 +6,11 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
 });
 
 const FEATURE_ID = "prefFlips";
-export const REASON_PREFFLIPS_FAILED = "prefFlips-failed";
 
 export class PrefFlipsFeature {
   #initialized;
@@ -92,7 +92,7 @@ export class PrefFlipsFeature {
 
           for (const enrollment of toUnenroll) {
             this.manager._unenroll(enrollment, {
-              reason: "prefFlips-conflict",
+              reason: lazy.NimbusTelemetry.UnenrollReason.PREF_FLIPS_CONFLICT,
               conflictingSlug: activeEnrollment.slug,
             });
           }
@@ -389,7 +389,7 @@ export class PrefFlipsFeature {
     }
 
     this.manager._unenroll(enrollment, {
-      reason: REASON_PREFFLIPS_FAILED,
+      reason: lazy.NimbusTelemetry.UnenrollReason.PREF_FLIPS_FAILED,
       prefName: pref,
       prefType,
     });
