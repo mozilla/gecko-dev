@@ -512,6 +512,17 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
 
   bool ProcessInlineScript(nsIScriptElement* aElement, ScriptKind aScriptKind);
 
+  enum class CacheBehavior : uint8_t {
+    DoNothing,
+    Insert,
+    Evict,
+  };
+
+  CacheBehavior GetCacheBehavior(ScriptLoadRequest* aRequest);
+
+  void TryCacheRequest(ScriptLoadRequest* aRequest,
+                       RefPtr<JS::Stencil>& aStencil);
+
   JS::loader::ScriptLoadRequest* LookupPreloadRequest(
       nsIScriptElement* aElement, ScriptKind aScriptKind,
       const SRIMetadata& aSRIMetadata);

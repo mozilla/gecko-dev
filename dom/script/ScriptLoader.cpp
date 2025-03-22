@@ -3015,12 +3015,6 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
   }
 }
 
-enum class CacheBehavior : uint8_t {
-  DoNothing,
-  Insert,
-  Evict,
-};
-
 void ScriptLoader::InstantiateClassicScriptFromAny(
     JSContext* aCx, JS::CompileOptions& aCompileOptions,
     ScriptLoadRequest* aRequest, JS::MutableHandle<JSScript*> aScript,
@@ -3034,56 +3028,76 @@ void ScriptLoader::InstantiateClassicScriptFromAny(
     return;
   }
 
-  CacheBehavior cacheBehavior = CacheBehavior::DoNothing;
-  if (mCache) {
-    // NOTE: A new response may arrive even if the exiting cache is still valid,
-    // for example when the request is performed with bypassing the cache.
-    //
-    // If the response is cacheable, it should overwrite the existing cache
-    // if any.  If the response is not cacheable, that should just evict the
-    // existing cache if any, so that the next request will also reach the
-    // server.
-    if (aRequest->IsCacheable()) {
-      if (ShouldBypassCache()) {
-        // If the request bypasses the cache, the response should always
-        // overwrite the cache, regardless of the content.
-        cacheBehavior = CacheBehavior::Insert;
-      } else {
-        ScriptHashKey key(this, aRequest);
-        auto cacheResult = mCache->Lookup(*this, key,
-                                          /* aSyncLoad = */ true);
-        if (cacheResult.mState != CachedSubResourceState::Complete) {
-          cacheBehavior = CacheBehavior::Insert;
-        }
-      }
-    } else {
-      cacheBehavior = CacheBehavior::Evict;
-    }
-  }
-
   RefPtr<JS::Stencil> stencil;
   InstantiateClassicScriptFromMaybeEncodedSource(
       aCx, aCompileOptions, aRequest, aScript, stencil, aDebuggerPrivateValue,
       aDebuggerIntroductionScript, aRv);
-  if (!aRv.Failed() && cacheBehavior != CacheBehavior::DoNothing) {
-    MOZ_ASSERT(mCache);
-    MOZ_ASSERT(stencil);
+  if (aRv.Failed()) {
+    return;
+  }
 
-    if (!JS::IsStencilCacheable(stencil)) {
-      // If the stencil is not compatible with the cache (e.g. contains asm.js),
-      // this should also evict any the existing cache if any.
-      cacheBehavior = CacheBehavior::Evict;
-    }
+  TryCacheRequest(aRequest, stencil);
+}
 
-    aRequest->SetStencil(stencil.forget());
-    if (cacheBehavior == CacheBehavior::Insert) {
-      auto loadData = MakeRefPtr<ScriptLoadData>(this, aRequest);
-      mCache->Insert(*loadData);
-    } else {
-      MOZ_ASSERT(cacheBehavior == CacheBehavior::Evict);
-      ScriptHashKey key(this, aRequest);
-      mCache->Evict(key);
-    }
+ScriptLoader::CacheBehavior ScriptLoader::GetCacheBehavior(
+    ScriptLoadRequest* aRequest) {
+  if (!mCache) {
+    return CacheBehavior::DoNothing;
+  }
+
+  if (!aRequest->IsCacheable()) {
+    return CacheBehavior::Evict;
+  }
+
+  // NOTE: A new response may arrive even if the exiting cache is still valid,
+  // for example when the request is performed with bypassing the cache.
+  //
+  // If the response is cacheable, it should overwrite the existing cache
+  // if any.  If the response is not cacheable, that should just evict the
+  // existing cache if any, so that the next request will also reach the
+  // server.
+  if (ShouldBypassCache()) {
+    // If the request bypasses the cache, the response should always
+    // overwrite the cache, regardless of the content.
+    return CacheBehavior::Insert;
+  }
+
+  ScriptHashKey key(this, aRequest);
+  auto cacheResult = mCache->Lookup(*this, key,
+                                    /* aSyncLoad = */ true);
+  if (cacheResult.mState == CachedSubResourceState::Complete) {
+    return CacheBehavior::DoNothing;
+  }
+
+  return CacheBehavior::Insert;
+}
+
+void ScriptLoader::TryCacheRequest(ScriptLoadRequest* aRequest,
+                                   RefPtr<JS::Stencil>& aStencil) {
+  CacheBehavior cacheBehavior = GetCacheBehavior(aRequest);
+
+  if (cacheBehavior == CacheBehavior::DoNothing) {
+    return;
+  }
+
+  MOZ_ASSERT(mCache);
+  MOZ_ASSERT(aStencil);
+
+  if (!JS::IsStencilCacheable(aStencil)) {
+    // If the stencil is not compatible with the cache (e.g. contains asm.js),
+    // this should also evict any the existing cache if any.
+    cacheBehavior = CacheBehavior::Evict;
+  }
+
+  aRequest->SetStencil(aStencil.forget());
+
+  if (cacheBehavior == CacheBehavior::Insert) {
+    auto loadData = MakeRefPtr<ScriptLoadData>(this, aRequest);
+    mCache->Insert(*loadData);
+  } else {
+    MOZ_ASSERT(cacheBehavior == CacheBehavior::Evict);
+    ScriptHashKey key(this, aRequest);
+    mCache->Evict(key);
   }
 }
 
