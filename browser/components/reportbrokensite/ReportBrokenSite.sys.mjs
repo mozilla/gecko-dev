@@ -575,6 +575,7 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
         selectedBrowser
       ).catch(err => {
         console.error("Report Broken Site: unexpected error", err);
+        state.currentTabWebcompatDetailsPromise = undefined;
       });
     }
   }

@@ -261,6 +261,8 @@ async function testSendMoreInfo(tab, menu, expectedOverrides = {}) {
     ok(isScreenshotValid, "Got a valid screenshot");
   }
 
+  filterFrameworkDetectorFails(message.details, expected.details);
+
   ok(areObjectsEqual(message, expected), "sent info matches expectations");
 
   // re-opening the panel, the url and description should be reset

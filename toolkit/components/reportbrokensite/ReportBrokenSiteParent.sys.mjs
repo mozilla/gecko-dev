@@ -347,9 +347,10 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
   async receiveMessage(msg) {
     switch (msg.name) {
       case "GetWebcompatInfoFromParentProcess": {
+        const { browsingContext } = msg.target;
         const { format, quality } = msg.data;
         const screenshot = await this.#getScreenshot(
-          msg.target.browsingContext,
+          browsingContext,
           format,
           quality
         ).catch(e => {
@@ -357,9 +358,14 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
           return Promise.resolve(undefined);
         });
 
+        const zoom = browsingContext.fullZoom;
+        const scale = browsingContext.topChromeWindow?.devicePixelRatio || 1;
+        const devicePixelRatio = scale * zoom;
+
         return {
           antitracking: this.#getAntitrackingInfo(msg.target.browsingContext),
           browser: await this.#getBrowserInfo(),
+          devicePixelRatio,
           screenshot,
         };
       }

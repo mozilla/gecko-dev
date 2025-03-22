@@ -317,6 +317,8 @@ async function testSend(tab, menu, expectedOverrides = {}) {
         "Got a default UA string"
       );
 
+      filterFrameworkDetectorFails(ping.tabInfo, expected.tabInfo);
+
       ok(areObjectsEqual(ping, expected), "ping matches expectations");
       resolve();
     });
