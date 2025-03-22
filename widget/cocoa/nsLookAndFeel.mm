@@ -13,6 +13,7 @@
 #include "gfxFontConstants.h"
 #include "gfxPlatformMac.h"
 #include "nsCSSColorUtils.h"
+#include "nsAppShell.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/StaticPrefs_widget.h"
@@ -47,6 +48,10 @@ void nsLookAndFeel::EnsureInit() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK
 
   mInitialized = true;
+  // Ensure GeckoNSApplication is instantiated before creating a window,
+  // otherwise we might instantiate the wrong application class, causing
+  // exceptions to be thrown elsewhere.
+  [GeckoNSApplication sharedApplication];
   NSWindow* window =
       [[NSWindow alloc] initWithContentRect:NSZeroRect
                                   styleMask:NSWindowStyleMaskTitled
