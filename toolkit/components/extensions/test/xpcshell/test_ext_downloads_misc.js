@@ -1074,6 +1074,14 @@ add_task(async function test_getFileIcon() {
   const id = msg.result;
 
   msg = await runInExtension("getFileIcon", id);
+  if (AppConstants.platform === "linux" && Services.env.get("MOZ_HEADLESS")) {
+    // Linux doesn't have moz-icon: support when headless. It relies on GTK.
+    // See bug 1955705 to try to lift this restriction.
+    equal(msg.status, "error", "getFileIcon() failed");
+    webNav.close();
+    return;
+  }
+
   equal(msg.status, "success", "getFileIcon() succeeded");
   await loadImage(img, msg.result);
   equal(img.height, 32, "returns an icon with the right height");
