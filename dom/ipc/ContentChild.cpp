@@ -666,6 +666,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
 
   gfx::gfxVars::SetValuesForInitialize(aXPCOMInit.gfxNonDefaultVarUpdates());
   PerfStats::SetCollectionMask(aXPCOMInit.perfStatsMask());
+  LookAndFeel::EnsureInit();
   InitSharedUASheets(std::move(aSharedUASheetHandle), aSharedUASheetAddress);
   InitXPCOM(std::move(aXPCOMInit), aInitialData,
             aIsReadyForBackgroundProcessing);
@@ -679,16 +680,6 @@ mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
   }
   return IPC_OK();
 }
-
-class nsGtkNativeInitRunnable : public Runnable {
- public:
-  nsGtkNativeInitRunnable() : Runnable("nsGtkNativeInitRunnable") {}
-
-  NS_IMETHOD Run() override {
-    LookAndFeel::NativeInit();
-    return NS_OK;
-  }
-};
 
 void ContentChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
                         const char* aParentBuildID, bool aIsForBrowser) {
@@ -1351,14 +1342,6 @@ void ContentChild::InitXPCOM(
     XPCOMInitData&& aXPCOMInit,
     const mozilla::dom::ipc::StructuredCloneData& aInitialData,
     bool aIsReadyForBackgroundProcessing) {
-#ifdef MOZ_WIDGET_GTK
-  // LookAndFeel::NativeInit takes a long time to run on Linux, here we schedule
-  // it as soon as possible after BackgroundChild::Startup to give
-  // it chance to run ahead of ConstructBrowser
-  nsCOMPtr<nsIRunnable> event = new nsGtkNativeInitRunnable();
-  NS_DispatchToMainThreadQueue(event.forget(), EventQueuePriority::Idle);
-#endif
-
 #if defined(XP_WIN)
   // DLL services untrusted modules processing depends on
   // BackgroundChild::Startup having been called

@@ -47,17 +47,6 @@ void RemoteLookAndFeel::SetDataImpl(FullLookAndFeel&& aData) {
 
 namespace {
 
-// Some lnf values are somewhat expensive to get, and are not needed in child
-// processes, so we can avoid querying them.
-bool IsNeededInChildProcess(LookAndFeel::IntID aId) {
-  switch (aId) {
-    case LookAndFeel::IntID::AlertNotificationOrigin:
-      return false;  // see bug 1703205
-    default:
-      return true;
-  }
-}
-
 template <typename Item, typename UInt, typename ID>
 Result<const Item*, nsresult> MapLookup(const nsTArray<Item>& aItems,
                                         const nsTArray<UInt>& aMap, ID aID) {
@@ -113,10 +102,6 @@ nsresult RemoteLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
 }
 
 nsresult RemoteLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
-  MOZ_DIAGNOSTIC_ASSERT(
-      IsNeededInChildProcess(aID),
-      "Querying value that we didn't bother getting from the parent process!");
-
   const int32_t* result;
   MOZ_TRY_VAR(result, MapLookup(mTables.ints(), mTables.intMap(), aID));
   aResult = *result;
@@ -146,53 +131,42 @@ char16_t RemoteLookAndFeel::GetPasswordCharacterImpl() {
 
 bool RemoteLookAndFeel::GetEchoPasswordImpl() { return mTables.passwordEcho(); }
 
-static bool AddIDsToMap(nsXPLookAndFeel* aImpl, FullLookAndFeel* aLf) {
+// TODO(emilio): Maybe reuse more of nsXPLookAndFeel's stores...
+static bool AddIDsToMap(FullLookAndFeel* aLf) {
   using IntID = LookAndFeel::IntID;
   using FontID = LookAndFeel::FontID;
   using FloatID = LookAndFeel::FloatID;
   using ColorID = LookAndFeel::ColorID;
   using ColorScheme = LookAndFeel::ColorScheme;
+  using UseStandins = LookAndFeel::UseStandins;
 
   bool anyFromOtherTheme = false;
   for (auto id : MakeEnumeratedRange(IntID::End)) {
-    if (!IsNeededInChildProcess(id)) {
-      continue;
-    }
     int32_t theInt;
-    nsresult rv = aImpl->NativeGetInt(id, theInt);
+    nsresult rv = LookAndFeel::GetInt(id, &theInt);
     AddToMap(aLf->tables().ints(), aLf->tables().intMap(), id,
              NS_SUCCEEDED(rv) ? Some(theInt) : Nothing{});
   }
 
   for (auto id : MakeEnumeratedRange(ColorID::End)) {
-    nscolor theColor;
-    nsresult rv = aImpl->NativeGetColor(id, ColorScheme::Light, theColor);
     AddToMap(aLf->tables().lightColors(), aLf->tables().lightColorMap(), id,
-             NS_SUCCEEDED(rv) ? Some(theColor) : Nothing{});
-    rv = aImpl->NativeGetColor(id, ColorScheme::Dark, theColor);
+             LookAndFeel::GetColor(id, ColorScheme::Light, UseStandins::No));
     AddToMap(aLf->tables().darkColors(), aLf->tables().darkColorMap(), id,
-             NS_SUCCEEDED(rv) ? Some(theColor) : Nothing{});
+             LookAndFeel::GetColor(id, ColorScheme::Dark, UseStandins::No));
   }
 
   for (auto id : MakeEnumeratedRange(FloatID::End)) {
     float theFloat;
-    nsresult rv = aImpl->NativeGetFloat(id, theFloat);
+    nsresult rv = LookAndFeel::GetFloat(id, &theFloat);
     AddToMap(aLf->tables().floats(), aLf->tables().floatMap(), id,
              NS_SUCCEEDED(rv) ? Some(theFloat) : Nothing{});
   }
 
   for (auto id : MakeEnumeratedRange(FontID::End)) {
-    gfxFontStyle fontStyle{};
-
-    nsString name;
-    bool rv = aImpl->NativeGetFont(id, name, fontStyle);
-    Maybe<LookAndFeelFont> maybeFont;
-    if (rv) {
-      maybeFont.emplace(
-          nsXPLookAndFeel::StyleToLookAndFeelFont(name, fontStyle));
-    }
+    LookAndFeelFont font;
+    LookAndFeel::GetFont(id, font);
     AddToMap(aLf->tables().fonts(), aLf->tables().fontMap(), id,
-             std::move(maybeFont));
+             font.haveFont() ? Some(std::move(font)) : Nothing{});
   }
 
   return anyFromOtherTheme;
@@ -214,12 +188,11 @@ const FullLookAndFeel* RemoteLookAndFeel::ExtractData() {
   }
 
   FullLookAndFeel* lf = new FullLookAndFeel{};
-  nsXPLookAndFeel* impl = nsXPLookAndFeel::GetInstance();
 
-  lf->tables().passwordChar() = impl->GetPasswordCharacterImpl();
-  lf->tables().passwordEcho() = impl->GetEchoPasswordImpl();
+  lf->tables().passwordChar() = LookAndFeel::GetPasswordCharacter();
+  lf->tables().passwordEcho() = LookAndFeel::GetEchoPassword();
 
-  AddIDsToMap(impl, lf);
+  AddIDsToMap(lf);
 
   // This assignment to sCachedLookAndFeelData must be done after the
   // WithThemeConfiguredForContent call, since it can end up calling RefreshImpl

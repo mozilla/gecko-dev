@@ -14,6 +14,7 @@
 class nsLookAndFeel;
 
 class nsXPLookAndFeel : public mozilla::LookAndFeel {
+  friend class mozilla::LookAndFeel;
  public:
   using FullLookAndFeel = mozilla::widget::FullLookAndFeel;
   using LookAndFeelFont = mozilla::widget::LookAndFeelFont;
@@ -23,23 +24,8 @@ class nsXPLookAndFeel : public mozilla::LookAndFeel {
   static nsXPLookAndFeel* GetInstance();
   static void Shutdown();
 
-  void Init();
-
   // Gets the pref name for a given color, just for debugging purposes.
   static const char* GetColorPrefName(ColorID);
-
-  // These functions will return a value specified by an override pref, if it
-  // exists, and otherwise will call into the NativeGetXxx function to get the
-  // platform-specific value.
-  //
-  // NS_ERROR_NOT_AVAILABLE is returned if there is neither an override pref or
-  // a platform-specific value.
-  nsresult GetColorValue(ColorID, ColorScheme, UseStandins, nscolor& aResult);
-  nsresult GetIntValue(IntID aID, int32_t& aResult);
-  nsresult GetFloatValue(FloatID aID, float& aResult);
-  // Same, but returns false if there is no platform-specific value.
-  // (There are no override prefs for font values.)
-  bool GetFontValue(FontID aID, nsString& aName, gfxFontStyle& aStyle);
 
   virtual nsresult NativeGetInt(IntID aID, int32_t& aResult) = 0;
   virtual nsresult NativeGetFloat(FloatID aID, float& aResult) = 0;
@@ -79,7 +65,23 @@ class nsXPLookAndFeel : public mozilla::LookAndFeel {
  protected:
   nsXPLookAndFeel() = default;
 
+  void Init();
+
   static nscolor GetStandinForNativeColor(ColorID, ColorScheme);
+  static void FillStores(nsXPLookAndFeel* aInstance);
+
+  // These functions will return a value specified by an override pref, if it
+  // exists, and otherwise will call into the NativeGetXxx function to get the
+  // platform-specific value.
+  //
+  // NS_ERROR_NOT_AVAILABLE is returned if there is neither an override pref or
+  // a platform-specific value.
+  nsresult GetColorValue(ColorID, ColorScheme, UseStandins, nscolor& aResult);
+  nsresult GetIntValue(IntID aID, int32_t& aResult);
+  nsresult GetFloatValue(FloatID aID, float& aResult);
+  // Same, but returns false if there is no platform-specific value.
+  bool GetFontValue(FontID aID, nsString& aName, gfxFontStyle& aStyle);
+  LookAndFeelFont GetFontValue(FontID aID);
 
   // A platform-agnostic dark-color scheme, for platforms where we don't have
   // "native" dark colors, like Windows and Android.

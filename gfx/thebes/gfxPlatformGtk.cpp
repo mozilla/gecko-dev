@@ -460,10 +460,12 @@ int32_t gfxPlatformGtk::GetFontScaleDPI() {
   if (MOZ_LIKELY(sDPI != 0)) {
     return sDPI;
   }
-  GdkScreen* screen = gdk_screen_get_default();
-  // Ensure settings in config files are processed.
-  gtk_settings_get_for_screen(screen);
-  int32_t dpi = int32_t(round(gdk_screen_get_resolution(screen)));
+  int32_t dpi = 0;
+  if (GdkScreen* screen = gdk_screen_get_default()) {
+    // Ensure settings in config files are processed.
+    gtk_settings_get_for_screen(screen);
+    dpi = int32_t(round(gdk_screen_get_resolution(screen)));
+  }
   if (dpi <= 0) {
     // Fall back to something reasonable
     dpi = 96;
