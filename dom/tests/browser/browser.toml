@@ -162,6 +162,13 @@ support-files = [
   "page_scriptCache_load_events.html",
 ]
 
+["browser_scriptCache_container.js"]
+skip-if = ["!nightly_build"]
+support-files = [
+  "page_scriptCache_container.html",
+  "counter_server.sjs",
+]
+
 ["browser_scriptCache_partition.js"]
 skip-if = ["!nightly_build"]
 support-files = [
