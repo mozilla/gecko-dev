@@ -1,6 +1,5 @@
 import time
 
-import six
 from mod_pywebsocket import msgutil
 
 # see the list of tests in test_websocket.html
@@ -59,11 +58,11 @@ def web_socket_transfer_data(request):
         resp = "wrong message"
         if msgutil.receive_message(request) == "1":
             resp = "2"
-        msgutil.send_message(request, six.ensure_text(resp))
+        msgutil.send_message(request, resp)
         resp = "wrong message"
         if msgutil.receive_message(request) == "3":
             resp = "4"
-        msgutil.send_message(request, six.ensure_text(resp))
+        msgutil.send_message(request, resp)
         resp = "wrong message"
         if msgutil.receive_message(request) == "5":
             resp = (
@@ -71,7 +70,7 @@ def web_socket_transfer_data(request):
                     "utf-8"
                 )
             )
-        msgutil.send_message(request, six.ensure_text(resp))
+        msgutil.send_message(request, resp)
         msgutil.close_connection(request)
     elif request.ws_protocol == "test-7":
         msgutil.send_message(request, "test-7 data")
@@ -81,7 +80,7 @@ def web_socket_transfer_data(request):
         resp = "wrong message"
         if msgutil.receive_message(request) == "client data":
             resp = "server data"
-        msgutil.send_message(request, six.ensure_text(resp))
+        msgutil.send_message(request, resp)
     elif request.ws_protocol == "test-12":
         msg = msgutil.receive_message(request)
         if msg == "a\ufffdb":
@@ -115,7 +114,7 @@ def web_socket_transfer_data(request):
         resp = "wrong message"
         if msgutil.receive_message(request) == "client data":
             resp = "server data"
-        msgutil.send_message(request, six.ensure_text(resp))
+        msgutil.send_message(request, resp)
         time.sleep(2)
         msgutil.close_connection(request)
     elif request.ws_protocol == "test-20":
@@ -147,9 +146,17 @@ def web_socket_transfer_data(request):
         msgutil.send_message(request, msgutil.receive_message(request))
         msgutil.send_message(request, msgutil.receive_message(request))
     elif request.ws_protocol == "test-44":
-        rcv = six.ensure_text(msgutil.receive_message(request))
+        rcv = msgutil.receive_message(request)
+        if isinstance(rcv, bytes):
+            rcv = rcv.decode()
         # check we received correct binary msg
-        if len(rcv) == 3 and ord(rcv[0]) == 5 and ord(rcv[1]) == 0 and ord(rcv[2]) == 7:
+        if (
+            rcv
+            and len(rcv) == 3
+            and ord(rcv[0]) == 5
+            and ord(rcv[1]) == 0
+            and ord(rcv[2]) == 7
+        ):
             # reply with binary msg 0x04
             msgutil.send_message(request, b"\x00\x04", True, True)
         else:
@@ -157,7 +164,9 @@ def web_socket_transfer_data(request):
     elif request.ws_protocol == "test-45":
         rcv = msgutil.receive_message(request)
         # check we received correct binary msg
-        if six.ensure_text(rcv) == "flob":
+        if isinstance(rcv, bytes):
+            rcv = rcv.decode()
+        if rcv == "flob":
             # send back same blob as binary msg
             msgutil.send_message(request, rcv, True, True)
         else:

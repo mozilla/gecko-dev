@@ -1,4 +1,3 @@
-import six
 from mod_pywebsocket import msgutil
 
 
@@ -10,7 +9,7 @@ def web_socket_transfer_data(request):
     expected_messages = ["Hello, world!", "", all_distinct_bytes()]
 
     for test_number, expected_message in enumerate(expected_messages):
-        expected_message = six.b(expected_message)
+        expected_message = expected_message.encode("latin-1")
         message = msgutil.receive_message(request)
         if message == expected_message:
             msgutil.send_message(request, "PASS: Message #{:d}.".format(test_number))
