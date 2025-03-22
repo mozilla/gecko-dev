@@ -476,6 +476,22 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       JS::loader::ParserMetadata aParserMetadata,
       ScriptLoadRequestType aRequestType);
 
+  /**
+   * Helper function to lookup the cache entry and associate it to the
+   * request if any.
+   */
+  void TryUseCache(
+      ScriptLoadRequest* aRequest, nsIScriptElement* aElement = nullptr,
+      const nsAString& aNonce = u""_ns,
+      ScriptLoadRequestType aRequestType = ScriptLoadRequestType::External);
+
+  /**
+   * Helper function to notify network observers for cached request.
+   */
+  void EmulateNetworkEvents(ScriptLoadRequest* aRequest,
+                            nsIScriptElement* aElement,
+                            SubResourceNetworkMetadataHolder* aNetworkMetadata);
+
   void NotifyObserversForCachedScript(
       nsIURI* aURI, nsINode* aContext, nsIPrincipal* aTriggeringPrincipal,
       nsSecurityFlags aSecurityFlags, nsContentPolicyType aContentPolicyType,
@@ -512,10 +528,9 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   /**
    * Helper function to check the content policy for a given request.
    */
-  static nsresult CheckContentPolicy(Document* aDocument,
-                                     nsIScriptElement* aElement,
-                                     const nsAString& aNonce,
-                                     ScriptLoadRequest* aRequest);
+  nsresult CheckContentPolicy(nsIScriptElement* aElement,
+                              const nsAString& aNonce,
+                              ScriptLoadRequest* aRequest);
 
   /**
    * Helper function to determine whether an about: page loads a chrome: URI.

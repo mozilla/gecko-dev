@@ -458,25 +458,26 @@ nsContentPolicyType ScriptLoadRequestToContentPolicyType(
   return nsIContentPolicy::TYPE_INTERNAL_SCRIPT;
 }
 
-nsresult ScriptLoader::CheckContentPolicy(Document* aDocument,
-                                          nsIScriptElement* aElement,
+nsresult ScriptLoader::CheckContentPolicy(nsIScriptElement* aElement,
                                           const nsAString& aNonce,
                                           ScriptLoadRequest* aRequest) {
-  MOZ_ASSERT(aDocument);
-  MOZ_ASSERT(aElement);
   MOZ_ASSERT(aRequest);
 
   nsContentPolicyType contentPolicyType =
       ScriptLoadRequestToContentPolicyType(aRequest);
 
-  nsCOMPtr<nsINode> requestingNode = do_QueryInterface(aElement);
+  nsCOMPtr<nsINode> requestingNode;
+  if (aElement) {
+    requestingNode = do_QueryInterface(aElement);
+  }
   nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new net::LoadInfo(
-      aDocument->NodePrincipal(),  // loading principal
-      aDocument->NodePrincipal(),  // triggering principal
+      mDocument->NodePrincipal(),  // loading principal
+      mDocument->NodePrincipal(),  // triggering principal
       requestingNode, nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
       contentPolicyType);
-  secCheckLoadInfo->SetParserCreatedScript(aElement->GetParserCreated() !=
-                                           mozilla::dom::NOT_FROM_PARSER);
+  secCheckLoadInfo->SetParserCreatedScript(aElement &&
+                                           aElement->GetParserCreated() !=
+                                               mozilla::dom::NOT_FROM_PARSER);
   // Use nonce of the current element, instead of the preload, because those
   // are allowed to differ.
   secCheckLoadInfo->SetCspNonce(aNonce);
@@ -1109,68 +1110,86 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
                              aParserMetadata, aTriggeringPrincipal);
   RefPtr<ScriptLoadContext> context = new ScriptLoadContext(aElement);
 
-  if (aKind == ScriptKind::eClassic || aKind == ScriptKind::eImportMap) {
-    RefPtr<ScriptLoadRequest> request =
-        new ScriptLoadRequest(aKind, aURI, aReferrerPolicy, fetchOptions,
-                              aIntegrity, referrer, context);
-    if ((aRequestType == ScriptLoadRequestType::External ||
-         aRequestType == ScriptLoadRequestType::Preload) &&
-        mCache) {
-      ScriptHashKey key(this, request);
-      auto cacheResult = mCache->Lookup(*this, key,
-                                        /* aSyncLoad = */ true);
-      if (cacheResult.mState == CachedSubResourceState::Complete) {
-        if (aRequestType == ScriptLoadRequestType::External) {
-          // NOTE: The preload case checks the same after the
-          //       LookupPreloadRequest call.
-          if (NS_FAILED(
-                  CheckContentPolicy(mDocument, aElement, aNonce, request))) {
-            request->NoCacheEntryFound();
-            return request.forget();
-          }
-        }
-
-        nsCOMPtr<nsINode> context;
-        if (aElement) {
-          context = do_QueryInterface(aElement);
-        } else {
-          context = mDocument;
-        }
-
-        NotifyObserversForCachedScript(aURI, context, aTriggeringPrincipal,
-                                       CORSModeToSecurityFlags(aCORSMode),
-                                       nsIContentPolicy::TYPE_INTERNAL_SCRIPT,
-                                       cacheResult.mNetworkMetadata);
-
-        {
-          nsAutoCString name;
-          nsString entryName;
-          aURI->GetSpec(name);
-          CopyUTF8toUTF16(name, entryName);
-
-          auto now = TimeStamp::Now();
-
-          SharedSubResourceCacheUtils::AddPerformanceEntryForCache(
-              entryName, GetInitiatorType(request),
-              cacheResult.mNetworkMetadata, now, now, mDocument);
-        }
-
-        request->CacheEntryFound(cacheResult.mCompleteValue);
-        return request.forget();
-      }
-
-      request->NoCacheEntryFound();
-      return request.forget();
-    }
-
-    request->NoCacheEntryFound();
+  if (aKind == ScriptKind::eModule) {
+    RefPtr<ModuleLoadRequest> request = mModuleLoader->CreateTopLevel(
+        aURI, aReferrerPolicy, fetchOptions, aIntegrity, referrer, context);
     return request.forget();
   }
 
-  MOZ_ASSERT(aKind == ScriptKind::eModule);
-  RefPtr<ModuleLoadRequest> request = mModuleLoader->CreateTopLevel(
-      aURI, aReferrerPolicy, fetchOptions, aIntegrity, referrer, context);
+  MOZ_ASSERT(aKind == ScriptKind::eClassic || aKind == ScriptKind::eImportMap);
+
+  RefPtr<ScriptLoadRequest> request =
+      new ScriptLoadRequest(aKind, aURI, aReferrerPolicy, fetchOptions,
+                            aIntegrity, referrer, context);
+
+  TryUseCache(request, aElement, aNonce, aRequestType);
+
   return request.forget();
+}
+
+void ScriptLoader::TryUseCache(ScriptLoadRequest* aRequest,
+                               nsIScriptElement* aElement,
+                               const nsAString& aNonce,
+                               ScriptLoadRequestType aRequestType) {
+  if (aRequestType == ScriptLoadRequestType::Inline) {
+    aRequest->NoCacheEntryFound();
+    return;
+  }
+
+  if (!mCache) {
+    aRequest->NoCacheEntryFound();
+    return;
+  }
+
+  ScriptHashKey key(this, aRequest);
+  auto cacheResult = mCache->Lookup(*this, key, /* aSyncLoad = */ true);
+  if (cacheResult.mState != CachedSubResourceState::Complete) {
+    aRequest->NoCacheEntryFound();
+    return;
+  }
+
+  if (aRequestType == ScriptLoadRequestType::External) {
+    // NOTE: The preload case checks the same after the
+    //       LookupPreloadRequest call.
+    if (NS_FAILED(CheckContentPolicy(aElement, aNonce, aRequest))) {
+      aRequest->NoCacheEntryFound();
+      return;
+    }
+  }
+
+  EmulateNetworkEvents(aRequest, aElement, cacheResult.mNetworkMetadata);
+
+  aRequest->CacheEntryFound(cacheResult.mCompleteValue);
+  return;
+}
+
+void ScriptLoader::EmulateNetworkEvents(
+    ScriptLoadRequest* aRequest, nsIScriptElement* aElement,
+    SubResourceNetworkMetadataHolder* aNetworkMetadata) {
+  nsCOMPtr<nsINode> context;
+  if (aElement) {
+    context = do_QueryInterface(aElement);
+  } else {
+    context = mDocument;
+  }
+
+  NotifyObserversForCachedScript(
+      aRequest->mURI, context, aRequest->mFetchOptions->mTriggeringPrincipal,
+      CORSModeToSecurityFlags(aRequest->mFetchOptions->mCORSMode),
+      nsIContentPolicy::TYPE_INTERNAL_SCRIPT, aNetworkMetadata);
+
+  {
+    nsAutoCString name;
+    nsString entryName;
+    aRequest->mURI->GetSpec(name);
+    CopyUTF8toUTF16(name, entryName);
+
+    auto now = TimeStamp::Now();
+
+    SharedSubResourceCacheUtils::AddPerformanceEntryForCache(
+        entryName, GetInitiatorType(aRequest), aNetworkMetadata, now, now,
+        mDocument);
+  }
 }
 
 bool ScriptLoader::ProcessScriptElement(nsIScriptElement* aElement) {
@@ -1274,7 +1293,7 @@ bool ScriptLoader::ProcessExternalScript(nsIScriptElement* aElement,
   RefPtr<ScriptLoadRequest> request =
       LookupPreloadRequest(aElement, aScriptKind, sriMetadata);
   if (request) {
-    if (NS_FAILED(CheckContentPolicy(mDocument, aElement, nonce, request))) {
+    if (NS_FAILED(CheckContentPolicy(aElement, nonce, request))) {
       LOG(("ScriptLoader (%p): content policy check failed for preload", this));
 
       // Probably plans have changed; even though the preload was allowed seems
