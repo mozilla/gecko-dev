@@ -4819,6 +4819,8 @@
 
 # Should we defer timeouts and intervals while loading a page.  Released
 # on Idle or when the page is loaded.
+# A URI list in dom.timeout.defer_during_load.force-disable can override this
+# and disable this optimization for a site.
 - name: dom.timeout.defer_during_load
   type: bool
   value: true
