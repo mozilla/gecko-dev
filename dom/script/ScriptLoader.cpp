@@ -620,6 +620,11 @@ static nsSecurityFlags CORSModeToSecurityFlags(CORSMode aCORSMode) {
 nsresult ScriptLoader::StartClassicLoad(
     ScriptLoadRequest* aRequest,
     const Maybe<nsAutoString>& aCharsetForPreload) {
+  if (aRequest->IsStencil()) {
+    EmulateNetworkEvents(aRequest);
+    return NS_OK;
+  }
+
   MOZ_ASSERT(aRequest->IsFetching());
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NULL_POINTER);
   aRequest->SetUnknownDataType();
@@ -1157,18 +1162,21 @@ void ScriptLoader::TryUseCache(ScriptLoadRequest* aRequest,
     }
   }
 
-  EmulateNetworkEvents(aRequest, aElement, cacheResult.mNetworkMetadata);
+  aRequest->mNetworkMetadata = cacheResult.mNetworkMetadata;
 
   aRequest->CacheEntryFound(cacheResult.mCompleteValue);
   return;
 }
 
-void ScriptLoader::EmulateNetworkEvents(
-    ScriptLoadRequest* aRequest, nsIScriptElement* aElement,
-    SubResourceNetworkMetadataHolder* aNetworkMetadata) {
+void ScriptLoader::EmulateNetworkEvents(ScriptLoadRequest* aRequest) {
+  MOZ_ASSERT(aRequest->IsStencil());
+  MOZ_ASSERT(aRequest->mNetworkMetadata);
+
+  nsIScriptElement* element = aRequest->GetScriptLoadContext()->mScriptElement;
+
   nsCOMPtr<nsINode> context;
-  if (aElement) {
-    context = do_QueryInterface(aElement);
+  if (element) {
+    context = do_QueryInterface(element);
   } else {
     context = mDocument;
   }
@@ -1176,7 +1184,7 @@ void ScriptLoader::EmulateNetworkEvents(
   NotifyObserversForCachedScript(
       aRequest->mURI, context, aRequest->mFetchOptions->mTriggeringPrincipal,
       CORSModeToSecurityFlags(aRequest->mFetchOptions->mCORSMode),
-      nsIContentPolicy::TYPE_INTERNAL_SCRIPT, aNetworkMetadata);
+      nsIContentPolicy::TYPE_INTERNAL_SCRIPT, aRequest->mNetworkMetadata);
 
   {
     nsAutoCString name;
@@ -1187,8 +1195,8 @@ void ScriptLoader::EmulateNetworkEvents(
     auto now = TimeStamp::Now();
 
     SharedSubResourceCacheUtils::AddPerformanceEntryForCache(
-        entryName, GetInitiatorType(aRequest), aNetworkMetadata, now, now,
-        mDocument);
+        entryName, GetInitiatorType(aRequest), aRequest->mNetworkMetadata, now,
+        now, mDocument);
   }
 }
 
@@ -1353,23 +1361,23 @@ bool ScriptLoader::ProcessExternalScript(nsIScriptElement* aElement,
     LOG(("ScriptLoadRequest (%p): Created request for external script",
          request.get()));
 
-    if (!request->IsStencil()) {
-      nsresult rv = StartLoad(request, Nothing());
-      if (NS_FAILED(rv)) {
-        ReportErrorToConsole(request, rv);
+    nsresult rv = StartLoad(request, Nothing());
+    if (NS_FAILED(rv)) {
+      ReportErrorToConsole(request, rv);
 
-        // Asynchronously report the load failure
-        nsCOMPtr<nsIRunnable> runnable =
-            NewRunnableMethod("nsIScriptElement::FireErrorEvent", aElement,
-                              &nsIScriptElement::FireErrorEvent);
-        if (mDocument) {
-          mDocument->Dispatch(runnable.forget());
-        } else {
-          NS_DispatchToCurrentThread(runnable.forget());
-        }
-        return false;
+      // Asynchronously report the load failure
+      nsCOMPtr<nsIRunnable> runnable =
+          NewRunnableMethod("nsIScriptElement::FireErrorEvent", aElement,
+                            &nsIScriptElement::FireErrorEvent);
+      if (mDocument) {
+        mDocument->Dispatch(runnable.forget());
+      } else {
+        NS_DispatchToCurrentThread(runnable.forget());
       }
-    } else {
+      return false;
+    }
+
+    if (request->IsStencil()) {
       // https://html.spec.whatwg.org/#prepare-the-script-element
       //
       // Step 33. If el's type is "classic" and el has a src attribute, or el's
@@ -4504,12 +4512,10 @@ void ScriptLoader::PreloadURI(
          request.get(), url.get()));
   }
 
-  if (!request->IsStencil()) {
-    nsAutoString charset(aCharset);
-    nsresult rv = StartLoad(request, Some(charset));
-    if (NS_FAILED(rv)) {
-      return;
-    }
+  nsAutoString charset(aCharset);
+  nsresult rv = StartLoad(request, Some(charset));
+  if (NS_FAILED(rv)) {
+    return;
   }
 
   PreloadInfo* pi = mPreloads.AppendElement();

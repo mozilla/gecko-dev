@@ -488,9 +488,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   /**
    * Helper function to notify network observers for cached request.
    */
-  void EmulateNetworkEvents(ScriptLoadRequest* aRequest,
-                            nsIScriptElement* aElement,
-                            SubResourceNetworkMetadataHolder* aNetworkMetadata);
+  void EmulateNetworkEvents(ScriptLoadRequest* aRequest);
 
   void NotifyObserversForCachedScript(
       nsIURI* aURI, nsINode* aContext, nsIPrincipal* aTriggeringPrincipal,
