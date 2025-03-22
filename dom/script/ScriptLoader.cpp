@@ -1102,7 +1102,7 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
     nsIPrincipal* aTriggeringPrincipal, CORSMode aCORSMode,
     const nsAString& aNonce, RequestPriority aRequestPriority,
     const SRIMetadata& aIntegrity, ReferrerPolicy aReferrerPolicy,
-    ParserMetadata aParserMetadata, RequestType aRequestType) {
+    ParserMetadata aParserMetadata, ScriptLoadRequestType aRequestType) {
   nsIURI* referrer = mDocument->GetDocumentURIAsReferrer();
   RefPtr<ScriptFetchOptions> fetchOptions =
       new ScriptFetchOptions(aCORSMode, aNonce, aRequestPriority,
@@ -1113,14 +1113,14 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
     RefPtr<ScriptLoadRequest> request =
         new ScriptLoadRequest(aKind, aURI, aReferrerPolicy, fetchOptions,
                               aIntegrity, referrer, context);
-    if ((aRequestType == RequestType::External ||
-         aRequestType == RequestType::Preload) &&
+    if ((aRequestType == ScriptLoadRequestType::External ||
+         aRequestType == ScriptLoadRequestType::Preload) &&
         mCache) {
       ScriptHashKey key(this, request);
       auto cacheResult = mCache->Lookup(*this, key,
                                         /* aSyncLoad = */ true);
       if (cacheResult.mState == CachedSubResourceState::Complete) {
-        if (aRequestType == RequestType::External) {
+        if (aRequestType == ScriptLoadRequestType::External) {
           // NOTE: The preload case checks the same after the
           //       LookupPreloadRequest call.
           if (NS_FAILED(
@@ -1323,7 +1323,7 @@ bool ScriptLoader::ProcessExternalScript(nsIScriptElement* aElement,
     request = CreateLoadRequest(
         aScriptKind, scriptURI, aElement, principal, ourCORSMode, nonce,
         FetchPriorityToRequestPriority(fetchPriority), sriMetadata,
-        referrerPolicy, parserMetadata, RequestType::External);
+        referrerPolicy, parserMetadata, ScriptLoadRequestType::External);
     request->GetScriptLoadContext()->mIsInline = false;
     request->GetScriptLoadContext()->SetScriptMode(
         aElement->GetScriptDeferred(), aElement->GetScriptAsync(), false);
@@ -1538,12 +1538,12 @@ bool ScriptLoader::ProcessInlineScript(nsIScriptElement* aElement,
 
   // NOTE: The `nonce` as specified here is significant, because it's inherited
   // by other scripts (e.g. modules created via dynamic imports).
-  RefPtr<ScriptLoadRequest> request =
-      CreateLoadRequest(aScriptKind, mDocument->GetDocumentURI(), aElement,
-                        mDocument->NodePrincipal(), corsMode, nonce,
-                        FetchPriorityToRequestPriority(fetchPriority),
-                        SRIMetadata(),  // SRI doesn't apply
-                        referrerPolicy, parserMetadata, RequestType::Inline);
+  RefPtr<ScriptLoadRequest> request = CreateLoadRequest(
+      aScriptKind, mDocument->GetDocumentURI(), aElement,
+      mDocument->NodePrincipal(), corsMode, nonce,
+      FetchPriorityToRequestPriority(fetchPriority),
+      SRIMetadata(),  // SRI doesn't apply
+      referrerPolicy, parserMetadata, ScriptLoadRequestType::Inline);
   request->GetScriptLoadContext()->mIsInline = true;
   request->GetScriptLoadContext()->mLineNo = aElement->GetScriptLineNumber();
   request->GetScriptLoadContext()->mColumnNo =
@@ -4457,7 +4457,7 @@ void ScriptLoader::PreloadURI(
                         requestPriority, sriMetadata, aReferrerPolicy,
                         aLinkPreload ? ParserMetadata::NotParserInserted
                                      : ParserMetadata::ParserInserted,
-                        RequestType::Preload);
+                        ScriptLoadRequestType::Preload);
   request->GetScriptLoadContext()->mIsInline = false;
   request->GetScriptLoadContext()->mScriptFromHead = aScriptFromHead;
   request->GetScriptLoadContext()->SetScriptMode(aDefer, aAsync, aLinkPreload);
