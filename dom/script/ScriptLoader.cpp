@@ -215,7 +215,13 @@ ScriptLoader::ScriptLoader(Document* aDocument)
       dom_script_loader_external_scripts_speculative_omt_parse_enabled();
 
 #ifdef NIGHTLY_BUILD
-  if (StaticPrefs::dom_script_loader_navigation_cache()) {
+  // NOTE: The loader for the system principal aren't supposed to
+  //       load remote contents, and it doesn't have to use the in-memory cache.
+  //       A non-system-principal document can also load internal resources,
+  //       and those cases should be filtered out by
+  //       ScriptLoader::GetCacheBehavior.
+  if (!LoaderPrincipal()->IsSystemPrincipal() &&
+      StaticPrefs::dom_script_loader_navigation_cache()) {
     mCache = SharedScriptCache::Get();
     RegisterToCache();
   }
@@ -3050,6 +3056,12 @@ void ScriptLoader::InstantiateClassicScriptFromAny(
 ScriptLoader::CacheBehavior ScriptLoader::GetCacheBehavior(
     ScriptLoadRequest* aRequest) {
   if (!mCache) {
+    return CacheBehavior::DoNothing;
+  }
+
+  if (!aRequest->mURI->SchemeIs("http") && !aRequest->mURI->SchemeIs("https")) {
+    // Internal resources can be exposed to the web content, but they don't
+    // have to be cached.
     return CacheBehavior::DoNothing;
   }
 
