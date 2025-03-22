@@ -483,13 +483,11 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
 
   // Check whether the module has been fetched or is currently being fetched,
   // and if so wait for it rather than starting a new fetch.
-  ModuleLoadRequest* request = aRequest->AsModuleRequest();
-
   if (aRestart == RestartRequest::No &&
       ModuleMapContainsURL(
-          ModuleMapKey(request->mURI, aRequest->mModuleType))) {
+          ModuleMapKey(aRequest->mURI, aRequest->mModuleType))) {
     LOG(("ScriptLoadRequest (%p): Waiting for module fetch", aRequest));
-    WaitForModuleFetch(request);
+    WaitForModuleFetch(aRequest);
     return NS_OK;
   }
 
@@ -499,7 +497,7 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
   // We successfully started fetching a module so put its URL in the module
   // map and mark it as fetching.
   if (aRestart == RestartRequest::No) {
-    SetModuleFetchStarted(aRequest->AsModuleRequest());
+    SetModuleFetchStarted(aRequest);
   }
 
   return NS_OK;
@@ -1357,20 +1355,19 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
                             MarkerInnerWindowIdFromJSContext(aCx),
                             profilerLabelString);
 
-  ModuleLoadRequest* request = aRequest->AsModuleRequest();
-  MOZ_ASSERT(request->mModuleScript);
-  MOZ_ASSERT_IF(request->HasScriptLoadContext(),
-                !request->GetScriptLoadContext()->mCompileOrDecodeTask);
+  MOZ_ASSERT(aRequest->mModuleScript);
+  MOZ_ASSERT_IF(aRequest->HasScriptLoadContext(),
+                !aRequest->GetScriptLoadContext()->mCompileOrDecodeTask);
 
-  ModuleScript* moduleScript = request->mModuleScript;
+  ModuleScript* moduleScript = aRequest->mModuleScript;
   if (moduleScript->HasErrorToRethrow()) {
     LOG(("ScriptLoadRequest (%p):   module has error to rethrow", aRequest));
     JS::Rooted<JS::Value> error(aCx, moduleScript->ErrorToRethrow());
     JS_SetPendingException(aCx, error);
     // For a dynamic import, the promise is rejected.  Otherwise an error
     // is either reported by AutoEntryScript.
-    if (request->IsDynamicImport()) {
-      FinishDynamicImport(aCx, request, NS_OK, nullptr);
+    if (aRequest->IsDynamicImport()) {
+      FinishDynamicImport(aCx, aRequest, NS_OK, nullptr);
     }
     return NS_OK;
   }
@@ -1383,16 +1380,16 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
     return NS_OK;
   }
 
-  nsresult rv = InitDebuggerDataForModuleGraph(aCx, request);
+  nsresult rv = InitDebuggerDataForModuleGraph(aCx, aRequest);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (request->HasScriptLoadContext()) {
+  if (aRequest->HasScriptLoadContext()) {
     TRACE_FOR_TEST(aRequest, "scriptloader_evaluate_module");
   }
 
   JS::Rooted<JS::Value> rval(aCx);
 
-  mLoader->MaybePrepareModuleForBytecodeEncodingBeforeExecute(aCx, request);
+  mLoader->MaybePrepareModuleForBytecodeEncodingBeforeExecute(aCx, aRequest);
 
   bool ok = JS::ModuleEvaluate(aCx, module, &rval);
 
@@ -1400,7 +1397,7 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
   // unless the user cancels execution.
   MOZ_ASSERT_IF(ok, !JS_IsExceptionPending(aCx));
 
-  if (!ok || IsModuleEvaluationAborted(request)) {
+  if (!ok || IsModuleEvaluationAborted(aRequest)) {
     LOG(("ScriptLoadRequest (%p):   evaluation failed", aRequest));
     // For a dynamic import, the promise is rejected. Otherwise an error is
     // reported by AutoEntryScript.
@@ -1415,11 +1412,11 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
     evaluationPromise.set(&rval.toObject());
   }
 
-  if (request->IsDynamicImport()) {
+  if (aRequest->IsDynamicImport()) {
     if (NS_FAILED(rv)) {
-      FinishDynamicImportAndReject(request, rv);
+      FinishDynamicImportAndReject(aRequest, rv);
     } else {
-      FinishDynamicImport(aCx, request, NS_OK, evaluationPromise);
+      FinishDynamicImport(aCx, aRequest, NS_OK, evaluationPromise);
     }
   } else {
     // If this is not a dynamic import, and if the promise is rejected,
@@ -1432,7 +1429,7 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
     }
   }
 
-  rv = mLoader->MaybePrepareModuleForBytecodeEncodingAfterExecute(request,
+  rv = mLoader->MaybePrepareModuleForBytecodeEncodingAfterExecute(aRequest,
                                                                   NS_OK);
 
   mLoader->MaybeTriggerBytecodeEncoding();
