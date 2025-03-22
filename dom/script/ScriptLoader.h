@@ -474,7 +474,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       nsIPrincipal* aTriggeringPrincipal, mozilla::CORSMode aCORSMode,
       const nsAString& aNonce, RequestPriority aRequestPriority,
       const SRIMetadata& aIntegrity, ReferrerPolicy aReferrerPolicy,
-      JS::loader::ParserMetadata aParserMetadata, RequestType requestType);
+      JS::loader::ParserMetadata aParserMetadata, RequestType aRequestType);
 
   void NotifyObserversForCachedScript(
       nsIURI* aURI, nsINode* aContext, nsIPrincipal* aTriggeringPrincipal,

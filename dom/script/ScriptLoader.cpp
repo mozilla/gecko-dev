@@ -1102,7 +1102,7 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
     nsIPrincipal* aTriggeringPrincipal, CORSMode aCORSMode,
     const nsAString& aNonce, RequestPriority aRequestPriority,
     const SRIMetadata& aIntegrity, ReferrerPolicy aReferrerPolicy,
-    ParserMetadata aParserMetadata, RequestType requestType) {
+    ParserMetadata aParserMetadata, RequestType aRequestType) {
   nsIURI* referrer = mDocument->GetDocumentURIAsReferrer();
   RefPtr<ScriptFetchOptions> fetchOptions =
       new ScriptFetchOptions(aCORSMode, aNonce, aRequestPriority,
@@ -1110,23 +1110,23 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
   RefPtr<ScriptLoadContext> context = new ScriptLoadContext(aElement);
 
   if (aKind == ScriptKind::eClassic || aKind == ScriptKind::eImportMap) {
-    RefPtr<ScriptLoadRequest> aRequest =
+    RefPtr<ScriptLoadRequest> request =
         new ScriptLoadRequest(aKind, aURI, aReferrerPolicy, fetchOptions,
                               aIntegrity, referrer, context);
-    if ((requestType == RequestType::External ||
-         requestType == RequestType::Preload) &&
+    if ((aRequestType == RequestType::External ||
+         aRequestType == RequestType::Preload) &&
         mCache) {
-      ScriptHashKey key(this, aRequest);
+      ScriptHashKey key(this, request);
       auto cacheResult = mCache->Lookup(*this, key,
                                         /* aSyncLoad = */ true);
       if (cacheResult.mState == CachedSubResourceState::Complete) {
-        if (requestType == RequestType::External) {
+        if (aRequestType == RequestType::External) {
           // NOTE: The preload case checks the same after the
           //       LookupPreloadRequest call.
           if (NS_FAILED(
-                  CheckContentPolicy(mDocument, aElement, aNonce, aRequest))) {
-            aRequest->NoCacheEntryFound();
-            return aRequest.forget();
+                  CheckContentPolicy(mDocument, aElement, aNonce, request))) {
+            request->NoCacheEntryFound();
+            return request.forget();
           }
         }
 
@@ -1151,26 +1151,26 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
           auto now = TimeStamp::Now();
 
           SharedSubResourceCacheUtils::AddPerformanceEntryForCache(
-              entryName, GetInitiatorType(aRequest),
+              entryName, GetInitiatorType(request),
               cacheResult.mNetworkMetadata, now, now, mDocument);
         }
 
-        aRequest->CacheEntryFound(cacheResult.mCompleteValue);
-        return aRequest.forget();
+        request->CacheEntryFound(cacheResult.mCompleteValue);
+        return request.forget();
       }
 
-      aRequest->NoCacheEntryFound();
-      return aRequest.forget();
+      request->NoCacheEntryFound();
+      return request.forget();
     }
 
-    aRequest->NoCacheEntryFound();
-    return aRequest.forget();
+    request->NoCacheEntryFound();
+    return request.forget();
   }
 
   MOZ_ASSERT(aKind == ScriptKind::eModule);
-  RefPtr<ModuleLoadRequest> aRequest = mModuleLoader->CreateTopLevel(
+  RefPtr<ModuleLoadRequest> request = mModuleLoader->CreateTopLevel(
       aURI, aReferrerPolicy, fetchOptions, aIntegrity, referrer, context);
-  return aRequest.forget();
+  return request.forget();
 }
 
 bool ScriptLoader::ProcessScriptElement(nsIScriptElement* aElement) {
