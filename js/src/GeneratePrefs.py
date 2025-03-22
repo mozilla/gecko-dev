@@ -4,8 +4,9 @@
 
 # This script generates js/public/PrefsGenerated.h from StaticPrefList.yaml
 
+import io
+
 import buildconfig
-import six
 import yaml
 from mozbuild.preprocessor import Preprocessor
 
@@ -39,7 +40,7 @@ def load_yaml(yaml_path):
     if buildconfig.substs.get("MOZ_DEBUG"):
         pp.context["DEBUG"] = "1"
 
-    pp.out = six.StringIO()
+    pp.out = io.StringIO()
     pp.do_filter("substitution")
     pp.do_include(yaml_path)
     contents = pp.out.getvalue()

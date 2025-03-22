@@ -4,9 +4,8 @@
 import subprocess
 import sys
 from datetime import datetime, timedelta
+from queue import Empty, Queue
 from threading import Thread
-
-from six.moves.queue import Empty, Queue
 
 from .adaptor import xdr_annotate
 from .progressbar import ProgressBar

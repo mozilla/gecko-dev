@@ -9,8 +9,6 @@ import re
 import sys
 from subprocess import PIPE, Popen
 
-import six
-
 from .remote import init_device
 from .tests import RefTestCase
 
@@ -468,10 +466,7 @@ def _parse_test_header(fullpath, testcase, xul_tester):
     This looks a bit weird.  The reason is that it needs to be efficient, since
     it has to be done on every test
     """
-    if six.PY3:
-        fp = open(fullpath, encoding="utf-8")
-    else:
-        fp = open(fullpath)
+    fp = open(fullpath, encoding="utf-8")
     try:
         buf = fp.read(512)
     finally:
