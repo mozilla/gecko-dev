@@ -1076,8 +1076,18 @@ const PanelUI = {
       this._panelBannerItem = this.mainView.querySelector(".panel-banner-item");
     }
 
-    let l10nId = "appmenuitem-banner-" + notification.id;
-    document.l10n.setAttributes(this._panelBannerItem, l10nId);
+    const messageIDs = {
+      "update-downloading": "appmenuitem-banner-update-downloading",
+      "update-available": "appmenuitem-banner-update-available",
+      "update-manual": "appmenuitem-banner-update-manual",
+      "update-unsupported": "appmenuitem-banner-update-unsupported",
+      "update-restart": "appmenuitem-banner-update-restart",
+    };
+
+    document.l10n.setAttributes(
+      this._panelBannerItem,
+      messageIDs[notification.id]
+    );
 
     this._panelBannerItem.setAttribute("notificationid", notification.id);
     this._panelBannerItem.hidden = false;

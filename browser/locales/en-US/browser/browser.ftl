@@ -411,7 +411,6 @@ identity-custom-root = Connection verified by a certificate issuer that is not r
 identity-passive-loaded = Parts of this page are not secure (such as images).
 identity-active-loaded = You have disabled protection on this page.
 identity-weak-encryption = This page uses weak encryption.
-identity-insecure-login-forms = Logins entered on this page could be compromised.
 
 identity-https-only-connection-upgraded = (upgraded to HTTPS)
 identity-https-only-label2 = Automatically upgrade this site to a secure connection
@@ -440,7 +439,6 @@ identity-remove-cert-exception =
     .label = Remove Exception
     .accesskey = R
 identity-description-insecure = Your connection to this site is not private. Information you submit could be viewed by others (like passwords, messages, credit cards, etc.).
-identity-description-insecure-login-forms = The login information you enter on this page is not secure and could be compromised.
 identity-description-weak-cipher-intro = Your connection to this website uses weak encryption and is not private.
 identity-description-weak-cipher-risk = Other people can view your information or modify the website’s behavior.
 identity-description-active-blocked2 = { -brand-short-name } has blocked parts of this page that are not secure.
@@ -472,35 +470,7 @@ browser-window-close-button =
 ## Tab actions
 
 # This label should be written in all capital letters if your locale supports them.
-browser-tab-audio-playing2 = PLAYING
-# This label should be written in all capital letters if your locale supports them.
-browser-tab-audio-muted2 = MUTED
-# This label should be written in all capital letters if your locale supports them.
-browser-tab-audio-blocked = AUTOPLAY BLOCKED
-# This label should be written in all capital letters if your locale supports them.
 browser-tab-audio-pip = PICTURE-IN-PICTURE
-
-## These labels should be written in all capital letters if your locale supports them.
-## Variables:
-##  $count (number): number of affected tabs
-
-browser-tab-mute =
-    { $count ->
-        [1] MUTE TAB
-       *[other] MUTE { $count } TABS
-    }
-
-browser-tab-unmute =
-    { $count ->
-        [1] UNMUTE TAB
-       *[other] UNMUTE { $count } TABS
-    }
-
-browser-tab-unblock =
-    { $count ->
-        [1] PLAY TAB
-       *[other] PLAY { $count } TABS
-    }
 
 ## Bookmarks toolbar items
 
@@ -868,11 +838,6 @@ bookmarks-tools-toolbar-visibility-panel =
      [true] Hide bookmarks toolbar
     *[other] Show bookmarks toolbar
   }
-bookmarks-tools-menu-button-visibility =
-  .label = { $isVisible ->
-     [true] Remove bookmarks menu from toolbar
-    *[other] Add bookmarks menu to toolbar
-  }
 
 ##
 
@@ -905,8 +870,6 @@ bookmarks-subview-bookmark-tab =
 
 library-bookmarks-menu =
   .label = Bookmarks
-library-recent-activity-title =
-  .value = Recent Activity
 
 ## Pocket toolbar button
 

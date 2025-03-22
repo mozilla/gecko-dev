@@ -141,10 +141,21 @@ var gBlocklistManager = {
     let branch = Services.prefs.getBranch(LISTS_PREF_BRANCH);
     let l10nKey = branch.getCharPref(id);
 
+    const messageIdsMap = {
+      std: {
+        name: "blocklist-item-moz-std-listName",
+        description: "blocklist-item-moz-std-description",
+      },
+      full: {
+        name: "blocklist-item-moz-full-listName",
+        description: "blocklist-item-moz-full-description",
+      },
+    };
+
     // eslint-disable-next-line mozilla/prefer-formatValues
     let [listName, description] = await document.l10n.formatValues([
-      { id: `blocklist-item-${l10nKey}-listName` },
-      { id: `blocklist-item-${l10nKey}-description` },
+      { id: messageIdsMap[l10nKey].name },
+      { id: messageIdsMap[l10nKey].description },
     ]);
 
     // eslint-disable-next-line mozilla/prefer-formatValues

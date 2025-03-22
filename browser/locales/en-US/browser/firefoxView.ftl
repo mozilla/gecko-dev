@@ -33,7 +33,6 @@ firefoxview-tabpickup-synctabs-primarybutton = Sync open tabs
 
 firefoxview-syncedtabs-synctabs-header = Update your sync settings
 firefoxview-syncedtabs-synctabs-description = To see tabs from other devices, you need to sync your open tabs.
-firefoxview-syncedtabs-synctabs-checkbox = Allow open tabs to sync
 
 firefoxview-syncedtabs-loading-header = Sync in progress
 firefoxview-syncedtabs-loading-description = When it’s done, you’ll see any tabs you have open on other devices. Check back soon.

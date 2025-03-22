@@ -830,7 +830,12 @@ function getLocalizedUA(ua) {
     gSourceL10n = new Localization(["browser/migrationWizard.ftl"]);
   }
   if (allowedUAs.includes(ua)) {
-    return gSourceL10n.formatValue(`migration-source-name-${ua.toLowerCase()}`);
+    const messageIDs = {
+      chrome: "migration-source-name-chrome",
+      edge: "migration-source-name-edge",
+      ie: "migration-source-name-ie",
+    };
+    return gSourceL10n.formatValue(messageIDs[ua]);
   }
   return null;
 }

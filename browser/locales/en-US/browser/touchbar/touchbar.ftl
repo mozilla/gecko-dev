@@ -32,6 +32,5 @@ search-bookmarks = Bookmarks
 search-history = History
 search-opentabs = Open Tabs
 search-tags = Tags
-search-titles = Titles
 
 ##

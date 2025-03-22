@@ -64,7 +64,6 @@ shopping-message-bar-warning-product-not-available-reported =
   .heading = Info coming soon
   .message = We should have info about this product’s reviews within 24 hours. Please check back.
 
-shopping-message-bar-analysis-in-progress-title2 = Checking review quality
 shopping-message-bar-analysis-in-progress-message2 = This could take about 60 seconds.
 
 # Variables:

@@ -41,15 +41,15 @@ fxa-menu-sign-out =
     .label = Sign out…
 
 
-fxa-menu-sync-title = Sync
 fxa-menu-sync-description = Access your web anywhere
 
-
-# Dialog strings that we show the user when signing into Mozilla account/setting up sync
+## Dialog strings that we show the user when signing into Mozilla account/setting up sync
 
 sync-setup-verify-continue = Continue
 sync-setup-verify-title = Merge Warning
 sync-setup-verify-heading = Are you sure you want to sign in to sync?
+
+##
 
 # The user was previously signed into sync. This dialog confirms to the user
 # that they will be merging the data from the previously signed in into the newly signed in one

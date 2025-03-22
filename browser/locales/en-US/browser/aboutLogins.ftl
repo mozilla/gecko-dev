@@ -242,7 +242,6 @@ about-logins-confirm-export-dialog-message2 = When you export, your passwords ar
     When you’re done using the file, we recommend deleting it so others who use this device can’t see your passwords.
 about-logins-confirm-export-dialog-confirm-button2 = Continue with export
 
-about-logins-alert-import-title = Import Complete
 about-logins-alert-import-message = View detailed Import Summary
 
 confirm-discard-changes-dialog-title = Discard unsaved changes?

@@ -204,12 +204,13 @@ export class EncryptedMediaParent extends JSWindowActorParent {
       return;
     }
 
-    let msgPrefix = "eme-notifications-drm-content-playing";
-    let msgId = msgPrefix;
-    let manageLabelId = msgPrefix + "-manage";
-    let manageAccessKeyId = msgPrefix + "-manage-accesskey";
-    let dismissLabelId = msgPrefix + "-dismiss";
-    let dismissAccessKeyId = msgPrefix + "-dismiss-accesskey";
+    let msgId = "eme-notifications-drm-content-playing";
+    let manageLabelId = "eme-notifications-drm-content-playing-manage";
+    let manageAccessKeyId =
+      "eme-notifications-drm-content-playing-manage-accesskey";
+    let dismissLabelId = "eme-notifications-drm-content-playing-dismiss";
+    let dismissAccessKeyId =
+      "eme-notifications-drm-content-playing-dismiss-accesskey";
 
     let [
       message,

@@ -42,7 +42,6 @@ report-broken-site-panel-button-okay =
 report-broken-site-panel-button-send =
   .label = Send
 
-report-broken-site-panel-unspecified = Unspecified
 report-broken-site-panel-report-sent-label = Your report has been sent
 report-broken-site-panel-report-sent-header =
   .label = Your report has been sent
