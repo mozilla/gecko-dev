@@ -47,8 +47,16 @@ class DefaultWebCompatReporterRetrievalServiceTest {
                 isPrivateBrowsing = false,
             ),
             browser = WebCompatInfoDto.WebCompatBrowserDto(
+                addons = listOf(
+                    WebCompatInfoDto.WebCompatBrowserDto.AddonDto(id = "id.temp", name = "name1", temporary = true, version = "version1"),
+                    WebCompatInfoDto.WebCompatBrowserDto.AddonDto(id = "id.perm", name = "name2", temporary = false, version = "version2"),
+                ),
                 app = WebCompatInfoDto.WebCompatBrowserDto.AppDto(
                     defaultUserAgent = "testDefaultUserAgent",
+                ),
+                experiments = listOf(
+                    WebCompatInfoDto.WebCompatBrowserDto.ExperimentDto(branch = "branch1", slug = "slug1", kind = "kind1"),
+                    WebCompatInfoDto.WebCompatBrowserDto.ExperimentDto(branch = "branch2", slug = "slug2", kind = "kind2"),
                 ),
                 graphics = WebCompatInfoDto.WebCompatBrowserDto.GraphicsDto(
                     devices = buildJsonArray {
@@ -138,8 +146,16 @@ class DefaultWebCompatReporterRetrievalServiceTest {
                 isPrivateBrowsing = false,
             ),
             browser = WebCompatInfoDto.WebCompatBrowserDto(
+                addons = listOf(
+                    WebCompatInfoDto.WebCompatBrowserDto.AddonDto(id = "id.temp", name = "name1", temporary = true, version = "version1"),
+                    WebCompatInfoDto.WebCompatBrowserDto.AddonDto(id = "id.perm", name = "name2", temporary = false, version = "version2"),
+                ),
                 app = WebCompatInfoDto.WebCompatBrowserDto.AppDto(
                     defaultUserAgent = "testDefaultUserAgent",
+                ),
+                experiments = listOf(
+                    WebCompatInfoDto.WebCompatBrowserDto.ExperimentDto(branch = "branch1", slug = "slug1", kind = "kind1"),
+                    WebCompatInfoDto.WebCompatBrowserDto.ExperimentDto(branch = "branch2", slug = "slug2", kind = "kind2"),
                 ),
                 graphics = WebCompatInfoDto.WebCompatBrowserDto.GraphicsDto(
                     devices = buildJsonArray {

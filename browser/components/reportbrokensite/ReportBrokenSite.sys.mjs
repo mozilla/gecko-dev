@@ -642,6 +642,7 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
     const gTabInfo = Glean.brokenSiteReportTabInfo;
     const gAntitracking = Glean.brokenSiteReportTabInfoAntitracking;
     const gFrameworks = Glean.brokenSiteReportTabInfoFrameworks;
+    const gBrowserInfo = Glean.brokenSiteReportBrowserInfo;
     const gApp = Glean.brokenSiteReportBrowserInfoApp;
     const gGraphics = Glean.brokenSiteReportBrowserInfoGraphics;
     const gPrefs = Glean.brokenSiteReportBrowserInfoPrefs;
@@ -682,7 +683,19 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
       gFrameworks[name].set(value);
     }
 
-    const { app, graphics, locales, platform, prefs, security } = browser;
+    const {
+      addons,
+      app,
+      experiments,
+      graphics,
+      locales,
+      platform,
+      prefs,
+      security,
+    } = browser;
+
+    gBrowserInfo.addons.set(addons);
+    gBrowserInfo.experiments.set(experiments);
 
     gApp.defaultLocales.set(locales);
     gApp.defaultUseragentString.set(app.defaultUserAgent);
@@ -698,6 +711,9 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
     );
     gPrefs.globalPrivacyControlEnabled.set(
       prefs["privacy.globalprivacycontrol.enabled"]
+    );
+    gPrefs.h1InSectionUseragentStylesEnabled.set(
+      prefs["layout.css.h1-in-section-ua-styles.enabled"]
     );
     gPrefs.installtriggerEnabled.set(
       prefs["extensions.InstallTrigger.enabled"]

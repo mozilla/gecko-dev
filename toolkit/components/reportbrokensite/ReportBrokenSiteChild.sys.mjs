@@ -294,7 +294,16 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
 
       message.blockList = blockList;
 
-      const { app, graphics, locales, prefs, platform, security } = browser;
+      const {
+        addons,
+        app,
+        experiments,
+        graphics,
+        locales,
+        prefs,
+        platform,
+        security,
+      } = browser;
 
       const {
         applicationName,
@@ -315,10 +324,12 @@ export class ReportBrokenSiteChild extends JSWindowActorChild {
       } = platform;
 
       const additionalData = {
+        addons,
         applicationName,
         blockList,
         buildId,
         devicePixelRatio,
+        experiments,
         finalUserAgent: userAgent,
         fissionEnabled,
         gfxData: graphics,

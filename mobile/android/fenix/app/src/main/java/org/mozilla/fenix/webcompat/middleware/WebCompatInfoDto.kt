@@ -54,7 +54,9 @@ data class WebCompatInfoDto(
     /**
      * WebCompat browser data.
      *
+     * @property addons The addon data.
      * @property app The app data.
+     * @property experiments The experiment data.
      * @property graphics The graphics data.
      * @property locales The locales data.
      * @property platform The platform data.
@@ -62,12 +64,43 @@ data class WebCompatInfoDto(
      */
     @Serializable
     data class WebCompatBrowserDto(
+        val addons: List<AddonDto>,
         val app: AppDto? = null,
+        val experiments: List<ExperimentDto>,
         val graphics: GraphicsDto? = null,
         val locales: List<String>,
         val platform: PlatformDto,
         val prefs: PrefsDto,
     ) {
+        /**
+         * WebCompat addon data.
+         *
+         * @property id The addon's id.
+         * @property name The addon's name.
+         * @property temporary Boolean, whether the add-on is temporarily installed.
+         * @property version The addon's version.
+         */
+        @Serializable
+        data class AddonDto(
+            val id: String,
+            val name: String,
+            val temporary: Boolean,
+            val version: String,
+        )
+
+        /**
+         * WebCompat experiment data.
+         *
+         * @property branch The experiment's branch slug.
+         * @property slug The experiment's slug.
+         * @property kind The kind of experiment (nimbusExperiment, nimbusRollout).
+         */
+        @Serializable
+        data class ExperimentDto(
+            val branch: String,
+            val slug: String,
+            val kind: String,
+        )
 
         /**
          * WebCompat app data.

@@ -255,6 +255,70 @@ broken_site_report.tab_info.frameworks:
       - broken-site-report
 
 
+broken_site_report.browser_info:
+  addons:
+    type: object
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          name:
+            type: string
+          temporary:
+            type: boolean
+          version:
+            type: string
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Active user-installed addons (not themes).
+      List of objects with `id`, `name`, `temporary`, and `version`.
+      For instance, `[{"id":"addon-name@email.org", "name":"My Addon", "temporary":false, "version":"0.1.0"}]`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952996
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952996
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+
+  experiments:
+    type: object
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          branch:
+            type: string
+          slug:
+            type: string
+          kind:
+            type: string
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Experiments in which the user is actively enrolled.
+      List of objects with `branch`, `slug`, and `kind`.
+      For instance, `[{"branch":"some-branch", "slug":"some-experiment", "kind":"nimbusExperiment"}]`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952996
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952996
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+
+
 broken_site_report.browser_info.app:
   default_locales:
     type: string_list
@@ -547,6 +611,23 @@ broken_site_report.browser_info.prefs:
       Value of `privacy.globalprivacycontrol.enabled`
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+
+  h1_in_section_useragent_styles_enabled:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `layout.css.h1-in-section-ua-styles.enabled`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952996
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
     notification_emails:

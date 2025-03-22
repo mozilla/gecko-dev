@@ -187,6 +187,7 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
       "gfx.webrender.software",
       "browser.opaqueResponseBlocking",
       "extensions.InstallTrigger.enabled",
+      "layout.css.h1-in-section-ua-styles.enabled",
       "privacy.resistFingerprinting",
       "privacy.globalprivacycontrol.enabled",
       "network.cookie.cookieBehavior.optInPartitioning",
@@ -246,10 +247,63 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
     return result;
   }
 
+  static AUTOMATION_ADDON_IDS = [
+    "mochikit@mozilla.org",
+    "special-powers@mozilla.org",
+  ];
+
+  static WANTED_ADDON_LOCATIONS = ["app-profile", "app-temporary"];
+
+  #getActiveAddons(troubleshootingInfo) {
+    const { addons } = troubleshootingInfo;
+    if (!addons) {
+      return [];
+    }
+    // We only care about enabled addons (not themes) the user
+    // installed, not ones bundled with Firefox.
+    const toReport = addons.filter(
+      ({ id, isActive, type, locationName }) =>
+        (!Cu.isInAutomation ||
+          !ReportBrokenSiteParent.AUTOMATION_ADDON_IDS.includes(id)) &&
+        isActive &&
+        type === "extension" &&
+        ReportBrokenSiteParent.WANTED_ADDON_LOCATIONS.includes(locationName)
+    );
+    return toReport.map(({ id, name, version, locationName }) => {
+      return {
+        id,
+        name,
+        temporary: locationName === "app-temporary",
+        version,
+      };
+    });
+  }
+
+  #getActiveExperiments(troubleshootingInfo) {
+    if (!troubleshootingInfo?.normandy) {
+      return [];
+    }
+    const {
+      normandy: { nimbusExperiments, nimbusRollouts },
+    } = troubleshootingInfo;
+    return [
+      nimbusExperiments.map(({ slug, branch }) => {
+        return { slug, branch: branch.slug, kind: "nimbusExperiment" };
+      }),
+      nimbusRollouts.map(({ slug, branch }) => {
+        return { slug, branch: branch.slug, kind: "nimbusRollout" };
+      }),
+    ]
+      .flat()
+      .sort((a, b) => a.slug.localeCompare(b.slug));
+  }
+
   async #getBrowserInfo() {
     const troubleshootingInfo = await Troubleshoot.snapshot();
     return {
+      addons: this.#getActiveAddons(troubleshootingInfo),
       app: this.#getAppInfo(troubleshootingInfo),
+      experiments: this.#getActiveExperiments(troubleshootingInfo),
       graphics: this.#getGraphicsInfo(troubleshootingInfo),
       locales: troubleshootingInfo.intl.localeService.available,
       prefs: this.#getPrefs(),
