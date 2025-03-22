@@ -728,6 +728,8 @@ nsresult ShutdownXPCOM(nsIServiceManager* aServMgr) {
   // profiling purposes.
   PROFILER_CLEAR_JS_CONTEXT();
 
+  mozilla::dom::SharedScriptCache::PrepareForLastCC();
+
   bool shutdownCollect;
 #ifdef NS_FREE_PERMANENT_DATA
   shutdownCollect = true;

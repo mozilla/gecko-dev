@@ -158,4 +158,13 @@ void SharedScriptCache::Clear(const Maybe<bool>& aChrome,
   }
 }
 
+/* static */
+void SharedScriptCache::PrepareForLastCC() {
+  if (sSingleton) {
+    sSingleton->mComplete.Clear();
+    sSingleton->mPending.Clear();
+    sSingleton->mLoading.Clear();
+  }
+}
+
 }  // namespace mozilla::dom

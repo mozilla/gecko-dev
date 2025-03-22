@@ -200,6 +200,8 @@ class SharedScriptCache final
                     const Maybe<OriginAttributesPattern>& aPattern = Nothing(),
                     const Maybe<nsCString>& aURL = Nothing());
 
+  static void PrepareForLastCC();
+
  protected:
   ~SharedScriptCache();
 };
