@@ -62,14 +62,13 @@ ModuleLoadRequest::ModuleLoadRequest(
     mozilla::dom::ReferrerPolicy aReferrerPolicy,
     ScriptFetchOptions* aFetchOptions,
     const mozilla::dom::SRIMetadata& aIntegrity, nsIURI* aReferrer,
-    LoadContextBase* aContext, bool aIsTopLevel, bool aIsDynamicImport,
-    ModuleLoaderBase* aLoader, VisitedURLSet* aVisitedSet,
-    ModuleLoadRequest* aRootModule)
+    LoadContextBase* aContext, Kind aKind, ModuleLoaderBase* aLoader,
+    VisitedURLSet* aVisitedSet, ModuleLoadRequest* aRootModule)
     : ScriptLoadRequest(ScriptKind::eModule, aURI, aReferrerPolicy,
                         aFetchOptions, aIntegrity, aReferrer, aContext),
-      mIsTopLevel(aIsTopLevel),
+      mIsTopLevel(aKind == Kind::TopLevel || aKind == Kind::DynamicImport),
       mModuleType(aModuleType),
-      mIsDynamicImport(aIsDynamicImport),
+      mIsDynamicImport(aKind == Kind::DynamicImport),
       mLoader(aLoader),
       mRootModule(aRootModule),
       mVisitedSet(aVisitedSet) {

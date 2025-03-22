@@ -329,9 +329,8 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateTopLevel(
 
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
       aURI, JS::ModuleType::JavaScript, aReferrerPolicy, aFetchOptions,
-      aIntegrity, aReferrer, aContext, true,
-      /* is top level */ false, /* is dynamic import */
-      this, visitedSet, nullptr);
+      aIntegrity, aReferrer, aContext, ModuleLoadRequest::Kind::TopLevel, this,
+      visitedSet, nullptr);
 
   request->NoCacheEntryFound();
   return request.forget();
@@ -348,9 +347,9 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateStaticImport(
 
   RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
       aURI, aModuleType, aParent->ReferrerPolicy(), aParent->mFetchOptions,
-      aSriMetadata, aParent->mURI, newContext, false, /* is top level */
-      false,                                          /* is dynamic import */
-      aParent->mLoader, aParent->mVisitedSet, aParent->GetRootModule());
+      aSriMetadata, aParent->mURI, newContext,
+      ModuleLoadRequest::Kind::StaticImport, aParent->mLoader,
+      aParent->mVisitedSet, aParent->GetRootModule());
 
   request->NoCacheEntryFound();
   return request.forget();
@@ -413,11 +412,9 @@ already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateDynamicImport(
   GetImportMapSRI(aURI, baseURL, mLoader->GetConsoleReportCollector(),
                   &sriMetadata);
 
-  RefPtr<ModuleLoadRequest> request =
-      new ModuleLoadRequest(aURI, aModuleType, referrerPolicy, options,
-                            sriMetadata, baseURL, context, true,
-                            /* is top level */ true, /* is dynamic import */
-                            this, visitedSet, nullptr);
+  RefPtr<ModuleLoadRequest> request = new ModuleLoadRequest(
+      aURI, aModuleType, referrerPolicy, options, sriMetadata, baseURL, context,
+      ModuleLoadRequest::Kind::DynamicImport, this, visitedSet, nullptr);
 
   request->SetDynamicImport(aMaybeActiveScript, aSpecifier, aPromise);
   request->NoCacheEntryFound();
