@@ -65,6 +65,11 @@ class LoadedScript : public nsIMemoryReporter {
   LoadedScript(ScriptKind aKind, mozilla::dom::ReferrerPolicy aReferrerPolicy,
                ScriptFetchOptions* aFetchOptions, nsIURI* aURI);
 
+  LoadedScript(const LoadedScript& aOther);
+
+  template <typename T, typename... Args>
+  friend RefPtr<T> mozilla::MakeRefPtr(Args&&... aArgs);
+
   virtual ~LoadedScript();
 
  public:
@@ -383,12 +388,14 @@ class EventScript final : public LoadedScript {
 // A single module script. May be used to satisfy multiple load requests.
 
 class ModuleScript final : public LoadedScript {
+  // Those fields are used only after instantiated, and they're reset to
+  // null and false when stored into the cache as LoadedScript instance.
   JS::Heap<JSObject*> mModuleRecord;
   JS::Heap<JS::Value> mParseError;
   JS::Heap<JS::Value> mErrorToRethrow;
-  bool mForPreload;
-  bool mHadImportMap;
-  bool mDebuggerDataInitialized;
+  bool mForPreload = false;
+  bool mHadImportMap = false;
+  bool mDebuggerDataInitialized = false;
 
   ~ModuleScript();
 
@@ -402,9 +409,19 @@ class ModuleScript final : public LoadedScript {
   ModuleScript(mozilla::dom::ReferrerPolicy aReferrerPolicy,
                ScriptFetchOptions* aFetchOptions, nsIURI* aURI);
 
+  explicit ModuleScript(const LoadedScript& other);
+
+  template <typename T, typename... Args>
+  friend RefPtr<T> mozilla::MakeRefPtr(Args&&... aArgs);
+
   friend class ScriptLoadRequest;
 
  public:
+  // Convert between cacheable LoadedScript instance, which is used by
+  // mozilla::dom::SharedScriptCache.
+  static already_AddRefed<ModuleScript> FromCache(const LoadedScript& aScript);
+  already_AddRefed<LoadedScript> ToCache();
+
   void SetModuleRecord(JS::Handle<JSObject*> aModuleRecord);
   void SetParseError(const JS::Value& aError);
   void SetErrorToRethrow(const JS::Value& aError);

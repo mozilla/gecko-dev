@@ -6,7 +6,9 @@
 
 #include "LoadedScript.h"
 
+#include "mozilla/AlreadyAddRefed.h"  // already_AddRefed
 #include "mozilla/HoldDropJSObjects.h"
+#include "mozilla/RefPtr.h"     // RefPtr, mozilla::MakeRefPtr
 #include "mozilla/UniquePtr.h"  // mozilla::UniquePtr
 
 #include "mozilla/dom/ScriptLoadContext.h"  // ScriptLoadContext
@@ -52,6 +54,26 @@ LoadedScript::LoadedScript(ScriptKind aKind,
       mBytecodeOffset(0) {
   MOZ_ASSERT(mFetchOptions);
   MOZ_ASSERT(mURI);
+}
+
+LoadedScript::LoadedScript(const LoadedScript& aOther)
+    : mKind(aOther.mKind),
+      mReferrerPolicy(aOther.mReferrerPolicy),
+      mFetchOptions(aOther.mFetchOptions),
+      mURI(aOther.mURI),
+      mBaseURL(aOther.mBaseURL),
+      mDataType(DataType::eStencil),
+      mReceivedScriptTextLength(0),
+      mBytecodeOffset(0),
+      mStencil(aOther.mStencil) {
+  MOZ_ASSERT(mFetchOptions);
+  MOZ_ASSERT(mURI);
+  // NOTE: This is only for the stencil case.
+  //       The script text and the bytecode are not reflected.
+  MOZ_DIAGNOSTIC_ASSERT(aOther.mDataType == DataType::eStencil);
+  MOZ_DIAGNOSTIC_ASSERT(mStencil);
+  MOZ_ASSERT(!mScriptData);
+  MOZ_ASSERT(mScriptBytecode.empty());
 }
 
 LoadedScript::~LoadedScript() {
@@ -262,12 +284,33 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 ModuleScript::ModuleScript(mozilla::dom::ReferrerPolicy aReferrerPolicy,
                            ScriptFetchOptions* aFetchOptions, nsIURI* aURI)
-    : LoadedScript(ScriptKind::eModule, aReferrerPolicy, aFetchOptions, aURI),
-      mHadImportMap(false),
-      mDebuggerDataInitialized(false) {
+    : LoadedScript(ScriptKind::eModule, aReferrerPolicy, aFetchOptions, aURI) {
   MOZ_ASSERT(!ModuleRecord());
   MOZ_ASSERT(!HasParseError());
   MOZ_ASSERT(!HasErrorToRethrow());
+}
+
+ModuleScript::ModuleScript(const LoadedScript& aOther) : LoadedScript(aOther) {
+  MOZ_ASSERT(!ModuleRecord());
+  MOZ_ASSERT(!HasParseError());
+  MOZ_ASSERT(!HasErrorToRethrow());
+}
+
+/* static */
+already_AddRefed<ModuleScript> ModuleScript::FromCache(
+    const LoadedScript& aScript) {
+  MOZ_DIAGNOSTIC_ASSERT(aScript.IsModuleScript());
+  MOZ_DIAGNOSTIC_ASSERT(aScript.IsStencil());
+
+  return mozilla::MakeRefPtr<ModuleScript>(aScript).forget();
+}
+
+already_AddRefed<LoadedScript> ModuleScript::ToCache() {
+  MOZ_DIAGNOSTIC_ASSERT(IsStencil());
+  MOZ_DIAGNOSTIC_ASSERT(!HasParseError());
+  MOZ_DIAGNOSTIC_ASSERT(!HasErrorToRethrow());
+
+  return mozilla::MakeRefPtr<LoadedScript>(*this).forget();
 }
 
 void ModuleScript::Shutdown() {
