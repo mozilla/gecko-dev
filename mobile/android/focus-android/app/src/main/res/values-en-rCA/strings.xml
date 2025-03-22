@@ -56,6 +56,7 @@
   <string name="menu_about">About</string>
   <string name="menu_help">Help</string>
   <string name="menu_rights" moz:removedIn="137">Your Rights</string>
+  <string name="menu_terms_of_use">Terms of Use</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -466,8 +467,30 @@
   <string name="onboarding_first_screen_title">Welcome to %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Fast. Private. No distractions.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">By continuing, you agree to the %1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox Terms of Use.</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox cares about your privacy. Learn more in our %1$s</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">Privacy Notice.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">Get started</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue">Agree and continue</string>
   <!--
     Onboarding second screen: Title
 

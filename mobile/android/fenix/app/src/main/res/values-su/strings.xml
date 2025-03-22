@@ -88,11 +88,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Buka tab nyamuni anjeun saterusna dina sakali toél.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Buka tab nyamuni anjeun saterusna dina sakali toél.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Tambahkeun ka layar Tepas</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Tambahkeun ka layar Tepas</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Teu, nuhun</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Teu, nuhun</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

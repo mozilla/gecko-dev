@@ -86,6 +86,10 @@
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">ያልተረጋገጡ ስክሪፕቶች የደህንነት እና የግላዊነት አደጋዎችን ሊያስከትሉ ይችላሉ። ስክሪፕቶችን ከቅጥያዎች ወይም ከምታምኗቸው ምንጮች ብቻ አሂድ።</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">በክፍት ትሮች ውስጥ ውሂብዎን ለመድረስ የገንቢ መሳሪያዎችን ዘርጋ</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">ሁሉንም ጣቢያዎች አሳይ</string>
+  <!-- Description for text button that hides the majority of the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">ያነሱ ጣቢያዎችን አሳይ</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">ስሪት</string>
   <!-- The author of an add-on. -->

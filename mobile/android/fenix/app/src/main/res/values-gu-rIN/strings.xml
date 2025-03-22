@@ -38,7 +38,7 @@
        ખાનગી બ્રાઉઝિંગ વિશે સામાન્ય માન્યતાઓ
     </string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">ના આભાર</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ના આભાર</string>
   <!--
     Home screen icons - Long press shortcuts
 

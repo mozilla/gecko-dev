@@ -93,11 +93,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Startujće swój přichodny priwatny rajtark z jednym podótkom.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Startujće swój přichodny priwatny rajtark z jednym podótkom.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Startowej wobrazowce přidać</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Startowej wobrazowce přidać</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Ně, dźakuju so</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Ně, dźakuju so</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

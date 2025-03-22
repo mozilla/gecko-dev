@@ -90,11 +90,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Поверителен раздел с едно докосване.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Поверителен раздел с едно докосване.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Добавяне към екрана</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Добавяне към екрана</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Не, благодаря</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Не, благодаря</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

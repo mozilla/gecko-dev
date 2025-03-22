@@ -92,11 +92,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Skedën tuaj pasuese private hape me një prekje.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Skedën tuaj pasuese private hape me një prekje.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Shtoje te skena e Kreut</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Shtoje te skena e Kreut</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Jo, faleminderit</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Jo, faleminderit</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

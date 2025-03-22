@@ -58,7 +58,7 @@
        Mga karaniwang pamahiin tungkol sa pribadong pag-browse
     </string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Salamat na lang</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Salamat na lang</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">Magpunta sa Settings</string>
   <!-- Text for the negative action button -->

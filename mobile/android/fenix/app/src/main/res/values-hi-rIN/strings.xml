@@ -45,7 +45,7 @@
   <string name="private_browsing_placeholder_description_2">%1$s जब आप ऐप को बंद करते हैं तो निजी टैब से आपका खोज और ब्राउज़िंग इतिहास को मिटाता हैं। हालांकि यह आपको वेबसाइटों या आपके इंटरनेट सेवा प्रदाता के लिए अज्ञात नहीं बनाता है, लेकिन यह आसान बनाता है कि आप इस कंप्यूटर का उपयोग करने वाले किसी अन्य व्यक्ति से ऑनलाइन निजी काम करें।</string>
   <string name="private_browsing_common_myths">निजी ब्राउज़िंग के बारे में आम कथा</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">नहीं धन्यवाद</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">नहीं धन्यवाद</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">सेटिंग पर जाएं</string>
   <!-- Text for the negative action button -->

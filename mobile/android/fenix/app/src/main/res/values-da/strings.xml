@@ -90,11 +90,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Åbn dit næste private faneblad med et enkelt tryk.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Åbn dit næste private faneblad med et enkelt tryk.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Føj til startskærm</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Føj til startskærm</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Nej tak</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Nej tak</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
@@ -389,7 +389,7 @@
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page">Oversæt side…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-  <string name="browser_menu_webcompat_reporter">Rapporter problem med websted…</string>
+  <string name="browser_menu_webcompat_reporter">Problem med websted?…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -666,6 +666,12 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Sådan bruger vi dataene</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Bekræft og gå i gang</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">En sidste ting</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Del, hvordan du opdagede Firefox, og at du bruger appen med Mozillas partnere indenfor markedsføringsteknologi. Disse data vil aldrig blive solgt.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Accepter og begynd at browse</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Vælg placeringen af værktøjslinjen</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -701,6 +707,12 @@
   <string name="onboarding_customize_theme_content_description">Billede af temaet %1$s</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ikke nu</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Start en hurtig søgning</string>
   <!--
     Search Widget
 
@@ -870,12 +882,16 @@
   <string name="preferences_show_search_suggestions_in_private">Vis i private sessioner</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Vis populære forslag</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Vis seneste søgninger</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Vis forslag fra udklipsholder</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Søg i browserhistorik</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Søg i bogmærker</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Vis genveje</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Søg i synkroniserede faneblade</string>
   <!-- Preference for account settings -->
@@ -1468,6 +1484,40 @@
   <string name="download_multi_select_title">%1$d valgt</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Fjern</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">I dag</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">I går</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">De seneste 7 dage</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">De seneste 30 dage</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Ældre</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">Alle</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">Billeder</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">Videoer</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">Dokumenter</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other">Andet</string>
+  <!--
+    Description of a downloaded item, displayed in the downloads list.
+    %1$s: The size of the downloaded file.
+    %2$s: The URL of the downloaded file.
+  -->
+  <string name="download_item_description">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 
@@ -2582,6 +2632,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Forbindelsen er sikker</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Forbindelsen er ikke sikker</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Denne side er gemt på din enhed.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Ryd cookies og websteds-data</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2748,6 +2800,8 @@
   <string name="google_search_engine_suggestion_header">Google-søgning</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s-søgning</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Seneste søgninger</string>
   <!--
     Default browser experiment
 
@@ -3487,4 +3541,12 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Vis skjult tekst</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Ryd tekst</string>
+  <!--
+    Setup checklist component
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">Fuldført opgave</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">Opgaveikon</string>
 </resources>

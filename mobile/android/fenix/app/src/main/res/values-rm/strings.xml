@@ -90,11 +90,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Avra tes proxim tab privat cun tutgar be ina giada.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Avra tes proxim tab privat cun tutgar be ina giada.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Agiuntar al visur da partenza</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Agiuntar al visur da partenza</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Na, grazia</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Na, grazia</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
@@ -666,6 +666,12 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Co nus utilisain las datas</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confermar e cumenzar a navigar</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Anc in’ultima chaussa</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Fa a savair ils partenaris da marketing da Mozilla co ti has scuvert Firefox e che ti dovras il program. Questas datas na vegnan mai vendidas.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Acceptar e cumenzar a navigar</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Tscherna ina posiziun per la trav d’utensils</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -701,6 +707,12 @@
   <string name="onboarding_customize_theme_content_description">Maletg dal design «%1$s»</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Betg ussa</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Lantschar ina tschertga svelta</string>
   <!--
     Search Widget
 
@@ -870,12 +882,16 @@
   <string name="preferences_show_search_suggestions_in_private">Mussar en sesidas privatas</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Mussar propostas actualmain popularas</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Mussar las ultimas tschertgas</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Mussar propostas ord l\'archiv provisoric</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Tschertgar en la cronologia da navigaziun</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Tschertgar en ils segnapaginas</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Mussar las scursanidas</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Tschertgar en ils tabs sincronisads</string>
   <!-- Preference for account settings -->
@@ -896,6 +912,12 @@
   <string name="preferences_show_nonsponsored_suggestions">Propostas da %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Retschaiva propostas dal web en connex cun tia tschertga</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Cundivisiun da colliaziuns</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Includer ina colliaziun da telechargiada da %1$s en la cundivisiun WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Envida tias amias e tes amis d’empruvar la navigaziun pli svelta e pli segira cun agid da %1$s – mintga giada cura che ti cundividas ina colliaziun cun WhatsApp.</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Avrir colliaziuns en apps</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -2175,6 +2197,36 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Icona da las preferenzas per las excepziuns da la protecziun avanzada cunter il fastizar</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS via HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Il DNS (Domain Name System) via HTTPS trametta tia dumonda per in num da domena cun agid d’ina connexiun criptada che porscha in DNS segirà. Quai renda pli difficil per auters da vesair tge websites che ti visitas. %1$s</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Ulteriuras infurmaziuns</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Navigar ensi</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Excepziuns</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Info</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Agiuntar ina website</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Protecziun predefinida</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s decida cura utilisar in DNS segirà per proteger tia sfera privata.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Utilisar il purschider che ti has tschernì</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Utilisar la resoluziun DNS predefinida sch’i dat in problem cun il purschider DNS segirà</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Utilisar in purschider local, sche pussaivel. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Deactivar sche in VPN, la restricziun da cuntegns u directivas d’interpresa èn activs</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Agid</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->

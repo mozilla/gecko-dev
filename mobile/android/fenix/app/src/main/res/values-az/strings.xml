@@ -16,7 +16,7 @@
   <string name="no_open_tabs_description">Açıq vərəqləriniz burada göstəriləcək.</string>
   <string name="private_browsing_common_myths">Məxfi səyahət haqqında olan əfsanələr</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Xeyr, təşəkkürlər</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Xeyr, təşəkkürlər</string>
   <!--
     Home screen icons - Long press shortcuts
 
