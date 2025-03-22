@@ -149,6 +149,51 @@ add_task(async function test_sidebar_onboarding() {
 });
 
 /**
+ * Check that custom onboarding can be configured
+ */
+add_task(async function test_custom_onboarding() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "browser.ml.chat.onboarding.config",
+        JSON.stringify({
+          screens: [
+            {
+              content: {
+                secondary_button: {
+                  label: "custom",
+                  action: { type: "chatbot:support" },
+                },
+              },
+            },
+          ],
+        }),
+      ],
+    ],
+  });
+  await SidebarController.show("viewGenaiChatSidebar");
+  const { document } = SidebarController.browser.contentWindow;
+  const button = await TestUtils.waitForCondition(() =>
+    document.querySelector(".secondary")
+  );
+
+  Assert.equal(button.textContent, "custom", "Custom button label");
+
+  const loaded = BrowserTestUtils.firstBrowserLoaded(window, false);
+  button.click();
+  await loaded;
+  const tab = gBrowser.selectedTab;
+
+  Assert.equal(
+    tab.linkedBrowser.currentURI.spec,
+    "http://127.0.0.1:8888/support-dummy/ai-chatbot",
+    "Custom support action opened tab"
+  );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+/**
  * Check that more options menu renders
  */
 add_task(async function test_sidebar_menu() {

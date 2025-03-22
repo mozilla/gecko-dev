@@ -16,6 +16,15 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
 
+// Define actions for onboarding and chatbot
+const ACTIONS = Object.freeze({
+  CHATBOT_PERSIST: "chatbot:persist",
+  CHATBOT_REVERT: "chatbot:revert",
+  CHATBOT_SELECT: "chatbot:select",
+  CHATBOT_SUPPORT: "chatbot:support",
+  OPEN_URL: "OPEN_URL",
+});
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "providerPref",
@@ -32,6 +41,92 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "sidebarRevampPref",
   "sidebar.revamp"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "onboardingConfig",
+  "browser.ml.chat.onboarding.config",
+  JSON.stringify({
+    id: "chatbot",
+    template: "multistage",
+    transitions: true,
+    screens: [
+      {
+        id: "chat_pick",
+        content: {
+          fullscreen: true,
+          hide_secondary_section: "responsive",
+          narrow: true,
+          position: "split",
+
+          title: {
+            fontWeight: 400,
+            string_id: "genai-onboarding-header",
+          },
+          cta_paragraph: {
+            text: {
+              string_id: "genai-onboarding-description",
+              string_name: "learn-more",
+            },
+            action: {
+              type: ACTIONS.CHATBOT_SUPPORT,
+            },
+          },
+          above_button_content: [
+            // Placeholder to inject on provider change
+            {
+              text: " ",
+              type: "text",
+            },
+          ],
+          primary_button: {
+            action: {
+              navigate: true,
+              type: ACTIONS.CHATBOT_PERSIST,
+            },
+            label: { string_id: "genai-onboarding-primary" },
+          },
+          additional_button: {
+            action: { dismiss: true, type: ACTIONS.CHATBOT_REVERT },
+            label: { string_id: "genai-onboarding-secondary" },
+            style: "link",
+          },
+          progress_bar: true,
+        },
+      },
+      {
+        id: "chat_suggest",
+        content: {
+          fullscreen: true,
+          hide_secondary_section: "responsive",
+          narrow: true,
+          position: "split",
+
+          title: {
+            fontWeight: 400,
+            string_id: "genai-onboarding-select-header",
+          },
+          subtitle: { string_id: "genai-onboarding-select-description" },
+          above_button_content: [
+            {
+              height: "172px",
+              type: "image",
+              width: "307px",
+            },
+            {
+              text: " ",
+              type: "text",
+            },
+          ],
+          primary_button: {
+            action: { navigate: true },
+            label: { string_id: "genai-onboarding-select-primary" },
+          },
+          progress_bar: true,
+        },
+      },
+    ],
+  })
 );
 
 ChromeUtils.defineLazyGetter(
@@ -277,13 +372,6 @@ addEventListener("unload", () => {
  * @param {number} length optional show fewer screens
  */
 function showOnboarding(length) {
-  const ACTIONS = Object.freeze({
-    OPEN_URL: "OPEN_URL",
-    CHATBOT_SELECT: "chatbot:select",
-    CHATBOT_PERSIST: "chatbot:persist",
-    CHATBOT_REVERT: "chatbot:revert",
-  });
-
   // Insert onboarding container and render with script
   const root = document.createElement("div");
   root.id = "multi-stage-message-root";
@@ -313,107 +401,31 @@ function showOnboarding(length) {
       root.remove();
     },
     AWGetFeatureConfig() {
-      return {
-        id: "chatbot",
-        template: "multistage",
-        transitions: true,
-        screens: [
-          {
-            id: "chat_pick",
-            content: {
-              fullscreen: true,
-              hide_secondary_section: "responsive",
-              narrow: true,
-              position: "split",
-
-              title: {
-                fontWeight: 400,
-                string_id: "genai-onboarding-header",
-              },
-              cta_paragraph: {
-                text: {
-                  string_id: "genai-onboarding-description",
-                  string_name: "learn-more",
-                },
-                action: {
-                  data: {
-                    args: lazy.supportLink,
-                    where: "tabshifted",
-                  },
-                  type: ACTIONS.OPEN_URL,
-                },
-              },
-              tiles: {
-                action: { picker: "<event>" },
-                data: [...providerConfigs.values()].map(config => ({
-                  action: { type: ACTIONS.CHATBOT_SELECT, config },
-                  id: config.id,
-                  label: config.name,
-                  tooltip: { string_id: config.tooltipId },
-                })),
-                // Default to nothing selected
-                selected: " ",
-                type: "single-select",
-              },
-              above_button_content: [
-                // Placeholder to inject on provider change
-                {
-                  text: " ",
-                  type: "text",
-                },
-              ],
-              primary_button: {
-                action: {
-                  navigate: true,
-                  type: ACTIONS.CHATBOT_PERSIST,
-                },
-                label: { string_id: "genai-onboarding-primary" },
-              },
-              additional_button: {
-                action: { dismiss: true, type: ACTIONS.CHATBOT_REVERT },
-                label: { string_id: "genai-onboarding-secondary" },
-                style: "link",
-              },
-              progress_bar: true,
-            },
-          },
-          {
-            id: "chat_suggest",
-            content: {
-              fullscreen: true,
-              hide_secondary_section: "responsive",
-              narrow: true,
-              position: "split",
-
-              title: {
-                fontWeight: 400,
-                string_id: "genai-onboarding-select-header",
-              },
-              subtitle: { string_id: "genai-onboarding-select-description" },
-              above_button_content: [
-                {
-                  height: "172px",
-                  type: "image",
-                  width: "307px",
-                },
-                {
-                  text: " ",
-                  type: "text",
-                },
-              ],
-              primary_button: {
-                action: { navigate: true },
-                label: { string_id: "genai-onboarding-select-primary" },
-              },
-              progress_bar: true,
-            },
-          },
-        ].slice(0, length),
+      const onboarding = JSON.parse(lazy.onboardingConfig);
+      const providerTiles = {
+        action: { picker: "<event>" },
+        data: [...providerConfigs.values()].map(config => ({
+          action: { type: ACTIONS.CHATBOT_SELECT, config },
+          id: config.id,
+          label: config.name,
+          tooltip: { string_id: config.tooltipId },
+        })),
+        // Default to nothing selected
+        selected: " ",
+        type: "single-select",
       };
+      // Insert provider tiles on the first screen
+      onboarding.screens[0].content.tiles = providerTiles;
+      // Remove extra screens if any
+      onboarding.screens = onboarding.screens.slice(0, length);
+      return onboarding;
     },
     AWGetInstalledAddons() {},
     AWGetSelectedTheme() {
-      document.querySelector(".primary").disabled = true;
+      const primary = document.querySelector(".primary");
+      if (primary) {
+        primary.disabled = true;
+      }
 
       // Specially handle links to open out of the sidebar
       const handleLink = ev => {
@@ -424,7 +436,7 @@ function showOnboarding(length) {
         }
       };
       const links = document.querySelector(".link-paragraph");
-      links.addEventListener("click", handleLink);
+      links?.addEventListener("click", handleLink);
 
       [...document.querySelectorAll("fieldset label")].forEach(label => {
         // Add content that is hidden with 0 height until selected
@@ -541,7 +553,7 @@ function showOnboarding(length) {
 
           // Update potentially multiple links for the provider
           const links = document.querySelector(".link-paragraph");
-          if (links.dataset.l10nId != config.linksId) {
+          if (links && links.dataset.l10nId != config.linksId) {
             links.innerHTML = "";
             for (let i = 1; i <= 3; i++) {
               const link = links.appendChild(document.createElement("a"));
@@ -554,6 +566,9 @@ function showOnboarding(length) {
 
           break;
         }
+        case ACTIONS.CHATBOT_SUPPORT:
+          openLink(lazy.supportLink);
+          break;
       }
     },
   });
