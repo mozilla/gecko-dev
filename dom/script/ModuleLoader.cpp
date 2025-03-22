@@ -318,7 +318,6 @@ nsresult ModuleLoader::CompileJsonModule(
   return NS_OK;
 }
 
-/* static */
 already_AddRefed<ModuleLoadRequest> ModuleLoader::CreateTopLevel(
     nsIURI* aURI, ReferrerPolicy aReferrerPolicy,
     ScriptFetchOptions* aFetchOptions, const SRIMetadata& aIntegrity,
