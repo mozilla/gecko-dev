@@ -60,8 +60,8 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(ScriptLoadRequest)
 NS_IMPL_CYCLE_COLLECTION_CLASS(ScriptLoadRequest)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ScriptLoadRequest)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mFetchOptions, mCacheInfo, mLoadContext,
-                                  mLoadedScript)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mFetchOptions, mOriginPrincipal, mBaseURL,
+                                  mLoadedScript, mCacheInfo, mLoadContext)
   tmp->mScriptForBytecodeEncoding = nullptr;
   tmp->DropBytecodeCacheReferences();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
