@@ -4,6 +4,7 @@
   <title>Text Fragment Chrome-only API Test</title>
   <meta charset="UTF-8">
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/GleanTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -78,6 +79,11 @@
     }
 
     async function basicTests() {
+      const createDirectiveTimeStart = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+      let lastCreateTimeCount = createDirectiveTimeStart.count;
+      const notCreatedCountStart = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+      let lastNotCreatedCount = notCreatedCountStart;
+
       for(let testCase of [
         {
           name: "Text directive is first string in the document",
@@ -259,6 +265,14 @@
 
         // finally, remove all text directives to clean up for the next test.
         SpecialPowers.wrap(document).fragmentDirective.removeAllTextDirectives();
+
+        const createDirectiveTime = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+        is(createDirectiveTime.count, lastCreateTimeCount + 1, `${testCase.name}: Glean should have recorded the time it took to create the text directive`);
+        lastCreateTimeCount = createDirectiveTime.count;
+
+        const notCreatedCount = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+        is(notCreatedCount, lastNotCreatedCount, `${testCase.name}: Glean should not have recorded any text directives that could not be created`);
+        lastNotCreatedCount = notCreatedCount;
       }
     }
 
@@ -267,6 +281,9 @@
      * return an empty string, not an error.
      */
     async function testEmptyRange() {
+      const createDirectiveTimeStart = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+      const notCreatedCountStart = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+
       const range = document.createRange();
       let textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
       is(
@@ -287,9 +304,19 @@
         "Input range contains image only: Produces empty text directive"
       );
 
+      const createDirectiveTime = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+      is(createDirectiveTime.count, createDirectiveTimeStart.count + 1, "testEmptyRange: Glean should have recorded the time it took to create the text directive");
+
+      const notCreatedCount = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+      is(notCreatedCount, notCreatedCountStart + 1, "testEmptyRange: Glean should not have recorded any text directives that could not be created");
     }
 
     async function testExpandRangeToWordBoundaries() {
+      const createDirectiveTimeStart = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+      let lastCreateTimeCount = createDirectiveTimeStart.count;
+      const notCreatedCountStart = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+      let lastNotCreatedCount = notCreatedCountStart;
+
       for (testCase of [
         {
           name: "Expanding single-word range to word boundaries (input is inside word)",
@@ -397,10 +424,21 @@
         // finally, remove all text directives to clean up for the next test.
         SpecialPowers.wrap(document).fragmentDirective.removeAllTextDirectives();
         location.hash = "";
+
+        const createDirectiveTime = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+        is(createDirectiveTime.count, lastCreateTimeCount + 1, `${testCase.name}: Glean should have recorded the time it took to create the text directive`);
+        lastCreateTimeCount = createDirectiveTime.count;
+
+        const notCreatedCount = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+        is(notCreatedCount, lastNotCreatedCount, `${testCase.name}: Glean should not have recorded any text directives that could not be created`);
+        lastNotCreatedCount = notCreatedCount;
       }
     }
 
     async function testNonUniqueTestSurroundedByBlockBoundaries() {
+      const createDirectiveTimeStart = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+      const notCreatedCountStart = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+
       const testCase = "Creating a text directive which cannot be found"
       const range = document.createRange();
       range.setStart(surroundedByBlockBoundaries.firstChild, 4);
@@ -408,6 +446,12 @@
       is(range.toString(), "def", `${testCase}: Range has expected value`);
       const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
       is(textDirective, null, `${testCase}: It's not possible to create a unique text directive`);
+
+      const createDirectiveTime = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
+      is(createDirectiveTime.count, createDirectiveTimeStart.count + 1, `${testcase}: Glean should have recorded the time it took to create the text directive`);
+
+      const notCreatedCount = await GleanTest.useCounterPage.textDirectiveNotCreated.testGetValue() ?? 0;
+      is(notCreatedCount, notCreatedCountStart + 1, `${testCase}: Glean should have recorded one text directives that could not be created`);
     }
 
     async function runTests() {

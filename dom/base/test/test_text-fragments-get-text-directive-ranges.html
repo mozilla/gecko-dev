@@ -4,6 +4,7 @@
   <title>Text Fragment Chrome-only API Test</title>
   <meta charset="UTF-8">
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/GleanTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -21,6 +22,11 @@
     }
 
     async function testGetTextDirectiveRangesAndRemoveRanges() {
+      const pageCountStart = await GleanTest.useCounterPage.textDirectivePages.testGetValue() ?? 0;
+      const invalidDirectivesStart = await GleanTest.useCounterPage.invalidTextDirectives.testGetValue() ?? 0;
+      const directiveFindTimeStart = await GleanTest.domTextfragment.findDirectives.testGetValue() ?? {count: 0};
+      console.log(directiveFindTimeStart.count);
+
       await changeHash('#:~:text=sample%20text');
 
       let ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
@@ -35,6 +41,17 @@
 
       is(ranges.length, 0, "Should have removed all text directive ranges");
 
+      const pageCountDiff1 = await GleanTest.useCounterPage.textDirectivePages.testGetValue() - pageCountStart;
+      isnot(pageCountDiff1, 0, "1: Glean should have recorded usage of text fragments");
+
+      const invalidDirectivesDiff1 = await GleanTest.useCounterPage.invalidTextDirectives.testGetValue() - invalidDirectivesStart;
+      is(invalidDirectivesDiff1, 1, "1: Glean should have recorded invalid text fragments");
+
+      const directiveFindTime1 = await GleanTest.domTextfragment.findDirectives.testGetValue();
+      is(directiveFindTime1.count, directiveFindTimeStart.count + 1, "1: Glean should have recorded the time it took to find the text directive");
+      console.log(directiveFindTime1.count);
+
+
       await changeHash("#:~:text=sample&text=text");
 
       ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
@@ -44,17 +61,38 @@
 
       SpecialPowers.wrap(document).fragmentDirective.removeAllTextDirectives();
 
+      const pageCountDiff2 = await GleanTest.useCounterPage.textDirectivePages.testGetValue() - pageCountStart - pageCountDiff1;
+      isnot(pageCountDiff2, pageCountDiff1, "2: Glean should have recorded invalid text fragments");
+
+      const invalidDirectivesDiff2 = await GleanTest.useCounterPage.invalidTextDirectives.testGetValue() - invalidDirectivesStart - invalidDirectivesDiff1;
+      is(invalidDirectivesDiff2, 1, "2: Glean found invalid text fragments");
+
+      const directiveFindTime2 = await GleanTest.domTextfragment.findDirectives.testGetValue();
+      is(directiveFindTime2.count, directiveFindTime1.count + 1, "2: Glean should have recorded the time it took to find the text directive");
+      console.log(directiveFindTime2.count);
+
+
       await changeHash("#:~:text=text&text=sample");
 
       ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
       is(ranges.length, 2, 'Should have two text directive ranges');
-      
+
       // This mirrors the behavior of `Selection`, where the ranges are sorted by
       // their position in the document. I'm not sure I want this.
       is(ranges[0].toString(), "sample", "The first text directive should be the first range");
       is(ranges[1].toString(), "text", "The second text directive should be the second range");
 
       SpecialPowers.wrap(document).fragmentDirective.removeAllTextDirectives();
+
+      const pageCountDiff3 = await GleanTest.useCounterPage.textDirectivePages.testGetValue() - pageCountStart - pageCountDiff2;
+      isnot(pageCountDiff3, pageCountDiff2, "3: Glean should have recorded usage of text fragments");
+
+      const invalidDirectivesDiff3 = await GleanTest.useCounterPage.invalidTextDirectives.testGetValue() - invalidDirectivesStart - invalidDirectivesDiff2;
+      is(invalidDirectivesDiff3, 2, "3: Glean should have recorded invalid text fragments");
+
+      const directiveFindTime3 = await GleanTest.domTextfragment.findDirectives.testGetValue();
+      is(directiveFindTime3.count, directiveFindTime2.count + 1, "3: Glean should have recorded the time it took to find the text directive");
+      console.log(directiveFindTime3.count);
     }
 
     async function runTests() {
