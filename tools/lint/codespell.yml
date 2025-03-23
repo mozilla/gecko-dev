@@ -11,6 +11,7 @@ codespell:
         - browser/components/touchbar/docs/
         - browser/components/urlbar/docs/
         - browser/extensions/newtab/docs/
+        - browser/extensions/report-site-issue/locales/en-US/
         - browser/installer/windows/docs/
         - browser/locales/en-US/
         - build/docs/
