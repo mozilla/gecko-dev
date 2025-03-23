@@ -4,6 +4,7 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
 });
 
@@ -38,54 +39,88 @@ export class LinkPreviewChild extends JSWindowActorChild {
    * @returns {Promise<string>} The HTML content as a string.
    * @throws {Error} If the fetch fails or the content type is invalid.
    */
-  async fetchHTML(url) {
-    // Perform a HEAD request to check content type and length
-    const headResponse = await fetch(url, {
-      method: "HEAD",
-      mode: "cors",
-      headers: {
-        "x-firefox-ai": "true",
-      },
-    });
-
-    if (!headResponse.ok) {
-      throw new Error(
-        `Failed to fetch: ${headResponse.status} ${headResponse.statusText}`
+  fetchHTML(url) {
+    const uri = lazy.NetUtil.newURI(url);
+    if (!uri.schemeIs("https")) {
+      throw Components.Exception(
+        "Only handling https",
+        Cr.NS_ERROR_UNKNOWN_PROTOCOL
       );
     }
 
-    const contentType = headResponse.headers.get("content-type") || "";
-    if (!contentType.startsWith("text/html")) {
-      throw new Error(`Invalid content-type: ${contentType}`);
-    }
+    // Make requests with a channel to automatically get safe browsing checks.
+    // Use null principals in combination with anonymous for now ahead of
+    // fetching content with cookies to handle sites requiring login.
+    const principal = Services.scriptSecurityManager.createNullPrincipal({});
+    const channel = lazy.NetUtil.newChannel({
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
+      loadingPrincipal: principal,
+      securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT,
+      triggeringPrincipal: principal,
+      uri,
+    }).QueryInterface(Ci.nsIHttpChannel);
+    channel.loadFlags = Ci.nsIRequest.LOAD_ANONYMOUS;
 
-    const contentLength = parseInt(
-      headResponse.headers.get("content-length"),
-      10
-    );
+    // Specially identify this request, e.g., for publishers to opt out
+    channel.setRequestHeader("x-firefox-ai", "1", false);
+
+    const { promise, resolve, reject } = Promise.withResolvers();
     const MAX_CONTENT_LENGTH = 2 * 1024 * 1024; // 2 MB limit
 
-    if (contentLength && contentLength > MAX_CONTENT_LENGTH) {
-      throw new Error(`Content length exceeds limit: ${contentLength} bytes`);
-    }
+    let charset = "utf-8";
+    const byteChunks = [];
+    let totalLength = 0;
+    channel.asyncOpen({
+      onDataAvailable(request, stream, offset, count) {
+        totalLength += count;
+        if (totalLength > MAX_CONTENT_LENGTH) {
+          request.cancel(Cr.NS_ERROR_FILE_TOO_BIG);
+        } else {
+          byteChunks.push(lazy.NetUtil.readInputStream(stream, count));
+        }
+      },
+      onStartRequest(request) {
+        const http = request.QueryInterface(Ci.nsIHttpChannel);
 
-    // Proceed with GET request to fetch the HTML content
-    const response = await fetch(url, {
-      method: "GET",
-      mode: "cors",
-      headers: {
-        "x-firefox-ai": "true",
+        // Enforce text/html if provided by server
+        let contentType = "";
+        try {
+          contentType = http.getResponseHeader("content-type");
+        } catch (ex) {}
+        if (contentType && !contentType.startsWith("text/html")) {
+          request.cancel(Cr.NS_ERROR_FILE_UNKNOWN_TYPE);
+        }
+
+        // Save charset for later decoding
+        const match = contentType.match(/charset=([^;]+)/i);
+        if (match) {
+          charset = match[1];
+        }
+
+        // Enforce max length if provided by server
+        try {
+          if (http.getResponseHeader("content-length") > MAX_CONTENT_LENGTH) {
+            request.cancel(Cr.NS_ERROR_FILE_TOO_BIG);
+          }
+        } catch (ex) {}
+      },
+      onStopRequest(_request, status) {
+        if (Components.isSuccessCode(status)) {
+          const bytes = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const chunk of byteChunks) {
+            bytes.set(new Uint8Array(chunk), offset);
+            offset += chunk.byteLength;
+          }
+
+          const decoder = new TextDecoder(charset);
+          resolve(decoder.decode(bytes));
+        } else {
+          reject(Components.Exception("Failed to fetch HTML", status));
+        }
       },
     });
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch: ${response.status} ${response.statusText}`
-      );
-    }
-
-    const html = await response.text();
-    return html;
+    return promise;
   }
 
   /**
@@ -109,7 +144,8 @@ export class LinkPreviewChild extends JSWindowActorChild {
       ret.metaInfo = this.parseMetaTagsFromDoc(doc);
       ret.article = await this.getArticleDataFromDoc(doc);
     } catch (error) {
-      console.error(`Failed to fetch and parse page data: ${error.message}`);
+      console.error(`Failed to fetch and parse page data: ${error}`);
+      ret.error = { message: error.message, result: error.result };
     }
     return ret;
   }

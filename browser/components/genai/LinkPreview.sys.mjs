@@ -263,8 +263,9 @@ export const LinkPreview = {
         return;
       }
 
-      // Hide in preparation to replace the content for new url.
+      // Hide and remove previous in preparation for new url data.
       panel.hidePopup();
+      panel.replaceChildren();
     } else {
       panel = doc
         .getElementById("mainPopupSet")
@@ -282,11 +283,16 @@ export const LinkPreview = {
       );
     }
     panel.previewUrl = url;
-    panel.replaceChildren();
 
+    // TODO we want to immediately add a card as a placeholder to have UI be
+    // more responsive while we wait on fetching page data.
     const browsingContext = win.browsingContext;
     const actor = browsingContext.currentWindowGlobal.getActor("LinkPreview");
     const pageData = await actor.fetchPageData(url);
+    // Skip updating content if we've moved on to showing something else.
+    if (pageData.url != panel.previewUrl) {
+      return;
+    }
     const ogCard = this.createOGCard(doc, pageData);
     panel.append(ogCard);
     ogCard.addEventListener("LinkPreviewCard:dismiss", () => panel.hidePopup());

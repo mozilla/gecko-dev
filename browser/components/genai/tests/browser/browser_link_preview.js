@@ -106,6 +106,44 @@ add_task(async function test_fetch_page_data() {
 });
 
 /**
+ * Test fetching errors.
+ */
+add_task(async function test_fetch_errors() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+  const actor =
+    window.browsingContext.currentWindowContext.getActor("LinkPreview");
+  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  let result = await actor.fetchPageData("http://example.com/");
+
+  ok(result.error, "got error from fetching http");
+  is(
+    result.error.result,
+    Cr.NS_ERROR_UNKNOWN_PROTOCOL,
+    "error result should be protocol"
+  );
+
+  result = await actor.fetchPageData(
+    "https://itisatrap.org/firefox/its-a-trap.html"
+  );
+  ok(result.error, "got error from fetching trap");
+  is(
+    result.error.result,
+    Cr.NS_ERROR_PHISHING_URI,
+    "error result should be phishing"
+  );
+
+  result = await actor.fetchPageData("https://unknown.host.example.com");
+  ok(result.error, "got error from fetching host");
+  is(
+    result.error.result,
+    Cr.NS_ERROR_UNKNOWN_HOST,
+    "error result should be host"
+  );
+});
+
+/**
  * Test that link preview panel is shown.
  */
 add_task(async function test_link_preview_panel_shown() {
