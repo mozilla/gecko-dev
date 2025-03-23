@@ -223,6 +223,10 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
             NS_ConvertUTF16toUTF8(aTextDirective.start));
         return nullptr;
       }
+      if (potentialMatch && aTextDirective.end.IsEmpty() &&
+          aTextDirective.suffix.IsEmpty()) {
+        return potentialMatch;
+      }
       // 2.3.4. Set searchRange’s start to the first boundary point after
       // potentialMatch’s start
       RangeBoundary newRangeBoundary =
