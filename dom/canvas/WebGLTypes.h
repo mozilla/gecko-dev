@@ -380,6 +380,7 @@ struct WebGLContextOptions final {
   bool forceSoftwareRendering = false;
   bool shouldResistFingerprinting = true;
   bool enableDebugRendererInfo = false;
+  PaddingField<bool, 7> _padding;
 
   auto MutTiedFields() {
     // clang-format off
@@ -397,7 +398,8 @@ struct WebGLContextOptions final {
       powerPreference,
       forceSoftwareRendering,
       shouldResistFingerprinting,
-      enableDebugRendererInfo);
+      enableDebugRendererInfo,
+      _padding);
     // clang-format on
   }
 
@@ -635,10 +637,11 @@ struct InitContextDesc final {
   uint32_t principalKey = 0;
   uvec2 size = {};
   WebGLContextOptions options;
+  std::array<uint8_t, 5> _padding2;
 
   auto MutTiedFields() {
     return std::tie(isWebgl2, resistFingerprinting, _padding, principalKey,
-                    size, options);
+                    size, options, _padding2);
   }
 };
 
@@ -704,9 +707,6 @@ struct PaddedBase<T, 0> {
 
 template <class T, size_t PaddedSize>
 struct Padded : details::PaddedBase<T, PaddedSize - sizeof(T)> {
-  static_assert(PaddedSize >= sizeof(T));
-
-  // Try to be invisible:
   operator T&() { return this->val; }
   operator const T&() const { return this->val; }
 
@@ -749,57 +749,18 @@ namespace webgl {
 
 // -
 
-using GetShaderPrecisionFormatArgs = std::tuple<GLenum, GLenum>;
-
-template <class Tuple>
-struct TupleStdHash {
-  size_t operator()(const Tuple& t) const {
-    size_t ret = 0;
-    mozilla::MapTuple(t, [&](const auto& field) {
-      using FieldT = std::remove_cv_t<std::remove_reference_t<decltype(field)>>;
-      ret ^= std::hash<FieldT>{}(field);
-      return true;  // ignored
-    });
-    return ret;
-  }
-};
-
-struct ShaderPrecisionFormat final {
-  // highp float: [127, 127, 23]
-  // highp int: [31, 30, 0]
-  uint8_t rangeMin = 0;  // highp float: +127 (meaning 2^-127)
-  uint8_t rangeMax = 0;
-  uint8_t precision = 0;
-  uint8_t _padding = 0;
-
-  auto MutTiedFields() {
-    return std::tie(rangeMin, rangeMax, precision, _padding);
-  }
-};
-
-// -
-
 struct InitContextResult final {
   Padded<std::string, 32> error;  // MINGW 32-bit needs this padding.
   WebGLContextOptions options;
   gl::GLVendor vendor;
   OptionalRenderableFormatBits optionalRenderableFormatBits;
-  std::array<uint8_t, 2> _padding = {};
+  std::array<uint8_t, 3> _padding = {};
   Limits limits;
   EnumMask<layers::SurfaceDescriptor::Type> uploadableSdTypes;
-  // Padded because of "Android 5.0 ARMv7" builds:
-  Padded<
-    std::unordered_map<
-      GetShaderPrecisionFormatArgs,
-      ShaderPrecisionFormat,
-      TupleStdHash<GetShaderPrecisionFormatArgs>
-    >,
-    64
-  > shaderPrecisions;
 
   auto MutTiedFields() {
     return std::tie(error, options, vendor, optionalRenderableFormatBits,
-                    _padding, limits, uploadableSdTypes, shaderPrecisions);
+                    _padding, limits, uploadableSdTypes);
   }
 };
 
@@ -808,6 +769,12 @@ struct InitContextResult final {
 struct ErrorInfo final {
   GLenum type;
   std::string info;
+};
+
+struct ShaderPrecisionFormat final {
+  GLint rangeMin = 0;
+  GLint rangeMax = 0;
+  GLint precision = 0;
 };
 
 // -
@@ -1387,35 +1354,6 @@ inline std::string ToStringWithCommas(uint64_t v) {
     chunks.insert(chunks.begin(), std::to_string(chunk));
   }
   return Join(chunks, ",");
-}
-
-// -
-// C++17 polyfill implementation from:
-// https://en.cppreference.com/w/cpp/container/array/to_array
-
-namespace detail {
-template<class T, size_t N, size_t... I>
-constexpr std::array<std::remove_cv_t<T>, N>
-  to_array_impl(T (&a)[N], std::index_sequence<I...>)
-{
-  return {{a[I]...}};
-}
-
-template <class T, size_t N, size_t... I>
-constexpr std::array<std::remove_cv_t<T>, N> to_array_impl(
-    T (&&a)[N], std::index_sequence<I...>) {
-  return {{std::move(a[I])...}};
-}
-}  // namespace detail
-
-template<class T, size_t N>
-constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&a)[N]) {
-    return detail::to_array_impl(a, std::make_index_sequence<N>{});
-}
-
-template <class T, size_t N>
-constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&&a)[N]) {
-  return detail::to_array_impl(std::move(a), std::make_index_sequence<N>{});
 }
 
 // -

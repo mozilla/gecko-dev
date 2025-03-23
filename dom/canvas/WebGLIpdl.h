@@ -274,10 +274,6 @@ struct ParamTraits<mozilla::webgl::OpaqueFramebufferOptions> final
     : public ParamTraits_TiedFields<mozilla::webgl::OpaqueFramebufferOptions> {
 };
 
-template <>
-struct ParamTraits<mozilla::webgl::ShaderPrecisionFormat> final
-    : public ParamTraits_TiedFields<mozilla::webgl::ShaderPrecisionFormat> {};
-
 // -
 
 template <>
@@ -488,6 +484,25 @@ struct ParamTraits<mozilla::webgl::ActiveUniformBlockInfo> final {
            ReadParam(reader, &out->activeUniformIndices) &&
            ReadParam(reader, &out->referencedByVertexShader) &&
            ReadParam(reader, &out->referencedByFragmentShader);
+  }
+};
+
+// -
+
+template <>
+struct ParamTraits<mozilla::webgl::ShaderPrecisionFormat> final {
+  using T = mozilla::webgl::ShaderPrecisionFormat;
+
+  static void Write(MessageWriter* const writer, const T& in) {
+    WriteParam(writer, in.rangeMin);
+    WriteParam(writer, in.rangeMax);
+    WriteParam(writer, in.precision);
+  }
+
+  static bool Read(MessageReader* const reader, T* const out) {
+    return ReadParam(reader, &out->rangeMin) &&
+           ReadParam(reader, &out->rangeMax) &&
+           ReadParam(reader, &out->precision);
   }
 };
 

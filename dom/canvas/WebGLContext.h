@@ -656,6 +656,9 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
                                          GLenum pname) const;
   webgl::LinkResult GetLinkResult(const WebGLProgram&) const;
 
+  Maybe<webgl::ShaderPrecisionFormat> GetShaderPrecisionFormat(
+      GLenum shadertype, GLenum precisiontype) const;
+
   webgl::GetUniformData GetUniform(const WebGLProgram&, uint32_t loc) const;
 
   void Hint(GLenum target, GLenum mode);

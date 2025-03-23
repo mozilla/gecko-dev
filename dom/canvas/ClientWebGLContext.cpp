@@ -2874,19 +2874,22 @@ already_AddRefed<WebGLShaderPrecisionFormatJS>
 ClientWebGLContext::GetShaderPrecisionFormat(const GLenum shadertype,
                                              const GLenum precisiontype) {
   if (IsContextLost()) return nullptr;
+  const auto info = [&]() {
+    const auto& inProcess = mNotLost->inProcess;
+    if (inProcess) {
+      return inProcess->GetShaderPrecisionFormat(shadertype, precisiontype);
+    }
+    const auto& child = mNotLost->outOfProcess;
+    child->FlushPendingCmds();
+    Maybe<webgl::ShaderPrecisionFormat> ret;
+    if (!child->SendGetShaderPrecisionFormat(shadertype, precisiontype, &ret)) {
+      ret.reset();
+    }
+    return ret;
+  }();
 
-  const auto& shaderPrecisions = *mNotLost->info.shaderPrecisions;
-  const auto args =
-      webgl::GetShaderPrecisionFormatArgs{shadertype, precisiontype};
-  const auto found = MaybeFind(shaderPrecisions, args);
-  if (!found) {
-    EnqueueError(
-        LOCAL_GL_INVALID_ENUM, "Bad shaderType (%s) or precisionType (%s)",
-        EnumString(shadertype).c_str(), EnumString(precisiontype).c_str());
-    return nullptr;
-  }
-
-  return AsAddRefed(new WebGLShaderPrecisionFormatJS(*found));
+  if (!info) return nullptr;
+  return AsAddRefed(new WebGLShaderPrecisionFormatJS(*info));
 }
 
 void ClientWebGLContext::BlendColor(GLclampf r, GLclampf g, GLclampf b,
