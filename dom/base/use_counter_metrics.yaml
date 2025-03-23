@@ -107,7 +107,7 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2387 use counter metrics (excludes denominators).
+# Total of 2390 use counter metrics (excludes denominators).
 # Total of 353 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
@@ -6108,6 +6108,51 @@ use.counter.page:
       - dom-core@mozilla.com
       - emilio@mozilla.com
     expires: never
+    send_in_pings:
+      - use-counters
+
+  text_directive_pages:
+    type: counter
+    description: |
+      Number of opened pages using text-fragments.
+    expires: never
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    notification_emails:
+      - dom-core@mozilla.com
+      - jjaschke@mozilla.com
+    send_in_pings:
+      - use-counters
+
+  invalid_text_directives:
+    type: counter
+    description: |
+      Amount of pages where a text directive could be found after loading has finished
+    expires: never
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    notification_emails:
+      - dom-core@mozilla.com
+      - jjaschke@mozilla.com
+    send_in_pings:
+      - use-counters
+
+  text_directive_not_created:
+    type: counter
+    description: |
+      How often does FragmentDirective::CreateTextDirective() not find a text fragment
+    expires: never
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    notification_emails:
+      - dom-core@mozilla.com
+      - jjaschke@mozilla.com
     send_in_pings:
       - use-counters
 

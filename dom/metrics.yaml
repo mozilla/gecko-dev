@@ -821,6 +821,35 @@ dom.parentprocess:
     expires: never
     telemetry_mirror: DOM_PARENTPROCESS_PROCESS_LAUNCH_ERRORS
 
+dom.textfragment:
+  find_directives:
+    type: timing_distribution
+    description: |
+      Time spent in TextDirectiveFinder::FindTextDirectivesInDocument() per page load
+    time_unit: millisecond
+    expires: never
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    notification_emails:
+      - dom-core@mozilla.com
+      - jjaschke@mozilla.com
+
+  create_directive:
+    type: timing_distribution
+    description: |
+      Time spent in FragmentDirective::CreateTextDirective()
+    time_unit: millisecond
+    expires: never
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+    notification_emails:
+      - dom-core@mozilla.com
+      - jjaschke@mozilla.com
+
 glam_experiment:
   protect_time:
     type: timing_distribution
