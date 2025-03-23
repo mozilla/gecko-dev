@@ -15,6 +15,7 @@ def count_window_handles(session):
         return len(chrome_handles)
 
 
+@pytest.mark.allow_system_access
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_type_hint(bidi_session, current_session, type_hint):
     assert len(await bidi_session.browsing_context.get_tree()) == 1
