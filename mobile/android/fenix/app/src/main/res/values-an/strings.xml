@@ -46,7 +46,7 @@
   <string name="private_browsing_common_myths">
        Mitos comuns sobre la navegación privada</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">No, gracias</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">No, gracias</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

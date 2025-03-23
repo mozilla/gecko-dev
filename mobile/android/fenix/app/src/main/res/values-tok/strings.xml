@@ -21,7 +21,7 @@
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s li tan kulupu Mozilla.</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">mi wile ala e ni</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">mi wile ala e ni</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">o tawa lipu wile</string>
   <!-- Text for the negative action button -->

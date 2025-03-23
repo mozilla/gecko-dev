@@ -53,9 +53,9 @@
   <string name="private_browsing_placeholder_description_2">„%1$s“ išvalo jūsų paieškos ir naršymo žurnalą iš privačiųjų kortelių kai jas užveriate, arba išjungiate programą. Nors tai ir nesuteikia jums anonimiškumo internete, taip lengviau galite išlaikyti savo privatumą nuo kitų šį įrenginį naudojančių asmenų.</string>
   <string name="private_browsing_common_myths">Dažni mitai apie privatųjį naršymą</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Įtraukti į pradžios ekraną</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Įtraukti į pradžios ekraną</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Ačiū, ne</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Ačiū, ne</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

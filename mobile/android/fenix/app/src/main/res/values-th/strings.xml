@@ -90,11 +90,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">เปิดแท็บส่วนตัวถัดไปของคุณโดยแตะเพียงครั้งเดียว</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">เปิดแท็บส่วนตัวถัดไปของคุณโดยแตะเพียงครั้งเดียว</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">เพิ่มไปยังหน้าจอหลัก</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">เพิ่มไปยังหน้าจอหลัก</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">ไม่ ขอบคุณ</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ไม่ ขอบคุณ</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

@@ -92,11 +92,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Emoñepyrũ tendayke ñemigua peteĩ jekutúpe.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Emoñepyrũ tendayke ñemigua peteĩ jekutúpe.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Embojuaju mba’erechaha ñepyrũháre</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Embojuaju mba’erechaha ñepyrũháre</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Nahániri, aguyje</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Nahániri, aguyje</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

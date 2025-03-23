@@ -92,11 +92,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">Khởi chạy thẻ riêng tư tiếp theo của bạn chỉ bằng một lần nhấn.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Khởi chạy thẻ riêng tư tiếp theo của bạn chỉ bằng một lần nhấn.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Thêm vào Màn hình chính</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Thêm vào Màn hình chính</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Không, cảm ơn</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Không, cảm ơn</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 

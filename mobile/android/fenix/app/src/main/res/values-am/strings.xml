@@ -93,11 +93,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">አንዴ መታ በማድረግ ቀጣዩን የግል ትር አስጀምር።</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">አንዴ መታ በማድረግ ቀጣዩን የግል ትር አስጀምር።</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">ወደ መነሻ ማያ ገጽ ጨምር</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ወደ መነሻ ማያ ገጽ ጨምር</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">አልፈልግም፣አመሰግናለሁ</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">አልፈልግም፣አመሰግናለሁ</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
@@ -669,6 +669,12 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">ውሂቡን እንዴት እንደምንጠቀም</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">ያረጋግጡ እና ማሰስ ይጀምሩ</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">አንድ የመጨረሻ ነገር</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Firfoxን እንዴት እንዳገኙት እና እንደሚጠቀሙበት ከMozilla የግብይት አጋሮች ጋር ያጋሩ። ይህ ውሂብ በጭራሽ አይሸጥም።</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">ይስማሙ እና ማሰስ ይጀምሩ</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">የመሳሪያ አሞሌ አቀማመጥ ይምረጡ</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -704,6 +710,12 @@
   <string name="onboarding_customize_theme_content_description">የ%1$s ገጽታ ምስል</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">አሁን አይሆንም</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">ፈጣን ፍለጋ ይጀምሩ</string>
   <!--
     Search Widget
 
@@ -871,12 +883,18 @@
   <string name="preferences_show_voice_search">የድምጽ ፍለጋ አሳይ</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">በግል ክፍለ ጊዜዎች አሳይ</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">በመታየት ላይ ያሉ ጥቆማዎችን አሳይ</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">የቅርብ ጊዜ ፍለጋዎችን አሳይ</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">የቅንጥብ ሰሌዳ ጥቆማዎችን አሳይ</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">የአሰሳ ታሪክን ፈልግ</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">እልባቶችን ፈልግ</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">አቋራጮችን አሳይ</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">የተመሳሰሉ ትሮችን ፈልግ</string>
   <!-- Preference for account settings -->
@@ -897,6 +915,16 @@
   <string name="preferences_show_nonsponsored_suggestions">ጥቆማዎች ከ%1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">ከድር ፍለጋዎ ጋር የተያያዙ ጥቆማዎችን ያግኙ</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">አገናኝ ማጋራት</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">በWhatsApp ማጋራቶች ላይ %1$s የማውረድ አገናኝ ያካትቱ</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">በWhatsApp ላይ አገናኝ ባጋሩ ቁጥር ጓደኞችዎን ፈጣኑን እና  ደህንነቱ የተጠበቀ አሰሳ  በ%1$s እንዲሞክሩ ይጋብዙ።</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">አገናኝ ተጋርቷል</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">ቅንብሮችን ያስተዳድሩ</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">አገናኞችን በመተግበሪያዎች ውስጥ ክፈት</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1460,15 +1488,59 @@
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">አስወግድ</string>
   <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">ዛሬ</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">ትናንት</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">ባለፉት 7 ቀናት</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">ባለፉት 30 ቀናት</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">ይበልጥ የቆየ</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">ሁሉም</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">ምስሎች</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">ተንቀሳቃሽ-ምስሎች</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">ሠነዶች</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other">ሌሎች</string>
+  <!--
+    Description of a downloaded item, displayed in the downloads list.
+    %1$s: The size of the downloaded file.
+    %2$s: The URL of the downloaded file.
+  -->
+  <string name="download_item_description">%1$s • %2$s</string>
+  <!--
     WebCompat Reporter
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
   -->
   <string name="webcompat_reporter_screen_title">የተበላሽ ጣቢያ አሳውቅ</string>
+  <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="webcompat_reporter_description">%1$s ለሁሉም ሰው የተሻለ እንዲሆን ያግዙ። የMozilla ሰራተኞች የድረ-ገጽ ችግሮችን ለማስተካከል የላኩትን መረጃ ይጠቀማሉ።</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
   <string name="webcompat_reporter_label_url">URL</string>
+  <!-- The error message of the URL text field when an invalid URL has been entered. -->
+  <string name="webcompat_reporter_url_error_invalid">አባክዎ የሚሰራ URL ያስገቡ</string>
+  <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">ምኑ ተበላሽቷል? (አማራጭ)</string>
+  <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_label_whats_broken_2">ምኑ ተበላሽቷል?</string>
   <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
   <string name="webcompat_reporter_choose_reason">ምክንያት ይምረጡ</string>
+  <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason_error">እባክዎ ምክንያት ይምረጡ</string>
   <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
   <string name="webcompat_reporter_label_description">ችግሩን ይግለጹ (አማራጭ)</string>
   <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
@@ -1477,6 +1549,8 @@
   <string name="webcompat_reporter_cancel">ሰርዝ</string>
   <!-- The button text for the send button to submit the provided form data. -->
   <string name="webcompat_reporter_send">ላክ</string>
+  <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+  <string name="webcompat_reporter_success_snackbar_text">ማሳወቂያዎ ተልኳል</string>
   <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
   <string name="webcompat_reporter_dismiss_success_snackbar_text">ዝጋ</string>
   <!--
@@ -1485,6 +1559,16 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow">ጣቢያ ቀርፋፋ ወይም አይሰራም</string>
+  <!-- Broken site reason text for images or videos -->
+  <string name="webcompat_reporter_reason_media">ምስሎች ወይም ተንቀሳቃሽ-ምስሎች</string>
+  <!-- Broken site reason text for buttons, links, and other content -->
+  <string name="webcompat_reporter_reason_content">አዝራሮች፣ አገናኞች እና ሌሎች ይዘቶች</string>
+  <!-- Broken site reason text for sign in or sign out -->
+  <string name="webcompat_reporter_reason_account">መግባት ወይም መውጣት</string>
+  <!-- Broken site reason text for ad blocker -->
+  <string name="webcompat_reporter_reason_ad_blocker">ማስታወቂያ ማገጃ</string>
+  <!-- Broken site reason text for something else -->
+  <string name="webcompat_reporter_reason_other">ሌላ ነገር</string>
   <!--
     Crashes
 
@@ -2154,6 +2238,50 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">የተሻሻለ የመከታተያ ጥበቃ ልዩ ምርጫ አዶ</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">የበለጠ ለማወቅ</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">ወደ ላይ አስስ</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">ልዩ ሁኔታዎች</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">መረጃ</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">ጣቢያ ያክሉ</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">ነባሪ ጥበቃ</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">አቅራቢ ይምረጡ</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(ነባሪ)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">ብጁ</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">ብጁ አቅራቢ</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">አቅራቢ</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URL በ "https://" መጀመር አለበት</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">ልክ ያልሆነ URL</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">ሰርዝ</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">አክል</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">የተለዩ</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">ድረ-ገፅ ያክሉ</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">ድረ-ገፅ</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">ልክ የሆነ ጎራ መሆን አለበት</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">አስቀምጥ</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">ሁሉንም የማይካተቱትን ሰርዝ</string>
   <!-- About page link text to open support link -->
   <string name="about_support">ድጋፍ</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2162,6 +2290,8 @@
   <string name="about_privacy_notice">የግላዊነት ማሳወቂያ</string>
   <!-- About page link text to open know your rights link -->
   <string name="about_know_your_rights">መብቶትን ይወቁ</string>
+  <!-- About page link text to open terms of use link -->
+  <string name="about_terms_of_use" tools:ignore="UnusedResources">የአጠቃቀም መመሪያ</string>
   <!-- About page link text to open licensing information link -->
   <string name="about_licensing_information">የፈቃድ መረጃ</string>
   <!-- About page link text to open a screen with libraries that are used -->
@@ -2457,6 +2587,8 @@
   <string name="quick_settings_sheet_secure_connection_2">ግንኙነት ደህንነቱ የተጠበቀ ነው</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">ግንኙነት ደህንነቱ የተጠበቀ አይደለም</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">ይህ ገጽ በመሣሪያዎ ላይ ተከማችቷል።</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">ኩኪዎች እና የድረ-ገፅ ውሂብ ያጽዱ</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2612,10 +2744,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">የፋየርፎክስ ጥቆማ</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">በመታየት ላይ ያሉ ፍለጋዎች</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">በ%s ላይ በመታየት ላይ ያለ</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header"> የጉግል ፍለጋ</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s ፍለጋ</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">የቅርብ ጊዜ ፍለጋዎች</string>
   <!--
     Default browser experiment
 
@@ -3066,6 +3207,28 @@
   <string name="download_language_file_dialog_positive_button_text_all_languages">ያውርዱ እና ይተርጉሙ</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">ተወው</string>
+  <!-- Title text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_title">በዚህ ድረ-ገፅ ላይ ይጠንቀቁ</string>
+  <!-- Description text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_description">ግንኙነትዎ ደህንነቱ የተጠበቀ አይደለም።</string>
+  <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+  <string name="protection_panel_banner_not_protected_title">ጥበቃዎችን አጥፍተዋል</string>
+  <!--
+    Description text for the protection panel banner when tracking protection is disabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_not_protected_description">%s ከስራ ውጪ ነው። ጥበቃዎችን መልሰው እንዲያበሩ እንጠቁማለን።</string>
+  <!--
+    Title text for the protection panel banner when tracking protection is enabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_protected_title">%s ጥበቃ ላይ ነው</string>
+  <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+  <string name="protection_panel_banner_protected_description">እርስዎ ጥበቃ ይደረግልዎታል። የሆነ ነገር ካየን፣ እናሳውቅዎታለን።</string>
+  <!-- Label text for the Enhanced Tracking Protection toggle. -->
+  <string name="protection_panel_etp_toggle_label">የተሻሻለ የክትትል ጥበቃ</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+  <string name="protection_panel_etp_toggle_enabled_description">በዚህ ጣቢያ ላይ የሆነ ነገር የተሰበረ ከመሰለ፣ ጥበቃዎችን በማጥፋት ይሞክሩ።</string>
   <!--
     Debug drawer
 

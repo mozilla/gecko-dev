@@ -38,7 +38,7 @@
   <string name="about_content">Ko Mozilla jibini %1$s</string>
   <string name="private_browsing_common_myths">Tinndi goowaaɗi baɗte banngogol suturo</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Alaa, mi yaafiima</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Alaa, mi yaafiima</string>
   <!-- Text for the positive action button to go to Settings for auto close tabs. -->
   <string name="tab_tray_close_tabs_banner_positive_button_text">Juɓtorɗe jiytol</string>
   <!-- Text for the banner message to tell users about our inactive tabs feature. -->

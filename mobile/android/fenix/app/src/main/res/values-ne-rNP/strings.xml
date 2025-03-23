@@ -48,7 +48,7 @@
        निजी ब्राउजिङ्ग बारे सामान्य मिथकहरू
     </string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">पर्दैन, धन्यबाद</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">पर्दैन, धन्यबाद</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">सेटिङ्गहरुमा जानुहोस्</string>
   <!-- Text for the negative action button -->

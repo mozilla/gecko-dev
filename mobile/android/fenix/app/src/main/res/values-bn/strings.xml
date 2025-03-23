@@ -38,7 +38,7 @@
        ব্যাক্তিগত ব্রাউজিং সম্পর্কে কিছু ভুল ধারণা
     </string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">না ধন্যবাদ</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">না ধন্যবাদ</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text"> সেটিং এ যাও</string>
   <!-- Text for the negative action button -->

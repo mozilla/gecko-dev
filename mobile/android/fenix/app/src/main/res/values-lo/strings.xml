@@ -91,11 +91,11 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2">ເປີດໃຊ້ແຖບສ່ວນຕົວຕໍ່ໄປຂອງທ່ານໃນໜຶ່ງການກົດ.</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">ເປີດໃຊ້ແຖບສ່ວນຕົວຕໍ່ໄປຂອງທ່ານໃນໜຶ່ງການກົດ.</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">ເພີ່ມເຂົ້າໄປຫນ້າຈໍຫລັກ</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ເພີ່ມເຂົ້າໄປຫນ້າຈໍຫລັກ</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">ບໍ່, ຂອບໃຈ</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ບໍ່, ຂອບໃຈ</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
@@ -1109,6 +1109,8 @@
   <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
   <!-- Preference switch for marketing data collection -->
   <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ຂໍ້ມູນດ້ານການຕະຫຼາດ</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+  <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນກ່ຽວກັບວິທີທີ່ທ່ານຄົ້ນພົບ Firefox ກັບຄູ່ຮ່ວມການຕະຫຼາດຂອງ Mozilla. ນີ້ຈະຊ່ວຍໃຫ້ພວກເຮົາເຕີບໂຕ Firefox ແລະ ສ້າງອິນເຕີເນັດທີ່ດີກວ່າ</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບຂໍ້ມູນການຕະຫຼາດ</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -2113,6 +2115,8 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">ໄອຄອນການຍົກເວັ້ນການປ້ອງກັນການຕິດຕາມທີ່ປັບປຸງໃຫ້ດີຂຶ້ນ</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">ລະບົບ Domain Name (DNS) ຜ່ານ HTTPS ສົ່ງຄໍາຮ້ອງຂໍຂອງທ່ານສໍາລັບຊື່ໂດເມນໂດຍຜ່ານການເຊື່ອມຕໍ່ທີ່ຖືກເຂົ້າລະຫັດ, ສະຫນອງ DNS ທີ່ປອດໄພແລະເຮັດໃຫ້ມັນຍາກສໍາລັບຜູ້ອື່ນທີ່ຈະເບິ່ງວ່າເວັບໄຊທ໌ໃດທີ່ທ່ານກໍາລັງຈະເຂົ້າຫາ. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
@@ -2335,6 +2339,8 @@
   <string name="search_add_custom_engine_search_string_example" formatted="false">ແທນທີ່ຄິວລີດ້ວຍ “%s”. ຕົວຢ່າ: \nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">ດັດແກ້ລາຍລະອຽດເຄື່ອງມືການຄົ້ນຫາ</string>
+  <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">ແທນທີ່ການສອບຖາມດ້ວຍ “%s”. ຕົວຢ່າງ:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">ບັນທຶກ</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2540,6 +2546,10 @@
   <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
   <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນ​ໄຂ​ການ​ນໍາ​ໃຊ້​</string>
+  <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
+  <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
+  <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
+  <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">ລາຄາ</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2558,6 +2568,8 @@
 
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
+  <string name="translations_bottom_sheet_negative_button">ບໍ່ແມ່ນຕອນນີ້</string>
   <!-- Clickable text from the screen header that links to a website. -->
   <string name="download_languages_header_learn_more_preference">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
 </resources>

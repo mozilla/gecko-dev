@@ -40,7 +40,7 @@
        چەند ئەفسانەییەک دەربارەی گەڕانی تایبەتیی
     </string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">نا سوپاس</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">نا سوپاس</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">بڕۆ بۆ ڕێکخستن</string>
   <!-- Text for the negative action button -->

@@ -9,7 +9,7 @@
   <!-- Label of editable text in create collection dialog for naming a new collection -->
   <string name="tab_tray_add_new_collection_name">Isem</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Uhu, tanemmirt</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Uhu, tanemmirt</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">Ddu ɣer tisɣal</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

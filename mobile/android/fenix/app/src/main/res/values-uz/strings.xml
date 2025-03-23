@@ -53,9 +53,9 @@
   <string name="private_browsing_placeholder_description_2">Ilovadan chiqsangiz yoki ularni yopsangiz, qidiruv va brauzer tarixini  %1$s shaxsiy yorliqlardan tozalaydi. Garchi bu sizni veb-saytlar yoki Internet-provayderingiz uchun nomaʼlum qilmasa ham, Internetda qilgan ishingizni ushbu qurilmadan foydalanadigan har kimdan maxfiy saqlashni osonlashtiradi.</string>
   <string name="private_browsing_common_myths">Maxfiy koʻrish haqidagi umumiy afsonalar</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text">Bosh ekranga qoʻshish</string>
+  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Bosh ekranga qoʻshish</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text">Kerak emas</string>
+  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Kerak emas</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
