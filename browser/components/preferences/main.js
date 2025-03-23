@@ -90,6 +90,7 @@ Preferences.addAll([
   { id: "browser.ctrlTab.sortByRecentlyUsed", type: "bool" },
   { id: "browser.tabs.hoverPreview.enabled", type: "bool" },
   { id: "browser.tabs.hoverPreview.showThumbnails", type: "bool" },
+  { id: "browser.tabs.groups.smart.userEnabled", type: "bool" },
 
   { id: "sidebar.verticalTabs", type: "bool" },
   { id: "sidebar.revamp", type: "bool" },
@@ -527,6 +528,15 @@ var gMainPane = {
       (thumbsCheckbox.hidden = !cardPreviewEnabledPref.value);
     cardPreviewEnabledPref.on("change", maybeShowThumbsCheckbox);
     maybeShowThumbsCheckbox();
+
+    const tabGroupSuggestionsCheckbox = document.getElementById(
+      "tabGroupSuggestions"
+    );
+    const smartTabGroupFeatureEnabled = Services.prefs.getBoolPref(
+      "browser.tabs.groups.smart.enabled",
+      false
+    );
+    tabGroupSuggestionsCheckbox.hidden = !smartTabGroupFeatureEnabled;
 
     // The "opening multiple tabs might slow down Firefox" warning provides
     // an option for not showing this warning again. When the user disables it,

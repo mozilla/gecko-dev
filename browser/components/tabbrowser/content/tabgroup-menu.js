@@ -331,7 +331,7 @@
       super();
       XPCOMUtils.defineLazyPreferenceGetter(
         this,
-        "smartTabGroupsEnabled",
+        "smartTabGroupsFeatureConfigEnabled",
         "browser.tabs.groups.smart.enabled",
         false,
         this.#onSmartTabGroupsPrefChange.bind(this)
@@ -450,8 +450,17 @@
       this.#swatchesContainer.addEventListener("change", this);
     }
 
-    #onSmartTabGroupsPrefChange(_preName, _prev, latest) {
-      const icon = latest ? MozTabbrowserTabGroupMenu.AI_ICON : "";
+    get smartTabGroupsEnabled() {
+      return (
+        this.smartTabGroupsUserEnabled &&
+        this.smartTabGroupsFeatureConfigEnabled
+      );
+    }
+
+    #onSmartTabGroupsPrefChange(_preName, _prev, _latest) {
+      const icon = this.smartTabGroupsEnabled
+        ? MozTabbrowserTabGroupMenu.AI_ICON
+        : "";
 
       this.#suggestionButton.iconSrc = icon;
       this.#suggestionsMessage.iconSrc = icon;
