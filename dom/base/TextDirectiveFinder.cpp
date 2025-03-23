@@ -6,6 +6,8 @@
 #include "TextDirectiveFinder.h"
 #include "Document.h"
 #include "TextDirectiveUtil.h"
+#include "mozilla/glean/DomMetrics.h"
+#include "mozilla/glean/DomUseCounterMetrics.h"
 #include "nsRange.h"
 #include "fragmentdirectives_ffi_generated.h"
 #include "mozilla/ResultVariant.h"
@@ -17,13 +19,30 @@ TextDirectiveFinder::TextDirectiveFinder(
     : mDocument(aDocument),
       mUninvokedTextDirectives(std::move(aTextDirectives)) {}
 
+TextDirectiveFinder::~TextDirectiveFinder() {
+  if (mFoundDirectiveCount) {
+    glean::dom_textfragment::find_directives.AccumulateRawDuration(
+        mFindTextDirectivesDuration);
+
+    TEXT_FRAGMENT_LOG("Found {} directives in {}ms", mFoundDirectiveCount,
+                      mFindTextDirectivesDuration.ToMilliseconds());
+  }
+  if (HasUninvokedDirectives()) {
+    glean::use_counter_page::invalid_text_directives.Add();
+  }
+}
+
 bool TextDirectiveFinder::HasUninvokedDirectives() const {
   return !mUninvokedTextDirectives.IsEmpty();
 }
+
 nsTArray<RefPtr<nsRange>> TextDirectiveFinder::FindTextDirectivesInDocument() {
   if (mUninvokedTextDirectives.IsEmpty()) {
     return {};
   }
+
+  const TimeStamp start = TimeStamp::Now();
+
   auto uri = TextDirectiveUtil::ShouldLog() && mDocument.GetDocumentURI()
                  ? mDocument.GetDocumentURI()->GetSpecOrDefault()
                  : nsCString();
@@ -78,6 +97,9 @@ nsTArray<RefPtr<nsRange>> TextDirectiveFinder::FindTextDirectivesInDocument() {
     }
   }
   mUninvokedTextDirectives = std::move(uninvokedTextDirectives);
+
+  mFindTextDirectivesDuration += TimeStamp::Now() - start;
+  mFoundDirectiveCount += static_cast<int64_t>(textDirectiveRanges.Length());
 
   // 3. Return ranges.
   return textDirectiveRanges;

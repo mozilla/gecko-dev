@@ -9,6 +9,7 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/dom/fragmentdirectives_ffi_generated.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "nsDeque.h"
 #include "nsINode.h"
 #include "nsRange.h"
@@ -979,7 +980,6 @@ TextDirectiveCreator::CreateTextDirectiveFromMatches(
         currentCandidate.TextDirectiveString());
     return currentCandidate.TextDirectiveString();
   }
-
   TEXT_FRAGMENT_LOG("Found {} text directive matches to eliminate",
                     aTextDirectiveMatches.Length());
   // To create a text directive string which points to the input range using a

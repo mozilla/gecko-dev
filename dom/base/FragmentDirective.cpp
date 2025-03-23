@@ -20,6 +20,8 @@
 #include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/glean/DomMetrics.h"
+#include "mozilla/glean/DomUseCounterMetrics.h"
 #include "mozilla/PresShell.h"
 #include "nsContentUtils.h"
 #include "nsDocShell.h"
@@ -81,6 +83,7 @@ bool FragmentDirective::ParseAndRemoveFragmentDirectiveFromFragmentString(
       StaticPrefs::dom_text_fragments_enabled() &&
       parse_fragment_directive(&aFragment, &fragmentDirective);
   if (hasRemovedFragmentDirective) {
+    glean::use_counter_page::text_directive_pages.Add();
     TEXT_FRAGMENT_LOG(
         "Found a fragment directive '{}', which was removed from the fragment. "
         "New fragment is '{}'.",
@@ -442,11 +445,14 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirective(
     return resultPromise.forget();
   }
 
+  const TimeStamp start = TimeStamp::Now();
+
   Result<nsCString, ErrorResult> textDirective =
       TextDirectiveCreator::CreateTextDirectiveFromRange(*mDocument, &aRange);
   if (textDirective.isOk()) {
     nsCString textDirectiveString = textDirective.unwrap();
     if (textDirectiveString.IsEmpty()) {
+      glean::use_counter_page::text_directive_not_created.Add();
       resultPromise->MaybeResolve(JS::NullHandleValue);
     } else {
       resultPromise->MaybeResolve(std::move(textDirectiveString));
@@ -455,6 +461,9 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirective(
     ErrorResult rv = textDirective.unwrapErr();
     resultPromise->MaybeReject(std::move(rv));
   }
+
+  glean::dom_textfragment::create_directive.AccumulateRawDuration(
+      TimeStamp::Now() - start);
 
   return resultPromise.forget();
 }
