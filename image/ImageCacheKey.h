@@ -33,7 +33,7 @@ namespace image {
  */
 class ImageCacheKey final {
  public:
-  ImageCacheKey(nsIURI*, CORSMode, const OriginAttributes&, dom::Document*);
+  ImageCacheKey(nsIURI*, CORSMode, dom::Document*);
 
   ImageCacheKey(const ImageCacheKey& aOther);
   ImageCacheKey(ImageCacheKey&& aOther);

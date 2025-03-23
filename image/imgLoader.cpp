@@ -1607,12 +1607,8 @@ imgLoader::RemoveEntry(nsIURI* aURI, Document* aDoc) {
   if (!aURI) {
     return NS_OK;
   }
-  OriginAttributes attrs;
-  if (aDoc) {
-    attrs = aDoc->NodePrincipal()->OriginAttributesRef();
-  }
   for (auto corsMode : AllCORSModes()) {
-    ImageCacheKey key(aURI, corsMode, attrs, aDoc);
+    ImageCacheKey key(aURI, corsMode, aDoc);
     RemoveFromCache(key);
   }
   return NS_OK;
@@ -1623,16 +1619,8 @@ imgLoader::FindEntryProperties(nsIURI* uri, Document* aDoc,
                                nsIProperties** _retval) {
   *_retval = nullptr;
 
-  OriginAttributes attrs;
-  if (aDoc) {
-    nsCOMPtr<nsIPrincipal> principal = aDoc->NodePrincipal();
-    if (principal) {
-      attrs = principal->OriginAttributesRef();
-    }
-  }
-
   for (auto corsMode : AllCORSModes()) {
-    ImageCacheKey key(uri, corsMode, attrs, aDoc);
+    ImageCacheKey key(uri, corsMode, aDoc);
     RefPtr<imgCacheEntry> entry;
     if (!mCache.Get(key, getter_AddRefs(entry)) || !entry) {
       continue;
@@ -2327,8 +2315,7 @@ static void MakeRequestStaticIfNeeded(
 bool imgLoader::IsImageAvailable(nsIURI* aURI,
                                  nsIPrincipal* aTriggeringPrincipal,
                                  CORSMode aCORSMode, Document* aDocument) {
-  ImageCacheKey key(aURI, aCORSMode,
-                    aTriggeringPrincipal->OriginAttributesRef(), aDocument);
+  ImageCacheKey key(aURI, aCORSMode, aDocument);
   RefPtr<imgCacheEntry> entry;
   if (!mCache.Get(key, getter_AddRefs(entry)) || !entry) {
     return false;
@@ -2498,11 +2485,7 @@ nsresult imgLoader::LoadImage(
   // XXX For now ignore aCacheKey. We will need it in the future
   // for correctly dealing with image load requests that are a result
   // of post data.
-  OriginAttributes attrs;
-  if (aTriggeringPrincipal) {
-    attrs = aTriggeringPrincipal->OriginAttributesRef();
-  }
-  ImageCacheKey key(aURI, corsmode, attrs, aLoadingDocument);
+  ImageCacheKey key(aURI, corsmode, aLoadingDocument);
   if (mCache.Get(key, getter_AddRefs(entry)) && entry) {
     bool newChannelCreated = false;
     if (ValidateEntry(entry, aURI, aInitialDocumentURI, aReferrerInfo,
@@ -2739,11 +2722,9 @@ nsresult imgLoader::LoadImageWithChannel(nsIChannel* channel,
   NS_ENSURE_TRUE(channel, NS_ERROR_FAILURE);
   nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
 
-  OriginAttributes attrs = loadInfo->GetOriginAttributes();
-
   // TODO: Get a meaningful cors mode from the caller probably?
   const auto corsMode = CORS_NONE;
-  ImageCacheKey key(uri, corsMode, attrs, aLoadingDocument);
+  ImageCacheKey key(uri, corsMode, aLoadingDocument);
 
   nsLoadFlags requestFlags = nsIRequest::LOAD_NORMAL;
   channel->GetLoadFlags(&requestFlags);
@@ -2854,8 +2835,7 @@ nsresult imgLoader::LoadImageWithChannel(nsIChannel* channel,
     // constructed above with the *current URI* and not the *original URI*. I'm
     // pretty sure this is a bug, and it's preventing us from ever getting a
     // cache hit in LoadImageWithChannel when redirects are involved.
-    ImageCacheKey originalURIKey(originalURI, corsMode, attrs,
-                                 aLoadingDocument);
+    ImageCacheKey originalURIKey(originalURI, corsMode, aLoadingDocument);
 
     // Default to doing a principal check because we don't know who
     // started that load and whether their principal ended up being

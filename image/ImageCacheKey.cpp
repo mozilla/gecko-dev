@@ -39,7 +39,6 @@ static nsIPrincipal* GetPartitionPrincipal(Document* aDocument) {
 }
 
 ImageCacheKey::ImageCacheKey(nsIURI* aURI, CORSMode aCORSMode,
-                             const OriginAttributes& aAttrs,
                              Document* aDocument)
     : mURI(aURI),
       mControlledDocument(GetSpecialCaseDocumentToken(aDocument)),
