@@ -46,6 +46,8 @@ skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"
 
 ["browser_parse_street_address_fields.js"]
 
+["browser_parse_tel_fields.js"]
+
 ["browser_section_validation_address.js"]
 
 ["browser_sections_by_name.js"]

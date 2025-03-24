@@ -940,6 +940,7 @@ export const FormAutofillHeuristics = {
         "cc-exp-year",
         "cc-exp",
         "cc-type",
+        "tel-country-code",
       ];
       fieldNames = fieldNames.filter(name =>
         FIELDNAMES_FOR_SELECT_ELEMENT.includes(name)
