@@ -123,22 +123,15 @@ object URLStringUtils {
     }
 
     private fun maybeStripUrlProtocol(url: CharSequence): CharSequence {
-        var noPrefixUrl = url
-        if (url.toString().startsWith(HTTPS)) {
-            noPrefixUrl = maybeStripUrlSubDomain(url.toString().replaceFirst(HTTPS, ""))
-        } else if (url.toString().startsWith(HTTP)) {
-            noPrefixUrl = maybeStripUrlSubDomain(url.toString().replaceFirst(HTTP, ""))
+        if (url.startsWith(HTTPS)) {
+            return maybeStripUrlSubDomain(url.removePrefix(HTTPS))
+        } else if (url.startsWith(HTTP)) {
+            return maybeStripUrlSubDomain(url.removePrefix(HTTP))
         }
-        return noPrefixUrl
+        return url
     }
 
-    private fun maybeStripUrlSubDomain(url: CharSequence): CharSequence {
-        return if (url.toString().startsWith(WWW)) {
-            url.toString().replaceFirst(WWW, "")
-        } else {
-            url
-        }
-    }
+    private fun maybeStripUrlSubDomain(url: CharSequence): CharSequence = url.removePrefix(WWW)
 
     private fun maybeStripTrailingSlash(url: CharSequence): CharSequence {
         return url.trimEnd('/')

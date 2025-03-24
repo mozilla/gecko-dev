@@ -228,6 +228,18 @@ class URLStringUtilsTest {
     }
 
     @Test
+    fun stripUrlSchemeUrlWithHttpsFollowedByHttp() {
+        val testDisplayUrl = URLStringUtils.toDisplayUrl("https://http://mozilla.com")
+        assertEquals("http://mozilla.com", testDisplayUrl)
+    }
+
+    @Test
+    fun stripUrlSchemeUrlWithHttpFollowedByHttps() {
+        val testDisplayUrl = URLStringUtils.toDisplayUrl("http://https://mozilla.com")
+        assertEquals("https://mozilla.com", testDisplayUrl)
+    }
+
+    @Test
     fun stripUrlSchemeAndSubdomainUrlNoMatch() {
         val testDisplayUrl = URLStringUtils.toDisplayUrl("zzz://www.mozillahttp://.com")
         assertEquals("zzz://www.mozillahttp://.com", testDisplayUrl)
