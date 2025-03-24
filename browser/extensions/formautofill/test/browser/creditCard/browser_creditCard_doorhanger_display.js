@@ -103,6 +103,10 @@ add_task(async function test_doorhanger_not_shown_when_autofill_untouched() {
     return;
   }
 
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
+  Services.telemetry.clearEvents();
+
   await setStorage(TEST_CREDIT_CARD_1);
   let creditCards = await getCreditCards();
   is(creditCards.length, 1, "1 credit card in storage");
@@ -138,6 +142,17 @@ add_task(async function test_doorhanger_not_shown_when_autofill_untouched() {
   is(creditCards.length, 1, "Still 1 credit card");
   is(creditCards[0].timesUsed, 1, "timesUsed field set to 1");
   await removeAllRecords();
+
+  await Services.fog.testFlushAllChildren();
+  let testEvents = Glean.creditcard.osKeystoreDecrypt.testGetValue();
+  is(testEvents.length, 1, "Event was recorded");
+  is(testEvents[0].extra.trigger, "autofill", "Trigger was correct");
+  is(
+    testEvents[0].extra.isDecryptSuccess,
+    "true",
+    "Decryption was recorded as success"
+  );
+  is(testEvents[0].extra.errorResult, "0", "Result was no error");
 });
 
 add_task(async function test_doorhanger_not_shown_when_fill_duplicate() {

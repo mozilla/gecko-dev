@@ -1433,11 +1433,11 @@ creditcard:
         description: >
           Records if the decryption was a success or failure.
         type: boolean
-      error_message:
+      errorResult:
         description: >
-          Records the error message.
+          Records the nsresult error value.
           Likely errors include "Cr.NS_ERROR_FAILURE" and "Cr.NS_ERROR_ABORT".
-          If no error then "NO_ERROR".
+          If no error then 0.
         type: string
       trigger:
         description: >

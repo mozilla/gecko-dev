@@ -401,14 +401,14 @@ export class ManageCreditCards extends ManageRecords {
     }
 
     let decryptedCCNumObj = {};
-    let errorMessage;
+    let errorResult = 0;
     if (creditCard && creditCard["cc-number-encrypted"]) {
       try {
         decryptedCCNumObj["cc-number"] = await lazy.OSKeyStore.decrypt(
           creditCard["cc-number-encrypted"]
         );
-        errorMessage = "NO_ERROR";
       } catch (ex) {
+        errorResult = ex.result;
         if (ex.result == Cr.NS_ERROR_ABORT) {
           // User shouldn't be ask to reauth here, but it could happen.
           // Return here and skip opening the dialog.
@@ -419,11 +419,10 @@ export class ManageCreditCards extends ManageRecords {
         // unencrypted credit card number.
         decryptedCCNumObj["cc-number"] = "";
         console.error(ex);
-        errorMessage = ex.result;
       } finally {
         Glean.creditcard.osKeystoreDecrypt.record({
-          isDecryptSuccess: errorMessage === "NO_ERROR",
-          errorMessage,
+          isDecryptSuccess: errorResult === 0,
+          errorResult,
           trigger: "edit",
         });
       }

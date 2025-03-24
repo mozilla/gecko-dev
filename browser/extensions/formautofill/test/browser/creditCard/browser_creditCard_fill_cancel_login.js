@@ -9,6 +9,10 @@ add_task(async function test_fill_creditCard_but_cancel_login() {
     return;
   }
 
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
+  Services.telemetry.clearEvents();
+
   await setStorage(TEST_CREDIT_CARD_2);
 
   let osKeyStoreLoginShown = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(false); // cancel
@@ -33,5 +37,20 @@ add_task(async function test_fill_creditCard_but_cancel_login() {
         );
       });
     }
+  );
+
+  await Services.fog.testFlushAllChildren();
+  let testEvents = Glean.creditcard.osKeystoreDecrypt.testGetValue();
+  is(testEvents.length, 1, "Event was recorded");
+  is(testEvents[0].extra.trigger, "autofill", "Trigger was correct");
+  is(
+    testEvents[0].extra.isDecryptSuccess,
+    "false",
+    "Decryption was recorded as failed"
+  );
+  is(
+    testEvents[0].extra.errorResult,
+    Cr.NS_ERROR_ABORT.toString(),
+    "Result was abort"
   );
 });
