@@ -388,6 +388,12 @@ export interface PerformancePref {
    * button in the customization palette.
    */
   PopupFeatureFlag: "devtools.performance.popup.feature-flag";
+  /**
+   * This preference controls whether about:profiling contains some Firefox
+   * developer-specific options. For example when true the "more actions" menu
+   * contains items to copy parameters to use with mach try perf.
+   */
+  AboutProfilingHasDeveloperOptions: "devtools.performance.aboutprofiling.has-developer-options";
 }
 
 /* The next 2 types bring some duplication from gecko.d.ts, but this is simpler

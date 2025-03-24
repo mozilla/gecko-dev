@@ -5,6 +5,7 @@
 
 /**
  * @typedef {import("../../@types/perf").State} StoreState
+ * @typedef {import("../../@types/perf").PerformancePref} PerformancePref
  */
 
 "use strict";
@@ -39,6 +40,26 @@ const {
   restartBrowserWithEnvironmentVariable,
 } = require("resource://devtools/client/performance-new/shared/browser.js");
 
+/** @type {PerformancePref["AboutProfilingHasDeveloperOptions"]} */
+const ABOUTPROFILING_HAS_DEVELOPER_OPTIONS_PREF =
+  "devtools.performance.aboutprofiling.has-developer-options";
+
+/**
+ * This function encodes the parameter so that it can be used as an environment
+ * variable value.
+ * Basically it uses single quotes, but replacing any single quote by '"'"':
+ * 1. close the previous single-quoted string,
+ * 2. add a double-quoted string containing only a single quote
+ * 3. start a single-quoted string again.
+ * so that it's properly retained.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+function encodeShellValue(value) {
+  return "'" + value.replaceAll("'", `'"'"'`) + "'";
+}
+
 /**
  * @typedef {import("../../@types/perf").RecordingSettings} RecordingSettings
  *
@@ -46,15 +67,47 @@ const {
  * @property {RecordingSettings} recordingSettings
  *
  * @typedef {ButtonStateProps} ButtonProps
+ *
+ * @typedef {Object} ButtonState
+ * @property {boolean} hasDeveloperOptions
  */
 
 /**
  * This component implements the button that triggers the menu that makes it
  * possible to show more actions.
- * @extends {React.PureComponent<ButtonProps>}
+ * @extends {React.PureComponent<ButtonProps, ButtonState>}
  */
 class MoreActionsButtonImpl extends PureComponent {
+  state = {
+    hasDeveloperOptions: Services.prefs.getBoolPref(
+      ABOUTPROFILING_HAS_DEVELOPER_OPTIONS_PREF,
+      false
+    ),
+  };
+
+  componentDidMount() {
+    Services.prefs.addObserver(
+      ABOUTPROFILING_HAS_DEVELOPER_OPTIONS_PREF,
+      this.onHasDeveloperOptionsPrefChanges
+    );
+  }
+
+  componentWillUnmount() {
+    Services.prefs.removeObserver(
+      ABOUTPROFILING_HAS_DEVELOPER_OPTIONS_PREF,
+      this.onHasDeveloperOptionsPrefChanges
+    );
+  }
   _menuRef = createRef();
+
+  onHasDeveloperOptionsPrefChanges = () => {
+    this.setState({
+      hasDeveloperOptions: Services.prefs.getBoolPref(
+        ABOUTPROFILING_HAS_DEVELOPER_OPTIONS_PREF,
+        false
+      ),
+    });
+  };
 
   /**
    * See the part "Showing the menu" in
@@ -92,6 +145,28 @@ class MoreActionsButtonImpl extends PureComponent {
     restartBrowserWithEnvironmentVariable(envVariables);
   };
 
+  onCopyEnvVariables = async () => {
+    const envVariables =
+      this.getEnvironmentVariablesForStartupFromRecordingSettings();
+    const envString = Object.entries(envVariables)
+      .map(([key, value]) => `${key}=${encodeShellValue(value)}`)
+      .join(" ");
+    await navigator.clipboard.writeText(envString);
+  };
+
+  onCopyTestVariables = async () => {
+    const { interval, entries, threads, features } =
+      this.props.recordingSettings;
+
+    const envString =
+      "--gecko-profile" +
+      ` --gecko-profile-interval ${interval}` +
+      ` --gecko-profile-entries ${entries}` +
+      ` --gecko-profile-features ${encodeShellValue(features.join(","))}` +
+      ` --gecko-profile-threads ${encodeShellValue(threads.join(","))}`;
+    await navigator.clipboard.writeText(envString);
+  };
+
   render() {
     return h(
       Fragment,
@@ -119,7 +194,27 @@ class MoreActionsButtonImpl extends PureComponent {
             { onClick: this.onRestartWithProfiling },
             "Restart Firefox with startup profiling enabled"
           )
-        )
+        ),
+        this.state.hasDeveloperOptions
+          ? Localized(
+              { id: "perftools-menu-more-actions-copy-for-startup" },
+              h(
+                "panel-item",
+                { onClick: this.onCopyEnvVariables },
+                "Copy environment variables for startup profiling"
+              )
+            )
+          : null,
+        this.state.hasDeveloperOptions
+          ? Localized(
+              { id: "perftools-menu-more-actions-copy-for-perf-tests" },
+              h(
+                "panel-item",
+                { onClick: this.onCopyTestVariables },
+                "Copy parameters for mach try perf"
+              )
+            )
+          : null
       )
     );
   }
