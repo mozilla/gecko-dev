@@ -173,6 +173,14 @@ class DownloadRobot {
         testRule.onNodeWithText(text = testRule.activity.getString(R.string.download_empty_message_2))
             .assertIsDisplayed()
         Log.i(TAG, "verifyEmptyDownloadsList: Verified that the \"No downloads yet\" list message is displayed")
+
+        Log.i(TAG, "verifyEmptyDownloadsList: Waiting for $waitingTime until the \"Files you download will appear here.\" list message exists")
+        testRule.waitUntilAtLeastOneExists(hasText(testRule.activity.getString(R.string.download_empty_description)), waitingTime)
+        Log.i(TAG, "verifyEmptyDownloadsList: Waited for $waitingTime until the \"Files you download will appear here.\" list message exists")
+        Log.i(TAG, "verifyEmptyDownloadsList: Trying to verify that the \"Files you download will appear here.\" list message is displayed")
+        testRule.onNodeWithText(text = testRule.activity.getString(R.string.download_empty_description))
+            .assertIsDisplayed()
+        Log.i(TAG, "verifyEmptyDownloadsList: Verified that the \"Files you download will appear here.\" list message is displayed")
     }
 
     fun deleteDownloadedItem(testRule: HomeActivityComposeTestRule, fileName: String) {

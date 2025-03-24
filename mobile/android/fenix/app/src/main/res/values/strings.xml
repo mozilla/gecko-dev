@@ -1339,7 +1339,7 @@
     <!-- Text shown when no download exists -->
     <string name="download_empty_message_2">No downloads yet</string>
     <!-- Text description shown when no download exists -->
-    <string name="download_empty_description" tools:ignore="UnusedResources">Files you download will appear here.</string>
+    <string name="download_empty_description">Files you download will appear here.</string>
     <!-- History multi select title in app bar
     %1$d is the number of downloads selected -->
     <string name="download_multi_select_title">%1$d selected</string>

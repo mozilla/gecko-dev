@@ -379,14 +379,23 @@ private fun DownloadChip(
 
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
-    Box(
+    Column(
         modifier = modifier,
-        contentAlignment = Alignment.Center,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = stringResource(id = R.string.download_empty_message_2),
-            color = FirefoxTheme.colors.textSecondary,
-            style = FirefoxTheme.typography.body1,
+            color = FirefoxTheme.colors.textPrimary,
+            style = FirefoxTheme.typography.headline7,
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(id = R.string.download_empty_description),
+            color = FirefoxTheme.colors.textPrimary,
+            style = FirefoxTheme.typography.body2,
         )
     }
 }
