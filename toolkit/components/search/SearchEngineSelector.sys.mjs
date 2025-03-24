@@ -539,10 +539,11 @@ export class SearchEngineSelector {
   }
 
   _sort(defaultEngine, defaultPrivateEngine, a, b) {
-    return (
+    let order =
       this._sortIndex(b, defaultEngine, defaultPrivateEngine) -
-      this._sortIndex(a, defaultEngine, defaultPrivateEngine)
-    );
+      this._sortIndex(a, defaultEngine, defaultPrivateEngine);
+
+    return order || a.name.localeCompare(b.name);
   }
 
   /**

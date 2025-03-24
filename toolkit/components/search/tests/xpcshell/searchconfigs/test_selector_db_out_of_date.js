@@ -63,7 +63,7 @@ add_task(async function test_selector_db_out_of_date() {
 
   Assert.deepEqual(
     result.engines.map(e => e.identifier),
-    ["google", "ddg", "bing", "wikipedia"],
+    ["google", "bing", "ddg", "wikipedia"],
     "Should have returned the correct data."
   );
 });

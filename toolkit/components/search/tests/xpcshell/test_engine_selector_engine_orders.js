@@ -200,8 +200,8 @@ add_task(async function test_selector_match_engine_orders() {
       locale: "en-CA",
       region: "CA",
     },
-    ["default-engine", "b-engine", "a-engine", "c-engine"],
-    "Should be in the same engine order as the config when there's no engine order environments matched."
+    ["default-engine", "a-engine", "b-engine", "c-engine"],
+    "Should be sorted in alphabetical order when there's no matching environments."
   );
 });
 
