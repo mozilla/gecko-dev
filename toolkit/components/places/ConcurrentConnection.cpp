@@ -274,7 +274,9 @@ NS_IMETHODIMP ConcurrentConnection::HandleError(mozIStorageError* aError) {
 // mozIStorageStatementCallback
 NS_IMETHODIMP ConcurrentConnection::HandleCompletion(uint16_t aReason) {
   // This is only invoked for PRAGMA user_version.
-  if (aReason == mozIStorageStatementCallback::REASON_FINISHED) {
+  // Note mConn may have been destroyed at this point, for example during
+  // shutdown. In that case we just do nothing.
+  if (mConn && aReason == mozIStorageStatementCallback::REASON_FINISHED) {
     // If the schema version is not up to date we'll just retry later, once
     // Places initialization is complete.
     if (mSchemaVersion == nsINavHistoryService::DATABASE_SCHEMA_VERSION) {
