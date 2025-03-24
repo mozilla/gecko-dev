@@ -1820,6 +1820,12 @@ class BrowsingContextModule extends RootBiDiModule {
       userContext,
     };
 
+    const window = context.top.embedderElement?.ownerGlobal;
+    // TODO: Bug 1953743. Remove the check when "clientWindow" property can
+    // be set in all the cases.
+    if (window) {
+      contextInfo.clientWindow = lazy.windowManager.getIdForWindow(window);
+    }
     if (includeParentId) {
       // Only emit the parent id for the top-most browsing context.
       const parentId = lazy.TabManager.getIdForBrowsingContext(context.parent);
