@@ -1279,6 +1279,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoSession.Loader referrer(@NonNull GeckoSession);
     method @NonNull public GeckoSession.Loader referrer(@NonNull Uri);
     method @NonNull public GeckoSession.Loader referrer(@NonNull String);
+    method @NonNull public GeckoSession.Loader textDirectiveUserActivation(boolean);
     method @NonNull public GeckoSession.Loader uri(@NonNull String);
     method @NonNull public GeckoSession.Loader uri(@NonNull Uri);
   }

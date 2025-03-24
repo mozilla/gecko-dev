@@ -2034,6 +2034,7 @@ public class GeckoSession {
     private boolean mIsDataUri;
     private @HeaderFilter int mHeaderFilter = HEADER_FILTER_CORS_SAFELISTED;
     private @Nullable String mOriginalInput;
+    private boolean mTextDirectiveUserActivation;
 
     private static @NonNull String createDataUri(
         @NonNull final byte[] bytes, @Nullable final String mimeType) {
@@ -2073,7 +2074,8 @@ public class GeckoSession {
           && equals(mHeaders, other.mHeaders)
           && equals(mLoadFlags, other.mLoadFlags)
           && equals(mIsDataUri, other.mIsDataUri)
-          && equals(mHeaderFilter, other.mHeaderFilter);
+          && equals(mHeaderFilter, other.mHeaderFilter)
+          && equals(mTextDirectiveUserActivation, other.mTextDirectiveUserActivation);
     }
 
     /**
@@ -2233,6 +2235,19 @@ public class GeckoSession {
       mOriginalInput = originalInput;
       return this;
     }
+
+    /**
+     * Set the text directive user activation for the document opened in the window.
+     *
+     * @param textDirectiveUserActivation true if the first text directive wants to be scrolled into
+     *     view.
+     * @return this {@link Loader} instance.
+     */
+    @NonNull
+    public Loader textDirectiveUserActivation(final boolean textDirectiveUserActivation) {
+      mTextDirectiveUserActivation = textDirectiveUserActivation;
+      return this;
+    }
   }
 
   /**
@@ -2301,6 +2316,7 @@ public class GeckoSession {
               msg.putString("uri", request.mUri);
               msg.putInt("flags", loadFlags);
               msg.putInt("headerFilter", request.mHeaderFilter);
+              msg.putBoolean("textDirectiveUserActivation", request.mTextDirectiveUserActivation);
 
               if (request.mReferrerUri != null) {
                 msg.putString("referrerUri", request.mReferrerUri);

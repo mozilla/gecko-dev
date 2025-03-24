@@ -176,6 +176,7 @@ export class GeckoViewNavigation extends GeckoViewModule {
           headers,
           headerFilter,
           originalInput,
+          textDirectiveUserActivation,
         } = aData;
 
         let navFlags = convertFlags(flags);
@@ -275,6 +276,7 @@ export class GeckoViewNavigation extends GeckoViewModule {
           triggeringPrincipal,
           headers: additionalHeaders,
           csp,
+          textDirectiveUserActivation,
           schemelessInput,
         });
         break;

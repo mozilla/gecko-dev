@@ -3228,4 +3228,37 @@ class NavigationDelegateTest : BaseSessionTest() {
             }
         })
     }
+
+    @Test
+    fun textDirectiveUserActivation() {
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "dom.text_fragments.enabled" to true,
+            ),
+        )
+
+        val session0 = sessionRule.createOpenSession()
+        session0.load(
+            Loader()
+                .uri(createTestUrl(HELLO_HTML_PATH)),
+        )
+        session0.waitForPageStop()
+
+        for (activation in listOf(false, true)) {
+            val session = sessionRule.createOpenSession()
+            session.load(
+                Loader()
+                    .uri(createTestUrl(TRANSLATIONS_ES + "#:~:text=moverse"))
+                    .referrer(session0)
+                    .textDirectiveUserActivation(activation),
+            )
+            session.waitForPageStop()
+
+            if (activation) {
+                assertThat("Scroll offset isn't 0", session.evaluateJS("window.scrollY") as Double, not(equalTo(0.0)))
+            } else {
+                assertThat("Scroll offset is 0", session.evaluateJS("window.scrollY") as Double, equalTo(0.0))
+            }
+        }
+    }
 }
