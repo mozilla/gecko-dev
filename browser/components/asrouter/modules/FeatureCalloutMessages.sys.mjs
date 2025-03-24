@@ -1894,10 +1894,8 @@ const MESSAGES = () => {
                   {
                     type: "action",
                     label: {
-                      raw: {
-                        string_id:
-                          "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
-                      },
+                      string_id:
+                        "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
                     },
                     action: {
                       type: "SET_PREF",
@@ -1914,10 +1912,8 @@ const MESSAGES = () => {
                   {
                     type: "action",
                     label: {
-                      raw: {
-                        string_id:
-                          "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
-                      },
+                      string_id:
+                        "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
                     },
                     action: {
                       type: "MULTI_ACTION",
@@ -1954,10 +1950,8 @@ const MESSAGES = () => {
                   {
                     type: "action",
                     label: {
-                      raw: {
-                        string_id:
-                          "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
-                      },
+                      string_id:
+                        "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
                     },
                     action: {
                       type: "OPEN_ABOUT_PAGE",
@@ -2150,10 +2144,8 @@ const MESSAGES = () => {
                   {
                     type: "action",
                     label: {
-                      raw: {
-                        string_id:
-                          "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
-                      },
+                      string_id:
+                        "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
                     },
                     action: {
                       type: "SET_PREF",
@@ -2170,10 +2162,8 @@ const MESSAGES = () => {
                   {
                     type: "action",
                     label: {
-                      raw: {
-                        string_id:
-                          "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
-                      },
+                      string_id:
+                        "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
                     },
                     action: {
                       type: "MULTI_ACTION",
@@ -2210,10 +2200,8 @@ const MESSAGES = () => {
                   {
                     type: "action",
                     label: {
-                      raw: {
-                        string_id:
-                          "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
-                      },
+                      string_id:
+                        "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
                     },
                     action: {
                       type: "OPEN_ABOUT_PAGE",
