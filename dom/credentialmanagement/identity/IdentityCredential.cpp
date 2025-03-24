@@ -10,6 +10,7 @@
 #include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/IdentityNetworkHelpers.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/Request.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/Components.h"
@@ -1410,6 +1411,183 @@ IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
       new Request(global, std::move(internalRequest), nullptr);
   return IdentityNetworkHelpers::FetchJSONStructure<
       IdentityProviderClientMetadata>(request);
+}
+
+// static
+already_AddRefed<Promise> IdentityCredential::Disconnect(
+    const GlobalObject& aGlobal,
+    const IdentityCredentialDisconnectOptions& aOptions, ErrorResult& aRv) {
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  if (!global) {
+    aRv.ThrowNotAllowedError("Must be called on an appropriate global object.");
+    return nullptr;
+  }
+  nsPIDOMWindowInner* window = global->GetAsInnerWindow();
+  if (!window) {
+    aRv.ThrowNotAllowedError("Must be called on a window.");
+    return nullptr;
+  }
+  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (NS_WARN_IF(aRv.Failed() || !promise)) {
+    return nullptr;
+  }
+  RefPtr<WindowGlobalChild> wgc = window->GetWindowGlobalChild();
+  MOZ_ASSERT(wgc);
+  wgc->SendDisconnectIdentityCredential(aOptions)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise](nsresult aResult) {
+        if (aResult == NS_ERROR_DOM_MALFORMED_URI) {
+          promise->MaybeRejectWithInvalidStateError(
+              "Error parsing the provided URI");
+        } else if (NS_FAILED(aResult)) {
+          promise->MaybeRejectWithNetworkError(
+              "Error sending disconnect request");
+        } else {
+          promise->MaybeResolveWithUndefined();
+        }
+      },
+      [promise](mozilla::ipc::ResponseRejectReason aError) {
+        promise->MaybeRejectWithUnknownError("Unknown failure");
+      });
+  return promise.forget();
+}
+
+// static
+RefPtr<MozPromise<bool, nsresult, true>>
+IdentityCredential::DisconnectInMainProcess(
+    nsIPrincipal* aDocumentPrincipal,
+    const IdentityCredentialDisconnectOptions& aOptions) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  nsresult rv;
+  nsCOMPtr<nsIIdentityCredentialStorageService> icStorageService =
+      mozilla::components::IdentityCredentialStorageService::Service(&rv);
+  if (NS_WARN_IF(!icStorageService)) {
+    return MozPromise<bool, nsresult, true>::CreateAndReject(rv, __func__);
+  }
+
+  RefPtr<MozPromise<bool, nsresult, true>::Private> resultPromise =
+      new MozPromise<bool, nsresult, true>::Private(__func__);
+
+  RefPtr<nsIURI> configURI;
+  rv = NS_NewURI(getter_AddRefs(configURI), aOptions.mConfigURL.Value());
+  if (NS_FAILED(rv)) {
+    resultPromise->Reject(NS_ERROR_DOM_MALFORMED_URI, __func__);
+    return resultPromise;
+  }
+
+  nsCOMPtr<nsIPrincipal> principal(aDocumentPrincipal);
+  nsCOMPtr<nsIPrincipal> idpPrincipal = BasePrincipal::CreateContentPrincipal(
+      configURI, principal->OriginAttributesRef());
+
+  IdentityCredential::CheckRootManifest(aDocumentPrincipal, aOptions)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [aOptions, principal](bool valid) {
+            if (valid) {
+              return IdentityCredential::FetchInternalManifest(principal,
+                                                               aOptions);
+            }
+            return IdentityCredential::GetManifestPromise::CreateAndReject(
+                NS_ERROR_FAILURE, __func__);
+          },
+          [](nsresult error) {
+            return IdentityCredential::GetManifestPromise::CreateAndReject(
+                error, __func__);
+          })
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [resultPromise, aOptions, icStorageService, configURI, idpPrincipal,
+           principal](const IdentityProviderAPIConfig& aConfig) {
+            if (!aConfig.mDisconnect_endpoint.WasPassed()) {
+              resultPromise->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
+              return MozPromise<DisconnectedAccount, nsresult,
+                                true>::CreateAndReject(NS_OK, __func__);
+            }
+            RefPtr<nsIURI> disconnectURI;
+            nsCString disconnectArgument = aConfig.mDisconnect_endpoint.Value();
+            nsresult rv = NS_NewURI(getter_AddRefs(disconnectURI),
+                                    disconnectArgument, nullptr, configURI);
+            if (NS_FAILED(rv)) {
+              resultPromise->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
+              return MozPromise<DisconnectedAccount, nsresult,
+                                true>::CreateAndReject(NS_OK, __func__);
+            }
+
+            bool connected = false;
+            rv = icStorageService->Connected(principal, idpPrincipal,
+                                             &connected);
+            if (NS_WARN_IF(NS_FAILED(rv)) || !connected) {
+              resultPromise->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
+              return MozPromise<DisconnectedAccount, nsresult,
+                                true>::CreateAndReject(NS_OK, __func__);
+            }
+
+            // Create a new request
+            URLParams bodyValue;
+            bodyValue.Set("client_id"_ns, aOptions.mClientId.Value());
+            bodyValue.Set("account_hint"_ns, aOptions.mAccountHint);
+            nsAutoCString bodyCString;
+            bodyValue.Serialize(bodyCString, true);
+            return IdentityNetworkHelpers::FetchDisconnectHelper(
+                disconnectURI, bodyCString, principal);
+          },
+          [resultPromise](nsresult aError) {
+            resultPromise->Reject(aError, __func__);
+            // We reject with NS_OK, so that we don't disconnect accounts in the
+            // reject callback here.
+            return MozPromise<DisconnectedAccount, nsresult,
+                              true>::CreateAndReject(NS_OK, __func__);
+          })
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [icStorageService, principal, idpPrincipal,
+           resultPromise](const DisconnectedAccount& token) {
+            bool registered = false, notUsed = false;
+            nsresult rv = icStorageService->GetState(principal, idpPrincipal,
+                                                     token.mAccount_id,
+                                                     &registered, &notUsed);
+            if (NS_WARN_IF(NS_FAILED(rv))) {
+              resultPromise->Reject(NS_ERROR_UNEXPECTED, __func__);
+              return;
+            }
+            if (registered) {
+              nsresult rv = icStorageService->Delete(principal, idpPrincipal,
+                                                     token.mAccount_id);
+              if (NS_WARN_IF(NS_FAILED(rv))) {
+                resultPromise->Reject(NS_ERROR_UNEXPECTED, __func__);
+                return;
+              }
+              resultPromise->Resolve(true, __func__);
+            } else {
+              nsresult rv =
+                  icStorageService->Disconnect(principal, idpPrincipal);
+              if (NS_WARN_IF(NS_FAILED(rv))) {
+                resultPromise->Reject(NS_ERROR_UNEXPECTED, __func__);
+                return;
+              }
+              resultPromise->Resolve(true, __func__);
+            }
+            return;
+          },
+          [icStorageService, principal, idpPrincipal,
+           resultPromise](nsresult error) {
+            // Bail out if we already rejected the result above.
+            if (error == NS_OK) {
+              return;
+            }
+
+            // If we issued the request and it failed, fall back
+            // to clearing all.
+            nsresult rv = icStorageService->Disconnect(principal, idpPrincipal);
+            if (NS_WARN_IF(NS_FAILED(rv))) {
+              resultPromise->Reject(NS_ERROR_UNEXPECTED, __func__);
+              return;
+            }
+            resultPromise->Resolve(true, __func__);
+            return;
+          });
+
+  return resultPromise;
 }
 
 // static

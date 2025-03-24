@@ -2,15 +2,19 @@
 prefs = [
  "dom.security.credentialmanagement.identity.enabled=true",
  "dom.security.credentialmanagement.identity.heavyweight.enabled=true",
- "dom.security.credentialmanagement.identity.ignore_well_known=true",
+ "dom.security.credentialmanagement.identity.test_ignore_well_known=true",
  "privacy.antitracking.enableWebcompat=false", # disables opener heuristic
 ]
 scheme = "https"
 support-files = [
   "server_accounts.json",
   "server_accounts.json^headers^",
+  "server_disconnect.json",
+  "server_disconnect.json^headers^",
   "server_idtoken.json",
   "server_idtoken.json^headers^",
+  "server_manifest_disconnect_failure.json",
+  "server_manifest_disconnect_failure.json^headers^",
   "server_manifest.json",
   "server_manifest.json^headers^",
   "server_metadata.json",
@@ -18,5 +22,7 @@ support-files = [
 ]
 
 ["browser_close_prompt_on_timeout.js"]
+
+["browser_disconnect.js"]
 
 ["browser_single_concurrent_identity_request.js"]

@@ -35,6 +35,10 @@ class IdentityNetworkHelpers {
   FetchTokenHelper(nsIURI* aAccountsEndpoint, const nsCString& aBody,
                    nsIPrincipal* aTriggeringPrincipal);
 
+  static RefPtr<MozPromise<DisconnectedAccount, nsresult, true>>
+  FetchDisconnectHelper(nsIURI* aAccountsEndpoint, const nsCString& aBody,
+                        nsIPrincipal* aTriggeringPrincipal);
+
   // Helper to get a JSON structure via a Fetch.
   // The Request must already be built and T should be a webidl type with
   // annotation GenerateConversionToJS so it has an Init method.

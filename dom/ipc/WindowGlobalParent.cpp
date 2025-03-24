@@ -1474,6 +1474,17 @@ IPCResult WindowGlobalParent::RecvStoreIdentityCredential(
   return IPC_OK();
 }
 
+IPCResult WindowGlobalParent::RecvDisconnectIdentityCredential(
+    const IdentityCredentialDisconnectOptions& aOptions,
+    const DisconnectIdentityCredentialResolver& aResolver) {
+  IdentityCredential::DisconnectInMainProcess(DocumentPrincipal(), aOptions)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [aResolver](const bool& aResult) { aResolver(NS_OK); },
+          [aResolver](nsresult aErr) { aResolver(aErr); });
+  return IPC_OK();
+}
+
 IPCResult WindowGlobalParent::RecvPreventSilentAccess(
     const PreventSilentAccessResolver& aResolver) {
   nsIPrincipal* principal = DocumentPrincipal();

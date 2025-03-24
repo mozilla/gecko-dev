@@ -615,6 +615,34 @@ nsresult IdentityCredentialStorageService::DeleteData(
 }
 
 // static
+nsresult IdentityCredentialStorageService::DisconnectData(
+    mozIStorageConnection* aDatabaseConnection, nsIPrincipal* aRPPrincipal,
+    nsIPrincipal* aIDPPrincipal) {
+  NS_ENSURE_ARG_POINTER(aDatabaseConnection);
+  NS_ENSURE_ARG_POINTER(aRPPrincipal);
+  NS_ENSURE_ARG_POINTER(aIDPPrincipal);
+  auto constexpr deleteQuery =
+      "DELETE FROM identity WHERE rpOrigin=?1 AND idpOrigin=?2"_ns;
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv =
+      aDatabaseConnection->CreateStatement(deleteQuery, getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCString rpOrigin;
+  rv = aRPPrincipal->GetOrigin(rpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCString idpOrigin;
+  rv = aIDPPrincipal->GetOrigin(idpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindUTF8StringByIndex(0, rpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindUTF8StringByIndex(1, idpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
+// static
 nsresult IdentityCredentialStorageService::UpsertLightweightData(
     mozIStorageConnection* aDatabaseConnection,
     const dom::IPCIdentityCredential& aData) {
@@ -988,6 +1016,90 @@ NS_IMETHODIMP IdentityCredentialStorageService::Delete(
                                nsresult rv = DeleteData(
                                    self->mDiskDatabaseConnection, rpPrincipal,
                                    idpPrincipal, credentialID);
+                               self->DecrementPendingWrites();
+                               NS_ENSURE_SUCCESS_VOID(rv);
+                             }),
+      NS_DISPATCH_EVENT_MAY_BLOCK);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP IdentityCredentialStorageService::Connected(
+    nsIPrincipal* aRPPrincipal, nsIPrincipal* aIDPPrincipal, bool* aConnected) {
+  AssertIsOnMainThread();
+  NS_ENSURE_ARG_POINTER(aRPPrincipal);
+  NS_ENSURE_ARG_POINTER(aIDPPrincipal);
+  *aConnected = false;
+
+  nsresult rv;
+  rv = WaitForInitialization();
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = IdentityCredentialStorageService::ValidatePrincipal(aRPPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = IdentityCredentialStorageService::ValidatePrincipal(aIDPPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  auto constexpr selectQuery =
+      "SELECT registered FROM identity WHERE rpOrigin=?1 AND "
+      "idpOrigin=?2"_ns;
+  nsCOMPtr<mozIStorageStatement> stmt;
+  rv = mMemoryDatabaseConnection->CreateStatement(selectQuery,
+                                                  getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString rpOrigin;
+  nsCString idpOrigin;
+  rv = aRPPrincipal->GetOrigin(rpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aIDPPrincipal->GetOrigin(idpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->BindUTF8StringByIndex(0, rpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindUTF8StringByIndex(1, idpOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool hasResult;
+  // If we find a result, return it
+  if (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
+    int64_t registeredInt;
+    rv = stmt->GetInt64(0, &registeredInt);
+    NS_ENSURE_SUCCESS(rv, rv);
+    *aConnected = true;
+    return NS_OK;
+  }
+
+  *aConnected = false;
+  return NS_OK;
+}
+
+NS_IMETHODIMP IdentityCredentialStorageService::Disconnect(
+    nsIPrincipal* aRPPrincipal, nsIPrincipal* aIDPPrincipal) {
+  AssertIsOnMainThread();
+  NS_ENSURE_ARG_POINTER(aRPPrincipal);
+  NS_ENSURE_ARG_POINTER(aIDPPrincipal);
+
+  nsresult rv;
+  rv = WaitForInitialization();
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = IdentityCredentialStorageService::ValidatePrincipal(aRPPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = IdentityCredentialStorageService::ValidatePrincipal(aIDPPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = DisconnectData(mMemoryDatabaseConnection, aRPPrincipal, aIDPPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  IncrementPendingWrites();
+  RefPtr<IdentityCredentialStorageService> self = this;
+  RefPtr<nsIPrincipal> rpPrincipal = aRPPrincipal;
+  RefPtr<nsIPrincipal> idpPrincipal = aIDPPrincipal;
+  mBackgroundThread->Dispatch(
+      NS_NewRunnableFunction("IdentityCredentialStorageService::Init",
+                             [self, rpPrincipal, idpPrincipal]() {
+                               nsresult rv =
+                                   DisconnectData(self->mDiskDatabaseConnection,
+                                                  rpPrincipal, idpPrincipal);
                                self->DecrementPendingWrites();
                                NS_ENSURE_SUCCESS_VOID(rv);
                              }),

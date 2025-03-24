@@ -36,6 +36,7 @@ using mozilla::UseCounters from "mozilla/UseCounter.h";
 using mozilla::dom::MaybeDiscardedWindowContext from "mozilla/dom/WindowContext.h";
 [RefCounted] using mozilla::dom::SessionStoreRestoreData from "mozilla/dom/SessionStoreRestoreData.h";
 using mozilla::dom::CredentialMediationRequirement from "mozilla/dom/CredentialManagementBinding.h";
+using mozilla::dom::IdentityCredentialDisconnectOptions from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::IdentityCredentialInit from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::IdentityCredentialRequestOptions from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::IdentityLoginTargetType from "mozilla/dom/IdentityCredentialBinding.h";
@@ -214,6 +215,7 @@ parent:
       returns (IPCIdentityCredential? identityCredential, nsresult rv);
   async StoreIdentityCredential(IPCIdentityCredential aCredential)
       returns (nsresult rv);
+  async DisconnectIdentityCredential(IdentityCredentialDisconnectOptions aOptions) returns (nsresult rv);
   async PreventSilentAccess() returns (nsresult rv);
 
   async GetStorageAccessPermission(bool aIncludeIdentityCredential) returns(uint32_t permission_action);

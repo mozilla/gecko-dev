@@ -164,4 +164,43 @@ IdentityNetworkHelpers::FetchTokenHelper(nsIURI* aAccountsEndpoint,
   return result;
 }
 
+RefPtr<MozPromise<DisconnectedAccount, nsresult, true>>
+IdentityNetworkHelpers::FetchDisconnectHelper(
+    nsIURI* aAccountsEndpoint, const nsCString& aBody,
+    nsIPrincipal* aTriggeringPrincipal) {
+  RefPtr<MozPromise<DisconnectedAccount, nsresult, true>::Private> result =
+      new MozPromise<DisconnectedAccount, nsresult, true>::Private(__func__);
+  nsresult rv;
+  nsCOMPtr<nsICredentialChooserService> ccService =
+      mozilla::components::CredentialChooserService::Service(&rv);
+  if (NS_FAILED(rv) || !ccService) {
+    result->Reject(rv, __func__);
+    return result;
+  }
+
+  RefPtr<Promise> serviceResult;
+  rv = ccService->FetchToken(aAccountsEndpoint, aBody.get(),
+                             aTriggeringPrincipal,
+                             getter_AddRefs(serviceResult));
+  if (NS_FAILED(rv)) {
+    result->Reject(rv, __func__);
+    return result;
+  }
+  serviceResult->AddCallbacksWithCycleCollectedArgs(
+      [result](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult&) {
+        DisconnectedAccount value;
+        bool success = value.Init(aCx, aValue);
+        if (!success) {
+          result->Reject(NS_ERROR_INVALID_ARG, __func__);
+          return;
+        }
+        result->Resolve(value, __func__);
+      },
+      [result](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult&) {
+        result->Reject(Promise::TryExtractNSResultFromRejectionValue(aValue),
+                       __func__);
+      });
+  return result;
+}
+
 }  // namespace mozilla::dom

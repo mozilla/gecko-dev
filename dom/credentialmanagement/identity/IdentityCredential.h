@@ -91,6 +91,14 @@ class IdentityCredential final : public Credential {
       const GlobalObject& aGlobal, const IdentityCredentialInit& aInit,
       ErrorResult& aRv);
 
+  static already_AddRefed<Promise> Disconnect(
+      const GlobalObject& aGlobal,
+      const IdentityCredentialDisconnectOptions& aOptions, ErrorResult& aRv);
+
+  static RefPtr<MozPromise<bool, nsresult, true>> DisconnectInMainProcess(
+      nsIPrincipal* aDocumentPrincipal,
+      const IdentityCredentialDisconnectOptions& aOptions);
+
   // Getter and setter for the token member of this class
   void GetToken(nsAString& aToken) const;
   void SetToken(const nsAString& aToken);

@@ -70,6 +70,69 @@ add_task(async function test_insert_and_delete() {
   IdentityCredentialStorageService.clear();
 });
 
+add_task(async function test_connected_and_disconnected() {
+  let rpPrincipal = Services.scriptSecurityManager.createContentPrincipal(
+    Services.io.newURI("https://rp.com/"),
+    {}
+  );
+  let idpPrincipal = Services.scriptSecurityManager.createContentPrincipal(
+    Services.io.newURI("https://idp.com/"),
+    {}
+  );
+  const credentialID = "ID";
+
+  // Test initial value
+  let registered = {};
+  let allowLogout = {};
+  IdentityCredentialStorageService.getState(
+    rpPrincipal,
+    idpPrincipal,
+    credentialID,
+    registered,
+    allowLogout
+  );
+  Assert.ok(!registered.value, "Should not be registered initially.");
+  Assert.ok(!allowLogout.value, "Should not allow logout initially.");
+
+  // Set and read a value
+  IdentityCredentialStorageService.setState(
+    rpPrincipal,
+    idpPrincipal,
+    credentialID,
+    true,
+    true
+  );
+  IdentityCredentialStorageService.getState(
+    rpPrincipal,
+    idpPrincipal,
+    credentialID,
+    registered,
+    allowLogout
+  );
+  Assert.ok(registered.value, "Should be registered by set.");
+  Assert.ok(allowLogout.value, "Should now allow logout by set.");
+
+  let connected = {};
+  IdentityCredentialStorageService.connected(
+    rpPrincipal,
+    idpPrincipal,
+    connected
+  );
+  Assert.ok(connected.value, "Should be connected after insertion.");
+  IdentityCredentialStorageService.disconnect(rpPrincipal, idpPrincipal);
+
+  IdentityCredentialStorageService.getState(
+    rpPrincipal,
+    idpPrincipal,
+    credentialID,
+    registered,
+    allowLogout
+  );
+  Assert.ok(!registered.value, "Should not be registered after disconnect.");
+  Assert.ok(!allowLogout.value, "Should not allow logout after disconnect.");
+  IdentityCredentialStorageService.clear();
+});
+
 add_task(async function test_basedomain_delete() {
   let rpPrincipal = Services.scriptSecurityManager.createContentPrincipal(
     Services.io.newURI("https://rp.com/"),

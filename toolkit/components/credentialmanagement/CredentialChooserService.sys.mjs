@@ -438,4 +438,29 @@ export class CredentialChooserService {
     let response = await fetch(request);
     return response.json();
   }
+
+  /**
+   * A helper function that performs precisely the right Fetch for the disconnect request for FedCM.
+   *
+   * @param {nsIURI} uri - Well known resource location
+   * @param {string} body - Body to be sent with the fetch, pre-serialized.
+   * @param {nsIPrincipal} triggeringPrincipal - Principal of the IDP triggering this request
+   * @returns {Promise} A promise that will be the result of fetching the resource and parsing the body as JSON,
+   *          or reject along the way.
+   */
+  async fetchDisconnect(uri, body, triggeringPrincipal) {
+    let request = new Request(uri.spec, {
+      mode: "cors",
+      method: "POST",
+      redirect: "error",
+      triggeringPrincipal,
+      body,
+      credentials: "include",
+      headers: [["Content-type", "application/x-www-form-urlencoded"]],
+    });
+    // This overrides the Sec-Fetch-Dest to `webidentity` rather than `empty`
+    request.overrideContentPolicyType(Ci.nsIContentPolicy.TYPE_WEB_IDENTITY);
+    let response = await fetch(request);
+    return response.json();
+  }
 }

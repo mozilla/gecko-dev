@@ -116,6 +116,10 @@ class IdentityCredentialStorageService final
                              nsIPrincipal* aIDPPrincipal,
                              nsACString const& aCredentialID);
 
+  static nsresult DisconnectData(mozIStorageConnection* aDatabaseConnection,
+                                 nsIPrincipal* aRPPrincipal,
+                                 nsIPrincipal* aIDPPrincipal);
+
   static nsresult ClearData(mozIStorageConnection* aDatabaseConnection);
 
   static nsresult UpsertLightweightData(
