@@ -231,13 +231,11 @@
 
     let searchField = doc.createElement("input");
     searchField.setAttribute("type", "text");
-    searchField.setAttribute("style", "width: 10em");
-    searchField.classList.add("CodeMirror-search-field");
+    searchField.classList.add("cm5-search-replace-input");
     replaceQueryFragment.appendChild(searchField);
 
     let searchHint = doc.createElement("span");
-    searchHint.setAttribute("style", "color: #888");
-    searchHint.classList.add("CodeMirror-search-hint");
+    searchHint.classList.add("cm5-search-replace-hint");
     searchHint.textContent = "(Use /re/ syntax for regexp search)";
     replaceQueryFragment.appendChild(searchHint);
 
@@ -253,8 +251,7 @@
 
       let replaceField = doc.createElement("input");
       replaceField.setAttribute("type", "text");
-      replaceField.setAttribute("style", "width: 10em");
-      replaceField.classList.add("CodeMirror-search-field");
+      replaceField.classList.add("cm5-search-replace-input");
       replacementQueryFragment.appendChild(replaceField);
 
       dialog(cm, replacementQueryFragment, "Replace with:", "", function(text) {

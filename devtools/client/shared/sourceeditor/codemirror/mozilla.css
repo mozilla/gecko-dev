@@ -148,6 +148,18 @@
   }
 }
 
+.cm5-search-replace-input {
+  width: 10em;
+
+  &:focus {
+    outline: var(--theme-focus-outline) !important;
+  }
+}
+
+.cm5-search-replace-hint {
+  color: var(--theme-text-color-alt);
+  margin-inline-start: 8px;
+}
 
 /* CodeMirror dialogs styling */
 
