@@ -27,10 +27,10 @@ import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.support.ktx.util.URLStringUtils
-import org.mozilla.fenix.AuthenticationStatus
-import org.mozilla.fenix.BiometricAuthenticationManager
 import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.R
+import org.mozilla.fenix.biometricauthentication.AuthenticationStatus
+import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.databinding.FragmentAddLoginBinding
 import org.mozilla.fenix.ext.components

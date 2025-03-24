@@ -7,8 +7,8 @@ package org.mozilla.fenix.lifecycle
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import org.mozilla.fenix.AuthenticationStatus
-import org.mozilla.fenix.BiometricAuthenticationManager
+import org.mozilla.fenix.biometricauthentication.AuthenticationStatus
+import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
 
 /**
  * [LifecycleObserver] to keep track of application visibility.
