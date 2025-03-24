@@ -266,6 +266,7 @@ static int testWasmFuzz(const uint8_t* buf, size_t size) {
         !bytecode->append(&buf[currentIndex], moduleLen)) {
       return 0;
     }
+    BytecodeSource bytecodeSource(bytecode->begin(), bytecode->length());
 
     currentIndex += moduleLen;
 
@@ -280,7 +281,8 @@ static int testWasmFuzz(const uint8_t* buf, size_t size) {
     UniqueChars error;
     UniqueCharsVector warnings;
     SharedModule module =
-        CompileBuffer(*compileArgs, *bytecode, &error, &warnings);
+        CompileBuffer(*compileArgs, BytecodeBufferOrSource(bytecodeSource),
+                      &error, &warnings);
     if (!module) {
       // We should always have a valid module if we are using wasm-smith. Check
       // that no error is reported, signalling an OOM.

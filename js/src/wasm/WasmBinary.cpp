@@ -180,25 +180,25 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
     }
 
     CustomSectionRange secRange;
-    if (!readVarU32(&secRange.nameLength) ||
-        secRange.nameLength > bytesRemain()) {
+    if (!readVarU32(&secRange.name.size) ||
+        secRange.name.size > bytesRemain()) {
       goto fail;
     }
 
     // A custom section name must be valid UTF-8
-    if (!IsUtf8(AsChars(mozilla::Span(cur_, secRange.nameLength)))) {
+    if (!IsUtf8(AsChars(mozilla::Span(cur_, secRange.name.size)))) {
       goto fail;
     }
 
-    secRange.nameOffset = currentOffset();
-    secRange.payloadOffset = secRange.nameOffset + secRange.nameLength;
+    secRange.name.start = currentOffset();
+    secRange.payload.start = secRange.name.end();
 
     uint32_t payloadEnd = (*range)->start + (*range)->size;
-    if (secRange.payloadOffset > payloadEnd) {
+    if (secRange.payload.start > payloadEnd) {
       goto fail;
     }
 
-    secRange.payloadLength = payloadEnd - secRange.payloadOffset;
+    secRange.payload.size = payloadEnd - secRange.payload.start;
 
     // Now that we have a valid custom section, record its offsets in the
     // metadata which can be queried by the user via Module.customSections.
@@ -209,9 +209,9 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
     }
 
     // If this is the expected custom section, we're done.
-    if (!expected || (expectedLength == secRange.nameLength &&
-                      !memcmp(cur_, expected, secRange.nameLength))) {
-      cur_ += secRange.nameLength;
+    if (!expected || (expectedLength == secRange.name.size &&
+                      !memcmp(cur_, expected, secRange.name.size))) {
+      cur_ += secRange.name.size;
       return true;
     }
 

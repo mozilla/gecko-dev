@@ -4169,9 +4169,9 @@ static bool DecodeModuleNameSubsection(Decoder& d,
     return d.fail("failed to read module name length");
   }
 
-  MOZ_ASSERT(d.currentOffset() >= nameSection.payloadOffset);
+  MOZ_ASSERT(d.currentOffset() >= nameSection.payload.start);
   moduleName.offsetInNamePayload =
-      d.currentOffset() - nameSection.payloadOffset;
+      d.currentOffset() - nameSection.payload.start;
 
   const uint8_t* bytes;
   if (!d.readBytes(moduleName.length, &bytes)) {
@@ -4231,9 +4231,9 @@ static bool DecodeFunctionNameSubsection(Decoder& d,
       return false;
     }
 
-    MOZ_ASSERT(d.currentOffset() >= nameSection.payloadOffset);
+    MOZ_ASSERT(d.currentOffset() >= nameSection.payload.start);
     funcName.offsetInNamePayload =
-        d.currentOffset() - nameSection.payloadOffset;
+        d.currentOffset() - nameSection.payload.start;
 
     if (!d.readBytes(funcName.length)) {
       return d.fail("unable to read function name bytes");
@@ -4311,10 +4311,8 @@ bool wasm::DecodeModuleTail(Decoder& d, CodeMetadata* codeMeta,
 
 // Validate algorithm.
 
-bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
+bool wasm::Validate(JSContext* cx, const BytecodeSource& bytecode,
                     const FeatureOptions& options, UniqueChars* error) {
-  Decoder d(bytecode.vector, 0, error);
-
   FeatureArgs features = FeatureArgs::build(cx, options);
   SharedCompileArgs compileArgs = CompileArgs::buildForValidation(features);
   if (!compileArgs) {
@@ -4326,16 +4324,46 @@ bool wasm::Validate(JSContext* cx, const ShareableBytes& bytecode,
   }
   MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
-  if (!DecodeModuleEnvironment(d, codeMeta, moduleMeta)) {
+  Decoder envDecoder(bytecode.envSpan(), bytecode.envRange().start, error);
+  if (!DecodeModuleEnvironment(envDecoder, codeMeta, moduleMeta)) {
     return false;
   }
 
-  if (!DecodeCodeSection(d, codeMeta)) {
-    return false;
-  }
+  if (bytecode.hasCodeSection()) {
+    // DecodeModuleEnvironment will stop and return true if there is an unknown
+    // section before the code section. We must check this and return an error.
+    if (!moduleMeta->codeMeta->codeSectionRange) {
+      envDecoder.fail("unknown section before code section");
+      return false;
+    }
 
-  if (!DecodeModuleTail(d, codeMeta, moduleMeta)) {
-    return false;
+    // Our pre-parse that split the module should ensure that after we've
+    // parsed the environment there are no bytes left.
+    MOZ_RELEASE_ASSERT(envDecoder.done());
+
+    Decoder codeDecoder(bytecode.codeSpan(), bytecode.codeRange().start, error);
+    if (!DecodeCodeSection(codeDecoder, codeMeta)) {
+      return false;
+    }
+    // Our pre-parse that split the module should ensure that after we've
+    // parsed the code section there are no bytes left.
+    MOZ_RELEASE_ASSERT(codeDecoder.done());
+
+    Decoder tailDecoder(bytecode.tailSpan(), bytecode.tailRange().start, error);
+    if (!DecodeModuleTail(tailDecoder, codeMeta, moduleMeta)) {
+      return false;
+    }
+    // Decoding the module tail should consume all remaining bytes.
+    MOZ_RELEASE_ASSERT(tailDecoder.done());
+  } else {
+    if (!DecodeCodeSection(envDecoder, codeMeta)) {
+      return false;
+    }
+    if (!DecodeModuleTail(envDecoder, codeMeta, moduleMeta)) {
+      return false;
+    }
+    // Decoding the module tail should consume all remaining bytes.
+    MOZ_RELEASE_ASSERT(envDecoder.done());
   }
 
   MOZ_ASSERT(!*error, "unreported error in decoding");

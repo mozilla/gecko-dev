@@ -143,7 +143,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // The full bytecode for this module. Only available for debuggable modules.
   // This is only accessible after we've decoded the whole module. This means
   // it is not available while doing a 'tier-1' or 'once' compilation.
-  SharedBytes debugBytecode;
+  BytecodeBuffer debugBytecode;
 
   // An array of hints to use when compiling a call_ref. This is only
   // accessible after we've decoded the code section. This means it is not

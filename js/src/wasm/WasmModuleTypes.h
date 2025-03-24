@@ -688,7 +688,7 @@ struct DataSegment : AtomicRefCounted<DataSegment> {
 
   const InitExpr& offset() const { return *offsetIfActive; }
 
-  [[nodiscard]] bool init(const ShareableBytes& bytecode,
+  [[nodiscard]] bool init(const BytecodeSource& bytecode,
                           const DataSegmentRange& src) {
     memoryIndex = src.memoryIndex;
     if (src.offsetIfActive) {
@@ -698,7 +698,9 @@ struct DataSegment : AtomicRefCounted<DataSegment> {
       }
     }
     MOZ_ASSERT(bytes.length() == 0);
-    return bytes.append(bytecode.begin() + src.bytecodeOffset, src.length);
+    BytecodeSpan span =
+        bytecode.getSpan(BytecodeRange(src.bytecodeOffset, src.length));
+    return bytes.append(span.data(), span.size());
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -714,13 +716,10 @@ using DataSegmentVector = Vector<SharedDataSegment, 0, SystemAllocPolicy>;
 // compilation and stored in wasm::Module.
 
 struct CustomSectionRange {
-  uint32_t nameOffset;
-  uint32_t nameLength;
-  uint32_t payloadOffset;
-  uint32_t payloadLength;
+  BytecodeRange name;
+  BytecodeRange payload;
 
-  WASM_CHECK_CACHEABLE_POD(nameOffset, nameLength, payloadOffset,
-                           payloadLength);
+  WASM_CHECK_CACHEABLE_POD(name, payload);
 };
 
 WASM_DECLARE_CACHEABLE_POD(CustomSectionRange);
