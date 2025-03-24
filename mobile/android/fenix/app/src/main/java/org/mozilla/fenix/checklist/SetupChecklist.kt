@@ -55,7 +55,6 @@ private val shapeChecklist = RoundedCornerShape(size = AcornLayout.AcornCorner.l
  * @param setupChecklistStore The [SetupChecklistStore] used to manage the state of feature.
  * @param title The checklist's title.
  * @param subtitle The checklist's subtitle.
- * @param allTasksCompleted If all tasks are completed.
  * @param labelRemoveChecklistButton The label of the checklist's button to remove it.
  * @param onChecklistItemClicked Gets invoked when the user clicks a check list item.
  * @param onRemoveChecklistButtonClicked Invoked when the remove button is clicked.
@@ -65,7 +64,6 @@ fun SetupChecklist(
     setupChecklistStore: SetupChecklistStore,
     title: String,
     subtitle: String,
-    allTasksCompleted: Boolean,
     labelRemoveChecklistButton: String,
     onChecklistItemClicked: (ChecklistItem) -> Unit,
     onRemoveChecklistButtonClicked: () -> Unit,
@@ -81,11 +79,11 @@ fun SetupChecklist(
             verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.Start,
         ) {
-            Header(title, subtitle)
+            Header(title, subtitle, setupChecklistState.progress)
 
             CheckListView(setupChecklistState.checklistItems, onChecklistItemClicked)
 
-            if (allTasksCompleted) {
+            if (setupChecklistState.progress.allTasksCompleted()) {
                 Divider()
 
                 RemoveChecklistButton(labelRemoveChecklistButton, onRemoveChecklistButtonClicked)
@@ -99,7 +97,11 @@ fun SetupChecklist(
  */
 @Suppress("MagicNumber")
 @Composable
-private fun Header(title: String, subtitle: String) {
+private fun Header(
+    title: String,
+    subtitle: String,
+    progress: Progress,
+) {
     Column(
         modifier = Modifier.padding(
             horizontal = 16.dp,
@@ -124,8 +126,7 @@ private fun Header(title: String, subtitle: String) {
             color = FirefoxTheme.colors.textPrimary,
         )
 
-        // TODO to updated with real values https://bugzilla.mozilla.org/show_bug.cgi?id=1954503
-        ProgressBarSetupChecklistView(6, 3)
+        ProgressBarSetupChecklistView(progress.totalTasks, progress.completedTasks)
     }
 }
 
@@ -293,7 +294,6 @@ private fun SetupChecklistPreview(
                 setupChecklistStore = store,
                 title = "Finish setting up Firefox",
                 subtitle = "Complete all 6 steps to set up Firefox for the best browsing experience.",
-                allTasksCompleted = true,
                 labelRemoveChecklistButton = "Remove checklist",
                 onChecklistItemClicked = { item ->
                     store.dispatch(SetupChecklistAction.ChecklistItemClicked(item))

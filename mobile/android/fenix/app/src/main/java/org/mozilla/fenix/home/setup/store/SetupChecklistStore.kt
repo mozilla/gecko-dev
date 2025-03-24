@@ -9,12 +9,15 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import org.mozilla.fenix.checklist.ChecklistItem
+import org.mozilla.fenix.checklist.Progress
+import org.mozilla.fenix.checklist.getTaskProgress
 
 /**
  * Represents the [State] of the setup checklist feature.
  */
 data class SetupChecklistState(
     val checklistItems: List<ChecklistItem> = emptyList(),
+    val progress: Progress = checklistItems.getTaskProgress(),
 ) : State
 
 /**
@@ -42,8 +45,8 @@ private fun reducer(
     action: SetupChecklistAction,
 ): SetupChecklistState = when (action) {
     is SetupChecklistAction.Init, SetupChecklistAction.Closed -> state
-    is SetupChecklistAction.ChecklistItemClicked -> state.copy(
-        checklistItems = state.checklistItems.map { item ->
+    is SetupChecklistAction.ChecklistItemClicked -> {
+        val updatedItems = state.checklistItems.map { item ->
             // A local variable to clearly distinguish between
             // the item in the list and the item from the action.
             val clickedItem = action.item
@@ -85,8 +88,13 @@ private fun reducer(
                     item
                 }
             }
-        },
-    )
+        }
+
+        state.copy(
+            checklistItems = updatedItems,
+            progress = updatedItems.getTaskProgress(),
+        )
+    }
 }
 
 /**

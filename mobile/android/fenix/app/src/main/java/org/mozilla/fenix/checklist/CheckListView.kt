@@ -149,7 +149,7 @@ private fun Group(
             )
 
             Text(
-                text = "1/1",
+                text = "${group.progress.completedTasks}/${group.progress.totalTasks}",
                 style = FirefoxTheme.typography.body2,
                 color = FirefoxTheme.colors.textSecondary,
             )
