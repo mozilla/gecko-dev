@@ -2791,6 +2791,19 @@ main section {
   text-decoration: none;
 }
 
+.custom-wallpaper-error {
+  padding-block-start: var(--space-xlarge);
+  font-size: var(--font-size-small);
+  display: flex;
+  gap: var(--space-small);
+  align-items: center;
+}
+.custom-wallpaper-error .icon {
+  width: var(--button-size-icon-small);
+  height: var(--button-size-icon-small);
+  fill: var(--icon-color-critical);
+}
+
 :root {
   --newtab-weather-content-font-size: 11px;
   --newtab-weather-sponsor-font-size: 8px;

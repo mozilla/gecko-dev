@@ -52,6 +52,7 @@ export class _WallpaperCategories extends React.PureComponent {
       showColorPicker: false,
       inputType: "radio",
       activeId: null,
+      isCustomWallpaperError: false,
     };
   }
 
@@ -277,6 +278,15 @@ export class _WallpaperCategories extends React.PureComponent {
     fileInput.type = "file";
     fileInput.accept = "image/*"; // only allow image files
 
+    // Catch cancel events
+    fileInput.oncancel = async () => {
+      this.setState({ isCustomWallpaperError: false });
+    };
+
+    // Reset error state when user begins file selection
+    this.setState({ isCustomWallpaperError: false });
+
+    // Fire when user selects a file
     fileInput.onchange = async event => {
       const [file] = event.target.files;
 
@@ -491,6 +501,9 @@ export class _WallpaperCategories extends React.PureComponent {
                         : `wallpaper-input theme-custom-wallpaper`
                     }
                     tabIndex={index === 0 ? 0 : -1}
+                    {...(category === "custom-wallpaper"
+                      ? { "aria-errormessage": "customWallpaperError" }
+                      : {})}
                   />
                   <label htmlFor={category} data-l10n-id={fluent_id}>
                     {fluent_id}
@@ -499,6 +512,15 @@ export class _WallpaperCategories extends React.PureComponent {
               );
             })}
           </fieldset>
+          {this.state.isCustomWallpaperError && (
+            <div className="custom-wallpaper-error" id="customWallpaperError">
+              <span className="icon icon-info"></span>
+              <span
+                data-l10n-id="newtab-wallpaper-error-max-file-size"
+                data-l10n-args={`{"file_size": 10}`}
+              ></span>
+            </div>
+          )}
         </div>
 
         <CSSTransition

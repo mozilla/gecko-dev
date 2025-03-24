@@ -11351,6 +11351,7 @@ const WallpapersSection = (0,external_ReactRedux_namespaceObject.connect)(state 
   };
 })(_WallpapersSection);
 ;// CONCATENATED MODULE: ./content-src/components/WallpapersSection/WallpaperCategories.jsx
+function WallpaperCategories_extends() { WallpaperCategories_extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return WallpaperCategories_extends.apply(this, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11399,7 +11400,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       activeCategoryFluentID: null,
       showColorPicker: false,
       inputType: "radio",
-      activeId: null
+      activeId: null,
+      isCustomWallpaperError: false
     };
   }
   componentDidMount() {
@@ -11583,6 +11585,19 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     fileInput.type = "file";
     fileInput.accept = "image/*"; // only allow image files
 
+    // Catch cancel events
+    fileInput.oncancel = async () => {
+      this.setState({
+        isCustomWallpaperError: false
+      });
+    };
+
+    // Reset error state when user begins file selection
+    this.setState({
+      isCustomWallpaperError: false
+    });
+
+    // Fire when user selects a file
     fileInput.onchange = async event => {
       const [file] = event.target.files;
       if (file) {
@@ -11755,7 +11770,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       }
       return /*#__PURE__*/external_React_default().createElement("div", {
         key: category
-      }, /*#__PURE__*/external_React_default().createElement("input", {
+      }, /*#__PURE__*/external_React_default().createElement("input", WallpaperCategories_extends({
         ref: el => {
           if (el) {
             this.categoryRef[index] = el;
@@ -11770,10 +11785,20 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
         onClick: category !== "custom-wallpaper" ? this.handleCategory : this.handleUpload,
         className: category !== "custom-wallpaper" ? `wallpaper-input` : `wallpaper-input theme-custom-wallpaper`,
         tabIndex: index === 0 ? 0 : -1
-      }), /*#__PURE__*/external_React_default().createElement("label", {
+      }, category === "custom-wallpaper" ? {
+        "aria-errormessage": "customWallpaperError"
+      } : {})), /*#__PURE__*/external_React_default().createElement("label", {
         htmlFor: category,
         "data-l10n-id": fluent_id
       }, fluent_id));
+    })), this.state.isCustomWallpaperError && /*#__PURE__*/external_React_default().createElement("div", {
+      className: "custom-wallpaper-error",
+      id: "customWallpaperError"
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      className: "icon icon-info"
+    }), /*#__PURE__*/external_React_default().createElement("span", {
+      "data-l10n-id": "newtab-wallpaper-error-max-file-size",
+      "data-l10n-args": `{"file_size": 10}`
     }))), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
       in: !!activeCategory,
       timeout: 300,
