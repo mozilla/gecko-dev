@@ -11,7 +11,6 @@
 #include <mach/vm_map.h>
 #include <mach/mach_port.h>
 #if defined(XP_IOS)
-#  include <prtypes.h>
 #  include <mach/vm_map.h>
 #  define mach_vm_address_t vm_address_t
 #  define mach_vm_map vm_map
@@ -28,6 +27,7 @@
 #if defined(XP_MACOSX) && defined(__x86_64__)
 #  include "prenv.h"
 #endif
+#include <prtypes.h>
 
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Printf.h"
