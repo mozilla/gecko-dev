@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "../vendor/lit.all.mjs";
+import { html, ifDefined } from "../vendor/lit.all.mjs";
 import { MozBoxBase } from "../lit-utils.mjs";
 
 /**
@@ -14,6 +14,7 @@ import { MozBoxBase } from "../lit-utils.mjs";
  * @property {string} description - Descriptive text for the button.
  * @property {string} iconSrc - The src for an optional icon shown next to the label.
  * @property {boolean} disabled - Whether or not the button is disabled.
+ * @property {string} accesskey - Key used for keyboard access.
  */
 export default class MozBoxButton extends MozBoxBase {
   static shadowRootOptions = {
@@ -23,6 +24,7 @@ export default class MozBoxButton extends MozBoxBase {
 
   static properties = {
     disabled: { type: Boolean },
+    accessKey: { type: String, mapped: true, fluent: true },
   };
 
   static queries = {
@@ -39,6 +41,19 @@ export default class MozBoxButton extends MozBoxBase {
     this.buttonEl.click();
   }
 
+  labelTemplate() {
+    if (!this.label) {
+      return "";
+    }
+    return html`<label
+      is="moz-label"
+      class="label"
+      shownaccesskey=${ifDefined(this.accessKey)}
+    >
+      ${this.label}
+    </label>`;
+  }
+
   render() {
     return html`
       ${super.stylesTemplate()}
@@ -46,7 +61,7 @@ export default class MozBoxButton extends MozBoxBase {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-box-button.css"
       />
-      <button ?disabled=${this.disabled}>
+      <button ?disabled=${this.disabled} accesskey=${ifDefined(this.accessKey)}>
         ${super.textTemplate()}
         <img
           class="icon nav-icon"
