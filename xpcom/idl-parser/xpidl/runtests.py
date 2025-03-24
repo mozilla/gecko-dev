@@ -287,7 +287,10 @@ class TestTypescript(unittest.TestCase):
             idl.resolve(self.inc_dirs, self.parser, {})
             mods.append(typescript.ts_source(idl))
 
-        result = json.dumps(mods, indent=2, sort_keys=True)
+        # Add a trailing newline, so that it matches the additional newline
+        # in xpctest.d.json. This makes it simpler for editors which automatically
+        # add a newline.
+        result = json.dumps(mods, indent=2, sort_keys=True) + "\n"
         expected = open(os.path.join(self.fixtures, "xpctest.d.json")).read()
         self.assertEqual(result, expected, "types data json does not match")
 

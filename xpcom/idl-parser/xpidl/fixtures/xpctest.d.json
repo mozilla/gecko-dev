@@ -889,7 +889,7 @@
             ],
             "iid_is": null,
             "name": "testShortArray",
-            "type": "OutParam<i16[]>"
+            "type": "i16[]"
           },
           {
             "args": [
@@ -921,7 +921,7 @@
             ],
             "iid_is": null,
             "name": "testDoubleArray",
-            "type": "OutParam<double[]>"
+            "type": "double[]"
           },
           {
             "args": [
@@ -953,7 +953,7 @@
             ],
             "iid_is": null,
             "name": "testStringArray",
-            "type": "OutParam<string[]>"
+            "type": "string[]"
           },
           {
             "args": [
@@ -985,7 +985,7 @@
             ],
             "iid_is": null,
             "name": "testWstringArray",
-            "type": "OutParam<string[]>"
+            "type": "string[]"
           },
           {
             "args": [
@@ -1017,7 +1017,7 @@
             ],
             "iid_is": null,
             "name": "testInterfaceArray",
-            "type": "OutParam<nsIXPCTestInterfaceA[]>"
+            "type": "nsIXPCTestInterfaceA[]"
           },
           {
             "args": [
@@ -1066,7 +1066,7 @@
             ],
             "iid_is": null,
             "name": "testSizedString",
-            "type": "OutParam<string>"
+            "type": "string"
           },
           {
             "args": [
@@ -1098,7 +1098,7 @@
             ],
             "iid_is": null,
             "name": "testSizedWstring",
-            "type": "OutParam<string>"
+            "type": "string"
           },
           {
             "args": [
@@ -1130,7 +1130,7 @@
             ],
             "iid_is": null,
             "name": "testJsvalArray",
-            "type": "OutParam<any[]>"
+            "type": "any[]"
           },
           {
             "args": [

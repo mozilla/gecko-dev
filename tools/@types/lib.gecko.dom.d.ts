@@ -417,6 +417,14 @@ interface ChromeFilePropertyBag extends FilePropertyBag {
     name?: string;
 }
 
+interface ClearResourceCacheOptions {
+    pattern?: OriginAttributesPatternDictionary;
+    principal?: Principal;
+    schemelessSite?: string;
+    target?: ResourceCacheTarget;
+    types?: ResourceCacheType[];
+}
+
 interface ClientRectsAndTexts {
     rectList: DOMRectList;
     textList: string[];
@@ -2995,6 +3003,11 @@ interface RTCDataChannelStats extends RTCStats {
     state?: RTCDataChannelState;
 }
 
+interface RTCDtlsFingerprint {
+    algorithm?: string;
+    value?: string;
+}
+
 interface RTCEncodedAudioFrameMetadata {
     contributingSources?: number[];
     payloadType?: number;
@@ -3456,6 +3469,7 @@ interface RequestInit {
     method?: string;
     mode?: RequestMode;
     mozErrors?: boolean;
+    neverTaint?: boolean;
     observe?: ObserverCallback;
     priority?: RequestPriority;
     redirect?: RequestRedirect;
@@ -8715,6 +8729,16 @@ declare var GPUError: {
     prototype: GPUError;
     new(): GPUError;
     isInstance: IsInstance<GPUError>;
+};
+
+/** Available only in secure contexts. */
+interface GPUExternalTexture extends GPUObjectBase {
+}
+
+declare var GPUExternalTexture: {
+    prototype: GPUExternalTexture;
+    new(): GPUExternalTexture;
+    isInstance: IsInstance<GPUExternalTexture>;
 };
 
 /** Available only in secure contexts. */
@@ -15882,6 +15906,7 @@ declare var PushSubscriptionOptions: {
 
 interface RTCCertificate {
     readonly expires: DOMTimeStamp;
+    getFingerprints(): RTCDtlsFingerprint[];
 }
 
 declare var RTCCertificate: {
@@ -23686,8 +23711,8 @@ interface XMLHttpRequest extends XMLHttpRequestEventTarget {
     getAllResponseHeaders(): string;
     getInterface(iid: any): any;
     getResponseHeader(header: string): string | null;
-    open(method: string, url: string | URL): void;
-    open(method: string, url: string | URL, async: boolean, user?: string | null, password?: string | null): void;
+    open(method: string, url: string): void;
+    open(method: string, url: string, async: boolean, user?: string | null, password?: string | null): void;
     overrideMimeType(mime: string): void;
     send(body?: Document | XMLHttpRequestBodyInit | null): void;
     sendInputStream(body: InputStream): void;
@@ -24359,13 +24384,7 @@ declare namespace ChromeUtils {
     function clearMessagingLayerSecurityStateByPrincipal(principal: Principal): void;
     function clearMessagingLayerSecurityStateBySite(schemelessSite: string, pattern?: OriginAttributesPatternDictionary): void;
     function clearRecentJSDevError(): void;
-    function clearResourceCache(chrome?: boolean): void;
-    function clearScriptCache(chrome?: boolean): void;
-    function clearScriptCacheByPrincipal(principal: Principal): void;
-    function clearScriptCacheBySite(schemelessSite: string, pattern?: OriginAttributesPatternDictionary): void;
-    function clearStyleSheetCache(chrome?: boolean): void;
-    function clearStyleSheetCacheByPrincipal(principal: Principal): void;
-    function clearStyleSheetCacheBySite(schemelessSite: string, pattern?: OriginAttributesPatternDictionary): void;
+    function clearResourceCache(options?: ClearResourceCacheOptions): void;
     function collectPerfStats(): Promise<string>;
     function collectScrollingData(): Promise<InteractionData>;
     function compileScript(url: string, options?: CompileScriptOptionsDictionary): Promise<PrecompiledScript>;
@@ -25765,6 +25784,8 @@ type RequestMode = "cors" | "navigate" | "no-cors" | "same-origin";
 type RequestPriority = "auto" | "high" | "low";
 type RequestRedirect = "error" | "follow" | "manual";
 type ResizeObserverBoxOptions = "border-box" | "content-box" | "device-pixel-content-box";
+type ResourceCacheTarget = "chrome" | "content";
+type ResourceCacheType = "image" | "script" | "stylesheet";
 type ResponseType = "basic" | "cors" | "default" | "error" | "opaque" | "opaqueredirect";
 type SanitizerPresets = "default";
 type ScreenColorGamut = "p3" | "rec2020" | "srgb";

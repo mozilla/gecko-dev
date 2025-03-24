@@ -1688,7 +1688,7 @@ class Param(object):
         type = self.realtype.tsType()
         if self.paramtype == "inout":
             return f"InOutParam<{type}>"
-        if self.paramtype == "out":
+        if self.paramtype == "out" and not self.retval:
             return f"OutParam<{type}>"
         return type
 
