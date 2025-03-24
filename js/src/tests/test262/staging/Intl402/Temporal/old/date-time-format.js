@@ -569,7 +569,7 @@ assert.sameValue(
 );
 assert.sameValue(
   at.formatRange(date1.withCalendar(atCalendar).toPlainYearMonth(), date2.withCalendar(atCalendar).toPlainYearMonth()),
-  `11${deMonthYearSeparator}1976${deDateRangeSeparator}02${deMonthYearSeparator}2020`
+  `11${deMonthYearSeparator}1976${deDateRangeSeparator}2${deMonthYearSeparator}2020`
 );
 
 // should work for MonthDay
@@ -1431,7 +1431,7 @@ assert.deepEqual(
     },
     {
       type: "month",
-      value: "02",
+      value: "2",
       source: "endRange"
     },
     {

@@ -7,10 +7,10 @@ esid: pending
 description: |
   %Iterator.prototype%.map calls return when yield throws.
 features:
-- iterator-helpers
-includes: [sm/non262-shell.js, sm/non262.js]
+  - iterator-helpers
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 ---*/
 class TestError extends Error {}
 

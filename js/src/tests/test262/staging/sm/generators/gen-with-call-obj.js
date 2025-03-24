@@ -2,9 +2,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262-generators-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-generators-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -37,11 +37,11 @@ f2(10);
 
 // now observe gen's call object (which should have been put)
 
-gc();
+$262.gc();
 assert.sameValue(foo(), 10);
-gc();
+$262.gc();
 assert.sameValue(foo(), 11);
-gc();
+$262.gc();
 assert.sameValue(foo(), 12);
 
 

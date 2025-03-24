@@ -227,7 +227,7 @@ const assertNativeFunction = function(fn, special) {
 /*---
 description: |
     An Array of all representable Well-Known Intrinsic Objects
-defines: [WellKnownIntrinsicObjects]
+defines: [WellKnownIntrinsicObjects, getWellKnownIntrinsicObject]
 ---*/
 
 const WellKnownIntrinsicObjects = [
@@ -248,8 +248,9 @@ const WellKnownIntrinsicObjects = [
     source: 'Object.getPrototypeOf([][Symbol.iterator]())',
   },
   {
+    // Not currently accessible to ECMAScript user code
     name: '%AsyncFromSyncIteratorPrototype%',
-    source: 'undefined',
+    source: '',
   },
   {
     name: '%AsyncFunction%',
@@ -257,7 +258,11 @@ const WellKnownIntrinsicObjects = [
   },
   {
     name: '%AsyncGeneratorFunction%',
-    source: 'Object.getPrototypeOf(async function * () {})',
+    source: '(async function* () {}).constructor',
+  },
+  {
+    name: '%AsyncGeneratorPrototype%',
+    source: 'Object.getPrototypeOf(async function* () {}).prototype',
   },
   {
     name: '%AsyncIteratorPrototype%',
@@ -332,6 +337,7 @@ const WellKnownIntrinsicObjects = [
     source: 'Float64Array',
   },
   {
+    // Not currently accessible to ECMAScript user code
     name: '%ForInIteratorPrototype%',
     source: '',
   },
@@ -341,7 +347,11 @@ const WellKnownIntrinsicObjects = [
   },
   {
     name: '%GeneratorFunction%',
-    source: 'Object.getPrototypeOf(function * () {})',
+    source: '(function* () {}).constructor',
+  },
+  {
+    name: '%GeneratorPrototype%',
+    source: 'Object.getPrototypeOf(function * () {}).prototype',
   },
   {
     name: '%Int8Array%',
@@ -364,8 +374,12 @@ const WellKnownIntrinsicObjects = [
     source: 'isNaN',
   },
   {
-    name: '%IteratorPrototype%',
-    source: 'Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]()))',
+    name: '%Iterator%',
+    source: 'typeof Iterator !== "undefined" ? Iterator : Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]())).constructor',
+  },
+  {
+    name: '%IteratorHelperPrototype%',
+    source: 'Object.getPrototypeOf(Iterator.from([]).drop(0))',
   },
   {
     name: '%JSON%',
@@ -499,6 +513,10 @@ const WellKnownIntrinsicObjects = [
     name: '%WeakSet%',
     source: 'WeakSet',
   },
+  {
+    name: '%WrapForValidIteratorPrototype%',
+    source: 'Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } }))',
+  },
 ];
 
 WellKnownIntrinsicObjects.forEach((wkio) => {
@@ -512,3 +530,22 @@ WellKnownIntrinsicObjects.forEach((wkio) => {
 
   wkio.value = actual;
 });
+
+/**
+ * Returns a well-known intrinsic object, if the implementation provides it.
+ * Otherwise, throws.
+ * @param {string} key - the specification's name for the intrinsic, for example
+ *   "%Array%"
+ * @returns {object} the well-known intrinsic object.
+ */
+function getWellKnownIntrinsicObject(key) {
+  for (var ix = 0; ix < WellKnownIntrinsicObjects.length; ix++) {
+    if (WellKnownIntrinsicObjects[ix].name === key) {
+      var value = WellKnownIntrinsicObjects[ix].value;
+      if (value !== undefined)
+        return value;
+      throw new Test262Error('this implementation could not obtain ' + key);
+    }
+  }
+  throw new Test262Error('unknown well-known intrinsic ' + key);
+}

@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-extensions-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-extensions-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -33,7 +33,7 @@ function testStart()
       valueOf: function()
       {
         $262.detachArrayBuffer(ab);
-        gc();
+        $262.gc();
         return 0x800;
       }
     };
@@ -61,7 +61,7 @@ function testEnd()
       valueOf: function()
       {
         $262.detachArrayBuffer(ab);
-        gc();
+        $262.gc();
         return 0x1000;
       }
     };

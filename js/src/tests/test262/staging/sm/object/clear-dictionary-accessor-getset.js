@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-object-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-object-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -49,7 +49,7 @@ function test(field)
   }
 
   inner();
-  gc(); // In unfixed code, this crashes trying to mark a null [[field]].
+  $262.gc(); // In unfixed code, this crashes trying to mark a null [[field]].
 }
 
 test("get");

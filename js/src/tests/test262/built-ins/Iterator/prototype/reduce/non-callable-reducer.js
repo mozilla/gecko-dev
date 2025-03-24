@@ -12,14 +12,14 @@ features: [iterator-helpers]
 flags: []
 ---*/
 let nonCallable = {};
-let iterator = (function* () {
+function* gen() {
   yield 1;
-})();
+}
 
 assert.throws(TypeError, function () {
-  iterator.reduce(nonCallable);
+  gen().reduce(nonCallable);
 });
 
-iterator.reduce(() => {});
+gen().reduce(() => {});
 
 reportCompare(0, 0);

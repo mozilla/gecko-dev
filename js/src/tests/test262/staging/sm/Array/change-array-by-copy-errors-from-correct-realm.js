@@ -2,9 +2,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -41,8 +41,11 @@ function test(otherGlobal) {
         ["toSpliced - array too long", () => {
             var oldLen = arrayLike.length;
             arrayLike.length = 2**53 - 1;
-            gToSpliced.call(arrayLike, 0, 0, 1);
-            arrayLike.length = oldLen;
+            try {
+                gToSpliced.call(arrayLike, 0, 0, 1);
+            } finally {
+                arrayLike.length = oldLen;
+            }
         }]
     ]
 

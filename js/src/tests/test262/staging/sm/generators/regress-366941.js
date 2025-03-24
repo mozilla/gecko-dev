@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-generators-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-generators-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending

@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -34,7 +34,7 @@ function testOneDeletion()
 
   for (var i in o)
   {
-    gc();
+    $262.gc();
     delete o.s;
   }
 }
@@ -51,7 +51,7 @@ function testTwoDeletions()
 
   for (var i in o)
   {
-    gc();
+    $262.gc();
     delete o.t;
     delete o.s;
   }
@@ -70,7 +70,7 @@ function testThreeDeletions()
 
   for (var i in o)
   {
-    gc();
+    $262.gc();
     delete o.x;
     delete o.t;
     delete o.s;

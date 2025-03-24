@@ -2,9 +2,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -14,7 +14,7 @@ function TestGC2(m) {
   for (key = head, i = 0; i < 99999; i++, key = m.get(key)) {
     m.set(key, new Object);
   }
-  gc();
+  $262.gc();
   for (key = head; key != undefined; key = m.get(key)) {}
 }
 TestGC2(new WeakMap);

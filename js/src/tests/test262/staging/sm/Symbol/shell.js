@@ -10,10 +10,15 @@ defines: [assert.deepEqual]
 
 assert.deepEqual = function(actual, expected, message) {
   var format = assert.deepEqual.format;
-  assert(
-    assert.deepEqual._compare(actual, expected),
-    `Expected ${format(actual)} to be structurally equal to ${format(expected)}. ${(message || '')}`
-  );
+  var mustBeTrue = assert.deepEqual._compare(actual, expected);
+
+  // format can be slow when `actual` or `expected` are large objects, like for
+  // example the global object, so only call it when the assertion will fail.
+  if (mustBeTrue !== true) {
+    message = `Expected ${format(actual)} to be structurally equal to ${format(expected)}. ${(message || '')}`;
+  }
+
+  assert(mustBeTrue, message);
 };
 
 (function() {

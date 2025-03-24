@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-extensions-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-extensions-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -94,7 +94,7 @@ function test()
     check(() => typeof map.get({}) == "undefined");
     check(() => map.get({}, "foo") == undefined);
 
-    gc(); gc(); gc();
+    $262.gc(); $262.gc(); $262.gc();
 
     check(() => map.get(key) == 42);
     check(() => map.delete(key) == true);
@@ -107,7 +107,7 @@ function test()
 
     var value = { };
     check(() => map.set(new Object(), value) === map);
-    gc(); gc(); gc();
+    $262.gc(); $262.gc(); $262.gc();
 
     check(() => map.has("non-object key") == false);
     check(() => map.has() == false);

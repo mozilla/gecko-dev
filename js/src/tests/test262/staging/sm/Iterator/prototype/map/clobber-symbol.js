@@ -7,12 +7,12 @@ esid: pending
 description: |
   %Iterator.prototype%.map works even if the global Symbol has been clobbered..
 features:
-- Symbol
-- Symbol.iterator
-- iterator-helpers
-includes: [sm/non262-shell.js, sm/non262.js]
+  - Symbol
+  - Symbol.iterator
+  - iterator-helpers
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 info: |
   Iterator is not enabled unconditionally
 ---*/

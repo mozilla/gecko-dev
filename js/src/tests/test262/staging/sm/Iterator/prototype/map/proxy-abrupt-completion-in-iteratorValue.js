@@ -7,10 +7,10 @@ esid: pending
 description: |
   %Iterator.prototype%.map does not call return when IteratorValue returns an abrupt completion.
 features:
-- iterator-helpers
-includes: [sm/non262-shell.js, sm/non262.js]
+  - iterator-helpers
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 ---*/
 const handlerProxy = log => new Proxy({}, {
   get: (target, key, receiver) => (...args) => {

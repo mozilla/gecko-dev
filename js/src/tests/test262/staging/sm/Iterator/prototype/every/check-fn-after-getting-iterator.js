@@ -3,11 +3,11 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [compareArray.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, compareArray.js]
 flags:
-- noStrict
+  - noStrict
 features:
-- iterator-helpers
+  - iterator-helpers
 info: |
   Iterator is not enabled unconditionally
 description: |
@@ -33,7 +33,7 @@ assertThrowsInstanceOf(() => iter.every(1), TypeError);
 
 assert.compareArray(
   log,
-  ["get: every"]
+  ["get: every", "get: return"]
 );
 
 

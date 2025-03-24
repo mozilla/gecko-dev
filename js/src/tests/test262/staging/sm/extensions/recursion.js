@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-extensions-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-extensions-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -51,7 +51,7 @@ function test()
     }
     catch (e)
     {
-      gc();
+      $262.gc();
     }
   }
   foopy();

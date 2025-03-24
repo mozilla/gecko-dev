@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -23,7 +23,7 @@ for (var i = 3; i < 20; i++)
 delete obj.g;  // must update lastProp->freeslot, to avoid assertion
 
 // extra junk to try to hit the assertion, if freeslot is not updated
-gc();
+$262.gc();
 obj.d = 3;
 obj.e = 4;
 

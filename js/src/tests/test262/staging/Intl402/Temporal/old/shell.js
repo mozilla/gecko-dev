@@ -10,10 +10,15 @@ defines: [assert.deepEqual]
 
 assert.deepEqual = function(actual, expected, message) {
   var format = assert.deepEqual.format;
-  assert(
-    assert.deepEqual._compare(actual, expected),
-    `Expected ${format(actual)} to be structurally equal to ${format(expected)}. ${(message || '')}`
-  );
+  var mustBeTrue = assert.deepEqual._compare(actual, expected);
+
+  // format can be slow when `actual` or `expected` are large objects, like for
+  // example the global object, so only call it when the assertion will fail.
+  if (mustBeTrue !== true) {
+    message = `Expected ${format(actual)} to be structurally equal to ${format(expected)}. ${(message || '')}`;
+  }
+
+  assert(mustBeTrue, message);
 };
 
 (function() {
@@ -1504,6 +1509,10 @@ var TemporalHelpers = {
         "11-18[U-CA=iso8601]",
         "11-18[u-CA=iso8601]",
         "11-18[FOO=bar]",
+        "-999999-01-01[u-ca=gregory]",
+        "-999999-01-01[u-ca=chinese]",
+        "+999999-01-01[u-ca=gregory]",
+        "+999999-01-01[u-ca=chinese]",
       ];
     },
 
@@ -1535,6 +1544,10 @@ var TemporalHelpers = {
         "1976-10-01",
         "--10-01",
         "--1001",
+        "-999999-10-01",
+        "-999999-10-01[u-ca=iso8601]",
+        "+999999-10-01",
+        "+999999-10-01[u-ca=iso8601]",
       ];
     },
 
@@ -1596,6 +1609,8 @@ var TemporalHelpers = {
         "1976-11[U-CA=iso8601]",
         "1976-11[u-CA=iso8601]",
         "1976-11[FOO=bar]",
+        "+999999-01",
+        "-999999-01",
       ];
     },
 

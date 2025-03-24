@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [compareArray.js, sm/non262-object-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-object-shell.js, compareArray.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending

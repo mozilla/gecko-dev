@@ -2,9 +2,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262-generators-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-generators-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -213,7 +213,7 @@ TestGenerator(
 
 // GC.
 if (typeof gc == 'function') {
-    TestGenerator(function* g16() { yield "baz"; gc(); yield "qux"; },
+    TestGenerator(function* g16() { yield "baz"; $262.gc(); yield "qux"; },
                   ["baz", "qux", undefined],
                   "foo",
                   ["baz", "qux", undefined]);

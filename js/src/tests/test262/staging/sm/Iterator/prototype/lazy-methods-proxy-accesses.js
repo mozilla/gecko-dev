@@ -7,10 +7,10 @@ esid: pending
 description: |
   Lazy %Iterator.prototype% methods access specified properties only.
 features:
-- iterator-helpers
-includes: [sm/non262-shell.js, sm/non262.js]
+  - iterator-helpers
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 ---*/
 //
 

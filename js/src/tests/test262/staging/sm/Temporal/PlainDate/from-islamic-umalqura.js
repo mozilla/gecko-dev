@@ -3,26 +3,26 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 features:
-- Temporal
+  - Temporal
 description: |
   pending
 esid: pending
 ---*/
 
 // https://github.com/unicode-org/icu4x/issues/4914
-if (0) {
+assertThrowsInstanceOf(() => {
   let date = Temporal.PlainDate.from({
     calendar: "islamic-umalqura",
     year: -6823,
     monthCode: "M01",
     day: 1,
   });
-  assert.sameValue(date.day, 1);
-}
+  // assert.sameValue(date.day, 1);
+}, RangeError);
 
 
 reportCompare(0, 0);

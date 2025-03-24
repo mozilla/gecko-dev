@@ -11,9 +11,10 @@ info: |
     6. Let closure be OrdinaryFunctionCreate(%AsyncFunction.prototype%, sourceText, parameters,
        AsyncConciseBody, lexical-this, env, privateEnv).
     ...
-includes: [hidden-constructors.js]
+includes: [wellKnownIntrinsicObjects.js]
 ---*/
 
+var AsyncFunction = getWellKnownIntrinsicObject('%AsyncFunction%');
 assert.sameValue(Object.getPrototypeOf(async () => {}), AsyncFunction.prototype);
 
 reportCompare(0, 0);

@@ -7,11 +7,11 @@ info: |
   Iterator constructor throws when called directly.
 
   Iterator is not enabled unconditionally
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 features:
-- iterator-helpers
+  - iterator-helpers
 description: |
   pending
 esid: pending

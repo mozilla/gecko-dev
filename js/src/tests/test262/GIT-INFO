@@ -1,5 +1,9 @@
-commit ada06362dc400f272f1726988738cab2b6593baf
+commit c23091151fe97a45f61a6b3b461fd16ca143c6bc
 Author: André Bargull <andre.bargull@gmail.com>
-Date:   Tue Dec 17 17:09:14 2024 +0100
+Date:   Fri Mar 21 17:52:03 2025 +0100
 
-    Add linter for parseTestRecord
+    Prefer "islamic-tbla" over "islamic" for Hijri calendars
+    
+    "islamic" is underspecified because it doesn't include any information
+    which location and algorithms should be used to approximate new moon
+    observations. Instead switch to "islamic-tbla".

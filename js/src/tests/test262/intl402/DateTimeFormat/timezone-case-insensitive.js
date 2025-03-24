@@ -4,6 +4,7 @@
 /*---
 esid: sec-initializedatetimeformat
 description: Time zone identifiers are case-normalized
+features: [canonical-tz]
 ---*/
 
 const timeZoneIdentifiers = [

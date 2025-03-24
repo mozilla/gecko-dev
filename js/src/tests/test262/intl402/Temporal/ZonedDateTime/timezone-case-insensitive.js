@@ -5,7 +5,7 @@
 /*---
 esid: sec-temporal.zoneddatetime
 description: Time zone names are case-normalized
-features: [Temporal]
+features: [Temporal, canonical-tz]
 ---*/
 
 const timeZone = 'eTc/gMt+1';

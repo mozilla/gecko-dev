@@ -2,9 +2,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -40,7 +40,7 @@ function test() {
         throw "in lhs";
     }
     assertThrowsValue(function() {
-        for ((throwlhs()) of iterable)
+        for ((throwlhs().x) of iterable)
             continue;
     }, "in lhs");
     assert.sameValue(returnCalled, ++returnCalledExpected);

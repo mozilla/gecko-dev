@@ -4,9 +4,9 @@
  */
 
 /*---
-includes: [sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending
@@ -14,9 +14,9 @@ esid: pending
 for (var u = 0; u < 3; ++u) {
     var y = [];
     Object.create(y);
-    gc();
+    $262.gc();
     y.t = 3;
-    gc();
+    $262.gc();
 }
 
 

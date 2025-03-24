@@ -3,11 +3,11 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262-Temporal-PlainMonthDay-shell.js, sm/non262-shell.js, sm/non262.js]
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-Temporal-PlainMonthDay-shell.js]
 flags:
-- noStrict
+  - noStrict
 features:
-- Temporal
+  - Temporal
 description: |
   pending
 esid: pending
@@ -44,22 +44,6 @@ const monthCodes = [
   "M11L",
   "M12L",
 ];
-
-function assertSameISOFields(actual, expected) {
-  let actualFields = actual.getISOFields();
-  let expectedFields = expected.getISOFields();
-
-  assert.sameValue(typeof actualFields.isoYear, "number");
-  assert.sameValue(typeof actualFields.isoMonth, "number");
-  assert.sameValue(typeof actualFields.isoDay, "number");
-
-  assert.sameValue(actualFields.isoMonth > 0, true);
-  assert.sameValue(actualFields.isoDay > 0, true);
-
-  assert.sameValue(actualFields.isoYear, expectedFields.isoYear);
-  assert.sameValue(actualFields.isoMonth, expectedFields.isoMonth);
-  assert.sameValue(actualFields.isoDay, expectedFields.isoDay);
-}
 
 const calendar = "chinese";
 

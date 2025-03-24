@@ -5,10 +5,10 @@
 
 /*---
 features:
-- IsHTMLDDA
-includes: [deepEqual.js, sm/non262-Reflect-shell.js, sm/non262-shell.js, sm/non262.js]
+  - IsHTMLDDA
+includes: [sm/non262.js, sm/non262-shell.js, sm/non262-Reflect-shell.js, deepEqual.js]
 flags:
-- noStrict
+  - noStrict
 description: |
   pending
 esid: pending

@@ -12,10 +12,10 @@ info: |
     f. Let innerIterator be GetIteratorFlattenable(mapped).
     g. IfAbruptCloseIterator(innerIterator, iterated).
 features:
-- iterator-helpers
-includes: [sm/non262-shell.js, sm/non262.js]
+  - iterator-helpers
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
-- noStrict
+  - noStrict
 ---*/
 class InvalidIterable {
   [Symbol.iterator]() {
