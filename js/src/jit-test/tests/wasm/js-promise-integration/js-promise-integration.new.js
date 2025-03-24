@@ -268,8 +268,8 @@ promise_test(async () => {
   assert_equals(await exported_promise, 42);
   // AbeforeB.showAbeforeB();
 
-  assert_true(AbeforeB.isAbeforeB());
-}, "Do not suspend if the import's return value is not a Promise");
+  assert_false(AbeforeB.isAbeforeB());
+}, "Suspend if the import's return value is not a Promise");
 
 test(t => {
   console.log("Throw after the first suspension");
