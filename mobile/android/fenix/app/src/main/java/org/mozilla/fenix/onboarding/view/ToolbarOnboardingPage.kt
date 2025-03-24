@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
@@ -44,6 +46,41 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.theme.FirefoxTheme
+
+/**
+ * The default ratio of the image height to the parent height.
+ */
+private const val OPTION_IMAGE_HEIGHT_RATIO_DEFAULT = 1.0f
+
+/**
+ * The ratio of the image height to the parent height for medium sized devices.
+ */
+private const val OPTION_IMAGE_HEIGHT_RATIO_MEDIUM = 0.7f
+
+/**
+ * The ratio of the image height to the parent height for small devices like Nexus 4, Nexus 1.
+ */
+private const val OPTION_IMAGE_HEIGHT_RATIO_SMALL = 0.4f
+
+/**
+ * The default ratio of the image height to the parent height.
+ */
+private const val IMAGE_HEIGHT_RATIO_DEFAULT = 0.4f
+
+/**
+ * The ratio of the image height to the parent height for medium sized devices.
+ */
+private const val IMAGE_HEIGHT_RATIO_MEDIUM = 0.3f
+
+/**
+ * The ratio of the image height to the parent height for small devices.
+ */
+private const val IMAGE_HEIGHT_RATIO_SMALL = 0.2f
+
+/**
+ * This is the width of the 'select toolbar' image resources.
+ */
+private val imageResourceWidth = 56.dp
 
 /**
  * A Composable for displaying toolbar placement onboarding page content.
@@ -80,7 +117,7 @@ fun ToolbarOnboardingPage(
                         contentDescription = stringResource(
                             R.string.onboarding_customize_toolbar_main_image_content_description,
                         ),
-                        modifier = Modifier.height(imageHeight(boxWithConstraintsScope)),
+                        modifier = Modifier.height(mainImageHeight(boxWithConstraintsScope)),
                     )
 
                     Spacer(Modifier.height(32.dp))
@@ -108,6 +145,7 @@ fun ToolbarOnboardingPage(
                     Row(Modifier.width(176.dp), horizontalArrangement = Arrangement.Center) {
                         toolbarOptions?.let {
                             ToolbarOptions(
+                                boxWithConstraintsScope = boxWithConstraintsScope,
                                 options = it,
                                 selectedOption = state.toolbarOptionSelected,
                                 onClick = onToolbarSelectionClicked,
@@ -136,6 +174,7 @@ fun ToolbarOnboardingPage(
 
 @Composable
 private fun ToolbarOptions(
+    boxWithConstraintsScope: BoxWithConstraintsScope,
     options: List<ToolbarOption>,
     selectedOption: ToolbarOptionType,
     onClick: (ToolbarOptionType) -> Unit,
@@ -146,6 +185,7 @@ private fun ToolbarOptions(
     ) {
         options.forEach {
             SelectableImageItem(
+                boxWithConstraintsScope = boxWithConstraintsScope,
                 toolbarOption = it,
                 selectedOption = selectedOption,
                 onClick = onClick,
@@ -160,6 +200,7 @@ private fun ToolbarOptions(
 
 @Composable
 private fun SelectableImageItem(
+    boxWithConstraintsScope: BoxWithConstraintsScope,
     toolbarOption: ToolbarOption,
     selectedOption: ToolbarOptionType,
     onClick: (ToolbarOptionType) -> Unit,
@@ -186,9 +227,16 @@ private fun SelectableImageItem(
             painter = painterResource(id = toolbarOption.imageRes),
             contentDescription = stringResource(toolbarImageContentDescriptionResId),
             modifier = if (isSelectedOption) {
-                Modifier.border(2.dp, FirefoxTheme.colors.actionPrimary, RoundedCornerShape(10.dp))
-            } else {
+                val borderModifier = borderSize(boxWithConstraintsScope)
                 Modifier
+                    .width(optionImageWidth(boxWithConstraintsScope))
+                    .border(
+                        2.dp,
+                        FirefoxTheme.colors.actionPrimary,
+                        RoundedCornerShape(borderModifier),
+                    )
+            } else {
+                Modifier.width(optionImageWidth(boxWithConstraintsScope))
             },
         )
 
@@ -226,6 +274,30 @@ private fun SelectableImageItem(
             }
         }
     }
+}
+
+private fun mainImageHeight(boxWithConstraintsScope: BoxWithConstraintsScope): Dp {
+    val imageHeightRatio: Float = when {
+        boxWithConstraintsScope.maxHeight <= ONBOARDING_SMALL_DEVICE -> IMAGE_HEIGHT_RATIO_SMALL
+        boxWithConstraintsScope.maxHeight <= ONBOARDING_MEDIUM_DEVICE -> IMAGE_HEIGHT_RATIO_MEDIUM
+        else -> IMAGE_HEIGHT_RATIO_DEFAULT
+    }
+    return boxWithConstraintsScope.maxHeight.times(imageHeightRatio)
+}
+
+private fun borderSize(boxWithConstraintsScope: BoxWithConstraintsScope) = when {
+    boxWithConstraintsScope.maxHeight <= ONBOARDING_SMALL_DEVICE -> 4.dp
+    boxWithConstraintsScope.maxHeight <= ONBOARDING_MEDIUM_DEVICE -> 7.dp
+    else -> 10.dp
+}
+
+private fun optionImageWidth(boxWithConstraintsScope: BoxWithConstraintsScope): Dp {
+    val imageHeightRatio: Float = when {
+        boxWithConstraintsScope.maxHeight <= ONBOARDING_SMALL_DEVICE -> OPTION_IMAGE_HEIGHT_RATIO_SMALL
+        boxWithConstraintsScope.maxHeight <= ONBOARDING_MEDIUM_DEVICE -> OPTION_IMAGE_HEIGHT_RATIO_MEDIUM
+        else -> OPTION_IMAGE_HEIGHT_RATIO_DEFAULT
+    }
+    return imageResourceWidth.times(imageHeightRatio)
 }
 
 // *** Code below used for previews only *** //
