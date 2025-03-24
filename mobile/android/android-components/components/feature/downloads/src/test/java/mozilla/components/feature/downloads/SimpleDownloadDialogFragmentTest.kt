@@ -114,7 +114,7 @@ class SimpleDownloadDialogFragmentTest {
 
         val fragment = Mockito.spy(
             SimpleDownloadDialogFragment.newInstance(
-                R.string.mozac_feature_downloads_dialog_title2,
+                R.string.mozac_feature_downloads_dialog_title_3,
                 R.string.mozac_feature_downloads_dialog_download,
                 0,
                 promptsStyling,

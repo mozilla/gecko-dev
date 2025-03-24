@@ -93,7 +93,7 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
             } else {
                 val sizeFormatter = DefaultFileSizeFormatter(requireContext().applicationContext)
                 val contentSize = sizeFormatter.formatSizeInBytes(getLong(KEY_CONTENT_LENGTH))
-                getString(getInt(KEY_TITLE_TEXT, R.string.mozac_feature_downloads_dialog_title2), contentSize)
+                getString(getInt(KEY_TITLE_TEXT, R.string.mozac_feature_downloads_dialog_title_3), contentSize)
             }
 
             if (positiveButtonBackgroundColor != DEFAULT_VALUE) {
@@ -177,7 +177,7 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
          * A builder method for creating a [SimpleDownloadDialogFragment]
          */
         fun newInstance(
-            @StringRes dialogTitleText: Int = R.string.mozac_feature_downloads_dialog_title2,
+            @StringRes dialogTitleText: Int = R.string.mozac_feature_downloads_dialog_title_3,
             @StringRes downloadButtonText: Int = R.string.mozac_feature_downloads_dialog_download,
             @StyleRes themeResId: Int = 0,
             promptsStyling: DownloadsFeature.PromptsStyling? = null,

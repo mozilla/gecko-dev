@@ -170,7 +170,7 @@ class FirstPartyDownloadDialog(
         if (contentSize > 0L) {
             val contentSize = fileSizeFormatter.formatSizeInBytes(contentSize)
             dialog.title.text =
-                activity.getString(R.string.mozac_feature_downloads_dialog_title2, contentSize)
+                activity.getString(R.string.mozac_feature_downloads_dialog_title_3, contentSize)
         }
 
         dialog.filename.text = filename

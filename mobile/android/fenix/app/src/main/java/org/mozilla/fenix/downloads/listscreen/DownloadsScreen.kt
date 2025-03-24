@@ -384,7 +384,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = stringResource(id = R.string.download_empty_message_1),
+            text = stringResource(id = R.string.download_empty_message_2),
             color = FirefoxTheme.colors.textSecondary,
             style = FirefoxTheme.typography.body1,
         )

@@ -61,7 +61,7 @@ class FirstPartyDownloadDialogTest {
         val dialogBinding = dialog.binding as StartDownloadDialogLayoutBinding
         assertEquals(
             testContext.getString(
-                R.string.mozac_feature_downloads_dialog_title2,
+                R.string.mozac_feature_downloads_dialog_title_3,
                 fakeFileSizeFormatter.formatSizeInBytes(contentSize),
             ),
             dialogBinding.title.text,

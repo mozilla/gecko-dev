@@ -96,7 +96,7 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
         MainScope().allowUndo(
             requireActivity().getRootView()!!,
             getMultiSelectSnackBarMessage(items),
-            getString(R.string.bookmark_undo_deletion),
+            getString(R.string.download_undo_delete_snackbar_action),
             onCancel = {
                 undoPendingDeletion(items)
             },
@@ -174,10 +174,10 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
      */
     private fun getMultiSelectSnackBarMessage(fileItems: Set<FileItem>): String {
         return if (fileItems.size > 1) {
-            getString(R.string.download_delete_multiple_items_snackbar_1)
+            getString(R.string.download_delete_multiple_items_snackbar_2, fileItems.size)
         } else {
             String.format(
-                requireContext().getString(R.string.download_delete_single_item_snackbar),
+                requireContext().getString(R.string.download_delete_single_item_snackbar_2),
                 fileItems.first().fileName,
             )
         }

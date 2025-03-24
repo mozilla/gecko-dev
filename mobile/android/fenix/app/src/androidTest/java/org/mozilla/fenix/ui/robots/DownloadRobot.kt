@@ -166,13 +166,13 @@ class DownloadRobot {
 
     @OptIn(ExperimentalTestApi::class)
     fun verifyEmptyDownloadsList(testRule: HomeActivityComposeTestRule) {
-        Log.i(TAG, "verifyEmptyDownloadsList: Waiting for $waitingTime until the \"No downloaded files\" list message exists")
-        testRule.waitUntilAtLeastOneExists(hasText(testRule.activity.getString(R.string.download_empty_message_1)), waitingTime)
-        Log.i(TAG, "verifyEmptyDownloadsList: Waited for $waitingTime until the \"No downloaded files\" list message exists")
-        Log.i(TAG, "verifyEmptyDownloadsList: Trying to verify that the \"No downloaded files\" list message is displayed")
-        testRule.onNodeWithText(text = testRule.activity.getString(R.string.download_empty_message_1))
+        Log.i(TAG, "verifyEmptyDownloadsList: Waiting for $waitingTime until the \"No downloads yet\" list message exists")
+        testRule.waitUntilAtLeastOneExists(hasText(testRule.activity.getString(R.string.download_empty_message_2)), waitingTime)
+        Log.i(TAG, "verifyEmptyDownloadsList: Waited for $waitingTime until the \"No downloads yet\" list message exists")
+        Log.i(TAG, "verifyEmptyDownloadsList: Trying to verify that the \"No downloads yet\" list message is displayed")
+        testRule.onNodeWithText(text = testRule.activity.getString(R.string.download_empty_message_2))
             .assertIsDisplayed()
-        Log.i(TAG, "verifyEmptyDownloadsList: Verified that the \"No downloaded files\" list message is displayed")
+        Log.i(TAG, "verifyEmptyDownloadsList: Verified that the \"No downloads yet\" list message is displayed")
     }
 
     fun deleteDownloadedItem(testRule: HomeActivityComposeTestRule, fileName: String) {

@@ -96,7 +96,12 @@ internal object DownloadNotification {
             )
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
             .setContentTitle(downloadState.fileName.orEmpty())
-            .setContentText(downloadJobState.getProgress())
+            .setContentText(
+                context.applicationContext.getString(
+                    R.string.mozac_feature_downloads_percentage_notification_text,
+                    downloadJobState.getProgress(),
+                ),
+            )
             .setColor(ContextCompat.getColor(context, notificationAccentColor))
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setProgress(PERCENTAGE_MULTIPLIER, percentCopied, isIndeterminate)
