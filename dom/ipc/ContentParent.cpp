@@ -4390,9 +4390,10 @@ void ContentParent::FriendlyName(nsAString& aName, bool aAnonymize) {
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvInitCrashReporter(
-    const CrashReporter::CrashReporterInitArgs& aInitArgs) {
+    const NativeThreadId& aThreadId) {
   mCrashReporter = MakeUnique<CrashReporterHost>(GeckoProcessType_Content,
-                                                 OtherPid(), aInitArgs);
+                                                 OtherPid(), aThreadId);
+
   return IPC_OK();
 }
 

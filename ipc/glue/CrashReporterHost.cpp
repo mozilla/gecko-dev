@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "CrashReporterHost.h"
-#include "CrashReporter/CrashReporterInitArgs.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/SyncRunnable.h"
@@ -15,36 +14,17 @@
 #include "nsXULAppAPI.h"
 #include "nsIFile.h"
 
-#if defined(XP_LINUX)
-#  include "mozilla/toolkit/crashreporter/rust_minidump_writer_linux_ffi_generated.h"
-#endif  // defined(XP_LINUX)
+namespace mozilla {
+namespace ipc {
 
-namespace mozilla::ipc {
-
-CrashReporterHost::CrashReporterHost(
-    GeckoProcessType aProcessType, base::ProcessId aPid,
-    const CrashReporter::CrashReporterInitArgs& aInitArgs)
+CrashReporterHost::CrashReporterHost(GeckoProcessType aProcessType,
+                                     base::ProcessId aPid,
+                                     CrashReporter::ThreadId aThreadId)
     : mProcessType(aProcessType),
       mPid(aPid),
-      mThreadId(aInitArgs.threadId()),
+      mThreadId(aThreadId),
       mStartTime(::time(nullptr)),
-      mFinalized(false) {
-#if defined(XP_LINUX)
-  const CrashReporter::AuxvInfo& ipdlAuxvInfo = aInitArgs.auxvInfo();
-  DirectAuxvDumpInfo auxvInfo = {};
-  auxvInfo.program_header_count = ipdlAuxvInfo.programHeaderCount();
-  auxvInfo.program_header_address = ipdlAuxvInfo.programHeaderAddress();
-  auxvInfo.linux_gate_address = ipdlAuxvInfo.linuxGateAddress();
-  auxvInfo.entry_address = ipdlAuxvInfo.entryAddress();
-  CrashReporter::RegisterChildAuxvInfo(mPid, auxvInfo);
-#endif  // defined(XP_LINUX)
-}
-
-CrashReporterHost::~CrashReporterHost() {
-#if defined(XP_LINUX)
-  CrashReporter::UnregisterChildAuxvInfo(mPid);
-#endif  // defined(XP_LINUX)
-}
+      mFinalized(false) {}
 
 bool CrashReporterHost::GenerateCrashReport() {
   if (!TakeCrashedChildMinidump()) {
@@ -197,4 +177,5 @@ void CrashReporterHost::AddAnnotationNSCString(CrashReporter::Annotation aKey,
   mExtraAnnotations[aKey] = aValue;
 }
 
-}  // namespace mozilla::ipc
+}  // namespace ipc
+}  // namespace mozilla

@@ -3,7 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-include CrashReporterInitArgs;
 include GraphicsMessages;
 include MemoryReportTypes;
 include HangTypes;
@@ -148,7 +147,7 @@ child:
   // Graphics errors, analogous to PContent::GraphicsError
   async GraphicsError(nsCString aError);
 
-  async InitCrashReporter(CrashReporterInitArgs aInitArgs);
+  async InitCrashReporter(NativeThreadId threadId);
 
   async CreateVRProcess();
   async ShutdownVRProcess();

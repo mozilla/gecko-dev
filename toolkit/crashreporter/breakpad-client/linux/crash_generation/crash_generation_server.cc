@@ -61,11 +61,9 @@ namespace google_breakpad {
 
 CrashGenerationServer::CrashGenerationServer(
   const int listen_fd,
-  std::function<GetAuxvInfo> get_auxv_info,
   std::function<OnClientDumpRequestCallback> dump_callback,
   const string* dump_path) :
     server_fd_(listen_fd),
-    get_auxv_info_(std::move(get_auxv_info)),
     dump_callback_(std::move(dump_callback)),
     started_(false),
     reserved_fds_{-1, -1}
@@ -303,10 +301,6 @@ CrashGenerationServer::ClientEvent(short revents)
     breakpad_cc->tid,
     &error_msg
   );
-  DirectAuxvDumpInfo auxvInfo = {};
-  if (writer && get_auxv_info_ && get_auxv_info_(crashing_pid, &auxvInfo)) {
-    minidump_writer_set_direct_auxv_dump_info(writer, &auxvInfo);
-  }
   if (writer) {
     const fpregset_t *float_state = nullptr;
 

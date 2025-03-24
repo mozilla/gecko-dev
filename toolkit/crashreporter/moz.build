@@ -21,10 +21,6 @@ UNIFIED_SOURCES = [
     "nsExceptionHandlerUtils.cpp",
 ]
 
-PREPROCESSED_IPDL_SOURCES = [
-    "ipc/CrashReporterInitArgs.ipdlh",
-]
-
 FINAL_LIBRARY = "xul"
 
 if CONFIG["MOZ_CRASHREPORTER"]:
