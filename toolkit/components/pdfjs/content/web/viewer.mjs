@@ -7269,6 +7269,10 @@ class PDFSidebar {
 const DRAW_UPSCALE_FACTOR = 2;
 const MAX_NUM_SCALING_STEPS = 3;
 const THUMBNAIL_WIDTH = 98;
+function zeroCanvas(c) {
+  c.width = 0;
+  c.height = 0;
+}
 class TempImageFactory {
   static #tempCanvas = null;
   static getCanvas(width, height) {
@@ -7285,10 +7289,8 @@ class TempImageFactory {
     return [tempCanvas, tempCanvas.getContext("2d")];
   }
   static destroyCanvas() {
-    const tempCanvas = this.#tempCanvas;
-    if (tempCanvas) {
-      tempCanvas.width = 0;
-      tempCanvas.height = 0;
+    if (this.#tempCanvas) {
+      zeroCanvas(this.#tempCanvas);
     }
     this.#tempCanvas = null;
   }
@@ -7434,28 +7436,15 @@ class PDFThumbnailView {
     this.image = image;
     this.div.setAttribute("data-loaded", true);
     this._placeholderImg.replaceWith(image);
-    reducedCanvas.width = 0;
-    reducedCanvas.height = 0;
-  }
-  async #finishRenderTask(renderTask, canvas, error = null) {
-    if (renderTask === this.renderTask) {
-      this.renderTask = null;
-    }
-    if (error instanceof RenderingCancelledException) {
-      return;
-    }
-    this.renderingState = RenderingStates.FINISHED;
-    this.#convertCanvasToImage(canvas);
-    if (error) {
-      throw error;
-    }
+    zeroCanvas(reducedCanvas);
   }
   async draw() {
     if (this.renderingState !== RenderingStates.INITIAL) {
       console.error("Must be in new state before drawing");
-      return undefined;
+      return;
     }
     const {
+      pageColors,
       pdfPage
     } = this;
     if (!pdfPage) {
@@ -7487,21 +7476,35 @@ class PDFThumbnailView {
       transform,
       viewport: drawViewport,
       optionalContentConfigPromise: this._optionalContentConfigPromise,
-      pageColors: this.pageColors
+      pageColors
     };
     const renderTask = this.renderTask = pdfPage.render(renderContext);
     renderTask.onContinue = renderContinueCallback;
-    const resultPromise = renderTask.promise.then(() => this.#finishRenderTask(renderTask, canvas), error => this.#finishRenderTask(renderTask, canvas, error));
-    resultPromise.finally(() => {
-      canvas.width = 0;
-      canvas.height = 0;
-      this.eventBus.dispatch("thumbnailrendered", {
-        source: this,
-        pageNumber: this.id,
-        pdfPage: this.pdfPage
-      });
+    let error = null;
+    try {
+      await renderTask.promise;
+    } catch (e) {
+      if (e instanceof RenderingCancelledException) {
+        zeroCanvas(canvas);
+        return;
+      }
+      error = e;
+    } finally {
+      if (renderTask === this.renderTask) {
+        this.renderTask = null;
+      }
+    }
+    this.renderingState = RenderingStates.FINISHED;
+    this.#convertCanvasToImage(canvas);
+    zeroCanvas(canvas);
+    this.eventBus.dispatch("thumbnailrendered", {
+      source: this,
+      pageNumber: this.id,
+      pdfPage
     });
-    return resultPromise;
+    if (error) {
+      throw error;
+    }
   }
   setImage(pageView) {
     if (this.renderingState !== RenderingStates.INITIAL) {
@@ -7525,14 +7528,12 @@ class PDFThumbnailView {
     this.#convertCanvasToImage(canvas);
   }
   #getReducedImageDims(canvas) {
-    let reducedWidth = canvas.width << MAX_NUM_SCALING_STEPS,
-      reducedHeight = canvas.height << MAX_NUM_SCALING_STEPS;
+    const width = canvas.width << MAX_NUM_SCALING_STEPS,
+      height = canvas.height << MAX_NUM_SCALING_STEPS;
     const outputScale = new OutputScale();
     outputScale.sx = outputScale.sy = 1;
-    outputScale.limitCanvas(reducedWidth, reducedHeight, this.maxCanvasPixels, this.maxCanvasDim);
-    reducedWidth = reducedWidth * outputScale.sx | 0;
-    reducedHeight = reducedHeight * outputScale.sy | 0;
-    return [reducedWidth, reducedHeight];
+    outputScale.limitCanvas(width, height, this.maxCanvasPixels, this.maxCanvasDim);
+    return [width * outputScale.sx | 0, height * outputScale.sy | 0];
   }
   #reduceImage(img) {
     const {
@@ -10202,7 +10203,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.365";
+    const viewerVersion = "5.1.36";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -12130,8 +12131,8 @@ class SignatureManager {
     }, {
       passive: true
     });
-    description.addEventListener("input", () => {
-      this.#clearDescription.disabled = description.value === "";
+    this.#description.addEventListener("input", () => {
+      this.#clearDescription.disabled = this.#description.value === "";
     }, {
       passive: true
     });
@@ -13922,7 +13923,7 @@ const PDFViewerApplication = {
   async download() {
     let data;
     try {
-      data = await this.pdfDocument.getData();
+      data = await (this.pdfDocument ? this.pdfDocument.getData() : this.pdfLoadingTask.getData());
     } catch {}
     this.downloadManager.download(data, this._downloadUrl, this._docFilename);
   },
@@ -15197,8 +15198,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.365";
-const pdfjsBuild = "8791b2474";
+const pdfjsVersion = "5.1.36";
+const pdfjsBuild = "80d4d7058";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
