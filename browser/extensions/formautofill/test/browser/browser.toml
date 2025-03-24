@@ -30,6 +30,8 @@ skip-if = [
 
 ["browser_autofill_address_housenumber.js"]
 
+["browser_autofill_address_level.js"]
+
 ["browser_autofill_address_select.js"]
 
 ["browser_autofill_address_select_inexact.js"]

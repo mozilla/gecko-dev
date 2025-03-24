@@ -417,6 +417,7 @@ export const FormAutofillHeuristics = {
           const OTHER_ADDRESS_FIELDS = [
             "address-level1",
             "address-level2",
+            "address-level3",
             "postal-code",
             "organization",
           ];

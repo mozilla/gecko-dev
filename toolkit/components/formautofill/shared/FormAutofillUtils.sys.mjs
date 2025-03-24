@@ -142,6 +142,7 @@ FormAutofillUtils = {
     "address-line3": "address",
     "address-level1": "address",
     "address-level2": "address",
+    "address-level3": "address",
     // DE addresses are often split into street name and house number;
     // combined they form address-line1
     "address-streetname": "address",
