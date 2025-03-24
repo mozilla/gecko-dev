@@ -169,7 +169,6 @@ pub enum GenericSize<LengthPercent> {
     WebkitFillAvailable,
     #[animation(error)]
     Stretch,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),
@@ -246,7 +245,6 @@ pub enum GenericMaxSize<LengthPercent> {
     WebkitFillAvailable,
     #[animation(error)]
     Stretch,
-    #[cfg(feature = "gecko")]
     #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),
