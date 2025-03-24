@@ -18,37 +18,33 @@ registerCleanupFunction(function () {
   Services.prefs.clearUserPref(HTTPS_FIRST);
 });
 
-function observeStatusLabel(statusLabel, expectedValues) {
-  // Verify if all values from the expectedValues set are shown in statusLabel
+function waitForStatusChange(browser, expectedMessage) {
   return new Promise(resolve => {
-    let prevValue = statusLabel.value;
-    if (prevValue) {
-      expectedValues.delete(prevValue);
-    }
+    let listener = {
+      QueryInterface: ChromeUtils.generateQI([
+        "nsIWebProgressListener",
+        "nsISupportsWeakReference",
+      ]),
 
-    const observer = new MutationObserver(mutations => {
-      for (let mutation of mutations) {
-        if (mutation.attributeName === "value") {
-          if (statusLabel.value && statusLabel.value !== prevValue) {
-            expectedValues.delete(statusLabel.value);
-
-            if (expectedValues.size === 0) {
-              ok(true, "All expected values were matched");
-              observer.disconnect();
-              resolve();
-            }
-            prevValue = statusLabel.value;
-          }
+      onStatusChange(webProgress, request, status, message) {
+        info(`onStatusChange: ${message}`);
+        // When we catch the correct message
+        if (message === expectedMessage) {
+          browser.webProgress.removeProgressListener(listener);
+          resolve({ message });
         }
-      }
-    });
-
-    observer.observe(statusLabel, { attributes: true });
-    return () => {
-      observer.disconnect();
-      is(expectedValues.size, 0, "Not all expected values were matched");
-      resolve();
+      },
+      onProgressChange() {},
+      onLocationChange() {},
+      onSecurityChange() {},
+      onStateChange() {},
+      onContentBlockingEvent() {},
     };
+
+    browser.webProgress.addProgressListener(
+      listener,
+      Ci.nsIWebProgress.NOTIFY_STATUS
+    );
   });
 }
 
@@ -80,13 +76,10 @@ add_task(async function test_domain_change() {
     set: [["network.proxy.no_proxies_on", DOMAIN_NAME]],
   });
 
-  let expectedValues = new Set([
-    DOMAIN_NAME,
-    `Transferring data from ${DOMAIN_NAME}…`,
-  ]);
-
-  let statusLabel = document.getElementById("statuspanel-label");
-  let statusPromise = observeStatusLabel(statusLabel, expectedValues);
-  BrowserTestUtils.startLoadingURIString(gBrowser.selectedBrowser, serverURL);
-  await statusPromise;
+  let browser = gBrowser.selectedBrowser;
+  let expectedMessage = `Transferring data from ${DOMAIN_NAME}…`;
+  let statusPromise = waitForStatusChange(browser, expectedMessage);
+  BrowserTestUtils.startLoadingURIString(browser, serverURL);
+  let { message } = await statusPromise;
+  is(message, expectedMessage, "Status message was received correctly");
 });
