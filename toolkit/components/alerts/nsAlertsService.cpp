@@ -253,7 +253,8 @@ NS_IMETHODIMP nsAlertsService::Teardown() {
     backend = mBackend;
   }
   if (!backend) {
-    backend = nsXULAlerts::GetInstance();
+    // We do not try nsXULAlerts here as it already uses ClearOnShutdown.
+    return NS_OK;
   }
   return backend->Teardown();
 }

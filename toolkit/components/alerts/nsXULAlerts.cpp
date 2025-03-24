@@ -8,6 +8,7 @@
 #include "nsArray.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/LookAndFeel.h"
@@ -65,7 +66,8 @@ NS_IMPL_ISUPPORTS(nsXULAlerts, nsIAlertsService, nsIAlertsDoNotDisturb)
 already_AddRefed<nsXULAlerts> nsXULAlerts::GetInstance() {
   // Gecko on Android does not fully support XUL windows.
 #ifndef MOZ_WIDGET_ANDROID
-  if (!gXULAlerts) {
+  if (!gXULAlerts &&
+      !AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
     gXULAlerts = new nsXULAlerts();
     ClearOnShutdown(&gXULAlerts);
   }
@@ -380,10 +382,7 @@ nsXULAlerts::CloseAlert(const nsAString& aAlertName, bool aContextClosed) {
   return NS_OK;
 }
 
-NS_IMETHODIMP nsXULAlerts::Teardown() {
-  mPendingPersistentAlerts.Clear();
-  return NS_OK;
-}
+NS_IMETHODIMP nsXULAlerts::Teardown() { return NS_OK; }
 
 NS_IMETHODIMP nsXULAlerts::PbmTeardown() {
   // Usually XUL alerts close after a few seconds without being listed anywhere,
