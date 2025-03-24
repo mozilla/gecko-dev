@@ -901,4 +901,36 @@ TEST(H265, SPSIteratorAndCreateNewExtraData)
   EXPECT_EQ(hvcc.NumSPS(), hvcc2.NumSPS());
 }
 
+TEST(H265, ConfWindowTest)
+{
+  // This sps contains some cropping information, which will crop video from the
+  // resolution 3840x2176 to 3840x2160.
+  static const uint8_t sSpsConfWindow[] = {
+      0x42, 0x01, 0x01, 0x01, 0x40, 0x00, 0x00, 0x00, 0x90, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x99, 0xA0, 0x01, 0xE0, 0x20, 0x02, 0x20, 0x7C, 0x4E, 0x59,
+      0x95, 0x29, 0x08, 0x46, 0x46, 0xFF, 0xC3, 0x01, 0x6A, 0x02, 0x02, 0x02,
+      0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x01, 0xE3, 0x00, 0x2E, 0xF2,
+      0x88, 0x00, 0x02, 0x62, 0x5A, 0x00, 0x00, 0x13, 0x12, 0xD0, 0x20};
+
+  H265NALU nalu{sSpsConfWindow, std::size(sSpsConfWindow)};
+  auto rv = H265::DecodeSPSFromSPSNALU(nalu);
+  EXPECT_TRUE(rv.isOk());
+  auto sps = rv.unwrap();
+  EXPECT_EQ(sps.chroma_format_idc, 1u);
+  EXPECT_EQ(sps.pic_width_in_luma_samples, 3840u);
+  EXPECT_EQ(sps.pic_height_in_luma_samples, 2176u);
+  EXPECT_EQ(sps.conformance_window_flag, true);
+  EXPECT_EQ(sps.conf_win_left_offset, 0u);
+  EXPECT_EQ(sps.conf_win_right_offset, 0u);
+  EXPECT_EQ(sps.conf_win_top_offset, 0u);
+  EXPECT_EQ(sps.conf_win_bottom_offset, 8u);
+
+  const auto imgSize = sps.GetImageSize();
+  EXPECT_EQ(imgSize.Width(), 3840);
+  EXPECT_EQ(imgSize.Height(), 2160);  // cropped height
+
+  const auto disSize = sps.GetDisplaySize();
+  EXPECT_EQ(disSize, imgSize);
+}
+
 }  // namespace mozilla
