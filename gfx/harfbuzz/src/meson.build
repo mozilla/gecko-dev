@@ -28,6 +28,9 @@ hb_base_sources = files(
   'hb-atomic.hh',
   'hb-bimap.hh',
   'hb-bit-page.hh',
+  'hb-bit-set.hh',
+  'hb-bit-set-invertible.hh',
+  'hb-bit-vector.hh',
   'hb-blob.cc',
   'hb-blob.hh',
   'hb-buffer-serialize.cc',
@@ -199,6 +202,7 @@ hb_base_sources = files(
   'hb-ot-os2-unicode-ranges.hh',
   'hb-ot-post-macroman.hh',
   'hb-ot-post-table.hh',
+  'hb-ot-post-table-v2subset.hh',
   'hb-ot-shaper-arabic-fallback.hh',
   'hb-ot-shaper-arabic-joining-list.hh',
   'hb-ot-shaper-arabic-pua.hh',
@@ -241,7 +245,9 @@ hb_base_sources = files(
   'hb-ot-var-varc-table.hh',
   'hb-ot-var.cc',
   'hb-ot-vorg-table.hh',
+  'hb-priority-queue.hh',
   'hb-pool.hh',
+  'hb-repacker.hh',
   'hb-sanitize.hh',
   'hb-serialize.hh',
   'hb-set-digest.hh',
@@ -326,6 +332,9 @@ hb_base_headers += hb_version_h
 hb_ft_sources = files('hb-ft.cc', 'hb-ft-colr.hh')
 hb_ft_headers = files('hb-ft.h')
 
+hb_fontations_sources = files()
+hb_fontations_headers = files('hb-fontations.h')
+
 hb_glib_sources = files('hb-glib.cc')
 hb_glib_headers = files('hb-glib.h')
 
@@ -340,6 +349,7 @@ hb_wasm_sources = files(
   'hb-wasm-api-common.hh',
   'hb-wasm-api-face.hh',
   'hb-wasm-api-font.hh',
+  'hb-wasm-api-list.hh',
   'hb-wasm-api-shape.hh',
   'hb-wasm-shape.cc',
 )
@@ -347,10 +357,10 @@ hb_wasm_headers = files()
 
 # System-dependent sources and headers
 
-hb_coretext_sources = files('hb-coretext-shape.cc', 'hb-coretext-font.cc')
+hb_coretext_sources = files('hb-coretext.cc', 'hb-coretext.hh', 'hb-coretext-font.cc', 'hb-coretext-shape.cc')
 hb_coretext_headers = files('hb-coretext.h')
 
-hb_directwrite_sources = files('hb-directwrite.cc')
+hb_directwrite_sources = files('hb-directwrite.cc', 'hb-directwrite.hh', 'hb-directwrite-font.cc', 'hb-directwrite-shape.cc')
 hb_directwrite_headers = files('hb-directwrite.h')
 
 hb_gdi_sources = files('hb-gdi.cc')
@@ -513,6 +523,15 @@ if conf.get('HAVE_CORETEXT', 0) == 1
   harfbuzz_deps += coretext_deps
 endif
 
+if conf.get('HAVE_FONTATIONS', 0) == 1
+
+  subdir('fontations')
+
+  hb_sources += hb_fontations_sources
+  hb_headers += hb_fontations_headers
+  harfbuzz_deps += [harfbuzz_fontations_dep]
+endif
+
 have_icu = conf.get('HAVE_ICU', 0) == 1
 have_icu_builtin = conf.get('HAVE_ICU_BUILTIN', 0) == 1
 if have_icu and have_icu_builtin
@@ -650,6 +669,7 @@ if conf.get('HAVE_CAIRO', 0) == 1
   hb_cairo_sources = [
     'hb-cairo.cc',
     'hb-cairo-utils.cc',
+    'hb-cairo-utils.hh',
     'hb-static.cc'
   ]
 
@@ -663,7 +683,7 @@ if conf.get('HAVE_CAIRO', 0) == 1
     include_directories: incconfig,
     dependencies: [m_dep, cairo_dep],
     link_with: [libharfbuzz],
-     cpp_args: cpp_args + extra_hb_cpp_args,
+    cpp_args: cpp_args + extra_hb_cpp_args,
     soversion: hb_so_version,
     version: version,
     install: true,

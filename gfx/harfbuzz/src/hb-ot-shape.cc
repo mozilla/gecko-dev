@@ -84,6 +84,7 @@ hb_ot_shape_planner_t::hb_ot_shape_planner_t (hb_face_t                     *fac
 						props (props),
 						map (face, props)
 #ifndef HB_NO_AAT_SHAPE
+						, aat_map (face, props)
 						, apply_morx (_hb_apply_morx (face, props))
 #endif
 {
@@ -106,6 +107,10 @@ hb_ot_shape_planner_t::compile (hb_ot_shape_plan_t           &plan,
   plan.props = props;
   plan.shaper = shaper;
   map.compile (plan.map, key);
+#ifndef HB_NO_AAT_SHAPE
+  if (apply_morx)
+    aat_map.compile (plan.aat_map);
+#endif
 
 #ifndef HB_NO_OT_SHAPE_FRACTIONS
   plan.frac_mask = plan.map.get_1_mask (HB_TAG ('f','r','a','c'));
@@ -551,7 +556,7 @@ hb_form_clusters (hb_buffer_t *buffer)
   if (!(buffer->scratch_flags & HB_BUFFER_SCRATCH_FLAG_HAS_NON_ASCII))
     return;
 
-  if (buffer->cluster_level == HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES)
+  if (HB_BUFFER_CLUSTER_LEVEL_IS_GRAPHEMES (buffer->cluster_level))
     foreach_grapheme (buffer, start, end)
       buffer->merge_clusters (start, end);
   else
@@ -609,7 +614,7 @@ hb_ensure_native_direction (hb_buffer_t *buffer)
    * Ogham fonts are supposed to be implemented BTT or not.  Need to research that
    * first. */
   if ((HB_DIRECTION_IS_HORIZONTAL (direction) &&
-       direction != horiz_dir && horiz_dir != HB_DIRECTION_INVALID) ||
+       direction != horiz_dir && HB_DIRECTION_IS_VALID (horiz_dir)) ||
       (HB_DIRECTION_IS_VERTICAL   (direction) &&
        direction != HB_DIRECTION_TTB))
   {
@@ -1109,10 +1114,6 @@ hb_ot_position_plan (const hb_ot_shape_context_t *c)
   /* Finish off.  Has to follow a certain order. */
   hb_ot_layout_position_finish_advances (c->font, c->buffer);
   hb_ot_zero_width_default_ignorables (c->buffer);
-#ifndef HB_NO_AAT_SHAPE
-  if (c->plan->apply_morx)
-    hb_aat_layout_zero_width_deleted_glyphs (c->buffer);
-#endif
   hb_ot_layout_position_finish_offsets (c->font, c->buffer);
 
   /* The nil glyph_h_origin() func returns 0, so no need to apply it. */
