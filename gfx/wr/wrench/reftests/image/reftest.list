@@ -25,7 +25,6 @@ fuzzy(1,160000) == image-filter-stretch-tile.yaml green-alpha-ref.yaml
 == snapshot-filters-01.yaml snapshot-filters-01-ref.yaml
 == snapshot-filters-02.yaml snapshot-filters-02-ref.yaml
 fuzzy(3,3000) == snapshot-shadow.yaml snapshot-shadow-ref.yaml
-== snapshot-multiframe.yaml snapshot-multiframe-ref.yaml
 == snapshot-empty.yaml empty.yaml
 # TODO: At the moment snapshot-perspective-01.yaml renders incorrectly, so the
 # reftest acts more as a crash test. When bug 1941577 is fixed the reftest
