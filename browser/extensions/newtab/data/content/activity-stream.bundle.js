@@ -11575,11 +11575,6 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     // TODO: Once Bug 1947813 has landed, we may need a separate event
     // for selecting previously uploaded wallpaper, rather than uploading a new one.
     // The plan would be to reuse at.WALLPAPER_CLICK for this use case
-    const uploadedPreviously = this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
-    this.handleUserEvent(actionTypes.WALLPAPER_UPLOAD, {
-      had_uploaded_previously: !!uploadedPreviously,
-      had_previous_wallpaper: !!this.props.activeWallpaper
-    });
     this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, true);
 
     // Create a file input since category buttons are radio inputs
