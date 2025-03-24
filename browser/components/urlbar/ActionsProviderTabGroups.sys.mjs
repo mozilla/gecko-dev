@@ -10,7 +10,6 @@ import {
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
 });
@@ -27,7 +26,7 @@ class ProviderTabGroups extends ActionsProvider {
 
   isActive(queryContext) {
     return (
-      lazy.NimbusFeatures.tabGroups.getVariable("enabled") &&
+      Services.prefs.getBoolPref("browser.tabs.groups.enabled") &&
       !queryContext.searchMode &&
       queryContext.trimmedSearchString.length < 50 &&
       queryContext.trimmedSearchString.length >=
