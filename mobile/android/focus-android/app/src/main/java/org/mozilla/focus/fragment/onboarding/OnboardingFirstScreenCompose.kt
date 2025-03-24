@@ -23,6 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -104,6 +107,7 @@ private fun TitleContent() {
         contentDescription = LocalContext.current.getString(R.string.app_name),
         modifier = Modifier.size(150.dp, 150.dp),
     )
+
     Text(
         text = stringResource(
             R.string.onboarding_first_screen_title,
@@ -113,6 +117,7 @@ private fun TitleContent() {
         textAlign = TextAlign.Center,
         style = focusTypography.onboardingTitle,
     )
+
     Text(
         text = stringResource(
             R.string.onboarding_first_screen_subtitle,
@@ -125,19 +130,32 @@ private fun TitleContent() {
 
 @Composable
 private fun LinkText(text: String, linkText: String, onClick: () -> Unit) {
+    val textWithClickableLink = buildAnnotatedString {
+        val textWithoutLink =
+            text.replace(oldValue = linkText, newValue = "", ignoreCase = true)
+        append(textWithoutLink)
+        val link =
+            LinkAnnotation.Url(
+                "",
+                TextLinkStyles(SpanStyle(color = colorResource(R.color.preference_learn_more_link))),
+            ) { onClick() }
+        withLink(link) { append(linkText) }
+    }
+
+    val linkAvailableText = stringResource(id = R.string.a11y_link_available)
+
     Text(
-        text = buildAnnotatedString {
-            val textWithoutLink =
-                text.replace(oldValue = linkText, newValue = "", ignoreCase = true)
-            append(textWithoutLink)
-            val link =
-                LinkAnnotation.Url(
-                    "",
-                    TextLinkStyles(SpanStyle(color = colorResource(R.color.preference_learn_more_link))),
-                ) { onClick() }
-            withLink(link) { append(linkText) }
-        },
+        text = textWithClickableLink,
         modifier = Modifier
+            .clearAndSetSemantics {
+                onClick {
+                    onClick()
+
+                    return@onClick true
+                }
+
+                contentDescription = "$textWithClickableLink $linkAvailableText"
+            }
             .padding(horizontal = 16.dp)
             .minimumInteractiveComponentSize(),
         textAlign = TextAlign.Center,
