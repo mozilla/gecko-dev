@@ -894,6 +894,9 @@ void WebTransport::Cleanup(WebTransportError* aError,
 
 void WebTransport::SendSetSendOrder(uint64_t aStreamId,
                                     Maybe<int64_t> aSendOrder) {
+  if (!mChild->CanSend()) {
+    return;
+  }
   mChild->SendSetSendOrder(aStreamId, aSendOrder);
 }
 
