@@ -23,6 +23,8 @@ interface PerformanceEventTiming : PerformanceEntry {
     readonly attribute DOMHighResTimeStamp processingEnd;
     readonly attribute boolean cancelable;
     readonly attribute Node? target;
+    [Pref="dom.performance.event_timing.enable_interactionid"]
+    readonly attribute unsigned long long interactionId;
 
     [Default] object toJSON();
 };

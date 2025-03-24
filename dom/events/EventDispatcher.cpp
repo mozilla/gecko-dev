@@ -1268,7 +1268,7 @@ nsresult EventDispatcher::Dispatch(EventTarget* aTarget,
   aEvent->mFlags.mDispatchedAtLeastOnce = true;
 
   if (eventTimingEntry) {
-    eventTimingEntry->FinalizeEventTiming(aEvent->mTarget);
+    eventTimingEntry->FinalizeEventTiming(aEvent);
   }
   // https://dom.spec.whatwg.org/#concept-event-dispatch
   // step 10. If clearTargets, then:

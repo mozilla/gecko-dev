@@ -12,6 +12,7 @@
 namespace mozilla::dom {
 
 class WorkerGlobalScope;
+class PerformanceInteractionMetrics;
 
 class PerformanceWorker final : public Performance {
  public:
@@ -75,6 +76,14 @@ class PerformanceWorker final : public Performance {
 
   void DispatchPendingEventTimingEntries() override {
     MOZ_CRASH("This should not be called on workders.");
+  }
+
+  PerformanceInteractionMetrics& GetPerformanceInteractionMetrics() override {
+    MOZ_CRASH("This should not be called on workers.");
+  }
+
+  uint64_t ComputeInteractionId(const WidgetEvent* aEvent) override {
+    MOZ_CRASH("This should not be called on workers.");
   }
 
   class EventCounts* EventCounts() override {
