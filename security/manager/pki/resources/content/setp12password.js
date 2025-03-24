@@ -27,7 +27,11 @@
  */
 function onLoad() {
   // Ensure the first password textbox has focus.
-  document.getElementById("pw1").focus();
+  let pw1 = document.getElementById("pw1");
+  pw1.focus();
+  pw1.addEventListener("input", () => onPasswordInput(true));
+  let pw2 = document.getElementById("pw2");
+  pw2.addEventListener("input", () => onPasswordInput(false));
   document.addEventListener("dialogaccept", onDialogAccept);
   document.addEventListener("dialogcancel", onDialogCancel);
 }
@@ -125,3 +129,5 @@ function onPasswordInput(recalculatePasswordStrength) {
   document.getElementById("setp12password").getButton("accept").disabled =
     pw1 != pw2;
 }
+
+window.addEventListener("load", () => onLoad());
