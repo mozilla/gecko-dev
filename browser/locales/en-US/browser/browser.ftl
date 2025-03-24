@@ -308,6 +308,10 @@ quickactions-firefoxview = Open { -firefoxview-brand-name }
 # should use a word related to the existing translation.
 quickactions-cmd-firefoxview = open { -firefoxview-brand-name }, { -firefoxview-brand-name }, open view, view
 
+# Opens SUMO home page
+quickactions-help = { -brand-product-name } help
+quickactions-cmd-help = help, support
+
 # Opens the devtools web inspector
 quickactions-inspector2 = Open Developer Tools
 quickactions-cmd-inspector = inspector, devtools

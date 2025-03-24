@@ -112,6 +112,14 @@ const DEFAULT_ACTIONS = {
     label: "quickactions-extensions",
     onPick: openAddonsUrl("addons://list/extension"),
   },
+  help: {
+    l10nCommands: ["quickactions-cmd-help"],
+    icon: "chrome://global/skin/icons/help.svg",
+    label: "quickactions-help",
+    onPick: openUrlFun(
+      "https://support.mozilla.org/products/firefox?as=u&utm_source=inproduct"
+    ),
+  },
   firefoxview: {
     l10nCommands: ["quickactions-cmd-firefoxview"],
     icon: "chrome://browser/skin/firefox-view.svg",
