@@ -24,15 +24,24 @@ class AboutURITest : TestSetup() {
         }.enterURLAndEnterToBrowser(webCompatPage.toUri()) {
             verifyUrl(webCompatPage)
 
-            verifyPageContent("More Information: Bug")
-            verifyPageContent("Interventions")
-            verifyPageContent("Disable", alsoClick = true)
-            verifyPageContent("Enable", alsoClick = true)
-            verifyPageContent("Disable", alsoClick = true)
+            // Verify and interact with the items from the "Interventions" section
+            verifyWebCompatPageItemExists("Interventions")
+            verifyWebCompatPageItemExists("More Information: Bug")
+            verifyWebCompatPageItemExists("Disable")
+            clickWebCompatPageItem("Disable")
+            verifyWebCompatPageItemExists("Enable")
+            clickWebCompatPageItem("Enable")
+            verifyWebCompatPageItemExists("Disable")
 
-            verifyPageContent("SmartBlock Fixes", alsoClick = true)
-            verifyPageContent("More Information: Bug")
-            verifyPageContent("Disable")
+            // Verify and interact with the items from the "SmartBlock Fixes" section
+            clickWebCompatPageItem("SmartBlock Fixes")
+            verifyWebCompatPageItemExists("SmartBlock Fixes", isSmartBlockFixesItem = true)
+            verifyWebCompatPageItemExists("More Information: Bug", isSmartBlockFixesItem = true)
+            verifyWebCompatPageItemExists("Disable", isSmartBlockFixesItem = true)
+            clickWebCompatPageItem("Disable")
+            verifyWebCompatPageItemExists("Enable", isSmartBlockFixesItem = true)
+            clickWebCompatPageItem("Enable")
+            verifyWebCompatPageItemExists("Disable", isSmartBlockFixesItem = true)
         }
     }
 }

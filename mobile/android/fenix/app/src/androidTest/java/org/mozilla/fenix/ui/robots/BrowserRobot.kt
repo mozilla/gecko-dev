@@ -195,7 +195,7 @@ class BrowserRobot {
      *  document.querySelector('#testContent').innerText == expectedText
      *
      */
-    fun verifyPageContent(expectedText: String, alsoClick: Boolean = false) {
+    fun verifyPageContent(expectedText: String) {
         sessionLoadedIdlingResource = SessionLoadedIdlingResource()
 
         mDevice.waitNotNull(
@@ -204,12 +204,10 @@ class BrowserRobot {
         )
 
         registerAndCleanupIdlingResources(sessionLoadedIdlingResource) {
-            val obj = itemWithResId("$packageName:id/engineView")
-                .getChild(UiSelector().textContains(expectedText))
-            assertTrue(obj.waitForExists(waitingTimeLong))
-            if (alsoClick) {
-                obj.click()
-            }
+            assertTrue(
+                itemWithResId("$packageName:id/engineView")
+                    .getChild(UiSelector().textContains(expectedText)).waitForExists(waitingTimeLong),
+            )
         }
     }
 
@@ -1265,6 +1263,35 @@ class BrowserRobot {
                 SupportUtils.getSumoURLForTopic(appContext, SupportUtils.SumoTopic.FIND_INSTALL_ADDONS).replace("https://", ""),
             )
         }
+    }
+
+    fun verifyWebCompatPageItemExists(itemText: String, isSmartBlockFixesItem: Boolean = false) {
+        for (i in 1..RETRY_COUNT) {
+            try {
+                Log.i(TAG, "verifyWebCompatPageContent: Started try #$i")
+                assertUIObjectExists(itemContainingText(itemText))
+
+                break
+            } catch (e: AssertionError) {
+                Log.i(TAG, "verifyWebCompatPageContent: verifyWebCompatPageContent caught, executing fallback methods")
+                if (i == RETRY_COUNT) {
+                    throw e
+                } else {
+                    browserScreen {
+                    }.openThreeDotMenu {
+                    }.refreshPage {
+                        waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+                    }
+                    if (isSmartBlockFixesItem) {
+                        clickWebCompatPageItem("SmartBlock Fixes")
+                    }
+                }
+            }
+        }
+    }
+
+    fun clickWebCompatPageItem(itemText: String) {
+        clickPageObject(itemContainingText(itemText))
     }
 
     class Transition {
