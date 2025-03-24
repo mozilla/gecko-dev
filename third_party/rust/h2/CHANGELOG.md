@@ -1,3 +1,19 @@
+# 0.3.26 (April 3, 2024)
+
+* Limit number of CONTINUATION frames for misbehaving connections.
+
+# 0.3.25 (March 15, 2024)
+
+* Improve performance decoding many headers.
+
+# 0.3.24 (January 17, 2024)
+
+* Limit error resets for misbehaving connections.
+
+# 0.3.23 (January 10, 2024)
+
+* Backport fix from 0.4.1 for stream capacity assignment.
+
 # 0.3.22 (November 15, 2023)
 
 * Add `header_table_size(usize)` option to client and server builders.

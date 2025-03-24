@@ -299,7 +299,6 @@ fn position(buf: &BytesMut) -> usize {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::hpack::Header;
     use http::*;
 
     #[test]

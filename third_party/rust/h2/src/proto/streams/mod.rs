@@ -69,4 +69,10 @@ pub struct Config {
 
     /// Maximum number of remote initiated streams
     pub remote_max_initiated: Option<usize>,
+
+    /// Maximum number of locally reset streams due to protocol error across
+    /// the lifetime of the connection.
+    ///
+    /// When this gets exceeded, we issue GOAWAYs.
+    pub local_max_error_reset_streams: Option<usize>,
 }

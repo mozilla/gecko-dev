@@ -1,14 +1,14 @@
 use super::*;
 use crate::codec::UserError;
-use crate::frame::{self, PushPromiseHeaderError, Reason, DEFAULT_INITIAL_WINDOW_SIZE};
-use crate::proto::{self, Error};
+use crate::frame::{PushPromiseHeaderError, Reason, DEFAULT_INITIAL_WINDOW_SIZE};
+use crate::proto;
 
 use http::{HeaderMap, Request, Response};
 
 use std::cmp::Ordering;
 use std::io;
 use std::task::{Context, Poll, Waker};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[derive(Debug)]
 pub(super) struct Recv {

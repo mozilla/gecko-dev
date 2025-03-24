@@ -14,7 +14,7 @@ pub(crate) trait Peer {
 
     fn r#dyn() -> Dyn;
 
-    fn is_server() -> bool;
+    //fn is_server() -> bool;
 
     fn convert_poll_message(
         pseudo: Pseudo,
@@ -22,10 +22,12 @@ pub(crate) trait Peer {
         stream_id: StreamId,
     ) -> Result<Self::Poll, Error>;
 
+    /*
     fn is_local_init(id: StreamId) -> bool {
         assert!(!id.is_zero());
         Self::is_server() == id.is_server_initiated()
     }
+    */
 }
 
 /// A dynamic representation of `Peer`.

@@ -1,12 +1,12 @@
 use super::store::Resolve;
 use super::*;
 
-use crate::frame::{Reason, StreamId};
+use crate::frame::Reason;
 
 use crate::codec::UserError;
 use crate::codec::UserError::*;
 
-use bytes::buf::{Buf, Take};
+use bytes::buf::Take;
 use std::{
     cmp::{self, Ordering},
     fmt, io, mem,
@@ -184,7 +184,15 @@ impl Prioritize {
             stream.requested_send_capacity =
                 cmp::min(stream.buffered_send_data, WindowSize::MAX as usize) as WindowSize;
 
-            self.try_assign_capacity(stream);
+            // `try_assign_capacity` will queue the stream to `pending_capacity` if the capcaity
+            // cannot be assigned at the time it is called.
+            //
+            // Streams over the max concurrent count will still call `send_data` so we should be
+            // careful not to put it into `pending_capacity` as it will starve the connection
+            // capacity for other streams
+            if !stream.is_pending_open {
+                self.try_assign_capacity(stream);
+            }
         }
 
         if frame.is_end_stream() {
@@ -522,6 +530,7 @@ impl Prioritize {
         loop {
             if let Some(mut stream) = self.pop_pending_open(store, counts) {
                 self.pending_send.push_front(&mut stream);
+                self.try_assign_capacity(&mut stream);
             }
 
             match self.pop_frame(buffer, store, max_frame_len, counts) {

@@ -1542,10 +1542,24 @@ impl Actions {
     ) -> Result<(), Error> {
         if let Err(Error::Reset(stream_id, reason, initiator)) = res {
             debug_assert_eq!(stream_id, stream.id);
-            // Reset the stream.
-            self.send
-                .send_reset(reason, initiator, buffer, stream, counts, &mut self.task);
-            Ok(())
+
+            if counts.can_inc_num_local_error_resets() {
+                counts.inc_num_local_error_resets();
+
+                // Reset the stream.
+                self.send
+                    .send_reset(reason, initiator, buffer, stream, counts, &mut self.task);
+                Ok(())
+            } else {
+                tracing::warn!(
+                    "reset_on_recv_stream_err; locally-reset streams reached limit ({:?})",
+                    counts.max_local_error_resets().unwrap(),
+                );
+                Err(Error::library_go_away_data(
+                    Reason::ENHANCE_YOUR_CALM,
+                    "too_many_internal_resets",
+                ))
+            }
         } else {
             res
         }

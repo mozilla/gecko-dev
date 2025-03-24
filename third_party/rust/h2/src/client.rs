@@ -336,6 +336,12 @@ pub struct Builder {
     /// The stream ID of the first (lowest) stream. Subsequent streams will use
     /// monotonically increasing stream IDs.
     stream_id: StreamId,
+
+    /// Maximum number of locally reset streams due to protocol error across
+    /// the lifetime of the connection.
+    ///
+    /// When this gets exceeded, we issue GOAWAYs.
+    local_max_error_reset_streams: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -645,6 +651,7 @@ impl Builder {
             initial_max_send_streams: usize::MAX,
             settings: Default::default(),
             stream_id: 1.into(),
+            local_max_error_reset_streams: Some(proto::DEFAULT_LOCAL_RESET_COUNT_MAX),
         }
     }
 
@@ -973,6 +980,23 @@ impl Builder {
         self
     }
 
+    /// Sets the maximum number of local resets due to protocol errors made by the remote end.
+    ///
+    /// Invalid frames and many other protocol errors will lead to resets being generated for those streams.
+    /// Too many of these often indicate a malicious client, and there are attacks which can abuse this to DOS servers.
+    /// This limit protects against these DOS attacks by limiting the amount of resets we can be forced to generate.
+    ///
+    /// When the number of local resets exceeds this threshold, the client will close the connection.
+    ///
+    /// If you really want to disable this, supply [`Option::None`] here.
+    /// Disabling this is not recommended and may expose you to DOS attacks.
+    ///
+    /// The default value is currently 1024, but could change.
+    pub fn max_local_error_reset_streams(&mut self, max: Option<usize>) -> &mut Self {
+        self.local_max_error_reset_streams = max;
+        self
+    }
+
     /// Sets the maximum number of pending-accept remotely-reset streams.
     ///
     /// Streams that have been received by the peer, but not accepted by the
@@ -1293,6 +1317,7 @@ where
                 reset_stream_duration: builder.reset_stream_duration,
                 reset_stream_max: builder.reset_stream_max,
                 remote_reset_stream_max: builder.pending_accept_reset_stream_max,
+                local_error_reset_streams_max: builder.local_max_error_reset_streams,
                 settings: builder.settings.clone(),
             },
         );
@@ -1606,9 +1631,11 @@ impl proto::Peer for Peer {
         proto::DynPeer::Client
     }
 
+    /*
     fn is_server() -> bool {
         false
     }
+    */
 
     fn convert_poll_message(
         pseudo: Pseudo,

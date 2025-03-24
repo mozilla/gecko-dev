@@ -279,8 +279,8 @@ user-login = "jamienicol"
 user-name = "Jamie Nicol"
 
 [[publisher.h2]]
-version = "0.3.22"
-when = "2023-11-15"
+version = "0.3.26"
+when = "2024-04-03"
 user-id = 359
 user-login = "seanmonstar"
 user-name = "Sean McArthur"

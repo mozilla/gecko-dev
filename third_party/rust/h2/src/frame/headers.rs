@@ -12,6 +12,7 @@ use std::fmt;
 use std::io::Cursor;
 
 type EncodeBuf<'a> = bytes::buf::Limit<&'a mut BytesMut>;
+
 /// Header frame
 ///
 /// This could be either a request or a response.
@@ -87,6 +88,9 @@ struct HeaderBlock {
     /// The decoded header fields
     fields: HeaderMap,
 
+    /// Precomputed size of all of our header fields, for perf reasons
+    field_size: usize,
+
     /// Set to true if decoding went over the max header list size.
     is_over_size: bool,
 
@@ -115,6 +119,7 @@ impl Headers {
             stream_id,
             stream_dep: None,
             header_block: HeaderBlock {
+                field_size: calculate_headermap_size(&fields),
                 fields,
                 is_over_size: false,
                 pseudo,
@@ -131,6 +136,7 @@ impl Headers {
             stream_id,
             stream_dep: None,
             header_block: HeaderBlock {
+                field_size: calculate_headermap_size(&fields),
                 fields,
                 is_over_size: false,
                 pseudo: Pseudo::default(),
@@ -196,6 +202,7 @@ impl Headers {
             stream_dep,
             header_block: HeaderBlock {
                 fields: HeaderMap::new(),
+                field_size: 0,
                 is_over_size: false,
                 pseudo: Pseudo::default(),
             },
@@ -350,6 +357,7 @@ impl PushPromise {
         PushPromise {
             flags: PushPromiseFlag::default(),
             header_block: HeaderBlock {
+                field_size: calculate_headermap_size(&fields),
                 fields,
                 is_over_size: false,
                 pseudo,
@@ -441,6 +449,7 @@ impl PushPromise {
             flags,
             header_block: HeaderBlock {
                 fields: HeaderMap::new(),
+                field_size: 0,
                 is_over_size: false,
                 pseudo: Pseudo::default(),
             },
@@ -892,6 +901,8 @@ impl HeaderBlock {
 
                         headers_size += decoded_header_size(name.as_str().len(), value.len());
                         if headers_size < max_header_list_size {
+                            self.field_size +=
+                                decoded_header_size(name.as_str().len(), value.len());
                             self.fields.append(name, value);
                         } else if !self.is_over_size {
                             tracing::trace!("load_hpack; header list size over max");
@@ -958,12 +969,14 @@ impl HeaderBlock {
             + pseudo_size!(status)
             + pseudo_size!(authority)
             + pseudo_size!(path)
-            + self
-                .fields
-                .iter()
-                .map(|(name, value)| decoded_header_size(name.as_str().len(), value.len()))
-                .sum::<usize>()
+            + self.field_size
     }
+}
+
+fn calculate_headermap_size(map: &HeaderMap) -> usize {
+    map.iter()
+        .map(|(name, value)| decoded_header_size(name.as_str().len(), value.len()))
+        .sum::<usize>()
 }
 
 fn decoded_header_size(name: usize, value: usize) -> usize {
@@ -973,8 +986,6 @@ fn decoded_header_size(name: usize, value: usize) -> usize {
 #[cfg(test)]
 mod test {
     use std::iter::FromIterator;
-
-    use http::HeaderValue;
 
     use super::*;
     use crate::frame;
