@@ -358,6 +358,8 @@
   <string name="browser_save_menu_handlebar_content_description">Lat att menyen lagre</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
   <string name="browser_tools_menu_handlebar_content_description">Lat att verktøymenyen</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+  <string name="browser_custom_tab_menu_handlebar_content_description">Latatt menyen tilpassa faner</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Lesevising, Omset, Rapporter øydelagd nettstad, Skriv ut, Del, Opne app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
