@@ -66,13 +66,7 @@ add_task(async function test_customize_sidebar_actions() {
     4,
     "Four default tools are shown in the customize menu"
   );
-  let bookmarksInput = Array.from(customizeComponent.toolInputs).find(
-    input => input.name === "viewBookmarksSidebar"
-  );
-  ok(
-    !bookmarksInput.checked,
-    "The bookmarks input is unchecked initally as Bookmarks are disabled initially."
-  );
+
   for (const toolInput of customizeComponent.toolInputs) {
     let toolDisabledInitialState = !toolInput.checked;
     toolInput.click();

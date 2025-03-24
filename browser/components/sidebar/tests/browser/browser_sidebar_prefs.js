@@ -7,12 +7,11 @@ add_task(async function test_tools_prefs() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
-  ok(sidebar, "Sidebar is shown.");
   await sidebar.updateComplete;
 
   is(
     Services.prefs.getStringPref("sidebar.main.tools"),
-    "aichat,syncedtabs,history",
+    "aichat,syncedtabs,history,bookmarks",
     "Default tools pref unchanged"
   );
 
@@ -35,11 +34,14 @@ add_task(async function test_tools_prefs() {
     input => input.name === "viewBookmarksSidebar"
   );
   ok(
-    !bookmarksInput.checked,
-    "The bookmarks input is unchecked initially as Bookmarks are disabled initially."
+    bookmarksInput.checked,
+    "The bookmarks input is checked initially as Bookmarks is a default tool."
   );
   for (const toolInput of customizeComponent.toolInputs) {
     let toolDisabledInitialState = !toolInput.checked;
+    if (toolInput.name == "viewBookmarksSidebar") {
+      continue;
+    }
     toolInput.click();
     await BrowserTestUtils.waitForCondition(
       () => {
@@ -67,7 +69,7 @@ add_task(async function test_tools_prefs() {
   is(
     updatedTools,
     "bookmarks",
-    "History, aichat and syncedtabs have been removed from the pref, and bookmarks added"
+    "All tools have been removed from the launcher except bookmarks"
   );
 
   await BrowserTestUtils.closeWindow(win);
@@ -143,11 +145,13 @@ add_task(async function test_tool_pref_change() {
   });
   is(sidebar.toolButtons.length, origCount - 1, "Removed tool");
 
-  await SpecialPowers.pushPrefEnv({ set: [["sidebar.main.tools", origTools]] });
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.main.tools", origTools]],
+  });
   is(sidebar.toolButtons.length, origCount, "Restored tool");
 
   await SpecialPowers.pushPrefEnv({ clear: [["sidebar.main.tools"]] });
-  is(sidebar.toolButtons.length, 3, "Restored default tools");
+  is(sidebar.toolButtons.length, 0, "Cleared default tools");
 });
 
 /**

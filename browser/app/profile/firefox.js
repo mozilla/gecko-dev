@@ -2100,10 +2100,10 @@ pref("sidebar.revamp.round-content-area", false);
 pref("sidebar.animation.enabled", true);
 pref("sidebar.animation.duration-ms", 200);
 pref("sidebar.animation.expand-on-hover.duration-ms", 400);
-// The sidebar.main.tools pref cannot be changed.
-// Use the sidebar.newTool.migration. pref branch to introduce a new "tool" to the sidebar launcher;
-// see https://firefox-source-docs.mozilla.org/browser/components/sidebar/docs/index.html for instructions.
-pref("sidebar.main.tools", "aichat,syncedtabs,history");
+// This pref is used to store user customized tools in the sidebar launcher and shouldn't be changed.
+// See https://firefox-source-docs.mozilla.org/browser/components/sidebar/docs/index.html for ways
+// you can introduce a new tool to the sidebar launcher.
+pref("sidebar.main.tools", "");
 pref("sidebar.verticalTabs", false);
 pref("sidebar.visibility", "always-show");
 // Sidebar UI state is stored per-window via session restore. Use this pref

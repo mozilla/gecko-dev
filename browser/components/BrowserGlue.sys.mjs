@@ -3698,7 +3698,7 @@ BrowserGlue.prototype = {
   _migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 152;
+    const UI_VERSION = 153;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -4499,6 +4499,19 @@ BrowserGlue.prototype = {
           .join(",");
         Services.prefs.setCharPref("sidebar.main.tools", updatedTools);
       }
+    }
+
+    if (
+      currentUIVersion < 153 &&
+      Services.prefs.getBoolPref("sidebar.revamp") &&
+      !Services.prefs.prefHasUserValue("sidebar.main.tools")
+    ) {
+      // This pref will now be a user set branch but we want to preserve the previous
+      // default value for existing sidebar.revamp users who hadn't changed it.
+      Services.prefs.setCharPref(
+        "sidebar.main.tools",
+        "aichat,syncedtabs,history"
+      );
     }
 
     // Update the migration version.

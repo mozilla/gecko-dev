@@ -15,12 +15,12 @@ const { DeferredTask } = ChromeUtils.importESModule(
   "resource://gre/modules/DeferredTask.sys.mjs"
 );
 
-const defaultTools = {
+const toolsNameMap = {
   viewGenaiChatSidebar: "aichat",
-  viewReviewCheckerSidebar: "reviewchecker",
   viewTabsSidebar: "syncedtabs",
   viewHistorySidebar: "history",
   viewBookmarksSidebar: "bookmarks",
+  viewReviewCheckerSidebar: "reviewchecker",
   viewCPMSidebar: "passwords",
 };
 const EXPAND_ON_HOVER_DEBOUNCE_RATE_MS = 200;
@@ -203,6 +203,7 @@ var SidebarController = {
       revampL10nId: "sidebar-menu-customize-label",
       iconUrl: "chrome://global/skin/icons/settings.svg",
       gleanEvent: Glean.sidebarCustomize.panelToggle,
+      visible: false,
     });
 
     return this._sidebars;
@@ -1316,7 +1317,7 @@ var SidebarController = {
     let changed = false;
     const tools = new Set(this.sidebarRevampTools.split(","));
     this.toolsAndExtensions.forEach((tool, commandID) => {
-      const toolID = defaultTools[commandID];
+      const toolID = toolsNameMap[commandID];
       if (toolID) {
         const expected = !tools.has(toolID);
         if (tool.disabled != expected) {
@@ -1346,13 +1347,13 @@ var SidebarController = {
     // Tools are persisted via a pref.
     if (!Object.hasOwn(toggledTool, "extensionId")) {
       const tools = new Set(this.sidebarRevampTools.split(","));
-      const updatedTools = tools.has(defaultTools[commandID])
+      const updatedTools = tools.has(toolsNameMap[commandID])
         ? Array.from(tools).filter(
-            tool => !!tool && tool != defaultTools[commandID]
+            tool => !!tool && tool != toolsNameMap[commandID]
           )
         : [
             ...Array.from(tools).filter(tool => !!tool),
-            defaultTools[commandID],
+            toolsNameMap[commandID],
           ];
       Services.prefs.setStringPref(this.TOOLS_PREF, updatedTools.join());
     }
@@ -1532,13 +1533,13 @@ var SidebarController = {
    * @returns {Array}
    */
   getTools() {
-    return Object.keys(defaultTools)
+    return Object.keys(toolsNameMap)
       .filter(commandID => this.sidebars.get(commandID))
       .map(commandID => {
         const sidebar = this.sidebars.get(commandID);
         const disabled = !this.sidebarRevampTools
           .split(",")
-          .includes(defaultTools[commandID]);
+          .includes(toolsNameMap[commandID]);
         return {
           commandID,
           view: commandID,
@@ -2117,7 +2118,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampTools",
   "sidebar.main.tools",
-  "aichat,syncedtabs,history",
+  "",
   () => {
     if (
       !SidebarController.inSingleTabWindow &&

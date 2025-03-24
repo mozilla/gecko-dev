@@ -19,13 +19,11 @@ const kPrefCustomizationHorizontalTabstrip =
   "browser.uiCustomization.horizontalTabstrip";
 const kPrefCustomizationNavBarWhenVerticalTabs =
   "browser.uiCustomization.navBarWhenVerticalTabs";
-const kPrefSidebarTools = "sidebar.main.tools";
 
 const MODIFIED_PREFS = Object.freeze([
   kPrefCustomizationState,
   kPrefCustomizationHorizontalTabstrip,
   kPrefCustomizationNavBarWhenVerticalTabs,
-  kPrefSidebarTools,
 ]);
 
 // Ensure we clear any previous pref values

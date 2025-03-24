@@ -361,8 +361,7 @@ add_task(async function test_customize_history_enabled() {
 add_task(async function test_customize_bookmarks_enabled() {
   await testCustomizeToggle(
     "viewBookmarksSidebar",
-    Glean.sidebarCustomize.bookmarksEnabled,
-    false
+    Glean.sidebarCustomize.bookmarksEnabled
   );
 });
 
@@ -589,7 +588,6 @@ async function testIconClick(expanded) {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.ml.chat.enabled", true],
-      ["sidebar.main.tools", "aichat,syncedtabs,history,bookmarks"],
       [TAB_DIRECTION_PREF, true],
     ],
   });

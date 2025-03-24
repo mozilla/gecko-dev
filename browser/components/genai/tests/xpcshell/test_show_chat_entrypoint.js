@@ -29,9 +29,13 @@ add_task(async function test_show_chat() {
 
   Assert.ok(GenAI.canShowChatEntrypoint, "Can show with provider");
 
+  Services.prefs.setStringPref("sidebar.main.tools", "aichat");
   Services.prefs.setBoolPref("sidebar.revamp", true);
 
-  Assert.ok(GenAI.canShowChatEntrypoint, "Can show with revamp");
+  Assert.ok(
+    GenAI.canShowChatEntrypoint,
+    "Can show with revamp and aichat tool"
+  );
 
   Services.prefs.setStringPref("sidebar.main.tools", "history");
 

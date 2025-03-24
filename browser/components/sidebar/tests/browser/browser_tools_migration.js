@@ -6,7 +6,7 @@
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["sidebar.main.tools", "syncedtabs,history"],
+      ["sidebar.main.tools", "syncedtabs,bookmarks,history"],
       ["sidebar.newTool.migration.bookmarks", "{}"],
       ["browser.ml.chat.enabled", false],
       [
@@ -19,7 +19,29 @@ add_setup(async () => {
   });
 });
 
+add_task(async function test_duplicate_tool() {
+  const sidebar = document.querySelector("sidebar-main");
+  let tools = Services.prefs.getStringPref("sidebar.main.tools").split(",");
+  is(tools.length, 3, "Three tools are in the sidebar.main.tools pref");
+  is(
+    tools.filter(tool => tool == "bookmarks").length,
+    1,
+    "Bookmarks has only been added once"
+  );
+  is(
+    sidebar.toolButtons.length,
+    3,
+    "Three default tools are visible in the launcher"
+  );
+});
+
 add_task(async function test_one_time_tool_migration() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.main.tools", "syncedtabs,history"],
+      ["sidebar.newTool.migration.bookmarks", "{}"],
+    ],
+  });
   const sidebar = document.querySelector("sidebar-main");
   let tools = Services.prefs.getStringPref("sidebar.main.tools");
   is(

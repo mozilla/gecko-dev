@@ -9,6 +9,10 @@ const BACKUP_STATE_PREF = "sidebar.backupState";
 const VISIBILITY_SETTING_PREF = "sidebar.visibility";
 const SIDEBAR_TOOLS = "sidebar.main.tools";
 
+// New panels that are ready to be introduced to new sidebar users should be added to this list;
+// ensure your feature flag is enabled at the same time you do this and that its the same value as
+// what you added to .
+const DEFAULT_LAUNCHER_TOOLS = "aichat,syncedtabs,history,bookmarks";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -40,7 +44,15 @@ XPCOMUtils.defineLazyPreferenceGetter(
   () => SidebarManager.updateDefaultTools()
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(lazy, "sidebarTools", SIDEBAR_TOOLS);
+XPCOMUtils.defineLazyPreferenceGetter(lazy, "sidebarTools", SIDEBAR_TOOLS, "");
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "newSidebarHasBeenUsed",
+  "sidebar.new-sidebar.has-used",
+  false,
+  () => SidebarManager.updateDefaultTools()
+);
 
 export const SidebarManager = {
   /**
@@ -84,7 +96,7 @@ export const SidebarManager = {
         }
       };
       setPref("nimbus", slug);
-      ["main.tools", "revamp", "verticalTabs", "visibility"].forEach(pref =>
+      ["revamp", "verticalTabs", "visibility"].forEach(pref =>
         setPref(pref, lazy.NimbusFeatures[featureId].getVariable(pref))
       );
     });
@@ -119,16 +131,20 @@ export const SidebarManager = {
   },
 
   /**
-   * Appends any new tools defined on the sidebar.newTool.migration pref branch
-   * to the sidebar.main.tools pref one time as a way of introducing a new tool
-   * to the launcher without overwriting what a user had previously customized.
+   * Prepopulates default tools for new sidebar users and appends any new tools defined
+   * on the sidebar.newTool.migration pref branch to the sidebar.main.tools pref.
    */
   updateDefaultTools() {
     if (!lazy.sidebarRevampEnabled) {
       return;
     }
-
     let tools = lazy.sidebarTools;
+
+    // For new sidebar.revamp users, we pre-populate a set of default tools to show in the launcher.
+    if (!tools && !lazy.newSidebarHasBeenUsed) {
+      tools = DEFAULT_LAUNCHER_TOOLS;
+    }
+
     for (const pref of Services.prefs.getChildList(
       "sidebar.newTool.migration."
     )) {
@@ -136,8 +152,7 @@ export const SidebarManager = {
         let options = JSON.parse(Services.prefs.getStringPref(pref));
         let newTool = pref.split(".")[3];
 
-        // ensure we only add this tool once
-        if (options?.alreadyShown || lazy.sidebarTools.includes(newTool)) {
+        if (options?.alreadyShown) {
           continue;
         }
 
@@ -155,7 +170,10 @@ export const SidebarManager = {
             continue;
           }
         }
-        tools = tools + "," + newTool;
+        // avoid adding a tool from the pref branch where it's already been added to the DEFAULT_LAUNCHER_TOOLS (for new users)
+        if (!tools.includes(newTool)) {
+          tools += "," + newTool;
+        }
         options.alreadyShown = true;
         Services.prefs.setStringPref(pref, JSON.stringify(options));
       } catch (ex) {
