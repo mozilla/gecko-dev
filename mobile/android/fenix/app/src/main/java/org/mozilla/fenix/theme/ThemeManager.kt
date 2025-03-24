@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.util.TypedValue
 import android.view.Window
+import androidx.annotation.AnyRes
 import androidx.annotation.StyleRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -85,6 +86,14 @@ abstract class ThemeManager(
     }
 
     companion object {
+        /**
+         * Resolves the attribute to a resource ID.
+         *
+         * @param attribute The attribute to resolve.
+         * @param context Any context.
+         * @return The resource ID of the resolved attribute.
+         */
+        @AnyRes
         fun resolveAttribute(attribute: Int, context: Context): Int {
             val typedValue = TypedValue()
             val theme = context.theme

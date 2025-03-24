@@ -20,6 +20,7 @@ import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import mozilla.components.feature.toolbar.ToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarPresenter
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.ktx.android.content.getColorFromAttr
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import mozilla.telemetry.glean.private.NoExtras
@@ -58,7 +59,7 @@ abstract class ToolbarIntegration(
         shouldDisplaySearchTerms = true,
         urlRenderConfiguration = ToolbarFeature.UrlRenderConfiguration(
             context.components.publicSuffixList,
-            ThemeManager.resolveAttribute(R.attr.textPrimary, context),
+            context.getColorFromAttr(R.attr.textPrimary),
             renderStyle = renderStyle,
         ),
     )
