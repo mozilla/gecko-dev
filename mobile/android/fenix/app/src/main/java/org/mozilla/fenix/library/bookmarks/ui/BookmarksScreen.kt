@@ -32,6 +32,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
@@ -255,21 +256,36 @@ private fun BookmarksList(
                     collectionInfo = CollectionInfo(rowCount = state.bookmarkItems.size, columnCount = 1)
                 },
         ) {
-            itemsIndexed(state.bookmarkItems) { index, item ->
+            val folders = state.bookmarkItems.folders()
+            itemsIndexed(folders) { index, item ->
                 var showMenu by remember { mutableStateOf(false) }
                 if (state.isGuidMarkedForDeletion(item.guid)) {
                     return@itemsIndexed
                 }
 
-                when (item) {
-                    is BookmarkItem.Bookmark -> {
-                        SelectableFaviconListItem(
+                Box {
+                    if (item.isDesktopFolder) {
+                        SelectableIconListItem(
                             label = item.title,
-                            url = item.previewImageUrl,
                             isSelected = item in state.selectedItems,
-                            description = item.url,
-                            onClick = { store.dispatch(BookmarkClicked(item)) },
-                            onLongClick = { store.dispatch(BookmarkLongClicked(item)) },
+                            onClick = { store.dispatch(FolderClicked(item)) },
+                            beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                            modifier = Modifier.semantics {
+                                collectionItemInfo = CollectionItemInfo(
+                                    rowIndex = index,
+                                    rowSpan = 1,
+                                    columnSpan = 1,
+                                    columnIndex = 0,
+                                )
+                            },
+                        )
+                    } else {
+                        SelectableIconListItem(
+                            label = item.title,
+                            isSelected = item in state.selectedItems,
+                            onClick = { store.dispatch(FolderClicked(item)) },
+                            onLongClick = { store.dispatch(FolderLongClicked(item)) },
+                            beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
                             modifier = Modifier.semantics {
                                 collectionItemInfo = CollectionItemInfo(
                                     rowIndex = index,
@@ -294,74 +310,67 @@ private fun BookmarksList(
                                     )
                                 }
 
-                                BookmarkListItemMenu(
+                                BookmarkListFolderMenu(
                                     showMenu = showMenu,
                                     onDismissRequest = { showMenu = false },
-                                    bookmark = item,
+                                    folder = item,
                                     store = store,
                                 )
                             }
                         }
                     }
+                }
+            }
 
-                    is BookmarkItem.Folder -> {
-                        Box {
-                            if (item.isDesktopFolder) {
-                                SelectableIconListItem(
-                                    label = item.title,
-                                    isSelected = item in state.selectedItems,
-                                    onClick = { store.dispatch(FolderClicked(item)) },
-                                    beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
-                                    modifier = Modifier.semantics {
-                                        collectionItemInfo = CollectionItemInfo(
-                                            rowIndex = index,
-                                            rowSpan = 1,
-                                            columnSpan = 1,
-                                            columnIndex = 0,
-                                        )
-                                    },
-                                )
-                            } else {
-                                SelectableIconListItem(
-                                    label = item.title,
-                                    isSelected = item in state.selectedItems,
-                                    onClick = { store.dispatch(FolderClicked(item)) },
-                                    onLongClick = { store.dispatch(FolderLongClicked(item)) },
-                                    beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
-                                    modifier = Modifier.semantics {
-                                        collectionItemInfo = CollectionItemInfo(
-                                            rowIndex = index,
-                                            rowSpan = 1,
-                                            columnSpan = 1,
-                                            columnIndex = 0,
-                                        )
-                                    },
-                                ) {
-                                    Box {
-                                        IconButton(
-                                            onClick = { showMenu = true },
-                                            modifier = Modifier.size(24.dp),
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                                                contentDescription = stringResource(
-                                                    R.string.bookmark_item_menu_button_content_description,
-                                                    item.title,
-                                                ),
-                                                tint = FirefoxTheme.colors.iconPrimary,
-                                            )
-                                        }
+            if (folders.isNotEmpty()) {
+                item {
+                    Divider()
+                }
+            }
 
-                                        BookmarkListFolderMenu(
-                                            showMenu = showMenu,
-                                            onDismissRequest = { showMenu = false },
-                                            folder = item,
-                                            store = store,
-                                        )
-                                    }
-                                }
-                            }
+            itemsIndexed(state.bookmarkItems.bookmarks()) { index, item ->
+                var showMenu by remember { mutableStateOf(false) }
+                if (state.isGuidMarkedForDeletion(item.guid)) {
+                    return@itemsIndexed
+                }
+
+                SelectableFaviconListItem(
+                    label = item.title,
+                    url = item.previewImageUrl,
+                    isSelected = item in state.selectedItems,
+                    description = item.url,
+                    onClick = { store.dispatch(BookmarkClicked(item)) },
+                    onLongClick = { store.dispatch(BookmarkLongClicked(item)) },
+                    modifier = Modifier.semantics {
+                        collectionItemInfo = CollectionItemInfo(
+                            rowIndex = index,
+                            rowSpan = 1,
+                            columnSpan = 1,
+                            columnIndex = 0,
+                        )
+                    },
+                ) {
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                                contentDescription = stringResource(
+                                    R.string.bookmark_item_menu_button_content_description,
+                                    item.title,
+                                ),
+                                tint = FirefoxTheme.colors.iconPrimary,
+                            )
                         }
+
+                        BookmarkListItemMenu(
+                            showMenu = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            bookmark = item,
+                            store = store,
+                        )
                     }
                 }
             }

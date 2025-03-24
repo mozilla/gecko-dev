@@ -6,6 +6,9 @@ package org.mozilla.fenix.library.bookmarks.ui
 
 import mozilla.components.concept.storage.BookmarkNode
 
+internal fun List<BookmarkItem>.folders(): List<BookmarkItem.Folder> = filterIsInstance<BookmarkItem.Folder>()
+internal fun List<BookmarkItem>.bookmarks(): List<BookmarkItem.Bookmark> = filterIsInstance<BookmarkItem.Bookmark>()
+
 /**
  * Items that can be represented in the Bookmarks list.
  */
