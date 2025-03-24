@@ -121,15 +121,12 @@ describe("Discovery Stream <AdBanner>", () => {
     assert.deepEqual(aside.prop("style"), { gridRow: clampedRow });
   });
 
-  it("should have the dismiss button be visible", () => {
-    const dismiss = wrapper.find(".ad-banner-dismiss .icon-dismiss");
+  it("should have the context menu button be visible", () => {
+    const dismiss = wrapper.find("moz-button");
     assert.ok(dismiss.exists());
 
-    dismiss.simulate("click");
-
-    let [action] = dispatch.secondCall.args;
-    assert.equal(action.type, "BLOCK_URL");
-    assert.equal(action.data[0].id, DEFAULT_PROPS.spoc.id);
+    // The rest of the context menu functionality is now tested in
+    // AdBannerContextMenu.test.jsx
   });
 
   it("should call onLinkClick when banner is clicked", () => {
@@ -142,7 +139,7 @@ describe("Discovery Stream <AdBanner>", () => {
       ac.DiscoveryStreamUserEvent({
         event: "CLICK",
         source: "FOO",
-        // Banner ads dont have a position, but a row number
+        // Banner ads don't have a position, but a row number
         action_position: DEFAULT_PROPS.row,
         value: {
           card_type: "spoc",

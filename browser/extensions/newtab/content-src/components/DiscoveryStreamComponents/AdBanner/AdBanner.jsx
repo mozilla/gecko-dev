@@ -5,8 +5,21 @@
 import React from "react";
 import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
 import { ImpressionStats } from "../../DiscoveryStreamImpressionStats/ImpressionStats";
-import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
+import { actionCreators as ac } from "common/Actions.mjs";
+import { AdBannerContextMenu } from "../AdBannerContextMenu/AdBannerContextMenu";
 
+/**
+ * A new banner ad that appears between rows of stories: leaderboard or billboard size.
+ *
+ * @param spoc
+ * @param dispatch
+ * @param firstVisibleTimestamp
+ * @param row
+ * @param type
+ * @param prefs
+ * @returns {Element}
+ * @constructor
+ */
 export const AdBanner = ({
   spoc,
   dispatch,
@@ -39,39 +52,12 @@ export const AdBanner = ({
 
   const { width: imgWidth, height: imgHeight } = getDimensions(spoc.format);
 
-  const handleDismissClick = () => {
-    dispatch(
-      ac.AlsoToMain({
-        type: at.BLOCK_URL,
-        data: [
-          {
-            block_key: spoc.block_key,
-            fetchTimestamp: spoc.fetchTimestamp,
-            flight_id: spoc.flight_id,
-            format: spoc.format,
-            id: spoc.id,
-            card_type: "spoc",
-            is_pocket_card: true,
-            position: row,
-            sponsor: spoc.sponsor,
-            title: spoc.title,
-            url: spoc.url || spoc.shim.url,
-            personalization_models: spoc.personalization_models,
-            priority: spoc.priority,
-            score: spoc.score,
-            alt_text: spoc.alt_text,
-          },
-        ],
-      })
-    );
-  };
-
   const onLinkClick = () => {
     dispatch(
       ac.DiscoveryStreamUserEvent({
         event: "CLICK",
         source: type.toUpperCase(),
-        // Banner ads dont have a position, but a row number
+        // Banner ads don't have a position, but a row number
         action_position: row,
         value: {
           card_type: "spoc",
@@ -98,13 +84,12 @@ export const AdBanner = ({
   return (
     <aside className="ad-banner-wrapper" style={{ gridRow: clampedRow }}>
       <div className={`ad-banner-inner ${spoc.format}`}>
-        <div className="ad-banner-dismiss">
-          <button
-            className="icon icon-dismiss"
-            onClick={handleDismissClick}
-            data-l10n-id="newtab-toast-dismiss-button"
-          ></button>
-        </div>
+        <AdBannerContextMenu
+          dispatch={dispatch}
+          spoc={spoc}
+          position={row}
+          type={type}
+        />
         <SafeAnchor
           className="ad-banner-link"
           url={spoc.url}

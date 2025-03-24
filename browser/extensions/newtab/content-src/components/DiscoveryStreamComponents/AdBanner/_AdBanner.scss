@@ -33,24 +33,6 @@
   .ad-banner-inner {
     margin-inline: auto;
 
-    .ad-banner-dismiss {
-      // Contrast fix for users who have wallpapers set
-      @include wallpaper-contrast-fix;
-
-      margin-block: 0 var(--space-small);
-      margin-inline: 0 var(--space-xxsmall);
-      text-align: end;
-
-      .icon-dismiss {
-        background-size: var(--size-item-small);
-        border: 0;
-      }
-
-      .icon-dismiss:hover {
-        background-color: var(--newtab-button-hover-background);
-      }
-    }
-
     &.leaderboard {
       max-width: var(--leaderboard-width);
 
@@ -74,7 +56,7 @@
     }
 
     &.billboard {
-      min-width: var(--billboard-width);
+      width: var(--billboard-width);
 
       .ad-banner-content {
         height: var(--billboard-height);

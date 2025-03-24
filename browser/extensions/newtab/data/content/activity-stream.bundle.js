@@ -1828,6 +1828,28 @@ const LinkMenuOptions = {
     userEvent: "BLOCK",
   }),
 
+  // This is the "Dismiss" action for leaderboard/billboard ads.
+  BlockAdUrl: (site, pos, eventSource) => ({
+    id: "newtab-menu-dismiss",
+    icon: "dismiss",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.BLOCK_URL,
+      data: [site],
+    }),
+    impression: actionCreators.ImpressionStats({
+      source: eventSource,
+      block: 0,
+      tiles: [
+        {
+          id: site.guid,
+          pos,
+          ...(site.shim && site.shim.save ? { shim: site.shim.save } : {}),
+        },
+      ],
+    }),
+    userEvent: "BLOCK",
+  }),
+
   // This is an option for web extentions which will result in remove items from
   // memory and notify the web extenion, rather than using the built-in block list.
   WebExtDismiss: (site, index, eventSource) => ({
@@ -4284,6 +4306,84 @@ function ListFeed({
   }, ctaCopy)))));
 }
 
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/AdBannerContextMenu/AdBannerContextMenu.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+/**
+ * A context menu for IAB banners (e.g. billboard, leaderboard).
+ *
+ * Note: MREC ad formats and sponsored stories share the context menu with
+ * other cards: make sure you also look at DSLinkMenu component
+ * to keep any updates to ad-related context menu items in sync.
+ *
+ * @param dispatch
+ * @param spoc
+ * @param position
+ * @param type
+ * @returns {Element}
+ * @constructor
+ */
+function AdBannerContextMenu({
+  dispatch,
+  spoc,
+  position,
+  type
+}) {
+  const ADBANNER_CONTEXT_MENU_OPTIONS = ["BlockAdUrl", "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
+  const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
+  const onClick = e => {
+    e.preventDefault();
+    setShowContextMenu(!showContextMenu);
+  };
+  const onUpdate = () => {
+    setShowContextMenu(!showContextMenu);
+  };
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ads-context-menu-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "ads-context-menu"
+  }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+    type: "icon",
+    size: "default",
+    iconsrc: "chrome://global/skin/icons/more.svg",
+    onClick: onClick
+  }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
+    onUpdate: onUpdate,
+    dispatch: dispatch,
+    options: ADBANNER_CONTEXT_MENU_OPTIONS,
+    shouldSendImpressionStats: true,
+    userEvent: actionCreators.DiscoveryStreamUserEvent,
+    site: {
+      // Props we want to pass on for new ad types that come from Unified Ads API
+      block_key: spoc.block_key,
+      fetchTimestamp: spoc.fetchTimestamp,
+      flight_id: spoc.flight_id,
+      format: spoc.format,
+      id: spoc.id,
+      guid: spoc.guid,
+      card_type: "spoc",
+      // required to record telemetry for an action, see handleBlockUrl in TelemetryFeed.sys.mjs
+      is_pocket_card: true,
+      position,
+      sponsor: spoc.sponsor,
+      title: spoc.title,
+      url: spoc.url || spoc.shim.url,
+      personalization_models: spoc.personalization_models,
+      priority: spoc.priority,
+      score: spoc.score,
+      alt_text: spoc.alt_text,
+      shim: spoc.shim
+    },
+    index: position,
+    source: type.toUpperCase()
+  })));
+}
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/AdBanner/AdBanner.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -4293,6 +4393,20 @@ function ListFeed({
 
 
 
+
+
+/**
+ * A new banner ad that appears between rows of stories: leaderboard or billboard size.
+ *
+ * @param spoc
+ * @param dispatch
+ * @param firstVisibleTimestamp
+ * @param row
+ * @param type
+ * @param prefs
+ * @returns {Element}
+ * @constructor
+ */
 const AdBanner = ({
   spoc,
   dispatch,
@@ -4325,33 +4439,11 @@ const AdBanner = ({
     width: imgWidth,
     height: imgHeight
   } = getDimensions(spoc.format);
-  const handleDismissClick = () => {
-    dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.BLOCK_URL,
-      data: [{
-        block_key: spoc.block_key,
-        fetchTimestamp: spoc.fetchTimestamp,
-        flight_id: spoc.flight_id,
-        format: spoc.format,
-        id: spoc.id,
-        card_type: "spoc",
-        is_pocket_card: true,
-        position: row,
-        sponsor: spoc.sponsor,
-        title: spoc.title,
-        url: spoc.url || spoc.shim.url,
-        personalization_models: spoc.personalization_models,
-        priority: spoc.priority,
-        score: spoc.score,
-        alt_text: spoc.alt_text
-      }]
-    }));
-  };
   const onLinkClick = () => {
     dispatch(actionCreators.DiscoveryStreamUserEvent({
       event: "CLICK",
       source: type.toUpperCase(),
-      // Banner ads dont have a position, but a row number
+      // Banner ads don't have a position, but a row number
       action_position: row,
       value: {
         card_type: "spoc",
@@ -4380,13 +4472,12 @@ const AdBanner = ({
     }
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: `ad-banner-inner ${spoc.format}`
-  }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: "ad-banner-dismiss"
-  }, /*#__PURE__*/external_React_default().createElement("button", {
-    className: "icon icon-dismiss",
-    onClick: handleDismissClick,
-    "data-l10n-id": "newtab-toast-dismiss-button"
-  })), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+  }, /*#__PURE__*/external_React_default().createElement(AdBannerContextMenu, {
+    dispatch: dispatch,
+    spoc: spoc,
+    position: row,
+    type: type
+  }), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
     className: "ad-banner-link",
     url: spoc.url,
     title: spoc.title,

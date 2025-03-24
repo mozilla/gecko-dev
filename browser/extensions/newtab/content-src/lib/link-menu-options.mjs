@@ -151,6 +151,28 @@ export const LinkMenuOptions = {
     userEvent: "BLOCK",
   }),
 
+  // This is the "Dismiss" action for leaderboard/billboard ads.
+  BlockAdUrl: (site, pos, eventSource) => ({
+    id: "newtab-menu-dismiss",
+    icon: "dismiss",
+    action: ac.AlsoToMain({
+      type: at.BLOCK_URL,
+      data: [site],
+    }),
+    impression: ac.ImpressionStats({
+      source: eventSource,
+      block: 0,
+      tiles: [
+        {
+          id: site.guid,
+          pos,
+          ...(site.shim && site.shim.save ? { shim: site.shim.save } : {}),
+        },
+      ],
+    }),
+    userEvent: "BLOCK",
+  }),
+
   // This is an option for web extentions which will result in remove items from
   // memory and notify the web extenion, rather than using the built-in block list.
   WebExtDismiss: (site, index, eventSource) => ({

@@ -219,6 +219,13 @@ module.exports = function (config) {
               {
                 branches: 60,
               },
+            "content-src/components/DiscoveryStreamComponents/AdBannerContextMenu/AdBannerContextMenu.jsx":
+              {
+                statements: 87.5,
+                lines: 87.5,
+                functions: 66.67,
+                branches: 0,
+              },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,

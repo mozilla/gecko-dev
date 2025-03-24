@@ -1,0 +1,29 @@
+.ads-context-menu-wrapper {
+  // Contrast fix for users who have wallpapers set
+  @include wallpaper-contrast-fix;
+
+  text-align: end;
+}
+
+.ads-context-menu {
+  float: right;
+  position: relative;
+
+  > moz-button {
+    padding-block-end: var(--space-small);
+  }
+
+  // Transparent on light backgrounds as specified in Figma designs
+  // and default moz-button colours on dark backgrounds.
+  > moz-button::part(button) {
+    background-color: light-dark(transparent, var(--button-background-color));
+  }
+
+  .context-menu {
+    width: auto;
+
+    /* Position the menu just under and to the right of the context menu button */
+    top: calc(2.25 * var(--size-item-small));
+    inset-inline-start: calc(-12.25 * var(--size-item-small));
+  }
+}

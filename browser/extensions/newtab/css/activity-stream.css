@@ -8037,24 +8037,6 @@ main section {
 .ad-banner-wrapper .ad-banner-inner {
   margin-inline: auto;
 }
-.ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss {
-  margin-block: 0 var(--space-small);
-  margin-inline: 0 var(--space-xxsmall);
-  text-align: end;
-}
-.lightWallpaper .ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss {
-  color-scheme: light;
-}
-.darkWallpaper .ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss {
-  color-scheme: dark;
-}
-.ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss .icon-dismiss {
-  background-size: var(--size-item-small);
-  border: 0;
-}
-.ad-banner-wrapper .ad-banner-inner .ad-banner-dismiss .icon-dismiss:hover {
-  background-color: var(--newtab-button-hover-background);
-}
 .ad-banner-wrapper .ad-banner-inner.leaderboard {
   max-width: var(--leaderboard-width);
 }
@@ -8075,7 +8057,7 @@ main section {
   }
 }
 .ad-banner-wrapper .ad-banner-inner.billboard {
-  min-width: var(--billboard-width);
+  width: var(--billboard-width);
 }
 .ad-banner-wrapper .ad-banner-inner.billboard .ad-banner-content {
   height: var(--billboard-height);
@@ -8103,6 +8085,33 @@ main section {
   text-transform: uppercase;
   font-size: var(--font-size-small);
   color: var(--newtab-contextual-text-secondary-color);
+}
+
+.ads-context-menu-wrapper {
+  text-align: end;
+}
+.lightWallpaper .ads-context-menu-wrapper {
+  color-scheme: light;
+}
+.darkWallpaper .ads-context-menu-wrapper {
+  color-scheme: dark;
+}
+
+.ads-context-menu {
+  float: right;
+  position: relative;
+}
+.ads-context-menu > moz-button {
+  padding-block-end: var(--space-small);
+}
+.ads-context-menu > moz-button::part(button) {
+  background-color: light-dark(transparent, var(--button-background-color));
+}
+.ads-context-menu .context-menu {
+  width: auto;
+  /* Position the menu just under and to the right of the context menu button */
+  top: calc(2.25 * var(--size-item-small));
+  inset-inline-start: calc(-12.25 * var(--size-item-small));
 }
 
 .section-context-menu {
