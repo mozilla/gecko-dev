@@ -26,5 +26,13 @@ window.addEventListener("load", () => {
 
   document
     .getElementById("sourceEditorCommands")
-    .addEventListener("command", event => goDoCommand(event.target.id));
+    .addEventListener("command", event => {
+      // Restrict this to the <command> children of commandset#sourceEditorCommands.
+      switch (event.target.id) {
+        case "cmd_gotoLine":
+        case "cmd_find":
+        case "cmd_findAgain":
+          goDoCommand(event.target.id);
+      }
+    });
 });
