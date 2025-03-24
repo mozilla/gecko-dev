@@ -40,11 +40,20 @@ const {
 } = require("resource://devtools/client/performance-new/shared/browser.js");
 
 /**
+ * @typedef {import("../../@types/perf").RecordingSettings} RecordingSettings
+ *
+ * @typedef {Object} ButtonStateProps
+ * @property {RecordingSettings} recordingSettings
+ *
+ * @typedef {ButtonStateProps} ButtonProps
+ */
+
+/**
  * This component implements the button that triggers the menu that makes it
  * possible to show more actions.
- * @extends {React.PureComponent}
+ * @extends {React.PureComponent<ButtonProps>}
  */
-class MoreActionsButton extends PureComponent {
+class MoreActionsButtonImpl extends PureComponent {
   _menuRef = createRef();
 
   /**
@@ -60,6 +69,27 @@ class MoreActionsButton extends PureComponent {
     if (this._menuRef.current && (e.type == "mousedown" || e.detail === 0)) {
       this._menuRef.current.toggle(e.nativeEvent, e.currentTarget);
     }
+  };
+
+  /**
+   * @returns {Record<string, string>}
+   */
+  getEnvironmentVariablesForStartupFromRecordingSettings = () => {
+    const { interval, entries, threads, features } =
+      this.props.recordingSettings;
+    return {
+      MOZ_PROFILER_STARTUP: "1",
+      MOZ_PROFILER_STARTUP_INTERVAL: String(interval),
+      MOZ_PROFILER_STARTUP_ENTRIES: String(entries),
+      MOZ_PROFILER_STARTUP_FEATURES: features.join(","),
+      MOZ_PROFILER_STARTUP_FILTERS: threads.join(","),
+    };
+  };
+
+  onRestartWithProfiling = () => {
+    const envVariables =
+      this.getEnvironmentVariablesForStartupFromRecordingSettings();
+    restartBrowserWithEnvironmentVariable(envVariables);
   };
 
   render() {
@@ -82,11 +112,29 @@ class MoreActionsButton extends PureComponent {
       h(
         "panel-list",
         { ref: this._menuRef },
-        h("panel-item", null, "To be continued")
+        Localized(
+          { id: "perftools-menu-more-actions-restart-with-profiling" },
+          h(
+            "panel-item",
+            { onClick: this.onRestartWithProfiling },
+            "Restart Firefox with startup profiling enabled"
+          )
+        )
       )
     );
   }
 }
+
+/**
+ * @param {StoreState} state
+ * @returns {ButtonStateProps}
+ */
+function mapStateToButtonProps(state) {
+  return {
+    recordingSettings: selectors.getRecordingSettings(state),
+  };
+}
+const MoreActionsButton = connect(mapStateToButtonProps)(MoreActionsButtonImpl);
 
 /**
  * @typedef {import("../../@types/perf").PageContext} PageContext

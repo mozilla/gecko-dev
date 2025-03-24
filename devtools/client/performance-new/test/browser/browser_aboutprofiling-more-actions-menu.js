@@ -26,8 +26,10 @@ add_task(async function test() {
     await BrowserTestUtils.synthesizeMouseAtCenter("moz-button", {}, browser);
     const item = await getElementFromDocumentByText(
       document,
-      "To be continued"
+      "with startup profiling"
     );
-    ok(item, "The item has been displayed");
+    ok(item, "The item to restart with startup profiling has been displayed");
+    // Skipping clicking on the item, we don't want to actually restart firefox
+    // during the test.
   });
 });
