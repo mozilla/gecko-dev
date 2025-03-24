@@ -61,30 +61,20 @@ def run_android_test(command_context, subproject, test=None, test_objects=[], **
     gradle_command = []
     AC = ("android-components", "ac")
     if subproject == "fenix":
-        gradle_command = [":fenix:testDebug"]
-        test_path = os.path.join(
-            "mobile", "android", "fenix", "app", "src", "test", "java"
-        )
+        gradle_command = ["testDebug", "testFenixDebugUnitTest"]
+        subdir = os.path.join("mobile", "android", "fenix")
+        test_path = os.path.join(subdir, "app", "src", "test", "java")
     elif subproject == "focus":
-        gradle_command = [":focus-android:testFocusDebugUnitTest"]
-        test_path = os.path.join(
-            "mobile",
-            "android",
-            "focus-android",
-            "app",
-            "src",
-            "test",
-            "java",
-        )
+        gradle_command = ["testFocusDebugUnitTest"]
+        subdir = os.path.join("mobile", "android", "focus-android")
+        test_path = os.path.join(subdir, "app", "src", "test", "java")
     elif subproject in AC:
+        subdir = os.path.join("mobile", "android", "android-components")
         if not test_objects and not test:
             return command_context._mach_context.commands.dispatch(
                 "gradle",
                 command_context._mach_context,
-                args=["-q", "test"],
-                topsrcdir=os.path.join(
-                    command_context.topsrcdir, "mobile", "android", "android-components"
-                ),
+                args=["-q", "test", "--rerun", "-p", subdir],
             )
         test_path = os.path.join("src", "test", "java")
     else:
@@ -108,5 +98,5 @@ def run_android_test(command_context, subproject, test=None, test_objects=[], **
     return command_context._mach_context.commands.dispatch(
         "gradle",
         command_context._mach_context,
-        args=["-q"] + gradle_command,
+        args=gradle_command + ["-q", "--rerun", "-p", subdir],
     )
