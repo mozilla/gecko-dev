@@ -3,6 +3,10 @@
 
 "use strict";
 
+// runInPage calls ContentTask.spawn, which injects ContentTaskUtils in the
+// scope of the callback. Eslint doesn't know about that.
+/* global ContentTaskUtils */
+
 /**
  * Test that the UI actually translates text, but use a mocked translations engine.
  * The results of the "translation" will be modifying the text to be full width latin

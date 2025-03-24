@@ -1,5 +1,9 @@
 "use strict";
 
+// test_newtab calls SpecialPowers.spawn, which injects ContentTaskUtils in the
+// scope of the callback. Eslint doesn't know about that.
+/* global ContentTaskUtils */
+
 // Tests that:
 // 1. Top sites header is hidden and the topsites section is not collapsed on load.
 // 2. Pocket header and section are visible and not collapsed on load.

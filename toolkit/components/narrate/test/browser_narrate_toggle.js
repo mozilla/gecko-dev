@@ -2,6 +2,10 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
+// spawnInNewReaderTab calls SpecialPowers.spawn, which injects ContentTaskUtils
+// in the scope of the callback. Eslint doesn't know about that.
+/* global ContentTaskUtils */
+
 // This test verifies that the keyboard shortcut "n" will Start/Stop the
 // narration of an article in readermode when the article is in focus.
 // This test also verifies that the keyboard shortcut "←" (left arrow) will

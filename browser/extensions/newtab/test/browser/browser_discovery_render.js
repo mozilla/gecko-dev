@@ -1,5 +1,9 @@
 "use strict";
 
+// test_newtab calls SpecialPowers.spawn, which injects ContentTaskUtils in the
+// scope of the callback. Eslint doesn't know about that.
+/* global ContentTaskUtils */
+
 async function before({ pushPrefs }) {
   await pushPrefs([
     "browser.newtabpage.activity-stream.discoverystream.config",

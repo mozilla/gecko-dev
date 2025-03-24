@@ -1,5 +1,9 @@
 "use strict";
 
+// test_newtab calls SpecialPowers.spawn, which injects ContentTaskUtils in the
+// scope of the callback. Eslint doesn't know about that.
+/* global ContentTaskUtils */
+
 const { WeatherFeed } = ChromeUtils.importESModule(
   "resource://newtab/lib/WeatherFeed.sys.mjs"
 );
