@@ -129,7 +129,7 @@ class nsDisplayCanvasBackgroundColor final : public nsDisplaySolidColorBase {
       : nsDisplaySolidColorBase(aBuilder, aFrame, NS_RGBA(0, 0, 0, 0)) {}
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override {
-    nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
+    auto* frame = static_cast<nsCanvasFrame*>(mFrame);
     *aSnap = true;
     return frame->CanvasArea() + ToReferenceFrame();
   }

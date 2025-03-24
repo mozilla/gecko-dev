@@ -289,16 +289,17 @@ Element* nsCanvasFrame::GetDefaultTooltip() { return mTooltipContent; }
 
 void nsDisplayCanvasBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
                                            gfxContext* aCtx) {
-  nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
+  if (!NS_GET_A(mColor)) {
+    return;
+  }
+  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
   nsPoint offset = ToReferenceFrame();
   nsRect bgClipRect = frame->CanvasArea() + offset;
-  if (NS_GET_A(mColor) > 0) {
-    DrawTarget* drawTarget = aCtx->GetDrawTarget();
-    int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
-    Rect devPxRect =
-        NSRectToSnappedRect(bgClipRect, appUnitsPerDevPixel, *drawTarget);
-    drawTarget->FillRect(devPxRect, ColorPattern(ToDeviceColor(mColor)));
-  }
+  DrawTarget* drawTarget = aCtx->GetDrawTarget();
+  int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+  Rect devPxRect =
+      NSRectToSnappedRect(bgClipRect, appUnitsPerDevPixel, *drawTarget);
+  drawTarget->FillRect(devPxRect, ColorPattern(ToDeviceColor(mColor)));
 }
 
 bool nsDisplayCanvasBackgroundColor::CreateWebRenderCommands(
@@ -306,14 +307,14 @@ bool nsDisplayCanvasBackgroundColor::CreateWebRenderCommands(
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
-  nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
+  if (!NS_GET_A(mColor)) {
+    return true;
+  }
+  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
   nsPoint offset = ToReferenceFrame();
   nsRect bgClipRect = frame->CanvasArea() + offset;
   int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
-
-  LayoutDeviceRect rect =
-      LayoutDeviceRect::FromAppUnits(bgClipRect, appUnitsPerDevPixel);
-
+  auto rect = LayoutDeviceRect::FromAppUnits(bgClipRect, appUnitsPerDevPixel);
   wr::LayoutRect r = wr::ToLayoutRect(rect);
   aBuilder.PushRect(r, r, !BackfaceIsHidden(), false, false,
                     wr::ToColorF(ToDeviceColor(mColor)));
@@ -329,7 +330,7 @@ void nsDisplayCanvasBackgroundColor::WriteDebugInfo(
 
 void nsDisplayCanvasBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
                                            gfxContext* aCtx) {
-  nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
+  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
   nsPoint offset = ToReferenceFrame();
   nsRect bgClipRect = frame->CanvasArea() + offset;
 
@@ -374,7 +375,7 @@ bool nsDisplayCanvasBackgroundImage::IsSingleFixedPositionImage(
 
 void nsDisplayCanvasThemedBackground::Paint(nsDisplayListBuilder* aBuilder,
                                             gfxContext* aCtx) {
-  nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
+  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
   nsPoint offset = ToReferenceFrame();
   nsRect bgClipRect = frame->CanvasArea() + offset;
 
@@ -395,17 +396,15 @@ class nsDisplayCanvasFocus final : public nsPaintedDisplayItem {
 
   MOZ_COUNTED_DTOR_FINAL(nsDisplayCanvasFocus)
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) const override {
+  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override {
     *aSnap = false;
     // This is an overestimate, but that's not a problem.
-    nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
+    auto* frame = static_cast<nsCanvasFrame*>(mFrame);
     return frame->CanvasArea() + ToReferenceFrame();
   }
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     gfxContext* aCtx) override {
-    nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
+  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override {
+    auto* frame = static_cast<nsCanvasFrame*>(mFrame);
     frame->PaintFocus(aCtx->GetDrawTarget(), ToReferenceFrame());
   }
 
@@ -622,7 +621,7 @@ void nsCanvasFrame::Reflow(nsPresContext* aPresContext,
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   NS_FRAME_TRACE_REFLOW_IN("nsCanvasFrame::Reflow");
 
-  nsCanvasFrame* prevCanvasFrame = static_cast<nsCanvasFrame*>(GetPrevInFlow());
+  auto* prevCanvasFrame = static_cast<nsCanvasFrame*>(GetPrevInFlow());
   if (prevCanvasFrame) {
     AutoFrameListPtr overflow(aPresContext,
                               prevCanvasFrame->StealOverflowFrames());
