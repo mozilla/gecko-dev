@@ -11,7 +11,6 @@
 #ifndef MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
 #define MODULES_VIDEO_CAPTURE_LINUX_PIPEWIRE_SESSION_H_
 
-#include <pipewire/core.h>
 #include <pipewire/pipewire.h>
 
 #include <deque>
