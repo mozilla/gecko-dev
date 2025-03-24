@@ -52,7 +52,8 @@ new-profile-card {
 #delete-profile-card {
   display: flex;
   gap: var(--space-xxlarge);
-  padding: var(--space-xxlarge);
+  padding-block: 50px var(--space-xxlarge);
+  padding-inline: var(--space-xxlarge);
 
   @media only screen and (width <= 830px) {
     flex-direction: column;

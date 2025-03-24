@@ -20,12 +20,37 @@ export class ProfilesThemeCard extends MozLitElement {
     imgHolder: ".img-holder",
   };
 
+  firstUpdated() {
+    super.firstUpdated();
+    this.updateThemeImage();
+  }
+
+  updateThemeImage() {
+    if (!this.theme) {
+      return;
+    }
+
+    if (this.theme.id === "default-theme@mozilla.org") {
+      // For system theme, we use a special SVG that shows the light/dark wave design
+      this.backgroundImg.src =
+        "chrome://browser/content/profiles/assets/system-theme-background.svg";
+      // Reset any inline styles since the SVG has its own colors
+      this.backgroundImg.style.fill = "";
+      this.backgroundImg.style.stroke = "";
+      this.imgHolder.style.backgroundColor = "";
+    } else {
+      // For other themes, use the standard SVG with dynamic colors
+      this.backgroundImg.src =
+        "chrome://browser/content/profiles/assets/theme-selector-background.svg";
+      this.backgroundImg.style.fill = this.theme.chromeColor;
+      this.backgroundImg.style.stroke = this.theme.toolbarColor;
+      this.imgHolder.style.backgroundColor = this.theme.contentColor;
+    }
+  }
+
   updated() {
     super.updated();
-
-    this.backgroundImg.style.fill = this.theme.chromeColor;
-    this.backgroundImg.style.stroke = this.theme.toolbarColor;
-    this.imgHolder.style.backgroundColor = this.theme.contentColor;
+    this.updateThemeImage();
   }
 
   render() {
@@ -42,9 +67,7 @@ export class ProfilesThemeCard extends MozLitElement {
       <moz-card class="theme-card">
         <div class="theme-content">
           <div class="img-holder">
-            <img
-              src="chrome://browser/content/profiles/assets/theme-selector-background.svg"
-            />
+            <img />
           </div>
           <div
             class="theme-name"
