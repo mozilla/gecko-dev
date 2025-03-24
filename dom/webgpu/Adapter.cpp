@@ -148,9 +148,7 @@ struct FeatureImplementationStatus {
         return implemented(WGPUWEBGPU_FEATURE_INDIRECT_FIRST_INSTANCE);
 
       case dom::GPUFeatureName::Shader_f16:
-        // return implemented(WGPUWEBGPU_FEATURE_SHADER_F16);
-        return unimplemented(
-            "https://bugzilla.mozilla.org/show_bug.cgi?id=1891593");
+        return implemented(WGPUWEBGPU_FEATURE_SHADER_F16);
 
       case dom::GPUFeatureName::Rg11b10ufloat_renderable:
         return implemented(WGPUWEBGPU_FEATURE_RG11B10UFLOAT_RENDERABLE);
