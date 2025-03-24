@@ -33,6 +33,7 @@ const cols = {
   method: true,
   domain: true,
   file: true,
+  path: false,
   url: false,
   protocol: false,
   scheme: false,

@@ -293,6 +293,18 @@ function getUrlScheme(url) {
 }
 
 /**
+ * Helpers for getting the full path portion of a url.
+ *
+ * @param {string|URL} url - unvalidated url string or URL instance
+ * @return {string} string path of a url
+ */
+function getUrlPath(url) {
+  const href = getUrlProperty(url, "href");
+  const origin = getUrlProperty(url, "origin");
+  return href.replace(origin, "");
+}
+
+/**
  * Extract several details fields from a URL at once.
  */
 function getUrlDetails(url) {
@@ -302,6 +314,7 @@ function getUrlDetails(url) {
   const hostname = getUrlHostName(urlObject);
   const unicodeUrl = getUnicodeUrl(urlObject);
   const scheme = getUrlScheme(urlObject);
+  const path = getUrlPath(urlObject);
 
   // If the hostname contains unreadable ASCII characters, we need to do the
   // following two steps:
@@ -338,6 +351,7 @@ function getUrlDetails(url) {
     unicodeUrl,
     isLocal,
     url,
+    path,
   };
 }
 

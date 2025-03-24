@@ -181,6 +181,8 @@ skip-if = [
 
 ["browser_net_column_headers_tooltips.js"]
 
+["browser_net_column_path.js"]
+
 ["browser_net_column_slow-request-indicator.js"]
 
 ["browser_net_columns_last_column.js"]

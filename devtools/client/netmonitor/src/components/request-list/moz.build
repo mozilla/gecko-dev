@@ -11,6 +11,7 @@ DevToolsModules(
     "RequestListColumnInitiator.js",
     "RequestListColumnMethod.js",
     "RequestListColumnOverride.js",
+    "RequestListColumnPath.js",
     "RequestListColumnPriority.js",
     "RequestListColumnProtocol.js",
     "RequestListColumnRemoteIP.js",
