@@ -50,20 +50,7 @@ function createPeriodicLogger() {
  * @return The truthy result of the condition.
  */
 async function waitUntil(condition, message) {
-  const logPeriodically = createPeriodicLogger();
-
-  // Loop through the condition.
-  while (true) {
-    if (message) {
-      logPeriodically(message);
-    }
-    const result = condition();
-    if (result) {
-      return result;
-    }
-
-    await tick();
-  }
+  return TestUtils.waitForCondition(condition, message);
 }
 
 /**
@@ -127,10 +114,13 @@ function getElementByXPath(document, path) {
 async function getElementFromDocumentByText(document, text) {
   // Fallback on aria-label if there are no results for the text xpath.
   const xpath = `//*[contains(text(), '${text}')] | //*[contains(@aria-label, '${text}')]`;
-  return waitUntil(
-    () => getElementByXPath(document, xpath),
-    `Trying to find the element with the text "${text}".`
-  );
+  return waitUntil(() => {
+    const element = getElementByXPath(document, xpath);
+    if (element && BrowserTestUtils.isVisible(element)) {
+      return element;
+    }
+    return null;
+  }, `Trying to find a visible element with the text "${text}".`);
 }
 /* exported getElementFromDocumentByText */
 
@@ -438,7 +428,7 @@ async function waitForTabTitle(title) {
  * Open about:profiling in a new tab, and output helpful log messages.
  *
  * @template T
- * @param {(Document) => T} callback
+ * @param {(Document, ChromeBrowser) => T} callback
  * @returns {Promise<T>}
  */
 function withAboutProfiling(callback) {
@@ -453,7 +443,7 @@ function withAboutProfiling(callback) {
             .firstElementChild,
         "Document's root has been populated"
       );
-      return callback(contentBrowser.contentDocument);
+      return callback(contentBrowser.contentDocument, contentBrowser);
     }
   );
 }
