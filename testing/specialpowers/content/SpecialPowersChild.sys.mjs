@@ -1609,6 +1609,8 @@ export class SpecialPowersChild extends JSWindowActorChild {
       { imports }
     );
 
+    // If more variables are made available, don't forget to update
+    // tools/lint/eslint/eslint-plugin-mozilla/lib/rules/import-content-task-globals.js.
     sb.sandbox.SpecialPowers = this;
     sb.sandbox.ContentTaskUtils = lazy.ContentTaskUtils;
     for (let [global, prop] of Object.entries({

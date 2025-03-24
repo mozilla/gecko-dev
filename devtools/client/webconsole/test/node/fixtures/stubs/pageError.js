@@ -57,7 +57,7 @@ rawPackets.set(`ReferenceError: asdf is not defined`, {
         "functionName": null
       },
       {
-        "filename": "resource://testing-common/content-task.js line 112 > eval",
+        "filename": "resource://testing-common/content-task.js line 117 > eval",
         "sourceId": null,
         "lineNumber": 6,
         "columnNumber": 29,
@@ -66,7 +66,7 @@ rawPackets.set(`ReferenceError: asdf is not defined`, {
       {
         "filename": "resource://testing-common/content-task.js",
         "sourceId": null,
-        "lineNumber": 113,
+        "lineNumber": 118,
         "columnNumber": 33,
         "functionName": null
       },
@@ -86,7 +86,7 @@ rawPackets.set(`ReferenceError: asdf is not defined`, {
     "exception": {
       "_grip": {
         "type": "object",
-        "actor": "server0.conn0.process8//obj22",
+        "actor": "server0.conn0.watcher2.process9//obj22",
         "class": "ReferenceError",
         "ownPropertyLength": 4,
         "extensible": true,
@@ -103,7 +103,7 @@ rawPackets.set(`ReferenceError: asdf is not defined`, {
           "columnNumber": 5
         }
       },
-      "actorID": "server0.conn0.process8//obj22"
+      "actorID": "server0.conn0.watcher2.process9//obj22"
     },
     "hasException": true
   },
@@ -116,11 +116,11 @@ rawPackets.set(`TypeError longString message`, {
     "errorMessage": {
       "_grip": {
         "type": "longString",
-        "actor": "server0.conn0.process8//longstractor24",
+        "actor": "server0.conn0.watcher2.process9//longstractor24",
         "length": 110007,
         "initial": "Error: Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Lon"
       },
-      "actorID": "server0.conn0.process8//longstractor24"
+      "actorID": "server0.conn0.watcher2.process9//longstractor24"
     },
     "errorMessageName": "",
     "sourceName": "https://example.com/browser/devtools/client/webconsole/test/browser/test-console-api.html",
@@ -143,7 +143,7 @@ rawPackets.set(`TypeError longString message`, {
         "functionName": null
       },
       {
-        "filename": "resource://testing-common/content-task.js line 112 > eval",
+        "filename": "resource://testing-common/content-task.js line 117 > eval",
         "sourceId": null,
         "lineNumber": 6,
         "columnNumber": 29,
@@ -152,7 +152,7 @@ rawPackets.set(`TypeError longString message`, {
       {
         "filename": "resource://testing-common/content-task.js",
         "sourceId": null,
-        "lineNumber": 113,
+        "lineNumber": 118,
         "columnNumber": 33,
         "functionName": null
       },
@@ -172,7 +172,7 @@ rawPackets.set(`TypeError longString message`, {
     "exception": {
       "_grip": {
         "type": "object",
-        "actor": "server0.conn0.process8//obj25",
+        "actor": "server0.conn0.watcher2.process9//obj25",
         "class": "Error",
         "ownPropertyLength": 4,
         "extensible": true,
@@ -185,11 +185,11 @@ rawPackets.set(`TypeError longString message`, {
           "message": {
             "_grip": {
               "type": "longString",
-              "actor": "server0.conn0.process8//longstractor26",
+              "actor": "server0.conn0.watcher2.process9//longstractor26",
               "length": 110000,
               "initial": "Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error Long error"
             },
-            "actorID": "server0.conn0.process8//longstractor26"
+            "actorID": "server0.conn0.watcher2.process9//longstractor26"
           },
           "stack": "@https://example.com/browser/devtools/client/webconsole/test/browser/test-console-api.html:1:7\n",
           "fileName": "https://example.com/browser/devtools/client/webconsole/test/browser/test-console-api.html",
@@ -197,7 +197,7 @@ rawPackets.set(`TypeError longString message`, {
           "columnNumber": 7
         }
       },
-      "actorID": "server0.conn0.process8//obj25"
+      "actorID": "server0.conn0.watcher2.process9//obj25"
     },
     "hasException": true
   },
