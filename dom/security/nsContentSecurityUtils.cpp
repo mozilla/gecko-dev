@@ -1320,6 +1320,7 @@ static nsLiteralCString sImgSrcDataBlobAllowList[] = {
     "chrome://browser/content/aboutDialog.xhtml"_ns,
     "chrome://browser/content/aboutlogins/aboutLogins.html"_ns,
     "chrome://browser/content/genai/chat.html"_ns,
+    "chrome://browser/content/pageinfo/pageInfo.xhtml"_ns,
     "chrome://browser/content/places/bookmarksSidebar.xhtml"_ns,
     "chrome://browser/content/places/places.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/permissions.xhtml"_ns,
@@ -1330,6 +1331,7 @@ static nsLiteralCString sImgSrcDataBlobAllowList[] = {
     "chrome://browser/content/sidebar/sidebar-history.html"_ns,
     "chrome://browser/content/sidebar/sidebar-syncedtabs.html"_ns,
     "chrome://browser/content/spotlight.html"_ns,
+    "chrome://browser/content/syncedtabs/sidebar.xhtml"_ns,
     "chrome://devtools/content/application/index.html"_ns,
     "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
@@ -1388,6 +1390,10 @@ static nsLiteralCString sImgSrcHttpsHostAllowList[] = {
     "about:pocket-saved"_ns,
     "chrome://browser/content/aboutlogins/aboutLogins.html"_ns,
     "chrome://browser/content/spotlight.html"_ns,
+};
+// media-src data: blob:
+static nsLiteralCString sMediaSrcDataBlobAllowList[] = {
+    "chrome://browser/content/pageinfo/pageInfo.xhtml"_ns,
 };
 // media-src *
 //  UNSAFE! Allows loading everything.
@@ -1606,6 +1612,20 @@ class MediaSrcVisitor : public AllowChromeResourceSrcVisitor {
   MediaSrcVisitor(CSPDirective aDirective, nsACString& aURL)
       : AllowChromeResourceSrcVisitor(aDirective, aURL) {
     MOZ_ASSERT(aDirective == CSPDirective::MEDIA_SRC_DIRECTIVE);
+  }
+
+  bool visitSchemeSrc(const nsCSPSchemeSrc& src) override {
+    nsAutoString scheme;
+    src.getScheme(scheme);
+
+    // data: and blob: can be used to decode arbitrary media.
+    if (scheme == u"data"_ns || scheme == u"blob") {
+      if (CheckAllowList(sMediaSrcDataBlobAllowList)) {
+        return true;
+      }
+    }
+
+    return AllowChromeResourceSrcVisitor::visitSchemeSrc(src);
   }
 
   bool visitHostSrc(const nsCSPHostSrc& src) override {
