@@ -125,8 +125,8 @@ describe("AboutPreferences Feed", () => {
       assert.calledOnce(stub);
       const [, structure] = stub.firstCall.args;
       assert.equal(structure[0].id, "search");
-      assert.equal(structure[1].id, "topsites");
-      assert.equal(structure[2].id, "weather");
+      assert.equal(structure[1].id, "weather");
+      assert.equal(structure[2].id, "topsites");
       assert.equal(structure[3].id, "topstories");
       assert.isEmpty(structure[3].rowsPref);
     });
@@ -226,38 +226,6 @@ describe("AboutPreferences Feed", () => {
         testRender();
 
         assert.notCalled(Preferences.add);
-      });
-    });
-    describe("pref icon", () => {
-      it("should default to webextension icon", () => {
-        prefStructure = [{ pref: { feed: "feed" } }];
-
-        testRender();
-
-        assert.calledWith(
-          node.setAttribute,
-          "src",
-          "chrome://newtab/content/data/content/assets/glyph-webextension-16.svg"
-        );
-      });
-      it("should use desired glyph icon", () => {
-        prefStructure = [{ icon: "mail", pref: { feed: "feed" } }];
-
-        testRender();
-
-        assert.calledWith(
-          node.setAttribute,
-          "src",
-          "chrome://newtab/content/data/content/assets/glyph-mail-16.svg"
-        );
-      });
-      it("should use specified chrome icon", () => {
-        const icon = "chrome://the/icon.svg";
-        prefStructure = [{ icon, pref: { feed: "feed" } }];
-
-        testRender();
-
-        assert.calledWith(node.setAttribute, "src", icon);
       });
     });
     describe("title line", () => {

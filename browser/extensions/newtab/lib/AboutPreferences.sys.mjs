@@ -25,7 +25,25 @@ const PREFS_BEFORE_SECTIONS = () => [
       feed: "showSearch",
       titleString: "home-prefs-search-header",
     },
-    icon: "chrome://global/skin/icons/search-glass.svg",
+  },
+  {
+    id: "weather",
+    pref: {
+      feed: "showWeather",
+      titleString: "home-prefs-weather-header",
+      descString: "home-prefs-weather-description",
+      learnMore: {
+        link: {
+          href: "https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page",
+          id: "home-prefs-weather-learn-more-link",
+        },
+      },
+    },
+    eventSource: "WEATHER",
+    shouldHidePref: !Services.prefs.getBoolPref(
+      "browser.newtabpage.activity-stream.system.showWeather",
+      false
+    ),
   },
   {
     id: "topsites",
@@ -45,30 +63,9 @@ const PREFS_BEFORE_SECTIONS = () => [
           : [];
       },
     },
-    icon: "chrome://browser/skin/topsites.svg",
     maxRows: 4,
     rowsPref: "topSitesRows",
     eventSource: "TOP_SITES",
-  },
-  {
-    id: "weather",
-    icon: "chrome://browser/skin/weather/sunny.svg",
-    pref: {
-      feed: "showWeather",
-      titleString: "home-prefs-weather-header",
-      descString: "home-prefs-weather-description",
-      learnMore: {
-        link: {
-          href: "https://support.mozilla.org/kb/customize-items-on-firefox-new-tab-page",
-          id: "home-prefs-weather-learn-more-link",
-        },
-      },
-    },
-    eventSource: "WEATHER",
-    shouldHidePref: !Services.prefs.getBoolPref(
-      "browser.newtabpage.activity-stream.system.showWeather",
-      false
-    ),
   },
 ];
 
@@ -192,7 +189,6 @@ export class AboutPreferences {
       const {
         id,
         pref: prefData,
-        icon = "webextension",
         maxRows,
         rowsPref,
         shouldHidePref,
@@ -210,17 +206,11 @@ export class AboutPreferences {
         return;
       }
 
-      // Use full icon spec for certain protocols or fall back to packaged icon
-      const iconUrl = !icon.search(/^(chrome|moz-extension|resource):/)
-        ? icon
-        : `chrome://newtab/content/data/content/assets/glyph-${icon}-16.svg`;
-
       // Add the main preference for turning on/off a section
       const sectionVbox = createAppend("vbox", contentsGroup);
       sectionVbox.setAttribute("data-subcategory", id);
       const checkbox = createAppend("checkbox", sectionVbox);
       checkbox.classList.add("section-checkbox");
-      checkbox.setAttribute("src", iconUrl);
       // Setup a user event if we have an event source for this pref.
       if (eventSource) {
         this.setupUserEvent(checkbox, eventSource);
