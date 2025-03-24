@@ -1158,7 +1158,10 @@
           }
         }
 
-        let shouldTranslate = !gReduceMotion && !shouldCreateGroupOnDrop;
+        let shouldTranslate =
+          !gReduceMotion &&
+          !shouldCreateGroupOnDrop &&
+          !isTabGroupLabel(draggedTab);
         if (this.#isContainerVerticalPinnedExpanded(draggedTab)) {
           shouldTranslate &&=
             (oldTranslateX && oldTranslateX != newTranslateX) ||
@@ -1182,6 +1185,7 @@
           } else {
             gBrowser.moveTabsAfter(movingTabs, dropElement);
           }
+          this.#expandGroupOnDrop(draggedTab);
         };
 
         if (shouldTranslate) {
@@ -1334,7 +1338,6 @@
       }
 
       if (draggedTab) {
-        this.#expandGroupOnDrop(draggedTab);
         delete draggedTab._dragData;
       }
     }
@@ -1357,14 +1360,10 @@
       if (
         dt.mozUserCancelled ||
         dt.dropEffect != "none" ||
+        !Services.prefs.getBoolPref("browser.tabs.allowTabDetach") ||
         this._isCustomizing
       ) {
         delete draggedTab._dragData;
-        return;
-      }
-
-      // Check if tab detaching is enabled
-      if (!Services.prefs.getBoolPref("browser.tabs.allowTabDetach")) {
         return;
       }
 

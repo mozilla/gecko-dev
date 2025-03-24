@@ -221,7 +221,7 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    #tabbrowser-tabs[movingtab] &[fadein]:not([selected]):not([multiselected]),
+    #tabbrowser-tabs[movingtab] :not(tab-group:active) > &[fadein]:not(:active, [multiselected]),
     &[multiselected-move-together],
     &[tabdrop-samewindow] {
       transition: var(--tab-dragover-transition);
@@ -1028,9 +1028,7 @@
     pointer-events: none; /* avoid blocking dragover events on scroll buttons */
   }
   @media (prefers-reduced-motion: no-preference) {
-    #tabbrowser-tabs[movingtab] &,
-    &[multiselected-move-together],
-    &[tabdrop-samewindow] {
+    #tabbrowser-tabs[movingtab] &:not(:active) {
       transition: var(--tab-dragover-transition);
     }
   }
