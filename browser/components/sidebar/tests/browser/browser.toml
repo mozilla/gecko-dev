@@ -23,12 +23,6 @@ skip-if = [
 ["browser_extensions_sidebar.js"]
 
 ["browser_glean_sidebar.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1919183
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1919183
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1919183
-  "os == 'win' && os_version == '11.26100'", # Bug 1919183
-]
 
 ["browser_hide_sidebar_on_popup.js"]
 
