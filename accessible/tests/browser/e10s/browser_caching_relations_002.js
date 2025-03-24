@@ -381,19 +381,6 @@ between
   <div id="popover2" popover>popover2</div>
   <button id="toggle5">toggle5</button>
 </template></div>
-<script>
-  const toggle1 = document.getElementById("toggle1");
-  const popover1 = document.getElementById("popover1");
-  toggle1.popoverTargetElement = popover1;
-  const toggle3 = document.getElementById("toggle3");
-  const shadow = document.getElementById("shadowHost").shadowRoot;
-  const toggle4 = shadow.getElementById("toggle4");
-  const popover2 = shadow.getElementById("popover2");
-  toggle3.popoverTargetElement = popover2;
-  toggle4.popoverTargetElement = popover2;
-  const toggle5 = shadow.getElementById("toggle5");
-  toggle5.popoverTargetElement = popover1;
-</script>
   `,
   async function testPopoverIdl(browser, docAcc) {
     // No popover is showing, so there shouldn't be any details relations.
@@ -465,7 +452,23 @@ between
     await hidden;
     await testCachedRelation(toggle4, RELATION_DETAILS, []);
   },
-  { chrome: true, topLevel: true }
+  {
+    chrome: true,
+    topLevel: true,
+    contentSetup: async function contentSetup() {
+      const toggle1 = content.document.getElementById("toggle1");
+      const popover1 = content.document.getElementById("popover1");
+      toggle1.popoverTargetElement = popover1;
+      const toggle3 = content.document.getElementById("toggle3");
+      const shadow = content.document.getElementById("shadowHost").shadowRoot;
+      const toggle4 = shadow.getElementById("toggle4");
+      const popover2 = shadow.getElementById("popover2");
+      toggle3.popoverTargetElement = popover2;
+      toggle4.popoverTargetElement = popover2;
+      const toggle5 = shadow.getElementById("toggle5");
+      toggle5.popoverTargetElement = popover1;
+    },
+  }
 );
 
 /**
