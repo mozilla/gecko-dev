@@ -1841,6 +1841,7 @@ pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enable
 // Utility preferences for custom wallpaper upload
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.uuid", "");
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.fileSize", 0);
+pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.fileSize.enabled", false);
 
 // Current new tab page background images.
 pref("browser.newtabpage.activity-stream.newtabWallpapers.wallpaper", "");

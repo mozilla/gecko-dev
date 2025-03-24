@@ -470,6 +470,20 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabWallpapers.customWallpaper.fileSize.enabled",
+    {
+      title: "Boolean flag to enforce a maximum file size for uploaded images",
+      value: false,
+    },
+  ],
+  [
+    "newtabWallpapers.customWallpaper.fileSize",
+    {
+      title: "Number pref of maximum file size (in MB) a user can upload",
+      value: 0,
+    },
+  ],
+  [
     "newtabAdSize.variant-a",
     {
       title: "Boolean flag to turn ad size variant A on and off",

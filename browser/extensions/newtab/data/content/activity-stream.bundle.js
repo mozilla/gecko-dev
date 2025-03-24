@@ -11362,6 +11362,8 @@ function WallpaperCategories_extends() { WallpaperCategories_extends = Object.as
 // eslint-disable-next-line no-shadow
 
 const PREF_WALLPAPER_UPLOADED_PREVIOUSLY = "newtabWallpapers.customWallpaper.uploadedPreviously";
+const PREF_WALLPAPER_UPLOAD_MAX_FILE_SIZE = "newtabWallpapers.customWallpaper.fileSize";
+const PREF_WALLPAPER_UPLOAD_MAX_FILE_SIZE_ENABLED = "newtabWallpapers.customWallpaper.fileSize.enabled";
 
 // Returns a function will not be continuously triggered when called. The
 // function will be triggered if called again after `wait` milliseconds.
@@ -11567,8 +11569,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
   // Custom wallpaper image upload
   async handleUpload() {
     // TODO: Bug 1943663: Add telemetry
-
-    // TODO: Bug 1947813: Add image upload error states/UI
+    const wallpaperUploadMaxFileSizeEnabled = this.props.Prefs.values[PREF_WALLPAPER_UPLOAD_MAX_FILE_SIZE_ENABLED];
+    const wallpaperUploadMaxFileSize = this.props.Prefs.values[PREF_WALLPAPER_UPLOAD_MAX_FILE_SIZE];
 
     // TODO: Once Bug 1947813 has landed, we may need a separate event
     // for selecting previously uploaded wallpaper, rather than uploading a new one.
@@ -11600,6 +11602,18 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     // Fire when user selects a file
     fileInput.onchange = async event => {
       const [file] = event.target.files;
+
+      // Limit image uploaded to a maximum file size if enabled
+      // Note: The max file size pref (customWallpaper.fileSize) is converted to megabytes (MB)
+      // Example: if pref value is 5, max file size is 5 MB
+      const maxSize = wallpaperUploadMaxFileSize * 1024 * 1024;
+      if (wallpaperUploadMaxFileSizeEnabled && file && file.size > maxSize) {
+        console.error("File size exceeds limit");
+        this.setState({
+          isCustomWallpaperError: true
+        });
+        return;
+      }
       if (file) {
         this.props.dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WALLPAPER_UPLOAD,
@@ -11657,6 +11671,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       activeCategoryFluentID
     } = this.state;
     let filteredWallpapers = wallpaperList.filter(wallpaper => wallpaper.category === activeCategory);
+    const wallpaperUploadMaxFileSize = this.props.Prefs.values[PREF_WALLPAPER_UPLOAD_MAX_FILE_SIZE];
     function reduceColorsToFitCustomColorInput(arr) {
       // Reduce the amount of custom colors to make space for the custom color picker
       while (arr.length % 3 !== 2) {
@@ -11798,7 +11813,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       className: "icon icon-info"
     }), /*#__PURE__*/external_React_default().createElement("span", {
       "data-l10n-id": "newtab-wallpaper-error-max-file-size",
-      "data-l10n-args": `{"file_size": 10}`
+      "data-l10n-args": `{"file_size": ${wallpaperUploadMaxFileSize}}`
     }))), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
       in: !!activeCategory,
       timeout: 300,

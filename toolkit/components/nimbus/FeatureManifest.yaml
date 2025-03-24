@@ -1032,6 +1032,20 @@ newtabCustomWallpaper:
         pref: browser.newtabpage.activity-stream.newtabWallpapers.customColor.enabled
       description: >-
         Turns on and off background color picker.
+    maxFileSizeEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabWallpapers.fileSize.enabled
+      description: >-
+        Turns on and off maximum file size for uploaded images
+    maxFileSize:
+      type: int
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabWallpapers.fileSize
+      description: >-
+        Maximum file size (in MB) a user can upload
 
 newtabShortcutsExperiment:
   description: >-
