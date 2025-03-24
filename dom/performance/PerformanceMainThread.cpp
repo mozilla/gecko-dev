@@ -290,71 +290,15 @@ void PerformanceMainThread::BufferLargestContentfulPaintEntryIfNeeded(
   }
 }
 
-// https://w3c.github.io/event-timing/#set-event-timing-entry-duration
-void PerformanceMainThread::SetEventTimingDuration(
-    PerformanceEventTiming* aEntry, DOMHighResTimeStamp aRenderingTime) {
-  // Step 1. If timingEntry’s duration attribute value is nonzero, return.
-  if (aEntry->RawDuration() != 0) {
-    return;
-  }
-
-  // Step 3. Set timingEntry’s duration to a DOMHighResTimeStamp resulting from
-  // renderingTimestamp - start, with granularity of 8ms or less. Note that the
-  // granularity part is being handled later inside
-  // PerformanceEventTimingEntry::Duration.
-  aEntry->SetDuration(aRenderingTime - aEntry->RawStartTime());
-
-  // Step 5: Perform the following steps to update the event counts:
-  IncEventCount(aEntry->GetName());
-
-  // Step 6. If window’s has dispatched input event is false, run the following
-  // steps:
-  if (!mHasDispatchedInputEvent) {
-    switch (aEntry->GetMessage()) {
-      case ePointerDown: {
-        mPendingPointerDown = aEntry->Clone();
-        mPendingPointerDown->SetEntryType(u"first-input"_ns);
-        break;
-      }
-      case ePointerUp: {
-        if (mPendingPointerDown) {
-          MOZ_ASSERT(!mFirstInputEvent);
-          mFirstInputEvent = mPendingPointerDown.forget();
-          QueueEntry(mFirstInputEvent);
-          SetHasDispatchedInputEvent();
-        }
-        break;
-      }
-      case ePointerCancel: {
-        if (StaticPrefs::dom_performance_event_timing_enable_interactionid()) {
-          mPendingPointerDown = nullptr;
-        }
-        break;
-      }
-      case ePointerClick:
-      case eKeyDown:
-      case eMouseDown: {
-        if (!StaticPrefs::dom_performance_event_timing_enable_interactionid() ||
-            !mPendingPointerDown) {
-          mFirstInputEvent = aEntry->Clone();
-          mFirstInputEvent->SetEntryType(u"first-input"_ns);
-          QueueEntry(mFirstInputEvent);
-          SetHasDispatchedInputEvent();
-        }
-        break;
-      }
-      default:
-        break;
-    }
-  }
-}
-
 void PerformanceMainThread::DispatchPendingEventTimingEntries() {
   DOMHighResTimeStamp renderingTime = NowUnclamped();
 
   bool allEntriesHaveKnownInteractionIds = true;
   for (auto* entry : mPendingEventTimingEntries) {
-    SetEventTimingDuration(entry, renderingTime);
+    // Set its duration if it's not set already.
+    if (entry->RawDuration() == 0) {
+      entry->SetDuration(renderingTime - entry->RawStartTime());
+    }
 
     if (!entry->HasKnownInteractionId()) {
       allEntriesHaveKnownInteractionIds = false;
@@ -368,6 +312,50 @@ void PerformanceMainThread::DispatchPendingEventTimingEntries() {
           mPendingEventTimingEntries.popFirst();
       if (entry->RawDuration() >= kDefaultEventTimingMinDuration) {
         QueueEntry(entry);
+      }
+
+      // Perform the following steps to update the event counts:
+      IncEventCount(entry->GetName());
+
+      // If window’s has dispatched input event is false, run the following
+      // steps:
+      if (StaticPrefs::dom_performance_event_timing_enable_interactionid()) {
+        if (!mHasDispatchedInputEvent && entry->InteractionId() != 0) {
+          mFirstInputEvent = entry->Clone();
+          mFirstInputEvent->SetEntryType(u"first-input"_ns);
+          QueueEntry(mFirstInputEvent);
+          SetHasDispatchedInputEvent();
+        }
+      } else {
+        if (!mHasDispatchedInputEvent) {
+          switch (entry->GetMessage()) {
+            case ePointerDown: {
+              mPendingPointerDown = entry->Clone();
+              mPendingPointerDown->SetEntryType(u"first-input"_ns);
+              break;
+            }
+            case ePointerUp: {
+              if (mPendingPointerDown) {
+                MOZ_ASSERT(!mFirstInputEvent);
+                mFirstInputEvent = mPendingPointerDown.forget();
+                QueueEntry(mFirstInputEvent);
+                SetHasDispatchedInputEvent();
+              }
+              break;
+            }
+            case ePointerClick:
+            case eKeyDown:
+            case eMouseDown: {
+              mFirstInputEvent = entry->Clone();
+              mFirstInputEvent->SetEntryType(u"first-input"_ns);
+              QueueEntry(mFirstInputEvent);
+              SetHasDispatchedInputEvent();
+              break;
+            }
+            default:
+              break;
+          }
+        }
       }
     }
   }

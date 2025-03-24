@@ -56,9 +56,6 @@ class PerformanceMainThread final : public Performance,
   void BufferEventTimingEntryIfNeeded(PerformanceEventTiming*) override;
   void DispatchPendingEventTimingEntries() override;
 
-  void SetEventTimingDuration(PerformanceEventTiming* aEntry,
-                              DOMHighResTimeStamp aRenderingTime);
-
   PerformanceInteractionMetrics& GetPerformanceInteractionMetrics() override;
 
   Maybe<uint64_t> ComputeInteractionId(const WidgetEvent* aEvent) override;
