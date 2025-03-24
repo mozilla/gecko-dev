@@ -6,21 +6,24 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
 
 namespace mozilla {
 namespace net {
+class NeqoDecoder;
+class NeqoEncoder;
 class NeqoHttp3Conn;
 union NetAddr;
 }  // namespace net
 }  // namespace mozilla
  """
 include_version = true
+include_guard = "NEQO_GLUE_FFI_GENERATED_H_"
 braces = "SameLine"
 line_length = 100
 tab_width = 2
 language = "C++"
 namespaces = ["mozilla", "net"]
-includes = ["certt.h", "prerror.h"]
+includes = ["certt.h", "prerror.h", "nsString.h", "nsTArray.h"]
 
 [export]
-exclude = ["NeqoHttp3Conn", "NetAddr"]
+exclude = ["NeqoDecoder", "NeqoEncoder", "NeqoHttp3Conn", "NetAddr"]
 item_types = ["globals", "enums", "structs", "unions", "typedefs", "opaque", "functions", "constants"]
 
 [export.rename]
