@@ -13422,48 +13422,6 @@ sent_from_firefox:
     metadata:
       tags:
         - Sharing
-
-downloads:
-  screen_viewed:
-    type: event
-    description: |
-      A user opened the downloads screen.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954688
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D242321
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-  deleted:
-    type: event
-    description: |
-      A user deleted a downloaded file.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954688
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D242321
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-  filtered:
-    type: string
-    description: |
-      A user chose a filter for the downloads page.
-      The filter can be All, Image, Video, Document or Other.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954688
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D242321
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
   snackbar_clicked:
     type: event
     description: |

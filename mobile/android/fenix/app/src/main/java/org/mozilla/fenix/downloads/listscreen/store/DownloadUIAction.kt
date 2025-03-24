@@ -46,11 +46,6 @@ sealed interface DownloadUIAction : Action {
     data class UndoPendingDeletionSet(val itemIds: Set<String>) : DownloadUIAction
 
     /**
-     * [DownloadUIAction] when a file item is deleted successfully.
-     */
-    data object FileItemDeletedSuccessfully : DownloadUIAction
-
-    /**
      * [DownloadUIAction] to update the list of [FileItem]s.
      */
     data class UpdateFileItems(val items: List<FileItem>) : DownloadUIAction

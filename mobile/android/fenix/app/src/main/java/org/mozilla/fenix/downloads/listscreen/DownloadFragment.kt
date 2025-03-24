@@ -36,7 +36,6 @@ import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
-import org.mozilla.fenix.downloads.listscreen.middleware.DownloadTelemetryMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
@@ -66,7 +65,6 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
                     fileSizeFormatter = requireComponents.core.fileSizeFormatter,
                     scope = viewModelScope,
                 ),
-                DownloadTelemetryMiddleware(),
             ),
         )
     }
@@ -231,7 +229,6 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
                 context.let {
                     for (item in items) {
                         it.components.useCases.downloadUseCases.removeDownload(item.id)
-                        downloadStore.dispatch(DownloadUIAction.FileItemDeletedSuccessfully)
                     }
                 }
             }
