@@ -66,8 +66,6 @@ https_first_disabled = true
 
 ["browser_actions_ConsoleLogAction.js"]
 
-["browser_actions_MessagingExperimentAction.js"]
-
 ["browser_actions_PreferenceExperimentAction.js"]
 
 ["browser_actions_PreferenceRollbackAction.js"]

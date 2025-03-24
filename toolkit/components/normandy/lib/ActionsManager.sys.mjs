@@ -14,8 +14,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BranchedAddonStudyAction:
     "resource://normandy/actions/BranchedAddonStudyAction.sys.mjs",
   ConsoleLogAction: "resource://normandy/actions/ConsoleLogAction.sys.mjs",
-  MessagingExperimentAction:
-    "resource://normandy/actions/MessagingExperimentAction.sys.mjs",
   PreferenceExperimentAction:
     "resource://normandy/actions/PreferenceExperimentAction.sys.mjs",
   PreferenceRollbackAction:
@@ -49,7 +47,6 @@ export class ActionsManager {
     "addon-rollout": lazy.AddonRolloutAction,
     "branched-addon-study": lazy.BranchedAddonStudyAction,
     "console-log": lazy.ConsoleLogAction,
-    "messaging-experiment": lazy.MessagingExperimentAction,
     "multi-preference-experiment": lazy.PreferenceExperimentAction,
     "preference-rollback": lazy.PreferenceRollbackAction,
     "preference-rollout": lazy.PreferenceRolloutAction,
