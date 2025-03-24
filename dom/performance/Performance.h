@@ -149,6 +149,8 @@ class Performance : public DOMEventTargetHelper {
 
   virtual class EventCounts* EventCounts() = 0;
 
+  virtual uint64_t InteractionCount() = 0;
+
   virtual void QueueNavigationTimingEntry() = 0;
 
   virtual void UpdateNavigationTimingEntry() = 0;

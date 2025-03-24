@@ -114,6 +114,8 @@ class PerformanceMainThread final : public Performance,
 
   class EventCounts* EventCounts() override;
 
+  uint64_t InteractionCount() override;
+
   bool IsGlobalObjectWindow() const override { return true; };
 
   bool HasDispatchedInputEvent() const { return mHasDispatchedInputEvent; }

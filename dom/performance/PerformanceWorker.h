@@ -90,6 +90,10 @@ class PerformanceWorker final : public Performance {
     MOZ_CRASH("This should not be called on workers");
   }
 
+  uint64_t InteractionCount() override {
+    MOZ_CRASH("This should not be called on workers");
+  }
+
  protected:
   ~PerformanceWorker();
 

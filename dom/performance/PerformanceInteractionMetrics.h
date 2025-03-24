@@ -30,6 +30,8 @@ class PerformanceInteractionMetrics final {
     return mPendingPointerDowns;
   }
 
+  uint64_t InteractionCount() { return mInteractionCount; }
+
   uint64_t IncreaseInteractionValueAndCount();
 
   virtual ~PerformanceInteractionMetrics() = default;

@@ -559,6 +559,11 @@ EventCounts* PerformanceMainThread::EventCounts() {
   return mEventCounts;
 }
 
+uint64_t PerformanceMainThread::InteractionCount() {
+  MOZ_ASSERT(StaticPrefs::dom_performance_event_timing_enable_interactionid());
+  return mInteractionMetrics.InteractionCount();
+}
+
 void PerformanceMainThread::GetEntries(
     nsTArray<RefPtr<PerformanceEntry>>& aRetval) {
   aRetval = mResourceEntries.Clone();
