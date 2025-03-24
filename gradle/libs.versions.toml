@@ -56,7 +56,7 @@ work = "2.10.0"
 # Google versions
 accompanist = "0.37.0"
 desugar-jdk-libs = "2.1.5"
-firebase-messaging = "24.1.0"
+firebase-messaging = "24.1.1"
 installreferrer = "2.2"
 material = "1.12.0"
 osslicenses-plugin = "0.10.6"
