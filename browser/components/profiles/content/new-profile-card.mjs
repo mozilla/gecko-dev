@@ -77,7 +77,7 @@ export class NewProfileCard extends EditProfileCard {
         <span data-l10n-id="new-profile-page-header-description"></span>
         <a
           is="moz-support-link"
-          support-page="profiles"
+          support-page="profile-management"
           data-l10n-id="new-profile-page-learn-more"
         ></a>
       </p>
