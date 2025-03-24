@@ -101,6 +101,7 @@ class Verifier(object):
         """Determine if a target name (from a YAML) matches with a test."""
         tb = os.path.basename(target_test_name)
         tb = re.sub(r"\..*", "", tb)
+        test_name = re.sub(r"\..*", "", test_name)
         if test_name == tb:
             # Found an exact match for the test_name
             return True

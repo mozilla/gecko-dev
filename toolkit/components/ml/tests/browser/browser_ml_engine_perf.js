@@ -4,7 +4,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "ML Test Model",
+  name: "browser_ml_engine_perf.js",
   description: "Template test for latency for ml models",
   options: {
     default: {

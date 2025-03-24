@@ -4,7 +4,7 @@
 
 const perfMetadata = {
   owner: "GenAI Team",
-  name: "ML Suggest Feature",
+  name: "browser_ml_suggest_feature_perf.js",
   description: "Template test for latency for ML suggest Feature",
   options: {
     default: {
