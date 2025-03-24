@@ -31,13 +31,13 @@ sealed class ChecklistItem(open val title: String) {
         /**
          * A check list task type.
          */
-        enum class Type {
-            SET_AS_DEFAULT,
-            SIGN_IN,
-            SELECT_THEME,
-            CHANGE_TOOLBAR_PLACEMENT,
-            INSTALL_SEARCH_WIDGET,
-            EXPLORE_EXTENSION,
+        enum class Type(val telemetryName: String) {
+            SET_AS_DEFAULT("default-browser"),
+            SIGN_IN("sign-in"),
+            SELECT_THEME("theme-selection"),
+            CHANGE_TOOLBAR_PLACEMENT("toolbar-selection"),
+            INSTALL_SEARCH_WIDGET("search-widget"),
+            EXPLORE_EXTENSION("extensions"),
         }
     }
 

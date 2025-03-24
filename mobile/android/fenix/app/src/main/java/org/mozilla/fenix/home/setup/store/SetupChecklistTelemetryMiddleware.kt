@@ -6,8 +6,8 @@ package org.mozilla.fenix.home.setup.store
 
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
-
-// todo complete as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1951909
+import org.mozilla.fenix.GleanMetrics.Onboarding
+import org.mozilla.fenix.checklist.ChecklistItem
 
 /**
  * [Middleware] for recording telemetry related to the setup checklist feature.
@@ -22,9 +22,14 @@ class SetupChecklistTelemetryMiddleware(val telemetry: SetupChecklistTelemetryRe
         next(action)
 
         when (action) {
-            is SetupChecklistAction.Init -> {}
-            is SetupChecklistAction.Closed -> {}
-            is SetupChecklistAction.ChecklistItemClicked -> {}
+            is SetupChecklistAction.ChecklistItemClicked -> {
+                if (action.item is ChecklistItem.Task) {
+                    telemetry.taskClicked(action.item)
+                }
+            }
+            else -> {
+                // no-op
+            }
         }
     }
 }
@@ -36,5 +41,21 @@ interface SetupChecklistTelemetryRecorder {
     /**
      * Called when a task in the setup checklist is clicked.
      */
-    fun taskClicked(action: SetupChecklistAction)
+    fun taskClicked(task: ChecklistItem.Task)
+}
+
+/**
+ * Default implementation for recording telemetry related to the setup checklist feature.
+ */
+class DefaultSetupChecklistTelemetryRecorder : SetupChecklistTelemetryRecorder {
+    /**
+     * Records the SetupChecklist item telemetry based on [task].
+     *
+     * @param task ChecklistItem task that was clicked.
+     */
+    override fun taskClicked(task: ChecklistItem.Task) {
+        Onboarding.setupChecklistTaskClicked.record(
+            Onboarding.SetupChecklistTaskClickedExtra(task.type.telemetryName),
+        )
+    }
 }
