@@ -15459,7 +15459,8 @@ void Document::GetWireframeWithoutFlushing(bool aIncludeNodes,
   }
 
   auto& wireframe = aWireframe.SetValue();
-  wireframe.mCanvasBackground = shell->ComputeCanvasBackground().mViewportColor;
+  wireframe.mCanvasBackground =
+      shell->ComputeCanvasBackground().mViewport.mColor;
 
   FrameForPointOptions options;
   options.mBits += FrameForPointOption::IgnoreCrossDoc;

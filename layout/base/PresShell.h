@@ -143,6 +143,11 @@ class ScrollAnchorContainer;
  * presentation context, the style manager, the style set and the root frame.
  */
 
+struct SingleCanvasBackground {
+  nscolor mColor = 0;
+  bool mCSSSpecified = false;
+};
+
 class PresShell final : public nsStubDocumentObserver,
                         public nsISelectionController,
                         public nsIObserver,
@@ -899,20 +904,23 @@ class PresShell final : public nsStubDocumentObserver,
    * bug 488242, bug 476557 and other bugs mentioned there.
    */
   void SetCanvasBackground(nscolor aColor) {
-    mCanvasBackground.mViewportColor = aColor;
+    mCanvasBackground.mViewport.mColor = aColor;
   }
   nscolor GetCanvasBackground() const {
-    return mCanvasBackground.mViewportColor;
+    return mCanvasBackground.mViewport.mColor;
+  }
+
+  const SingleCanvasBackground& GetCanvasBackground(bool aForPage) const {
+    return aForPage ? mCanvasBackground.mPage : mCanvasBackground.mViewport;
   }
 
   struct CanvasBackground {
     // The canvas frame background for the whole viewport.
-    nscolor mViewportColor = 0;
+    SingleCanvasBackground mViewport;
     // The canvas frame background for a printed page. Note that when
     // print-previewing / in paged mode we have multiple canvas frames (one for
     // the viewport, one for each page).
-    nscolor mPageColor = 0;
-    bool mCSSSpecified = false;
+    SingleCanvasBackground mPage;
   };
 
   // Use the current frame tree (if it exists) to update the background color of

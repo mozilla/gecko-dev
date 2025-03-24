@@ -2293,7 +2293,7 @@ nsDOMWindowUtils::GetCanvasBackgroundColor(nsAString& aColor) {
   }
   nscolor color = NS_RGB(255, 255, 255);
   if (PresShell* presShell = GetPresShell()) {
-    color = presShell->ComputeCanvasBackground().mViewportColor;
+    color = presShell->ComputeCanvasBackground().mViewport.mColor;
   }
   nsStyleUtil::GetSerializedColorValue(color, aColor);
   return NS_OK;
