@@ -3,6 +3,8 @@
 
 "use strict";
 
+requestLongerTimeout(2);
+
 const BASE_DOMAIN_A = "example.com";
 const ORIGIN_A = `https://${BASE_DOMAIN_A}`;
 const ORIGIN_A_HTTP = `http://${BASE_DOMAIN_A}`;
