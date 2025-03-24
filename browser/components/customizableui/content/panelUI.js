@@ -745,9 +745,6 @@ const PanelUI = {
       case "appMenu_troubleShooting":
         openTroubleshootingPage();
         break;
-      case "appMenu_help_reportSiteIssue":
-        ReportSiteIssue();
-        break;
       case "appMenu_menu_HelpPopup_reportPhishingtoolmenu":
         openUILink(gSafeBrowsing.getReportURL("Phish"), aEvent, {
           triggeringPrincipal:

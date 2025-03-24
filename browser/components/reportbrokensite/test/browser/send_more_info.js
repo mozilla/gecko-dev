@@ -229,13 +229,41 @@ async function testSendMoreInfo(tab, menu, expectedOverrides = {}) {
   let rbs = await menu.openAndPrefillReportBrokenSite(url, description);
 
   const receivedData = await rbs.clickSendMoreInfo();
-  const { message } = receivedData;
+  await checkWebcompatComPayload(
+    tab,
+    url,
+    description,
+    expectedOverrides,
+    receivedData
+  );
 
+  // re-opening the panel, the url and description should be reset
+  rbs = await menu.openReportBrokenSite();
+  rbs.isMainViewResetToCurrentTab();
+  rbs.close();
+}
+
+async function testWebcompatComFallback(tab, menu) {
+  const url = menu.win.gBrowser.currentURI.spec;
+  const receivedData =
+    await menu.clickReportBrokenSiteAndAwaitWebCompatTabData();
+  await checkWebcompatComPayload(tab, url, "", {}, receivedData);
+  menu.close();
+}
+
+async function checkWebcompatComPayload(
+  tab,
+  url,
+  description,
+  expectedOverrides,
+  receivedData
+) {
   const expected = await reformatExpectedWebCompatInfo(tab, expectedOverrides);
   expected.url = url;
   expected.description = description;
 
   // sanity checks
+  const { message } = receivedData;
   const { details } = message;
   const { additionalData } = details;
   ok(message.url?.length, "Got a URL");
@@ -264,9 +292,4 @@ async function testSendMoreInfo(tab, menu, expectedOverrides = {}) {
   filterFrameworkDetectorFails(message.details, expected.details);
 
   ok(areObjectsEqual(message, expected), "sent info matches expectations");
-
-  // re-opening the panel, the url and description should be reset
-  rbs = await menu.openReportBrokenSite();
-  rbs.isMainViewResetToCurrentTab();
-  rbs.close();
 }
