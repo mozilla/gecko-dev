@@ -48,6 +48,8 @@ dependencies {
     implementation libs.androidx.activity
     implementation libs.androidx.core.ktx
     implementation ComponentsDependencies.mozilla_remote_settings
+    implementation ComponentsDependencies.mozilla_appservices_search
+    implementation project(':browser-icons')
 
     testImplementation project(':support-test')
     testImplementation project(':support-test-fakes')
