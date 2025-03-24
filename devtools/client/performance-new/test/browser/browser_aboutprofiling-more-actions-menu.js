@@ -56,7 +56,11 @@ add_task(async function test() {
     // The second argument is the event object. By passing an empty object, this
     // tells the utility function to generate a mousedown then a mouseup, that
     // is a click.
-    await BrowserTestUtils.synthesizeMouseAtCenter("moz-button", {}, browser);
+    EventUtils.synthesizeMouseAtCenter(
+      moreActionsButton,
+      {},
+      browser.contentWindow
+    );
     let item = await getElementFromDocumentByText(
       document,
       "with startup profiling"
@@ -76,7 +80,8 @@ add_task(async function test() {
       item,
       "The item to copy environment variables for startup profiling is present in the menu"
     );
-    EventUtils.sendMouseEvent({ type: "click" }, item);
+
+    EventUtils.synthesizeMouseAtCenter(item, {}, browser.contentWindow);
     is(
       await waitForClipboard(),
       `MOZ_PROFILER_STARTUP='1' MOZ_PROFILER_STARTUP_INTERVAL='1' MOZ_PROFILER_STARTUP_ENTRIES='134217728' MOZ_PROFILER_STARTUP_FEATURES='${featuresForFirefoxPlatformPresetAsString}' MOZ_PROFILER_STARTUP_FILTERS='GeckoMain,Compositor,Renderer,SwComposite,DOM Worker'`,
@@ -85,13 +90,17 @@ add_task(async function test() {
 
     info("Will copy parameters for performance tests profiling");
     SpecialPowers.cleanupAllClipboard();
-    await BrowserTestUtils.synthesizeMouseAtCenter("moz-button", {}, browser);
+    EventUtils.synthesizeMouseAtCenter(
+      moreActionsButton,
+      {},
+      browser.contentWindow
+    );
     item = await getElementFromDocumentByText(document, "performance tests");
     ok(
       item,
       "The item to copy the parameters to performance tests is present in the menu"
     );
-    EventUtils.sendMouseEvent({ type: "click" }, item);
+    EventUtils.synthesizeMouseAtCenter(item, {}, browser.contentWindow);
 
     is(
       await waitForClipboard(),
@@ -109,7 +118,11 @@ add_task(async function test() {
         ["devtools.performance.aboutprofiling.has-developer-options", false],
       ],
     });
-    await BrowserTestUtils.synthesizeMouseAtCenter("moz-button", {}, browser);
+    EventUtils.synthesizeMouseAtCenter(
+      moreActionsButton,
+      {},
+      browser.contentWindow
+    );
     await getElementFromDocumentByText(document, "with startup profiling");
     // The item that's always present is now displayed
     ok(
