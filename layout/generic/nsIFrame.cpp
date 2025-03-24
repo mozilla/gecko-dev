@@ -1227,17 +1227,17 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
     // Detect style changes that should trigger a scroll anchor adjustment
     // suppression.
     // https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers
-    bool needAnchorSuppression = false;
+    bool needScrollAnchorSuppression = false;
 
     const nsStyleMargin* oldMargin = aOldComputedStyle->StyleMargin();
     if (!oldMargin->MarginEquals(*StyleMargin())) {
-      needAnchorSuppression = true;
+      needScrollAnchorSuppression = true;
     }
 
     const nsStylePadding* oldPadding = aOldComputedStyle->StylePadding();
     if (oldPadding->mPadding != StylePadding()->mPadding) {
       SetHasPaddingChange(true);
-      needAnchorSuppression = true;
+      needScrollAnchorSuppression = true;
     }
 
     const nsStyleDisplay* oldDisp = aOldComputedStyle->StyleDisplay();
@@ -1253,7 +1253,7 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
     if (mInScrollAnchorChain) {
       const nsStylePosition* pos = StylePosition();
       const nsStylePosition* oldPos = aOldComputedStyle->StylePosition();
-      if (!needAnchorSuppression &&
+      if (!needScrollAnchorSuppression &&
           (oldPos->mOffset != pos->mOffset ||
            oldPos->GetWidth() != pos->GetWidth() ||
            oldPos->GetMinWidth() != pos->GetMinWidth() ||
@@ -1263,10 +1263,10 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
            oldPos->GetMaxHeight() != pos->GetMaxHeight() ||
            oldDisp->mPosition != disp->mPosition ||
            oldDisp->mTransform != disp->mTransform)) {
-        needAnchorSuppression = true;
+        needScrollAnchorSuppression = true;
       }
 
-      if (needAnchorSuppression &&
+      if (needScrollAnchorSuppression &&
           StaticPrefs::layout_css_scroll_anchoring_suppressions_enabled()) {
         ScrollAnchorContainer::FindFor(this)->SuppressAdjustments();
       }
