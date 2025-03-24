@@ -5,7 +5,6 @@
 import React from "react";
 import { actionCreators as ac } from "common/Actions.mjs";
 import { SectionsMgmtPanel } from "../SectionsMgmtPanel/SectionsMgmtPanel";
-import { SafeAnchor } from "../../DiscoveryStreamComponents/SafeAnchor/SafeAnchor";
 import { WallpapersSection } from "../../WallpapersSection/WallpapersSection";
 import { WallpaperCategories } from "../../WallpapersSection/WallpaperCategories";
 
@@ -30,7 +29,7 @@ export class ContentSection extends React.PureComponent {
   }
 
   onPreferenceSelect(e) {
-    // eventSource: TOP_SITES | TOP_STORIES | HIGHLIGHTS | WEATHER
+    // eventSource: WEATHER | TOP_SITES | TOP_STORIES
     const { preference, eventSource } = e.target.dataset;
     let value;
     if (e.target.nodeName === "SELECT") {
@@ -86,7 +85,7 @@ export class ContentSection extends React.PureComponent {
       if (isOpen) {
         drawerRef.style.marginTop = "var(--space-large)";
       } else {
-        drawerRef.style.marginTop = `-${drawerHeight}px`;
+        drawerRef.style.marginTop = `-${drawerHeight + 3}px`;
       }
     }
   }
@@ -94,14 +93,11 @@ export class ContentSection extends React.PureComponent {
   render() {
     const {
       enabledSections,
-      mayHaveSponsoredTopSites,
       pocketRegion,
-      mayHaveSponsoredStories,
       mayHaveInferredPersonalization,
       mayHaveRecentSaves,
       mayHaveWeather,
       openPreferences,
-      spocMessageVariant,
       wallpapersEnabled,
       wallpapersV2Enabled,
       activeWallpaper,
@@ -112,10 +108,7 @@ export class ContentSection extends React.PureComponent {
     const {
       topSitesEnabled,
       pocketEnabled,
-      highlightsEnabled,
       weatherEnabled,
-      showSponsoredTopSitesEnabled,
-      showSponsoredPocketEnabled,
       showInferredPersonalizationEnabled,
       showRecentSavesEnabled,
       topSitesRowsCount,
@@ -144,6 +137,19 @@ export class ContentSection extends React.PureComponent {
           </>
         )}
         <div className="settings-toggles">
+          {mayHaveWeather && (
+            <div id="weather-section" className="section">
+              <moz-toggle
+                id="weather-toggle"
+                pressed={weatherEnabled || null}
+                onToggle={this.onPreferenceSelect}
+                data-preference="showWeather"
+                data-eventSource="WEATHER"
+                data-l10n-id="newtab-custom-weather-toggle"
+              />
+            </div>
+          )}
+
           <div id="shortcuts-section" className="section">
             <moz-toggle
               id="shortcuts-toggle"
@@ -190,25 +196,6 @@ export class ContentSection extends React.PureComponent {
                         data-l10n-args='{"num": 4}'
                       />
                     </select>
-                    {mayHaveSponsoredTopSites && (
-                      <div className="check-wrapper" role="presentation">
-                        <input
-                          id="sponsored-shortcuts"
-                          className="customize-menu-checkbox"
-                          disabled={!topSitesEnabled}
-                          checked={showSponsoredTopSitesEnabled}
-                          type="checkbox"
-                          onChange={this.onPreferenceSelect}
-                          data-preference="showSponsoredTopSites"
-                          data-eventSource="SPONSORED_TOP_SITES"
-                        />
-                        <label
-                          className="customize-menu-checkbox-label"
-                          htmlFor="sponsored-shortcuts"
-                          data-l10n-id="newtab-custom-sponsored-sites"
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -227,31 +214,14 @@ export class ContentSection extends React.PureComponent {
                 data-l10n-id="newtab-custom-stories-toggle"
               >
                 <div slot="nested">
-                  {(mayHaveSponsoredStories || mayHaveRecentSaves) && (
+                  {(mayHaveRecentSaves ||
+                    mayHaveInferredPersonalization ||
+                    mayHaveTopicSections) && (
                     <div className="more-info-pocket-wrapper">
                       <div
                         className="more-information"
                         ref={this.pocketDrawerRef}
                       >
-                        {mayHaveSponsoredStories && (
-                          <div className="check-wrapper" role="presentation">
-                            <input
-                              id="sponsored-pocket"
-                              className="customize-menu-checkbox"
-                              disabled={!pocketEnabled}
-                              checked={showSponsoredPocketEnabled}
-                              type="checkbox"
-                              onChange={this.onPreferenceSelect}
-                              data-preference="showSponsored"
-                              data-eventSource="POCKET_SPOCS"
-                            />
-                            <label
-                              className="customize-menu-checkbox-label"
-                              htmlFor="sponsored-pocket"
-                              data-l10n-id="newtab-custom-pocket-sponsored"
-                            />
-                          </div>
-                        )}
                         {mayHaveInferredPersonalization && (
                           <div className="check-wrapper" role="presentation">
                             <input
@@ -302,47 +272,6 @@ export class ContentSection extends React.PureComponent {
               </moz-toggle>
             </div>
           )}
-
-          <div id="recent-section" className="section">
-            <moz-toggle
-              id="highlights-toggle"
-              pressed={highlightsEnabled || null}
-              onToggle={this.onPreferenceSelect}
-              data-preference="feeds.section.highlights"
-              data-eventSource="HIGHLIGHTS"
-              data-l10n-id="newtab-custom-recent-toggle"
-            />
-          </div>
-
-          {mayHaveWeather && (
-            <div id="weather-section" className="section">
-              <moz-toggle
-                id="weather-toggle"
-                pressed={weatherEnabled || null}
-                onToggle={this.onPreferenceSelect}
-                data-preference="showWeather"
-                data-eventSource="WEATHER"
-                data-l10n-id="newtab-custom-weather-toggle"
-              />
-            </div>
-          )}
-
-          {pocketRegion &&
-            mayHaveSponsoredStories &&
-            spocMessageVariant === "variant-c" && (
-              <div className="sponsored-content-info">
-                <div className="icon icon-help"></div>
-                <div>
-                  Sponsored content supports our mission to build a better web.{" "}
-                  <SafeAnchor
-                    dispatch={this.props.dispatch}
-                    url="https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs"
-                  >
-                    Find out how
-                  </SafeAnchor>
-                </div>
-              </div>
-            )}
         </div>
 
         <span className="divider" role="separator"></span>
