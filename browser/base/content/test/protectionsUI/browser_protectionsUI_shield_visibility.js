@@ -19,7 +19,7 @@ const TEST_CASES = [
   },
   {
     type: "chrome page",
-    testURL: "chrome://global/skin/in-content/info-pages.css",
+    testURL: "chrome://global/content/mozilla.html",
     hidden: true,
   },
   {

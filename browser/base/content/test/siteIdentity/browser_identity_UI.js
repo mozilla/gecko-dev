@@ -75,8 +75,8 @@ var tests = [
   },
   {
     name: "chrome:",
-    location: "chrome://global/skin/in-content/info-pages.css",
-    hostForDisplay: "chrome://global/skin/in-content/info-pages.css",
+    location: "chrome://global/content/mozilla.html",
+    hostForDisplay: "chrome://global/content/mozilla.html",
     hasSubview: false,
   },
 ];
