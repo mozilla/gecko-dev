@@ -428,7 +428,7 @@ void unquant_coarse_energy(const CELTMode *m, int start, int end, celt_glog *old
 {
    const unsigned char *prob_model = e_prob_model[LM][intra];
    int i, c;
-   opus_val32 prev[2] = {0, 0};
+   opus_val64 prev[2] = {0, 0};
    opus_val16 coef;
    opus_val16 beta;
    opus_int32 budget;
@@ -481,7 +481,7 @@ void unquant_coarse_energy(const CELTMode *m, int start, int end, celt_glog *old
          oldEBands[i+c*m->nbEBands] = MAXG(-GCONST(9.f), oldEBands[i+c*m->nbEBands]);
          tmp = MULT16_32_Q15(coef,oldEBands[i+c*m->nbEBands]) + prev[c] + q;
 #ifdef FIXED_POINT
-         tmp = MAX32(-GCONST(28.f), tmp);
+         tmp = MIN32(GCONST(28.f), MAX32(-GCONST(28.f), tmp));
 #endif
          oldEBands[i+c*m->nbEBands] = tmp;
          prev[c] = prev[c] + q - MULT16_32_Q15(beta,q);

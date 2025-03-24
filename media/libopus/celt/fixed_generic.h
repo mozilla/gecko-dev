@@ -147,6 +147,8 @@
 /* Avoid MSVC warning C4146: unary minus operator applied to unsigned type */
 /** Negate 32-bit value, ignore any overflows */
 #define NEG32_ovflw(a) ((opus_val32)(0-(opus_uint32)(a)))
+/** 32-bit arithmetic shift right with rounding-to-nearest, ignoring overflows */
+#define PSHR32_ovflw(a,shift) (SHR32(ADD32_ovflw(a, (EXTEND32(1)<<(shift)>>1)),shift))
 
 /** 16x16 multiplication where the result fits in 16 bits */
 #define MULT16_16_16(a,b)     ((((opus_val16)(a))*((opus_val16)(b))))

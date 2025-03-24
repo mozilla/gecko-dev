@@ -1,4 +1,5 @@
 /* Copyright (c) 2014-2015 Xiph.Org Foundation
+   Copyright (c) 2024 Arm Limited
    Written by Viswanath Puttagunta */
 /**
    @file celt_neon_intr.c
@@ -35,7 +36,57 @@
 #endif
 
 #include <arm_neon.h>
+#include "../float_cast.h"
+#include "../mathops.h"
 #include "../pitch.h"
+#if defined(OPUS_CHECK_ASM)
+#include <stdlib.h>
+#endif
+
+#if !defined(DISABLE_FLOAT_API) && defined(OPUS_ARM_MAY_HAVE_NEON_INTR)
+
+void celt_float2int16_neon(const float * OPUS_RESTRICT in, short * OPUS_RESTRICT out, int cnt)
+{
+   int i = 0;
+
+#if defined(__ARM_NEON)
+   const int BLOCK_SIZE = 16;
+   const int blockedSize = cnt / BLOCK_SIZE * BLOCK_SIZE;
+
+   for (; i < blockedSize; i += BLOCK_SIZE)
+   {
+      float32x4_t orig_a = vld1q_f32(&in[i +  0]);
+      float32x4_t orig_b = vld1q_f32(&in[i +  4]);
+      float32x4_t orig_c = vld1q_f32(&in[i +  8]);
+      float32x4_t orig_d = vld1q_f32(&in[i + 12]);
+
+      int16x4_t asShort_a = vqmovn_s32(vroundf(vmulq_n_f32(orig_a, CELT_SIG_SCALE)));
+      int16x4_t asShort_b = vqmovn_s32(vroundf(vmulq_n_f32(orig_b, CELT_SIG_SCALE)));
+      int16x4_t asShort_c = vqmovn_s32(vroundf(vmulq_n_f32(orig_c, CELT_SIG_SCALE)));
+      int16x4_t asShort_d = vqmovn_s32(vroundf(vmulq_n_f32(orig_d, CELT_SIG_SCALE)));
+
+      vst1_s16(&out[i +  0], asShort_a);
+      vst1_s16(&out[i +  4], asShort_b);
+      vst1_s16(&out[i +  8], asShort_c);
+      vst1_s16(&out[i + 12], asShort_d);
+# if defined(OPUS_CHECK_ASM)
+      short out_c[BLOCK_SIZE];
+      int j;
+      for(j = 0; j < BLOCK_SIZE; j++)
+      {
+         out_c[j] = FLOAT2INT16(in[i + j]);
+         celt_assert(abs((out_c[j] - out[i + j])) <= 1);
+      }
+# endif
+   }
+#endif
+
+   for (; i < cnt; i++)
+   {
+      out[i] = FLOAT2INT16(in[i]);
+   }
+}
+#endif
 
 #if defined(FIXED_POINT)
 #include <string.h>

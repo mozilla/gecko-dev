@@ -264,13 +264,15 @@ void denormalise_bands(const CELTMode *m, const celt_norm * OPUS_RESTRICT X,
             shift = -2;
          }
          do {
-            *f++ = SHL32(MULT16_32_Q15(*x++, g), -shift);
+            *f++ = SHL32(MULT16_32_Q15(*x, g), -shift);
+            x++;
          } while (++j<band_end);
       } else
 #endif
          /* Be careful of the fixed-point "else" just above when changing this code */
          do {
-            *f++ = SHR32(MULT16_32_Q15(*x++, g), shift);
+            *f++ = SHR32(MULT16_32_Q15(*x, g), shift);
+            x++;
          } while (++j<band_end);
    }
    celt_assert(start <= end);

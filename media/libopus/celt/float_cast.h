@@ -98,6 +98,13 @@ static OPUS_INLINE opus_int32 float2int(float x) {return _mm_cvt_ss2si(_mm_set_s
 
                 return intgr ;
         }
+#elif defined(__aarch64__)
+
+        #include <arm_neon.h>
+        static OPUS_INLINE opus_int32 float2int(float flt)
+        {
+                return vcvtns_s32_f32(flt);
+        }
 
 #elif defined(HAVE_LRINTF) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 

@@ -1,6 +1,7 @@
 /* Copyright (c) 2002-2008 Jean-Marc Valin
    Copyright (c) 2007-2008 CSIRO
    Copyright (c) 2007-2009 Xiph.Org Foundation
+   Copyright (c) 2024 Arm Limited
    Written by Jean-Marc Valin */
 /**
    @file mathops.h
@@ -35,6 +36,7 @@
 #include "config.h"
 #endif
 
+#include "float_cast.h"
 #include "mathops.h"
 
 /*Compute floor(sqrt(_val)) with exact arithmetic.
@@ -215,3 +217,16 @@ opus_val32 celt_rcp(opus_val32 x)
 }
 
 #endif
+
+#ifndef DISABLE_FLOAT_API
+
+void celt_float2int16_c(const float * OPUS_RESTRICT in, short * OPUS_RESTRICT out, int cnt)
+{
+   int i;
+   for (i = 0; i < cnt; i++)
+   {
+      out[i] = FLOAT2INT16(in[i]);
+   }
+}
+
+#endif /* DISABLE_FLOAT_API */

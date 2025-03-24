@@ -1,6 +1,7 @@
 /* Copyright (c) 2002-2008 Jean-Marc Valin
    Copyright (c) 2007-2008 CSIRO
    Copyright (c) 2007-2009 Xiph.Org Foundation
+   Copyright (c) 2024 Arm Limited
    Written by Jean-Marc Valin, and Yunho Huh */
 /**
    @file mathops.h
@@ -37,6 +38,10 @@
 #include "arch.h"
 #include "entcode.h"
 #include "os_support.h"
+
+#if defined(OPUS_ARM_MAY_HAVE_NEON_INTR)
+#include "arm/mathops_arm.h"
+#endif
 
 #define PI 3.141592653f
 
@@ -476,4 +481,15 @@ static OPUS_INLINE opus_val16 celt_atan2p(opus_val16 y, opus_val16 x)
 }
 
 #endif /* FIXED_POINT */
+
+#ifndef DISABLE_FLOAT_API
+
+void celt_float2int16_c(const float * OPUS_RESTRICT in, short * OPUS_RESTRICT out, int cnt);
+
+#ifndef OVERRIDE_FLOAT2INT16
+#define celt_float2int16(in, out, cnt, arch) ((void)(arch), celt_float2int16_c(in, out, cnt))
+#endif
+
+#endif /* DISABLE_FLOAT_API */
+
 #endif /* MATHOPS_H */
