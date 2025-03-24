@@ -136,7 +136,7 @@ export class PlacesFrecencyRecalculator {
 
     this.#createOrUpdateTask();
 
-    lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+    lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
       "PlacesFrecencyRecalculator: shutdown",
       () => this.#finalize()
     );
