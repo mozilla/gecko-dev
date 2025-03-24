@@ -103,15 +103,6 @@ export const INITIAL_STATE = {
     recentSavesEnabled: false,
     showTopicSelection: false,
   },
-  // Messages received from ASRouter to render in newtab
-  Messages: {
-    // messages received from ASRouter are initially visible
-    isHidden: false,
-    // portID for that tab that was sent the message
-    portID: "",
-    // READONLY Message data received from ASRouter
-    messageData: {},
-  },
   Notifications: {
     showNotifications: false,
     toastCounter: 0,
@@ -538,24 +529,6 @@ function Sections(prevState = INITIAL_STATE.Sections, action) {
           ),
         })
       );
-    default:
-      return prevState;
-  }
-}
-
-function Messages(prevState = INITIAL_STATE.Messages, action) {
-  switch (action.type) {
-    case at.MESSAGE_SET:
-      if (prevState.messageData.messageType) {
-        return prevState;
-      }
-      return {
-        ...prevState,
-        messageData: action.data.message,
-        portID: action.data.portID || "",
-      };
-    case at.MESSAGE_TOGGLE_VISIBILITY:
-      return { ...prevState, isHidden: action.data };
     default:
       return prevState;
   }
@@ -1006,7 +979,6 @@ export const reducers = {
   Prefs,
   Dialog,
   Sections,
-  Messages,
   Notifications,
   Pocket,
   Personalization,

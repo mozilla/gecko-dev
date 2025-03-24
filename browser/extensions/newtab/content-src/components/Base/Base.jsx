@@ -17,10 +17,11 @@ import { Weather } from "content-src/components/Weather/Weather";
 import { Notifications } from "content-src/components/Notifications/Notifications";
 import { TopicSelection } from "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection";
 import { WallpaperFeatureHighlight } from "../DiscoveryStreamComponents/FeatureHighlight/WallpaperFeatureHighlight";
-import { MessageWrapper } from "content-src/components/MessageWrapper/MessageWrapper";
 
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
+const WALLPAPER_HIGHLIGHT_DISMISSED_PREF =
+  "newtabWallpapers.highlightDismissed";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED =
   "discoverystream.thumbsUpDown.searchTopsitesCompact";
@@ -471,12 +472,47 @@ export class BaseContent extends React.PureComponent {
     }
   }
 
+  // Contains all the logic to show the wallpapers Feature Highlight
   shouldShowWallpapersHighlight() {
-    if (!this.props.Messages?.messageData) {
+    const prefs = this.props.Prefs.values;
+
+    // If wallpapers (or v2 wallpapers) are not enabled, don't show the highlight.
+    const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
+    if (!wallpapersV2Enabled) {
       return false;
     }
-    const { messageData } = this.props.Messages;
-    return messageData?.content?.messageType === "CustomWallpaperHighlight";
+
+    // If user has interacted/dismissed the highlight, don't show
+    const wallpapersHighlightDismissed =
+      prefs[WALLPAPER_HIGHLIGHT_DISMISSED_PREF];
+    if (wallpapersHighlightDismissed) {
+      return false;
+    }
+
+    // If the user has selected a wallpaper, don't show the pop-up
+    const activeWallpaper = prefs[`newtabWallpapers.wallpaper`];
+
+    if (activeWallpaper) {
+      this.props.dispatch(ac.SetPref(WALLPAPER_HIGHLIGHT_DISMISSED_PREF, true));
+      return false;
+    }
+
+    // If the user has seen* the highlight more than three times
+    // *Seen means they loaded HNT page and the highlight was observed for more than 3 seconds
+    const { highlightSeenCounter } = this.props.Wallpapers;
+    if (highlightSeenCounter.value > 3) {
+      return false;
+    }
+
+    // Show the highlight if available
+    const wallpapersHighlightEnabled =
+      prefs["newtabWallpapers.highlightEnabled"];
+    if (wallpapersHighlightEnabled) {
+      return true;
+    }
+
+    // Default return value
+    return false;
   }
 
   getRGBColors(input) {
@@ -669,12 +705,10 @@ export class BaseContent extends React.PureComponent {
             showing={customizeMenuVisible}
           />
           {this.shouldShowWallpapersHighlight() && (
-            <MessageWrapper dispatch={this.props.dispatch}>
-              <WallpaperFeatureHighlight
-                position="inset-block-start inset-inline-start"
-                dispatch={this.props.dispatch}
-              />
-            </MessageWrapper>
+            <WallpaperFeatureHighlight
+              position="inset-block-end inset-inline-start"
+              dispatch={this.props.dispatch}
+            />
           )}
         </menu>
         <div className="weatherWrapper">
@@ -746,7 +780,6 @@ export const Base = connect(state => ({
   Prefs: state.Prefs,
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
-  Messages: state.Messages,
   Notifications: state.Notifications,
   Search: state.Search,
   Wallpapers: state.Wallpapers,
