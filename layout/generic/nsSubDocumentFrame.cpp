@@ -837,7 +837,12 @@ void nsSubDocumentFrame::MaybeUpdateEmbedderZoom() {
   }
 
   BrowsingContext* bc = fl->GetExtantBrowsingContext();
-  if (!bc || bc->IsTop()) {
+  if (!bc) {
+    return;
+  }
+
+  BrowsingContext* parent = bc->GetParent();
+  if (!parent) {
     // Don't propagate zoom from the top browsing context, i.e. the browser
     // frontend. (If we did propagate at that level, we wouldn't be able to
     // reliably handle per-tab zoom levels, because the top level context's
@@ -845,10 +850,10 @@ void nsSubDocumentFrame::MaybeUpdateEmbedderZoom() {
     return;
   }
 
-  // The zoom that we propagate to our child document is the full-page-zoom
+  // The zoom that we propagate to our child document is parent's full-page-zoom
   // level, *combined with* the EffectiveZoom (i.e. the css 'zoom') of this
   // embedding frame.
-  auto newZoom = Style()->EffectiveZoom().Zoom(PresContext()->GetFullZoom());
+  auto newZoom = Style()->EffectiveZoom().Zoom(parent->GetFullZoom());
   if (bc->GetFullZoom() == newZoom) {
     return;
   }
@@ -896,9 +901,15 @@ void nsSubDocumentFrame::MaybeUpdateRemoteStyle(
 void nsSubDocumentFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   nsAtomicContainerFrame::DidSetComputedStyle(aOldComputedStyle);
 
-  MaybeUpdateEmbedderColorScheme();
-
-  MaybeUpdateRemoteStyle(aOldComputedStyle);
+  if (aOldComputedStyle) {
+    // If there's no old style, the call in Init() or ShowViewer() should have
+    // us covered.
+    MaybeUpdateEmbedderColorScheme();
+    MaybeUpdateRemoteStyle(aOldComputedStyle);
+    if (aOldComputedStyle->EffectiveZoom() != Style()->EffectiveZoom()) {
+      MaybeUpdateEmbedderZoom();
+    }
+  }
 
   // If this presshell has invisible ancestors, we don't need to propagate the
   // visibility style change to the subdocument since the subdocument should

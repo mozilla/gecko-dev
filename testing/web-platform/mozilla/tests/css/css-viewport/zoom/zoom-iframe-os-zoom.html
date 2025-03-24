@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>OS zoom doesn't stack on iframes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe srcdoc="Child frame"></iframe>
+<script>
+async function setOSZoom(t, factor, expectResize = true) {
+  let resize = expectResize && new Promise(r => addEventListener("resize", r, { once: true }));
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["ui.textScaleFactor", factor],
+      ["browser.display.os-zoom-behavior", 1]
+    ]
+  });
+  await resize;
+  t.add_cleanup(async () => {
+    await SpecialPowers.popPrefEnv();
+  });
+}
+
+const iframe = document.querySelector("iframe");
+
+promise_test(async function(t) {
+  await setOSZoom(t, 100, /* expectResize = */ false);
+  let originalDpi = window.devicePixelRatio;
+  assert_equals(originalDpi, iframe.contentWindow.devicePixelRatio, "DPI should match between frame and parent");
+  await setOSZoom(t, 200);
+  let newDpi = window.devicePixelRatio;
+  assert_equals(newDpi, originalDpi * 2, "OS zoom should've changed DPI");
+  assert_equals(newDpi, iframe.contentWindow.devicePixelRatio, "DPI should match between frame and parent");
+  let frameResized = new Promise(r => {
+    iframe.contentWindow.addEventListener("resize", r, { once: true });
+  });
+  iframe.style.zoom = 2;
+  await frameResized;
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * newDpi, "DPI should have doubled on the frame");
+  await setOSZoom(t, 100);
+  assert_equals(window.devicePixelRatio, originalDpi, "DPI should have been restored");
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * originalDpi, "DPI should still be zoomed on the frame");
+});
+</script>
