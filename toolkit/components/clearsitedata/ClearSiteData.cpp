@@ -38,16 +38,19 @@ class ClearSiteData::PendingCleanupHolder final : public nsIClearDataCallback {
   NS_DECL_ISUPPORTS
 
   explicit PendingCleanupHolder(nsIHttpChannel* aChannel)
-      : mChannel(aChannel), mPendingOp(false) {}
+      : mChannel(aChannel), mNumPendingClear(0) {
+    MOZ_ASSERT(aChannel);
+  }
 
-  nsresult Start() {
-    MOZ_ASSERT(!mPendingOp);
+  nsresult Start(uint32_t aNumPendingClear) {
+    MOZ_ASSERT(aNumPendingClear > 0);
+    MOZ_ASSERT(mNumPendingClear == 0);
     nsresult rv = mChannel->Suspend();
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
+    mNumPendingClear = aNumPendingClear;
 
-    mPendingOp = true;
     return NS_OK;
   }
 
@@ -55,24 +58,27 @@ class ClearSiteData::PendingCleanupHolder final : public nsIClearDataCallback {
 
   NS_IMETHOD
   OnDataDeleted(uint32_t aFailedFlags) override {
-    MOZ_ASSERT(mPendingOp);
-    mPendingOp = false;
+    MOZ_ASSERT(mNumPendingClear != 0);
+    mNumPendingClear -= 1;
 
-    mChannel->Resume();
-    mChannel = nullptr;
+    if (mNumPendingClear == 0) {
+      MOZ_ASSERT(mChannel);
+      mChannel->Resume();
+      mChannel = nullptr;
+    }
 
     return NS_OK;
   }
 
  private:
   ~PendingCleanupHolder() {
-    if (mPendingOp) {
+    if (mNumPendingClear != 0) {
       mChannel->Resume();
     }
   }
 
   nsCOMPtr<nsIHttpChannel> mChannel;
-  bool mPendingOp;
+  uint32_t mNumPendingClear;
 };
 
 NS_INTERFACE_MAP_BEGIN(ClearSiteData::PendingCleanupHolder)
@@ -164,6 +170,15 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
     return;
   }
 
+  nsCOMPtr<nsIPrincipal> nodePrincipal;
+  nsCOMPtr<nsIPrincipal> partitionedPrincipal;
+  rv = ssm->GetChannelResultPrincipals(aChannel, getter_AddRefs(nodePrincipal),
+                                       getter_AddRefs(partitionedPrincipal));
+  Unused << nodePrincipal;
+  if (NS_WARN_IF(NS_FAILED(rv) || !partitionedPrincipal)) {
+    return;
+  }
+
   bool secure = principal->GetIsOriginPotentiallyTrustworthy();
   if (NS_WARN_IF(NS_FAILED(rv)) || !secure) {
     return;
@@ -183,12 +198,16 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
   }
 
   int32_t cleanFlags = 0;
-  RefPtr<PendingCleanupHolder> holder = new PendingCleanupHolder(aChannel);
+  // collect flags separately for network cache cleaning due to network cache
+  // forcing partitionKey to be not empty in top-level context. However other
+  // storage such as cookies use empty partitionKey. Therefore, we need to pass
+  // in a different principal.
+  int32_t cleanNetworkFlags = 0;
 
   if (StaticPrefs::privacy_clearSiteDataHeader_cache_enabled() &&
       (flags & eCache)) {
     LogOpToConsole(aChannel, uri, eCache);
-    cleanFlags |= nsIClearDataService::CLEAR_ALL_CACHES;
+    cleanNetworkFlags |= nsIClearDataService::CLEAR_ALL_CACHES;
   }
 
   if (flags & eCookies) {
@@ -205,20 +224,38 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
                   nsIClearDataService::CLEAR_FINGERPRINTING_PROTECTION_STATE;
   }
 
-  if (cleanFlags) {
+  int numClearCalls = (cleanFlags != 0) + (cleanNetworkFlags != 0);
+
+  if (numClearCalls > 0) {
     nsCOMPtr<nsIClearDataService> csd =
         do_GetService("@mozilla.org/clear-data-service;1");
     MOZ_ASSERT(csd);
 
-    rv = holder->Start();
+    RefPtr<PendingCleanupHolder> holder = new PendingCleanupHolder(aChannel);
+    rv = holder->Start(numClearCalls);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }
 
-    rv = csd->DeleteDataFromPrincipal(principal, false /* user request */,
-                                      cleanFlags, holder);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
+    if (cleanFlags != 0) {
+      rv = csd->DeleteDataFromPrincipal(principal, false /* user request */,
+                                        cleanFlags, holder);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        // the channel gets resumed when the holder is no longer in scope.
+        // Therefore returning without calling OnDataDeleted twice doesn't
+        // stall the load indefinitly and no further cleanup from us is
+        // necessary.
+        return;
+      }
+    }
+
+    if (cleanNetworkFlags != 0) {
+      rv = csd->DeleteDataFromPrincipal(partitionedPrincipal,
+                                        false /* user request */,
+                                        cleanNetworkFlags, holder);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return;
+      }
     }
   }
 }
