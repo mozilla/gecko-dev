@@ -30,6 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Li ser %1$d domaînên din xwe bigihîne daneyên xwe</string>
+  <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+  <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Xwe bigihîne daneyên xwe yên ji bo malperên di domaînên %1$d de</string>
   <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d ji %3$d</string>
   <!-- Description for tabs add-on permission. -->
@@ -86,6 +88,10 @@
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Skrîptên nepesendkirî dikarin xetereyên ewlehî û nepenîtiyê derxînin holê. Tenê skrîptên bi niçik yan ji çavkaniyên ku hûn pê bawer in bidin xebitandin.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Firehkirina amûrên pêşvebirinê ji bo xwegihandina daneyên di hilpekînên vekirî de</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">Hemû malperan nîşan bide</string>
+  <!-- Description for text button that hides the majority of the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">Hindiktir malperan nîşan bide</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Guherto</string>
   <!-- The author of an add-on. -->

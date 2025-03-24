@@ -56,6 +56,7 @@
   <string name="menu_about">Acerca de</string>
   <string name="menu_help">Ayuda</string>
   <string name="menu_rights" moz:removedIn="137">Tus derechos</string>
+  <string name="menu_terms_of_use">Términos de uso</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.

@@ -525,11 +525,15 @@
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_3">Geroka me ya ne ji bo qezenckirina pereyan rê li şirketan digire ku li ser webê bi dizî we bişopînin.</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+  <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Zêdetirî 100 milyon kes nepeniya xwe bi hilbijartina gerokeke nebazirganî diparêzin.</string>
+  <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Kodên şopandinê? Otomatîk hatin astengkirin. Her 700`an bi kar bîne. Lê PDF? Readera me ya têdeyî rêveberiya PDF`an hêsan dike.</string>
   <!-- Text for the button to set firefox as default browser on the device -->
   <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Bike geroka sereke</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Ne niha</string>
+  <!-- Title for sign in to sync screen. -->
+  <string name="juno_onboarding_sign_in_title_2">Bi awayekî ewle ji amûreke xwe derbasî yeka din bibin</string>
   <!--
     Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
@@ -539,10 +543,35 @@
   <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Têkeve</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Ne niha</string>
+  <!--
+    Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Agahdarî dihêlin ku tu bi Firefoxê re ewletir bî</string>
+  <!--
+    Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Hilpekînan bi awayekî ewle di navbera amûrên xwe de veguhêze û taybetiyên din yên nepen yên Firefoxê kifş bike.</string>
   <!-- Text for the button to request notification permission on the device -->
   <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Danezanan çalak bike</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Ne niha</string>
+  <!--
+    Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Widgeta lêgerînê ya Firefoxê bi kar bîne</string>
+  <!--
+    Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Heke tu Firefoxê li serûpela xwe zêde bikî, tu yê dikaribî hêsantir têkevî geroka pêşî-ewlehî ku şopandina te asteng dike.</string>
+  <!--
+    Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Widgeta Firefoxê lê zêde bike</string>
   <!-- Text for the button to dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Ne niha</string>
   <!--
@@ -554,6 +583,14 @@
   <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Ji bo bilindkirina ewlekarî, hilberîn û zêdetir pêvekên partiya-sêyemîn bi kar bîne.</string>
   <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
   <string name="onboarding_add_on_explore_more_extensions_2">Zêdetir pêvekan keşf bike</string>
+  <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_start_browsing_button_2">Dest bi gerê bike</string>
+  <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+  <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Reklaman bi awayekî bibandor û berhemdar asteng dike.</string>
+  <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+  <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">Qediya</string>
   <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
