@@ -5514,12 +5514,8 @@ already_AddRefed<SourceSurface> PresShell::RenderSelection(
                              aScreenRect, aFlags);
 }
 
-void AddDisplayItemToBottom(nsDisplayListBuilder* aBuilder,
-                            nsDisplayList* aList, nsDisplayItem* aItem) {
-  if (!aItem) {
-    return;
-  }
-
+static void AddDisplayItemToBottom(nsDisplayListBuilder* aBuilder,
+                                   nsDisplayList* aList, nsDisplayItem* aItem) {
   nsDisplayList list(aBuilder);
   list.AppendToTop(aItem);
   list.AppendToTop(aList);
