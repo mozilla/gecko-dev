@@ -71,7 +71,9 @@ class SnapTestsBase:
             log_output=os.path.join(
                 os.environ.get("ARTIFACT_DIR", ""), "geckodriver.log"
             ),
+            service_args=["--allow-system-access"],
         )
+
         options = Options()
         if "TEST_GECKODRIVER_TRACE" in os.environ.keys():
             options.log.level = "trace"
