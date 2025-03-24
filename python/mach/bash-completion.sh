@@ -1,3 +1,8 @@
+# Is bash completion too slow to your taste?
+# Consider generating fast completion scripts with:
+# ./mach mach-completion bash -f path/to/mach.bash-completion
+# See https://firefox-source-docs.mozilla.org/mach/usage.html#tab-completion
+
 function _mach()
 {
   local cur targets

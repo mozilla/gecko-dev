@@ -2,7 +2,6 @@ _mach_complete()
 {
     local com coms comsubs cur opts script sub subs
     COMPREPLY=()
-    declare -A comsubs=( %(commands_subcommands)s )
 
     _get_comp_words_by_ref -n : cur words
     # for an alias, get the real script behind it
@@ -19,7 +18,10 @@ _mach_complete()
 
         if [[ -z $com ]]; then
             com=$word
-        elif [[ "${comsubs[$com]}" == *" $word "* ]]; then
+            case $com in
+%(case_commands_subcommands)s
+            esac
+        elif [[ $comsubs == *" $word "* ]]; then
             sub=$word
             break
         fi
