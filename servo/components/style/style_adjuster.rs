@@ -659,23 +659,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             .set_text_align(TextAlign::Start)
     }
 
-    /// Computes the used text decoration for Servo.
-    ///
-    /// FIXME(emilio): This is a layout tree concept, should move away from
-    /// style, since otherwise we're going to have the same subtle bugs WebKit
-    /// and Blink have with this very same thing.
-    #[cfg(feature = "servo")]
-    fn adjust_for_text_decorations_in_effect(&mut self) {
-        use crate::values::computed::text::TextDecorationsInEffect;
-
-        let decorations_in_effect = TextDecorationsInEffect::from_style(&self.style);
-        if self.style.get_inherited_text().text_decorations_in_effect != decorations_in_effect {
-            self.style
-                .mutate_inherited_text()
-                .text_decorations_in_effect = decorations_in_effect;
-        }
-    }
-
     #[cfg(feature = "gecko")]
     fn should_suppress_linebreak<E>(
         &self,
@@ -985,10 +968,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_ruby(layout_parent_style, element);
-        }
-        #[cfg(feature = "servo")]
-        {
-            self.adjust_for_text_decorations_in_effect();
         }
         #[cfg(feature = "gecko")]
         {

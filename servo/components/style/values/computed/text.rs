@@ -4,8 +4,6 @@
 
 //! Computed types for text properties.
 
-#[cfg(feature = "servo")]
-use crate::properties::StyleBuilder;
 use crate::values::computed::length::LengthPercentage;
 use crate::values::generics::NumberOrAuto;
 use crate::values::generics::text::{
@@ -101,49 +99,6 @@ impl WordSpacing {
     #[inline]
     pub fn normal() -> Self {
         LengthPercentage::zero()
-    }
-}
-
-/// A struct that represents the _used_ value of the text-decoration property.
-///
-/// FIXME(emilio): This is done at style resolution time, though probably should
-/// be done at layout time, otherwise we need to account for display: contents
-/// and similar stuff when we implement it.
-///
-/// FIXME(emilio): Also, should be just a bitfield instead of three bytes.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq, ToResolvedValue)]
-pub struct TextDecorationsInEffect {
-    /// Whether an underline is in effect.
-    pub underline: bool,
-    /// Whether an overline decoration is in effect.
-    pub overline: bool,
-    /// Whether a line-through style is in effect.
-    pub line_through: bool,
-}
-
-impl TextDecorationsInEffect {
-    /// Computes the text-decorations in effect for a given style.
-    #[cfg(feature = "servo")]
-    pub fn from_style(style: &StyleBuilder) -> Self {
-        // Start with no declarations if this is an atomic inline-level box;
-        // otherwise, start with the declarations in effect and add in the text
-        // decorations that this block specifies.
-        let mut result = if style.get_box().clone_display().is_atomic_inline_level() {
-            Self::default()
-        } else {
-            style
-                .get_parent_inherited_text()
-                .text_decorations_in_effect
-                .clone()
-        };
-
-        let line = style.get_text().clone_text_decoration_line();
-
-        result.underline |= line.contains(TextDecorationLine::UNDERLINE);
-        result.overline |= line.contains(TextDecorationLine::OVERLINE);
-        result.line_through |= line.contains(TextDecorationLine::LINE_THROUGH);
-
-        result
     }
 }
 

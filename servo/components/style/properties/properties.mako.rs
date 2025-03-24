@@ -1403,13 +1403,6 @@ pub mod style_structs {
                     pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
                 % endif
             % endfor
-            % if style_struct.name == "InheritedText":
-                /// The "used" text-decorations that apply to this box.
-                ///
-                /// FIXME(emilio): This is technically a box-tree concept, and
-                /// would be nice to move away from style.
-                pub text_decorations_in_effect: crate::values::computed::text::TextDecorationsInEffect,
-            % endif
             % if style_struct.name == "Font":
                 /// The font hash, used for font caching.
                 pub hash: u64,
@@ -1967,10 +1960,6 @@ impl ComputedValues {
                                 ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
                             % endif
                         % endfor
-                        % if style_struct.name == "InheritedText":
-                            text_decorations_in_effect:
-                                crate::values::computed::text::TextDecorationsInEffect::default(),
-                        % endif
                         % if style_struct.name == "Box":
                             original_display: longhands::display::get_initial_value(),
                         % endif
