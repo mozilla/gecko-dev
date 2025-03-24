@@ -16,11 +16,12 @@
     background: var(--newtab-background-color-secondary);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 15%);
     width: 298px;
-    transition: opacity 0.3s, visibility 0.3s;
+    transition:
+      opacity 0.3s,
+      visibility 0.3s;
 
     .icon-dismiss {
       flex-shrink: 0;
-      cursor: pointer;
       background-size: $smaller-icon-size;
       height: $smaller-icon-size;
       width: $smaller-icon-size;

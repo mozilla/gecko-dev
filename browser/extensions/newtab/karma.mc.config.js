@@ -219,6 +219,7 @@ module.exports = function (config) {
               {
                 branches: 60,
               },
+
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,
@@ -278,6 +279,12 @@ module.exports = function (config) {
             },
             "content-src/lib/utils.jsx": {
               branches: 60,
+            },
+            "content-src/components/MessageWrapper/MessageWrapper.jsx": {
+              lines: 50,
+              statements: 51.1,
+              functions: 31.2,
+              branches: 31.2,
             },
             "content-src/components/**/*.jsx": {
               statements: 51.1,
