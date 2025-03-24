@@ -68,6 +68,7 @@ class LanguageDialogPreferenceFragment : DialogFragment() {
                         isAllLanguagesItemType =
                         args.itemType ==
                             DownloadLanguageItemTypePreference.AllLanguages,
+                        fileSizeFormatter = requireComponents.core.fileSizeFormatter,
                         fileSize = args.modelSize,
                         onConfirmDelete = {
                             if (args.itemType == DownloadLanguageItemTypePreference.AllLanguages) {
@@ -111,6 +112,7 @@ class LanguageDialogPreferenceFragment : DialogFragment() {
                         } else {
                             DownloadLanguageFileDialogType.Default
                         },
+                        fileSizeFormatter = requireComponents.core.fileSizeFormatter,
                         fileSize = args.modelSize,
                         isCheckBoxEnabled = checkBoxEnabled,
                         onSavingModeStateChange = { checkBoxEnabled = it },

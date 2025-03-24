@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -46,7 +47,8 @@ import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageModel
 import mozilla.components.concept.engine.translate.ModelState
 import mozilla.components.concept.engine.translate.TranslationError
-import mozilla.components.feature.downloads.toMegabyteOrKilobyteString
+import mozilla.components.feature.downloads.DefaultFileSizeFormatter
+import mozilla.components.feature.downloads.FileSizeFormatter
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.InfoCard
 import org.mozilla.fenix.compose.InfoType
@@ -62,6 +64,7 @@ import java.util.Locale
  *
  * @param downloadLanguageItemPreferences List of [DownloadLanguageItemPreference]s that needs to be displayed.
  * @param learnMoreUrl The learn more link for translations website.
+ * @param fileSizeFormatter [FileSizeFormatter] used to format the size of the file item.
  * @param downloadLanguagesError  If a translation error occurs.
  * @param onLearnMoreClicked Invoked when the user clicks on the "Learn More" button.
  * @param onItemClick Invoked when the user clicks on the language item.
@@ -71,6 +74,7 @@ import java.util.Locale
 fun DownloadLanguagesPreference(
     downloadLanguageItemPreferences: List<DownloadLanguageItemPreference>,
     learnMoreUrl: String,
+    fileSizeFormatter: FileSizeFormatter,
     downloadLanguagesError: TranslationError? = null,
     onLearnMoreClicked: () -> Unit,
     onItemClick: (DownloadLanguageItemPreference) -> Unit,
@@ -165,6 +169,7 @@ fun DownloadLanguagesPreference(
                 item {
                     LanguageItemPreference(
                         item = allLanguagesItemDownloaded,
+                        fileSizeFormatter = fileSizeFormatter,
                         onItemClick = onItemClick,
                     )
                 }
@@ -173,6 +178,7 @@ fun DownloadLanguagesPreference(
             items(downloadedItems) { item: DownloadLanguageItemPreference ->
                 LanguageItemPreference(
                     item = item,
+                    fileSizeFormatter = fileSizeFormatter,
                     onItemClick = onItemClick,
                 )
             }
@@ -205,6 +211,7 @@ fun DownloadLanguagesPreference(
                 item {
                     LanguageItemPreference(
                         item = item,
+                        fileSizeFormatter = fileSizeFormatter,
                         onItemClick = onItemClick,
                     )
                 }
@@ -260,9 +267,9 @@ private fun DownloadLanguagesHeader(title: String) {
 }
 
 @Composable
-@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1953923
 private fun LanguageItemPreference(
     item: DownloadLanguageItemPreference,
+    fileSizeFormatter: FileSizeFormatter,
     onItemClick: (DownloadLanguageItemPreference) -> Unit,
 ) {
     val description: String =
@@ -273,9 +280,8 @@ private fun LanguageItemPreference(
         ) {
             stringResource(id = R.string.download_languages_default_system_language_require_preference)
         } else {
-            var size = 0L
-            item.languageModel.size?.let { size = it }
-            size.toMegabyteOrKilobyteString()
+            val size = item.languageModel.size ?: 0L
+            fileSizeFormatter.formatSizeInBytes(size)
         }
 
     val label = if (item.type == DownloadLanguageItemTypePreference.AllLanguages) {
@@ -291,6 +297,7 @@ private fun LanguageItemPreference(
     val contentDescription =
         downloadLanguageItemContentDescriptionPreference(
             item = item,
+            fileSizeFormatter = fileSizeFormatter,
             label = label,
             itemDescription = description,
         )
@@ -379,9 +386,9 @@ private fun DownloadLanguagesHeaderPreference(
 }
 
 @Composable
-@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1953923
 private fun downloadLanguageItemContentDescriptionPreference(
     item: DownloadLanguageItemPreference,
+    fileSizeFormatter: FileSizeFormatter,
     label: String? = null,
     itemDescription: String,
 ): String {
@@ -414,7 +421,7 @@ private fun downloadLanguageItemContentDescriptionPreference(
                 stringResource(
                     id = R.string.download_languages_item_content_description_download_in_progress_state,
                     item.languageModel.language?.localizedDisplayName ?: "",
-                    item.languageModel.size?.toMegabyteOrKilobyteString() ?: "0",
+                    fileSizeFormatter.formatSizeInBytes(item.languageModel.size ?: 0L),
                 )
         }
     }
@@ -538,7 +545,7 @@ internal fun getLanguageListPreference(): List<DownloadLanguageItemPreference> {
                 languageModel = LanguageModel(
                     language = Language(Locale.FRENCH.toLanguageTag(), Locale.FRENCH.displayName),
                     status = ModelState.DOWNLOADED,
-                    size = 100L,
+                    size = 100000L,
                 ),
                 type = DownloadLanguageItemTypePreference.GeneralLanguage,
             ),
@@ -548,7 +555,7 @@ internal fun getLanguageListPreference(): List<DownloadLanguageItemPreference> {
                 languageModel = LanguageModel(
                     language = Language(Locale.GERMAN.toLanguageTag(), Locale.GERMAN.displayName),
                     status = ModelState.NOT_DOWNLOADED,
-                    size = 100L,
+                    size = 1000L,
                 ),
                 type = DownloadLanguageItemTypePreference.GeneralLanguage,
             ),
@@ -558,7 +565,7 @@ internal fun getLanguageListPreference(): List<DownloadLanguageItemPreference> {
                 languageModel = LanguageModel(
                     language = Language(Locale.ITALIAN.toLanguageTag(), Locale.ITALIAN.displayName),
                     status = ModelState.DOWNLOAD_IN_PROGRESS,
-                    size = 100L,
+                    size = 1000000L,
                 ),
                 type = DownloadLanguageItemTypePreference.GeneralLanguage,
             ),
@@ -568,7 +575,7 @@ internal fun getLanguageListPreference(): List<DownloadLanguageItemPreference> {
                 languageModel = LanguageModel(
                     language = Language(Locale.ENGLISH.toLanguageTag(), Locale.ENGLISH.displayName),
                     status = ModelState.DELETION_IN_PROGRESS,
-                    size = 100L,
+                    size = 1000000000L,
                 ),
                 type = DownloadLanguageItemTypePreference.GeneralLanguage,
             ),
@@ -577,7 +584,7 @@ internal fun getLanguageListPreference(): List<DownloadLanguageItemPreference> {
             DownloadLanguageItemPreference(
                 languageModel = LanguageModel(
                     status = ModelState.NOT_DOWNLOADED,
-                    size = 100L,
+                    size = 10000L,
                 ),
                 type = DownloadLanguageItemTypePreference.AllLanguages,
             ),
@@ -592,6 +599,7 @@ private fun DownloadLanguagesPreferencePreview() {
         DownloadLanguagesPreference(
             downloadLanguageItemPreferences = getLanguageListPreference(),
             learnMoreUrl = "https://www.mozilla.org",
+            fileSizeFormatter = DefaultFileSizeFormatter(LocalContext.current),
             onLearnMoreClicked = {},
             onItemClick = {},
         )

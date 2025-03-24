@@ -43,10 +43,10 @@ class SettingsTranslationsRobot(private val composeTestRule: ComposeTestRule) {
     @OptIn(ExperimentalTestApi::class)
     fun verifyDownloadedLanguage(downloadedLanguage: String) {
         Log.i(TAG, "verifyDownloadedLanguage: Waiting for $waitingTime until the $downloadedLanguage language is downloaded")
-        composeTestRule.waitUntilAtLeastOneExists(hasContentDescription("$downloadedLanguage 17.11 MBDelete"), waitingTime)
+        composeTestRule.waitUntilAtLeastOneExists(hasContentDescription("$downloadedLanguage 17.94 MBDelete"), waitingTime)
         Log.i(TAG, "verifyDownloadedLanguage: Waited for $waitingTime until the $downloadedLanguage language was downloaded")
         Log.i(TAG, "verifyDownloadedLanguage: Trying to verify that $downloadedLanguage language is downloaded")
-        composeTestRule.onNodeWithContentDescription("$downloadedLanguage 17.11 MBDelete").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("$downloadedLanguage 17.94 MBDelete").assertIsDisplayed()
         Log.i(TAG, "verifyDownloadedLanguage: Verified that $downloadedLanguage language is downloaded")
     }
 

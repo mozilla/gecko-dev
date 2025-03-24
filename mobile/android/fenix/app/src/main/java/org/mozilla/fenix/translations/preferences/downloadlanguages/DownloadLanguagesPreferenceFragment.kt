@@ -69,6 +69,7 @@ class DownloadLanguagesPreferenceFragment : Fragment() {
                 DownloadLanguagesPreference(
                     downloadLanguageItemPreferences = downloadLanguageItemsPreference,
                     learnMoreUrl = learnMoreUrl,
+                    fileSizeFormatter = requireComponents.core.fileSizeFormatter,
                     downloadLanguagesError = engineError as? TranslationError.ModelCouldNotRetrieveError,
                     onLearnMoreClicked = { openBrowserAndLoad(learnMoreUrl) },
                     onItemClick = { downloadLanguageItemPreference ->
