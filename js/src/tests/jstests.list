@@ -23,9 +23,10 @@ include test262/jstests.list
 #################################################################
 
 # Legacy "caller" and "arguments" implemented as accessor properties on Function.prototype.
-skip script test262/built-ins/Function/prototype/restricted-property-arguments.js
-skip script test262/built-ins/Function/prototype/restricted-property-caller.js
 skip script test262/built-ins/ThrowTypeError/unique-per-realm-function-proto.js
+skip script test262/built-ins/Function/prototype/caller/prop-desc.js
+skip script test262/built-ins/Function/prototype/caller-arguments/accessor-properties.js
+skip script test262/built-ins/Function/prototype/arguments/prop-desc.js
 
 
 #########################################################################
@@ -440,6 +441,7 @@ fails-if(!xulRuntime.shell) script test262/language/statements/class/subclass-bu
 fails-if(!xulRuntime.shell) script test262/staging/built-ins/Object/preventExtensions/preventExtensions-variable-length-typed-arrays.js
 fails-if(!xulRuntime.shell) script test262/staging/sm/Atomics/cross-compartment.js
 fails-if(!xulRuntime.shell) script test262/staging/built-ins/Reflect/preventExtensions/preventExtensions-variable-length-typed-arrays.js
+fails-if(!xulRuntime.shell) script test262/staging/built-ins/Object/seal/seal-variable-length-typed-arrays.js
 
 # https://github.com/tc39/test262/pull/3955
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1892186
@@ -652,6 +654,7 @@ skip script test262/built-ins/AsyncGeneratorPrototype/return/return-suspendedYie
 # Time zone canonicalization proposal.
 skip script test262/intl402/DateTimeFormat/timezone-not-canonicalized.js
 skip script test262/intl402/DateTimeFormat/timezone-case-insensitive.js
+skip script test262/intl402/DateTimeFormat/canonicalize-utc-timezone.js
 
 # https://github.com/tc39/test262/pull/4209
 skip script test262/language/statements/with/set-mutable-binding-binding-deleted-in-get-unscopables-strict-mode.js
@@ -681,6 +684,52 @@ skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/yield-next-rej
 skip script test262/built-ins/Iterator/concat/fresh-iterator-result.js
 skip script test262/built-ins/Iterator/concat/next-method-returns-throwing-value.js
 
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1950211
+skip script test262/built-ins/String/prototype/replace/cstm-replace-on-boolean-primitive.js
+skip script test262/built-ins/String/prototype/replace/cstm-replace-on-string-primitive.js
+skip script test262/built-ins/String/prototype/replace/cstm-replace-on-number-primitive.js
+skip script test262/built-ins/String/prototype/replace/cstm-replace-on-bigint-primitive.js
+skip script test262/built-ins/String/prototype/matchAll/cstm-matchall-on-number-primitive.js
+skip script test262/built-ins/String/prototype/matchAll/cstm-matchall-on-bigint-primitive.js
+skip script test262/built-ins/String/prototype/matchAll/cstm-matchall-on-string-primitive.js
+skip script test262/built-ins/String/prototype/replaceAll/cstm-replaceall-on-bigint-primitive.js
+skip script test262/built-ins/String/prototype/replaceAll/cstm-replaceall-on-number-primitive.js
+skip script test262/built-ins/String/prototype/replaceAll/cstm-replaceall-on-boolean-primitive.js
+skip script test262/built-ins/String/prototype/replaceAll/cstm-replaceall-on-string-primitive.js
+skip script test262/built-ins/String/prototype/split/cstm-split-on-boolean-primitive.js
+skip script test262/built-ins/String/prototype/split/cstm-split-on-string-primitive.js
+skip script test262/built-ins/String/prototype/split/cstm-split-on-number-primitive.js
+skip script test262/built-ins/String/prototype/split/cstm-split-on-bigint-primitive.js
+skip script test262/built-ins/String/prototype/match/cstm-matcher-on-boolean-primitive.js
+skip script test262/built-ins/String/prototype/match/cstm-matcher-on-bigint-primitive.js
+skip script test262/built-ins/String/prototype/match/cstm-matcher-on-number-primitive.js
+skip script test262/built-ins/String/prototype/match/cstm-matcher-on-string-primitive.js
+skip script test262/built-ins/String/prototype/search/cstm-search-on-bigint-primitive.js
+skip script test262/built-ins/String/prototype/search/cstm-search-on-string-primitive.js
+skip script test262/built-ins/String/prototype/search/cstm-search-on-boolean-primitive.js
+skip script test262/built-ins/String/prototype/search/cstm-search-on-number-primitive.js
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1935510
+skip script test262/built-ins/Iterator/prototype/every/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/forEach/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/flatMap/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/some/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/reduce/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/drop/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/take/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/filter/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/find/argument-validation-failure-closes-underlying.js
+skip script test262/built-ins/Iterator/prototype/map/argument-validation-failure-closes-underlying.js
+skip script test262/staging/sm/Iterator/prototype/every/check-fn-after-getting-iterator.js
+skip script test262/staging/sm/Iterator/prototype/forEach/check-fn-after-getting-iterator.js
+skip script test262/staging/sm/Iterator/prototype/some/check-fn-after-getting-iterator.js
+skip script test262/staging/sm/Iterator/prototype/reduce/check-fn-after-getting-iterator.js
+skip script test262/staging/sm/Iterator/prototype/find/check-fn-after-getting-iterator.js
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1950212
+skip script test262/built-ins/Temporal/PlainMonthDay/from/fields-string.js
+skip script test262/built-ins/Temporal/PlainMonthDay/prototype/equals/argument-string.js 
+
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #
@@ -706,50 +755,12 @@ skip-if(!xulRuntime.shell) script test262/language/module-code/top-level-await/a
 # Tests disabled due to invalid test expectations  #
 ####################################################
 
-# Array.prototype.concat currently doesn't support spreading tuples. The spec
-# for records and tuples is undergoing major (design) changes, so disable the
-# test for now.
-skip script non262/Tuple/prototype/concat/concat-with-array.js
-
 # These tests seem incorrect, see https://github.com/tc39/test262/pull/3907
 skip script test262/language/statements/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 skip script test262/language/expressions/class/decorator/syntax/class-valid/decorator-member-expr-private-identifier.js
 
-# https://github.com/tc39/test262/pull/4343
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/offset-time-zone-not-supported.js
-
-# https://github.com/tc39/test262/pull/4342
-skip script test262/staging/Intl402/Temporal/old/date-time-format.js
-
-# https://github.com/tc39/test262/pull/4101
-skip script test262/staging/Intl402/Temporal/old/islamic-calendars.js
-
-# https://github.com/tc39/test262/issues/4349
-skip script test262/intl402/NumberFormat/currency-digits-nonstandard-notation.js
-
-# https://github.com/tc39/test262/pull/4352
-skip script test262/staging/built-ins/Object/seal/seal-variable-length-typed-arrays.js
-
-# Incorrect feature tag.
-# https://github.com/tc39/test262/pull/4356
-skip include test262/staging/sm/AsyncIterator/jstests.list
-
-# https://github.com/tc39/test262/pull/4354
-skip script test262/staging/sm/lexical-environment/block-scoped-functions-hoisted-tdz.js
-skip script test262/staging/sm/lexical-environment/block-scoped-functions-deprecated-redecl.js
-skip script test262/staging/sm/lexical-environment/var-in-catch-body-annex-b-eval.js
-skip script test262/staging/sm/String/string-upper-lower-mapping.js
-skip script test262/staging/sm/Temporal/PlainMonthDay/from-gregory.js
-skip script test262/staging/sm/Temporal/PlainMonthDay/from-chinese-leap-month-uncommon.js
-skip script test262/staging/sm/Temporal/PlainDate/from-constrain-japanese.js
-
 # https://github.com/tc39/test262/issues/4359
 skip script test262/staging/sm/WeakMap/symbols.js
-
-# https://github.com/tc39/test262/pull/4358
-slow script test262/staging/sm/TypedArray/forEach.js
-slow script test262/staging/sm/TypedArray/every-and-some.js
-slow script test262/staging/sm/TypedArray/map-and-filter.js
 
 # https://github.com/tc39/test262/pull/4428
 skip script test262/intl402/DateTimeFormat/prototype/formatToParts/dayPeriod-short-en.js
@@ -1139,12 +1150,17 @@ skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/argument-st
 # See Bug 1950425, skip tests for calendars disabled in release or beta
 skip-if(release_or_beta) script non262/Temporal/Intl/defaults.js
 skip-if(release_or_beta) script test262/staging/sm/Temporal/PlainMonthDay/from-chinese-leap-month-common.js
+skip-if(release_or_beta) script test262/staging/sm/Temporal/PlainMonthDay/from-chinese-leap-month-uncommon.js
 skip-if(release_or_beta) script test262/staging/sm/Temporal/PlainMonthDay/from-chinese.js
-skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/non-iso-calendars.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/non-iso-calendars-chinese.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/non-iso-calendars-dangi.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic-umalqura.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic-rgsa.js
+skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic-umalqura.js
 skip-if(release_or_beta) script test262/intl402/Temporal/PlainYearMonth/from/reference-day-chinese.js
 skip-if(release_or_beta) script test262/intl402/Temporal/PlainDate/prototype/until/until-across-lunisolar-leap-months.js
-skip-if(release_or_beta) script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/dateStyle.js
-skip-if(release_or_beta) script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/dateStyle.js
-skip-if(release_or_beta) script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/dateStyle.js
-skip-if(release_or_beta) script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/dateStyle.js
-skip-if(release_or_beta) script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/dateStyle.js
+
+# Try re-enabling when Bug 1954138 or Bug 1955545 are fixed.
+skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic.js
+skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic-rgsa.js
