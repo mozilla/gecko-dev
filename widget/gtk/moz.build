@@ -19,6 +19,11 @@ with Files("*IMContextWrapper*"):
 with Files("*nsGtkKeyUtils*"):
     BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
+DIRS += [
+    "/third_party/gbm/",
+    "/third_party/gbm/libgbm",
+]
+
 if CONFIG["COMPILE_ENVIRONMENT"]:
     DIRS += ["mozgtk"]
 
