@@ -678,7 +678,7 @@ export class SmartTabGroupingManager {
 
     const UPDATE_THRESHOLD_PERCENTAGE = 0.5;
     const ONE_MB = 1024 * 1024;
-    const START_THRESHOLD_BYTES = ONE_MB;
+    const START_THRESHOLD_BYTES = ONE_MB * 0.2;
 
     const mutliProgressAggregator = new lazy.MultiProgressAggregator({
       progressCallback: ({ progress, totalLoaded, metadata }) => {

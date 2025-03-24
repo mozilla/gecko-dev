@@ -294,6 +294,7 @@ add_task(async function test_multi_aggregator() {
         total: taskSizes[i],
       })
     );
+    Assert.equal(currentData.progress, 0, "Progress is 0%");
 
     Assert.ok(currentData, "Received data should be defined");
     Assert.deepEqual(
@@ -389,6 +390,40 @@ add_task(async function test_multi_aggregator() {
     // Notify of task is done
     if (chunkIsFinal[chunkIndex]) {
       currentData = null;
+
+      aggregator.aggregateCallback(
+        new ProgressAndStatusCallbackParams({
+          type: taskTypes[taskIndex],
+          statusText: ProgressStatusText.IN_PROGRESS,
+          id: taskIds[taskIndex],
+          total: taskSizes[taskIndex],
+          currentLoaded: chunkSizes[chunkIndex],
+          totalLoaded: chunkTaskLoaded[chunkIndex],
+        })
+      );
+      expectedNumCalls += 1;
+
+      Assert.deepEqual(
+        {
+          numDone,
+          numCalls,
+          total: currentData?.total,
+          totalObjectsSeen: currentData?.metadata?.totalObjectsSeen,
+          currentLoaded: currentData?.currentLoaded,
+          totalLoaded: currentData?.totalLoaded,
+        },
+        {
+          numDone: 0,
+          numCalls: expectedNumCalls,
+          total: expectedTotalToLoad,
+          totalObjectsSeen: taskIdsWithDataSet.size,
+          currentLoaded: chunkSizes[chunkIndex],
+          totalLoaded: expectedTotalLoaded,
+        },
+        "Extra data beyond what is expected or a process should not affect total downloaded"
+      );
+
+      currentData = null;
       expectedNumCalls += 1;
       aggregator.aggregateCallback(
         new ProgressAndStatusCallbackParams({
@@ -408,6 +443,7 @@ add_task(async function test_multi_aggregator() {
       );
     }
   }
+  Assert.equal(currentData.progress, 100, "Progress is 100%");
 
   Assert.equal(numDone, 1, "Done status should be received");
 });

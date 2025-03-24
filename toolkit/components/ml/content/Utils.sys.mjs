@@ -265,20 +265,6 @@ export class MultiProgressAggregator {
   watchedTypes;
 
   /**
-   * The total amount of information loaded so far.
-   *
-   * @type {float}
-   */
-  #combinedLoaded = 0;
-
-  /**
-   * The total amount of information to be loaded.
-   *
-   * @type {float}
-   */
-  #combinedTotal = 0;
-
-  /**
    * The number of operations that are yet to be completed.
    *
    * @type {float}
@@ -307,6 +293,13 @@ export class MultiProgressAggregator {
   #seenStatus;
 
   /**
+   * Info about each object.
+   *
+   * @type {Dict<string, integer>}
+   */
+  #downloadObjects;
+
+  /**
    * @param {object} config
    * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback - A function to call with the aggregated statistics.
    * @param {Iterable<string>} config.watchedTypes - The types to watch for aggregation
@@ -317,6 +310,7 @@ export class MultiProgressAggregator {
 
     this.#seenTypes = new Set();
     this.#seenStatus = new Set();
+    this.#downloadObjects = {};
   }
 
   /**
@@ -336,19 +330,32 @@ export class MultiProgressAggregator {
         if (data.type != ProgressType.LOAD_FROM_CACHE) {
           // We consider a downloaded object seen when we have the size estimate (object started downloading)
           this.#totalObjectsSeen += 1;
+          this.#downloadObjects[data.id] = {
+            expected: data.total,
+            curTotal: 0,
+          };
         }
-        this.#combinedTotal += data.total ?? 0;
       }
+
+      const curDownload = this.#downloadObjects[data.id] || {};
 
       if (data.statusText == ProgressStatusText.DONE) {
         this.#remainingEvents -= 1;
         if (data.type == ProgressType.LOAD_FROM_CACHE) {
           // We consider a cached (not downloaded) object seen when loaded
           this.#totalObjectsSeen += 1;
+        } else {
+          curDownload.curTotal = curDownload.expected; // Make totals match
         }
       }
 
-      this.#combinedLoaded += data.currentLoaded ?? 0;
+      if ("curTotal" in curDownload) {
+        curDownload.curTotal += data.currentLoaded;
+        if (curDownload.curTotal > curDownload.expected) {
+          // Make sure we don't go over 100%. Due to compression, sometimes the numbers don't add up as expected.
+          curDownload.curTotal = curDownload.expected;
+        }
+      }
 
       if (this.progressCallback) {
         let statusText = data.statusText;
@@ -359,17 +366,25 @@ export class MultiProgressAggregator {
         if (this.#remainingEvents == 0) {
           statusText = ProgressStatusText.DONE;
         }
-
+        const combinedLoadedManual = Object.keys(this.#downloadObjects).reduce(
+          (acc, key) => acc + this.#downloadObjects[key].curTotal,
+          0
+        );
+        const combinedTotalManual =
+          Object.keys(this.#downloadObjects).reduce(
+            (acc, key) => acc + this.#downloadObjects[key].expected,
+            0
+          ) || 1;
         data = { ...data, totalObjectsSeen: this.#totalObjectsSeen };
         this.progressCallback(
           new ProgressAndStatusCallbackParams({
             type: data.type,
             statusText,
             id: data.id,
-            total: this.#combinedTotal,
+            total: combinedTotalManual,
             currentLoaded: data.currentLoaded,
-            totalLoaded: this.#combinedLoaded,
-            progress: (this.#combinedLoaded / this.#combinedTotal) * 100,
+            totalLoaded: combinedLoadedManual,
+            progress: (combinedLoadedManual / combinedTotalManual) * 100,
             ok: data.ok,
             units: data.units,
             metadata: data,
