@@ -22,8 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListItemInfo
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -71,6 +69,7 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.HorizontalFadingEdgeBox
+import org.mozilla.fenix.compose.ext.isItemPartiallyVisible
 import org.mozilla.fenix.compose.ext.thenConditional
 import org.mozilla.fenix.tabstray.browser.compose.DragItemContainer
 import org.mozilla.fenix.tabstray.browser.compose.createListReorderState
@@ -318,7 +317,7 @@ private fun TabsList(
                     val selectedItemInfo =
                         listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == selectedTab.id }
 
-                    if (listState.isItemPartiallyVisible(selectedItemInfo) || selectedItemInfo == null) {
+                    if (selectedItemInfo == null || listState.isItemPartiallyVisible(selectedItemInfo)) {
                         listState.animateScrollToItem(state.tabs.indexOf(selectedTab))
                     }
                 }
@@ -326,10 +325,6 @@ private fun TabsList(
         }
     }
 }
-
-private fun LazyListState.isItemPartiallyVisible(itemInfo: LazyListItemInfo?) =
-    itemInfo != null &&
-        (itemInfo.offset + itemInfo.size > layoutInfo.viewportEndOffset || itemInfo.offset < 0)
 
 @Composable
 @Suppress("LongMethod")
