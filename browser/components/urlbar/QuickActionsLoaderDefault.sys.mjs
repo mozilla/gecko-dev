@@ -61,7 +61,14 @@ let currentTab = () =>
   lazy.BrowserWindowTracker.getTopWindow()?.gBrowser.selectedTab;
 
 ChromeUtils.defineLazyGetter(lazy, "gFluentStrings", function () {
-  return new Localization(["branding/brand.ftl", "browser/browser.ftl"], true);
+  return new Localization(
+    [
+      "branding/brand.ftl",
+      "browser/browser.ftl",
+      "toolkit/branding/brandings.ftl",
+    ],
+    true
+  );
 });
 
 const DEFAULT_ACTIONS = {
@@ -104,6 +111,14 @@ const DEFAULT_ACTIONS = {
     icon: "chrome://mozapps/skin/extensions/category-extensions.svg",
     label: "quickactions-extensions",
     onPick: openAddonsUrl("addons://list/extension"),
+  },
+  firefoxview: {
+    l10nCommands: ["quickactions-cmd-firefoxview"],
+    icon: "chrome://browser/skin/firefox-view.svg",
+    label: "quickactions-firefoxview",
+    onPick: () => {
+      lazy.BrowserWindowTracker.getTopWindow().FirefoxViewHandler.openTab();
+    },
   },
   inspect: {
     l10nCommands: ["quickactions-cmd-inspector"],

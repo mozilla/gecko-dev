@@ -131,7 +131,10 @@ const HELP_URL =
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.search.suggest.enabled", false]],
+    set: [
+      ["browser.search.suggest.enabled", false],
+      ["browser.urlbar.suggest.quickactions", false],
+    ],
   });
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({

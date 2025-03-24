@@ -301,6 +301,13 @@ quickactions-cmd-downloads = downloads
 quickactions-extensions = Manage extensions
 quickactions-cmd-extensions = extensions
 
+# Opens Firefox View
+quickactions-firefoxview = Open { -firefoxview-brand-name }
+# English is using "view" and "open view", since the feature name is
+# "Firefox View". If you have translated the name in your language, you
+# should use a word related to the existing translation.
+quickactions-cmd-firefoxview = open { -firefoxview-brand-name }, { -firefoxview-brand-name }, open view, view
+
 # Opens the devtools web inspector
 quickactions-inspector2 = Open Developer Tools
 quickactions-cmd-inspector = inspector, devtools

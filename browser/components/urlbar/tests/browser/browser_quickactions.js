@@ -125,6 +125,7 @@ add_task(async function test_viewsource() {
     "view-source:https://example.com/"
   );
   EventUtils.synthesizeKey("KEY_Tab", {}, window);
+  EventUtils.synthesizeKey("KEY_Tab", {}, window);
   assertAccessibilityWhenSelected("viewsource");
   EventUtils.synthesizeKey("KEY_Enter", {}, window);
   const viewSourceTab = await onLoad;
@@ -136,8 +137,10 @@ add_task(async function test_viewsource() {
   });
 
   Assert.equal(
-    hasQuickActions(window),
-    false,
+    window.document.querySelector(
+      `.urlbarView-action-btn[data-action=viewsource]`
+    ),
+    null,
     "Result for quick actions is hidden"
   );
 
