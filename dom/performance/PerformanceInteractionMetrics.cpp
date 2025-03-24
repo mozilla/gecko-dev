@@ -21,9 +21,7 @@ constexpr uint32_t kMaxFirstInteractionID = 10000;
 
 namespace mozilla::dom {
 
-PerformanceInteractionMetrics::PerformanceInteractionMetrics(
-    PerformanceMainThread* aPerformance)
-    : mPerformance(aPerformance) {
+PerformanceInteractionMetrics::PerformanceInteractionMetrics() {
   uint64_t randVal = RandomUint64().valueOr(kMinFirstInteractionID);
   // Choose a random integer as the initial value to discourage developers from
   // using interactionId to counter the number of interactions.
@@ -93,9 +91,6 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
     // Step 8.7. Set entry’s interactionId to interactionId.
     (*entry)->SetInteractionId(interactionId);
 
-    // Step 9.8. Add entry to window’s entries to be queued.
-    mPerformance->InsertEventTimingEntry(*entry);
-
     // Step 8.9. Remove pendingKeyDowns[code].
     mPendingKeyDowns.Remove(code);
 
@@ -109,7 +104,7 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
     for (auto iter = mPendingKeyDowns.Iter(); !iter.Done(); iter.Next()) {
       PerformanceEventTiming* entry = iter.Data();
       // Step 9.1.1. Append entry to window’s entries to be queued.
-      mPerformance->InsertEventTimingEntry(entry);
+      entry->SetInteractionId(0);
     }
 
     // Step 9.2. Clear pendingKeyDowns.
@@ -177,10 +172,10 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
     // Step 11.7.3. Set pointerDownEntry’s interactionId to
     // pointerMap[pointerId].
     (*entry)->SetInteractionId(interactionId);
+  } else {
+    (*entry)->SetInteractionId(0);
   }
 
-  // Step 12.8. Append pointerDownEntry to window’s entries to be queued.
-  mPerformance->InsertEventTimingEntry(*entry);
   // Step 11.9. Remove pendingPointerDowns[pointerId].
   mPendingPointerDowns.Remove(pointerId);
 

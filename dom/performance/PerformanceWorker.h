@@ -82,7 +82,7 @@ class PerformanceWorker final : public Performance {
     MOZ_CRASH("This should not be called on workers.");
   }
 
-  uint64_t ComputeInteractionId(const WidgetEvent* aEvent) override {
+  Maybe<uint64_t> ComputeInteractionId(const WidgetEvent* aEvent) override {
     MOZ_CRASH("This should not be called on workers.");
   }
 

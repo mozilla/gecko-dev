@@ -14,7 +14,7 @@ namespace mozilla::dom {
 
 class PerformanceInteractionMetrics final {
  public:
-  explicit PerformanceInteractionMetrics(PerformanceMainThread* aPerformance);
+  PerformanceInteractionMetrics();
 
   PerformanceInteractionMetrics(const PerformanceInteractionMetrics& aCopy) =
       delete;
@@ -37,8 +37,6 @@ class PerformanceInteractionMetrics final {
   virtual ~PerformanceInteractionMetrics() = default;
 
  private:
-  PerformanceMainThread* mPerformance;
-
   // A map of integers to PerformanceEventTimings which is initially empty.
   // https://w3c.github.io/event-timing/#pending-key-downs
   nsTHashMap<uint32_t, RefPtr<PerformanceEventTiming>> mPendingKeyDowns;

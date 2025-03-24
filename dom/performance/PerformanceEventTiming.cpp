@@ -34,7 +34,7 @@ PerformanceEventTiming::PerformanceEventTiming(Performance* aPerformance,
                                                const nsAString& aName,
                                                const TimeStamp& aStartTime,
                                                bool aIsCacelable,
-                                               uint64_t aInteractionId,
+                                               Maybe<uint64_t> aInteractionId,
                                                EventMessage aMessage)
     : PerformanceEntry(aPerformance->GetParentObject(), aName, u"event"_ns),
       mPerformance(aPerformance),
@@ -44,7 +44,7 @@ PerformanceEventTiming::PerformanceEventTiming(Performance* aPerformance,
           aPerformance->GetDOMTiming()->TimeStampToDOMHighRes(aStartTime)),
       mDuration(0),
       mCancelable(aIsCacelable),
-      mInteractionId(Some(aInteractionId)),
+      mInteractionId(aInteractionId),
       mMessage(aMessage) {}
 
 PerformanceEventTiming::PerformanceEventTiming(
@@ -225,13 +225,6 @@ void PerformanceEventTiming::FinalizeEventTiming(const WidgetEvent* aEvent) {
     // Step 8.2. Let pointerId be event’s pointerId.
     uint32_t pointerId = aEvent->AsPointerEvent()->pointerId;
 
-    // Step 8.3. If pendingPointerDowns[pointerId] exists, append
-    // pendingPointerDowns[pointerId] to relevantGlobal’s entries to be queued.
-    auto entry = pendingPointerDowns.MaybeGet(pointerId);
-    if (entry.isSome()) {
-      mPerformance->InsertEventTimingEntry(*entry);
-    }
-
     // Step 8.4. Set pendingPointerDowns[pointerId] to timingEntry.
     pendingPointerDowns.InsertOrUpdate(pointerId, this);
   } else if (aEvent->mMessage == eKeyDown) {
@@ -267,16 +260,12 @@ void PerformanceEventTiming::FinalizeEventTiming(const WidgetEvent* aEvent) {
         // value.
         SetInteractionId(interactionId);
       }
-
-      // Step 9.4.3. Add entry to window’s entries to be queued.
-      mPerformance->InsertEventTimingEntry(*entry);
     }
 
     // Step 9.5. Set pendingKeyDowns[code] to timingEntry.
     pendingKeyDowns.InsertOrUpdate(code, this);
-  } else {
-    // Insert the rest of the event timings to the entries to be queued.
-    mPerformance->InsertEventTimingEntry(this);
   }
+
+  mPerformance->InsertEventTimingEntry(this);
 }
 }  // namespace mozilla::dom

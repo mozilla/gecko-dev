@@ -24,6 +24,7 @@
 #include "mozilla/dom/PerformanceTiming.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/PresShell.h"
+#include "nsGkAtoms.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIDocShell.h"
@@ -103,8 +104,7 @@ PerformanceMainThread::PerformanceMainThread(nsPIDOMWindowInner* aWindow,
                                              nsITimedChannel* aChannel)
     : Performance(aWindow->AsGlobal()),
       mDOMTiming(aDOMTiming),
-      mChannel(aChannel),
-      mInteractionMetrics(this) {
+      mChannel(aChannel) {
   MOZ_ASSERT(aWindow, "Parent window object should be provided");
   if (StaticPrefs::dom_enable_event_timing()) {
     mEventCounts = new class EventCounts(GetParentObject());
@@ -352,21 +352,24 @@ void PerformanceMainThread::SetEventTimingDuration(
 void PerformanceMainThread::DispatchPendingEventTimingEntries() {
   DOMHighResTimeStamp renderingTime = NowUnclamped();
 
-  while (!mPendingEventTimingEntries.isEmpty()) {
-    RefPtr<PerformanceEventTiming> entry =
-        mPendingEventTimingEntries.popFirst();
-
+  bool allEntriesHaveKnownInteractionIds = true;
+  for (auto* entry : mPendingEventTimingEntries) {
     SetEventTimingDuration(entry, renderingTime);
 
-    if (entry->RawDuration() >= kDefaultEventTimingMinDuration) {
-      QueueEntry(entry);
+    if (!entry->HasKnownInteractionId()) {
+      allEntriesHaveKnownInteractionIds = false;
     }
   }
 
-  for (auto iter = mInteractionMetrics->PendingPointerDowns().Iter();
-       !iter.Done(); iter.Next()) {
-    RefPtr<PerformanceEventTiming> entry = iter.Data();
-    SetEventTimingDuration(entry, renderingTime);
+  if (!StaticPrefs::dom_performance_event_timing_enable_interactionid() ||
+      allEntriesHaveKnownInteractionIds) {
+    while (!mPendingEventTimingEntries.isEmpty()) {
+      RefPtr<PerformanceEventTiming> entry =
+          mPendingEventTimingEntries.popFirst();
+      if (entry->RawDuration() >= kDefaultEventTimingMinDuration) {
+        QueueEntry(entry);
+      }
+    }
   }
 }
 
@@ -375,15 +378,19 @@ PerformanceMainThread::GetPerformanceInteractionMetrics() {
   return mInteractionMetrics;
 }
 
-uint64_t PerformanceMainThread::ComputeInteractionId(
+Maybe<uint64_t> PerformanceMainThread::ComputeInteractionId(
     const WidgetEvent* aEvent) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!StaticPrefs::dom_performance_event_timing_enable_interactionid() ||
-      aEvent->mFlags.mOnlyChromeDispatch) {
-    return 0;
+      aEvent->mFlags.mOnlyChromeDispatch || !aEvent->IsTrusted()) {
+    return Some(0);
   }
 
-  return mInteractionMetrics->ComputeInteractionId(aEvent);
+  if (aEvent->mMessage == ePointerDown || aEvent->mMessage == eKeyDown) {
+    return Nothing();
+  }
+
+  return Some(mInteractionMetrics.ComputeInteractionId(aEvent));
 }
 
 DOMHighResTimeStamp PerformanceMainThread::GetPerformanceTimingFromString(

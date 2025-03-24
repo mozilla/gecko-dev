@@ -159,7 +159,7 @@ class Performance : public DOMEventTargetHelper {
 
   virtual PerformanceInteractionMetrics& GetPerformanceInteractionMetrics() = 0;
 
-  virtual uint64_t ComputeInteractionId(const WidgetEvent* aEvent) = 0;
+  virtual Maybe<uint64_t> ComputeInteractionId(const WidgetEvent* aEvent) = 0;
 
   void QueueNotificationObserversTask();
 
