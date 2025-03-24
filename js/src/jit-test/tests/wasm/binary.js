@@ -33,6 +33,11 @@ assertErrorMessage(() => wasmEval(toU8([magic0, magic1, magic2, magic3, ver0, ve
 var o = wasmEval(toU8(moduleHeaderThen()));
 assertEq(Object.getOwnPropertyNames(o).length, 0);
 
+// shared array buffer is not supported as a buffer source for compilation
+if (globalThis.SharedArrayBuffer) {
+  assertErrorMessage(() => wasmEval(toSharedU8(moduleHeaderThen())), TypeError, /first argument must be an ArrayBuffer/);
+}
+
 // unfinished known sections
 assertErrorMessage(() => wasmEval(toU8(moduleHeaderThen(typeId))), CompileError, sectionError("type"));
 assertErrorMessage(() => wasmEval(toU8(moduleHeaderThen(importId))), CompileError, sectionError("import"));

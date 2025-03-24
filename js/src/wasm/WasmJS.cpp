@@ -1567,7 +1567,9 @@ static bool GetBufferSource(JSContext* cx, JSObject* obj, unsigned errorNumber,
 
   SharedMem<uint8_t*> dataPointer;
   size_t byteLength;
-  if (!unwrapped || !IsBufferSource(unwrapped, &dataPointer, &byteLength)) {
+  if (!unwrapped ||
+      !IsBufferSource(cx, unwrapped, /*allowShared*/ false,
+                      /*allowResizable*/ false, &dataPointer, &byteLength)) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, errorNumber);
     return false;
   }
