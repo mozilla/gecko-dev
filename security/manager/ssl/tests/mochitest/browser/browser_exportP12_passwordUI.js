@@ -109,8 +109,8 @@ add_task(async function testPasswordStrengthAndEquality() {
     password2Textbox.value = testCase.password2;
     // Setting the value of the password textboxes via |.value| apparently
     // doesn't cause the oninput handlers to be called, so we do it here.
-    password1Textbox.dispatchEvent(new Event("input", { bubbles: true }));
-    password2Textbox.dispatchEvent(new Event("input", { bubbles: true }));
+    password1Textbox.oninput();
+    password2Textbox.oninput();
 
     Assert.equal(
       win.document.getElementById("setp12password").getButton("accept")

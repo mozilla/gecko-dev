@@ -298,13 +298,3 @@ function getChainForUsage(results, usage) {
   }
   return null;
 }
-
-// Performs an XMLHttpRequest because the script for the dialog is prevented
-// from doing so by CSP.
-export async function checkCertHelper(uri, grabber) {
-  let req = new XMLHttpRequest();
-  req.open("GET", uri.prePath);
-  req.onerror = grabber.bind(null, req);
-  req.onload = grabber.bind(null, req);
-  req.send(null);
-}

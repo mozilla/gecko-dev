@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { setText, viewCertHelper, checkCertHelper } = ChromeUtils.importESModule(
+const { setText, viewCertHelper } = ChromeUtils.importESModule(
   "resource://gre/modules/psm/pippki.sys.mjs"
 );
 
@@ -27,13 +27,6 @@ function initExceptionDialog() {
   let confirmButton = gDialog.getButton("extra1");
   let l10nUpdatedElements = [confirmButton, warningText];
   confirmButton.disabled = true;
-
-  document
-    .getElementById("locationTextBox")
-    .addEventListener("input", () => handleTextChange());
-  document
-    .getElementById("viewCertButton")
-    .addEventListener("input", () => viewCertButtonClick());
 
   var args = window.arguments;
   if (args && args[0]) {
@@ -124,7 +117,11 @@ async function checkCert() {
   let uri = getURI();
 
   if (uri) {
-    checkCertHelper(uri, grabCert);
+    let req = new XMLHttpRequest();
+    req.open("GET", uri.prePath);
+    req.onerror = grabCert.bind(this, req);
+    req.onload = grabCert.bind(this, req);
+    req.send(null);
   } else {
     gChecking = false;
     await document.l10n.translateElements(updateCertStatus());
@@ -327,5 +324,3 @@ function addException() {
 function inPrivateBrowsingMode() {
   return PrivateBrowsingUtils.isWindowPrivate(window);
 }
-
-window.addEventListener("load", () => initExceptionDialog());

@@ -1297,7 +1297,6 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://pippki/content/downloadcert.xhtml"_ns,
     "chrome://pippki/content/editcacert.xhtml"_ns,
     "chrome://pippki/content/load_device.xhtml"_ns,
-    "chrome://pippki/content/setp12password.xhtml"_ns,
 };
 // img-src data: blob:
 static nsLiteralCString sImgSrcDataBlobAllowList[] = {
@@ -1944,6 +1943,8 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://global/content/win.xhtml"_ns,
       "chrome://global/skin/in-content/info-pages.css"_ns,
       "chrome://layoutdebug/content/layoutdebug.xhtml"_ns,
+      "chrome://pippki/content/exceptionDialog.xhtml"_ns,
+      "chrome://pippki/content/setp12password.xhtml"_ns,
       // Test files
       "chrome://mochikit/"_ns,
       "chrome://mochitests/"_ns,
