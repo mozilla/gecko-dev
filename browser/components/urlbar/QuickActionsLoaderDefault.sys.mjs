@@ -90,10 +90,10 @@ const DEFAULT_ACTIONS = {
   },
   clear: {
     l10nCommands: [
-      "quickactions-cmd-clearhistory",
-      "quickactions-clearhistory",
+      "quickactions-cmd-clearrecenthistory",
+      "quickactions-clearrecenthistory",
     ],
-    label: "quickactions-clearhistory",
+    label: "quickactions-clearrecenthistory",
     onPick: () => {
       lazy.BrowserWindowTracker.getTopWindow()
         .document.getElementById("Tools:Sanitize")

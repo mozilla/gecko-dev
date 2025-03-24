@@ -290,8 +290,8 @@ quickactions-bookmarks2 = Manage bookmarks
 quickactions-cmd-bookmarks = bookmarks
 
 # Opens a SUMO article explaining how to clear history
-quickactions-clearhistory = Clear History
-quickactions-cmd-clearhistory = clear history
+quickactions-clearrecenthistory = Clear recent history
+quickactions-cmd-clearrecenthistory = clear recent history, history
 
 # Opens about:downloads page
 quickactions-downloads2 = View downloads
