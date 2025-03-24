@@ -115,6 +115,9 @@ fun ToolbarOnboardingPage(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 PrimaryButton(
                     text = primaryButton.text,
                     modifier = Modifier
