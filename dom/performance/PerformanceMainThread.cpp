@@ -316,13 +316,24 @@ void PerformanceMainThread::DispatchPendingEventTimingEntries() {
           }
           break;
         }
+        case ePointerCancel: {
+          if (StaticPrefs::
+                  dom_performance_event_timing_enable_interactionid()) {
+            mPendingPointerDown = nullptr;
+          }
+          break;
+        }
         case ePointerClick:
         case eKeyDown:
         case eMouseDown: {
-          mFirstInputEvent = entry->Clone();
-          mFirstInputEvent->SetEntryType(u"first-input"_ns);
-          QueueEntry(mFirstInputEvent);
-          SetHasDispatchedInputEvent();
+          if (!StaticPrefs::
+                  dom_performance_event_timing_enable_interactionid() ||
+              !mPendingPointerDown) {
+            mFirstInputEvent = entry->Clone();
+            mFirstInputEvent->SetEntryType(u"first-input"_ns);
+            QueueEntry(mFirstInputEvent);
+            SetHasDispatchedInputEvent();
+          }
           break;
         }
         default:
