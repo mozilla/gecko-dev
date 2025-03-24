@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { html } from "../vendor/lit.all.mjs";
-import MozBoxBase from "./moz-box-base.mjs";
+import { MozBoxBase } from "../lit-utils.mjs";
 
 /**
  * A button custom element used for navigating between sub-pages or opening
