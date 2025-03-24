@@ -95,7 +95,6 @@ fun SetupChecklist(
 /**
  * The header for setup checklist that contains the title, the subtitle and the progress bar.
  */
-@Suppress("MagicNumber")
 @Composable
 private fun Header(
     title: String,

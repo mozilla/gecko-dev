@@ -123,7 +123,6 @@ private fun GroupWithTasks(
 }
 
 @Composable
-@Suppress("LongMethod")
 private fun Group(
     group: ChecklistItem.Group,
     onChecklistItemClicked: (ChecklistItem) -> Unit,
