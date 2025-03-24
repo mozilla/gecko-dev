@@ -62,6 +62,9 @@ task-defaults:
             - name: public/build/mozconfig
               path: /builds/worker/workspace/obj-build/.mozconfig
               type: file
+            - name: public/reports
+              path: /builds/worker/workspace/obj-build/gradle/build/reports
+              type: directory
     run:
         using: mozharness
         script: "mozharness/scripts/fx_desktop_build.py"

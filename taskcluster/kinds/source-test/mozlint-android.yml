@@ -57,6 +57,9 @@ lints:
             - name: public/android/checkstyle/checkstyle.xml
               path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/mobile/android/geckoview/reports/checkstyle/debug.xml
               type: file
+            - name: public/reports
+              path: /builds/worker/checkouts/gecko/obj-firefox/gradle/build/reports
+              type: directory
     run:
         using: run-task
         command: >

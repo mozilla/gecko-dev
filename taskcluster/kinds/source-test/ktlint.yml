@@ -34,6 +34,11 @@ android-components:
             - ["cd", "mobile/android/android-components"]
     treeherder:
         symbol: ktlint(AC)
+    worker:
+        artifacts:
+            - name: public/reports
+              path: /builds/worker/checkouts/gecko/mobile/android/android-components/build/reports
+              type: directory
 
 focus:
     when:
@@ -44,6 +49,11 @@ focus:
             - ["cd", "mobile/android/focus-android"]
     treeherder:
         symbol: ktlint(focus)
+    worker:
+        artifacts:
+            - name: public/reports
+              path: /builds/worker/checkouts/gecko/mobile/android/focus-android/build/reports
+              type: directory
 
 fenix:
     when:
@@ -54,3 +64,8 @@ fenix:
             - ["cd", "mobile/android/fenix"]
     treeherder:
         symbol: ktlint(fenix)
+    worker:
+        artifacts:
+            - name: public/reports
+              path: /builds/worker/checkouts/gecko/mobile/android/fenix/build/reports
+              type: directory
