@@ -8,6 +8,7 @@ import android.content.Context
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.ktx.android.content.share
+import mozilla.components.support.ktx.android.content.shareMedia
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 
@@ -27,10 +28,15 @@ class DownloadUIShareMiddleware(
     ) {
         next(action)
         when (action) {
-            is DownloadUIAction.ShareUrlClicked -> applicationContext.share(action.item.url)
+            is DownloadUIAction.ShareUrlClicked -> applicationContext.share(action.url)
+            is DownloadUIAction.ShareFileClicked -> shareFile(action.filePath, action.contentType)
             else -> {
                 // no - op
             }
         }
+    }
+
+    private fun shareFile(filePath: String, contentType: String?) {
+        applicationContext.shareMedia(filePath, contentType)
     }
 }

@@ -71,5 +71,6 @@ private fun downloadStateReducer(
 
         DownloadUIAction.Init -> state
         is DownloadUIAction.ShareUrlClicked -> state
+        is DownloadUIAction.ShareFileClicked -> state
     }
 }

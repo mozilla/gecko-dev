@@ -1328,6 +1328,8 @@
     <string name="download_delete_item_1">Remove</string>
     <!-- Text for the button to share the download URL -->
     <string name="download_share_url">Share URL</string>
+    <!-- Text for the button to share the download file -->
+    <string name="download_share_file">Share file</string>
     <!-- Time period headers for downloads -->
     <!-- Text for the header that groups the downloads for today -->
     <string name="download_time_period_today">Today</string>

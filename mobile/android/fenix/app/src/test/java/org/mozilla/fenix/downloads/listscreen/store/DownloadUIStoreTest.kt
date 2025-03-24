@@ -100,7 +100,16 @@ class DownloadUIStoreTest {
         val initialState = oneItemDefaultState()
         val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadUIAction.ShareUrlClicked(fileItem))
+        store.dispatch(DownloadUIAction.ShareUrlClicked(fileItem.url))
+        assertSame(initialState, store.state)
+    }
+
+    @Test
+    fun shareFileClicked() {
+        val initialState = oneItemDefaultState()
+        val store = DownloadUIStore(initialState)
+
+        store.dispatch(DownloadUIAction.ShareFileClicked(fileItem.filePath, fileItem.contentType))
         assertSame(initialState, store.state)
     }
 

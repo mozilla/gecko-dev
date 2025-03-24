@@ -123,7 +123,15 @@ fun DownloadsScreen(
                     }
                 },
                 onDeleteClick = onItemDeleteClick,
-                onShareUrlClick = { downloadsStore.dispatch(DownloadUIAction.ShareUrlClicked(it)) },
+                onShareUrlClick = { downloadsStore.dispatch(DownloadUIAction.ShareUrlClicked(it.url)) },
+                onShareFileClick = {
+                    downloadsStore.dispatch(
+                        DownloadUIAction.ShareFileClicked(
+                            it.filePath,
+                            it.contentType,
+                        ),
+                    )
+                },
                 modifier = Modifier.fillMaxHeight(),
             )
         }
@@ -139,6 +147,7 @@ private fun DownloadsContent(
     onSelectionChange: (FileItem, Boolean) -> Unit,
     onDeleteClick: (FileItem) -> Unit,
     onShareUrlClick: (FileItem) -> Unit,
+    onShareFileClick: (FileItem) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
 
@@ -170,6 +179,7 @@ private fun DownloadsContent(
                         isMenuIconVisible = state.isNormalMode,
                         onDeleteClick = onDeleteClick,
                         onShareUrlClick = onShareUrlClick,
+                        onShareFileClick = onShareFileClick,
                         modifier = modifier
                             .animateItem()
                             .combinedClickable(
@@ -210,6 +220,7 @@ private fun FileListItem(
     modifier: Modifier = Modifier,
     onDeleteClick: (FileItem) -> Unit,
     onShareUrlClick: (FileItem) -> Unit,
+    onShareFileClick: (FileItem) -> Unit,
 ) {
     SelectableListItem(
         label = fileItem.fileName ?: fileItem.url,
@@ -243,6 +254,11 @@ private fun FileListItem(
                             MenuItem.TextItem(
                                 text = Text.Resource(R.string.download_share_url),
                                 onClick = { onShareUrlClick(fileItem) },
+                                level = MenuItem.FixedItem.Level.Default,
+                            ),
+                            MenuItem.TextItem(
+                                text = Text.Resource(R.string.download_share_file),
+                                onClick = { onShareFileClick(fileItem) },
                                 level = MenuItem.FixedItem.Level.Default,
                             ),
                             MenuItem.TextItem(
