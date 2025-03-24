@@ -7,25 +7,25 @@ apply plugin: 'kotlin-android'
 
 android {
     defaultConfig {
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
 
         buildConfigField("String", "LIBRARY_VERSION", "\"" + config.componentsVersion + "\"")
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
 
-    namespace 'mozilla.components.concept.fetch'
+    namespace = 'mozilla.components.concept.fetch'
 }
 
 dependencies {

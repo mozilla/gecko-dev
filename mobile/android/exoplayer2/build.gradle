@@ -11,12 +11,12 @@ dependencies {
 }
 
 android {
-    buildToolsVersion project.ext.buildToolsVersion
-    compileSdkVersion project.ext.compileSdkVersion
+    buildToolsVersion = project.ext.buildToolsVersion
+    compileSdkVersion = project.ext.compileSdkVersion
 
     defaultConfig {
-        targetSdkVersion project.ext.targetSdkVersion
-        minSdkVersion project.ext.minSdkVersion
+        targetSdkVersion = project.ext.targetSdkVersion
+        minSdkVersion = project.ext.minSdkVersion
 
         versionCode project.ext.versionCode
         versionName project.ext.versionName
@@ -34,7 +34,7 @@ android {
         singleVariant("debug")
     }
 
-    namespace 'org.mozilla.geckoview.thirdparty'
+    namespace = 'org.mozilla.geckoview.thirdparty'
 }
 
 apply plugin: 'maven-publish'

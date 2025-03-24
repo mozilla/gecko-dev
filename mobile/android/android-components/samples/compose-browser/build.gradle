@@ -13,9 +13,9 @@ apply plugin: 'kotlin-parcelize'
 android {
     defaultConfig {
         applicationId "org.mozilla.samples.compose.browser"
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
@@ -26,16 +26,16 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
     buildFeatures {
-        compose true
+        compose = true
     }
 
-    namespace 'org.mozilla.samples.compose.browser'
+    namespace = 'org.mozilla.samples.compose.browser'
 }
 
 tasks.register("updateBorderifyExtensionVersion", Copy) { task ->

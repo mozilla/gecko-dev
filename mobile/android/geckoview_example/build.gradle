@@ -5,12 +5,12 @@ plugins {
 apply plugin: 'com.android.application'
 
 android {
-    buildToolsVersion project.ext.buildToolsVersion
-    compileSdkVersion project.ext.compileSdkVersion
+    buildToolsVersion = project.ext.buildToolsVersion
+    compileSdkVersion = project.ext.compileSdkVersion
 
     defaultConfig {
-        targetSdkVersion project.ext.targetSdkVersion
-        minSdkVersion project.ext.minSdkVersion
+        targetSdkVersion = project.ext.targetSdkVersion
+        minSdkVersion = project.ext.minSdkVersion
         manifestPlaceholders = project.ext.manifestPlaceholders
 
         applicationId "org.mozilla.geckoview_example"
@@ -31,15 +31,15 @@ android {
     //  - https://issuetracker.google.com/issues/36911326
     //  - https://stackoverflow.com/questions/9206117/how-to-workaround-autoomitting-fiiles-folders-starting-with-underscore-in
     aaptOptions {
-        ignoreAssetsPattern  '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         noCompress 'ja'
     }
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
 
-    namespace 'org.mozilla.geckoview_example'
+    namespace = 'org.mozilla.geckoview_example'
 }
 
 dependencies {

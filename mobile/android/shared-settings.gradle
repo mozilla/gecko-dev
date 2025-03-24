@@ -14,7 +14,7 @@ buildscript {
     repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
             maven {
-                url repository
+                url = repository
                 if (gradle.mozconfig.substs.ALLOW_INSECURE_GRADLE_REPOSITORIES) {
                     allowInsecureProtocol = true
                 }
@@ -198,7 +198,7 @@ gradle.projectsLoaded { ->
                 // This is consistent with existing gradle / taskcluster
                 // configurations but less consistent with the result of the
                 // non-gradle build system.
-                buildDir topObjPath.resolve("gradle/build").resolve(relativePath)
+                buildDir = topObjPath.resolve("gradle/build").resolve(relativePath)
             }
         }
     }

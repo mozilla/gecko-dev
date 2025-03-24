@@ -6,12 +6,12 @@ plugins {
     alias(libs.plugins.kotlin.dsl)
 }
 
-buildDir "${gradle.mozconfig.topobjdir}/gradle/build/mobile/android/android-components/plugins/dependencies"
+buildDir = "${gradle.mozconfig.topobjdir}/gradle/build/mobile/android/android-components/plugins/dependencies"
 
 repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
             maven {
-                url repository
+                url = repository
                 if (gradle.mozconfig.substs.ALLOW_INSECURE_GRADLE_REPOSITORIES) {
                     allowInsecureProtocol = true
                 }

@@ -10,12 +10,12 @@ plugins {
 }
 
 android {
-    namespace 'org.mozilla.fenix.benchmark'
-    compileSdk config.compileSdkVersion
+    namespace = 'org.mozilla.fenix.benchmark'
+    compileSdk = config.compileSdkVersion
 
     defaultConfig {
-        minSdk 23
-        targetSdk config.targetSdkVersion
+        minSdk = 23
+        targetSdk = config.targetSdkVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -25,7 +25,7 @@ android {
         // for easy local testing.
         benchmark {
             debuggable = true
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.debug
             matchingFallbacks = ["release"]
         }
     }

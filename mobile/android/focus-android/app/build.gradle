@@ -35,9 +35,9 @@ android {
 
     defaultConfig {
         applicationId "org.mozilla"
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
         versionCode 11 // This versionCode is "frozen" for local builds. For "release" builds we
                        // override this with a generated versionCode at build time.
         // The versionName is dynamically overridden for all the build variants at build time.
@@ -59,8 +59,8 @@ android {
     }
 
     lint {
-        lintConfig file("lint.xml")
-        baseline file("lint-baseline.xml")
+        lintConfig = file("lint.xml")
+        baseline = file("lint-baseline.xml")
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1952578
         disable 'UseKtx'
     }
@@ -72,8 +72,8 @@ android {
         release {
             // We allow disabling optimization by passing `-PdisableOptimization` to gradle. This is used
             // in automation for UI testing non-debug builds.
-            shrinkResources !project.hasProperty("disableOptimization")
-            minifyEnabled !project.hasProperty("disableOptimization")
+            shrinkResources = !project.hasProperty("disableOptimization")
+            minifyEnabled = !project.hasProperty("disableOptimization")
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             matchingFallbacks = ['release']
 
@@ -111,7 +111,7 @@ android {
         }
     }
     testOptions {
-        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+        execution = 'ANDROIDX_TEST_ORCHESTRATOR'
         animationsDisabled = true
         unitTests {
             includeAndroidResources = true
@@ -119,9 +119,9 @@ android {
     }
 
     buildFeatures {
-        compose true
-        viewBinding true
-        buildConfig true
+        compose = true
+        viewBinding = true
+        buildConfig = true
     }
 
     flavorDimensions.add("product")
@@ -185,7 +185,7 @@ android {
         }
     }
 
-    namespace 'org.mozilla.focus'
+    namespace = 'org.mozilla.focus'
 }
 
 // -------------------------------------------------------------------------------------------------

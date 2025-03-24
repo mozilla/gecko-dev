@@ -7,16 +7,16 @@ apply plugin: 'kotlin-android'
 
 android {
     defaultConfig {
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt')
         }
     }
@@ -25,10 +25,10 @@ android {
         // Disabled since this caused issues with Android Gradle Plugin 3.2.1+ (NullPointerException:InvalidPackageDetector)
         tasks.lint.enabled = false
 
-        lintConfig file("lint.xml")
+        lintConfig = file("lint.xml")
     }
 
-    namespace 'mozilla.components.support.android.test'
+    namespace = 'mozilla.components.support.android.test'
 
 }
 

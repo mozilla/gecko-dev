@@ -11,20 +11,20 @@ apply plugin: 'com.android.library'
 
 android {
     defaultConfig {
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     lint {
-        warningsAsErrors true
-        abortOnError true
+        warningsAsErrors = true
+        abortOnError = true
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -37,10 +37,10 @@ android {
     }
 
     buildFeatures {
-        compose true
+        compose = true
     }
 
-    namespace 'mozilla.components.support.images'
+    namespace = 'mozilla.components.support.images'
 }
 
 dependencies {

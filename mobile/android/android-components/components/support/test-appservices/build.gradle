@@ -7,24 +7,24 @@ apply plugin: 'kotlin-android'
 
 android {
     defaultConfig {
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt')
         }
     }
 
     lint {
-        warningsAsErrors true
-        abortOnError true
+        warningsAsErrors = true
+        abortOnError = true
     }
 
-    namespace 'mozilla.components.support.test.appservices'
+    namespace = 'mozilla.components.support.test.appservices'
 }
 
 dependencies {

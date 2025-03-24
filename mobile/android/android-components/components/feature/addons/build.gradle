@@ -12,9 +12,9 @@ apply plugin: 'com.google.devtools.ksp'
 
 android {
     defaultConfig {
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
 
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas".toString())
@@ -30,21 +30,21 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt')
         }
     }
 
     lint {
-        warningsAsErrors true
-        abortOnError true
+        warningsAsErrors = true
+        abortOnError = true
     }
 
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
 
-    namespace 'mozilla.components.feature.addons'
+    namespace = 'mozilla.components.feature.addons'
 }
 
 dependencies {

@@ -8,9 +8,9 @@ apply plugin: 'kotlin-android'
 android {
     defaultConfig {
         applicationId "org.mozilla.samples.sync"
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
@@ -19,25 +19,25 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
     splits {
         abi {
-            enable true
+            enable = true
             reset()
             include 'x86', 'arm64-v8a', 'armeabi-v7a'
         }
     }
 
     buildFeatures {
-        viewBinding true
-        buildConfig true
+        viewBinding = true
+        buildConfig = true
     }
 
-    namespace 'org.mozilla.samples.sync'
+    namespace = 'org.mozilla.samples.sync'
 }
 
 dependencies {

@@ -5,7 +5,7 @@ buildscript {
     repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
             maven {
-                url repository
+                url = repository
                 if (gradle.mozconfig.substs.ALLOW_INSECURE_GRADLE_REPOSITORIES) {
                     allowInsecureProtocol = true
                 }
@@ -54,9 +54,9 @@ android {
 
     defaultConfig {
         applicationId "org.mozilla"
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
         versionCode 1
         versionName Config.generateDebugVersionName()
         vectorDrawables.useSupportLibrary = true
@@ -112,9 +112,9 @@ android {
     def releaseTemplate = {
         // We allow disabling optimization by passing `-PdisableOptimization` to gradle. This is used
         // in automation for UI testing non-debug builds.
-        shrinkResources !project.hasProperty("disableOptimization")
-        minifyEnabled !project.hasProperty("disableOptimization")
-        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        shrinkResources = !project.hasProperty("disableOptimization")
+        minifyEnabled = !project.hasProperty("disableOptimization")
+        proguardFiles = [getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro']
         matchingFallbacks = ['release'] // Use on the "release" build type in dependencies (AARs)
 
         // Changing the build config can cause files that depend on BuildConfig.java to recompile
@@ -136,11 +136,11 @@ android {
 
     buildTypes {
         debug {
-            shrinkResources false
-            minifyEnabled false
+            shrinkResources = false
+            minifyEnabled = false
             applicationIdSuffix ".fenix.debug"
             resValue "bool", "IS_DEBUG", "true"
-            pseudoLocalesEnabled true
+            pseudoLocalesEnabled = true
         }
         nightly releaseTemplate >> {
             applicationIdSuffix ".fenix"
@@ -188,14 +188,14 @@ android {
         benchmark releaseTemplate >> {
             initWith buildTypes.nightly
             applicationIdSuffix ".fenix"
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.debug
             debuggable false
         }
     }
 
     buildFeatures {
-        viewBinding true
-        buildConfig true
+        viewBinding = true
+        buildConfig = true
     }
 
     androidResources {
@@ -207,11 +207,11 @@ android {
 
         // manifest.template.json is converted to manifest.json at build time.
         // No need to package the template in the APK.
-        ignoreAssetsPattern "manifest.template.json"
+        ignoreAssetsPattern = "manifest.template.json"
     }
 
     testOptions {
-        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+        execution = 'ANDROIDX_TEST_ORCHESTRATOR'
         unitTests.includeAndroidResources = true
         animationsDisabled = true
     }
@@ -270,8 +270,8 @@ android {
     }
 
     lint {
-        lintConfig file("lint.xml")
-        baseline file("lint-baseline.xml")
+        lintConfig = file("lint.xml")
+        baseline = file("lint-baseline.xml")
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1952578
         disable 'UseKtx'
     }
@@ -300,14 +300,14 @@ android {
     }
 
     buildFeatures {
-        compose true
+        compose = true
     }
 
     compileOptions{
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
     }
 
-    namespace 'org.mozilla.fenix'
+    namespace = 'org.mozilla.fenix'
 }
 
 android.applicationVariants.configureEach { variant ->

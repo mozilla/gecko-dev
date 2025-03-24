@@ -12,16 +12,16 @@ apply plugin: 'checkstyle'
 evaluationDependsOn(':annotations')
 
 android {
-    buildToolsVersion project.ext.buildToolsVersion
-    compileSdkVersion project.ext.compileSdkVersion
+    buildToolsVersion = project.ext.buildToolsVersion
+    compileSdkVersion = project.ext.compileSdkVersion
 
     useLibrary 'android.test.runner'
     useLibrary 'android.test.base'
     useLibrary 'android.test.mock'
 
     defaultConfig {
-        targetSdkVersion project.ext.targetSdkVersion
-        minSdkVersion project.ext.minSdkVersion
+        targetSdkVersion = project.ext.targetSdkVersion
+        minSdkVersion = project.ext.minSdkVersion
         manifestPlaceholders = project.ext.manifestPlaceholders
 
         versionCode project.ext.versionCode
@@ -80,7 +80,7 @@ android {
     }
 
     lintOptions {
-        abortOnError false
+        abortOnError = false
     }
 
     sourceSets {
@@ -136,7 +136,7 @@ android {
     }
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
         aidl = true
     }
 
@@ -144,7 +144,7 @@ android {
         singleVariant('debug')
     }
 
-    namespace 'org.mozilla.geckoview'
+    namespace = 'org.mozilla.geckoview'
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {

@@ -6,7 +6,7 @@ buildscript {
     repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
             maven {
-                url repository
+                url = repository
                 if (gradle.mozconfig.substs.ALLOW_INSECURE_GRADLE_REPOSITORIES) {
                     allowInsecureProtocol = true
                 }
@@ -138,7 +138,7 @@ allprojects {
     repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
             maven {
-                url repository
+                url = repository
                 if (gradle.mozconfig.substs.ALLOW_INSECURE_GRADLE_REPOSITORIES) {
                     allowInsecureProtocol = true
                 }
@@ -172,7 +172,7 @@ allprojects {
     }
 
     task downloadDependencies() {
-        description 'Download all dependencies to the Gradle cache'
+        description = 'Download all dependencies to the Gradle cache'
         doLast {
             configurations.each { configuration ->
                 if (configuration.canBeResolved) {

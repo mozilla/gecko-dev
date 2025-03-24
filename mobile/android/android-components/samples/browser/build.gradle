@@ -12,9 +12,9 @@ apply plugin: 'com.android.application'
 android {
     defaultConfig {
         applicationId "org.mozilla.samples.browser"
-        minSdkVersion config.minSdkVersion
-        compileSdk config.compileSdkVersion
-        targetSdkVersion config.targetSdkVersion
+        minSdkVersion = config.minSdkVersion
+        compileSdk = config.compileSdkVersion
+        targetSdkVersion = config.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
@@ -25,7 +25,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -52,11 +52,11 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
-        compose true
+        viewBinding = true
+        compose = true
     }
 
-    namespace 'org.mozilla.samples.browser'
+    namespace = 'org.mozilla.samples.browser'
 }
 
 tasks.register("updateBorderifyExtensionVersion", Copy) { task ->
