@@ -2371,7 +2371,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var useNewBookmarks by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_use_new_bookmarks_ui),
-        default = { FxNimbus.features.bookmarks.value().newComposeUi },
+        default = { true },
         featureFlag = true,
     )
 
