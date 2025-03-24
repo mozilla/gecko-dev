@@ -1017,8 +1017,29 @@
     }
 
     #setMovingTabMode(movingTab) {
+      if (movingTab == this.#isMovingTab()) {
+        return;
+      }
+
       this.toggleAttribute("movingtab", movingTab);
       gNavToolbox.toggleAttribute("movingtab", movingTab);
+
+      if (movingTab) {
+        // This is a bit of an escape hatch in case a tab drag & drop session
+        // wasn't ended properly, leaving behind the movingtab attribute, which
+        // may break the UI (bug 1954163). We don't get mousemove events while
+        // dragging tabs, so at that point it should be safe to assume that we
+        // should not be in drag and drop mode, and clean things up if needed.
+        requestAnimationFrame(() => {
+          this.addEventListener(
+            "mousemove",
+            () => {
+              this.finishAnimateTabMove();
+            },
+            { once: true }
+          );
+        });
+      }
     }
 
     #isMovingTab() {
