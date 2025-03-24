@@ -168,6 +168,7 @@ void Theme::Init() {
   for (const auto& pref : kPrefs) {
     Preferences::RegisterCallback(PrefChangedCallback, pref);
   }
+  LookAndFeelChanged();
 }
 
 void Theme::Shutdown() {
