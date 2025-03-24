@@ -248,6 +248,64 @@ diff --git a/devtools/client/shared/sourceeditor/codemirror/addon/search/search.
              advance();
            };
 
+## Other patches
+
+```diff
+diff --git a/devtools/client/shared/sourceeditor/codemirror/keymap/vim.js b/devtools/client/shared/sourceeditor/codemirror/keymap/vim.js
+--- a/devtools/client/shared/sourceeditor/codemirror/keymap/vim.js
++++ b/devtools/client/shared/sourceeditor/codemirror/keymap/vim.js
+@@ -4144,23 +4144,41 @@
+     }
+     function showConfirm(cm, text) {
+       if (cm.openNotification) {
+-        cm.openNotification('<span style="color: red">' + text + '</span>',
++        cm.openNotification('<span class="cm5-vim-notification-error">' + text + '</span>',
+                             {bottom: true, duration: 5000});
+       } else {
+         alert(text);
+       }
+     }
+-    function makePrompt(prefix, desc) {
+-      var raw = '<span style="font-family: monospace; white-space: pre">' +
+-          (prefix || "") + '<input type="text"></span>';
+-      if (desc)
+-        raw += ' <span style="color: #888">' + desc + '</span>';
+-      return raw;
++    function makePrompt(cm, prefix, desc) {
++      const doc = cm.getWrapperElement().ownerDocument;
++      const fragment = doc.createDocumentFragment();
++      const promptEl = doc.createElement("span");
++      promptEl.classList.add("cm5-vim-prompt");
++
++      let inputParent = promptEl;
++      if (prefix) {
++        const labelEl = doc.createElement("label");
++        labelEl.append(doc.createTextNode(prefix));
++        promptEl.append(labelEl);
++        inputParent = labelEl;
++      }
++      const inputEl = doc.createElement("input");
++      inputParent.append(inputEl);
++      fragment.append(promptEl);
++
++      if (desc) {
++        const descriptionEl = doc.createElement("span");
++        descriptionEl.classList.add("cm5-vim-prompt-description");
++        descriptionEl.append(doc.createTextNode(desc));
++        fragment.append(descriptionEl);
++      }
++      return fragment;
+     }
+     var searchPromptDesc = '(Javascript regexp)';
+     function showPrompt(cm, options) {
+       var shortText = (options.prefix || '') + ' ' + (options.desc || '');
+-      var prompt = makePrompt(options.prefix, options.desc);
++      var prompt = makePrompt(cm, options.prefix, options.desc);
+       dialog(cm, prompt, shortText, options.onClose, options);
+     }
+     function regexEqual(r1, r2) {
+```
+
 # Footnotes
 
 [1] http://codemirror.net

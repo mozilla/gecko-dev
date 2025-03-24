@@ -161,6 +161,30 @@
   margin-inline-start: 8px;
 }
 
+/* CodeMirror 5 vim addon prompt/input */
+.cm5-vim-prompt {
+  font-family: monospace;
+  white-space: pre;
+
+  /* When there's a label, add some space before the input */
+  & label input {
+    margin-inline-start: 8px;
+  }
+
+  & input:focus {
+    outline: var(--theme-focus-outline) !important;
+  }
+}
+
+.cm5-vim-prompt-description {
+  color: var(--theme-text-color-alt);
+  margin-inline-start: 8px;
+}
+
+.cm5-vim-notification-error {
+  color: var(--theme-text-color-error);
+}
+
 /* CodeMirror dialogs styling */
 
 .CodeMirror-dialog {
