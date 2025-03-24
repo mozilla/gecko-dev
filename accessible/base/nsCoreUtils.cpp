@@ -116,10 +116,8 @@ void nsCoreUtils::DispatchClickEvent(XULTreeElement* aTree, int32_t aRowIndex,
   int32_t cnvdY = presContext->CSSPixelsToDevPixels(tcY + int32_t(rect.y) + 1) +
                   presContext->AppUnitsToDevPixels(offset.y);
 
-  if (StaticPrefs::dom_popup_experimental()) {
-    // This isn't needed once bug 1924790 is fixed.
-    tcElm->OwnerDoc()->NotifyUserGestureActivation();
-  }
+  // This isn't needed once bug 1924790 is fixed.
+  tcElm->OwnerDoc()->NotifyUserGestureActivation();
 
   // XUL is just desktop, so there is no real reason for senfing touch events.
   DispatchMouseEvent(eMouseDown, cnvdX, cnvdY, tcElm, tcFrame, presShell,

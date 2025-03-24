@@ -26,9 +26,6 @@ add_setup(async function() {
   ]);
 
   await new Promise(resolve => SimpleTest.waitForFocus(resolve));
-
-  // Set popup preferences.
-  await SpecialPowers.pushPrefEnv({ set: [["dom.popup.experimental", true]] });
 });
 
 const LEFT_BUTTON = 0;

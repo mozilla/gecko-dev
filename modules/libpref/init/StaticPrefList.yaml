@@ -2469,13 +2469,7 @@
   value: -1
   mirror: always
 
-# Enable experimental popup blocker changes.
-- name: dom.popup.experimental
-  type: bool
-  value: true
-  mirror: always
-
-  # Enable CacheAPI in private browsing mode with encryption
+# Enable CacheAPI in private browsing mode with encryption
 - name: dom.cache.privateBrowsing.enabled
   type: RelaxedAtomicBool
   value: true

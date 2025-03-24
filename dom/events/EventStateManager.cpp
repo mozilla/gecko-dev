@@ -1052,9 +1052,6 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           SetClickCount(mouseEvent, aStatus);
           break;
       }
-      if (!StaticPrefs::dom_popup_experimental()) {
-        NotifyTargetUserActivation(aEvent, aTargetContent);
-      }
       break;
     }
     case eMouseUp: {
@@ -1137,14 +1134,8 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         PointerEventHandler::UpdateActivePointerState(mouseEvent,
                                                       aTargetContent);
         PointerEventHandler::ImplicitlyCapturePointer(aTargetFrame, aEvent);
-        if (StaticPrefs::dom_popup_experimental()) {
-          // https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event
-          if (mouseEvent->mInputSource ==
-              MouseEvent_Binding::MOZ_SOURCE_MOUSE) {
-            NotifyTargetUserActivation(aEvent, aTargetContent);
-          }
-        } else if (mouseEvent->mInputSource !=
-                   MouseEvent_Binding::MOZ_SOURCE_TOUCH) {
+        // https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event
+        if (mouseEvent->mInputSource == MouseEvent_Binding::MOZ_SOURCE_MOUSE) {
           NotifyTargetUserActivation(aEvent, aTargetContent);
         }
 
@@ -1179,8 +1170,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     case ePointerUp:
       LightDismissOpenPopovers(aEvent, aTargetContent);
       GenerateMouseEnterExit(mouseEvent);
-      if (StaticPrefs::dom_popup_experimental() &&
-          mouseEvent->mInputSource != MouseEvent_Binding::MOZ_SOURCE_MOUSE) {
+      if (mouseEvent->mInputSource != MouseEvent_Binding::MOZ_SOURCE_MOUSE) {
         NotifyTargetUserActivation(aEvent, aTargetContent);
       }
       break;
@@ -1367,11 +1357,6 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     case eTouchStart:
       SetGestureDownPoint(aEvent->AsTouchEvent());
       break;
-    case eTouchEnd:
-      if (!StaticPrefs::dom_popup_experimental()) {
-        NotifyTargetUserActivation(aEvent, aTargetContent);
-      }
-      break;
     default:
       break;
   }
@@ -1385,15 +1370,8 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 // The modifiers associated with the user activation is used for controlling
 // where the `window.open` is opened into.
 static bool CanReflectModifiersToUserActivation(WidgetInputEvent* aEvent) {
-  if (StaticPrefs::dom_popup_experimental()) {
-    MOZ_ASSERT(aEvent->mMessage == eKeyDown ||
-               aEvent->mMessage == ePointerDown ||
-               aEvent->mMessage == ePointerUp);
-  } else {
-    MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == eMouseDown ||
-               aEvent->mMessage == ePointerDown ||
-               aEvent->mMessage == eTouchEnd);
-  }
+  MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == ePointerDown ||
+             aEvent->mMessage == ePointerUp);
 
   WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
   if (keyEvent) {
@@ -1446,11 +1424,7 @@ void EventStateManager::NotifyTargetUserActivation(WidgetEvent* aEvent,
   // Do not treat the click on scrollbar as a user interaction with the web
   // content.
   if (StaticPrefs::dom_user_activation_ignore_scrollbars() &&
-      ((StaticPrefs::dom_popup_experimental() &&
-        (aEvent->mMessage == ePointerDown || aEvent->mMessage == ePointerUp)) ||
-       (!StaticPrefs::dom_popup_experimental() &&
-        (aEvent->mMessage == eMouseDown ||
-         aEvent->mMessage == ePointerDown))) &&
+      (aEvent->mMessage == ePointerDown || aEvent->mMessage == ePointerUp) &&
       aTargetContent->IsInNativeAnonymousSubtree()) {
     nsIContent* current = aTargetContent;
     do {
@@ -1465,17 +1439,8 @@ void EventStateManager::NotifyTargetUserActivation(WidgetEvent* aEvent,
     } while (current);
   }
 
-#ifdef DEBUG
-  if (StaticPrefs::dom_popup_experimental()) {
-    MOZ_ASSERT(aEvent->mMessage == eKeyDown ||
-               aEvent->mMessage == ePointerDown ||
-               aEvent->mMessage == ePointerUp);
-  } else {
-    MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == eMouseDown ||
-               aEvent->mMessage == ePointerDown ||
-               aEvent->mMessage == eTouchEnd);
-  }
-#endif
+  MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == ePointerDown ||
+             aEvent->mMessage == ePointerUp);
 
   UserActivation::Modifiers modifiers;
   if (WidgetInputEvent* inputEvent = aEvent->AsInputEvent()) {

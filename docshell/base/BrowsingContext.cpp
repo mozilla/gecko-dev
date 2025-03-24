@@ -2284,8 +2284,8 @@ PopupBlocker::PopupControlState BrowsingContext::RevisePopupAbuseLevel(
     case PopupBlocker::openAllowed:
       break;
     case PopupBlocker::openBlocked:
-      if (IsPopupAllowed() || (StaticPrefs::dom_popup_experimental() && doc &&
-                               doc->HasValidTransientUserGestureActivation())) {
+      if (IsPopupAllowed() ||
+          (doc && doc->HasValidTransientUserGestureActivation())) {
         // Go down one state enum step:
         //   openBlocked (2) -> openControlled (1)
         abuse = PopupBlocker::openControlled;
