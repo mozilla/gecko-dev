@@ -18566,6 +18566,20 @@
   value: true
   mirror: always
 
+# What mica backdrop do we use for toplevels. See [1] for the meaning.
+#
+#  * 0 or other values: auto
+#  * 1: MAINWINDOW
+#  * 2: TRANSIENTWINDOW
+#  * 3: TABBEDWINDOW
+#
+# [1]: https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_systembackdrop_type#constants
+- name: widget.windows.mica.toplevel-backdrop
+  type: RelaxedAtomicInt32
+  value: 0
+  mirror: always
+
+
 # Whether we expand the client area into the taskbar hidden edge on maximized
 # windows.
 - name: widget.windows.hidden-taskbar-hack.size

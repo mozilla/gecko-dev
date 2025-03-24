@@ -30,6 +30,12 @@
     @media (-moz-windows-mica) {
       &:not([lwtheme]) {
         background-color: transparent;
+
+        /* stylelint-disable-next-line media-query-no-invalid */
+        @media -moz-pref("widget.windows.mica.toplevel-backdrop", 2) {
+          /* For acrylic, do the same we do for popups to guarantee some contrast */
+          background-color: light-dark(rgba(255, 255, 255, .6), rgba(0, 0, 0, .6));
+        }
       }
     }
 

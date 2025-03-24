@@ -2546,7 +2546,18 @@ void nsWindow::UpdateMicaBackdrop(bool aForce) {
     if (!useBackdrop) {
       return DWMSBT_AUTO;
     }
-    return IsPopup() ? DWMSBT_TRANSIENTWINDOW : DWMSBT_TABBEDWINDOW;
+    if (IsPopup()) {
+      return DWMSBT_TRANSIENTWINDOW;
+    }
+    switch (StaticPrefs::widget_windows_mica_toplevel_backdrop()) {
+      case 1:
+        return DWMSBT_MAINWINDOW;
+      case 2:
+        return DWMSBT_TRANSIENTWINDOW;
+      case 3:
+      default:
+        return DWMSBT_TABBEDWINDOW;
+    }
   }();
   ::DwmSetWindowAttribute(mWnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop,
                           sizeof backdrop);
