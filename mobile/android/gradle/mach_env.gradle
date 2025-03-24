@@ -13,13 +13,12 @@ ext.machEnv = { topsrcdir ->
   }
 
   def localMozconfig = localProperties.getProperty("mozilla-central.mozconfig")
-
-  def env = System.env.collect { k, v -> "${k}=${v}" }
+  def env = new HashMap(System.env)
   if (localMozconfig) {
       def envMozconfig = System.env.get('FOUND_MOZCONFIG')
       if (!envMozconfig || localMozconfig == envMozconfig) {
           logger.lifecycle("settings.gradle> Setting mozconfig from local.properties: ${localMozconfig}")
-          env << "MOZCONFIG=${localMozconfig}"
+          env.MOZCONFIG = localMozconfig
       } else {
           logger.lifecycle("settings.gradle> Preferring mozconfig set in mach environment to mozconfig set in local.properties: ${envMozconfig}")
       }

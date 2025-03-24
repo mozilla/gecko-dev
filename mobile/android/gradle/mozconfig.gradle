@@ -23,7 +23,9 @@ if (System.env.GRADLE_MACH_PYTHON) {
 }
 
 def proc = providers.exec {
-    commandLine(command)
+    workingDir = new File(topsrcdir)
+    environment = machEnv(topsrcdir)
+    commandLine = command
     ignoreExitValue = true
 }
 
