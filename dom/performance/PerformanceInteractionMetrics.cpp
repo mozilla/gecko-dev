@@ -19,6 +19,8 @@ constexpr uint32_t kMinFirstInteractionID = 100;
 // Maximum potential value for the first Interaction ID.
 constexpr uint32_t kMaxFirstInteractionID = 10000;
 
+constexpr uint32_t kNonPointerId = -1;
+
 namespace mozilla::dom {
 
 PerformanceInteractionMetrics::PerformanceInteractionMetrics() {
@@ -93,6 +95,7 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
 
     // Step 8.9. Remove pendingKeyDowns[code].
     mPendingKeyDowns.Remove(code);
+    mLastKeydownInteractionValue = Some(interactionId);
 
     // Step 8.10. Return interactionId.
     return interactionId;
@@ -126,6 +129,7 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
       return 0;
     }
 
+    mLastKeydownInteractionValue = Nothing();
     return IncreaseInteractionValueAndCount();
   }
 
@@ -137,6 +141,13 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
 
   // Step 11.2. If type is click:
   if (eventType == ePointerClick) {
+    if (pointerId == kNonPointerId) {
+      // -1 pointerId is a reserved value to indicate events that were generated
+      // by something other than a pointer device, like keydown.
+      // Return the interaction value of the keydown event instead.
+      return mLastKeydownInteractionValue.valueOr(0);
+    }
+
     // Step 11.2.2. Let value be pointerMap[pointerId].
     auto value = mPointerInteractionValueMap.MaybeGet(pointerId);
     // Step 11.2.1. If pointerMap[pointerId] does not exist, return 0.

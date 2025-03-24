@@ -55,6 +55,8 @@ class PerformanceInteractionMetrics final {
   uint64_t mInteractionCount = 0;
 
   uint64_t mCurrentInteractionValue;
+
+  Maybe<uint64_t> mLastKeydownInteractionValue;
 };
 
 inline void ImplCycleCollectionTraverse(
