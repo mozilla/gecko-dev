@@ -465,7 +465,7 @@ export const PREFS_CONFIG = new Map([
     "newtabWallpapers.customWallpaper.uploadedPreviously",
     {
       title:
-        "Boolean flag to track if a user has previously uploaded a custom wallpaper",
+        "Boolean flag used for telemetry to track if a user has previously uploaded a custom wallpaper",
       value: false,
     },
   ],

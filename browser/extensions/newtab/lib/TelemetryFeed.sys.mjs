@@ -1151,13 +1151,18 @@ export class TelemetryFeed {
         break;
       case "WALLPAPER_CLICK":
         {
-          const { selected_wallpaper, had_previous_wallpaper } = data;
+          const {
+            selected_wallpaper,
+            had_previous_wallpaper,
+            had_uploaded_previously,
+          } = data;
 
           // if either of the wallpaper prefs are truthy, they had a previous wallpaper
           Glean.newtab.wallpaperClick.record({
             newtab_visit_id: session.session_id,
             selected_wallpaper,
             had_previous_wallpaper,
+            had_uploaded_previously,
           });
         }
         break;
@@ -1171,18 +1176,6 @@ export class TelemetryFeed {
           newtab_visit_id: session.session_id,
         });
         break;
-      case "WALLPAPER_UPLOAD":
-        {
-          const { had_uploaded_previously, had_previous_wallpaper } = data;
-
-          Glean.newtab.wallpaperUpload.record({
-            newtab_visit_id: session.session_id,
-            had_previous_wallpaper,
-            had_uploaded_previously,
-          });
-        }
-        break;
-
       default:
         break;
     }

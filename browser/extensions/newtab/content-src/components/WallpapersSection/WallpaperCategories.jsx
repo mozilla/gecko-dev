@@ -128,9 +128,13 @@ export class _WallpaperCategories extends React.PureComponent {
 
     this.props.setPref("newtabWallpapers.wallpaper", id);
 
+    const uploadedPreviously =
+      this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
+
     this.handleUserEvent(at.WALLPAPER_CLICK, {
       selected_wallpaper: id,
       had_previous_wallpaper: !!this.props.activeWallpaper,
+      had_uploaded_previously: !!uploadedPreviously,
     });
   }
 
@@ -217,12 +221,14 @@ export class _WallpaperCategories extends React.PureComponent {
   }
 
   handleReset() {
-    this.props.setPref("newtabWallpapers.wallpaper", "");
-
     const uploadedPreviously =
       this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
 
-    if (uploadedPreviously) {
+    const selectedWallpaper =
+      this.props.Prefs.values["newtabWallpapers.wallpaper"];
+
+    // If a custom wallpaper is set, remove it
+    if (selectedWallpaper === "custom") {
       this.props.dispatch(
         ac.OnlyToMain({
           type: at.WALLPAPER_REMOVE_UPLOAD,
@@ -230,9 +236,14 @@ export class _WallpaperCategories extends React.PureComponent {
       );
     }
 
+    // Reset active wallpaper
+    this.props.setPref("newtabWallpapers.wallpaper", "");
+
+    // Fire WALLPAPER_CLICK telemetry event
     this.handleUserEvent(at.WALLPAPER_CLICK, {
       selected_wallpaper: "none",
       had_previous_wallpaper: !!this.props.activeWallpaper,
+      had_uploaded_previously: !!uploadedPreviously,
     });
   }
 
@@ -261,17 +272,14 @@ export class _WallpaperCategories extends React.PureComponent {
 
   // Custom wallpaper image upload
   async handleUpload() {
-    // TODO: Bug 1943663: Add telemetry
     const wallpaperUploadMaxFileSizeEnabled =
       this.props.Prefs.values[PREF_WALLPAPER_UPLOAD_MAX_FILE_SIZE_ENABLED];
 
     const wallpaperUploadMaxFileSize =
       this.props.Prefs.values[PREF_WALLPAPER_UPLOAD_MAX_FILE_SIZE];
 
-    // TODO: Once Bug 1947813 has landed, we may need a separate event
-    // for selecting previously uploaded wallpaper, rather than uploading a new one.
-    // The plan would be to reuse at.WALLPAPER_CLICK for this use case
-    this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, true);
+    const uploadedPreviously =
+      this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
 
     // Create a file input since category buttons are radio inputs
     const fileInput = document.createElement("input");
@@ -307,6 +315,19 @@ export class _WallpaperCategories extends React.PureComponent {
             data: file,
           })
         );
+
+        // Set active wallpaper ID to "custom"
+        this.props.setPref("newtabWallpapers.wallpaper", "custom");
+
+        // Update the uploadedPreviously pref to TRUE
+        // Note: this pref used for telemetry. Do not reset to false.
+        this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, true);
+
+        this.handleUserEvent(at.WALLPAPER_CLICK, {
+          selected_wallpaper: "custom",
+          had_previous_wallpaper: !!this.props.activeWallpaper,
+          had_uploaded_previously: !!uploadedPreviously,
+        });
       }
     };
 

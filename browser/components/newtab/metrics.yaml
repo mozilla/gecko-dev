@@ -341,6 +341,7 @@ newtab:
       - interaction
     notification_emails:
       - nbarrett@mozilla.com
+      - mcrawford@mozilla.com
     expires: never
     extra_keys:
       selected_wallpaper:
@@ -353,28 +354,6 @@ newtab:
         description: >
           Whether or not user had a previously set wallpaper
         type: boolean
-      newtab_visit_id: *newtab_visit_id
-    send_in_pings:
-      - newtab
-
-  wallpaper_upload:
-    type: event
-    description: >
-      Recorded when a user uploads a custom wallpaper
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943663
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1943663
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - mcrawford@mozilla.com
-    expires: never
-    extra_keys:
-      had_previous_wallpaper:
-          description: >
-            Whether or not user had a previously set wallpaper
-          type: boolean
       had_uploaded_previously:
         description: >
           Whether or not user had a previously uploaded a custom wallpaper
