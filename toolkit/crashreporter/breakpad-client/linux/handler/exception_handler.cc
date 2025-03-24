@@ -866,6 +866,7 @@ void ExceptionHandler::UnregisterAppMemory(void* ptr) {
 // static
 bool ExceptionHandler::WriteMinidumpForChild(pid_t child,
                                              pid_t child_blamed_thread,
+                                             const DirectAuxvDumpInfo* auxv_info,
                                              const string& dump_path,
                                              MinidumpCallback callback,
                                              void* callback_context) {
@@ -877,6 +878,9 @@ bool ExceptionHandler::WriteMinidumpForChild(pid_t child,
     minidump_writer_create(descriptor.path(), child, child_blamed_thread, nullptr);
   if (!minidump_writer) {
     return false;
+  }
+  if (auxv_info) {
+    minidump_writer_set_direct_auxv_dump_info(minidump_writer, auxv_info);
   }
   if (!minidump_writer_dump(minidump_writer, nullptr)) {
     return false;

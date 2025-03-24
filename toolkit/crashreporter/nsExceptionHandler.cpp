@@ -88,12 +88,16 @@
 #  include "breakpad-client/linux/crash_generation/client_info.h"
 #  include "breakpad-client/linux/crash_generation/crash_generation_server.h"
 #  include "breakpad-client/linux/handler/exception_handler.h"
+#  include "mozilla/toolkit/crashreporter/rust_minidump_writer_linux_ffi_generated.h"
 #  include "common/linux/eintr_wrapper.h"
 #  include <fcntl.h>
 #  include <sys/types.h>
 #  include "sys/sysinfo.h"
 #  include <sys/wait.h>
 #  include <unistd.h>
+#  include <unordered_map>
+#  include <mutex>
+#  include <sys/auxv.h>
 #else
 #  error "Not yet implemented for this platform"
 #endif  // defined(XP_WIN)
@@ -197,6 +201,51 @@ typedef std::string xpstring;
 #else
 #  define MAYBE_UNUSED
 #endif  // defined(__GNUC__)
+
+#if defined(XP_LINUX)
+class ChildProcessAuxvStore {
+ public:
+  static ChildProcessAuxvStore& global() {
+    static ChildProcessAuxvStore instance;
+    return instance;
+  }
+  void Add(pid_t aChildPid, const DirectAuxvDumpInfo& aAuxvInfo) {
+    std::lock_guard lock(mMutex);
+    mMap.emplace(aChildPid, aAuxvInfo);
+  }
+  void Remove(pid_t aChildPid) {
+    std::lock_guard lock(mMutex);
+    mMap.erase(aChildPid);
+  }
+  bool Get(pid_t aChildPid, DirectAuxvDumpInfo* aAuxvInfo) {
+    std::lock_guard lock(mMutex);
+    auto entry = mMap.find(aChildPid);
+    if (entry == mMap.end()) {
+      return false;
+    }
+    *aAuxvInfo = entry->second;
+    return true;
+  }
+
+ private:
+  std::mutex mMutex;
+  std::unordered_map<pid_t, DirectAuxvDumpInfo> mMap;
+};
+
+void GetCurrentProcessAuxvInfo(DirectAuxvDumpInfo* aAuxvInfo) {
+  aAuxvInfo->program_header_count = getauxval(AT_PHNUM);
+  aAuxvInfo->program_header_address = getauxval(AT_PHDR);
+  aAuxvInfo->linux_gate_address = getauxval(AT_SYSINFO_EHDR);
+  aAuxvInfo->entry_address = getauxval(AT_ENTRY);
+}
+void RegisterChildAuxvInfo(pid_t aChildPid,
+                           const DirectAuxvDumpInfo& aAuxvInfo) {
+  ChildProcessAuxvStore::global().Add(aChildPid, aAuxvInfo);
+}
+void UnregisterChildAuxvInfo(pid_t aChildPid) {
+  ChildProcessAuxvStore::global().Remove(aChildPid);
+}
+#endif  // defined(XP_LINUX)
 
 #ifndef XP_LINUX
 static const XP_CHAR dumpFileExtension[] = XP_TEXT(".dmp");
@@ -3468,6 +3517,9 @@ void OOPInit() {
       gExceptionHandler->minidump_descriptor().directory();
   crashServer = new CrashGenerationServer(
       serverSocketFd,
+      [](pid_t aPid, DirectAuxvDumpInfo* aAuxvInfo) {
+        return ChildProcessAuxvStore::global().Get(aPid, aAuxvInfo);
+      },
       [](const ClientInfo& aClientInfo, const xpstring& aFilePath) {
         OnChildProcessDumpRequested(nullptr, aClientInfo, aFilePath);
       },
@@ -3820,12 +3872,21 @@ bool CreateMinidumpsAndPair(ProcessHandle aTargetHandle,
   // callback when generating a dump of the calling process.
   XP_CHAR minidumpPath[XP_PATH_MAX] = {};
 
+#if defined(XP_LINUX)
+  DirectAuxvDumpInfo auxvInfo = {};
+  bool auxvInfoValid =
+      ChildProcessAuxvStore::global().Get(aTargetHandle, &auxvInfo);
+#endif  // DirectAuxvDumpInfo(XP_LINUX)
+
   // dump the target
   if (!google_breakpad::ExceptionHandler::WriteMinidumpForChild(
-          aTargetHandle, targetThread, dump_path, PairedDumpCallback,
-          static_cast<void*>(minidumpPath)
+          aTargetHandle, targetThread,
+#if defined(XP_LINUX)
+          auxvInfoValid ? &auxvInfo : nullptr,
+#endif  // defined(XP_LINUX)
+          dump_path, PairedDumpCallback, static_cast<void*>(minidumpPath)
 #ifdef XP_WIN
-              ,
+                                             ,
           GetMinidumpType()
 #endif
               )) {

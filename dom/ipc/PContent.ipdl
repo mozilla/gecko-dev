@@ -47,6 +47,7 @@ include protocol PProfiler;
 include protocol PScriptCache;
 include protocol PSessionStorageObserver;
 include protocol PBenchmarkStorage;
+include CrashReporterInitArgs;
 include DOMTypes;
 include WindowGlobalTypes;
 include IPCBlob;
@@ -1099,7 +1100,7 @@ parent:
 
     async PRemoteSpellcheckEngine();
 
-    async InitCrashReporter(NativeThreadId tid);
+    async InitCrashReporter(CrashReporterInitArgs aInitArgs);
 
     sync IsSecureURI(nullable nsIURI aURI, OriginAttributes aOriginAttributes)
         returns (bool isSecureURI);

@@ -17,8 +17,11 @@
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 
-namespace mozilla {
-namespace ipc {
+namespace CrashReporter {
+class CrashReporterInitArgs;
+}
+
+namespace mozilla::ipc {
 
 // This is the newer replacement for CrashReporterParent. It is created in
 // response to a InitCrashReporter message on a top-level actor. When the
@@ -29,7 +32,8 @@ class CrashReporterHost {
 
  public:
   CrashReporterHost(GeckoProcessType aProcessType, base::ProcessId aPid,
-                    CrashReporter::ThreadId aThreadId);
+                    const CrashReporter::CrashReporterInitArgs& aInitArgs);
+  ~CrashReporterHost();
 
   // Helper function for generating a crash report for a process that probably
   // crashed (i.e., had an AbnormalShutdown in ActorDestroy). Returns true if
@@ -125,7 +129,6 @@ class CrashReporterHost {
   bool mFinalized;
 };
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc
 
 #endif  // mozilla_ipc_CrashReporterHost_h
