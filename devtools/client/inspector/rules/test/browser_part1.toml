@@ -2,6 +2,7 @@
 tags = "devtools"
 subsuite = "devtools"
 support-files = [
+  "doc_alert.svg",
   "doc_at_scope.css",
   "doc_blob_stylesheet.html",
   "doc_copystyles.css",

@@ -5,7 +5,7 @@
 
 // Tests editing SVG styles using the rules view.
 
-var TEST_URL = "chrome://devtools/skin/images/alert.svg";
+var TEST_URL = URL_ROOT + "doc_alert.svg";
 var TEST_SELECTOR = "path";
 
 add_task(async function () {

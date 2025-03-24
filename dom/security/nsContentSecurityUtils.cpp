@@ -1952,7 +1952,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://browser/content/webext-panels.xhtml"_ns,
       "chrome://browser/content/webrtcIndicator.xhtml"_ns,
       "chrome://devtools/content/shared/webextension-fallback.html"_ns,
-      "chrome://devtools/skin/images/alert.svg"_ns,
       "chrome://extensions/content/dummy.xhtml"_ns,
       "chrome://geckoview/content/geckoview.xhtml"_ns,
       "chrome://global/content/alerts/alert.xhtml"_ns,
