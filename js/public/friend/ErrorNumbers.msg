@@ -896,7 +896,7 @@ MSG_DEF(JSMSG_TEMPORAL_TIMEZONE_INCOMPATIBLE,       2, JSEXN_RANGEERR, "time zon
 MSG_DEF(JSMSG_TEMPORAL_TIMEZONE_INSTANT_AMBIGUOUS,  0, JSEXN_RANGEERR, "instant is ambiguous")
 MSG_DEF(JSMSG_TEMPORAL_TIMEZONE_OFFSET_SHIFT_ONE_DAY, 0, JSEXN_RANGEERR, "time zone offset shift must not exceed a 24-hour span")
 MSG_DEF(JSMSG_TEMPORAL_DURATION_INVALID_SIGN,       2, JSEXN_RANGEERR, "duration value \"{0}\" has a mismatched sign: {1}")
-MSG_DEF(JSMSG_TEMPORAL_DURATION_INVALID_NON_FINITE, 2, JSEXN_RANGEERR, "duration value \"{0}\" is {1}")
+MSG_DEF(JSMSG_TEMPORAL_DURATION_INVALID_NON_FINITE, 2, JSEXN_RANGEERR, "duration value \"{0}\" is non-finite: {1}")
 MSG_DEF(JSMSG_TEMPORAL_DURATION_INVALID_NORMALIZED_TIME, 0, JSEXN_RANGEERR, "time duration values must be lower than 2**53 seconds")
 MSG_DEF(JSMSG_TEMPORAL_DURATION_MISSING_UNIT,       0, JSEXN_TYPEERR, "Duration-like objects must have at least one duration unit")
 MSG_DEF(JSMSG_TEMPORAL_DURATION_NOT_INTEGER,        2, JSEXN_RANGEERR, "{0} isn't a valid {1} duration because it isn't an integer")
