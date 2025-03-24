@@ -381,13 +381,48 @@ gfxPlatformFontList::~gfxPlatformFontList() {
   NS_RELEASE(gFontListPrefObserver);
 }
 
-void gfxPlatformFontList::GetMissingFonts(nsTArray<nsCString>& aMissingFonts) {
+FontVisibility gfxPlatformFontList::GetFontVisibility(nsCString& aFont,
+                                                      bool& aFound) {
+  AutoLock lock(mLock);
+
+  GenerateFontListKey(aFont);
+  if (SharedFontList()) {
+    auto* font = SharedFontList()->FindFamily(aFont);
+    if (font) {
+      aFound = true;
+      return font->Visibility();
+    }
+    aFound = false;
+    return FontVisibility::Unknown;
+  }
+
+  {
+    auto* font = mFontFamilies.GetWeak(aFont);
+    if (font) {
+      aFound = true;
+      return font->Visibility();
+    }
+  }
+
+  {
+    auto* font = mOtherFamilyNames.GetWeak(aFont);
+    if (font) {
+      aFound = true;
+      return font->Visibility();
+    }
+  }
+
+  aFound = false;
+  return FontVisibility::Unknown;
+}
+
+bool gfxPlatformFontList::GetMissingFonts(nsTArray<nsCString>& aMissingFonts) {
   AutoLock lock(mLock);
 
   auto fontLists = GetFilteredPlatformFontLists();
 
   if (!fontLists.Length()) {
-    return;
+    return false;
   }
 
   for (unsigned int i = 0; i < fontLists.Length(); i++) {
@@ -395,35 +430,32 @@ void gfxPlatformFontList::GetMissingFonts(nsTArray<nsCString>& aMissingFonts) {
       nsCString key(fontLists[i].first[j]);
       GenerateFontListKey(key);
 
-      if (SharedFontList()) {
-        fontlist::Family* family = SharedFontList()->FindFamily(key);
-        if (!family) {
-          aMissingFonts.AppendElement(fontLists[i].first[j]);
-        }
-      } else {
-        gfxFontFamily* familyEntry = mFontFamilies.GetWeak(key);
-        if (!familyEntry) {
-          familyEntry = mOtherFamilyNames.GetWeak(key);
-        }
-        if (!familyEntry) {
-          aMissingFonts.AppendElement(fontLists[i].first[j]);
-        }
+      bool found = false;
+      GetFontVisibility(key, found);
+      if (!found) {
+        aMissingFonts.AppendElement(key);
       }
     }
   }
+  return true;
 }
 
 void gfxPlatformFontList::GetMissingFonts(nsCString& aMissingFonts) {
-  nsTArray<nsCString> fontList;
-  GetMissingFonts(fontList);
+  nsTArray<nsCString> missingFonts;
+  bool fontlistExists = GetMissingFonts(missingFonts);
 
-  if (fontList.IsEmpty()) {
-    aMissingFonts.Append("No font list available for this device.");
+  if (!fontlistExists) {
+    aMissingFonts.AssignLiteral("No font list available for this device.");
     return;
   }
 
-  fontList.Sort();
-  aMissingFonts.Append(StringJoin("|"_ns, fontList));
+  if (missingFonts.IsEmpty()) {
+    aMissingFonts.Append("All fonts are available.");
+    return;
+  }
+
+  missingFonts.Sort();
+  aMissingFonts.Append(StringJoin("|"_ns, missingFonts));
 }
 
 /* static */
@@ -690,6 +722,12 @@ bool gfxPlatformFontList::InitFontList() {
     fe = fam.mUnshared->FindFontForStyle(defStyle);
   }
   mDefaultFontEntry = fe;
+
+  if (XRE_IsParentProcess() && NS_IsMainThread()) {
+    if (nsCOMPtr<nsIObserverService> obsvc = services::GetObserverService()) {
+      obsvc->NotifyObservers(nullptr, "font-list-initialized", nullptr);
+    }
+  }
 
   return true;
 }

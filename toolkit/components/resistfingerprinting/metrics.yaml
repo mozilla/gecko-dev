@@ -4971,3 +4971,105 @@ characteristics:
     expires: never
     data_sensitivity:
       - stored_content
+
+  fonts_fpjs_allowlisted:
+    type: string
+    description: >
+      SHA256 of allowlisted fonts queried by FPJS
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  fonts_fpjs_nonallowlisted:
+    type: string
+    description: >
+      SHA256 of non-allowlisted fonts queried by FPJS
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  fonts_variant_a_allowlisted:
+    type: string
+    description: >
+      SHA256 of allowlisted fonts queried of variant A
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  fonts_variant_a_nonallowlisted:
+    type: string
+    description: >
+      SHA256 of non-allowlisted fonts queried of variant A
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  fonts_variant_b_allowlisted:
+    type: string
+    description: >
+      SHA256 of allowlisted fonts queried of variant B
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332#c1
+    expires: never
+    data_sensitivity:
+      - technical
+
+  fonts_variant_b_nonallowlisted:
+    type: string
+    description: >
+      SHA256 of non-allowlisted fonts queried of variant B
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955332#c1
+    expires: never
+    data_sensitivity:
+      - technical

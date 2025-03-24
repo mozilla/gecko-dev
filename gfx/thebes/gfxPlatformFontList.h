@@ -246,7 +246,8 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
     return sPlatformFontList;
   }
 
-  void GetMissingFonts(nsTArray<nsCString>& aMissingFonts);
+  FontVisibility GetFontVisibility(nsCString& aFont, bool& aFound);
+  bool GetMissingFonts(nsTArray<nsCString>& aMissingFonts);
   void GetMissingFonts(nsCString& aMissingFonts);
 
   static bool Initialize(gfxPlatformFontList* aList);

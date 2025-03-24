@@ -53,6 +53,7 @@
 #include "nsIPropertyBag2.h"
 #include "nsITimer.h"
 #include "gfxConfig.h"
+#include "ScopedNSSTypes.h"
 
 #include "gfxPlatformFontList.h"
 #include "prsystem.h"
@@ -262,6 +263,103 @@ void PopulateMissingFonts() {
   gfxPlatformFontList::PlatformFontList()->GetMissingFonts(aMissingFonts);
 
   glean::characteristics::missing_fonts.Set(aMissingFonts);
+}
+
+nsresult ProcessFingerprintedFonts(const char* aFonts[],
+                                   nsCString& aOutAllowlistedHex,
+                                   nsCString& aOutNonAllowlistedHex) {
+  Digest allowlisted;
+  Digest nonallowlisted;
+
+  nsresult rv = allowlisted.Begin(SEC_OID_SHA256);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = nonallowlisted.Begin(SEC_OID_SHA256);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  for (size_t i = 0; aFonts[i] != nullptr; ++i) {
+    nsCString font(aFonts[i]);
+    bool found = false;
+    FontVisibility visibility =
+        gfxPlatformFontList::PlatformFontList()->GetFontVisibility(font, found);
+    if (!found) {
+      continue;
+    }
+
+    if (visibility == FontVisibility::Base ||
+        visibility == FontVisibility::LangPack) {
+      allowlisted.Update(reinterpret_cast<const unsigned char*>(font.get()),
+                         font.Length());
+    } else {
+      nonallowlisted.Update(reinterpret_cast<const unsigned char*>(font.get()),
+                            font.Length());
+    }
+  }
+
+  AutoTArray<uint8_t, SHA256_LENGTH> allowlistedDigest;
+  rv = allowlisted.End(allowlistedDigest);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  AutoTArray<uint8_t, SHA256_LENGTH> nonallowlistedDigest;
+  rv = nonallowlisted.End(nonallowlistedDigest);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ENSURE_TRUE(
+      aOutAllowlistedHex.SetCapacity(2 * allowlistedDigest.Length(), fallible),
+      NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(aOutNonAllowlistedHex.SetCapacity(
+                     2 * nonallowlistedDigest.Length(), fallible),
+                 NS_ERROR_OUT_OF_MEMORY);
+
+  const char HEX[] = "0123456789abcdef";
+  for (size_t i = 0; i < SHA256_LENGTH; ++i) {
+    uint8_t b = allowlistedDigest[i];
+    aOutAllowlistedHex.Append(HEX[(b >> 4) & 0xF]);
+    aOutAllowlistedHex.Append(HEX[b & 0xF]);
+
+    b = nonallowlistedDigest[i];
+    aOutNonAllowlistedHex.Append(HEX[(b >> 4) & 0xF]);
+    aOutNonAllowlistedHex.Append(HEX[b & 0xF]);
+  }
+  return NS_OK;
+}
+
+already_AddRefed<PopulatePromise> PopulateFingerprintedFonts() {
+  RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
+
+#include "FingerprintedFonts.inc"
+
+#define FONT_PAIR(list, metric)                                   \
+  {                                                               \
+    list, {                                                       \
+      glean::characteristics::fonts_##metric##_allowlisted,       \
+          glean::characteristics::fonts_##metric##_nonallowlisted \
+    }                                                             \
+  }
+  std::pair<const char**,
+            std::pair<glean::impl::StringMetric, glean::impl::StringMetric>>
+      fontLists[] = {FONT_PAIR(fpjs, fpjs), FONT_PAIR(variantA, variant_a),
+                     FONT_PAIR(variantB, variant_b)};
+
+#undef FONT_PAIR
+
+  for (const auto& [fontList, metrics] : fontLists) {
+    nsCString allowlistedHex;
+    nsCString nonallowlistedHex;
+    nsresult rv =
+        ProcessFingerprintedFonts(fontList, allowlistedHex, nonallowlistedHex);
+    if (NS_FAILED(rv)) {
+      populatePromise->Reject(
+          std::pair(__func__, "PopulateFingerprintedFonts"_ns.AsString()),
+          __func__);
+      return populatePromise.forget();
+    }
+
+    metrics.first.Set(allowlistedHex);
+    metrics.second.Set(nonallowlistedHex);
+  }
+
+  populatePromise->Resolve(void_t(), __func__);
+  return populatePromise.forget();
 }
 
 void PopulatePrefs() {
@@ -709,7 +807,7 @@ const RefPtr<PopulatePromise>& TimoutPromise(
 // metric is set, this variable should be incremented. It'll be a lot. It's
 // okay. We're going to need it to know (including during development) what is
 // the source of the data we are looking at.
-const int kSubmissionSchema = 23;
+const int kSubmissionSchema = 24;
 
 const auto* const kUUIDPref =
     "toolkit.telemetry.user_characteristics_ping.uuid";
@@ -903,6 +1001,7 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
 
     promises.AppendElement(PopulateMediaDevices());
     promises.AppendElement(PopulateTimeZone());
+    promises.AppendElement(PopulateFingerprintedFonts());
     PopulateMissingFonts();
     PopulateCSSProperties();
     PopulateScreenProperties();
