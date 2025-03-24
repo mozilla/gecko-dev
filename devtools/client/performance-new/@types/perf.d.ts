@@ -187,15 +187,6 @@ export type ReceiveProfile = (
 ) => void;
 
 /**
- * This is the type signature for a function to restart the browser with a given
- * environment variable. Currently only implemented for the popup.
- */
-export type RestartBrowserWithEnvironmentVariable = (
-  envName: string,
-  value: string
-) => void;
-
-/**
  * This is the type signature for the event listener that's called once the
  * profile has been obtained.
  */
