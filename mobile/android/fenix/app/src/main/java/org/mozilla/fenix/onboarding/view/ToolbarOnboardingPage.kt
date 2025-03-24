@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -57,73 +58,76 @@ fun ToolbarOnboardingPage(
     pageState: OnboardingPageState,
     onToolbarSelectionClicked: (ToolbarOptionType) -> Unit,
 ) {
-    // Base
-    Column(
-        modifier = Modifier
-            .background(FirefoxTheme.colors.layer1)
-            .padding(horizontal = 16.dp, vertical = 24.dp)
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.SpaceBetween,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        with(pageState) {
-            // Main content group
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(Modifier.height(50.dp))
+    BoxWithConstraints {
+        val boxWithConstraintsScope = this
+        // Base
+        Column(
+            modifier = Modifier
+                .background(FirefoxTheme.colors.layer1)
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            with(pageState) {
+                // Main content group
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(Modifier)
 
-                Image(
-                    painter = painterResource(id = imageRes),
-                    contentDescription = stringResource(
-                        R.string.onboarding_customize_toolbar_main_image_content_description,
-                    ),
-                    modifier = Modifier.width(323.dp),
-                )
+                    Image(
+                        painter = painterResource(id = imageRes),
+                        contentDescription = stringResource(
+                            R.string.onboarding_customize_toolbar_main_image_content_description,
+                        ),
+                        modifier = Modifier.height(imageHeight(boxWithConstraintsScope)),
+                    )
 
-                Spacer(Modifier.height(84.dp))
+                    Spacer(Modifier.height(32.dp))
 
-                Text(
-                    text = title,
-                    color = FirefoxTheme.colors.textPrimary,
-                    textAlign = TextAlign.Center,
-                    style = FirefoxTheme.typography.headline5,
-                )
+                    Text(
+                        text = title,
+                        color = FirefoxTheme.colors.textPrimary,
+                        textAlign = TextAlign.Center,
+                        style = FirefoxTheme.typography.headline5,
+                    )
 
-                Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                Text(
-                    text = description,
-                    color = FirefoxTheme.colors.textPrimary,
-                    textAlign = TextAlign.Center,
-                    style = FirefoxTheme.typography.body2,
-                )
+                    Text(
+                        text = description,
+                        color = FirefoxTheme.colors.textPrimary,
+                        textAlign = TextAlign.Center,
+                        style = FirefoxTheme.typography.body2,
+                    )
 
-                Spacer(Modifier.height(34.dp))
+                    Spacer(Modifier.height(34.dp))
 
-                val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
+                    val state by onboardingStore.observeAsState(initialValue = onboardingStore.state) { state -> state }
 
-                Row(Modifier.width(176.dp), horizontalArrangement = Arrangement.Center) {
-                    toolbarOptions?.let {
-                        ToolbarOptions(
-                            options = it,
-                            selectedOption = state.toolbarOptionSelected,
-                            onClick = onToolbarSelectionClicked,
-                        )
+                    Row(Modifier.width(176.dp), horizontalArrangement = Arrangement.Center) {
+                        toolbarOptions?.let {
+                            ToolbarOptions(
+                                options = it,
+                                selectedOption = state.toolbarOptionSelected,
+                                onClick = onToolbarSelectionClicked,
+                            )
+                        }
                     }
                 }
+                PrimaryButton(
+                    text = primaryButton.text,
+                    modifier = Modifier
+                        .width(width = FirefoxTheme.layout.size.maxWidth.small)
+                        .semantics { testTag = title + "onboarding_card.positive_button" },
+                    onClick = primaryButton.onClick,
+                )
             }
-            PrimaryButton(
-                text = primaryButton.text,
-                modifier = Modifier
-                    .width(width = FirefoxTheme.layout.size.maxWidth.small)
-                    .semantics { testTag = title + "onboarding_card.positive_button" },
-                onClick = primaryButton.onClick,
-            )
         }
-    }
 
-    LaunchedEffect(pageState) {
-        pageState.onRecordImpressionEvent()
+        LaunchedEffect(pageState) {
+            pageState.onRecordImpressionEvent()
+        }
     }
 }
 
