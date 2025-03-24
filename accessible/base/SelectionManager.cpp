@@ -219,6 +219,11 @@ bool SelectionManager::SelectionRangeChanged(SelectionType aType,
   dom::Document* doc = start->OwnerDoc();
   MOZ_ASSERT(doc);
   nsINode* node = aRange.GetClosestCommonInclusiveAncestor();
+  if (!node) {
+    // Bug 1954751: This can happen when a Selection is being garbage collected,
+    // but it's unclear exactly what other circumstances are involved.
+    return false;
+  }
   HyperTextAccessible* acc = nsAccUtils::GetTextContainer(node);
   if (!acc) {
     return true;
