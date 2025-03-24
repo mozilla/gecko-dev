@@ -551,6 +551,10 @@ merge-automation:
                 - - "services/sync/modules/constants.sys.mjs"
                   - 'WEAVE_VERSION = "1.{current_weave_version}.0"'
                   - 'WEAVE_VERSION = "1.{next_weave_version}.0"'
+            regex-replacements:
+                - - "browser/extensions/webcompat/manifest.json"
+                  - '"version": "[0-9]+.[0-9]+.0"'
+                  - '"version": "{next_major_version}.0.0"'
             merge-old-head: false
             end-tag: 'FIREFOX_NIGHTLY_{major_version}_END'
             to-repo: 'https://hg.mozilla.org/mozilla-central'
