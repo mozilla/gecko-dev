@@ -66,15 +66,6 @@ run-if = ["os == 'mac'"] # Mac only feature
 ["browser_syncedtabs_sidebar.js"]
 
 ["browser_toolbar_sidebar_button.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan && swgl", # Bug 1898739
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1898739
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && swgl", # Bug 1898739
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && socketprocess_networking", # Bug 1898739
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1898739
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1898739
-  "os == 'win' && os_version == '11.26100' && opt", # Bug 1898739
-]
 
 ["browser_tools_migration.js"]
 
