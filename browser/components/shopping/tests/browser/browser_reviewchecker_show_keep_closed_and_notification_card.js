@@ -9,6 +9,8 @@
 // that.
 /* global ContentTaskUtils */
 
+const NON_PDP_PAGE = "about:about";
+
 async function testNotificationCardThenCloseRC() {
   await withReviewCheckerSidebar(async _args => {
     let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -232,3 +234,93 @@ add_task(
     await SpecialPowers.popPrefEnv();
   }
 );
+
+add_task(async function test_keep_closed_message_not_visible_non_pdp() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.newPositionCard.hasSeen", true],
+      ["browser.shopping.experience2023.showKeepSidebarClosedMessage", true],
+      // Set to minimum closed counts met, to speed up testing
+      ["browser.shopping.experience2023.sidebarClosedCount", 4],
+    ],
+  });
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async _browser => {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    info("Waiting for sidebar to update.");
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
+
+    await TestUtils.waitForTick();
+
+    Assert.ok(SidebarController.isOpen, "Sidebar is open now");
+
+    await withReviewCheckerSidebar(async _args => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+
+      await shoppingContainer.updateComplete;
+      info("Shopping container update complete");
+
+      let keepClosedPromise = ContentTaskUtils.waitForCondition(
+        () => shoppingContainer.keepClosedMessageBarEl,
+        "Keep closed message is visible."
+      );
+
+      shoppingContainer.closeButtonEl.click();
+
+      await keepClosedPromise;
+    });
+
+    let nonPDPTab = BrowserTestUtils.addTab(gBrowser, NON_PDP_PAGE);
+    let nonPDPBrowser = nonPDPTab.linkedBrowser;
+    let browserLoadedPromise = BrowserTestUtils.browserLoaded(
+      nonPDPBrowser,
+      false,
+      NON_PDP_PAGE
+    );
+    await browserLoadedPromise;
+
+    info("Switching tabs now");
+    await BrowserTestUtils.switchTab(gBrowser, nonPDPTab);
+
+    Assert.ok(true, "Browser is loaded");
+    await SidebarController.show("viewReviewCheckerSidebar");
+
+    await withReviewCheckerSidebar(async _args => {
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+
+      await shoppingContainer.updateComplete;
+
+      Assert.ok(
+        !shoppingContainer.keepClosedMessageBarEl,
+        "'Keep closed' message is not visible before close button click"
+      );
+
+      shoppingContainer.closeButtonEl.click();
+
+      let showKeepSidebarClosedMessage = Services.prefs.getBoolPref(
+        "browser.shopping.experience2023.showKeepSidebarClosedMessage"
+      );
+
+      Assert.ok(
+        showKeepSidebarClosedMessage,
+        "browser.shopping.experience2023.showKeepSidebarClosedMessage is true"
+      );
+    });
+
+    Assert.ok(
+      !SidebarController.isOpen,
+      "'Keep closed' message did not prevent sidebar from closing"
+    );
+
+    await BrowserTestUtils.removeTab(nonPDPTab);
+  });
+  SidebarController.hide();
+  await SpecialPowers.popPrefEnv();
+});

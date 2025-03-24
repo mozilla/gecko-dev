@@ -640,8 +640,7 @@ export class ShoppingContainer extends MozLitElement {
       !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true) &&
       this.isProductPage;
     let canShowKeepClosedMessage =
-      this.showingKeepClosedMessage &&
-      RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, true);
+      this.showingKeepClosedMessage && this.isProductPage;
 
     if (canShowNotificationCard) {
       return this.newPositionNotificationCardTemplate();
@@ -730,7 +729,9 @@ export class ShoppingContainer extends MozLitElement {
 
     if (
       yetToSeeNotificationCard ||
-      !RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, false)
+      !RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, false) ||
+      this.showOnboarding ||
+      !this.isProductPage
     ) {
       return false;
     }
