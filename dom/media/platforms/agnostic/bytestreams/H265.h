@@ -263,10 +263,12 @@ struct H265SPS final {
   Maybe<H265VUIParameters> vui_parameters;
 
   // Calculated fields
-  uint32_t subWidthC = {};       // From Table 6-1.
-  uint32_t subHeightC = {};      // From Table 6-1.
-  CheckedUint32 mDisplayWidth;   // Per (E-68) + (E-69)
-  CheckedUint32 mDisplayHeight;  // Per (E-70) + (E-71)
+  uint32_t subWidthC = {};         // From Table 6-1.
+  uint32_t subHeightC = {};        // From Table 6-1.
+  Maybe<uint32_t> mCroppedWidth;   // Calculated by conformance_window_flag
+  Maybe<uint32_t> mCroppedHeight;  // Calculated by conformance_window_flag
+  CheckedUint32 mDisplayWidth;     // Per (E-68) + (E-69)
+  CheckedUint32 mDisplayHeight;    // Per (E-70) + (E-71)
   uint32_t maxDpbSize = {};
 
   // Often used information

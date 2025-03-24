@@ -306,6 +306,28 @@ Result<H265SPS, nsresult> H265::DecodeSPSFromSPSNALU(const H265NALU& aSPSNALU) {
     sps.conf_win_right_offset = reader.ReadUE();
     sps.conf_win_top_offset = reader.ReadUE();
     sps.conf_win_bottom_offset = reader.ReadUE();
+    // The following formulas are specified under the definition of
+    // `conf_win_xxx_offset` in the spec.
+    CheckedUint32 width = sps.pic_width_in_luma_samples;
+    width -=
+        sps.subWidthC * (sps.conf_win_right_offset - sps.conf_win_left_offset);
+    if (!width.isValid()) {
+      LOG("width overflow when applying the conformance window!");
+      return Err(NS_ERROR_FAILURE);
+    }
+    IN_RANGE_OR_RETURN(width.value(), 0, sps.pic_width_in_luma_samples);
+    CheckedUint32 height =
+        sps.pic_height_in_luma_samples;
+    height -=
+        sps.subHeightC * (sps.conf_win_bottom_offset - sps.conf_win_top_offset);
+    if (!height.isValid()) {
+      LOG("height overflow when applying the conformance window!");
+      return Err(NS_ERROR_FAILURE);
+    }
+    IN_RANGE_OR_RETURN(height.value(), 0, sps.pic_height_in_luma_samples);
+    // These values specify the width and height of the cropped image.
+    sps.mCroppedWidth = Some(width.value());
+    sps.mCroppedHeight = Some(height.value());
   }
   sps.bit_depth_luma_minus8 = reader.ReadUE();
   IN_RANGE_OR_RETURN(sps.bit_depth_luma_minus8, 0, 8);
@@ -995,6 +1017,9 @@ bool H265SPS::operator!=(const H265SPS& aOther) const {
 }
 
 gfx::IntSize H265SPS::GetImageSize() const {
+  if (mCroppedWidth && mCroppedHeight) {
+    return gfx::IntSize(*mCroppedWidth, *mCroppedHeight);
+  }
   return gfx::IntSize(pic_width_in_luma_samples, pic_height_in_luma_samples);
 }
 
