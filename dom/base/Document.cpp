@@ -2118,12 +2118,6 @@ void Document::RecordPageLoadEventTelemetry(
 
   aEventTelemetryData.loadType = mozilla::Some(loadTypeStr);
 
-#ifdef ACCESSIBILITY
-  if (GetAccService() != nullptr) {
-    SetPageloadEventFeature(pageload_event::FeatureBits::USING_A11Y);
-  }
-#endif
-
   // Sending a glean ping must be done on the parent process.
   if (ContentChild* cc = ContentChild::GetSingleton()) {
     cc->SendRecordPageLoadEvent(aEventTelemetryData);
@@ -2388,6 +2382,12 @@ void Document::AccumulatePageLoadTelemetry(
       }
     }
   }
+
+#ifdef ACCESSIBILITY
+  if (GetAccService() != nullptr) {
+    SetPageloadEventFeature(pageload_event::FeatureBits::USING_A11Y);
+  }
+#endif
 
   aEventTelemetryDataOut.features = mozilla::Some(mPageloadEventFeatures);
 }
