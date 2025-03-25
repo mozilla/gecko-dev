@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.lib.state.State
 import org.mozilla.fenix.R
@@ -212,6 +214,9 @@ internal data class SelectFolderItem(
 
     val isDesktopRoot: Boolean
         get() = guid == BookmarkRoot.Root.id
+
+    val startPadding: Dp
+        get() = (16 * indentation).dp
 }
 
 /**

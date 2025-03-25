@@ -661,7 +661,7 @@ private fun SelectFolderScreen(
         ) {
             items(state?.folders ?: listOf()) { folder ->
                 if (folder.isDesktopRoot) {
-                    Row(modifier = Modifier.padding(start = (40 * folder.indentation).dp)) {
+                    Row(modifier = Modifier.padding(start = folder.startPadding)) {
                         // We need to account for not having an icon
                         Spacer(modifier = Modifier.width(56.dp))
                         Text(
@@ -677,7 +677,7 @@ private fun SelectFolderScreen(
                         isSelected = isSelected,
                         beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
                         modifier = Modifier
-                            .padding(start = (40 * folder.indentation).dp)
+                            .padding(start = folder.startPadding)
                             .toggleable(
                                 value = isSelected,
                                 role = Role.RadioButton,
