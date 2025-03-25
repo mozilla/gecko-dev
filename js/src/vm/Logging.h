@@ -113,8 +113,17 @@ FOR_EACH_JS_LOG_MODULE(DECLARE_MODULE);
                                         LogLevel::log_level, __VA_ARGS__); \
       }                                                                    \
     } while (0);
+#  define JS_LOG_FMT(name, log_level, fmt, ...)                             \
+    do {                                                                    \
+      if (name##Module.shouldLog(LogLevel::log_level)) {                    \
+        name##Module.interface.logPrintFmt(name##Module.logger,             \
+                                           LogLevel::log_level,             \
+                                           FMT_STRING(fmt), ##__VA_ARGS__); \
+      }                                                                     \
+    } while (0);
 #else
 #  define JS_LOG(module, log_level, ...)
+#  define JS_LOG_FMT(module, log_level, fmt, ...)
 #endif
 
 #undef JS_LOGGING

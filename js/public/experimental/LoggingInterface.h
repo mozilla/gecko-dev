@@ -13,6 +13,7 @@
 #include "mozilla/LoggingCore.h"
 
 #include "jstypes.h"
+#include "fmt/format.h"
 #include "js/GCAPI.h"
 
 struct JSContext;
@@ -55,6 +56,9 @@ struct LoggingInterface {
                      const char* aFmt, va_list ap)
       MOZ_FORMAT_PRINTF(3, 0) = nullptr;
 
+  void (*logPrintFMT)(const OpaqueLogger aModule, mozilla::LogLevel aLevel,
+                      fmt::string_view, fmt::format_args);
+
   // Return a reference to the provided OpaqueLogger's level ref; Implementation
   // wise this can be a small violation of encapsulation but is intended to help
   // ensure that we can build lightweight logging without egregious costs to
@@ -69,6 +73,13 @@ struct LoggingInterface {
     va_start(ap, aFmt);
     this->logPrintVA(aModule, aLevel, aFmt, ap);
     va_end(ap);
+  }
+
+  template <typename... T>
+  void logPrintFmt(const OpaqueLogger aModule, mozilla::LogLevel aLevel,
+                   fmt::format_string<T...> aFmt, T&&... aArgs) {
+    JS::AutoSuppressGCAnalysis suppress;
+    this->logPrintFMT(aModule, aLevel, aFmt, fmt::make_format_args(aArgs...));
   }
 
   // Used to ensure that before we use an interface, it's successfully been

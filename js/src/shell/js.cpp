@@ -68,6 +68,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "jstypes.h"
+#include "fmt/format.h"
 #ifndef JS_WITHOUT_NSPR
 #  include "prerror.h"
 #  include "prlink.h"
@@ -384,8 +385,15 @@ void LogPrintVA(const JS::OpaqueLogger logger, mozilla::LogLevel level,
   fprintf(stderr, "\n");
 }
 
+void LogPrintFmt(const JS::OpaqueLogger logger, mozilla::LogLevel level,
+                 fmt::string_view fmt, fmt::format_args args) {
+  ShellLogModule* mod = static_cast<ShellLogModule*>(logger);
+  fmt::print(stderr, FMT_STRING("[{}] {}\n"), mod->name,
+             fmt::vformat(fmt, args));
+}
+
 JS::LoggingInterface shellLoggingInterface = {GetLoggerByName, LogPrintVA,
-                                              GetLevelRef};
+                                              LogPrintFmt, GetLevelRef};
 
 static void ToLower(const char* src, char* dest, size_t len) {
   for (size_t c = 0; c < len; c++) {

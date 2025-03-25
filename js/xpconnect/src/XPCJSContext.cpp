@@ -52,6 +52,7 @@
 #include "js/MemoryMetrics.h"
 #include "js/Prefs.h"
 #include "js/WasmFeatures.h"
+#include "fmt/format.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Document.h"
@@ -1182,13 +1183,20 @@ static void LogPrintVA(JS::OpaqueLogger aLogger, mozilla::LogLevel level,
   logmod->Printv(level, aFmt, ap);
 }
 
+static void LogPrintFMT(JS::OpaqueLogger aLogger, mozilla::LogLevel level,
+                        fmt::string_view fmt, fmt::format_args args) {
+  LogModule* logmod = static_cast<LogModule*>(aLogger);
+
+  logmod->PrintvFmt(level, fmt, args);
+}
+
 static AtomicLogLevel& GetLevelRef(JS::OpaqueLogger aLogger) {
   LogModule* logmod = static_cast<LogModule*>(aLogger);
   return logmod->LevelRef();
 }
 
 static JS::LoggingInterface loggingInterface = {GetLoggerByName, LogPrintVA,
-                                                GetLevelRef};
+                                                LogPrintFMT, GetLevelRef};
 
 nsresult XPCJSContext::Initialize() {
   if (StaticPrefs::javascript_options_external_thread_pool_DoNotUseDirectly()) {
