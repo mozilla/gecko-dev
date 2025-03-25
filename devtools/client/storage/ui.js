@@ -180,7 +180,6 @@ class StorageUI {
       lazyEmptyDelay: 10,
       searchEnabled: true,
       contextMenuId: "variable-view-popup",
-      preventDescriptorModifiers: true,
     });
 
     this.filterItems = this.filterItems.bind(this);

@@ -198,17 +198,6 @@ VariablesView.prototype = {
   },
 
   /**
-   * Optional DevTools toolbox containing this VariablesView. Used to
-   * communicate with the inspector and highlighter.
-   */
-  toolbox: null,
-
-  /**
-   * The controller for this VariablesView, if it has one.
-   */
-  controller: null,
-
-  /**
    * The amount of time (in milliseconds) it takes to empty this view lazily.
    */
   lazyEmptyDelay: LAZY_EMPTY_DELAY,
@@ -218,11 +207,6 @@ VariablesView.prototype = {
    * @see VariablesView.prototype.empty
    */
   lazyEmpty: false,
-
-  /**
-   * Specifies if nodes in this view may be searched lazily.
-   */
-  lazySearch: true,
 
   /**
    * The number of elements in this container to jump when Page Up or Page Down
@@ -272,62 +256,6 @@ VariablesView.prototype = {
    * which has been edited should be disabled.
    */
   preventDisableOnChange: false,
-
-  /**
-   * Specifies if, whenever a variable or property descriptor is available,
-   * configurable, enumerable, writable, frozen, sealed and extensible
-   * attributes should not affect presentation.
-   *
-   * This flag is applied recursively onto each scope in this view and
-   * affects only the child nodes when they're created.
-   */
-  preventDescriptorModifiers: false,
-
-  /**
-   * The tooltip text shown on a variable or property's value if an |eval|
-   * function is provided, in order to change the variable or property's value.
-   *
-   * This flag is applied recursively onto each scope in this view and
-   * affects only the child nodes when they're created.
-   */
-  editableValueTooltip: L10N.getStr("variablesEditableValueTooltip"),
-
-  /**
-   * The tooltip text shown on a variable or property's name if a |switch|
-   * function is provided, in order to change the variable or property's name.
-   *
-   * This flag is applied recursively onto each scope in this view and
-   * affects only the child nodes when they're created.
-   */
-  editableNameTooltip: L10N.getStr("variablesEditableNameTooltip"),
-
-  /**
-   * The tooltip text shown on a variable or property's edit button if an
-   * |eval| function is provided and a getter/setter descriptor is present,
-   * in order to change the variable or property to a plain value.
-   *
-   * This flag is applied recursively onto each scope in this view and
-   * affects only the child nodes when they're created.
-   */
-  editButtonTooltip: L10N.getStr("variablesEditButtonTooltip"),
-
-  /**
-   * The tooltip text shown on a variable or property's value if that value is
-   * a DOMNode that can be highlighted and selected in the inspector.
-   *
-   * This flag is applied recursively onto each scope in this view and
-   * affects only the child nodes when they're created.
-   */
-  domNodeValueTooltip: L10N.getStr("variablesDomNodeValueTooltip"),
-
-  /**
-   * The tooltip text shown on a variable or property's delete button if a
-   * |delete| function is provided, in order to delete the variable or property.
-   *
-   * This flag is applied recursively onto each scope in this view and
-   * affects only the child nodes when they're created.
-   */
-  deleteButtonTooltip: L10N.getStr("variablesCloseButtonTooltip"),
 
   /**
    * Specifies the context menu attribute set on variables and properties.
@@ -500,12 +428,6 @@ VariablesView.prototype = {
    *        The amount of milliseconds to wait until draining.
    */
   scheduleSearch(aToken, aWait) {
-    // Check if this search operation may not be executed lazily.
-    if (!this.lazySearch) {
-      this._doSearch(aToken);
-      return;
-    }
-
     // The amount of time to wait for the requests to settle.
     const maxDelay = SEARCH_ACTION_MAX_DELAY;
     const delay = aWait === undefined ? maxDelay / aToken.length : aWait;
@@ -526,25 +448,6 @@ VariablesView.prototype = {
    *        The variable or property to search for.
    */
   _doSearch(aToken) {
-    if (this.controller && this.controller.supportsSearch()) {
-      // Retrieve the main Scope in which we add attributes
-      const scope = this._store[0]._store.get(undefined);
-      if (!aToken) {
-        // Prune the view from old previous content
-        // so that we delete the intermediate search results
-        // we created in previous searches
-        for (const property of scope._store.values()) {
-          property.remove();
-        }
-      }
-      // Retrieve new attributes eventually hidden in splits
-      this.controller.performSearch(scope, aToken);
-      // Filter already displayed attributes
-      if (aToken) {
-        scope._performSearch(aToken.toLowerCase());
-      }
-      return;
-    }
     for (const scope of this._store) {
       switch (aToken) {
         case "":
@@ -1277,12 +1180,6 @@ function Scope(aView, l10nId, aFlags = {}) {
   this.delete = aView.delete;
   this.new = aView.new;
   this.preventDisableOnChange = aView.preventDisableOnChange;
-  this.preventDescriptorModifiers = aView.preventDescriptorModifiers;
-  this.editableNameTooltip = aView.editableNameTooltip;
-  this.editableValueTooltip = aView.editableValueTooltip;
-  this.editButtonTooltip = aView.editButtonTooltip;
-  this.deleteButtonTooltip = aView.deleteButtonTooltip;
-  this.domNodeValueTooltip = aView.domNodeValueTooltip;
   this.contextMenuId = aView.contextMenuId;
   this.separatorStr = aView.separatorStr;
 
@@ -2164,13 +2061,7 @@ Scope.prototype = {
   delete: null,
   new: null,
   preventDisableOnChange: false,
-  preventDescriptorModifiers: false,
   editing: false,
-  editableNameTooltip: "",
-  editableValueTooltip: "",
-  editButtonTooltip: "",
-  deleteButtonTooltip: "",
-  domNodeValueTooltip: "",
   contextMenuId: "",
   separatorStr: "",
 
@@ -2224,12 +2115,8 @@ DevToolsUtils.defineLazyPrototypeGetter(
  *        Options of the form accepted by Scope.addItem
  */
 function Variable(aScope, aName, aDescriptor, aOptions) {
-  this._setTooltips = this._setTooltips.bind(this);
   this._activateNameInput = this._activateNameInput.bind(this);
   this._activateValueInput = this._activateValueInput.bind(this);
-  this.openNodeInInspector = this.openNodeInInspector.bind(this);
-  this.highlightDomNode = this.highlightDomNode.bind(this);
-  this.unhighlightDomNode = this.unhighlightDomNode.bind(this);
   this._internalItem = aOptions.internalItem;
 
   // Treat safe getter descriptors as descriptors with a value.
@@ -2283,16 +2170,6 @@ Variable.prototype = extend(Scope.prototype, {
    * Remove this Variable from its parent and remove all children recursively.
    */
   remove() {
-    if (this._linkedToInspector) {
-      this.unhighlightDomNode();
-      this._valueLabel.removeEventListener("mouseover", this.highlightDomNode);
-      this._valueLabel.removeEventListener("mouseout", this.unhighlightDomNode);
-      this._openInspectorNode.removeEventListener(
-        "mousedown",
-        this.openNodeInInspector
-      );
-    }
-
     this.ownerView._store.delete(this._nameString);
     this._variablesView._itemsByElement.delete(this._target);
     this._variablesView._currHierarchy.delete(this.absoluteName);
@@ -2551,11 +2428,6 @@ Variable.prototype = extend(Scope.prototype, {
     this._valueLabel.classList.add(this._valueClassName);
     this._valueLabel.setAttribute("value", this._valueString);
     this._separatorLabel.hidden = false;
-
-    // DOMNodes get special treatment since they can be linked to the inspector
-    if (this._valueGrip.preview && this._valueGrip.preview.kind === "DOMNode") {
-      this._linkToInspector();
-    }
   },
 
   /**
@@ -2602,8 +2474,6 @@ Variable.prototype = extend(Scope.prototype, {
     this._displayScope({ value: aName, targetClassName: this.targetClassName });
     this._displayVariable();
     this._customizeVariable();
-    this._prepareTooltips();
-    this._setAttributes();
     this._addEventListeners();
 
     if (
@@ -2722,289 +2592,6 @@ Variable.prototype = extend(Scope.prototype, {
     if (ownerView.contextMenuId) {
       this._title.setAttribute("context", ownerView.contextMenuId);
     }
-
-    if (ownerView.preventDescriptorModifiers) {
-      return;
-    }
-
-    if (!descriptor.writable && !ownerView.getter && !ownerView.setter) {
-      const nonWritableIcon = this.document.createXULElement("hbox");
-      nonWritableIcon.className = "variable-or-property-non-writable-icon";
-      nonWritableIcon.setAttribute("optional-visibility", "");
-      this._title.appendChild(nonWritableIcon);
-    }
-    if (descriptor.value && typeof descriptor.value == "object") {
-      if (descriptor.value.frozen) {
-        const frozenLabel = this.document.createXULElement("label");
-        frozenLabel.className = "variable-or-property-frozen-label";
-        frozenLabel.setAttribute("optional-visibility", "");
-        frozenLabel.setAttribute("value", "F");
-        this._title.appendChild(frozenLabel);
-      }
-      if (descriptor.value.sealed) {
-        const sealedLabel = this.document.createXULElement("label");
-        sealedLabel.className = "variable-or-property-sealed-label";
-        sealedLabel.setAttribute("optional-visibility", "");
-        sealedLabel.setAttribute("value", "S");
-        this._title.appendChild(sealedLabel);
-      }
-      if (!descriptor.value.extensible) {
-        const nonExtensibleLabel = this.document.createXULElement("label");
-        nonExtensibleLabel.className =
-          "variable-or-property-non-extensible-label";
-        nonExtensibleLabel.setAttribute("optional-visibility", "");
-        nonExtensibleLabel.setAttribute("value", "N");
-        this._title.appendChild(nonExtensibleLabel);
-      }
-    }
-  },
-
-  /**
-   * Prepares all tooltips for this variable.
-   */
-  _prepareTooltips() {
-    this._target.addEventListener("mouseover", this._setTooltips);
-  },
-
-  /**
-   * Sets all tooltips for this variable.
-   */
-  _setTooltips() {
-    this._target.removeEventListener("mouseover", this._setTooltips);
-
-    const ownerView = this.ownerView;
-    if (ownerView.preventDescriptorModifiers) {
-      return;
-    }
-
-    const tooltip = this.document.createXULElement("tooltip");
-    tooltip.id = "tooltip-" + this._idString;
-    tooltip.setAttribute("orient", "horizontal");
-
-    const labels = [
-      "configurable",
-      "enumerable",
-      "writable",
-      "frozen",
-      "sealed",
-      "extensible",
-      "overridden",
-      "WebIDL",
-    ];
-
-    for (const type of labels) {
-      const labelElement = this.document.createXULElement("label");
-      labelElement.className = type;
-      labelElement.setAttribute("value", L10N.getStr(type + "Tooltip"));
-      tooltip.appendChild(labelElement);
-    }
-
-    this._target.appendChild(tooltip);
-    this._target.setAttribute("tooltip", tooltip.id);
-
-    if (this._editNode && ownerView.eval) {
-      this._editNode.setAttribute("tooltiptext", ownerView.editButtonTooltip);
-    }
-    if (this._openInspectorNode && this._linkedToInspector) {
-      this._openInspectorNode.setAttribute(
-        "tooltiptext",
-        this.ownerView.domNodeValueTooltip
-      );
-    }
-    if (this._valueLabel && ownerView.eval) {
-      this._valueLabel.setAttribute(
-        "tooltiptext",
-        ownerView.editableValueTooltip
-      );
-    }
-    if (this._name && ownerView.switch) {
-      this._name.setAttribute("tooltiptext", ownerView.editableNameTooltip);
-    }
-    if (this._deleteNode && ownerView.delete) {
-      this._deleteNode.setAttribute(
-        "tooltiptext",
-        ownerView.deleteButtonTooltip
-      );
-    }
-  },
-
-  /**
-   * Get the parent variablesview toolbox, if any.
-   */
-  get toolbox() {
-    return this._variablesView.toolbox;
-  },
-
-  /**
-   * Checks if this variable is a DOMNode and is part of a variablesview that
-   * has been linked to the toolbox, so that highlighting and jumping to the
-   * inspector can be done.
-   */
-  _isLinkableToInspector() {
-    const isDomNode =
-      this._valueGrip && this._valueGrip.preview.kind === "DOMNode";
-    const hasBeenLinked = this._linkedToInspector;
-    const hasToolbox = !!this.toolbox;
-
-    return isDomNode && !hasBeenLinked && hasToolbox;
-  },
-
-  /**
-   * If the variable is a DOMNode, and if a toolbox is set, then link it to the
-   * inspector (highlight on hover, and jump to markup-view on click)
-   */
-  _linkToInspector() {
-    if (!this._isLinkableToInspector()) {
-      return;
-    }
-
-    // Listen to value mouseover/click events to highlight and jump
-    this._valueLabel.addEventListener("mouseover", this.highlightDomNode);
-    this._valueLabel.addEventListener("mouseout", this.unhighlightDomNode);
-
-    // Add a button to open the node in the inspector
-    this._openInspectorNode = this.document.createXULElement("toolbarbutton");
-    this._openInspectorNode.className = "variables-view-open-inspector";
-    this._openInspectorNode.addEventListener(
-      "mousedown",
-      this.openNodeInInspector
-    );
-    this._title.appendChild(this._openInspectorNode);
-
-    this._linkedToInspector = true;
-  },
-
-  /**
-   * In case this variable is a DOMNode and part of a variablesview that has been
-   * linked to the toolbox's inspector, then select the corresponding node in
-   * the inspector, and switch the inspector tool in the toolbox
-   * @return a promise that resolves when the node is selected and the inspector
-   * has been switched to and is ready
-   */
-  openNodeInInspector(event) {
-    if (!this.toolbox) {
-      return Promise.reject(new Error("Toolbox not available"));
-    }
-
-    event && event.stopPropagation();
-
-    return async function () {
-      let nodeFront = this._nodeFront;
-      if (!nodeFront) {
-        const inspectorFront = await this.toolbox.target.getFront("inspector");
-        nodeFront = await inspectorFront.getNodeFrontFromNodeGrip(
-          this._valueGrip
-        );
-      }
-
-      if (nodeFront) {
-        await this.toolbox.selectTool("inspector");
-
-        const inspectorReady = new Promise(resolve => {
-          this.toolbox.getPanel("inspector").once("inspector-updated", resolve);
-        });
-
-        await this.toolbox.selection.setNodeFront(nodeFront, {
-          reason: "variables-view",
-        });
-        await inspectorReady;
-      }
-    }.bind(this)();
-  },
-
-  /**
-   * In case this variable is a DOMNode and part of a variablesview that has been
-   * linked to the toolbox's inspector, then highlight the corresponding node
-   */
-  async highlightDomNode() {
-    if (!this.toolbox) {
-      return;
-    }
-
-    if (!this._nodeFront) {
-      const inspectorFront = await this.toolbox.target.getFront("inspector");
-      this._nodeFront = await inspectorFront.getNodeFrontFromNodeGrip(
-        this._valueGrip
-      );
-    }
-
-    await this.toolbox.getHighlighter().highlight(this._nodeFront);
-  },
-
-  /**
-   * Unhighlight a previously highlit node
-   * @see highlightDomNode
-   */
-  unhighlightDomNode() {
-    if (!this.toolbox) {
-      return;
-    }
-
-    this.toolbox.getHighlighter().unhighlight();
-  },
-
-  /**
-   * Sets a variable's configurable, enumerable and writable attributes,
-   * and specifies if it's a 'this', '<exception>', '<return>' or '__proto__'
-   * reference.
-   */
-  // eslint-disable-next-line complexity
-  _setAttributes() {
-    const ownerView = this.ownerView;
-    if (ownerView.preventDescriptorModifiers) {
-      return;
-    }
-
-    const descriptor = this._initialDescriptor;
-    const target = this._target;
-    const name = this._nameString;
-
-    if (ownerView.eval) {
-      target.setAttribute("editable", "");
-    }
-
-    if (!descriptor.configurable) {
-      target.setAttribute("non-configurable", "");
-    }
-    if (!descriptor.enumerable) {
-      target.setAttribute("non-enumerable", "");
-    }
-    if (!descriptor.writable && !ownerView.getter && !ownerView.setter) {
-      target.setAttribute("non-writable", "");
-    }
-
-    if (descriptor.value && typeof descriptor.value == "object") {
-      if (descriptor.value.frozen) {
-        target.setAttribute("frozen", "");
-      }
-      if (descriptor.value.sealed) {
-        target.setAttribute("sealed", "");
-      }
-      if (!descriptor.value.extensible) {
-        target.setAttribute("non-extensible", "");
-      }
-    }
-
-    if (descriptor && "getterValue" in descriptor) {
-      target.setAttribute("safe-getter", "");
-    }
-
-    if (name == "this") {
-      target.setAttribute("self", "");
-    } else if (this._internalItem && name == "<exception>") {
-      target.setAttribute("exception", "");
-      target.setAttribute("pseudo-item", "");
-    } else if (this._internalItem && name == "<return>") {
-      target.setAttribute("return", "");
-      target.setAttribute("pseudo-item", "");
-    } else if (name == "__proto__") {
-      target.setAttribute("proto", "");
-      target.setAttribute("pseudo-item", "");
-    }
-
-    if (!Object.keys(descriptor).length) {
-      target.setAttribute("pseudo-item", "");
-    }
   },
 
   /**
@@ -3053,9 +2640,6 @@ Variable.prototype = extend(Scope.prototype, {
       this,
       {
         onSave: aString => {
-          if (this._linkedToInspector) {
-            this.unhighlightDomNode();
-          }
           if (!this._variablesView.preventDisableOnChange) {
             this._disable();
           }
@@ -3169,7 +2753,6 @@ Variable.prototype = extend(Scope.prototype, {
   _editNode: null,
   _deleteNode: null,
   _addPropertyNode: null,
-  _tooltip: null,
   _valueGrip: null,
   _valueString: "",
   _valueClassName: "",
