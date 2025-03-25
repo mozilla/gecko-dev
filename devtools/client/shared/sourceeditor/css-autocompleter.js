@@ -162,8 +162,6 @@ class CSSCompleter {
    */
   // eslint-disable-next-line complexity
   resolveState(source, line, ch) {
-    // Function to return the last element of an array
-    const peek = arr => arr[arr.length - 1];
     // _state can be one of CSS_STATES;
     let _state = CSS_STATES.null;
     let selector = "";
@@ -224,7 +222,7 @@ class CSSCompleter {
           }
 
           if (token.tokenType === "CloseCurlyBracket") {
-            if (/[{f]/.test(peek(scopeStack))) {
+            if (/[{f]/.test(scopeStack.at(-1))) {
               const popped = scopeStack.pop();
               if (popped == "f") {
                 _state = CSS_STATES.frame;
@@ -241,18 +239,18 @@ class CSSCompleter {
           // From CSS_STATES.value, we can go to one of CSS_STATES.property,
           // CSS_STATES.frame, CSS_STATES.selector and CSS_STATES.null
           if (token.tokenType === "Semicolon") {
-            if (/[:]/.test(peek(scopeStack))) {
+            if (/[:]/.test(scopeStack.at(-1))) {
               scopeStack.pop();
               _state = CSS_STATES.property;
             }
           }
 
           if (token.tokenType === "CloseCurlyBracket") {
-            if (peek(scopeStack) == ":") {
+            if (scopeStack.at(-1) == ":") {
               scopeStack.pop();
             }
 
-            if (/[{f]/.test(peek(scopeStack))) {
+            if (/[{f]/.test(scopeStack.at(-1))) {
               const popped = scopeStack.pop();
               if (popped == "f") {
                 _state = CSS_STATES.frame;
@@ -351,7 +349,7 @@ class CSSCompleter {
                   break;
 
                 case "CloseParenthesis":
-                  if (peek(scopeStack) == "(") {
+                  if (scopeStack.at(-1) == "(") {
                     scopeStack.pop();
                     selector = selectorBeforeNot + "not(" + selector + ")";
                     selectorBeforeNot = null;
@@ -450,7 +448,7 @@ class CSSCompleter {
                   break;
 
                 case "CloseParenthesis":
-                  if (peek(scopeStack) == "(") {
+                  if (scopeStack.at(-1) == "(") {
                     scopeStack.pop();
                     selector = selectorBeforeNot + "not(" + selector + ")";
                     selectorBeforeNot = null;
@@ -542,7 +540,7 @@ class CSSCompleter {
                   break;
 
                 case "CloseSquareBracket":
-                  if (peek(scopeStack) == "[") {
+                  if (scopeStack.at(-1) == "[") {
                     scopeStack.pop();
                   }
 
@@ -575,7 +573,7 @@ class CSSCompleter {
                   break;
 
                 case "CloseSquareBracket":
-                  if (peek(scopeStack) == "[") {
+                  if (scopeStack.at(-1) == "[") {
                     scopeStack.pop();
                   }
 
@@ -664,7 +662,7 @@ class CSSCompleter {
               break;
 
             case "CurlyBracketBlock":
-              if (peek(scopeStack) == "@m") {
+              if (scopeStack.at(-1) == "@m") {
                 scopeStack.pop();
               }
               break;
@@ -704,7 +702,7 @@ class CSSCompleter {
             scopeStack.push("f");
             _state = CSS_STATES.property;
           } else if (token.tokenType == "CloseCurlyBracket") {
-            if (peek(scopeStack) == "@k") {
+            if (scopeStack.at(-1) == "@k") {
               scopeStack.pop();
             }
 
