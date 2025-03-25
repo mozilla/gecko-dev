@@ -1223,7 +1223,7 @@ trait Column<T> {
 
 impl Column<i64> for Kind {
     fn from_column(raw: i64) -> Result<Kind> {
-        Ok(match i16::try_from(raw) {
+        Ok(match u8::try_from(raw) {
             Ok(mozISyncedBookmarksMerger::KIND_BOOKMARK) => Kind::Bookmark,
             Ok(mozISyncedBookmarksMerger::KIND_QUERY) => Kind::Query,
             Ok(mozISyncedBookmarksMerger::KIND_FOLDER) => Kind::Folder,
@@ -1236,7 +1236,7 @@ impl Column<i64> for Kind {
 
 impl Column<i64> for Validity {
     fn from_column(raw: i64) -> Result<Validity> {
-        Ok(match i16::try_from(raw) {
+        Ok(match u8::try_from(raw) {
             Ok(mozISyncedBookmarksMerger::VALIDITY_VALID) => Validity::Valid,
             Ok(mozISyncedBookmarksMerger::VALIDITY_REUPLOAD) => Validity::Reupload,
             Ok(mozISyncedBookmarksMerger::VALIDITY_REPLACE) => Validity::Replace,

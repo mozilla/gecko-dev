@@ -57,20 +57,24 @@ interface mozISyncedBookmarksMirrorLogger : nsISupports {
 [scriptable, builtinclass, uuid(f0a6217d-8344-4e68-9995-bbf5554be86e)]
 interface mozISyncedBookmarksMerger : nsISupports {
   // Synced item kinds. These are stored in the mirror database.
-  const short KIND_BOOKMARK = 1;
-  const short KIND_QUERY = 2;
-  const short KIND_FOLDER = 3;
-  const short KIND_LIVEMARK = 4;
-  const short KIND_SEPARATOR = 5;
+  cenum SyncedItemKinds : 8 {
+    KIND_BOOKMARK = 1,
+    KIND_QUERY = 2,
+    KIND_FOLDER = 3,
+    KIND_LIVEMARK = 4,
+    KIND_SEPARATOR = 5,
+  };
 
   // Synced item validity states. These are also stored in the mirror
   // database. `REUPLOAD` means a remote item can be fixed up and applied,
   // and should be reuploaded. `REPLACE` means a remote item isn't valid
   // at all, and should either be replaced with a valid local copy, or deleted
   // if a valid local copy doesn't exist.
-  const short VALIDITY_VALID = 1;
-  const short VALIDITY_REUPLOAD = 2;
-  const short VALIDITY_REPLACE = 3;
+  cenum SyncedItemValidity : 8 {
+    VALIDITY_VALID = 1,
+    VALIDITY_REUPLOAD = 2,
+    VALIDITY_REPLACE = 3,
+  };
 
   // The mirror database connection to use for merging. The merge runs on the
   // connection's async thread, to avoid blocking the main thread. The

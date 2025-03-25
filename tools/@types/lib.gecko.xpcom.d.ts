@@ -9626,16 +9626,30 @@ interface mozISyncedBookmarksMirrorLogger extends nsISupports {
   trace(message: string): void;
 }
 
-interface mozISyncedBookmarksMerger extends nsISupports {
-  readonly KIND_BOOKMARK?: 1;
-  readonly KIND_QUERY?: 2;
-  readonly KIND_FOLDER?: 3;
-  readonly KIND_LIVEMARK?: 4;
-  readonly KIND_SEPARATOR?: 5;
-  readonly VALIDITY_VALID?: 1;
-  readonly VALIDITY_REUPLOAD?: 2;
-  readonly VALIDITY_REPLACE?: 3;
+}  // global
 
+declare enum mozISyncedBookmarksMerger_SyncedItemKinds {
+  KIND_BOOKMARK = 1,
+  KIND_QUERY = 2,
+  KIND_FOLDER = 3,
+  KIND_LIVEMARK = 4,
+  KIND_SEPARATOR = 5,
+}
+
+declare enum mozISyncedBookmarksMerger_SyncedItemValidity {
+  VALIDITY_VALID = 1,
+  VALIDITY_REUPLOAD = 2,
+  VALIDITY_REPLACE = 3,
+}
+
+declare global {
+
+namespace mozISyncedBookmarksMerger {
+  type SyncedItemKinds = mozISyncedBookmarksMerger_SyncedItemKinds;
+  type SyncedItemValidity = mozISyncedBookmarksMerger_SyncedItemValidity;
+}
+
+interface mozISyncedBookmarksMerger extends nsISupports, Enums<typeof mozISyncedBookmarksMerger_SyncedItemKinds & typeof mozISyncedBookmarksMerger_SyncedItemValidity> {
   db: mozIStorageConnection;
   logger: mozIServicesLogSink;
   merge(localTimeSeconds: i64, remoteTimeSeconds: i64, callback: mozISyncedBookmarksMirrorCallback): mozIPlacesPendingOperation;
@@ -15875,7 +15889,7 @@ interface nsIXPCComponents_Interfaces {
   mozISyncedBookmarksMirrorProgressListener: nsJSIID<mozISyncedBookmarksMirrorProgressListener>;
   mozISyncedBookmarksMirrorCallback: nsJSIID<mozISyncedBookmarksMirrorCallback>;
   mozISyncedBookmarksMirrorLogger: nsJSIID<mozISyncedBookmarksMirrorLogger>;
-  mozISyncedBookmarksMerger: nsJSIID<mozISyncedBookmarksMerger>;
+  mozISyncedBookmarksMerger: nsJSIID<mozISyncedBookmarksMerger, typeof mozISyncedBookmarksMerger_SyncedItemKinds & typeof mozISyncedBookmarksMerger_SyncedItemValidity>;
   nsIFaviconService: nsJSIID<nsIFaviconService>;
   nsIFaviconDataCallback: nsJSIID<nsIFaviconDataCallback>;
   nsINavBookmarksService: nsJSIID<nsINavBookmarksService>;
