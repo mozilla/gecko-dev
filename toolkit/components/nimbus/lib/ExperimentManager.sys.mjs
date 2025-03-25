@@ -289,13 +289,13 @@ export class _ExperimentManager {
           statusTelemetry.reason = EnrollmentStatusReason.NOT_TARGETED;
         } else if (invalidRecipes.includes(slug)) {
           reason = UnenrollReason.INVALID_RECIPE;
-        } else if (invalidBranches.has(slug)) {
+        } else if (invalidBranches.includes(slug)) {
           reason = UnenrollReason.INVALID_BRANCH;
-        } else if (invalidFeatures.has(slug)) {
+        } else if (invalidFeatures.includes(slug)) {
           reason = UnenrollReason.INVALID_FEATURE;
         } else if (missingLocale.includes(slug)) {
           reason = UnenrollReason.L10N_MISSING_LOCALE;
-        } else if (missingL10nIds.has(slug)) {
+        } else if (missingL10nIds.includes(slug)) {
           reason = UnenrollReason.L10N_MISSING_ENTRY;
         } else {
           reason = UnenrollReason.RECIPE_NOT_SEEN;
@@ -330,33 +330,26 @@ export class _ExperimentManager {
    *         The list of experiments that do not match targeting.
    * @param {string[]} options.invalidRecipes
    *         The list of recipes that do not match
-   * @param {Map<string, string[]>} options.invalidBranches
-   *         A mapping of experiment slugs to a list of branches that failed
-   *         feature validation.
-   * @param {Map<string, string[]>} options.invalidFeatures
-   *        The mapping of experiment slugs to a list of invalid feature IDs.
+   * @param {string[]} options.invalidBranches
+   *        The slugs of recipes that had branches that did not sucessfully pass
+   *        feature validation.
+   * @param {string[]} options.invalidFeatures
+   *        The slugs of recipes that require invalid or unknown feature IDs.
    * @param {string[]} options.missingLocale
-   *        The list of experiment slugs missing an entry in the localization
+   *        The slugs of recipes that were missing an entry in the localization
    *        table for the current locale.
-   * @param {Map<string, string[]>} options.missingL10nIds
-   *        The mapping of experiment slugs to the IDs of localization entries
-   *        missing from the current locale.
-   * @param {string | null} options.locale
-   *        The current locale.
-   * @param {boolean} options.validationEnabled
-   *        Whether or not schema validation was enabled.
+   * @param {string[]} options.missingL10nIds
+   *        The slugs of recipes that were missing localization entries.
    */
   onFinalize(
     sourceToCheck,
     {
       recipeMismatches = [],
       invalidRecipes = [],
-      invalidBranches = new Map(),
-      invalidFeatures = new Map(),
+      invalidBranches = [],
+      invalidFeatures = [],
       missingLocale = [],
-      missingL10nIds = new Map(),
-      locale = null,
-      validationEnabled = true,
+      missingL10nIds = [],
     } = {}
   ) {
     if (!sourceToCheck) {
@@ -364,6 +357,7 @@ export class _ExperimentManager {
     }
     const activeExperiments = this.store.getAllActiveExperiments();
     const activeRollouts = this.store.getAllActiveRollouts();
+
     this._checkUnseenEnrollments(
       activeExperiments,
       sourceToCheck,
@@ -385,62 +379,7 @@ export class _ExperimentManager {
       missingL10nIds
     );
 
-    // If schema validation is disabled, then we will never send these
-    // validation failed telemetry events
-    if (validationEnabled) {
-      for (const slug of invalidRecipes) {
-        lazy.NimbusTelemetry.recordValidationFailure(
-          slug,
-          lazy.NimbusTelemetry.ValidationFailureReason.INVALID_RECIPE
-        );
-      }
-      for (const [slug, branches] of invalidBranches.entries()) {
-        for (const branch of branches) {
-          lazy.NimbusTelemetry.recordValidationFailure(
-            slug,
-            lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH,
-            {
-              branch,
-            }
-          );
-        }
-      }
-      for (const [slug, featureIds] of invalidFeatures.entries()) {
-        for (const featureId of featureIds) {
-          lazy.NimbusTelemetry.recordValidationFailure(
-            slug,
-            lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE,
-            {
-              feature: featureId,
-            }
-          );
-        }
-      }
-    }
-
-    if (locale) {
-      for (const slug of missingLocale.values()) {
-        lazy.NimbusTelemetry.recordValidationFailure(
-          slug,
-          lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_LOCALE,
-          { locale }
-        );
-      }
-
-      for (const [slug, ids] of missingL10nIds.entries()) {
-        lazy.NimbusTelemetry.recordValidationFailure(
-          slug,
-          lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY,
-          {
-            l10nIds: ids.join(","),
-            locale,
-          }
-        );
-      }
-    }
-
     this.sessions.delete(sourceToCheck);
-    this._originalDefaultValues = null;
   }
 
   /**

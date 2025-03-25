@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
   recordTargetingContext:
@@ -589,16 +590,16 @@ export class EnrollmentsContext {
     this.recipeValidator = recipeValidator;
 
     this.validationEnabled = validationEnabled;
+    this.validatorCache = {};
     this.shouldCheckTargeting = shouldCheckTargeting;
     this.matches = 0;
 
     this.recipeMismatches = [];
     this.invalidRecipes = [];
-    this.invalidBranches = new Map();
-    this.invalidFeatures = new Map();
-    this.validatorCache = {};
+    this.invalidBranches = [];
+    this.invalidFeatures = [];
     this.missingLocale = [];
-    this.missingL10nIds = new Map();
+    this.missingL10nIds = [];
 
     this.locale = Services.locale.appLocaleAsBCP47;
   }
@@ -611,8 +612,6 @@ export class EnrollmentsContext {
       invalidFeatures: this.invalidFeatures,
       missingLocale: this.missingLocale,
       missingL10nIds: this.missingL10nIds,
-      locale: this.locale,
-      validationEnabled: this.validationEnabled,
     };
   }
 
@@ -644,6 +643,11 @@ export class EnrollmentsContext {
         );
         if (recipe.slug) {
           this.invalidRecipes.push(recipe.slug);
+
+          lazy.NimbusTelemetry.recordValidationFailure(
+            recipe.slug,
+            lazy.NimbusTelemetry.ValidationFailureReason.INVALID_RECIPE
+          );
         }
         return RecipeStatus.INVALID;
       }
@@ -703,6 +707,11 @@ export class EnrollmentsContext {
         recipe.localizations[this.locale] === null
       ) {
         this.missingLocale.push(recipe.slug);
+        lazy.NimbusTelemetry.recordValidationFailure(
+          recipe.slug,
+          lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_LOCALE,
+          { locale: this.locale }
+        );
         lazy.log.debug(
           `${recipe.slug} is localized but missing locale ${this.locale}`
         );
@@ -712,14 +721,14 @@ export class EnrollmentsContext {
 
     const result = await this._validateBranches(recipe, validateFeatureSchemas);
     if (!result.valid) {
-      if (result.invalidBranchSlugs.length) {
-        this.invalidBranches.set(recipe.slug, result.invalidBranchSlugs);
+      if (result.invalidBranchSlugs) {
+        this.invalidBranches.push(recipe.slug);
       }
-      if (result.invalidFeatureIds.length) {
-        this.invalidFeatures.set(recipe.slug, result.invalidFeatureIds);
+      if (result.invalidFeatureIds) {
+        this.invalidFeatures.push(recipe.slug);
       }
-      if (result.missingL10nIds.length) {
-        this.missingL10nIds.set(recipe.slug, result.missingL10nIds);
+      if (result.missingL10nIds) {
+        this.missingL10nIds.push(recipe.slug);
       }
       lazy.log.debug(`${recipe.slug} did not validate`);
       return RecipeStatus.INVALID;
@@ -794,7 +803,7 @@ export class EnrollmentsContext {
    * @returns {object} The lists of invalid branch slugs and invalid feature
    *                   IDs.
    */
-  async _validateBranches({ id, branches, localizations }, validateSchema) {
+  async _validateBranches({ slug, branches, localizations }, validateSchema) {
     const invalidBranchSlugs = [];
     const invalidFeatureIds = new Set();
     const missingL10nIds = new Set();
@@ -806,7 +815,7 @@ export class EnrollmentsContext {
           const { featureId, value } = feature;
           if (!lazy.NimbusFeatures[featureId]) {
             console.error(
-              `Experiment ${id} has unknown featureId: ${featureId}`
+              `Experiment ${slug} has unknown featureId: ${featureId}`
             );
 
             invalidFeatureIds.add(featureId);
@@ -863,23 +872,51 @@ export class EnrollmentsContext {
             const result = validator.validate(substitutedValue);
             if (!result.valid) {
               console.error(
-                `Experiment ${id} branch ${branchIdx} feature ${featureId} does not validate: ${JSON.stringify(
+                `Experiment ${slug} branch ${branchIdx} feature ${featureId} does not validate: ${JSON.stringify(
                   result.errors,
                   undefined,
                   2
                 )}`
               );
               invalidBranchSlugs.push(branch.slug);
+              lazy.NimbusTelemetry.recordValidationFailure(
+                slug,
+                lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH,
+                {
+                  branch: branch.slug,
+                }
+              );
             }
           }
         }
       }
     }
 
+    for (const featureId of invalidFeatureIds) {
+      lazy.NimbusTelemetry.recordValidationFailure(
+        slug,
+        lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE,
+        {
+          feature: featureId,
+        }
+      );
+    }
+
+    if (missingL10nIds.size) {
+      lazy.NimbusTelemetry.recordValidationFailure(
+        slug,
+        lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY,
+        {
+          locale: this.locale,
+          l10nIds: Array.from(missingL10nIds).join(","),
+        }
+      );
+    }
+
     return {
-      invalidBranchSlugs,
-      invalidFeatureIds: Array.from(invalidFeatureIds),
-      missingL10nIds: Array.from(missingL10nIds),
+      invalidBranchSlugs: !!invalidBranchSlugs.length,
+      invalidFeatureIds: !!invalidFeatureIds.size,
+      missingL10nIds: !!missingL10nIds.size,
       valid:
         invalidBranchSlugs.length === 0 &&
         invalidFeatureIds.size === 0 &&

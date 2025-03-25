@@ -117,6 +117,12 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
   ok(onRecipe.notCalled, "Should not call .onRecipe for invalid recipes");
 
   await assertEmptyStore(manager.store);
+
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
 });
 
 add_task(async function test_updateRecipes_invalidFeatureValue() {
@@ -165,6 +171,12 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
   ok(onRecipe.notCalled, "Should not call onRecipe for invalid recipe");
 
   await assertEmptyStore(manager.store, { cleanup: true });
+
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
 });
 
 add_task(async function test_updateRecipes_invalidRecipe() {
@@ -190,8 +202,6 @@ add_task(async function test_updateRecipes_invalidRecipe() {
 });
 
 add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
-  Services.fog.testResetFOG();
-
   const manager = ExperimentFakes.manager();
   const loader = ExperimentFakes.rsLoader();
   loader.manager = manager;
@@ -217,21 +227,19 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
     loader.manager.onRecipe.calledWith(recipe, "rs-loader", true),
     "should call .onRecipe with recipe and isTargettingMatch=true"
   );
-  equal(loader.manager.onFinalize.callCount, 1, "should call .onFinalize once");
-
   ok(
-    onFinalizeCalled(loader.manager.onFinalize, "rs-loader", {
+    loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map(),
-      invalidFeatures: new Map(),
+      invalidBranches: [],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "should call .onFinalize with no mismatches or invalid recipes"
   );
+
+  loader.manager.onFinalize.reset();
 
   info("Replacing recipe with an invalid one");
 
@@ -243,27 +251,26 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
     1,
     "should not have called .onRecipe again"
   );
-  equal(
-    loader.manager.onFinalize.callCount,
-    2,
-    "should have called .onFinalize again"
-  );
 
   ok(
-    onFinalizeCalled(loader.manager.onFinalize.secondCall.args, "rs-loader", {
+    loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: ["foo"],
-      invalidBranches: new Map(),
-      invalidFeatures: new Map(),
+      invalidBranches: [],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "should call .onFinalize with an invalid recipe"
   );
 
   await assertEmptyStore(manager.store, { cleanup: true });
+
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
 });
 
 add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
@@ -334,20 +341,19 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
     loader.manager.onRecipe.calledWith(recipe, "rs-loader", true),
     "should call .onRecipe with recipe and isTargetting=true"
   );
-  equal(loader.manager.onFinalize.callCount, 1, "should call .onFinalize once");
   ok(
-    onFinalizeCalled(loader.manager.onFinalize, "rs-loader", {
+    loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map(),
-      invalidFeatures: new Map(),
+      invalidBranches: [],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "should call .onFinalize with no mismatches or invalid recipes"
   );
+
+  loader.manager.onFinalize.reset();
 
   info("Replacing recipe with an invalid one");
 
@@ -359,27 +365,26 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
     1,
     "should not have called .onRecipe again"
   );
-  equal(
-    loader.manager.onFinalize.callCount,
-    2,
-    "should have called .onFinalize again"
-  );
 
   ok(
-    onFinalizeCalled(loader.manager.onFinalize.secondCall.args, "rs-loader", {
+    loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map([["foo", [badRecipe.branches[1].slug]]]),
-      invalidFeatures: new Map(),
+      invalidBranches: ["foo"],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "should call .onFinalize with an invalid branch"
   );
 
   await assertEmptyStore(manager.store, { cleanup: true });
+
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
 });
 
 add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
@@ -446,20 +451,19 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
     loader.manager.onRecipe.calledWith(recipe, "rs-loader"),
     "should call .onRecipe with argument data"
   );
-  equal(loader.manager.onFinalize.callCount, 1, "should call .onFinalize once");
   ok(
-    onFinalizeCalled(loader.manager.onFinalize, "rs-loader", {
+    loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map(),
-      invalidFeatures: new Map(),
+      invalidBranches: [],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
-    "should call .onFinalize with nomismatches or invalid recipes"
+    "should call .onFinalize with no mismatches or invalid recipes"
   );
+
+  loader.manager.onFinalize.reset();
 
   ok(
     EnrollmentsContext.prototype._generateVariablesOnlySchema.calledOnce,
@@ -484,20 +488,18 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   );
   equal(
     manager.onFinalize.callCount,
-    2,
+    1,
     "should have called .onFinalize again"
   );
 
   ok(
-    onFinalizeCalled(loader.manager.onFinalize.secondCall.args, "rs-loader", {
+    loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map([["foo", [badRecipe.branches[0].slug]]]),
-      invalidFeatures: new Map(),
+      invalidBranches: ["foo"],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "should call .onFinalize with an invalid branch"
   );
@@ -505,6 +507,12 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   EnrollmentsContext.prototype._generateVariablesOnlySchema.restore();
 
   await assertEmptyStore(manager.store, { cleanup: true });
+
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
 });
 
 add_task(async function test_updateRecipes_validationTelemetry() {
@@ -512,6 +520,7 @@ add_task(async function test_updateRecipes_validationTelemetry() {
     Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
     /* clear = */ true
   );
+  Services.fog.testResetFOG();
 
   const invalidRecipe = ExperimentFakes.recipe("invalid-recipe");
   delete invalidRecipe.channel;
@@ -699,15 +708,13 @@ add_task(async function test_updateRecipes_validationDisabled() {
       "Should not send validation failed telemetry"
     );
     Assert.ok(
-      onFinalizeCalled(finalizeStub, "rs-loader", {
+      finalizeStub.calledOnceWith("rs-loader", {
         recipeMismatches: [],
         invalidRecipes: [],
-        invalidBranches: new Map(),
-        invalidFeatures: new Map(),
+        invalidBranches: [],
+        invalidFeatures: [],
         missingLocale: [],
-        missingL10nIds: new Map(),
-        locale: Services.locale.appLocaleAsBCP47,
-        validationEnabled: false,
+        missingL10nIds: [],
       }),
       "should call .onFinalize with no validation issues"
     );
@@ -751,18 +758,18 @@ add_task(async function test_updateRecipes_appId() {
 
   Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
   Assert.ok(
-    onFinalizeCalled(manager.onFinalize, "rs-loader", {
+    manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map(),
-      invalidFeatures: new Map(),
+      invalidBranches: [],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "Should call .onFinalize with no validation issues"
   );
+
+  manager.onFinalize.reset();
 
   info("Testing updateRecipes() with a custom application ID");
 
@@ -778,15 +785,13 @@ add_task(async function test_updateRecipes_appId() {
   );
 
   Assert.ok(
-    onFinalizeCalled(manager.onFinalize, "rs-loader", {
+    manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map(),
-      invalidFeatures: new Map(),
+      invalidBranches: [],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "Should call .onFinalize with no validation issues"
   );
@@ -875,15 +880,13 @@ add_task(async function test_updateRecipes_recipeAppId() {
   await loader.enable();
   Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
   Assert.ok(
-    onFinalizeCalled(manager.onFinalize, "rs-loader", {
+    manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: new Map(),
-      invalidFeatures: new Map(),
+      invalidBranches: [],
+      invalidFeatures: [],
       missingLocale: [],
-      missingL10nIds: new Map(),
-      locale: Services.locale.appLocaleAsBCP47,
-      validationEnabled: true,
+      missingL10nIds: [],
     }),
     "Should call .onFinalize with no validation issues"
   );
@@ -957,22 +960,25 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
     );
 
     ok(
-      manager.onFinalize.calledOnce &&
-        onFinalizeCalled(manager.onFinalize, "rs-loader", {
-          recipeMismatches: [],
-          invalidRecipes: [],
-          invalidBranches: new Map([[invalidRecipe.slug, ["control"]]]),
-          invalidFeatures: new Map(),
-          missingLocale: [],
-          missingL10nIds: new Map(),
-          locale: Services.locale.appLocaleAsBCP47,
-          validationEnabled: true,
-        }),
+      manager.onFinalize.calledOnceWith("rs-loader", {
+        recipeMismatches: [],
+        invalidRecipes: [],
+        invalidBranches: [invalidRecipe.slug],
+        invalidFeatures: [],
+        missingLocale: [],
+        missingL10nIds: [],
+      }),
       "should call .onFinalize with only one invalid recipe"
     );
 
     await assertEmptyStore(manager.store, { cleanup: true });
   }
+
+  Services.fog.testResetFOG();
+  Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    /* clear = */ true
+  );
 });
 
 add_task(async function test_updateRecipes_invalidFeature_mismatch() {
