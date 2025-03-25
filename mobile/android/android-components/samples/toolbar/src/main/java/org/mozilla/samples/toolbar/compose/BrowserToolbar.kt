@@ -66,6 +66,7 @@ fun BrowserToolbar(
             onUrlClicked = {
                 onDisplayToolbarClick()
             },
+            onInteraction = {},
         )
     }
 
@@ -92,6 +93,7 @@ fun BrowserToolbar(
                 onUrlClicked = {
                     onDisplayToolbarClick()
                 },
+                onInteraction = {},
             )
         }
 

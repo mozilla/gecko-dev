@@ -50,6 +50,7 @@ fun ActionContainer(
                 is DropdownAction -> {
                     SearchSelector(
                         icon = action.icon,
+                        iconResource = action.iconResource,
                         contentDescription = stringResource(action.contentDescription),
                         menu = action.menu,
                         onInteraction = { onInteraction(it) },

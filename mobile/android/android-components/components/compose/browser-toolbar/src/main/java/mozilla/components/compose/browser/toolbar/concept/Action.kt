@@ -10,6 +10,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.ui.icons.R as iconsR
 
 /**
  * Actions that can be added to the toolbar.
@@ -42,15 +43,17 @@ sealed class Action {
 
     /**
      * An action button styled as a dropdown button to be added to the toolbar.
-     * This wraps the provided [icon] at the start with a down arrow to it's right to indicate that
-     * clicking this will open a dropdown menu.
+     * This wraps the provided [icon] or [iconResource] at the start with a down arrow to it's right
+     * to indicate that clicking this will open a dropdown menu.
      *
-     * @property icon The icon for this button.
+     * @property icon A [Drawable] to use as icon for this button. If null will use [iconResource] instead.
+     * @property iconResource The resource id of the icon to use for this button if a [Drawable] is not provided.
      * @property contentDescription The content description for this button.
      * @property menu The [BrowserToolbarMenu] to show when this button is clicked.
      */
     data class DropdownAction(
-        val icon: Drawable,
+        val icon: Drawable?,
+        @DrawableRes val iconResource: Int = iconsR.drawable.mozac_ic_star_fill_20,
         @StringRes val contentDescription: Int,
         val menu: BrowserToolbarMenu,
     ) : Action()

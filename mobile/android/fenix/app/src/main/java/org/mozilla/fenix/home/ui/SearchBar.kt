@@ -29,6 +29,7 @@ internal fun SearchBar(
         colors = BrowserToolbarDefaults.colors().displayToolbarColors,
         textStyle = FirefoxTheme.typography.body1,
         onUrlClicked = onClick,
+        onInteraction = {},
     )
 }
 

@@ -54,7 +54,7 @@ fun BrowserDisplayToolbar(
     pageActions: List<Action> = emptyList(),
     browserActions: List<Action> = emptyList(),
     onUrlClicked: () -> Unit = {},
-    onInteraction: (BrowserToolbarEvent) -> Unit = {},
+    onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -144,6 +144,7 @@ private fun BrowserDisplayToolbarPreview() {
                     onClick = {},
                 ),
             ),
+            onInteraction = {},
         )
     }
 }

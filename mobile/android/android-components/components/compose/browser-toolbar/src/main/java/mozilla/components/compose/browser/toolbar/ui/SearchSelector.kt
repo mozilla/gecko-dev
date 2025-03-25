@@ -38,12 +38,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import mozilla.components.browser.menu2.BrowserMenuController
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.R
 import mozilla.components.compose.browser.toolbar.databinding.SearchSelectorBinding
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
 import mozilla.components.concept.menu.candidate.DecorativeTextMenuCandidate
 import mozilla.components.concept.menu.candidate.DrawableMenuIcon
 import mozilla.components.concept.menu.candidate.TextMenuCandidate
@@ -104,29 +106,29 @@ fun SearchSelector(
 /**
  * Search selector toolbar action.
  *
- * @param icon [Drawable] to display in the search selector.
+ * @property icon A [Drawable] to display in the search selector. If null will use [iconResource] instead.
+ * @param iconResource The resource id of the icon to use for this button if a [Drawable] is not provided.
  * @param contentDescription The content description to use.
  * @param menu The [BrowserToolbarMenu] to show when the search selector is clicked.
  * @param onInteraction Invoked for user interactions with the menu items.
  */
 @Composable
 fun SearchSelector(
-    icon: Drawable,
+    icon: Drawable?,
+    iconResource: Int,
     contentDescription: String,
     menu: BrowserToolbarMenu,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     val items = menu.items().mapNotNull {
-        if (it.icon == null && it.text != null) {
+        if (it.icon == null && it.iconResource == null && it.text != null) {
             DecorativeTextMenuCandidate(
                 text = stringResource(it.text),
             )
-        } else if (it.icon != null && it.text != null) {
+        } else if ((it.icon != null || it.iconResource != null) && it.text != null) {
             TextMenuCandidate(
-                text = stringResource(it.text),
-                start = DrawableMenuIcon(
-                    drawable = it.icon,
-                ),
+                text = stringResource (it.text),
+                start = it.toDrawableMenuIcon(LocalContext.current),
                 onClick = {
                     it.onClick?.let { onInteraction(it) }
                 },
@@ -149,7 +151,8 @@ fun SearchSelector(
                     selector.show(anchor = it)
                 }
 
-                setIcon(icon, contentDescription)
+                val drawable = icon ?: ContextCompat.getDrawable(context, iconResource)
+                setIcon(drawable, contentDescription)
             }
         },
     )
@@ -169,6 +172,15 @@ private class SearchSelector @JvmOverloads constructor(
     }
 }
 
+private fun BrowserToolbarMenuItem.toDrawableMenuIcon(context: Context) = icon?.let {
+    DrawableMenuIcon(
+        drawable = it,
+    )
+} ?: DrawableMenuIcon(
+    context = context,
+    resource = iconResource!!,
+)
+
 @PreviewLightDark
 @Composable
 private fun SearchSelectorPreview() {
@@ -181,7 +193,16 @@ private fun SearchSelectorPreview() {
             )
 
             SearchSelector(
-                icon = getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
+                icon = getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_star_fill_20),
+                iconResource = iconsR.drawable.mozac_ic_search_24,
+                contentDescription = "Test",
+                menu = { emptyList() },
+                onInteraction = {},
+            )
+
+            SearchSelector(
+                icon = null,
+                iconResource = iconsR.drawable.mozac_ic_search_24,
                 contentDescription = "Test",
                 menu = { emptyList() },
                 onInteraction = {},
