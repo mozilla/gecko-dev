@@ -32,6 +32,28 @@ dns:
     expires: never
     telemetry_mirror: DNS_LOOKUP_METHOD2
 
+  grace_period_renewal:
+    type: labeled_counter
+    description: >
+      Counts the amount of times that we get a record that is different (or identical)
+      from the one that was used from the cache after a grace period induced renewal.
+
+      This is to keep track of the amount of possible breakage that is occuring
+      due to the grace period and useful for evaluating experiments increasing the grace period.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952221
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952221
+    notification_emails:
+      - necko@mozilla.com
+      - omansfeld@mozilla.com
+    expires: 145
+    data_sensitivity:
+      - technical
+    labels:
+      - different_record
+      - same_record
+
   cleanup_age:
     type: timing_distribution
     description: >
