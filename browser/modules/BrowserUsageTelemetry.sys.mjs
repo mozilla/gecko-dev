@@ -18,7 +18,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SearchSERPTelemetryUtils:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
-
+  TabGroupMetrics:
+    "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs",
   WindowsInstallsInfo:
     "resource://gre/modules/components-utils/WindowsInstallsInfo.sys.mjs",
 
@@ -597,6 +598,9 @@ export let BrowserUsageTelemetry = {
       case "TabGroupExpand":
         this._onTabGroupExpandOrCollapse();
         break;
+      case "TabGroupRemoveRequested":
+        this._onTabGroupRemoveRequested(event);
+        break;
       case "unload":
         this._unregisterWindow(event.target);
         break;
@@ -1144,7 +1148,7 @@ export let BrowserUsageTelemetry = {
     win.addEventListener("TabOpen", this, true);
     win.addEventListener("TabPinned", this, true);
     win.addEventListener("TabGroupCreate", this);
-    win.addEventListener("TabGroupRemoved", this);
+    win.addEventListener("TabGroupRemoveRequested", this);
     win.addEventListener("TabGrouped", this);
     win.addEventListener("TabUngrouped", this);
     win.addEventListener("TabGroupCollapse", this);
@@ -1162,7 +1166,7 @@ export let BrowserUsageTelemetry = {
     win.removeEventListener("TabOpen", this, true);
     win.removeEventListener("TabPinned", this, true);
     win.removeEventListener("TabGroupCreate", this);
-    win.removeEventListener("TabGroupRemoved", this);
+    win.removeEventListener("TabGroupRemoveRequested", this);
     win.removeEventListener("TabGrouped", this);
     win.removeEventListener("TabUngrouped", this);
     win.removeEventListener("TabGroupCollapse", this);
@@ -1300,6 +1304,23 @@ export let BrowserUsageTelemetry = {
 
     Glean.tabgroup.activeGroups.collapsed.set(collapsed);
     Glean.tabgroup.activeGroups.expanded.set(expanded);
+  },
+
+  /**
+   * @param {CustomEvent} event
+   */
+  _onTabGroupRemoveRequested(event) {
+    let {
+      isUserTriggered = false,
+      telemetrySource = lazy.TabGroupMetrics.METRIC_SOURCE.UNKNOWN,
+    } = event.detail;
+
+    if (isUserTriggered) {
+      Glean.tabgroup.delete.record({
+        id: event.target.id,
+        source: telemetrySource,
+      });
+    }
   },
 
   /**

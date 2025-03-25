@@ -2,10 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const { TabStateFlusher } = ChromeUtils.importESModule(
+  "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
+);
+
 let resetTelemetry = async () => {
   await Services.fog.testFlushAllChildren();
   Services.fog.testResetFOG();
 };
+
+window.gTabsPanel.init();
 
 add_task(async function test_tabGroupTelemetry() {
   await resetTelemetry();
@@ -195,4 +201,189 @@ add_task(async function test_tabGroupTelemetry() {
 
   await removeTabGroup(group1);
   await removeTabGroup(group2);
+});
+
+/**
+ * @param {MozTabbrowserTabGroup} tabGroup
+ * @returns {Promise<MozPanel>}
+ *   Panel holding the tab group context menu for the requested tab group.
+ */
+async function openTabGroupContextMenu(tabGroup) {
+  let tabgroupEditor = document.getElementById("tab-group-editor");
+  let tabgroupPanel = tabgroupEditor.panel;
+
+  let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+  EventUtils.synthesizeMouseAtCenter(
+    tabGroup.querySelector(".tab-group-label"),
+    { type: "contextmenu", button: 2 },
+    window
+  );
+  await panelShown;
+
+  return tabgroupPanel;
+}
+
+add_task(async function test_tabGroupContextMenu_deleteTabGroup() {
+  await resetTelemetry();
+
+  let tab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+
+  let group = gBrowser.addTabGroup([tab]);
+  // Close the automatically-opened "create tab group" menu.
+  gBrowser.tabGroupMenu.close();
+  let groupId = group.id;
+
+  let menu = await openTabGroupContextMenu(group);
+  let deleteTabGroupButton = menu.querySelector("#tabGroupEditor_deleteGroup");
+  deleteTabGroupButton.click();
+
+  await TestUtils.waitForCondition(
+    () => !gBrowser.tabGroups.includes(group),
+    "wait for group to be deleted"
+  );
+
+  let tabGroupDeleteEvents = Glean.tabgroup.delete.testGetValue();
+  Assert.equal(
+    tabGroupDeleteEvents.length,
+    1,
+    "should have recorded a tabgroup.delete event"
+  );
+
+  let [tabGroupDeleteEvent] = tabGroupDeleteEvents;
+  Assert.deepEqual(
+    tabGroupDeleteEvent.extra,
+    {
+      source: "tab_group",
+      id: groupId,
+    },
+    "should have recorded the correct source and ID"
+  );
+
+  await resetTelemetry();
+});
+
+/**
+ * @returns {Promise<PanelView>}
+ */
+async function openTabsMenu() {
+  let viewShown = BrowserTestUtils.waitForEvent(
+    window.document.getElementById("allTabsMenu-allTabsView"),
+    "ViewShown"
+  );
+  window.document.getElementById("alltabs-button").click();
+  return (await viewShown).target;
+}
+
+/**
+ * @returns {Promise<void>}
+ */
+async function closeTabsMenu() {
+  let panel = window.document
+    .getElementById("allTabsMenu-allTabsView")
+    .closest("panel");
+  if (!panel) {
+    return;
+  }
+  let hidden = BrowserTestUtils.waitForPopupEvent(panel, "hidden");
+  panel.hidePopup();
+  await hidden;
+}
+
+/**
+ * @param {XULToolbarButton} triggerNode
+ * @param {string} contextMenuId
+ * @returns {Promise<XULMenuElement|XULPopupElement>}
+ */
+async function getContextMenu(triggerNode, contextMenuId) {
+  let win = triggerNode.ownerGlobal;
+  triggerNode.scrollIntoView();
+  const contextMenu = win.document.getElementById(contextMenuId);
+  const contextMenuShown = BrowserTestUtils.waitForPopupEvent(
+    contextMenu,
+    "shown"
+  );
+
+  EventUtils.synthesizeMouseAtCenter(
+    triggerNode,
+    { type: "contextmenu", button: 2 },
+    win
+  );
+  await contextMenuShown;
+  return contextMenu;
+}
+
+/**
+ * @param {XULMenuElement|XULPopupElement} contextMenu
+ * @returns {Promise<void>}
+ */
+async function closeContextMenu(contextMenu) {
+  let menuHidden = BrowserTestUtils.waitForPopupEvent(contextMenu, "hidden");
+  contextMenu.hidePopup();
+  await menuHidden;
+}
+
+/**
+ * Returns a new basic, unnamed tab group that is fully loaded in the browser
+ * and in session state.
+ *
+ * @returns {Promise<MozTabbrowserTabGroup>}
+ */
+async function makeTabGroup() {
+  let tab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  await TabStateFlusher.flush(tab.linkedBrowser);
+
+  let group = gBrowser.addTabGroup([tab]);
+  // Close the automatically-opened "create tab group" menu.
+  gBrowser.tabGroupMenu.close();
+  return group;
+}
+
+add_task(async function test_tabOverflowContextMenu_deleteOpenTabGroup() {
+  await resetTelemetry();
+
+  info("set up an open tab group to be deleted");
+  let openGroup = await makeTabGroup();
+  let openGroupId = openGroup.id;
+
+  info("delete the open tab group");
+  let allTabsMenu = await openTabsMenu();
+  let tabGroupButton = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${openGroupId}"]`
+  );
+
+  let menu = await getContextMenu(
+    tabGroupButton,
+    "open-tab-group-context-menu"
+  );
+
+  menu.querySelector("#open-tab-group-context-menu_delete").click();
+  await closeContextMenu(menu);
+  await closeTabsMenu();
+
+  await TestUtils.waitForCondition(
+    () => !gBrowser.tabGroups.includes(openGroup),
+    "wait for group to be deleted"
+  );
+
+  let tabGroupDeleteEvents = Glean.tabgroup.delete.testGetValue();
+  Assert.equal(
+    tabGroupDeleteEvents.length,
+    1,
+    "should have recorded one tabgroup.delete event"
+  );
+
+  let [openTabGroupDeleteEvent] = tabGroupDeleteEvents;
+
+  Assert.deepEqual(
+    openTabGroupDeleteEvent.extra,
+    {
+      source: "tab_overflow",
+      id: openGroupId,
+    },
+    "should have recorded the correct source and ID for the open tab group"
+  );
+
+  await resetTelemetry();
 });
