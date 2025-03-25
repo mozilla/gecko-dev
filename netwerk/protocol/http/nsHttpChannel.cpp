@@ -12,7 +12,6 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/dom/nsCSPContext.h"
-#include "mozilla/dom/NavigatorLogin.h"
 #include "mozilla/glean/AntitrackingMetrics.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
@@ -5990,32 +5989,6 @@ nsresult nsHttpChannel::AsyncProcessRedirection(uint32_t redirectType) {
               Telemetry::LABELS_QUERY_STRIPPING_COUNT::StripForRedirect);
           glean::contentblocking::query_stripping_param_count
               .AccumulateSingleSample(numStripped);
-        }
-      }
-    }
-  }
-
-  // if we have a Set-Login header, we should try to handle it here
-  nsAutoCString setLogin;
-  if (NS_SUCCEEDED(mResponseHead->GetHeader(nsHttp::Set_Login, setLogin))) {
-    bool isDocument = mLoadInfo->GetExternalContentPolicyType() ==
-                      ExtContentPolicy::TYPE_DOCUMENT;
-    if (isDocument) {
-      auto ssm = nsContentUtils::GetSecurityManager();
-      if (ssm) {
-        nsCOMPtr<nsIPrincipal> documentPrincipal;
-        nsContentUtils::GetSecurityManager()->GetChannelResultPrincipal(
-            this, getter_AddRefs(documentPrincipal));
-        dom::NavigatorLogin::SetLoginStatus(documentPrincipal, setLogin);
-      }
-    } else {
-      bool inThirdPartyContext = mLoadInfo->GetIsInThirdPartyContext();
-      nsIPrincipal* loadingPrincipal = mLoadInfo->GetLoadingPrincipal();
-      if (loadingPrincipal) {
-        bool isSameOriginToLoadingPrincipal =
-            loadingPrincipal->IsSameOrigin(mURI);
-        if (!inThirdPartyContext && isSameOriginToLoadingPrincipal) {
-          dom::NavigatorLogin::SetLoginStatus(loadingPrincipal, setLogin);
         }
       }
     }

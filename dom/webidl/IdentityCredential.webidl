@@ -91,9 +91,7 @@ dictionary IdentityProviderBranding {
 [GenerateInit, GenerateConversionToJS]
 dictionary IdentityProviderAPIConfig {
   required UTF8String accounts_endpoint;
-  // We do not want to gather consent for identity providers, so we
-  // omit this requirement and its use: https://github.com/w3c-fedid/FedCM/issues/703
-  // required UTF8String client_metadata_endpoint;
+  required UTF8String client_metadata_endpoint;
   required UTF8String id_assertion_endpoint;
   UTF8String disconnect_endpoint;
   IdentityProviderBranding branding;
