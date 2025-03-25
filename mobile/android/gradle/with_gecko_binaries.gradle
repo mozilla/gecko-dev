@@ -47,7 +47,7 @@ ext.configureLibraryVariantWithJNIWrappers = { variant, module ->
     if (System.env.IS_LANGUAGE_REPACK == '1') {
         // Single-locale l10n repacks set `IS_LANGUAGE_REPACK=1` and don't
         // really have a build environment.
-        wrapperTask = task("generateJNIWrappersFor${module}${variant.name.capitalize()}")
+        wrapperTask = tasks.register("generateJNIWrappersFor${module}${variant.name.capitalize()}")
     } else {
         wrapperTask = tasks.register("generateJNIWrappersFor${module}${variant.name.capitalize()}", JavaExec) {
             classpath annotationProcessorsJarTask.archiveFile
@@ -68,9 +68,7 @@ ext.configureLibraryVariantWithJNIWrappers = { variant, module ->
             inputs.file(annotationProcessorsJarTask.archiveFile)
             inputs.property("module", module)
 
-            outputs.file("${topobjdir}/widget/android/GeneratedJNINatives.h")
-            outputs.file("${topobjdir}/widget/android/GeneratedJNIWrappers.cpp")
-            outputs.file("${topobjdir}/widget/android/GeneratedJNIWrappers.h")
+            outputs.dir("${topobjdir}/widget/android/GeneratedJNI")
 
             dependsOn jarTask
             dependsOn annotationProcessorsJarTask

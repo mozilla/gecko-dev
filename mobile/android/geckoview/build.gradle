@@ -499,7 +499,7 @@ def generateSdkBindingsArgsProvider = project.provider { project.hasProperty('ge
 // There's nothing specific to the :geckoview project here -- this just needs to
 // be somewhere where the Android plugin is available so that we can fish the
 // path to "android.jar".
-task("generateSDKBindings", type: JavaExec) {
+tasks.register("generateSDKBindings", JavaExec) {
     classpath project(':annotations').jar.archiveFile
     classpath project(':annotations').compileJava.classpath
     classpath project(':annotations').sourceSets.main.runtimeClasspath
@@ -529,6 +529,14 @@ task("generateSDKBindings", type: JavaExec) {
     }
 
     workingDir "${topsrcdir}/widget/android/bindings"
+
+    // The `annotations` inputs are already captured via `classpath`.  It's
+    // possible to be clever here and list inputs from the provided arguments,
+    // but using the input directory will make it easier to remove the argument
+    // passing entirely (in favour of crawling the directory directly).
+    inputs.dir("${topsrcdir}/widget/android/bindings")
+
+    outputs.dir("${topobjdir}/widget/android/bindings")
 
     dependsOn project(':annotations').jar
 }

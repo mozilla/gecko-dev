@@ -199,7 +199,8 @@ t = tuple(
 GeneratedFile(
     *t,
     script="/mobile/android/gradle.py",
-    inputs=["bindings/%s-classes.txt" % stem for stem in generated_bindings]
+    inputs=["bindings/%s-classes.txt" % stem for stem in generated_bindings],
+    force=True,
 )
 
 FINAL_LIBRARY = "xul"
@@ -219,8 +220,3 @@ LOCAL_INCLUDES += [
 ]
 
 OS_LIBS += ["android"]
-
-if CONFIG["MOZ_NATIVE_DEVICES"]:
-    DEFINES["MOZ_NATIVE_DEVICES"] = True
-
-# DEFINES['DEBUG_WIDGETS'] = True
