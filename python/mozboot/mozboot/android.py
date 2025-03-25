@@ -195,7 +195,7 @@ def download_internal(
     with open(download_file_path, "ab") as file:
         # 64 KB/s should be fine on even the slowest internet connections
         chunk_size = 1024 * 64
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range#directives
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range#directives
         resume_header = (
             {"Range": f"bytes={resume_from_byte_pos}-"}
             if resume_from_byte_pos

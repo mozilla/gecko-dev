@@ -39,7 +39,7 @@ engine.version.metadata // a1
 
 Note that for GeckoView versions we are using the `MOZILLA_VERSION` that GeckoView exposes (e.g. `78.0a1`) which can be different from version of the maven dependency (e.g. `78.0.20200528032513`).
 
-In `browser-engine-system`, which is using `WebView`, we are parsing the Chrome version from the [User-Agent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
+In `browser-engine-system`, which is using `WebView`, we are parsing the Chrome version from the [User-Agent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent).
 
 ```Kotlin
 // Mozilla/5.0 (Linux; Android 10) Build/RPP2.200227.014.A1; wv)

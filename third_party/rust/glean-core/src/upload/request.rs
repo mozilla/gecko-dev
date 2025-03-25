@@ -24,7 +24,7 @@ pub(crate) fn create_date_header_value(current_time: DateTime<Utc>) -> String {
     // <day-name>, <day> <month> <year> <hour>:<minute>:<second> GMT
     //
     // as documented here:
-    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Date
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Date
     // Unfortunately we can't use `current_time.to_rfc2822()` as it
     // formats as "Mon, 22 Jun 2020 10:40:34 +0000", with an ending
     // "+0000" instead of "GMT". That's why we need to go with manual

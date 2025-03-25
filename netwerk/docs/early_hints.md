@@ -1,7 +1,7 @@
 # Early Hints
 
 [Early Hints](https://html.spec.whatwg.org/multipage/semantics.html#early-hints) is an informational HTTP status code allowing server to send headers likely to appear in the final response before sending the final response.
-This is used to send [Link headers](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link) to start `preconnect`s and `preload`s.
+This is used to send [Link headers](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Link) to start `preconnect`s and `preload`s.
 
 This document is about the implementation details of Early Hints in Firefox.
 We focus on the `preload` feature, as it is the main feature interacting with classes.
