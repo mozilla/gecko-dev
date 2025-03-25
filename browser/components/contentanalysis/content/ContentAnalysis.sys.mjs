@@ -422,7 +422,10 @@ export const ContentAnalysis = {
       entry.notification = this._showSlowCAMessage(
         analysisType,
         aRequest,
-        aResourceNameOrOperationType,
+        this._getSlowDialogMessage(
+          aResourceNameOrOperationType,
+          aRequest.userActionRequestsCount
+        ),
         aBrowsingContext
       );
     }, slowTimeoutMs);
@@ -460,17 +463,9 @@ export const ContentAnalysis = {
    * Show a message to the user to indicate that a CA request is taking
    * a long time.
    */
-  _showSlowCAMessage(
-    aOperation,
-    aRequest,
-    aResourceNameOrOperationType,
-    aBrowsingContext
-  ) {
+  _showSlowCAMessage(aOperation, aRequest, aBodyMessage, aBrowsingContext) {
     if (!this._shouldShowBlockingNotification(aOperation)) {
-      return this._showMessage(
-        this._getSlowDialogMessage(aResourceNameOrOperationType),
-        aBrowsingContext
-      );
+      return this._showMessage(aBodyMessage, aBrowsingContext);
     }
 
     if (!aRequest) {
@@ -483,16 +478,22 @@ export const ContentAnalysis = {
       aBrowsingContext,
       aRequest.userActionId,
       aRequest.requestToken,
-      aResourceNameOrOperationType
+      aBodyMessage
     );
   },
 
-  _getSlowDialogMessage(aResourceNameOrOperationType) {
+  _getSlowDialogMessage(aResourceNameOrOperationType, aNumRequests) {
     if (aResourceNameOrOperationType.name) {
-      return this.l10n.formatValueSync(
-        "contentanalysis-slow-agent-dialog-body-file",
-        { agent: lazy.agentName, filename: aResourceNameOrOperationType.name }
-      );
+      let label =
+        aNumRequests > 1
+          ? "contentanalysis-slow-agent-dialog-body-file-and-more"
+          : "contentanalysis-slow-agent-dialog-body-file";
+
+      return this.l10n.formatValueSync(label, {
+        agent: lazy.agentName,
+        filename: aResourceNameOrOperationType.name,
+        count: aNumRequests - 1,
+      });
     }
     let l10nId = undefined;
     switch (aResourceNameOrOperationType.operationType) {
@@ -548,9 +549,8 @@ export const ContentAnalysis = {
     aBrowsingContext,
     aUserActionId,
     aRequestToken,
-    aResourceNameOrOperationType
+    aBodyMessage
   ) {
-    let bodyMessage = this._getSlowDialogMessage(aResourceNameOrOperationType);
     // Note that TabDialogManager maintains a list of displaying dialogs, and so
     // we can pop up multiple of these and the first one will keep displaying until
     // it is closed, at which point the next one will display, etc.
@@ -558,7 +558,7 @@ export const ContentAnalysis = {
       aBrowsingContext,
       Ci.nsIPromptService.MODAL_TYPE_TAB,
       this.l10n.formatValueSync("contentanalysis-slow-agent-dialog-header"),
-      bodyMessage,
+      aBodyMessage,
       Ci.nsIPromptService.BUTTON_POS_0 *
         Ci.nsIPromptService.BUTTON_TITLE_CANCEL +
         Ci.nsIPromptService.BUTTON_POS_1_DEFAULT +
