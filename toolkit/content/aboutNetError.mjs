@@ -55,7 +55,7 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
   "unknownSocketType-title",
   "nssFailure2-title",
   "csp-xfo-error-title",
-  "corruptedContentError-title",
+  "corruptedContentErrorv2-title",
   "sslv3Used-title",
   "inadequateSecurityError-title",
   "blockedByPolicy-title",
