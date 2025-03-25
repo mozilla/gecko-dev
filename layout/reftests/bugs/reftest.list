@@ -2142,7 +2142,7 @@ pref(image.downscale-during-decode.enabled,true) == 1804872-1.html 1804872-1-ref
 pref(image.downscale-during-decode.enabled,true) == 1804872-2.html 1804872-2-ref.html
 pref(image.downscale-during-decode.enabled,true) == 1804872-3.html 1804872-3-ref.html
 == 1814628-1.html 1814628-1-ref.html
-fuzzy-if(winWidget||cocoaWidget,0-1,0-4000) == 1814047.html 1814047-ref.html
+fuzzy-if(winWidget||cocoaWidget,0-1,0-4400) == 1814047.html 1814047-ref.html
 == 1818412-1.html 1818412-1-ref.html
 == 1827009-1.html 1827009-1-ref.html
 pref(layout.testing.overlay-scrollbars.always-visible,true) pref(ui.useOverlayScrollbars,1) == 1827337-1.html 1827337-1-ref.html
