@@ -93,12 +93,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
-            <mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
-                android:id="@+id/suggestStrongPasswordBar"
+            <ViewStub
+                android:id="@+id/suggestStrongPasswordBarStub"
+                android:inflatedId="@+id/suggestStrongPasswordBar"
+                android:layout="@layout/suggest_strong_password_bar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/layer1"
-                android:visibility="gone" />
+                android:layout_height="wrap_content" />
 
             <ViewStub
                 android:id="@+id/addressSelectBarStub"

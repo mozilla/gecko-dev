@@ -104,6 +104,7 @@ import mozilla.components.feature.prompts.PromptFeature.Companion.PIN_REQUEST
 import mozilla.components.feature.prompts.address.AddressDelegate
 import mozilla.components.feature.prompts.address.AddressSelectBar
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
+import mozilla.components.feature.prompts.concept.PasswordPromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardDelegate
 import mozilla.components.feature.prompts.creditcard.CreditCardSelectBar
 import mozilla.components.feature.prompts.dialog.FullScreenNotificationToast
@@ -115,6 +116,7 @@ import mozilla.components.feature.prompts.login.LoginDelegate
 import mozilla.components.feature.prompts.login.LoginSelectBar
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColors
 import mozilla.components.feature.prompts.login.PasswordGeneratorDialogColorsProvider
+import mozilla.components.feature.prompts.login.SuggestStrongPasswordBar
 import mozilla.components.feature.prompts.login.SuggestStrongPasswordDelegate
 import mozilla.components.feature.prompts.share.ShareDelegate
 import mozilla.components.feature.readerview.ReaderViewFeature
@@ -167,9 +169,9 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.readermode.DefaultReaderModeController
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
-import org.mozilla.fenix.components.AutofillBarsIntegration
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.FenixAutocompletePrompt
+import org.mozilla.fenix.components.FenixSuggestStrongPasswordPrompt
 import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FxaWebChannelIntegration
@@ -274,6 +276,7 @@ abstract class BaseBrowserFragment :
     private var loginSelectBar: AutocompletePrompt<Login>? = null
     private var addressSelectBar: AutocompletePrompt<Address>? = null
     private var creditCardSelectBar: AutocompletePrompt<CreditCardEntry>? = null
+    private var suggestStrongPasswordBar: PasswordPromptView? = null
 
     private lateinit var browserFragmentStore: BrowserFragmentStore
     private lateinit var browserAnimator: BrowserAnimator
@@ -323,7 +326,6 @@ abstract class BaseBrowserFragment :
     private val shareResourceFeature = ViewBoundFeatureWrapper<ShareResourceFeature>()
     private val copyDownloadsFeature = ViewBoundFeatureWrapper<CopyDownloadFeature>()
     private val promptsFeature = ViewBoundFeatureWrapper<PromptFeature>()
-    private lateinit var autofillBarsIntegration: AutofillBarsIntegration
 
     @VisibleForTesting
     internal val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
@@ -620,19 +622,6 @@ abstract class BaseBrowserFragment :
                         onTabCounterClick = { onTabCounterClicked(activity.browsingModeManager.mode) },
                     )
                 }
-            },
-        )
-
-        autofillBarsIntegration = AutofillBarsIntegration(
-            passwordBar = binding.suggestStrongPasswordBar,
-            settings = requireContext().settings(),
-            onAutofillBarShown = {
-                removeBottomToolbarDivider(browserToolbarView.view)
-                updateNavbarDivider()
-            },
-            onAutofillBarHidden = {
-                restoreBottomToolbarDivider(browserToolbarView.view)
-                updateNavbarDivider()
             },
         )
 
@@ -966,6 +955,18 @@ abstract class BaseBrowserFragment :
             onHide = ::onAutocompleteBarHide,
         )
 
+        suggestStrongPasswordBar = FenixSuggestStrongPasswordPrompt(
+            viewProvider = {
+                view.findViewById(R.id.suggestStrongPasswordBar)
+                    ?: binding.suggestStrongPasswordBarStub.inflate() as SuggestStrongPasswordBar
+            },
+            toolbarPositionProvider = {
+                requireContext().settings().toolbarPosition
+            },
+            onShow = ::onAutocompleteBarShow,
+            onHide = ::onAutocompleteBarHide,
+        )
+
         promptsFeature.set(
             feature = PromptFeature(
                 activity = activity,
@@ -1025,7 +1026,7 @@ abstract class BaseBrowserFragment :
                 },
                 suggestStrongPasswordDelegate = object : SuggestStrongPasswordDelegate {
                     override val strongPasswordPromptViewListenerView
-                        get() = binding.suggestStrongPasswordBar
+                        get() = suggestStrongPasswordBar
                 },
                 shouldAutomaticallyShowSuggestedPassword = { context.settings().isFirstTimeEngagingWithSignup },
                 onFirstTimeEngagedWithSignup = {
@@ -1557,7 +1558,7 @@ abstract class BaseBrowserFragment :
             parent = binding.browserLayout,
             hideOnScroll = isToolbarDynamic(context),
             content = {
-                val areAutofillBarsShown by remember { mutableStateOf(autofillBarsIntegration.isVisible) }
+                val areAutofillBarsShown by remember { mutableStateOf(areAnyAutofillBarsShown()) }
 
                 FirefoxTheme {
                     Column(
@@ -1628,6 +1629,19 @@ abstract class BaseBrowserFragment :
 
         NavigationBar.browserInitializeTimespan.stop()
     }
+
+    /**
+     * Determines whether or not any autofill bars are shown.
+     *
+     * Currently makes use of [loginSelectBar], [creditCardSelectBar], [addressSelectBar] &
+     * [suggestStrongPasswordBar]
+     */
+    private fun areAnyAutofillBarsShown(): Boolean = listOfNotNull(
+        loginSelectBar?.isPromptDisplayed,
+        creditCardSelectBar?.isPromptDisplayed,
+        addressSelectBar?.isPromptDisplayed,
+        suggestStrongPasswordBar?.isPromptDisplayed,
+    ).any { displayed -> displayed }
 
     @Suppress("LongMethod")
     @Composable
@@ -2610,6 +2624,7 @@ abstract class BaseBrowserFragment :
         loginSelectBar = null
         addressSelectBar = null
         creditCardSelectBar = null
+        suggestStrongPasswordBar = null
 
         _findInPageLauncher = null
         _browserToolbarMenuController = null
