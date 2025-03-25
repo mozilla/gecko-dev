@@ -152,6 +152,15 @@ UrlClassifierFeatureFingerprintingProtection::ProcessChannel(
     return NS_OK;
   }
 
+  bool ShouldProcessByProtectionFeature =
+      UrlClassifierCommon::ShouldProcessWithProtectionFeature(aChannel);
+
+  *aShouldContinue = !ShouldProcessByProtectionFeature;
+
+  if (!ShouldProcessByProtectionFeature) {
+    return NS_OK;
+  }
+
   nsAutoCString list;
   UrlClassifierCommon::TablesToString(aList, list);
 

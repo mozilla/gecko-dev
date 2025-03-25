@@ -693,5 +693,36 @@ bool UrlClassifierCommon::IsPassiveContent(nsIChannel* aChannel) {
           !StaticPrefs::security_mixed_content_block_object_subrequest());
 }
 
+/* static */
+bool UrlClassifierCommon::ShouldProcessWithProtectionFeature(
+    nsIChannel* aChannel) {
+  MOZ_ASSERT(aChannel);
+
+  bool shouldProcess = true;
+
+  if (!(StaticPrefs::privacy_trackingprotection_consentmanager_skip_enabled() ||
+        (StaticPrefs::
+             privacy_trackingprotection_consentmanager_skip_pbmode_enabled() &&
+         NS_UsePrivateBrowsing(aChannel)))) {
+    return shouldProcess;
+  }
+
+  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
+      do_QueryInterface(aChannel);
+
+  if (classifiedChannel) {
+    shouldProcess =
+        !(classifiedChannel->GetClassificationFlags() &
+          nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_CONSENTMANAGER);
+
+    UC_LOG(
+        ("UrlClassifierCommon::ShouldProcessWithProtectionFeature - "
+         "shouldProcess=%d for channel %p",
+         shouldProcess, aChannel));
+  }
+
+  return shouldProcess;
+}
+
 }  // namespace net
 }  // namespace mozilla

@@ -15551,6 +15551,18 @@
   value: true
   mirror: always
 
+# Skip blocking for consentmanager resources in all modes.
+- name: privacy.trackingprotection.consentmanager.skip.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# Skip blocking for consentmanager resources in Private Browsing mode.
+- name: privacy.trackingprotection.consentmanager.skip.pbmode.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Whether to spoof user locale to English (used as part of Resist
 # Fingerprinting).
 # 0 - will prompt

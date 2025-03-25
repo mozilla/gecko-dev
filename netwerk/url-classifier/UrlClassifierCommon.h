@@ -92,6 +92,8 @@ class UrlClassifierCommon final {
                                            uint32_t aClassificationFlags,
                                            bool aIsThirdParty);
 
+  static bool ShouldProcessWithProtectionFeature(nsIChannel* aChannel);
+
  private:
   static uint32_t TableToClassificationFlag(
       const nsACString& aTable, const std::vector<ClassificationData>& aData);
