@@ -416,7 +416,7 @@ internal class BookmarksMiddleware(
                     )
 
                     BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
-                        title = node.title!!,
+                        title = node.title ?: "",
                         dateAdded = node.dateAdded,
                         guid = node.guid,
                     )
