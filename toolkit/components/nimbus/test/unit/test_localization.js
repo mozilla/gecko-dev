@@ -887,11 +887,10 @@ add_task(async function test_updateRecipes() {
   await loader.updateRecipes();
 
   Assert.ok(
-    manager.onRecipe.calledOnceWith(
-      recipe,
-      "rs-loader",
-      MatchStatus.TARGETING_AND_BUCKETING
-    ),
+    manager.onRecipe.calledOnceWith(recipe, "rs-loader", {
+      ok: true,
+      status: MatchStatus.TARGETING_AND_BUCKETING,
+    }),
     "would enroll"
   );
 
@@ -910,7 +909,8 @@ async function test_updateRecipes_missingLocale({
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.stub(manager, "onRecipe");
+  sandbox.spy(manager, "onRecipe");
+  sandbox.stub(manager, "enroll");
 
   const recipe = ExperimentFakes.recipe("foo", {
     bucketConfig: {
@@ -937,25 +937,20 @@ async function test_updateRecipes_missingLocale({
   await manager.store.ready();
   await loader.enable();
 
-  sandbox.spy(manager, "onFinalize");
-
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([recipe]);
   await loader.updateRecipes();
 
-  Assert.ok(manager.onRecipe.notCalled, "Did not enroll in the recipe");
   Assert.ok(
-    manager.onFinalize.calledOnceWith("rs-loader", {
-      recipeMismatches: [],
-      invalidRecipes: [],
-      invalidBranches: [],
-      invalidFeatures: [],
-      missingLocale: ["foo"],
-      missingL10nIds: [],
+    manager.onRecipe.calledOnceWith(recipe, "rs-loader", {
+      ok: false,
+      reason: "l10n-missing-locale",
+      locale: "en-US",
     }),
-    "should call .onFinalize with missing locale"
+    "Called onRecipe with missing locale"
   );
+  Assert.ok(manager.enroll.notCalled, "Did not enroll");
 
   const gleanEvents =
     Glean.nimbusEvents.validationFailed.testGetValue("events");
@@ -1000,7 +995,8 @@ add_task(async function test_updateRecipes_missingEntry() {
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.stub(manager, "onRecipe");
+  sandbox.spy(manager, "onRecipe");
+  sandbox.stub(manager, "enroll");
 
   const recipe = ExperimentFakes.recipe("foo", {
     branches: [
@@ -1024,25 +1020,30 @@ add_task(async function test_updateRecipes_missingEntry() {
   await manager.store.ready();
   await loader.enable();
 
-  sandbox.spy(manager, "onFinalize");
-
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([recipe]);
   await loader.updateRecipes();
 
-  Assert.ok(manager.onRecipe.notCalled, "Did not enroll in the recipe");
   Assert.ok(
-    manager.onFinalize.calledOnceWith("rs-loader", {
-      recipeMismatches: [],
-      invalidRecipes: [],
-      invalidBranches: [],
-      invalidFeatures: [],
-      missingLocale: [],
-      missingL10nIds: ["foo"],
-    }),
-    "should call .onFinalize with missing locale"
+    manager.onRecipe.calledOnceWith(
+      recipe,
+      "rs-loader",
+      sinon.match({
+        ok: false,
+        reason: "l10n-missing-entry",
+        locale: "en-US",
+        missingL10nIds: sinon.match.array.contains([
+          "foo",
+          "qux",
+          "grault",
+          "waldo",
+        ]),
+      })
+    ),
+    "Called onRecipe with missing l10n ids"
   );
+  Assert.ok(manager.enroll.notCalled, "Did not enroll");
 
   const gleanEvents =
     Glean.nimbusEvents.validationFailed.testGetValue("events");
@@ -1111,8 +1112,8 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.spy(manager, "onRecipe");
-  sandbox.spy(manager, "unenroll");
+  sandbox.spy(manager, "updateEnrollment");
+  sandbox.spy(manager, "_unenroll");
 
   const recipe = ExperimentFakes.recipe("foo", {
     branches: [
@@ -1134,9 +1135,7 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
   await manager.store.ready();
   await loader.enable();
 
-  sandbox.spy(manager, "onFinalize");
-
-  await ExperimentFakes.enrollmentHelper(recipe, { source: "rs-loader" });
+  await manager.enroll(recipe, "rs-loader");
   Assert.ok(
     !!manager.store.getExperimentForFeature(FEATURE_ID),
     "Should be enrolled in the experiment"
@@ -1151,18 +1150,30 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
   await loader.updateRecipes();
 
   Assert.ok(
-    manager.onFinalize.calledOnceWith("rs-loader", {
-      recipeMismatches: [],
-      invalidRecipes: [],
-      invalidBranches: [],
-      invalidFeatures: [],
-      missingLocale: [],
-      missingL10nIds: [recipe.slug],
-    }),
-    "should call .onFinalize with missing l10n entry"
+    manager.updateEnrollment.calledOnceWith(
+      sinon.match({ slug: recipe.slug }),
+      badRecipe,
+      "rs-loader",
+      sinon.match({
+        ok: false,
+        reason: "l10n-missing-entry",
+        locale: "en-US",
+        missingL10nIds: sinon.match.array.contains([
+          "foo",
+          "qux",
+          "grault",
+          "waldo",
+        ]),
+      })
+    ),
+    "Should call .onRecipe with the missing l10n entries"
   );
 
-  Assert.ok(manager.unenroll.calledWith(recipe.slug, "l10n-missing-entry"));
+  Assert.ok(
+    manager._unenroll.calledOnceWith(sinon.match({ slug: recipe.slug }), {
+      reason: "l10n-missing-entry",
+    })
+  );
 
   Assert.equal(
     manager.store.getExperimentForFeature(FEATURE_ID),
@@ -1259,8 +1270,8 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
 
   loader.manager = manager;
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-  sandbox.spy(manager, "onRecipe");
-  sandbox.spy(manager, "unenroll");
+  sandbox.spy(manager, "updateEnrollment");
+  sandbox.spy(manager, "_unenroll");
 
   const recipe = ExperimentFakes.recipe("foo", {
     branches: [
@@ -1282,9 +1293,7 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
   await manager.store.ready();
   await loader.enable();
 
-  sandbox.spy(manager, "onFinalize");
-
-  await ExperimentFakes.enrollmentHelper(recipe, { source: "rs-loader" });
+  await manager.enroll(recipe, "rs-loader");
   Assert.ok(
     !!manager.store.getExperimentForFeature(FEATURE_ID),
     "Should be enrolled in the experiment"
@@ -1302,18 +1311,24 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
   await loader.updateRecipes();
 
   Assert.ok(
-    manager.onFinalize.calledOnceWith("rs-loader", {
-      recipeMismatches: [],
-      invalidRecipes: [],
-      invalidBranches: [],
-      invalidFeatures: [],
-      missingLocale: ["foo"],
-      missingL10nIds: [],
-    }),
-    "should call .onFinalize with missing locale"
+    manager.updateEnrollment.calledOnceWith(
+      sinon.match({ slug: recipe.slug }),
+      badRecipe,
+      "rs-loader",
+      {
+        ok: false,
+        reason: "l10n-missing-locale",
+        locale: "en-US",
+      }
+    ),
+    "Should call .onFinal with missing-locale"
   );
 
-  Assert.ok(manager.unenroll.calledWith(recipe.slug, "l10n-missing-locale"));
+  Assert.ok(
+    manager._unenroll.calledWith(sinon.match({ slug: recipe.slug }), {
+      reason: "l10n-missing-locale",
+    })
+  );
 
   Assert.equal(
     manager.store.getExperimentForFeature(FEATURE_ID),

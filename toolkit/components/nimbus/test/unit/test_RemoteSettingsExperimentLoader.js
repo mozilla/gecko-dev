@@ -6,6 +6,9 @@ const { ExperimentFakes } = ChromeUtils.importESModule(
 const { ExperimentManager } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
+const { FirstStartup } = ChromeUtils.importESModule(
+  "resource://gre/modules/FirstStartup.sys.mjs"
+);
 const { RemoteSettingsExperimentLoader, EnrollmentsContext, MatchStatus } =
   ChromeUtils.importESModule(
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
@@ -77,6 +80,10 @@ add_task(async function test_updateRecipes() {
   const loader = ExperimentFakes.rsLoader();
 
   const PASS_FILTER_RECIPE = ExperimentFakes.recipe("pass", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 0,
+    },
     targeting: "true",
   });
   const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("fail", {
@@ -88,111 +95,60 @@ add_task(async function test_updateRecipes() {
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([PASS_FILTER_RECIPE, FAIL_FILTER_RECIPE]);
   sinon.stub(loader.manager, "onRecipe").resolves();
-  sinon.stub(loader.manager, "onFinalize");
 
   await loader.enable();
-  ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
-  equal(
+  Assert.ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
+  Assert.equal(
     loader.manager.onRecipe.callCount,
     2,
     "should call .onRecipe only for all recipes"
   );
 
-  ok(
-    loader.manager.onRecipe.calledWith(
-      PASS_FILTER_RECIPE,
-      "rs-loader",
-      MatchStatus.TARGETING_ONLY
-    ),
-    "should call .onRecipe with argument data"
-  );
-  ok(
-    loader.manager.onRecipe.calledWith(
-      FAIL_FILTER_RECIPE,
-      "rs-loader",
-      MatchStatus.NO_MATCH
-    ),
-    "should call .onRecipe with argument data"
-  );
-});
-
-add_task(async function test_updateRecipes_someMismatch() {
-  const loader = ExperimentFakes.rsLoader();
-
-  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("pass", {
-    targeting: "true",
-  });
-  const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("fail", {
-    targeting: "false",
-  });
-  sinon.spy(loader, "updateRecipes");
-
-  sinon
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([PASS_FILTER_RECIPE, FAIL_FILTER_RECIPE]);
-  sinon.stub(loader.manager, "onRecipe").resolves();
-  sinon.stub(loader.manager, "onFinalize");
-
-  await loader.enable();
-  ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
-  equal(
-    loader.manager.onRecipe.callCount,
-    2,
-    "should call .onRecipe only for all recipes"
-  );
-  ok(loader.manager.onFinalize.calledOnce, "Should call onFinalize.");
-  ok(
-    loader.manager.onFinalize.calledOnceWith("rs-loader", {
-      recipeMismatches: [FAIL_FILTER_RECIPE.slug],
-      invalidRecipes: [],
-      invalidBranches: [],
-      invalidFeatures: [],
-      missingL10nIds: [],
-      missingLocale: [],
+  Assert.ok(
+    loader.manager.onRecipe.calledWith(PASS_FILTER_RECIPE, "rs-loader", {
+      ok: true,
+      status: MatchStatus.TARGETING_ONLY,
     }),
-    "should call .onFinalize with the recipes that failed targeting"
+    "should call .onRecipe for pass recipe with TARGETING_ONLY"
+  );
+  Assert.ok(
+    loader.manager.onRecipe.calledWith(FAIL_FILTER_RECIPE, "rs-loader", {
+      ok: true,
+      status: MatchStatus.NO_MATCH,
+    }),
+    "should call .onRecipe for fail recipe with NO_MATCH"
   );
 });
 
-add_task(async function test_updateRecipes_forFirstStartup() {
-  const loader = ExperimentFakes.rsLoader();
-  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
-    targeting: "isFirstStartup",
-  });
-  sinon
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([PASS_FILTER_RECIPE]);
-  sinon.stub(loader.manager, "onRecipe").resolves();
-  sinon.stub(loader.manager, "onFinalize");
-  sinon
-    .stub(loader.manager, "createTargetingContext")
-    .returns({ isFirstStartup: true });
+add_task(async function test_enrollmentsContextFirstStartup() {
+  const sandbox = sinon.createSandbox();
 
-  await loader.enable({ isFirstStartup: true });
+  sandbox.stub(FirstStartup, "state").get(() => FirstStartup.IN_PROGRESS);
 
-  ok(loader.manager.onRecipe.calledOnce, "should pass the targeting filter");
-});
+  const manager = ExperimentFakes.manager();
+  const ctx = new EnrollmentsContext(manager);
 
-add_task(async function test_updateRecipes_forNoneFirstStartup() {
-  const loader = ExperimentFakes.rsLoader();
-  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
-    targeting: "isFirstStartup",
-  });
-  sinon
-    .stub(loader.remoteSettingsClients.experiments, "get")
-    .resolves([PASS_FILTER_RECIPE]);
-  sinon.stub(loader.manager, "onRecipe").resolves();
-  sinon.stub(loader.manager, "onFinalize");
-  sinon
-    .stub(loader.manager, "createTargetingContext")
-    .returns({ isFirstStartup: false });
-
-  await loader.enable({ isFirstStartup: true });
-
-  ok(
-    loader.manager.onRecipe.calledOnce,
-    "should call onRecipe once regardless of targetting match"
+  Assert.ok(
+    await ctx.checkTargeting(
+      ExperimentFakes.recipe("is-first-startup", {
+        targeting: "isFirstStartup",
+      })
+    ),
+    "isFirstStartup targeting works when true"
   );
+
+  sandbox.stub(FirstStartup, "state").get(() => FirstStartup.NOT_STARTED);
+
+  Assert.ok(
+    await ctx.checkTargeting(
+      ExperimentFakes.recipe("not-first-startup", {
+        targeting: "!isFirstStartup",
+      })
+    ),
+    "isFirstStartup targeting works when false"
+  );
+
+  sandbox.restore();
 });
 
 add_task(async function test_checkTargeting() {
@@ -324,7 +280,6 @@ add_task(async function test_enrollment_changed_notification() {
     .stub(loader.remoteSettingsClients.experiments, "get")
     .resolves([PASS_FILTER_RECIPE]);
   sinon.stub(loader.manager, "onRecipe").resolves();
-  sinon.stub(loader.manager, "onFinalize");
 
   await loader.enable();
   await enrollmentChanged;

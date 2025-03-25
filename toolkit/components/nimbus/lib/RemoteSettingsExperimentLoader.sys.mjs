@@ -99,6 +99,7 @@ const SCHEMAS = {
 };
 
 export const MatchStatus = Object.freeze({
+  NOT_SEEN: "NOT_SEEN",
   NO_MATCH: "NO_MATCH",
   TARGETING_ONLY: "TARGETING_ONLY",
   TARGETING_AND_BUCKETING: "TARGETING_AND_BUCKETING",
@@ -162,7 +163,13 @@ export const CheckRecipeResult = {
 };
 
 export class _RemoteSettingsExperimentLoader {
-  static LOCK_ID = "remote-settings-experiment-loader:update";
+  get LOCK_ID() {
+    return "remote-settings-experiment-loader:update";
+  }
+
+  get SOURCE() {
+    return "rs-loader";
+  }
 
   constructor() {
     // Has the timer been set?
@@ -329,7 +336,7 @@ export class _RemoteSettingsExperimentLoader {
 
     lazy.log.debug(`Updating recipes with trigger "${trigger ?? ""}"`);
 
-    const recipes = [];
+    const allRecipes = [];
     let loadingError = false;
 
     const experiments = await this.getRecipesFromCollection({
@@ -339,7 +346,7 @@ export class _RemoteSettingsExperimentLoader {
     });
 
     if (experiments !== null) {
-      recipes.push(...experiments);
+      allRecipes.push(...experiments);
     } else {
       loadingError = true;
     }
@@ -351,45 +358,40 @@ export class _RemoteSettingsExperimentLoader {
     });
 
     if (secureExperiments !== null) {
-      recipes.push(...secureExperiments);
+      allRecipes.push(...secureExperiments);
     } else {
       loadingError = true;
     }
 
-    recipes.sort(
-      (a, b) => new Date(a.publishedDate ?? 0) - new Date(b.publishedDate ?? 0)
-    );
+    if (allRecipes && !loadingError) {
+      const enrollmentsCtx = new EnrollmentsContext(
+        this.manager,
+        recipeValidator,
+        { validationEnabled, shouldCheckTargeting: true }
+      );
 
-    const enrollmentsCtx = new EnrollmentsContext(
-      this.manager,
-      recipeValidator,
-      { validationEnabled, shouldCheckTargeting: true }
-    );
+      const { existingEnrollments, recipes } =
+        this._partitionRecipes(allRecipes);
 
-    if (recipes && !loadingError) {
-      for (const recipe of recipes) {
-        if (recipe.appId !== "firefox-desktop") {
-          // Skip over recipes not intended for desktop. Experimenter publishes
-          // recipes into a collection per application (desktop goes to
-          // `nimbus-desktop-experiments`) but all preview experiments share the
-          // same collection (`nimbus-preview`).
-          //
-          // This is *not* the same as `lazy.APP_ID` which is used to
-          // distinguish between desktop Firefox and the desktop background
-          // updater.
-          continue;
-        }
+      for (const { enrollment, recipe } of existingEnrollments) {
+        const result = recipe
+          ? await enrollmentsCtx.checkRecipe(recipe)
+          : CheckRecipeResult.Ok(MatchStatus.NOT_SEEN);
 
-        const result = await enrollmentsCtx.checkRecipe(recipe);
-        if (result.ok) {
-          await this.manager.onRecipe(recipe, "rs-loader", result.status);
-        }
+        await this.manager.updateEnrollment(
+          enrollment,
+          recipe,
+          this.SOURCE,
+          result
+        );
       }
 
-      lazy.log.debug(
-        `${enrollmentsCtx.matches} recipes matched. Finalizing ExperimentManager.`
-      );
-      this.manager.onFinalize("rs-loader", enrollmentsCtx.getResults());
+      for (const recipe of recipes) {
+        const result = await enrollmentsCtx.checkRecipe(recipe);
+        await this.manager.onRecipe(recipe, this.SOURCE, result);
+      }
+
+      lazy.log.debug(`${enrollmentsCtx.matches} recipes matched.`);
     }
 
     if (trigger !== "timer") {
@@ -640,6 +642,79 @@ export class _RemoteSettingsExperimentLoader {
     }
 
     return this._updatingDeferred.promise;
+  }
+
+  /**
+   * Partition the given recipes into those that have existing enrollments and
+   * those that don't
+   *
+   * @param {object[]} recipes
+   *        The recipes returned from Remote Settings.
+   *
+   * @returns {object}
+   *          An object containing:
+   *
+   *          - `existingEnrollments`, which is a list of all currently active
+   *            enrollments from this source paired with the live recipe from
+   *            `recipes` (if any);
+   *
+   *          - `recipes`, the remaining recipes which do not have currently
+   *            active enrollments.
+   */
+  _partitionRecipes(recipes) {
+    const rollouts = [];
+    const experiments = [];
+
+    const recipesBySlug = new Map(recipes.map(r => [r.slug, r]));
+
+    for (const enrollment of this.manager.store.getAll()) {
+      if (!enrollment.active || enrollment.source !== this.SOURCE) {
+        continue;
+      }
+
+      const recipe = recipesBySlug.get(enrollment.slug);
+      recipesBySlug.delete(enrollment.slug);
+
+      if (enrollment.isRollout) {
+        rollouts.push({ enrollment, recipe });
+      } else {
+        experiments.push({ enrollment, recipe });
+      }
+    }
+
+    // Sort the rollouts and experiments by lastSeen (i.e., their enrollment
+    // order).
+    //
+    // We want to review the rollouts before the experiments for
+    // consistency with Nimbus SDK.
+    function orderByLastSeen(a, b) {
+      return new Date(a.enrollment.lastSeen) - new Date(b.enrollment.lastSeen);
+    }
+
+    rollouts.sort(orderByLastSeen);
+    experiments.sort(orderByLastSeen);
+
+    const existingEnrollments = rollouts;
+    existingEnrollments.push(...experiments);
+
+    // Skip over recipes not intended for desktop. Experimenter publishes
+    // recipes into a collection per application (desktop goes to
+    // `nimbus-desktop-experiments`) but all preview experiments share the same
+    // collection (`nimbus-preview`).
+    //
+    // This is *not* the same as `lazy.APP_ID` which is used to distinguish
+    // between desktop Firefox and the desktop background updater.
+    const remaining = Array.from(recipesBySlug.values())
+      .filter(r => r.appId === "firefox-desktop")
+      .sort(
+        (a, b) =>
+          new Date(a.publishedDate ?? 0) - new Date(b.publishedDate ?? 0)
+      );
+
+    return {
+      existingEnrollments,
+      recipes: remaining,
+    };
   }
 }
 

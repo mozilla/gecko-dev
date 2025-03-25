@@ -366,7 +366,9 @@ export const ExperimentFakes = {
       proposedEnrollment: 7,
       referenceBranch: "control",
       application: "firefox-desktop",
-      branches: ExperimentFakes.recipe.branches,
+      branches: props?.isRollout
+        ? [ExperimentFakes.recipe.branches[0]]
+        : ExperimentFakes.recipe.branches,
       bucketConfig: ExperimentFakes.recipe.bucketConfig,
       userFacingName: "NimbusTestUtils recipe",
       userFacingDescription: "NimbusTestUtils recipe",

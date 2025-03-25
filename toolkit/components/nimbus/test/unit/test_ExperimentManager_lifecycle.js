@@ -137,33 +137,6 @@ add_task(async function test_startup_unenroll() {
   await cleanupStore(manager.store);
 });
 
-/**
- * onRecipe()
- * - should add recipe slug to .session[source]
- * - should call .enroll() if the recipe hasn't been seen before;
- * - should call .update() if the Enrollment already exists in the store;
- * - should skip enrollment if recipe.isEnrollmentPaused is true
- */
-add_task(async function test_onRecipe_track_slug() {
-  const manager = ExperimentFakes.manager();
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(manager, "enroll");
-  sandbox.spy(manager, "updateEnrollment");
-
-  const fooRecipe = ExperimentFakes.recipe("foo");
-
-  await manager.onStartup();
-  await manager.onRecipe(fooRecipe, "test", MatchStatus.TARGETING_ONLY);
-
-  Assert.equal(
-    manager.sessions.get("test").has("foo"),
-    true,
-    "should add slug to sessions[test]"
-  );
-
-  await cleanupStore(manager.store);
-});
-
 add_task(async function test_onRecipe_enroll() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
@@ -181,11 +154,10 @@ add_task(async function test_onRecipe_enroll() {
     "There should be no active experiments"
   );
 
-  await manager.onRecipe(
-    fooRecipe,
-    "test",
-    MatchStatus.TARGETING_AND_BUCKETING
-  );
+  await manager.onRecipe(fooRecipe, "test", {
+    ok: true,
+    status: MatchStatus.TARGETING_AND_BUCKETING,
+  });
 
   Assert.equal(
     manager.enroll.calledWith(fooRecipe),
@@ -218,14 +190,16 @@ add_task(async function test_onRecipe_update() {
 
   await manager.onStartup();
   await manager.enroll(fooRecipe, "test");
-  await manager.onRecipe(
-    fooRecipe,
-    "test",
-    MatchStatus.TARGETING_AND_BUCKETING
-  );
+  await manager.onRecipe(fooRecipe, "test", {
+    ok: true,
+    status: MatchStatus.TARGETING_AND_BUCKETING,
+  });
 
   Assert.equal(
-    manager.updateEnrollment.calledWith(fooRecipe),
+    manager.updateEnrollment.calledWith(sinon.match.object, fooRecipe, "test", {
+      ok: true,
+      status: MatchStatus.TARGETING_AND_BUCKETING,
+    }),
     true,
     "should call .updateEnrollment() if the recipe has already been enrolled"
   );
@@ -239,7 +213,7 @@ add_task(async function test_onRecipe_rollout_update() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
   sandbox.spy(manager, "enroll");
-  sandbox.spy(manager, "unenroll");
+  sandbox.spy(manager, "_unenroll");
   sandbox.spy(manager, "updateEnrollment");
 
   const fooRecipe = ExperimentFakes.recipe("foo", {
@@ -253,14 +227,18 @@ add_task(async function test_onRecipe_rollout_update() {
 
   await manager.onStartup();
   await manager.enroll(fooRecipe, "test");
-  await manager.onRecipe(
-    fooRecipe,
-    "test",
-    MatchStatus.TARGETING_AND_BUCKETING
-  );
+  await manager.onRecipe(fooRecipe, "test", {
+    ok: true,
+    status: MatchStatus.TARGETING_AND_BUCKETING,
+  });
 
   Assert.ok(
-    manager.updateEnrollment.calledOnceWith(fooRecipe, "test", true),
+    manager.updateEnrollment.calledOnceWith(
+      sinon.match.object,
+      fooRecipe,
+      "test",
+      { ok: true, status: MatchStatus.TARGETING_AND_BUCKETING }
+    ),
     "should call .updateEnrollment() if the recipe has already been enrolled"
   );
   Assert.ok(
@@ -268,7 +246,7 @@ add_task(async function test_onRecipe_rollout_update() {
     "updateEnrollment will confirm the enrolled branch still exists in the recipe and exit"
   );
   Assert.ok(
-    manager.unenroll.notCalled,
+    manager._unenroll.notCalled,
     "Should not call if the branches did not change"
   );
 
@@ -283,22 +261,24 @@ add_task(async function test_onRecipe_rollout_update() {
       },
     ],
   });
-  await manager.onRecipe(
-    recipeClone,
-    "test",
-    MatchStatus.TARGETING_AND_BUCKETING
-  );
+  await manager.onRecipe(recipeClone, "test", {
+    ok: true,
+    status: MatchStatus.TARGETING_AND_BUCKETING,
+  });
 
   Assert.ok(
-    manager.updateEnrollment.calledOnceWith(recipeClone, "test", true),
+    manager.updateEnrollment.calledOnceWith(
+      sinon.match.object,
+      recipeClone,
+      "test",
+      { ok: true, status: MatchStatus.TARGETING_AND_BUCKETING }
+    ),
     "should call .updateEnrollment() if the recipe has already been enrolled"
   );
   Assert.ok(
-    manager.unenroll.called,
-    "updateEnrollment will unenroll because the branch slug changed"
-  );
-  Assert.ok(
-    manager.unenroll.calledWith(fooRecipe.slug, "branch-removed"),
+    manager._unenroll.calledOnceWith(sinon.match({ slug: fooRecipe.slug }), {
+      reason: "branch-removed",
+    }),
     "updateEnrollment will unenroll because the branch slug changed"
   );
 
@@ -337,16 +317,14 @@ add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
 
   await manager.onStartup();
 
-  await manager.onRecipe(
-    fxLabsOptInRecipe,
-    "test",
-    MatchStatus.TARGETING_AND_BUCKETING
-  );
-  await manager.onRecipe(
-    fxLabsOptOutRecipe,
-    "test",
-    MatchStatus.TARGETING_AND_BUCKETING
-  );
+  await manager.onRecipe(fxLabsOptInRecipe, "test", {
+    ok: true,
+    status: MatchStatus.TARGETING_AND_BUCKETING,
+  });
+  await manager.onRecipe(fxLabsOptOutRecipe, "test", {
+    ok: true,
+    status: MatchStatus.TARGETING_AND_BUCKETING,
+  });
 
   Assert.equal(
     manager.optInRecipes.length,
@@ -366,141 +344,6 @@ add_task(async function test_onRecipe_isFirefoxLabsOptin_recipe() {
 
   // unenrolling the fxLabsOptOutRecipe only
   manager.unenroll(fxLabsOptOutRecipe.slug);
-  await cleanupStore(manager.store);
-});
-
-/**
- * onFinalize()
- * - should unenroll experiments that weren't seen in the current session
- */
-
-add_task(async function test_onFinalize_unenroll() {
-  const manager = ExperimentFakes.manager();
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(manager, "unenroll");
-
-  await manager.onStartup();
-
-  // Add an experiment to the store without calling .onRecipe
-  // This simulates an enrollment having happened in the past.
-  let recipe0 = ExperimentFakes.experiment("foo", {
-    experimentType: "unittest",
-    userFacingName: "foo",
-    userFacingDescription: "foo",
-    lastSeen: new Date().toJSON(),
-    source: "test",
-  });
-  await manager.store.addEnrollment(recipe0);
-
-  const recipe1 = ExperimentFakes.recipe("bar");
-  // Unique features to prevent overlap
-  recipe1.branches[0].features[0].featureId = "red";
-  recipe1.branches[1].features[0].featureId = "red";
-  await manager.onRecipe(recipe1, "test", MatchStatus.TARGETING_AND_BUCKETING);
-  const recipe2 = ExperimentFakes.recipe("baz");
-  recipe2.branches[0].features[0].featureId = "green";
-  recipe2.branches[1].features[0].featureId = "green";
-  await manager.onRecipe(recipe2, "test", MatchStatus.TARGETING_AND_BUCKETING);
-
-  // Finalize
-  manager.onFinalize("test");
-
-  Assert.equal(
-    manager.unenroll.callCount,
-    1,
-    "should only call unenroll for the unseen recipe"
-  );
-  Assert.equal(
-    manager.unenroll.calledWith("foo", "recipe-not-seen"),
-    true,
-    "should unenroll a experiment whose recipe wasn't seen in the current session"
-  );
-  Assert.equal(
-    manager.sessions.has("test"),
-    false,
-    "should clear sessions[test]"
-  );
-
-  manager.unenroll(recipe1.slug);
-  manager.unenroll(recipe2.slug);
-  await cleanupStore(manager.store);
-});
-
-add_task(async function test_onFinalize_unenroll_mismatch() {
-  const manager = ExperimentFakes.manager();
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(manager, "unenroll");
-
-  await manager.onStartup();
-
-  // Add an experiment to the store without calling .onRecipe
-  // This simulates an enrollment having happened in the past.
-  let recipe0 = ExperimentFakes.experiment("foo", {
-    experimentType: "unittest",
-    userFacingName: "foo",
-    userFacingDescription: "foo",
-    lastSeen: new Date().toJSON(),
-    source: "test",
-  });
-  await manager.store.addEnrollment(recipe0);
-
-  const recipe1 = ExperimentFakes.recipe("bar");
-  // Unique features to prevent overlap
-  recipe1.branches[0].features[0].featureId = "red";
-  recipe1.branches[1].features[0].featureId = "red";
-  await manager.onRecipe(recipe1, "test", MatchStatus.TARGETING_AND_BUCKETING);
-  const recipe2 = ExperimentFakes.recipe("baz");
-  recipe2.branches[0].features[0].featureId = "green";
-  recipe2.branches[1].features[0].featureId = "green";
-  await manager.onRecipe(recipe2, "test", MatchStatus.TARGETING_AND_BUCKETING);
-
-  // Finalize
-  manager.onFinalize("test", { recipeMismatches: [recipe0.slug] });
-
-  Assert.equal(
-    manager.unenroll.callCount,
-    1,
-    "should only call unenroll for the unseen recipe"
-  );
-  Assert.equal(
-    manager.unenroll.calledWith("foo", "targeting-mismatch"),
-    true,
-    "should unenroll a experiment whose recipe wasn't seen in the current session"
-  );
-  Assert.equal(
-    manager.sessions.has("test"),
-    false,
-    "should clear sessions[test]"
-  );
-
-  manager.unenroll(recipe1.slug);
-  manager.unenroll(recipe2.slug);
-  await cleanupStore(manager.store);
-});
-
-add_task(async function test_onFinalize_rollout_unenroll() {
-  const manager = ExperimentFakes.manager();
-  const sandbox = sinon.createSandbox();
-  sandbox.spy(manager, "unenroll");
-
-  await manager.onStartup();
-
-  let rollout = ExperimentFakes.rollout("rollout");
-  await manager.store.addEnrollment(rollout);
-
-  manager.onFinalize("NimbusTestUtils");
-
-  Assert.equal(
-    manager.unenroll.callCount,
-    1,
-    "should only call unenroll for the unseen recipe"
-  );
-  Assert.equal(
-    manager.unenroll.calledWith("rollout", "recipe-not-seen"),
-    true,
-    "should unenroll a experiment whose recipe wasn't seen in the current session"
-  );
-
   await cleanupStore(manager.store);
 });
 
