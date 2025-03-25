@@ -864,8 +864,20 @@ nimbus_events:
       reason:
         type: string
         description: >
-          Why validation failed (one of "invalid-recipe", "invalid-branch",
-          "invalid-feature", "missing-locale", or "missing-l10n-entry").
+          Why the validation failed.
+
+          This will be one of the following reasons:
+
+          - "invalid-recipe": the recipe failed schema validation;
+          - "invalid-branch": a branch value failed schema validation;
+          - "invalid-feature": the recipe uses an unknown feature;
+          - "l10n-missing-locale": the recipe is missing localizations for a
+            specific locale;
+          - "l10n-missing-entry": the recipe is missing specific localization
+            entries for a specific locale;
+          - "unsupported-feature": the recipe uses a feature that exists but is
+            not supported by this specific application (e.g., a feature that is
+            only for the background task runner);
       branch:
         type: string
         description: >
@@ -883,21 +895,29 @@ nimbus_events:
       l10n_ids:
         type: string
         description: >
-          If reason == missing-l10n-entry, a comma-sparated list of missing
+          If reason == missing-l10n-entry, a comma-separated list of missing
           localization entries.
+      feature_ids:
+        type: string
+        description: >
+          If reason == unsupported-feature, a comma-separated list of the
+          unsupported feature IDs.
 
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1762652
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781953
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1821092
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928476
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1762652
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781953
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1821092
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928476
     data_sensitivity:
       - technical
     notification_emails:
       - beth@mozilla.com
+      - project-nimbus@mozilla.com
     expires: never
     send_in_pings:
       - background-update

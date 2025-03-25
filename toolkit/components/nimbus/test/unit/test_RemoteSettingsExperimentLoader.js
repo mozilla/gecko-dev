@@ -6,7 +6,7 @@ const { ExperimentFakes } = ChromeUtils.importESModule(
 const { ExperimentManager } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
-const { RemoteSettingsExperimentLoader, EnrollmentsContext } =
+const { RemoteSettingsExperimentLoader, EnrollmentsContext, MatchStatus } =
   ChromeUtils.importESModule(
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
   );
@@ -76,10 +76,10 @@ add_task(async function test_init_with_opt_in() {
 add_task(async function test_updateRecipes() {
   const loader = ExperimentFakes.rsLoader();
 
-  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
+  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("pass", {
     targeting: "true",
   });
-  const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
+  const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("fail", {
     targeting: "false",
   });
   sinon.spy(loader, "updateRecipes");
@@ -97,12 +97,21 @@ add_task(async function test_updateRecipes() {
     2,
     "should call .onRecipe only for all recipes"
   );
+
   ok(
-    loader.manager.onRecipe.calledWith(PASS_FILTER_RECIPE, "rs-loader", true),
+    loader.manager.onRecipe.calledWith(
+      PASS_FILTER_RECIPE,
+      "rs-loader",
+      MatchStatus.TARGETING_ONLY
+    ),
     "should call .onRecipe with argument data"
   );
   ok(
-    loader.manager.onRecipe.calledWith(FAIL_FILTER_RECIPE, "rs-loader", false),
+    loader.manager.onRecipe.calledWith(
+      FAIL_FILTER_RECIPE,
+      "rs-loader",
+      MatchStatus.NO_MATCH
+    ),
     "should call .onRecipe with argument data"
   );
 });
@@ -110,10 +119,10 @@ add_task(async function test_updateRecipes() {
 add_task(async function test_updateRecipes_someMismatch() {
   const loader = ExperimentFakes.rsLoader();
 
-  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
+  const PASS_FILTER_RECIPE = ExperimentFakes.recipe("pass", {
     targeting: "true",
   });
-  const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
+  const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("fail", {
     targeting: "false",
   });
   sinon.spy(loader, "updateRecipes");

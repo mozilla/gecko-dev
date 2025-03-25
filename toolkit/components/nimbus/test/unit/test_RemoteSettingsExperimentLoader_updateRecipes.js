@@ -11,7 +11,7 @@ const {
   NimbusFeatures,
   _ExperimentFeature: ExperimentFeature,
 } = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
-const { EnrollmentsContext, RecipeStatus } = ChromeUtils.importESModule(
+const { EnrollmentsContext, MatchStatus } = ChromeUtils.importESModule(
   "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
 );
 const { NimbusTelemetry } = ChromeUtils.importESModule(
@@ -206,7 +206,13 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
   const loader = ExperimentFakes.rsLoader();
   loader.manager = manager;
 
-  const recipe = ExperimentFakes.recipe("foo");
+  const recipe = ExperimentFakes.recipe("foo", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+  });
+
   const badRecipe = { ...recipe };
   delete badRecipe.branches;
 
@@ -224,7 +230,11 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(loader.manager.onRecipe.callCount, 1, "should call .onRecipe once");
   ok(
-    loader.manager.onRecipe.calledWith(recipe, "rs-loader", true),
+    loader.manager.onRecipe.calledWith(
+      recipe,
+      "rs-loader",
+      MatchStatus.TARGETING_AND_BUCKETING
+    ),
     "should call .onRecipe with recipe and isTargettingMatch=true"
   );
   ok(
@@ -282,7 +292,11 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   const loader = ExperimentFakes.rsLoader();
   loader.manager = manager;
 
-  const recipe = ExperimentFakes.recipe("foo", {
+  const recipe = ExperimentFakes.recipe("recipe", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
     branches: [
       {
         slug: "control",
@@ -338,7 +352,11 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
   ok(loader.updateRecipes.calledOnce, "should call .updateRecipes");
   equal(loader.manager.onRecipe.callCount, 1, "should call .onRecipe once");
   ok(
-    loader.manager.onRecipe.calledWith(recipe, "rs-loader", true),
+    loader.manager.onRecipe.calledWith(
+      recipe,
+      "rs-loader",
+      MatchStatus.TARGETING_AND_BUCKETING
+    ),
     "should call .onRecipe with recipe and isTargetting=true"
   );
   ok(
@@ -370,7 +388,7 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
     loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: ["foo"],
+      invalidBranches: ["recipe"],
       invalidFeatures: [],
       missingLocale: [],
       missingL10nIds: [],
@@ -391,8 +409,17 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
 
-  const recipe = ExperimentFakes.recipe("foo");
-  const badRecipe = ExperimentFakes.recipe("foo", {
+  const recipe = ExperimentFakes.recipe("recipe", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+  });
+  const badRecipe = ExperimentFakes.recipe("badRecipe", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
     branches: [
       {
         ...recipe.branches[0],
@@ -448,7 +475,11 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
   ok(manager.onRecipe.calledOnce, "should call .updateRecipes");
   equal(loader.manager.onRecipe.callCount, 1, "should call .onRecipe once");
   ok(
-    loader.manager.onRecipe.calledWith(recipe, "rs-loader"),
+    loader.manager.onRecipe.calledWith(
+      recipe,
+      "rs-loader",
+      MatchStatus.TARGETING_AND_BUCKETING
+    ),
     "should call .onRecipe with argument data"
   );
   ok(
@@ -496,7 +527,7 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
     loader.manager.onFinalize.calledOnceWith("rs-loader", {
       recipeMismatches: [],
       invalidRecipes: [],
-      invalidBranches: ["foo"],
+      invalidBranches: ["badRecipe"],
       invalidFeatures: [],
       missingLocale: [],
       missingL10nIds: [],
@@ -530,6 +561,10 @@ add_task(async function test_updateRecipes_validationTelemetry() {
   invalidBranch.branches[1].features[0].value.testInt = "world";
 
   const invalidFeature = ExperimentFakes.recipe("invalid-feature", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
     branches: [
       {
         slug: "control",
@@ -919,6 +954,10 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
   delete message.template;
 
   const invalidMsgRecipe = ExperimentFakes.recipe("invalid-recipe", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
     branches: [
       {
         slug: "control",
@@ -954,8 +993,13 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
     sinon.stub(manager.store, "getAllActiveRollouts").returns([]);
 
     await loader.enable();
+    Assert.equal(manager.onRecipe.callCount, 1);
     ok(
-      manager.onRecipe.calledOnceWith(optOutRecipe, "rs-loader", true),
+      manager.onRecipe.calledOnceWith(
+        optOutRecipe,
+        "rs-loader",
+        MatchStatus.TARGETING_AND_BUCKETING
+      ),
       "should call .onRecipe for opt-out recipe"
     );
 
@@ -1029,13 +1073,13 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
     !(await targetingSpy.returnValues[0]),
     "Targeting should not have matched"
   );
-  Assert.equal(
+  Assert.deepEqual(
     await checkSpy.returnValues[0],
-    RecipeStatus.TARGETING_MISMATCH,
+    { ok: true, status: MatchStatus.NO_MATCH },
     "Recipe should be considered a targeting mismatch"
   );
   ok(
-    manager.onRecipe.calledOnceWith(recipe, "rs-loader", false),
+    manager.onRecipe.calledOnceWith(recipe, "rs-loader", MatchStatus.NO_MATCH),
     "should call .onRecipe for the recipe"
   );
   ok(
@@ -1903,9 +1947,12 @@ add_task(async function test_updateRecipes_secure() {
     );
 
     for (const expectedRecipe of shouldEnroll) {
-      onRecipe.calledWith(
-        expectedRecipe,
-        "rs-loader",
+      Assert.ok(
+        onRecipe.calledWith(
+          expectedRecipe,
+          "rs-loader",
+          MatchStatus.TARGETING_AND_BUCKETING
+        ),
         `Should enroll in ${expectedRecipe.slug}`
       );
     }
@@ -2363,4 +2410,44 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
 
   Services.fog.testResetFOG();
   cleanupFeatures();
+});
+
+add_task(async function test_updateRecipesWithPausedEnrollment() {
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  await manager.onStartup();
+  await loader.enable();
+
+  const recipe = ExperimentFakes.recipe("foo", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+    isEnrollmentPaused: true,
+  });
+
+  sinon
+    .stub(loader.remoteSettingsClients.experiments, "get")
+    .resolves([recipe]);
+
+  sinon.spy(manager, "onRecipe");
+  sinon.spy(manager, "enroll");
+
+  await loader.updateRecipes("test");
+
+  Assert.ok(
+    manager.onRecipe.calledOnceWith(
+      recipe,
+      "rs-loader",
+      MatchStatus.TARGETING_ONLY
+    ),
+    "Should call onRecipe with tareting match"
+  );
+  Assert.ok(
+    manager.enroll.notCalled,
+    "Should not call enroll for paused recipe"
+  );
+
+  await assertEmptyStore(manager.store);
 });

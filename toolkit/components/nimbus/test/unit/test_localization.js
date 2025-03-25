@@ -6,6 +6,9 @@ const { ExperimentAPI, _ExperimentFeature: ExperimentFeature } =
 const { ExperimentFakes, ExperimentTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
+const { MatchStatus } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs"
+);
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
@@ -855,6 +858,10 @@ add_task(async function test_updateRecipes() {
   sandbox.stub(manager, "onRecipe");
 
   const recipe = ExperimentFakes.recipe("foo", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
     branches: [
       {
         slug: "control",
@@ -879,7 +886,14 @@ add_task(async function test_updateRecipes() {
     .resolves([recipe]);
   await loader.updateRecipes();
 
-  Assert.ok(manager.onRecipe.calledOnce, "Enrolled");
+  Assert.ok(
+    manager.onRecipe.calledOnceWith(
+      recipe,
+      "rs-loader",
+      MatchStatus.TARGETING_AND_BUCKETING
+    ),
+    "would enroll"
+  );
 
   await cleanupStore(manager.store);
   sandbox.reset();

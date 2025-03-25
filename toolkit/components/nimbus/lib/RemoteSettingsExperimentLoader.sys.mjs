@@ -98,18 +98,68 @@ const SCHEMAS = {
   },
 };
 
-export const RecipeStatus = Object.freeze({
-  TARGETING_MATCH: "TARGETING_MATCH",
-  TARGETING_MISMATCH: "TARGETING_MISMATCH",
-  INVALID: "INVALID",
-
-  isValid(status) {
-    return (
-      status === RecipeStatus.TARGETING_MATCH ||
-      status === RecipeStatus.TARGETING_MISMATCH
-    );
-  },
+export const MatchStatus = Object.freeze({
+  NO_MATCH: "NO_MATCH",
+  TARGETING_ONLY: "TARGETING_ONLY",
+  TARGETING_AND_BUCKETING: "TARGETING_AND_BUCKETING",
 });
+
+export const CheckRecipeResult = {
+  Ok(status) {
+    return {
+      ok: true,
+      status,
+    };
+  },
+
+  InvalidRecipe() {
+    return {
+      ok: false,
+      reason: lazy.NimbusTelemetry.ValidationFailureReason.INVALID_RECIPE,
+    };
+  },
+
+  InvalidBranches(branchSlugs) {
+    return {
+      ok: false,
+      reason: lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH,
+      branchSlugs,
+    };
+  },
+
+  InvalidFeatures(featureIds) {
+    return {
+      ok: false,
+      reason: lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE,
+      featureIds,
+    };
+  },
+
+  MissingL10nEntry(locale, missingL10nIds) {
+    return {
+      ok: false,
+      reason: lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY,
+      locale,
+      missingL10nIds,
+    };
+  },
+
+  MissingLocale(locale) {
+    return {
+      ok: false,
+      reason: lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_LOCALE,
+      locale,
+    };
+  },
+
+  UnsupportedFeatures(featureIds) {
+    return {
+      ok: false,
+      reason: lazy.NimbusTelemetry.ValidationFailureReason.UNSUPPORTED_FEATURES,
+      featureIds,
+    };
+  },
+};
 
 export class _RemoteSettingsExperimentLoader {
   static LOCK_ID = "remote-settings-experiment-loader:update";
@@ -318,13 +368,21 @@ export class _RemoteSettingsExperimentLoader {
 
     if (recipes && !loadingError) {
       for (const recipe of recipes) {
-        const status = await enrollmentsCtx.checkRecipe(recipe);
-        if (RecipeStatus.isValid(status)) {
-          await this.manager.onRecipe(
-            recipe,
-            "rs-loader",
-            status === RecipeStatus.TARGETING_MATCH
-          );
+        if (recipe.appId !== "firefox-desktop") {
+          // Skip over recipes not intended for desktop. Experimenter publishes
+          // recipes into a collection per application (desktop goes to
+          // `nimbus-desktop-experiments`) but all preview experiments share the
+          // same collection (`nimbus-preview`).
+          //
+          // This is *not* the same as `lazy.APP_ID` which is used to
+          // distinguish between desktop Firefox and the desktop background
+          // updater.
+          continue;
+        }
+
+        const result = await enrollmentsCtx.checkRecipe(recipe);
+        if (result.ok) {
+          await this.manager.onRecipe(recipe, "rs-loader", result.status);
         }
       }
 
@@ -473,40 +531,45 @@ export class _RemoteSettingsExperimentLoader {
     // If a recipe is either targeting mismatch or invalid, ouput or throw the
     // specific error message.
     const result = await enrollmentsCtx.checkRecipe(recipe);
-    if (result !== RecipeStatus.TARGETING_MATCH) {
-      const results = enrollmentsCtx.getResults();
+    if (!result.ok) {
+      let errMsg = `${recipe.slug} failed validation with reason ${result.reason}`;
 
-      if (results.recipeMismatches.length) {
-        throw new Error(`Recipe ${recipe.slug} did not match targeting`);
-      } else if (results.invalidRecipes.length) {
-        console.error(`Recipe ${recipe.slug} did not match recipe schema`);
-      } else if (results.invalidBranches.size) {
-        // There will only be one entry becuase we only validated a single recipe.
-        for (const branches of results.invalidBranches.values()) {
-          for (const branch of branches) {
-            console.error(
-              `Recipe ${recipe.slug} failed feature validation for branch ${branch}`
-            );
-          }
-        }
-      } else if (results.invalidFeatures.length) {
-        for (const featureIds of results.invalidFeatures.values()) {
-          for (const featureId of featureIds) {
-            console.error(
-              `Recipe ${recipe.slug} references unknown feature ID ${featureId}`
-            );
-          }
-        }
+      switch (result.reason) {
+        case lazy.NimbusTelemetry.ValidationFailureReason.INVALID_RECIPE:
+          break;
+
+        case lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH:
+          errMsg = `${errMsg}: branches ${result.branchSlugs.join(",")} failed validation`;
+          break;
+
+        case lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE:
+          errMsg = `${errMsg}: features ${result.featureIds.join(",")} do not exist`;
+          break;
+
+        case lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY:
+          errMsg = `${errMsg}: missing l10n entries ${result.missingL10nIds.join(",")} missing for locale ${result.locale}`;
+          break;
+
+        case lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_LOCALE:
+          errMsg = `${errMsg}: missing localization for locale ${result.locale}`;
+          break;
+
+        case lazy.NimbusTelemetry.ValidationFailureReason.UNSUPPORTED_FEATURES:
+          errMsg = `${errMsg}: features ${result.featureIds.join(",")} not supported by this application (${lazy.APP_ID})`;
+          break;
       }
 
-      throw new Error(
-        `Recipe ${recipe.slug} failed validation: ${JSON.stringify(results)}`
-      );
+      lazy.log.error(errMsg);
+      throw new Error(errMsg);
     }
 
-    let branch = recipe.branches.find(b => b.slug === branchSlug);
+    if (result.status === MatchStatus.NO_MATCH) {
+      throw new Error(`Recipe ${recipe.slug} did not match targeting`);
+    }
+
+    const branch = recipe.branches.find(b => b.slug === branchSlug);
     if (!branch) {
-      throw new Error(`Could not find branch slug ${branchSlug} in ${slug}.`);
+      throw new Error(`Could not find branch slug ${branchSlug} in ${slug}`);
     }
 
     await this.manager.forceEnroll(recipe, branch);
@@ -582,11 +645,11 @@ export class _RemoteSettingsExperimentLoader {
 
 export class EnrollmentsContext {
   constructor(
-    experimentManager,
+    manager,
     recipeValidator,
     { validationEnabled = true, shouldCheckTargeting = true } = {}
   ) {
-    this.experimentManager = experimentManager;
+    this.manager = manager;
     this.recipeValidator = recipeValidator;
 
     this.validationEnabled = validationEnabled;
@@ -616,18 +679,6 @@ export class EnrollmentsContext {
   }
 
   async checkRecipe(recipe) {
-    if (recipe.appId !== "firefox-desktop") {
-      // Skip over recipes not intended for desktop. Experimenter publishes
-      // recipes into a collection per application (desktop goes to
-      // `nimbus-desktop-experiments`) but all preview experiments share the
-      // same collection (`nimbus-preview`).
-      //
-      // This is *not* the same as `lazy.APP_ID` which is used to
-      // distinguish between desktop Firefox and the desktop background
-      // updater.
-      return RecipeStatus.INVALID;
-    }
-
     const validateFeatureSchemas =
       this.validationEnabled && !recipe.featureValidationOptOut;
 
@@ -649,38 +700,25 @@ export class EnrollmentsContext {
             lazy.NimbusTelemetry.ValidationFailureReason.INVALID_RECIPE
           );
         }
-        return RecipeStatus.INVALID;
+
+        return CheckRecipeResult.InvalidRecipe();
       }
     }
 
-    const featureIds =
-      recipe.featureIds ??
-      recipe.branches
-        .flatMap(branch => branch.features ?? [branch.feature])
-        .map(featureDef => featureDef.featureId);
+    // We don't include missing features here because if validation is enabled we report those errors later.
+    const unsupportedFeatureIds = recipe.featureIds.filter(
+      featureId =>
+        Object.hasOwn(lazy.NimbusFeatures, featureId) &&
+        !lazy.NimbusFeatures[featureId].applications.includes(lazy.APP_ID)
+    );
 
-    let haveAllFeatures = true;
-
-    for (const featureId of featureIds) {
-      const feature = lazy.NimbusFeatures[featureId];
-
-      // If validation is enabled, we want to catch this later in
-      // _validateBranches to collect the correct stats for telemetry.
-      if (!feature) {
-        continue;
-      }
-
-      if (!feature.applications.includes(lazy.APP_ID)) {
-        lazy.log.debug(
-          `${recipe.slug} uses feature ${featureId} which is not enabled for this application (${lazy.APP_ID}) -- skipping`
-        );
-        haveAllFeatures = false;
-        break;
-      }
-    }
-
-    if (!haveAllFeatures) {
-      return RecipeStatus.INVALID;
+    if (unsupportedFeatureIds.length) {
+      lazy.NimbusTelemetry.recordValidationFailure(
+        recipe.slug,
+        lazy.NimbusTelemetry.ValidationFailureReason.UNSUPPORTED_FEATURES,
+        { featureIds: unsupportedFeatureIds.join(",") }
+      );
+      return CheckRecipeResult.UnsupportedFeatures(unsupportedFeatureIds);
     }
 
     if (this.shouldCheckTargeting) {
@@ -692,7 +730,7 @@ export class EnrollmentsContext {
       } else {
         lazy.log.debug(`${recipe.slug} did not match due to targeting`);
         this.recipeMismatches.push(recipe.slug);
-        return RecipeStatus.TARGETING_MISMATCH;
+        return CheckRecipeResult.Ok(MatchStatus.NO_MATCH);
       }
     }
 
@@ -707,34 +745,49 @@ export class EnrollmentsContext {
         recipe.localizations[this.locale] === null
       ) {
         this.missingLocale.push(recipe.slug);
+        lazy.log.debug(
+          `${recipe.slug} is localized but missing locale ${this.locale}`
+        );
         lazy.NimbusTelemetry.recordValidationFailure(
           recipe.slug,
           lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_LOCALE,
           { locale: this.locale }
         );
-        lazy.log.debug(
-          `${recipe.slug} is localized but missing locale ${this.locale}`
-        );
-        return RecipeStatus.INVALID;
+        return CheckRecipeResult.MissingLocale(this.locale);
       }
     }
 
     const result = await this._validateBranches(recipe, validateFeatureSchemas);
-    if (!result.valid) {
-      if (result.invalidBranchSlugs) {
-        this.invalidBranches.push(recipe.slug);
+    if (!result.ok) {
+      lazy.log.debug(`${recipe.slug} did not validate: ${result.reason}`);
+      switch (result.reason) {
+        case lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH:
+          this.invalidBranches.push(recipe.slug);
+          break;
+
+        case lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE:
+          this.invalidFeatures.push(recipe.slug);
+          break;
+
+        case lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY:
+          this.missingL10nIds.push(recipe.slug);
+          break;
       }
-      if (result.invalidFeatureIds) {
-        this.invalidFeatures.push(recipe.slug);
-      }
-      if (result.missingL10nIds) {
-        this.missingL10nIds.push(recipe.slug);
-      }
-      lazy.log.debug(`${recipe.slug} did not validate`);
-      return RecipeStatus.INVALID;
+
+      return result;
     }
 
-    return RecipeStatus.TARGETING_MATCH;
+    if (recipe.isEnrollmentPaused) {
+      lazy.log.debug(`${recipe.slug}: enrollment paused`);
+      return CheckRecipeResult.Ok(MatchStatus.TARGETING_ONLY);
+    }
+
+    if (!(await this.manager.isInBucketAllocation(recipe.bucketConfig))) {
+      lazy.log.debug(`${recipe.slug} did not match bucket sampling`);
+      return CheckRecipeResult.Ok(MatchStatus.TARGETING_ONLY);
+    }
+
+    return CheckRecipeResult.Ok(MatchStatus.TARGETING_AND_BUCKETING);
   }
 
   async evaluateJexl(jexlString, customContext) {
@@ -752,7 +805,7 @@ export class EnrollmentsContext {
 
     const context = lazy.TargetingContext.combineContexts(
       customContext,
-      this.experimentManager.createTargetingContext(),
+      this.manager.createTargetingContext(),
       lazy.ASRouterTargeting.Environment
     );
 
@@ -879,27 +932,38 @@ export class EnrollmentsContext {
                 )}`
               );
               invalidBranchSlugs.push(branch.slug);
-              lazy.NimbusTelemetry.recordValidationFailure(
-                slug,
-                lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH,
-                {
-                  branch: branch.slug,
-                }
-              );
             }
           }
         }
       }
     }
 
-    for (const featureId of invalidFeatureIds) {
-      lazy.NimbusTelemetry.recordValidationFailure(
-        slug,
-        lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE,
-        {
-          feature: featureId,
-        }
-      );
+    if (invalidBranchSlugs.length) {
+      for (const branchSlug of invalidBranchSlugs) {
+        lazy.NimbusTelemetry.recordValidationFailure(
+          slug,
+          lazy.NimbusTelemetry.ValidationFailureReason.INVALID_BRANCH,
+          {
+            branch: branchSlug,
+          }
+        );
+      }
+
+      return CheckRecipeResult.InvalidBranches(invalidBranchSlugs);
+    }
+
+    if (invalidFeatureIds.size) {
+      for (const featureId of invalidFeatureIds) {
+        lazy.NimbusTelemetry.recordValidationFailure(
+          slug,
+          lazy.NimbusTelemetry.ValidationFailureReason.INVALID_FEATURE,
+          {
+            feature: featureId,
+          }
+        );
+      }
+
+      return CheckRecipeResult.InvalidFeatures(Array.from(invalidFeatureIds));
     }
 
     if (missingL10nIds.size) {
@@ -911,17 +975,17 @@ export class EnrollmentsContext {
           l10nIds: Array.from(missingL10nIds).join(","),
         }
       );
+
+      return CheckRecipeResult.MissingL10nEntry(
+        this.locale,
+        Array.from(missingL10nIds)
+      );
     }
 
-    return {
-      invalidBranchSlugs: !!invalidBranchSlugs.length,
-      invalidFeatureIds: !!invalidFeatureIds.size,
-      missingL10nIds: !!missingL10nIds.size,
-      valid:
-        invalidBranchSlugs.length === 0 &&
-        invalidFeatureIds.size === 0 &&
-        missingL10nIds.size === 0,
-    };
+    // We have only performed targeting and not bucketing, so technically we're
+    // in a TARGETING_ONLY scenario, but our caller only cares about the error
+    // case anyway.
+    return CheckRecipeResult.Ok(null);
   }
 
   _generateVariablesOnlySchema({ featureId, manifest }) {

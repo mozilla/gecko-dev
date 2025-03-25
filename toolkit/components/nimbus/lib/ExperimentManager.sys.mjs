@@ -18,6 +18,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
   EnrollmentsContext:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
+  MatchStatus: "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
 });
 
@@ -217,42 +218,51 @@ export class _ExperimentManager {
   }
 
   /**
-   * Runs every time a Recipe is updated or seen for the first time.
-   * @param {RecipeArgs} recipe
+   * Handle a recipe from a source.
+   *
+   * If the recipe is already enrolled we will update the enrollment. Otherwise
+   * enrollment will be attempted.
+   *
+   * @param {object} recipe
+   *        The recipe.
+   *
    * @param {string} source
-   * @param {boolean} isTargetingMatch
+   *         The source of the recipe, e.g., "rs-loader".
+   *
+   * @param {string} status
+   *        The result of targeting and bucketing.
+   *
+   *        See `MatchStatus` for possible values.
    */
-  async onRecipe(recipe, source, isTargetingMatch) {
-    const { slug, isEnrollmentPaused, isFirefoxLabsOptIn } = recipe;
-
+  async onRecipe(recipe, source, status) {
     if (!source) {
       throw new Error("When calling onRecipe, you must specify a source.");
     }
 
-    if (isFirefoxLabsOptIn) {
+    if (recipe.isFirefoxLabsOptIn) {
       this.optInRecipes.push(recipe);
     }
 
-    if (isTargetingMatch) {
+    if (status !== lazy.MatchStatus.NO_MATCH) {
       if (!this.sessions.has(source)) {
         this.sessions.set(source, new Set());
       }
-      this.sessions.get(source).add(slug);
+      this.sessions.get(source).add(recipe.slug);
 
-      if (this.store.has(slug)) {
-        await this.updateEnrollment(recipe, source);
-      } else if (!isFirefoxLabsOptIn) {
-        // Firefox Labs opt-ins cannot be paused and we do not enroll in them
-        // directly.
-        if (isEnrollmentPaused) {
-          lazy.log.debug(`Enrollment is paused for "${slug}"`);
-        } else if (!(await this.isInBucketAllocation(recipe.bucketConfig))) {
-          lazy.log.debug(
-            "Client was not enrolled because of the bucket sampling"
-          );
-        } else {
-          await this.enroll(recipe, source);
-        }
+      if (this.store.has(recipe.slug)) {
+        // If we have ever enrolled in this recipe before, try to update the
+        // existing enrollment.
+        await this.updateEnrollment(
+          recipe,
+          source,
+          status === lazy.MatchStatus.TARGETING_AND_BUCKETING
+        );
+      } else if (
+        !recipe.isFirefoxLabsOptIn &&
+        status === lazy.MatchStatus.TARGETING_AND_BUCKETING
+      ) {
+        // We do not enroll directly into Firefox Labs opt-ins.
+        await this.enroll(recipe, source);
       }
     }
   }
@@ -738,23 +748,30 @@ export class _ExperimentManager {
   }
 
   /**
-   * Update an enrollment that was already set
+   * Update an existing enrollment.
    *
-   * @param {RecipeArgs} recipe
-   * @returns {boolean} whether the enrollment is still active
+   * @param {object} recipe
+   *        The recipe.
+   *
+   * @param {string} source
+   *        The source of the recipe, e.g., "rs-loader".
+   *
+   * @param {boolean} isInBucketAllocation
+   *        Whether or not the recipe is in our bucket allocation
+   *
+   * @returns {boolean}
+   *          Whether the enrollment is active.
    */
-  async updateEnrollment(recipe, source) {
-    /** @type Enrollment */
+  async updateEnrollment(recipe, source, isInBucketAllocation) {
     const enrollment = this.store.get(recipe.slug);
 
-    // Don't update experiments that were already unenrolled.
-    if (enrollment.active === false && !recipe.isRollout) {
+    if (!enrollment.active && !recipe.isRollout) {
       lazy.log.debug(`Enrollment ${recipe.slug} has expired, aborting.`);
       return false;
     }
 
     if (recipe.isRollout) {
-      if (!(await this.isInBucketAllocation(recipe.bucketConfig))) {
+      if (!isInBucketAllocation) {
         lazy.log.debug(
           `No longer meet bucketing for "${recipe.slug}"; unenrolling...`
         );
@@ -762,6 +779,7 @@ export class _ExperimentManager {
           recipe.slug,
           lazy.NimbusTelemetry.UnenrollReason.BUCKETING
         );
+
         return false;
       } else if (
         !enrollment.active &&
@@ -774,17 +792,13 @@ export class _ExperimentManager {
       }
     }
 
-    // Stay in the same branch, don't re-sample every time.
-    const branch = recipe.branches.find(
-      branch => branch.slug === enrollment.branch.slug
-    );
-
-    if (!branch) {
+    if (!recipe.branches.find(b => b.slug === enrollment.branch.slug)) {
       // Our branch has been removed. Unenroll.
       this.unenroll(
         recipe.slug,
         lazy.NimbusTelemetry.UnenrollReason.BRANCH_REMOVED
       );
+
       return false;
     }
 

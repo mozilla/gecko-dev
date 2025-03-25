@@ -55,6 +55,7 @@ const ValidationFailureReason = Object.freeze({
   INVALID_RECIPE: "invalid-recipe",
   L10N_MISSING_ENTRY: "l10n-missing-entry",
   L10N_MISSING_LOCALE: "l10n-missing-locale",
+  UNSUPPORTED_FEATURES: "unsupported-feature",
 });
 
 const UnenrollReason = Object.freeze({
@@ -242,7 +243,7 @@ export const NimbusTelemetry = {
   recordValidationFailure(
     slug,
     reason,
-    { branch, feature, locale, l10nIds: l10n_ids } = {}
+    { branch, feature, locale, l10nIds: l10n_ids, featureIds: feature_ids } = {}
   ) {
     const extra = Object.assign(
       { reason },
@@ -251,7 +252,10 @@ export const NimbusTelemetry = {
       reason === ValidationFailureReason.L10N_MISSING_ENTRY
         ? { l10n_ids, locale }
         : {},
-      reason === ValidationFailureReason.L10N_MISSING_LOCALE ? { locale } : {}
+      reason === ValidationFailureReason.L10N_MISSING_LOCALE ? { locale } : {},
+      reason === ValidationFailureReason.UNSUPPORTED_FEATURES
+        ? { feature_ids }
+        : {}
     );
 
     lazy.TelemetryEvents.sendEvent(
