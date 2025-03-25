@@ -998,8 +998,17 @@ export class SearchEngine {
     return json;
   }
 
-  setAttr(name, val) {
+  setAttr(name, val, sendNotification = false) {
+    // Cache whether the attribute actually changes so we don't lose that info
+    // when updating `_metaData`.
+    let hasChangedAttr = val != this[name];
     this._metaData[name] = val;
+    if (hasChangedAttr && sendNotification) {
+      lazy.SearchUtils.notifyAction(
+        this,
+        lazy.SearchUtils.MODIFIED_TYPE.CHANGED
+      );
+    }
   }
 
   getAttr(name) {
@@ -1061,13 +1070,7 @@ export class SearchEngine {
 
   set alias(val) {
     var value = val ? val.trim() : "";
-    if (value != this.alias) {
-      this.setAttr("alias", value);
-      lazy.SearchUtils.notifyAction(
-        this,
-        lazy.SearchUtils.MODIFIED_TYPE.CHANGED
-      );
-    }
+    this.setAttr("alias", value, true);
   }
 
   /**
@@ -1119,13 +1122,7 @@ export class SearchEngine {
 
   set hidden(val) {
     var value = !!val;
-    if (value != this.hidden) {
-      this.setAttr("hidden", value);
-      lazy.SearchUtils.notifyAction(
-        this,
-        lazy.SearchUtils.MODIFIED_TYPE.CHANGED
-      );
-    }
+    this.setAttr("hidden", value, true);
   }
 
   get hideOneOffButton() {
@@ -1133,13 +1130,7 @@ export class SearchEngine {
   }
   set hideOneOffButton(val) {
     const value = !!val;
-    if (value != this.hideOneOffButton) {
-      this.setAttr("hideOneOffButton", value);
-      lazy.SearchUtils.notifyAction(
-        this,
-        lazy.SearchUtils.MODIFIED_TYPE.CHANGED
-      );
-    }
+    this.setAttr("hideOneOffButton", value, true);
   }
 
   /**
