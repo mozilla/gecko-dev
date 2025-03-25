@@ -34,11 +34,20 @@ add_task(async function test() {
 
   await withAboutProfiling(async (document, browser) => {
     info("Make sure the firefox-platform preset is checked for consistency.");
-    const firefoxPlatformRadio = await getElementFromDocumentByText(
+    const firefoxPlatformLabel = await getElementFromDocumentByText(
       document,
       AppConstants.MOZ_APP_NAME
     );
-    firefoxPlatformRadio.checked = true;
+    EventUtils.synthesizeMouseAtCenter(
+      firefoxPlatformLabel,
+      {},
+      browser.contentWindow
+    );
+    is(
+      Services.prefs.getCharPref("devtools.performance.recording.preset", ""),
+      "firefox-platform",
+      'The preset "firefox-platform" is selected.'
+    );
 
     info("Test that there is a button to show a menu with more actions.");
     const moreActionsButton = document.querySelector("moz-button");
