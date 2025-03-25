@@ -10,6 +10,7 @@
 #include "mozilla/dom/NavigatorLogin.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/net/SFVService.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIGlobalObject.h"
@@ -121,6 +122,53 @@ nsresult NavigatorLogin::SetLoginStatus(nsIPrincipal* aPrincipal,
   return permMgr->AddFromPrincipal(aPrincipal, kLoginStatusPermission,
                                    ConvertStatusToPermission(aStatus),
                                    nsIPermissionManager::EXPIRE_NEVER, 0);
+}
+
+// static
+nsresult NavigatorLogin::SetLoginStatus(nsIPrincipal* aPrincipal,
+                                        const nsACString& aStatus) {
+  LoginStatus parsedStatus;
+  nsresult rv = ParseLoginStatusHeader(aStatus, parsedStatus);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return SetLoginStatus(aPrincipal, parsedStatus);
+}
+
+// static
+nsresult NavigatorLogin::ParseLoginStatusHeader(const nsACString& aStatus,
+                                                LoginStatus& aResult) {
+  nsCOMPtr<nsISFVService> sfv = net::GetSFVService();
+  nsCOMPtr<nsISFVItem> item;
+  nsresult rv = sfv->ParseItem(aStatus, getter_AddRefs(item));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  nsCOMPtr<nsISFVBareItem> value;
+  rv = item->GetValue(getter_AddRefs(value));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  nsCOMPtr<nsISFVToken> token = do_QueryInterface(value);
+  if (!token) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  nsAutoCString parsedStatus;
+  rv = token->GetValue(parsedStatus);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  if (parsedStatus == "logged-in") {
+    aResult = LoginStatus::Logged_in;
+    return NS_OK;
+  }
+  if (parsedStatus == "logged-out") {
+    aResult = LoginStatus::Logged_out;
+    return NS_OK;
+  }
+  return NS_ERROR_INVALID_ARG;
 }
 
 // static
