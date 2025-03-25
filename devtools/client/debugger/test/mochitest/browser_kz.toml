@@ -77,7 +77,7 @@ skip-if = [
 
 ["browser_dbg-outline-focus.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["verify", "cm6"]
+skip-if = ["verify", "cm5"]
 
 ["browser_dbg-outline-pretty.js"]
 
@@ -141,7 +141,7 @@ skip-if = [
 ["browser_dbg-preview-bucketed-array.js"]
 
 ["browser_dbg-preview-frame.js"]
-skip-if = ["os == 'win'"]
+skip-if = ["os == 'win'", "cm5"]
 
 ["browser_dbg-preview-getter.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -227,7 +227,7 @@ skip-if = ["os == 'win'"] # Bug 1393121
 skip-if = ["os == 'win'"] # Bug 1393121
 
 ["browser_dbg-search-file.js"]
-fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 skip-if = ["os == 'win'"] # Bug 1393121
 
 ["browser_dbg-settings-disable-javascript.js"]

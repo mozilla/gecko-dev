@@ -200,12 +200,12 @@ conditioned_profile:
     replace:
         chunks: 8
 
-cm6:
-    description: "{description} with codemirror 6 enabled"
+cm5:
+    description: "{description} with codemirror 5 enabled"
     component: "DevTools::Framework"
     expiration: "2025-06-01"
-    suffix: "cm6"
-    mozinfo: "cm6"
+    suffix: "cm5"
+    mozinfo: "cm5"
     replace:
         tier: 3
     when:
@@ -213,7 +213,7 @@ cm6:
     merge:
         mozharness:
             extra-options:
-                - "--setpref=devtools.debugger.features.codemirror-next=true"
+                - "--setpref=devtools.debugger.features.codemirror-next=false"
 
 socketprocess:
     description: "{description} with socket process enabled"
