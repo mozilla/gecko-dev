@@ -139,7 +139,7 @@ class DownloadRobot {
 
     fun clickMultiSelectRemoveButton() {
         Log.i(TAG, "clickMultiSelectRemoveButton: Trying to click multi-select remove button")
-        itemWithResIdContainingText("$packageName:id/title", "Remove").click()
+        itemWithResIdContainingText("$packageName:id/title", getStringResource(R.string.download_delete_item)).click()
         Log.i(TAG, "clickMultiSelectRemoveButton: Clicked multi-select remove button")
     }
 
@@ -185,7 +185,7 @@ class DownloadRobot {
 
     fun deleteDownloadedItem(testRule: HomeActivityComposeTestRule, fileName: String) {
         Log.i(TAG, "deleteDownloadedItem: Trying to click the delete menu item to delete downloaded file: $fileName")
-        testRule.onNodeWithText(testRule.activity.getString(R.string.download_delete_item_1))
+        testRule.onNodeWithText(testRule.activity.getString(R.string.download_delete_item))
             .performClick()
         Log.i(TAG, "deleteDownloadedItem: Clicked the delete menu item to delete downloaded file: $fileName")
     }

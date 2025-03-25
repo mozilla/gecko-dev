@@ -262,7 +262,7 @@ private fun FileListItem(
                                 level = MenuItem.FixedItem.Level.Default,
                             ),
                             MenuItem.TextItem(
-                                text = Text.Resource(R.string.download_delete_item_1),
+                                text = Text.Resource(R.string.download_delete_item),
                                 onClick = { onDeleteClick(fileItem) },
                                 level = MenuItem.FixedItem.Level.Critical,
                             ),

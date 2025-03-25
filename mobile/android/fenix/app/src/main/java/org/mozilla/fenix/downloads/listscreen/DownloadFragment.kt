@@ -151,7 +151,7 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
         inflater.inflate(menuRes, menu)
 
         menu.findItem(R.id.delete_downloads_multi_select)?.title =
-            SpannableString(getString(R.string.download_delete_item_1)).apply {
+            SpannableString(getString(R.string.download_delete_item)).apply {
                 setTextColor(requireContext(), R.attr.textCritical)
             }
     }

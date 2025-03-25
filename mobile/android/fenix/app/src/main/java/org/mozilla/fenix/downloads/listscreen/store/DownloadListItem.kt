@@ -103,7 +103,7 @@ data class FileItem(
             },
         ),
         Other(
-            stringRes = R.string.download_content_type_filter_other,
+            stringRes = R.string.download_content_type_filter_other_1,
             predicate = { !Image.predicate(it) && !Video.predicate(it) && !Document.predicate(it) },
         ),
         ;
