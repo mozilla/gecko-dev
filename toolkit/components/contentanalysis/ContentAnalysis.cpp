@@ -1260,6 +1260,11 @@ ContentAnalysis::ContentAnalysis()
       mCaClientPromise(
           new ClientPromise::Private("ContentAnalysis::ContentAnalysis")),
       mSetByEnterprise(false) {
+  // Limit one per process
+  [[maybe_unused]] static bool sCreated = false;
+  MOZ_ASSERT(!sCreated);
+  sCreated = true;
+
   MOZ_ALWAYS_SUCCEEDS(
       mThreadPool->SetName(nsAutoCString("ContentAnalysisAgentIO")));
   unsigned long threadLimit =
