@@ -110,10 +110,11 @@ add_task(async function test() {
         progressDiv.style.width = (100 * idx) / len + "%";
       }
     );
-    completer.resolveState(limit(source, testcase[0]), {
-      line: testcase[0][0],
-      ch: testcase[0][1],
-    });
+    completer.resolveState(
+      limit(source, testcase[0]),
+      testcase[0][0],
+      testcase[0][1]
+    );
     if (checkState(testcase[1])) {
       ok(true, "Test " + i + " passed. ");
     } else {

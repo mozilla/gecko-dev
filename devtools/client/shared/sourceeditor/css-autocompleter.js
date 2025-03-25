@@ -98,16 +98,16 @@ class CSSCompleter {
    * Returns a list of suggestions based on the caret position.
    *
    * @param source {String} String of the source code.
-   * @param caret {Object} Cursor location with line and ch properties.
+   * @param cursor {Object} Cursor location with line and ch properties.
    *
    * @returns [{object}] A sorted list of objects containing the following
    *          peroperties:
    *          - label {String} Full keyword for the suggestion
    *          - preLabel {String} Already entered part of the label
    */
-  complete(source, caret) {
+  complete(source, cursor) {
     // Getting the context from the caret position.
-    if (!this.resolveState(source, caret)) {
+    if (!this.resolveState(source, cursor.line, cursor.ch)) {
       // We couldn't resolve the context, we won't be able to complete.
       return Promise.resolve([]);
     }
@@ -154,13 +154,14 @@ class CSSCompleter {
    * selector, etc.
    *
    * @param source {String} String of the source code.
-   * @param caret {Object} Cursor location with line and ch properties.
+   * @param line {Number} Cursor line
+   * @param ch {Number} Cursor column
    *
    * @returns CSS_STATE
    *          One of CSS_STATE enum or null if the state cannot be resolved.
    */
   // eslint-disable-next-line complexity
-  resolveState(source, { line, ch }) {
+  resolveState(source, line, ch) {
     // Function to return the last element of an array
     const peek = arr => arr[arr.length - 1];
     // _state can be one of CSS_STATES;
@@ -1060,27 +1061,24 @@ class CSSCompleter {
    *                  - { start: {line, ch}, end: {line, ch}}
    */
   getInfoAt(source, caret) {
-    // Limits the input source till the {line, ch} caret position
-    function limit(sourceArg, { line, ch }) {
-      line++;
-      const list = sourceArg.split("\n");
-      if (list.length < line) {
-        return sourceArg;
-      }
-      if (line == 1) {
-        return list[0].slice(0, ch);
-      }
-      return [...list.slice(0, line - 1), list[line - 1].slice(0, ch)].join(
-        "\n"
-      );
-    }
-
-    // Get the state at the given line, ch
-    const state = this.resolveState(limit(source, caret), caret);
-    const propertyName = this.propertyName;
     let { line, ch } = caret;
     const sourceArray = source.split("\n");
-    let limitedSource = limit(source, caret);
+
+    // Limits the input source till the {line, ch} caret position
+    const limit = function () {
+      // `line` is 0-based
+      if (sourceArray.length <= line) {
+        return source;
+      }
+      const list = sourceArray.slice(0, line + 1);
+      list[line] = list[line].slice(0, ch);
+      return list.join("\n");
+    };
+
+    const originalLimitedSource = limit(source);
+    let limitedSource = originalLimitedSource;
+    const state = this.resolveState(limitedSource, line, ch);
+    const propertyName = this.propertyName;
 
     /**
      * Method to traverse forwards from the caret location to figure out the
@@ -1091,7 +1089,6 @@ class CSSCompleter {
      *        whether the state changed or not.
      */
     const traverseForward = check => {
-      let location;
       // Backward loop to determine the beginning location of the selector.
       do {
         let lineText = sourceArray[line];
@@ -1101,18 +1098,13 @@ class CSSCompleter {
 
         let prevToken = undefined;
         const tokensIterator = cssTokenizer(lineText);
-        let found = false;
+
         const ech = line == caret.line ? caret.ch : 0;
         for (let token of tokensIterator) {
-          // If the line is completely spaces, handle it differently
-          if (lineText.trim() == "") {
-            limitedSource += lineText;
-          } else {
-            limitedSource += sourceArray[line].substring(
-              ech + token.startOffset,
-              ech + token.endOffset
-            );
-          }
+          limitedSource += sourceArray[line].substring(
+            ech + token.startOffset,
+            ech + token.endOffset
+          );
 
           // WhiteSpace cannot change state.
           if (token.tokenType == "WhiteSpace") {
@@ -1120,29 +1112,25 @@ class CSSCompleter {
             continue;
           }
 
-          const forwState = this.resolveState(limitedSource, {
+          const forwState = this.resolveState(
+            limitedSource,
             line,
-            ch: token.endOffset + ech,
-          });
+            token.endOffset + ech
+          );
           if (check(forwState)) {
             if (prevToken && prevToken.tokenType == "WhiteSpace") {
               token = prevToken;
             }
-            location = {
+            return {
               line,
               ch: token.startOffset + ech,
             };
-            found = true;
-            break;
           }
           prevToken = token;
         }
         limitedSource += "\n";
-        if (found) {
-          break;
-        }
       } while (line++ < sourceArray.length);
-      return location;
+      return null;
     };
 
     /**
@@ -1181,10 +1169,11 @@ class CSSCompleter {
             continue;
           }
 
-          const backState = this.resolveState(limitedSource, {
+          const backState = this.resolveState(
+            limitedSource,
             line,
-            ch: token.startOffset,
-          });
+            token.startOffset
+          );
           if (check(backState)) {
             if (tokens[i + 1] && tokens[i + 1].tokenType == "WhiteSpace") {
               token = tokens[i + 1];
@@ -1218,7 +1207,7 @@ class CSSCompleter {
       });
 
       line = caret.line;
-      limitedSource = limit(source, caret);
+      limitedSource = originalLimitedSource;
       // Forward loop to determine the ending location of the selector.
       const end = traverseForward(forwState => {
         return (
@@ -1228,7 +1217,7 @@ class CSSCompleter {
       });
 
       // Since we have start and end positions, figure out the whole selector.
-      let selector = source.split("\n").slice(start.line, end.line + 1);
+      let selector = sourceArray.slice(start.line, end.line + 1);
       selector[selector.length - 1] = selector[selector.length - 1].substring(
         0,
         end.ch
@@ -1276,10 +1265,10 @@ class CSSCompleter {
       );
 
       line = caret.line;
-      limitedSource = limit(source, caret);
+      limitedSource = originalLimitedSource;
       const end = traverseForward(forwState => forwState != CSS_STATES.value);
 
-      let value = source.split("\n").slice(start.line, end.line + 1);
+      let value = sourceArray.slice(start.line, end.line + 1);
       value[value.length - 1] = value[value.length - 1].substring(0, end.ch);
       value[0] = value[0].substring(start.ch);
       value = value.join("\n");
