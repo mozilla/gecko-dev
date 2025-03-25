@@ -156,6 +156,12 @@ void uiaRawElmProvider::RaiseUiaEventForGeckoEvent(Accessible* aAcc,
     case nsIAccessibleEvent::EVENT_DESCRIPTION_CHANGE:
       property = UIA_FullDescriptionPropertyId;
       break;
+    case nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE:
+      // There is a UiaRaiseAsyncContentLoadedEvent function, but the client API
+      // doesn't have a specialized event handler for this event. Also, Chromium
+      // uses UiaRaiseAutomationEvent for this event.
+      ::UiaRaiseAutomationEvent(uia, UIA_AsyncContentLoadedEventId);
+      return;
     case nsIAccessibleEvent::EVENT_FOCUS:
       ::UiaRaiseAutomationEvent(uia, UIA_AutomationFocusChangedEventId);
       return;

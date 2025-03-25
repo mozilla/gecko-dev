@@ -22,6 +22,8 @@ prefs = [
 
 ["browser_focus.js"]
 
+["browser_generalEvents.js"]
+
 ["browser_generalProps.js"]
 
 ["browser_gridPatterns.js"]
