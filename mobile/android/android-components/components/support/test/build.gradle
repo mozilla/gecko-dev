@@ -21,13 +21,6 @@ android {
         }
     }
 
-    lint {
-        // Disabled since this caused issues with Android Gradle Plugin 3.2.1+ (NullPointerException:InvalidPackageDetector)
-        tasks.lint.enabled = false
-
-        lintConfig = file("lint.xml")
-    }
-
     namespace = 'mozilla.components.support.test'
 }
 

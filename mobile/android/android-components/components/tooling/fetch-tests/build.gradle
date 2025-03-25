@@ -21,10 +21,6 @@ android {
         }
     }
 
-    lint {
-        lintConfig = file("lint.xml")
-    }
-
     packaging {
         resources {
             excludes += ['META-INF/LICENSE.md', 'META-INF/LICENSE-notice.md']
