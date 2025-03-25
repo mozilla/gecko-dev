@@ -14,7 +14,7 @@ schema: 1
 
 bugzilla:
   # Bugzilla product and component for this directory and subdirectories
-  product: Fenix
+  product: "Firefox for Android"
   component: "General"
 
 # Document the source of externally hosted code
