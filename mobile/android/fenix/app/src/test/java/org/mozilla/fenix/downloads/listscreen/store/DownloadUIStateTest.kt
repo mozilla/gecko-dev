@@ -230,7 +230,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            filtersFeatureFlag = true,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
 
@@ -262,40 +261,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            filtersFeatureFlag = true,
-            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
-        )
-
-        val expected = emptyList<FileItem.ContentTypeFilter>()
-
-        assertEquals(expected, downloadUIState.filtersToDisplay)
-    }
-
-    @Test
-    fun `WHEN filters feature flag is off THEN filters are not displayed`() {
-        val fileItems = listOf(
-            fileItem(
-                id = "2",
-                createdTime = CreatedTime.OLDER,
-                contentType = "video/mp4",
-            ),
-            fileItem(
-                id = "3",
-                createdTime = CreatedTime.LAST_30_DAYS,
-                contentType = "application/pdf",
-            ),
-            fileItem(
-                id = "4",
-                createdTime = CreatedTime.LAST_30_DAYS,
-                contentType = "text/plain",
-            ),
-        )
-
-        val downloadUIState = DownloadUIState(
-            items = fileItems,
-            mode = DownloadUIState.Mode.Normal,
-            pendingDeletionIds = emptySet(),
-            filtersFeatureFlag = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
 
@@ -328,7 +293,6 @@ class DownloadUIStateTest {
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
-            filtersFeatureFlag = false,
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
         )
 
