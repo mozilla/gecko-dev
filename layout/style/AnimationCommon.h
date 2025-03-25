@@ -112,15 +112,28 @@ class OwningElementRef final {
     return mTarget == aOther.mTarget;
   }
 
-  bool LessThan(const OwningElementRef& aOther,
-                nsContentUtils::NodeIndexCache& aCache) const {
+  int32_t Compare(const OwningElementRef& aOther,
+                  nsContentUtils::NodeIndexCache& aCache) const {
     MOZ_ASSERT(mTarget.mElement && aOther.mTarget.mElement,
                "Elements to compare should not be null");
 
     if (mTarget.mElement != aOther.mTarget.mElement) {
-      return nsContentUtils::CompareTreePosition(mTarget.mElement,
-                                                 aOther.mTarget.mElement,
-                                                 nullptr, &aCache) < 0;
+      const bool connected = mTarget.mElement->IsInComposedDoc();
+      if (connected != aOther.mTarget.mElement->IsInComposedDoc()) {
+        // Disconnected elements sort last.
+        return connected ? -1 : 1;
+      }
+      if (!connected) {
+        auto* thisRoot = mTarget.mElement->SubtreeRoot();
+        auto* otherRoot = aOther.mTarget.mElement->SubtreeRoot();
+        if (thisRoot != otherRoot) {
+          // We need some consistent ordering across disconnected subtrees. This
+          // is kind of arbitrary.
+          return uintptr_t(thisRoot) < uintptr_t(otherRoot) ? -1 : 1;
+        }
+      }
+      return nsContentUtils::CompareTreePosition<TreeKind::ShadowIncludingDOM>(
+          mTarget.mElement, aOther.mTarget.mElement, nullptr, &aCache);
     }
 
     enum SortingIndex : uint8_t {
@@ -161,7 +174,11 @@ class OwningElementRef final {
           return SortingIndex::Other;
       }
     };
-    return sortingIndex(mTarget.mPseudoRequest) <
+    // FIXME(emilio): This compares something like ::view-transition-old(foo)
+    // and ::view-transition-old(bar) as the same, which seems not totally
+    // correct? Should probably compare the pseudo-element tree position or
+    // something (if available?).
+    return sortingIndex(mTarget.mPseudoRequest) -
            sortingIndex(aOther.mTarget.mPseudoRequest);
   }
 

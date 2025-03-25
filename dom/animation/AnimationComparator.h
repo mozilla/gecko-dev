@@ -24,7 +24,7 @@ class AnimationPtrComparator {
   }
 
   bool LessThan(const AnimationPtrType& a, const AnimationPtrType& b) const {
-    return a->HasLowerCompositeOrderThan(*b, mCache);
+    return a->CompareCompositeOrder(*b, mCache) < 0;
   }
 };
 

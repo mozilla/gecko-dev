@@ -19,7 +19,7 @@ namespace mozilla {
 
 nsGenConNode* ContainStyleScope::GetPrecedingElementInGenConList(
     nsGenConList* aList) {
-  nsContentUtils::ResizableNodeIndexCache<TreeKind::Flat> cache;
+  nsContentUtils::NodeIndexCache cache;
   auto IsAfter = [this, &cache](nsGenConNode* aNode) {
     return nsContentUtils::CompareTreePosition<TreeKind::Flat>(
                mContent, aNode->mPseudoFrame->GetContent(),

@@ -236,7 +236,7 @@ enum EventNameType {
   EventNameType_All = 0xFFFF
 };
 
-enum class TreeKind : uint8_t { DOM, Flat };
+enum class TreeKind : uint8_t { DOM, ShadowIncludingDOM, Flat };
 
 enum class SerializeShadowRoots : uint8_t { Yes, No };
 
@@ -584,15 +584,17 @@ class nsContentUtils {
    * run, this cache must not be used anymore.
    * Also, this cache uses raw pointers. Beware!
    */
-  template <TreeKind aTreeKind, size_t cache_size = 100>
+  template <size_t cache_size = 100>
   struct ResizableNodeIndexCache {
     /**
      * Looks up or computes two indices in one loop.
      */
+    template <TreeKind aTreeKind>
     void ComputeIndicesOf(const nsINode* aParent, const nsINode* aChild1,
                           const nsINode* aChild2,
                           mozilla::Maybe<int32_t>& aChild1Index,
                           mozilla::Maybe<int32_t>& aChild2Index) {
+      AssertTreeKind(aTreeKind);
       bool foundChild1 = false;
       bool foundChild2 = false;
       for (size_t cacheIndex = 0; cacheIndex < cache_size; ++cacheIndex) {
@@ -616,17 +618,21 @@ class nsContentUtils {
         }
       }
       if (!foundChild1) {
-        aChild1Index = ComputeAndInsertIndexIntoCache(aParent, aChild1);
+        aChild1Index =
+            ComputeAndInsertIndexIntoCache<aTreeKind>(aParent, aChild1);
       }
       if (!foundChild2) {
-        aChild2Index = ComputeAndInsertIndexIntoCache(aParent, aChild2);
+        aChild2Index =
+            ComputeAndInsertIndexIntoCache<aTreeKind>(aParent, aChild2);
       }
     }
     /**
      * Looks up or computes child index.
      */
+    template <TreeKind aTreeKind>
     mozilla::Maybe<int32_t> ComputeIndexOf(const nsINode* aParent,
                                            const nsINode* aChild) {
+      AssertTreeKind(aTreeKind);
       for (size_t cacheIndex = 0; cacheIndex < cache_size; ++cacheIndex) {
         const nsINode* node = mNodes[cacheIndex];
         if (!node) {
@@ -636,7 +642,7 @@ class nsContentUtils {
           return mIndices[cacheIndex];
         }
       }
-      return ComputeAndInsertIndexIntoCache(aParent, aChild);
+      return ComputeAndInsertIndexIntoCache<aTreeKind>(aParent, aChild);
     }
 
    private:
@@ -644,8 +650,10 @@ class nsContentUtils {
      * Computes the index of aChild in aParent, inserts the index into the
      * cache, and returns the index.
      */
+    template <TreeKind aTreeKind>
     mozilla::Maybe<int32_t> ComputeAndInsertIndexIntoCache(
         const nsINode* aParent, const nsINode* aChild) {
+      AssertTreeKind(aTreeKind);
       mozilla::Maybe<int32_t> childIndex =
           nsContentUtils::GetIndexInParent<aTreeKind>(aParent, aChild);
 
@@ -672,6 +680,17 @@ class nsContentUtils {
     /// the oldest entries in the cache will be overridden,
     /// ie. mNext will be set to 0.
     size_t mNext{0};
+
+#ifdef DEBUG
+    mozilla::Maybe<TreeKind> mTreeKind;
+#endif
+
+    void AssertTreeKind(TreeKind aKind) {
+#ifdef DEBUG
+      MOZ_ASSERT(!mTreeKind || mTreeKind.value() == aKind, "Mixing queries");
+      mTreeKind = mozilla::Some(aKind);
+#endif
+    }
   };
 
   /**
@@ -679,7 +698,7 @@ class nsContentUtils {
    * If Caches of different sizes are needed,
    * ComparePoints would need to become templated.
    */
-  using NodeIndexCache = ResizableNodeIndexCache<TreeKind::DOM>;
+  using NodeIndexCache = ResizableNodeIndexCache<100>;
 
   /**
    *  Utility routine to compare two "points", where a point is a node/offset
@@ -3519,14 +3538,15 @@ class nsContentUtils {
   static int32_t CompareTreePosition(const nsINode* aNode1,
                                      const nsINode* aNode2,
                                      const nsINode* aCommonAncestor,
-                                     ResizableNodeIndexCache<aKind>* = nullptr);
+                                     NodeIndexCache* = nullptr);
 
   // Get the index of a kid in its parent, including anonymous content, in
   // either the flat tree or the dom tree.
   //
   // The order goes as follows:
-  //   ::marker (-2)
-  //   ::before (-1)
+  //   ::marker (-3)
+  //   ::before (-2)
+  //   ShadowRoot (-1, only if TreeKind is not Flat)
   //   non-anonymous kids (0..n)
   //   anonymous content (n..m)
   //   ::after (m + 1)

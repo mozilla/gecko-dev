@@ -326,14 +326,12 @@ class EffectCompositeOrderComparator {
   }
 
   bool LessThan(const KeyframeEffect* a, const KeyframeEffect* b) const {
-    MOZ_ASSERT(a->GetAnimation() && b->GetAnimation());
-    MOZ_ASSERT(Equals(a, b) ||
-               a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation(),
-                                                             mCache) !=
-                   b->GetAnimation()->HasLowerCompositeOrderThan(
-                       *a->GetAnimation(), mCache));
-    return a->GetAnimation()->HasLowerCompositeOrderThan(*b->GetAnimation(),
-                                                         mCache);
+    MOZ_ASSERT(a->GetAnimation());
+    MOZ_ASSERT(b->GetAnimation());
+    const int32_t cmp =
+        a->GetAnimation()->CompareCompositeOrder(*b->GetAnimation(), mCache);
+    MOZ_ASSERT(Equals(a, b) || cmp != 0);
+    return cmp < 0;
   }
 };
 }  // namespace

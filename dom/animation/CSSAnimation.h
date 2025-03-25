@@ -113,8 +113,8 @@ class CSSAnimation final : public Animation {
   void QueueEvents(
       const StickyTimeDuration& aActiveTime = StickyTimeDuration());
 
-  bool HasLowerCompositeOrderThan(const CSSAnimation& aOther,
-                                  nsContentUtils::NodeIndexCache&) const;
+  int32_t CompareCompositeOrder(const CSSAnimation& aOther,
+                                nsContentUtils::NodeIndexCache&) const;
 
   void SetAnimationIndex(uint64_t aIndex) {
     MOZ_ASSERT(IsTiedToMarkup());

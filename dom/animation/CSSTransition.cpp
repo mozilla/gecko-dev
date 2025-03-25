@@ -225,7 +225,7 @@ AnimationValue CSSTransition::ToValue() const {
   return mTransitionToValue;
 }
 
-bool CSSTransition::HasLowerCompositeOrderThan(
+int32_t CSSTransition::CompareCompositeOrder(
     const Maybe<EventContext>& aContext, const CSSTransition& aOther,
     const Maybe<EventContext>& aOtherContext,
     nsContentUtils::NodeIndexCache& aCache) const {
@@ -237,7 +237,7 @@ bool CSSTransition::HasLowerCompositeOrderThan(
 
   // 0. Object-equality case
   if (&aOther == this) {
-    return false;
+    return 0;
   }
 
   // 1. Sort by document order
@@ -247,7 +247,7 @@ bool CSSTransition::HasLowerCompositeOrderThan(
       aOtherContext ? OwningElementRef(aOtherContext->mTarget)
                     : aOther.mOwningElement;
   if (!owningElement1.Equals(owningElement2)) {
-    return owningElement1.LessThan(owningElement2, aCache);
+    return owningElement1.Compare(owningElement2, aCache);
   }
 
   // 2. (Same element and pseudo): Sort by transition generation
@@ -255,14 +255,17 @@ bool CSSTransition::HasLowerCompositeOrderThan(
   const uint64_t& index2 =
       aOtherContext ? aOtherContext->mIndex : aOther.mAnimationIndex;
   if (index1 != index2) {
-    return index1 < index2;
+    return index1 < index2 ? -1 : 1;
   }
 
   // 3. (Same transition generation): Sort by transition property
+  if (mTransitionProperty == aOther.mTransitionProperty) {
+    return 0;
+  }
   nsAutoString name, otherName;
   GetTransitionProperty(name);
   aOther.GetTransitionProperty(otherName);
-  return name < otherName;
+  return name < otherName ? -1 : 1;
 }
 
 /* static */
