@@ -1216,7 +1216,7 @@ nsresult nsHostResolver::NameLookup(nsHostRecord* rec,
 
 nsresult nsHostResolver::ConditionallyRefreshRecord(
     nsHostRecord* rec, const nsACString& host, const MutexAutoLock& aLock) {
-  if ((rec->CheckExpiration(TimeStamp::NowLoRes()) == nsHostRecord::EXP_GRACE ||
+  if ((rec->CheckExpiration(TimeStamp::NowLoRes()) != nsHostRecord::EXP_VALID ||
        rec->negative) &&
       !rec->mResolving && rec->RefreshForNegativeResponse()) {
     LOG(("  Using %s cache entry for host [%s] but starting async renewal.",
@@ -1226,9 +1226,6 @@ nsresult nsHostResolver::ConditionallyRefreshRecord(
     if (rec->IsAddrRecord() && !rec->negative) {
       // negative entries are constantly being refreshed, only
       // track positive grace period induced renewals
-      // FIXME: we're currently recording METHOD_HIT and METHOD_RENEWAL for the
-      // same lookup.
-      // --> https://bugzilla.mozilla.org/show_bug.cgi?id=1954708
       glean::dns::lookup_method.AccumulateSingleSample(METHOD_RENEWAL);
     }
   }
@@ -1564,14 +1561,7 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
   if (!mShutdown) {
     MutexAutoLock lock(addrRec->addr_info_lock);
     RefPtr<AddrInfo> old_addr_info;
-    bool different_rrset = different_rrset(addrRec->addr_info, newRRSet);
-    bool isRenewal = addrRec->addr_info;
-    if (isRenewal) {
-      glean::dns::grace_period_renewal
-          .Get(different_rrset ? "different_record"_ns : "same_record"_ns)
-          .Add(1);
-    }
-    if (different_rrset) {
+    if (different_rrset(addrRec->addr_info, newRRSet)) {
       LOG(("nsHostResolver record %p new gencnt\n", addrRec.get()));
       old_addr_info = addrRec->addr_info;
       addrRec->addr_info = std::move(newRRSet);
