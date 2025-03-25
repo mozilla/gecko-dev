@@ -518,6 +518,15 @@ add_task(async function checkAddonsInfo() {
   const FAKE_NAME = "Test Addon";
   const FAKE_VERSION = "0.5.7";
 
+  let { hasInstalledAddons: installedAddons } =
+    await ASRouterTargeting.Environment.addonsInfo;
+
+  Assert.strictEqual(
+    installedAddons,
+    false,
+    "should correctly return hasInstalledAddons"
+  );
+
   const xpi = AddonTestUtils.createTempWebExtensionFile({
     manifest: {
       browser_specific_settings: { gecko: { id: FAKE_ID } },
@@ -536,8 +545,11 @@ add_task(async function checkAddonsInfo() {
     "service",
   ]);
 
-  const { addons: asRouterAddons, isFullData } =
-    await ASRouterTargeting.Environment.addonsInfo;
+  const {
+    addons: asRouterAddons,
+    isFullData,
+    hasInstalledAddons,
+  } = await ASRouterTargeting.Environment.addonsInfo;
 
   ok(
     addons.every(({ id }) => asRouterAddons[id]),
@@ -611,6 +623,8 @@ add_task(async function checkAddonsInfo() {
       Math.abs(Date.now() - new Date(testAddon.installDate)) < 60 * 1000,
     "should correctly provide `installDate` property from full data"
   );
+
+  ok(hasInstalledAddons, "should correctly return hasInstalledAddons");
 });
 
 add_task(async function checkFrecentSites() {

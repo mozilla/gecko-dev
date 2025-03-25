@@ -130,6 +130,8 @@ interface AddonsInfoResponse {
     // When was it installed? e.g. "2018-03-10T03:41:06.000Z"
     installDate: string;
   };
+  // Has the user installed addons beyond the built in and system addons?
+  hasInstalledAddons: boolean;
 }
 ```
 ### `attributionData`
