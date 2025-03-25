@@ -233,6 +233,7 @@ interface nsIAccessibleDocument extends nsISupports {
   readonly parentDocument: nsIAccessibleDocument;
   readonly childDocumentCount: u32;
   getChildDocumentAt(index: u32): nsIAccessibleDocument;
+  readonly browsingContext: BrowsingContext;
 }
 
 // https://searchfox.org/mozilla-central/source/accessible/interfaces/nsIAccessibleEditableText.idl
@@ -833,6 +834,8 @@ interface nsIAlertsService extends nsISupports {
   showAlert(aAlert: nsIAlertNotification, aAlertListener?: nsIObserver): void;
   showAlertNotification(aImageURL: string, aTitle: string, aText: string, aTextClickable?: boolean, aCookie?: string, aAlertListener?: nsIObserver, aName?: string, aDir?: string, aLang?: string, aData?: string, aPrincipal?: nsIPrincipal, aInPrivateBrowsing?: boolean, aRequireInteraction?: boolean): void;
   closeAlert(aName?: string, aContextClosed?: boolean): void;
+  teardown(): void;
+  pbmTeardown(): void;
 }
 
 interface nsIAlertsDoNotDisturb extends nsISupports {
@@ -3122,6 +3125,7 @@ interface nsICredentialChooserService extends nsISupports {
   fetchConfig(uri: nsIURI, triggeringPrincipal: nsIPrincipal): Promise<any>;
   fetchAccounts(uri: nsIURI, triggeringPrincipal: nsIPrincipal): Promise<any>;
   fetchToken(uri: nsIURI, body: string, triggeringPrincipal: nsIPrincipal): Promise<any>;
+  fetchDisconnect(uri: nsIURI, body: string, triggeringPrincipal: nsIPrincipal): Promise<any>;
 }
 
 // https://searchfox.org/mozilla-central/source/toolkit/components/credentialmanagement/nsICredentialChosenCallback.idl
@@ -3145,6 +3149,8 @@ interface nsIIdentityCredentialStorageService extends nsISupports {
   setState(rpPrincipal: nsIPrincipal, idpPrincipal: nsIPrincipal, credentialID: string, registered: boolean, allowLogout: boolean): void;
   getState(rpPrincipal: nsIPrincipal, idpPrincipal: nsIPrincipal, credentialID: string, registered: OutParam<boolean>, allowLogout: OutParam<boolean>): void;
   delete(rpPrincipal: nsIPrincipal, idpPrincipal: nsIPrincipal, credentialID: string): void;
+  connected(rpPrincipal: nsIPrincipal, idpPrincipal: nsIPrincipal, connected: OutParam<boolean>): void;
+  disconnect(rpPrincipal: nsIPrincipal, idpPrincipal: nsIPrincipal): void;
   clear(): void;
   deleteFromBaseDomain(baseDomain: string): void;
   deleteFromPrincipal(rpPrincipal: nsIPrincipal): void;
@@ -10921,6 +10927,7 @@ interface nsIAsyncShutdownService extends nsISupports {
   makeBarrier(aName: string): nsIAsyncShutdownBarrier;
   readonly profileBeforeChange: nsIAsyncShutdownClient;
   readonly profileChangeTeardown: nsIAsyncShutdownClient;
+  readonly appShutdownConfirmed: nsIAsyncShutdownClient;
   readonly quitApplicationGranted: nsIAsyncShutdownClient;
   readonly sendTelemetry: nsIAsyncShutdownClient;
   readonly webWorkersShutdown: nsIAsyncShutdownClient;
@@ -11400,6 +11407,7 @@ interface nsISearchEngine extends nsISupports {
   readonly identifier: string;
   readonly isAppProvided: boolean;
   readonly inMemory: boolean;
+  readonly overriddenById: string;
   readonly isGeneralPurposeEngine: boolean;
   readonly searchUrlDomain: string;
   readonly clickUrl: string;

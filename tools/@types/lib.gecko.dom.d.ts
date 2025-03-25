@@ -423,6 +423,7 @@ interface ClearResourceCacheOptions {
     schemelessSite?: string;
     target?: ResourceCacheTarget;
     types?: ResourceCacheType[];
+    url?: string;
 }
 
 interface ClientRectsAndTexts {
@@ -1438,6 +1439,10 @@ interface IIRFilterOptions extends AudioNodeOptions {
     feedforward: number[];
 }
 
+interface IdentityCredentialDisconnectOptions extends IdentityProviderConfig {
+    accountHint: string;
+}
+
 interface IdentityCredentialInit {
     effectiveOrigins?: string[];
     effectiveQueryURL?: string;
@@ -2230,6 +2235,7 @@ interface NavigateEventInit extends EventInit {
     info?: any;
     navigationType?: NavigationType;
     signal: AbortSignal;
+    sourceElement?: Element | null;
     userInitiated?: boolean;
 }
 
@@ -8511,6 +8517,7 @@ interface GPUAdapterInfo {
     readonly architecture: string;
     readonly description: string;
     readonly device: string;
+    readonly isFallbackAdapter: boolean;
     readonly vendor: string;
     readonly wgpuBackend: string;
     readonly wgpuDevice: number;
@@ -11870,6 +11877,7 @@ declare var IdentityCredential: {
     prototype: IdentityCredential;
     new(init: IdentityCredentialInit): IdentityCredential;
     isInstance: IsInstance<IdentityCredential>;
+    disconnect(options?: IdentityCredentialDisconnectOptions): Promise<void>;
 };
 
 interface IdleDeadline {
@@ -14201,6 +14209,7 @@ interface NavigateEvent extends Event {
     readonly info: any;
     readonly navigationType: NavigationType;
     readonly signal: AbortSignal;
+    readonly sourceElement: Element | null;
     readonly userInitiated: boolean;
     intercept(options?: NavigationInterceptOptions): void;
     scroll(): void;
@@ -15095,6 +15104,7 @@ interface PerformanceEventMap {
 
 interface Performance extends EventTarget {
     readonly eventCounts: EventCounts;
+    readonly interactionCount: number;
     readonly mozMemory: any;
     readonly navigation: PerformanceNavigation;
     onresourcetimingbufferfull: ((this: Performance, ev: Event) => any) | null;
@@ -15154,6 +15164,7 @@ declare var PerformanceEntryEvent: {
 
 interface PerformanceEventTiming extends PerformanceEntry {
     readonly cancelable: boolean;
+    readonly interactionId: number;
     readonly processingEnd: DOMHighResTimeStamp;
     readonly processingStart: DOMHighResTimeStamp;
     readonly target: Node | null;
@@ -25486,7 +25497,7 @@ type GPUBufferDynamicOffset = number;
 type GPUBufferUsageFlags = number;
 type GPUColor = number[] | GPUColorDict;
 type GPUColorWriteFlags = number;
-type GPUCopyExternalImageSource = ImageBitmap | HTMLCanvasElement | OffscreenCanvas;
+type GPUCopyExternalImageSource = ImageBitmap | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
 type GPUDepthBias = number;
 type GPUExtent3D = GPUIntegerCoordinate[] | GPUExtent3DDict;
 type GPUFlagsConstant = number;
