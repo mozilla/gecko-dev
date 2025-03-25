@@ -125,8 +125,7 @@ namespace mozilla {
 class nsDisplayCanvasBackgroundColor final : public nsDisplaySolidColorBase {
  public:
   nsDisplayCanvasBackgroundColor(nsDisplayListBuilder* aBuilder,
-                                 nsIFrame* aFrame)
-      : nsDisplaySolidColorBase(aBuilder, aFrame, NS_RGBA(0, 0, 0, 0)) {}
+                                 nsIFrame* aFrame);
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override {
     auto* frame = static_cast<nsCanvasFrame*>(mFrame);
@@ -145,8 +144,6 @@ class nsDisplayCanvasBackgroundColor final : public nsDisplaySolidColorBase {
       mozilla::layers::RenderRootStateManager* aManager,
       nsDisplayListBuilder* aDisplayListBuilder) override;
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
-
-  void SetExtraBackgroundColor(nscolor aColor) { mColor = aColor; }
 
   NS_DISPLAY_DECL_NAME("CanvasBackgroundColor", TYPE_CANVAS_BACKGROUND_COLOR)
 

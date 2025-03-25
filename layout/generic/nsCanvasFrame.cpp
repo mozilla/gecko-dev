@@ -287,6 +287,13 @@ nsRect nsCanvasFrame::CanvasArea() const {
 
 Element* nsCanvasFrame::GetDefaultTooltip() { return mTooltipContent; }
 
+nsDisplayCanvasBackgroundColor::nsDisplayCanvasBackgroundColor(
+    nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
+    : nsDisplaySolidColorBase(
+          aBuilder, aFrame,
+          aFrame->PresShell()->GetCSSSpecifiedCanvasBackground(
+              aFrame->GetParent()->IsPageContentFrame())) {}
+
 void nsDisplayCanvasBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
                                            gfxContext* aCtx) {
   if (!NS_GET_A(mColor)) {
@@ -547,25 +554,10 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     layerItems.AppendToTop(&thisItemList);
   }
 
-  bool hasFixedBottomLayer =
-      layers.mImageCount > 0 &&
-      layers.mLayers[0].mAttachment == StyleImageLayerAttachment::Fixed;
-
   nsDisplayList list(aBuilder);
 
-  if (!hasFixedBottomLayer || needBlendContainer) {
-    // Put a scrolled background color item in place, at the bottom of the
-    // list. The color of this item will be filled in during
-    // PresShell::AddCanvasBackgroundColorItem.
-    // Do not add this item if there's a fixed background image at the bottom
-    // (unless we have to, for correct blending); with a fixed background,
-    // it's better to allow the fixed background image to combine itself with
-    // a non-scrolled background color directly underneath, rather than
-    // interleaving the two with a scrolled background color.
-    // PresShell::AddCanvasBackgroundColorItem makes sure there always is a
-    // non-scrolled background color item at the bottom.
-    list.AppendNewToTop<nsDisplayCanvasBackgroundColor>(aBuilder, this);
-  }
+  // Put a scrolled background color item in place, at the bottom of the list.
+  list.AppendNewToTop<nsDisplayCanvasBackgroundColor>(aBuilder, this);
 
   list.AppendToTop(&layerItems);
 
