@@ -1254,7 +1254,7 @@ export class SyncedBookmarksMirror {
        FROM itemsToUpload`,
       null,
       (row, cancel) => {
-        if (signal.interrupted) {
+        if (signal.aborted) {
           cancel();
         } else {
           itemRows.push(row);
