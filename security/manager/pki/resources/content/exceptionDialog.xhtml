@@ -3,13 +3,14 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; img-src chrome: moz-icon:; ?>
+
 <!DOCTYPE window>
 
 <window windowtype="mozilla:exceptiondialog"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:html="http://www.w3.org/1999/xhtml"
-        data-l10n-id="exception-mgr"
-        onload="initExceptionDialog();">
+        data-l10n-id="exception-mgr">
 <dialog id="exceptiondialog"
         buttonidextra1="exception-mgr-extra-button"
         buttons="cancel,extra1,extra2"
@@ -54,7 +55,6 @@
            id="certLocationLabel"
            data-l10n-id="exception-mgr-cert-location-url"/>
     <html:input id="locationTextBox"
-                oninput="handleTextChange();"
                 value="https://"
                 class="uri-element"/>
     <button id="checkCertButton"
@@ -68,8 +68,7 @@
                  flex="1"/>
     <button id="viewCertButton"
             data-l10n-id="exception-mgr-cert-status-view-cert"
-            disabled="true"
-            oncommand="viewCertButtonClick();"/>
+            disabled="true"/>
   </hbox>
   <description id="statusDescription"
                class="description"/>
