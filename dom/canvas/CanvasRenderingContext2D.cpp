@@ -6795,9 +6795,7 @@ void CanvasRenderingContext2D::SetWriteOnly() {
 }
 
 bool CanvasRenderingContext2D::UseSoftwareRendering() const {
-  return (StaticPrefs::gfx_canvas_willreadfrequently_enabled_AtStartup() &&
-          mWillReadFrequently) ||
-         mForceSoftwareRendering;
+  return mWillReadFrequently || mForceSoftwareRendering;
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CanvasPath, mParent)
