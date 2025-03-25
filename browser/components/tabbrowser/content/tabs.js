@@ -958,8 +958,12 @@
               this.selectedItem = target;
             }
           }
-          ind.hidden = true;
-          return;
+          if (isTab(target)) {
+            // Dropping on the target tab would replace the loaded page rather
+            // than opening a new tab, so hide the drop indicator.
+            ind.hidden = true;
+            return;
+          }
         }
       }
 
@@ -1302,7 +1306,7 @@
 
         let targetTab = this.#getDragTarget(event, { ignoreSides: true });
         let userContextId = this.selectedItem.getAttribute("usercontextid");
-        let replace = !!targetTab;
+        let replace = isTab(targetTab);
         let newIndex = this.#getDropIndex(event);
         let urls = links.map(link => link.url);
         let csp = Services.droppedLinkHandler.getCsp(event);
@@ -1324,12 +1328,15 @@
             }
           }
 
+          let nextItem = this.ariaFocusableItems[newIndex];
+          let tabGroup = isTab(nextItem) && nextItem.group;
           gBrowser.loadTabs(urls, {
             inBackground,
             replace,
             allowThirdPartyFixup: true,
             targetTab,
             elementIndex: newIndex,
+            tabGroup,
             userContextId,
             triggeringPrincipal,
             csp,

@@ -1815,8 +1815,10 @@
         allowThirdPartyFixup,
         inBackground,
         newIndex,
+        elementIndex,
         postDatas,
         replace,
+        tabGroup,
         targetTab,
         triggeringPrincipal,
         csp,
@@ -1844,6 +1846,9 @@
       var firstTabAdded = null;
       var targetTabIndex = -1;
 
+      if (typeof elementIndex == "number") {
+        newIndex = this.#elementIndexToTabIndex(elementIndex);
+      }
       if (typeof newIndex != "number") {
         newIndex = -1;
       }
@@ -1860,6 +1865,11 @@
       }
 
       if (replace) {
+        if (this.isTabGroupLabel(targetTab)) {
+          throw new Error(
+            "Replacing a tab group label with a tab is not supported"
+          );
+        }
         let browser;
         if (targetTab) {
           browser = this.getBrowserForTab(targetTab);
@@ -1902,6 +1912,7 @@
           bulkOrderedOpen: multiple,
           csp,
           fromExternal,
+          tabGroup,
         };
         if (newIndex > -1) {
           params.index = newIndex;
@@ -1924,6 +1935,7 @@
           bulkOrderedOpen: true,
           csp,
           fromExternal,
+          tabGroup,
         };
         if (targetTabIndex > -1) {
           params.index = ++tabNum;
