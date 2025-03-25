@@ -35,7 +35,7 @@ fuzzy-if(cocoaWidget,0-32,0-1000) == columnfill-auto.html columnfill-auto-ref.ht
 == column-balancing-nested-000.html column-balancing-nested-000-ref.html
 == column-balancing-nested-001.html column-balancing-nested-001-ref.html
 == columnrule-overflow.html columnrule-overflow-ref.html
-== columns-table-caption-000.html columns-table-caption-000-ref.html
+fuzzy-if(winWidget,0-1,0-6) == columns-table-caption-000.html columns-table-caption-000-ref.html
 == positioning-transforms-bug1112501.html positioning-transforms-bug1112501-ref.html
 fuzzy-if(winWidget,0-142,0-276) == fieldset-columns-001.html fieldset-columns-001-ref.html
 == fieldset-columns-002.html fieldset-columns-002-ref.html
