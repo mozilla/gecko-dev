@@ -48,6 +48,7 @@ HTMLTextAreaElement::HTMLTextAreaElement(
       mDoneAddingChildren(!aFromParser),
       mInhibitStateRestoration(!!(aFromParser & FROM_PARSER_FRAGMENT)),
       mAutocompleteAttrState(nsContentUtils::eAutocompleteAttrState_Unknown),
+      mAutocompleteInfoState(nsContentUtils::eAutocompleteAttrState_Unknown),
       mState(TextControlState::Construct(this)) {
   AddMutationObserver(this);
 
@@ -855,6 +856,7 @@ void HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
     } else if (aName == nsGkAtoms::autocomplete) {
       // Clear the cached @autocomplete attribute state.
       mAutocompleteAttrState = nsContentUtils::eAutocompleteAttrState_Unknown;
+      mAutocompleteInfoState = nsContentUtils::eAutocompleteAttrState_Unknown;
     } else if (aName == nsGkAtoms::maxlength) {
       UpdateTooLongValidityState();
       UpdateValidityElementStates(aNotify);
@@ -1134,6 +1136,12 @@ void HTMLTextAreaElement::GetAutocomplete(DOMString& aValue) {
 
   mAutocompleteAttrState = nsContentUtils::SerializeAutocompleteAttribute(
       attributeVal, aValue, mAutocompleteAttrState);
+}
+
+void HTMLTextAreaElement::GetAutocompleteInfo(AutocompleteInfo& aInfo) {
+  const nsAttrValue* attributeVal = GetParsedAttr(nsGkAtoms::autocomplete);
+  mAutocompleteInfoState = nsContentUtils::SerializeAutocompleteAttribute(
+      attributeVal, aInfo, mAutocompleteInfoState, true);
 }
 
 }  // namespace mozilla::dom
