@@ -15439,7 +15439,7 @@
 # header values of "cache" and "*" will clear cached data from the site
 - name: privacy.clearSiteDataHeader.cache.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # First Party Isolation (double keying), disabled by default.
