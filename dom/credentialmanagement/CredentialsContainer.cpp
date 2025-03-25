@@ -98,7 +98,9 @@ static bool ConsumeUserActivation(nsPIDOMWindowInner* aParent) {
   return doc->ConsumeTransientUserGestureActivation();
 }
 
-static bool IsSameOriginWithAncestors(nsPIDOMWindowInner* aParent) {
+// static
+bool CredentialsContainer::IsSameOriginWithAncestors(
+    nsPIDOMWindowInner* aParent) {
   // This method returns true if aParent is either not in a frame / iframe, or
   // is in a frame or iframe and all ancestors for aParent are the same origin.
   // This is useful for Credential Management because we need to prohibit

@@ -4,10 +4,48 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/Components.h"
+#include "mozilla/dom/CredentialsContainer.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/NavigatorLogin.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/dom/WindowGlobalChild.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIGlobalObject.h"
+#include "nsIPermissionManager.h"
+#include "nsIPrincipal.h"
+#include "nsString.h"
 
-namespace mozilla::dom {
+namespace mozilla {
+namespace dom {
+
+static constexpr nsLiteralCString kLoginStatusPermission =
+    "self-reported-logged-in"_ns;
+
+uint32_t ConvertStatusToPermission(LoginStatus aStatus) {
+  if (aStatus == LoginStatus::Logged_in) {
+    return nsIPermissionManager::ALLOW_ACTION;
+  } else if (aStatus == LoginStatus::Logged_out) {
+    return nsIPermissionManager::DENY_ACTION;
+  } else {
+    // This should be unreachable, but let's return a real value
+    return nsIPermissionManager::UNKNOWN_ACTION;
+  }
+}
+
+Maybe<LoginStatus> PermissionToStatus(uint32_t aPermission) {
+  if (aPermission == nsIPermissionManager::ALLOW_ACTION) {
+    return Some(LoginStatus::Logged_in);
+  } else if (aPermission == nsIPermissionManager::DENY_ACTION) {
+    return Some(LoginStatus::Logged_out);
+  } else {
+    if (aPermission == nsIPermissionManager::UNKNOWN_ACTION) {
+      MOZ_ASSERT(false, "Unexpected permission action from login status");
+    }
+    return Nothing();
+  }
+}
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(NavigatorLogin, mOwner)
 
@@ -18,21 +56,91 @@ JSObject* NavigatorLogin::WrapObject(JSContext* aCx,
   return NavigatorLogin_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-NavigatorLogin::NavigatorLogin(nsIGlobalObject* aGlobal)
-    : mOwner(aGlobal){
-      MOZ_ASSERT(mOwner);
-    };
+NavigatorLogin::NavigatorLogin(nsIGlobalObject* aGlobal) : mOwner(aGlobal) {
+  MOZ_ASSERT(mOwner);
+};
 
 already_AddRefed<mozilla::dom::Promise> NavigatorLogin::SetStatus(
-    const LoginStatus& aStatus, mozilla::ErrorResult& aRv) {
-
+    LoginStatus aStatus, mozilla::ErrorResult& aRv) {
   RefPtr<Promise> promise = Promise::Create(mOwner, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
-  promise->MaybeRejectWithNotSupportedError(
-      "navigator.login.setStatus not implemented"_ns);
+
+  nsPIDOMWindowInner* window = mOwner->GetAsInnerWindow();
+  if (!window) {
+    promise->MaybeRejectWithUnknownError(
+        "navigator.login.setStatus called on unavailable window"_ns);
+    return promise.forget();
+  }
+
+  if (!CredentialsContainer::IsSameOriginWithAncestors(window)) {
+    promise->MaybeRejectWithSecurityError(
+        "navigator.login.setStatus must be called in a frame that is same-origin with its ancestors"_ns);
+    return promise.forget();
+  }
+
+  WindowGlobalChild* wgc = window->GetWindowGlobalChild();
+  if (!wgc) {
+    promise->MaybeRejectWithUnknownError(
+        "navigator.login.setStatus called while window already destroyed"_ns);
+    return promise.forget();
+  }
+
+  wgc->SendSetLoginStatus(aStatus)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise](
+          const WindowGlobalChild::SetLoginStatusPromise::ResolveValueType&
+              aResult) {
+        if (NS_SUCCEEDED(aResult)) {
+          promise->MaybeResolveWithUndefined();
+        } else {
+          promise->MaybeRejectWithUnknownError(
+              "navigator.login.setStatus had an unexpected internal error");
+        }
+      },
+      [promise](const WindowGlobalChild::SetLoginStatusPromise::RejectValueType&
+                    aResult) {
+        promise->MaybeRejectWithUnknownError(
+            "navigator.login.setStatus had an unexpected internal error");
+      });
   return promise.forget();
 }
 
-}  // namespace mozilla::dom
+// static
+nsresult NavigatorLogin::SetLoginStatus(nsIPrincipal* aPrincipal,
+                                        LoginStatus aStatus) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  nsCOMPtr<nsIPermissionManager> permMgr =
+      components::PermissionManager::Service();
+  if (!permMgr) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  return permMgr->AddFromPrincipal(aPrincipal, kLoginStatusPermission,
+                                   ConvertStatusToPermission(aStatus),
+                                   nsIPermissionManager::EXPIRE_NEVER, 0);
+}
+
+// static
+nsresult GetLoginStatus(nsIPrincipal* aPrincipal, Maybe<LoginStatus>& aStatus) {
+  nsCOMPtr<nsIPermissionManager> permMgr =
+      components::PermissionManager::Service();
+  if (!permMgr) {
+    aStatus = Nothing();
+    return NS_ERROR_SERVICE_NOT_AVAILABLE;
+  }
+  uint32_t action;
+  nsresult rv = permMgr->TestPermissionFromPrincipal(
+      aPrincipal, kLoginStatusPermission, &action);
+  if (NS_FAILED(rv)) {
+    aStatus = Nothing();
+    return rv;
+  }
+  aStatus = PermissionToStatus(action);
+  return NS_OK;
+}
+
+}  // namespace dom
+}  // namespace mozilla
