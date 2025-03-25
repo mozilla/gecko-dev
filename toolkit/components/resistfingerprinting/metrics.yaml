@@ -91,25 +91,6 @@ characteristics:
     data_sensitivity:
       - technical
 
-  video_dynamic_range:
-    type: boolean
-    description: >
-      What LookAndFeel(VideoDynamicRange) reports. Note that CSSVideoDynamicRange
-      has an additional dependency on Color Depth.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879624
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879624#c4
-    expires: never
-    data_sensitivity:
-      - technical
-
   prefers_reduced_transparency:
     type: boolean
     description: >
@@ -188,44 +169,6 @@ characteristics:
     unit: enum mozilla::ColorScheme value
     description: >
       The Color Scheme used for Content, from ContentPrefs() Preference Sheet.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879624
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879624#c4
-    expires: never
-    data_sensitivity:
-      - technical
-
-  color_gamut:
-    type: quantity
-    unit: enum dom::ScreenColorGamut value
-    description: >
-      The Color Gamut reported by CSS
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879624
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879624#c4
-    expires: never
-    data_sensitivity:
-      - technical
-
-  color_depth:
-    type: quantity
-    unit: bits
-    description: >
-      The Color Depth reported by CSS
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -422,63 +365,6 @@ characteristics:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
-
-  screen_width:
-    type: quantity
-    unit: pixels
-    description: >
-      Width of the primary screen in pixels.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881749
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881749#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  screen_orientation:
-    type: quantity
-    unit: enum hal::ScreenOrientation value
-    description: >
-      Orientation of the primary screen.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881749
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881749#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  screen_height:
-    type: quantity
-    unit: pixels
-    description: >
-      Height of the primary screen in pixels.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881749
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881749#c5
-    expires: never
-    data_sensitivity:
-      - technical
 
   processor_count:
     type: quantity
@@ -3007,25 +2893,6 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  pixel_depth:
-    type: quantity
-    unit: int
-    description: >
-      Screen pixel depth property
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
   avail_height:
     type: quantity
     unit: int
@@ -3117,44 +2984,6 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  posx:
-    type: quantity
-    unit: int
-    description: >
-      window.screen.left value. Provides us the position of the browser
-      and the width of any possible task/menu bar
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886177
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886177#c4
-    expires: never
-    data_sensitivity:
-      - interaction
-
-  posy:
-    type: quantity
-    unit: int
-    description: >
-      window.screen.top value. Provides us the position of the browser
-      and the height of any possible task/menu bar
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886177
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886177#c4
-    expires: never
-    data_sensitivity:
-      - interaction
-
   size_mode:
     type: quantity
     unit: int
@@ -3178,25 +3007,6 @@ characteristics:
     unit: int
     description: >
       Available width property
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898291#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  orientation_angle:
-    type: quantity
-    unit: int
-    description: >
-      Orientation angle of the screen
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -5073,3 +4883,22 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  screens:
+    type: text
+    description: >
+      JSON string of screen properties
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956273
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956273#c1
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
