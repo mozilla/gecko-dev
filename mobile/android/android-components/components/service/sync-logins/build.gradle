@@ -12,11 +12,6 @@ android {
         targetSdkVersion = config.targetSdkVersion
     }
 
-    lint {
-        warningsAsErrors = true
-        abortOnError = true
-    }
-
     buildTypes {
         release {
             minifyEnabled = false

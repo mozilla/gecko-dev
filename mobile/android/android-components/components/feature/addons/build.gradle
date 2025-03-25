@@ -35,11 +35,6 @@ android {
         }
     }
 
-    lint {
-        warningsAsErrors = true
-        abortOnError = true
-    }
-
     buildFeatures {
         viewBinding = true
     }

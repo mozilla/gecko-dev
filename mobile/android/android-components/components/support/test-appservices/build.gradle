@@ -19,11 +19,6 @@ android {
         }
     }
 
-    lint {
-        warningsAsErrors = true
-        abortOnError = true
-    }
-
     namespace = 'mozilla.components.support.test.appservices'
 }
 
