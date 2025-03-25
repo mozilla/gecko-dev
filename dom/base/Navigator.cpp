@@ -52,6 +52,7 @@
 #include "mozilla/dom/LockManager.h"
 #include "mozilla/dom/MIDIAccessManager.h"
 #include "mozilla/dom/MIDIOptionsBinding.h"
+#include "mozilla/dom/NavigatorLogin.h"
 #include "mozilla/dom/Permissions.h"
 #include "mozilla/dom/ServiceWorkerContainer.h"
 #include "mozilla/dom/StorageManager.h"
@@ -164,6 +165,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAddonManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebGpu)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocks)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLogin)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPrivateAttribution)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mUserActivation)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWakeLock)
@@ -253,6 +255,8 @@ void Navigator::Invalidate() {
     mLocks->Shutdown();
     mLocks = nullptr;
   }
+
+  mLogin = nullptr;
 
   mPrivateAttribution = nullptr;
 
@@ -2268,6 +2272,13 @@ dom::LockManager* Navigator::Locks() {
     mLocks = dom::LockManager::Create(*GetWindow()->AsGlobal());
   }
   return mLocks;
+}
+
+NavigatorLogin* Navigator::Login() {
+  if (!mLogin) {
+    mLogin = new NavigatorLogin(GetWindow()->AsGlobal());
+  }
+  return mLogin;
 }
 
 dom::PrivateAttribution* Navigator::PrivateAttribution() {
