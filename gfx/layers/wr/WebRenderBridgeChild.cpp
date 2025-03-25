@@ -106,7 +106,7 @@ void WebRenderBridgeChild::UpdateResources(
 bool WebRenderBridgeChild::EndTransaction(
     DisplayListData&& aDisplayListData, TransactionId aTransactionId,
     bool aContainsSVGGroup, const mozilla::VsyncId& aVsyncId,
-    const mozilla::TimeStamp& aVsyncStartTime,
+    bool aRenderOffscreen, const mozilla::TimeStamp& aVsyncStartTime,
     const mozilla::TimeStamp& aRefreshStartTime,
     const mozilla::TimeStamp& aTxnStartTime, const nsCString& aTxnURL) {
   MOZ_ASSERT(!mDestroyed);
@@ -126,7 +126,8 @@ bool WebRenderBridgeChild::EndTransaction(
   bool ret = this->SendSetDisplayList(
       std::move(aDisplayListData), mDestroyedActors, GetFwdTransactionId(),
       aTransactionId, aContainsSVGGroup, aVsyncId, aVsyncStartTime,
-      aRefreshStartTime, aTxnStartTime, aTxnURL, fwdTime, payloads);
+      aRefreshStartTime, aTxnStartTime, aTxnURL, fwdTime, payloads,
+      aRenderOffscreen);
 
   // With multiple render roots, we may not have sent all of our
   // mParentCommands, so go ahead and go through our mParentCommands and ensure

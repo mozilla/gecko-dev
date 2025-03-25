@@ -87,7 +87,8 @@ class WebRenderLayerManager final : public WindowRenderer {
                                   nsDisplayListBuilder* aDisplayListBuilder,
                                   WrFiltersHolder&& aFilters,
                                   WebRenderBackgroundData* aBackground,
-                                  const double aGeckoDLBuildTime);
+                                  const double aGeckoDLBuildTime,
+                                  bool aRenderOffscreen);
 
   LayersBackend GetBackendType() override { return LayersBackend::LAYERS_WR; }
   void GetBackendName(nsAString& name) override;

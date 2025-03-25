@@ -1188,7 +1188,8 @@ bool WebRenderBridgeParent::SetDisplayList(
 
 bool WebRenderBridgeParent::ProcessDisplayListData(
     DisplayListData& aDisplayList, wr::Epoch aWrEpoch,
-    const TimeStamp& aTxnStartTime, bool aValidTransaction) {
+    const TimeStamp& aTxnStartTime, bool aValidTransaction,
+    bool aRenderOffscreen, const VsyncId& aVsyncId) {
   wr::TransactionBuilder txn(mApi, /* aUseSceneBuilderThread */ true,
                              mRemoteTextureTxnScheduler, mFwdTransactionId);
   Maybe<wr::AutoTransactionSender> sender;
@@ -1213,6 +1214,13 @@ bool WebRenderBridgeParent::ProcessDisplayListData(
   // be in the updater queue at the time that the scene swap completes.
   if (aDisplayList.mScrollData) {
     UpdateAPZScrollData(aWrEpoch, std::move(aDisplayList.mScrollData.ref()));
+  }
+
+  if (aRenderOffscreen) {
+    TimeStamp start = TimeStamp::Now();
+    txn.GenerateFrame(aVsyncId, false, wr::RenderReasons::SNAPSHOT);
+    wr::RenderThread::Get()->IncPendingFrameCount(mApi->GetId(), aVsyncId,
+                                                  start);
   }
 
   txn.SetLowPriority(!IsRootWebRenderBridgeParent());
@@ -1242,7 +1250,8 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvSetDisplayList(
     const bool& aContainsSVGGroup, const VsyncId& aVsyncId,
     const TimeStamp& aVsyncStartTime, const TimeStamp& aRefreshStartTime,
     const TimeStamp& aTxnStartTime, const nsACString& aTxnURL,
-    const TimeStamp& aFwdTime, nsTArray<CompositionPayload>&& aPayloads) {
+    const TimeStamp& aFwdTime, nsTArray<CompositionPayload>&& aPayloads,
+    const bool& aRenderOffscreen) {
   if (mDestroyed) {
     for (const auto& op : aToDestroy) {
       DestroyActor(op);
@@ -1282,8 +1291,9 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvSetDisplayList(
   }
 
   bool validTransaction = aDisplayList.mIdNamespace == mIdNamespace;
-  bool success = ProcessDisplayListData(aDisplayList, wrEpoch, aTxnStartTime,
-                                        validTransaction);
+  bool success =
+      ProcessDisplayListData(aDisplayList, wrEpoch, aTxnStartTime,
+                             validTransaction, aRenderOffscreen, aVsyncId);
 
   if (!IsRootWebRenderBridgeParent()) {
     aPayloads.AppendElement(

@@ -1124,6 +1124,7 @@ class nsLayoutUtils {
     ForWebRender = 0x100,
     UseHighQualityScaling = 0x200,
     ResetViewportScrolling = 0x400,
+    CompositeOffscreen = 0x800,
   };
 
   /**

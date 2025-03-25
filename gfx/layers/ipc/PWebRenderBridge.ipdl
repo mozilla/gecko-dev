@@ -53,7 +53,8 @@ parent:
                        bool containsSVGGroup,
                        VsyncId vsyncId, TimeStamp vsyncStartTime,
                        TimeStamp refreshStartTime, TimeStamp txnStartTime, nsCString txnURL, TimeStamp fwdTime,
-                       CompositionPayload[] payloads);
+                       CompositionPayload[] payloads,
+                       bool renderOffscreen);
   async EmptyTransaction(FocusTarget focusTarget,
                          MaybeTransactionData transationData,
                          OpDestroy[] toDestroy, uint64_t fwdTransactionId, TransactionId transactionId,

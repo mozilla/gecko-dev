@@ -71,7 +71,7 @@ class WebRenderBridgeChild final : public PWebRenderBridgeChild,
   void BeginTransaction();
   bool EndTransaction(DisplayListData&& aDisplayListData,
                       TransactionId aTransactionId, bool aContainsSVGroup,
-                      const mozilla::VsyncId& aVsyncId,
+                      const mozilla::VsyncId& aVsyncId, bool aRenderOffscreen,
                       const mozilla::TimeStamp& aVsyncStartTime,
                       const mozilla::TimeStamp& aRefreshStartTime,
                       const mozilla::TimeStamp& aTxnStartTime,

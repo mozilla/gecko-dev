@@ -192,6 +192,8 @@ enum class PaintFlags {
   None = 0,
   /* Sync-decode images. */
   PaintSyncDecodeImages = 1 << 1,
+  /* Render without presenting to the window */
+  PaintCompositeOffscreen = 1 << 2,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(PaintFlags)
@@ -202,6 +204,8 @@ enum class PaintInternalFlags {
   PaintSyncDecodeImages = 1 << 1,
   /* Composite layers to the window. */
   PaintComposite = 1 << 2,
+  /* Render without presenting to the window */
+  PaintCompositeOffscreen = 1 << 3,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(PaintInternalFlags)
