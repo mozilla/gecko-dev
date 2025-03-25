@@ -73,28 +73,27 @@ const SELECTOR_STATES = {
   value: "value", // foo[bar=b|
 };
 
-/**
- * Constructor for the autocompletion object.
- *
- * @param options {Object} An options object containing the following options:
- *        - walker {Object} The object used for query selecting from the current
- *                 target's DOM.
- *        - maxEntries {Number} Maximum selectors suggestions to display.
- *        - cssProperties {Object} The database of CSS properties.
- */
-function CSSCompleter(options = {}) {
-  this.walker = options.walker;
-  this.maxEntries = options.maxEntries || 15;
-  this.cssProperties = options.cssProperties;
+class CSSCompleter {
+  /**
+   * @constructor
+   * @param options {Object} An options object containing the following options:
+   *        - walker {Object} The object used for query selecting from the current
+   *                 target's DOM.
+   *        - maxEntries {Number} Maximum selectors suggestions to display.
+   *        - cssProperties {Object} The database of CSS properties.
+   */
+  constructor(options = {}) {
+    this.walker = options.walker;
+    this.maxEntries = options.maxEntries || 15;
+    this.cssProperties = options.cssProperties;
 
-  this.propertyNames = this.cssProperties.getNames().sort();
+    this.propertyNames = this.cssProperties.getNames().sort();
 
-  // Array containing the [line, ch, scopeStack] for the locations where the
-  // CSS state is "null"
-  this.nullStates = [];
-}
+    // Array containing the [line, ch, scopeStack] for the locations where the
+    // CSS state is "null"
+    this.nullStates = [];
+  }
 
-CSSCompleter.prototype = {
   /**
    * Returns a list of suggestions based on the caret position.
    *
@@ -145,7 +144,7 @@ CSSCompleter.prototype = {
         }
     }
     return Promise.resolve([]);
-  },
+  }
 
   /**
    * Resolves the state of CSS at the cursor location. This method implements a
@@ -784,7 +783,7 @@ CSSCompleter.prototype = {
       this.completing = "!" + this.completing;
     }
     return _state;
-  },
+  }
 
   /**
    * Queries the DOM Walker actor for suggestions regarding the selector being
@@ -837,7 +836,7 @@ CSSCompleter.prototype = {
     return walker
       .getSuggestionsForQuery(query, this.completing, this.selectorState)
       .then(result => this.prepareSelectorResults(result));
-  },
+  }
 
   /**
    * Prepares the selector suggestions returned by the walker actor.
@@ -905,7 +904,7 @@ CSSCompleter.prototype = {
       }
     }
     return completion;
-  },
+  }
 
   /**
    * Returns CSS property name suggestions based on the input.
@@ -936,7 +935,7 @@ CSSCompleter.prototype = {
       }
     }
     return Promise.resolve(finalList);
-  },
+  }
 
   /**
    * Returns CSS value suggestions based on the corresponding property.
@@ -972,7 +971,7 @@ CSSCompleter.prototype = {
       }
     }
     return Promise.resolve(finalList);
-  },
+  }
 
   /**
    * A biased binary search in a sorted array where the middle element is
@@ -1025,14 +1024,14 @@ CSSCompleter.prototype = {
     }
 
     return -1;
-  },
+  }
 
   /**
    * Invalidates the state cache for and above the line.
    */
   invalidateCache(line) {
     this.nullStates.length = this.findNearestNullState(line) + 1;
-  },
+  }
 
   /**
    * Get the state information about a token surrounding the {line, ch} position
@@ -1296,7 +1295,7 @@ CSSCompleter.prototype = {
       };
     }
     return null;
-  },
-};
+  }
+}
 
 module.exports = CSSCompleter;
