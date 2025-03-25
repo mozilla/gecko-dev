@@ -66,12 +66,16 @@ class SnapTestsBase:
             dir=os.path.expanduser(self._PROFILE_PATH),
         )
 
+        driver_service_args = []
+        if self.need_allow_system_access():
+            driver_service_args += ["--allow-system-access"]
+
         driver_service = Service(
             executable_path=self._EXE_PATH,
             log_output=os.path.join(
                 os.environ.get("ARTIFACT_DIR", ""), "geckodriver.log"
             ),
-            service_args=["--allow-system-access"],
+            service_args=driver_service_args,
         )
 
         options = Options()
@@ -243,6 +247,12 @@ class SnapTestsBase:
                 in subprocess.check_output(["file", self._LIB_PATH]).decode()
             )
         return self._is_debug_build
+
+    def need_allow_system_access(self):
+        geckodriver_output = subprocess.check_output(
+            [self._EXE_PATH, "--help"]
+        ).decode()
+        return "--allow-system-access" in geckodriver_output
 
     def update_channel(self):
         if self._update_channel is None:
