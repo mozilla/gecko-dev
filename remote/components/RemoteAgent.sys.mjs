@@ -426,6 +426,8 @@ class RemoteAgentParentProcess {
     }
 
     cmdLine.handleFlag("remote-allow-system-access", false);
+    cmdLine.handleFlagWithParam("remote-allow-hosts", false);
+    cmdLine.handleFlagWithParam("remote-allow-origins", false);
   }
 
   async observe(subject, topic) {
