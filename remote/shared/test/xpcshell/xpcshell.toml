@@ -13,6 +13,8 @@ head = "head.js"
 
 ["test_Navigate.js"]
 
+["test_NetworkDecodedBodySizeMap.js"]
+
 ["test_Realm.js"]
 
 ["test_RecommendedPreferences.js"]

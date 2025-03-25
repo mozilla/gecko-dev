@@ -20,10 +20,9 @@ export class NetworkDecodedBodySizeMap {
         promise,
         resolve,
       });
-
-      await promise;
     }
     const mapEntry = this.#channelIdToBodySizePromiseMap.get(channelId);
+    await mapEntry.promise;
     return mapEntry.decodedBodySize;
   }
 

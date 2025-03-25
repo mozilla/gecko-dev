@@ -23,3 +23,19 @@ function trackPromise(promise) {
 
   return trackedPromise;
 }
+
+const hasPromiseResolved = async function (promise) {
+  let resolved = false;
+  promise.finally(() => (resolved = true)).catch(() => {});
+  // Make sure microtasks have time to run.
+  await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
+  return resolved;
+};
+
+const hasPromiseRejected = async function (promise) {
+  let rejected = false;
+  promise.catch(() => (rejected = true));
+  // Make sure microtasks have time to run.
+  await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
+  return rejected;
+};
