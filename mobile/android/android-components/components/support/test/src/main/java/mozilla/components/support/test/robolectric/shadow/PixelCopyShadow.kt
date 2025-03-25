@@ -4,13 +4,13 @@
 
 package mozilla.components.support.test.robolectric.shadow
 
-import android.annotation.TargetApi
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
 import android.view.PixelCopy
 import android.view.Window
+import androidx.annotation.RequiresApi
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 
@@ -18,7 +18,7 @@ import org.robolectric.annotation.Implements
  * Shadow for [PixelCopy] API.
  */
 @Implements(PixelCopy::class, minSdk = Build.VERSION_CODES.N)
-@TargetApi(Build.VERSION_CODES.N)
+@RequiresApi(Build.VERSION_CODES.N)
 class PixelCopyShadow {
 
     companion object {

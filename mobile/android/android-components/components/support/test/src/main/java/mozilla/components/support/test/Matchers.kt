@@ -14,8 +14,7 @@ import org.mockito.Mockito
  * (The version from Mockito doesn't work correctly with Kotlin code.)
  */
 fun <T> any(): T {
-    Mockito.any<T>()
-    return uninitialized()
+    return Mockito.any<T>()
 }
 
 /**
@@ -42,8 +41,7 @@ fun <T> not(value: T): T {
  * (The version from Mockito doesn't work correctly with Kotlin code.)
  */
 fun <T> capture(value: ArgumentCaptor<T>): T {
-    value.capture()
-    return uninitialized()
+    return value.capture()
 }
 
 /**
@@ -52,9 +50,5 @@ fun <T> capture(value: ArgumentCaptor<T>): T {
  * (The version from Mockito doesn't work correctly with Kotlin code.)
  */
 inline fun <reified T> nullable(): T {
-    Mockito.nullable(T::class.java)
-    return uninitialized()
+    return Mockito.nullable(T::class.java)
 }
-
-@Suppress("UNCHECKED_CAST")
-fun <T> uninitialized(): T = null as T
