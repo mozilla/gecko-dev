@@ -190,10 +190,10 @@ The complete list of security messages is as follows:
     - The page contained mixed display content: that is, the main page was served over HTTPS, but asked the browser to load "display content", such as images, over HTTP. The browser loaded this display content. `Mixed Content <https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content>`_ for more details.
 
   * - This site specified both an X-Content-Security-Policy/Report-Only header and a Content-Security-Policy/Report-Only header. The X-Content-Security-Policy/Report-Only header(s) will be ignored.
-    - See `Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP>`_ for more details.
+    - See `Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP>`_ for more details.
 
   * - The X-Content-Security-Policy and X-Content-Security-Report-Only headers will be deprecated in the future. Please use the Content-Security-Policy and Content-Security-Report-Only headers with CSP spec compliant syntax instead.
-    - See `Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP>`_ for more details.
+    - See `Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP>`_ for more details.
 
   * - Password fields present on an insecure (http://) page. This is a security risk that allows user login credentials to be stolen.
     - Pages containing login forms must be served over HTTPS, not HTTP.
@@ -205,7 +205,7 @@ The complete list of security messages is as follows:
     - iframes containing login forms must be served over HTTPS, not HTTP.
 
   * - The site specified an invalid Strict-Transport-Security header.
-    - See `HTTP Strict Transport Security <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security>`_ for more details.
+    - See `HTTP Strict Transport Security <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security>`_ for more details.
 
   * - This site makes use of a SHA-1 Certificate; it's recommended you use certificates with signature algorithms that use hash functions stronger than SHA-1.
 

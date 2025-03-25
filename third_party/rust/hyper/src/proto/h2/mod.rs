@@ -31,7 +31,7 @@ pub(crate) const SPEC_WINDOW_SIZE: u32 = 65_535;
 
 fn strip_connection_headers(headers: &mut HeaderMap, is_request: bool) {
     // List of connection headers from:
-    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Connection
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection
     //
     // TE headers are allowed in HTTP/2 requests as long as the value is "trailers", so they're
     // tested separately.

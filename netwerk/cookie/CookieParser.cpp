@@ -27,7 +27,8 @@ constexpr auto CONSOLE_REJECTION_CATEGORY = "cookiesRejection"_ns;
 constexpr auto CONSOLE_SAMESITE_CATEGORY = "cookieSameSite"_ns;
 constexpr auto CONSOLE_INVALID_ATTRIBUTE_CATEGORY = "cookieInvalidAttribute"_ns;
 constexpr auto SAMESITE_MDN_URL =
-    "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value"_ns;
+    "https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie/"
+    u"SameSite"_ns;
 
 namespace mozilla {
 namespace net {

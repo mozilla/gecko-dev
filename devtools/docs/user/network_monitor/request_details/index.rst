@@ -48,7 +48,7 @@ This includes:
   - Status: The response status code for the request; click the "?" icon to go to the reference page for the status code.
   - Version: The version of HTTP used.
   - Transferred: The amount of data transferred for the request.
-  - Referrer policy: The value of the `Referrer-policy header <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy>`_.
+  - Referrer policy: The value of the `Referrer-policy header <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy>`_.
 
 - **HTTP Early hints response headers** (when the request includes early hints)
 - **HTTP Response headers**
@@ -84,16 +84,16 @@ The following information is shown only when the section is expanded:
 The following information is shown in both the collapsed and the expanded states:
 
 
-- **Status:** The `HTTP response code <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status>`_ for the request.
+- **Status:** The `HTTP response code <https://developer.mozilla.org/en-US/docs/Web/HTTP/Status>`_ for the request.
 - **Version**: The HTTP version used
 - **Transferred**: The amount of data transferred with the request
-- The **Referrer Policy**, which governs which referrer information, sent in the `Referer <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referer>`_ header, should be included with requests. (See `Referrer-Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy>`_ for a description of possible values)
+- The **Referrer Policy**, which governs which referrer information, sent in the `Referer <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer>`_ header, should be included with requests. (See `Referrer-Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy>`_ for a description of possible values)
 - **Blocking**: If the request is to a site that is associated with a known tracker, an icon and a message are shown; otherwise, this field is not shown.
 
 Early hints response headers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `Early hints <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/103>`_ response headers section shows the headers provided by HTTP 103 informational response. For each line in the early hints response headers section, a question mark links to the documentation for that response header, if one is available.
+The `Early hints <https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/103>`_ response headers section shows the headers provided by HTTP 103 informational response. For each line in the early hints response headers section, a question mark links to the documentation for that response header, if one is available.
 
 A **Raw** toggle button in the section heading controls whether the headers are shown with formatting, or as plain, unformatted text.
 
@@ -464,7 +464,7 @@ The *Request Timing* section breaks a network request down into the following su
 Server Timing
 ~~~~~~~~~~~~~
 
-The *Server Timing* section lists any information provided in the `Server-Timing <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Server-Timing>`_ header — this is used to surface any backend server timing metrics you've recorded (e.g. database read/write, CPU time, file system access, etc.).
+New in Firefox 71, the *Server Timing* section lists any information provided in the `Server-Timing <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing>`_ header — this is used to surface any backend server timing metrics you've recorded (e.g. database read/write, CPU time, file system access, etc.).
 
 The header takes a series of descriptions and durations, which can be anything you like. In the above screenshot for example, the highlighted request's ``Server-Timing`` header contains 4 items — *data*, *markup*, *total*, and *miss*.
 

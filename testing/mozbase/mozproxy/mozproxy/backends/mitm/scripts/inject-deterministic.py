@@ -36,7 +36,8 @@ class AddDeterministic:
 
         Note:
         For more background information on CSP and nonce, please refer to
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/
+        Content-Security-Policy/script-src
         https://developers.google.com/web/fundamentals/security/csp/
         """
 
@@ -71,7 +72,8 @@ class AddDeterministic:
 
         Note:
         For more background information on CSP, please refer to
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/
+        Content-Security-Policy/script-src
         https://developers.google.com/web/fundamentals/security/csp/
         """
 

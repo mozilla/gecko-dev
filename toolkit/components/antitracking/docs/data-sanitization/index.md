@@ -23,7 +23,7 @@ All browsers allow fine grained control over website cookies and storages via th
 
 This is a browser UX feature and is therefore not standardized. It is not part of the web platform.
 
-There is a standardized HTTP header that sites can send to clear associated browser cache, cookies and storage: [Clear-Site-Data](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Clear-Site-Data). However, Firefox no longer allows sites to clear caches via the header since [Bug 1671182](https://bugzilla.mozilla.org/show_bug.cgi?id=1671182).
+There is a standardized HTTP header that sites can send to clear associated browser cache, cookies and storage: [Clear-Site-Data](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data). However, Firefox no longer allows sites to clear caches via the header since [Bug 1671182](https://bugzilla.mozilla.org/show_bug.cgi?id=1671182).
 
 ### How does it fit into our vision of “Zero Privacy Leaks?”
 

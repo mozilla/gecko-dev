@@ -74,8 +74,7 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
 /* global KNOWN_ERROR_MESSAGE_IDS */
 const ERROR_MESSAGES_FTL = "toolkit/neterror/nsserrors.ftl";
 
-const MDN_DOCS_HEADERS =
-  "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/";
+const MDN_DOCS_HEADERS = "https://developer.mozilla.org/docs/Web/HTTP/Headers/";
 const COOP_MDN_DOCS = MDN_DOCS_HEADERS + "Cross-Origin-Opener-Policy";
 const COEP_MDN_DOCS = MDN_DOCS_HEADERS + "Cross-Origin-Embedder-Policy";
 const HTTPS_UPGRADES_MDN_DOCS = "https://support.mozilla.org/kb/https-upgrades";

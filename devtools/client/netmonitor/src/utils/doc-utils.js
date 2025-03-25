@@ -109,7 +109,7 @@ const SUPPORTED_HEADERS = [
 ];
 
 const MDN_URL = "https://developer.mozilla.org/docs/";
-const MDN_STATUS_CODES_LIST_URL = `${MDN_URL}Web/HTTP/Reference/Status`;
+const MDN_STATUS_CODES_LIST_URL = `${MDN_URL}Web/HTTP/Status`;
 const getGAParams = (panelId = "netmonitor") => {
   return `?utm_source=mozilla&utm_medium=devtools-${panelId}&utm_campaign=default`;
 };
@@ -130,7 +130,7 @@ function getHeadersURL(header) {
     item => item.toLowerCase() === lowerCaseHeader
   );
   return idx > -1
-    ? `${MDN_URL}Web/HTTP/Reference/Headers/${SUPPORTED_HEADERS[idx] + getGAParams()}`
+    ? `${MDN_URL}Web/HTTP/Headers/${SUPPORTED_HEADERS[idx] + getGAParams()}`
     : null;
 }
 
@@ -144,7 +144,7 @@ function getHeadersURL(header) {
 function getHTTPStatusCodeURL(statusCode, panelId) {
   return (
     (SUPPORTED_HTTP_CODES.includes(statusCode)
-      ? `${MDN_URL}Web/HTTP/Reference/Status/${statusCode}`
+      ? `${MDN_URL}Web/HTTP/Status/${statusCode}`
       : MDN_STATUS_CODES_LIST_URL) + getGAParams(panelId)
   );
 }
@@ -214,7 +214,7 @@ function getCORSErrorURL(reason) {
     [1015, "CORSMissingAllowHeaderFromPreflight"],
   ]);
   const urlFrag = reasonMap.get(reason) || "";
-  return `${MDN_URL}Web/HTTP/Guides/CORS/Errors/${urlFrag}`;
+  return `${MDN_URL}Web/HTTP/CORS/Errors/${urlFrag}`;
 }
 
 module.exports = {

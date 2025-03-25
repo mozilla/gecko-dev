@@ -923,7 +923,7 @@ void nsRFPService::GetSpoofedUserAgent(nsACString& userAgent) {
   // used as fingerprinting sources to identify individuals.
   // Reference of the format of User Agent:
   // https://developer.mozilla.org/en-US/docs/Web/API/NavigatorID/userAgent
-  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 
   // These magic numbers are the lengths of the UA string literals below.
   // Assume three-digit Firefox version numbers so we have room to grow.

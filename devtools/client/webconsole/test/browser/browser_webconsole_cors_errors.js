@@ -12,7 +12,7 @@ requestLongerTimeout(2);
 const TEST_URI =
   "http://example.com/browser/devtools/client/webconsole/test/browser/test-network-request.html";
 const BASE_CORS_ERROR_URL =
-  "https://developer.mozilla.org/docs/Web/HTTP/Guides/CORS/Errors/";
+  "https://developer.mozilla.org/docs/Web/HTTP/CORS/Errors/";
 const BASE_CORS_ERROR_URL_PARAMS = new URLSearchParams({
   utm_source: "devtools",
   utm_medium: "firefox-cors-errors",

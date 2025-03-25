@@ -116,7 +116,7 @@ RFC 6555/8305 – connecting via IPv4 and IPv6 simultaneously. \
 We implement this in a [different](https://searchfox.org/mozilla-central/rev/23e7e940337d0e0b29aabe0080e4992d3860c940/netwerk/protocol/http/DnsAndConnectSocket.cpp#202-206) way.
 
 ## HSTS
-HTTP [Strict Transport Security](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security). \
+HTTP [Strict Transport Security](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security). \
 HSTS preload - a list of websites that will be upgraded to HTTPS without first needing a response.
 
 
