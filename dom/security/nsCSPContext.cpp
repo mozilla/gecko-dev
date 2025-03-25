@@ -1480,11 +1480,19 @@ void nsCSPContext::HandleInternalPageViolation(
 #ifdef DEBUG
   if (!StaticPrefs::security_csp_testing_allow_internal_csp_violation()) {
     NS_ConvertUTF16toUTF8 directive(aViolatedDirectiveNameAndValue);
-    MOZ_CRASH_UNSAFE_PRINTF(
-        "Unexpected CSP violation on page %s caused by violating the "
-        "directive: \"%s\". For debugging you can set the pref "
-        "security.csp.testing.allow_internal_csp_violation=true.",
-        selfURISpec.get(), directive.get());
+    nsAutoCString effectiveDirective;
+    effectiveDirective.Assign(
+        CSP_CSPDirectiveToString(aCSPViolationData.mEffectiveDirective));
+    nsFmtCString s(
+        FMT_STRING("Unexpected CSP violation on page {} caused by {} (URL: {}, "
+                   "Source: {}) violating the directive: \"{}\" (file: {} "
+                   "line: {}). For debugging you can set the pref "
+                   "security.csp.testing.allow_internal_csp_violation=true."),
+        selfURISpec.get(), effectiveDirective.get(),
+        NS_ConvertUTF16toUTF8(aInit.mBlockedURI).get(),
+        NS_ConvertUTF16toUTF8(aCSPViolationData.mSample).get(), directive.get(),
+        aCSPViolationData.mSourceFile.get(), aCSPViolationData.mLineNumber);
+    MOZ_CRASH_UNSAFE(s.get());
   }
 #endif
 }
