@@ -2180,3 +2180,181 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
 
   await assertEmptyStore(manager.store);
 });
+
+add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  await manager.onStartup();
+  await manager.store.ready();
+  await loader.enable();
+
+  // Create a feature for each experiment so that they aren't competing.
+  const features = [
+    new ExperimentFeature("test-feature-0", { variables: {} }),
+    new ExperimentFeature("test-feature-1", { variables: {} }),
+    new ExperimentFeature("test-feature-2", { variables: {} }),
+    new ExperimentFeature("test-feature-3", { variables: {} }),
+    new ExperimentFeature("test-feature-4", {
+      variables: {
+        foo: { type: "string" },
+      },
+    }),
+    new ExperimentFeature("test-feature-5", { variables: {} }),
+    new ExperimentFeature("test-feature-6", { variables: {} }),
+    new ExperimentFeature("test-feature-7", { variables: {} }),
+  ];
+
+  const cleanupFeatures = ExperimentTestUtils.addTestFeatures(...features);
+
+  function recipe(slug, featureId, value = null) {
+    return ExperimentFakes.recipe(slug, {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+      branches: [
+        {
+          ratio: 1,
+          slug: "control",
+          features: [
+            {
+              featureId,
+              value: value ?? {},
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  // Prime the store with currently valid recipes.
+  await manager.enroll(recipe("was-enrolled", "test-feature-0"), "rs-loader");
+  await manager.enroll(recipe("enrolls", "test-feature-1"), "rs-loader");
+  await manager.enroll(
+    recipe("recipe-mismatch", "test-feature-2"),
+    "rs-loader"
+  );
+  await manager.enroll(recipe("invalid-recipe", "test-feature-3"), "rs-loader");
+  await manager.enroll(recipe("invalid-branch", "test-feature-4"), "rs-loader");
+  await manager.enroll(
+    recipe("invalid-feature", "test-feature-5"),
+    "rs-loader"
+  );
+  await manager.enroll(recipe("missing-locale", "test-feature-6"), "rs-loader");
+  await manager.enroll(
+    recipe("missing-l10n-id", "test-feature-7"),
+    "rs-loader"
+  );
+
+  // Create another set of recipes, most of which are invalid, and trigger the
+  // RSEL with those recipes.
+  const recipes = [
+    recipe("enrolls", "test-feature-1"),
+    {
+      ...recipe("recipe-mismatch", "test-feature-2"),
+      targeting: "false",
+    },
+    {
+      ...recipe("invalid-recipe", "test-feature-3"),
+      isRollout: "true",
+    },
+    recipe("invalid-branch", "test-feature-4", {
+      foo: 1,
+    }),
+    recipe("invalid-feature", "unknown-feature"),
+    {
+      ...recipe("missing-locale", "test-feature-4"),
+      localizations: {},
+    },
+    {
+      ...recipe("missing-l10n-id", "test-feature-5", {
+        foo: {
+          $l10n: {
+            id: "foo-string",
+            comment: "foo comment",
+            text: "foo text",
+          },
+        },
+      }),
+      localizations: {
+        "en-US": {},
+      },
+    },
+  ];
+
+  sinon.stub(loader.remoteSettingsClients.experiments, "get").resolves(recipes);
+
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
+
+  await loader.updateRecipes("test");
+
+  const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
+
+  Assert.deepEqual(events?.map(ev => ev.extra) ?? [], [
+    {
+      status: "WasEnrolled",
+      branch: "control",
+      slug: "was-enrolled",
+    },
+    {
+      status: "Enrolled",
+      reason: "Qualified",
+      branch: "control",
+      slug: recipes[0].slug,
+    },
+    {
+      status: "Disqualified",
+      reason: "NotTargeted",
+      branch: "control",
+      slug: recipes[1].slug,
+    },
+    {
+      status: "Disqualified",
+      reason: "Error",
+      error_string: "invalid-recipe",
+      branch: "control",
+      slug: recipes[2].slug,
+    },
+    {
+      status: "Disqualified",
+      reason: "Error",
+      error_string: "invalid-branch",
+      branch: "control",
+      slug: recipes[3].slug,
+    },
+    {
+      status: "Disqualified",
+      reason: "Error",
+      error_string: "invalid-feature",
+      branch: "control",
+      slug: recipes[4].slug,
+    },
+    {
+      status: "Disqualified",
+      reason: "Error",
+      error_string: "l10n-missing-locale",
+      branch: "control",
+      slug: recipes[5].slug,
+    },
+    {
+      status: "Disqualified",
+      reason: "Error",
+      error_string: "l10n-missing-entry",
+      branch: "control",
+      slug: recipes[6].slug,
+    },
+  ]);
+
+  manager.unenroll("enrolls");
+  await assertEmptyStore(manager.store);
+
+  Services.fog.testResetFOG();
+  cleanupFeatures();
+});

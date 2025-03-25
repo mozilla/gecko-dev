@@ -6,9 +6,6 @@ const { TelemetryEvents } = ChromeUtils.importESModule(
 const { TelemetryEnvironment } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryEnvironment.sys.mjs"
 );
-const { ExperimentAPI } = ChromeUtils.importESModule(
-  "resource://nimbus/ExperimentAPI.sys.mjs"
-);
 const { NimbusTelemetry } = ChromeUtils.importESModule(
   "resource://nimbus/lib/Telemetry.sys.mjs"
 );
@@ -524,126 +521,6 @@ add_task(async function test_rollout_telemetry_events() {
     "recipe-not-seen",
     unenrollmentEvents[0].extra.reason,
     "Glean.nimbusEvents.unenrollment recorded with correct reason"
-  );
-
-  sandbox.restore();
-});
-
-add_task(async function test_check_unseen_enrollments_telemetry_events() {
-  const store = ExperimentFakes.store();
-  const manager = ExperimentFakes.manager(store);
-  const sandbox = sinon.createSandbox();
-  sandbox.stub(manager, "unenroll").returns();
-  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
-
-  await manager.onStartup();
-  await manager.store.ready();
-
-  const experiment = ExperimentFakes.recipe("foo", {
-    branches: [
-      {
-        slug: "wsup",
-        ratio: 1,
-        features: [
-          {
-            featureId: "nimbusTelemetry",
-            value: {
-              gleanMetricConfiguration: {
-                metrics_enabled: {
-                  "nimbus_events.enrollment_status": true,
-                },
-              },
-            },
-          },
-        ],
-      },
-    ],
-    bucketConfig: {
-      ...ExperimentFakes.recipe.bucketConfig,
-      count: 1000,
-    },
-  });
-
-  await manager.enroll(experiment, "aaa");
-
-  const source = "test";
-  const slugs = new Array(7).fill(null).map((_, idx) => `slug-${idx}`);
-  const experiments = slugs.map(slug =>
-    ExperimentFakes.experiment(slug, {
-      branch: {
-        ...ExperimentFakes.recipe.branches[0],
-        slug: "control",
-      },
-      source,
-    })
-  );
-
-  manager.sessions.set(source, new Set([slugs[0]]));
-
-  manager._checkUnseenEnrollments(
-    experiments,
-    source,
-    [slugs[1]],
-    [slugs[2]],
-    new Map([]),
-    new Map([[slugs[3], experiments[3]]]),
-    [slugs[4]],
-    new Map([[slugs[5], experiments[5]]])
-  );
-
-  const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
-
-  Assert.equal(events?.length, 7);
-
-  Assert.deepEqual(
-    events.map(ev => ev.extra),
-    [
-      {
-        status: "Enrolled",
-        reason: "Qualified",
-        branch: "control",
-        slug: slugs[0],
-      },
-      {
-        status: "Disqualified",
-        reason: "NotTargeted",
-        branch: "control",
-        slug: slugs[1],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "invalid-recipe",
-        branch: "control",
-        slug: slugs[2],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "invalid-feature",
-        branch: "control",
-        slug: slugs[3],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "l10n-missing-locale",
-        branch: "control",
-        slug: slugs[4],
-      },
-      {
-        status: "Disqualified",
-        reason: "Error",
-        error_string: "l10n-missing-entry",
-        branch: "control",
-        slug: slugs[5],
-      },
-      {
-        status: "WasEnrolled",
-        branch: "control",
-        slug: slugs[6],
-      },
-    ]
   );
 
   sandbox.restore();
