@@ -13,6 +13,7 @@ const lazy = {};
 // This is used to keep the icon controllers alive for as long as their windows are alive.
 const TASKBAR_ICON_CONTROLLERS = new WeakMap();
 const PROFILES_PREF_NAME = "browser.profiles.enabled";
+const DEFAULT_THEME_ID = "default-theme@mozilla.org";
 
 ChromeUtils.defineESModuleGetters(lazy, {
   CryptoUtils: "resource://services-crypto/utils.sys.mjs",
@@ -900,7 +901,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     let themeFg = theme.toolbar_text;
     let themeBg = theme.toolbarColor;
 
-    if (theme.id === "default-theme@mozilla.org" || !themeFg || !themeBg) {
+    if (theme.id === DEFAULT_THEME_ID || !themeFg || !themeBg) {
       window.addEventListener(
         "windowlwthemeupdate",
         () => {
@@ -930,6 +931,12 @@ class SelectableProfileServiceClass extends EventEmitter {
    * current profile of a theme change.
    */
   matchMediaObserver() {
+    // If the current theme isn't the default theme, we can just return because
+    // we already got the theme colors from the theme change in `themeObserver`
+    if (this.currentProfile.theme.themeId !== DEFAULT_THEME_ID) {
+      return;
+    }
+
     let { themeBg, themeFg } = this.getColorsForDefaultTheme();
 
     this.currentProfile.theme = {
@@ -1167,7 +1174,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       // different name.
       name: nextProfileNumber == 0 ? originalName.value : defaultName.value,
       avatar: this.#defaultAvatars[randomIndex],
-      themeId: "default-theme@mozilla.org",
+      themeId: DEFAULT_THEME_ID,
       themeFg: isDark ? "rgb(255,255,255)" : "rgb(21,20,26)",
       themeBg: isDark ? "rgb(28, 27, 34)" : "rgb(240, 240, 244)",
     };
