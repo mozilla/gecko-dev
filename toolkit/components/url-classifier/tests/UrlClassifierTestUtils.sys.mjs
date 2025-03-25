@@ -18,6 +18,9 @@ const SOCIAL_TRACKING_TABLE_PREF =
 const EMAIL_TRACKING_TABLE_NAME = "mochitest5-track-simple";
 const EMAIL_TRACKING_TABLE_PREF =
   "urlclassifier.features.emailtracking.blocklistTables";
+const CONSENTMANAGER_ANNOTATION_TABLE_NAME = "mochitest6-track-simple";
+const CONSENTMANAGER_ANNOTATION_TABLE_PREF =
+  "urlclassifier.features.consentmanager.annotate.blocklistTables";
 
 let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
@@ -36,6 +39,7 @@ export var UrlClassifierTestUtils = {
     let entitylistedURL = "itisatrap.org/?resource=itisatracker.org";
     let socialTrackingURL = "social-tracking.example.org/";
     let emailTrackingURL = "email-tracking.example.org/";
+    let consentmanagerAnnotationURL = "consent-manager.example.org/";
 
     let annotationUpdate =
       "n:1000\ni:" +
@@ -65,6 +69,11 @@ export var UrlClassifierTestUtils = {
       annotationURL5.length +
       "\n" +
       annotationURL5 +
+      "\n" +
+      "a:6:32:" +
+      consentmanagerAnnotationURL.length +
+      "\n" +
+      consentmanagerAnnotationURL +
       "\n";
     let socialAnnotationUpdate =
       "n:1000\ni:" +
@@ -74,6 +83,15 @@ export var UrlClassifierTestUtils = {
       socialTrackingURL.length +
       "\n" +
       socialTrackingURL +
+      "\n";
+    let consentmanagerAnnotationUpdate =
+      "n:1000\ni:" +
+      CONSENTMANAGER_ANNOTATION_TABLE_NAME +
+      "\nad:1\n" +
+      "a:1:32:" +
+      consentmanagerAnnotationURL.length +
+      "\n" +
+      consentmanagerAnnotationURL +
       "\n";
     let annotationEntitylistUpdate =
       "n:1000\ni:" +
@@ -102,6 +120,11 @@ export var UrlClassifierTestUtils = {
       trackingURL3.length +
       "\n" +
       trackingURL3 +
+      "\n" +
+      "a:4:32:" +
+      consentmanagerAnnotationURL.length +
+      "\n" +
+      consentmanagerAnnotationURL +
       "\n";
     let socialTrackingUpdate =
       "n:1000\ni:" +
@@ -141,6 +164,11 @@ export var UrlClassifierTestUtils = {
         pref: SOCIAL_ANNOTATION_TABLE_PREF,
         name: SOCIAL_ANNOTATION_TABLE_NAME,
         update: socialAnnotationUpdate,
+      },
+      {
+        pref: CONSENTMANAGER_ANNOTATION_TABLE_NAME,
+        name: CONSENTMANAGER_ANNOTATION_TABLE_PREF,
+        update: consentmanagerAnnotationUpdate,
       },
       {
         pref: ANNOTATION_ENTITYLIST_TABLE_PREF,
@@ -194,6 +222,7 @@ export var UrlClassifierTestUtils = {
   cleanupTestTrackers() {
     Services.prefs.clearUserPref(ANNOTATION_TABLE_PREF);
     Services.prefs.clearUserPref(SOCIAL_ANNOTATION_TABLE_PREF);
+    Services.prefs.clearUserPref(CONSENTMANAGER_ANNOTATION_TABLE_PREF);
     Services.prefs.clearUserPref(ANNOTATION_ENTITYLIST_TABLE_PREF);
     Services.prefs.clearUserPref(TRACKING_TABLE_PREF);
     Services.prefs.clearUserPref(SOCIAL_TRACKING_TABLE_PREF);
