@@ -278,6 +278,24 @@ const FEATURES = [
       );
     },
   },
+  {
+    name: "consentmanager-annotation",
+    list: [
+      "urlclassifier.features.consentmanager.annotate.blocklistTables",
+      "urlclassifier.features.consentmanager.annotate.allowlistTables",
+    ],
+    enabled() {
+      return Services.prefs.getBoolPref(
+        "privacy.trackingprotection.consentmanager.annotate_channels"
+      );
+    },
+    update() {
+      return Services.prefs.getBoolPref(
+        "browser.safebrowsing.features.consentmanager.annotate.update",
+        this.enabled()
+      );
+    },
+  },
 ];
 
 export var SafeBrowsing = {

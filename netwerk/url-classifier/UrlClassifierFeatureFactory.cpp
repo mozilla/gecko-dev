@@ -9,6 +9,7 @@
 // List of Features
 #include "UrlClassifierFeatureCryptominingAnnotation.h"
 #include "UrlClassifierFeatureCryptominingProtection.h"
+#include "UrlClassifierFeatureConsentManagerAnnotation.h"
 #include "UrlClassifierFeatureEmailTrackingDataCollection.h"
 #include "UrlClassifierFeatureEmailTrackingProtection.h"
 #include "UrlClassifierFeatureFingerprintingAnnotation.h"
@@ -35,6 +36,7 @@ void UrlClassifierFeatureFactory::Shutdown() {
 
   UrlClassifierFeatureCryptominingAnnotation::MaybeShutdown();
   UrlClassifierFeatureCryptominingProtection::MaybeShutdown();
+  UrlClassifierFeatureConsentManagerAnnotation::MaybeShutdown();
   UrlClassifierFeatureEmailTrackingDataCollection::MaybeShutdown();
   UrlClassifierFeatureEmailTrackingProtection::MaybeShutdown();
   UrlClassifierFeatureFingerprintingAnnotation::MaybeShutdown();
@@ -66,6 +68,14 @@ void UrlClassifierFeatureFactory::GetFeaturesFromChannel(
   // is not a blocking feature.
   feature =
       UrlClassifierFeatureEmailTrackingDataCollection::MaybeCreate(aChannel);
+  if (feature) {
+    aFeatures.AppendElement(feature);
+  }
+
+  // Consent Manager Annotation
+  // This must be run before any blocking features because the annotation will
+  // affect whether the channel should be blocked.
+  feature = UrlClassifierFeatureConsentManagerAnnotation::MaybeCreate(aChannel);
   if (feature) {
     aFeatures.AppendElement(feature);
   }
@@ -152,6 +162,13 @@ UrlClassifierFeatureFactory::GetFeatureByName(const nsACString& aName) {
     return feature.forget();
   }
 
+  // Consent Manager Annotation
+  feature =
+      UrlClassifierFeatureConsentManagerAnnotation::GetIfNameMatches(aName);
+  if (feature) {
+    return feature.forget();
+  }
+
   // Email Tracking Data Collection
   feature =
       UrlClassifierFeatureEmailTrackingDataCollection::GetIfNameMatches(aName);
@@ -231,6 +248,12 @@ void UrlClassifierFeatureFactory::GetFeatureNames(nsTArray<nsCString>& aArray) {
 
   // Cryptomining Protection
   name.Assign(UrlClassifierFeatureCryptominingProtection::Name());
+  if (!name.IsEmpty()) {
+    aArray.AppendElement(name);
+  }
+
+  // Consent Manager Annotation
+  name.Assign(UrlClassifierFeatureConsentManagerAnnotation::Name());
   if (!name.IsEmpty()) {
     aArray.AppendElement(name);
   }

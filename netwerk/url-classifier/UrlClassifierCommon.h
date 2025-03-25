@@ -59,6 +59,9 @@ class UrlClassifierCommon final {
                               uint32_t aClassificationFlags,
                               uint32_t aLoadingState);
 
+  static void AnnotateChannelWithoutNotifying(nsIChannel* aChannel,
+                                              uint32_t aClassificationFlags);
+
   static bool IsAllowListed(nsIChannel* aChannel);
 
   static bool IsTrackingClassificationFlag(uint32_t aFlag, bool aIsPrivate);
