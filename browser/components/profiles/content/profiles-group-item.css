@@ -7,10 +7,10 @@
   outline-offset: var(--focus-outline-offset);
   border: 1px solid var(--border-color-interactive);
 }
+
 .wrapper[checked] ::slotted(*:first-of-type) {
-  border-width: var(--border-width);
-  border-style: solid;
-  border-color: var(--border-color-interactive);
+  border: var(--focus-outline);
+  border-width: 1px;
 }
 
 .wrapper:focus-within ::slotted(*:first-of-type) {
