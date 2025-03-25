@@ -28,6 +28,11 @@ class LoginLine extends MozLitElement {
     };
   }
 
+  static lineTypeIdMap = {
+    password: "contextual-manager-check-icon-password",
+    username: "contextual-manager-check-icon-username",
+  };
+
   #canCopy() {
     return this.lineType !== "origin";
   }
@@ -132,7 +137,9 @@ class LoginLine extends MozLitElement {
                 src="chrome://global/skin/icons/edit-copy.svg"
               />
               <img
-                data-l10n-id="contextual-manager-check-icon"
+                data-l10n-id=${ifDefined(
+                  LoginLine.lineTypeIdMap[this.lineType]
+                )}
                 class="check-icon"
                 src="chrome://global/skin/icons/check-filled.svg"
               />
