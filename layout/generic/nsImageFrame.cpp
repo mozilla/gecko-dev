@@ -2369,6 +2369,8 @@ void nsDisplayImage::MaybeCreateWebRenderCommandsForViewTransition(
   if (NS_WARN_IF(key == kNoKey)) {
     return;
   }
+  VT_LOG_DEBUG("GetViewTransitionImageKey(%s) = %s", frame->ListTag().get(),
+               ToString(key).c_str());
   const nsRect destAppUnits = GetDestRect();
   const int32_t factor = mFrame->PresContext()->AppUnitsPerDevPixel();
   const auto destRect =

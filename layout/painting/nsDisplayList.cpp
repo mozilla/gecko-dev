@@ -5329,6 +5329,9 @@ bool nsDisplayViewTransitionCapture::CreateWebRenderCommands(
         vt->GetImageKeyForCapturedFrame(capturedFrame, aManager, aResources);
     return key ? Some(wr::SnapshotImageKey{*key}) : Nothing();
   }();
+  VT_LOG_DEBUG(
+      "nsDisplayViewTransitionCapture::CreateWebrenderCommands(%s, key=%s)",
+      capturedFrame->ListTag().get(), ToString(key).c_str());
   wr::StackingContextParams params;
   params.clip =
       wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());

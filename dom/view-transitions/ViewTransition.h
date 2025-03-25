@@ -5,6 +5,7 @@
 #ifndef mozilla_dom_ViewTransition_h
 #define mozilla_dom_ViewTransition_h
 
+#include "mozilla/Attributes.h"
 #include "mozilla/layers/IpcResourceUpdateQueue.h"
 #include "nsRect.h"
 #include "nsWrapperCache.h"
@@ -36,6 +37,18 @@ class IpcResourceUpdateQueue;
 }  // namespace wr
 
 namespace dom {
+
+extern LazyLogModule gViewTransitionsLog;
+
+#define VT_LOG(...)                                                    \
+  MOZ_LOG(mozilla::dom::gViewTransitionsLog, mozilla::LogLevel::Debug, \
+          (__VA_ARGS__))
+
+#ifdef DEBUG
+#  define VT_LOG_DEBUG(...) VT_LOG(__VA_ARGS__)
+#else
+#  define VT_LOG_DEBUG(...)
+#endif
 
 class Document;
 class Element;
@@ -114,7 +127,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void ClearActiveTransition(bool aIsDocumentHidden);
   void Timeout();
   MOZ_CAN_RUN_SCRIPT void Setup();
-  [[nodiscard]] Maybe<SkipTransitionReason> CaptureOldState();
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT
+  Maybe<SkipTransitionReason> CaptureOldState();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureNewState();
   void SetupTransitionPseudoElements();
   [[nodiscard]] bool UpdatePseudoElementStyles(bool aNeedsInvalidation);

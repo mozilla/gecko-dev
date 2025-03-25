@@ -4923,6 +4923,12 @@
   value: false
   mirror: always
 
+# Whether view transitions use webrender for old-capture
+- name: dom.viewTransitions.wr-old-capture
+  type: bool
+  value: false
+  mirror: always
+
 # Whether view transitions use webrender for live-capture
 - name: dom.viewTransitions.live-capture
   type: bool

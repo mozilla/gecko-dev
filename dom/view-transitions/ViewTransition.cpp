@@ -30,9 +30,12 @@
 #include "nsPresContext.h"
 #include "nsCanvasFrame.h"
 #include "nsString.h"
+#include "nsViewManager.h"
 #include "Units.h"
 
 namespace mozilla::dom {
+
+LazyLogModule gViewTransitionsLog("ViewTransitions");
 
 static void SetCaptured(nsIFrame* aFrame, bool aCaptured) {
   aFrame->AddOrRemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION, aCaptured);
@@ -71,6 +74,7 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
 
 static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
     nsIFrame* aFrame) {
+  VT_LOG_DEBUG("CaptureFallbackSnapshot(%s)", aFrame->ListTag().get());
   nsPresContext* pc = aFrame->PresContext();
   const bool isRoot = aFrame->Style()->IsRootElementStyle();
   nsIFrame* frameToCapture =
@@ -107,26 +111,6 @@ static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
   return surf->GetDataSurface();
 }
 
-static layers::RenderRootStateManager* GetWRStateManagerFor(nsIFrame* aFrame) {
-  if ((true)) {
-    // TODO(emilio): Enable this code-path.
-    return nullptr;
-  }
-  nsIWidget* widget = aFrame->GetNearestWidget();
-  if (NS_WARN_IF(!widget)) {
-    return nullptr;
-  }
-  auto* renderer = widget->GetWindowRenderer();
-  if (NS_WARN_IF(!renderer)) {
-    return nullptr;
-  }
-  layers::WebRenderLayerManager* lm = renderer->AsWebRender();
-  if (NS_WARN_IF(!lm)) {
-    return nullptr;
-  }
-  return lm->GetRenderRootStateManager();
-}
-
 static constexpr wr::ImageKey kNoKey{{0}, 0};
 
 struct OldSnapshotData {
@@ -138,11 +122,8 @@ struct OldSnapshotData {
   OldSnapshotData() = default;
 
   explicit OldSnapshotData(nsIFrame* aFrame)
-      : mSize(aFrame->InkOverflowRectRelativeToSelf().Size()),
-        mManager(GetWRStateManagerFor(aFrame)) {
-    if (mManager) {
-      mImageKey = mManager->WrBridge()->GetNextImageKey();
-    } else {
+      : mSize(aFrame->InkOverflowRectRelativeToSelf().Size()) {
+    if (!StaticPrefs::dom_viewTransitions_wr_old_capture()) {
       mFallback = CaptureFallbackSnapshot(aFrame);
     }
   }
@@ -151,6 +132,12 @@ struct OldSnapshotData {
                  wr::IpcResourceUpdateQueue& aResources) {
     if (mImageKey != kNoKey) {
       MOZ_ASSERT(mManager == aManager, "Stale manager?");
+      return;
+    }
+    if (StaticPrefs::dom_viewTransitions_wr_old_capture()) {
+      mManager = aManager;
+      mImageKey = aManager->WrBridge()->GetNextImageKey();
+      aResources.AddSnapshotImage(wr::SnapshotImageKey{mImageKey});
       return;
     }
     if (NS_WARN_IF(!mFallback)) {
@@ -324,8 +311,14 @@ const wr::ImageKey* ViewTransition::GetImageKeyForCapturedFrame(
     return nullptr;
   }
   const bool isOld = mPhase < Phase::Animating;
+
+  VT_LOG("ViewTransition::GetImageKeyForCapturedFrame(%s, old=%d)\n",
+         nsAtomCString(name).get(), isOld);
+
   if (isOld) {
-    return GetOldImageKey(name, aManager, aResources);
+    const auto* key = GetOldImageKey(name, aManager, aResources);
+    VT_LOG(" > old image is %s", key ? ToString(*key).c_str() : "null");
+    return key;
   }
   auto* el = mNamedElements.Get(name);
   if (NS_WARN_IF(!el)) {
@@ -342,6 +335,7 @@ const wr::ImageKey* ViewTransition::GetImageKeyForCapturedFrame(
     el->mOldState.mSnapshot.mManager = aManager;
     aResources.AddSnapshotImage(el->mNewSnapshotKey);
   }
+  VT_LOG(" > new image is %s", ToString(el->mNewSnapshotKey._0).c_str());
   return &el->mNewSnapshotKey._0;
 }
 
@@ -1160,9 +1154,26 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
         MakeUnique<CapturedElement>(f, mInitialSnapshotContainingBlockSize);
     mNamedElements.InsertOrUpdate(name, std::move(capture));
     mNames.AppendElement(name);
-    SetCaptured(f, false);
   }
 
+  if (StaticPrefs::dom_viewTransitions_wr_old_capture()) {
+    // When snapshotting an iframe, we need to paint from the root subdoc.
+    if (RefPtr<PresShell> ps =
+            nsContentUtils::GetInProcessSubtreeRootDocument(mDocument)
+                ->GetPresShell()) {
+      VT_LOG("ViewTransitions::CaptureOldState(), requesting composite");
+      // Build a display list and send it to WR in order to perform the
+      // capturing of old content.
+      RefPtr<nsViewManager> vm = ps->GetViewManager();
+      ps->PaintAndRequestComposite(vm->GetRootView(),
+                                   PaintFlags::PaintCompositeOffscreen);
+      VT_LOG("ViewTransitions::CaptureOldState(), requesting composite end");
+    }
+  }
+
+  for (auto& [f, name] : captureElements) {
+    SetCaptured(f, false);
+  }
   return result;
 }
 
