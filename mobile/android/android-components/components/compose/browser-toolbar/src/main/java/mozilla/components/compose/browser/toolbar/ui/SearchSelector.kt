@@ -23,7 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,23 +33,16 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import mozilla.components.browser.menu2.BrowserMenuController
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.R
 import mozilla.components.compose.browser.toolbar.databinding.SearchSelectorBinding
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
-import mozilla.components.concept.menu.MenuStyle
-import mozilla.components.concept.menu.candidate.DecorativeTextMenuCandidate
-import mozilla.components.concept.menu.candidate.DrawableMenuIcon
-import mozilla.components.concept.menu.candidate.TextMenuCandidate
 import mozilla.components.ui.icons.R as iconsR
 
 /**
@@ -121,39 +114,13 @@ fun SearchSelector(
     menu: BrowserToolbarMenu,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
-    val items = menu.items().mapNotNull {
-        if (it.icon == null && it.iconResource == null && it.text != null) {
-            DecorativeTextMenuCandidate(
-                text = stringResource(it.text),
-            )
-        } else if ((it.icon != null || it.iconResource != null) && it.text != null) {
-            TextMenuCandidate(
-                text = stringResource(it.text),
-                start = it.toDrawableMenuIcon(LocalContext.current),
-                onClick = {
-                    it.onClick?.let { onInteraction(it) }
-                },
-            )
-        } else {
-            null
-        }
-    }
-
-    val selector = remember(items) {
-        BrowserMenuController(
-            style = MenuStyle(
-                completelyOverlap = true,
-            ),
-        ).apply {
-            submitList(items)
-        }
-    }
+    val searchSelectorMenu = key(menu) { menu.buildMenu(onInteraction) }
 
     AndroidView(
         factory = { context ->
             SearchSelector(context).apply {
                 setOnClickListener {
-                    selector.show(anchor = it)
+                    searchSelectorMenu?.show(anchor = it)
                 }
 
                 val drawable = icon ?: ContextCompat.getDrawable(context, iconResource)
@@ -176,15 +143,6 @@ private class SearchSelector @JvmOverloads constructor(
         binding.icon.contentDescription = contentDescription
     }
 }
-
-private fun BrowserToolbarMenuItem.toDrawableMenuIcon(context: Context) = icon?.let {
-    DrawableMenuIcon(
-        drawable = it,
-    )
-} ?: DrawableMenuIcon(
-    context = context,
-    resource = iconResource!!,
-)
 
 @PreviewLightDark
 @Composable

@@ -22,8 +22,10 @@ import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
+import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.ui.SearchSelector
+import mozilla.components.compose.browser.toolbar.ui.TabCounter
 import mozilla.components.ui.icons.R
 
 /**
@@ -53,6 +55,16 @@ fun ActionContainer(
                         iconResource = action.iconResource,
                         contentDescription = stringResource(action.contentDescription),
                         menu = action.menu,
+                        onInteraction = { onInteraction(it) },
+                    )
+                }
+
+                is TabCounterAction -> {
+                    TabCounter(
+                        count = action.count,
+                        showPrivacyMask = action.showPrivacyMask,
+                        onClick = action.onClick,
+                        onLongClick = action.onLongClick,
                         onInteraction = { onInteraction(it) },
                     )
                 }

@@ -9,6 +9,8 @@ import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.ui.icons.R as iconsR
 
@@ -56,5 +58,26 @@ sealed class Action {
         @DrawableRes val iconResource: Int = iconsR.drawable.mozac_ic_star_fill_20,
         @StringRes val contentDescription: Int,
         val menu: BrowserToolbarMenu,
+    ) : Action()
+
+    /**
+     * An action button styled as a tab counter to be added to the toolbar.
+     * This shows the provided [count] number inside of a squircle if lower than 100, otherwise it will
+     * show an infinity symbol inside of the same squircle shape.
+     *
+     * @property count The number of tabs to display in the tab counter.
+     * @property contentDescription The content description for this button.
+     * @property showPrivacyMask Whether ot not to decorate this button with a top right icon
+     * signaling that the tabs are private.
+     * @property onClick [BrowserToolbarEvent] to be dispatched when this button is clicked.
+     * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button
+     * being long clicked.
+     */
+    data class TabCounterAction(
+        val count: Int,
+        val contentDescription: String,
+        val showPrivacyMask: Boolean,
+        val onClick: BrowserToolbarEvent,
+        val onLongClick: BrowserToolbarInteraction? = null,
     ) : Action()
 }
