@@ -30,6 +30,7 @@ export class NetworkRequest {
   #isDataURL;
   #navigationId;
   #navigationManager;
+  #postDataSize;
   #rawHeaders;
   #redirectCount;
   #requestId;
@@ -87,6 +88,10 @@ export class NetworkRequest {
 
     this.#contextId = this.#getContextId();
     this.#navigationId = this.#getNavigationId();
+
+    // The postDataSize will no longer be available after the channel is closed.
+    // Compute and cache the value, to be updated when `setRequestBody` is used.
+    this.#postDataSize = this.#computePostDataSize();
   }
 
   get alreadyCompleted() {
@@ -151,12 +156,7 @@ export class NetworkRequest {
   }
 
   get postDataSize() {
-    const charset = lazy.NetworkUtils.getCharset(this.#channel);
-    const sentBody = lazy.NetworkHelper.readPostTextFromRequest(
-      this.#channel,
-      charset
-    );
-    return sentBody ? sentBody.length : 0;
+    return this.#postDataSize;
   }
 
   get redirectCount() {
@@ -249,6 +249,7 @@ export class NetworkRequest {
     } finally {
       // Make sure to reset the flag once the modification was attempted.
       this.#channel.requestObserversCalled = true;
+      this.#postDataSize = this.#computePostDataSize();
     }
   }
 
@@ -341,6 +342,15 @@ export class NetworkRequest {
       supportsInterception: false,
       timings: this.timings,
     };
+  }
+
+  #computePostDataSize() {
+    const charset = lazy.NetworkUtils.getCharset(this.#channel);
+    const sentBody = lazy.NetworkHelper.readPostTextFromRequest(
+      this.#channel,
+      charset
+    );
+    return sentBody ? sentBody.length : 0;
   }
 
   /**

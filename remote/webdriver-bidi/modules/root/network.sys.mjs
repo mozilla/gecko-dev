@@ -8,8 +8,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
-  BeforeStopRequestListener:
-    "chrome://remote/content/shared/listeners/BeforeStopRequestListener.sys.mjs",
   CacheBehavior: "chrome://remote/content/shared/NetworkCacheManager.sys.mjs",
   NetworkDecodedBodySizeMap:
     "chrome://remote/content/shared/NetworkDecodedBodySizeMap.sys.mjs",
@@ -311,7 +309,6 @@ const IMMUTABLE_RESPONSE_HEADERS = [
 ];
 
 class NetworkModule extends RootBiDiModule {
-  #beforeStopRequestListener;
   #blockedRequests;
   #decodedBodySizeMap;
   #interceptMap;
@@ -347,12 +344,6 @@ class NetworkModule extends RootBiDiModule {
     this.#networkListener.on("fetch-error", this.#onFetchError);
     this.#networkListener.on("response-completed", this.#onResponseEvent);
     this.#networkListener.on("response-started", this.#onResponseEvent);
-
-    this.#beforeStopRequestListener = new lazy.BeforeStopRequestListener();
-    this.#beforeStopRequestListener.on(
-      "beforeStopRequest",
-      this.#onBeforeStopRequest
-    );
   }
 
   destroy() {
@@ -362,12 +353,6 @@ class NetworkModule extends RootBiDiModule {
     this.#networkListener.off("response-completed", this.#onResponseEvent);
     this.#networkListener.off("response-started", this.#onResponseEvent);
     this.#networkListener.destroy();
-
-    this.#beforeStopRequestListener.off(
-      "beforeStopRequest",
-      this.#onBeforeStopRequest
-    );
-    this.#beforeStopRequestListener.destroy();
 
     this.#decodedBodySizeMap.destroy();
 
@@ -1729,13 +1714,6 @@ class NetworkModule extends RootBiDiModule {
     }
   };
 
-  #onBeforeStopRequest = (event, data) => {
-    this.#decodedBodySizeMap.setDecodedBodySize(
-      data.channel.channelId,
-      data.decodedBodySize
-    );
-  };
-
   #onFetchError = (name, data) => {
     const { request } = data;
 
@@ -1950,7 +1928,6 @@ class NetworkModule extends RootBiDiModule {
   #startListening(event) {
     if (this.#subscribedEvents.size == 0) {
       this.#networkListener.startListening();
-      this.#beforeStopRequestListener.startListening();
     }
     this.#subscribedEvents.add(event);
   }
@@ -1959,7 +1936,6 @@ class NetworkModule extends RootBiDiModule {
     this.#subscribedEvents.delete(event);
     if (this.#subscribedEvents.size == 0) {
       this.#networkListener.stopListening();
-      this.#beforeStopRequestListener.stopListening();
     }
   }
 

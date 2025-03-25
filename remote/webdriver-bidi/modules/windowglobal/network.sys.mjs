@@ -23,7 +23,9 @@ class NetworkModule extends WindowGlobalBiDiModule {
   constructor(messageHandler) {
     super(messageHandler);
 
-    this.#beforeStopRequestListener = new lazy.BeforeStopRequestListener();
+    this.#beforeStopRequestListener = new lazy.BeforeStopRequestListener(
+      this.messageHandler.context
+    );
     this.#beforeStopRequestListener.on(
       "beforeStopRequest",
       this.#onBeforeStopRequest

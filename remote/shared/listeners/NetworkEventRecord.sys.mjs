@@ -87,7 +87,9 @@ export class NetworkEventRecord {
       } else {
         // Otherwise if there is no redirect count or if it is identical to the
         // previously detected request, this is an authentication attempt.
-        previousEvent.notifyAuthenticationAttempt();
+        previousEvent.notifyAuthenticationAttempt(
+          this.#request.channel.channelId
+        );
       }
     }
 
@@ -110,6 +112,10 @@ export class NetworkEventRecord {
 
   get #requestId() {
     return this.#request.requestId;
+  }
+
+  get channelId() {
+    return this.#request.channel.channelId;
   }
 
   get redirectCount() {
@@ -254,8 +260,12 @@ export class NetworkEventRecord {
    * Complete response in case of an authentication attempt.
    *
    * This method is required to be called on the previous event.
+   *
+   * @param {number} nextChannelId
+   *     The channelId of the next authentication attempt in the authentication
+   *     chain.
    */
-  notifyAuthenticationAttempt() {
+  notifyAuthenticationAttempt(nextChannelId) {
     // TODO: Bug 1899604, behavior might change based on spec issue
     // https://github.com/w3c/webdriver-bidi/issues/722
 
@@ -264,6 +274,12 @@ export class NetworkEventRecord {
     // This way, only the last successful/failed authentication attempt will
     // emit a response completed event.
     this.#markRequestComplete();
+
+    // Notify the decodedBodySizeMap about the authentication chain as well.
+    this.#decodedBodySizeMap.setAuthenticationAttemptMapping(
+      this.#request.channel.channelId,
+      nextChannelId
+    );
   }
 
   /**

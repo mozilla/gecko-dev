@@ -6,6 +6,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   EventEmitter: "resource://gre/modules/EventEmitter.sys.mjs",
+  NetworkUtils:
+    "resource://devtools/shared/network-observer/NetworkUtils.sys.mjs",
 });
 
 const OBSERVER_TOPIC_BEFORE_STOP_REQUEST = "http-on-before-stop-request";
@@ -39,14 +41,19 @@ const OBSERVER_TOPIC_BEFORE_STOP_REQUEST = "http-on-before-stop-request";
  *            The decoded body size for the channel.
  */
 export class BeforeStopRequestListener {
+  #context;
   #listening;
 
   /**
    * Create a new BeforeStopRequestListener instance.
+   *
+   * @param {BrowsingContext} context
+   *     The browsing context to filter the events for.
    */
-  constructor() {
+  constructor(context) {
     lazy.EventEmitter.decorate(this);
 
+    this.#context = context;
     this.#listening = false;
   }
 
@@ -58,10 +65,16 @@ export class BeforeStopRequestListener {
     switch (topic) {
       case OBSERVER_TOPIC_BEFORE_STOP_REQUEST: {
         const channel = subject.QueryInterface(Ci.nsIHttpChannel);
-        this.emit("beforeStopRequest", {
-          channel,
-          decodedBodySize: channel.decodedBodySize,
-        });
+        const id = lazy.NetworkUtils.getChannelBrowsingContextID(channel);
+
+        // Send the event only if the notification comes for the observed
+        // context.
+        if (id === this.#context.id) {
+          this.emit("beforeStopRequest", {
+            channel,
+            decodedBodySize: channel.decodedBodySize,
+          });
+        }
         break;
       }
     }
