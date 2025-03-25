@@ -174,12 +174,23 @@ class OwningElementRef final {
           return SortingIndex::Other;
       }
     };
-    // FIXME(emilio): This compares something like ::view-transition-old(foo)
-    // and ::view-transition-old(bar) as the same, which seems not totally
-    // correct? Should probably compare the pseudo-element tree position or
-    // something (if available?).
-    return sortingIndex(mTarget.mPseudoRequest) -
-           sortingIndex(aOther.mTarget.mPseudoRequest);
+    auto cmp = sortingIndex(mTarget.mPseudoRequest) -
+               sortingIndex(aOther.mTarget.mPseudoRequest);
+    if (cmp != 0) {
+      return cmp;
+    }
+    auto* ident = mTarget.mPseudoRequest.mIdentifier.get();
+    auto* otherIdent = aOther.mTarget.mPseudoRequest.mIdentifier.get();
+    MOZ_ASSERT(!!ident == !!otherIdent);
+    if (ident == otherIdent) {
+      return 0;
+    }
+    // FIXME(emilio, bug 1956219): This compares ::view-transition-* pseudos
+    // with string comparison, which is not terrible but probably not quite
+    // intended? It seems we should probably compare the pseudo-element tree
+    // position or something if available, at least...
+    return nsDependentAtomString(ident) < nsDependentAtomString(otherIdent) ? -1
+                                                                            : 1;
   }
 
   bool IsSet() const { return !!mTarget.mElement; }
