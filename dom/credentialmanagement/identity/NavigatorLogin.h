@@ -32,6 +32,10 @@ class NavigatorLogin : public nsWrapperCache {
 
   static Maybe<LoginStatus> GetLoginStatus(nsIPrincipal* aPrincipal);
   static nsresult SetLoginStatus(nsIPrincipal* aPrincipal, LoginStatus aStatus);
+  static nsresult SetLoginStatus(nsIPrincipal* aPrincipal,
+                                 const nsACString& aStatus);
+  static nsresult ParseLoginStatusHeader(const nsACString& aStatus,
+                                         LoginStatus& aResult);
 
  protected:
   virtual ~NavigatorLogin();
