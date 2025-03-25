@@ -179,9 +179,9 @@ features:
       - channel: nightly
         value: {
           "sections-enabled": {
-            "feature-ui": 1,
+            "feature-ui": 0,
             "feature-setting-value": 0,
-            "feature-setting-value-pbm": 1,
+            "feature-setting-value-pbm": 0,
             "feature-setting-detect-only": 0,
             "feature-setting-global-rules": 1,
             "feature-setting-global-rules-sub-frames": 1,
@@ -190,9 +190,9 @@ features:
       - channel: beta
         value: {
           "sections-enabled": {
-            "feature-ui": 1,
+            "feature-ui": 0,
             "feature-setting-value": 0,
-            "feature-setting-value-pbm": 1,
+            "feature-setting-value-pbm": 0,
             "feature-setting-detect-only": 0,
             "feature-setting-global-rules": 1,
             "feature-setting-global-rules-sub-frames": 1,

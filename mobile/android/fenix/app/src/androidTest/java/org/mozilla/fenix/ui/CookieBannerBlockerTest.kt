@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -19,6 +20,7 @@ import org.mozilla.fenix.ui.robots.navigationToolbar
 /**
  *  Tests for verifying the new Cookie banner blocker option and functionality.
  */
+@Ignore("Disabled feature in: https://bugzilla.mozilla.org/show_bug.cgi?id=1940418")
 class CookieBannerBlockerTest : TestSetup() {
     @get:Rule
     val activityTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides(skipOnboarding = true)
