@@ -116,39 +116,6 @@ class nsCanvasFrame final : public nsContainerFrame,
 };
 
 namespace mozilla {
-/**
- * Override nsDisplayBackground methods so that we pass aBGClipRect to
- * PaintBackground, covering the whole overflow area.
- * We can also paint an "extra background color" behind the normal
- * background.
- */
-class nsDisplayCanvasBackgroundColor final : public nsDisplaySolidColorBase {
- public:
-  nsDisplayCanvasBackgroundColor(nsDisplayListBuilder* aBuilder,
-                                 nsIFrame* aFrame);
-
-  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override {
-    auto* frame = static_cast<nsCanvasFrame*>(mFrame);
-    *aSnap = true;
-    return frame->CanvasArea() + ToReferenceFrame();
-  }
-  void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
-               HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) override {
-    // We need to override so we don't consider border-radius.
-    aOutFrames->AppendElement(mFrame);
-  }
-  bool CreateWebRenderCommands(
-      mozilla::wr::DisplayListBuilder& aBuilder,
-      mozilla::wr::IpcResourceUpdateQueue& aResources,
-      const StackingContextHelper& aSc,
-      mozilla::layers::RenderRootStateManager* aManager,
-      nsDisplayListBuilder* aDisplayListBuilder) override;
-  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
-
-  NS_DISPLAY_DECL_NAME("CanvasBackgroundColor", TYPE_CANVAS_BACKGROUND_COLOR)
-
-  void WriteDebugInfo(std::stringstream& aStream) override;
-};
 
 class nsDisplayCanvasBackgroundImage final : public nsDisplayBackgroundImage {
  public:

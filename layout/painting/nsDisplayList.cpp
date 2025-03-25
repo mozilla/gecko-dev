@@ -1140,7 +1140,6 @@ static bool DisplayListIsNonBlank(nsDisplayList* aList) {
   for (nsDisplayItem* i : *aList) {
     switch (i->GetType()) {
       case DisplayItemType::TYPE_COMPOSITOR_HITTEST_INFO:
-      case DisplayItemType::TYPE_CANVAS_BACKGROUND_COLOR:
       case DisplayItemType::TYPE_CANVAS_BACKGROUND_IMAGE:
         continue;
       case DisplayItemType::TYPE_SOLID_COLOR:
@@ -7165,8 +7164,7 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder* aBuilder,
 
   GetChildren()->HitTest(aBuilder, resultingRect, aState, aOutFrames);
 
-  if (aState->mHitOccludingItem && !testingPoint &&
-      !mBounds.Contains(aRect)) {
+  if (aState->mHitOccludingItem && !testingPoint && !mBounds.Contains(aRect)) {
     MOZ_ASSERT(aBuilder->HitTestIsForVisibility());
     // We're hit-testing a rect that's bigger than our child bounds, but
     // resultingRect is clipped by our bounds (in ProjectRectBounds above), so

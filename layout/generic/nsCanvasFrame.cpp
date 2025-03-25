@@ -287,54 +287,6 @@ nsRect nsCanvasFrame::CanvasArea() const {
 
 Element* nsCanvasFrame::GetDefaultTooltip() { return mTooltipContent; }
 
-nsDisplayCanvasBackgroundColor::nsDisplayCanvasBackgroundColor(
-    nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-    : nsDisplaySolidColorBase(
-          aBuilder, aFrame,
-          aFrame->PresShell()->GetCSSSpecifiedCanvasBackground(
-              aFrame->GetParent()->IsPageContentFrame())) {}
-
-void nsDisplayCanvasBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
-                                           gfxContext* aCtx) {
-  if (!NS_GET_A(mColor)) {
-    return;
-  }
-  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
-  nsPoint offset = ToReferenceFrame();
-  nsRect bgClipRect = frame->CanvasArea() + offset;
-  DrawTarget* drawTarget = aCtx->GetDrawTarget();
-  int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
-  Rect devPxRect =
-      NSRectToSnappedRect(bgClipRect, appUnitsPerDevPixel, *drawTarget);
-  drawTarget->FillRect(devPxRect, ColorPattern(ToDeviceColor(mColor)));
-}
-
-bool nsDisplayCanvasBackgroundColor::CreateWebRenderCommands(
-    mozilla::wr::DisplayListBuilder& aBuilder,
-    mozilla::wr::IpcResourceUpdateQueue& aResources,
-    const StackingContextHelper& aSc, RenderRootStateManager* aManager,
-    nsDisplayListBuilder* aDisplayListBuilder) {
-  if (!NS_GET_A(mColor)) {
-    return true;
-  }
-  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
-  nsPoint offset = ToReferenceFrame();
-  nsRect bgClipRect = frame->CanvasArea() + offset;
-  int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
-  auto rect = LayoutDeviceRect::FromAppUnits(bgClipRect, appUnitsPerDevPixel);
-  wr::LayoutRect r = wr::ToLayoutRect(rect);
-  aBuilder.PushRect(r, r, !BackfaceIsHidden(), false, false,
-                    wr::ToColorF(ToDeviceColor(mColor)));
-  return true;
-}
-
-void nsDisplayCanvasBackgroundColor::WriteDebugInfo(
-    std::stringstream& aStream) {
-  aStream << " (rgba " << (int)NS_GET_R(mColor) << "," << (int)NS_GET_G(mColor)
-          << "," << (int)NS_GET_B(mColor) << "," << (int)NS_GET_A(mColor)
-          << ")";
-}
-
 void nsDisplayCanvasBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
                                            gfxContext* aCtx) {
   auto* frame = static_cast<nsCanvasFrame*>(mFrame);
@@ -553,11 +505,18 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     }
     layerItems.AppendToTop(&thisItemList);
   }
-
   nsDisplayList list(aBuilder);
 
   // Put a scrolled background color item in place, at the bottom of the list.
-  list.AppendNewToTop<nsDisplayCanvasBackgroundColor>(aBuilder, this);
+  const bool isPage = GetParent()->IsPageContentFrame();
+  const nscolor bgColor =
+      PresShell()->GetCSSSpecifiedCanvasBackground(isPage);
+  if (NS_GET_A(bgColor)) {
+    list.AppendNewToTop<nsDisplaySolidColor>(
+        aBuilder, this,
+        CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
+        bgColor);
+  }
 
   list.AppendToTop(&layerItems);
 

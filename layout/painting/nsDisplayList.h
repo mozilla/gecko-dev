@@ -3930,21 +3930,13 @@ class nsDisplayBorder : public nsPaintedDisplayItem {
 
 /**
  * A simple display item that just renders a solid color across the
- * specified bounds. For canvas frames (in the CSS sense) we split off the
- * drawing of the background color into this class (from nsDisplayBackground
- * via nsDisplayCanvasBackground). This is done so that we can always draw a
- * background color to avoid ugly flashes of white when we can't draw a full
- * frame tree (ie when a page is loading). The bounds can differ from the
- * frame's bounds -- this is needed when a frame/iframe is loading and there
- * is not yet a frame tree to go in the frame/iframe so we use the subdoc
- * frame of the parent document as a standin.
+ * specified bounds. The bounds can differ from the frame's bounds -- this is
+ * needed when a frame/iframe is loading and there is not yet a frame tree to go
+ * in the frame/iframe so we use the subdoc frame of the parent document as a
+ * standin.
  */
-class nsDisplaySolidColorBase : public nsPaintedDisplayItem {
+class nsDisplaySolidColor final : public nsPaintedDisplayItem {
  public:
-  nsDisplaySolidColorBase(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                          nscolor aColor)
-      : nsPaintedDisplayItem(aBuilder, aFrame), mColor(aColor) {}
-
   nsDisplayItemGeometry* AllocateGeometry(
       nsDisplayListBuilder* aBuilder) override {
     return new nsDisplaySolidColorGeometry(this, aBuilder, mColor);
@@ -3977,18 +3969,12 @@ class nsDisplaySolidColorBase : public nsPaintedDisplayItem {
     return Some(mColor);
   }
 
- protected:
-  nscolor mColor;
-};
-
-class nsDisplaySolidColor final : public nsDisplaySolidColorBase {
- public:
   nsDisplaySolidColor(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                       const nsRect& aBounds, nscolor aColor,
                       bool aCanBeReused = true)
-      : nsDisplaySolidColorBase(aBuilder, aFrame, aColor),
-        mBounds(aBounds),
-        mIsCheckerboardBackground(false) {
+      : nsPaintedDisplayItem(aBuilder, aFrame),
+        mColor(aColor),
+        mBounds(aBounds) {
     NS_ASSERTION(NS_GET_A(aColor) > 0,
                  "Don't create invisible nsDisplaySolidColors!");
     MOZ_COUNT_CTOR(nsDisplaySolidColor);
@@ -4015,15 +4001,16 @@ class nsDisplaySolidColor final : public nsDisplaySolidColorBase {
     if (mOverrideZIndex) {
       return mOverrideZIndex.value();
     }
-    return nsDisplaySolidColorBase::ZIndex();
+    return nsPaintedDisplayItem::ZIndex();
   }
 
   void SetOverrideZIndex(int32_t aZIndex) { mOverrideZIndex = Some(aZIndex); }
 
  private:
+  nscolor mColor;
   nsRect mBounds;
-  bool mIsCheckerboardBackground;
   Maybe<int32_t> mOverrideZIndex;
+  bool mIsCheckerboardBackground = false;
 };
 
 /**
