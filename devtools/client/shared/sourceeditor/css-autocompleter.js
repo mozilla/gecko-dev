@@ -1265,8 +1265,30 @@ class CSSCompleter {
       );
 
       line = caret.line;
-      limitedSource = originalLimitedSource;
-      const end = traverseForward(forwState => forwState != CSS_STATES.value);
+
+      // Find the end of the value using a simple forward scan.
+      const remainingSource = source.substring(originalLimitedSource.length);
+      const parser = new InspectorCSSParser(remainingSource);
+      let end;
+      while (true) {
+        const token = parser.nextToken();
+        if (
+          !token ||
+          token.tokenType === "Semicolon" ||
+          token.tokenType === "CloseCurlyBracket"
+        ) {
+          // Done.  We're guaranteed to exit the loop once we reach
+          // the end of the string.
+          end = {
+            line: parser.lineNumber + line,
+            ch: parser.columnNumber,
+          };
+          if (end.line === line) {
+            end.ch = end.ch + ch;
+          }
+          break;
+        }
+      }
 
       let value = sourceArray.slice(start.line, end.line + 1);
       value[value.length - 1] = value[value.length - 1].substring(0, end.ch);
