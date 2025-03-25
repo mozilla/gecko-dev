@@ -42,12 +42,15 @@ export class UserCharacteristicsWindowInfoChild extends JSWindowActorChild {
     }
 
     const result = new Map([
+      ["screenWidth", this.contentWindow.screen.width],
+      ["screenHeight", this.contentWindow.screen.height],
       ["outerHeight", this.contentWindow.outerHeight],
       ["innerHeight", this.contentWindow.innerHeight],
       ["outerWidth", this.contentWindow.outerWidth],
       ["innerWidth", this.contentWindow.innerWidth],
       ["availHeight", this.contentWindow.screen.availHeight],
       ["availWidth", this.contentWindow.screen.availWidth],
+      ["pixelRatio", this.contentWindow.devicePixelRatio.toString()],
     ]);
 
     if (result.values().some(v => v <= 0)) {

@@ -156,7 +156,6 @@ export class UserCharacteristicsPageService {
     const populateFuncs = [
       [this.populateIntlLocale, []],
       [this.populateZoomPrefs, []],
-      [this.populateDevicePixelRatio, [browser.ownerGlobal]],
       [this.populateDisabledMediaPrefs, []],
       [this.populateMathOps, []],
       [this.populateMappableData, [data.output]],
@@ -491,12 +490,6 @@ export class UserCharacteristicsPageService {
     });
 
     Glean.characteristics.zoomCount.set(zoomPrefsCount);
-  }
-
-  async populateDevicePixelRatio(window) {
-    Glean.characteristics.pixelRatio.set(
-      (window.browsingContext.overrideDPPX || window.devicePixelRatio) * 100
-    );
   }
 
   async populateIntlLocale() {

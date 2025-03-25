@@ -2931,6 +2931,24 @@ characteristics:
     data_sensitivity:
       - interaction
 
+  screen_height:
+    type: quantity
+    unit: int
+    description: >
+      Screen height from a window.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956273
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956273#c2
+    expires: never
+    data_sensitivity:
+      - interaction
+
   outer_width:
     type: quantity
     unit: int
@@ -2963,6 +2981,24 @@ characteristics:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1886177
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1886177#c4
+    expires: never
+    data_sensitivity:
+      - interaction
+
+  screen_width:
+    type: quantity
+    unit: int
+    description: >
+      Screen width from a window.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956273
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956273#c2
     expires: never
     data_sensitivity:
       - interaction
@@ -3305,11 +3341,9 @@ characteristics:
       - technical
 
   pixel_ratio:
-    type: quantity
-    unit: int
+    type: string
     description: >
-      The value of window.devicePixelRatio multiplied by 100
-      to include some of the decimal places
+      The value of window.devicePixelRatio
     lifetime: application
     send_in_pings:
       - user-characteristics
