@@ -66,7 +66,7 @@ public class AnnotationProcessor {
       }
 
       final String sourceFileName =
-          QUALIFIER + annotatedClass.generatedName + WRAPPERS_NAME + ".cpp";
+          QUALIFIER + File.separator + annotatedClass.generatedName + WRAPPERS_NAME + ".cpp";
       final String headerFileName =
           QUALIFIER + File.separator + annotatedClass.generatedName + WRAPPERS_NAME + ".h";
       final String headerExportedFileName =

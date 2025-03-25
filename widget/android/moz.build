@@ -95,7 +95,7 @@ wrappers_from_WrapForJNI = sorted(
 )
 
 sources_from_WrapForJNI = sorted(
-    "GeneratedJNI{}Wrappers.cpp".format(c) for c in classes_with_WrapForJNI
+    "GeneratedJNI/{}Wrappers.cpp".format(c) for c in classes_with_WrapForJNI
 )
 
 EXPORTS.mozilla.widget += [
