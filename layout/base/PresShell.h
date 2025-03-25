@@ -914,11 +914,6 @@ class PresShell final : public nsStubDocumentObserver,
     return aForPage ? mCanvasBackground.mPage : mCanvasBackground.mViewport;
   }
 
-  nscolor GetCSSSpecifiedCanvasBackground(bool aForPage) const {
-    const auto& canvas = GetCanvasBackground(aForPage);
-    return canvas.mCSSSpecified ? canvas.mColor : 0;
-  }
-
   struct CanvasBackground {
     // The canvas frame background for the whole viewport.
     SingleCanvasBackground mViewport;

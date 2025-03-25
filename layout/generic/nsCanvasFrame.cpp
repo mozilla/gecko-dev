@@ -411,7 +411,7 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
   const ActiveScrolledRoot* asr = aBuilder->CurrentActiveScrolledRoot();
 
-  bool needBlendContainer = false;
+  bool needBlendContainerForBackgroundBlendMode = false;
   nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
 
   const bool suppressBackgroundImage = [&] {
@@ -432,16 +432,37 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     return false;
   }();
 
-  nsDisplayList layerItems(aBuilder);
+  const bool isPage = GetParent()->IsPageContentFrame();
+  const auto& canvasBg = PresShell()->GetCanvasBackground(isPage);
+
+  // Note this list is important so that our blend container only captures our
+  // own items.
+  nsDisplayList list(aBuilder);
+
+  // Put a scrolled background color item in place, at the bottom of the list,
+  // if the canvas background was specified by CSS. If it is not specified by
+  // CSS, we generally don't need to / shouldn't paint it, but we might if not
+  // required for blending correctness.
+  //
+  // NOTE(emilio): We used to have an optimization to try _not_ to draw it if
+  // there was a fixed image (layers.mImageCount > 0 &&
+  // layers.mLayers[0].mAttachment == StyleImageLayerAttachment::Fixed), but
+  // it's unclear it was fully correct (didn't check for mix-blend-mode), and it
+  // complicates quite a bit the logic. If it's useful for performance on real
+  // world websites we could try to re-introduce it.
+  const bool paintColor = NS_GET_A(canvasBg.mColor) && canvasBg.mCSSSpecified;
+  if (paintColor) {
+    list.AppendNewToTop<nsDisplaySolidColor>(
+        aBuilder, this,
+        CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
+        canvasBg.mColor);
+  }
 
   // Create separate items for each background layer.
   const nsStyleImageLayers& layers = bg->StyleBackground()->mImage;
   NS_FOR_VISIBLE_IMAGE_LAYERS_BACK_TO_FRONT(i, layers) {
     if (layers.mLayers[i].mImage.IsNone() || suppressBackgroundImage) {
       continue;
-    }
-    if (layers.mLayers[i].mBlendMode != StyleBlend::Normal) {
-      needBlendContainer = true;
     }
 
     nsRect bgRect = GetRectRelativeToSelf() + aBuilder->ToReferenceFrame(this);
@@ -502,35 +523,50 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
       thisItemList.AppendNewToTopWithIndex<nsDisplayBlendMode>(
           aBuilder, this, i + 1, &thisItemList, layers.mLayers[i].mBlendMode,
           thisItemASR, true);
+      needBlendContainerForBackgroundBlendMode = true;
     }
-    layerItems.AppendToTop(&thisItemList);
-  }
-  nsDisplayList list(aBuilder);
-
-  // Put a scrolled background color item in place, at the bottom of the list.
-  const bool isPage = GetParent()->IsPageContentFrame();
-  const nscolor bgColor =
-      PresShell()->GetCSSSpecifiedCanvasBackground(isPage);
-  if (NS_GET_A(bgColor)) {
-    list.AppendNewToTop<nsDisplaySolidColor>(
-        aBuilder, this,
-        CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
-        bgColor);
+    list.AppendToTop(&thisItemList);
   }
 
-  list.AppendToTop(&layerItems);
-
-  if (needBlendContainer) {
+  if (needBlendContainerForBackgroundBlendMode) {
     const ActiveScrolledRoot* containerASR = contASRTracker.GetContainerASR();
     DisplayListClipState::AutoSaveRestore blendContainerClip(aBuilder);
     list.AppendToTop(nsDisplayBlendContainer::CreateForBackgroundBlendMode(
         aBuilder, this, nullptr, &list, containerASR));
   }
+
   aLists.BorderBackground()->AppendToTop(&list);
 
   for (nsIFrame* kid : PrincipalChildList()) {
     // Put our child into its own pseudo-stack.
     BuildDisplayListForChild(aBuilder, kid, aLists);
+  }
+
+  // NOTE(emilio): If we didn't paint the background because it was not
+  // specified by CSS, but we could do that now without sacrificing blending
+  // correctness, do it.
+  //
+  // Painting this extra background used to be desirable for performance in the
+  // FrameLayerBuilder era. It's unclear whether it still is (probably not), but
+  // changing it causes a lot of fuzzy changes due to subpixel AA (not
+  // necessarily regressions, tho?).
+  //
+  // Note that this background can't really be semi-transparent (if CSS has not
+  // specified it, the canvas background should always be opaque).
+  if (!paintColor && NS_GET_A(canvasBg.mColor) && !isPage &&
+      !needBlendContainerForBackgroundBlendMode &&
+      !aBuilder->ContainsBlendMode()) {
+    MOZ_ASSERT(
+        NS_GET_A(canvasBg.mColor) == 255,
+        "Default canvas background should either be transparent or opaque");
+    // Do this shuffle to insert the solid color item at the bottom.
+    nsDisplayList list(aBuilder);
+    list.AppendToTop(aLists.BorderBackground());
+    aLists.BorderBackground()->AppendNewToTop<nsDisplaySolidColor>(
+        aBuilder, this,
+        CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
+        canvasBg.mColor);
+    aLists.BorderBackground()->AppendToTop(&list);
   }
 
   if (mDoPaintFocus) {
