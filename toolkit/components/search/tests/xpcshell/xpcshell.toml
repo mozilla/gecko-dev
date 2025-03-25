@@ -103,6 +103,8 @@ support-files = ["settings/ignorelist.json"]
 
 ["test_migrateWebExtensionEngine.js"]
 
+["test_no_excess_default_engine_changed_notifications.js"]
+
 ["test_nodb_pluschanges.js"]
 
 ["test_notifications.js"]
@@ -199,18 +201,6 @@ support-files = [
 
 ["test_sendSubmissionURL.js"]
 
-["test_settings_corrupt.js"]
-
-["test_settings_migrate_11.js"]
-support-files = [
-  "icons/remoteIcon.ico",
-]
-
-["test_settings_migrate_12.js"]
-support-files = [
-  "icons/remoteIcon.ico",
-]
-
 ["test_settings.js"]
 support-files = [
   "settings/settings-loading.json",
@@ -221,9 +211,21 @@ support-files = [
 
 ["test_settings_broken.js"]
 
+["test_settings_corrupt.js"]
+
 ["test_settings_duplicate.js"]
 
 ["test_settings_good.js"]
+
+["test_settings_migrate_11.js"]
+support-files = [
+  "icons/remoteIcon.ico",
+]
+
+["test_settings_migrate_12.js"]
+support-files = [
+  "icons/remoteIcon.ico",
+]
 
 ["test_settings_migrate_id_format.js"]
 

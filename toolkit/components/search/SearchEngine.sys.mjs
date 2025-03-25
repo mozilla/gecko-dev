@@ -887,7 +887,10 @@ export class SearchEngine {
         extension.manifest.chrome_settings_overrides.search_provider
       );
     }
-    lazy.SearchUtils.notifyAction(this, lazy.SearchUtils.MODIFIED_TYPE.CHANGED);
+
+    if (this.searchURLWithNoTerms.spec != this.getAttr("overriddenURL")) {
+      this.setAttr("overriddenURL", this.searchURLWithNoTerms.spec, true);
+    }
   }
 
   /**
@@ -907,6 +910,7 @@ export class SearchEngine {
         );
       }
       this.clearAttr("overriddenBy");
+      this.clearAttr("overriddenURL");
       lazy.SearchUtils.notifyAction(
         this,
         lazy.SearchUtils.MODIFIED_TYPE.CHANGED
