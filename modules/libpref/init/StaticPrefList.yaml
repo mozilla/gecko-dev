@@ -7379,6 +7379,13 @@
   mirror: once
 #endif
 
+#ifdef XP_WIN
+- name: gfx.webrender.layer-compositor-use-composition-surface
+  type: bool
+  value: true
+  mirror: once
+#endif
+
 - name: gfx.webrender.scissored-cache-clears.enabled
   type: bool
   value: true
