@@ -43,6 +43,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsITransferable.h"
 #include "nsProxyRelease.h"
+#include "nsThreadPool.h"
 #include "ScopedNSSTypes.h"
 #include "xpcpublic.h"
 
@@ -77,6 +78,21 @@ const char* kPipePathNamePref = "browser.contentanalysis.pipe_path_name";
 const char* kClientSignature = "browser.contentanalysis.client_signature";
 const char* kAllowUrlPref = "browser.contentanalysis.allow_url_regex_list";
 const char* kDenyUrlPref = "browser.contentanalysis.deny_url_regex_list";
+
+// Allow up to this many threads to be concurrently engaged in synchronous
+// communcations with the agent.  That limit is set by
+// browser.contentanalysis.max_connections but is clamped to not exceed
+// this value.
+const unsigned long kMaxContentAnalysisAgentThreads = 256;
+// Max number of threads that we keep even if they have no tasks to run.
+const unsigned long kMaxIdleContentAnalysisAgentThreads = 2;
+// Time (ms) we wait before declaring a thread idle.  100ms is the
+// threadpool default.
+const unsigned long kIdleContentAnalysisAgentTimeoutMs = 100;
+// Time we wait before destroying the kMaxIdleContentAnalysisAgentThreads
+// threads.  Content Analysis never does this, which is what UINT32_MAX
+// means.
+const unsigned long kMaxIdleContentAnalysisAgentTimeoutMs = UINT32_MAX;
 
 // kTextMime must be the first entry.
 auto kTextFormatsToAnalyze = {kTextMime, kHTMLMime};
@@ -352,13 +368,13 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
   MOZ_ASSERT(!NS_IsMainThread());
 
   std::shared_ptr<content_analysis::sdk::Client> client;
-  if (!IsShuttingDown()) {
+  if (!IsShutDown()) {
     client.reset(content_analysis::sdk::Client::Create(
                      {aPipePathName.Data(), aIsPerUser})
                      .release());
     LOGD("Content analysis is %s", client ? "connected" : "not available");
   } else {
-    LOGD("ContentAnalysis::IsShuttingDown is true");
+    LOGD("ContentAnalysis::IsShutDown is true");
   }
 
 #ifdef XP_WIN
@@ -1234,23 +1250,70 @@ NS_IMPL_ISUPPORTS(ContentAnalysisAcknowledgement,
 NS_IMPL_ISUPPORTS(ContentAnalysisCallback, nsIContentAnalysisCallback);
 NS_IMPL_ISUPPORTS(ContentAnalysisDiagnosticInfo,
                   nsIContentAnalysisDiagnosticInfo);
-NS_IMPL_ISUPPORTS(ContentAnalysis, nsIContentAnalysis, ContentAnalysis);
+NS_IMPL_ISUPPORTS(ContentAnalysis, nsIContentAnalysis, nsIObserver,
+                  ContentAnalysis);
 
 ContentAnalysis::ContentAnalysis()
-    : mRequestTokenToUserActionIdMap(
+    : mThreadPool(new nsThreadPool()),
+      mRequestTokenToUserActionIdMap(
           "ContentAnalysis::mRequestTokenToUserActionIdMap"),
       mCaClientPromise(
           new ClientPromise::Private("ContentAnalysis::ContentAnalysis")),
-      mSetByEnterprise(false) {}
+      mSetByEnterprise(false) {
+  MOZ_ALWAYS_SUCCEEDS(
+      mThreadPool->SetName(nsAutoCString("ContentAnalysisAgentIO")));
+  unsigned long threadLimit =
+      std::min(static_cast<unsigned long>(
+                   StaticPrefs::browser_contentanalysis_max_connections()),
+               kMaxContentAnalysisAgentThreads);
+  MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetThreadLimit(threadLimit));
+  unsigned long idleThreadLimit =
+      std::min(threadLimit, kMaxIdleContentAnalysisAgentThreads);
+  MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetIdleThreadLimit(idleThreadLimit));
+  MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetIdleThreadGraceTimeout(
+      kIdleContentAnalysisAgentTimeoutMs));
+  MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetIdleThreadMaximumTimeout(
+      kMaxIdleContentAnalysisAgentTimeoutMs));
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  obsServ->AddObserver(this, "xpcom-shutdown-threads", false);
+}
 
 ContentAnalysis::~ContentAnalysis() {
+  LOGD("ContentAnalysis::~ContentAnalysis");
   AssertIsOnMainThread();
+  MOZ_ASSERT(mUserActionMap.IsEmpty());
+  MOZ_ASSERT(!mThreadPool);
+  DebugOnly lock = mIsShutDown.Lock();
+  MOZ_ASSERT(*lock.inspect());
+}
 
+NS_IMETHODIMP
+ContentAnalysis::Observe(nsISupports* subject, const char* topic,
+                         const char16_t* data) {
+  AssertIsOnMainThread();
+  MOZ_ASSERT(nsCString("xpcom-shutdown-threads") == topic);
+  LOGD("Content Analysis received xpcom-shutdown-threads");
+  Close();
+  return NS_OK;
+}
+
+void ContentAnalysis::Close() {
+  AssertIsOnMainThread();
   {
     // Make sure that we don't try to reconnect to the agent.
-    auto lock = mIsShuttingDown.Lock();
+    auto lock = mIsShutDown.Lock();
+    if (*lock) {
+      // was previously called
+      return;
+    }
     *lock = true;
   }
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  obsServ->RemoveObserver(this, "xpcom-shutdown-threads");
 
   // Reject the promise to avoid assertions when it gets destroyed
   // Note that if the promise has already been resolved or rejected this is a
@@ -1265,10 +1328,14 @@ ContentAnalysis::~ContentAnalysis() {
 
   // The userActionMap must be cleared before the object is destroyed.
   mUserActionMap.Clear();
+
+  mThreadPool->Shutdown();
+  mThreadPool = nullptr;
+  LOGD("Content Analysis service is closed");
 }
 
-bool ContentAnalysis::IsShuttingDown() {
-  auto lock = mIsShuttingDown.ConstLock();
+bool ContentAnalysis::IsShutDown() {
+  auto lock = mIsShutDown.ConstLock();
   return *lock;
 }
 
@@ -1276,7 +1343,7 @@ nsresult ContentAnalysis::CreateClientIfNecessary(
     bool aForceCreate /* = false */) {
   AssertIsOnMainThread();
 
-  if (IsShuttingDown()) {
+  if (IsShutDown()) {
     return NS_OK;
   }
 
@@ -1620,7 +1687,7 @@ NS_IMETHODIMP ContentAnalysis::SendCancelToAgent(
       __func__,
       [userActionId = nsCString(aUserActionId)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-          -> Result<std::nullptr_t, nsresult> {
+      -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         auto owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -1709,20 +1776,23 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
         GetCurrentSerialEventTarget(), aMethodName,
         [aMethodName, promise, clientCallFunc = std::move(aClientCallFunc)](
             std::shared_ptr<content_analysis::sdk::Client> client) mutable {
-          nsresult rv = NS_DispatchBackgroundTask(
-              NS_NewRunnableFunction(
-                  aMethodName,
-                  [aMethodName, promise,
-                   clientCallFunc = std::move(clientCallFunc),
-                   client = std::move(client)]() mutable {
+          auto contentAnalysis = GetContentAnalysisFromService();
+          if (!contentAnalysis) {
+            promise->Reject(NS_ERROR_ILLEGAL_DURING_SHUTDOWN, aMethodName);
+            return;
+          }
+          nsresult rv =
+              contentAnalysis->mThreadPool->Dispatch(NS_NewRunnableFunction(
+                  aMethodName, [aMethodName, promise,
+                                clientCallFunc = std::move(clientCallFunc),
+                                client = std::move(client)]() mutable {
                     auto result = clientCallFunc(client);
                     if (result.isOk()) {
                       promise->Resolve(result.unwrap(), aMethodName);
                     } else {
                       promise->Reject(result.unwrapErr(), aMethodName);
                     }
-                  }),
-              NS_DISPATCH_EVENT_MAY_BLOCK);
+                  }));
           if (NS_FAILED(rv)) {
             LOGE(
                 "Failed to launch background task in second call for %s, "
@@ -1742,12 +1812,16 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
       GetCurrentSerialEventTarget(), aMethodName,
       [aMethodName, promise, aClientCallFunc, reconnectAndRetry](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable {
-        nsresult rv = NS_DispatchBackgroundTask(
-            NS_NewRunnableFunction(
-                aMethodName,
-                [aMethodName, promise, aClientCallFunc,
-                 reconnectAndRetry = std::move(reconnectAndRetry),
-                 client = std::move(client)]() mutable {
+        auto contentAnalysis = GetContentAnalysisFromService();
+        if (!contentAnalysis) {
+          promise->Reject(NS_ERROR_ILLEGAL_DURING_SHUTDOWN, aMethodName);
+          return;
+        }
+        nsresult rv =
+            contentAnalysis->mThreadPool->Dispatch(NS_NewRunnableFunction(
+                aMethodName, [aMethodName, promise, aClientCallFunc,
+                              reconnectAndRetry = std::move(reconnectAndRetry),
+                              client = std::move(client)]() mutable {
                   auto result = aClientCallFunc(client);
                   if (result.isOk()) {
                     promise->Resolve(result.unwrap(), aMethodName);
@@ -1759,8 +1833,7 @@ RefPtr<MozPromise<T, nsresult, true>> ContentAnalysis::CallClientWithRetry(
                       [rv, reconnectAndRetry = std::move(reconnectAndRetry)]() {
                         reconnectAndRetry(rv);
                       }));
-                }),
-            NS_DISPATCH_EVENT_MAY_BLOCK);
+                }));
         if (NS_FAILED(rv)) {
           LOGE(
               "Failed to launch background task in first call for %s, error=%s",
@@ -1813,8 +1886,8 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
       requestArray[i] = requestString[i] + 0xFF00;
     }
     requestArray[requestString.size()] = 0;
-    obsServ->NotifyObservers(this, "dlp-request-sent-raw",
-                             requestArray.Elements());
+    obsServ->NotifyObservers(static_cast<nsIContentAnalysis*>(this),
+                             "dlp-request-sent-raw", requestArray.Elements());
   }
 
   CallClientWithRetry<
@@ -2581,7 +2654,7 @@ ContentAnalysis::MultipartRequestCallback::~MultipartRequestCallback() {
   // shutting down.
   MOZ_ASSERT(!mWeakContentAnalysis ||
              !mWeakContentAnalysis->mUserActionMap.Contains(mUserActionId) ||
-             mWeakContentAnalysis->IsShuttingDown());
+             mWeakContentAnalysis->IsShutDown());
 }
 
 void ContentAnalysis::MultipartRequestCallback::CancelRequests() {
@@ -3754,7 +3827,8 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
       acknowledgementArray[i] = acknowledgementString[i] + 0xFF00;
     }
     acknowledgementArray[acknowledgementString.size()] = 0;
-    obsServ->NotifyObservers(this, "dlp-acknowledgement-sent-raw",
+    obsServ->NotifyObservers(static_cast<nsIContentAnalysis*>(this),
+                             "dlp-acknowledgement-sent-raw",
                              acknowledgementArray.Elements());
   }
 
@@ -3764,7 +3838,7 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
       __func__,
       [pbAck = std::move(pbAck)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-          -> Result<std::nullptr_t, nsresult> {
+      -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -3803,7 +3877,7 @@ ContentAnalysis::GetDiagnosticInfo(JSContext* aCx, dom::Promise** aPromise) {
       __func__,
       [promiseHolder](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-          -> Result<std::nullptr_t, nsresult> {
+      -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         // I don't think this will be slow, but do it on the background thread
         // just to be safe

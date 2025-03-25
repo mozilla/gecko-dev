@@ -1305,6 +1305,13 @@
   value: false
   mirror: always
 
+# Max number of concurrent connections to the DLP agent.  For stability
+# reasons, values exceeding 256 will be ignored.
+- name: browser.contentanalysis.max_connections
+  type: uint32_t
+  value: 32
+  mirror: always
+
 # Should Firefox use content analysis for clipboard operations?
 # Note that this has no effect unless browser.contentanalysis.enabled
 # is true.
