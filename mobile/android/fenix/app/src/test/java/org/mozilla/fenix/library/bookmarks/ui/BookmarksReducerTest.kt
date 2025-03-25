@@ -588,6 +588,20 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN one selected item WHEN back is clicked THEN clear out selected items`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val parent = BookmarkItem.Folder("title", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item),
+            selectedItems = listOf(item),
+            currentFolder = parent,
+        )
+
+        val result = bookmarksReducer(state, BackClicked)
+        assertTrue(result.selectedItems.isEmpty())
+    }
+
+    @Test
     fun `GIVEN a snackbar is displayed WHEN the snackbar is dismissed THEN update the state`() {
         val state = BookmarksState.default.copy(
             bookmarksSnackbarState = BookmarksSnackbarState.CantEditDesktopFolders,

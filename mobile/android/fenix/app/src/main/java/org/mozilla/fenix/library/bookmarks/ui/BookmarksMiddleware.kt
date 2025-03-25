@@ -219,6 +219,7 @@ internal class BookmarksMiddleware(
                         }
                     }
                     // list screen cases
+                    preReductionState.selectedItems.isNotEmpty() -> { /* noop */ }
                     preReductionState.currentFolder.guid != BookmarkRoot.Mobile.id -> {
                         scope.launch {
                             val parentFolderGuid = withContext(ioDispatcher) {

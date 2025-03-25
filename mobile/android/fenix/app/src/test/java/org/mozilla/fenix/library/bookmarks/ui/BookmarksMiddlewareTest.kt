@@ -589,6 +589,28 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen is list and a bookmark is selected WHEN back is clicked THEN clear out selected item`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        var exited = false
+        exitBookmarks = { exited = true }
+        val middleware = buildMiddleware()
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val parent = BookmarkItem.Folder("title", "guid")
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarkItems = listOf(item),
+                selectedItems = listOf(item),
+                currentFolder = parent,
+            ),
+        )
+
+        store.dispatch(BackClicked)
+        assertTrue(store.state.selectedItems.isEmpty())
+        assertFalse(exited)
+    }
+
+    @Test
     fun `GIVEN current screen is an empty list and the top-level is loaded WHEN sign into sync is clicked THEN navigate to sign into sync `() = runTestOnMain {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())

@@ -230,6 +230,7 @@ private fun BookmarksState.respondToBackClick(): BookmarksState = when {
     }
     bookmarksEditFolderState != null -> copy(bookmarksEditFolderState = null)
     bookmarksEditBookmarkState != null -> copy(bookmarksEditBookmarkState = null)
+    selectedItems.isNotEmpty() -> copy(selectedItems = listOf())
     else -> this
 }
 
