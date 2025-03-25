@@ -107,7 +107,7 @@ class CSSCompleter {
    */
   complete(source, cursor) {
     // Getting the context from the caret position.
-    if (!this.resolveState(source, cursor.line, cursor.ch)) {
+    if (!this.resolveState({ source, line: cursor.line, column: cursor.ch })) {
       // We couldn't resolve the context, we won't be able to complete.
       return Promise.resolve([]);
     }
@@ -147,21 +147,32 @@ class CSSCompleter {
   }
 
   /**
-   * Resolves the state of CSS at the cursor location. This method implements a
-   * custom written CSS state machine. The various switch statements provide the
-   * transition rules for the state. It also finds out various informatino about
-   * the nearby CSS like the property name being completed, the complete
+   * Resolves the state of CSS given a source and a cursor location, or an array of tokens.
+   * This method implements a custom written CSS state machine. The various switch
+   * statements provide the transition rules for the state. It also finds out various
+   * information about the nearby CSS like the property name being completed, the complete
    * selector, etc.
    *
-   * @param source {String} String of the source code.
-   * @param line {Number} Cursor line
-   * @param ch {Number} Cursor column
+   * @param options {Object}
+   * @param sourceTokens {Array<InspectorCSSToken>} Optional array of the tokens representing
+   *                     a CSS source. When this is defined, `source`, `line` and `column`
+   *                     shouldn't be passed.
+   * @param options.source {String} Optional string of the source code. When this is defined,
+   *                       `sourceTokens` shouldn't be passed.
+   * @param options.line {Number} Cursor line. Mandatory when source is passed.
+   * @param options.column {Number} Cursor column. Mandatory when source is passed
    *
    * @returns CSS_STATE
    *          One of CSS_STATE enum or null if the state cannot be resolved.
    */
   // eslint-disable-next-line complexity
-  resolveState(source, line, ch) {
+  resolveState({ sourceTokens, source, line, column }) {
+    if (sourceTokens && source) {
+      throw new Error(
+        "This function only accepts sourceTokens or source, not both"
+      );
+    }
+
     // _state can be one of CSS_STATES;
     let _state = CSS_STATES.null;
     let selector = "";
@@ -170,13 +181,16 @@ class CSSCompleter {
     let scopeStack = [];
     let selectors = [];
 
-    // Fetch the closest null state line, ch from cached null state locations
-    const matchedStateIndex = this.findNearestNullState(line);
+    // If we need to retrieve the tokens, fetch the closest null state line/ch from cached
+    // null state locations to save some cycle.
+    const matchedStateIndex = !sourceTokens
+      ? this.findNearestNullState(line)
+      : -1;
     if (matchedStateIndex > -1) {
       const state = this.nullStates[matchedStateIndex];
       line -= state[0];
       if (line == 0) {
-        ch -= state[1];
+        column -= state[1];
       }
       source = source.split("\n").slice(state[0]);
       source[0] = source[0].slice(state[1]);
@@ -186,13 +200,16 @@ class CSSCompleter {
     } else {
       this.nullStates = [];
     }
-    const tokens = cssTokenizerWithLineColumn(source);
+
+    const tokens = sourceTokens || cssTokenizerWithLineColumn(source);
     const tokIndex = tokens.length - 1;
+
     if (
+      !sourceTokens &&
       tokIndex >= 0 &&
       (tokens[tokIndex].loc.end.line < line ||
         (tokens[tokIndex].loc.end.line === line &&
-          tokens[tokIndex].loc.end.column < ch))
+          tokens[tokIndex].loc.end.column < column))
     ) {
       // If the last token ends before the cursor location, we didn't
       // tokenize it correctly.  This special case can happen if the
@@ -738,7 +755,15 @@ class CSSCompleter {
     this.selectorBeforeNot =
       selectorBeforeNot == null ? null : selectorBeforeNot;
     if (token) {
-      selector = selector.slice(0, selector.length + token.loc.end.column - ch);
+      // If the source text is passed, we need to remove the part of the computed selector
+      // after the caret (when sourceTokens are passed, the last token is already sliced,
+      // so we'll get the expected value)
+      if (!sourceTokens) {
+        selector = selector.slice(
+          0,
+          selector.length + token.loc.end.column - column
+        );
+      }
       this.selector = selector;
     } else {
       this.selector = "";
@@ -747,9 +772,7 @@ class CSSCompleter {
 
     if (token && token.tokenType != "WhiteSpace") {
       let text;
-      if (token.tokenType == "Dimension" || !token.text) {
-        text = source.substring(token.startOffset, token.endOffset);
-      } else if (
+      if (
         token.tokenType === "IDHash" ||
         token.tokenType === "Hash" ||
         token.tokenType === "AtKeyword" ||
@@ -760,9 +783,14 @@ class CSSCompleter {
       } else {
         text = token.text;
       }
-      this.completing = text
-        .slice(0, ch - token.loc.start.column)
-        .replace(/^[.#]$/, "");
+      this.completing = (
+        sourceTokens
+          ? text
+          : // If the source text is passed, we need to remove the text after the caret
+            // (when sourceTokens are passed, the last token is already sliced, so we'll
+            // get the expected value)
+            text.slice(0, column - token.loc.start.column)
+      ).replace(/^[.#]$/, "");
     } else {
       this.completing = "";
     }
@@ -1075,7 +1103,16 @@ class CSSCompleter {
 
     const originalLimitedSource = limit(source);
     let limitedSource = originalLimitedSource;
-    const state = this.resolveState(limitedSource, line, ch);
+
+    // Ideally we should be using `cssTokenizer`, which parse incrementaly and returns a generator.
+    // `cssTokenizerWithLineColumn` parses the whole `limitedSource` content right away
+    // and returns an array of tokens. This can be a performance bottleneck,
+    // but `resolveState` would go through all the tokens anyway, as well as `traverseBackward`,
+    // which starts from the last token.
+    const limitedSourceTokens = cssTokenizerWithLineColumn(limitedSource);
+    const state = this.resolveState({
+      sourceTokens: limitedSourceTokens,
+    });
     const propertyName = this.propertyName;
 
     /**
@@ -1087,7 +1124,7 @@ class CSSCompleter {
      *        whether the state changed or not.
      */
     const traverseForward = check => {
-      // Backward loop to determine the beginning location of the selector.
+      // loop to determine the end location of the property name/value/selector.
       do {
         let lineText = sourceArray[line];
         if (line == caret.line) {
@@ -1110,11 +1147,11 @@ class CSSCompleter {
             continue;
           }
 
-          const forwState = this.resolveState(
-            limitedSource,
+          const forwState = this.resolveState({
+            source: limitedSource,
             line,
-            token.endOffset + ech
-          );
+            column: token.endOffset + ech,
+          });
           if (check(forwState)) {
             if (prevToken && prevToken.tokenType == "WhiteSpace") {
               token = prevToken;
@@ -1142,54 +1179,36 @@ class CSSCompleter {
      *        true if the traversal is being done for a css value state.
      */
     const traverseBackwards = (check, isValue) => {
-      let location;
+      let token;
+      let previousToken;
+      const remainingTokens = Array.from(limitedSourceTokens);
+
       // Backward loop to determine the beginning location of the selector.
-      do {
-        let lineText = sourceArray[line];
-        if (line == caret.line) {
-          lineText = lineText.substring(0, caret.ch);
+      while (((previousToken = token), (token = remainingTokens.pop()))) {
+        const length = token.endOffset - token.startOffset;
+        limitedSource = limitedSource.slice(0, -1 * length);
+
+        // WhiteSpace cannot change state.
+        if (token.tokenType == "WhiteSpace") {
+          continue;
         }
 
-        const tokens = Array.from(cssTokenizer(lineText));
-        let found = false;
-        for (let i = tokens.length - 1; i >= 0; i--) {
-          let token = tokens[i];
-          // If the line is completely spaces, handle it differently
-          if (lineText.trim() == "") {
-            limitedSource = limitedSource.slice(0, -1 * lineText.length);
-          } else {
-            const length = token.endOffset - token.startOffset;
-            limitedSource = limitedSource.slice(0, -1 * length);
+        const backState = this.resolveState({
+          sourceTokens: remainingTokens,
+        });
+        if (check(backState)) {
+          if (previousToken?.tokenType == "WhiteSpace") {
+            token = previousToken;
           }
 
-          // WhiteSpace cannot change state.
-          if (token.tokenType == "WhiteSpace") {
-            continue;
-          }
-
-          const backState = this.resolveState(
-            limitedSource,
-            line,
-            token.startOffset
-          );
-          if (check(backState)) {
-            if (tokens[i + 1] && tokens[i + 1].tokenType == "WhiteSpace") {
-              token = tokens[i + 1];
-            }
-            location = {
-              line,
-              ch: isValue ? token.endOffset : token.startOffset,
-            };
-            found = true;
-            break;
-          }
+          const loc = isValue ? token.loc.end : token.loc.start;
+          return {
+            line: loc.line,
+            ch: loc.column,
+          };
         }
-        limitedSource = limitedSource.slice(0, -1);
-        if (found) {
-          break;
-        }
-      } while (line-- >= 0);
-      return location;
+      }
+      return null;
     };
 
     if (state == CSS_STATES.selector) {
@@ -1232,8 +1251,8 @@ class CSSCompleter {
       };
     } else if (state == CSS_STATES.property) {
       // A property can only be a single word and thus very easy to calculate.
-      const tokens = cssTokenizer(sourceArray[line]);
-      for (const token of tokens) {
+      const tokensIterator = cssTokenizer(sourceArray[line]);
+      for (const token of tokensIterator) {
         // Note that, because we're tokenizing a single line, the
         // token's offset is also the column number.
         if (token.startOffset <= ch && token.endOffset >= ch) {

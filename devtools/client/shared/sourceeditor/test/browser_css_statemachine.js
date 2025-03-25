@@ -4,6 +4,9 @@
 "use strict";
 
 const CSSCompleter = require("resource://devtools/client/shared/sourceeditor/css-autocompleter.js");
+const {
+  cssTokenizerWithLineColumn,
+} = require("resource://devtools/shared/css/parsing-utils.js");
 
 const CSS_URI =
   "http://mochi.test:8888/browser/devtools/client/shared/sourceeditor" +
@@ -17,129 +20,96 @@ const { tests } = JSON.parse(read(TESTS_URI));
 
 const TEST_URI =
   "data:text/html;charset=UTF-8," +
-  encodeURIComponent(
-    [
-      "<!DOCTYPE html>",
-      "<html>",
-      " <head>",
-      "  <title>CSS State machine tests.</title>",
-      "  <style type='text/css'>",
-      "#progress {",
-      "  width: 500px; height: 30px;",
-      "  border: 1px solid black;",
-      "  position: relative",
-      "}",
-      "#progress div {",
-      "  width: 0%; height: 100%;",
-      "  background: green;",
-      "  position: absolute;",
-      "  z-index: -1; top: 0",
-      "}",
-      "#progress.failed div {",
-      "  background: red !important;",
-      "}",
-      "#progress.failed:after {",
-      "  content: 'Some tests failed';",
-      "  color: white",
-      "}",
-      "#progress:before {",
-      "  content: 'Running test ' attr(data-progress) ' of " +
-        tests.length +
-        "';",
-      "  color: white;",
-      "  text-shadow: 0 0 2px darkgreen;",
-      "}",
-      "  </style>",
-      " </head>",
-      " <body>",
-      "  <h2>State machine tests for CSS autocompleter.</h2><br>",
-      "  <div id='progress' data-progress='0'>",
-      "   <div></div>",
-      "  </div>",
-      " </body>",
-      " </html>",
-    ].join("\n")
-  );
+  encodeURIComponent(`
+    <!DOCTYPE html>
+    <html>
+      <head><title>CSS State machine tests.</title></head>
+      <body>
+        <h2>State machine tests for CSS autocompleter.</h2>
+      </body>
+    </html>
+  `);
 
 add_task(async function test() {
-  const tab = await addTab(TEST_URI);
-  const browser = tab.linkedBrowser;
+  await addTab(TEST_URI);
 
   const completer = new CSSCompleter({
     cssProperties: getClientCssProperties(),
   });
-  const checkState = state => {
-    if (state[0] == "null" && (!completer.state || completer.state == "null")) {
-      return true;
-    } else if (
-      state[0] == completer.state &&
-      state[0] == "selector" &&
-      state[1] == completer.selectorState &&
-      state[2] == completer.completing &&
-      state[3] == completer.selector
-    ) {
-      return true;
-    } else if (
-      state[0] == completer.state &&
-      state[0] == "value" &&
-      state[2] == completer.completing &&
-      state[3] == completer.propertyName
-    ) {
-      return true;
-    } else if (
-      state[0] == completer.state &&
-      state[2] == completer.completing &&
-      state[0] != "selector" &&
-      state[0] != "value"
-    ) {
-      return true;
-    }
-    return false;
-  };
 
   let i = 0;
   for (const testcase of tests) {
     ++i;
-    await SpecialPowers.spawn(
-      browser,
-      [[i, tests.length]],
-      function ([idx, len]) {
-        const progress = content.document.getElementById("progress");
-        const progressDiv = content.document.querySelector("#progress > div");
-        progress.dataset.progress = idx;
-        progressDiv.style.width = (100 * idx) / len + "%";
-      }
-    );
-    completer.resolveState(
-      limit(source, testcase[0]),
-      testcase[0][0],
-      testcase[0][1]
-    );
-    if (checkState(testcase[1])) {
-      ok(true, "Test " + i + " passed. ");
-    } else {
-      ok(
-        false,
-        "Test " +
-          i +
-          " failed. Expected state : [" +
-          testcase[1] +
-          "] " +
-          "but found [" +
-          completer.state +
-          ", " +
-          completer.selectorState +
-          ", " +
-          completer.completing +
-          ", " +
-          (completer.propertyName || completer.selector) +
-          "]."
-      );
-      await SpecialPowers.spawn(browser, [], function () {
-        const progress = content.document.getElementById("progress");
-        progress.classList.add("failed");
-      });
-    }
+    // if (i !== 2) continue;
+    const [[line, column], expected] = testcase;
+    const limitedSource = limit(source, [line, column]);
+
+    info(`Test case ${i} from source`);
+    completer.resolveState({
+      source: limitedSource,
+      line,
+      column,
+    });
+    assertState(completer, expected, i + " (from_source)");
+
+    info(`Test case ${i} from tokens`);
+    completer.resolveState({
+      sourceTokens: cssTokenizerWithLineColumn(limitedSource),
+    });
+    assertState(completer, expected, i + " (from tokens)");
   }
   gBrowser.removeCurrentTab();
 });
+
+function assertState(completer, expected, testCaseName) {
+  if (checkState(completer, expected)) {
+    ok(true, `Test ${testCaseName} passed. `);
+  } else {
+    ok(
+      false,
+      `Test ${testCaseName} failed. Expected state : ${JSON.stringify([
+        expected[0]?.toString(),
+        expected[1]?.toString(),
+        expected[2],
+        expected[3],
+      ])} but found ${JSON.stringify([
+        completer.state?.toString(),
+        completer.selectorState?.toString(),
+        completer.completing,
+        completer.propertyName || completer.selector,
+      ])}.`
+    );
+  }
+}
+
+function checkState(completer, expected) {
+  if (
+    expected[0] == "null" &&
+    (!completer.state || completer.state == "null")
+  ) {
+    return true;
+  } else if (
+    expected[0] == completer.state &&
+    expected[0] == "selector" &&
+    expected[1] == completer.selectorState &&
+    expected[2] == completer.completing &&
+    expected[3] == completer.selector
+  ) {
+    return true;
+  } else if (
+    expected[0] == completer.state &&
+    expected[0] == "value" &&
+    expected[2] == completer.completing &&
+    expected[3] == completer.propertyName
+  ) {
+    return true;
+  } else if (
+    expected[0] == completer.state &&
+    expected[2] == completer.completing &&
+    expected[0] != "selector" &&
+    expected[0] != "value"
+  ) {
+    return true;
+  }
+  return false;
+}

@@ -227,18 +227,17 @@ add_task(async function test() {
         false,
         "Test " +
           i +
-          " failed. Expected state : [" +
-          expected +
-          "] " +
+          " failed. Expected state : " +
+          JSON.stringify(expected) +
+          " " +
           "but found [" +
-          actual.state +
-          ", " +
-          (actual.selector || actual.selectors) +
-          ", " +
-          actual.propertyName +
-          ", " +
-          actual.value +
-          "]."
+          JSON.stringify([
+            actual.state,
+            actual.selector || actual.selectors,
+            actual.propertyName,
+            actual.value,
+          ]) +
+          "."
       );
       await SpecialPowers.spawn(browser, [], function () {
         const progress = content.document.getElementById("progress");
