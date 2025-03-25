@@ -3146,9 +3146,12 @@ void gfxPlatform::InitWebGLConfig() {
             gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DMABUF_SURFACE_EXPORT,
                                       discardFailureId, &status)) ||
         status != nsIGfxInfo::FEATURE_STATUS_OK) {
+#  ifdef NIGHTLY_BUILD
       if (StaticPrefs::widget_dmabuf_export_force_enabled_AtStartup()) {
         feature.UserForceEnable("Force-enabled by pref");
-      } else {
+      } else
+#  endif
+      {
         feature.Disable(FeatureStatus::Blocked, "Blocklisted by gfxInfo",
                         discardFailureId);
       }
