@@ -8,7 +8,6 @@ import android.graphics.drawable.Drawable
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.runtime.Composable
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
@@ -32,15 +31,6 @@ sealed class Action {
         val contentDescription: String?,
         @ColorInt val tint: Int,
         val onClick: () -> Unit,
-    ) : Action()
-
-    /**
-     * A custom action that can be displayed with the provided Composable [content].
-     *
-     * @param content Composable content to display.
-     */
-    data class CustomAction(
-        val content: @Composable () -> Unit,
     ) : Action()
 
     /**

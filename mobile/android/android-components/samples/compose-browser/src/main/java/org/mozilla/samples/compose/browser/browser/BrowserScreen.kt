@@ -29,14 +29,15 @@ import mozilla.components.browser.state.helper.Target
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
-import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
+import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.compose.engine.WebContent
-import mozilla.components.compose.tabstray.TabCounterButton
 import mozilla.components.compose.tabstray.TabList
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.feature.awesomebar.provider.ClipboardSuggestionProvider
@@ -69,13 +70,12 @@ fun BrowserScreen(navController: NavController) {
                 displayState = DisplayState(
                     hint = "Search or enter address",
                     browserActions = listOf(
-                        CustomAction(
-                            content = {
-                                TabCounterButton(
-                                    store = components().store,
-                                    onClicked = { store.dispatch(BrowserScreenAction.ShowTabs) },
-                                )
-                            },
+                        TabCounterAction(
+                            count = 1,
+                            contentDescription = "Tabs open: 1",
+                            showPrivacyMask = false,
+                            onClick = object : BrowserToolbarEvent {},
+                            onLongClick = BrowserToolbarMenu { emptyList() },
                         ),
                         ActionButton(
                             icon = R.drawable.mozac_ic_ellipsis_vertical_24,

@@ -13,14 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
-import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -44,9 +45,6 @@ fun ActionContainer(
             when (action) {
                 is ActionButton -> {
                     ActionButton(action)
-                }
-                is CustomAction -> {
-                    action.content()
                 }
 
                 is DropdownAction -> {
@@ -101,14 +99,10 @@ private fun ActionContainerPreview() {
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = {},
                 ),
-                CustomAction(
-                    content = {
-                        SearchSelector(
-                            painter = painterResource(R.drawable.mozac_ic_search_24),
-                            tint = AcornTheme.colors.iconPrimary,
-                            onClick = {},
-                        )
-                    },
+                DropdownAction(
+                    icon = ContextCompat.getDrawable(LocalContext.current, R.drawable.mozac_ic_search_24)!!,
+                    contentDescription = R.string.mozac_error_confused,
+                    menu = { emptyList() },
                 ),
             ),
             onInteraction = {},
