@@ -47,19 +47,31 @@ describe("ContentSection", () => {
     wrapper.unmount();
   });
 
-  it("should have data-eventSource attributes on relevant pref changing inputs", () => {
+  it("should have data-eventSource attributes on relevent pref changing inputs", () => {
     wrapper = mount(<ContentSection {...DEFAULT_PROPS} />);
-    assert.equal(
-      wrapper.find("#weather-toggle").prop("data-eventSource"),
-      "WEATHER"
-    );
     assert.equal(
       wrapper.find("#shortcuts-toggle").prop("data-eventSource"),
       "TOP_SITES"
     );
     assert.equal(
+      wrapper.find("#sponsored-shortcuts").prop("data-eventSource"),
+      "SPONSORED_TOP_SITES"
+    );
+    assert.equal(
       wrapper.find("#pocket-toggle").prop("data-eventSource"),
       "TOP_STORIES"
+    );
+    assert.equal(
+      wrapper.find("#sponsored-pocket").prop("data-eventSource"),
+      "POCKET_SPOCS"
+    );
+    assert.equal(
+      wrapper.find("#highlights-toggle").prop("data-eventSource"),
+      "HIGHLIGHTS"
+    );
+    assert.equal(
+      wrapper.find("#weather-toggle").prop("data-eventSource"),
+      "WEATHER"
     );
   });
 });

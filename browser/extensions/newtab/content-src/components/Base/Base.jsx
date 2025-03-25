@@ -616,6 +616,9 @@ export class BaseContent extends React.PureComponent {
     const enabledSections = {
       topSitesEnabled: prefs["feeds.topsites"],
       pocketEnabled: prefs["feeds.section.topstories"],
+      highlightsEnabled: prefs["feeds.section.highlights"],
+      showSponsoredTopSitesEnabled: prefs.showSponsoredTopSites,
+      showSponsoredPocketEnabled: prefs.showSponsored,
       showInferredPersonalizationEnabled:
         prefs[PREF_INFERRED_PERSONALIZATION_USER],
       showRecentSavesEnabled: prefs.showRecentSaves,

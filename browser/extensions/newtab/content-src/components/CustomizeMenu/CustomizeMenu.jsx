@@ -83,11 +83,14 @@ export class _CustomizeMenu extends React.PureComponent {
               activeWallpaper={this.props.activeWallpaper}
               pocketRegion={this.props.pocketRegion}
               mayHaveTopicSections={this.props.mayHaveTopicSections}
+              mayHaveSponsoredTopSites={this.props.mayHaveSponsoredTopSites}
+              mayHaveSponsoredStories={this.props.mayHaveSponsoredStories}
               mayHaveInferredPersonalization={
                 this.props.mayHaveInferredPersonalization
               }
               mayHaveRecentSaves={this.props.DiscoveryStream.recentSavesEnabled}
               mayHaveWeather={this.props.mayHaveWeather}
+              spocMessageVariant={this.props.spocMessageVariant}
               dispatch={this.props.dispatch}
               exitEventFired={this.state.exitEventFired}
             />

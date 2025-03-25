@@ -11989,6 +11989,7 @@ const WallpaperCategories = (0,external_ReactRedux_namespaceObject.connect)(stat
 
 
 
+
 class ContentSection extends (external_React_default()).PureComponent {
   constructor(props) {
     super(props);
@@ -12009,7 +12010,7 @@ class ContentSection extends (external_React_default()).PureComponent {
     }));
   }
   onPreferenceSelect(e) {
-    // eventSource: WEATHER | TOP_SITES | TOP_STORIES
+    // eventSource: TOP_SITES | TOP_STORIES | HIGHLIGHTS | WEATHER
     const {
       preference,
       eventSource
@@ -12054,18 +12055,21 @@ class ContentSection extends (external_React_default()).PureComponent {
       if (isOpen) {
         drawerRef.style.marginTop = "var(--space-large)";
       } else {
-        drawerRef.style.marginTop = `-${drawerHeight + 3}px`;
+        drawerRef.style.marginTop = `-${drawerHeight}px`;
       }
     }
   }
   render() {
     const {
       enabledSections,
+      mayHaveSponsoredTopSites,
       pocketRegion,
+      mayHaveSponsoredStories,
       mayHaveInferredPersonalization,
       mayHaveRecentSaves,
       mayHaveWeather,
       openPreferences,
+      spocMessageVariant,
       wallpapersEnabled,
       wallpapersV2Enabled,
       activeWallpaper,
@@ -12076,7 +12080,10 @@ class ContentSection extends (external_React_default()).PureComponent {
     const {
       topSitesEnabled,
       pocketEnabled,
+      highlightsEnabled,
       weatherEnabled,
+      showSponsoredTopSitesEnabled,
+      showSponsoredPocketEnabled,
       showInferredPersonalizationEnabled,
       showRecentSavesEnabled,
       topSitesRowsCount
@@ -12099,17 +12106,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       role: "separator"
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "settings-toggles"
-    }, mayHaveWeather && /*#__PURE__*/external_React_default().createElement("div", {
-      id: "weather-section",
-      className: "section"
-    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
-      id: "weather-toggle",
-      pressed: weatherEnabled || null,
-      onToggle: this.onPreferenceSelect,
-      "data-preference": "showWeather",
-      "data-eventSource": "WEATHER",
-      "data-l10n-id": "newtab-custom-weather-toggle"
-    })), /*#__PURE__*/external_React_default().createElement("div", {
+    }, /*#__PURE__*/external_React_default().createElement("div", {
       id: "shortcuts-section",
       className: "section"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
@@ -12151,6 +12148,22 @@ class ContentSection extends (external_React_default()).PureComponent {
       value: "4",
       "data-l10n-id": "newtab-custom-row-selector",
       "data-l10n-args": "{\"num\": 4}"
+    })), mayHaveSponsoredTopSites && /*#__PURE__*/external_React_default().createElement("div", {
+      className: "check-wrapper",
+      role: "presentation"
+    }, /*#__PURE__*/external_React_default().createElement("input", {
+      id: "sponsored-shortcuts",
+      className: "customize-menu-checkbox",
+      disabled: !topSitesEnabled,
+      checked: showSponsoredTopSitesEnabled,
+      type: "checkbox",
+      onChange: this.onPreferenceSelect,
+      "data-preference": "showSponsoredTopSites",
+      "data-eventSource": "SPONSORED_TOP_SITES"
+    }), /*#__PURE__*/external_React_default().createElement("label", {
+      className: "customize-menu-checkbox-label",
+      htmlFor: "sponsored-shortcuts",
+      "data-l10n-id": "newtab-custom-sponsored-sites"
     }))))))), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
       id: "pocket-section",
       className: "section"
@@ -12164,12 +12177,28 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-l10n-id": "newtab-custom-stories-toggle"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       slot: "nested"
-    }, (mayHaveRecentSaves || mayHaveInferredPersonalization || mayHaveTopicSections) && /*#__PURE__*/external_React_default().createElement("div", {
+    }, (mayHaveSponsoredStories || mayHaveRecentSaves) && /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-info-pocket-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-information",
       ref: this.pocketDrawerRef
-    }, mayHaveInferredPersonalization && /*#__PURE__*/external_React_default().createElement("div", {
+    }, mayHaveSponsoredStories && /*#__PURE__*/external_React_default().createElement("div", {
+      className: "check-wrapper",
+      role: "presentation"
+    }, /*#__PURE__*/external_React_default().createElement("input", {
+      id: "sponsored-pocket",
+      className: "customize-menu-checkbox",
+      disabled: !pocketEnabled,
+      checked: showSponsoredPocketEnabled,
+      type: "checkbox",
+      onChange: this.onPreferenceSelect,
+      "data-preference": "showSponsored",
+      "data-eventSource": "POCKET_SPOCS"
+    }), /*#__PURE__*/external_React_default().createElement("label", {
+      className: "customize-menu-checkbox-label",
+      htmlFor: "sponsored-pocket",
+      "data-l10n-id": "newtab-custom-pocket-sponsored"
+    })), mayHaveInferredPersonalization && /*#__PURE__*/external_React_default().createElement("div", {
       className: "check-wrapper",
       role: "presentation"
     }, /*#__PURE__*/external_React_default().createElement("input", {
@@ -12202,7 +12231,34 @@ class ContentSection extends (external_React_default()).PureComponent {
       className: "customize-menu-checkbox-label",
       htmlFor: "recent-saves-pocket",
       "data-l10n-id": "newtab-custom-pocket-show-recent-saves"
-    })))))))), /*#__PURE__*/external_React_default().createElement("span", {
+    }))))))), /*#__PURE__*/external_React_default().createElement("div", {
+      id: "recent-section",
+      className: "section"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "highlights-toggle",
+      pressed: highlightsEnabled || null,
+      onToggle: this.onPreferenceSelect,
+      "data-preference": "feeds.section.highlights",
+      "data-eventSource": "HIGHLIGHTS",
+      "data-l10n-id": "newtab-custom-recent-toggle"
+    })), mayHaveWeather && /*#__PURE__*/external_React_default().createElement("div", {
+      id: "weather-section",
+      className: "section"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "weather-toggle",
+      pressed: weatherEnabled || null,
+      onToggle: this.onPreferenceSelect,
+      "data-preference": "showWeather",
+      "data-eventSource": "WEATHER",
+      "data-l10n-id": "newtab-custom-weather-toggle"
+    })), pocketRegion && mayHaveSponsoredStories && spocMessageVariant === "variant-c" && /*#__PURE__*/external_React_default().createElement("div", {
+      className: "sponsored-content-info"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "icon icon-help"
+    }), /*#__PURE__*/external_React_default().createElement("div", null, "Sponsored content supports our mission to build a better web.", " ", /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+      dispatch: this.props.dispatch,
+      url: "https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs"
+    }, "Find out how")))), /*#__PURE__*/external_React_default().createElement("span", {
       className: "divider",
       role: "separator"
     }), /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
@@ -12291,9 +12347,12 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       activeWallpaper: this.props.activeWallpaper,
       pocketRegion: this.props.pocketRegion,
       mayHaveTopicSections: this.props.mayHaveTopicSections,
+      mayHaveSponsoredTopSites: this.props.mayHaveSponsoredTopSites,
+      mayHaveSponsoredStories: this.props.mayHaveSponsoredStories,
       mayHaveInferredPersonalization: this.props.mayHaveInferredPersonalization,
       mayHaveRecentSaves: this.props.DiscoveryStream.recentSavesEnabled,
       mayHaveWeather: this.props.mayHaveWeather,
+      spocMessageVariant: this.props.spocMessageVariant,
       dispatch: this.props.dispatch,
       exitEventFired: this.state.exitEventFired
     }))));
@@ -13908,6 +13967,9 @@ class BaseContent extends (external_React_default()).PureComponent {
     const enabledSections = {
       topSitesEnabled: prefs["feeds.topsites"],
       pocketEnabled: prefs["feeds.section.topstories"],
+      highlightsEnabled: prefs["feeds.section.highlights"],
+      showSponsoredTopSitesEnabled: prefs.showSponsoredTopSites,
+      showSponsoredPocketEnabled: prefs.showSponsored,
       showInferredPersonalizationEnabled: prefs[PREF_INFERRED_PERSONALIZATION_USER],
       showRecentSavesEnabled: prefs.showRecentSaves,
       topSitesRowsCount: prefs.topSitesRows,

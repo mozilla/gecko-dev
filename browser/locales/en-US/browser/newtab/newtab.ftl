@@ -285,10 +285,15 @@ newtab-custom-row-selector =
             [one] { $num } row
            *[other] { $num } rows
         }
+newtab-custom-sponsored-sites = Sponsored shortcuts
 newtab-custom-stories-toggle =
   .label = Recommended stories
   .description = Exceptional content curated by the { -brand-product-name } family
+newtab-custom-pocket-sponsored = Sponsored stories
 newtab-custom-pocket-show-recent-saves = Show recent saves
+newtab-custom-recent-toggle =
+  .label = Recent activity
+  .description = A selection of recent sites and content
 newtab-custom-weather-toggle =
   .label = Weather
   .description = Today’s forecast at a glance
