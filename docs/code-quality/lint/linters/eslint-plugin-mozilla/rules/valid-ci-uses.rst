@@ -11,6 +11,14 @@ this rule manually, use:
 
     MOZ_OBJDIR=objdir-ff-opt ./mach eslint --rule="mozilla/valid-ci-uses: error" *
 
+.. note::
+    Note that for platform-specific interfaces, you need to manually add the
+    interface in question to
+    :searchfox:`the rule <tools/lint/eslint/eslint-plugin-mozilla/lib/rules/valid-ci-uses.js>`
+    (as a build on any given platform cannot find out about interfaces that are
+    not available on that platform).
+
+
 Examples of incorrect code for this rule:
 -----------------------------------------
 
