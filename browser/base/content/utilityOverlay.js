@@ -561,18 +561,6 @@ function getHelpLinkURL(aHelpTopic) {
   return url + aHelpTopic;
 }
 
-// aCalledFromModal is optional
-function openHelpLink(aHelpTopic, aCalledFromModal, aWhere) {
-  var url = getHelpLinkURL(aHelpTopic);
-  var where = aWhere;
-  if (!aWhere) {
-    where = aCalledFromModal ? "window" : "tab";
-  }
-
-  openTrustedLinkIn(url, where);
-}
-
-function openPrefsHelp(aEvent) {
-  let helpTopic = aEvent.target.getAttribute("helpTopic");
-  openHelpLink(helpTopic);
+function openHelpLink(aHelpTopic) {
+  openTrustedLinkIn(getHelpLinkURL(aHelpTopic), "tab");
 }

@@ -31,10 +31,6 @@ var gFontsDialog = {
 
   onLoad() {
     document
-      .getElementById("FontsDialog")
-      .addEventListener("dialoghelp", window.top.openPrefsHelp);
-
-    document
       .getElementById("key_close")
       .addEventListener("command", event => Preferences.close(event));
 

@@ -37,7 +37,6 @@ var gLanguagesDialog = {
     };
     addListener("LanguagesDialog", "command");
     addListener("availableLanguages", "command");
-    addListener("LanguagesDialog", "dialoghelp");
     addListener("activeLanguages", "select");
 
     if (!this._availableLanguagesList.length) {
