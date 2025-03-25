@@ -5897,6 +5897,16 @@
      * @param {boolean} moveBefore
      */
     #moveTabNextTo(tab, targetElement, moveBefore = false) {
+      /**
+       * Bug 1955388 - prevent pinned tabs from commingling with non-pinned tabs
+       * when there are hidden tabs present
+       */
+      if (tab.pinned && !targetElement?.pinned) {
+        // prevent pinned tab from being dragged past a non-pinned tab
+        targetElement = this.tabs[this.pinnedTabCount - 1];
+        moveBefore = false;
+      }
+
       let getContainer = () => {
         if (tab.pinned && this.tabContainer.verticalMode) {
           return this.tabContainer.verticalPinnedTabsContainer;
