@@ -5907,21 +5907,28 @@
       if (typeof elementIndex == "number") {
         tabIndex = this.#elementIndexToTabIndex(elementIndex);
       }
-      if (this.isTab(aTab)) {
-        // Don't allow mixing pinned and unpinned tabs.
-        if (aTab.pinned) {
-          tabIndex = Math.min(tabIndex, this.pinnedTabCount - 1);
-        } else {
-          tabIndex = Math.max(tabIndex, this.pinnedTabCount);
-        }
-        if (aTab._tPos == tabIndex && !(aTab.group && forceUngrouped)) {
-          return;
-        }
+
+      // Don't allow mixing pinned and unpinned tabs.
+      if (this.isTab(aTab) && aTab.pinned) {
+        tabIndex = Math.min(tabIndex, this.pinnedTabCount - 1);
       } else {
+        tabIndex = Math.max(tabIndex, this.pinnedTabCount);
+      }
+
+      // Return early if the tab is already in the right spot.
+      if (
+        this.isTab(aTab) &&
+        aTab._tPos == tabIndex &&
+        !(aTab.group && forceUngrouped)
+      ) {
+        return;
+      }
+
+      // When asked to move a tab group label, we need to move the whole group
+      // instead.
+      if (this.isTabGroupLabel(aTab)) {
         forceUngrouped = true;
-        if (this.isTabGroupLabel(aTab)) {
-          aTab = aTab.group;
-        }
+        aTab = aTab.group;
       }
 
       this.#handleTabMove(aTab, () => {
