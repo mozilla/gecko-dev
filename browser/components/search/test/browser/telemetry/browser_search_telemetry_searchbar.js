@@ -89,12 +89,11 @@ add_task(async function test_plainQuery() {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   Services.fog.testResetFOG();
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let resultMethodHist = TelemetryTestUtils.getAndClearHistogram(
     "FX_SEARCHBAR_SELECTED_RESULT_METHOD"
   );
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -121,27 +120,11 @@ add_task(async function test_plainQuery() {
     "This search must only increment one entry in the scalar."
   );
 
-  // Make sure SAP telemetry has also been incremented.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "other-MozSearch.searchbar",
-    1
-  );
-  let sapEvent = Glean.sap.counts.testGetValue();
-  Assert.equal(
-    sapEvent.length,
-    1,
-    "Should have recorded an event for the SAP search"
-  );
-  Assert.deepEqual(
-    sapEvent[0].extra,
-    {
-      provider_id: "other",
-      provider_name: "MozSearch",
-      source: "searchbar",
-    },
-    "Should have the expected event telemetry data"
-  );
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "searchbar",
+    count: 1,
+  });
 
   // Check the histograms as well.
   let resultMethods = resultMethodHist.snapshot();
@@ -161,12 +144,11 @@ add_task(async function test_oneOff_enter() {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   Services.fog.testResetFOG();
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let resultMethodHist = TelemetryTestUtils.getAndClearHistogram(
     "FX_SEARCHBAR_SELECTED_RESULT_METHOD"
   );
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -196,27 +178,11 @@ add_task(async function test_oneOff_enter() {
     "This search must only increment one entry in the scalar."
   );
 
-  // Make sure SAP telemetry has also been incremented.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "other-MozSearch2.searchbar",
-    1
-  );
-  let sapEvent = Glean.sap.counts.testGetValue();
-  Assert.equal(
-    sapEvent.length,
-    1,
-    "Should have recorded an event for the SAP search"
-  );
-  Assert.deepEqual(
-    sapEvent[0].extra,
-    {
-      provider_id: "other",
-      provider_name: "MozSearch2",
-      source: "searchbar",
-    },
-    "Should have the expected event telemetry data"
-  );
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch2",
+    source: "searchbar",
+    count: 1,
+  });
 
   // Check the histograms as well.
   let resultMethods = resultMethodHist.snapshot();
@@ -313,12 +279,11 @@ async function checkSuggestionClick(clickOptions, waitForActionFn) {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   Services.fog.testResetFOG();
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let resultMethodHist = TelemetryTestUtils.getAndClearHistogram(
     "FX_SEARCHBAR_SELECTED_RESULT_METHOD"
   );
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let previousEngine = await Services.search.getDefault();
   await Services.search.setDefault(
@@ -352,28 +317,11 @@ async function checkSuggestionClick(clickOptions, waitForActionFn) {
     "This search must only increment one entry in the scalar."
   );
 
-  // Make sure SAP telemetry has also been incremented.
-  let searchEngineId = "other-" + suggestionEngine.name;
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    searchEngineId + ".searchbar",
-    1
-  );
-  let sapEvent = Glean.sap.counts.testGetValue();
-  Assert.equal(
-    sapEvent.length,
-    1,
-    "Should have recorded an event for the SAP search"
-  );
-  Assert.deepEqual(
-    sapEvent[0].extra,
-    {
-      provider_id: "other",
-      provider_name: suggestionEngine.name,
-      source: "searchbar",
-    },
-    "Should have the expected event telemetry data"
-  );
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: suggestionEngine.name,
+    source: "searchbar",
+    count: 1,
+  });
 
   // Check the histograms as well.
   let resultMethods = resultMethodHist.snapshot();

@@ -39,8 +39,7 @@ add_task(async function test_context_menu() {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   Services.fog.testResetFOG();
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   // Open a new tab with a page containing some text.
   let tab = await BrowserTestUtils.openNewForegroundTab(
@@ -91,27 +90,11 @@ add_task(async function test_context_menu() {
     1
   );
 
-  // Make sure SAP telemetry has also been incremented.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "other-MozSearch.contextmenu",
-    1
-  );
-  let sapEvent = Glean.sap.counts.testGetValue();
-  Assert.equal(
-    sapEvent.length,
-    1,
-    "Should have recorded an event for the SAP search"
-  );
-  Assert.deepEqual(
-    sapEvent[0].extra,
-    {
-      provider_id: "other",
-      provider_name: "MozSearch",
-      source: "contextmenu",
-    },
-    "Should have the expected event telemetry data"
-  );
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "contextmenu",
+    count: 1,
+  });
 
   contextMenu.hidePopup();
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
@@ -131,8 +114,7 @@ add_task(async function test_about_newtab() {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   Services.fog.testResetFOG();
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -168,26 +150,11 @@ add_task(async function test_about_newtab() {
   );
 
   // Make sure SAP telemetry has also been incremented.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "other-MozSearch.newtab",
-    1
-  );
-  let sapEvent = Glean.sap.counts.testGetValue();
-  Assert.equal(
-    sapEvent.length,
-    1,
-    "Should have recorded an event for the SAP search"
-  );
-  Assert.deepEqual(
-    sapEvent[0].extra,
-    {
-      provider_id: "other",
-      provider_name: "MozSearch",
-      source: "newtab",
-    },
-    "Should have the expected event telemetry data"
-  );
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "newtab",
+    count: 1,
+  });
 
   // Also also check Glean events.
   const record = Glean.newtabSearch.issued.testGetValue();

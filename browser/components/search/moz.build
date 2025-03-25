@@ -26,6 +26,10 @@ MARIONETTE_MANIFESTS += [
 
 XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.toml"]
 
+TESTING_JS_MODULES += [
+    "test/SearchUITestUtils.sys.mjs",
+]
+
 JAR_MANIFESTS += ["jar.mn"]
 
 SPHINX_TREES["/browser/search"] = "docs"

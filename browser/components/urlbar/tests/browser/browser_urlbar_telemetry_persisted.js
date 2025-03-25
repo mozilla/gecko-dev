@@ -105,9 +105,9 @@ add_task(async function search_after_search() {
   const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await searchForString(SEARCH_STRING, tab);
 
-  assertSAPTelemetry({
-    id: "Example",
-    name: "Example",
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineId: "Example",
+    engineName: "Example",
     source: "urlbar",
     count: 1,
   });
@@ -122,9 +122,9 @@ add_task(async function search_after_search() {
   await searchForString(SEARCH_STRING, tab);
   assertScalarSearchEnter(1);
 
-  assertSAPTelemetry({
-    id: "Example",
-    name: "Example",
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineId: "Example",
+    engineName: "Example",
     source: "urlbar-persisted",
     count: 1,
   });
@@ -140,9 +140,9 @@ add_task(async function switch_to_tab_and_search() {
   const tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await searchForString(SEARCH_STRING, tab1);
 
-  assertSAPTelemetry({
-    id: "Example",
-    name: "Example",
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineId: "Example",
+    engineName: "Example",
     source: "urlbar",
     count: 1,
   });
@@ -155,9 +155,9 @@ add_task(async function switch_to_tab_and_search() {
   await searchForString(SEARCH_STRING, tab1);
   assertScalarSearchEnter(1);
 
-  assertSAPTelemetry({
-    id: "Example",
-    name: "Example",
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineId: "Example",
+    engineName: "Example",
     source: "urlbar-persisted",
     count: 1,
   });
@@ -176,9 +176,9 @@ add_task(async function search_and_go_back_and_search_again() {
   let serpUrl = await searchForString(SEARCH_STRING, tab);
   await gotoUrl("https://test2.example.com/", tab);
 
-  assertSAPTelemetry({
-    id: "Example",
-    name: "Example",
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineId: "Example",
+    engineName: "Example",
     source: "urlbar",
     count: 1,
   });
@@ -192,9 +192,9 @@ add_task(async function search_and_go_back_and_search_again() {
   await searchForString(SEARCH_STRING, tab);
   assertScalarSearchEnter(1);
 
-  assertSAPTelemetry({
-    id: "Example",
-    name: "Example",
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineId: "Example",
+    engineName: "Example",
     source: "urlbar-persisted",
     count: 1,
   });

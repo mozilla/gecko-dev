@@ -172,9 +172,13 @@ add_task(async function test_simpleQuery() {
     "This search must only increment one entry in the scalar."
   );
 
-  // SEARCH_COUNTS should be incremented, but only the urlbar source since an
-  // internal @search keyword was not used.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 1 });
+  // SAP counts are incremented only for the urlbar source, since the internal
+  // @search keyword was not used.
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 1,
+  });
 
   BrowserTestUtils.removeTab(tab);
 });
@@ -258,10 +262,10 @@ add_task(async function test_oneOff_enter() {
     "This search must only increment one entry in the scalar."
   );
 
-  // SEARCH_COUNTS should be incremented, but only the urlbar-searchmode source
+  // SAP counts should be incremented, but only the urlbar-searchmode source
   // since aliases aren't counted separately in search mode.
-  assertSAPTelemetry({
-    name: "MozSearch",
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
     source: "urlbar-searchmode",
     count: 1,
   });
@@ -303,8 +307,8 @@ add_task(async function test_suggestion_click() {
       "This search must only increment one entry in the scalar."
     );
 
-    assertSAPTelemetry({
-      name: engine.name,
+    await SearchUITestUtils.assertSAPTelemetry({
+      engineName: engine.name,
       source: "urlbar",
       count: 1,
     });
@@ -350,9 +354,8 @@ add_task(async function test_searchmode_suggestion_click() {
       "This search must only increment one entry in the scalar."
     );
 
-    // SEARCH_COUNTS should be incremented.
-    assertSAPTelemetry({
-      name: engine.name,
+    await SearchUITestUtils.assertSAPTelemetry({
+      engineName: engine.name,
       source: "urlbar-searchmode",
       count: 1,
     });
@@ -400,9 +403,8 @@ add_task(async function test_formHistory_click() {
       "This search must only increment one entry in the scalar."
     );
 
-    // SEARCH_COUNTS should be incremented.
-    assertSAPTelemetry({
-      name: engine.name,
+    await SearchUITestUtils.assertSAPTelemetry({
+      engineName: engine.name,
       source: "urlbar",
       count: 1,
     });
@@ -422,7 +424,7 @@ add_task(async function test_privateWindow() {
   });
 
   // Override the search telemetry search provider info to
-  // count in-content SEARCH_COUNTs telemetry for our test engine.
+  // count in-content SAP telemetry for our test engine.
   SearchSERPTelemetry.overrideSearchTelemetryForTests([
     {
       telemetryId: "example",
@@ -442,8 +444,11 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 1 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 1,
+  });
   let scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,
@@ -459,8 +464,12 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should *not* be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 1 });
+  // SAP counts should not be incremented.
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 1,
+  });
   scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,
@@ -476,8 +485,11 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 2 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 2,
+  });
   scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,
@@ -493,8 +505,11 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 3 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 3,
+  });
   scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,
@@ -515,8 +530,11 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 4 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 4,
+  });
   scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,
@@ -532,8 +550,11 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 5 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 5,
+  });
   scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,
@@ -549,8 +570,11 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 6 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 6,
+  });
   scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,
@@ -566,8 +590,11 @@ add_task(async function test_privateWindow() {
   EventUtils.synthesizeKey("KEY_Enter", undefined, win);
   await p;
 
-  // SEARCH_COUNTS should be incremented.
-  assertSAPTelemetry({ name: "MozSearch", source: "urlbar", count: 7 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "urlbar",
+    count: 7,
+  });
   scalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,

@@ -14,8 +14,6 @@ add_setup(async function () {
 });
 
 add_task(async function test() {
-  let histogramKey = "other-" + engine.name + ".contextmenu";
-
   let tabs = [];
   let tabsLoadedDeferred = new Deferred();
 
@@ -69,33 +67,11 @@ add_task(async function test() {
   container.removeEventListener("TabOpen", tabAdded);
   tabs.forEach(gBrowser.removeTab, gBrowser);
 
-  // Make sure that the context searches are correctly recorded in telemetry.
-  // Telemetry is not updated synchronously here, we must wait for it.
-  await TestUtils.waitForCondition(() => {
-    let hs = Services.telemetry
-      .getKeyedHistogramById("SEARCH_COUNTS")
-      .snapshot();
-    return histogramKey in hs && hs[histogramKey].sum == 2;
-  }, "The histogram must contain the correct search count");
-
-  let sapEvent = Glean.sap.counts.testGetValue();
-  Assert.equal(
-    sapEvent.length,
-    2,
-    "Should have recorded the correct number of searches"
-  );
-  Assert.deepEqual(
-    sapEvent.map(e => e.extra),
-    [
-      {
-        provider_id: "other",
-        provider_name: "Foo",
-        source: "contextmenu",
-      },
-      { provider_id: "other", provider_name: "Foo", source: "contextmenu" },
-    ],
-    "Should have the expected event telemetry data"
-  );
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "Foo",
+    source: "contextmenu",
+    count: 2,
+  });
 });
 
 function Deferred() {

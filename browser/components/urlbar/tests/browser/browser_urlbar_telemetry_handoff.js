@@ -136,15 +136,12 @@ async function assertHandoffResult() {
     ["browser.engagement.navigation.urlbar_handoff", "search_enter", 1],
     ["browser.search.content.urlbar_handoff", "example:tagged:ff", 1],
   ]);
-  let histogram = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
-  const histogramKey = "other-Example.urlbar-handoff";
 
-  await TestUtils.waitForCondition(() => {
-    const snapshot = histogram.snapshot();
-    return histogramKey in snapshot;
-  }, "Wait until the histogram has expected keys");
-
-  assertSAPTelemetry({ name: "Example", source: "urlbar-handoff", count: 1 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "Example",
+    source: "urlbar-handoff",
+    count: 1,
+  });
 }
 
 async function assertScalars(expectedResults) {

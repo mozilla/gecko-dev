@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource://testing-common/FormHistoryTestUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
+  SearchUITestUtils: "resource://testing-common/SearchUITestUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
@@ -27,6 +28,7 @@ let gCUITestUtils = new CustomizableUITestUtils(window);
 
 AddonTestUtils.initMochitest(this);
 SearchTestUtils.init(this);
+SearchUITestUtils.init(this);
 
 /**
  * Recursively compare two objects and check that every property of expectedObj has the same value

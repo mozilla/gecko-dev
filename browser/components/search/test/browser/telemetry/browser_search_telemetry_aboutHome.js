@@ -52,8 +52,7 @@ add_task(async function test_abouthome_activitystream_simpleQuery() {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   Services.fog.testResetFOG();
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
+  TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
@@ -95,28 +94,11 @@ add_task(async function test_abouthome_activitystream_simpleQuery() {
     "This search must only increment one entry in the scalar."
   );
 
-  // Make sure SEARCH_COUNTS contains identical values.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "other-MozSearch.abouthome",
-    1
-  );
-
-  let sapEvent = Glean.sap.counts.testGetValue();
-  Assert.equal(
-    sapEvent.length,
-    1,
-    "Should have recorded an event for the SAP search"
-  );
-  Assert.deepEqual(
-    sapEvent[0].extra,
-    {
-      provider_id: "other",
-      provider_name: "MozSearch",
-      source: "abouthome",
-    },
-    "Should have the expected event telemetry data"
-  );
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: "MozSearch",
+    source: "abouthome",
+    count: 1,
+  });
 
   // Also check Glean events.
   const record = Glean.newtabSearch.issued.testGetValue();

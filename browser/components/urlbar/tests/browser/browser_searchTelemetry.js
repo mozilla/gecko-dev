@@ -195,7 +195,11 @@ async function compareCounts(clickCallback) {
   gURLBar.focus();
   await clickCallback();
 
-  assertSAPTelemetry({ name: engine.name, source: "urlbar", count: 1 });
+  await SearchUITestUtils.assertSAPTelemetry({
+    engineName: engine.name,
+    source: "urlbar",
+    count: 1,
+  });
 }
 
 /**

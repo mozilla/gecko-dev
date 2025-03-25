@@ -19,6 +19,7 @@ ChromeUtils.defineESModuleGetters(this, {
   SearchSERPTelemetryUtils:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.sys.mjs",
+  SearchUITestUtils: "resource://testing-common/SearchUITestUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
   SERPCategorizationRecorder:
     "moz-src:///browser/components/search/SERPCategorization.sys.mjs",
@@ -68,6 +69,7 @@ const REGION = Region.home;
 let gCUITestUtils = new CustomizableUITestUtils(window);
 
 SearchTestUtils.init(this);
+SearchUITestUtils.init(this);
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
