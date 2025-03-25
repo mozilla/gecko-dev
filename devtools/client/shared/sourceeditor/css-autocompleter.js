@@ -1113,7 +1113,7 @@ class CSSCompleter {
    *                  - { start: {line, ch}, end: {line, ch}}
    */
   getInfoAt(source, caret) {
-    let { line, ch } = caret;
+    const { line, ch } = caret;
     const sourceArray = source.split("\n");
 
     // Limits the input source till the {line, ch} caret position
@@ -1127,8 +1127,7 @@ class CSSCompleter {
       return list.join("\n");
     };
 
-    const originalLimitedSource = limit(source);
-    let limitedSource = originalLimitedSource;
+    const limitedSource = limit(source);
 
     // Ideally we should be using `cssTokenizer`, which parse incrementaly and returns a generator.
     // `cssTokenizerWithLineColumn` parses the whole `limitedSource` content right away
@@ -1150,19 +1149,22 @@ class CSSCompleter {
      *        whether the state changed or not.
      */
     const traverseForward = check => {
+      let forwardCurrentLine = line;
+      let forwardCurrentSource = limitedSource;
+
       // loop to determine the end location of the property name/value/selector.
       do {
-        let lineText = sourceArray[line];
-        if (line == caret.line) {
-          lineText = lineText.substring(caret.ch);
+        let lineText = sourceArray[forwardCurrentLine];
+        if (forwardCurrentLine == line) {
+          lineText = lineText.substring(ch);
         }
 
         let prevToken = undefined;
         const tokensIterator = cssTokenizer(lineText);
 
-        const ech = line == caret.line ? caret.ch : 0;
+        const ech = forwardCurrentLine == line ? ch : 0;
         for (let token of tokensIterator) {
-          limitedSource += sourceArray[line].substring(
+          forwardCurrentSource += sourceArray[forwardCurrentLine].substring(
             ech + token.startOffset,
             ech + token.endOffset
           );
@@ -1174,8 +1176,8 @@ class CSSCompleter {
           }
 
           const forwState = this.resolveState({
-            source: limitedSource,
-            line,
+            source: forwardCurrentSource,
+            line: forwardCurrentLine,
             column: token.endOffset + ech,
           });
           if (check(forwState)) {
@@ -1183,14 +1185,14 @@ class CSSCompleter {
               token = prevToken;
             }
             return {
-              line,
+              line: forwardCurrentLine,
               ch: token.startOffset + ech,
             };
           }
           prevToken = token;
         }
-        limitedSource += "\n";
-      } while (line++ < sourceArray.length);
+        forwardCurrentSource += "\n";
+      } while (++forwardCurrentLine < sourceArray.length);
       return null;
     };
 
@@ -1211,9 +1213,6 @@ class CSSCompleter {
 
       // Backward loop to determine the beginning location of the selector.
       while (((previousToken = token), (token = remainingTokens.pop()))) {
-        const length = token.endOffset - token.startOffset;
-        limitedSource = limitedSource.slice(0, -1 * length);
-
         // WhiteSpace cannot change state.
         if (token.tokenType == "WhiteSpace") {
           continue;
@@ -1249,8 +1248,6 @@ class CSSCompleter {
         );
       });
 
-      line = caret.line;
-      limitedSource = originalLimitedSource;
       // Forward loop to determine the ending location of the selector.
       const end = traverseForward(forwState => {
         return (
@@ -1307,10 +1304,8 @@ class CSSCompleter {
         true
       );
 
-      line = caret.line;
-
       // Find the end of the value using a simple forward scan.
-      const remainingSource = source.substring(originalLimitedSource.length);
+      const remainingSource = source.substring(limitedSource.length);
       const parser = new InspectorCSSParser(remainingSource);
       let end;
       while (true) {

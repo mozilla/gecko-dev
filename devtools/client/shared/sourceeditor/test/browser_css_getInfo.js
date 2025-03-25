@@ -44,6 +44,9 @@ const source = [
   ".devtools-toolbarbutton:not([label]) > .toolbarbutton-text, .devtools-toolbar {",
   "  display: none;",
   "}",
+  ".multiline > ",
+  ".complex + ",
+  "#selector {}",
 ].join("\n");
 
 // Format of test cases :
@@ -123,6 +126,21 @@ const tests = [
     ],
     "background",
     "linear-gradient(hsla(212,7%,57%,.35),\n              hsla(212,7%,57%,.1)) padding-box",
+  ],
+  [
+    { line: 38, ch: 5 },
+    CSSCompleter.CSS_STATE_SELECTOR,
+    ".multiline > \n.complex + \n#selector",
+  ],
+  [
+    { line: 39, ch: 5 },
+    CSSCompleter.CSS_STATE_SELECTOR,
+    ".multiline > \n.complex + \n#selector",
+  ],
+  [
+    { line: 40, ch: 5 },
+    CSSCompleter.CSS_STATE_SELECTOR,
+    ".multiline > \n.complex + \n#selector",
   ],
 ];
 /* eslint-enable max-len */
