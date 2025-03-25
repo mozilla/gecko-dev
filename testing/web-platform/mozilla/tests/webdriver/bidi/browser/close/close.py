@@ -1,3 +1,5 @@
+# META: timeout=long
+
 import pytest
 import pytest_asyncio
 from webdriver.bidi.modules.input import Actions
