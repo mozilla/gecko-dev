@@ -211,13 +211,13 @@ private val onboardingSecondScreenSecondSubtitle =
 private val onboardingFirstScreenTermsOfUse =
     mDevice.findObject(
         UiSelector()
-            .textContains("By continuing, you agree to the Firefox Terms of Use."),
+            .descriptionContains("By continuing, you agree to the Firefox Terms of Use."),
     )
 
 private val onboardingFirstScreenPrivacyNotice =
     mDevice.findObject(
         UiSelector()
-            .textContains("Firefox cares about your privacy. Learn more in our Privacy Notice."),
+            .descriptionContains("Firefox cares about your privacy. Learn more in our Privacy Notice."),
     )
 
 private val onboardingAgreeAndContinueButton =
