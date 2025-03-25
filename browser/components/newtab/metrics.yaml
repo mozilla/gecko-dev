@@ -874,6 +874,38 @@ newtab:
     send_in_pings:
       - newtab
 
+  abouthome_cache_construction:
+    type: timing_distribution
+    description: >
+      The length of time (in milliseconds) that it takes for the cache worker to
+      generate the cache and return it to the main thread
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_ABOUTHOME_CACHE_CONSTRUCTION.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1622263
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1683101
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1714258
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730042
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754641
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1781978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1841926
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1622263
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1683101
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1714258
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730042
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754641
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1781978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1841926
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: FX_ABOUTHOME_CACHE_CONSTRUCTION
+
 newtab.search:
   enabled:
     lifetime: application
