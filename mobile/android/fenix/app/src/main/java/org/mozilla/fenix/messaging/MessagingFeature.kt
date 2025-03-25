@@ -6,16 +6,23 @@ package org.mozilla.fenix.messaging
 
 import mozilla.components.service.nimbus.messaging.MessageSurfaceId
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.utils.RunWhenReadyQueue
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
 
 /**
  * A [LifecycleAwareFeature] which tries to evaluate if message is available for the provided [surface].
  */
-class MessagingFeature(val appStore: AppStore, val surface: MessageSurfaceId) : LifecycleAwareFeature {
+class MessagingFeature(
+    val appStore: AppStore,
+    val surface: MessageSurfaceId,
+    private val runWhenReadyQueue: RunWhenReadyQueue,
+) : LifecycleAwareFeature {
 
     override fun start() {
-        appStore.dispatch(MessagingAction.Evaluate(surface))
+        runWhenReadyQueue.runIfReadyOrQueue {
+            appStore.dispatch(MessagingAction.Evaluate(surface))
+        }
     }
 
     override fun stop() = Unit

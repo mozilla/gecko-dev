@@ -361,6 +361,7 @@ class HomeFragment : Fragment() {
                 feature = MessagingFeature(
                     appStore = requireComponents.appStore,
                     surface = FenixMessageSurfaceId.HOMESCREEN,
+                    runWhenReadyQueue = requireComponents.performance.visualCompletenessQueue.queue,
                 ),
                 owner = viewLifecycleOwner,
                 view = binding.root,
@@ -873,6 +874,7 @@ class HomeFragment : Fragment() {
                 feature = MessagingFeature(
                     appStore = requireComponents.appStore,
                     surface = FenixMessageSurfaceId.MICROSURVEY,
+                    runWhenReadyQueue = requireComponents.performance.visualCompletenessQueue.queue,
                 ),
                 owner = viewLifecycleOwner,
                 view = binding.root,

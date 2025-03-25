@@ -1805,6 +1805,7 @@ abstract class BaseBrowserFragment :
                 feature = MessagingFeature(
                     appStore = requireComponents.appStore,
                     surface = FenixMessageSurfaceId.MICROSURVEY,
+                    runWhenReadyQueue = requireComponents.performance.visualCompletenessQueue.queue,
                 ),
                 owner = viewLifecycleOwner,
                 view = binding.root,
