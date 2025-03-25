@@ -77,7 +77,15 @@ class WorkerDebuggerEnumerator final : public nsSimpleEnumerator {
  public:
   explicit WorkerDebuggerEnumerator(
       const nsTArray<nsCOMPtr<nsIWorkerDebugger>>& aDebuggers)
-      : mDebuggers(aDebuggers.Clone()), mIndex(0) {}
+      : mIndex(0) {
+    for (auto debugger : aDebuggers) {
+      bool isRemote;
+      Unused << debugger->GetIsRemote(&isRemote);
+      if (!isRemote) {
+        mDebuggers.AppendElement(debugger);
+      }
+    }
+  }
 
   NS_DECL_NSISIMPLEENUMERATOR
 
@@ -275,10 +283,9 @@ void WorkerDebuggerManager::RegisterDebugger(
   AssertIsOnMainThread();
 
   mDebuggers.AppendElement(aRemoteWorkerDebugger);
-
-  for (const auto& listener : CloneListeners()) {
-    listener->OnRegister(aRemoteWorkerDebugger);
-  }
+  //  for (const auto& listener : CloneListeners()) {
+  //    listener->OnRegister(aRemoteWorkerDebugger);
+  //  }
 }
 
 void WorkerDebuggerManager::UnregisterDebugger(
@@ -287,10 +294,9 @@ void WorkerDebuggerManager::UnregisterDebugger(
   AssertIsOnMainThread();
 
   mDebuggers.RemoveElement(aRemoteWorkerDebugger);
-
-  for (const auto& listener : CloneListeners()) {
-    listener->OnUnregister(aRemoteWorkerDebugger);
-  }
+  //  for (const auto& listener : CloneListeners()) {
+  //    listener->OnUnregister(aRemoteWorkerDebugger);
+  //  }
 }
 
 void WorkerDebuggerManager::RegisterDebuggerMainThread(
@@ -349,8 +355,10 @@ nsCOMPtr<nsIWorkerDebugger> WorkerDebuggerManager::GetDebuggerById(
   MOZ_ASSERT_DEBUG_OR_FUZZING(!aWorkerId.IsEmpty());
   for (auto debugger : mDebuggers) {
     nsAutoString workerId;
+    bool isRemote;
     debugger->GetId(workerId);
-    if (workerId.Equals(aWorkerId)) {
+    debugger->GetIsRemote(&isRemote);
+    if (workerId.Equals(aWorkerId) && isRemote) {
       return debugger;
     }
   }
