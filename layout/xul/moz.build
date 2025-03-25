@@ -13,6 +13,7 @@ if CONFIG["ENABLE_TESTS"]:
     BROWSER_CHROME_MANIFESTS += ["test/browser.toml"]
 
 EXPORTS += [
+    "nsIPopupContainer.h",
     "nsIScrollbarMediator.h",
     "nsXULPopupManager.h",
     "nsXULTooltipListener.h",

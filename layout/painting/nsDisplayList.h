@@ -5368,7 +5368,6 @@ class nsDisplayOwnLayer : public nsDisplayWrapList {
  public:
   enum OwnLayerType {
     OwnLayerForTransformWithRoundedClip,
-    OwnLayerForViewTransitionCapture,
     OwnLayerForScrollbar,
     OwnLayerForScrollThumb,
     OwnLayerForSubdoc,
@@ -5605,6 +5604,40 @@ class nsDisplayStickyPosition final : public nsDisplayOwnLayer {
   // this does not create a WebRender ReferenceFrame, which is important
   // because sticky elements do not establish Gecko reference frames either.
   uint64_t mWrStickyAnimationId;
+};
+
+class nsDisplayViewTransitionCapture final : public nsDisplayOwnLayer {
+ public:
+  nsDisplayViewTransitionCapture(nsDisplayListBuilder* aBuilder,
+                                 nsIFrame* aFrame, nsDisplayList* aList,
+                                 const ActiveScrolledRoot* aASR, bool aIsRoot)
+      : nsDisplayOwnLayer(aBuilder, aFrame, aList, aASR), mIsRoot(aIsRoot) {
+    MOZ_COUNT_CTOR(nsDisplayViewTransitionCapture);
+  }
+
+  nsDisplayViewTransitionCapture(nsDisplayListBuilder* aBuilder,
+                                 const nsDisplayViewTransitionCapture& aOther)
+      : nsDisplayOwnLayer(aBuilder, aOther) {
+    MOZ_COUNT_CTOR(nsDisplayViewTransitionCapture);
+  }
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayViewTransitionCapture)
+  NS_DISPLAY_DECL_NAME("VTCapture", TYPE_VT_CAPTURE)
+
+  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override {
+    GetChildren()->Paint(aBuilder, aCtx,
+                         mFrame->PresContext()->AppUnitsPerDevPixel());
+  }
+
+  bool CreateWebRenderCommands(
+      wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
+      const StackingContextHelper& aSc,
+      layers::RenderRootStateManager* aManager,
+      nsDisplayListBuilder* aDisplayListBuilder) override;
+
+ private:
+  NS_DISPLAY_ALLOW_CLONING()
+  bool mIsRoot = false;
 };
 
 class nsDisplayFixedPosition : public nsDisplayOwnLayer {

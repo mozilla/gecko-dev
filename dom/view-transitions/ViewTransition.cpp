@@ -28,10 +28,19 @@
 #include "nsITimer.h"
 #include "nsLayoutUtils.h"
 #include "nsPresContext.h"
+#include "nsCanvasFrame.h"
 #include "nsString.h"
 #include "Units.h"
 
 namespace mozilla::dom {
+
+static void SetCaptured(nsIFrame* aFrame, bool aCaptured) {
+  aFrame->AddOrRemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION, aCaptured);
+  aFrame->InvalidateFrameSubtree();
+  if (aFrame->Style()->IsRootElementStyle()) {
+    aFrame->PresShell()->GetRootFrame()->InvalidateFrameSubtree();
+  }
+}
 
 // Set capture's old transform to a <transform-function> that would map
 // element's border box from the snapshot containing block origin to its
@@ -62,9 +71,14 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
 
 static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
     nsIFrame* aFrame) {
-  const nsRect rect = aFrame->InkOverflowRectRelativeToSelf();
+  nsPresContext* pc = aFrame->PresContext();
+  const bool isRoot = aFrame->Style()->IsRootElementStyle();
+  nsIFrame* frameToCapture =
+      isRoot ? pc->PresShell()->GetCanvasFrame() : aFrame;
+  const nsRect rect = isRoot ? ViewTransition::SnapshotContainingBlockRect(pc)
+                             : aFrame->InkOverflowRectRelativeToSelf();
   const auto surfaceRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
-      rect, aFrame->PresContext()->AppUnitsPerDevPixel());
+      rect, pc->AppUnitsPerDevPixel());
 
   // TODO: Should we use the DrawTargetRecorder infra or what not?
   const auto format = gfx::SurfaceFormat::B8G8R8A8;
@@ -81,7 +95,8 @@ static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
     // TODO: This matches the drawable code we use for -moz-element(), but is
     // this right?
     const PaintFrameFlags flags = PaintFrameFlags::InTransform;
-    nsLayoutUtils::PaintFrame(&thebes, aFrame, rect, NS_RGBA(0, 0, 0, 0),
+    nsLayoutUtils::PaintFrame(&thebes, frameToCapture, rect,
+                              NS_RGBA(0, 0, 0, 0),
                               nsDisplayListBuilderMode::Painting, flags);
   }
 
@@ -940,11 +955,14 @@ void ViewTransition::PerformPendingOperations() {
 }
 
 // https://drafts.csswg.org/css-view-transitions/#snapshot-containing-block
+nsRect ViewTransition::SnapshotContainingBlockRect(nsPresContext* aPc) {
+  return aPc ? aPc->GetVisibleArea() : nsRect();
+}
+
+// https://drafts.csswg.org/css-view-transitions/#snapshot-containing-block
 nsRect ViewTransition::SnapshotContainingBlockRect() const {
   nsPresContext* pc = mDocument->GetPresContext();
-  // TODO(emilio): Ensure this is correct with Android's dynamic toolbar and
-  // scrollbars.
-  return pc ? pc->GetVisibleArea() : nsRect();
+  return SnapshotContainingBlockRect(pc);
 }
 
 Element* ViewTransition::FindPseudo(const PseudoStyleRequest& aRequest) const {
@@ -1120,14 +1138,14 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
           SkipTransitionReason::DuplicateTransitionNameCapturingOldState);
       return false;
     }
-    aFrame->AddStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+    SetCaptured(aFrame, true);
     captureElements.AppendElement(std::make_pair(aFrame, name));
     return true;
   });
 
   if (result) {
     for (auto& [f, name] : captureElements) {
-      f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+      SetCaptured(f, false);
     }
     return result;
   }
@@ -1142,7 +1160,7 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
         MakeUnique<CapturedElement>(f, mInitialSnapshotContainingBlockSize);
     mNamedElements.InsertOrUpdate(name, std::move(capture));
     mNames.AppendElement(name);
-    f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+    SetCaptured(f, false);
   }
 
   return result;
@@ -1183,7 +1201,7 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
     capturedElement->mNewElement = aFrame->GetContent()->AsElement();
     capturedElement->mNewSnapshotSize =
         aFrame->InkOverflowRectRelativeToSelf().Size();
-    aFrame->AddStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+    SetCaptured(aFrame, true);
     return true;
   });
   return result;
@@ -1356,7 +1374,7 @@ void ViewTransition::ClearNamedElements() {
   for (auto& entry : mNamedElements) {
     if (auto* element = entry.GetData()->mNewElement.get()) {
       if (nsIFrame* f = element->GetPrimaryFrame()) {
-        f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+        SetCaptured(f, false);
       }
     }
   }

@@ -104,6 +104,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
 
   struct CapturedElement;
 
+  static nsRect SnapshotContainingBlockRect(nsPresContext*);
   MOZ_CAN_RUN_SCRIPT void CallUpdateCallback(ErrorResult&);
 
  private:
