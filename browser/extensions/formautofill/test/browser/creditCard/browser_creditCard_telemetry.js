@@ -422,7 +422,7 @@ add_task(async function test_submit_creditCard_new() {
     await assertHistogram(CC_NUM_USES_HISTOGRAM, useCount);
 
     await removeAllRecords();
-    SpecialPowers.popPrefEnv();
+    await SpecialPowers.popPrefEnv();
   }
 
   Services.telemetry.clearEvents();
@@ -530,7 +530,7 @@ add_task(async function test_submit_creditCard_autofill() {
   ]);
 
   await removeAllRecords();
-  SpecialPowers.popPrefEnv();
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_submit_creditCard_update() {
@@ -705,7 +705,7 @@ add_task(async function test_removingCreditCardsViaKeyboardDelete() {
   ]);
 
   await removeAllRecords();
-  SpecialPowers.popPrefEnv();
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_saveCreditCard() {
@@ -741,7 +741,7 @@ add_task(async function test_saveCreditCard() {
   await assertTelemetry(undefined, [["creditcard", "add", "manage"]]);
 
   await removeAllRecords();
-  SpecialPowers.popPrefEnv();
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_editCreditCard() {
@@ -776,7 +776,7 @@ add_task(async function test_editCreditCard() {
   ]);
 
   await removeAllRecords();
-  SpecialPowers.popPrefEnv();
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_histogram() {
@@ -840,7 +840,7 @@ add_task(async function test_histogram() {
   });
 
   await removeAllRecords();
-  SpecialPowers.popPrefEnv();
+  await SpecialPowers.popPrefEnv();
 
   await assertHistogram(CC_NUM_USES_HISTOGRAM, {});
 });
@@ -950,5 +950,5 @@ add_task(async function test_clear_creditCard_autofill() {
   await BrowserTestUtils.removeTab(tab);
 
   await removeAllRecords();
-  SpecialPowers.popPrefEnv();
+  await SpecialPowers.popPrefEnv();
 });
