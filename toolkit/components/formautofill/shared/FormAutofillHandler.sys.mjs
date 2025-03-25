@@ -418,7 +418,7 @@ export class FormAutofillHandler {
         continue;
       }
 
-      if (HTMLInputElement.isInstance(element)) {
+      if (FormAutofillUtils.isTextControl(element)) {
         if (element.value && element.value != element.defaultValue) {
           // Skip the field if the user has already entered text and that text
           // is not the site prefilled value.
@@ -465,7 +465,7 @@ export class FormAutofillHandler {
 
       element.previewValue = "";
 
-      if (HTMLInputElement.isInstance(element)) {
+      if (FormAutofillUtils.isTextControl(element)) {
         // Bug 1687679: Since profile appears to be presentation ready data, we need to utilize the "x-formatted" field
         // that is generated when presentation ready data doesn't fit into the autofilling element.
         // For example, autofilling expiration month into an input element will not work as expected if
@@ -1126,7 +1126,7 @@ export class FormAutofillHandler {
       let streetAddressDetail = this.getFieldDetailByName("street-address");
       if (
         streetAddressDetail &&
-        HTMLInputElement.isInstance(streetAddressDetail.element)
+        FormAutofillUtils.isTextControl(streetAddressDetail.element)
       ) {
         profile["street-address"] = profile["-moz-street-address-one-line"];
       }
@@ -1237,14 +1237,14 @@ export class FormAutofillHandler {
   /**
    * Fills the provided element with the specified value.
    *
-   * @param {HTMLInputElement| HTMLSelectElement} element - The form field element to be filled.
+   * @param {HTMLElement} element - The form field element to be filled.
    * @param {string} value - The value to be filled into the form field.
    */
   static fillFieldValue(element, value) {
     if (FormAutofillUtils.focusOnAutofill) {
       element.focus({ preventScroll: true });
     }
-    if (HTMLInputElement.isInstance(element)) {
+    if (FormAutofillUtils.isTextControl(element)) {
       element.setUserInput(value);
     } else if (HTMLSelectElement.isInstance(element)) {
       // Set the value of the select element so that web event handlers can react accordingly
@@ -1339,7 +1339,7 @@ export class FormAutofillHandler {
   }
 
   isFieldAutofillable(fieldDetail, profile) {
-    if (HTMLInputElement.isInstance(fieldDetail.element)) {
+    if (FormAutofillUtils.isTextControl(fieldDetail.element)) {
       return !!profile[fieldDetail.fieldName];
     }
     return !!this.matchSelectOptions(fieldDetail, profile);

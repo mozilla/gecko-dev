@@ -101,6 +101,7 @@ const FORM_SUBMISSION_REASON = {
   PAGE_NAVIGATION: "page-navigation",
 };
 
+const ELIGIBLE_ELEMENT_TYPES = ["input", "select", "textarea"];
 const ELIGIBLE_INPUT_TYPES = [
   "text",
   "email",
@@ -129,6 +130,8 @@ FormAutofillUtils = {
   MAX_FIELD_VALUE_LENGTH,
   FIELD_STATES,
   FORM_SUBMISSION_REASON,
+  ELIGIBLE_ELEMENT_TYPES,
+  ELIGIBLE_INPUT_TYPES,
 
   _fieldNameInfo: {
     name: "name",
@@ -186,6 +189,20 @@ FormAutofillUtils = {
 
   isCCNumber(ccNumber) {
     return ccNumber && lazy.CreditCard.isValidNumber(ccNumber);
+  },
+
+  isTextControl(element) {
+    return (
+      HTMLInputElement.isInstance(element) ||
+      HTMLTextAreaElement.isInstance(element)
+    );
+  },
+
+  queryEligibleElements(element, includeIframe = false) {
+    const types = includeIframe
+      ? [...ELIGIBLE_ELEMENT_TYPES, "iframe"]
+      : ELIGIBLE_ELEMENT_TYPES;
+    return Array.from(element.querySelectorAll(types.join(",")));
   },
 
   /**
@@ -486,6 +503,10 @@ FormAutofillUtils = {
     if (HTMLInputElement.isInstance(element)) {
       // `element.type` can be recognized as `text`, if it's missing or invalid.
       return ELIGIBLE_INPUT_TYPES.includes(element.type);
+    }
+
+    if (HTMLTextAreaElement.isInstance(element)) {
+      return true;
     }
 
     return HTMLSelectElement.isInstance(element);
