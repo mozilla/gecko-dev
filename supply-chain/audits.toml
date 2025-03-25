@@ -1198,6 +1198,11 @@ criteria = "safe-to-deploy"
 version = "0.2.1"
 notes = "This crate is maintained by the CryptoEng team at Mozilla and it contains no unsafe code."
 
+[[audits.codespan-reporting]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.11.1 -> 0.12.0"
+
 [[audits.comedy]]
 who = "Nick Alexander <nalexander@mozilla.com>"
 criteria = "safe-to-deploy"
