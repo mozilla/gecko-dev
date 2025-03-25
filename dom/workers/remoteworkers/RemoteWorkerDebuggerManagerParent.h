@@ -19,6 +19,9 @@ class RemoteWorkerDebuggerManagerParent final
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteWorkerDebuggerManagerParent,
                                         final)
 
+  static RefPtr<RemoteWorkerDebuggerManagerParent> CreateForProcess(
+      mozilla::ipc::Endpoint<PRemoteWorkerDebuggerManagerChild>* aChildEp);
+
   RemoteWorkerDebuggerManagerParent();
 
   mozilla::ipc::IPCResult RecvRegister(

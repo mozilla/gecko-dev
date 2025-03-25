@@ -8,6 +8,26 @@
 
 namespace mozilla::dom {
 
+/* static */
+RefPtr<RemoteWorkerDebuggerManagerParent>
+RemoteWorkerDebuggerManagerParent::CreateForProcess(
+    mozilla::ipc::Endpoint<PRemoteWorkerDebuggerManagerChild>* aChildEp) {
+  MOZ_ASSERT_DEBUG_OR_FUZZING(XRE_IsParentProcess() && NS_IsMainThread());
+
+  mozilla::ipc::Endpoint<PRemoteWorkerDebuggerManagerParent> parentEp;
+  nsresult rv =
+      PRemoteWorkerDebuggerManager::CreateEndpoints(&parentEp, aChildEp);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nullptr;
+  }
+
+  RefPtr<RemoteWorkerDebuggerManagerParent> actor =
+      MakeRefPtr<RemoteWorkerDebuggerManagerParent>();
+  parentEp.Bind(actor);
+
+  return actor;
+}
+
 RemoteWorkerDebuggerManagerParent::RemoteWorkerDebuggerManagerParent() {
   MOZ_ASSERT_DEBUG_OR_FUZZING(XRE_IsParentProcess() && NS_IsMainThread());
 }
