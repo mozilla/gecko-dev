@@ -4,6 +4,7 @@
 
 package mozilla.components.compose.browser.toolbar.store
 
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.lib.state.UiStore
 
 /**
@@ -60,5 +61,11 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
                 editActionsEnd = state.editState.editActionsEnd + action.action,
             ),
         )
+
+        is BrowserToolbarEvent -> {
+            // no-op
+            // Expected to be handled in middlewares set by integrators.
+            state
+        }
     }
 }

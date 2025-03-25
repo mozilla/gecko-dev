@@ -18,7 +18,6 @@ data class BrowserToolbarState(
     val mode: Mode = Mode.DISPLAY,
     val displayState: DisplayState = DisplayState(),
     val editState: EditState = EditState(),
-
 ) : State {
 
     /**
