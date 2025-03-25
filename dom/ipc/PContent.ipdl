@@ -42,6 +42,7 @@ include protocol PURLClassifierLocal;
 include protocol PURLClassifierLocalByName;
 include protocol PVRManager;
 include protocol PRemoteDecoderManager;
+include protocol PRemoteWorkerDebuggerManager;
 include protocol PRemoteWorkerService;
 include protocol PProfiler;
 include protocol PScriptCache;
@@ -784,7 +785,8 @@ child:
     /**
      * Initialize the RemoteWorkerService thread in the content process.
      */
-    async InitRemoteWorkerService(Endpoint<PRemoteWorkerServiceChild> aEndpoint);
+    async InitRemoteWorkerService(Endpoint<PRemoteWorkerServiceChild> aEndpoint,
+        Endpoint<PRemoteWorkerDebuggerManagerChild> aDebuggerChildEp);
 
     /**
      * Send BlobURLRegistrationData to child process.

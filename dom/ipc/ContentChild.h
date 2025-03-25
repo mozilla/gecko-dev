@@ -372,7 +372,8 @@ class ContentChild final : public PContentChild,
   const nsACString& GetRemoteType() const override;
 
   mozilla::ipc::IPCResult RecvInitRemoteWorkerService(
-      Endpoint<PRemoteWorkerServiceChild>&& aEndpoint);
+      Endpoint<PRemoteWorkerServiceChild>&& aEndpoint,
+      Endpoint<PRemoteWorkerDebuggerManagerChild>&& aDebuggerChildEp);
 
   mozilla::ipc::IPCResult RecvInitBlobURLs(
       nsTArray<BlobURLRegistrationData>&& aRegistations);
