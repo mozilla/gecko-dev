@@ -77,6 +77,32 @@ def android_subproject(value):
 
 set_config("MOZ_ANDROID_SUBPROJECT", android_subproject)
 
+
+# The android:debuggable flag controls if a debugger can be attached on to the
+# running app. Default this setting to follow `--enable-debug`. Use this flag to
+# allow attaching debugging to app compiled in an optimized / release
+# configuration.
+#
+# NOTE: There are numerous performance implications for a package marked as
+#       android:debuggable versus a similar one that isn't. Particularly around
+#       AOT compilation heuristics and caches.
+
+option(
+    "--enable-android-debuggable",
+    default=moz_debug,
+    help="{Enable|Disable} the android:debuggable flag in AndroidManifest.xml",
+)
+
+
+@depends("--enable-android-debuggable")
+def android_debuggable(value):
+    if value:
+        return True
+
+
+set_config("MOZ_ANDROID_DEBUGGABLE", android_debuggable)
+
+
 imply_option("MOZ_NORMANDY", False)
 imply_option("MOZ_SERVICES_HEALTHREPORT", True)
 imply_option("MOZ_GECKOVIEW_HISTORY", True)

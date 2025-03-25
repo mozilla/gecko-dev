@@ -89,7 +89,8 @@ android {
                 signingConfig signingConfigs.debug
             }
 
-            if (gradle.hasProperty("localProperties.debuggable")) {
+            if (gradle.hasProperty("localProperties.debuggable") ||
+                gradle.mozconfig.substs.MOZ_ANDROID_DEBUGGABLE) {
                 println ("All builds will be debuggable")
                 debuggable true
             }
