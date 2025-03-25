@@ -5986,14 +5986,13 @@
         }
       }
 
-      /**
-       * Bug 1955388 - prevent pinned tabs from commingling with non-pinned tabs
-       * when there are hidden tabs present
-       */
+      // Don't allow mixing pinned and unpinned tabs.
       if (tab.pinned && !targetElement?.pinned) {
-        // prevent pinned tab from being dragged past a non-pinned tab
         targetElement = this.tabs[this.pinnedTabCount - 1];
         moveBefore = false;
+      } else if (!tab.pinned && targetElement && targetElement.pinned) {
+        targetElement = this.tabs[this.pinnedTabCount];
+        moveBefore = true;
       }
 
       let getContainer = () => {
