@@ -17,6 +17,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import mozilla.appservices.init_rust_components.initialize as InitializeRustComponents
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -29,6 +30,7 @@ class DefaultCreditCardValidationDelegateTest {
     @Before
     fun before() = runBlocking {
         // forceInsecure is set in the tests because a keystore wouldn't be configured in the test environment.
+        InitializeRustComponents()
         securePrefs = SecureAbove22Preferences(testContext, "autofill", forceInsecure = true)
         storage = AutofillCreditCardsAddressesStorage(testContext, lazy { securePrefs })
         validationDelegate = DefaultCreditCardValidationDelegate(storage = lazy { storage })

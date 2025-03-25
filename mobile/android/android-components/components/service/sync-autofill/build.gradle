@@ -42,6 +42,7 @@ dependencies {
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
+    testImplementation ComponentsDependencies.mozilla_appservices_init_rust_components
 }
 
 apply from: '../../../android-lint.gradle'
