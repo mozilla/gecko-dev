@@ -58,6 +58,13 @@ sealed class BrowserDisplayToolbarAction : BrowserToolbarAction {
      * @property action The [Action] to be added.
      */
     data class AddBrowserAction(val action: ToolbarAction) : BrowserDisplayToolbarAction()
+
+    /**
+     * Replaces the currently displayed list of browser actions with the provided list of actions.
+     *
+     * @property actions The new list of [ToolbarAction]s.
+     */
+    data class UpdateBrowserActions(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
 }
 
 /**

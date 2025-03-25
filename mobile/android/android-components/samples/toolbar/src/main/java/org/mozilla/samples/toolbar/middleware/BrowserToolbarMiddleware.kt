@@ -9,8 +9,11 @@ import android.graphics.Color
 import android.widget.Toast
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
+import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.DisplayState
@@ -23,6 +26,9 @@ import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.Bookmar
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.HistoryClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.SettingsClicked
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.TabsClicked
+import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Add10TabsClicked
+import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Remove10TabsClicked
+import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.TabCounterClicked
 import mozilla.components.ui.icons.R as iconsR
 
 private sealed class SearchSelectorInteractions : BrowserToolbarEvent {
@@ -32,10 +38,21 @@ private sealed class SearchSelectorInteractions : BrowserToolbarEvent {
     data object SettingsClicked : SearchSelectorInteractions()
 }
 
+private sealed class TabCounterInteractions : BrowserToolbarEvent {
+    data object TabCounterClicked : TabCounterInteractions()
+    data object Add10TabsClicked : TabCounterInteractions()
+    data object Remove10TabsClicked : TabCounterInteractions()
+}
+
+private const val BATCH_TAB_COUNTER_UPDATES_NUMBER = 10
+
 internal class BrowserToolbarMiddleware(
     initialDependencies: Dependencies,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction> {
     var dependencies = initialDependencies
+
+    private var currentTabsNumber = 0
+        set(value) { field = value.coerceAtLeast(0) }
 
     override fun invoke(
         context: MiddlewareContext<BrowserToolbarState, BrowserToolbarAction>,
@@ -57,6 +74,7 @@ internal class BrowserToolbarMiddleware(
                                     onClick = {},
                                 ),
                             ),
+                            browserActions = buildDisplayBrowserActions(),
                         ),
                         editState = EditState(
                             editActionsStart = listOfNotNull(
@@ -71,11 +89,36 @@ internal class BrowserToolbarMiddleware(
                 Toast.makeText(dependencies.context, action.javaClass.simpleName, Toast.LENGTH_SHORT).show()
             }
 
+            is TabCounterClicked -> {
+                currentTabsNumber += 1
+                next(BrowserDisplayToolbarAction.UpdateBrowserActions(buildDisplayBrowserActions()))
+            }
+
+            is Add10TabsClicked -> {
+                currentTabsNumber += BATCH_TAB_COUNTER_UPDATES_NUMBER
+                next(BrowserDisplayToolbarAction.UpdateBrowserActions(buildDisplayBrowserActions()))
+            }
+
+            is Remove10TabsClicked -> {
+                currentTabsNumber -= BATCH_TAB_COUNTER_UPDATES_NUMBER
+                next(BrowserDisplayToolbarAction.UpdateBrowserActions(buildDisplayBrowserActions()))
+            }
+
             else -> {
                 next(action)
             }
         }
     }
+
+    private fun buildDisplayBrowserActions() = listOf(
+        TabCounterAction(
+            count = currentTabsNumber,
+            contentDescription = "Tabs open: $currentTabsNumber",
+            showPrivacyMask = false,
+            onClick = TabCounterClicked,
+            onLongClick = buildTabCounter(),
+        ),
+    )
 
     private fun buildSearchSelector(): Action = DropdownAction(
         icon = null,
@@ -117,6 +160,23 @@ internal class BrowserToolbarMiddleware(
             )
         },
     )
+
+    private fun buildTabCounter() = BrowserToolbarMenu {
+        listOfNotNull(
+            BrowserToolbarMenuItem(
+                iconResource = android.R.drawable.ic_menu_add,
+                text = R.string.tab_counter_add_10_tabs,
+                contentDescription = R.string.tab_counter_add_10_tabs,
+                onClick = Add10TabsClicked,
+            ),
+            BrowserToolbarMenuItem(
+                iconResource = android.R.drawable.ic_menu_delete,
+                text = R.string.tab_counter_remove_10_tabs,
+                contentDescription = R.string.tab_counter_remove_10_tabs,
+                onClick = Remove10TabsClicked,
+            ),
+        )
+    }
 
     companion object {
         data class Dependencies(

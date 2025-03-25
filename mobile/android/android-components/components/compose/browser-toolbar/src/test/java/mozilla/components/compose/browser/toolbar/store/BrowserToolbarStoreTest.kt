@@ -4,7 +4,6 @@
 
 package mozilla.components.compose.browser.toolbar.store
 
-import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -13,7 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import mozilla.components.ui.icons.R as iconsR
+import kotlin.random.Random
 
 @RunWith(AndroidJUnit4::class)
 class BrowserToolbarStoreTest {
@@ -35,6 +34,23 @@ class BrowserToolbarStoreTest {
     }
 
     @Test
+    fun `GIVEN browser actions already set WHEN updating them THEN replace all current ones with the newly provided list`() {
+        val initialBrowserActions = listOf(fakeActionButton())
+        val updatedListOfBrowserActions = listOf(fakeActionButton())
+        val store = BrowserToolbarStore(
+            initialState = BrowserToolbarState(
+                displayState = DisplayState(
+                    browserActions = initialBrowserActions,
+                ),
+            ),
+        )
+
+        store.dispatch(BrowserDisplayToolbarAction.UpdateBrowserActions(updatedListOfBrowserActions))
+
+        assertEquals(store.state.displayState.browserActions, updatedListOfBrowserActions)
+    }
+
+    @Test
     fun `WHEN update edit text action is dispatched THEN update edit text state`() {
         val store = BrowserToolbarStore()
         val text = "Mozilla"
@@ -49,18 +65,8 @@ class BrowserToolbarStoreTest {
     @Test
     fun `WHEN add edit action start is dispatched THEN update edit actions start state`() {
         val store = BrowserToolbarStore()
-        val action1 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_search_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
-        val action2 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_forward_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
+        val action1 = fakeActionButton()
+        val action2 = fakeActionButton()
 
         assertEquals(0, store.state.editState.editActionsStart.size)
 
@@ -79,18 +85,8 @@ class BrowserToolbarStoreTest {
     @Test
     fun `WHEN add edit action end is dispatched THEN update edit actions end state`() {
         val store = BrowserToolbarStore()
-        val action1 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_search_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
-        val action2 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_forward_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
+        val action1 = fakeActionButton()
+        val action2 = fakeActionButton()
 
         assertEquals(0, store.state.editState.editActionsEnd.size)
 
@@ -109,18 +105,8 @@ class BrowserToolbarStoreTest {
     @Test
     fun `WHEN add navigation action is dispatched THEN update display navigation actions state`() {
         val store = BrowserToolbarStore()
-        val action1 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_search_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
-        val action2 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_forward_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
+        val action1 = fakeActionButton()
+        val action2 = fakeActionButton()
 
         assertEquals(0, store.state.displayState.navigationActions.size)
 
@@ -139,18 +125,8 @@ class BrowserToolbarStoreTest {
     @Test
     fun `WHEN add page action is dispatched THEN update display page actions state`() {
         val store = BrowserToolbarStore()
-        val action1 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_search_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
-        val action2 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_forward_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
+        val action1 = fakeActionButton()
+        val action2 = fakeActionButton()
 
         assertEquals(0, store.state.displayState.pageActions.size)
 
@@ -169,18 +145,8 @@ class BrowserToolbarStoreTest {
     @Test
     fun `WHEN add browser action is dispatched THEN update display browser actions state`() {
         val store = BrowserToolbarStore()
-        val action1 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_search_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
-        val action2 = ActionButton(
-            icon = iconsR.drawable.mozac_ic_forward_24,
-            contentDescription = null,
-            tint = Color.BLACK,
-            onClick = {},
-        )
+        val action1 = fakeActionButton()
+        val action2 = fakeActionButton()
 
         assertEquals(0, store.state.displayState.browserActions.size)
 
@@ -195,4 +161,11 @@ class BrowserToolbarStoreTest {
         assertEquals(action1, store.state.displayState.browserActions.first())
         assertEquals(action2, store.state.displayState.browserActions.last())
     }
+
+    private fun fakeActionButton() = ActionButton(
+        icon = Random.nextInt(),
+        contentDescription = null,
+        tint = Random.nextInt(),
+        onClick = {},
+    )
 }
