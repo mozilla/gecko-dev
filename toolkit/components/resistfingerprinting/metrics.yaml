@@ -2876,23 +2876,6 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  scalings:
-    type: string
-    description: >
-      Screen(s) scaling/zoom level
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898744
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898744#c4
-    expires: never
-    data_sensitivity:
-      - interaction
-
   avail_height:
     type: quantity
     unit: int

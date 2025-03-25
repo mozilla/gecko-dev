@@ -525,25 +525,6 @@ void PopulateFontPrefs() {
       Preferences::HasUserValue("font.name-list.emoji"));
 }
 
-void PopulateScaling() {
-  nsCString output = "["_ns;
-
-  auto& screenManager = widget::ScreenManager::GetSingleton();
-  const auto& screens = screenManager.CurrentScreenList();
-  for (const auto& screen : screens) {
-    // Technically, not the same as (display resolution / shown resolution), but
-    // this is the value the fingerprinters can access/compute.
-    output.Append(std::to_string(screen->GetContentsScaleFactor()));
-    if (&screen != &screens.LastElement()) {
-      output.Append(",");
-    }
-  }
-
-  output.Append("]");
-
-  glean::characteristics::scalings.Set(output);
-}
-
 already_AddRefed<PopulatePromise> PopulateMediaDevices() {
   RefPtr<PopulatePromise> populatePromise = new PopulatePromise(__func__);
   MediaManager::Get()->GetPhysicalDevices()->Then(
@@ -1015,7 +996,6 @@ void nsUserCharacteristics::PopulateDataAndEventuallySubmit(
     PopulateScreenProperties();
     PopulatePrefs();
     PopulateFontPrefs();
-    PopulateScaling();
     PopulateKeyboardLayout();
     PopulateLanguages();
     PopulateTextAntiAliasing();
