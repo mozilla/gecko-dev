@@ -3684,7 +3684,7 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
       StaticPrefs::dom_viewTransitions_live_capture()) {
     SerializeList();
     rootResultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
-        aBuilder, this, &rootResultList, nullptr,
+        aBuilder, this, &rootResultList, aBuilder->CurrentActiveScrolledRoot(),
         /* aIsRoot = */ true);
   }
 
