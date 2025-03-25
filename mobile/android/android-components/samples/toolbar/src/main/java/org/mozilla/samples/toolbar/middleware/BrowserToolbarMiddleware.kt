@@ -25,7 +25,7 @@ import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.Setting
 import org.mozilla.samples.toolbar.middleware.SearchSelectorInteractions.TabsClicked
 import mozilla.components.ui.icons.R as iconsR
 
-sealed class SearchSelectorInteractions : BrowserToolbarEvent {
+private sealed class SearchSelectorInteractions : BrowserToolbarEvent {
     data object BookmarksClicked : SearchSelectorInteractions()
     data object TabsClicked : SearchSelectorInteractions()
     data object HistoryClicked : SearchSelectorInteractions()

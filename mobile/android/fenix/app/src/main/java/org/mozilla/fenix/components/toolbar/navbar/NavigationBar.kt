@@ -40,6 +40,8 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.IconButton
+import mozilla.components.compose.base.button.LongPressIconButton
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.ui.tabcounter.TabCounterMenu
@@ -49,8 +51,6 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.toolbar.NewTabMenu
-import org.mozilla.fenix.compose.IconButton
-import org.mozilla.fenix.compose.LongPressIconButton
 import org.mozilla.fenix.compose.utils.KeyboardState
 import org.mozilla.fenix.compose.utils.keyboardAsState
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
@@ -405,6 +405,7 @@ private fun BackButton(
     LongPressIconButton(
         onClick = onBackButtonClick,
         onLongClick = onBackButtonLongPress,
+        contentDescription = stringResource(R.string.browser_menu_back),
         enabled = enabled,
         modifier = Modifier
             .size(48.dp)
@@ -429,6 +430,7 @@ private fun ForwardButton(
     LongPressIconButton(
         onClick = onForwardButtonClick,
         onLongClick = onForwardButtonLongPress,
+        contentDescription = stringResource(R.string.browser_menu_forward),
         enabled = enabled,
         modifier = Modifier
             .size(48.dp)
@@ -448,6 +450,7 @@ private fun SearchWebButton(
 ) {
     IconButton(
         onClick = onSearchButtonClick,
+        contentDescription = stringResource(R.string.search_hint),
         modifier = Modifier
             .testTag(NavBarTestTags.searchButton),
     ) {
@@ -469,6 +472,7 @@ private fun MenuButton(
     if (isMenuRedesignEnabled) {
         IconButton(
             onClick = onMenuButtonClick,
+            contentDescription = stringResource(R.string.content_description_menu),
             modifier = Modifier
                 .size(48.dp)
                 .testTag(NavBarTestTags.menuButton),
@@ -509,6 +513,7 @@ private fun OpenInBrowserButton(
 ) {
     IconButton(
         onClick = onOpenInBrowserButtonClick,
+        contentDescription = stringResource(R.string.browser_menu_open_in_fenix, stringResource(R.string.app_name)),
         enabled = enabled,
         modifier = Modifier
             .testTag(NavBarTestTags.openInBrowserButton),
