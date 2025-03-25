@@ -9081,7 +9081,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
   const WritingMode& wm = gridRI.mWM;
 
   nscoord consumedBSize = 0;
-  nscoord bSize = 0;
+  nscoord contentBSize = 0;
   if (MOZ_LIKELY(!prevInFlow)) {
     Grid grid;
     if (MOZ_LIKELY(!IsSubgrid())) {
@@ -9118,16 +9118,17 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
                                       trackSizingBSize,
                                       SizingConstraint::NoConstraint);
     if (containBSize) {
-      bSize = *containBSize;
+      contentBSize = *containBSize;
     } else if (IsMasonry(LogicalAxis::Block)) {
-      bSize = computedBSize;
+      contentBSize = computedBSize;
     } else if (MOZ_LIKELY(!IsRowSubgrid())) {
       // Note: we can't use GridLineEdge here since we haven't calculated
       // the rows' mPosition yet (happens in AlignJustifyContent below).
-      bSize = gridRI.mRows.SumOfGridTracksAndGaps();
+      contentBSize = gridRI.mRows.SumOfGridTracksAndGaps();
     } else if (computedBSize == NS_UNCONSTRAINEDSIZE) {
       const uint32_t numRows = gridRI.mRows.mSizes.Length();
-      bSize = gridRI.mRows.GridLineEdge(numRows, GridLineSide::BeforeGridGap);
+      contentBSize =
+          gridRI.mRows.GridLineEdge(numRows, GridLineSide::BeforeGridGap);
     }
   } else {
     consumedBSize = CalcAndCacheConsumedBSize();
@@ -9138,26 +9139,27 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
     // 1488878.
     if (Maybe<nscoord> containBSize =
             aReflowInput.mFrame->ContainIntrinsicBSize()) {
-      bSize = *containBSize;
+      contentBSize = *containBSize;
     } else {
       const uint32_t numRows = gridRI.mRows.mSizes.Length();
-      bSize = gridRI.mRows.GridLineEdge(numRows, GridLineSide::AfterGridGap);
+      contentBSize =
+          gridRI.mRows.GridLineEdge(numRows, GridLineSide::AfterGridGap);
     }
   }
   if (computedBSize == NS_UNCONSTRAINEDSIZE) {
-    bSize = aReflowInput.ApplyMinMaxBSize(bSize);
+    contentBSize = aReflowInput.ApplyMinMaxBSize(contentBSize);
   } else if (aReflowInput.ShouldApplyAutomaticMinimumOnBlockAxis()) {
-    nscoord contentBSize = aReflowInput.ApplyMinMaxBSize(bSize);
-    bSize = std::max(contentBSize, computedBSize);
+    contentBSize = aReflowInput.ApplyMinMaxBSize(contentBSize);
+    contentBSize = std::max(contentBSize, computedBSize);
   } else {
-    bSize = computedBSize;
+    contentBSize = computedBSize;
   }
-  if (bSize != NS_UNCONSTRAINEDSIZE) {
-    bSize = std::max(bSize - consumedBSize, 0);
+  if (contentBSize != NS_UNCONSTRAINEDSIZE) {
+    contentBSize = std::max(contentBSize - consumedBSize, 0);
   }
   auto& bp = gridRI.mBorderPadding;
   LogicalRect contentArea(wm, bp.IStart(wm), bp.BStart(wm), computedISize,
-                          bSize);
+                          contentBSize);
 
   if (!prevInFlow) {
     const auto& rowSizes = gridRI.mRows.mSizes;
@@ -9168,17 +9170,18 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
           stylePos->mRowGap.AsLengthPercentage().HasPercent()) {
         // Re-resolve the row-gap now that we know our intrinsic block-size.
         gridRI.mRows.mGridGap =
-            nsLayoutUtils::ResolveGapToLength(stylePos->mRowGap, bSize);
+            nsLayoutUtils::ResolveGapToLength(stylePos->mRowGap, contentBSize);
       }
       if (!gridRI.mRows.mIsMasonry) {
         auto alignment = stylePos->mAlignContent;
-        gridRI.mRows.AlignJustifyContent(stylePos, alignment, wm, bSize, false);
+        gridRI.mRows.AlignJustifyContent(stylePos, alignment, wm, contentBSize,
+                                         false);
       }
     } else {
       if (computedBSize == NS_UNCONSTRAINEDSIZE) {
-        bSize = gridRI.mRows.GridLineEdge(rowSizes.Length(),
-                                          GridLineSide::BeforeGridGap);
-        contentArea.BSize(wm) = std::max(bSize, nscoord(0));
+        contentBSize = gridRI.mRows.GridLineEdge(rowSizes.Length(),
+                                                 GridLineSide::BeforeGridGap);
+        contentArea.BSize(wm) = std::max(contentBSize, nscoord(0));
       }
     }
     // Save the final row sizes for use by subgrids, if needed.
@@ -9205,9 +9208,9 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
   containerSize.width += bp.LeftRight(wm);
   containerSize.height += bp.TopBottom(wm);
 
-  bSize =
+  contentBSize =
       ReflowChildren(gridRI, contentArea, containerSize, aDesiredSize, aStatus);
-  bSize = std::max(bSize - consumedBSize, 0);
+  contentBSize = std::max(contentBSize - consumedBSize, 0);
 
   // Skip our block-end border if we're INCOMPLETE.
   if (!aStatus.IsComplete() && !gridRI.mSkipSides.BEnd() &&
@@ -9216,7 +9219,7 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
   }
 
   LogicalSize desiredSize(wm, computedISize + bp.IStartEnd(wm),
-                          bSize + bp.BStartEnd(wm));
+                          contentBSize + bp.BStartEnd(wm));
   aDesiredSize.SetSize(wm, desiredSize);
   nsRect frameRect(0, 0, aDesiredSize.Width(), aDesiredSize.Height());
   aDesiredSize.mOverflowAreas.UnionAllWith(frameRect);
@@ -9290,8 +9293,8 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
       aStatus.SetOverflowIncomplete();
       aStatus.SetNextInFlowNeedsReflow();
     }
-    bSize = 0;
-    desiredSize.BSize(wm) = bSize + bp.BStartEnd(wm);
+    contentBSize = 0;
+    desiredSize.BSize(wm) = contentBSize + bp.BStartEnd(wm);
     aDesiredSize.SetSize(wm, desiredSize);
   }
 
