@@ -18,8 +18,7 @@ test_newtab({
   async before({ pushPrefs }) {
     await pushPrefs(
       ["browser.newtabpage.activity-stream.feeds.topsites", false],
-      ["browser.newtabpage.activity-stream.feeds.section.topstories", false],
-      ["browser.newtabpage.activity-stream.feeds.section.highlights", false]
+      ["browser.newtabpage.activity-stream.feeds.section.topstories", false]
     );
   },
   test: async function test_render_customizeMenu() {
@@ -36,8 +35,6 @@ test_newtab({
       );
     }
     const TOPSITES_PREF = "browser.newtabpage.activity-stream.feeds.topsites";
-    const HIGHLIGHTS_PREF =
-      "browser.newtabpage.activity-stream.feeds.section.highlights";
     const TOPSTORIES_PREF =
       "browser.newtabpage.activity-stream.feeds.section.topstories";
 
@@ -97,26 +94,6 @@ test_newtab({
     await sectionShownPromise;
 
     Assert.ok(getSection("topstories"), "Pocket section is rendered");
-
-    // Test that clicking the recent activity toggle will make the
-    // recent activity section appear on the newtab page.
-    //
-    // We waive XRay wrappers because we want to call the click()
-    // method defined on the toggle from this context.
-    let highlightsSwitch = Cu.waiveXrays(
-      content.document.querySelector("#recent-section moz-toggle")
-    );
-    Assert.ok(
-      !Services.prefs.getBoolPref(HIGHLIGHTS_PREF),
-      "Highlights pref is turned off"
-    );
-    Assert.ok(!getSection("highlights"), "Highlights section is not rendered");
-
-    sectionShownPromise = promiseSectionShown("highlights");
-    highlightsSwitch.click();
-    await sectionShownPromise;
-
-    Assert.ok(getSection("highlights"), "Highlights section is rendered");
   },
   async after() {
     Services.prefs.clearUserPref(
@@ -124,9 +101,6 @@ test_newtab({
     );
     Services.prefs.clearUserPref(
       "browser.newtabpage.activity-stream.feeds.section.topstories"
-    );
-    Services.prefs.clearUserPref(
-      "browser.newtabpage.activity-stream.feeds.section.highlights"
     );
   },
 });
