@@ -54,10 +54,7 @@ partial interface ServiceWorkerRegistration {
   Promise<sequence<Notification>> getNotifications(optional GetNotificationOptions filter = {});
 };
 
-/* Bug 1475599 - We decide to do not implement the entire cookie-store spec.
- * Instead, we implement only the subset that is compatible with document.cookie
-[Exposed=(ServiceWorker,Window)]
 partial interface ServiceWorkerRegistration {
-  [SameObject] readonly attribute CookieStoreManager cookies;
+  [Throws, SameObject, Exposed=(ServiceWorker,Window), Pref="dom.cookieStore.manager.enabled"]
+  readonly attribute CookieStoreManager cookies;
 };
-*/

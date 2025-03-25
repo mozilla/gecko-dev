@@ -53,8 +53,6 @@ ServiceWorkerGlobalScope includes ExtensionGlobalsMixin;
 partial interface ServiceWorkerGlobalScope {
   [SameObject, Pref="dom.cookieStore.enabled"] readonly attribute CookieStore cookieStore;
 
-/* Bug 1475599 - We decide to do not implement the entire cookie-store spec.
- * Instead, we implement only the subset that is compatible with document.cookie
- attribute EventHandler oncookiechange;
- */
+  [Pref="dom.cookieStore.manager.enabled"]
+  attribute EventHandler oncookiechange;
 };

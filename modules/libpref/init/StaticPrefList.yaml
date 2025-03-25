@@ -2543,6 +2543,12 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
+# Disable cookie-store manager API
+- name: dom.cookieStore.manager.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Is support for CSSPseudoElement enabled?
 - name: dom.css_pseudo_element.enabled
   type: bool
