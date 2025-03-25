@@ -26,7 +26,6 @@
 #define MACOS_VERSION_11_0_HEX 0x000B0000
 #define MACOS_VERSION_12_0_HEX 0x000C0000
 #define MACOS_VERSION_13_0_HEX 0x000D0000
-#define MACOS_VERSION_14_0_HEX 0x000E0000
 
 #include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
@@ -179,11 +178,6 @@ int32_t nsCocoaFeatures::GetVersion(int32_t aMajor, int32_t aMinor,
 /* static */ bool nsCocoaFeatures::OnVenturaOrLater() {
   // See comments above regarding SYSTEM_VERSION_COMPAT.
   return (macOSVersion() >= MACOS_VERSION_13_0_HEX);
-}
-
-/* static */ bool nsCocoaFeatures::OnSonomaOrLater() {
-  // See comments above regarding SYSTEM_VERSION_COMPAT.
-  return (macOSVersion() >= MACOS_VERSION_14_0_HEX);
 }
 
 /* static */ bool nsCocoaFeatures::IsAtLeastVersion(int32_t aMajor,
