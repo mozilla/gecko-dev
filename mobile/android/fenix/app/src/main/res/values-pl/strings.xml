@@ -668,6 +668,12 @@
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Jak wykorzystujemy te dane</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Potwierdź i zacznij przeglądać Internet</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Jeszcze jedna rzecz</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Podziel się informacją, skąd wiesz o Firefoksie i że go używasz z partnerami marketingowymi Mozilli. Te dane nigdy nie są sprzedawane.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Wyraź zgodę i zacznij przeglądać Internet</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Wybierz położenie paska narzędzi</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -703,6 +709,12 @@
   <string name="onboarding_customize_theme_content_description">Obraz motywu (%1$s)</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Nie teraz</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Zacznij szybkie wyszukiwanie</string>
   <!--
     Search Widget
 
@@ -872,12 +884,16 @@
   <string name="preferences_show_search_suggestions_in_private">W prywatnych sesjach</string>
   <!-- Preference title for switch preference to show trending search suggestions -->
   <string name="preferences_show_trending_search_suggestions">Popularne podpowiedzi</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Ostatnie wyszukiwania</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Schowek</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Historia</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Zakładki</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Skróty</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Karty z innych urządzeń</string>
   <!-- Preference for account settings -->
@@ -898,6 +914,16 @@
   <string name="preferences_show_nonsponsored_suggestions">Podpowiedzi przeglądarki %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Otrzymuj podpowiedzi z Internetu związane z wyszukiwanymi słowami</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Udostępnianie odnośników</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Dołączaj odnośnik do pobrania przeglądarki %1$s podczas udostępniania przez WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Zaproś znajomych do wypróbowania szybszego i bezpieczniejszego przeglądania Internetu dzięki przeglądarce %1$s za każdym razem, gdy udostępnisz odnośnik przez WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Udostępniono odnośnik</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Zarządzaj ustawieniami</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Otwieranie odnośników w aplikacjach</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1469,11 +1495,31 @@
   <!-- Text for the header that groups the downloads for yesterday -->
   <string name="download_time_period_yesterday">Wczoraj</string>
   <!-- Text for the header that groups the downloads the past 7 days -->
-  <string name="download_time_period_last_7_days">Ostatnie 7 dni</string>
+  <string name="download_time_period_last_7_days">Ostatnie 7 dni</string>
   <!-- Text for the header that groups the downloads the past 30 days -->
   <string name="download_time_period_last_30_days">Ostatnie 30 dni</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Starsze</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">Wszystkie</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">Obrazy</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">Filmy</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">Dokumenty</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other">Inne</string>
+  <!--
+    Description of a downloaded item, displayed in the downloads list.
+    %1$s: The size of the downloaded file.
+    %2$s: The URL of the downloaded file.
+  -->
+  <string name="download_item_description">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 
@@ -1853,6 +1899,10 @@
   <string name="sync_add_new_device_learn_button">Więcej o przesyłaniu kart…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Połącz inne urządzenie…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nWysłano z przeglądarki %2$s 🦊 Wypróbuj ją na telefonie: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nWysłano z przeglądarki %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2197,6 +2247,88 @@
     Preference title for DNS over HTTPS settings
   -->
   <string name="preference_doh_title">DNS poprzez HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">System nazw domen (DNS) poprzez HTTPS wysyła zapytanie o nazwę domeny przez zaszyfrowane połączenie, zapewniając zabezpieczony serwer DNS i utrudniając innym podejrzenie, jaką witrynę zaraz otworzysz. %1$s</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Więcej informacji</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Przejdź w górę</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Wyjątki</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Informacje</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Dodaj witrynę</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Domyślna ochrona</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s decyduje, kiedy używać zabezpieczonego serwera DNS do ochrony prywatności użytkownika.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Używa dostawcy wybranego przez użytkownika</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Używa domyślnego serwera DNS, jeśli występuje problem z dostawcą zabezpieczonego serwera DNS</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Używa lokalnego dostawcy, jeśli to możliwe. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Wyłącza, kiedy aktywna jest sieć VPN, kontrola rodzicielska lub zasady organizacji</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Wyłącza, kiedy sieć mówi przeglądarce %1$s, że nie powinna używać zabezpieczonego serwera DNS. %2$s</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Zwiększona ochrona</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Użytkownik decyduje, kiedy używać zabezpieczonego serwera DNS i wybiera dostawcę.</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">Używa dostawcy wybranego przez użytkownika</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Używa domyślnego serwera DNS tylko, jeśli występuje problem z zabezpieczonym serwerem DNS</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Maksymalna ochrona</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s będzie zawsze używał zabezpieczonego serwera DNS. Przed użyciem systemowego serwera DNS zostanie wyświetlone ostrzeżenie o zagrożeniu bezpieczeństwa.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Używa wyłącznie dostawcy wybranego przez użytkownika</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Zawsze ostrzega, jeśli zabezpieczony serwer DNS jest niedostępny</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Jeśli zabezpieczony serwer DNS jest niedostępny, witryny nie będą się wczytywać ani poprawnie działać</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Wyłączone</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Używa domyślnego serwera DNS</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Wybierz dostawcę</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(domyślny)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Własny adres</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Własny dostawca</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Dostawca</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">Adres musi zaczynać się od „https://”</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">Nieprawidłowy adres</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Anuluj</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Dodaj</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Wyjątki</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s nie będzie używał zabezpieczonego serwera DNS na tych witrynach i ich poddomenach.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Dodaj witrynę</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Witryna</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">Musi być prawidłową domeną</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Zachowaj</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Usuń wszystkie wyjątki</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Pomoc</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2501,6 +2633,8 @@
   <string name="quick_settings_sheet_secure_connection_2">Połączenie jest zabezpieczone</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">Połączenie nie jest zabezpieczone</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Strona wczytana z tego urządzenia.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Usuń ciasteczka i dane witryny</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2656,10 +2790,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Podpowiedzi Firefoksa</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Popularne wyszukiwania</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Popularne w %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Szukaj w Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Szukaj w %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Ostatnie wyszukiwania</string>
   <!--
     Default browser experiment
 
@@ -3252,4 +3395,12 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Wyświetl ukryty tekst</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Wyczyść tekst</string>
+  <!--
+    Setup checklist component
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">Ukończone zadanie</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">Ikona zadania</string>
 </resources>

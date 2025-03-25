@@ -478,7 +478,7 @@
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Warunki korzystania z przeglądarki Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">warunki korzystania z Firefoksa.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
