@@ -83,7 +83,8 @@ android {
                 buildConfigField "String", "VCS_HASH", "\"${Config.getVcsHash(project)}\""
             }
 
-            if (gradle.hasProperty("localProperties.autosignReleaseWithDebugKey")) {
+            if (gradle.hasProperty("localProperties.autosignReleaseWithDebugKey") ||
+                gradle.mozconfig.substs.DEVELOPER_OPTIONS) {
                 println ("All builds will be automatically signed with the debug key")
                 signingConfig signingConfigs.debug
             }
