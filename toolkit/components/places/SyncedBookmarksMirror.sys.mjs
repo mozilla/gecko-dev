@@ -47,6 +47,16 @@
  *   issues.
  */
 
+// TODO: Import Barrier from AsyncShutdown.sys.mjs - needs modifications to
+// make it easier for TypeScript.
+// TODO: Import PlacesItem from bookmarks.sys.mjs - needs it setting up for
+// TypeScript.
+/**
+ * @typedef {any} Barrier
+ * @import {OpenedConnection} from "resource://gre/modules/Sqlite.sys.mjs"
+ * @typedef {any} PlacesItem
+ */
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -114,6 +124,10 @@ class LogAdapter {
 
   error(message) {
     this.log.error(message);
+  }
+
+  info(message) {
+    this.log.info(message);
   }
 }
 
@@ -183,7 +197,7 @@ class ProgressTracker {
    * Returns the shutdown blocker state. This is included in shutdown hang
    * crash reports, in the `AsyncShutdownTimeout` annotation.
    *
-   * @see    `fetchState` in `AsyncShutdown` for more details.
+   * @see fetchState in `AsyncShutdown` for more details.
    * @returns {object} A stringifiable object with the recorded steps.
    */
   fetchState() {
@@ -245,7 +259,7 @@ export class SyncedBookmarksMirror {
       recordStepTelemetry,
       recordValidationTelemetry,
       finalizeAt = lazy.PlacesUtils.history.shutdownClient.jsclient,
-    } = {}
+    }
   ) {
     this.db = db;
     this.wasCorrupt = wasCorrupt;
@@ -275,6 +289,7 @@ export class SyncedBookmarksMirror {
    * newest schema version. Automatically recreates the mirror if it's corrupt;
    * throws on failure.
    *
+   * @param  {object} options
    * @param  {string} options.path
    *         The path to the mirror database file, either absolute or relative
    *         to the profile path.
@@ -289,12 +304,11 @@ export class SyncedBookmarksMirror {
    *         problems: Array)`, where `took` is the time taken to run
    *         validation in milliseconds, `checked` is the number of items
    *         checked, and `problems` is an array of named problem counts.
-   * @param  {AsyncShutdown.Barrier} [options.finalizeAt]
+   * @param  {Barrier} [options.finalizeAt]
    *         A shutdown phase, barrier, or barrier client that should
    *         automatically finalize the mirror when triggered. Exposed for
    *         testing.
-   * @returns {SyncedBookmarksMirror}
-   *         A mirror ready for use.
+   * @returns {Promise<SyncedBookmarksMirror>}
    */
   static async open(options) {
     let db = await lazy.PlacesUtils.promiseUnsafeWritableDBConnection();
@@ -337,7 +351,7 @@ export class SyncedBookmarksMirror {
    * timestamp as the "high water mark" for all downloaded records. Each sync
    * downloads and stores records that are strictly newer than this time.
    *
-   * @returns {number}
+   * @returns {Promise<number>}
    *         The high water mark time, in seconds.
    */
   async getCollectionHighWaterMark() {
@@ -367,7 +381,9 @@ export class SyncedBookmarksMirror {
    *        The collection last modified time, in seconds.
    */
   async setCollectionLastModified(lastModifiedSeconds) {
-    let lastModified = Math.floor(lastModifiedSeconds * 1000);
+    let lastModified = Math.floor(
+      /** @type {number} */ (lastModifiedSeconds) * 1000
+    );
     if (!Number.isInteger(lastModified)) {
       throw new TypeError("Invalid collection last modified time");
     }
@@ -390,7 +406,7 @@ export class SyncedBookmarksMirror {
    * Returns the bookmarks collection sync ID. This corresponds to
    * `PlacesSyncUtils.bookmarks.getSyncId`.
    *
-   * @returns {string}
+   * @returns {Promise<string>}
    *         The sync ID, or `""` if one isn't set.
    */
   async getSyncId() {
@@ -451,6 +467,7 @@ export class SyncedBookmarksMirror {
    *
    * @param {PlacesItem[]} records
    *        Sync records to store in the mirror.
+   * @param {object} [options]
    * @param {boolean} [options.needsMerge]
    *        Indicates if the records were changed remotely since the last sync,
    *        and should be merged into the local tree. This option is set to
@@ -528,6 +545,7 @@ export class SyncedBookmarksMirror {
    * on `SQLITE_BUSY`; synchronous consumers will fail after waiting for 100ms.
    * See bug 1305563, comment 122 for details.
    *
+   * @param  {object} [options]
    * @param  {number} [options.localTimeSeconds]
    *         The current local time, in seconds.
    * @param  {number} [options.remoteTimeSeconds]
@@ -541,7 +559,7 @@ export class SyncedBookmarksMirror {
    *         An abort signal that can be used to interrupt a merge when its
    *         associated `AbortController` is aborted. If omitted, the merge can
    *         still be interrupted when the mirror is finalized.
-   * @returns {Object.<string, BookmarkChangeRecord>}
+   * @returns {Promise<{ [x: string]: BookmarkChangeRecord; }>}
    *         A changeset containing locally changed and reconciled records to
    *         upload to the server, and to store in the mirror once upload
    *         succeeds.
@@ -774,8 +792,8 @@ export class SyncedBookmarksMirror {
    * Fetches the GUIDs of all items in the remote tree that need to be merged
    * into the local tree.
    *
-   * @returns {string[]}
-   *         Remotely changed GUIDs that need to be merged into Places.
+   * @returns {Promise<string[]>}
+   *   Remotely changed GUIDs that need to be merged into Places.
    */
   async fetchUnmergedGuids() {
     let rows = await this.db.execute(`
@@ -1145,7 +1163,7 @@ export class SyncedBookmarksMirror {
    * @param  {AbortSignal} signal
    *         Stops fetching records when the associated `AbortController`
    *         is aborted.
-   * @returns {object}
+   * @returns {Promise<{ changeRecords: any; count: number }>}
    *         A `{ changeRecords, count }` tuple, where `changeRecords` is a
    *         changeset containing Sync record cleartexts for outgoing items and
    *         tombstones, keyed by their Sync record IDs, and `count` is the
@@ -1395,6 +1413,7 @@ export class SyncedBookmarksMirror {
    * shutdown, but may also be called explicitly when the mirror is no longer
    * needed.
    *
+   * @param {object} options
    * @param {boolean} [options.alsoCleanup]
    *                  If specified, drop all temp tables, views, and triggers,
    *                  and detach from the mirror database before closing the
@@ -1481,10 +1500,10 @@ function isDatabaseCorrupt(error) {
   }
   if (error.errors) {
     return error.errors.some(
-      error =>
-        error instanceof Ci.mozIStorageError &&
-        (error.result == Ci.mozIStorageError.CORRUPT ||
-          error.result == Ci.mozIStorageError.NOTADB)
+      e =>
+        e instanceof Ci.mozIStorageError &&
+        (e.result == Ci.mozIStorageError.CORRUPT ||
+          e.result == Ci.mozIStorageError.NOTADB)
     );
   }
   return false;
@@ -1495,7 +1514,7 @@ function isDatabaseCorrupt(error) {
  * migrates the mirror schema to the latest version, and creates temporary
  * tables, views, and triggers.
  *
- * @param {Sqlite.OpenedConnection} db
+ * @param {OpenedConnection} db
  *        The Places database connection.
  * @param {string} path
  *        The full path to the mirror database file.
@@ -1527,7 +1546,7 @@ async function attachAndInitMirrorDatabase(db, path) {
 /**
  * Migrates the mirror database schema to the latest version.
  *
- * @param {Sqlite.OpenedConnection} db
+ * @param {OpenedConnection} db
  *        The mirror database connection.
  * @param {number} currentSchemaVersion
  *        The current mirror database schema version.
@@ -1577,7 +1596,7 @@ async function migrateMirrorSchema(db, currentSchemaVersion) {
  * Initializes a new mirror database, creating persistent tables, indexes, and
  * roots.
  *
- * @param {Sqlite.OpenedConnection} db
+ * @param {OpenedConnection} db
  *        The mirror database connection.
  */
 async function initializeMirrorDatabase(db) {
@@ -1655,7 +1674,7 @@ async function initializeMirrorDatabase(db) {
  * Drops all temp tables, views, and triggers used for merging, and detaches
  * from the mirror database.
  *
- * @param {Sqlite.OpenedConnection} db
+ * @param {OpenedConnection} db
  *        The mirror database connection.
  */
 async function cleanupMirrorDatabase(db) {
@@ -1680,7 +1699,7 @@ async function cleanupMirrorDatabase(db) {
  * from these roots - however, malformed records from the server which create
  * a different root *will* be created in the mirror - just not applied.
  *
- * @param {Sqlite.OpenedConnection} db
+ * @param {OpenedConnection} db
  *        The mirror database connection.
  */
 async function createMirrorRoots(db) {
@@ -1728,7 +1747,7 @@ async function createMirrorRoots(db) {
 /**
  * Creates temporary tables, views, and triggers to apply the mirror to Places.
  *
- * @param {Sqlite.OpenedConnection} db
+ * @param {OpenedConnection} db
  *        The mirror database connection.
  */
 async function initializeTempMirrorEntities(db) {
@@ -2094,7 +2113,7 @@ function validateTag(rawTag) {
  * @param  {Function} [recordTiming]
  *         An optional function with the signature `(time: Number)`, where
  *         `time` is the measured time.
- * @returns The return value of the timed function.
+ * @returns {Promise<any>} The return value of the timed function.
  */
 async function withTiming(name, func, recordTiming) {
   lazy.MirrorLog.debug(name);
@@ -2572,7 +2591,7 @@ function bagToNamedCounts(bag, names) {
  * cancellations.
  *
  * @param  {AbortSignal} finalizeSignal
- * @param  {AbortSignal?} signal
+ * @param  {AbortSignal?} interruptSignal
  * @returns {AbortSignal}
  */
 function anyAborted(finalizeSignal, interruptSignal = null) {

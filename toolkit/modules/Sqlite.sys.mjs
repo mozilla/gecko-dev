@@ -1661,7 +1661,7 @@ function wrapStorageConnection(options) {
  *        (object) Options to control behavior of connection. See
  *        `openConnection`.
  */
-function OpenedConnection(connection, identifier, options = {}) {
+export function OpenedConnection(connection, identifier, options = {}) {
   // Store all connection data in a field distinct from the
   // witness. This enables us to store an additional reference to this
   // field without preventing garbage collection of
@@ -1697,7 +1697,7 @@ function convertStorageTransactionType(type) {
   return OpenedConnection.TRANSACTION_TYPES[type];
 }
 
-OpenedConnection.prototype = Object.freeze({
+OpenedConnection.prototype = {
   TRANSACTION_DEFAULT: "DEFAULT",
   TRANSACTION_DEFERRED: "DEFERRED",
   TRANSACTION_IMMEDIATE: "IMMEDIATE",
@@ -2058,7 +2058,11 @@ OpenedConnection.prototype = Object.freeze({
       stepDelayMs
     );
   },
-});
+};
+// This is frozen after the prototype has been assigned to allow TypeScript
+// identify the properties in the prototype. Ideally we'd change this to be a
+// class definition.
+OpenedConnection.prototype = Object.freeze(OpenedConnection.prototype);
 
 export var Sqlite = {
   // The maximum time to wait before considering a transaction stuck and

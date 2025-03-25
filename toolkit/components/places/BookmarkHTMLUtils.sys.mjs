@@ -91,6 +91,8 @@ function base64EncodeString(aString) {
 /**
  * Provides HTML escaping for use in HTML attributes and body of the bookmarks
  * file, compatible with the old bookmarks system.
+ *
+ * @param {string} aText
  */
 function escapeHtmlEntities(aText) {
   return (aText || "")
@@ -104,6 +106,8 @@ function escapeHtmlEntities(aText) {
 /**
  * Provides URL escaping for use in HTML attributes of the bookmarks file,
  * compatible with the old bookmarks system.
+ *
+ * @param {string} aText
  */
 function escapeUrl(aText) {
   return (aText || "").replace(/"/g, "%22");
@@ -121,21 +125,20 @@ export var BookmarkHTMLUtils = Object.freeze({
   /**
    * Loads the current bookmarks hierarchy from a "bookmarks.html" file.
    *
-   * @param aSpec
+   * @param {string} aSpec
    *        String containing the "file:" URI for the existing "bookmarks.html"
    *        file to be loaded.
-   * @param [options.replace]
+   * @param {object} [options]
+   * @param {boolean} [options.replace]
    *        Whether we should erase existing bookmarks before loading.
    *        Defaults to `false`.
-   * @param [options.source]
+   * @param {number} [options.source]
    *        The bookmark change source, used to determine the sync status for
    *        imported bookmarks. Defaults to `RESTORE` if `replace = true`, or
    *        `IMPORT` otherwise.
    *
    * @returns {Promise<number>} The number of imported bookmarks, not including
-   *                           folders and separators.
-   * @resolves When the new bookmarks have been created.
-   * @rejects JavaScript exception.
+   *   folders and separators. Rejects if there is an issue.
    */
   async importFromURL(
     aSpec,
@@ -170,20 +173,19 @@ export var BookmarkHTMLUtils = Object.freeze({
   /**
    * Loads the current bookmarks hierarchy from a "bookmarks.html" file.
    *
-   * @param aFilePath
+   * @param {string} aFilePath
    *        OS.File path string of the "bookmarks.html" file to be loaded.
-   * @param [options.replace]
+   * @param {object} options
+   * @param {boolean} [options.replace]
    *        Whether we should erase existing bookmarks before loading.
    *        Defaults to `false`.
-   * @param [options.source]
+   * @param {number} [options.source]
    *        The bookmark change source, used to determine the sync status for
    *        imported bookmarks. Defaults to `RESTORE` if `replace = true`, or
    *        `IMPORT` otherwise.
    *
    * @returns {Promise<number>} The number of imported bookmarks, not including
-   *                            folders and separators
-   * @resolves When the new bookmarks have been created.
-   * @rejects JavaScript exception.
+   *   folders and separators. Rejects if there is an issue.
    */
   async importFromFile(
     aFilePath,
@@ -225,12 +227,11 @@ export var BookmarkHTMLUtils = Object.freeze({
   /**
    * Saves the current bookmarks hierarchy to a "bookmarks.html" file.
    *
-   * @param aFilePath
+   * @param {string} aFilePath
    *        OS.File path string for the "bookmarks.html" file to be created.
    *
-   * @returns {Promise}
-   * @resolves To the exported bookmarks count when the file has been created.
-   * @rejects JavaScript exception.
+   * @returns {Promise<number>} The exported bookmarks count. Rejects if there
+   *   is an issue.
    */
   async exportToFile(aFilePath) {
     let [bookmarks, count] = await lazy.PlacesBackups.getBookmarksTree();
@@ -417,10 +418,10 @@ BookmarkImporter.prototype = {
   /**
    * Handles <hr> as a separator.
    *
-   * @note Separators may have a title in old html files, though Places dropped
-   *       support for them.
-   *       We also don't import ADD_DATE or LAST_MODIFIED for separators because
-   *       pre-Places bookmarks did not support them.
+   * Separators may have a title in old html files, though Places dropped
+   * support for them.
+   * We also don't import ADD_DATE or LAST_MODIFIED for separators because
+   * pre-Places bookmarks did not support them.
    */
   _handleSeparator: function handleSeparator() {
     let frame = this._curFrame;
@@ -438,6 +439,8 @@ BookmarkImporter.prototype = {
    * associated with the heading will be created when the tag has been closed
    * and we know the title (we don't know to create a new folder or to merge
    * with an existing one until we have the title).
+   *
+   * @param {Element} aElt
    */
   _handleHeadBegin: function handleHeadBegin(aElt) {
     let frame = this._curFrame;
@@ -657,7 +660,7 @@ BookmarkImporter.prototype = {
         this._curFrame.inDescription = true;
         break;
       case "hr":
-        this._handleSeparator(aElt);
+        this._handleSeparator();
         break;
     }
   },
@@ -707,18 +710,20 @@ BookmarkImporter.prototype = {
 
   /**
    * Converts a string date in seconds to a date object
+   *
+   * @param {string} seconds
    */
-  _convertImportedDateToInternalDate:
-    function convertImportedDateToInternalDate(aDate) {
-      try {
-        if (aDate && !isNaN(aDate)) {
-          return new Date(parseInt(aDate) * 1000); // in bookmarks.html this value is in seconds
-        }
-      } catch (ex) {
-        // Do nothing.
+  _convertImportedDateToInternalDate(seconds) {
+    try {
+      let parsed = parseInt(seconds);
+      if (!isNaN(parsed)) {
+        return new Date(parsed * 1000); // in bookmarks.html this value is in seconds
       }
-      return new Date();
-    },
+    } catch (ex) {
+      // Do nothing.
+    }
+    return new Date();
+  },
 
   _walkTreeForImport(aDoc) {
     if (!aDoc) {
@@ -794,10 +799,8 @@ BookmarkImporter.prototype = {
   /**
    * Imports the bookmarks from the importer into the places database.
    *
-   * @param {BookmarkImporter} importer The importer from which to get the
-   *                                    bookmark information.
-   * @returns {number} The number of imported bookmarks, not including
-   *                   folders and separators
+   * @returns {Promise<number>} The number of imported bookmarks, not including
+   *   folders and separators
    */
   async _importBookmarks() {
     if (this._isImportDefaults) {
@@ -830,8 +833,8 @@ BookmarkImporter.prototype = {
    * Imports data into the places database from the supplied url.
    *
    * @param {string} href The url to import data from.
-   * @returns {number} The number of imported bookmarks, not including
-   *                   folders and separators.
+   * @returns {Promise<number>} The number of imported bookmarks, not including
+   *   folders and separators.
    */
   async importFromURL(href) {
     let data = await fetchData(href);
@@ -923,6 +926,9 @@ BookmarkExporter.prototype = {
     })();
   },
 
+  /**
+   * @type {?nsIConverterOutputStream}
+   */
   _converterOut: null,
 
   _write(aText) {
