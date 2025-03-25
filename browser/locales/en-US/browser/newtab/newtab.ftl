@@ -504,3 +504,10 @@ newtab-section-mangage-topics-followed-topics = Followed
 newtab-section-mangage-topics-followed-topics-empty-state = You have not followed any topics yet.
 newtab-section-mangage-topics-blocked-topics = Blocked
 newtab-section-mangage-topics-blocked-topics-empty-state = You have not blocked any topics yet.
+
+# Strings for custom wallpaper highlight
+
+newtab-custom-wallpaper-title = Custom wallpapers are here
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = Upload your own wallpaper or pick a custom color to make { -brand-product-name } yours.
+newtab-custom-wallpaper-cta = Try it

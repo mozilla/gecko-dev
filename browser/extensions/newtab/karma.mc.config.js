@@ -286,6 +286,12 @@ module.exports = function (config) {
             "content-src/lib/utils.jsx": {
               branches: 60,
             },
+            "content-src/components/MessageWrapper/MessageWrapper.jsx": {
+              lines: 50,
+              statements: 51.1,
+              functions: 31.2,
+              branches: 31.2,
+            },
             "content-src/components/**/*.jsx": {
               statements: 51.1,
               lines: 52.38,

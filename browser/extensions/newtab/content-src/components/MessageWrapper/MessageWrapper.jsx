@@ -59,7 +59,10 @@ function MessageWrapper({ children, dispatch }) {
     const { id } = message.messageData;
     if (id) {
       dispatch(
-        ac.OnlyToMain({ type: at.MESSAGE_DISMISS, data: { messageId: id } })
+        ac.OnlyToMain({
+          type: at.MESSAGE_DISMISS,
+          data: { message: message.messageData },
+        })
       );
     }
     handleClose();
@@ -71,7 +74,7 @@ function MessageWrapper({ children, dispatch }) {
       dispatch(
         ac.OnlyToMain({
           type: at.MESSAGE_CLICK,
-          data: { messageId: id, source: elementId || "" },
+          data: { message: message.messageData, source: elementId || "" },
         })
       );
     }
