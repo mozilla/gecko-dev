@@ -36,6 +36,7 @@ head = "../unit/head.js head.js"
 run-if = ["os != 'linux'"] # Linux clients cannot remote themselves.
 
 ["browser_preferences.js"]
+fail-if = ["a11y_checks"] # Bug 1955503
 
 ["browser_test_db_lazily_created.js"]
 
