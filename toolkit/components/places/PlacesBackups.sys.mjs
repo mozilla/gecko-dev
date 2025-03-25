@@ -52,7 +52,7 @@ function appendMetaDataToFilename(aFilename, aMetaData) {
 /**
  * Gets the hash from a backup filename.
  *
- * @return the extracted hash or null.
+ * @returns the extracted hash or null.
  */
 function getHashFromFilename(aFilename) {
   let matches = aFilename.match(lazy.filenamesRegex);
@@ -75,7 +75,7 @@ function isFilenameWithSameDate(aSourceName, aTargetName) {
 /**
  * Given a filename, searches for another backup with the same date.
  *
- * @return path string or null.
+ * @returns path string or null.
  */
 function getBackupFileForSameDate(aFilename) {
   return (async function () {
@@ -104,7 +104,8 @@ export var PlacesBackups = {
 
   /**
    * Gets backup folder asynchronously.
-   * @return {Promise}
+   *
+   * @returns {Promise}
    * @resolve the folder (the folder string path).
    */
   getBackupFolder: function PB_getBackupFolder() {
@@ -127,7 +128,8 @@ export var PlacesBackups = {
 
   /**
    * Cache current backups in a sorted (by date DESC) array.
-   * @return {Promise}
+   *
+   * @returns {Promise}
    * @resolve a sorted array of string paths.
    */
   getBackupFiles: function PB_getBackupFiles() {
@@ -183,7 +185,7 @@ export var PlacesBackups = {
    *
    * @param dateObj
    *        The date object to parse.
-   * @return an ISO date string.
+   * @returns an ISO date string.
    */
   toISODateString: function toISODateString(dateObj) {
     if (!dateObj || dateObj.constructor.name != "Date" || !dateObj.getTime()) {
@@ -206,7 +208,7 @@ export var PlacesBackups = {
    * @param [optional] bool - aCompress
    *                   Determines if file extension is json or jsonlz4
                        Default is json
-   * @return A bookmarks backup filename.
+   * @returns A bookmarks backup filename.
    */
   getFilenameForDate: function PB_getFilenameForDate(aDateObj, aCompress) {
     let dateObj = aDateObj || new Date();
@@ -225,7 +227,7 @@ export var PlacesBackups = {
    * creation date.
    *
    * @param {Sring} aBackupFile The path of the backup.
-   * @return {Date} A Date object for the backup's creation time.
+   * @returns {Date} A Date object for the backup's creation time.
    */
   getDateForFile: function PB_getDateForFile(aBackupFile) {
     let filename = PathUtils.filename(aBackupFile);
@@ -239,7 +241,7 @@ export var PlacesBackups = {
   /**
    * Get the most recent backup file.
    *
-   * @return {Promise}
+   * @returns {Promise}
    * @result the path to the file.
    */
   getMostRecentBackup: function PB_getMostRecentBackup() {
@@ -285,7 +287,7 @@ export var PlacesBackups = {
    *
    * @param aFilePath
    *        path for the "bookmarks.json" file to be created.
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves the number of serialized uri nodes.
    */
   async saveBookmarksToJSONFile(aFilePath) {
@@ -364,7 +366,7 @@ export var PlacesBackups = {
    * @param [optional] bool aForceBackup
    *                        Forces creating a backup even if one was already
    *                        created that day (overwrites).
-   * @return {Promise}
+   * @returns {Promise}
    */
   create: function PB_create(aMaxBackups, aForceBackup) {
     return (async () => {
@@ -454,7 +456,7 @@ export var PlacesBackups = {
    * @param aFilePath
    *        File path The backup file.
    *
-   * @return the bookmark count or null.
+   * @returns the bookmark count or null.
    */
   getBookmarkCountForFile: function PB_getBookmarkCountForFile(aFilePath) {
     let count = null;
@@ -470,25 +472,26 @@ export var PlacesBackups = {
    * Gets a bookmarks tree representation usable to create backups in different
    * file formats.  The root or the tree is PlacesUtils.bookmarks.rootGuid.
    *
-   * @return an object representing a tree with the places root as its root.
-   *         Each bookmark is represented by an object having these properties:
-   *         * id: the item id (make this not enumerable after bug 824502)
-   *         * title: the title
-   *         * guid: unique id
-   *         * parent: item id of the parent folder, not enumerable
-   *         * index: the position in the parent
-   *         * dateAdded: microseconds from the epoch
-   *         * lastModified: microseconds from the epoch
-   *         * type: type of the originating node as defined in PlacesUtils
-   *         The following properties exist only for a subset of bookmarks:
-   *         * annos: array of annotations
-   *         * uri: url
-   *         * iconUri: favicon's url
-   *         * keyword: associated keyword
-   *         * charset: last known charset
-   *         * tags: csv string of tags
-   *         * root: string describing whether this represents a root
-   *         * children: array of child items in a folder
+   * @returns {object}
+   *   an object representing a tree with the places root as its root.
+   *   Each bookmark is represented by an object having these properties:
+   *   - id: the item id (make this not enumerable after bug 824502)
+   *   - title: the title
+   *   - guid: unique id
+   *   - parent: item id of the parent folder, not enumerable
+   *   - index: the position in the parent
+   *   - dateAdded: microseconds from the epoch
+   *   - lastModified: microseconds from the epoch
+   *   - type: type of the originating node as defined in PlacesUtils
+   *   The following properties exist only for a subset of bookmarks:
+   *   annos: array of annotations
+   *   - uri: url
+   *   - iconUri: favicon's url
+   *   - keyword: associated keyword
+   *   - charset: last known charset
+   *   - tags: csv string of tags
+   *   - root: string describing whether this represents a root
+   *   - children: array of child items in a folder
    */
   async getBookmarksTree() {
     let timerId = Glean.places.backupsBookmarkstree.start();

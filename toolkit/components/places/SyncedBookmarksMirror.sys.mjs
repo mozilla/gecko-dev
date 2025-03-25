@@ -130,10 +130,10 @@ class ProgressTracker {
   /**
    * Records a merge step, updating the shutdown blocker state.
    *
-   * @param {String} name A step name from `ProgressTracker.STEPS`. This is
+   * @param {string} name A step name from `ProgressTracker.STEPS`. This is
    *        included in shutdown hang crash reports, along with the timestamp
    *        the step was recorded.
-   * @param {Number} [took] The time taken, in milliseconds.
+   * @param {number} [took] The time taken, in milliseconds.
    * @param {Array} [counts] An array of additional counts to report in the
    *        shutdown blocker state.
    */
@@ -151,8 +151,8 @@ class ProgressTracker {
   /**
    * Records a merge step with timings and counts for telemetry.
    *
-   * @param {String} name The step name.
-   * @param {Number} took The time taken, in milliseconds.
+   * @param {string} name The step name.
+   * @param {number} took The time taken, in milliseconds.
    * @param {Array} [counts] An array of additional `{ name, count }` tuples to
    *        record in telemetry for this step.
    */
@@ -164,9 +164,9 @@ class ProgressTracker {
   /**
    * Records a merge step with the time taken and item count.
    *
-   * @param {String} name The step name.
-   * @param {Number} took The time taken, in milliseconds.
-   * @param {Number} count The number of items handled in this step.
+   * @param {string} name The step name.
+   * @param {number} took The time taken, in milliseconds.
+   * @param {number} count The number of items handled in this step.
    */
   stepWithItemCount(name, took, count) {
     this.stepWithTelemetry(name, took, [{ name: "items", count }]);
@@ -184,7 +184,7 @@ class ProgressTracker {
    * crash reports, in the `AsyncShutdownTimeout` annotation.
    *
    * @see    `fetchState` in `AsyncShutdown` for more details.
-   * @return {Object} A stringifiable object with the recorded steps.
+   * @returns {object} A stringifiable object with the recorded steps.
    */
   fetchState() {
     return { steps: this.steps };
@@ -275,7 +275,7 @@ export class SyncedBookmarksMirror {
    * newest schema version. Automatically recreates the mirror if it's corrupt;
    * throws on failure.
    *
-   * @param  {String} options.path
+   * @param  {string} options.path
    *         The path to the mirror database file, either absolute or relative
    *         to the profile path.
    * @param  {Function} options.recordStepTelemetry
@@ -293,7 +293,7 @@ export class SyncedBookmarksMirror {
    *         A shutdown phase, barrier, or barrier client that should
    *         automatically finalize the mirror when triggered. Exposed for
    *         testing.
-   * @return {SyncedBookmarksMirror}
+   * @returns {SyncedBookmarksMirror}
    *         A mirror ready for use.
    */
   static async open(options) {
@@ -337,7 +337,7 @@ export class SyncedBookmarksMirror {
    * timestamp as the "high water mark" for all downloaded records. Each sync
    * downloads and stores records that are strictly newer than this time.
    *
-   * @return {Number}
+   * @returns {number}
    *         The high water mark time, in seconds.
    */
   async getCollectionHighWaterMark() {
@@ -363,7 +363,7 @@ export class SyncedBookmarksMirror {
    * Updates the bookmarks collection last modified time. Note that this may
    * be newer than the modified time of the most recent record.
    *
-   * @param {Number|String} lastModifiedSeconds
+   * @param {number | string} lastModifiedSeconds
    *        The collection last modified time, in seconds.
    */
   async setCollectionLastModified(lastModifiedSeconds) {
@@ -390,7 +390,7 @@ export class SyncedBookmarksMirror {
    * Returns the bookmarks collection sync ID. This corresponds to
    * `PlacesSyncUtils.bookmarks.getSyncId`.
    *
-   * @return {String}
+   * @returns {string}
    *         The sync ID, or `""` if one isn't set.
    */
   async getSyncId() {
@@ -413,7 +413,7 @@ export class SyncedBookmarksMirror {
    * See `PlacesSyncUtils.bookmarks.ensureCurrentSyncId` for an explanation of
    * how Places handles sync ID mismatches.
    *
-   * @param {String} newSyncId
+   * @param {string} newSyncId
    *        The server's sync ID.
    */
   async ensureCurrentSyncId(newSyncId) {
@@ -451,7 +451,7 @@ export class SyncedBookmarksMirror {
    *
    * @param {PlacesItem[]} records
    *        Sync records to store in the mirror.
-   * @param {Boolean} [options.needsMerge]
+   * @param {boolean} [options.needsMerge]
    *        Indicates if the records were changed remotely since the last sync,
    *        and should be merged into the local tree. This option is set to
    *        `true` for incoming records, and `false` for successfully uploaded
@@ -528,11 +528,11 @@ export class SyncedBookmarksMirror {
    * on `SQLITE_BUSY`; synchronous consumers will fail after waiting for 100ms.
    * See bug 1305563, comment 122 for details.
    *
-   * @param  {Number} [options.localTimeSeconds]
+   * @param  {number} [options.localTimeSeconds]
    *         The current local time, in seconds.
-   * @param  {Number} [options.remoteTimeSeconds]
+   * @param  {number} [options.remoteTimeSeconds]
    *         The current server time, in seconds.
-   * @param  {Boolean} [options.notifyInStableOrder]
+   * @param  {boolean} [options.notifyInStableOrder]
    *         If `true`, fire observer notifications for items in the same folder
    *         in a stable order. This is disabled by default, to avoid the cost
    *         of sorting the notifications, but enabled in some tests to simplify
@@ -541,7 +541,7 @@ export class SyncedBookmarksMirror {
    *         An abort signal that can be used to interrupt a merge when its
    *         associated `AbortController` is aborted. If omitted, the merge can
    *         still be interrupted when the mirror is finalized.
-   * @return {Object.<String, BookmarkChangeRecord>}
+   * @returns {Object.<string, BookmarkChangeRecord>}
    *         A changeset containing locally changed and reconciled records to
    *         upload to the server, and to store in the mirror once upload
    *         succeeds.
@@ -774,7 +774,7 @@ export class SyncedBookmarksMirror {
    * Fetches the GUIDs of all items in the remote tree that need to be merged
    * into the local tree.
    *
-   * @return {String[]}
+   * @returns {string[]}
    *         Remotely changed GUIDs that need to be merged into Places.
    */
   async fetchUnmergedGuids() {
@@ -1145,7 +1145,7 @@ export class SyncedBookmarksMirror {
    * @param  {AbortSignal} signal
    *         Stops fetching records when the associated `AbortController`
    *         is aborted.
-   * @return {Object}
+   * @returns {object}
    *         A `{ changeRecords, count }` tuple, where `changeRecords` is a
    *         changeset containing Sync record cleartexts for outgoing items and
    *         tombstones, keyed by their Sync record IDs, and `count` is the
@@ -1395,7 +1395,7 @@ export class SyncedBookmarksMirror {
    * shutdown, but may also be called explicitly when the mirror is no longer
    * needed.
    *
-   * @param {Boolean} [options.alsoCleanup]
+   * @param {boolean} [options.alsoCleanup]
    *                  If specified, drop all temp tables, views, and triggers,
    *                  and detach from the mirror database before closing the
    *                  connection. Defaults to `true`.
@@ -1497,7 +1497,7 @@ function isDatabaseCorrupt(error) {
  *
  * @param {Sqlite.OpenedConnection} db
  *        The Places database connection.
- * @param {String} path
+ * @param {string} path
  *        The full path to the mirror database file.
  */
 async function attachAndInitMirrorDatabase(db, path) {
@@ -1529,7 +1529,7 @@ async function attachAndInitMirrorDatabase(db, path) {
  *
  * @param {Sqlite.OpenedConnection} db
  *        The mirror database connection.
- * @param {Number} currentSchemaVersion
+ * @param {number} currentSchemaVersion
  *        The current mirror database schema version.
  */
 async function migrateMirrorSchema(db, currentSchemaVersion) {
@@ -1679,7 +1679,6 @@ async function cleanupMirrorDatabase(db) {
  * Sets up the syncable roots. All items in the mirror we apply will descend
  * from these roots - however, malformed records from the server which create
  * a different root *will* be created in the mirror - just not applied.
- *
  *
  * @param {Sqlite.OpenedConnection} db
  *        The mirror database connection.
@@ -2088,14 +2087,14 @@ function validateTag(rawTag) {
  * Measures and logs the time taken to execute a function, using a monotonic
  * clock.
  *
- * @param  {String} name
+ * @param  {string} name
  *         The name of the operation, used for logging.
  * @param  {Function} func
  *         The function to time.
  * @param  {Function} [recordTiming]
  *         An optional function with the signature `(time: Number)`, where
  *         `time` is the measured time.
- * @return The return value of the timed function.
+ * @returns The return value of the timed function.
  */
 async function withTiming(name, func, recordTiming) {
   lazy.MirrorLog.debug(name);
@@ -2574,7 +2573,7 @@ function bagToNamedCounts(bag, names) {
  *
  * @param  {AbortSignal} finalizeSignal
  * @param  {AbortSignal?} signal
- * @return {AbortSignal}
+ * @returns {AbortSignal}
  */
 function anyAborted(finalizeSignal, interruptSignal = null) {
   if (finalizeSignal.aborted || !interruptSignal) {

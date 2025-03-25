@@ -228,7 +228,7 @@ export var BookmarkHTMLUtils = Object.freeze({
    * @param aFilePath
    *        OS.File path string for the "bookmarks.html" file to be created.
    *
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves To the exported bookmarks count when the file has been created.
    * @rejects JavaScript exception.
    */
@@ -829,7 +829,7 @@ BookmarkImporter.prototype = {
   /**
    * Imports data into the places database from the supplied url.
    *
-   * @param {String} href The url to import data from.
+   * @param {string} href The url to import data from.
    * @returns {number} The number of imported bookmarks, not including
    *                   folders and separators.
    */
@@ -1072,7 +1072,7 @@ BookmarkExporter.prototype = {
  * It is assumed the node has already been inserted into the bookmarks
  * database.
  *
- * @param {Object} node The bookmark node for icons to be inserted.
+ * @param {object} node The bookmark node for icons to be inserted.
  */
 function insertFaviconForNode(node) {
   if (!node.icon && !node.iconUri) {
@@ -1107,7 +1107,7 @@ function insertFaviconForNode(node) {
  * It is assumed the nodes have already been inserted into the bookmarks
  * database.
  *
- * @param {Object} nodeTree The bookmark node tree for icons to be inserted.
+ * @param {object} nodeTree The bookmark node tree for icons to be inserted.
  */
 function insertFaviconsForTree(nodeTree) {
   insertFaviconForNode(nodeTree);
@@ -1122,8 +1122,8 @@ function insertFaviconsForTree(nodeTree) {
 /**
  * Handles fetching data from a URL.
  *
- * @param {String} href The url to fetch data from.
- * @return {Promise} Returns a promise that is resolved with the data once
+ * @param {string} href The url to fetch data from.
+ * @returns {Promise} Returns a promise that is resolved with the data once
  *                   the fetch is complete, or is rejected if it fails.
  */
 function fetchData(href) {

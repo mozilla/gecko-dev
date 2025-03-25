@@ -905,7 +905,7 @@ nsPlacesExpiration.prototype = {
   /**
    * Creates a new timer based on this.intervalSeconds.
    *
-   * @return a REPEATING_SLACK nsITimer that runs every this.intervalSeconds.
+   * @returns a REPEATING_SLACK nsITimer that runs every this.intervalSeconds.
    */
   _newTimer() {
     if (this._timer) {

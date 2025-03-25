@@ -192,9 +192,10 @@ class TransactionsHistoryArray extends Array {
 
   /**
    * Proxify a transaction object for consumers.
+   *
    * @param rawTransaction
    *        the raw transaction object.
-   * @return the proxified transaction object.
+   * @returns the proxified transaction object.
    * @see getRawTransaction for retrieving the raw transaction.
    */
   proxifyTransaction(rawTransaction) {
@@ -212,9 +213,10 @@ class TransactionsHistoryArray extends Array {
 
   /**
    * Check if the given object is a the proxy object for some transaction.
+   *
    * @param aValue
    *        any JS value.
-   * @return true if aValue is the proxy object for some transaction, false
+   * @returns true if aValue is the proxy object for some transaction, false
    * otherwise.
    */
   isProxifiedTransactionObject(value) {
@@ -223,9 +225,10 @@ class TransactionsHistoryArray extends Array {
 
   /**
    * Get the raw transaction for the given proxy.
+   *
    * @param aProxy
    *        the proxy object
-   * @return the transaction proxified by aProxy; |undefined| is returned if
+   * @returns the transaction proxified by aProxy; |undefined| is returned if
    * aProxy is not a proxified transaction.
    */
   getRawTransaction(proxy) {
@@ -349,7 +352,7 @@ export var PlacesTransactions = {
    * position in the transactions history in the reverse order, if any, and
    * adjusts the undo position.
    *
-   * @return {Promises).  The promise always resolves.
+   * @returns {Promises).  The promise always resolves.
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
    */
@@ -363,7 +366,7 @@ export var PlacesTransactions = {
    * position in the transactions history, if any, and adjusts the undo
    * position.
    *
-   * @return {Promises).  The promise always resolves.
+   * @returns {Promises).  The promise always resolves.
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
    */
@@ -381,7 +384,7 @@ export var PlacesTransactions = {
    * @param [optional] redoEntries
    *        Whether or not to clear undo entries.  Default: true.
    *
-   * @return {Promises).  The promise always resolves.
+   * @returns {Promises).  The promise always resolves.
    * @throws if both aUndoEntries and aRedoEntries are false.
    * @note All undo manager operations are queued. This means that transactions
    * history may change by the time your request is fulfilled.
@@ -407,7 +410,7 @@ export var PlacesTransactions = {
    *
    * @param index
    *        the index of the entry to retrieve.
-   * @return an array of transaction objects in their undo order (that is,
+   * @returns an array of transaction objects in their undo order (that is,
    * reversely to the order they were executed).
    * @throw if aIndex is invalid (< 0 or >= length).
    * @note the returned array is a clone of the history entry and is not
@@ -465,7 +468,7 @@ Enqueuer.prototype = {
    *
    * @param   func
    *          a function returning a promise.
-   * @return  a promise that resolves once aFunc is done running. The promise
+   * @returns  a promise that resolves once aFunc is done running. The promise
    *          "mirrors" the promise returned by aFunc.
    */
   enqueue(func) {
@@ -954,7 +957,7 @@ DefineTransaction.defineArrayInputProp("children", "child");
  * @note the id, root and charset properties of items in aBookmarksTree are
  *       always ignored.  The index property is ignored for all items but the
  *       root one.
- * @return {Promise}
+ * @returns {Promise}
  * @resolves to the guid of the new item.
  */
 // TODO: Replace most of this with insertTree.
@@ -1031,7 +1034,7 @@ function createItemsFromBookmarksTree(tree, restoring = false) {
  *
  * See the documentation at the top of this file. The valid values for input
  * are also documented there.
- *****************************************************************************/
+ */
 
 var PT = PlacesTransactions;
 

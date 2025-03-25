@@ -124,7 +124,7 @@ export var BookmarkJSONUtils = {
    *   with ex.becauseSameHash
    * @param {boolean} [compress]
    *   If true, writes file using lz4 compression
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves once the file has been created, to an object with the
    *           following properties:
    *            - count: number of exported bookmarks
@@ -212,7 +212,7 @@ BookmarkImporter.prototype = {
   /**
    * Import bookmarks from a JSON string.
    *
-   * @param {String} aString JSON string of serialized bookmark data.
+   * @param {string} aString JSON string of serialized bookmark data.
    * @returns {Promise<number>} The number of imported bookmarks, not including
    *                            folders and separators.
    * @resolves When the new bookmarks have been created.
@@ -300,7 +300,7 @@ function notifyObservers(topic, replace) {
  * replaces any old (pre Firefox 62) queries that contain "folder=<id>" parts with
  * "parent=<guid>".
  *
- * @param {Object} aNode The node to search.
+ * @param {object} aNode The node to search.
  * @param {Array} aFolderIdMap An array mapping of old folder IDs to new folder GUIDs.
  */
 function fixupSearchQueries(aNode, aFolderIdMap) {
@@ -317,11 +317,11 @@ function fixupSearchQueries(aNode, aFolderIdMap) {
 /**
  * Replaces imported folder ids with their local counterparts in a place: URI.
  *
- * @param   {String} aQueryURL
+ * @param   {string} aQueryURL
  *          A place: URI with folder ids.
- * @param   {Object} aFolderIdMap
+ * @param   {object} aFolderIdMap
  *          An array mapping of old folder IDs to new folder GUIDs.
- * @return {String} the fixed up URI if all matched. If some matched, it returns
+ * @returns {string} the fixed up URI if all matched. If some matched, it returns
  *         the URI with only the matching folders included. If none matched
  *         it returns the input URI unchanged.
  */
@@ -368,7 +368,7 @@ const rootToFolderGuidMap = {
  * will only change GUIDs for the built-in folders. Other folders will remain
  * unchanged.
  *
- * @param {Object} A bookmark node that is updated with the new GUID if necessary.
+ * @param {object} A bookmark node that is updated with the new GUID if necessary.
  */
 function fixupRootFolderGuid(node) {
   if (!node.guid && node.root && node.root in rootToFolderGuidMap) {
@@ -380,9 +380,9 @@ function fixupRootFolderGuid(node) {
  * Translates the JSON types for a node and its children into Places compatible
  * types. Also handles updating of other parameters e.g. dateAdded and lastModified.
  *
- * @param {Object} node A node to be updated. If it contains children, they will
+ * @param {object} node A node to be updated. If it contains children, they will
  *                      be updated as well.
- * @return {Array} An array containing two items:
+ * @returns {Array} An array containing two items:
  *       - {Object} A map of current folder ids to GUIDS
  *       - {Array} An array of GUIDs for nodes that contain query URIs
  */
@@ -490,7 +490,7 @@ function translateTreeTypes(node) {
  * It is assumed the node has already been inserted into the bookmarks
  * database.
  *
- * @param {Object} node The bookmark node for icons to be inserted.
+ * @param {object} node The bookmark node for icons to be inserted.
  */
 function insertFaviconForNode(node) {
   if (!node.icon && !node.iconUri) {
@@ -525,7 +525,7 @@ function insertFaviconForNode(node) {
  * It is assumed the nodes have already been inserted into the bookmarks
  * database.
  *
- * @param {Object} nodeTree The bookmark node tree for icons to be inserted.
+ * @param {object} nodeTree The bookmark node tree for icons to be inserted.
  */
 function insertFaviconsForTree(nodeTree) {
   insertFaviconForNode(nodeTree);

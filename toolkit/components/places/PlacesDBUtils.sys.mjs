@@ -32,7 +32,7 @@ export var PlacesDBUtils = {
   /**
    * Executes integrity check and common maintenance tasks.
    *
-   * @return a Map[taskName(String) -> Object]. The Object has the following properties:
+   * @returns a Map[taskName(String) -> Object]. The Object has the following properties:
    *         - succeeded: boolean
    *         - logs: an array of strings containing the messages logged by the task.
    */
@@ -63,7 +63,7 @@ export var PlacesDBUtils = {
    * Note: although this function isn't actually async, we keep it async to
    * allow us to maintain a simple, consistent API for the tasks within this object.
    *
-   * @return {Promise}
+   * @returns {Promise}
    *        A promise that resolves with a Map[taskName(String) -> Object].
    *        The Object has the following properties:
    *         - succeeded: boolean
@@ -97,7 +97,7 @@ export var PlacesDBUtils = {
   /**
    * Checks integrity and tries to fix the database through a reindex.
    *
-   * @return {Promise} resolves if database is sane or is made sane.
+   * @returns {Promise} resolves if database is sane or is made sane.
    * @resolves to an array of logs for this task.
    * @rejects if we're unable to fix corruption or unable to check status.
    */
@@ -133,7 +133,7 @@ export var PlacesDBUtils = {
   /**
    * Checks data coherence and tries to fix most common errors.
    *
-   * @return {Promise} resolves when coherence is checked.
+   * @returns {Promise} resolves when coherence is checked.
    * @resolves to an array of logs for this task.
    * @rejects if database is not coherent.
    */
@@ -168,7 +168,7 @@ export var PlacesDBUtils = {
   /**
    * Runs incremental vacuum on databases supporting it.
    *
-   * @return {Promise} resolves when done.
+   * @returns {Promise} resolves when done.
    * @resolves to an array of logs for this task.
    * @rejects if we were unable to vacuum.
    */
@@ -209,7 +209,7 @@ export var PlacesDBUtils = {
   /**
    * Expire orphan previews that don't have a Places entry anymore.
    *
-   * @return {Promise} resolves when done.
+   * @returns {Promise} resolves when done.
    * @resolves to an array of logs for this task.
    */
   async deleteOrphanPreviews() {
@@ -831,7 +831,7 @@ export var PlacesDBUtils = {
    * Note: although this function isn't actually async, we keep it async to
    * allow us to maintain a simple, consistent API for the tasks within this object.
    *
-   * @return {Promise} resolves when database is vacuumed.
+   * @returns {Promise} resolves when database is vacuumed.
    * @resolves to an array of logs for this task.
    * @rejects if we are unable to vacuum database.
    */
@@ -861,7 +861,7 @@ export var PlacesDBUtils = {
    * Note: although this function isn't actually async, we keep it async to
    * allow us to maintain a simple, consistent API for the tasks within this object.
    *
-   * @return {Promise} resolves when the database in cleaned up.
+   * @returns {Promise} resolves when the database in cleaned up.
    * @resolves to an array of logs for this task.
    */
   async expire() {
@@ -891,7 +891,7 @@ export var PlacesDBUtils = {
   /**
    * Collects statistical data on the database.
    *
-   * @return {Promise} resolves when statistics are collected.
+   * @returns {Promise} resolves when statistics are collected.
    * @resolves to an array of logs for this task.
    * @rejects if we are unable to collect stats for some reason.
    */
@@ -1159,7 +1159,6 @@ export var PlacesDBUtils = {
    * Remove old and useless places.sqlite.corrupt files.
    *
    * @resolves to an array of logs for this task.
-   *
    */
   async removeOldCorruptDBs() {
     let logs = [];
@@ -1198,6 +1197,7 @@ export var PlacesDBUtils = {
 
   /**
    * Gets detailed statistics about database entities like tables and indices.
+   *
    * @returns {Map} a Map by table name, containing an object with the following
    *          properties:
    *            - efficiencyPerc: percentage filling of pages, an high
@@ -1248,6 +1248,7 @@ export var PlacesDBUtils = {
   /**
    * Gets detailed statistics about database entities and their respective row
    * counts.
+   *
    * @returns {Array} An array that augments each object returned by
    *          {@link getEntitiesStats} with the following extra properties:
    *            - entity: name of the entity
@@ -1283,7 +1284,7 @@ export var PlacesDBUtils = {
    * @param tasks
    *        Array of tasks to be executed, in form of pointers to methods in
    *        this module.
-   * @return {Promise}
+   * @returns {Promise}
    *        A promise that resolves with a Map[taskName(String) -> Object].
    *        The Object has the following properties:
    *         - succeeded: boolean

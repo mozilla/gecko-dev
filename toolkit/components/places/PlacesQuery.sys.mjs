@@ -387,7 +387,7 @@ export class PlacesQuery {
    *
    * @param {PlacesEvent} event
    *   The event.
-   * @return {HistoryVisit}
+   * @returns {HistoryVisit}
    *   The visit that was inserted, or `null` if no visit was inserted.
    */
   handlePageVisited(event) {

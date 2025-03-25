@@ -90,6 +90,7 @@ TaggingService.prototype = {
 
   /**
    * Returns the folder id for a tag, or -1 if not found.
+   *
    * @param [in] aTag
    *        string tag to search for
    * @returns integer id for the bookmark folder for the tag
@@ -109,7 +110,7 @@ TaggingService.prototype = {
    *        Array of tags.  Entries can be tag names or concrete item id.
    * @param trim [optional]
    *        Whether to trim passed-in named tags. Defaults to false.
-   * @return Array of tag objects like { id: number, name: string }.
+   * @returns Array of tag objects like { id: number, name: string }.
    *
    * @throws Cr.NS_ERROR_INVALID_ARG if any element of the input array is not
    *         a valid tag.

@@ -237,6 +237,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
 
   /**
    * Returns the path to the previews folder.
+   *
    * @returns {string} The path to the previews folder.
    */
   getPath() {
@@ -249,6 +250,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
   /**
    * Returns the file path of the preview for the given url.
    * This doesn't guarantee the file exists.
+   *
    * @param {string} url Address of the page.
    * @returns {string} File path of the preview for the given url.
    */
@@ -261,6 +263,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
 
   /**
    * Returns the file path of the preview having the given hash.
+   *
    * @param {string} hash SHA256 hash in hex format.
    * @returns {string } File path of the preview having the given hash.
    */
@@ -270,6 +273,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
 
   /**
    * Returns the moz-page-thumb: url to show the preview for the given url.
+   *
    * @param {string} url Address of the page.
    * @returns {string} Preview url for the given page url.
    */
@@ -291,9 +295,10 @@ export const PlacesPreviews = new (class extends EventEmitter {
    * is normally facing when logged in. See BackgroundPageThumbs.sys.mjs for
    * additional details.
    * Unless `forceUpdate` is set, the preview is not updated if:
-   *  - It was already fetched recently
-   *  - The stored preview is younger than DAYS_BEFORE_REPLACEMENT
+   * - It was already fetched recently
+   * - The stored preview is younger than DAYS_BEFORE_REPLACEMENT
    * The previem image is encoded using WebP.
+   *
    * @param {string} url The address of the page.
    * @param {boolean} [forceUpdate] Whether to update the preview regardless.
    * @returns {boolean} Whether a preview is available and ready.
@@ -368,6 +373,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
    * it.
    * This method is slow, because it has to go through all the Places stored
    * pages, thus it's suggested to only run it as periodic maintenance.
+   *
    * @returns {boolean} Whether orphans deletion ran.
    */
   async deleteOrphans() {
@@ -406,6 +412,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
 
   /**
    * This is invoked by #deletionHandler every time a preview file is removed.
+   *
    * @param {string} filePath The path of the deleted file.
    */
   onDelete(filePath) {
@@ -415,6 +422,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
 
   /**
    * Used by tests to change the deletion timeout between chunks.
+   *
    * @param {integer} timeout New timeout in milliseconds.
    */
   testSetDeletionTimeout(timeout) {

@@ -10,33 +10,30 @@
  *
  * A `PageInfo` object is any object that contains A SUBSET of the
  * following properties:
+ *
  * - guid: (string)
- *     The globally unique id of the page.
- * - url: (URL)
- *     or (nsIURI)
- *     or (string)
- *     The full URI of the page. Note that `PageInfo` values passed as
- *     argument may hold `nsIURI` or `string` values for property `url`,
- *     but `PageInfo` objects returned by this module always hold `URL`
- *     values.
+ *   The globally unique id of the page.
+ * - url: (URL|nsIURI|string)
+ *   The full URI of the page. Note that `PageInfo` values passed as
+ *   argument may hold `nsIURI` or `string` values for property `url`,
+ *   but `PageInfo` objects returned by this module always hold `URL`
+ *   values.
  * - title: (string)
- *     The title associated with the page, if any.
+ *   The title associated with the page, if any.
  * - description: (string)
- *     The description of the page, if any.
- * - previewImageURL: (URL)
- *     or (nsIURI)
- *     or (string)
- *     The preview image URL of the page, if any.
+ *   The description of the page, if any.
+ * - previewImageURL: (URL|nsIURI|string)
+ *   The preview image URL of the page, if any.
  * - frecency: (number)
- *     The frecency of the page, if any.
- *     See https://developer.mozilla.org/en-US/docs/Mozilla/Tech/Places/Frecency_algorithm
- *     Note that this property may not be used to change the actualy frecency
- *     score of a page, only to retrieve it. In other words, any `frecency` field
- *     passed as argument to a function of this API will be ignored.
- *  - visits: (Array<VisitInfo>)
- *     All the visits for this page, if any.
- *  - annotations: (Map)
- *     A map containing key/value pairs of the annotations for this page, if any.
+ *   The frecency of the page, if any.
+ *   See https://developer.mozilla.org/en-US/docs/Mozilla/Tech/Places/Frecency_algorithm
+ *   Note that this property may not be used to change the actualy frecency
+ *   score of a page, only to retrieve it. In other words, any `frecency` field
+ *   passed as argument to a function of this API will be ignored.
+ * - visits: (Array<VisitInfo>)
+ *   All the visits for this page, if any.
+ * - annotations: (Map)
+ *   A map containing key/value pairs of the annotations for this page, if any.
  *
  * See the documentation of individual methods to find out which properties
  * are required for `PageInfo` arguments or returned for `PageInfo` results.
@@ -44,25 +41,23 @@
  * A `VisitInfo` object is any object that contains A SUBSET of the following
  * properties:
  * - date: (Date)
- *     The time the visit occurred.
+ *   The time the visit occurred.
  * - transition: (number)
- *     How the user reached the page. See constants `TRANSITIONS.*`
- *     for the possible transition types.
- * - referrer: (URL)
- *          or (nsIURI)
- *          or (string)
- *     The referring URI of this visit. Note that `VisitInfo` passed
- *     as argument may hold `nsIURI` or `string` values for property `referrer`,
- *     but `VisitInfo` objects returned by this module always hold `URL`
- *     values.
+ *   How the user reached the page. See constants `TRANSITIONS.*`
+ *   for the possible transition types.
+ * - referrer: (URL|nsIURI|string)
+ *   The referring URI of this visit. Note that `VisitInfo` passed
+ *   as argument may hold `nsIURI` or `string` values for property `referrer`,
+ *   but `VisitInfo` objects returned by this module always hold `URL`
+ *   values.
+ *
  * See the documentation of individual methods to find out which properties
  * are required for `VisitInfo` arguments or returned for `VisitInfo` results.
- *
- *
  *
  * Each successful operation notifies through the PlacesObservers. To listen to such
  * notifications you must register using
  * PlacesObservers `addListener` and `removeListener` methods.
+ *
  * @see PlacesObservers
  */
 
@@ -113,7 +108,7 @@ export var History = Object.freeze({
    *        - `includeAnnotations` (boolean) set this to true to fetch any
    *           annotations that are associated with the page.
    *
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    * @resolves (PageInfo | null) If the page could be found, the information
    *      on that page.
@@ -163,7 +158,7 @@ export var History = Object.freeze({
    *
    * @param annotations: An array of strings containing the annotation names to
    *                     find.
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    * @resolves (Map)
    *      A Map containing the annotations, pages and their contents, e.g.
@@ -226,7 +221,7 @@ export var History = Object.freeze({
    *      If the `transition` of a visit is not provided, it defaults to
    *      TRANSITION_LINK.
    *
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    * @resolves (PageInfo)
    *      A PageInfo object populated with data after the insert is complete.
@@ -279,7 +274,7 @@ export var History = Object.freeze({
    *      A callback invoked for each page which generated an error
    *      when an insert was attempted.
    *
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    * @resolves (null)
    * @rejects (Error)
@@ -333,7 +328,6 @@ export var History = Object.freeze({
    *
    * Any change may be observed through PlacesObservers.
    *
-   *
    * @param page: (URL or nsIURI)
    *      The full URI of the page.
    *             or (string)
@@ -343,7 +337,7 @@ export var History = Object.freeze({
    * @param onResult: (function(PageInfo))
    *      A callback invoked for each page found.
    *
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    * @resolve (bool)
    *      `true` if at least one page was removed, `false` otherwise.
@@ -437,7 +431,7 @@ export var History = Object.freeze({
    *     Note that the referrer property of `VisitInfo`
    *     is NOT populated.
    *
-   * @return (Promise)
+   * @returns (Promise)
    * @resolve (bool)
    *      `true` if at least one visit was removed, `false`
    *      otherwise.
@@ -510,7 +504,6 @@ export var History = Object.freeze({
    *
    * Any change may be observed through PlacesObservers
    *
-   *
    * @param filter: An object containing a non empty subset of the following
    * properties:
    * - host: (string)
@@ -527,7 +520,7 @@ export var History = Object.freeze({
    *
    * @note This removes pages with at least one visit inside the timeframe.
    *       Any visits outside the timeframe will also be removed with the page.
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    * @resolve (bool)
    *      `true` if at least one page was removed, `false` otherwise.
@@ -603,7 +596,7 @@ export var History = Object.freeze({
    *
    * @param guidOrURI: (string) or (URL, nsIURI or href)
    *      Either the full URI of the page or the GUID of the page.
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    * @resolve (bool)
    *      `true` if the page has been visited, `false` otherwise.
@@ -641,7 +634,7 @@ export var History = Object.freeze({
   /**
    * Clear all history.
    *
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the operation is complete.
    */
   clear() {
@@ -655,7 +648,7 @@ export var History = Object.freeze({
    * Is a value a valid transition type?
    *
    * @param transition: (String)
-   * @return (Boolean)
+   * @returns (Boolean)
    */
   isValidTransition(transition) {
     return Object.values(History.TRANSITIONS).includes(transition);
@@ -719,7 +712,7 @@ export var History = Object.freeze({
    *      For `annotations` the keys must all be strings, the values should be
    *      Boolean, Number or Strings. null and undefined are supported as falsy values.
    *
-   * @return (Promise)
+   * @returns (Promise)
    *      A promise resolved once the update is complete.
    * @rejects (Error)
    *      Rejects if the update was unsuccessful.
@@ -820,7 +813,7 @@ export var History = Object.freeze({
  * via PlacesUtils.validatePageInfo.
  *
  * @param pageInfo: (PageInfo)
- * @return (info)
+ * @returns (info)
  */
 function convertForUpdatePlaces(pageInfo) {
   let info = {
@@ -897,7 +890,7 @@ var clear = async function (db) {
  *          - hasForeign: (boolean) If `true`, the page has at least
  *              one foreign reference (i.e. a bookmark), so the page should
  *              be kept and its frecency updated.
- * @return (Promise)
+ * @returns (Promise)
  */
 var cleanupPages = async function (db, pages) {
   let pagesToRemove = pages.filter(p => !p.hasForeign && !p.hasVisits);
@@ -954,6 +947,7 @@ var cleanupPages = async function (db, pages) {
 
 /**
  * Remove icons whose origin is not in moz_origins, unless referenced.
+ *
  * @param db: (Sqlite connection)
  *      The database.
  */
@@ -989,7 +983,7 @@ function removeOrphanIcons(db) {
  * @param transitionType: (Number)
  *      Set to a valid TRANSITIONS value to indicate all transitions of a
  *      certain type have been removed, otherwise defaults to 0 (unknown value).
- * @return (Promise)
+ * @returns (Promise)
  */
 var notifyCleanup = async function (db, pages, transitionType = 0) {
   const notifications = [];
@@ -1537,7 +1531,7 @@ var remove = async function (db, { guids, urls }, onResult = null) {
  *      Defaults to an empty object so that this method can be used
  *      to simply convert an updateInfo object into a PageInfo object.
  *
- * @return (PageInfo)
+ * @returns (PageInfo)
  *      A PageInfo object populated with data from updateInfo.
  */
 function mergeUpdateInfoIntoPageInfo(updateInfo, pageInfo = {}) {

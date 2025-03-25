@@ -27,7 +27,7 @@ export class BookmarkList {
   /**
    * The function to call when changes are made.
    *
-   * @type {function}
+   * @type {Function}
    */
   #observer;
 
@@ -55,7 +55,7 @@ export class BookmarkList {
    *
    * @param {string[]} urls
    *   The initial set of URLs to track.
-   * @param {function} [observer]
+   * @param {Function} [observer]
    *   The function to call when changes are made.
    * @param {number} [debounceRate]
    *   Time between observer executions, in milliseconds.

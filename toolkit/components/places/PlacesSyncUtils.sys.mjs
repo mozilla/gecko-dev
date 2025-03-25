@@ -81,7 +81,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Assigns a new sync ID. This is called when we sync for the first time with
    * a new account, and when we're the first to sync after a node reassignment.
    *
-   * @return {Promise} resolved once the ID has been updated.
+   * @returns {Promise} resolved once the ID has been updated.
    * @resolves to the new sync ID.
    */
   resetSyncId() {
@@ -103,7 +103,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    *
    * @param newSyncId
    *        The server's sync ID.
-   * @return {Promise} resolved once the ID has been updated.
+   * @returns {Promise} resolved once the ID has been updated.
    */
   async ensureCurrentSyncId(newSyncId) {
     if (!newSyncId || typeof newSyncId != "string") {
@@ -173,7 +173,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * method when it receives a command from a remote client to wipe all stored
    * data.
    *
-   * @return {Promise} resolved once all pages and visits have been removed.
+   * @returns {Promise} resolved once all pages and visits have been removed.
    */
   async wipe() {
     await lazy.PlacesUtils.history.clear();
@@ -184,7 +184,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Removes the sync ID and last sync time for the history collection. Unlike
    * `wipe`, this keeps all existing history pages and visits.
    *
-   * @return {Promise} resolved once the metadata have been removed.
+   * @returns {Promise} resolved once the metadata have been removed.
    */
   reset() {
     return lazy.PlacesUtils.metadata.delete(
@@ -199,7 +199,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    *
    * @param {Date} visitDate
    *        The visit date.
-   * @return {Date} The clamped visit date.
+   * @returns {Date} The clamped visit date.
    */
   clampVisitDate(visitDate) {
     let currentDate = new Date();
@@ -216,7 +216,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Fetches the frecency for the URL provided
    *
    * @param url
-   * @returns {Number} The frecency of the given url
+   * @returns {number} The frecency of the given url
    */
   async fetchURLFrecency(url) {
     let canonicalURL = lazy.PlacesUtils.SYNC_BOOKMARK_VALIDATORS.url(url);
@@ -331,7 +331,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Fetches the guid of a uri
    *
    * @param uri
-   * @returns {String} The guid of the given uri
+   * @returns {string} The guid of the given uri
    */
   async fetchGuidForURL(url) {
     let canonicalURL = lazy.PlacesUtils.SYNC_BOOKMARK_VALIDATORS.url(url);
@@ -353,7 +353,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * Fetch information about a guid (url, title and frecency)
    *
    * @param guid
-   * @returns {Object} Object with three members: url, title and frecency of the given guid
+   * @returns {object} Object with three members: url, title and frecency of the given guid
    */
   async fetchURLInfoForGuid(guid) {
     let db = await lazy.PlacesUtils.promiseDBConnection();
@@ -526,7 +526,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    * new account, when we're the first to sync after a node reassignment, and
    * on the first sync after a manual restore.
    *
-   * @return {Promise} resolved once the ID and all items have been updated.
+   * @returns {Promise} resolved once the ID and all items have been updated.
    * @resolves to the new sync ID.
    */
   resetSyncId() {
@@ -558,7 +558,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    *
    * @param newSyncId
    *        The server's sync ID.
-   * @return {Promise} resolved once the ID and all items have been updated.
+   * @returns {Promise} resolved once the ID and all items have been updated.
    */
   async ensureCurrentSyncId(newSyncId) {
     if (!newSyncId || typeof newSyncId != "string") {
@@ -847,7 +847,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    * Sync uses this method to reorder all synced children after applying all
    * incoming records.
    *
-   * @return {Promise} resolved when reordering is complete.
+   * @returns {Promise} resolved when reordering is complete.
    * @rejects if an error happens while reordering.
    * @throws if the arguments are invalid.
    */
@@ -908,7 +908,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
   /**
    * Returns a changeset containing local bookmark changes since the last sync.
    *
-   * @return {Promise} resolved once all items have been fetched.
+   * @returns {Promise} resolved once all items have been fetched.
    * @resolves to an object containing records for changed bookmarks, keyed by
    *           the record ID.
    * @see pullSyncChanges for the implementation, and markChangesAsSyncing for
@@ -928,7 +928,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    * @param changeRecords
    *        A changeset containing sync change records, as returned by
    *        `pullChanges`.
-   * @return {Promise} resolved once all records have been updated.
+   * @returns {Promise} resolved once all records have been updated.
    */
   markChangesAsSyncing(changeRecords) {
     return lazy.PlacesUtils.withConnectionWrapper(
@@ -945,7 +945,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    * @param changeRecords
    *        A changeset containing sync change records, as returned by
    *        `pullChanges`.
-   * @return {Promise} resolved once all records have been updated.
+   * @returns {Promise} resolved once all records have been updated.
    */
   pushChanges(changeRecords) {
     return lazy.PlacesUtils.withConnectionWrapper(
@@ -1111,7 +1111,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    * method when it receives a command from a remote client to wipe all stored
    * data.
    *
-   * @return {Promise} resolved once all items have been removed.
+   * @returns {Promise} resolved once all items have been removed.
    */
   wipe() {
     return lazy.PlacesUtils.bookmarks.eraseEverything({
@@ -1124,7 +1124,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    * this keeps all existing bookmarks, and only clears their sync change
    * tracking info.
    *
-   * @return {Promise} resolved once all items have been updated.
+   * @returns {Promise} resolved once all items have been updated.
    */
   reset() {
     return lazy.PlacesUtils.withConnectionWrapper(
@@ -1254,7 +1254,7 @@ const BookmarkSyncUtils = (PlacesSyncUtils.bookmarks = Object.freeze({
    *        the bookmark URL object.
    * @param syncChangeDelta
    *        the sync change counter increment.
-   * @return {Promise} resolved when the counters have been updated.
+   * @returns {Promise} resolved when the counters have been updated.
    */
   addSyncChangesForBookmarksWithURL(db, url, syncChangeDelta) {
     if (!url || !syncChangeDelta) {
@@ -1341,7 +1341,7 @@ PlacesSyncUtils.test.bookmarks = Object.freeze({
    * @param info
    *        object representing a synced bookmark.
    *
-   * @return {Promise} resolved when the creation is complete.
+   * @returns {Promise} resolved when the creation is complete.
    * @resolves to an object representing the created bookmark.
    * @rejects if it's not possible to create the requested bookmark.
    * @throws if the arguments are invalid.
@@ -1824,7 +1824,7 @@ function addRowToChangeRecords(row, changeRecords) {
  *        The Sqlite.sys.mjs connection handle.
  * @param forGuids
  *        Fetch Sync tracking information for only the requested GUIDs.
- * @return {Promise} resolved once all items have been fetched.
+ * @returns {Promise} resolved once all items have been fetched.
  * @resolves to an object containing records for changed bookmarks, keyed by
  *           the record ID.
  */
@@ -1998,7 +1998,7 @@ function markChangesAsSyncing(db, changeRecords) {
 /**
  * Removes tombstones for successfully synced items.
  *
- * @return {Promise}
+ * @returns {Promise}
  */
 var removeTombstones = function (db, guids) {
   if (!guids.length) {
@@ -2013,7 +2013,7 @@ var removeTombstones = function (db, guids) {
  * Removes tombstones for successfully synced items where the specified GUID
  * exists in *both* the bookmarks and tombstones tables.
  *
- * @return {Promise}
+ * @returns {Promise}
  */
 var removeUndeletedTombstones = function (db, guids) {
   if (!guids.length) {
@@ -2072,10 +2072,11 @@ async function resetAllSyncStatuses(db, syncStatus) {
  * Other clients might have new fields we don't quite understand yet,
  * so we add it to a "unknownFields" field to roundtrip back to the server
  * so other clients don't experience data loss
+ *
  * @param record: an object, usually from the server, and will iterate through the
  *  the keys and extract any fields that are unknown to this client
  * @param validFields: an array of keys we know are valid and should ignore
- * @returns {String} json object containing unknownfields, null if none found
+ * @returns {string} json object containing unknownfields, null if none found
  */
 PlacesSyncUtils.extractUnknownFields = (record, validFields) => {
   let { unknownFields, hasUnknownFields } = Object.keys(record).reduce(

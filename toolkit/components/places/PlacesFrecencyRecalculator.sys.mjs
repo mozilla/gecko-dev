@@ -213,6 +213,7 @@ export class PlacesFrecencyRecalculator {
   /**
    * Evaluates whether recalculation speed should be increased, and eventually
    * accelerates.
+   *
    * @returns {boolean} whether the recalculation rate is increased.
    */
   maybeUpdateRecalculationSpeed() {
@@ -245,7 +246,8 @@ export class PlacesFrecencyRecalculator {
   /**
    * Updates a chunk of outdated frecency values. If there's more frecency
    * values to update at the end of the process, it may rearm the task.
-   * @param {Number} chunkSize maximum number of entries to update at a time,
+   *
+   * @param {number} chunkSize maximum number of entries to update at a time,
    *   set to -1 to update any entry.
    * @resolves {boolean} Whether any entry was recalculated.
    */
@@ -385,6 +387,7 @@ export class PlacesFrecencyRecalculator {
 
   /**
    * Decays frecency and adaptive history.
+   *
    * @resolves once the process is complete. Never rejects.
    */
   async decay() {
@@ -662,9 +665,10 @@ class AlternativeFrecencyHelper {
 
   /**
    * Updates a chunk of outdated frecency values.
-   * @param {Number} chunkSize maximum number of entries to update at a time,
+   *
+   * @param {number} chunkSize maximum number of entries to update at a time,
    *   set to -1 to update any entry.
-   * @resolves {Number} Number of affected pages.
+   * @resolves {number} Number of affected pages.
    */
   async recalculateSomeAlternativeFrecencies({
     chunkSize = DEFAULT_CHUNK_SIZE,

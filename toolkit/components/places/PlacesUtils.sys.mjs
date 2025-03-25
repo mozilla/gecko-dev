@@ -159,7 +159,7 @@ const DB_SITENAME_LENGTH_MAX = 50;
  *
  * @param boolValidateFn
  *        A boolean validate function.
- * @return the input value.
+ * @returns the input value.
  * @throws if input doesn't pass the validate function.
  */
 function simpleValidateFunc(boolValidateFn) {
@@ -449,8 +449,8 @@ export var PlacesUtils = {
   /**
    * Checks if a guid is a virtual left-pane root.
    *
-   * @param {String} guid The guid of the item to look for.
-   * @returns {Boolean} true if guid is a virtual root, false otherwise.
+   * @param {string} guid The guid of the item to look for.
+   * @returns {boolean} true if guid is a virtual root, false otherwise.
    */
   isVirtualLeftPaneItem(guid) {
     return (
@@ -470,7 +470,7 @@ export var PlacesUtils = {
    * Is a string a valid GUID?
    *
    * @param guid: (String)
-   * @return (Boolean)
+   * @returns (Boolean)
    */
   isValidGuid(guid) {
     return typeof guid == "string" && guid && /^[a-zA-Z0-9\-_]{12}$/.test(guid);
@@ -480,7 +480,7 @@ export var PlacesUtils = {
    * Is a string a valid GUID prefix?
    *
    * @param guidPrefix: (String)
-   * @return (Boolean)
+   * @returns (Boolean)
    */
   isValidGuidPrefix(guidPrefix) {
     return (
@@ -496,7 +496,7 @@ export var PlacesUtils = {
    * the correct character length.
    *
    * @param prefix: (String)
-   * @return (String)
+   * @returns (String)
    */
   generateGuidWithPrefix(prefix) {
     return prefix + this.history.makeGuid().substring(prefix.length);
@@ -507,7 +507,7 @@ export var PlacesUtils = {
    *
    * @param url (URL) or (String)
    *        the URL to convert.
-   * @return nsIURI for the given URL.
+   * @returns nsIURI for the given URL.
    */
   toURI(url) {
     if (url instanceof Ci.nsIURI) {
@@ -524,7 +524,7 @@ export var PlacesUtils = {
    *
    * @param date
    *        the Date object to convert.
-   * @return microseconds from the epoch.
+   * @returns microseconds from the epoch.
    */
   toPRTime(date) {
     if (
@@ -541,7 +541,7 @@ export var PlacesUtils = {
    *
    * @param time
    *        microseconds from the epoch.
-   * @return a Date object.
+   * @returns a Date object.
    */
   toDate(time) {
     if (typeof time != "number" || isNaN(time)) {
@@ -552,6 +552,7 @@ export var PlacesUtils = {
 
   /**
    * Wraps a string in a nsISupportsString wrapper.
+   *
    * @param   aString
    *          The string to wrap.
    * @returns A nsISupportsString object containing a string.
@@ -691,6 +692,7 @@ export var PlacesUtils = {
 
   /**
    * Generator for a node's ancestors.
+   *
    * @param aNode
    *        A result node
    */
@@ -728,7 +730,7 @@ export var PlacesUtils = {
    *         - fixup: a function invoked when validation fails, takes the input
    *                  object as argument and must fix the property.
    *
-   * @return a validated and normalized item.
+   * @returns a validated and normalized item.
    * @throws if the object contains invalid data.
    * @note any unknown properties are pass-through.
    */
@@ -847,6 +849,7 @@ export var PlacesUtils = {
 
   /**
    * Determines whether or not a ResultNode is a host container.
+   *
    * @param   aNode
    *          A result node
    * @returns true if the node is a host container, false otherwise
@@ -862,6 +865,7 @@ export var PlacesUtils = {
 
   /**
    * Determines whether or not a ResultNode is a day container.
+   *
    * @param   node
    *          A NavHistoryResultNode
    * @returns true if the node is a day container, false otherwise
@@ -879,6 +883,7 @@ export var PlacesUtils = {
 
   /**
    * Determines whether or not a result-node is a tag container.
+   *
    * @param   aNode
    *          A result-node
    * @returns true if the node is a tag container, false otherwise
@@ -911,6 +916,7 @@ export var PlacesUtils = {
 
   /**
    * Determines whether or not a ResultNode is a container.
+   *
    * @param   aNode
    *          A result node
    * @returns true if the node is a container item, false otherwise
@@ -926,6 +932,7 @@ export var PlacesUtils = {
 
   /**
    * Determines whether or not a ResultNode is an history related container.
+   *
    * @param   node
    *          A result node
    * @returns true if the node is an history related container, false otherwise
@@ -950,7 +957,7 @@ export var PlacesUtils = {
    *
    * @param aNode
    *        a result node.
-   * @return the concrete item-guid for aNode.
+   * @returns the concrete item-guid for aNode.
    */
   getConcreteItemGuid(aNode) {
     if (aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT) {
@@ -966,7 +973,7 @@ export var PlacesUtils = {
    *
    * @param url
    *        the URL to generate a rev host for.
-   * @return the reversed host string.
+   * @returns the reversed host string.
    */
   getReversedHost(url) {
     return url.host.split("").reverse().join("") + ".";
@@ -1014,7 +1021,7 @@ export var PlacesUtils = {
    *          The Result node to wrap (serialize)
    * @param   aType
    *          The content type to serialize as
-   * @return  A string serialization of the node
+   * @returns  A string serialization of the node
    */
   wrapNode(aNode, aType) {
     // When wrapping a node, we want all the items, even if the original
@@ -1147,6 +1154,7 @@ export var PlacesUtils = {
 
   /**
    * Unwraps data from the Clipboard or the current Drag Session.
+   *
    * @param   blob
    *          A blob (string) of data, in some format we potentially know how
    *          to parse.
@@ -1245,7 +1253,7 @@ export var PlacesUtils = {
    * Validate an input PageInfo object, returning a valid PageInfo object.
    *
    * @param pageInfo: (PageInfo)
-   * @return (PageInfo)
+   * @returns (PageInfo)
    */
   validatePageInfo(pageInfo, validateVisits = true) {
     return this.validateItemProperties(
@@ -1286,6 +1294,7 @@ export var PlacesUtils = {
 
   /**
    * Generates a nsINavHistoryResult for the contents of a folder.
+   *
    * @param   aFolderGuid
    *          The folder to open
    * @param   [optional] excludeItems
@@ -1324,8 +1333,8 @@ export var PlacesUtils = {
   /**
    * Checks if item is a root.
    *
-   * @param {String} guid The guid of the item to look for.
-   * @returns {Boolean} true if guid is a root, false otherwise.
+   * @param {string} guid The guid of the item to look for.
+   * @returns {boolean} true if guid is a root, false otherwise.
    */
   isRootItem(guid) {
     return (
@@ -1341,6 +1350,7 @@ export var PlacesUtils = {
   /**
    * Returns a nsNavHistoryContainerResultNode with forced excludeItems and
    * expandQueries.
+   *
    * @param   aNode
    *          The node to convert
    * @param   [optional] excludeItems
@@ -1390,6 +1400,7 @@ export var PlacesUtils = {
   /**
    * Returns true if a container has uri nodes in its first level.
    * Has better performance than (getURLsForContainerNode(node).length > 0).
+   *
    * @param aNode
    *        The container node to search through.
    * @returns true if the node contains uri nodes, false otherwise.
@@ -1433,6 +1444,7 @@ export var PlacesUtils = {
    * Returns an array containing all the uris in the first level of the
    * passed in container.
    * If you only need to know if the node contains uris, use hasChildURIs.
+   *
    * @param aNode
    *        The container node to search through
    * @returns array of uris in the first level of the container.
@@ -1495,6 +1507,7 @@ export var PlacesUtils = {
   /**
    * This is pretty much the same as promiseDBConnection, but with a larger
    * page cache, useful for consumers doing large table scans, like the urlbar.
+   *
    * @see promiseDBConnection
    */
   promiseLargeCacheDBConnection: () => lazy.gAsyncDBLargeCacheConnPromised,
@@ -1585,7 +1598,7 @@ export var PlacesUtils = {
    *        The string href we should add the ref to.
    * @param size
    *        The target image size
-   * @return The URL with the fragment at the end, in the same formar as input.
+   * @returns The URL with the fragment at the end, in the same formar as input.
    */
   urlWithSizeRef(window, href, size) {
     return (
@@ -1622,7 +1635,7 @@ export var PlacesUtils = {
    *          Use it if you must. It'll be removed once the switch to GUIDs is
    *          complete.
    *
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves to a JS object that represents either a single item or a
    * bookmarks tree.  Each node in the tree has the following properties set:
    *  - guid (string): the item's GUID (same as aItemGuid for the top item).
@@ -1888,6 +1901,7 @@ export var PlacesUtils = {
 
   /**
    * Returns SQL placeholders to bind multiple values into an IN clause.
+   *
    * @param {Array|number} info
    *   Array or number of entries to create.
    * @param {string} [prefix]
@@ -1902,6 +1916,7 @@ export var PlacesUtils = {
 
   /**
    * Run some text through md5 and return the hash.
+   *
    * @param {string} data The string to hash.
    * @param {string} [format] Which format of the hash to return:
    *   - "base64" for ascii format.
@@ -1929,6 +1944,7 @@ export var PlacesUtils = {
 
   /**
    * Run some text through SHA256 and return the hash.
+   *
    * @param {string|nsIStringInputStream} data The data to hash.
    * @param {string} [format] Which format of the hash to return:
    *   - "base64" (default) for ascii format, not safe for URIs or file names.
@@ -1975,7 +1991,7 @@ export var PlacesUtils = {
    *        The database connection to use.
    * @param url
    *        A valid URL object.
-   * @return {Promise} resolved when the operation is complete.
+   * @returns {Promise} resolved when the operation is complete.
    */
   async maybeInsertPlace(db, url) {
     // The IGNORE conflict can trigger on `guid`.
@@ -2006,7 +2022,7 @@ export var PlacesUtils = {
    *        The database to use
    * @param urls
    *        An array with all the url objects to insert.
-   * @return {Promise} resolved when the operation is complete.
+   * @returns {Promise} resolved when the operation is complete.
    */
   async maybeInsertManyPlaces(db, urls) {
     await db.executeCached(
@@ -2266,9 +2282,9 @@ PlacesUtils.metadata = {
   /**
    * Returns the value associated with a metadata key.
    *
-   * @param  {String} key
+   * @param  {string} key
    *         The metadata key to look up.
-   * @param  {String|Object|Array} defaultValue
+   * @param  {string | object | Array} defaultValue
    *         Optional. The default value to return if the value is not present,
    *         or cannot be parsed.
    * @resolves {*}
@@ -2286,7 +2302,7 @@ PlacesUtils.metadata = {
   /**
    * Sets the value for a metadata key.
    *
-   * @param {String} key
+   * @param {string} key
    *        The metadata key to update.
    * @param {*}
    *        The value to associate with the key.
@@ -2466,7 +2482,7 @@ PlacesUtils.keywords = {
    *        this returns their intersection.
    * @param onResult [optional]
    *        Callback invoked for each found entry.
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves to an object in the form: { keyword, url, postData },
    *           or null if a keyword entry was not found.
    */
@@ -2679,7 +2695,7 @@ PlacesUtils.keywords = {
    *
    * @param keyword
    *        The keyword to remove.
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves when the removal is complete.
    */
   remove(keywordOrEntry) {
@@ -2743,7 +2759,7 @@ PlacesUtils.keywords = {
    *        The destination URL.
    * @param source
    *        The change source, forwarded to all bookmark observers.
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves when all keywords have been moved to the destination URL.
    */
   reassign(oldURL, newURL, source = PlacesUtils.bookmarks.SOURCES.DEFAULT) {
@@ -2827,7 +2843,7 @@ PlacesUtils.keywords = {
    *
    * @param urls
    *        A list of URLs to check for orphaned keywords.
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves when all keywords have been removed from URLs that are no longer
    *           bookmarked.
    */
@@ -2905,7 +2921,7 @@ PlacesUtils.keywords = {
   /**
    * Removes all keywords from all URLs.
    *
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves when all keywords have been removed.
    */
   eraseEverything() {
@@ -2926,7 +2942,7 @@ PlacesUtils.keywords = {
    * Invalidates the keywords cache, leaving all existing keywords in place.
    * The cache will be repopulated on the next `PlacesUtils.keywords.*` call.
    *
-   * @return {Promise}
+   * @returns {Promise}
    * @resolves when the cache has been cleared.
    */
   invalidateCachedKeywords() {
@@ -2947,7 +2963,7 @@ PlacesUtils.keywords = {
    * We must make sure the cache is populated, and await ensureCacheInitialized()
    * before calling this function.
    *
-   * @return {Boolean} Whether the given word is a keyword.
+   * @returns {boolean} Whether the given word is a keyword.
    */
   isKeywordFromCache(keyword) {
     return this._cache?.has(keyword);
