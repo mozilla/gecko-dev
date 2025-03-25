@@ -138,7 +138,7 @@ export class FormAutofillChild extends JSWindowActorChild {
       this.#markAsAutofillField(fieldDetail);
 
       if (
-        fieldDetail.element == lazy.FormAutofillContent.focusedInput &&
+        fieldDetail.element == lazy.FormAutofillContent.focusedElement &&
         !isUpdate
       ) {
         this.showPopupIfEmpty(fieldDetail.element, fieldDetail.fieldName);
@@ -484,7 +484,7 @@ export class FormAutofillChild extends JSWindowActorChild {
         this._hasDOMContentLoadedHandler = true;
         doc.addEventListener(
           "DOMContentLoaded",
-          () => this.onFocusIn(lazy.FormAutofillContent.focusedInput),
+          () => this.onFocusIn(lazy.FormAutofillContent.focusedElement),
           { once: true }
         );
       }

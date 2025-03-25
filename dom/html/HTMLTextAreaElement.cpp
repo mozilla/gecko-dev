@@ -1131,7 +1131,8 @@ JSObject* HTMLTextAreaElement::WrapNode(JSContext* aCx,
   return HTMLTextAreaElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void HTMLTextAreaElement::GetAutocomplete(DOMString& aValue) {
+void HTMLTextAreaElement::GetAutocomplete(nsAString& aValue) {
+  aValue.Truncate();
   const nsAttrValue* attributeVal = GetParsedAttr(nsGkAtoms::autocomplete);
 
   mAutocompleteAttrState = nsContentUtils::SerializeAutocompleteAttribute(
