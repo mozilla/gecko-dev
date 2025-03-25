@@ -122,7 +122,6 @@
 #include "mozilla/dom/Permissions.h"
 #include "mozilla/dom/ProcessMessageManager.h"
 #include "mozilla/dom/PushNotifier.h"
-#include "mozilla/dom/RemoteWorkerDebuggerManagerParent.h"
 #include "mozilla/dom/RemoteWorkerServiceParent.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/dom/ServiceWorkerRegistrar.h"
@@ -7853,14 +7852,8 @@ void ContentParent::StartRemoteWorkerService() {
   Endpoint<PRemoteWorkerServiceChild> childEp;
   mRemoteWorkerServiceActor =
       RemoteWorkerServiceParent::CreateForProcess(this, &childEp);
-
-  Endpoint<PRemoteWorkerDebuggerManagerChild> remoteDebuggerChildEp;
-  mRemoteWorkerDebuggerManagerActor =
-      RemoteWorkerDebuggerManagerParent::CreateForProcess(
-          &remoteDebuggerChildEp);
   if (mRemoteWorkerServiceActor) {
-    Unused << SendInitRemoteWorkerService(std::move(childEp),
-                                          std::move(remoteDebuggerChildEp));
+    Unused << SendInitRemoteWorkerService(std::move(childEp));
   }
 }
 

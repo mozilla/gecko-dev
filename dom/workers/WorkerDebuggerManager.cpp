@@ -71,21 +71,13 @@ static StaticRefPtr<WorkerDebuggerManager> gWorkerDebuggerManager;
 } /* anonymous namespace */
 
 class WorkerDebuggerEnumerator final : public nsSimpleEnumerator {
-  nsTArray<nsCOMPtr<nsIWorkerDebugger>> mDebuggers;
+  nsTArray<RefPtr<WorkerDebugger>> mDebuggers;
   uint32_t mIndex;
 
  public:
   explicit WorkerDebuggerEnumerator(
-      const nsTArray<nsCOMPtr<nsIWorkerDebugger>>& aDebuggers)
-      : mIndex(0) {
-    for (auto debugger : aDebuggers) {
-      bool isRemote;
-      Unused << debugger->GetIsRemote(&isRemote);
-      if (!isRemote) {
-        mDebuggers.AppendElement(debugger);
-      }
-    }
-  }
+      const nsTArray<RefPtr<WorkerDebugger>>& aDebuggers)
+      : mDebuggers(aDebuggers.Clone()), mIndex(0) {}
 
   NS_DECL_NSISIMPLEENUMERATOR
 
@@ -277,28 +269,6 @@ void WorkerDebuggerManager::UnregisterDebugger(WorkerPrivate* aWorkerPrivate) {
   }
 }
 
-void WorkerDebuggerManager::RegisterDebugger(
-    nsIWorkerDebugger* aRemoteWorkerDebugger) {
-  MOZ_ASSERT_DEBUG_OR_FUZZING(XRE_IsParentProcess());
-  AssertIsOnMainThread();
-
-  mDebuggers.AppendElement(aRemoteWorkerDebugger);
-  //  for (const auto& listener : CloneListeners()) {
-  //    listener->OnRegister(aRemoteWorkerDebugger);
-  //  }
-}
-
-void WorkerDebuggerManager::UnregisterDebugger(
-    nsIWorkerDebugger* aRemoteWorkerDebugger) {
-  MOZ_ASSERT_DEBUG_OR_FUZZING(XRE_IsParentProcess());
-  AssertIsOnMainThread();
-
-  mDebuggers.RemoveElement(aRemoteWorkerDebugger);
-  //  for (const auto& listener : CloneListeners()) {
-  //    listener->OnUnregister(aRemoteWorkerDebugger);
-  //  }
-}
-
 void WorkerDebuggerManager::RegisterDebuggerMainThread(
     WorkerPrivate* aWorkerPrivate, bool aNotifyListeners) {
   AssertIsOnMainThread();
@@ -346,23 +316,8 @@ uint32_t WorkerDebuggerManager::GetDebuggersLength() const {
   return mDebuggers.Length();
 }
 
-nsIWorkerDebugger* WorkerDebuggerManager::GetDebuggerAt(uint32_t aIndex) const {
+WorkerDebugger* WorkerDebuggerManager::GetDebuggerAt(uint32_t aIndex) const {
   return mDebuggers.SafeElementAt(aIndex, nullptr);
-}
-
-nsCOMPtr<nsIWorkerDebugger> WorkerDebuggerManager::GetDebuggerById(
-    const nsString& aWorkerId) {
-  MOZ_ASSERT_DEBUG_OR_FUZZING(!aWorkerId.IsEmpty());
-  for (auto debugger : mDebuggers) {
-    nsAutoString workerId;
-    bool isRemote;
-    debugger->GetId(workerId);
-    debugger->GetIsRemote(&isRemote);
-    if (workerId.Equals(aWorkerId) && isRemote) {
-      return debugger;
-    }
-  }
-  return nullptr;
 }
 
 nsTArray<nsCOMPtr<nsIWorkerDebuggerManagerListener>>

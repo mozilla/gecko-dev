@@ -813,28 +813,8 @@ void RemoteWorkerChild::CancelAllPendingOps(RemoteWorkerState& aState) {
   }
 }
 
-void RemoteWorkerChild::PendRemoteWorkerOp(RefPtr<RemoteWorkerOp> aOp) {
-  MOZ_ASSERT_DEBUG_OR_FUZZING(mIsThawing);
-
-  mPendingOps.AppendElement(std::move(aOp));
-}
-
-void RemoteWorkerChild::RunAllPendingOpsOnMainThread() {
-  RefPtr<RemoteWorkerChild> self = this;
-
-  auto pendingOps = std::move(mPendingOps);
-  for (auto& op : pendingOps) {
-    op->StartOnMainThread(self);
-  }
-}
-
 void RemoteWorkerChild::MaybeStartOp(RefPtr<RemoteWorkerOp>&& aOp) {
   MOZ_ASSERT(aOp);
-
-  if (mIsThawing) {
-    mPendingOps.AppendElement(std::move(aOp));
-    return;
-  }
 
   auto lock = mState.Lock();
 

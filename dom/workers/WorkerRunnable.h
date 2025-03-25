@@ -278,7 +278,7 @@ class WorkerDebuggerRunnable : public WorkerThreadRunnable {
  private:
   virtual bool IsDebuggerRunnable() const override { return true; }
 
-  virtual bool PreDispatch(WorkerPrivate* aWorkerPrivate) override {
+  bool PreDispatch(WorkerPrivate* aWorkerPrivate) final {
     AssertIsOnMainThread();
 
     return true;
