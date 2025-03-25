@@ -13,6 +13,7 @@
       );
 
       const destroy_causes_lost = async function () {
+        info("destroy_causes_lost START");
         const adapter = await navigator.gpu.requestAdapter();
         ok(adapter !== undefined, "adapter !== undefined");
         const device = await adapter.requestDevice();
@@ -20,7 +21,9 @@
 
         const lostPromise = device.lost;
         device.destroy();
+        info("waiting for lostPromise");
         const deviceLostReason = await lostPromise;
+        info("lostPromise has resolved");
 
         is(
           deviceLostReason.reason,
@@ -28,9 +31,11 @@
           "Destroy reason should correspond to GPUDeviceLostReason.destroyed"
         );
         is(deviceLostReason.message, "", "Destroy message should be blank");
+        info("destroy_causes_lost END");
       };
 
       const drop_causes_lost_is_unobservable = async function () {
+        info("drop_causes_lost_is_unobservable START");
         const adapter = await navigator.gpu.requestAdapter();
         ok(adapter !== undefined, "adapter !== undefined");
 
@@ -59,6 +64,7 @@
         // Give a chance (one event cycle) for the lostPromise to resolve or
         // reject, but don't wait for any specific amount of time.
         await new Promise(SimpleTest.executeSoon);
+        info("drop_causes_lost_is_unobservable END");
       };
 
       SimpleTest.waitForExplicitFinish();
