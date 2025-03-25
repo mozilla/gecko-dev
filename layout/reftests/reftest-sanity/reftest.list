@@ -212,6 +212,6 @@ skip-if(Android) HTTP == exampleorg-1.html exampleorg-1-ref.html
 # Fuzzy because of anti-aliasing around sheet edges / shadows.
 # TODO(emilio): I think bug 1956128 would fix this. If removing this
 # annotation, remove also rect-no-backgrounds.html and 1814047.html's
-fuzzy-if(winwidget||cocoaWidget,0-1,0-6050) == page-backgrounds.html page-backgrounds-ref.html
+fuzzy-if(winWidget||cocoaWidget,0-1,0-6050) == page-backgrounds.html page-backgrounds-ref.html
 
 != page-backgrounds.html page-backgrounds-notref.html

@@ -633,4 +633,4 @@ pref(svg.use-element.recursive-clone-limit.enabled,1) != about:blank explosive-u
 fuzzy(0-1,0-230400) == 1630900-1.html 1630900-1-ref.html
 # do not increase fuzz significantly, test was designed to be within 1 color unit
 
-fuzzy-if(winwidget||cocoaWidget,0-1,0-6050) == rect-no-backgrounds-print.html rect-no-backgrounds-print-ref.html
+fuzzy-if(winWidget||cocoaWidget,0-1,0-6050) == rect-no-backgrounds-print.html rect-no-backgrounds-print-ref.html
