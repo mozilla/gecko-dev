@@ -190,12 +190,26 @@ void RemoteWorkerService::RegisterRemoteDebugger(
   StaticMutexAutoLock lock(sRemoteWorkerServiceMutex);
   MOZ_ASSERT(sRemoteWorkerService);
   MOZ_ASSERT(sRemoteWorkerService->mThread);
+
+  // If we are on WorkerLauncher thread, direcly call
+  // RemoteWorkerDebuggerManager::SendRegister.
   if (sRemoteWorkerService->mThread->IsOnCurrentThread()) {
-    MOZ_ASSERT(sRemoteWorkerService->mDebuggerManagerActor);
-    Unused << sRemoteWorkerService->mDebuggerManagerActor->SendRegister(
+    MOZ_ASSERT(sRemoteWorkerService->mDebuggerManagerChild);
+    Unused << sRemoteWorkerService->mDebuggerManagerChild->SendRegister(
         std::move(aDebuggerInfo), std::move(aDebuggerParentEp));
     return;
   }
+
+  // For top-level workers in parent process, directly call RecvRegister().
+  if (XRE_IsParentProcess() && NS_IsMainThread()) {
+    MOZ_ASSERT(sRemoteWorkerService->mDebuggerManagerParent);
+    Unused << sRemoteWorkerService->mDebuggerManagerParent->RecvRegister(
+        std::move(aDebuggerInfo), std::move(aDebuggerParentEp));
+    return;
+  }
+
+  // We are on other thread in the case of this is a Child worker. Dispatch this
+  // method to WorkerLauncher thread.
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
       "RemoteWorkerService::RegisterRemoteDebugger",
       [debuggerInfo = std::move(aDebuggerInfo),
@@ -263,9 +277,9 @@ nsresult RemoteWorkerService::InitializeOnMainThread(
        debuggerChildEp = std::move(aDebuggerChildEp)]() mutable {
         self->InitializeOnTargetThread(std::move(endpoint));
 
-        self->mDebuggerManagerActor =
+        self->mDebuggerManagerChild =
             MakeRefPtr<RemoteWorkerDebuggerManagerChild>();
-        debuggerChildEp.Bind(self->mDebuggerManagerActor);
+        debuggerChildEp.Bind(self->mDebuggerManagerChild);
       });
 
   rv = mThread->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
@@ -353,9 +367,9 @@ RemoteWorkerService::Observe(nsISupports* aSubject, const char* aTopic,
   NS_ENSURE_TRUE(parentActor, NS_ERROR_FAILURE);
 
   Endpoint<PRemoteWorkerDebuggerManagerChild> debuggerChildEp;
-  RefPtr<RemoteWorkerDebuggerManagerParent> debuggerParentActor =
+  mDebuggerManagerParent =
       RemoteWorkerDebuggerManagerParent::CreateForProcess(&debuggerChildEp);
-  NS_ENSURE_TRUE(debuggerParentActor, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(mDebuggerManagerParent, NS_ERROR_FAILURE);
 
   return InitializeOnMainThread(std::move(childEp), std::move(debuggerChildEp));
 }

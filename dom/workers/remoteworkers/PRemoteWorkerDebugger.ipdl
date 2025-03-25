@@ -24,6 +24,9 @@ parent:
   async RemoveWindowID(uint64_t aWindowID);
 
 child:
+  async RegisterDone();
+  async UnregisterDone();
+
   async Initialize(nsString aURL);
   async PostMessage(nsString aMessage);
   async SetDebuggerReady(bool aReady);
