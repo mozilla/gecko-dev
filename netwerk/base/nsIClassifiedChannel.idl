@@ -129,6 +129,10 @@ interface nsIClassifiedChannel : nsISupports
     CLASSIFIED_EMAILTRACKING_CONTENT = 0x4000,
 
     /**
+     * The following are about consent managers.
+     */
+    CLASSIFIED_CONSENTMANAGER = 0x8000,
+    /**
      * This is exposed to help to identify tracking classification using the
      * basic lists.
      */
