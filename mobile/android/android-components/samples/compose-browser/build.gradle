@@ -48,6 +48,7 @@ tasks.register("updateTestExtensionVersion", Copy) { task ->
 
 dependencies {
     implementation platform(libs.androidx.compose.bom)
+    implementation project(':compose-base')
     implementation project(':concept-engine')
     implementation project(':concept-awesomebar')
     implementation project(':concept-tabstray')
@@ -68,6 +69,7 @@ dependencies {
     implementation project(':feature-tabs')
 
     implementation project(':service-location')
+    implementation project(':support-ktx')
     implementation project(':support-remotesettings')
     implementation project(':support-rusthttp')
 
