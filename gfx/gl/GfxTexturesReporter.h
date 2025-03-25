@@ -41,7 +41,13 @@ class GfxTexturesReporter final : public nsIMemoryReporter {
   // the value reported by this memory reporter.
   static void UpdateAmount(MemoryUse action, size_t amount);
 
-  static void UpdateWasteAmount(size_t delta) { sTileWasteAmount += delta; }
+  static void UpdateWasteAmount(int32_t delta) {
+    if (delta >= 0) {
+      sTileWasteAmount += static_cast<size_t>(delta);
+    } else {
+      sTileWasteAmount -= static_cast<size_t>(-delta);
+    }
+  }
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
                             nsISupports* aData, bool aAnonymize) override {
