@@ -235,8 +235,10 @@ class nsHostResolver : public nsISupports, public AHostResolver {
   nsresult ConditionallyCreateThread(nsHostRecord* rec) MOZ_REQUIRES(mLock);
 
   /**
-   * Starts a new lookup in the background for entries that are in the grace
-   * period with a failed connect or all cached entries are negative.
+   * Starts a new lookup in the background for cached entries that are in the
+   * grace period or that are are negative.
+   *
+   * Also records telemetry for type of cache hit (HIT/NEGATIVE_HIT/RENEWAL).
    */
   nsresult ConditionallyRefreshRecord(nsHostRecord* rec, const nsACString& host,
                                       const mozilla::MutexAutoLock& aLock)

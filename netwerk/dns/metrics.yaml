@@ -25,6 +25,7 @@ dns:
     histogram_type: linear
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954708
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
     notification_emails:

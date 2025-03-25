@@ -697,21 +697,16 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromCache(
 
   // put reference to host record on stack...
   RefPtr<nsHostRecord> result = aRec;
-  if (IS_ADDR_TYPE(aType)) {
-    glean::dns::lookup_method.AccumulateSingleSample(METHOD_HIT);
-  }
 
-  // For entries that are in the grace period
-  // or all cached negative entries, use the cache but start a new
-  // lookup in the background
+  // For cached entries that are in the grace period or negative, use the cache
+  // but start a new lookup in the background.
+  //
+  // Also records telemetry for type of cache hit (HIT/NEGATIVE_HIT/RENEWAL).
   ConditionallyRefreshRecord(aRec, aHost, aLock);
 
   if (aRec->negative) {
     LOG(("  Negative cache entry for host [%s].\n",
          nsPromiseFlatCString(aHost).get()));
-    if (IS_ADDR_TYPE(aType)) {
-      glean::dns::lookup_method.AccumulateSingleSample(METHOD_NEGATIVE_HIT);
-    }
     aStatus = NS_ERROR_UNKNOWN_HOST;
   }
 
@@ -805,7 +800,6 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromUnspecEntry(
         if (aRec->negative) {
           aStatus = NS_ERROR_UNKNOWN_HOST;
         }
-        glean::dns::lookup_method.AccumulateSingleSample(METHOD_HIT);
         ConditionallyRefreshRecord(aRec, aHost, lock);
       } else if (af == PR_AF_INET6) {
         // For AF_INET6, a new lookup means another AF_UNSPEC
@@ -819,6 +813,8 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromUnspecEntry(
         result = aRec;
         aRec->negative = true;
         aStatus = NS_ERROR_UNKNOWN_HOST;
+        // this record has just been marked as negative so we record the
+        // telemetry for it.
         glean::dns::lookup_method.AccumulateSingleSample(METHOD_NEGATIVE_HIT);
       }
     }
@@ -1223,12 +1219,24 @@ nsresult nsHostResolver::ConditionallyRefreshRecord(
          rec->negative ? "negative" : "positive", host.BeginReading()));
     NameLookup(rec, aLock);
 
-    if (rec->IsAddrRecord() && !rec->negative) {
-      // negative entries are constantly being refreshed, only
-      // track positive grace period induced renewals
-      glean::dns::lookup_method.AccumulateSingleSample(METHOD_RENEWAL);
+    if (rec->IsAddrRecord()) {
+      if (!rec->negative) {
+        glean::dns::lookup_method.AccumulateSingleSample(METHOD_RENEWAL);
+      } else {
+        glean::dns::lookup_method.AccumulateSingleSample(METHOD_NEGATIVE_HIT);
+      }
+    }
+  } else if (rec->IsAddrRecord()) {
+    // it could be that the record is negative, but we haven't entered the above
+    // if condition due to the second expression being false. In that case we
+    // need to record the telemetry for the negative record here.
+    if (!rec->negative) {
+      glean::dns::lookup_method.AccumulateSingleSample(METHOD_HIT);
+    } else {
+      glean::dns::lookup_method.AccumulateSingleSample(METHOD_NEGATIVE_HIT);
     }
   }
+
   return NS_OK;
 }
 
