@@ -94,7 +94,7 @@ internal class BookmarksMiddleware(
                 Result.runCatching {
                     val bookmarkNode = bookmarksStorage.getBookmark(action.guid)
                     val bookmark = bookmarkNode?.let {
-                        BookmarkItem.Bookmark(it.url!!, it.title!!, it.url!!, it.guid)
+                        BookmarkItem.Bookmark(it.url!!, it.title ?: "", it.url!!, it.guid)
                     }
                     val folder = bookmarkNode?.parentGuid
                         ?.let { bookmarksStorage.getBookmark(it) }

@@ -35,7 +35,6 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import org.mozilla.fenix.GleanMetrics.CustomizeHome.bookmarks
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
@@ -108,7 +107,26 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN bookmarks in storage and not signed into sync WHEN store is initialized THEN bookmarks will be loaded`() = runTestOnMain {
+    fun `GIVEN bookmarks in storage and navigating directly to the edit screen WHEN store is initialized THEN bookmark to edit will be loaded`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        val parent = generateBookmark("item guid 1", null, "https://mozilla.org")
+        val child = generateBookmark("item guid 2", null, "https://mozilla.org").copy(parentGuid = "item guid 1")
+        `when`(bookmarksStorage.getBookmark("item guid 1")).thenReturn(parent)
+        `when`(bookmarksStorage.getBookmark("item guid 2")).thenReturn(child)
+        val middleware = buildMiddleware()
+
+        val store = middleware.makeStore(bookmarkToLoad = "item guid 2")
+        val bookmark = BookmarkItem.Bookmark(
+            url = "https://mozilla.org",
+            title = "",
+            previewImageUrl = "https://mozilla.org",
+            guid = "item guid 2",
+        )
+        assertEquals(bookmark, store.state.bookmarksEditBookmarkState?.bookmark)
+    }
+
+    @Test
+    fun `GIVEN bookmarks in storage and not signed into sync WHEN store is initialized THEN bookmarks will be sorted by last modified date`() = runTestOnMain {
         val reverseOrderByModifiedBookmarks = List(5) {
             generateBookmark(
                 guid = "$it",
@@ -1430,9 +1448,11 @@ class BookmarksMiddlewareTest {
 
     private fun BookmarksMiddleware.makeStore(
         initialState: BookmarksState = BookmarksState.default,
+        bookmarkToLoad: String? = null,
     ) = BookmarksStore(
         initialState = initialState,
         middleware = listOf(this),
+        bookmarkToLoad = bookmarkToLoad,
     ).also {
         it.waitUntilIdle()
     }
@@ -1490,7 +1510,7 @@ class BookmarksMiddlewareTest {
         children = bookmarkItems,
     )
 
-    private fun generateBookmark(guid: String, title: String, url: String, lastModified: Long = 0) = BookmarkNode(
+    private fun generateBookmark(guid: String, title: String?, url: String, lastModified: Long = 0) = BookmarkNode(
         type = BookmarkNodeType.ITEM,
         guid = guid,
         parentGuid = null,
