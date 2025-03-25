@@ -17,7 +17,7 @@
 #include "nsTArray.h"
 
 #define SERVICEWORKERREGISTRAR_FILE u"serviceworker.txt"
-#define SERVICEWORKERREGISTRAR_VERSION "9"
+#define SERVICEWORKERREGISTRAR_VERSION 9
 #define SERVICEWORKERREGISTRAR_TERMINATOR "#"
 #define SERVICEWORKERREGISTRAR_TRUE "true"
 #define SERVICEWORKERREGISTRAR_FALSE "false"
@@ -94,7 +94,7 @@ class ServiceWorkerRegistrar : public nsIObserver,
 
   nsCOMPtr<nsIAsyncShutdownClient> GetShutdownPhase() const;
 
-  bool IsSupportedVersion(const nsACString& aVersion) const;
+  bool IsSupportedVersion(uint32_t aVersion) const;
 
  protected:
   mozilla::Monitor mMonitor;

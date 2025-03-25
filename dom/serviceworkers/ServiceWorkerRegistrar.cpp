@@ -50,8 +50,8 @@ namespace mozilla::dom {
 
 namespace {
 
-static const char* gSupportedRegistrarVersions[] = {
-    SERVICEWORKERREGISTRAR_VERSION, "8", "7", "6", "5", "4", "3", "2"};
+static const uint32_t gSupportedRegistrarVersions[] = {
+    SERVICEWORKERREGISTRAR_VERSION, 8, 7, 6, 5, 4, 3, 2};
 
 static const uint32_t kInvalidGeneration = static_cast<uint32_t>(-1);
 
@@ -436,9 +436,14 @@ nsresult ServiceWorkerRegistrar::ReadData() {
   nsCOMPtr<nsILineInputStream> lineInputStream = do_QueryInterface(stream);
   MOZ_ASSERT(lineInputStream);
 
-  nsAutoCString version;
+  nsAutoCString versionStr;
   bool hasMoreLines;
-  rv = lineInputStream->ReadLine(version, &hasMoreLines);
+  rv = lineInputStream->ReadLine(versionStr, &hasMoreLines);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  uint32_t version = versionStr.ToUnsignedInteger(&rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -446,7 +451,7 @@ nsresult ServiceWorkerRegistrar::ReadData() {
   if (!IsSupportedVersion(version)) {
     nsContentUtils::LogMessageToConsole(
         nsPrintfCString("Unsupported service worker registrar version: %s",
-                        version.get())
+                        versionStr.get())
             .get());
     return NS_ERROR_FAILURE;
   }
@@ -468,342 +473,367 @@ nsresult ServiceWorkerRegistrar::ReadData() {
   }
 
     nsAutoCString line;
-    if (version.EqualsLiteral(SERVICEWORKERREGISTRAR_VERSION)) {
-      rv = CreatePrincipalInfo(lineInputStream, entry);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+    switch (version) {
+      case SERVICEWORKERREGISTRAR_VERSION: {
+        rv = CreatePrincipalInfo(lineInputStream, entry);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+
+        GET_LINE(entry->currentWorkerURL());
+
+        nsAutoCString fetchFlag;
+        GET_LINE(fetchFlag);
+        if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
+            !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
+          return NS_ERROR_INVALID_ARG;
+        }
+        entry->currentWorkerHandlesFetch() =
+            fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
+
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
+
+        nsAutoCString updateViaCache;
+        GET_LINE(updateViaCache);
+        entry->updateViaCache() = updateViaCache.ToInteger(&rv, 16);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        if (entry->updateViaCache() >
+            nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_NONE) {
+          return NS_ERROR_INVALID_ARG;
+        }
+
+        nsAutoCString installedTimeStr;
+        GET_LINE(installedTimeStr);
+        int64_t installedTime = installedTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->currentWorkerInstalledTime() = installedTime;
+
+        nsAutoCString activatedTimeStr;
+        GET_LINE(activatedTimeStr);
+        int64_t activatedTime = activatedTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->currentWorkerActivatedTime() = activatedTime;
+
+        nsAutoCString lastUpdateTimeStr;
+        GET_LINE(lastUpdateTimeStr);
+        int64_t lastUpdateTime = lastUpdateTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->lastUpdateTime() = lastUpdateTime;
+
+        nsAutoCString navigationPreloadEnabledStr;
+        GET_LINE(navigationPreloadEnabledStr);
+        bool navigationPreloadEnabled =
+            navigationPreloadEnabledStr.ToInteger(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->navigationPreloadState().enabled() = navigationPreloadEnabled;
+
+        GET_LINE(entry->navigationPreloadState().headerValue());
+        break;
       }
 
-      GET_LINE(entry->currentWorkerURL());
+      case 8: {
+        rv = CreatePrincipalInfo(lineInputStream, entry);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString fetchFlag;
-      GET_LINE(fetchFlag);
-      if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
-          !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
-        return NS_ERROR_INVALID_ARG;
-      }
-      entry->currentWorkerHandlesFetch() =
-          fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
+        GET_LINE(entry->currentWorkerURL());
 
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
+        nsAutoCString fetchFlag;
+        GET_LINE(fetchFlag);
+        if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
+            !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
+          return NS_ERROR_INVALID_ARG;
+        }
+        entry->currentWorkerHandlesFetch() =
+            fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
 
-      nsAutoCString updateViaCache;
-      GET_LINE(updateViaCache);
-      entry->updateViaCache() = updateViaCache.ToInteger(&rv, 16);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      if (entry->updateViaCache() >
-          nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_NONE) {
-        return NS_ERROR_INVALID_ARG;
-      }
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
 
-      nsAutoCString installedTimeStr;
-      GET_LINE(installedTimeStr);
-      int64_t installedTime = installedTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->currentWorkerInstalledTime() = installedTime;
+        nsAutoCString updateViaCache;
+        GET_LINE(updateViaCache);
+        entry->updateViaCache() = updateViaCache.ToInteger(&rv, 16);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        if (entry->updateViaCache() >
+            nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_NONE) {
+          return NS_ERROR_INVALID_ARG;
+        }
 
-      nsAutoCString activatedTimeStr;
-      GET_LINE(activatedTimeStr);
-      int64_t activatedTime = activatedTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->currentWorkerActivatedTime() = activatedTime;
+        nsAutoCString installedTimeStr;
+        GET_LINE(installedTimeStr);
+        int64_t installedTime = installedTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->currentWorkerInstalledTime() = installedTime;
 
-      nsAutoCString lastUpdateTimeStr;
-      GET_LINE(lastUpdateTimeStr);
-      int64_t lastUpdateTime = lastUpdateTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->lastUpdateTime() = lastUpdateTime;
+        nsAutoCString activatedTimeStr;
+        GET_LINE(activatedTimeStr);
+        int64_t activatedTime = activatedTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->currentWorkerActivatedTime() = activatedTime;
 
-      nsAutoCString navigationPreloadEnabledStr;
-      GET_LINE(navigationPreloadEnabledStr);
-      bool navigationPreloadEnabled =
-          navigationPreloadEnabledStr.ToInteger(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->navigationPreloadState().enabled() = navigationPreloadEnabled;
+        nsAutoCString lastUpdateTimeStr;
+        GET_LINE(lastUpdateTimeStr);
+        int64_t lastUpdateTime = lastUpdateTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->lastUpdateTime() = lastUpdateTime;
 
-      GET_LINE(entry->navigationPreloadState().headerValue());
-    } else if (version.EqualsLiteral("8")) {
-      rv = CreatePrincipalInfo(lineInputStream, entry);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        entry->navigationPreloadState() = gDefaultNavigationPreloadState;
+        break;
       }
 
-      GET_LINE(entry->currentWorkerURL());
+      case 7: {
+        rv = CreatePrincipalInfo(lineInputStream, entry);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString fetchFlag;
-      GET_LINE(fetchFlag);
-      if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
-          !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
-        return NS_ERROR_INVALID_ARG;
-      }
-      entry->currentWorkerHandlesFetch() =
-          fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
+        GET_LINE(entry->currentWorkerURL());
 
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
+        nsAutoCString fetchFlag;
+        GET_LINE(fetchFlag);
+        if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
+            !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
+          return NS_ERROR_INVALID_ARG;
+        }
+        entry->currentWorkerHandlesFetch() =
+            fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
 
-      nsAutoCString updateViaCache;
-      GET_LINE(updateViaCache);
-      entry->updateViaCache() = updateViaCache.ToInteger(&rv, 16);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      if (entry->updateViaCache() >
-          nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_NONE) {
-        return NS_ERROR_INVALID_ARG;
-      }
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
 
-      nsAutoCString installedTimeStr;
-      GET_LINE(installedTimeStr);
-      int64_t installedTime = installedTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->currentWorkerInstalledTime() = installedTime;
+        nsAutoCString loadFlags;
+        GET_LINE(loadFlags);
+        entry->updateViaCache() =
+            loadFlags.ToInteger(&rv, 16) == nsIRequest::LOAD_NORMAL
+                ? nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_ALL
+                : nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
 
-      nsAutoCString activatedTimeStr;
-      GET_LINE(activatedTimeStr);
-      int64_t activatedTime = activatedTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->currentWorkerActivatedTime() = activatedTime;
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString lastUpdateTimeStr;
-      GET_LINE(lastUpdateTimeStr);
-      int64_t lastUpdateTime = lastUpdateTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->lastUpdateTime() = lastUpdateTime;
+        nsAutoCString installedTimeStr;
+        GET_LINE(installedTimeStr);
+        int64_t installedTime = installedTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->currentWorkerInstalledTime() = installedTime;
 
-      entry->navigationPreloadState() = gDefaultNavigationPreloadState;
-    } else if (version.EqualsLiteral("7")) {
-      rv = CreatePrincipalInfo(lineInputStream, entry);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
+        nsAutoCString activatedTimeStr;
+        GET_LINE(activatedTimeStr);
+        int64_t activatedTime = activatedTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->currentWorkerActivatedTime() = activatedTime;
 
-      GET_LINE(entry->currentWorkerURL());
+        nsAutoCString lastUpdateTimeStr;
+        GET_LINE(lastUpdateTimeStr);
+        int64_t lastUpdateTime = lastUpdateTimeStr.ToInteger64(&rv);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+        entry->lastUpdateTime() = lastUpdateTime;
 
-      nsAutoCString fetchFlag;
-      GET_LINE(fetchFlag);
-      if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
-          !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
-        return NS_ERROR_INVALID_ARG;
-      }
-      entry->currentWorkerHandlesFetch() =
-          fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
-
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
-
-      nsAutoCString loadFlags;
-      GET_LINE(loadFlags);
-      entry->updateViaCache() =
-          loadFlags.ToInteger(&rv, 16) == nsIRequest::LOAD_NORMAL
-              ? nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_ALL
-              : nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
-
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        entry->navigationPreloadState() = gDefaultNavigationPreloadState;
+        break;
       }
 
-      nsAutoCString installedTimeStr;
-      GET_LINE(installedTimeStr);
-      int64_t installedTime = installedTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->currentWorkerInstalledTime() = installedTime;
+      case 6: {
+        rv = CreatePrincipalInfo(lineInputStream, entry);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString activatedTimeStr;
-      GET_LINE(activatedTimeStr);
-      int64_t activatedTime = activatedTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->currentWorkerActivatedTime() = activatedTime;
+        GET_LINE(entry->currentWorkerURL());
 
-      nsAutoCString lastUpdateTimeStr;
-      GET_LINE(lastUpdateTimeStr);
-      int64_t lastUpdateTime = lastUpdateTimeStr.ToInteger64(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-      entry->lastUpdateTime() = lastUpdateTime;
+        nsAutoCString fetchFlag;
+        GET_LINE(fetchFlag);
+        if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
+            !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
+          return NS_ERROR_INVALID_ARG;
+        }
+        entry->currentWorkerHandlesFetch() =
+            fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
 
-      entry->navigationPreloadState() = gDefaultNavigationPreloadState;
-    } else if (version.EqualsLiteral("6")) {
-      rv = CreatePrincipalInfo(lineInputStream, entry);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
 
-      GET_LINE(entry->currentWorkerURL());
+        nsAutoCString loadFlags;
+        GET_LINE(loadFlags);
+        entry->updateViaCache() =
+            loadFlags.ToInteger(&rv, 16) == nsIRequest::LOAD_NORMAL
+                ? nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_ALL
+                : nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
 
-      nsAutoCString fetchFlag;
-      GET_LINE(fetchFlag);
-      if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
-          !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
-        return NS_ERROR_INVALID_ARG;
-      }
-      entry->currentWorkerHandlesFetch() =
-          fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
+        entry->currentWorkerInstalledTime() = 0;
+        entry->currentWorkerActivatedTime() = 0;
+        entry->lastUpdateTime() = 0;
 
-      nsAutoCString loadFlags;
-      GET_LINE(loadFlags);
-      entry->updateViaCache() =
-          loadFlags.ToInteger(&rv, 16) == nsIRequest::LOAD_NORMAL
-              ? nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_ALL
-              : nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
-
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        entry->navigationPreloadState() = gDefaultNavigationPreloadState;
+        break;
       }
 
-      entry->currentWorkerInstalledTime() = 0;
-      entry->currentWorkerActivatedTime() = 0;
-      entry->lastUpdateTime() = 0;
+      case 5: {
+        overwrite = true;
+        dedupe = true;
 
-      entry->navigationPreloadState() = gDefaultNavigationPreloadState;
-    } else if (version.EqualsLiteral("5")) {
-      overwrite = true;
-      dedupe = true;
+        rv = CreatePrincipalInfo(lineInputStream, entry);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      rv = CreatePrincipalInfo(lineInputStream, entry);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        GET_LINE(entry->currentWorkerURL());
+
+        nsAutoCString fetchFlag;
+        GET_LINE(fetchFlag);
+        if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
+            !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
+          return NS_ERROR_INVALID_ARG;
+        }
+        entry->currentWorkerHandlesFetch() =
+            fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
+
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
+
+        entry->updateViaCache() =
+            nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
+
+        entry->currentWorkerInstalledTime() = 0;
+        entry->currentWorkerActivatedTime() = 0;
+        entry->lastUpdateTime() = 0;
+
+        entry->navigationPreloadState() = gDefaultNavigationPreloadState;
+        break;
       }
 
-      GET_LINE(entry->currentWorkerURL());
+      case 4: {
+        overwrite = true;
+        dedupe = true;
 
-      nsAutoCString fetchFlag;
-      GET_LINE(fetchFlag);
-      if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
-          !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
-        return NS_ERROR_INVALID_ARG;
-      }
-      entry->currentWorkerHandlesFetch() =
-          fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
+        rv = CreatePrincipalInfo(lineInputStream, entry);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
+        GET_LINE(entry->currentWorkerURL());
 
-      entry->updateViaCache() =
-          nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
+        // default handlesFetch flag to Enabled
+        entry->currentWorkerHandlesFetch() = true;
 
-      entry->currentWorkerInstalledTime() = 0;
-      entry->currentWorkerActivatedTime() = 0;
-      entry->lastUpdateTime() = 0;
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
 
-      entry->navigationPreloadState() = gDefaultNavigationPreloadState;
-    } else if (version.EqualsLiteral("4")) {
-      overwrite = true;
-      dedupe = true;
+        entry->updateViaCache() =
+            nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
 
-      rv = CreatePrincipalInfo(lineInputStream, entry);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        entry->currentWorkerInstalledTime() = 0;
+        entry->currentWorkerActivatedTime() = 0;
+        entry->lastUpdateTime() = 0;
+
+        entry->navigationPreloadState() = gDefaultNavigationPreloadState;
+        break;
       }
 
-      GET_LINE(entry->currentWorkerURL());
+      case 3: {
+        overwrite = true;
+        dedupe = true;
 
-      // default handlesFetch flag to Enabled
-      entry->currentWorkerHandlesFetch() = true;
+        rv = CreatePrincipalInfo(lineInputStream, entry, true);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
+        GET_LINE(entry->currentWorkerURL());
 
-      entry->updateViaCache() =
-          nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
+        // default handlesFetch flag to Enabled
+        entry->currentWorkerHandlesFetch() = true;
 
-      entry->currentWorkerInstalledTime() = 0;
-      entry->currentWorkerActivatedTime() = 0;
-      entry->lastUpdateTime() = 0;
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
 
-      entry->navigationPreloadState() = gDefaultNavigationPreloadState;
-    } else if (version.EqualsLiteral("3")) {
-      overwrite = true;
-      dedupe = true;
+        entry->updateViaCache() =
+            nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
 
-      rv = CreatePrincipalInfo(lineInputStream, entry, true);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        entry->currentWorkerInstalledTime() = 0;
+        entry->currentWorkerActivatedTime() = 0;
+        entry->lastUpdateTime() = 0;
+
+        entry->navigationPreloadState() = gDefaultNavigationPreloadState;
+        break;
       }
 
-      GET_LINE(entry->currentWorkerURL());
+      case 2: {
+        overwrite = true;
+        dedupe = true;
 
-      // default handlesFetch flag to Enabled
-      entry->currentWorkerHandlesFetch() = true;
+        rv = CreatePrincipalInfo(lineInputStream, entry, true);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
+        // scriptSpec is no more used in latest version.
+        nsAutoCString unused;
+        GET_LINE(unused);
 
-      entry->updateViaCache() =
-          nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
+        GET_LINE(entry->currentWorkerURL());
 
-      entry->currentWorkerInstalledTime() = 0;
-      entry->currentWorkerActivatedTime() = 0;
-      entry->lastUpdateTime() = 0;
+        // default handlesFetch flag to Enabled
+        entry->currentWorkerHandlesFetch() = true;
 
-      entry->navigationPreloadState() = gDefaultNavigationPreloadState;
-    } else if (version.EqualsLiteral("2")) {
-      overwrite = true;
-      dedupe = true;
+        nsAutoCString cacheName;
+        GET_LINE(cacheName);
+        CopyUTF8toUTF16(cacheName, entry->cacheName());
 
-      rv = CreatePrincipalInfo(lineInputStream, entry, true);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        // waitingCacheName is no more used in latest version.
+        GET_LINE(unused);
+
+        entry->updateViaCache() =
+            nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
+
+        entry->currentWorkerInstalledTime() = 0;
+        entry->currentWorkerActivatedTime() = 0;
+        entry->lastUpdateTime() = 0;
+
+        entry->navigationPreloadState() = gDefaultNavigationPreloadState;
+        break;
       }
 
-      // scriptSpec is no more used in latest version.
-      nsAutoCString unused;
-      GET_LINE(unused);
-
-      GET_LINE(entry->currentWorkerURL());
-
-      // default handlesFetch flag to Enabled
-      entry->currentWorkerHandlesFetch() = true;
-
-      nsAutoCString cacheName;
-      GET_LINE(cacheName);
-      CopyUTF8toUTF16(cacheName, entry->cacheName());
-
-      // waitingCacheName is no more used in latest version.
-      GET_LINE(unused);
-
-      entry->updateViaCache() =
-          nsIServiceWorkerRegistrationInfo::UPDATE_VIA_CACHE_IMPORTS;
-
-      entry->currentWorkerInstalledTime() = 0;
-      entry->currentWorkerActivatedTime() = 0;
-      entry->lastUpdateTime() = 0;
-
-      entry->navigationPreloadState() = gDefaultNavigationPreloadState;
-    } else {
-      MOZ_ASSERT_UNREACHABLE("Should never get here!");
+      default:
+        MOZ_ASSERT_UNREACHABLE("Should never get here!");
     }
 
 #undef GET_LINE
@@ -1094,11 +1124,10 @@ void ServiceWorkerRegistrar::MaybeResetGeneration() {
   mDataGeneration = mFileGeneration = 0;
 }
 
-bool ServiceWorkerRegistrar::IsSupportedVersion(
-    const nsACString& aVersion) const {
+bool ServiceWorkerRegistrar::IsSupportedVersion(uint32_t aVersion) const {
   uint32_t numVersions = std::size(gSupportedRegistrarVersions);
   for (uint32_t i = 0; i < numVersions; i++) {
-    if (aVersion.EqualsASCII(gSupportedRegistrarVersions[i])) {
+    if (aVersion == gSupportedRegistrarVersions[i]) {
       return true;
     }
   }
@@ -1137,7 +1166,7 @@ nsresult ServiceWorkerRegistrar::WriteData(
   }
 
   nsAutoCString buffer;
-  buffer.AppendLiteral(SERVICEWORKERREGISTRAR_VERSION);
+  buffer.AppendInt(static_cast<uint32_t>(SERVICEWORKERREGISTRAR_VERSION));
   buffer.Append('\n');
 
   uint32_t count;

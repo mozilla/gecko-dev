@@ -124,7 +124,11 @@ TEST(ServiceWorkerRegistrar, TestEmptyFile)
 
 TEST(ServiceWorkerRegistrar, TestRightVersionFile)
 {
-  ASSERT_TRUE(CreateFile(nsLiteralCString(SERVICEWORKERREGISTRAR_VERSION "\n")))
+  nsCString buffer;
+  buffer.AppendInt(static_cast<uint32_t>(SERVICEWORKERREGISTRAR_VERSION));
+  buffer.Append("\n");
+
+  ASSERT_TRUE(CreateFile(buffer))
   << "CreateFile should not fail";
 
   RefPtr<ServiceWorkerRegistrarTest> swr = new ServiceWorkerRegistrarTest;
@@ -140,8 +144,11 @@ TEST(ServiceWorkerRegistrar, TestRightVersionFile)
 
 TEST(ServiceWorkerRegistrar, TestWrongVersionFile)
 {
-  ASSERT_TRUE(
-      CreateFile(nsLiteralCString(SERVICEWORKERREGISTRAR_VERSION "bla\n")))
+  nsCString buffer;
+  buffer.AppendInt(static_cast<uint32_t>(SERVICEWORKERREGISTRAR_VERSION));
+  buffer.Append("bla\n");
+
+  ASSERT_TRUE(CreateFile(buffer))
   << "CreateFile should not fail";
 
   RefPtr<ServiceWorkerRegistrarTest> swr = new ServiceWorkerRegistrarTest;
@@ -157,7 +164,9 @@ TEST(ServiceWorkerRegistrar, TestWrongVersionFile)
 
 TEST(ServiceWorkerRegistrar, TestReadData)
 {
-  nsAutoCString buffer(SERVICEWORKERREGISTRAR_VERSION "\n");
+  nsCString buffer;
+  buffer.AppendInt(static_cast<uint32_t>(SERVICEWORKERREGISTRAR_VERSION));
+  buffer.Append("\n");
 
   buffer.AppendLiteral("^inBrowser=1\n");
   buffer.AppendLiteral("https://scope_0.org\ncurrentWorkerURL 0\n");
