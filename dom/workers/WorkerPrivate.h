@@ -1078,6 +1078,8 @@ class WorkerPrivate final
 
   bool IsQueued() const;
 
+  void UpdateWindowIDToDebugger(const uint64_t& aWindowID, const bool& aIsAdd);
+
   already_AddRefed<WorkerRunnable> MaybeWrapAsWorkerRunnable(
       already_AddRefed<nsIRunnable> aRunnable);
 

@@ -5693,6 +5693,8 @@ void WorkerPrivate::LeaveDebuggerEventLoop() {
 }
 
 void WorkerPrivate::PostMessageToDebugger(const nsAString& aMessage) {
+  AssertIsOnWorkerThread();
+
   mDebugger->PostMessageToDebugger(aMessage);
   RefPtr<RemoteWorkerDebuggerChild> remoteDebugger;
   {
@@ -5720,6 +5722,7 @@ void WorkerPrivate::SetDebuggerImmediate(dom::Function& aHandler,
 void WorkerPrivate::ReportErrorToDebugger(const nsACString& aFilename,
                                           uint32_t aLineno,
                                           const nsAString& aMessage) {
+  AssertIsOnWorkerThread();
   mDebugger->ReportErrorToDebugger(aFilename, aLineno, aMessage);
   RefPtr<RemoteWorkerDebuggerChild> remoteDebugger;
   {
@@ -5733,6 +5736,28 @@ void WorkerPrivate::ReportErrorToDebugger(const nsACString& aFilename,
   Unused << remoteDebugger->SendReportErrorToDebugger(
       RemoteWorkerDebuggerErrorInfo(nsAutoCString(aFilename), aLineno,
                                     nsAutoString(aMessage)));
+}
+
+void WorkerPrivate::UpdateWindowIDToDebugger(const uint64_t& aWindowID,
+                                             const bool& aIsAdd) {
+  AssertIsOnWorkerThread();
+  // only need to update the remote debugger since local debugger grab the
+  // windowIDs information from RemoteWorkerChild directly.
+
+  RefPtr<RemoteWorkerDebuggerChild> remoteDebugger;
+  {
+    MutexAutoLock lock(mMutex);
+    if (!mRemoteDebugger) {
+      return;
+    }
+    remoteDebugger = mRemoteDebugger;
+  }
+  MOZ_ASSERT_DEBUG_OR_FUZZING(remoteDebugger);
+  if (aIsAdd) {
+    Unused << remoteDebugger->SendAddWindowID(aWindowID);
+  } else {
+    Unused << remoteDebugger->SendRemoveWindowID(aWindowID);
+  }
 }
 
 bool WorkerPrivate::NotifyInternal(WorkerStatus aStatus) {
