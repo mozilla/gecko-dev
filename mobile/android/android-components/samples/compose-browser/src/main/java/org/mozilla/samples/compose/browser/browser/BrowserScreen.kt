@@ -21,21 +21,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
-import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
-import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.compose.engine.WebContent
 import mozilla.components.compose.tabstray.TabList
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -48,7 +42,7 @@ import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.composableStore
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
-import mozilla.components.ui.icons.R
+import org.mozilla.samples.compose.browser.browser.BrowserToolbarMiddleware.Companion.Dependencies
 import org.mozilla.samples.compose.browser.components
 
 /**
@@ -56,31 +50,21 @@ import org.mozilla.samples.compose.browser.components
  */
 @Suppress("LongMethod")
 @Composable
-fun BrowserScreen() {
+fun BrowserScreen(navController: NavController) {
     val target = Target.SelectedTab
+    val context = LocalContext.current
 
     val store = composableStore<BrowserScreenState, BrowserScreenAction> { restoredState ->
         BrowserScreenStore(restoredState ?: BrowserScreenState())
     }
     val toolbarStore = remember {
         BrowserToolbarStore(
-            initialState = BrowserToolbarState(
-                displayState = DisplayState(
-                    hint = "Search or enter address",
-                    browserActions = listOf(
-                        TabCounterAction(
-                            count = 1,
-                            contentDescription = "Tabs open: 1",
-                            showPrivacyMask = false,
-                            onClick = object : BrowserToolbarEvent {},
-                            onLongClick = BrowserToolbarMenu { emptyList() },
-                        ),
-                        ActionButton(
-                            icon = R.drawable.mozac_ic_ellipsis_vertical_24,
-                            contentDescription = R.string.mozac_error_confused,
-                            tint = Color.Black.toArgb(),
-                            onClick = object : BrowserToolbarEvent {},
-                        ),
+            middleware = listOf(
+                BrowserToolbarMiddleware(
+                    initialDependencies = Dependencies(
+                        context = context,
+                        navController = navController,
+                        browserScreenStore = store,
                     ),
                 ),
             ),

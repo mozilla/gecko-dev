@@ -4,4 +4,9 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources>
     <string name="app_name">Compose Browser</string>
+    <string name="page_action_refresh_description">Refresh</string>
+    <string name="menu_button_description">Menu</string>
+    <string name="menu_item_settings">Settings</string>
+    <string name="menu_item_settings_description">Open browser settings</string>
+    <string name="clear_input_description">Clear input</string>
 </resources>
