@@ -110,6 +110,8 @@
         PictureInPicture: "resource://gre/modules/PictureInPicture.sys.mjs",
         SmartTabGroupingManager:
           "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs",
+        TabStateFlusher:
+          "resource:///modules/sessionstore/TabStateFlusher.sys.mjs",
         UrlbarProviderOpenTabs:
           "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
       });
@@ -3000,6 +3002,16 @@
         })
       );
 
+      // Fixes bug1953801 and bug1954689
+      // Ensure that the tab state cache is updated immediately after creating
+      // a group. This is necessary because we consider group creation a
+      // deliberate user action indicating the tab has importance for the user.
+      // Without this, it is not possible to save and close a tab group with
+      // a short lifetime.
+      group.tabs.forEach(tab => {
+        this.TabStateFlusher.flush(tab.linkedBrowser);
+      });
+
       return group;
     }
 
@@ -4490,7 +4502,7 @@
             if (!skipSessionStore) {
               group.save();
             }
-            gBrowser.removeTabGroup(group, {
+            this.removeTabGroup(group, {
               animate,
               skipSessionStore,
               skipPermitUnload,
