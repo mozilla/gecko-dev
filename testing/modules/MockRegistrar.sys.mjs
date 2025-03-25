@@ -27,35 +27,6 @@ export var MockRegistrar = Object.freeze({
    * @return           The CID of the mock.
    */
   register(contractID, mock, args) {
-    return this.registerEx(
-      contractID,
-      { shouldCreateInstance: true },
-      mock,
-      args
-    );
-  },
-
-  /**
-   * Register a mock to override target interfaces.
-   * If shouldCreateInstance is true then the target interface may be accessed
-   * through _genuine property of the mock.
-   * If you register multiple mocks to the same contract ID, you have to call
-   * unregister in reverse order. Otherwise the previous factory will not be
-   * restored.
-   *
-   * @param contractID The contract ID of the interface which is overridden by
-                       the mock.
-   *                   e.g. "@mozilla.org/file/directory_service;1"
-   * @param options    Options object with any of the following optional
-   *                   parameters:
-   *                   * shouldCreateInstance: Adds the _genuine property to
-   *                     the mock.
-   * @param mock       An object which implements interfaces for the contract ID.
-   * @param args       An array which is passed in the constructor of mock.
-   *
-   * @return           The CID of the mock.
-   */
-  registerEx(contractID, options, mock, args) {
     let originalCID;
     let originalFactory;
     try {
@@ -85,7 +56,7 @@ export var MockRegistrar = Object.freeze({
           wrappedMock = mock;
         }
 
-        if (originalFactory && options.shouldCreateInstance) {
+        if (originalFactory) {
           try {
             let genuine = originalFactory.createInstance(iid);
             wrappedMock._genuine = genuine;
