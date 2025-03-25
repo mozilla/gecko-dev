@@ -6463,7 +6463,7 @@ RefPtr<GenericPromise> WorkerPrivate::SetServiceWorkerSkipWaitingFlag() {
 }
 
 const nsAString& WorkerPrivate::Id() {
-  AssertIsOnMainThread();
+  AssertIsOnParentThread();
 
   if (mId.IsEmpty()) {
     mId = ComputeWorkerPrivateId();
