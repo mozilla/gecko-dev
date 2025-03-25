@@ -5,8 +5,8 @@
 package org.mozilla.samples.toolbar.middleware
 
 import android.content.Context
-import android.graphics.Color
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
@@ -69,9 +69,12 @@ internal class BrowserToolbarMiddleware(
                             pageActions = listOf(
                                 Action.ActionButton(
                                     icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
-                                    contentDescription = null,
-                                    tint = Color.GREEN,
-                                    onClick = {},
+                                    contentDescription = R.string.page_action_refresh_description,
+                                    tint = ContextCompat.getColor(
+                                        dependencies.context,
+                                        R.color.generic_button_tint,
+                                    ),
+                                    onClick = object : BrowserToolbarEvent {},
                                 ),
                             ),
                             browserActions = buildDisplayBrowserActions(),

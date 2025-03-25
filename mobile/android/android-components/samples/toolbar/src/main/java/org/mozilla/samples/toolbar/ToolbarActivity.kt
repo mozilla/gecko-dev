@@ -45,6 +45,7 @@ import mozilla.components.compose.browser.toolbar.CustomTabToolbarColors
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.DisplayState
@@ -545,17 +546,17 @@ class ToolbarActivity : AppCompatActivity() {
                                 navigationActions = listOf(
                                     ActionButton(
                                         icon = iconsR.drawable.mozac_ic_cross_24,
-                                        contentDescription = null,
+                                        contentDescription = R.string.page_action_clear_input_description,
                                         tint = iconPrimaryTint,
-                                        onClick = {},
+                                        onClick = object : BrowserToolbarEvent {},
                                     ),
                                 ),
                                 browserActions = listOf(
                                     ActionButton(
                                         icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
-                                        contentDescription = null,
+                                        contentDescription = R.string.page_action_refresh_description,
                                         tint = iconPrimaryTint,
-                                        onClick = {},
+                                        onClick = object : BrowserToolbarEvent {},
                                     ),
                                 ),
                             ),

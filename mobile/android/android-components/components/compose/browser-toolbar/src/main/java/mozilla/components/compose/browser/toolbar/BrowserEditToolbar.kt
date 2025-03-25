@@ -194,15 +194,15 @@ private fun BrowserEditToolbarPreview() {
             editActionsEnd = listOf(
                 ActionButton(
                     icon = iconsR.drawable.mozac_ic_microphone_24,
-                    contentDescription = null,
+                    contentDescription = android.R.string.untitled,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                    onClick = object : BrowserToolbarEvent {},
                 ),
                 ActionButton(
                     icon = iconsR.drawable.mozac_ic_qr_code_24,
-                    contentDescription = null,
+                    contentDescription = android.R.string.untitled,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                    onClick = object : BrowserToolbarEvent {},
                 ),
             ),
             onInteraction = {},

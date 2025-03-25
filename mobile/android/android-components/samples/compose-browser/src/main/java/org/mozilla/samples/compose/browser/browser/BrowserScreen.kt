@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
@@ -50,7 +49,6 @@ import mozilla.components.lib.state.ext.composableStore
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.ui.icons.R
-import org.mozilla.samples.compose.browser.BrowserComposeActivity.Companion.ROUTE_SETTINGS
 import org.mozilla.samples.compose.browser.components
 
 /**
@@ -58,7 +56,7 @@ import org.mozilla.samples.compose.browser.components
  */
 @Suppress("LongMethod")
 @Composable
-fun BrowserScreen(navController: NavController) {
+fun BrowserScreen() {
     val target = Target.SelectedTab
 
     val store = composableStore<BrowserScreenState, BrowserScreenAction> { restoredState ->
@@ -79,11 +77,9 @@ fun BrowserScreen(navController: NavController) {
                         ),
                         ActionButton(
                             icon = R.drawable.mozac_ic_ellipsis_vertical_24,
-                            contentDescription = null,
+                            contentDescription = R.string.mozac_error_confused,
                             tint = Color.Black.toArgb(),
-                            onClick = {
-                                navController.navigate(ROUTE_SETTINGS)
-                            },
+                            onClick = object : BrowserToolbarEvent {},
                         ),
                     ),
                 ),

@@ -17,4 +17,6 @@
     <string name="search_settings">Search settings</string>
     <string name="tab_counter_add_10_tabs">Add 10 tabs</string>
     <string name="tab_counter_remove_10_tabs">Remove 10 tabs</string>
+    <string name="page_action_refresh_description">Refresh</string>
+    <string name="page_action_clear_input_description">Clear input</string>
 </resources>

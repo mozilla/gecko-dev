@@ -24,13 +24,16 @@ sealed class Action {
      * @property icon The icon resource to be displayed for the action button.
      * @property contentDescription The content description for the action button.
      * @property tint The color resource used to tint the icon.
-     * @property onClick Invoked when the action button is clicked.
+     * @property onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
+     * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button
+     * being long clicked.
      */
     data class ActionButton(
         @DrawableRes val icon: Int,
-        val contentDescription: String?,
+        @StringRes val contentDescription: Int,
         @ColorInt val tint: Int,
-        val onClick: () -> Unit,
+        val onClick: BrowserToolbarInteraction,
+        val onLongClick: BrowserToolbarInteraction? = null,
     ) : Action()
 
     /**

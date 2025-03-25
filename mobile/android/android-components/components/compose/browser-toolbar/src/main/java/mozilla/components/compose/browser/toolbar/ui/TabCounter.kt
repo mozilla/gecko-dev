@@ -89,6 +89,7 @@ fun TabCounter(
                 onMenuShown = { showMenu = false },
             )
         }
+
         false -> IconButton(
             onClick = { onInteraction(onClick) },
             contentDescription = "", // Set internally by the TabCounter View for every count change.

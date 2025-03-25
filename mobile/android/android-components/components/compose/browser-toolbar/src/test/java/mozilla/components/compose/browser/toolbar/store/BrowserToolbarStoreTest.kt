@@ -6,6 +6,7 @@ package mozilla.components.compose.browser.toolbar.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -164,8 +165,8 @@ class BrowserToolbarStoreTest {
 
     private fun fakeActionButton() = ActionButton(
         icon = Random.nextInt(),
-        contentDescription = null,
+        contentDescription = Random.nextInt(),
         tint = Random.nextInt(),
-        onClick = {},
+        onClick = object : BrowserToolbarEvent {},
     )
 }

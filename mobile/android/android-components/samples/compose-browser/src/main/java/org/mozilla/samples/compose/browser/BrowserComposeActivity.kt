@@ -43,7 +43,7 @@ class BrowserComposeActivity : AppCompatActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         NavHost(navController, startDestination = ROUTE_BROWSER) {
-                            composable(ROUTE_BROWSER) { BrowserScreen(navController) }
+                            composable(ROUTE_BROWSER) { BrowserScreen() }
                             composable(ROUTE_SETTINGS) { SettingsScreen() }
                         }
                     }

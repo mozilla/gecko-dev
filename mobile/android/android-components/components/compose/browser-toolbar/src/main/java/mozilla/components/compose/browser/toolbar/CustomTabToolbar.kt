@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.ui.icons.R as iconsR
 
 /**
@@ -107,17 +108,17 @@ private fun CustomTabToolbarPreview() {
             navigationActions = listOf(
                 Action.ActionButton(
                     icon = iconsR.drawable.mozac_ic_cross_24,
-                    contentDescription = null,
+                    contentDescription = android.R.string.untitled,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                    onClick = object : BrowserToolbarEvent {},
                 ),
             ),
             browserActions = listOf(
                 Action.ActionButton(
                     icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
-                    contentDescription = null,
+                    contentDescription = android.R.string.untitled,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                    onClick = object : BrowserToolbarEvent {},
                 ),
             ),
         )

@@ -123,25 +123,25 @@ private fun BrowserDisplayToolbarPreview() {
             navigationActions = listOf(
                 Action.ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_home_24,
-                    contentDescription = null,
+                    contentDescription = android.R.string.untitled,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                    onClick = object : BrowserToolbarEvent {},
                 ),
             ),
             pageActions = listOf(
                 Action.ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_arrow_clockwise_24,
-                    contentDescription = null,
+                    contentDescription = android.R.string.untitled,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                    onClick = object : BrowserToolbarEvent {},
                 ),
             ),
             browserActions = listOf(
                 Action.ActionButton(
                     icon = mozilla.components.ui.icons.R.drawable.mozac_ic_ellipsis_vertical_24,
-                    contentDescription = null,
+                    contentDescription = android.R.string.untitled,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                    onClick = object : BrowserToolbarEvent {},
                 ),
             ),
             onInteraction = {},
