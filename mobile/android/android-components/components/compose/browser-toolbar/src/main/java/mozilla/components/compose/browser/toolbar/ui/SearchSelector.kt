@@ -46,6 +46,7 @@ import mozilla.components.compose.browser.toolbar.databinding.SearchSelectorBind
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
+import mozilla.components.concept.menu.MenuStyle
 import mozilla.components.concept.menu.candidate.DecorativeTextMenuCandidate
 import mozilla.components.concept.menu.candidate.DrawableMenuIcon
 import mozilla.components.concept.menu.candidate.TextMenuCandidate
@@ -127,7 +128,7 @@ fun SearchSelector(
             )
         } else if ((it.icon != null || it.iconResource != null) && it.text != null) {
             TextMenuCandidate(
-                text = stringResource (it.text),
+                text = stringResource(it.text),
                 start = it.toDrawableMenuIcon(LocalContext.current),
                 onClick = {
                     it.onClick?.let { onInteraction(it) }
@@ -139,7 +140,11 @@ fun SearchSelector(
     }
 
     val selector = remember(items) {
-        BrowserMenuController().apply {
+        BrowserMenuController(
+            style = MenuStyle(
+                completelyOverlap = true,
+            ),
+        ).apply {
             submitList(items)
         }
     }

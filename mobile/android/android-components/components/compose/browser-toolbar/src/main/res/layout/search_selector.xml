@@ -12,7 +12,8 @@
         android:id="@+id/search_selector"
         android:layout_width="40dp"
         android:layout_height="28dp"
-        android:layout_marginHorizontal="8dp"
+        android:layout_marginHorizontal="4dp"
+        android:layout_marginVertical="10dp"
         app:cardBackgroundColor="@color/mozac_compose_browse_toolbar_search_selector_background_color"
         app:cardCornerRadius="4dp"
         app:cardElevation="0dp">
