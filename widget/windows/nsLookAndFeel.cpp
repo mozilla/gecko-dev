@@ -933,6 +933,8 @@ void nsLookAndFeel::EnsureInit() {
   }
   mInitialized = true;
 
+  const bool neededMicaWorkaround = NeedsMicaWorkaround();
+
   mColorMenuHoverText =
       ::GetColorFromTheme(eUXMenu, MENU_POPUPITEM, MPI_HOT, TMT_TEXTCOLOR);
 
@@ -985,6 +987,10 @@ void nsLookAndFeel::EnsureInit() {
   mCurrentColorFilter = SystemColorFilter();
 
   RecordTelemetry();
+
+  if (neededMicaWorkaround != NeedsMicaWorkaround()) {
+    WinUtils::UpdateMicaInAllWindows();
+  }
 }
 
 #undef AVG2

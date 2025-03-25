@@ -18580,9 +18580,12 @@
   mirror: always
 
 # Whether we use the mica backdrop for popups when available.
+#  * 0: never
+#  * 1: always
+#  * 2 or others: auto
 - name: widget.windows.mica.popups
-  type: RelaxedAtomicBool
-  value: true
+  type: RelaxedAtomicInt32
+  value: 2
   mirror: always
 
 # What mica backdrop do we use for toplevels. See [1] for the meaning.

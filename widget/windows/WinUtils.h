@@ -547,6 +547,7 @@ class WinUtils {
   static bool MicaAvailable();
   static bool MicaEnabled();
   static bool MicaPopupsEnabled();
+  static void UpdateMicaInAllWindows();
 
   static void EnableWindowOcclusion(const bool aEnable);
 

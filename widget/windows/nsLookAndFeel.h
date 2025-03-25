@@ -64,6 +64,14 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
 
   nsresult GetKeyboardLayoutImpl(nsACString& aLayout) override;
 
+  bool NeedsMicaWorkaround() const {
+    // If there's a custom accent inactive color, and "Show accent color on
+    // titlebars and window borders" is set, that causes DWM to unconditionally
+    // draw a titlebar.
+    // See https://aka.ms/AAv5eie and bug 1954963.
+    return mTitlebarColors.mUseAccent && mTitlebarColors.mAccentInactive.isSome();
+  }
+
  private:
   struct TitlebarColors {
     // NOTE: These are the DWM accent colors, which might not match the
