@@ -65,15 +65,15 @@ function check_valid_array(a, key, id) {
 // eslint-disable-next-line complexity
 add_task(async function test_json_data() {
   const addon = await AddonManager.getAddonByID("webcompat@mozilla.org");
-  const addonURI = addon.getResourceURI().spec;
+  const addonURI = addon.getResourceURI();
 
   const exports = {};
   Services.scriptloader.loadSubScript(
-    `${addonURI}/lib/intervention_helpers.js`,
+    addonURI.resolve("lib/intervention_helpers.js"),
     exports
   );
   Services.scriptloader.loadSubScript(
-    `${addonURI}/lib/custom_functions.js`,
+    addonURI.resolve("lib/custom_functions.js"),
     exports
   );
   const helpers = exports.InterventionHelpers;

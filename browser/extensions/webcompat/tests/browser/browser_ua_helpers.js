@@ -402,10 +402,13 @@ add_task(async function test_ua_helpers() {
   shimUA();
 
   const addon = await AddonManager.getAddonByID("webcompat@mozilla.org");
-  const addonURI = addon.getResourceURI().spec;
+  const addonURI = addon.getResourceURI();
 
   const exports = {};
-  Services.scriptloader.loadSubScript(`${addonURI}/lib/ua_helpers.js`, exports);
+  Services.scriptloader.loadSubScript(
+    addonURI.resolve("lib/ua_helpers.js"),
+    exports
+  );
   const helpers = exports.UAHelpers;
 
   for (const helper of Object.keys(helpers)) {
