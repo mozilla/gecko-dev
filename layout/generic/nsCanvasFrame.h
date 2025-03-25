@@ -136,21 +136,6 @@ class nsDisplayCanvasBackgroundImage final : public nsDisplayBackgroundImage {
   NS_DISPLAY_DECL_NAME("CanvasBackgroundImage", TYPE_CANVAS_BACKGROUND_IMAGE)
 };
 
-class nsDisplayCanvasThemedBackground final : public nsDisplayThemedBackground {
- public:
-  nsDisplayCanvasThemedBackground(nsDisplayListBuilder* aBuilder,
-                                  nsIFrame* aFrame)
-      : nsDisplayThemedBackground(aBuilder, aFrame,
-                                  aFrame->GetRectRelativeToSelf() +
-                                      aBuilder->ToReferenceFrame(aFrame)) {
-    nsDisplayThemedBackground::Init(aBuilder);
-  }
-
-  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
-
-  NS_DISPLAY_DECL_NAME("CanvasThemedBackground", TYPE_CANVAS_THEMED_BACKGROUND)
-};
-
 }  // namespace mozilla
 
 #endif /* nsCanvasFrame_h___ */

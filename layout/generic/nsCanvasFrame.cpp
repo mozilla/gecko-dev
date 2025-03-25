@@ -332,15 +332,6 @@ bool nsDisplayCanvasBackgroundImage::IsSingleFixedPositionImage(
   return true;
 }
 
-void nsDisplayCanvasThemedBackground::Paint(nsDisplayListBuilder* aBuilder,
-                                            gfxContext* aCtx) {
-  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
-  nsPoint offset = ToReferenceFrame();
-  nsRect bgClipRect = frame->CanvasArea() + offset;
-
-  PaintInternal(aBuilder, aCtx, GetPaintRect(aBuilder, aCtx), &bgClipRect);
-}
-
 /**
  * A display item to paint the focus ring for the document.
  *
@@ -375,6 +366,8 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   MOZ_ASSERT(IsVisibleForPainting(),
              "::-moz-{scrolled-,}canvas doesn't inherit from anything that can "
              "be invisible, and we don't specify visibility in UA sheets");
+  MOZ_ASSERT(!IsThemed(),
+             "::-moz-{scrolled-,}canvas doesn't have native appearance");
   if (GetPrevInFlow()) {
     DisplayOverflowContainers(aBuilder, aLists);
   }
@@ -387,22 +380,12 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // the overflow area, so just add nsDisplayCanvasBackground instead of
   // calling DisplayBorderBackgroundOutline.
   ComputedStyle* bg = nullptr;
-  nsIFrame* dependentFrame = nullptr;
-  bool isThemed = IsThemed();
-  if (!isThemed) {
-    dependentFrame = nsCSSRendering::FindBackgroundFrame(this);
-    if (dependentFrame) {
-      bg = dependentFrame->Style();
-      if (dependentFrame == this) {
-        dependentFrame = nullptr;
-      }
+  nsIFrame* dependentFrame = nsCSSRendering::FindBackgroundFrame(this);
+  if (dependentFrame) {
+    bg = dependentFrame->Style();
+    if (dependentFrame == this) {
+      dependentFrame = nullptr;
     }
-  }
-
-  if (isThemed) {
-    aLists.BorderBackground()->AppendNewToTop<nsDisplayCanvasThemedBackground>(
-        aBuilder, this);
-    return;
   }
 
   if (!bg) {
