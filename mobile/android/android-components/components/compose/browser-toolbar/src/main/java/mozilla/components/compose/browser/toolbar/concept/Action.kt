@@ -4,9 +4,12 @@
 
 package mozilla.components.compose.browser.toolbar.concept
 
+import android.graphics.drawable.Drawable
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 
 /**
  * Actions that can be added to the toolbar.
@@ -35,5 +38,20 @@ sealed class Action {
      */
     data class CustomAction(
         val content: @Composable () -> Unit,
+    ) : Action()
+
+    /**
+     * An action button styled as a dropdown button to be added to the toolbar.
+     * This wraps the provided [icon] at the start with a down arrow to it's right to indicate that
+     * clicking this will open a dropdown menu.
+     *
+     * @property icon The icon for this button.
+     * @property contentDescription The content description for this button.
+     * @property menu The [BrowserToolbarMenu] to show when this button is clicked.
+     */
+    data class DropdownAction(
+        val icon: Drawable,
+        @StringRes val contentDescription: Int,
+        val menu: BrowserToolbarMenu,
     ) : Action()
 }

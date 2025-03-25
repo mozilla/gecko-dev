@@ -23,6 +23,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 
@@ -42,6 +43,7 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * display toolbar (outside of the URL bounding box). Also see:
  * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
  * @param onUrlClicked Will be called when the user clicks on the URL.
+ * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
 fun BrowserDisplayToolbar(
@@ -52,6 +54,7 @@ fun BrowserDisplayToolbar(
     pageActions: List<Action> = emptyList(),
     browserActions: List<Action> = emptyList(),
     onUrlClicked: () -> Unit = {},
+    onInteraction: (BrowserToolbarEvent) -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -60,7 +63,10 @@ fun BrowserDisplayToolbar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (navigationActions.isNotEmpty()) {
-            ActionContainer(actions = navigationActions)
+            ActionContainer(
+                actions = navigationActions,
+                onInteraction = onInteraction,
+            )
         } else {
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -86,11 +92,17 @@ fun BrowserDisplayToolbar(
                 style = textStyle,
             )
 
-            ActionContainer(actions = pageActions)
+            ActionContainer(
+                actions = pageActions,
+                onInteraction = onInteraction,
+            )
         }
 
         if (browserActions.isNotEmpty()) {
-            ActionContainer(actions = browserActions)
+            ActionContainer(
+                actions = browserActions,
+                onInteraction = onInteraction,
+            )
         } else {
             Spacer(modifier = Modifier.width(8.dp))
         }

@@ -52,7 +52,10 @@ fun CustomTabToolbar(
             .background(color = colors.background),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ActionContainer(actions = navigationActions)
+        ActionContainer(
+            actions = navigationActions,
+            onInteraction = {},
+        )
 
         Column(
             modifier = Modifier.weight(1f),
@@ -77,9 +80,15 @@ fun CustomTabToolbar(
             }
         }
 
-        ActionContainer(actions = pageActions)
+        ActionContainer(
+            actions = pageActions,
+            onInteraction = {},
+        )
 
-        ActionContainer(actions = browserActions)
+        ActionContainer(
+            actions = browserActions,
+            onInteraction = {},
+        )
     }
 }
 

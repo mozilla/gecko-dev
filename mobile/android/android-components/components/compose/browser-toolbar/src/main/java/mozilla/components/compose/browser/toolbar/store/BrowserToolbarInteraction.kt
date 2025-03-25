@@ -35,8 +35,8 @@ sealed interface BrowserToolbarInteraction {
 /**
  * Item which can be shown in a [BrowserToolbarMenu].
  *
- * @property icon Optional icon to show in the popup item.
- * @property text Optional text to show in the popup item.
+ * @property icon Optional icon for the menu item.
+ * @property text Optional text for the menu item.
  * @property contentDescription Content description for this item. `null` if not important for accessibility.
  * @property onClick Optional [BrowserToolbarEvent] to be dispatched when this item is clicked.
  */

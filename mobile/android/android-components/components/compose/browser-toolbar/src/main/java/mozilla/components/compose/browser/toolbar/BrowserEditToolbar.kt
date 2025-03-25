@@ -31,6 +31,7 @@ import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.ui.InlineAutocompleteTextField
 import mozilla.components.compose.browser.toolbar.ui.SearchSelector
 import mozilla.components.ui.icons.R as iconsR
@@ -53,8 +54,10 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * parameter of the callback.
  * @param onUrlCommitted Will be called when the user has finished editing and wants to initiate
  * loading the entered URL. The committed text value comes as a parameter of the callback.
+ * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
+@Suppress("LongMethod")
 fun BrowserEditToolbar(
     url: String,
     colors: BrowserEditToolbarColors,
@@ -63,6 +66,7 @@ fun BrowserEditToolbar(
     editActionsEnd: List<Action> = emptyList(),
     onUrlEdit: (String) -> Unit = {},
     onUrlCommitted: (String) -> Unit = {},
+    onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -98,11 +102,17 @@ fun BrowserEditToolbar(
                 modifier = Modifier.fillMaxWidth(),
                 shape = ROUNDED_CORNER_SHAPE,
                 leadingIcon = {
-                    ActionContainer(actions = editActionsStart)
+                    ActionContainer(
+                        actions = editActionsStart,
+                        onInteraction = onInteraction,
+                    )
                 },
                 trailingIcon = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        ActionContainer(actions = editActionsEnd)
+                        ActionContainer(
+                            actions = editActionsEnd,
+                            onInteraction = onInteraction,
+                        )
 
                         if (url.isNotEmpty()) {
                             ClearButton(
@@ -114,7 +124,10 @@ fun BrowserEditToolbar(
                 },
             )
         } else {
-            ActionContainer(actions = editActionsStart)
+            ActionContainer(
+                actions = editActionsStart,
+                onInteraction = onInteraction,
+            )
 
             InlineAutocompleteTextField(
                 url = url,
@@ -124,7 +137,10 @@ fun BrowserEditToolbar(
                 onUrlCommitted = onUrlCommitted,
             )
 
-            ActionContainer(actions = editActionsEnd)
+            ActionContainer(
+                actions = editActionsEnd,
+                onInteraction = onInteraction,
+            )
 
             if (url.isNotEmpty()) {
                 ClearButton(
@@ -192,6 +208,7 @@ private fun BrowserEditToolbarPreview() {
                     onClick = {},
                 ),
             ),
+            onInteraction = {},
         )
     }
 }

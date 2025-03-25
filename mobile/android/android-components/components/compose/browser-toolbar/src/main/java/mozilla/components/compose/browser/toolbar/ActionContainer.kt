@@ -14,12 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
+import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.ui.SearchSelector
 import mozilla.components.ui.icons.R
 
@@ -27,10 +30,12 @@ import mozilla.components.ui.icons.R
  * A container for displaying [Action]s.
  *
  * @param actions List of [Action]s to display in the container.
+ * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
 fun ActionContainer(
     actions: List<Action>,
+    onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         for (action in actions) {
@@ -40,6 +45,15 @@ fun ActionContainer(
                 }
                 is CustomAction -> {
                     action.content()
+                }
+
+                is DropdownAction -> {
+                    SearchSelector(
+                        icon = action.icon,
+                        contentDescription = stringResource(action.contentDescription),
+                        menu = action.menu,
+                        onInteraction = { onInteraction(it) },
+                    )
                 }
             }
         }
@@ -84,6 +98,7 @@ private fun ActionContainerPreview() {
                     },
                 ),
             ),
+            onInteraction = {},
         )
     }
 }

@@ -54,6 +54,7 @@ fun BrowserToolbar(
             editActionsEnd = uiState.editState.editActionsEnd,
             onUrlCommitted = { text -> onTextCommit(text) },
             onUrlEdit = { text -> onTextEdit(text) },
+            onInteraction = {},
         )
     } else {
         BrowserDisplayToolbar(
@@ -77,6 +78,7 @@ fun BrowserToolbar(
                 editActionsEnd = uiState.editState.editActionsEnd,
                 onUrlCommitted = { text -> onTextCommit(text) },
                 onUrlEdit = { text -> onTextEdit(text) },
+                onInteraction = {},
             )
         }
 
