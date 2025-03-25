@@ -264,7 +264,7 @@ macosx-arm64-custom-car:
         tier: 2
     worker:
         max-run-time: 40000
-    use-python: default
+    use-python: "3.11"
     run-on-projects: []
     run:
         script: build-custom-car.sh
@@ -299,7 +299,7 @@ android-custom-car:
     worker:
         docker-image: {in-tree: custom-car-android}
         max-run-time: 30000
-    use-python: default
+    use-python: "3.11"
     run-on-projects: []
     run:
         script: build-custom-car.sh
@@ -333,7 +333,7 @@ linux64-custom-car:
     worker:
         docker-image: {in-tree: custom-car-linux}
         max-run-time: 25000
-    use-python: default
+    use-python: "3.11"
     run-on-projects: []
     run:
         script: build-custom-car.sh
@@ -367,7 +367,7 @@ win64-custom-car:
         max-run-time: 18000
         env:
             MSYSTEM: "MINGW64"
-    use-python: default
+    use-python: "3.11"
     run-on-projects: []
     run:
         script: build-custom-car.sh
@@ -389,7 +389,7 @@ win64-custom-car:
         toolchain-artifact: public/build/car_win64.tar.zst
     fetches:
         toolchain:
-            - win64-vs2022
+            - win64-vs2022-car
 
 browsertime:
     description: "npm install browsertime node_modules"
