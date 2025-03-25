@@ -52,6 +52,7 @@ class ServiceWorkerManagerChild;
 class ServiceWorkerPrivate;
 class ServiceWorkerRegistrar;
 class ServiceWorkerShutdownBlocker;
+struct CookieListItem;
 
 class ServiceWorkerUpdateFinishCallback {
  protected:
@@ -257,6 +258,12 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
       const nsTArray<ServiceWorkerRegistrationData>& aRegistrations);
 
   void MaybeCheckNavigationUpdate(const ClientInfo& aClientInfo);
+
+  nsresult SendCookieChangeEvent(const OriginAttributes& aOriginAttributes,
+                                 const nsACString& aScope,
+                                 const nsAString& aCookieName,
+                                 const nsAString& aCookieValue,
+                                 bool aCookieDeleted);
 
   nsresult SendPushEvent(const nsACString& aOriginAttributes,
                          const nsACString& aScope, const nsAString& aMessageId,

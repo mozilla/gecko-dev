@@ -189,6 +189,24 @@ ServiceWorkerPrivate::PendingFunctionalEvent::~PendingFunctionalEvent() {
   AssertIsOnMainThread();
 }
 
+ServiceWorkerPrivate::PendingCookieChangeEvent::PendingCookieChangeEvent(
+    ServiceWorkerPrivate* aOwner,
+    RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,
+    ServiceWorkerCookieChangeEventOpArgs&& aArgs)
+    : PendingFunctionalEvent(aOwner, std::move(aRegistration)),
+      mArgs(std::move(aArgs)) {
+  AssertIsOnMainThread();
+}
+
+nsresult ServiceWorkerPrivate::PendingCookieChangeEvent::Send() {
+  AssertIsOnMainThread();
+  MOZ_ASSERT(mOwner);
+  MOZ_ASSERT(mOwner->mInfo);
+
+  return mOwner->SendCookieChangeEventInternal(std::move(mRegistration),
+                                               std::move(mArgs));
+}
+
 ServiceWorkerPrivate::PendingPushEvent::PendingPushEvent(
     ServiceWorkerPrivate* aOwner,
     RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,
@@ -912,6 +930,51 @@ nsresult ServiceWorkerPrivate::SendLifeCycleEvent(
       [callback = aCallback] {
         callback->SetResult(false);
         callback->Run();
+      });
+}
+
+nsresult ServiceWorkerPrivate::SendCookieChangeEvent(
+    const nsAString& aCookieName, const nsAString& aCookieValue,
+    bool aCookieDeleted, RefPtr<ServiceWorkerRegistrationInfo> aRegistration) {
+  AssertIsOnMainThread();
+  MOZ_ASSERT(mInfo);
+  MOZ_ASSERT(aRegistration);
+
+  ServiceWorkerCookieChangeEventOpArgs args;
+  args.name() = aCookieName;
+  args.value() = aCookieValue;
+  args.deleted() = aCookieDeleted;
+
+  if (mInfo->State() == ServiceWorkerState::Activating) {
+    UniquePtr<PendingFunctionalEvent> pendingEvent =
+        MakeUnique<PendingCookieChangeEvent>(this, std::move(aRegistration),
+                                             std::move(args));
+
+    mPendingFunctionalEvents.AppendElement(std::move(pendingEvent));
+
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(mInfo->State() == ServiceWorkerState::Activated);
+
+  return SendCookieChangeEventInternal(std::move(aRegistration),
+                                       std::move(args));
+}
+
+nsresult ServiceWorkerPrivate::SendCookieChangeEventInternal(
+    RefPtr<ServiceWorkerRegistrationInfo>&& aRegistration,
+    ServiceWorkerCookieChangeEventOpArgs&& aArgs) {
+  MOZ_ASSERT(aRegistration);
+
+  return ExecServiceWorkerOp(
+      std::move(aArgs), ServiceWorkerLifetimeExtension(FullLifetimeExtension{}),
+      [registration = aRegistration](ServiceWorkerOpResult&& aResult) {
+        MOZ_ASSERT(aResult.type() == ServiceWorkerOpResult::Tnsresult);
+
+        registration->MaybeScheduleTimeCheckAndUpdate();
+      },
+      [registration = aRegistration]() {
+        registration->MaybeScheduleTimeCheckAndUpdate();
       });
 }
 

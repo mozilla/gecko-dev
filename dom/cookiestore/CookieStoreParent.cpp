@@ -6,6 +6,7 @@
 
 #include "CookieStoreParent.h"
 #include "CookieStoreNotificationWatcher.h"
+#include "CookieStoreSubscriptionService.h"
 
 #include "mozilla/Maybe.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -166,6 +167,77 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvDeleteRequest(
                MOZ_ASSERT(aResult.IsResolve());
                aResolver(aResult.ResolveValue());
              });
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult CookieStoreParent::RecvGetSubscriptionsRequest(
+    const PrincipalInfo& aPrincipalInfo, const nsCString& aScopeURL,
+    GetSubscriptionsRequestResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
+              [self = RefPtr(this), aPrincipalInfo, aScopeURL]() {
+                CookieStoreSubscriptionService* service =
+                    CookieStoreSubscriptionService::Instance();
+                if (!service) {
+                  return GetSubscriptionsRequestPromise::CreateAndReject(
+                      NS_ERROR_FAILURE, __func__);
+                }
+
+                nsTArray<CookieSubscription> subscriptions;
+                service->GetSubscriptions(aPrincipalInfo, aScopeURL,
+                                          subscriptions);
+
+                return GetSubscriptionsRequestPromise::CreateAndResolve(
+                    std::move(subscriptions), __func__);
+              })
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [aResolver = std::move(aResolver)](
+                 const GetSubscriptionsRequestPromise::ResolveOrRejectValue&
+                     aResult) {
+               if (aResult.IsResolve()) {
+                 aResolver(aResult.ResolveValue());
+                 return;
+               }
+
+               aResolver(nsTArray<CookieSubscription>());
+             });
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult CookieStoreParent::RecvSubscribeOrUnsubscribeRequest(
+    const PrincipalInfo& aPrincipalInfo, const nsCString& aScopeURL,
+    const CopyableTArray<CookieSubscription>& aSubscriptions,
+    bool aSubscription, SubscribeOrUnsubscribeRequestResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
+              [self = RefPtr(this), aPrincipalInfo, aScopeURL, aSubscriptions,
+               aSubscription]() {
+                CookieStoreSubscriptionService* service =
+                    CookieStoreSubscriptionService::Instance();
+                if (!service) {
+                  return SubscribeOrUnsubscribeRequestPromise::CreateAndReject(
+                      NS_ERROR_FAILURE, __func__);
+                }
+
+                if (aSubscription) {
+                  service->Subscribe(aPrincipalInfo, aScopeURL, aSubscriptions);
+                } else {
+                  service->Unsubscribe(aPrincipalInfo, aScopeURL,
+                                       aSubscriptions);
+                }
+
+                return SubscribeOrUnsubscribeRequestPromise::CreateAndResolve(
+                    true, __func__);
+              })
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [aResolver = std::move(aResolver)](
+              const SubscribeOrUnsubscribeRequestPromise::ResolveOrRejectValue&
+                  aResult) { aResolver(aResult.IsResolve()); });
+
   return IPC_OK();
 }
 

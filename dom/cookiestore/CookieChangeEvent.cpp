@@ -38,6 +38,7 @@ void CookieChangeEvent::GetDeleted(nsTArray<CookieListItem>& aList) const {
 
   event->InitEvent(aType, aEventInit.mBubbles, aEventInit.mCancelable);
   event->SetTrusted(trusted);
+  event->SetComposed(aEventInit.mComposed);
 
   if (aEventInit.mChanged.WasPassed()) {
     event->mChanged = aEventInit.mChanged.Value();

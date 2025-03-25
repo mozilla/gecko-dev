@@ -31,6 +31,12 @@ struct ServiceWorkerLifeCycleEventOpArgs {
   nsString eventName;
 };
 
+struct ServiceWorkerCookieChangeEventOpArgs {
+  nsString name;
+  nsString value;
+  bool deleted;
+};
+
 // Possibly need to differentiate an empty array from the absence of an array.
 union OptionalPushData {
   void_t;
@@ -121,6 +127,7 @@ union ServiceWorkerOpArgs {
   ServiceWorkerUpdateStateOpArgs;
   ServiceWorkerTerminateWorkerOpArgs;
   ServiceWorkerLifeCycleEventOpArgs;
+  ServiceWorkerCookieChangeEventOpArgs;
   ServiceWorkerPushEventOpArgs;
   ServiceWorkerPushSubscriptionChangeEventOpArgs;
   ServiceWorkerNotificationEventOpArgs;

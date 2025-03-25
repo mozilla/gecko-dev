@@ -7,6 +7,7 @@
 #include "ServiceWorkerRegistration.h"
 
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
+#include "mozilla/dom/CookieStoreManager.h"
 #include "mozilla/dom/NavigationPreloadManager.h"
 #include "mozilla/dom/NavigationPreloadManagerBinding.h"
 #include "mozilla/dom/Notification.h"
@@ -30,7 +31,8 @@ namespace mozilla::dom {
 NS_IMPL_CYCLE_COLLECTION_INHERITED(ServiceWorkerRegistration,
                                    DOMEventTargetHelper, mInstallingWorker,
                                    mWaitingWorker, mActiveWorker,
-                                   mNavigationPreloadManager, mPushManager);
+                                   mNavigationPreloadManager, mPushManager,
+                                   mCookieStoreManager);
 
 NS_IMPL_ADDREF_INHERITED(ServiceWorkerRegistration, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(ServiceWorkerRegistration, DOMEventTargetHelper)
@@ -174,6 +176,21 @@ ServiceWorkerRegistration::NavigationPreload() {
   }
   RefPtr<NavigationPreloadManager> ref = mNavigationPreloadManager;
   return ref.forget();
+}
+
+CookieStoreManager* ServiceWorkerRegistration::GetCookies(ErrorResult& aRv) {
+  if (!mCookieStoreManager) {
+    nsIGlobalObject* globalObject = GetParentObject();
+    if (!globalObject) {
+      aRv.ThrowInvalidStateError("No global");
+      return nullptr;
+    }
+
+    mCookieStoreManager =
+        new CookieStoreManager(globalObject, mDescriptor.Scope());
+  }
+
+  return mCookieStoreManager;
 }
 
 void ServiceWorkerRegistration::UpdateState(

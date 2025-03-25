@@ -9,22 +9,29 @@ EXPORTS.mozilla.dom += [
     "CookieChangeEvent.h",
     "CookieStore.h",
     "CookieStoreChild.h",
+    "CookieStoreManager.h",
     "CookieStoreParent.h",
+    "CookieStoreSubscriptionService.h",
+    "ExtendableCookieChangeEvent.h",
 ]
 
 UNIFIED_SOURCES += [
     "CookieChangeEvent.cpp",
     "CookieStore.cpp",
     "CookieStoreChild.cpp",
+    "CookieStoreManager.cpp",
     "CookieStoreNotificationWatcher.cpp",
     "CookieStoreNotificationWatcherWrapper.cpp",
     "CookieStoreNotifier.cpp",
     "CookieStoreParent.cpp",
+    "CookieStoreSubscriptionService.cpp",
+    "ExtendableCookieChangeEvent.cpp",
 ]
 
 LOCAL_INCLUDES += [
     "../base",
     "../events",
+    "/toolkit/components/jsoncpp/include",
 ]
 
 IPDL_SOURCES += [

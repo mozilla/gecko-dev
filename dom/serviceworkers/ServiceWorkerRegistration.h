@@ -20,6 +20,7 @@ class nsIGlobalObject;
 
 namespace mozilla::dom {
 
+class CookieStoreManager;
 class NavigationPreloadManager;
 class Promise;
 class PushManager;
@@ -27,12 +28,8 @@ class WorkerPrivate;
 class ServiceWorker;
 class ServiceWorkerRegistrationChild;
 
-#define NS_DOM_SERVICEWORKERREGISTRATION_IID         \
-  {                                                  \
-    0x4578a90e, 0xa427, 0x4237, {                    \
-      0x98, 0x4a, 0xbd, 0x98, 0xe4, 0xcd, 0x5f, 0x3a \
-    }                                                \
-  }
+#define NS_DOM_SERVICEWORKERREGISTRATION_IID \
+  {0x4578a90e, 0xa427, 0x4237, {0x98, 0x4a, 0xbd, 0x98, 0xe4, 0xcd, 0x5f, 0x3a}}
 
 class ServiceWorkerRegistration final : public DOMEventTargetHelper {
  public:
@@ -109,6 +106,8 @@ class ServiceWorkerRegistration final : public DOMEventTargetHelper {
 
   void FireUpdateFound() { MaybeDispatchUpdateFound(); }
 
+  CookieStoreManager* GetCookies(ErrorResult& aRv);
+
  private:
   ServiceWorkerRegistration(
       nsIGlobalObject* aGlobal,
@@ -136,6 +135,7 @@ class ServiceWorkerRegistration final : public DOMEventTargetHelper {
   RefPtr<ServiceWorker> mActiveWorker;
   RefPtr<NavigationPreloadManager> mNavigationPreloadManager;
   RefPtr<PushManager> mPushManager;
+  RefPtr<CookieStoreManager> mCookieStoreManager;
 
   struct VersionCallback {
     uint64_t mVersion;

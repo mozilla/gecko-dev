@@ -23,6 +23,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/StorageActivityService.h"
+#include "mozilla/dom/CookieStoreSubscriptionService.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -181,6 +182,12 @@ ServiceWorkerRegistrar::ServiceWorkerRegistrar()
       mShuttingDown(false),
       mSaveDataRunnableDispatched(false) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  mExpandoHandlers.AppendElement(ExpandoHandler{
+      nsCString("cookie-store"),
+      CookieStoreSubscriptionService::ServiceWorkerLoaded,
+      CookieStoreSubscriptionService::ServiceWorkerUpdated,
+      CookieStoreSubscriptionService::ServiceWorkerUnregistered});
 }
 
 ServiceWorkerRegistrar::~ServiceWorkerRegistrar() {

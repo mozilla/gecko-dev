@@ -1081,6 +1081,30 @@ ServiceWorkerManager::SendPushEvent(const nsACString& aOriginAttributes,
   return SendPushEvent(aOriginAttributes, aScope, u""_ns, Nothing());
 }
 
+nsresult ServiceWorkerManager::SendCookieChangeEvent(
+    const OriginAttributes& aOriginAttributes, const nsACString& aScope,
+    const nsAString& aCookieName, const nsAString& aCookieValue,
+    bool aCookieDeleted) {
+  nsCOMPtr<nsIPrincipal> principal;
+  MOZ_TRY_VAR(principal, ScopeToPrincipal(aScope, aOriginAttributes));
+
+  RefPtr<ServiceWorkerRegistrationInfo> registration =
+      GetRegistration(principal, aScope);
+  if (NS_WARN_IF(!registration)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  MOZ_DIAGNOSTIC_ASSERT(registration->Scope().Equals(aScope));
+
+  ServiceWorkerInfo* serviceWorker = registration->GetActive();
+  if (NS_WARN_IF(!serviceWorker)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return serviceWorker->WorkerPrivate()->SendCookieChangeEvent(
+      aCookieName, aCookieValue, aCookieDeleted, registration);
+}
+
 nsresult ServiceWorkerManager::SendPushEvent(
     const nsACString& aOriginAttributes, const nsACString& aScope,
     const nsAString& aMessageId, const Maybe<nsTArray<uint8_t>>& aData) {

@@ -22,6 +22,9 @@ class CookieStoreParent final : public PCookieStoreParent {
   using GetRequestPromise =
       MozPromise<CopyableTArray<CookieData>, nsresult, true>;
   using SetDeleteRequestPromise = MozPromise<bool, nsresult, true>;
+  using GetSubscriptionsRequestPromise =
+      MozPromise<CopyableTArray<CookieSubscription>, nsresult, true>;
+  using SubscribeOrUnsubscribeRequestPromise = MozPromise<bool, nsresult, true>;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CookieStoreParent)
 
@@ -53,6 +56,15 @@ class CookieStoreParent final : public PCookieStoreParent {
       const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
       const nsString& aName, const nsString& aPath, const bool& aPartitioned,
       const nsID& aOperationID, DeleteRequestResolver&& aResolver);
+
+  mozilla::ipc::IPCResult RecvGetSubscriptionsRequest(
+      const PrincipalInfo& aPrincipalInfo, const nsCString& aScopeURL,
+      GetSubscriptionsRequestResolver&& aResolver);
+
+  mozilla::ipc::IPCResult RecvSubscribeOrUnsubscribeRequest(
+      const PrincipalInfo& aPrincipalInfo, const nsCString& aScopeURL,
+      const CopyableTArray<CookieSubscription>& aSubscriptions,
+      bool aSubscription, SubscribeOrUnsubscribeRequestResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvClose();
 

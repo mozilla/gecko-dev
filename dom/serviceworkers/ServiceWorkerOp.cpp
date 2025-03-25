@@ -39,6 +39,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Client.h"
+#include "mozilla/dom/ExtendableCookieChangeEvent.h"
 #include "mozilla/dom/ExtendableMessageEventBinding.h"
 #include "mozilla/dom/FetchEventBinding.h"
 #include "mozilla/dom/FetchEventOpProxyChild.h"
@@ -692,6 +693,59 @@ class LifeCycleEventOp final : public ExtendableEventOp {
     }
 
     return !DispatchFailed(rv);
+  }
+};
+
+class CookieChangeEventOp final : public ExtendableEventOp {
+  using ExtendableEventOp::ExtendableEventOp;
+
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CookieChangeEventOp, override)
+
+ private:
+  ~CookieChangeEventOp() = default;
+
+  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
+    MOZ_ASSERT(!mPromiseHolder.IsEmpty());
+
+    const ServiceWorkerCookieChangeEventOpArgs& args =
+        mArgs.get_ServiceWorkerCookieChangeEventOpArgs();
+
+    CookieListItem item;
+    item.mName.Construct();
+    item.mName.Value() = args.name();
+
+    GlobalObject globalObj(aCx, aWorkerPrivate->GlobalScope()->GetWrapper());
+    nsCOMPtr<EventTarget> eventTarget =
+        do_QueryInterface(globalObj.GetAsSupports());
+    MOZ_ASSERT(eventTarget);
+
+    RefPtr<ExtendableCookieChangeEvent> event;
+
+    if (!args.deleted()) {
+      item.mValue.Construct();
+      item.mValue.Value() = args.value();
+
+      event = ExtendableCookieChangeEvent::CreateForChangedCookie(eventTarget,
+                                                                  item);
+    } else {
+      event = ExtendableCookieChangeEvent::CreateForDeletedCookie(eventTarget,
+                                                                  item);
+    }
+
+    MOZ_ASSERT(event);
+
+    nsresult rv = DispatchExtendableEventOnWorkerScope(
+        aCx, aWorkerPrivate->GlobalScope(), event, this);
+
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return false;
+    }
+
+    return true;
   }
 };
 
@@ -2019,6 +2073,10 @@ class ExtensionAPIEventOp final : public ServiceWorkerOp {
       break;
     case ServiceWorkerOpArgs::TServiceWorkerLifeCycleEventOpArgs:
       op = MakeRefPtr<LifeCycleEventOp>(std::move(aArgs), std::move(aCallback));
+      break;
+    case ServiceWorkerOpArgs::TServiceWorkerCookieChangeEventOpArgs:
+      op = MakeRefPtr<CookieChangeEventOp>(std::move(aArgs),
+                                           std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerPushEventOpArgs:
       op = MakeRefPtr<PushEventOp>(std::move(aArgs), std::move(aCallback));

@@ -41,8 +41,12 @@ class ServiceWorkerRegistrar : public nsIObserver,
 
   // The internal data struct is public to make gtests happy.
  public:
+  // An expando handler consists of a set of callbacks and a key. During
+  // serialization/deserialization, ServiceWorkerRegistrar triggers these
+  // callbacks based on the key name found on disk.
   struct ExpandoHandler {
     nsCString mKey;
+    // The deserialization of the value is up to this callback.
     void (*mServiceWorkerLoaded)(const ServiceWorkerRegistrationData& aData,
                                  const nsACString& aValue);
     void (*mServiceWorkerUpdated)(const ServiceWorkerRegistrationData& aData);

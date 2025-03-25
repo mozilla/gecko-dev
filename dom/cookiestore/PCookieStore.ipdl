@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBackground;
+include PBackgroundSharedTypes;
 
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
@@ -21,6 +22,12 @@ union MaybeCookieData
 {
   CookieData;
   void_t;
+};
+
+struct CookieSubscription
+{
+  nsString? name;
+  nsString url;
 };
 
 // This protocol is used for the CookieStore API
@@ -67,6 +74,16 @@ parent:
                       nsString path,
                       bool partitioned,
                       nsID operationID) returns (bool waitForNotification);
+
+  // We use PrincipalInfo because we need to interact with
+  // ServiceWorkerRegistrar, which uses this object instead of nsIPrincipal.
+  async GetSubscriptionsRequest(PrincipalInfo principalInfo,
+                                nsCString scopeURL) returns (CookieSubscription[] subscriptions);
+
+  async SubscribeOrUnsubscribeRequest(PrincipalInfo principalInfo,
+                                      nsCString scopeURL,
+                                      CookieSubscription[] subscriptions,
+                                      bool subscribe) returns (bool result);
 
   async Close();
 
