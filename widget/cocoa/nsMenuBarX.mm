@@ -506,10 +506,23 @@ nsresult nsMenuBarX::Paint() {
 }
 
 // Dispatching the paint of the menu bar prevents crashes when macOS is actively
-// enumerating the menu items in `NSApp.mainMenu`.
+// enumerating the menu items in `NSApp.mainMenu`. Crash data indicates that
+// this is largely limited to < macOS 14, and this async call has an unwelcome
+// side effect of displaying a grey/disabled menubar sometimes when switching
+// back to the app. So we limit the async call by macOS version number.
 void nsMenuBarX::PaintAsync() {
   NS_DispatchToCurrentThread(
       NewRunnableMethod("PaintMenuBar", this, &nsMenuBarX::Paint));
+}
+
+void nsMenuBarX::PaintAsyncIfNeeded() {
+  if (nsCocoaFeatures::OnSonomaOrLater()) {
+    // Sync is safe enough on macOS 14 and beyond.
+    Paint();
+  } else {
+    // Needed for macOS 13 and earlier.
+    PaintAsync();
+  }
 }
 
 /* static */
