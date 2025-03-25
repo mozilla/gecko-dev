@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 export const modules = {
-  root: {},
-  "windowglobal-in-root": {},
-  windowglobal: {},
+  root: { vendor: {} },
+  "windowglobal-in-root": { vendor: {} },
+  windowglobal: { vendor: {} },
 };
 
 const BASE_FOLDER =
@@ -22,9 +22,19 @@ ChromeUtils.defineESModuleGetters(modules.root, {
 });
 
 // eslint-disable-next-line mozilla/lazy-getter-object-name
+ChromeUtils.defineESModuleGetters(modules.root.vendor, {
+  vendored: `${BASE_FOLDER}/root/vendor/vendored.sys.mjs`,
+});
+
+// eslint-disable-next-line mozilla/lazy-getter-object-name
 ChromeUtils.defineESModuleGetters(modules["windowglobal-in-root"], {
   command: `${BASE_FOLDER}/windowglobal-in-root/command.sys.mjs`,
   event: `${BASE_FOLDER}/windowglobal-in-root/event.sys.mjs`,
+});
+
+// eslint-disable-next-line mozilla/lazy-getter-object-name
+ChromeUtils.defineESModuleGetters(modules["windowglobal-in-root"].vendor, {
+  vendored: `${BASE_FOLDER}/windowglobal-in-root/vendor/vendored.sys.mjs`,
 });
 
 // eslint-disable-next-line mozilla/lazy-getter-object-name
@@ -39,4 +49,9 @@ ChromeUtils.defineESModuleGetters(modules.windowglobal, {
   sessiondataupdate: `${BASE_FOLDER}/windowglobal/sessiondataupdate.sys.mjs`,
   timeout: `${BASE_FOLDER}/windowglobal/timeout.sys.mjs`,
   windowglobaltoroot: `${BASE_FOLDER}/windowglobal/windowglobaltoroot.sys.mjs`,
+});
+
+// eslint-disable-next-line mozilla/lazy-getter-object-name
+ChromeUtils.defineESModuleGetters(modules.windowglobal.vendor, {
+  vendored: `${BASE_FOLDER}/windowglobal/vendor/vendored.sys.mjs`,
 });

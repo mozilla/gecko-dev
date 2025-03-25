@@ -47,4 +47,6 @@ prefs = ["remote.messagehandler.modulecache.useBrowserTestRoot=true"]
 
 ["browser_test_has_promise_resolved.js"]
 
+["browser_vendored.js"]
+
 ["browser_windowglobal_to_root.js"]

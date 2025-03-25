@@ -229,10 +229,14 @@ export class ModuleCache {
       );
     }
 
-    let moduleClass = null;
-    if (this.#protocol.modules[moduleFolder][moduleName]) {
-      moduleClass = this.#protocol.modules[moduleFolder][moduleName];
+    let modulePath = this.#protocol.modules[moduleFolder];
+    if (moduleName.includes(":")) {
+      const parts = moduleName.split(":");
+      moduleName = parts[1];
+      modulePath = modulePath[parts[0]];
     }
+
+    const moduleClass = modulePath?.[moduleName] ?? null;
 
     // Module hit/miss logs generate a lot of spam. Only log if verbose is true.
     //
