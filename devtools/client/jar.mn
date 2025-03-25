@@ -96,8 +96,6 @@ devtools.jar:
     skin/images/clear.svg (themes/images/clear.svg)
     skin/images/close-3-pane.svg (themes/images/close-3-pane.svg)
     skin/images/open-3-pane.svg (themes/images/open-3-pane.svg)
-    skin/images/vview-delete.svg (themes/images/vview-delete.svg)
-    skin/images/vview-edit.svg (themes/images/vview-edit.svg)
     skin/images/sort-ascending-arrow.svg (themes/images/sort-ascending-arrow.svg)
     skin/images/sort-descending-arrow.svg (themes/images/sort-descending-arrow.svg)
     skin/images/cubic-bezier-swatch.svg (themes/images/cubic-bezier-swatch.svg)

@@ -175,40 +175,6 @@
   margin-inline-start: 7px;
 }
 
-/* Traits applied when variables or properties are changed or overridden */
-
-.variable-or-property:not([overridden]) {
-  transition: background 1s ease-in-out;
-}
-
-.variable-or-property:not([overridden])[changed] {
-  transition-duration: .4s;
-}
-
-.variable-or-property[overridden] {
-  background: rgba(128,128,128,0.05);
-}
-
-.variable-or-property[overridden] .title > label {
-  /* Cross out the title for this variable and all child properties. */
-  font-style: italic;
-  text-decoration: line-through;
-  border-bottom: none !important;
-  color: rgba(128,128,128,0.9);
-  opacity: 0.7;
-}
-
-/* Traits applied when variables or properties are editable */
-
-.variable-or-property[editable] > .title > .value {
-  cursor: text;
-}
-
-.variable-or-property[overridden] .title > .value {
-  /* Disallow editing this variable and all child properties. */
-  pointer-events: none;
-}
-
 /* Custom configurable/enumerable/writable or frozen/sealed/extensible
  * variables and properties */
 
@@ -231,109 +197,8 @@
   width: calc(70vw - 10px);
 }
 
-/* Actions first */
-
-.variables-view-edit,
-.variables-view-add-property {
-  order: 1;
-}
-
-.variables-view-delete {
-  order: 2;
-}
-
-.variables-view-container[actions-first] .variables-view-delete,
-.variables-view-container[actions-first] .variables-view-add-property {
-  order: 0;
-}
-
 .variables-view-container[actions-first] [invisible] {
   visibility: hidden;
-}
-
-/* Variables and properties tooltips */
-
-.variable-or-property > tooltip > label {
-  margin: 0 2px 0 2px;
-}
-
-.variable-or-property[non-enumerable] > tooltip > label.enumerable,
-.variable-or-property[non-configurable] > tooltip > label.configurable,
-.variable-or-property[non-writable] > tooltip > label.writable,
-.variable-or-property[non-extensible] > tooltip > label.extensible {
-  color: #800;
-  text-decoration: line-through;
-}
-
-.variable-or-property[overridden] > tooltip > label.overridden {
-  padding-inline-start: 4px;
-  border-inline-start: 1px dotted #000;
-}
-
-.variable-or-property[safe-getter] > tooltip > label.WebIDL {
-  padding-inline-start: 4px;
-  border-inline-start: 1px dotted #000;
-  color: #080;
-}
-
-/* Variables and properties editing */
-.variables-view-delete,
-.variables-view-edit {
-  width: 16px;
-  height: 16px;
-  background-size: cover;
-  background-repeat: no-repeat;
-  cursor: pointer;
-  -moz-context-properties: fill;
-  fill: var(--theme-icon-dimmed-color);
-}
-
-.variables-view-open-inspector {
-  background-size: 15px;
-}
-
-.variables-view-delete:hover,
-.variables-view-edit:hover {
-  fill: var(--theme-icon-color);
-}
-
-.variables-view-delete:active,
-.variables-view-edit:active,
-.variables-view-open-inspector:active {
-  fill: var(--theme-icon-checked-color);
-}
-
-.variables-view-delete {
-  background-image: url("chrome://devtools/skin/images/vview-delete.svg");
-}
-
-.variables-view-edit {
-  background-image: url("chrome://devtools/skin/images/vview-edit.svg");
-}
-
-/* Variables and properties input boxes */
-
-.variable-or-property > .title > .separator + .element-value-input {
-  margin-inline-start: -2px !important;
-  margin-inline-end: 2px !important;
-}
-
-.variable-or-property > .title > .separator[hidden=true] + .element-value-input {
-  margin-inline-start: 4px !important;
-  margin-inline-end: 2px !important;
-}
-
-.element-name-input {
-  margin-inline-start: -2px !important;
-  margin-inline-end: 2px !important;
-  font-weight: 600;
-}
-
-.element-value-input,
-.element-name-input {
-  border: 1px solid rgba(128, 128, 128, .5) !important;
-  border-radius: 0;
-  color: inherit;
 }
 
 /* Variables and properties searching */
