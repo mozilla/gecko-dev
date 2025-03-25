@@ -24,6 +24,11 @@ loader.lazyGetter(lazy, "BufferStream", () => {
     "setData"
   );
 });
+loader.lazyRequireGetter(
+  lazy,
+  "CSSCompleter",
+  "resource://devtools/client/shared/sourceeditor/css-autocompleter.js"
+);
 
 ChromeUtils.defineESModuleGetters(lazy, {
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
@@ -688,7 +693,7 @@ StyleSheetEditor.prototype = {
   async _highlightSelectorAt(x, y) {
     const pos = this.sourceEditor.getPositionFromCoords({ left: x, top: y });
     const info = this.sourceEditor.getInfoAt(pos);
-    if (!info || info.state !== "selector") {
+    if (!info || info.state !== lazy.CSSCompleter.CSS_STATE_SELECTOR) {
       return;
     }
 

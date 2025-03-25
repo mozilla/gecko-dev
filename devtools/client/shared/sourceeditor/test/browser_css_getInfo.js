@@ -57,10 +57,10 @@ const source = [
 
 /* eslint-disable max-len */
 const tests = [
-  [{ line: 0, ch: 13 }, "selector", ".devtools-toolbar"],
+  [{ line: 0, ch: 13 }, CSSCompleter.CSS_STATE_SELECTOR, ".devtools-toolbar"],
   [
     { line: 8, ch: 13 },
-    "property",
+    CSSCompleter.CSS_STATE_PROPERTY,
     [
       "#devtools-menu.devtools-menulist",
       ".devtools-toolbarbutton#devtools-menu ",
@@ -69,30 +69,34 @@ const tests = [
   ],
   [
     { line: 28, ch: 25 },
-    "value",
+    CSSCompleter.CSS_STATE_VALUE,
     [".devtools-menulist:active", "#devtools-toolbarbutton:focus "],
     "outline-offset",
     "-4px",
   ],
-  [{ line: 4, ch: 1 }, "null"],
-  [{ line: 5, ch: 0 }, "null"],
-  [{ line: 31, ch: 13 }, "selector", ".devtools-toolbarbutton:not([label])"],
+  [{ line: 4, ch: 1 }, CSSCompleter.CSS_STATE_NULL],
+  [{ line: 5, ch: 0 }, CSSCompleter.CSS_STATE_NULL],
+  [
+    { line: 31, ch: 13 },
+    CSSCompleter.CSS_STATE_SELECTOR,
+    ".devtools-toolbarbutton:not([label])",
+  ],
   [
     { line: 35, ch: 23 },
-    "selector",
+    CSSCompleter.CSS_STATE_SELECTOR,
     ".devtools-toolbarbutton:not([label]) > .toolbarbutton-text",
   ],
-  [{ line: 35, ch: 70 }, "selector", ".devtools-toolbar"],
+  [{ line: 35, ch: 70 }, CSSCompleter.CSS_STATE_SELECTOR, ".devtools-toolbar"],
   [
     { line: 27, ch: 14 },
-    "value",
+    CSSCompleter.CSS_STATE_VALUE,
     [".devtools-menulist:active", "#devtools-toolbarbutton:focus "],
     "outline",
     "1px dotted hsla(210,30%,85%,0.7)",
   ],
   [
     { line: 16, ch: 16 },
-    "value",
+    CSSCompleter.CSS_STATE_VALUE,
     [
       "#devtools-menu.devtools-menulist",
       ".devtools-toolbarbutton#devtools-menu ",
@@ -102,7 +106,7 @@ const tests = [
   ],
   [
     { line: 16, ch: 3 },
-    "value",
+    CSSCompleter.CSS_STATE_VALUE,
     [
       "#devtools-menu.devtools-menulist",
       ".devtools-toolbarbutton#devtools-menu ",
@@ -112,7 +116,7 @@ const tests = [
   ],
   [
     { line: 15, ch: 25 },
-    "value",
+    CSSCompleter.CSS_STATE_VALUE,
     [
       "#devtools-menu.devtools-menulist",
       ".devtools-toolbarbutton#devtools-menu ",
@@ -178,24 +182,24 @@ add_task(async function test() {
   });
   const matches = (arr, toCheck) => !arr.some((x, i) => x != toCheck[i]);
   const checkState = (expected, actual) => {
-    if (expected[0] == "null" && actual == null) {
+    if (expected[0] == CSSCompleter.CSS_STATE_NULL && actual == null) {
       return true;
     } else if (
       expected[0] == actual.state &&
-      expected[0] == "selector" &&
+      expected[0] == CSSCompleter.CSS_STATE_SELECTOR &&
       expected[1] == actual.selector
     ) {
       return true;
     } else if (
       expected[0] == actual.state &&
-      expected[0] == "property" &&
+      expected[0] == CSSCompleter.CSS_STATE_PROPERTY &&
       matches(expected[1], actual.selectors) &&
       expected[2] == actual.propertyName
     ) {
       return true;
     } else if (
       expected[0] == actual.state &&
-      expected[0] == "value" &&
+      expected[0] == CSSCompleter.CSS_STATE_VALUE &&
       matches(expected[1], actual.selectors) &&
       expected[2] == actual.propertyName &&
       expected[3] == actual.value
