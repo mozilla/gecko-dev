@@ -169,8 +169,14 @@ sap:
       partner_code:
         description: >
           The partner code, if defined/known, that is being used for the search.
-          Not all search engines have partner codes.
+          Not all search engines have partner codes. May be empty for engines that
+          are overridden by a third-party add-on or OpenSearch engine.
         type: string
+      overridden_by_third_party:
+        description: >
+          Set to true if the search engine has been allowed to be overridden by
+          a third-party add-on or OpenSearch engine.
+        type: boolean
 
   deprecated_counts:
     type: labeled_counter

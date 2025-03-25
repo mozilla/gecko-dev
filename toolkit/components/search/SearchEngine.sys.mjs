@@ -1165,6 +1165,16 @@ export class SearchEngine {
     return false;
   }
 
+  /**
+   * If this engine has been overridden by a third-party engine, the id returned
+   * will be the engine it was overriden by. Otherwise this will return null.
+   *
+   * @returns {?string}
+   */
+  get overriddenById() {
+    return this.getAttr("overriddenBy");
+  }
+
   get isGeneralPurposeEngine() {
     return false;
   }

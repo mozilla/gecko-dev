@@ -43,6 +43,12 @@ export const SearchUITestUtils = new (class {
    *   is not an application provided engine, do not specify this value.
    * @param {?string} expected.engineName
    *   The name of the search engine.
+   * @param {?boolean} expected.overriddenByThirdParty
+   *   Set to true if the simulated application provided search engine is being
+   *   overridden by another engine.
+   * @param {?string} expected.partnerCode
+   *   The expected partner code. Only applicable to simulated application
+   *   provided engines.
    * @param {string} expected.source
    *   The source of the search (e.g. urlbar, contextmenu etc.).
    * @param {number} expected.count
@@ -51,6 +57,8 @@ export const SearchUITestUtils = new (class {
   async assertSAPTelemetry({
     engineId = null,
     engineName = "",
+    overriddenByThirdParty = false,
+    partnerCode = null,
     source,
     count,
   }) {
@@ -60,11 +68,18 @@ export const SearchUITestUtils = new (class {
 
     let expectedEvents = [];
     for (let i = 0; i < count; i++) {
-      expectedEvents.push({
+      let expected = {
         provider_id: engineId ?? "other",
         provider_name: engineName,
         source,
-      });
+        overridden_by_third_party: overriddenByThirdParty.toString(),
+      };
+
+      if (partnerCode) {
+        expected.partner_code = partnerCode;
+      }
+
+      expectedEvents.push(expected);
     }
 
     let sapEvent = Glean.sap.counts.testGetValue();
@@ -76,7 +91,9 @@ export const SearchUITestUtils = new (class {
 
     let histogram = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
 
-    let histogramKey = `${engineId ? "" : "other-"}${engineName}.${source}`;
+    let histogramKey = overriddenByThirdParty
+      ? `${engineId}-addon.${source}`
+      : `${engineId ? "" : "other-"}${engineName}.${source}`;
 
     lazy.TelemetryTestUtils.assertKeyedHistogramSum(
       histogram,

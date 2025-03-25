@@ -170,6 +170,12 @@ interface nsISearchEngine : nsISupports
   readonly attribute boolean inMemory;
 
   /**
+   * If this engine has been overridden by a third-party engine, the id returned
+   * will be the engine it was overriden by. Otherwise this will return null.
+   */
+  readonly attribute string overriddenById;
+
+  /**
    * Whether or not this engine is a "general" search engine, e.g. is it for
    * generally searching the web, or does it have a specific purpose like
    * shopping.

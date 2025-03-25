@@ -206,16 +206,25 @@ class BrowserSearchTelemetryHandler {
         Glean.sap.deprecatedCounts[countIdSource].add();
       }
 
+      // When an engine is overridden by a third party, then we report the
+      // override and skip reporting the partner code, since we don't have
+      // a requirement to report the partner code in that case.
+      let isOverridden = !!engine.overriddenById;
+
+      // Strict equality is used because we want to only match against the
+      // empty string and not other values. We would have `engine.partnerCode`
+      // return `undefined`, but the XPCOM interfaces force us to return an
+      // empty string.
+      let reportPartnerCode = !isOverridden && engine.partnerCode !== "";
+
       Glean.sap.counts.record({
         source,
         provider_id: engine.isAppProvided ? engine.id : "other",
         provider_name: engine.name,
-        // If the partner code is an empty string (not specified), then we
-        // simply pass undefined, because this field will then not be reported in
-        // Glean. Unfortunately the XPCOM interfaces force us to have an empty
-        // string rather than undefined.
-        partner_code:
-          engine.partnerCode === "" ? undefined : engine.partnerCode,
+        // If no code is reported, we must returned undefined, Glean will then
+        // not report the field.
+        partner_code: reportPartnerCode ? engine.partnerCode : undefined,
+        overridden_by_third_party: isOverridden.toString(),
       });
 
       // Dispatch the search signal to other handlers.
