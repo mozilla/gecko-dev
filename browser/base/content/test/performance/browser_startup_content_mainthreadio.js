@@ -94,13 +94,6 @@ const processes = {
       stat: 1,
     },
     {
-      // bug 1357205
-      path: "XREAppFeat:formautofill@mozilla.org.xpi",
-      condition: !WIN,
-      ignoreIfUnused: true,
-      stat: 1,
-    },
-    {
       path: "*ShaderCache*", // Bug 1660480 - seen on hardware
       condition: WIN,
       ignoreIfUnused: true,
@@ -151,13 +144,6 @@ const processes = {
       path: "XCurProcD:",
       condition: WIN,
       stat: 1,
-    },
-    {
-      // We should remove this in bug 1882427
-      path: "*screenshots@mozilla.org.xpi",
-      condition: true,
-      ignoreIfUnused: true,
-      close: 1,
     },
   ],
 };

@@ -287,12 +287,6 @@ const startupPhases = {
   // This means that any I/O at this point delayed first paint.
   "before first paint": [
     {
-      path: "XREAppFeat:formautofill@mozilla.org.xpi",
-      condition: !WIN,
-      stat: 1,
-      close: 1,
-    },
-    {
       // We only hit this for new profiles.
       path: "XREAppDist:distribution.ini",
       // check we're not msix to disambiguate from the next entry...
@@ -390,13 +384,6 @@ const startupPhases = {
       close: 1,
     },
     {
-      path: "XREAppFeat:webcompat-reporter@mozilla.org.xpi",
-      condition: !WIN,
-      ignoreIfUnused: true,
-      stat: 1,
-      close: 1,
-    },
-    {
       // Bug 1660582 - access while running on windows10 hardware.
       path: "ProfD:wmfvpxvideo.guard",
       condition: WIN,
@@ -460,17 +447,6 @@ const startupPhases = {
       path: `ProfD:key4.db-wal`,
       condition: WIN,
       stat: 7,
-    },
-    {
-      path: "XREAppFeat:screenshots@mozilla.org.xpi",
-      ignoreIfUnused: true,
-      close: 1,
-    },
-    {
-      path: "XREAppFeat:webcompat-reporter@mozilla.org.xpi",
-      ignoreIfUnused: true,
-      stat: 1,
-      close: 1,
     },
     {
       // bug 1391590
@@ -639,26 +615,6 @@ add_task(async function () {
   let startupRecorder =
     Cc["@mozilla.org/test/startuprecorder;1"].getService().wrappedJSObject;
   await startupRecorder.done;
-
-  // Add system add-ons to the list of known IO dynamically.
-  // They should go in the omni.ja file (bug 1357205).
-  {
-    let addons = await AddonManager.getAddonsByTypes(["extension"]);
-    for (let addon of addons) {
-      if (addon.isSystem) {
-        startupPhases["before opening first browser window"].push({
-          path: `XREAppFeat:${addon.id}.xpi`,
-          stat: 3,
-          close: 2,
-        });
-        startupPhases["before handling user events"].push({
-          path: `XREAppFeat:${addon.id}.xpi`,
-          condition: WIN,
-          stat: 2,
-        });
-      }
-    }
-  }
 
   // Check for main thread I/O markers in the startup profile.
   let profile = startupRecorder.data.profile.threads[0];
