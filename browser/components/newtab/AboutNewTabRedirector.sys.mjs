@@ -295,12 +295,12 @@ export const AboutHomeStartupCacheChild = {
 
     let worker = this.getOrCreateWorker();
 
-    TelemetryStopwatch.start("FX_ABOUTHOME_CACHE_CONSTRUCTION");
+    let timerId = Glean.newtab.abouthomeCacheConstruction.start();
 
     let { page, script } = await worker
       .post("construct", [state])
       .finally(() => {
-        TelemetryStopwatch.finish("FX_ABOUTHOME_CACHE_CONSTRUCTION");
+        Glean.newtab.abouthomeCacheConstruction.stopAndAccumulate(timerId);
       });
 
     let pageInputStream = Cc[

@@ -6,7 +6,10 @@ import { generatedToOriginalId } from "devtools/client/shared/source-map-loader/
 
 import assert from "../../utils/assert";
 import { recordEvent } from "../../utils/telemetry";
-import { updateBreakpointsForNewPrettyPrintedSource } from "../breakpoints/index";
+import {
+  updateBreakpointPositionsForNewPrettyPrintedSource,
+  updateBreakpointsForNewPrettyPrintedSource,
+} from "../breakpoints/index";
 
 import { getPrettySourceURL, isJavaScript } from "../../utils/source";
 import { isFulfilled, fulfilled } from "../../utils/async-value";
@@ -319,6 +322,10 @@ export async function doPrettyPrintSource(source, thunkArgs) {
   // Map the frames before selecting the pretty source in order to avoid
   // having bundle/generated source for frames (we may compute scope things for the bundle).
   await dispatch(mapFrames(sourceActor.thread));
+
+  // The original locations of any stored breakpoint positions need to be updated
+  // to point to the new pretty source.
+  await dispatch(updateBreakpointPositionsForNewPrettyPrintedSource(source));
 
   // Update breakpoints locations to the new pretty/original source
   await dispatch(updateBreakpointsForNewPrettyPrintedSource(source));

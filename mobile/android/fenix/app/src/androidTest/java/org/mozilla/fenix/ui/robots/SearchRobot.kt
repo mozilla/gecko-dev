@@ -85,6 +85,14 @@ class SearchRobot {
         }
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    fun verifyTheSuggestionsHeader(rule: ComposeTestRule, headerText: String) {
+        Log.i(TAG, "verifyTheFirefoxSuggestHeader: Trying to verify the Firefox Suggest header is displayed.")
+        rule.waitUntilExactlyOneExists(hasText(headerText), waitingTime)
+        rule.onNodeWithText(headerText).assertIsDisplayed()
+        Log.i(TAG, "verifyTheFirefoxSuggestHeader: Verified the Firefox Suggest header is displayed.")
+    }
+
     /**
      * Verifies that the sponsored suggestions are displayed.
      * For regular search suggestions, use [verifySearchSuggestionsAreDisplayed].
@@ -162,7 +170,10 @@ class SearchRobot {
                 "verifySearchSuggestionsAreDisplayed: Waiting for $waitingTime ms until $searchSuggestion search suggestion exists.",
             )
             rule.waitUntilExactlyOneExists(hasText(searchSuggestion), waitingTime)
-            rule.onNodeWithText(searchSuggestion).assertIsDisplayed()
+            rule.onAllNodesWithTag("mozac.awesomebar.suggestion")
+                .assertAny(
+                    hasText(searchSuggestion, substring = true),
+                )
             Log.i(
                 TAG,
                 "verifySearchSuggestionsAreDisplayed: Verified $searchSuggestion search suggestion exists.",

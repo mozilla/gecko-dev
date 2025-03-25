@@ -109,6 +109,23 @@ add_task(async function () {
   );
 });
 
+// Bug 1954109 - Breakpoint not shown in the gutter of a pretty-printed file
+add_task(async function () {
+  const dbg = await initDebugger("doc-pretty.html", "pretty.js");
+
+  await selectSource(dbg, "pretty.js");
+  await addBreakpoint(dbg, "pretty.js", 9);
+
+  await prettyPrint(dbg);
+  await assertBreakpoint(dbg, 11);
+
+  await selectSource(dbg, "pretty.js");
+  await addBreakpoint(dbg, "pretty.js", 9, 55);
+
+  await selectSource(dbg, "pretty.js:formatted");
+  await assertBreakpoint(dbg, 16);
+});
+
 async function assertBreakpointsInNonPrettyAndPrettySources(dbg) {
   info(
     "Asserts breakpoint pause and display on the correct line in the pretty printed source"

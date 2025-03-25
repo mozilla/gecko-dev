@@ -7379,6 +7379,13 @@
   mirror: once
 #endif
 
+#ifdef XP_WIN
+- name: gfx.webrender.layer-compositor-use-composition-surface
+  type: bool
+  value: true
+  mirror: once
+#endif
+
 - name: gfx.webrender.scissored-cache-clears.enabled
   type: bool
   value: true
@@ -15439,7 +15446,7 @@
 # header values of "cache" and "*" will clear cached data from the site
 - name: privacy.clearSiteDataHeader.cache.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # First Party Isolation (double keying), disabled by default.
@@ -18301,6 +18308,12 @@
 #ifdef NIGHTLY_BUILD
 # Keep those pref hidden on non-nightly builds to avoid people accidentally
 # turning it on.
+
+# Override FEATURE_DMABUF_SURFACE_EXPORT for testing
+- name: widget.dmabuf-export.force-enabled
+  type: bool
+  value: false
+  mirror: once
 
 # Use DMABuf for content textures.
 # For testing purposes only.

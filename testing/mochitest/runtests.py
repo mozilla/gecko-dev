@@ -3564,7 +3564,7 @@ toolbar#nav-bar {
                 "android_version": mozinfo.info.get("android_version", -1),
                 "android": mozinfo.info.get("android", False),
                 "is_emulator": mozinfo.info.get("is_emulator", False),
-                "cm6": mozinfo.info.get("cm6", False),
+                "cm5": mozinfo.info.get("cm5", False),
                 "coverage": mozinfo.info.get("coverage", False),
             }
         )

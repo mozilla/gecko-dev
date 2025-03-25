@@ -138,7 +138,7 @@ export class FormAutofillChild extends JSWindowActorChild {
       this.#markAsAutofillField(fieldDetail);
 
       if (
-        fieldDetail.element == lazy.FormAutofillContent.focusedInput &&
+        fieldDetail.element == lazy.FormAutofillContent.focusedElement &&
         !isUpdate
       ) {
         this.showPopupIfEmpty(fieldDetail.element, fieldDetail.fieldName);
@@ -305,7 +305,10 @@ export class FormAutofillChild extends JSWindowActorChild {
     } else {
       // Ignore form as long as the frame is not the top-level, which means
       // we can just pick any of the eligible elements to identify.
-      element = this.document.querySelector("input, select, iframe");
+      element = lazy.FormAutofillUtils.queryEligibleElements(
+        this.document,
+        true
+      )[0];
     }
 
     if (!element) {
@@ -481,7 +484,7 @@ export class FormAutofillChild extends JSWindowActorChild {
         this._hasDOMContentLoadedHandler = true;
         doc.addEventListener(
           "DOMContentLoaded",
-          () => this.onFocusIn(lazy.FormAutofillContent.focusedInput),
+          () => this.onFocusIn(lazy.FormAutofillContent.focusedElement),
           { once: true }
         );
       }
@@ -572,8 +575,7 @@ export class FormAutofillChild extends JSWindowActorChild {
     // createFromField needs an input, select or iframe element
     const anchorElement = handler.form.elements.find(
       element =>
-        HTMLInputElement.isInstance(element) ||
-        HTMLSelectElement.isInstance(element) ||
+        lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element) ||
         HTMLIFrameElement.isInstance(element)
     );
     const currentForm = lazy.AutofillFormFactory.createFromField(anchorElement);
@@ -790,7 +792,7 @@ export class FormAutofillChild extends JSWindowActorChild {
    */
   onFilledModified(fieldDetail, previousState, newState) {
     const element = fieldDetail.element;
-    if (HTMLInputElement.isInstance(element)) {
+    if (lazy.FormAutofillUtils.isTextControl(element)) {
       // If the user manually blanks a credit card field, then
       // we want the popup to be activated.
       if (
@@ -906,9 +908,10 @@ export class FormAutofillChild extends JSWindowActorChild {
    */
   inspectFields() {
     const isTop = this.browsingContext == this.browsingContext.top;
-    const elements = isTop
-      ? Array.from(this.document.querySelectorAll("input, select, iframe"))
-      : Array.from(this.document.querySelectorAll("input, select"));
+    const elements = lazy.FormAutofillUtils.queryEligibleElements(
+      this.document,
+      isTop
+    );
 
     // Unlike the case when users click on a field and we only run our heuristic
     // on fields within the same form as the focused field, for inspection,
@@ -955,7 +958,7 @@ export class FormAutofillChild extends JSWindowActorChild {
 
     // Since Form Autofill popup is only for input element, any non-Input
     // element should be excluded here.
-    if (!HTMLInputElement.isInstance(element)) {
+    if (!lazy.FormAutofillUtils.isTextControl(element)) {
       return;
     }
 
@@ -971,7 +974,7 @@ export class FormAutofillChild extends JSWindowActorChild {
   /**
    * Get the search options when searching for autocomplete entries in the parent
    *
-   * @param {HTMLInputElement} input - The input element to search for autocomplete entries
+   * @param {HTMLElement} input - The input or textarea element to search for autocomplete entries
    * @returns {object} the search options for the input
    */
   getAutoCompleteSearchOption(input) {
@@ -993,7 +996,7 @@ export class FormAutofillChild extends JSWindowActorChild {
    * Ask the provider whether it might have autocomplete entry to show
    * for the given input.
    *
-   * @param {HTMLInputElement} input - The input element to search for autocomplete entries
+   * @param {HTMLElement} input - The input or textarea element to search for autocomplete entries
    * @returns {boolean} true if we shold search for autocomplete entries
    */
   shouldSearchForAutoComplete(input) {
@@ -1025,7 +1028,7 @@ export class FormAutofillChild extends JSWindowActorChild {
    * Convert the search result to autocomplete results
    *
    * @param {string} searchString - The string to search for
-   * @param {HTMLInputElement} input - The input element to search for autocomplete entries
+   * @param {HTMLElement} input - The input or textarea element to search for autocomplete entries
    * @param {Array<object>} records - autocomplete records
    * @returns {AutocompleteResult}
    */

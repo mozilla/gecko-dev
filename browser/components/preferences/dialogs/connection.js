@@ -17,10 +17,6 @@ const PROXY_TYPES_MAP_REVERSE = new Map([
   [proxyService.PROXYCONFIG_SYSTEM, "SYSTEM"],
 ]);
 
-document
-  .getElementById("ConnectionsDialog")
-  .addEventListener("dialoghelp", window.top.openPrefsHelp);
-
 Preferences.addAll([
   // Add network.proxy.autoconfig_url before network.proxy.type so they're
   // both initialized when network.proxy.type initialization triggers a call to

@@ -329,3 +329,31 @@ export const setBreakpointPositions = memoizeableAction(
       _setBreakpointPositions(location, thunkArgs),
   }
 );
+
+export function updateBreakpointPositionsForNewPrettyPrintedSource(
+  minifiedSource
+) {
+  return async ({ dispatch, getState }) => {
+    const oldPositions = getBreakpointPositionsForSource(
+      getState(),
+      minifiedSource.id
+    );
+    if (!oldPositions) {
+      return;
+    }
+
+    // gather the lines for which we have breakpointPositions
+    const lines = [...Object.keys(oldPositions)].map(lineString =>
+      Number(lineString)
+    );
+
+    dispatch({ type: "CLEAR_BREAKPOINT_POSITIONS", source: minifiedSource });
+
+    // recompute the breakpoint positions for all lines for which we had breakpointPositions before
+    await Promise.all(
+      lines.map(line =>
+        dispatch(setBreakpointPositions({ source: minifiedSource, line }))
+      )
+    );
+  };
+}

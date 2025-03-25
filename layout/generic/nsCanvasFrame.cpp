@@ -287,47 +287,6 @@ nsRect nsCanvasFrame::CanvasArea() const {
 
 Element* nsCanvasFrame::GetDefaultTooltip() { return mTooltipContent; }
 
-void nsDisplayCanvasBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
-                                           gfxContext* aCtx) {
-  if (!NS_GET_A(mColor)) {
-    return;
-  }
-  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
-  nsPoint offset = ToReferenceFrame();
-  nsRect bgClipRect = frame->CanvasArea() + offset;
-  DrawTarget* drawTarget = aCtx->GetDrawTarget();
-  int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
-  Rect devPxRect =
-      NSRectToSnappedRect(bgClipRect, appUnitsPerDevPixel, *drawTarget);
-  drawTarget->FillRect(devPxRect, ColorPattern(ToDeviceColor(mColor)));
-}
-
-bool nsDisplayCanvasBackgroundColor::CreateWebRenderCommands(
-    mozilla::wr::DisplayListBuilder& aBuilder,
-    mozilla::wr::IpcResourceUpdateQueue& aResources,
-    const StackingContextHelper& aSc, RenderRootStateManager* aManager,
-    nsDisplayListBuilder* aDisplayListBuilder) {
-  if (!NS_GET_A(mColor)) {
-    return true;
-  }
-  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
-  nsPoint offset = ToReferenceFrame();
-  nsRect bgClipRect = frame->CanvasArea() + offset;
-  int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
-  auto rect = LayoutDeviceRect::FromAppUnits(bgClipRect, appUnitsPerDevPixel);
-  wr::LayoutRect r = wr::ToLayoutRect(rect);
-  aBuilder.PushRect(r, r, !BackfaceIsHidden(), false, false,
-                    wr::ToColorF(ToDeviceColor(mColor)));
-  return true;
-}
-
-void nsDisplayCanvasBackgroundColor::WriteDebugInfo(
-    std::stringstream& aStream) {
-  aStream << " (rgba " << (int)NS_GET_R(mColor) << "," << (int)NS_GET_G(mColor)
-          << "," << (int)NS_GET_B(mColor) << "," << (int)NS_GET_A(mColor)
-          << ")";
-}
-
 void nsDisplayCanvasBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
                                            gfxContext* aCtx) {
   auto* frame = static_cast<nsCanvasFrame*>(mFrame);
@@ -373,15 +332,6 @@ bool nsDisplayCanvasBackgroundImage::IsSingleFixedPositionImage(
   return true;
 }
 
-void nsDisplayCanvasThemedBackground::Paint(nsDisplayListBuilder* aBuilder,
-                                            gfxContext* aCtx) {
-  auto* frame = static_cast<nsCanvasFrame*>(mFrame);
-  nsPoint offset = ToReferenceFrame();
-  nsRect bgClipRect = frame->CanvasArea() + offset;
-
-  PaintInternal(aBuilder, aCtx, GetPaintRect(aBuilder, aCtx), &bgClipRect);
-}
-
 /**
  * A display item to paint the focus ring for the document.
  *
@@ -416,6 +366,8 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   MOZ_ASSERT(IsVisibleForPainting(),
              "::-moz-{scrolled-,}canvas doesn't inherit from anything that can "
              "be invisible, and we don't specify visibility in UA sheets");
+  MOZ_ASSERT(!IsThemed(),
+             "::-moz-{scrolled-,}canvas doesn't have native appearance");
   if (GetPrevInFlow()) {
     DisplayOverflowContainers(aBuilder, aLists);
   }
@@ -428,22 +380,12 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // the overflow area, so just add nsDisplayCanvasBackground instead of
   // calling DisplayBorderBackgroundOutline.
   ComputedStyle* bg = nullptr;
-  nsIFrame* dependentFrame = nullptr;
-  bool isThemed = IsThemed();
-  if (!isThemed) {
-    dependentFrame = nsCSSRendering::FindBackgroundFrame(this);
-    if (dependentFrame) {
-      bg = dependentFrame->Style();
-      if (dependentFrame == this) {
-        dependentFrame = nullptr;
-      }
+  nsIFrame* dependentFrame = nsCSSRendering::FindBackgroundFrame(this);
+  if (dependentFrame) {
+    bg = dependentFrame->Style();
+    if (dependentFrame == this) {
+      dependentFrame = nullptr;
     }
-  }
-
-  if (isThemed) {
-    aLists.BorderBackground()->AppendNewToTop<nsDisplayCanvasThemedBackground>(
-        aBuilder, this);
-    return;
   }
 
   if (!bg) {
@@ -452,7 +394,7 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
   const ActiveScrolledRoot* asr = aBuilder->CurrentActiveScrolledRoot();
 
-  bool needBlendContainer = false;
+  bool needBlendContainerForBackgroundBlendMode = false;
   nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
 
   const bool suppressBackgroundImage = [&] {
@@ -473,16 +415,37 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     return false;
   }();
 
-  nsDisplayList layerItems(aBuilder);
+  const bool isPage = GetParent()->IsPageContentFrame();
+  const auto& canvasBg = PresShell()->GetCanvasBackground(isPage);
+
+  // Note this list is important so that our blend container only captures our
+  // own items.
+  nsDisplayList list(aBuilder);
+
+  // Put a scrolled background color item in place, at the bottom of the list,
+  // if the canvas background was specified by CSS. If it is not specified by
+  // CSS, we generally don't need to / shouldn't paint it, but we might if not
+  // required for blending correctness.
+  //
+  // NOTE(emilio): We used to have an optimization to try _not_ to draw it if
+  // there was a fixed image (layers.mImageCount > 0 &&
+  // layers.mLayers[0].mAttachment == StyleImageLayerAttachment::Fixed), but
+  // it's unclear it was fully correct (didn't check for mix-blend-mode), and it
+  // complicates quite a bit the logic. If it's useful for performance on real
+  // world websites we could try to re-introduce it.
+  const bool paintColor = NS_GET_A(canvasBg.mColor) && canvasBg.mCSSSpecified;
+  if (paintColor) {
+    list.AppendNewToTop<nsDisplaySolidColor>(
+        aBuilder, this,
+        CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
+        canvasBg.mColor);
+  }
 
   // Create separate items for each background layer.
   const nsStyleImageLayers& layers = bg->StyleBackground()->mImage;
   NS_FOR_VISIBLE_IMAGE_LAYERS_BACK_TO_FRONT(i, layers) {
     if (layers.mLayers[i].mImage.IsNone() || suppressBackgroundImage) {
       continue;
-    }
-    if (layers.mLayers[i].mBlendMode != StyleBlend::Normal) {
-      needBlendContainer = true;
     }
 
     nsRect bgRect = GetRectRelativeToSelf() + aBuilder->ToReferenceFrame(this);
@@ -543,43 +506,50 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
       thisItemList.AppendNewToTopWithIndex<nsDisplayBlendMode>(
           aBuilder, this, i + 1, &thisItemList, layers.mLayers[i].mBlendMode,
           thisItemASR, true);
+      needBlendContainerForBackgroundBlendMode = true;
     }
-    layerItems.AppendToTop(&thisItemList);
+    list.AppendToTop(&thisItemList);
   }
 
-  bool hasFixedBottomLayer =
-      layers.mImageCount > 0 &&
-      layers.mLayers[0].mAttachment == StyleImageLayerAttachment::Fixed;
-
-  nsDisplayList list(aBuilder);
-
-  if (!hasFixedBottomLayer || needBlendContainer) {
-    // Put a scrolled background color item in place, at the bottom of the
-    // list. The color of this item will be filled in during
-    // PresShell::AddCanvasBackgroundColorItem.
-    // Do not add this item if there's a fixed background image at the bottom
-    // (unless we have to, for correct blending); with a fixed background,
-    // it's better to allow the fixed background image to combine itself with
-    // a non-scrolled background color directly underneath, rather than
-    // interleaving the two with a scrolled background color.
-    // PresShell::AddCanvasBackgroundColorItem makes sure there always is a
-    // non-scrolled background color item at the bottom.
-    list.AppendNewToTop<nsDisplayCanvasBackgroundColor>(aBuilder, this);
-  }
-
-  list.AppendToTop(&layerItems);
-
-  if (needBlendContainer) {
+  if (needBlendContainerForBackgroundBlendMode) {
     const ActiveScrolledRoot* containerASR = contASRTracker.GetContainerASR();
     DisplayListClipState::AutoSaveRestore blendContainerClip(aBuilder);
     list.AppendToTop(nsDisplayBlendContainer::CreateForBackgroundBlendMode(
         aBuilder, this, nullptr, &list, containerASR));
   }
+
   aLists.BorderBackground()->AppendToTop(&list);
 
   for (nsIFrame* kid : PrincipalChildList()) {
     // Put our child into its own pseudo-stack.
     BuildDisplayListForChild(aBuilder, kid, aLists);
+  }
+
+  // NOTE(emilio): If we didn't paint the background because it was not
+  // specified by CSS, but we could do that now without sacrificing blending
+  // correctness, do it.
+  //
+  // Painting this extra background used to be desirable for performance in the
+  // FrameLayerBuilder era. It's unclear whether it still is (probably not), but
+  // changing it causes a lot of fuzzy changes due to subpixel AA (not
+  // necessarily regressions, tho?).
+  //
+  // Note that this background can't really be semi-transparent (if CSS has not
+  // specified it, the canvas background should always be opaque).
+  if (!paintColor && NS_GET_A(canvasBg.mColor) && !isPage &&
+      !needBlendContainerForBackgroundBlendMode &&
+      !aBuilder->ContainsBlendMode()) {
+    MOZ_ASSERT(
+        NS_GET_A(canvasBg.mColor) == 255,
+        "Default canvas background should either be transparent or opaque");
+    // Do this shuffle to insert the solid color item at the bottom.
+    nsDisplayList list(aBuilder);
+    list.AppendToTop(aLists.BorderBackground());
+    aLists.BorderBackground()->AppendNewToTop<nsDisplaySolidColor>(
+        aBuilder, this,
+        CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
+        canvasBg.mColor);
+    aLists.BorderBackground()->AppendToTop(&list);
   }
 
   if (mDoPaintFocus) {

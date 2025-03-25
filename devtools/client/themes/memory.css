@@ -610,8 +610,7 @@ svg {
 }
 
 svg #arrowhead {
-  /* !important is needed to override inline style */
-  fill: var(--arrow-color) !important;
+  fill: var(--arrow-color);
 }
 
 .edgePath path {

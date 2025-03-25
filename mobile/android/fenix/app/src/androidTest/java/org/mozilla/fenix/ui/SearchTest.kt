@@ -18,6 +18,7 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.AppAndSystemHelper
@@ -26,6 +27,7 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.denyPermission
 import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
 import org.mozilla.fenix.helpers.AppAndSystemHelper.verifyKeyboardVisibility
 import org.mozilla.fenix.helpers.Constants
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.MockBrowserDataHelper
@@ -64,6 +66,7 @@ class SearchTest : TestSetup() {
     private val queryString: String = "firefox"
     private val generalEnginesList = listOf("DuckDuckGo", "Google", "Bing")
     private val topicEnginesList = listOf("Wikipedia", "eBay")
+    private val firefoxSuggestHeader = getStringResource(R.string.firefox_suggest_header)
 
     @get:Rule
     val activityTestRule = AndroidComposeTestRule(
@@ -679,10 +682,10 @@ class SearchTest : TestSetup() {
         homeScreen {
         }.openSearch {
             typeSearch("generic")
+            verifyTheSuggestionsHeader(activityTestRule, firefoxSuggestHeader)
             verifySearchSuggestionsAreDisplayed(
                 activityTestRule,
                 searchSuggestions = arrayOf(
-                    "Firefox Suggest",
                     firstPage.url.toString(),
                     secondPage.url.toString(),
                 ),
@@ -769,10 +772,10 @@ class SearchTest : TestSetup() {
             clickClearButton()
             typeSearch(searchTerm = "generic")
             verifyTypedToolbarText("generic", exists = true)
+            verifyTheSuggestionsHeader(activityTestRule, firefoxSuggestHeader)
             verifySearchSuggestionsAreDisplayed(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
-                    "Firefox Suggest",
                     firstPageUrl.url.toString(),
                     secondPageUrl.url.toString(),
                 ),
@@ -820,10 +823,10 @@ class SearchTest : TestSetup() {
         }.clickSearchSelectorButton {
             selectTemporarySearchMethod("Bookmarks")
             typeSearch("test")
+            verifyTheSuggestionsHeader(activityTestRule, firefoxSuggestHeader)
             verifySearchSuggestionsAreDisplayed(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
-                    "Firefox Suggest",
                     "Test1",
                     "https://bookmarktest1.com/",
                     "Test2",
@@ -892,12 +895,12 @@ class SearchTest : TestSetup() {
         }.openNavigationToolbar {
         }.clickUrlbar {
             typeSearch(searchTerm = "test page")
+            verifyTheSuggestionsHeader(activityTestRule, firefoxSuggestHeader)
+            verifyTheSuggestionsHeader(activityTestRule, "TestSearchEngine search")
             verifySearchSuggestionsAreDisplayed(
                 rule = activityTestRule,
                 searchSuggestions = arrayOf(
-                    "TestSearchEngine search",
                     "test page 1",
-                    "Firefox Suggest",
                     firstPageUrl.url.toString(),
                 ),
             )

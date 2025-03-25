@@ -292,29 +292,37 @@ const POSTPROCESSORS = {
     return string;
   },
   checkRequiredManifestBackgroundKeys(value, context) {
-    const serviceWorkerEnabled =
-      WebExtensionPolicy.backgroundServiceWorkerEnabled;
-
-    // At least one environment is required
-    if (!value.page && !value.scripts?.length) {
-      if (!value.service_worker) {
-        // Add an error to the manifest validations and throw the
-        // same error.
-        const msg = `background requires at least one of ${
-          serviceWorkerEnabled ? '"service_worker", ' : ""
-        }"scripts" or "page".`;
-        context.logError(context.makeError(msg));
-        throw new Error(msg);
-      } else if (!serviceWorkerEnabled) {
-        // throw if only service_worker is specified and not enabled
-        const msg =
-          "background.service_worker is currently disabled. Add background.scripts.";
-        context.logError(context.makeError(msg));
-        throw new Error(msg);
+    if (value.scripts) {
+      if (value.scripts.length === 0) {
+        context.logWarning(`background.scripts is empty.`);
       }
+      return value;
     }
 
-    return value;
+    if (value.page) {
+      return value;
+    }
+
+    if (value.service_worker) {
+      if (WebExtensionPolicy.backgroundServiceWorkerEnabled) {
+        return value;
+      }
+
+      // throw if serviceWorker is disabled and is the only specified environment
+      const msg =
+        "background.service_worker is currently disabled. Add background.scripts.";
+      context.logError(context.makeError(msg));
+      throw new Error(msg);
+    }
+
+    // no valid environment found, proceed to throwing an error
+    const msg = `background requires at least one of ${
+      WebExtensionPolicy.backgroundServiceWorkerEnabled
+        ? '"service_worker", '
+        : ""
+    }"scripts" or "page".`;
+    context.logError(context.makeError(msg));
+    throw new Error(msg);
   },
 
   manifestVersionCheck(value, context) {

@@ -58,6 +58,7 @@ namespace wr {
 // will never render a surface larger than this.
 #define VIRTUAL_SURFACE_SIZE (1024 * 1024)
 
+class DCLayerSurface;
 class DCTile;
 class DCSurface;
 class DCSwapChain;
@@ -330,6 +331,7 @@ class DCSurface {
 
   virtual DCSurfaceVideo* AsDCSurfaceVideo() { return nullptr; }
   virtual DCSurfaceHandle* AsDCSurfaceHandle() { return nullptr; }
+  virtual DCLayerSurface* AsDCLayerSurface() { return nullptr; }
   virtual DCSwapChain* AsDCSwapChain() { return nullptr; }
 
  protected:
@@ -361,21 +363,34 @@ class DCSurface {
   RefPtr<IDCompositionVirtualSurface> mVirtualSurface;
 };
 
-class DCSwapChain : public DCSurface {
+class DCLayerSurface : public DCSurface {
+ public:
+  DCLayerSurface(bool aIsOpaque, DCLayerTree* aDCLayerTree)
+      : DCSurface(wr::DeviceIntSize{}, wr::DeviceIntPoint{}, false, aIsOpaque,
+                  aDCLayerTree) {}
+  virtual ~DCLayerSurface() = default;
+
+  virtual void Bind() = 0;
+  virtual bool Resize(wr::DeviceIntSize aSize) = 0;
+  virtual void Present() = 0;
+
+  DCLayerSurface* AsDCLayerSurface() override { return this; }
+};
+
+class DCSwapChain : public DCLayerSurface {
  public:
   DCSwapChain(wr::DeviceIntSize aSize, bool aIsOpaque,
               DCLayerTree* aDCLayerTree)
-      : DCSurface(wr::DeviceIntSize{}, wr::DeviceIntPoint{}, false, aIsOpaque,
-                  aDCLayerTree),
+      : DCLayerSurface(aIsOpaque, aDCLayerTree),
         mSize(aSize),
         mEGLSurface(EGL_NO_SURFACE) {}
-  ~DCSwapChain();
+  virtual ~DCSwapChain();
 
   bool Initialize() override;
 
-  void Bind();
-  void Resize(wr::DeviceIntSize aSize);
-  void Present();
+  void Bind() override;
+  bool Resize(wr::DeviceIntSize aSize) override;
+  void Present() override;
 
   DCSwapChain* AsDCSwapChain() override { return this; }
 
@@ -384,6 +399,24 @@ class DCSwapChain : public DCSurface {
   RefPtr<IDXGISwapChain1> mSwapChain;
   EGLSurface mEGLSurface;
   bool mFirstPresent = true;
+};
+
+class DCLayerCompositionSurface : public DCLayerSurface {
+ public:
+  DCLayerCompositionSurface(wr::DeviceIntSize aSize, bool aIsOpaque,
+                            DCLayerTree* aDCLayerTree);
+  virtual ~DCLayerCompositionSurface();
+
+  bool Initialize() override;
+
+  void Bind() override;
+  bool Resize(wr::DeviceIntSize aSize) override;
+  void Present() override;
+
+ private:
+  wr::DeviceIntSize mSize;
+  EGLSurface mEGLSurface = EGL_NO_SURFACE;
+  RefPtr<IDCompositionSurface> mCompositionSurface;
 };
 
 /**
@@ -396,7 +429,7 @@ class DCExternalSurfaceWrapper : public DCSurface {
                   false /* virtual surface */, false /* opaque */,
                   aDCLayerTree),
         mIsOpaque(aIsOpaque) {}
-  ~DCExternalSurfaceWrapper() = default;
+  virtual ~DCExternalSurfaceWrapper() = default;
 
   void AttachExternalImage(wr::ExternalImageId aExternalImage) override;
 
@@ -465,7 +498,7 @@ class DCSurfaceVideo : public DCSurface {
 class DCSurfaceHandle : public DCSurface {
  public:
   DCSurfaceHandle(bool aIsOpaque, DCLayerTree* aDCLayerTree);
-  ~DCSurfaceHandle() = default;
+  virtual ~DCSurfaceHandle() = default;
 
   void AttachExternalImage(wr::ExternalImageId aExternalImage) override;
   void PresentSurfaceHandle();

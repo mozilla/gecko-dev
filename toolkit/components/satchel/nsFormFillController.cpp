@@ -9,11 +9,14 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/EventListenerManager.h"
+#include "mozilla/TextControlElement.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"  // for Event
 #include "mozilla/dom/HTMLDataListElement.h"
 #include "mozilla/dom/HTMLInputElement.h"
+#include "mozilla/dom/HTMLTextAreaElement.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/KeyboardEvent.h"
 #include "mozilla/dom/KeyboardEventBinding.h"
 #include "mozilla/dom/MouseEvent.h"
@@ -64,7 +67,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsFormFillController)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsFormFillController)
 
 nsFormFillController::nsFormFillController()
-    : mFocusedInput(nullptr),
+    : mFocusedElement(nullptr),
       mRestartAfterAttributeChangeTask(nullptr),
       mListNode(nullptr),
       // The amount of time a context menu event supresses showing a
@@ -96,9 +99,9 @@ nsFormFillController::~nsFormFillController() {
     mListNode->RemoveMutationObserver(this);
     mListNode = nullptr;
   }
-  if (mFocusedInput) {
-    MaybeRemoveMutationObserver(mFocusedInput);
-    mFocusedInput = nullptr;
+  if (mFocusedElement) {
+    MaybeRemoveMutationObserver(mFocusedElement);
+    mFocusedElement = nullptr;
   }
   RemoveForDocument(nullptr);
 }
@@ -126,7 +129,7 @@ void nsFormFillController::AttributeChanged(mozilla::dom::Element* aElement,
   if ((aAttribute == nsGkAtoms::type || aAttribute == nsGkAtoms::readonly ||
        aAttribute == nsGkAtoms::autocomplete) &&
       aNameSpaceID == kNameSpaceID_None) {
-    RefPtr<HTMLInputElement> focusedInput(mFocusedInput);
+    RefPtr<Element> focusedElement(mFocusedElement);
     // Reset the current state of the controller, unconditionally.
     StopControllingInput();
     // Then restart based on the new values.  We have to delay this
@@ -136,10 +139,10 @@ void nsFormFillController::AttributeChanged(mozilla::dom::Element* aElement,
     // attribute change, cancel it.
     MaybeCancelAttributeChangeTask();
     mRestartAfterAttributeChangeTask =
-        mozilla::NewCancelableRunnableMethod<RefPtr<HTMLInputElement>>(
+        mozilla::NewCancelableRunnableMethod<RefPtr<Element>>(
             "nsFormFillController::MaybeStartControllingInput", this,
             &nsFormFillController::MaybeStartControllingInputScheduled,
-            focusedInput);
+            focusedElement);
     RefPtr<Runnable> addrefedRunnable = mRestartAfterAttributeChangeTask;
     aElement->OwnerDoc()->Dispatch(addrefedRunnable.forget());
   }
@@ -151,9 +154,9 @@ void nsFormFillController::AttributeChanged(mozilla::dom::Element* aElement,
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY
 void nsFormFillController::MaybeStartControllingInputScheduled(
-    HTMLInputElement* aInput) {
+    Element* aElement) {
   mRestartAfterAttributeChangeTask = nullptr;
-  MaybeStartControllingInput(aInput);
+  MaybeStartControllingInput(aElement);
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY
@@ -215,8 +218,8 @@ void nsFormFillController::NodeWillBeDestroyed(nsINode* aNode) {
   if (aNode == mListNode) {
     mListNode = nullptr;
     RevalidateDataList();
-  } else if (aNode == mFocusedInput) {
-    mFocusedInput = nullptr;
+  } else if (aNode == mFocusedElement) {
+    mFocusedElement = nullptr;
   }
 }
 
@@ -232,28 +235,32 @@ void nsFormFillController::MaybeRemoveMutationObserver(nsINode* aNode) {
 //// nsIFormFillController
 
 NS_IMETHODIMP
-nsFormFillController::MarkAsAutoCompletableField(HTMLInputElement* aInput) {
+nsFormFillController::MarkAsAutoCompletableField(Element* aElement) {
   /*
    * Support other components implementing form autofill and handle autocomplete
    * for the field.
    */
-  NS_ENSURE_STATE(aInput);
+  NS_ENSURE_STATE(aElement);
+
+  if (!aElement->IsAnyOfHTMLElements(nsGkAtoms::input, nsGkAtoms::textarea)) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   MOZ_LOG(sLogger, LogLevel::Verbose,
-          ("MarkAsAutoCompletableField: aInput = %p", aInput));
+          ("MarkAsAutoCompletableField: aElement = %p", aElement));
 
-  if (mAutoCompleteInputs.Get(aInput)) {
+  if (mAutoCompleteInputs.Get(aElement)) {
     return NS_OK;
   }
 
-  mAutoCompleteInputs.InsertOrUpdate(aInput, true);
-  aInput->AddMutationObserverUnlessExists(this);
+  mAutoCompleteInputs.InsertOrUpdate(aElement, true);
+  aElement->AddMutationObserverUnlessExists(this);
 
-  aInput->EnablePreview();
+  EnablePreview(aElement);
 
-  if (nsFocusManager::GetFocusedElementStatic() == aInput) {
-    if (!mFocusedInput) {
-      MaybeStartControllingInput(aInput);
+  if (nsFocusManager::GetFocusedElementStatic() == aElement) {
+    if (!mFocusedElement) {
+      MaybeStartControllingInput(aElement);
     } else {
       // See `MarkAsLoginManagerField` for why this is needed.
       nsCOMPtr<nsIAutoCompleteController> controller = mController;
@@ -265,9 +272,9 @@ nsFormFillController::MarkAsAutoCompletableField(HTMLInputElement* aInput) {
 }
 
 NS_IMETHODIMP
-nsFormFillController::GetFocusedInput(HTMLInputElement** aInput) {
-  *aInput = mFocusedInput;
-  NS_IF_ADDREF(*aInput);
+nsFormFillController::GetFocusedElement(Element** aElement) {
+  *aElement = mFocusedElement;
+  NS_IF_ADDREF(*aElement);
   return NS_OK;
 }
 
@@ -308,9 +315,9 @@ nsFormFillController::SetPopupOpen(bool aPopupOpen) {
   if (mFocusedPopup) {
     if (aPopupOpen) {
       // make sure input field is visible before showing popup (bug 320938)
-      nsCOMPtr<nsIContent> content = mFocusedInput;
+      nsCOMPtr<nsIContent> content = mFocusedElement;
       NS_ENSURE_STATE(content);
-      nsCOMPtr<nsIDocShell> docShell = GetDocShellForInput(mFocusedInput);
+      nsCOMPtr<nsIDocShell> docShell = GetDocShellForInput(mFocusedElement);
       NS_ENSURE_STATE(docShell);
       RefPtr<PresShell> presShell = docShell->GetPresShell();
       NS_ENSURE_STATE(presShell);
@@ -322,7 +329,7 @@ nsFormFillController::SetPopupOpen(bool aPopupOpen) {
       // mFocusedPopup can be destroyed after ScrollContentIntoView, see bug
       // 420089
       if (mFocusedPopup) {
-        mFocusedPopup->OpenAutocompletePopup(this, mFocusedInput);
+        mFocusedPopup->OpenAutocompletePopup(this, mFocusedElement);
       }
     } else {
       mFocusedPopup->ClosePopup();
@@ -422,16 +429,17 @@ nsFormFillController::SetSearchParam(const nsAString& aSearchParam) {
 
 NS_IMETHODIMP
 nsFormFillController::GetSearchParam(nsAString& aSearchParam) {
-  if (!mFocusedInput) {
+  if (!mFocusedElement) {
     NS_WARNING(
-        "mFocusedInput is null for some reason! avoiding a crash. should find "
+        "mFocusedElement is null for some reason! avoiding a crash. should "
+        "find "
         "out why... - ben");
     return NS_ERROR_FAILURE;  // XXX why? fix me.
   }
 
-  mFocusedInput->GetName(aSearchParam);
+  GetName(mFocusedElement, aSearchParam);
   if (aSearchParam.IsEmpty()) {
-    mFocusedInput->GetId(aSearchParam);
+    mFocusedElement->GetId(aSearchParam);
   }
 
   return NS_OK;
@@ -459,8 +467,8 @@ nsFormFillController::GetSearchAt(uint32_t index, nsACString& _retval) {
 
 NS_IMETHODIMP
 nsFormFillController::GetTextValue(nsAString& aTextValue) {
-  if (mFocusedInput) {
-    mFocusedInput->GetValue(aTextValue, CallerType::System);
+  if (mFocusedElement) {
+    GetValue(mFocusedElement, aTextValue);
   } else {
     aTextValue.Truncate();
   }
@@ -469,10 +477,10 @@ nsFormFillController::GetTextValue(nsAString& aTextValue) {
 
 NS_IMETHODIMP
 nsFormFillController::SetTextValue(const nsAString& aTextValue) {
-  if (mFocusedInput) {
+  if (mFocusedElement) {
     mSuppressOnInput = true;
-    mFocusedInput->SetUserInput(aTextValue,
-                                *nsContentUtils::GetSystemPrincipal());
+    SetUserInput(mFocusedElement, aTextValue,
+                 *nsContentUtils::GetSystemPrincipal());
     mSuppressOnInput = false;
   }
 
@@ -481,33 +489,32 @@ nsFormFillController::SetTextValue(const nsAString& aTextValue) {
 
 NS_IMETHODIMP
 nsFormFillController::GetSelectionStart(int32_t* aSelectionStart) {
-  if (!mFocusedInput) {
+  if (!mFocusedElement) {
     return NS_ERROR_UNEXPECTED;
   }
   ErrorResult rv;
-  *aSelectionStart = mFocusedInput->GetSelectionStartIgnoringType(rv);
+  *aSelectionStart = GetSelectionStartInternal(mFocusedElement, rv);
   return rv.StealNSResult();
 }
 
 NS_IMETHODIMP
 nsFormFillController::GetSelectionEnd(int32_t* aSelectionEnd) {
-  if (!mFocusedInput) {
+  if (!mFocusedElement) {
     return NS_ERROR_UNEXPECTED;
   }
   ErrorResult rv;
-  *aSelectionEnd = mFocusedInput->GetSelectionEndIgnoringType(rv);
+  *aSelectionEnd = GetSelectionEndInternal(mFocusedElement, rv);
   return rv.StealNSResult();
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
 nsFormFillController::SelectTextRange(int32_t aStartIndex, int32_t aEndIndex) {
-  if (!mFocusedInput) {
+  if (!mFocusedElement) {
     return NS_ERROR_UNEXPECTED;
   }
-  RefPtr<HTMLInputElement> focusedInput(mFocusedInput);
+  RefPtr<Element> focusedInput(mFocusedElement);
   ErrorResult rv;
-  focusedInput->SetSelectionRange(aStartIndex, aEndIndex, Optional<nsAString>(),
-                                  rv);
+  SetSelectionRange(focusedInput, aStartIndex, aEndIndex, rv);
   return rv.StealNSResult();
 }
 
@@ -519,7 +526,7 @@ nsFormFillController::OnSearchComplete() { return NS_OK; }
 
 NS_IMETHODIMP
 nsFormFillController::OnTextEntered(Event* aEvent) {
-  NS_ENSURE_TRUE(mFocusedInput, NS_OK);
+  NS_ENSURE_TRUE(mFocusedElement, NS_OK);
   return NS_OK;
 }
 
@@ -537,12 +544,12 @@ nsFormFillController::GetConsumeRollupEvent(bool* aConsumeRollupEvent) {
 
 NS_IMETHODIMP
 nsFormFillController::GetInPrivateContext(bool* aInPrivateContext) {
-  if (!mFocusedInput) {
+  if (!mFocusedElement) {
     *aInPrivateContext = false;
     return NS_OK;
   }
 
-  RefPtr<Document> doc = mFocusedInput->OwnerDoc();
+  RefPtr<Document> doc = mFocusedElement->OwnerDoc();
   nsCOMPtr<nsILoadContext> loadContext = doc->GetLoadContext();
   *aInPrivateContext = loadContext && loadContext->UsePrivateBrowsing();
   return NS_OK;
@@ -556,8 +563,8 @@ nsFormFillController::GetNoRollupOnCaretMove(bool* aNoRollupOnCaretMove) {
 
 NS_IMETHODIMP
 nsFormFillController::GetNoRollupOnEmptySearch(bool* aNoRollupOnEmptySearch) {
-  if (mFocusedInput && mFocusedPopup) {
-    return mFocusedPopup->GetNoRollupOnEmptySearch(mFocusedInput,
+  if (mFocusedElement && mFocusedPopup) {
+    return mFocusedPopup->GetNoRollupOnEmptySearch(mFocusedElement,
                                                    aNoRollupOnEmptySearch);
   }
 
@@ -586,36 +593,36 @@ nsFormFillController::StartSearch(const nsAString& aSearchString,
                                   const nsAString& aSearchParam,
                                   nsIAutoCompleteResult* aPreviousResult,
                                   nsIAutoCompleteObserver* aListener) {
-  MOZ_LOG(sLogger, LogLevel::Debug, ("StartSearch for %p", mFocusedInput));
+  MOZ_LOG(sLogger, LogLevel::Debug, ("StartSearch for %p", mFocusedElement));
 
   mLastListener = aListener;
 
-  if (mFocusedInput && mFocusedPopup) {
-    if (mAutoCompleteInputs.Get(mFocusedInput) ||
-        mFocusedInput->HasBeenTypePassword()) {
+  if (mFocusedElement && mFocusedPopup) {
+    if (mAutoCompleteInputs.Get(mFocusedElement) ||
+        HasBeenTypePassword(mFocusedElement)) {
       MOZ_LOG(sLogger, LogLevel::Debug,
               ("StartSearch: formautofill or login field"));
 
-      return mFocusedPopup->StartSearch(aSearchString, mFocusedInput, this);
+      return mFocusedPopup->StartSearch(aSearchString, mFocusedElement, this);
     }
   }
 
   MOZ_LOG(sLogger, LogLevel::Debug, ("StartSearch: form history field"));
 
-  bool addDataList = IsTextControl(mFocusedInput);
+  bool addDataList = IsTextControl(mFocusedElement);
   if (addDataList) {
     MaybeObserveDataListMutations();
   }
 
-  return mFocusedPopup->StartSearch(aSearchString, mFocusedInput, this);
+  return mFocusedPopup->StartSearch(aSearchString, mFocusedElement, this);
 }
 
 void nsFormFillController::MaybeObserveDataListMutations() {
   // If an <input> is focused, check if it has a list="<datalist>" which can
   // provide the list of suggestions.
 
-  if (mFocusedInput) {
-    Element* list = mFocusedInput->GetList();
+  if (mFocusedElement) {
+    Element* list = GetList(mFocusedElement);
 
     // Add a mutation observer to check for changes to the items in the
     // <datalist> and update the suggestions accordingly.
@@ -739,7 +746,7 @@ nsFormFillController::HandleEvent(Event* aEvent) {
       return NS_OK;
     }
     case eBlur:
-      if (mFocusedInput && !StaticPrefs::ui_popup_disable_autohide()) {
+      if (mFocusedElement && !StaticPrefs::ui_popup_disable_autohide()) {
         StopControllingInput();
       }
       return NS_OK;
@@ -768,7 +775,7 @@ nsFormFillController::HandleEvent(Event* aEvent) {
         return NS_OK;
       }
 
-      if (mFocusedInput && doc == mFocusedInput->OwnerDoc()) {
+      if (mFocusedElement && doc == mFocusedElement->OwnerDoc()) {
         StopControllingInput();
       }
 
@@ -815,9 +822,9 @@ void nsFormFillController::RemoveForDocument(Document* aDoc) {
   for (auto iter = mAutoCompleteInputs.Iter(); !iter.Done(); iter.Next()) {
     const nsINode* key = iter.Key();
     if (key && (!aDoc || key->OwnerDoc() == aDoc)) {
-      // mFocusedInput's observer is tracked separately, so don't remove it
+      // mFocusedElement's observer is tracked separately, so don't remove it
       // here.
-      if (key != mFocusedInput) {
+      if (key != mFocusedElement) {
         const_cast<nsINode*>(key)->RemoveMutationObserver(this);
       }
       iter.Remove();
@@ -827,38 +834,42 @@ void nsFormFillController::RemoveForDocument(Document* aDoc) {
 
 bool nsFormFillController::IsTextControl(nsINode* aNode) {
   const auto* formControl = nsIFormControl::FromNodeOrNull(aNode);
-  return formControl && formControl->IsSingleLineTextControl(false);
+  return formControl && formControl->IsTextControl(false);
 }
 
-void nsFormFillController::MaybeStartControllingInput(
-    HTMLInputElement* aInput) {
+void nsFormFillController::MaybeStartControllingInput(Element* aElement) {
   MOZ_LOG(sLogger, LogLevel::Verbose,
-          ("MaybeStartControllingInput for %p", aInput));
-  if (!aInput) {
+          ("MaybeStartControllingInput for %p", aElement));
+  if (!aElement) {
     return;
   }
 
-  bool hasList = !!aInput->GetList();
+  bool hasList = !!GetList(aElement);
 
-  if (!IsTextControl(aInput)) {
+  if (!IsTextControl(aElement)) {
     // Even if this is not a text control yet, it can become one in the future
     if (hasList) {
-      StartControllingInput(aInput);
+      StartControllingInput(aElement);
     }
     return;
   }
 
-  if (mAutoCompleteInputs.Get(aInput) || aInput->HasBeenTypePassword() ||
-      hasList || nsContentUtils::IsAutocompleteEnabled(aInput)) {
-    StartControllingInput(aInput);
+  if (mAutoCompleteInputs.Get(aElement) || HasBeenTypePassword(aElement) ||
+      hasList || nsContentUtils::IsAutocompleteEnabled(aElement)) {
+    StartControllingInput(aElement);
   }
 }
 
-nsresult nsFormFillController::HandleFocus(HTMLInputElement* aInput) {
-  MaybeStartControllingInput(aInput);
+nsresult nsFormFillController::HandleFocus(Element* aElement) {
+  if (!aElement ||
+      !aElement->IsAnyOfHTMLElements(nsGkAtoms::input, nsGkAtoms::textarea)) {
+    return NS_OK;
+  }
+
+  MaybeStartControllingInput(aElement);
 
   // Bail if we didn't start controlling the input.
-  if (!mFocusedInput) {
+  if (!mFocusedElement) {
     return NS_OK;
   }
 
@@ -874,7 +885,7 @@ nsresult nsFormFillController::HandleFocus(HTMLInputElement* aInput) {
   // multiple input forms and the fact that a mousedown into an already focused
   // field does not trigger another focus.
 
-  if (!mFocusedInput->HasBeenTypePassword()) {
+  if (!HasBeenTypePassword(mFocusedElement)) {
     return NS_OK;
   }
 
@@ -897,7 +908,7 @@ nsresult nsFormFillController::HandleFocus(HTMLInputElement* aInput) {
 
 nsresult nsFormFillController::Focus(Event* aEvent) {
   nsCOMPtr<nsIContent> input = do_QueryInterface(aEvent->GetComposedTarget());
-  return HandleFocus(MOZ_KnownLive(HTMLInputElement::FromNodeOrNull(input)));
+  return HandleFocus(MOZ_KnownLive(Element::FromNodeOrNull(input)));
 }
 
 nsresult nsFormFillController::KeyDown(Event* aEvent) {
@@ -962,8 +973,8 @@ nsresult nsFormFillController::KeyDown(Event* aEvent) {
       // Get the writing-mode of the relevant input element,
       // so that we can remap arrow keys if necessary.
       mozilla::WritingMode wm;
-      if (mFocusedInput) {
-        nsIFrame* frame = mFocusedInput->GetPrimaryFrame();
+      if (mFocusedElement) {
+        nsIFrame* frame = mFocusedElement->GetPrimaryFrame();
         if (frame) {
           wm = frame->GetWritingMode();
         }
@@ -1024,7 +1035,10 @@ nsresult nsFormFillController::MouseDown(Event* aEvent) {
   }
 
   nsCOMPtr<nsINode> targetNode = do_QueryInterface(aEvent->GetComposedTarget());
-  if (!HTMLInputElement::FromNodeOrNull(targetNode)) {
+
+  auto* element = Element::FromNodeOrNull(targetNode);
+  if (!element ||
+      !element->IsAnyOfHTMLElements(nsGkAtoms::input, nsGkAtoms::textarea)) {
     return NS_OK;
   }
 
@@ -1085,39 +1099,40 @@ NS_IMETHODIMP nsFormFillController::GetPasswordPopupAutomaticallyOpened(
   return NS_OK;
 }
 
-void nsFormFillController::StartControllingInput(HTMLInputElement* aInput) {
-  MOZ_LOG(sLogger, LogLevel::Verbose, ("StartControllingInput for %p", aInput));
+void nsFormFillController::StartControllingInput(Element* aElement) {
+  MOZ_LOG(sLogger, LogLevel::Verbose,
+          ("StartControllingInput for %p", aElement));
   // Make sure we're not still attached to an input
   StopControllingInput();
 
-  if (!mController || !aInput) {
+  if (!mController || !aElement) {
     return;
   }
 
   nsCOMPtr<nsIAutoCompletePopup> popup =
-      do_QueryActor("AutoComplete", aInput->OwnerDoc());
+      do_QueryActor("AutoComplete", aElement->OwnerDoc());
   if (!popup) {
     return;
   }
 
   mFocusedPopup = popup;
 
-  aInput->AddMutationObserverUnlessExists(this);
-  mFocusedInput = aInput;
+  aElement->AddMutationObserverUnlessExists(this);
+  mFocusedElement = aElement;
 
-  if (Element* list = mFocusedInput->GetList()) {
+  if (Element* list = GetList(mFocusedElement)) {
     list->AddMutationObserverUnlessExists(this);
     mListNode = list;
   }
 
-  if (!mFocusedInput->ReadOnly()) {
+  if (!ReadOnly(mFocusedElement)) {
     nsCOMPtr<nsIAutoCompleteController> controller = mController;
     controller->SetInput(this);
   }
 }
 
 bool nsFormFillController::IsFocusedInputControlled() const {
-  return mFocusedInput && mController && !mFocusedInput->ReadOnly();
+  return mFocusedElement && mController && !ReadOnly(mFocusedElement);
 }
 
 void nsFormFillController::StopControllingInput() {
@@ -1142,10 +1157,10 @@ void nsFormFillController::StopControllingInput() {
   }
 
   MOZ_LOG(sLogger, LogLevel::Verbose,
-          ("StopControllingInput: Stopped controlling %p", mFocusedInput));
-  if (mFocusedInput) {
-    MaybeRemoveMutationObserver(mFocusedInput);
-    mFocusedInput = nullptr;
+          ("StopControllingInput: Stopped controlling %p", mFocusedElement));
+  if (mFocusedElement) {
+    MaybeRemoveMutationObserver(mFocusedElement);
+    mFocusedElement = nullptr;
   }
 
   if (mFocusedPopup) {
@@ -1154,12 +1169,113 @@ void nsFormFillController::StopControllingInput() {
   mFocusedPopup = nullptr;
 }
 
-nsIDocShell* nsFormFillController::GetDocShellForInput(
-    HTMLInputElement* aInput) {
-  NS_ENSURE_TRUE(aInput, nullptr);
+nsIDocShell* nsFormFillController::GetDocShellForInput(Element* aElement) {
+  NS_ENSURE_TRUE(aElement, nullptr);
 
-  nsCOMPtr<nsPIDOMWindowOuter> win = aInput->OwnerDoc()->GetWindow();
+  nsCOMPtr<nsPIDOMWindowOuter> win = aElement->OwnerDoc()->GetWindow();
   NS_ENSURE_TRUE(win, nullptr);
 
   return win->GetDocShell();
+}
+
+void nsFormFillController::GetName(mozilla::dom::Element* aElement,
+                                   nsAString& aValue) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    input->GetName(aValue);
+  } else if (auto* textarea = HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    textarea->GetName(aValue);
+  }
+}
+
+void nsFormFillController::GetValue(mozilla::dom::Element* aElement,
+                                    nsAString& aValue) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    input->GetValue(aValue, CallerType::System);
+  } else if (auto* textarea = HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    textarea->GetValue(aValue);
+  }
+}
+
+Element* nsFormFillController::GetList(mozilla::dom::Element* aElement) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    return input->GetList();
+  }
+  return nullptr;
+}
+
+bool nsFormFillController::HasBeenTypePassword(
+    mozilla::dom::Element* aElement) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    return input->HasBeenTypePassword();
+  }
+  return false;
+}
+
+bool nsFormFillController::ReadOnly(mozilla::dom::Element* aElement) const {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    return input->ReadOnly();
+  } else if (auto* textarea = HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    return textarea->ReadOnly();
+  }
+  return false;
+}
+
+uint32_t nsFormFillController::GetSelectionStartInternal(
+    mozilla::dom::Element* aElement, ErrorResult& aRv) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    return input->GetSelectionStartIgnoringType(aRv);
+  } else if (auto* textarea = HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    Nullable<uint32_t> start = textarea->GetSelectionStart(aRv);
+    if (!start.IsNull()) {
+      return start.Value();
+    }
+  }
+  return 0;
+}
+
+uint32_t nsFormFillController::GetSelectionEndInternal(
+    mozilla::dom::Element* aElement, ErrorResult& aRv) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    return input->GetSelectionEndIgnoringType(aRv);
+  } else if (auto* textarea = HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    Nullable<uint32_t> end = textarea->GetSelectionEnd(aRv);
+    if (!end.IsNull()) {
+      return end.Value();
+    }
+  }
+  return 0;
+}
+
+void nsFormFillController::SetSelectionRange(mozilla::dom::Element* aElement,
+                                             uint32_t aSelectionStart,
+                                             uint32_t aSelectionEnd,
+                                             ErrorResult& aRv) {
+  if (RefPtr<HTMLInputElement> input =
+          HTMLInputElement::FromNodeOrNull(aElement)) {
+    return input->SetSelectionRange(aSelectionStart, aSelectionEnd,
+                                    Optional<nsAString>(), aRv);
+  } else if (RefPtr<HTMLTextAreaElement> textarea =
+                 HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    return textarea->SetSelectionRange(aSelectionStart, aSelectionEnd,
+                                       Optional<nsAString>(), aRv);
+  }
+}
+
+void nsFormFillController::SetUserInput(mozilla::dom::Element* aElement,
+                                        const nsAString& aValue,
+                                        nsIPrincipal& aSubjectPrincipal) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    input->SetUserInput(aValue, aSubjectPrincipal);
+  } else if (auto* textarea = HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    textarea->SetUserInput(aValue, aSubjectPrincipal);
+  }
+}
+
+void nsFormFillController::EnablePreview(mozilla::dom::Element* aElement) {
+  if (auto* input = HTMLInputElement::FromNodeOrNull(aElement)) {
+    input->EnablePreview();
+  } else if (auto* textarea = HTMLTextAreaElement::FromNodeOrNull(aElement)) {
+    textarea->EnablePreview();
+  }
+  return;
 }

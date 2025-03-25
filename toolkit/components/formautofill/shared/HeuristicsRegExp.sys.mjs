@@ -54,6 +54,7 @@ export const HeuristicsRegExp = {
         "addrline2|address_2|addl2" +
         "|landmark", // common in IN
       "address-line3": "addrline3|address_3|addl3",
+      "address-level2": "città", // it-IT
       "address-housenumber":
         "house\\s*number|hausnummer|haus|house[a-z\-]*n(r|o)",
       "address-level3":

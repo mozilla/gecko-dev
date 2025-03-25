@@ -298,12 +298,7 @@ bool js::intl_BestAvailableLocale(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
 
-    JSLinearString* tagStr = buffer.toString(cx);
-    if (!tagStr) {
-      return false;
-    }
-
-    MOZ_ASSERT(EqualStrings(locale, tagStr),
+    MOZ_ASSERT(StringEqualsAscii(locale, buffer.data(), buffer.length()),
                "locale is a canonicalized language tag");
   }
 #endif

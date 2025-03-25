@@ -204,6 +204,9 @@ class DMABufSurface {
   virtual wl_buffer* CreateWlBuffer() = 0;
 #endif
 
+  static bool UseDmaBufGL(mozilla::gl::GLContext* aGLContext);
+  static bool UseDmaBufExportExtension(mozilla::gl::GLContext* aGLContext);
+
   DMABufSurface(SurfaceType aSurfaceType);
 
  protected:
@@ -232,8 +235,8 @@ class DMABufSurface {
   void CloseFileDescriptors(const mozilla::MutexAutoLock& aProofOfLock,
                             bool aForceClose = false);
 
-  nsresult ReadIntoBuffer(uint8_t* aData, int32_t aStride,
-                          const mozilla::gfx::IntSize& aSize,
+  nsresult ReadIntoBuffer(mozilla::gl::GLContext* aGLContext, uint8_t* aData,
+                          int32_t aStride, const mozilla::gfx::IntSize& aSize,
                           mozilla::gfx::SurfaceFormat aFormat);
 
   virtual ~DMABufSurface();
@@ -273,13 +276,9 @@ class DMABufSurface {
 class DMABufSurfaceRGBA final : public DMABufSurface {
  public:
   static already_AddRefed<DMABufSurfaceRGBA> CreateDMABufSurface(
-      int aWidth, int aHeight, int aDMABufSurfaceFlags);
-  static already_AddRefed<DMABufSurfaceRGBA> CreateDMABufSurface(
-      int aWidth, int aHeight, RefPtr<mozilla::widget::DRMFormat> aFormat,
-      int aDMABufSurfaceFlags);
-  static already_AddRefed<DMABufSurface> CreateDMABufSurface(
-      mozilla::gl::GLContext* aGLContext, const EGLImageKHR aEGLImage,
-      int aWidth, int aHeight);
+      mozilla::gl::GLContext* aGLContext, int aWidth, int aHeight,
+      int aDMABufSurfaceFlags = 0,
+      RefPtr<mozilla::widget::DRMFormat> aFormat = nullptr);
   static already_AddRefed<DMABufSurface> CreateDMABufSurface(
       RefPtr<mozilla::gfx::FileHandleWrapper>&& aFd,
       const mozilla::webgpu::ffi::WGPUDMABufInfo& aDMABufInfo, int aWidth,
@@ -333,13 +332,15 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
   DMABufSurfaceRGBA& operator=(const DMABufSurfaceRGBA&) = delete;
   ~DMABufSurfaceRGBA();
 
-  bool Create(int aWidth, int aHeight, int aDMABufSurfaceFlags);
-  bool Create(int aWidth, int aHeight,
-              RefPtr<mozilla::widget::DRMFormat> aFormat,
-              int aDMABufSurfaceFlags);
+  bool Create(mozilla::gl::GLContext* aGLContext, int aWidth, int aHeight,
+              int aDMABufSurfaceFlags,
+              RefPtr<mozilla::widget::DRMFormat> aFormat = nullptr);
+  bool CreateGBM(int aWidth, int aHeight, int aDMABufSurfaceFlags,
+                 RefPtr<mozilla::widget::DRMFormat> aFormat);
+  bool CreateExport(mozilla::gl::GLContext* aGLContext, int aWidth, int aHeight,
+                    int aDMABufSurfaceFlags);
+
   bool Create(const mozilla::layers::SurfaceDescriptor& aDesc) override;
-  bool Create(mozilla::gl::GLContext* aGLContext, const EGLImageKHR aEGLImage,
-              int aWidth, int aHeight);
   bool Create(RefPtr<mozilla::gfx::FileHandleWrapper>&& aFd,
               const mozilla::webgpu::ffi::WGPUDMABufInfo& aDMABufInfo,
               int aWidth, int aHeight);
@@ -438,9 +439,9 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   ~DMABufSurfaceYUV();
 
   bool Create(const mozilla::layers::SurfaceDescriptor& aDesc) override;
-  bool CreateYUVPlane(int aPlane);
-  bool CreateLinearYUVPlane(int aPlane, int aWidth, int aHeight,
-                            int aDrmFormat);
+  bool CreateYUVPlane(mozilla::gl::GLContext* aGLContext, int aPlane);
+  bool CreateYUVPlaneGBM(int aPlane);
+  bool CreateYUVPlaneExport(mozilla::gl::GLContext* aGLContext, int aPlane);
 
   bool MoveYUVDataImpl(const VADRMPRIMESurfaceDescriptor& aDesc, int aWidth,
                        int aHeight);
@@ -456,9 +457,6 @@ class DMABufSurfaceYUV final : public DMABufSurface {
                                   int aPlane) override;
   void CloseFileDescriptorForPlane(const mozilla::MutexAutoLock& aProofOfLock,
                                    int aPlane, bool aForceClose) override;
-
-  bool CreateEGLImage(mozilla::gl::GLContext* aGLContext, int aPlane);
-  void ReleaseEGLImages(mozilla::gl::GLContext* aGLContext);
 
   int mWidth[DMABUF_BUFFER_PLANES];
   int mHeight[DMABUF_BUFFER_PLANES];
