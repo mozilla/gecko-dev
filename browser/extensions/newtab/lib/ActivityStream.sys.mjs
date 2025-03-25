@@ -24,6 +24,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FaviconFeed: "resource://newtab/lib/FaviconFeed.sys.mjs",
   HighlightsFeed: "resource://newtab/lib/HighlightsFeed.sys.mjs",
   NewTabInit: "resource://newtab/lib/NewTabInit.sys.mjs",
+  NewTabMessaging: "resource://newtab/lib/NewTabMessaging.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefsFeed: "resource://newtab/lib/PrefsFeed.sys.mjs",
   PlacesFeed: "resource://newtab/lib/PlacesFeed.sys.mjs",
@@ -1230,6 +1231,12 @@ const FEEDS_DATA = [
     name: "adsfeed",
     factory: () => new lazy.AdsFeed(),
     title: "Handles fetching and caching ads data",
+    value: true,
+  },
+  {
+    name: "newtabmessaging",
+    factory: () => new lazy.NewTabMessaging(),
+    title: "Handles fetching and triggering ASRouter messages in newtab",
     value: true,
   },
 ];

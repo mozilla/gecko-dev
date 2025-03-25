@@ -777,6 +777,7 @@ export const Base = connect(state => ({
   Prefs: state.Prefs,
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
+  Messages: state.Messages,
   Notifications: state.Notifications,
   Search: state.Search,
   Wallpapers: state.Wallpapers,
