@@ -229,6 +229,18 @@ function update(state = initialSourcesState(), action) {
       };
     }
 
+    case "CLEAR_BREAKPOINT_POSITIONS": {
+      if (!state.mutableBreakpointPositions.has(action.source.id)) {
+        return state;
+      }
+
+      state.mutableBreakpointPositions.delete(action.source.id);
+
+      return {
+        ...state,
+      };
+    }
+
     case "REMOVE_THREAD": {
       return removeSourcesAndActors(state, action);
     }
