@@ -17,6 +17,19 @@ sealed interface BrowserToolbarAction : Action {
      * @property editMode Whether or not the toolbar is in "edit" mode.
      */
     data class ToggleEditMode(val editMode: Boolean) : BrowserToolbarAction
+
+    /**
+     * Initialize the toolbar with the provided data.
+     *
+     * @property mode The initial mode of the toolbar.
+     * @property displayState The initial state of the display toolbar.
+     * @property editState The initial state of the edit toolbar.
+     */
+    data class Init(
+        val mode: Mode = Mode.DISPLAY,
+        val displayState: DisplayState = DisplayState(),
+        val editState: EditState = EditState(),
+    ) : BrowserToolbarAction
 }
 
 /**

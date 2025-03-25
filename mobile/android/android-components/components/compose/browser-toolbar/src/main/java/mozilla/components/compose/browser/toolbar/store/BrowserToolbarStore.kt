@@ -5,6 +5,7 @@
 package mozilla.components.compose.browser.toolbar.store
 
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.UiStore
 
 /**
@@ -12,13 +13,32 @@ import mozilla.components.lib.state.UiStore
  */
 class BrowserToolbarStore(
     initialState: BrowserToolbarState = BrowserToolbarState(),
+    middleware: List<Middleware<BrowserToolbarState, BrowserToolbarAction>> = emptyList(),
 ) : UiStore<BrowserToolbarState, BrowserToolbarAction>(
     initialState = initialState,
     reducer = ::reduce,
-)
+    middleware = middleware,
+) {
+    init {
+        // Allow integrators intercept and update the initial state.
+        dispatch(
+            BrowserToolbarAction.Init(
+                mode = initialState.mode,
+                displayState = initialState.displayState,
+                editState = initialState.editState,
+            ),
+        )
+    }
+}
 
 private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): BrowserToolbarState {
     return when (action) {
+        is BrowserToolbarAction.Init -> BrowserToolbarState(
+            mode = action.mode,
+            displayState = action.displayState,
+            editState = action.editState,
+        )
+
         is BrowserToolbarAction.ToggleEditMode -> state.copy(
             mode = if (action.editMode) Mode.EDIT else Mode.DISPLAY,
             editState = state.editState.copy(

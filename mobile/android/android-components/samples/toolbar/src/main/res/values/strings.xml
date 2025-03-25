@@ -2,8 +2,17 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">Toolbar Sample</string>
     <string name="trackers_blocked">Trackers blocked</string>
+    <string name="clear_button_description">Clear current input</string>
     <string name="help_trackers_description">About Trackers</string>
+    <string name="search_selector_header">This time search in</string>
+    <string name="bookmarks_search_engine_name">Bookmarks</string>
+    <string name="bookmarks_search_engine_description">Search within bookmarks</string>
+    <string name="tabs_search_engine_name">Tabs</string>
+    <string name="tabs_search_engine_description">Search within tabs</string>
+    <string name="history_search_engine_name">History</string>
+    <string name="history_search_engine_description">Search within history</string>
+    <string name="search_settings">Search settings</string>
 </resources>

@@ -13,7 +13,6 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
@@ -44,17 +43,13 @@ import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbarDefaults
 import mozilla.components.compose.browser.toolbar.CustomTabToolbarColors
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
-import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.DisplayState
-import mozilla.components.compose.browser.toolbar.store.EditState
 import mozilla.components.compose.browser.toolbar.store.Mode
-import mozilla.components.compose.browser.toolbar.ui.SearchSelector
 import mozilla.components.concept.menu.Side
-import mozilla.components.concept.menu.candidate.DecorativeTextMenuCandidate
 import mozilla.components.concept.menu.candidate.DividerMenuCandidate
 import mozilla.components.concept.menu.candidate.DrawableMenuIcon
 import mozilla.components.concept.menu.candidate.NestedMenuCandidate
@@ -63,10 +58,13 @@ import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
+import mozilla.components.support.ktx.android.view.setupPersistentInsets
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.ui.tabcounter.TabCounter
 import org.mozilla.samples.toolbar.compose.BrowserToolbar
 import org.mozilla.samples.toolbar.databinding.ActivityToolbarBinding
+import org.mozilla.samples.toolbar.middleware.BrowserToolbarMiddleware
+import org.mozilla.samples.toolbar.middleware.BrowserToolbarMiddleware.Companion.Dependencies
 import mozilla.components.browser.menu.R as menuR
 import mozilla.components.browser.toolbar.R as toolbarR
 import mozilla.components.ui.colors.R as colorsR
@@ -84,6 +82,8 @@ class ToolbarActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityToolbarBinding.inflate(layoutInflater)
+
+        window.setupPersistentInsets()
 
         shippedDomainsProvider.initialize(this)
         customDomainsProvider.initialize(this)
@@ -501,69 +501,18 @@ class ToolbarActivity : AppCompatActivity() {
     private fun setupComposeToolbar() {
         showToolbar(isCompose = true)
 
-        val header = DecorativeTextMenuCandidate(
-            text = "This time search in:",
+        val store = BrowserToolbarStore(
+            middleware = listOf(
+                BrowserToolbarMiddleware(
+                    initialDependencies = Dependencies(
+                        context = this,
+                    ),
+                ),
+            ),
         )
-        val bookmarks = TextMenuCandidate(
-            "Bookmarks",
-            start = DrawableMenuIcon(this, iconsR.drawable.mozac_ic_bookmark_tray_24),
-        ) { /* Do nothing */ }
-        val tabs = TextMenuCandidate(
-            "Tabs",
-            start = DrawableMenuIcon(this, iconsR.drawable.mozac_ic_tab_tray_24),
-        ) { /* Do nothing */ }
-        val history = TextMenuCandidate(
-            "History",
-            start = DrawableMenuIcon(this, iconsR.drawable.mozac_ic_history_24),
-        ) { /* Do nothing */ }
-        val settings = TextMenuCandidate(
-            "Search settings",
-            start = DrawableMenuIcon(this, iconsR.drawable.mozac_ic_settings_24),
-        ) { /* Do nothing */ }
-
-        val items = listOf(header, bookmarks, tabs, history, settings)
-        val menuController = BrowserMenuController().apply {
-            submitList(items)
-        }
 
         binding.composeToolbar.setContent {
             AcornTheme {
-                val iconPrimaryTint = AcornTheme.colors.iconPrimary.toArgb()
-
-                val store = remember {
-                    BrowserToolbarStore(
-                        initialState = BrowserToolbarState(
-                            displayState = DisplayState(
-                                hint = "Search or enter address",
-                                pageActions = listOf(
-                                    ActionButton(
-                                        icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
-                                        contentDescription = null,
-                                        tint = iconPrimaryTint,
-                                        onClick = {},
-                                    ),
-                                ),
-                            ),
-                            editState = EditState(
-                                editActionsStart = listOf(
-                                    CustomAction(
-                                        content = {
-                                            SearchSelector(
-                                                onClick = {},
-                                                menu = menuController,
-                                                icon = ContextCompat.getDrawable(
-                                                    LocalContext.current,
-                                                    iconsR.drawable.mozac_ic_search_24,
-                                                ),
-                                            )
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                    )
-                }
-
                 BrowserToolbar(
                     store = store,
                     onDisplayToolbarClick = {
