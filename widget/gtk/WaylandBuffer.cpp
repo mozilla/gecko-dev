@@ -306,8 +306,8 @@ already_AddRefed<WaylandBufferDMABUF> WaylandBufferDMABUF::CreateRGBA(
   RefPtr<WaylandBufferDMABUF> buffer = new WaylandBufferDMABUF(aSize);
 
   buffer->mDMABufSurface = DMABufSurfaceRGBA::CreateDMABufSurface(
-      aSize.width, aSize.height, aFormat,
-      DMABUF_SCANOUT | DMABUF_USE_MODIFIERS);
+      aGL, aSize.width, aSize.height, DMABUF_SCANOUT | DMABUF_USE_MODIFIERS,
+      aFormat);
   if (!buffer->mDMABufSurface || !buffer->mDMABufSurface->CreateTexture(aGL)) {
     LOGWAYLAND("  failed to create texture");
     return nullptr;

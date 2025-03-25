@@ -33,8 +33,8 @@ DMABUFTextureData::~DMABUFTextureData() = default;
   if (aFormat == SurfaceFormat::B8G8R8A8) {
     flags |= DMABUF_ALPHA;
   }
-  RefPtr<DMABufSurface> surf =
-      DMABufSurfaceRGBA::CreateDMABufSurface(aSize.width, aSize.height, flags);
+  RefPtr<DMABufSurface> surf = DMABufSurfaceRGBA::CreateDMABufSurface(
+      nullptr, aSize.width, aSize.height, flags);
   if (!surf) {
     NS_WARNING("DMABUFTextureData::Create() failed!");
     return nullptr;
