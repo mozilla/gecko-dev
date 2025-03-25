@@ -1261,7 +1261,9 @@ double WaylandSurface::GetScaleSafe() {
   if (scale != sNoScale) {
     return scale;
   }
-  return ScreenHelperGTK::GetGTKMonitorScaleFactor();
+
+  // Return default scale for now - we'll repaint after show anyway.
+  return 1;
 }
 
 void WaylandSurface::SetParentLocked(const WaylandSurfaceLock& aProofOfLock,
