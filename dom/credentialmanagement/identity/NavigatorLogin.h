@@ -7,7 +7,10 @@
 #ifndef mozilla_dom_NavigatorLogin_h
 #define mozilla_dom_NavigatorLogin_h
 
+#include "ErrorList.h"
 #include "mozilla/dom/LoginStatusBinding.h"
+#include "mozilla/Maybe.h"
+#include "nsIGlobalObject.h"
 #include "nsISupports.h"
 #include "nsWrapperCache.h"
 #include "nsCOMPtr.h"
@@ -24,8 +27,11 @@ class NavigatorLogin : public nsWrapperCache {
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  already_AddRefed<mozilla::dom::Promise> SetStatus(const LoginStatus& aStatus,
+  already_AddRefed<mozilla::dom::Promise> SetStatus(LoginStatus aStatus,
                                                     mozilla::ErrorResult& aRv);
+
+  static Maybe<LoginStatus> GetLoginStatus(nsIPrincipal* aPrincipal);
+  static nsresult SetLoginStatus(nsIPrincipal* aPrincipal, LoginStatus aStatus);
 
  protected:
   virtual ~NavigatorLogin();
