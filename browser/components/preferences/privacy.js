@@ -1190,11 +1190,15 @@ var gPrivacyPane = {
     this.initDataCollection();
 
     if (AppConstants.MOZ_DATA_REPORTING) {
-      this.initSubmitHealthReport();
+      this.updateSubmitHealthReportFromPref();
+      Preferences.get(PREF_UPLOAD_ENABLED).on(
+        "change",
+        gPrivacyPane.updateSubmitHealthReportFromPref
+      );
       setEventListener(
         "submitHealthReportBox",
         "command",
-        gPrivacyPane.updateSubmitHealthReport
+        gPrivacyPane.updateSubmitHealthReportToPref
       );
       if (AppConstants.MOZ_NORMANDY) {
         this.initOptOutStudyCheckbox();
@@ -3414,10 +3418,11 @@ var gPrivacyPane = {
   },
 
   /**
-   * Initialize the health report service reference and checkbox.
+   * Update the health report service checkbox from preference.
    */
-  initSubmitHealthReport() {
+  updateSubmitHealthReportFromPref() {
     let checkbox = document.getElementById("submitHealthReportBox");
+    let telemetryContainer = document.getElementById("telemetry-container");
 
     // Telemetry is only sending data if MOZ_TELEMETRY_REPORTING is defined.
     // We still want to display the preferences panel if that's not the case, but
@@ -3433,12 +3438,13 @@ var gPrivacyPane = {
     checkbox.checked =
       Services.prefs.getBoolPref(PREF_UPLOAD_ENABLED) &&
       AppConstants.MOZ_TELEMETRY_REPORTING;
+    telemetryContainer.hidden = checkbox.checked;
   },
 
   /**
    * Update the health report preference with state from checkbox.
    */
-  updateSubmitHealthReport() {
+  updateSubmitHealthReportToPref() {
     let checkbox = document.getElementById("submitHealthReportBox");
     let telemetryContainer = document.getElementById("telemetry-container");
 
