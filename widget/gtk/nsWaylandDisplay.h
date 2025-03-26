@@ -22,14 +22,14 @@
 #include "mozilla/widget/xdg-activation-v1-client-protocol.h"
 #include "mozilla/widget/xdg-dbus-annotation-v1-client-protocol.h"
 #include "mozilla/widget/xdg-output-unstable-v1-client-protocol.h"
-#include "mozilla/widget/xx-color-management-v4.h"
+#include "mozilla/widget/color-management-v1-client-protocol.h"
 
 namespace mozilla::widget {
 
 constexpr const int sColorTransfersNum =
-    XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_HLG + 1;
+    WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_HLG + 1;
 constexpr const int sColorPrimariesNum =
-    XX_COLOR_MANAGER_V4_PRIMARIES_ADOBE_RGB + 1;
+    WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB + 1;
 
 class DMABufFormats;
 
@@ -98,8 +98,8 @@ class nsWaylandDisplay {
   }
   void EnablePrimarySelection() { mIsPrimarySelectionEnabled = true; }
 
-  void SetColorManager(xx_color_manager_v4* aColorManager);
-  xx_color_manager_v4* GetColorManager() const { return mColorManager; }
+  void SetColorManager(wp_color_manager_v1* aColorManager);
+  wp_color_manager_v1* GetColorManager() const { return mColorManager; }
   void SetCMSupportedFeature(uint32_t aFeature);
   void SetCMSupportedTFNamed(uint32_t aTF);
   void SetCMSupportedPrimariesNamed(uint32_t aPrimaries);
@@ -134,7 +134,7 @@ class nsWaylandDisplay {
   xdg_activation_v1* mXdgActivation = nullptr;
   xdg_dbus_annotation_manager_v1* mXdgDbusAnnotationManager = nullptr;
   wp_fractional_scale_manager_v1* mFractionalScaleManager = nullptr;
-  xx_color_manager_v4* mColorManager = nullptr;
+  wp_color_manager_v1* mColorManager = nullptr;
   RefPtr<DMABufFormats> mFormats;
 
   struct ColorManagerSupportedFeature {

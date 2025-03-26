@@ -256,10 +256,10 @@ class WaylandSurface final {
   bool EnableColorManagementLocked(const WaylandSurfaceLock& aProofOfLock);
 
   static void ImageDescriptionFailed(
-      void* aData, struct xx_image_description_v4* aImageDescription,
+      void* aData, struct wp_image_description_v1* aImageDescription,
       uint32_t aCause, const char* aMsg);
   static void ImageDescriptionReady(
-      void* aData, struct xx_image_description_v4* aImageDescription,
+      void* aData, struct wp_image_description_v1* aImageDescription,
       uint32_t aIdentity);
 
  private:
@@ -452,8 +452,8 @@ class WaylandSurface final {
 
   // HDR support
   bool mHDRSet = false;
-  xx_color_management_surface_v4* mColorSurface = nullptr;
-  xx_image_description_v4* mImageDescription = nullptr;
+  wp_color_management_surface_v1* mColorSurface = nullptr;
+  wp_image_description_v1* mImageDescription = nullptr;
 };
 
 }  // namespace mozilla::widget

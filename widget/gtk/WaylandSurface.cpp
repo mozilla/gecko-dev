@@ -614,8 +614,8 @@ void WaylandSurface::UnmapLocked(WaylandSurfaceLock& aSurfaceLock) {
   MozClearPointer(tmp, wl_egl_window_destroy);
   MozClearPointer(mFractionalScaleListener, wp_fractional_scale_v1_destroy);
   MozClearPointer(mSubsurface, wl_subsurface_destroy);
-  MozClearPointer(mColorSurface, xx_color_management_surface_v4_destroy);
-  MozClearPointer(mImageDescription, xx_image_description_v4_destroy);
+  MozClearPointer(mColorSurface, wp_color_management_surface_v1_destroy);
+  MozClearPointer(mImageDescription, wp_image_description_v1_destroy);
   mParentSurface = nullptr;
   mFormats = nullptr;
 
@@ -1272,7 +1272,7 @@ void WaylandSurface::SetParentLocked(const WaylandSurfaceLock& aProofOfLock,
 }
 
 void WaylandSurface::ImageDescriptionFailed(
-    void* aData, struct xx_image_description_v4* aImageDescription,
+    void* aData, struct wp_image_description_v1* aImageDescription,
     uint32_t aCause, const char* aMsg) {
   RefPtr waylandSurface =
       already_AddRefed(reinterpret_cast<WaylandSurface*>(aData));
@@ -1283,18 +1283,18 @@ void WaylandSurface::ImageDescriptionFailed(
 }
 
 void WaylandSurface::ImageDescriptionReady(
-    void* aData, struct xx_image_description_v4* aImageDescription,
+    void* aData, struct wp_image_description_v1* aImageDescription,
     uint32_t aIdentity) {
   RefPtr waylandSurface = dont_AddRef(static_cast<WaylandSurface*>(aData));
   WaylandSurfaceLock lock(waylandSurface);
-  xx_color_management_surface_v4_set_image_description(
+  wp_color_management_surface_v1_set_image_description(
       waylandSurface->mColorSurface, waylandSurface->mImageDescription, 0);
   waylandSurface->mHDRSet = true;
   LOGS("[%p] WaylandSurface::ImageDescriptionReady()",
        waylandSurface->mLoggingWidget);
 }
 
-static const struct xx_image_description_v4_listener
+static const struct wp_image_description_v1_listener
     image_description_listener = {
         WaylandSurface::ImageDescriptionFailed,
         WaylandSurface::ImageDescriptionReady,
@@ -1312,20 +1312,20 @@ bool WaylandSurface::EnableColorManagementLocked(
 
   LOGWAYLAND("WaylandSurface::EnableColorManagementLocked()");
 
-  mColorSurface = xx_color_manager_v4_get_surface(colorManager, mSurface);
+  mColorSurface = wp_color_manager_v1_get_surface(colorManager, mSurface);
 
-  auto* params = xx_color_manager_v4_new_parametric_creator(colorManager);
-  xx_image_description_creator_params_v4_set_primaries_named(
-      params, XX_COLOR_MANAGER_V4_PRIMARIES_BT2020);
-  xx_image_description_creator_params_v4_set_tf_named(
-      params, XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ);
-  mImageDescription = xx_image_description_creator_params_v4_create(params);
-  // xx_image_description_creator_params_v4_create() consumes params
+  auto* params = wp_color_manager_v1_create_parametric_creator(colorManager);
+  wp_image_description_creator_params_v1_set_primaries_named(
+      params, WP_COLOR_MANAGER_V1_PRIMARIES_BT2020);
+  wp_image_description_creator_params_v1_set_tf_named(
+      params, WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST2084_PQ);
+  mImageDescription = wp_image_description_creator_params_v1_create(params);
+  // wp_image_description_creator_params_v1_create() consumes params
   params = nullptr;
 
   // AddRef this to keep it live until callback
   AddRef();
-  xx_image_description_v4_add_listener(mImageDescription,
+  wp_image_description_v1_add_listener(mImageDescription,
                                        &image_description_listener, this);
 
   return true;

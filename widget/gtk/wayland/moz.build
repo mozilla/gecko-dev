@@ -8,6 +8,7 @@ with Files("**"):
     BUG_COMPONENT = ("Core", "Widget: Gtk")
 
 SOURCES += [
+    "color-management-v1-protocol.c",
     "fractional-scale-v1-protocol.c",
     "idle-inhibit-unstable-v1-protocol.c",
     "linux-dmabuf-unstable-v1-protocol.c",
@@ -18,10 +19,10 @@ SOURCES += [
     "xdg-activation-v1-protocol.c",
     "xdg-dbus-annotation-v1-protocol.c",
     "xdg-output-unstable-v1-protocol.c",
-    "xx-color-management-v4.c",
 ]
 
 EXPORTS.mozilla.widget += [
+    "color-management-v1-client-protocol.h",
     "fractional-scale-v1-client-protocol.h",
     "idle-inhibit-unstable-v1-client-protocol.h",
     "linux-dmabuf-unstable-v1-client-protocol.h",
@@ -32,7 +33,6 @@ EXPORTS.mozilla.widget += [
     "xdg-activation-v1-client-protocol.h",
     "xdg-dbus-annotation-v1-client-protocol.h",
     "xdg-output-unstable-v1-client-protocol.h",
-    "xx-color-management-v4.h",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

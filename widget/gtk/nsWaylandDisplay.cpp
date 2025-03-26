@@ -440,22 +440,22 @@ void nsWaylandDisplay::SetXdgDbusAnnotationManager(
 
 void nsWaylandDisplay::SetCMSupportedFeature(uint32_t aFeature) {
   switch (aFeature) {
-    case XX_COLOR_MANAGER_V4_FEATURE_ICC_V2_V4:
+    case WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4:
       mColorManagerSupportedFeature.mICC = true;
       break;
-    case XX_COLOR_MANAGER_V4_FEATURE_PARAMETRIC:
+    case WP_COLOR_MANAGER_V1_FEATURE_PARAMETRIC:
       mColorManagerSupportedFeature.mParametric = true;
       break;
-    case XX_COLOR_MANAGER_V4_FEATURE_SET_PRIMARIES:
+    case WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES:
       mColorManagerSupportedFeature.mPrimaries = true;
       break;
-    case XX_COLOR_MANAGER_V4_FEATURE_SET_TF_POWER:
+    case WP_COLOR_MANAGER_V1_FEATURE_SET_TF_POWER:
       mColorManagerSupportedFeature.mFTPower = true;
       break;
-    case XX_COLOR_MANAGER_V4_FEATURE_SET_LUMINANCES:
+    case WP_COLOR_MANAGER_V1_FEATURE_SET_LUMINANCES:
       mColorManagerSupportedFeature.mLuminances = true;
       break;
-    case XX_COLOR_MANAGER_V4_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES:
+    case WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES:
       mColorManagerSupportedFeature.mDisplayPrimaries = true;
       break;
   }
@@ -478,41 +478,42 @@ void nsWaylandDisplay::SetCMSupportedPrimariesNamed(uint32_t aPrimaries) {
 }
 
 static void supported_intent(void* data,
-                             struct xx_color_manager_v4* color_manager,
+                             struct wp_color_manager_v1* color_manager,
                              uint32_t render_intent) {}
 
 static void supported_feature(void* data,
-                              struct xx_color_manager_v4* color_manager,
+                              struct wp_color_manager_v1* color_manager,
                               uint32_t feature) {
   auto* display = static_cast<nsWaylandDisplay*>(data);
   display->SetCMSupportedFeature(feature);
 }
 
 static void supported_tf_named(void* data,
-                               struct xx_color_manager_v4* color_manager,
+                               struct wp_color_manager_v1* color_manager,
                                uint32_t tf) {
   auto* display = static_cast<nsWaylandDisplay*>(data);
   display->SetCMSupportedTFNamed(tf);
 }
 
 static void supported_primaries_named(void* data,
-                                      struct xx_color_manager_v4* color_manager,
+                                      struct wp_color_manager_v1* color_manager,
                                       uint32_t primaries) {
   auto* display = static_cast<nsWaylandDisplay*>(data);
   display->SetCMSupportedPrimariesNamed(primaries);
 }
 
-static const struct xx_color_manager_v4_listener color_manager_listener = {
-    supported_intent,
-    supported_feature,
-    supported_tf_named,
-    supported_primaries_named,
+static void supported_done(void* data,
+                           struct wp_color_manager_v1* wp_color_manager_v1) {}
+
+static const struct wp_color_manager_v1_listener color_manager_listener = {
+    supported_intent,          supported_feature, supported_tf_named,
+    supported_primaries_named, supported_done,
 };
 
-void nsWaylandDisplay::SetColorManager(xx_color_manager_v4* aColorManager) {
+void nsWaylandDisplay::SetColorManager(wp_color_manager_v1* aColorManager) {
   mColorManager = aColorManager;
   if (mColorManager) {
-    xx_color_manager_v4_add_listener(mColorManager, &color_manager_listener,
+    wp_color_manager_v1_add_listener(mColorManager, &color_manager_listener,
                                      this);
   }
 }
@@ -595,10 +596,9 @@ static void global_registry_handler(void* data, wl_registry* registry,
         registry, id, &zwp_pointer_gestures_v1_interface,
         ZWP_POINTER_GESTURES_V1_GET_HOLD_GESTURE_SINCE_VERSION);
     display->SetPointerGestures(gestures);
-  } else if (iface.EqualsLiteral("xx_color_manager_v4")) {
-    // initialize_color_maps(wl);
-    auto* colorManager = WaylandRegistryBind<xx_color_manager_v4>(
-        registry, id, &xx_color_manager_v4_interface, version);
+  } else if (iface.EqualsLiteral("wp_color_manager_v1")) {
+    auto* colorManager = WaylandRegistryBind<wp_color_manager_v1>(
+        registry, id, &wp_color_manager_v1_interface, version);
     display->SetColorManager(colorManager);
   }
 }
