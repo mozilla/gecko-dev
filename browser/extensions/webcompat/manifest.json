@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "138.2.0",
+  "version": "138.3.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "webcompat@mozilla.org",
@@ -164,10 +164,12 @@
     "shims/tiktok.svg",
     "shims/tracking-pixel.png",
     "shims/tsn-ca.js",
+    "shims/twitter-embed.js",
     "shims/vast2.xml",
     "shims/vast3.xml",
     "shims/vidible.js",
     "shims/vmad.xml",
-    "shims/webtrends.js"
+    "shims/webtrends.js",
+    "shims/x-logo.svg"
   ]
 }

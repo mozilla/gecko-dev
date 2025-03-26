@@ -1025,6 +1025,33 @@ const AVAILABLE_SHIMS = [
       ["*://steam.tv/*", "*://checkout.steampowered.com/*"],
     ],
   },
+  {
+    id: "TwitterEmbed",
+    platform: "desktop",
+    name: "Twitter embed placeholder",
+    bug: "1901602",
+    runFirst: "twitter-embed.js",
+    // Blank stub file just so we run the script above when the matched script
+    // files get blocked.
+    file: "empty-script.js",
+    matches: ["https://platform.twitter.com/widgets.js"],
+    logos: ["x-logo.svg"],
+    needsShimHelpers: [
+      "embedClicked",
+      "smartblockEmbedReplaced",
+      "smartblockGetFluentString",
+    ],
+    isSmartblockEmbedShim: true,
+    onlyIfBlockedByETP: true,
+    unblocksOnOptIn: [
+      "*://platform.twitter.com/*",
+      "*://syndication.twitter.com/*",
+      "*://cdn.syndication.twimg.com/*",
+      "*://pbs.twimg.com/*",
+      "*://abs.twimg.com/*",
+      "*://abs-0.twimg.com/*",
+    ],
+  },
 ];
 
 if (typeof module !== "undefined") {

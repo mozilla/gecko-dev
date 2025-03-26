@@ -1397,6 +1397,11 @@ var gProtectionsHandler = {
       shimId: "TiktokEmbed",
       displayName: "Tiktok",
     },
+    {
+      sites: ["https://platform.twitter.com"],
+      shimId: "TwitterEmbed",
+      displayName: "X",
+    },
   ],
 
   /**
