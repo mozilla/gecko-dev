@@ -709,6 +709,8 @@
   <string name="onboarding_customize_theme_main_image_content_description">Grote headerafbeelding van de themaselectieweergave met geïllustreerde hulpmiddelen voor kunstenaars en ontwikkelaars.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Afbeelding van het thema %1$s</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">selecteren</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Niet nu</string>
   <!--
@@ -1477,10 +1479,31 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Downloads verwijderd</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Verwijderde items: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s verwijderd</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">‘%1$s’ verwijderd</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Download bezig…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Details</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Downloaden voltooid</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Openen</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Ongedaan maken</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Geen gedownloade bestanden</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Nog geen downloads</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">Hier verschijnen gedownloade bestanden.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1488,6 +1511,18 @@
   <string name="download_multi_select_title">%1$d geselecteerd</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Verwijderen</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">URL delen</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Bestand delen</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Weet u zeker dat u de geselecteerde items wilt verwijderen?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Verwijderen</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Annuleren</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">Wordt uitgevoerd</string>
   <!--
     Time period headers for downloads
 
@@ -1502,6 +1537,23 @@
   <string name="download_time_period_last_30_days">Afgelopen 30 dagen</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Ouder</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s resterend</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">gepauzeerd</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">in behandeling</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">Downloaden mislukt</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">Downloads doorzoeken</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Geen resultaten gevonden</string>
   <!--
     Downloads Content Type Filters
 
@@ -1628,6 +1680,14 @@
   <string name="bookmark_menu_delete_button">Verwijderen</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Opslaan</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Sorteren op nieuwste</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Sorteren op oudste</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Sorteren van A tot Z</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Sorteren van Z tot A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected

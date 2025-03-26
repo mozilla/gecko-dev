@@ -6,7 +6,7 @@
     Text shown on the second row of an in progress download notification.
     %1$s will be replaced with the percentage of download completed so far.
   -->
-  <string name="mozac_feature_downloads_percentage_notification_text">% 1 $ s completado</string>
+  <string name="mozac_feature_downloads_percentage_notification_text">%1$s completo</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Descarga pausada</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
@@ -17,12 +17,12 @@
     Alert dialog confirmation before downloading a previously downloaded file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">¿Descargar archivo de nuevo? (% 1 $ s)</string>
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">¿Descargar archivo de nuevo? (%1$s)</string>
   <!--
     Alert dialog confirmation before downloading a file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_dialog_title_3">¿Descargar archivo? (% 1 $ s)</string>
+  <string name="mozac_feature_downloads_dialog_title_3">¿Descargar archivo? (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Descarga (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
@@ -35,14 +35,14 @@
     Alert dialog confirmation before downloading a previously downloaded file, this is the description.
     %1$s will be replaced with the name of the file.
   -->
-  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">% 1 $ s ya existe.</string>
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s ya existe.</string>
   <!--
     Alert dialog confirmation before downloading a file without network connection, this is the description.
     %1$s will be replaced with the name of the file.
   -->
-  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">% 1 $ s no se descargó.</string>
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s no se descargó.</string>
   <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
-  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Verifica tu conexión y vuelve a intentarlo.</string>
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Verificá tu conexión y probá de nuevo.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s no puede descargar este tipo de archivo</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

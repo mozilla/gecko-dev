@@ -708,6 +708,8 @@
   <string name="onboarding_customize_theme_main_image_content_description">თავსართად დიდი სურათი გაფორმების ასარჩევად, რომელზეც გამოსახულია ხელოვანი და ხელსაწყოები.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">%1$s გაფორმების გამოსახულება</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">არჩევა</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ახლა არა</string>
   <!--
@@ -1476,10 +1478,31 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ჩამოტვირთვები მოცილებულია</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">წაშლილი ერთეული: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s მოცილებულია</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">წაიშალა „%1$s“</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">ჩამოტვირთვა მიმდინარეობს…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">ვრცლად</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">ჩამოტვირთვა დასრულდა</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">გახსნა</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">დაბრუნება</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ჩამოტვირთული ფაილები არაა</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">ჩამოტვირთვები არაა</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">ჩამოტვირთული ფაილები გამოჩნდება აქ.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1487,6 +1510,18 @@
   <string name="download_multi_select_title">შერჩეულია %1$d</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">მოცილება</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">URL-ბმულის გაზიარება</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">ფაილის გაზიარება</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">ნამდვილად გსურთ მონიშნული ერთეულების წაშლა?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">წაშლა</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">გაუქმება</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">მიმდინარეობს</string>
   <!--
     Time period headers for downloads
 
@@ -1501,6 +1536,23 @@
   <string name="download_time_period_last_30_days">ბოლო 30 დღე</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">უფრო ძველი</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • დარჩა %3$s</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">შეჩერდა</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ელოდება</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">ჩამოტვირთვა ვერ მოხერხდა</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">ძიება ჩამოტვირთვებში</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">შედეგები ვერ მოიძებნა</string>
   <!--
     Downloads Content Type Filters
 
@@ -1596,7 +1648,7 @@
   -->
   <string name="bookmark_delete_folder_confirmation_dialog">ნამდვილად გსურთ ამ საქაღალდის წაშლა?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
-  <string name="bookmark_delete_folders_confirmation_dialog">ნამდვილად გსურთ მონიშნულ ერთეულების წაშლა?</string>
+  <string name="bookmark_delete_folders_confirmation_dialog">ნამდვილად გსურთ მონიშნული ერთეულების წაშლა?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. %s is the name of the app (for example "Firefox"). -->
   <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s წაშლის მონიშნულებს.</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1627,6 +1679,14 @@
   <string name="bookmark_menu_delete_button">წაშლა</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">შენახვა</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">დალაგება უახლესით</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">დალაგება ადრინდელით</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">დალაგება ანბანურად</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">დალაგება უკუანბანურად</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected

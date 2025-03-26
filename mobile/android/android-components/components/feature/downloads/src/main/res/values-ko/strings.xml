@@ -2,18 +2,47 @@
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">다운로드</string>
+  <!--
+    Text shown on the second row of an in progress download notification.
+    %1$s will be replaced with the percentage of download completed so far.
+  -->
+  <string name="mozac_feature_downloads_percentage_notification_text">%1$s 완료</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">다운로드 일시 중지됨</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_completed_notification_text2">다운로드 완료</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">다운로드 실패</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">다시 파일을 다운로드하시겠습니까? (%1$s)</string>
+  <!--
+    Alert dialog confirmation before downloading a file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_dialog_title_3">파일을 다운로드하시겠습니까? (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">다운로드 (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">다운로드</string>
+  <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">다시 다운로드</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">취소</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s 파일은 이미 존재합니다.</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s 파일이 다운로드되지 않았습니다.</string>
+  <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">연결을 확인하고 다시 시도하세요.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s는 이 파일 형식은 다운로드 할 수 없습니다</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

@@ -1476,8 +1476,17 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Nedlastingar fjerna</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Element sletta: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Fjerna %1$s</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">Sletta “%1$s”</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Nedlasting i framdrift…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detaljar</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1490,6 +1499,8 @@
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ingen nedlasta filer</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">Ingen nedlastingar enno</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">Filene du lastar ned vil visast her.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1523,6 +1534,10 @@
   <string name="download_time_period_last_30_days">Siste 30 dagar</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Eldre</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">sett i pause</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ventande</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Mislykka nedlasting</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->

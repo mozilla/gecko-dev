@@ -2,20 +2,49 @@
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">ഇറക്കിവയ്ക്കലുകൾ</string>
+  <!--
+    Text shown on the second row of an in progress download notification.
+    %1$s will be replaced with the percentage of download completed so far.
+  -->
+  <string name="mozac_feature_downloads_percentage_notification_text">%1$s തീൎത്തു</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">ഇറക്കിവയ്ക്കൽ താൽക്കാലികമായി നിർത്തി</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_completed_notification_text2">ഇറക്കിവയ്ക്കൽ പൂര്‍ത്തിയായിരിക്കുന്നു</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">ഇറക്കിവയ്ക്കാൻ കഴിഞ്ഞില്ല</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">വീണ്ടും ഫയലിനെ ഇറക്കിവയ്ക്കണോ? (%1$s)</string>
+  <!--
+    Alert dialog confirmation before downloading a file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_dialog_title_3">ഫയൽ ഇറക്കിവയ്ക്കട്ടെ? (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">ഇറക്കിവയ്ക്കുക (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">ഇറക്കിവയ്ക്കൂ</string>
+  <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">വീണ്ടും ഇറക്കിവയ്ക്കുക</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">റദ്ദാക്കുക</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s നിലവിലുണ്ടു്</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s ഇറക്കിവച്ചിട്ടില്ല</string>
+  <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">താങ്ങളുടെ ഗോളാന്തരവല സമ്പപൎക്കം നോക്കിയിട്ടു് വീണ്ടും ശ്രമിക്കുക</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
-  <string name="mozac_feature_downloads_file_not_supported2">%1$s - ഈ ഫയൽ തരം ഡൗൺലോഡ് ചെയ്യാൻ സാധ്യമല്ല</string>
+  <string name="mozac_feature_downloads_file_not_supported2">%1$s-നു് ഈ ഫയൽ തരം ഇറക്കിവയ്ക്കാൻ പറ്റില്ല</string>
   <!-- Message that appears when the downloaded file could not be opened. -->
   <string name="mozac_feature_downloads_could_not_open_file">ഫയൽ തുറക്കാൻ സാധിച്ചില്ല</string>
   <!-- Message that appears when the downloaded file is a specific type (%1$s) that Android doesn't support opening. -->

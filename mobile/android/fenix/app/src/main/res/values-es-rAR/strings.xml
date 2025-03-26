@@ -1480,11 +1480,11 @@
     Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
     %1$d is the number of items deleted.
   -->
-  <string name="download_delete_multiple_items_snackbar_2">Elementos eliminados:% 1 $ d</string>
+  <string name="download_delete_multiple_items_snackbar_2">Elementos eliminados: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s eliminado </string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">Se eliminó "% 1 $ s"</string>
+  <string name="download_delete_single_item_snackbar_2">Se eliminó “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Descarga en proceso…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1500,7 +1500,7 @@
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">Aún no hay descargas</string>
   <!-- Text description shown when no download exists -->
-  <string name="download_empty_description">Los archivos que descargues aparecerán aquí.</string>
+  <string name="download_empty_description">Los archivos que descargués aparecerán acá.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1540,7 +1540,7 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">% 1 $ s /% 2 $ s • Quedan% 3 $ s</string>
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s restantes</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">pausado</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1678,13 +1678,13 @@
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Guardar</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_newest">Ordenar por el más reciente</string>
+  <string name="bookmark_sort_menu_newest">Ordenar por más reciente</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_oldest">Ordenar por más antiguo</string>
   <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_a_to_z">Ordenar por la A a la Z</string>
+  <string name="bookmark_sort_menu_a_to_z">Ordenar de la A a la Z</string>
   <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_z_to_a">Ordenar por Z a A</string>
+  <string name="bookmark_sort_menu_z_to_a">Ordenar de la Z a la A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
