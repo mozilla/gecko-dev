@@ -25,6 +25,7 @@ const kIndividualPrefs = new Map([
   ["AgentName", "agent_name"],
   ["ClientSignature", "client_signature"],
   ["PerUser", "is_per_user"],
+  ["MaxConnectionsCount", "max_connections"],
   ["ShowBlocked", "show_blocked_result"],
   ["DefaultResult", "default_result"],
   ["TimeoutResult", "timeout_result"],
@@ -164,6 +165,7 @@ add_task(async function test_ca_enterprise_config() {
         AgentName: string3,
         ClientSignature: string4,
         IsPerUser: true,
+        MaxConnectionsCount: 3,
         ShowBlockedResult: false,
         DefaultResult: 1,
         TimeoutResult: 2,
@@ -217,6 +219,11 @@ add_task(async function test_ca_enterprise_config() {
     Services.prefs.getStringPref(getIndividualPrefName("ClientSignature")),
     string4,
     "client signatures match"
+  );
+  is(
+    Services.prefs.getIntPref(getIndividualPrefName("MaxConnectionsCount")),
+    3,
+    "connections count match"
   );
   is(
     Services.prefs.getBoolPref(getIndividualPrefName("PerUser")),

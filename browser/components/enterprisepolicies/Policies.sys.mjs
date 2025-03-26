@@ -559,6 +559,11 @@ export var Policies = {
         "ClientSignature",
         "browser.contentanalysis.client_signature"
       );
+      setPrefIfPresentAndLock(
+        param,
+        "MaxConnectionsCount",
+        "browser.contentanalysis.max_connections"
+      );
       let resultPrefs = [
         ["DefaultResult", "default_result"],
         ["TimeoutResult", "timeout_result"],

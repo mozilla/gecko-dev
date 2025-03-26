@@ -262,6 +262,9 @@
         "IsPerUser": {
           "type": "boolean"
         },
+        "MaxConnectionsCount": {
+          "type": "number"
+        },
         "ShowBlockedResult": {
           "type": "boolean"
         },
