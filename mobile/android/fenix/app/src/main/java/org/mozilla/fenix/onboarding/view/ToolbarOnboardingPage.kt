@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
@@ -213,14 +215,21 @@ private fun SelectableImageItem(
     }
 
     Column(
-        modifier = Modifier.clickable(
-            onClick = {
-                // Only call action if option selected is different.
-                if (!isSelectedOption) {
-                    onClick(toolbarOption.toolbarType)
-                }
-            },
-        ),
+        modifier = Modifier
+            .clickable(
+                onClickLabel = stringResource(R.string.onboarding_customize_toolbar_a11y_action_label_select),
+                onClick = {
+                    // Only call action if option selected is different.
+                    if (!isSelectedOption) {
+                        onClick(toolbarOption.toolbarType)
+                    }
+                },
+            )
+            .selectable(
+                selected = isSelectedOption,
+                role = Role.RadioButton,
+                onClick = {},
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
