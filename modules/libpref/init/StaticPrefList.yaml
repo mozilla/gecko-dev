@@ -4489,7 +4489,7 @@
 # is encrypted in PBM.
 - name: dom.serviceWorkers.privateBrowsing.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 - name: dom.serviceWorkers.testing.enabled
