@@ -20,6 +20,7 @@
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Span.h"
 #include "mozilla/fallible.h"
+#include "mozilla/ipc/InputStreamUtils.h"
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsFileStreams.h"
@@ -38,14 +39,11 @@ DecryptingInputStream<CipherStrategy>::DecryptingInputStream(
   MOZ_ALWAYS_SUCCEEDS(mCipherStrategy.Init(CipherMode::Decrypt,
                                            CipherStrategy::SerializeKey(aKey)));
 
-  // This implementation only supports sync base streams.  Verify this in debug
-  // builds.
-#ifdef DEBUG
-  bool baseNonBlocking;
-  nsresult rv = (*mBaseStream)->IsNonBlocking(&baseNonBlocking);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-  MOZ_ASSERT(!baseNonBlocking);
-#endif
+  // We used to assert the underlying stream was blocking in DEBUG builds as a
+  // proxy for providing synchronous read access (we can't handle AsyncWait),
+  // but IsNonBlocking is a bad proxy for this since classes like
+  // nsStringInputStream provide sync read access, it just is known to never
+  // block because the data is always available.
 }
 
 template <typename CipherStrategy>
@@ -285,6 +283,11 @@ bool DecryptingInputStream<CipherStrategy>::EnsureBuffers() {
                                            fallible))) {
       return false;
     }
+
+    // Make sure we seek our stream to its start before we do anything.  This is
+    // primarily intended to deal with the case of IPC serialization, but this
+    // is reasonable in all cases.
+    (*mBaseSeekableStream)->Seek(NS_SEEK_SET, 0);
   }
 
   return true;
@@ -520,16 +523,11 @@ void DecryptingInputStream<CipherStrategy>::Serialize(
   MOZ_ASSERT(mBaseStream);
   MOZ_ASSERT(mBaseIPCSerializableInputStream);
 
-  mozilla::ipc::InputStreamParams baseStreamParams;
-  (*mBaseIPCSerializableInputStream)
-      ->Serialize(baseStreamParams, aMaxSize, aSizeUsed);
-
-  MOZ_ASSERT(baseStreamParams.type() ==
-             mozilla::ipc::InputStreamParams::TFileInputStreamParams);
-
   mozilla::ipc::EncryptedFileInputStreamParams encryptedFileInputStreamParams;
-  encryptedFileInputStreamParams.fileInputStreamParams() =
-      std::move(baseStreamParams);
+  mozilla::ipc::InputStreamHelper::SerializeInputStream(
+      *mBaseStream, encryptedFileInputStreamParams.inputStreamParams(),
+      aMaxSize, aSizeUsed);
+
   encryptedFileInputStreamParams.key().AppendElements(
       mCipherStrategy.SerializeKey(*mKey));
   encryptedFileInputStreamParams.blockSize() = *mBlockSize;
@@ -540,18 +538,12 @@ void DecryptingInputStream<CipherStrategy>::Serialize(
 template <typename CipherStrategy>
 bool DecryptingInputStream<CipherStrategy>::Deserialize(
     const mozilla::ipc::InputStreamParams& aParams) {
-  MOZ_ASSERT(aParams.type() ==
-             mozilla::ipc::InputStreamParams::TEncryptedFileInputStreamParams);
   const auto& params = aParams.get_EncryptedFileInputStreamParams();
 
-  nsCOMPtr<nsIFileInputStream> stream;
-  nsFileInputStream::Create(NS_GET_IID(nsIFileInputStream),
-                            getter_AddRefs(stream));
-  nsCOMPtr<nsIIPCSerializableInputStream> baseSerializable =
-      do_QueryInterface(stream);
-
-  if (NS_WARN_IF(
-          !baseSerializable->Deserialize(params.fileInputStreamParams()))) {
+  nsCOMPtr<nsIInputStream> stream =
+      mozilla::ipc::InputStreamHelper::DeserializeInputStream(
+          params.inputStreamParams());
+  if (NS_WARN_IF(!stream)) {
     return false;
   }
 
