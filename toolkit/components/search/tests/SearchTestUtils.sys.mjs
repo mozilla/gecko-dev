@@ -158,20 +158,28 @@ class _SearchTestUtils {
    *        the promise.
    * @param {string} topic
    *        The notification topic to observe. Defaults to 'browser-search-service'.
+   * @param {number} times
+   *        The number of notifications required to resolve the promise. Defaults to 1.
    * @returns {Promise}
    *        Returns a promise that is resolved with the subject of the
    *        topic once the topic with the data has been observed.
    */
-  promiseSearchNotification(expectedData, topic = "browser-search-service") {
+  promiseSearchNotification(
+    expectedData,
+    topic = "browser-search-service",
+    times = 1
+  ) {
     return new Promise(resolve => {
+      let i = 0;
       Services.obs.addObserver(function observer(aSubject, aTopic, aData) {
-        if (aData != expectedData) {
-          return;
+        if (aData == expectedData) {
+          i += 1;
+          if (i == times) {
+            Services.obs.removeObserver(observer, topic);
+            // Let the stack unwind.
+            Services.tm.dispatchToMainThread(() => resolve(aSubject));
+          }
         }
-
-        Services.obs.removeObserver(observer, topic);
-        // Let the stack unwind.
-        Services.tm.dispatchToMainThread(() => resolve(aSubject));
       }, topic);
     });
   }

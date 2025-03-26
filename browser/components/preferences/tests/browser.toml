@@ -247,7 +247,11 @@ skip-if = ["tsan"] # Bug 1678829
 
 ["browser_search_subdialogs_within_preferences_8.js"]
 
+["browser_search_subdialogs_within_preferences_9.js"]
+
 ["browser_search_subdialogs_within_preferences_site_data.js"]
+
+["browser_search_userEngineDialog.js"]
 
 ["browser_search_within_preferences_1.js"]
 

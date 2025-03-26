@@ -334,6 +334,7 @@ interface nsISearchService : nsISupports
    * @param formInfo
    *         General information about the search engine. See UserSearchEngine
    *         for more details.
+   * @returns The generated nsISearchEngine object.
    */
   Promise addUserEngine(in jsval formInfo);
 

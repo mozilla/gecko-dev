@@ -29,10 +29,10 @@ add_task(async function test_engine_list() {
     "The search engine list should be visible when Search is requested"
   );
 
-  // Check for default search engines to be displayed in the engineList
-  let defaultEngines = await Services.search.getAppProvidedEngines();
-  for (let i = 0; i < defaultEngines.length; i++) {
-    let engine = defaultEngines[i];
+  // Check whether app provided search engines are in the engine list.
+  let appProvidedEngines = await Services.search.getAppProvidedEngines();
+  for (let i = 0; i < appProvidedEngines.length; i++) {
+    let engine = appProvidedEngines[i];
     is(
       getCellText(tree, i, "engineName"),
       engine.name,
@@ -40,7 +40,7 @@ add_task(async function test_engine_list() {
     );
   }
 
-  let customEngineIndex = defaultEngines.length;
+  let customEngineIndex = appProvidedEngines.length;
   is(
     getCellText(tree, customEngineIndex, "engineKeyword"),
     "testing, customkeyword",
