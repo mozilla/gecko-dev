@@ -58,7 +58,7 @@ add_task(async function test_sidebar_view_commands() {
     "Sidebar controller has the correct currentID"
   );
 
-  SidebarController.toggle(SidebarController.currentID);
+  document.getElementById("sidebar-button").doCommand();
   await sidebar.updateComplete;
   ok(BrowserTestUtils.isHidden(sidebar), "Sidebar is hidden");
   ok(!sidebar.expanded, "Sidebar is not expanded when the view is closed");
