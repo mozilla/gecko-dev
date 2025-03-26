@@ -66,7 +66,7 @@ data class WebCompatInfoDto(
     data class WebCompatBrowserDto(
         val addons: List<AddonDto>,
         val app: AppDto? = null,
-        val experiments: List<ExperimentDto>,
+        var experiments: List<ExperimentDto>,
         val graphics: GraphicsDto? = null,
         val locales: List<String>,
         val platform: PlatformDto,
@@ -97,7 +97,7 @@ data class WebCompatInfoDto(
          */
         @Serializable
         data class ExperimentDto(
-            val branch: String,
+            val branch: String?,
             val slug: String,
             val kind: String,
         )

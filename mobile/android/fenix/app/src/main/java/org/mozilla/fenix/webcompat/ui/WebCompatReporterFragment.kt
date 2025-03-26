@@ -44,6 +44,7 @@ class WebCompatReporterFragment : ComposeFragment() {
                 browserStore = requireComponents.core.store,
                 appStore = requireComponents.appStore,
                 scope = viewModelScope,
+                nimbusApi = requireComponents.nimbus.sdk,
             ),
         )
     }
