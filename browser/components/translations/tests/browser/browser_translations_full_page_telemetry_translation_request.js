@@ -19,6 +19,19 @@ add_task(async function test_translations_telemetry_manual_translation() {
 
   await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
+  await TestTranslationsTelemetry.assertCounter(
+    "RequestCount",
+    Glean.translations.requestsCount,
+    0
+  );
+  await TestTranslationsTelemetry.assertRate(
+    "ErrorRate",
+    Glean.translations.errorRate,
+    {
+      expectedNumerator: 0,
+      expectedDenominator: 0,
+    }
+  );
   await TestTranslationsTelemetry.assertEvent(
     Glean.translations.translationRequest,
     {
@@ -42,6 +55,19 @@ add_task(async function test_translations_telemetry_manual_translation() {
     runInPage,
   });
 
+  await TestTranslationsTelemetry.assertCounter(
+    "RequestCount",
+    Glean.translations.requestsCount,
+    1
+  );
+  await TestTranslationsTelemetry.assertRate(
+    "ErrorRate",
+    Glean.translations.errorRate,
+    {
+      expectedNumerator: 0,
+      expectedDenominator: 1,
+    }
+  );
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
     expectedEventCount: 1,
     expectNewFlowId: true,
@@ -114,6 +140,19 @@ add_task(async function test_translations_telemetry_auto_translation() {
     runInPage,
   });
 
+  await TestTranslationsTelemetry.assertCounter(
+    "RequestCount",
+    Glean.translations.requestsCount,
+    1
+  );
+  await TestTranslationsTelemetry.assertRate(
+    "ErrorRate",
+    Glean.translations.errorRate,
+    {
+      expectedNumerator: 0,
+      expectedDenominator: 1,
+    }
+  );
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
     expectedEventCount: 0,
   });

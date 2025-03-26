@@ -44,6 +44,11 @@ add_task(async function test_translations_telemetry_retranslate() {
       ["select", 0],
     ]
   );
+  await TestTranslationsTelemetry.assertCounter(
+    "RequestCount",
+    Glean.translations.requestsCount,
+    1
+  );
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
     expectNewFlowId: true,
     expectedEventCount: 1,
@@ -112,6 +117,11 @@ add_task(async function test_translations_telemetry_retranslate() {
       ["full_page", 2],
       ["select", 0],
     ]
+  );
+  await TestTranslationsTelemetry.assertCounter(
+    "RequestCount",
+    Glean.translations.requestsCount,
+    2
   );
   await TestTranslationsTelemetry.assertEvent(Glean.translationsPanel.open, {
     expectNewFlowId: true,

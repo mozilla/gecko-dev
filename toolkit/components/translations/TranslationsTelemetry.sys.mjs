@@ -94,6 +94,7 @@ export class TranslationsTelemetry {
    * @param {string} errorMessage
    */
   static onError(errorMessage) {
+    Glean.translations.errorRate.addToNumerator(1);
     Glean.translations.error.record({
       flow_id: TranslationsTelemetry.getOrCreateFlowId(),
       reason: errorMessage,
@@ -127,6 +128,7 @@ export class TranslationsTelemetry {
       sourceTextCodeUnits,
       sourceTextWordCount,
     } = data;
+    Glean.translations.requestsCount.add(1);
     Glean.translations.requestCount[requestTarget ?? "full_page"].add(1);
     Glean.translations.translationRequest.record({
       flow_id: TranslationsTelemetry.getOrCreateFlowId(),

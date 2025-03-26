@@ -11,6 +11,22 @@ $tags:
   - 'Firefox :: Translation'
 
 translations:
+  requests_count:
+    type: counter
+    description: >
+      The count of translation requests.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836436
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861319
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836436
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861319
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - translations-telemetry-alerts@mozilla.com
+    expires: 139
+
   request_count:
     type: labeled_counter
     labels:
@@ -22,6 +38,24 @@ translations:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900432
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1900432
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - translations-telemetry-alerts@mozilla.com
+    expires: never
+
+
+  error_rate:
+    type: rate
+    description: >
+      The rate of failed translations requests.
+    denominator_metric: translations.requests_count
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836436
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861319
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836436
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861319
     data_sensitivity:
       - technical
     notification_emails:
