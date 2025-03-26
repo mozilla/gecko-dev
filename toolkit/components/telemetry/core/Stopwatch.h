@@ -25,10 +25,6 @@ class Stopwatch {
   static bool Cancel(const GlobalObject& global, const nsAString& histogram,
                      JS::Handle<JSObject*> obj);
 
-  static int32_t TimeElapsed(const GlobalObject& global,
-                             const nsAString& histogram,
-                             JS::Handle<JSObject*> obj, bool canceledOkay);
-
   static bool Finish(const GlobalObject& global, const nsAString& histogram,
                      JS::Handle<JSObject*> obj, bool canceledOkay);
 

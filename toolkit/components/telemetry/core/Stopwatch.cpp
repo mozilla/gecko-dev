@@ -617,15 +617,8 @@ bool Stopwatch::Start(const dom::GlobalObject& aGlobal,
 bool Stopwatch::Running(const dom::GlobalObject& aGlobal,
                         const nsAString& aHistogram,
                         JS::Handle<JSObject*> aObj) {
-  return TimeElapsed(aGlobal, aHistogram, aObj, true) != -1;
-}
-
-/* static */
-int32_t Stopwatch::TimeElapsed(const dom::GlobalObject& aGlobal,
-                               const nsAString& aHistogram,
-                               JS::Handle<JSObject*> aObj, bool aCanceledOkay) {
   return Timers::Singleton().TimeElapsed(aGlobal.Context(), aHistogram, aObj,
-                                         VoidString(), aCanceledOkay);
+                                         VoidString(), true) != -1;
 }
 
 /* static */
