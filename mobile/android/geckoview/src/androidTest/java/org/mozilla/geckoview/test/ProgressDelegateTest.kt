@@ -9,6 +9,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
 import junit.framework.TestCase.assertTrue
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import org.json.JSONObject
 import org.junit.Assume.assumeThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -580,8 +581,6 @@ class ProgressDelegateTest : BaseSessionTest() {
 
         val info = mainSession.webCompatInfo
         assertThat("Result should match mocked web compat info", sessionRule.waitForResult(info).toString(), equalTo(expectedResult))
-
-        sessionRule.setPrefsUntilTestEnd(mapOf("browser.webcompat.geckoview.enableAllTestMocks" to false))
     }
 
     @Test
@@ -603,6 +602,25 @@ class ProgressDelegateTest : BaseSessionTest() {
             assertThat("This test is expected to fail.", true, equalTo(false))
         } catch (error: Exception) {
             assertTrue("Expect an exception while getting web compat info.", true)
+        }
+    }
+
+    @Test
+    fun sendMoreWebCompatInfoSuccess() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("browser.webcompat.geckoview.enableAllTestMocks" to true))
+
+        val testInfo = JSONObject().apply {
+            put("reason", "test-reason")
+            put("description", "test-description")
+            put("endpointUrl", "https://webcompat.com/issues/new")
+            put("reportUrl", "https://example.com")
+        }
+
+        try {
+            sessionRule.waitForResult(mainSession.sendMoreWebCompatInfo(testInfo))
+            assertTrue("sendMoreWebCompatInfo() should succeed.", true)
+        } catch (error: Exception) {
+            assertTrue("sendMoreWebCompatInfo() should not fail.", false)
         }
     }
 

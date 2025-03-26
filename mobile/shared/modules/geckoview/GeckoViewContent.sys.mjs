@@ -39,6 +39,7 @@ export class GeckoViewContent extends GeckoViewModule {
       "GeckoView:ZoomToInput",
       "GeckoView:IsPdfJs",
       "GeckoView:GetWebCompatInfo",
+      "GeckoView:SendMoreWebCompatInfo",
     ]);
   }
 
@@ -296,6 +297,9 @@ export class GeckoViewContent extends GeckoViewModule {
       case "GeckoView:GetWebCompatInfo":
         this._getWebCompatInfo(aCallback);
         break;
+      case "GeckoView:SendMoreWebCompatInfo":
+        this._sendMoreWebCompatInfo(aData, aCallback);
+        break;
       case "GeckoView:RequestAnalysis":
         this._requestAnalysis(aData, aCallback);
         break;
@@ -473,6 +477,31 @@ export class GeckoViewContent extends GeckoViewModule {
       aCallback.onSuccess(JSON.stringify(info));
     } catch (error) {
       aCallback.onError(`Cannot get web compat info, error: ${error}`);
+    }
+  }
+
+  async _sendMoreWebCompatInfo(aData, aCallback) {
+    if (
+      Cu.isInAutomation &&
+      Services.prefs.getBoolPref(
+        "browser.webcompat.geckoview.enableAllTestMocks",
+        false
+      )
+    ) {
+      aCallback.onSuccess();
+      return;
+    }
+    let infoObj = JSON.parse(aData.info);
+    try {
+      const actor =
+        this.browser.browsingContext.currentWindowGlobal.getActor(
+          "ReportBrokenSite"
+        );
+
+      await actor.sendQuery("SendDataToWebcompatCom", infoObj);
+      aCallback.onSuccess();
+    } catch (error) {
+      aCallback.onError(`Cannot send more web compat info, error: ${error}`);
     }
   }
 

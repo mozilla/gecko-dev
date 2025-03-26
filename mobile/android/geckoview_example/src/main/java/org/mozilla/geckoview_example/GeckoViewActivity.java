@@ -2440,9 +2440,26 @@ public class GeckoViewActivity extends AppCompatActivity
   public void webCompatInfo(@NonNull final GeckoSession session) {
     GeckoResult<JSONObject> result = session.getWebCompatInfo();
     result.map(
-        info -> {
+        getWebCompatInfo -> {
           Log.d(LOGTAG, "Received web compat info.");
-          return info;
+          if (getWebCompatInfo != null) {
+            JSONObject info = new JSONObject();
+            info.put("reason", "Reason");
+            info.put("description", "Description");
+            info.put("endpointUrl", "https://webcompat.com/issues/new");
+            info.put("reportUrl", "https://www.mozilla.org/en-US/firefox/");
+
+            JSONObject reporterConfig = new JSONObject();
+            reporterConfig.put("src", "android-components-reporter");
+            reporterConfig.put("utm_campaign", "report-site-issue-button");
+            reporterConfig.put("utm_source", "android-components-reporter");
+
+            info.put("reporterConfig", reporterConfig);
+            info.put("webcompatInfo", getWebCompatInfo);
+
+            session.sendMoreWebCompatInfo(info);
+          }
+          return getWebCompatInfo;
         });
   }
 

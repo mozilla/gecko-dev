@@ -1101,6 +1101,7 @@ package org.mozilla.geckoview {
     method @AnyThread @NonNull public GeckoResult<InputStream> saveAsPdf();
     method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<Boolean> sendClickAttributionEvent(@NonNull String);
     method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<Boolean> sendImpressionAttributionEvent(@NonNull String);
+    method @AnyThread @NonNull public GeckoResult<Void> sendMoreWebCompatInfo(@NonNull JSONObject);
     method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<Boolean> sendPlacementAttributionEvent(@NonNull String);
     method @AnyThread public void setActive(boolean);
     method @UiThread public void setAutofillDelegate(@Nullable Autofill.Delegate);

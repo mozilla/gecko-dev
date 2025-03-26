@@ -3279,6 +3279,37 @@ public class GeckoSession {
             });
   }
 
+  /**
+   * Send more web compatibility info when a site is reported as broken.
+   *
+   * @param info A {@link JSONObject} containing the web compatibility report details. The expected
+   *     format of the JSON object is:
+   *     <pre><code>
+   *             {
+   *               "reason": "User-selected reason for reporting",
+   *               "description": "User-provided description of the issue",
+   *               "endpointUrl": "https://webcompat.com/issues/new",
+   *               "reportUrl": "URL of the reported site",
+   *               "reporterConfig": {
+   *                 "src": "android-components-reporter",
+   *                 "utm_campaign": "report-site-issue-button",
+   *                 "utm_source": "android-components-reporter"
+   *               },
+   *               "webcompatInfo": { //JSONObject from GeckoSession.getWebCompatInfo() }
+   *             }
+   *             </code></pre>
+   *
+   * @return a {@link GeckoResult} wil complete if sending more web compatibility info was
+   *     successful. Will complete exceptionally if the web compat info was not sent.
+   */
+  @AnyThread
+  public @NonNull GeckoResult<Void> sendMoreWebCompatInfo(@NonNull final JSONObject info) {
+    Log.i("todocathy", "sendMoreWebCompatInfo");
+    final GeckoBundle bundle = new GeckoBundle();
+    bundle.putString("info", info.toString());
+    return mEventDispatcher.queryVoid("GeckoView:SendMoreWebCompatInfo", bundle);
+  }
+
   // This is the GeckoDisplay acquired via acquireDisplay(), if any.
   private GeckoDisplay mDisplay;
 
