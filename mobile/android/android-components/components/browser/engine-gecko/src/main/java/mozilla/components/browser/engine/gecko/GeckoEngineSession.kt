@@ -1264,7 +1264,7 @@ class GeckoEngineSession(
                         url = url,
                         contentLength = contentLength,
                         contentType = DownloadUtils.sanitizeMimeType(contentType),
-                        fileName = fileName.sanitizeFileName(),
+                        fileName = fileName.sanitizeFileName().decode(),
                         response = response,
                         isPrivate = privateMode,
                         openInApp = webResponse.requestExternalApp,

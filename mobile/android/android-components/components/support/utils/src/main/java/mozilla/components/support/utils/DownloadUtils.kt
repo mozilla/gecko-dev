@@ -337,9 +337,8 @@ object DownloadUtils {
 
     private fun parseContentDisposition(contentDisposition: String): String? {
         return try {
-            val fileName = parseContentDispositionWithFileName(contentDisposition)
+            parseContentDispositionWithFileName(contentDisposition)
                 ?: parseContentDispositionWithFileNameAsterisk(contentDisposition)
-            Uri.decode(fileName)
         } catch (ex: IllegalStateException) {
             // This function is defined as returning null when it can't parse the header
             null
