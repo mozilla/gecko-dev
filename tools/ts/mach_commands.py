@@ -126,6 +126,14 @@ def glean(ctx, path):
     return node(ctx, "build_glean", ctx.topsrcdir, path, "tools/@types")
 
 
+@SubCommand("ts", "paths", description="Build module path mapping.")
+def paths(ctx):
+    maybe_setup(ctx)
+    lib = mozpath.join(ctx.topsrcdir, "tools/@types/tspaths.json")
+    lazy = mozpath.join(ctx.topsrcdir, "tools/@types/lib.gecko.modules.d.ts")
+    return node(ctx, "build_paths", ctx.topsrcdir, lib, lazy)
+
+
 def node(ctx, script, *args):
     maybe_setup(ctx)
     path = mozpath.join(mozpath.dirname(__file__), script)

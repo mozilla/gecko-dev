@@ -99,6 +99,7 @@ toolkit/components/pdfjs/PdfJsOverridePrefs.js
 toolkit/components/uniffi-js/UniFFIGeneratedScaffolding.cpp
 toolkit/components/uniffi-js/UniFFIFixtureScaffolding.cpp
 toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated
+tools/@types/tspaths.json
 tools/browsertime/package.json
 tools/browsertime/package-lock.json
 tools/ts/error_list.json

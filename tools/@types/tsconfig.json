@@ -1,11 +1,9 @@
 {
+  "extends": "./tspaths.json",
+
   "compilerOptions": {
     "noEmit": true,
     "target": "es2024",
-    "types": ["gecko"],
-    "baseUrl": "../../",
-    "paths": {
-      "moz-src:///*": ["./*"]
-    }
+    "types": ["gecko"]
   }
 }
