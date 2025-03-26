@@ -1749,21 +1749,6 @@ static int32_t GetWhereToOpen(nsIChannel* aChannel, bool aIsDocumentLoad) {
   return nsIBrowserDOMWindow::OPEN_NEWTAB;
 }
 
-static DocumentLoadListener::ProcessBehavior GetProcessSwitchBehavior(
-    Element* aBrowserElement) {
-  if (aBrowserElement->HasAttribute(u"maychangeremoteness"_ns)) {
-    return DocumentLoadListener::ProcessBehavior::PROCESS_BEHAVIOR_STANDARD;
-  }
-  nsCOMPtr<nsIBrowser> browser = aBrowserElement->AsBrowser();
-  bool isRemoteBrowser = false;
-  browser->GetIsRemoteBrowser(&isRemoteBrowser);
-  if (isRemoteBrowser) {
-    return DocumentLoadListener::ProcessBehavior::
-        PROCESS_BEHAVIOR_SUBFRAME_ONLY;
-  }
-  return DocumentLoadListener::ProcessBehavior::PROCESS_BEHAVIOR_DISABLED;
-}
-
 static bool ContextCanProcessSwitch(CanonicalBrowsingContext* aBrowsingContext,
                                     WindowGlobalParent* aParentWindow,
                                     bool aSwitchToNewTab) {
@@ -1785,49 +1770,42 @@ static bool ContextCanProcessSwitch(CanonicalBrowsingContext* aBrowsingContext,
     return true;
   }
 
-  if (aParentWindow && !aBrowsingContext->UseRemoteSubframes()) {
-    MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
-            ("Process Switch Abort: remote subframes disabled"));
-    return false;
+  if (aParentWindow) {
+    // If remote subframes are disabled, subframes never process switch.
+    if (!aBrowsingContext->UseRemoteSubframes()) {
+      MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
+              ("Process Switch Abort: remote subframes disabled"));
+      return false;
+    }
+
+    // Otherwise, subframes can always process-switch unless they are directly
+    // embedded within a parent-process document.
+    if (aParentWindow->IsInProcess()) {
+      MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
+              ("Process Switch Abort: Subframe with in-process parent"));
+      return false;
+    }
+    return true;
   }
 
-  if (aParentWindow && aParentWindow->IsInProcess()) {
-    MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
-            ("Process Switch Abort: Subframe with in-process parent"));
-    return false;
-  }
-
-  // Determine what process switching behaviour is being requested by the root
-  // <browser> element.
+  // Check if the "maychangeremoteness" attribute is present on the embedding
+  // element. Assume the context can process switch if the embedder element is
+  // unknown, as it's safer to fail to switch in that scenario.
   Element* browserElement = aBrowsingContext->Top()->GetEmbedderElement();
-  if (!browserElement) {
-    MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
-            ("Process Switch Abort: cannot get embedder element"));
-    return false;
-  }
-  nsCOMPtr<nsIBrowser> browser = browserElement->AsBrowser();
-  if (!browser) {
-    MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
-            ("Process Switch Abort: not loaded within nsIBrowser"));
-    return false;
-  }
-
-  DocumentLoadListener::ProcessBehavior processBehavior =
-      GetProcessSwitchBehavior(browserElement);
-
-  // Check if the process switch we're considering is disabled by the
-  // <browser>'s process behavior.
-  if (processBehavior ==
-      DocumentLoadListener::ProcessBehavior::PROCESS_BEHAVIOR_DISABLED) {
-    MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
-            ("Process Switch Abort: switch disabled by <browser>"));
-    return false;
-  }
-  if (!aParentWindow && processBehavior ==
-                            DocumentLoadListener::ProcessBehavior::
-                                PROCESS_BEHAVIOR_SUBFRAME_ONLY) {
+  if (browserElement &&
+      !browserElement->HasAttribute(u"maychangeremoteness"_ns)) {
     MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
             ("Process Switch Abort: toplevel switch disabled by <browser>"));
+    return false;
+  }
+
+  // In some tests, we use `createWindowlessBrowser(false)` to create a
+  // windowless content browser. As process switching relies on the `<browser>`
+  // element to perform a remote abstraction, we cannot perform process
+  // switching on the root element of this browser.
+  if (!browserElement && aBrowsingContext->Windowless()) {
+    MOZ_LOG(gProcessIsolationLog, LogLevel::Warning,
+            ("Process Switch Abort: switch disabled by windowless browser"));
     return false;
   }
 
