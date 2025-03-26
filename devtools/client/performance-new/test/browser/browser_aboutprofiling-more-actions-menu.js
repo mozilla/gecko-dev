@@ -9,7 +9,7 @@ async function waitForClipboard() {
 }
 
 // Before starting the test, let's find out which features are selected from the
-// firefox-platform preset.
+// Graphics preset.
 const supportedFeatures = Services.profiler.GetFeatures();
 const { presets } = ChromeUtils.importESModule(
   "resource://devtools/client/performance-new/shared/background.sys.mjs"
@@ -17,11 +17,13 @@ const { presets } = ChromeUtils.importESModule(
 // Depending on the environment, not all features are present. So that the test
 // works for all environments, we need to compute this value instead of
 // hardcoding it.
-const featuresForFirefoxPlatformPreset = presets[
-  "firefox-platform"
-].features.filter(feature => supportedFeatures.includes(feature));
-const featuresForFirefoxPlatformPresetAsString =
-  featuresForFirefoxPlatformPreset.join(",");
+const featuresForGraphicsPreset = presets.graphics.features.filter(feature =>
+  supportedFeatures.includes(feature)
+);
+const featuresForGraphicsPresetAsString = featuresForGraphicsPreset.join(",");
+
+// For convenience, we also compute the expected value for threads.
+const threadsForGraphicsPresetsAsString = presets.graphics.threads.join(",");
 
 add_task(async function test() {
   info("Test the more actions button in about:profiling.");
@@ -33,20 +35,20 @@ add_task(async function test() {
   });
 
   await withAboutProfiling(async (document, browser) => {
-    info("Make sure the firefox-platform preset is checked for consistency.");
-    const firefoxPlatformLabel = await getElementFromDocumentByText(
+    info("Make sure the preset 'Graphics' is checked for consistency.");
+    const graphicsPresetLabel = await getElementFromDocumentByText(
       document,
-      AppConstants.MOZ_APP_NAME
+      "Graphics"
     );
     EventUtils.synthesizeMouseAtCenter(
-      firefoxPlatformLabel,
+      graphicsPresetLabel,
       {},
       browser.contentWindow
     );
     is(
       Services.prefs.getCharPref("devtools.performance.recording.preset", ""),
-      "firefox-platform",
-      'The preset "firefox-platform" is selected.'
+      "graphics",
+      'The preset "graphics" is selected.'
     );
 
     info("Test that there is a button to show a menu with more actions.");
@@ -93,7 +95,7 @@ add_task(async function test() {
     EventUtils.synthesizeMouseAtCenter(item, {}, browser.contentWindow);
     is(
       await waitForClipboard(),
-      `MOZ_PROFILER_STARTUP='1' MOZ_PROFILER_STARTUP_INTERVAL='1' MOZ_PROFILER_STARTUP_ENTRIES='134217728' MOZ_PROFILER_STARTUP_FEATURES='${featuresForFirefoxPlatformPresetAsString}' MOZ_PROFILER_STARTUP_FILTERS='GeckoMain,Compositor,Renderer,SwComposite,DOM Worker'`,
+      `MOZ_PROFILER_STARTUP='1' MOZ_PROFILER_STARTUP_INTERVAL='1' MOZ_PROFILER_STARTUP_ENTRIES='134217728' MOZ_PROFILER_STARTUP_FEATURES='${featuresForGraphicsPresetAsString}' MOZ_PROFILER_STARTUP_FILTERS='${threadsForGraphicsPresetsAsString}'`,
       "The clipboard contains the environment variables suitable for startup profiling."
     );
 
@@ -113,7 +115,7 @@ add_task(async function test() {
 
     is(
       await waitForClipboard(),
-      `--gecko-profile --gecko-profile-interval 1 --gecko-profile-entries 134217728 --gecko-profile-features '${featuresForFirefoxPlatformPresetAsString}' --gecko-profile-threads 'GeckoMain,Compositor,Renderer,SwComposite,DOM Worker'`,
+      `--gecko-profile --gecko-profile-interval 1 --gecko-profile-entries 134217728 --gecko-profile-features '${featuresForGraphicsPresetAsString}' --gecko-profile-threads '${threadsForGraphicsPresetsAsString}'`,
       "The clipboard contains the parameters suitable for performance tests."
     );
     SpecialPowers.cleanupAllClipboard();
