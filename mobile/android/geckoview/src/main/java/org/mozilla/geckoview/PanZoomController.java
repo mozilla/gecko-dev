@@ -622,6 +622,11 @@ public class PanZoomController {
       return false;
     }
 
+    if (!mAttached) {
+      // This might be during start up, so we cannot handle drag event.
+      return false;
+    }
+
     if (!GeckoDragAndDrop.onDragEvent(event)) {
       return false;
     }
