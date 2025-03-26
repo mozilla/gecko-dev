@@ -34,6 +34,11 @@ uint32_t AdapterInfo::SubgroupMinSize() const {
   // > different devices, but are still usable (e.g. use the default value of
   // > 4 for all devices).
 
+  if (GetParentObject()->ShouldResistFingerprinting(
+          RFPTarget::WebGPUSubgroupSizes)) {
+    return 4;
+  }
+
   // TODO: When we support `subgroups`, use the supported amount instead:
   // <https://bugzilla.mozilla.org/show_bug.cgi?id=1955417>
   return 4;
@@ -51,6 +56,11 @@ uint32_t AdapterInfo::SubgroupMaxSize() const {
   // > features or provide values for the property which do not distinguish
   // > different devices, but are still usable (e.g. use the default value of
   // > 128 for all devices).
+
+  if (GetParentObject()->ShouldResistFingerprinting(
+          RFPTarget::WebGPUSubgroupSizes)) {
+    return 128;
+  }
 
   // TODO: When we support `subgroups`, use the supported amount instead:
   // <https://bugzilla.mozilla.org/show_bug.cgi?id=1955417>
