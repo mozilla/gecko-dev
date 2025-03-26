@@ -9,7 +9,7 @@
  */
 
 /*
- * Created on Mon Oct 28 17:36:48 2024 from CLDR data file /tmp/cldr-common-46.0.zip.
+ * Created on Mon Mar 17 11:01:52 2025 from CLDR data file cldr-common-47.zip.
  *
  * * * * * This file contains MACHINE-GENERATED DATA, do not edit! * * * * *
  *
@@ -18,7 +18,7 @@
 
 static const LangQuotesRec sLangQuotes[] = {
   // clang-format off
-  { "aa\0ab\0af\0ak\0an\0ann\0apc\0arn\0as\0asa\0az\0ba\0bal\0bem\0bew\0bez\0bgc\0bgn\0bho\0blt\0bn\0bo\0brx\0bss\0byn\0cad\0cch\0ccp\0ce\0ceb\0cgg\0cho\0chr\0cic\0ckb\0co\0csw\0cu\0cy\0da\0dav\0dje\0doi\0dv\0dz\0ebu\0ee\0en\0eo\0es\0fil\0fo\0frr\0fur\0fy\0ga\0gaa\0gd\0gez\0gl\0gn\0gu\0guz\0gv\0ha\0haw\0hi\0hnj\0id\0ig\0ii\0io\0iu\0jbo\0jmc\0jv\0kaa\0kaj\0kam\0kcg\0kde\0kea\0ken\0kgp\0khq\0ki\0kl\0kln\0km\0kn\0ko\0kok\0kpe\0ks\0ksb\0ksh\0ku\0kw\0kxv\0la\0lg\0lkt\0lmo\0ln\0lo\0lrc\0ltg\0lu\0luo\0lv\0mai\0mas\0mdf\0mer\0mfe\0mgh\0mgo\0mhn\0mi\0mic\0ml\0mn\0mni\0moh\0mr\0ms\0mt\0mus\0my\0myv\0naq\0nb\0nd\0nds\0ne\0nn\0nqo\0nr\0nus\0nv\0ny\0nyn\0oc\0om\0or\0os\0osa\0pa\0pap\0pcm\0pis\0prg\0ps\0pt\0qu\0quc\0raj\0rhg\0rif\0rm\0rof\0rwk\0sa\0saq\0sat\0sbp\0scn\0sd\0se\0seh\0ses\0shn\0si\0sid\0skr\0sma\0smj\0smn\0sms\0so\0ss\0ssy\0su\0sw\0szl\0ta\0te\0teo\0tg\0th\0tig\0to\0tok\0tpi\0tr\0trv\0trw\0ts\0tt\0twq\0tyv\0tzm\0ug\0vai\0ve\0vec\0vi\0vmw\0vo\0vun\0wa\0wae\0wal\0wbp\0wo\0xh\0xnr\0xog\0yi\0yo\0yrl\0za\0zh\0zu\0", { { 0x201c, 0x201d, 0x2018, 0x2019 } } },
+  { "aa\0ab\0af\0ak\0an\0ann\0apc\0arn\0as\0asa\0az\0ba\0bal\0bem\0bew\0bez\0bgc\0bgn\0bho\0blt\0bn\0bo\0brx\0bss\0byn\0cad\0cch\0ccp\0ce\0ceb\0cgg\0cho\0chr\0cic\0ckb\0co\0cop\0csw\0cu\0cy\0da\0dav\0dje\0doi\0dv\0dz\0ebu\0ee\0en\0eo\0es\0fil\0fo\0frr\0fur\0fy\0ga\0gaa\0gd\0gez\0gl\0gn\0gu\0guz\0gv\0ha\0haw\0hi\0hnj\0ht\0id\0ig\0ii\0io\0iu\0jbo\0jmc\0jv\0kaa\0kaj\0kam\0kcg\0kde\0kea\0ken\0kgp\0khq\0ki\0kl\0kln\0km\0kn\0ko\0kok\0kpe\0ks\0ksb\0ksh\0ku\0kw\0kxv\0la\0lg\0lkt\0lmo\0ln\0lo\0lrc\0ltg\0lu\0luo\0lv\0mai\0mas\0mdf\0mer\0mfe\0mgh\0mgo\0mhn\0mi\0mic\0ml\0mn\0mni\0moh\0mr\0ms\0mt\0mus\0my\0myv\0naq\0nb\0nd\0nds\0ne\0nn\0nqo\0nr\0nus\0nv\0ny\0nyn\0oc\0om\0or\0os\0osa\0pa\0pap\0pcm\0pis\0prg\0ps\0pt\0qu\0quc\0raj\0rhg\0rif\0rm\0rof\0rwk\0sa\0saq\0sat\0sbp\0scn\0sd\0se\0seh\0ses\0shn\0si\0sid\0skr\0sma\0smj\0smn\0sms\0so\0ss\0ssy\0su\0sw\0szl\0ta\0te\0teo\0tg\0th\0tig\0to\0tok\0tpi\0tr\0trv\0trw\0ts\0tt\0twq\0tyv\0tzm\0ug\0vai\0ve\0vec\0vi\0vmw\0vo\0vun\0wa\0wae\0wal\0wbp\0wo\0xh\0xnr\0xog\0yi\0yo\0yrl\0za\0zh\0zu\0", { { 0x201c, 0x201d, 0x2018, 0x2019 } } },
   { "agq\0ff\0", { { 0x201e, 0x201d, 0x201a, 0x2019 } } },
   { "am\0az-Arab\0az-Cyrl\0fa\0fr-CH\0gsw\0jgo\0kkj\0mzn\0sdh\0", { { 0xab, 0xbb, 0x2039, 0x203a } } },
   { "ar\0lld\0ms-Arab\0syr\0ur\0", { { 0x201d, 0x201c, 0x2019, 0x2018 } } },
