@@ -4,9 +4,9 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 
 use super::shared::*;
 use crate::{CallbackIds, Config, FunctionIds, ObjectIds};
-use askama::Template;
 use extend::ext;
 use heck::{ToLowerCamelCase, ToShoutySnakeCase, ToUpperCamelCase};
+use rinja::Template;
 use uniffi_bindgen::interface::{
     Argument, AsType, Callable, CallbackInterface, ComponentInterface, Constructor, Enum, Field,
     Function, Literal, Method, Object, Radix, Record, Type, Variant,
@@ -261,7 +261,6 @@ pub impl Type {
             | Type::Enum { name, .. }
             | Type::Record { name, .. }
             | Type::CallbackInterface { name, .. }
-            | Type::External { name, .. }
             | Type::Custom { name, .. } => name.to_upper_camel_case(),
             Type::Optional { inner_type } => format!("?{}", inner_type.type_name()),
             Type::Sequence { inner_type } => format!("Array.<{}>", inner_type.type_name()),
@@ -302,7 +301,7 @@ pub impl Type {
                 key_type.canonical_name().to_upper_camel_case(),
                 value_type.canonical_name().to_upper_camel_case()
             ),
-            Type::External { name, .. } | Type::Custom { name, .. } => format!("Type{name}"),
+            Type::Custom { name, .. } => format!("Type{name}"),
         }
     }
 
