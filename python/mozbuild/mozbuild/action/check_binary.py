@@ -36,7 +36,7 @@ get_type = memoize(get_type)
 @memoize
 def get_output(*cmd):
     env = dict(os.environ)
-    env[b"LC_ALL"] = b"C"
+    env["LC_ALL"] = "C"
     return subprocess.check_output(cmd, env=env, universal_newlines=True).splitlines()
 
 
