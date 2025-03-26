@@ -3896,14 +3896,7 @@ WasmTagObject& WasmExceptionObject::tag() const {
 
 // ============================================================================
 // WebAssembly.Function and methods
-#ifdef ENABLE_WASM_TYPE_REFLECTIONS
-static JSObject* CreateWasmFunctionPrototype(JSContext* cx, JSProtoKey key) {
-  // WasmFunction's prototype should inherit from JSFunction's prototype.
-  RootedObject jsProto(cx, &cx->global()->getFunctionPrototype());
-  return GlobalObject::createBlankPrototypeInheriting(cx, &PlainObject::class_,
-                                                      jsProto);
-}
-
+#if defined(ENABLE_WASM_TYPE_REFLECTIONS) || defined(ENABLE_WASM_JSPI)
 [[nodiscard]] static bool IsWasmFunction(HandleValue v) {
   if (!v.isObject()) {
     return false;
@@ -3912,6 +3905,15 @@ static JSObject* CreateWasmFunctionPrototype(JSContext* cx, JSProtoKey key) {
     return false;
   }
   return v.toObject().as<JSFunction>().isWasm();
+}
+#endif  // ENABLE_WASM_TYPE_REFLECTIONS || ENABLE_WASM_JSPI
+
+#ifdef ENABLE_WASM_TYPE_REFLECTIONS
+static JSObject* CreateWasmFunctionPrototype(JSContext* cx, JSProtoKey key) {
+  // WasmFunction's prototype should inherit from JSFunction's prototype.
+  RootedObject jsProto(cx, &cx->global()->getFunctionPrototype());
+  return GlobalObject::createBlankPrototypeInheriting(cx, &PlainObject::class_,
+                                                      jsProto);
 }
 
 bool WasmFunctionTypeImpl(JSContext* cx, const CallArgs& args) {

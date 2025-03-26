@@ -697,21 +697,16 @@ option(
 
 
 @depends(
-    milestone.is_nightly,
     "--enable-jit",
     "--enable-simulator",
     target,
 )
 def default_wasm_jspi(
-    is_nightly,
     jit_enabled,
     simulator,
     target,
 ):
     if not jit_enabled:
-        return
-
-    if not is_nightly:
         return
 
     if simulator:
