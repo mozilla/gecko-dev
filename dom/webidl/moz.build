@@ -727,6 +727,7 @@ WEBIDL_FILES = [
     "Location.webidl",
     "Lock.webidl",
     "LockManager.webidl",
+    "LoginStatus.webidl",
     "MathMLElement.webidl",
     "MediaCapabilities.webidl",
     "MediaDebugInfo.webidl",
