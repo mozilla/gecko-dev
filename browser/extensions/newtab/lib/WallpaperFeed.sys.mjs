@@ -101,12 +101,7 @@ export class WallpaperFeed {
       ""
     );
 
-    const selectedWallpaper = Services.prefs.getStringPref(
-      "newtabWallpapers.wallpaper",
-      ""
-    );
-
-    if (uuid && selectedWallpaper === "custom") {
+    if (uuid) {
       const wallpaperDir = PathUtils.join(PathUtils.profileDir, "wallpaper");
       const filePath = PathUtils.join(wallpaperDir, uuid);
 
@@ -130,13 +125,6 @@ export class WallpaperFeed {
         Services.prefs.clearUserPref(PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID);
         return;
       }
-    } else {
-      this.store.dispatch(
-        ac.BroadcastToContent({
-          type: at.WALLPAPERS_CUSTOM_SET,
-          data: null,
-        })
-      );
     }
 
     // retrieving all records in collection
