@@ -8,6 +8,7 @@ Library("icuuc")
 FINAL_LIBRARY = "icu"
 
 DEFINES["U_COMMON_IMPLEMENTATION"] = True
+DEFINES["_LIBCPP_DISABLE_DEPRECATION_WARNINGS"] = True
 
 LOCAL_INCLUDES += ["/intl/icu/source/i18n"]
 
