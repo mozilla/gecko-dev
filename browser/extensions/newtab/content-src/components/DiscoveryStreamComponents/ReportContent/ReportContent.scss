@@ -1,0 +1,17 @@
+.report-content-form {
+  width: 500px;
+  height: 230px;
+  box-shadow: var(--box-shadow-level-4);
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--newtab-border-color);
+
+  form {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    moz-radio-group {
+      height: 100%;
+    }
+  }
+}

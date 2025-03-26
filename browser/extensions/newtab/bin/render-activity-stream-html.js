@@ -79,6 +79,7 @@ function templateHTML(options) {
     <link rel="localization" href="toolkit/branding/brandings.ftl" />
     <link rel="localization" href="browser/newtab/newtab.ftl" />
     <link rel="localization" href="toolkit/global/mozMessageBar.ftl" />
+    <link rel="localization" href="preview/reportContentTemporary.ftl"/>
     <link
       rel="stylesheet"
       href="chrome://global/skin/design-system/tokens-brand.css"
@@ -118,6 +119,11 @@ function templateHTML(options) {
       async
       type="module"
       src="chrome://global/content/elements/moz-message-bar.mjs"
+    ></script>
+    <script
+      async
+      type="module"
+      src="chrome://global/content/elements/moz-radio-group.mjs"
     ></script>
   </body>
 </html>
