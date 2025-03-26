@@ -90,9 +90,6 @@ run-if = ["os == 'win'"]
 
 ["browser_dns_over_https_exceptions_subdialog.js"]
 
-["browser_engines.js"]
-fail-if = ["a11y_checks"] # Bug 1854636 clicked treechildren#engineChildren may not be focusable
-
 ["browser_ensure_prefs_bindings_initted.js"]
 
 ["browser_etp_exceptions_dialog.js"]
@@ -219,6 +216,9 @@ skip-if = ["true"]
 support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"]
 
 ["browser_searchShowSuggestionsFirst.js"]
+
+["browser_search_engineList.js"]
+fail-if = ["a11y_checks"] # Bug 1854636 clicked treechildren#engineChildren may not be focusable
 
 ["browser_search_firefoxSuggest.js"]
 

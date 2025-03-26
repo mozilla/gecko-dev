@@ -1343,19 +1343,14 @@ class EngineView {
     }
   }
   async setCellText(index, column, value) {
+    let engine = this._engineStore.engines[index];
     if (column.id == "engineKeyword") {
-      let valid = await this.#changeKeyword(
-        this._engineStore.engines[index],
-        value
-      );
+      let valid = await this.#changeKeyword(engine, value);
       if (!valid) {
         this.#startEditingAlias(index);
       }
-    } else if (column.id == "engineName") {
-      let valid = await this.#changeName(
-        this._engineStore.engines[index],
-        value
-      );
+    } else if (column.id == "engineName" && engine.isUserEngine) {
+      let valid = await this.#changeName(engine, value);
       if (!valid) {
         this.#startEditingName(index);
       }
