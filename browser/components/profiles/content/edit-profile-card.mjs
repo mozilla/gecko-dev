@@ -287,7 +287,10 @@ export class EditProfileCard extends MozLitElement {
   }
 
   headerTemplate() {
-    return html`<h1 data-l10n-id="edit-profile-page-header"></h1>`;
+    return html`<h1
+      id="profile-header"
+      data-l10n-id="edit-profile-page-header"
+    ></h1>`;
   }
 
   nameInputTemplate() {
@@ -441,7 +444,7 @@ export class EditProfileCard extends MozLitElement {
         href="chrome://global/skin/in-content/common.css"
       />
       <moz-card
-        ><div id="edit-profile-card">
+        ><div id="edit-profile-card" aria-labelledby="profile-header">
           <img
             id="header-avatar"
             data-l10n-id=${this.profile.avatarL10nId}
