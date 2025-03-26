@@ -65,9 +65,6 @@ export var ChildCrashHandler = {
         // "expected" extensions process crashes on Android.
         const dumpID = aSubject.get("dumpID");
         if (!dumpID) {
-          Services.telemetry
-            .getHistogramById("FX_CONTENT_CRASH_DUMP_UNAVAILABLE")
-            .add(1);
           return;
         }
 

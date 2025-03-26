@@ -112,9 +112,7 @@ export var TabCrashHandler = {
         let subframeCrashItem = this.getAndRemoveSubframeCrash(childID);
 
         if (!dumpID) {
-          Services.telemetry
-            .getHistogramById("FX_CONTENT_CRASH_DUMP_UNAVAILABLE")
-            .add(1);
+          Glean.browserContentCrash.dumpUnavailable.add(1);
         } else if (AppConstants.MOZ_CRASHREPORTER) {
           this.childMap.set(childID, dumpID);
 
@@ -589,9 +587,7 @@ export var TabCrashHandler = {
     }
 
     if (!message.data.sendReport) {
-      Services.telemetry
-        .getHistogramById("FX_CONTENT_CRASH_NOT_SUBMITTED")
-        .add(1);
+      Glean.browserContentCrash.notSubmitted.add(1);
       this.prefs.setBoolPref("sendReport", false);
       return;
     }
@@ -711,9 +707,7 @@ export var TabCrashHandler = {
     // Make sure to only count once even if there are multiple windows
     // that will all show about:tabcrashed.
     if (this._crashedTabCount == 0 && childID) {
-      Services.telemetry
-        .getHistogramById("FX_CONTENT_CRASH_NOT_SUBMITTED")
-        .add(1);
+      Glean.browserContentCrash.notSubmitted.add(1);
     }
   },
 

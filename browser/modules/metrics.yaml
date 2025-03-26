@@ -1532,3 +1532,38 @@ glam_experiment:
       - tlong@mozilla.com
       - efilho@mozilla.com
     expires: 146
+
+browser.content_crash:
+  dump_unavailable:
+    type: counter
+    description: >
+      Counts the number of times that about:tabcrashed was unable to find a
+      crash dump.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram FX_CONTENT_CRASH_DUMP_UNAVAILABLE.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1269961
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1269961
+    notification_emails:
+      - wmccloskey@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_CONTENT_CRASH_DUMP_UNAVAILABLE
+
+  not_submitted:
+    type: counter
+    description: >
+      Counts the number of times that about:tabcrashed was unloaded without
+      submitting.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram FX_CONTENT_CRASH_NOT_SUBMITTED.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1269961
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1269961
+    notification_emails:
+      - wmccloskey@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_CONTENT_CRASH_NOT_SUBMITTED
