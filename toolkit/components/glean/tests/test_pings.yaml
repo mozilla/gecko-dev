@@ -50,6 +50,8 @@ test-ohttp-ping:
     include_info_sections: false
     use_ohttp: true
   send_if_empty: true
+  uploader_capabilities:
+    - ohttp
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1862002
   data_reviews:
