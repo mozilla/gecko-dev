@@ -250,6 +250,11 @@ UniquePtr<hal::PerformanceHintSession> CreatePerformanceHintSession(
  */
 const Maybe<hal::HeterogeneousCpuInfo>& GetHeterogeneousCpuInfo();
 
+/**
+ * Perform haptic feedback
+ */
+void PerformHapticFeedback(int32_t aType);
+
 }  // namespace MOZ_HAL_NAMESPACE
 }  // namespace mozilla
 

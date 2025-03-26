@@ -9,3 +9,6 @@ skip-if = [
   "os == 'android'",
   "condprof",  #: "Only focused window should get the sensor events"
 ]
+
+["test_HapticFeedback.html"]
+run-if = ["android"] # Haptic feedback is only supported on Android

@@ -84,6 +84,8 @@ parent:
       returns (nsresult result);
     async UnlockScreenOrientation();
 
+    async PerformHapticFeedback(int32_t aType);
+
 child:
     async NotifySensorChange(SensorData aSensorData);
 

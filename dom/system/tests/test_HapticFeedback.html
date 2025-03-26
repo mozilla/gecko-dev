@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1954534
+-->
+<html>
+  <meta charset="utf-8">
+  <title>Test for HapticFeedback</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1954534">Mozilla Bug 1954534</a>
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+</div>
+<pre id="test"></pre>
+<script>
+add_task(() => {
+  // Don't crash performSimpleAction.
+  const Cc = SpecialPowers.Cc;
+  const Ci = SpecialPowers.Ci;
+  let hapticFeedback = Cc["@mozilla.org/widget/hapticfeedback;1"].getService(Ci.nsIHapticFeedback);
+  hapticFeedback.performSimpleAction(Ci.nsIHapticFeedback.ShortPress);
+  hapticFeedback.performSimpleAction(Ci.nsIHapticFeedback.LongPress);
+  ok(true, "HapticFeedback performed");
+});
+</script>
+</body>
+</html>

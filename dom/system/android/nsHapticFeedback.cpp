@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsHapticFeedback.h"
-#include "mozilla/java/GeckoAppShellWrappers.h"
+#include "mozilla/Hal.h"
 
 using namespace mozilla;
 
@@ -13,6 +13,6 @@ NS_IMPL_ISUPPORTS(nsHapticFeedback, nsIHapticFeedback)
 
 NS_IMETHODIMP
 nsHapticFeedback::PerformSimpleAction(int32_t aType) {
-  java::GeckoAppShell::PerformHapticFeedback(aType == LongPress);
+  hal::PerformHapticFeedback(aType);
   return NS_OK;
 }

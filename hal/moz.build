@@ -37,6 +37,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
         "/widget/android",
     ]
     UNIFIED_SOURCES += [
+        "android/AndroidHapticFeedback.cpp",
         "android/AndroidHeterogeneousCpuInfo.cpp",
         "android/AndroidPerformanceHintManager.cpp",
         "android/AndroidProcessPriority.cpp",
@@ -111,6 +112,7 @@ else:
 # Fallbacks for backends implemented on Android only.
 if CONFIG["MOZ_WIDGET_TOOLKIT"] != "android":
     UNIFIED_SOURCES += [
+        "fallback/FallbackHapticFeedback.cpp",
         "fallback/FallbackNetwork.cpp",
         "fallback/FallbackPerformanceHintManager.cpp",
     ]

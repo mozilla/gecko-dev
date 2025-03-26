@@ -135,6 +135,10 @@ void SetProcessPriority(int aPid, ProcessPriority aPriority) {
   MOZ_CRASH("Only the main process may set processes' priorities.");
 }
 
+void PerformHapticFeedback(int32_t aType) {
+  Hal()->SendPerformHapticFeedback(aType);
+}
+
 class HalParent : public PHalParent,
                   public BatteryObserver,
                   public NetworkObserver,
@@ -294,6 +298,12 @@ class HalParent : public PHalParent,
 
   void Notify(const WakeLockInformation& aWakeLockInfo) override {
     Unused << SendNotifyWakeLockChange(aWakeLockInfo);
+  }
+
+  virtual mozilla::ipc::IPCResult RecvPerformHapticFeedback(
+      const int32_t& aType) override {
+    hal::PerformHapticFeedback(aType);
+    return IPC_OK();
   }
 };
 
