@@ -7,12 +7,6 @@
  * (bug 1850993), and that we don't show network statuses in DOM fullscreen
  * (bug 1853896). */
 
-// DOM FS tests tends to trigger a race in the fullscreen time telemetry,
-// where the fullscreen enter and fullscreen exit events (which use the
-// same histogram ID) overlap. That causes TelemetryStopwatch to log an
-// error.
-SimpleTest.ignoreAllUncaughtExceptions(true);
-
 let statuspanel = document.getElementById("statuspanel");
 let statuspanelLabel = document.getElementById("statuspanel-label");
 

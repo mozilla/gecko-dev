@@ -3728,10 +3728,6 @@ interface TaskPriorityChangeEventInit extends EventInit {
     previousPriority: TaskPriority;
 }
 
-interface TelemetryStopwatchOptions {
-    inSeconds?: boolean;
-}
-
 interface TestInterfaceAsyncIterableSingleOptions {
     failToInit?: boolean;
 }
@@ -24636,13 +24632,6 @@ declare namespace SessionStoreUtils {
     function restoreFormData(document: Document, data?: CollectedData): boolean;
     function restoreScrollPosition(frame: Window, data?: CollectedData): void;
     function restoreSessionStorageFromParent(browsingContext: CanonicalBrowsingContext, sessionStorage: Record<string, Record<string, string>>): void;
-}
-
-declare namespace TelemetryStopwatch {
-    function cancel(histogram: HistogramID, obj?: any): boolean;
-    function finish(histogram: HistogramID, obj?: any, canceledOkay?: boolean): boolean;
-    function setTestModeEnabled(testing?: boolean): void;
-    function start(histogram: HistogramID, obj?: any, options?: TelemetryStopwatchOptions): boolean;
 }
 
 declare namespace TestUtils {

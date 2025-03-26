@@ -126,8 +126,6 @@ skip-if = ["os == 'android'"]
 
 ["test_TelemetrySession_activeTicks.js"]
 
-["test_TelemetryStopwatch.js"]
-
 ["test_TelemetryTimestamps.js"]
 
 ["test_TelemetryUtils.js"]

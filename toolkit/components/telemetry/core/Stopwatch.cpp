@@ -606,36 +606,6 @@ void Timers::AnnotateHang(mozilla::BackgroundHangAnnotations& aAnnotations) {
 }
 
 /* static */
-bool Stopwatch::Start(const dom::GlobalObject& aGlobal,
-                      const nsAString& aHistogram, JS::Handle<JSObject*> aObj,
-                      const dom::TelemetryStopwatchOptions& aOptions) {
-  return Timers::Singleton().Start(aGlobal.Context(), aHistogram, aObj,
-                                   VoidString(), aOptions.mInSeconds);
-}
-
-/* static */
-bool Stopwatch::Finish(const dom::GlobalObject& aGlobal,
-                       const nsAString& aHistogram, JS::Handle<JSObject*> aObj,
-                       bool aCanceledOkay) {
-  return Timers::Singleton().Finish(aGlobal.Context(), aHistogram, aObj,
-                                    VoidString(), aCanceledOkay) != -1;
-}
-
-/* static */
-bool Stopwatch::Cancel(const dom::GlobalObject& aGlobal,
-                       const nsAString& aHistogram,
-                       JS::Handle<JSObject*> aObj) {
-  return Timers::Singleton().Delete(aGlobal.Context(), aHistogram, aObj,
-                                    VoidString());
-}
-
-/* static */
-void Stopwatch::SetTestModeEnabled(const dom::GlobalObject& aGlobal,
-                                   bool aTesting) {
-  Timers::Singleton().SuppressErrors() = aTesting;
-}
-
-/* static */
 bool UserInteractionStopwatch::Start(const dom::GlobalObject& aGlobal,
                                      const nsAString& aUserInteraction,
                                      const nsACString& aValue,

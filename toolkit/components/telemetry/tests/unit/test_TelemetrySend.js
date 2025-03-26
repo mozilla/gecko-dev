@@ -125,7 +125,6 @@ add_task(async function test_setup() {
     TelemetryUtils.Preferences.HealthPingEnabled,
     true
   );
-  TelemetryStopwatch.setTestModeEnabled(true);
 });
 
 // Test the ping sending logic.

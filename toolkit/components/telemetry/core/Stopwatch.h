@@ -6,27 +6,10 @@
 #ifndef Stopwatch_h__
 #define Stopwatch_h__
 
-#include "mozilla/dom/TelemetryStopwatchBinding.h"
+#include "mozilla/dom/UserInteractionBinding.h"
 
 namespace mozilla {
 namespace telemetry {
-
-class Stopwatch {
-  using GlobalObject = mozilla::dom::GlobalObject;
-
- public:
-  static bool Start(const GlobalObject& global, const nsAString& histogram,
-                    JS::Handle<JSObject*> obj,
-                    const dom::TelemetryStopwatchOptions& options);
-
-  static bool Cancel(const GlobalObject& global, const nsAString& histogram,
-                     JS::Handle<JSObject*> obj);
-
-  static bool Finish(const GlobalObject& global, const nsAString& histogram,
-                     JS::Handle<JSObject*> obj, bool canceledOkay);
-
-  static void SetTestModeEnabled(const GlobalObject& global, bool testing);
-};
 
 class UserInteractionStopwatch {
   using GlobalObject = mozilla::dom::GlobalObject;

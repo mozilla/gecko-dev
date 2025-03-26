@@ -7284,16 +7284,6 @@
     "kind": "boolean",
     "description": "True when we had to wait for a pending preload on first access to localStorage data, false otherwise"
   },
-  "RANGE_CHECKSUM_ERRORS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["perf-telemetry-alerts@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 3000,
-    "n_buckets": 10,
-    "description": "Number of histograms with range checksum errors"
-  },
   "TELEMETRY_ARCHIVE_DIRECTORIES_COUNT": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "thunderbird"],

@@ -101,7 +101,6 @@ add_task(async function setup() {
     TelemetryUtils.Preferences.HealthPingEnabled,
     false
   );
-  TelemetryStopwatch.setTestModeEnabled(true);
 
   registerProxy();
 

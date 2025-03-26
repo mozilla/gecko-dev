@@ -25,7 +25,7 @@ function run_test() {
   Assert.ok(UserInteraction.running(TEST_USER_INTERACTION_ID, obj1));
   Assert.ok(UserInteraction.running(TEST_USER_INTERACTION_ID, obj2));
 
-  // Unlike TelemetryStopwatch, we can clobber UserInteractions.
+  // We can clobber UserInteractions.
   Assert.ok(UserInteraction.start(TEST_USER_INTERACTION_ID, TEST_VALUE_1));
   Assert.ok(
     UserInteraction.start(TEST_USER_INTERACTION_ID, TEST_VALUE_1, obj1)

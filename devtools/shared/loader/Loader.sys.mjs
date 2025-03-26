@@ -134,7 +134,6 @@ export function DevToolsLoader({
     PathUtils,
     Services,
     StructuredCloneHolder,
-    TelemetryStopwatch,
     WebExtensionPolicy,
     WebSocket,
     WindowGlobalChild,

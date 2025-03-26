@@ -39,12 +39,6 @@ const CONTENT = `data:text/html,
     </html>
 `;
 
-// This test tends to trigger a race in the fullscreen time telemetry,
-// where the fullscreen enter and fullscreen exit events (which use the
-// same histogram ID) overlap. That causes TelemetryStopwatch to log an
-// error.
-SimpleTest.ignoreAllUncaughtExceptions(true);
-
 function setupMailHandler() {
   let mailHandlerInfo = HandlerServiceTestUtils.getHandlerInfo("mailto");
   let gOldMailHandlers = [];

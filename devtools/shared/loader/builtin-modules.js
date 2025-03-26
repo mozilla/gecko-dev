@@ -115,7 +115,6 @@ exports.modules = {
   // and so are never frozen, even if the browser loader module which
   // pull it is destroyed. See bug 1402779.
   Promise,
-  TelemetryStopwatch,
 };
 
 defineLazyGetter(exports.modules, "Debugger", () => {

@@ -91,7 +91,6 @@ WEBIDL_FILES = [
     "StructuredCloneHolder.webidl",
     "StyleSheetApplicableStateChangeEvent.webidl",
     "StyleSheetRemovedEvent.webidl",
-    "TelemetryStopwatch.webidl",
     "TreeColumn.webidl",
     "TreeColumns.webidl",
     "TreeContentView.webidl",

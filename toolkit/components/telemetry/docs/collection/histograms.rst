@@ -273,16 +273,6 @@ Note that ``nsITelemetry.getHistogramById()`` will throw an ``NS_ERROR_FAILURE``
 
   Adding a new Telemetry probe is not possible with Artifact builds. A full build is needed.
 
-For histograms measuring time, TelemetryStopwatch can be used to avoid working with Dates manually:
-
-.. code-block:: js
-
-  TelemetryStopwatch.start("FX_TAB_SWITCH_TOTAL_E10S_MS");
-  TelemetryStopwatch.finish("FX_TAB_SWITCH_TOTAL_E10S_MS");
-
-  TelemetryStopwatch.start("FX_TAB_SWITCH_TOTAL_MS");
-  TelemetryStopwatch.cancel("FX_TAB_SWITCH_TOTAL_MS");
-
 Adding a C++ Probe
 ==================
 

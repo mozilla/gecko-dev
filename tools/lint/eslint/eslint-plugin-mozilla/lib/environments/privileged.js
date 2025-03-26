@@ -662,7 +662,6 @@ module.exports = {
     TCPSocket: false,
     TCPSocketErrorEvent: false,
     TCPSocketEvent: false,
-    TelemetryStopwatch: false,
     TestingDeprecatedInterface: false,
     Text: false,
     TextClause: false,

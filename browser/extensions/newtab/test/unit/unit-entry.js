@@ -522,10 +522,6 @@ const TEST_GLOBAL = {
       settings: {},
     },
   },
-  TelemetryStopwatch: {
-    start: () => {},
-    finish: () => {},
-  },
   Sampling: {
     ratioSample(_seed, _ratios) {
       return Promise.resolve(0);

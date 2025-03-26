@@ -2,65 +2,8 @@
 Measuring elapsed time
 ======================
 
-To make it easier to measure how long operations take, we have helpers for both JavaScript and C++.
+To make it easier to measure how long operations take, we have helpers for C++.
 These helpers record the elapsed time into histograms, so you have to create suitable :doc:`histograms` for them first.
-
-From JavaScript
-===============
-JavaScript can measure elapsed time using TelemetryStopwatch.
-
-``TelemetryStopwatch`` is a helper that simplifies recording elapsed time (in milliseconds) into histograms.
-
-API:
-
-.. code-block:: js
-
-    TelemetryStopwatch = {
-      // Start, check if running, cancel & finish recording elapsed time into a
-      // histogram.
-      // |aObject| is optional. If specified, the timer is associated with this
-      // object, so multiple time measurements can be done concurrently.
-      start(histogramId, aObject);
-      running(histogramId, aObject);
-      cancel(histogramId, aObject);
-      finish(histogramId, aObject);
-    };
-
-Example:
-
-.. code-block:: js
-
-    TelemetryStopwatch.start("SAMPLE_FILE_LOAD_TIME_MS");
-    // ... start loading file.
-    if (failedToOpenFile) {
-      // Cancel this if the operation failed early etc.
-      TelemetryStopwatch.cancel("SAMPLE_FILE_LOAD_TIME_MS");
-      return;
-    }
-    // ... do more work.
-    TelemetryStopwatch.finish("SAMPLE_FILE_LOAD_TIME_MS");
-
-    // Another loading attempt? Start stopwatch again if
-    // not already running.
-    if (!TelemetryStopwatch.running("SAMPLE_FILE_LOAD_TIME_MS")) {
-      TelemetryStopwatch.start("SAMPLE_FILE_LOAD_TIME_MS");
-    }
-
-    // Periodically, it's necessary to attempt to finish a
-    // TelemetryStopwatch that's already been canceled or
-    // finished. Normally, that throws a warning to the
-    // console. If the TelemetryStopwatch being possibly
-    // canceled or finished is expected behaviour, the
-    // warning can be suppressed by passing the optional
-    // aCanceledOkay argument.
-
-    // ... suppress warning on a previously finished
-    // TelemetryStopwatch
-    TelemetryStopwatch.finish("SAMPLE_FILE_LOAD_TIME_MS", null,
-                              true /* aCanceledOkay */);
-
-From C++
-========
 
 API:
 
