@@ -2,6 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# NOTE: Please keep the files listed in here in sync with the ones listed in
+# webext-glue/moz.build, as this ensures that the XPI generated at build time
+# shares the same structure as the built-in instance. (bug 1955994)
+
 browser.jar:
   builtin-addons/newtab/manifest.json (./manifest.json)
   builtin-addons/newtab/webext-glue/background.js (./webext-glue/background.js)

@@ -1,0 +1,54 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+with Files("**"):
+    BUG_COMPONENT = ("Firefox", "New Tab Page")
+
+XPI_NAME = "newtab"
+
+DIST_SUBDIR = ""
+
+# NOTE: Please keep the files listed in here in sync with the ones listed in
+# ../addon-jar.mn, as this ensures that the XPI generated at build time
+# shares the same structure as the built-in instance. (bug 1955994)
+
+FINAL_TARGET_FILES += [
+    "../manifest.json",
+]
+FINAL_TARGET_FILES["webext-glue"] += [
+    "background.js",
+    "builtin-newtab.js",
+    "schema.json",
+]
+FINAL_TARGET_FILES.lib += [
+    "../lib/**",
+]
+FINAL_TARGET_FILES.common += [
+    "../common/**",
+]
+FINAL_TARGET_PP_FILES.data.content.abouthomecache += [
+    "../data/content/abouthomecache/page.html.template",
+    "../data/content/abouthomecache/script.js.template",
+]
+FINAL_TARGET_FILES.data.data += [
+    "../data/content/assets/**",
+]
+FINAL_TARGET_FILES.data.content += [
+    "../data/content/activity-stream.bundle.js",
+    "../data/content/newtab-render.js",
+]
+FINAL_TARGET_FILES.data.css += [
+    "../css/activity-stream.css",
+]
+FINAL_TARGET_FILES.prerendered += [
+    "../prerendered/activity-stream-noscripts.html",
+    "../prerendered/activity-stream.html",
+]
+
+if not CONFIG["RELEASE_OR_BETA"]:
+    FINAL_TARGET_FILES.prerendered += [
+        "../prerendered/activity-stream-debug.html",
+    ]
