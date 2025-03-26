@@ -6,6 +6,8 @@ package org.mozilla.fenix.tabstray
 
 import android.app.Dialog
 import android.content.res.Configuration
+import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -14,6 +16,9 @@ import android.view.ViewGroup
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.lifecycleScope
@@ -68,6 +73,7 @@ enum class TabsTrayAccessPoint {
     HomeRecentSyncedTab,
 }
 
+@Suppress("TooManyFunctions")
 class TabsTrayFragment : AppCompatDialogFragment() {
 
     private lateinit var tabsTrayStore: TabsTrayStore
@@ -382,6 +388,8 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         val rootView = tabsTrayComposeBinding.root
         val newTabFab = fabButtonComposeBinding.root
 
+        setupEdgeToEdgeSupport(view)
+
         val behavior = BottomSheetBehavior.from(rootView).apply {
             addBottomSheetCallback(
                 TraySheetBehaviorCallback(
@@ -468,6 +476,24 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         super.onConfigurationChanged(newConfig)
 
         trayBehaviorManager.updateDependingOnOrientation(newConfig.orientation)
+    }
+
+    private fun setupEdgeToEdgeSupport(view: View) {
+        if (SDK_INT >= VERSION_CODES.TIRAMISU) {
+            ViewCompat.setOnApplyWindowInsetsListener(view) { _, windowInsets ->
+                val insets = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+                )
+                view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    leftMargin = insets.left
+                    bottomMargin = insets.bottom
+                    rightMargin = insets.right
+                    topMargin = insets.top
+                }
+
+                WindowInsetsCompat.CONSUMED
+            }
+        }
     }
 
     private fun onCancelDownloadWarningAccepted(tabId: String?, source: String?) {
