@@ -4,12 +4,10 @@
 
 package org.mozilla.focus.utils
 
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.content.res.Resources
-import android.view.accessibility.AccessibilityManager
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
@@ -38,26 +36,6 @@ class Settings(
         const val DEFAULT_COOKIE_OPTION_INDEX = 3
         const val NO_VALUE = "no value"
     }
-
-    private val accessibilityManager =
-        context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager?
-
-    /**
-     * Check each active accessibility service to see if it can perform gestures, if any can,
-     * then it is *likely* a switch service is enabled.
-     */
-    private val switchServiceIsEnabled: Boolean
-        get() {
-            accessibilityManager?.getEnabledAccessibilityServiceList(0)?.let { activeServices ->
-                for (service in activeServices) {
-                    if (service.capabilities.and(AccessibilityServiceInfo.CAPABILITY_CAN_PERFORM_GESTURES) == 1) {
-                        return true
-                    }
-                }
-            }
-
-            return false
-        }
 
     fun createTrackingProtectionPolicy(
         shouldBlockCookiesValue: String = shouldBlockCookiesValue(),
@@ -326,12 +304,6 @@ class Settings(
             getPreferenceKey(R.string.pref_key_privacy_block_other3),
             false,
         )
-
-    /**
-     * This is automatically inferred based on the current system status. Not a setting in our app.
-     */
-    fun isAccessibilityEnabled() =
-        accessibilityManager?.isTouchExplorationEnabled ?: false || switchServiceIsEnabled
 
     fun userHasToggledSearchSuggestions(): Boolean =
         preferences.getBoolean(SearchSuggestionsPreferences.TOGGLED_SUGGESTIONS_PREF, false)

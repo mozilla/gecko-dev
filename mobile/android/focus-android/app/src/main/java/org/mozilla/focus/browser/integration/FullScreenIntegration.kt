@@ -26,7 +26,6 @@ import org.mozilla.focus.ext.disableDynamicBehavior
 import org.mozilla.focus.ext.enableDynamicBehavior
 import org.mozilla.focus.ext.hide
 import org.mozilla.focus.ext.showAsFixed
-import org.mozilla.focus.utils.Settings
 
 @Suppress("LongParameterList")
 class FullScreenIntegration(
@@ -34,10 +33,10 @@ class FullScreenIntegration(
     val store: BrowserStore,
     tabId: String?,
     sessionUseCases: SessionUseCases,
-    private val settings: Settings,
     private val toolbarView: BrowserToolbar,
     private val statusBar: View,
     private val engineView: EngineView,
+    private val isAccessibilityEnabled: () -> Boolean,
 ) : LifecycleAwareFeature, UserInteractionHandler {
     @VisibleForTesting
     internal var feature = FullScreenFeature(
@@ -117,7 +116,7 @@ class FullScreenIntegration(
 
     @VisibleForTesting
     internal fun enterBrowserFullscreen() {
-        if (settings.isAccessibilityEnabled()) {
+        if (isAccessibilityEnabled()) {
             toolbarView.hide(engineView)
         } else {
             toolbarView.collapse()
@@ -127,7 +126,7 @@ class FullScreenIntegration(
 
     @VisibleForTesting
     internal fun exitBrowserFullscreen() {
-        if (settings.isAccessibilityEnabled()) {
+        if (isAccessibilityEnabled()) {
             toolbarView.showAsFixed(activity, engineView)
         } else {
             toolbarView.enableDynamicBehavior(activity, engineView)

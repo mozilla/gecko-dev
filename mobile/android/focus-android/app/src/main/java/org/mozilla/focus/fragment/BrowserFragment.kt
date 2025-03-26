@@ -101,6 +101,7 @@ import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.disableDynamicBehavior
 import org.mozilla.focus.ext.enableDynamicBehavior
 import org.mozilla.focus.ext.ifCustomTab
+import org.mozilla.focus.ext.isAccessibilityEnabled
 import org.mozilla.focus.ext.isCustomTab
 import org.mozilla.focus.ext.requireComponents
 import org.mozilla.focus.ext.settings
@@ -297,10 +298,10 @@ class BrowserFragment :
                 components.store,
                 tab.id,
                 components.sessionUseCases,
-                requireContext().settings,
                 binding.browserToolbar,
                 binding.statusBarBackground,
                 binding.engineView,
+                isAccessibilityEnabled = { requireContext().isAccessibilityEnabled() },
             ),
             this,
             view,
@@ -465,14 +466,17 @@ class BrowserFragment :
 
         val customTabConfig = tab.ifCustomTab()?.config
         if (customTabConfig != null) {
-            initialiseCustomTabUi(customTabConfig)
+            initialiseCustomTabUi(
+                customTabConfig,
+                requireContext().isAccessibilityEnabled(),
+            )
 
             // TODO Add custom tabs window feature support
             // We to add support for Custom Tabs here, however in order to send the window request
             // back to us through the intent system, we need to register a unique schema that we
             // can handle. For example, Fenix Nighlyt does this today with `fenix-nightly://`.
         } else {
-            initialiseNormalBrowserUi()
+            initialiseNormalBrowserUi(requireContext().isAccessibilityEnabled())
 
             windowFeature.set(
                 feature = WindowFeature(
@@ -611,16 +615,19 @@ class BrowserFragment :
             .show()
     }
 
-    private fun initialiseNormalBrowserUi() {
-        if (!requireContext().settings.isAccessibilityEnabled()) {
+    private fun initialiseNormalBrowserUi(accessibilityEnabled: Boolean) {
+        if (accessibilityEnabled) {
             binding.browserToolbar.enableDynamicBehavior(requireContext(), binding.engineView)
         } else {
             binding.browserToolbar.showAsFixed(requireContext(), binding.engineView)
         }
     }
 
-    private fun initialiseCustomTabUi(customTabConfig: CustomTabConfig) {
-        if (customTabConfig.enableUrlbarHiding && !requireContext().settings.isAccessibilityEnabled()) {
+    private fun initialiseCustomTabUi(
+        customTabConfig: CustomTabConfig,
+        accessibilityEnabled: Boolean,
+    ) {
+        if (customTabConfig.enableUrlbarHiding && !accessibilityEnabled) {
             binding.browserToolbar.enableDynamicBehavior(requireContext(), binding.engineView)
         } else {
             binding.browserToolbar.showAsFixed(requireContext(), binding.engineView)
