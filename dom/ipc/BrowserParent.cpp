@@ -1404,7 +1404,7 @@ IPCResult BrowserParent::RecvNewWindowGlobal(
 
   // Ensure we never load a document with a content principal in
   // the wrong type of webIsolated process
-  EnumSet<ContentParent::ValidatePrincipalOptions> validationOptions = {};
+  EnumSet<ValidatePrincipalOptions> validationOptions = {};
   nsCOMPtr<nsIURI> docURI = aInit.documentURI();
   if (docURI->SchemeIs("blob") || docURI->SchemeIs("chrome")) {
     // XXXckerschb TODO - Do not use SystemPrincipal for:
@@ -1414,7 +1414,7 @@ IPCResult BrowserParent::RecvNewWindowGlobal(
     //   * chrome://reftest/content/writing-mode/ua-style-sheet-button-1a-ref.html
     //   * chrome://reftest/content/xul-document-load/test003.xhtml
     //   * chrome://reftest/content/forms/input/text/centering-1.xhtml
-    validationOptions = {ContentParent::ValidatePrincipalOptions::AllowSystem};
+    validationOptions = {ValidatePrincipalOptions::AllowSystem};
   }
 
   // Some reftests have frames inside their chrome URIs and those load
@@ -1426,8 +1426,7 @@ IPCResult BrowserParent::RecvNewWindowGlobal(
                       IPC_FAIL(this, "Should have spec for about: URI"));
     if (spec.Equals("about:blank") && wgp &&
         wgp->DocumentPrincipal()->IsSystemPrincipal()) {
-      validationOptions = {
-          ContentParent::ValidatePrincipalOptions::AllowSystem};
+      validationOptions = {ValidatePrincipalOptions::AllowSystem};
     }
   }
 
