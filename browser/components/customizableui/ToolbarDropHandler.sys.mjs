@@ -4,6 +4,10 @@
 
 let lazy = {};
 
+ChromeUtils.defineLazyGetter(lazy, "FluentStrings", function () {
+  return new Localization(["browser/toolbarDropHandler.ftl"], true);
+});
+
 ChromeUtils.defineESModuleGetters(lazy, {
   HomePage: "resource:///modules/HomePage.sys.mjs",
   OpenInTabsUtils:
@@ -21,13 +25,19 @@ export var ToolbarDropHandler = {
     }
   },
 
-  _openHomeDialog(aURL, win) {
-    var promptTitle = win.gNavigatorBundle.getString("droponhometitle");
+  async _openHomeDialog(aURL, win) {
+    const [promptTitle, promptMsgSingle, promptMsgMultiple] =
+      await lazy.FluentStrings.formatValues([
+        "toolbar-drop-on-home-title",
+        "toolbar-drop-on-home-msg",
+        "toolbar-drop-on-home-msg-multiple",
+      ]);
+
     var promptMsg;
     if (aURL.includes("|")) {
-      promptMsg = win.gNavigatorBundle.getString("droponhomemsgMultiple");
+      promptMsg = promptMsgMultiple;
     } else {
-      promptMsg = win.gNavigatorBundle.getString("droponhomemsg");
+      promptMsg = promptMsgSingle;
     }
 
     var pressedVal = Services.prompt.confirmEx(
