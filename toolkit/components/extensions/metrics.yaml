@@ -405,6 +405,47 @@ extensions.data:
         type: string
     expires: 140
 
+  migrate_result_count:
+    type: labeled_counter
+    description: >
+      The number of times a storage.local backend data migration has been
+      completed and results in one of the categories.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram WEBEXT_STORAGE_LOCAL_IDB_MIGRATE_RESULT_COUNT.
+    labels:
+      - success
+      - failure
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1465129
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1578225
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623315
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1666980
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1706839
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1745271
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1777402
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1465129
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1578225
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623315
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1666980
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1706839
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1745271
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1777402
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - lgreco@mozilla.com
+    expires: 140
+    telemetry_mirror: h#WEBEXT_STORAGE_LOCAL_IDB_MIGRATE_RESULT_COUNT
+
 extensions.counters:
 
     browser_action_preload_result:

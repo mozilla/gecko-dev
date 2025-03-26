@@ -45,10 +45,6 @@ var ErrorsTelemetry = {
       return;
     }
     this.initialized = true;
-
-    this.resultHistogram = Services.telemetry.getHistogramById(
-      IDB_MIGRATE_RESULT_HISTOGRAM
-    );
   },
 
   /**
@@ -113,7 +109,7 @@ var ErrorsTelemetry = {
       } = telemetryData;
 
       this.lazyInit();
-      this.resultHistogram.add(histogramCategory);
+      Glean.extensionsData.migrateResultCount[histogramCategory].add(1);
 
       const extra = { addon_id: lazy.getTrimmedString(extensionId), backend };
 
