@@ -29,6 +29,7 @@ import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.support.locale.LocaleManager
 import mozilla.components.support.locale.LocaleUseCases
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.home.mars.MARSUseCases
 import org.mozilla.fenix.perf.StrictModeManager
 import org.mozilla.fenix.perf.lazyMonitored
@@ -126,4 +127,12 @@ class UseCases(
     val closeSyncedTabsUseCases by lazyMonitored { CloseTabsUseCases(syncedTabsCommands.value) }
 
     val marsUseCases by lazyMonitored { MARSUseCases(client.value) }
+
+    val fenixBrowserUseCases by lazyMonitored {
+        FenixBrowserUseCases(
+            addNewTabUseCase = tabsUseCases.addTab,
+            loadUrlUseCase = sessionUseCases.loadUrl,
+            searchUseCases = searchUseCases,
+        )
+    }
 }
