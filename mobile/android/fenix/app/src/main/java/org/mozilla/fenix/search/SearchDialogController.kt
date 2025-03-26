@@ -29,6 +29,7 @@ import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.crashes.CrashListActivity
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateSafe
@@ -65,6 +66,7 @@ class SearchDialogController(
     private val activity: HomeActivity,
     private val store: BrowserStore,
     private val tabsUseCases: TabsUseCases,
+    private val fenixBrowserUseCases: FenixBrowserUseCases,
     private val fragmentStore: SearchFragmentStore,
     private val navController: NavController,
     private val settings: Settings,
@@ -123,12 +125,17 @@ class SearchDialogController(
             fragmentStore.state.tabId == null
         }
 
-        activity.openToBrowserAndLoad(
+        navController.navigateSafe(
+            R.id.searchDialogFragment,
+            SearchDialogFragmentDirections.actionGlobalBrowser(),
+        )
+
+        fenixBrowserUseCases.loadUrlOrSearch(
             searchTermOrURL = url,
             newTab = newTab,
-            from = BrowserDirection.FromSearchDialog,
-            engine = searchEngine,
             forceSearch = !isDefaultEngine,
+            private = activity.browsingModeManager.mode.isPrivate,
+            searchEngine = searchEngine,
         )
 
         if (url.isUrl() || searchEngine == null) {
