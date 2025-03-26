@@ -988,7 +988,8 @@ function GenericObject(objectActor, grip, depth) {
 
 // Preview functions that do not rely on the object class.
 previewers.Object = [
-  function TypedArray({ obj }, grip, depth) {
+  function TypedArray(objectActor, grip, depth) {
+    const { obj } = objectActor;
     if (!ObjectUtils.isTypedArray(obj)) {
       return false;
     }
@@ -1012,7 +1013,7 @@ previewers.Object = [
       if (!desc) {
         break;
       }
-      grip.preview.items.push(desc.value);
+      grip.preview.items.push(objectActor.createValueGrip(desc.value, depth));
     }
 
     return true;

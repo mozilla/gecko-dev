@@ -15,7 +15,7 @@ registerCleanupFunction(() => {
 });
 
 add_task(
-  threadFrontTest(async ({ threadFront, debuggee, client }) => {
+  threadFrontTest(async ({ threadFront, debuggee }) => {
     debuggee.eval(
       // These arguments are tested.
       // eslint-disable-next-line no-unused-vars
@@ -277,20 +277,33 @@ add_task(
           ["byteOffset", 0],
         ],
       },
+      {
+        evaledObject: `(() => {
+          x = new BigInt64Array(2);
+          x[0] = 42n;
+          x[1] = 5886014448488689n;
+          return x;
+        })()`,
+        expectedIndexedProperties: [
+          ["0", { type: "BigInt", text: "42" }],
+          ["1", { type: "BigInt", text: "5886014448488689" }],
+        ],
+        expectedNonIndexedProperties: [
+          ["length", 2],
+          ["buffer", DO_NOT_CHECK_VALUE],
+          ["byteLength", 2],
+          ["byteOffset", 0],
+        ],
+      },
     ];
 
     for (const test of testCases) {
-      await test_object_grip(debuggee, client, threadFront, test);
+      await test_object_grip(debuggee, threadFront, test);
     }
   })
 );
 
-async function test_object_grip(
-  debuggee,
-  dbgClient,
-  threadFront,
-  testData = {}
-) {
+async function test_object_grip(debuggee, threadFront, testData = {}) {
   const {
     evaledObject,
     expectedIndexedProperties,
@@ -383,7 +396,11 @@ async function check_enum_properties(iterator, expected = []) {
       const propValue = property.hasOwnProperty("value")
         ? property.value
         : property.getterValue;
-      equal(propValue, value, `Property "${key}" has the expected value`);
+      Assert.deepEqual(
+        propValue,
+        value,
+        `Property "${key}" has the expected value`
+      );
     }
   }
 }

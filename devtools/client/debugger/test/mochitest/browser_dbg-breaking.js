@@ -56,4 +56,23 @@ add_task(async function () {
   await assertPausedAtSourceAndLine(dbg, source.id, 5);
 
   await resume(dbg);
+
+  info("Check that we pause in workers");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    const blob = new content.Blob(
+      [
+        `onmessage = function(request) {
+          // Keep the bigint declaration here, this covers Bug 1956197
+          const bigint64 = new BigInt64Array([1n, 2n]);
+          debugger;
+        }`,
+      ],
+      { type: "text/javascript" }
+    );
+    const url = content.URL.createObjectURL(blob);
+    const worker = new content.Worker(url);
+    worker.postMessage("break in debugger");
+  });
+  await waitForPaused(dbg);
+  await resume(dbg);
 });
