@@ -277,13 +277,16 @@ export class ReviewCheckerManager {
       // Check if we should auto-open to allow opting in.
       shouldAutoOpen = lazy.ShoppingUtils.handleAutoActivateOnProduct();
 
-      lazy.ShoppingUtils.sendTrigger({
-        browser: selectedBrowser,
-        id: "shoppingProductPageWithIntegratedRCSidebarClosed",
-        context: {
-          isReviewCheckerInSidebarClosed: !this.SidebarController?.isOpen,
-        },
-      });
+      // Only trigger the callout if the panel is not auto-opening
+      if (!shouldAutoOpen) {
+        lazy.ShoppingUtils.sendTrigger({
+          browser: selectedBrowser,
+          id: "shoppingProductPageWithIntegratedRCSidebarClosed",
+          context: {
+            isReviewCheckerInSidebarClosed: !this.SidebarController?.isOpen,
+          },
+        });
+      }
     }
 
     // Only show sidebar if no sidebar panel is currently showing,
