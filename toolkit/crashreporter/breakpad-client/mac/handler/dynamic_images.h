@@ -190,7 +190,7 @@ class DynamicImage {
   // of useful data (see definition of crashreporter_annotations_t in
   // mach_vm_compat.h).
   mach_vm_address_t GetCrashInfo() const {
-    return reinterpret_cast<mach_vm_address_t>(&crash_info_[0]);
+    return reinterpret_cast<mach_vm_address_t>(crash_info_.data());
   }
 
   // Size of the locally cached __DATA,__crash_info section. This will be zero
