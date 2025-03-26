@@ -528,7 +528,7 @@ pub struct LocatorParameters {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct NewSessionParameters {
-    capabilities: SpecNewSessionParameters,
+    pub capabilities: SpecNewSessionParameters,
 }
 
 // Manual deserialize implementation to error if capabilities is not an object
