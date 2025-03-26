@@ -95,6 +95,7 @@ class DefaultDeleteBrowsingDataControllerTest {
         }
     }
 
+    @Ignore("Disabled: Fails if new tests are added: https://bugzilla.mozilla.org/show_bug.cgi?id=1956618")
     @Test
     fun deleteCachedFiles() = runTestOnMain {
         controller.deleteCachedFiles()
