@@ -384,7 +384,7 @@ export class BaseContent extends React.PureComponent {
     const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
     const { wallpaperList, uploadedWallpaper } = this.props.Wallpapers;
 
-    if (uploadedWallpaper) {
+    if (selectedWallpaper === "custom" && uploadedWallpaper) {
       // revoke ObjectURL to prevent memory leaks
       if (this.uploadedWallpaperUrl) {
         URL.revokeObjectURL(this.uploadedWallpaperUrl);
