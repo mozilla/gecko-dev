@@ -155,7 +155,7 @@ fn run(args: CliArgs) -> miette::Result<()> {
     let ensure_no_child = |p1: &FileRoot, p2| {
         ensure!(
             p1.try_child(p2).is_err(),
-            "{p1} is a child path of {p2}, which is not supported"
+            format!("{p1} is a child path of {p2}, which is not supported")
         );
         Ok(())
     };
