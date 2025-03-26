@@ -283,13 +283,25 @@ FxAccountsWebChannel.prototype = {
         break;
       case COMMAND_LOGIN:
         await this._helpers.login(data);
+        await this._channel.send(
+          { command, messageId: message.messageId, data: { ok: true } },
+          sendingContext
+        );
         break;
       case COMMAND_OAUTH:
         await this._helpers.oauthLogin(data);
+        await this._channel.send(
+          { command, messageId: message.messageId, data: { ok: true } },
+          sendingContext
+        );
         break;
       case COMMAND_LOGOUT:
       case COMMAND_DELETE:
         await this._helpers.logout(data.uid);
+        await this._channel.send(
+          { command, messageId: message.messageId, data: { ok: true } },
+          sendingContext
+        );
         break;
       case COMMAND_CAN_LINK_ACCOUNT:
         {
@@ -337,10 +349,18 @@ FxAccountsWebChannel.prototype = {
         break;
       case COMMAND_SYNC_PREFERENCES:
         this._helpers.openSyncPreferences(browser, data.entryPoint);
+        this._channel.send(
+          { command, messageId: message.messageId, data: { ok: true } },
+          sendingContext
+        );
         break;
       case COMMAND_PAIR_PREFERENCES:
         if (lazy.pairingEnabled) {
           let win = browser.ownerGlobal;
+          this._channel.send(
+            { command, messageId: message.messageId, data: { ok: true } },
+            sendingContext
+          );
           win.openTrustedLinkIn(
             "about:preferences?action=pair#sync",
             "current"
@@ -349,9 +369,17 @@ FxAccountsWebChannel.prototype = {
         break;
       case COMMAND_FIREFOX_VIEW:
         this._helpers.openFirefoxView(browser, data.entryPoint);
+        this._channel.send(
+          { command, messageId: message.messageId, data: { ok: true } },
+          sendingContext
+        );
         break;
       case COMMAND_CHANGE_PASSWORD:
         await this._helpers.changePassword(data);
+        await this._channel.send(
+          { command, messageId: message.messageId, data: { ok: true } },
+          sendingContext
+        );
         break;
       case COMMAND_FXA_STATUS:
         log.debug("fxa_status received");
@@ -393,11 +421,18 @@ FxAccountsWebChannel.prototype = {
           );
         });
         break;
-      default:
-        log.warn("Unrecognized FxAccountsWebChannel command", command);
+      default: {
+        let errorMessage = "Unrecognized FxAccountsWebChannel command";
+        log.warn(errorMessage, command);
+        this._channel.send({
+          command,
+          messageId: message.messageId,
+          data: { error: errorMessage },
+        });
         // As a safety measure we also terminate any pending FxA pairing flow.
         lazy.FxAccountsPairingFlow.finalizeAll();
         break;
+      }
     }
   },
 

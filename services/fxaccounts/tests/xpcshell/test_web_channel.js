@@ -441,6 +441,72 @@ add_test(function test_fxa_status_message() {
   channel._channelCallback(WEBCHANNEL_ID, mockMessage, mockSendingContext);
 });
 
+add_test(function test_respond_to_device_commands() {
+  let mockMessageLoggedOut = {
+    command: "fxaccounts:logout",
+    messageId: 123,
+    data: {},
+  };
+  let mockMessageLoggedIn = {
+    command: "fxaccounts:login",
+    messageId: 123,
+    data: {},
+  };
+
+  let channel = new FxAccountsWebChannel({
+    channel_id: WEBCHANNEL_ID,
+    content_uri: URL_STRING,
+  });
+  channel._channel = {
+    send(response) {
+      Assert.ok(!!response.data);
+      Assert.equal(response.data.ok, true);
+
+      run_next_test();
+    },
+  };
+
+  channel._channelCallback(
+    WEBCHANNEL_ID,
+    mockMessageLoggedOut,
+    mockSendingContext
+  );
+
+  channel._channelCallback(
+    WEBCHANNEL_ID,
+    mockMessageLoggedIn,
+    mockSendingContext
+  );
+});
+
+add_test(function test_respond_to_incorrect_device_commands() {
+  let mockMessageLogout = {
+    command: "fxaccounts:lagaut", // intentional typo.
+    messageId: 123,
+    data: {},
+  };
+
+  let channel = new FxAccountsWebChannel({
+    channel_id: WEBCHANNEL_ID,
+    content_uri: URL_STRING,
+  });
+  channel._channel = {
+    send(response) {
+      Assert.equal("fxaccounts:lagaut", response.command);
+      Assert.ok(!!response.data);
+      Assert.ok(!!response.data.error);
+
+      run_next_test();
+    },
+  };
+
+  channel._channelCallback(
+    WEBCHANNEL_ID,
+    mockMessageLogout,
+    mockSendingContext
+  );
+});
+
 add_test(function test_unrecognized_message() {
   let mockMessage = {
     command: "fxaccounts:unrecognized",
