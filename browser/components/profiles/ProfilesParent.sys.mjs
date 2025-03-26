@@ -24,7 +24,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "{b90acfd0-f0fc-4add-9195-f6306d25cdfa}",
     {
-      dataL10nId: "profiles-marigold-theme",
+      dataL10nId: "profiles-marigold-theme-2",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4381985/marigold-1.9.xpi",
       colors: {
@@ -38,7 +38,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "{388d9fae-8a28-4f9f-9aad-fb9e84e4f3c3}",
     {
-      dataL10nId: "profiles-lichen-theme",
+      dataL10nId: "profiles-lichen-theme-2",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4381979/lichen_soft-1.3.xpi",
       colors: {
@@ -52,7 +52,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "{3ac3b0d7-f017-40e1-b142-a26f794e7015}",
     {
-      dataL10nId: "profiles-magnolia-theme",
+      dataL10nId: "profiles-magnolia-theme-2",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4381978/magnolia-1.1.xpi",
       colors: {
@@ -66,7 +66,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "{ba48d251-0732-45c2-9f2f-39c68e82d047}",
     {
-      dataL10nId: "profiles-lavender-theme",
+      dataL10nId: "profiles-lavender-theme-2",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4381983/lavender_soft-1.2.xpi",
       colors: {
@@ -93,7 +93,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "{750fa518-b61f-4068-9974-330dcf45442f}",
     {
-      dataL10nId: "profiles-ocean-theme",
+      dataL10nId: "profiles-ocean-theme-2",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4381977/ocean_dark-1.1.xpi",
       colors: {
@@ -107,7 +107,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "{25b5a343-4238-4bae-b1f9-93a33f258167}",
     {
-      dataL10nId: "profiles-terracotta-theme",
+      dataL10nId: "profiles-terracotta-theme-2",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4381976/terracotta_dark-1.1.xpi",
       colors: {
@@ -121,7 +121,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "{f9261f02-c03c-4352-92ee-78dd8b41ca98}",
     {
-      dataL10nId: "profiles-moss-theme",
+      dataL10nId: "profiles-moss-theme-2",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4381975/moss_dark-1.1.xpi",
       colors: {
