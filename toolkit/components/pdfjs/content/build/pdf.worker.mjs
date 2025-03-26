@@ -595,6 +595,18 @@ class Util {
     }
     return [xLow, yLow, xHigh, yHigh];
   }
+  static pointBoundingBox(x, y, minMax) {
+    minMax[0] = Math.min(minMax[0], x);
+    minMax[1] = Math.min(minMax[1], y);
+    minMax[2] = Math.max(minMax[2], x);
+    minMax[3] = Math.max(minMax[3], y);
+  }
+  static rectBoundingBox(x0, y0, x1, y1, minMax) {
+    minMax[0] = Math.min(minMax[0], x0, x1);
+    minMax[1] = Math.min(minMax[1], y0, y1);
+    minMax[2] = Math.max(minMax[2], x0, x1);
+    minMax[3] = Math.max(minMax[3], y0, y1);
+  }
   static #getExtremumOnCurve(x0, x1, x2, x3, y0, y1, y2, y3, t, minMax) {
     if (t <= 0 || t >= 1) {
       return;
@@ -626,17 +638,12 @@ class Util {
     this.#getExtremumOnCurve(x0, x1, x2, x3, y0, y1, y2, y3, (-b - sqrtDelta) / a2, minMax);
   }
   static bezierBoundingBox(x0, y0, x1, y1, x2, y2, x3, y3, minMax) {
-    if (minMax) {
-      minMax[0] = Math.min(minMax[0], x0, x3);
-      minMax[1] = Math.min(minMax[1], y0, y3);
-      minMax[2] = Math.max(minMax[2], x0, x3);
-      minMax[3] = Math.max(minMax[3], y0, y3);
-    } else {
-      minMax = [Math.min(x0, x3), Math.min(y0, y3), Math.max(x0, x3), Math.max(y0, y3)];
-    }
+    minMax[0] = Math.min(minMax[0], x0, x3);
+    minMax[1] = Math.min(minMax[1], y0, y3);
+    minMax[2] = Math.max(minMax[2], x0, x3);
+    minMax[3] = Math.max(minMax[3], y0, y3);
     this.#getExtremum(x0, x1, x2, x3, y0, y1, y2, y3, 3 * (-x0 + 3 * (x1 - x2) + x3), 6 * (x0 - 2 * x1 + x2), 3 * (x1 - x0), minMax);
     this.#getExtremum(x0, x1, x2, x3, y0, y1, y2, y3, 3 * (-y0 + 3 * (y1 - y2) + y3), 6 * (y0 - 2 * y1 + y2), 3 * (y1 - y0), minMax);
-    return minMax;
   }
 }
 const PDFStringTranslateTable = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2d8, 0x2c7, 0x2c6, 0x2d9, 0x2dd, 0x2db, 0x2da, 0x2dc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2022, 0x2020, 0x2021, 0x2026, 0x2014, 0x2013, 0x192, 0x2044, 0x2039, 0x203a, 0x2212, 0x2030, 0x201e, 0x201c, 0x201d, 0x2018, 0x2019, 0x201a, 0x2122, 0xfb01, 0xfb02, 0x141, 0x152, 0x160, 0x178, 0x17d, 0x131, 0x142, 0x153, 0x161, 0x17e, 0, 0x20ac];
@@ -791,6 +798,11 @@ if (typeof Promise.try !== "function") {
     return new Promise(resolve => {
       resolve(fn(...args));
     });
+  };
+}
+if (typeof Math.sumPrecise !== "function") {
+  Math.sumPrecise = function (numbers) {
+    return numbers.reduce((a, b) => a + b, 0);
   };
 }
 
@@ -22358,10 +22370,7 @@ class GlyfTable {
     }
   }
   getSize() {
-    return this.glyphs.reduce((a, g) => {
-      const size = g.getSize();
-      return a + (size + 3 & ~3);
-    }, 0);
+    return Math.sumPrecise(this.glyphs.map(g => g.getSize() + 3 & ~3));
   }
   write() {
     const totalSize = this.getSize();
@@ -22436,7 +22445,7 @@ class Glyph {
     if (!this.header) {
       return 0;
     }
-    const size = this.simple ? this.simple.getSize() : this.composites.reduce((a, c) => a + c.getSize(), 0);
+    const size = this.simple ? this.simple.getSize() : Math.sumPrecise(this.composites.map(c => c.getSize()));
     return this.header.getSize() + size;
   }
   write(pos, buf) {
@@ -31633,10 +31642,7 @@ class PartialEvaluator {
           } else {
             pathBuffer.push(DrawOPS.moveTo, x, y, DrawOPS.lineTo, xw, y, DrawOPS.lineTo, xw, yh, DrawOPS.lineTo, x, yh, DrawOPS.closePath);
           }
-          minMax[0] = Math.min(minMax[0], x, xw);
-          minMax[1] = Math.min(minMax[1], y, yh);
-          minMax[2] = Math.max(minMax[2], x, xw);
-          minMax[3] = Math.max(minMax[3], y, yh);
+          Util.rectBoundingBox(x, y, xw, yh, minMax);
           break;
         }
       case OPS.moveTo:
@@ -31644,10 +31650,7 @@ class PartialEvaluator {
           const x = state.currentPointX = args[0];
           const y = state.currentPointY = args[1];
           pathBuffer.push(DrawOPS.moveTo, x, y);
-          minMax[0] = Math.min(minMax[0], x);
-          minMax[1] = Math.min(minMax[1], y);
-          minMax[2] = Math.max(minMax[2], x);
-          minMax[3] = Math.max(minMax[3], y);
+          Util.pointBoundingBox(x, y, minMax);
           break;
         }
       case OPS.lineTo:
@@ -31655,10 +31658,7 @@ class PartialEvaluator {
           const x = state.currentPointX = args[0];
           const y = state.currentPointY = args[1];
           pathBuffer.push(DrawOPS.lineTo, x, y);
-          minMax[0] = Math.min(minMax[0], x);
-          minMax[1] = Math.min(minMax[1], y);
-          minMax[2] = Math.max(minMax[2], x);
-          minMax[3] = Math.max(minMax[3], y);
+          Util.pointBoundingBox(x, y, minMax);
           break;
         }
       case OPS.curveTo:
@@ -34114,7 +34114,8 @@ class TranslatedFont {
       operatorList.fnArray.splice(0, 1);
       operatorList.argsArray.splice(0, 1);
     } else if (fontBBoxSize === 0 || Math.round(charBBoxSize / fontBBoxSize) >= 10) {
-      this.#computeCharBBox(charBBox);
+      this._bbox ??= [Infinity, Infinity, -Infinity, -Infinity];
+      Util.rectBoundingBox(...charBBox, this._bbox);
     }
     let i = 0,
       ii = operatorList.length;
@@ -34172,18 +34173,12 @@ class TranslatedFont {
       switch (operatorList.fnArray[i]) {
         case OPS.constructPath:
           const minMax = operatorList.argsArray[i][2];
-          this.#computeCharBBox(minMax);
+          this._bbox ??= [Infinity, Infinity, -Infinity, -Infinity];
+          Util.rectBoundingBox(...minMax, this._bbox);
           break;
       }
       i++;
     }
-  }
-  #computeCharBBox(bbox) {
-    this._bbox ||= [Infinity, Infinity, -Infinity, -Infinity];
-    this._bbox[0] = Math.min(this._bbox[0], bbox[0]);
-    this._bbox[1] = Math.min(this._bbox[1], bbox[1]);
-    this._bbox[2] = Math.max(this._bbox[2], bbox[2]);
-    this._bbox[3] = Math.max(this._bbox[3], bbox[3]);
   }
 }
 class StateManager {
@@ -35910,7 +35905,8 @@ const StructElementType = {
   ELEMENT: 5
 };
 class StructTreeRoot {
-  constructor(rootDict, rootRef) {
+  constructor(xref, rootDict, rootRef) {
+    this.xref = xref;
     this.dict = rootDict;
     this.ref = rootRef instanceof Ref ? rootRef : null;
     this.roleMap = new Map();
@@ -36025,7 +36021,6 @@ class StructTreeRoot {
   }
   async canUpdateStructTree({
     pdfManager,
-    xref,
     newAnnotationsByPage
   }) {
     if (!this.ref) {
@@ -36047,7 +36042,7 @@ class StructTreeRoot {
       warn("Cannot update the struct tree: nums isn't an array.");
       return false;
     }
-    const numberTree = new NumberTree(parentTree, xref);
+    const numberTree = new NumberTree(parentTree, this.xref);
     for (const pageIndex of newAnnotationsByPage.keys()) {
       const {
         pageDict
@@ -36068,7 +36063,7 @@ class StructTreeRoot {
       } = await pdfManager.getPage(pageIndex);
       StructTreeRoot.#collectParents({
         elements,
-        xref: this.dict.xref,
+        xref: this.xref,
         pageDict,
         numberTree
       });
@@ -36097,9 +36092,11 @@ class StructTreeRoot {
     pdfManager,
     changes
   }) {
-    const xref = this.dict.xref;
+    const {
+      ref: structTreeRootRef,
+      xref
+    } = this;
     const structTreeRoot = this.dict.clone();
-    const structTreeRootRef = this.ref;
     const cache = new RefSetCache();
     cache.put(structTreeRootRef, structTreeRoot);
     let parentTreeRef = structTreeRoot.getRaw("ParentTree");
@@ -36365,6 +36362,7 @@ class StructTreeRoot {
 class StructElementNode {
   constructor(tree, dict) {
     this.tree = tree;
+    this.xref = tree.xref;
     this.dict = dict;
     this.kids = [];
     this.parseKids();
@@ -36375,10 +36373,7 @@ class StructElementNode {
     const {
       root
     } = this.tree;
-    if (root.roleMap.has(name)) {
-      return root.roleMap.get(name);
-    }
-    return name;
+    return root.roleMap.get(name) ?? name;
   }
   parseKids() {
     let pageObjId = null;
@@ -36389,7 +36384,7 @@ class StructElementNode {
     const kids = this.dict.get("K");
     if (Array.isArray(kids)) {
       for (const kid of kids) {
-        const element = this.parseKid(pageObjId, kid);
+        const element = this.parseKid(pageObjId, this.xref.fetchIfRef(kid));
         if (element) {
           this.kids.push(element);
         }
@@ -36412,37 +36407,31 @@ class StructElementNode {
         pageObjId
       });
     }
-    let kidDict = null;
-    if (kid instanceof Ref) {
-      kidDict = this.dict.xref.fetch(kid);
-    } else if (kid instanceof Dict) {
-      kidDict = kid;
-    }
-    if (!kidDict) {
+    if (!(kid instanceof Dict)) {
       return null;
     }
-    const pageRef = kidDict.getRaw("Pg");
+    const pageRef = kid.getRaw("Pg");
     if (pageRef instanceof Ref) {
       pageObjId = pageRef.toString();
     }
-    const type = kidDict.get("Type") instanceof Name ? kidDict.get("Type").name : null;
+    const type = kid.get("Type") instanceof Name ? kid.get("Type").name : null;
     if (type === "MCR") {
       if (this.tree.pageDict.objId !== pageObjId) {
         return null;
       }
-      const kidRef = kidDict.getRaw("Stm");
+      const kidRef = kid.getRaw("Stm");
       return new StructElement({
         type: StructElementType.STREAM_CONTENT,
         refObjId: kidRef instanceof Ref ? kidRef.toString() : null,
         pageObjId,
-        mcid: kidDict.get("MCID")
+        mcid: kid.get("MCID")
       });
     }
     if (type === "OBJR") {
       if (this.tree.pageDict.objId !== pageObjId) {
         return null;
       }
-      const kidRef = kidDict.getRaw("Obj");
+      const kidRef = kid.getRaw("Obj");
       return new StructElement({
         type: StructElementType.OBJECT,
         refObjId: kidRef instanceof Ref ? kidRef.toString() : null,
@@ -36451,7 +36440,7 @@ class StructElementNode {
     }
     return new StructElement({
       type: StructElementType.ELEMENT,
-      dict: kidDict
+      dict: kid
     });
   }
 }
@@ -36474,7 +36463,8 @@ class StructElement {
 class StructTreePage {
   constructor(structTreeRoot, pageDict) {
     this.root = structTreeRoot;
-    this.rootDict = structTreeRoot ? structTreeRoot.dict : null;
+    this.xref = structTreeRoot?.xref ?? null;
+    this.rootDict = structTreeRoot?.dict ?? null;
     this.pageDict = pageDict;
     this.nodes = [];
   }
@@ -36491,7 +36481,7 @@ class StructTreePage {
       return null;
     }
     const map = new Map();
-    const numberTree = new NumberTree(parentTree, this.rootDict.xref);
+    const numberTree = new NumberTree(parentTree, this.xref);
     for (const [elemId] of ids) {
       const obj = numberTree.getRaw(elemId);
       if (obj instanceof Ref) {
@@ -36514,13 +36504,13 @@ class StructTreePage {
       return;
     }
     const map = new Map();
-    const numberTree = new NumberTree(parentTree, this.rootDict.xref);
+    const numberTree = new NumberTree(parentTree, this.xref);
     if (Number.isInteger(id)) {
       const parentArray = numberTree.get(id);
       if (Array.isArray(parentArray)) {
         for (const ref of parentArray) {
           if (ref instanceof Ref) {
-            this.addNode(this.rootDict.xref.fetch(ref), map);
+            this.addNode(this.xref.fetch(ref), map);
           }
         }
       }
@@ -36531,7 +36521,7 @@ class StructTreePage {
     for (const [elemId, type] of ids) {
       const obj = numberTree.get(elemId);
       if (obj) {
-        const elem = this.addNode(this.rootDict.xref.fetchIfRef(obj), map);
+        const elem = this.addNode(this.xref.fetchIfRef(obj), map);
         if (elem?.kids?.length === 1 && elem.kids[0].type === StructElementType.OBJECT) {
           elem.kids[0].type = type;
         }
@@ -36838,7 +36828,7 @@ class Catalog {
   get structTreeRoot() {
     let structTree = null;
     try {
-      structTree = this._readStructTreeRoot();
+      structTree = this.#readStructTreeRoot();
     } catch (ex) {
       if (ex instanceof MissingDataException) {
         throw ex;
@@ -36847,13 +36837,13 @@ class Catalog {
     }
     return shadow(this, "structTreeRoot", structTree);
   }
-  _readStructTreeRoot() {
+  #readStructTreeRoot() {
     const rawObj = this._catDict.getRaw("StructTreeRoot");
     const obj = this.xref.fetchIfRef(rawObj);
     if (!(obj instanceof Dict)) {
       return null;
     }
-    const root = new StructTreeRoot(obj, rawObj);
+    const root = new StructTreeRoot(this.xref, obj, rawObj);
     root.init();
     return root;
   }
@@ -39970,10 +39960,10 @@ const converters = {
       const colSpan = node.colSpan;
       let w;
       if (colSpan === -1) {
-        w = extra.columnWidths.slice(extra.currentColumn).reduce((a, x) => a + x, 0);
+        w = Math.sumPrecise(extra.columnWidths.slice(extra.currentColumn));
         extra.currentColumn = 0;
       } else {
-        w = extra.columnWidths.slice(extra.currentColumn, extra.currentColumn + colSpan).reduce((a, x) => a + x, 0);
+        w = Math.sumPrecise(extra.columnWidths.slice(extra.currentColumn, extra.currentColumn + colSpan));
         extra.currentColumn = (extra.currentColumn + node.colSpan) % extra.columnWidths.length;
       }
       if (!isNaN(w)) {
@@ -40171,9 +40161,9 @@ function fixDimensions(node) {
     const colSpan = node.colSpan;
     let width;
     if (colSpan === -1) {
-      width = extra.columnWidths.slice(extra.currentColumn).reduce((a, w) => a + w, 0);
+      width = Math.sumPrecise(extra.columnWidths.slice(extra.currentColumn));
     } else {
-      width = extra.columnWidths.slice(extra.currentColumn, extra.currentColumn + colSpan).reduce((a, w) => a + w, 0);
+      width = Math.sumPrecise(extra.columnWidths.slice(extra.currentColumn, extra.currentColumn + colSpan));
     }
     if (!isNaN(width)) {
       node.w = width;
@@ -40184,7 +40174,7 @@ function fixDimensions(node) {
   }
   if (node.layout === "table") {
     if (node.w === "" && Array.isArray(node.columnWidths)) {
-      node.w = node.columnWidths.reduce((a, x) => a + x, 0);
+      node.w = Math.sumPrecise(node.columnWidths);
     }
   }
 }
@@ -40533,7 +40523,7 @@ function getAvailableSpace(node) {
       };
     case "rl-row":
     case "row":
-      const width = node[$extra].columnWidths.slice(node[$extra].currentColumn).reduce((a, x) => a + x);
+      const width = Math.sumPrecise(node[$extra].columnWidths.slice(node[$extra].currentColumn));
       return {
         width,
         height: availableSpace.height - marginH
@@ -44869,12 +44859,7 @@ class Text extends ContentObject {
   }
   [$getExtra]() {
     if (typeof this[$content] === "string") {
-      return this[$content].split(/[\u2029\u2028\n]/).reduce((acc, line) => {
-        if (line) {
-          acc.push(line);
-        }
-        return acc;
-      }, []).join("\n");
+      return this[$content].split(/[\u2029\u2028\n]/).filter(line => !!line).join("\n");
     }
     return this[$content][$text]();
   }
@@ -44884,15 +44869,12 @@ class Text extends ContentObject {
       if (this[$content].includes("\u2029")) {
         html.name = "div";
         html.children = [];
-        this[$content].split("\u2029").map(para => para.split(/[\u2028\n]/).reduce((acc, line) => {
-          acc.push({
-            name: "span",
-            value: line
-          }, {
-            name: "br"
-          });
-          return acc;
-        }, [])).forEach(lines => {
+        this[$content].split("\u2029").map(para => para.split(/[\u2028\n]/).flatMap(line => [{
+          name: "span",
+          value: line
+        }, {
+          name: "br"
+        }])).forEach(lines => {
           html.children.push({
             name: "p",
             children: lines
@@ -50384,7 +50366,7 @@ class WidgetAnnotation extends Annotation {
     return initialState.font;
   }
   _getTextWidth(text, font) {
-    return font.charsToGlyphs(text).reduce((width, glyph) => width + glyph.width, 0) / 1000;
+    return Math.sumPrecise(font.charsToGlyphs(text).map(g => g.width)) / 1000;
   }
   _computeFontSize(height, width, text, font, lineCount) {
     let {
@@ -51672,10 +51654,7 @@ class PolylineAnnotation extends MarkupAnnotation {
         borderAdjust = 2 * borderWidth;
       const bbox = [Infinity, Infinity, -Infinity, -Infinity];
       for (let i = 0, ii = vertices.length; i < ii; i += 2) {
-        bbox[0] = Math.min(bbox[0], vertices[i] - borderAdjust);
-        bbox[1] = Math.min(bbox[1], vertices[i + 1] - borderAdjust);
-        bbox[2] = Math.max(bbox[2], vertices[i] + borderAdjust);
-        bbox[3] = Math.max(bbox[3], vertices[i + 1] + borderAdjust);
+        Util.rectBoundingBox(vertices[i] - borderAdjust, vertices[i + 1] - borderAdjust, vertices[i] + borderAdjust, vertices[i + 1] + borderAdjust, bbox);
       }
       if (!Util.intersect(this.rectangle, bbox)) {
         this.rectangle = bbox;
@@ -51749,10 +51728,7 @@ class InkAnnotation extends MarkupAnnotation {
       const bbox = [Infinity, Infinity, -Infinity, -Infinity];
       for (const inkList of this.data.inkLists) {
         for (let i = 0, ii = inkList.length; i < ii; i += 2) {
-          bbox[0] = Math.min(bbox[0], inkList[i] - borderAdjust);
-          bbox[1] = Math.min(bbox[1], inkList[i + 1] - borderAdjust);
-          bbox[2] = Math.max(bbox[2], inkList[i] + borderAdjust);
-          bbox[3] = Math.max(bbox[3], inkList[i + 1] + borderAdjust);
+          Util.rectBoundingBox(inkList[i] - borderAdjust, inkList[i + 1] - borderAdjust, inkList[i] + borderAdjust, inkList[i + 1] + borderAdjust, bbox);
         }
       }
       if (!Util.intersect(this.rectangle, bbox)) {
@@ -53328,7 +53304,7 @@ class PDF20 extends PDFBase {
       }
       const cipher = new AES128Cipher(k.subarray(0, 16));
       e = cipher.encrypt(k1, k.subarray(16, 32));
-      const remainder = e.slice(0, 16).reduce((a, b) => a + b, 0) % 3;
+      const remainder = Math.sumPrecise(e.slice(0, 16)) % 3;
       if (remainder === 0) {
         k = calculateSHA256(e, 0, e.length);
       } else if (remainder === 1) {
@@ -56473,7 +56449,7 @@ function computeMD5(filesize, xrefInfo) {
   const time = Math.floor(Date.now() / 1000);
   const filename = xrefInfo.filename || "";
   const md5Buffer = [time.toString(), filename, filesize.toString(), ...Object.values(xrefInfo.info)];
-  const md5BufferLen = md5Buffer.reduce((a, str) => a + str.length, 0);
+  const md5BufferLen = Math.sumPrecise(md5Buffer.map(str => str.length));
   const array = new Uint8Array(md5BufferLen);
   let offset = 0;
   for (const str of md5Buffer) {
@@ -56623,7 +56599,7 @@ async function getXRefStreamTable(xrefInfo, baseOffset, newRefs, newXref, buffer
   const sizes = [1, offsetSize, maxGenSize];
   newXref.set("W", sizes);
   computeIDs(baseOffset, xrefInfo, newXref);
-  const structSize = sizes.reduce((a, x) => a + x, 0);
+  const structSize = Math.sumPrecise(sizes);
   const data = new Uint8Array(structSize * xrefTableData.length);
   const stream = new Stream(data);
   stream.dict = newXref;
@@ -56736,7 +56712,7 @@ async function incrementalUpdate({
     }
   }
   await (useXrefStream ? getXRefStreamTable(xrefInfo, baseOffset, newRefs, newXref, buffer) : getXRefTable(xrefInfo, baseOffset, newRefs, newXref, buffer));
-  const totalLength = buffer.reduce((a, str) => a + str.length, originalData.length);
+  const totalLength = originalData.length + Math.sumPrecise(buffer.map(str => str.length));
   const array = new Uint8Array(totalLength);
   array.set(originalData);
   let offset = originalData.length;
@@ -56915,7 +56891,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.1.36";
+    const workerVersion = "5.1.66";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57221,7 +57197,6 @@ class WorkerMessageHandler {
           }
         } else if (await _structTreeRoot.canUpdateStructTree({
           pdfManager,
-          xref,
           newAnnotationsByPage
         })) {
           structTreeRoot = _structTreeRoot;
@@ -57441,8 +57416,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.1.36";
-const pdfjsBuild = "80d4d7058";
+const pdfjsVersion = "5.1.66";
+const pdfjsBuild = "828398f60";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };
