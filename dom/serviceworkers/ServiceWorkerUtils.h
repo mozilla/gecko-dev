@@ -22,7 +22,9 @@ class ErrorResult;
 
 namespace dom {
 
+class Client;
 class ClientInfo;
+class ClientInfoAndState;
 class ServiceWorkerRegistrationData;
 class ServiceWorkerRegistrationDescriptor;
 struct NavigationPreloadState;
@@ -76,7 +78,35 @@ void ServiceWorkerScopeAndScriptAreValid(
     const ClientInfo& aClientInfo, nsIURI* aScopeURI, nsIURI* aScriptURI,
     ErrorResult& aRv, nsIGlobalObject* aGlobalForReporting = nullptr);
 
+// WebIDL enabling function; this does *not* consider the StorageAccess value
+// for the global, just interface exposure.
 bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal);
+
+// Perform a StorageAccess policy check for whether ServiceWorkers should work
+// in this global / be able to communicate with ServiceWorkers from this global.
+//
+// Note that this check should not directly be used for assertions; callers need
+// to ensure that about:blank and Blob URL globals that are defined to inherit
+// controllers pass the assertion check.  This is to handle situations like
+// those bug 1441133 where a global is controlled when storage access is
+// granted to the origin, then the storage access is revoked, and then a global
+// is created that would inherit the controller.
+//
+// Also note that StorageAccess.h defines a function
+// `StorageAllowedForServiceWorker` which is a lower level function akin to
+// `StorageAllowedForWindow` that helps determine the approprioate
+// `StorageAccess` value for a new global that has a principal but not a channel
+// or window available.  This method is downstream of those calls and depends
+// on the `StorageAccess` value they compute.
+bool ServiceWorkersStorageAllowedForGlobal(nsIGlobalObject* aGlobal);
+
+// Perform a StorageAccess policy check for whether the given Client has
+// appropriate StorageAccess to be exposed to the Clients API.
+//
+// Note that Window Clients lose storage access when they become not fully
+// active.
+bool ServiceWorkersStorageAllowedForClient(
+    const ClientInfoAndState& aInfoAndState);
 
 }  // namespace dom
 }  // namespace mozilla

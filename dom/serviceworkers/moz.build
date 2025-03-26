@@ -115,6 +115,7 @@ FINAL_LIBRARY = "xul"
 
 MOCHITEST_MANIFESTS += [
     "test/mochitest-dFPI.toml",
+    "test/mochitest-private.toml",
     "test/mochitest.toml",
     "test/performance/perftest.toml",
 ]

@@ -94,6 +94,14 @@ function runTest() {
 
 SimpleTest.waitForExplicitFinish();
 SpecialPowers.pushPrefEnv({"set": [
+  // The anti-tracking test browser_partitionedServiceWorkers.js now covers the
+  // matrix of policy decisions around exposure of ServiceWorkers to PBM.  This
+  // file is now a legacy crash-test from bug 1255621 that we won't crash if we
+  // try and navigate to an origin with a SW registered in non-PBM in PBM where
+  // ServiceWorkers are disabled, so we force the SW PBM setting to false.
+  //
+  // This file can be removed when we remove that pref.
+  ["dom.serviceWorkers.privateBrowsing.enabled", false],
   ["dom.serviceWorkers.enabled", true],
   ["dom.serviceWorkers.testing.enabled", true],
   ["browser.startup.page", 0],

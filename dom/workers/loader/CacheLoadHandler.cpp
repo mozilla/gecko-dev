@@ -128,13 +128,6 @@ nsresult CacheCreator::CreateCacheStorage(nsIPrincipal* aPrincipal) {
     return NS_ERROR_FAILURE;
   }
 
-  // If we're in private browsing mode, don't even try to create the
-  // CacheStorage.  Instead, just fail immediately to terminate the
-  // ServiceWorker load.
-  if (NS_WARN_IF(mOriginAttributes.IsPrivateBrowsing())) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
   // Create a CacheStorage bypassing its trusted origin checks.  The
   // ServiceWorker has already performed its own checks before getting
   // to this point.

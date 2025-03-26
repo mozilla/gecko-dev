@@ -50,6 +50,8 @@ async function getExtension() {
       permissions: ["webRequest", "webRequestBlocking", "<all_urls>"],
     },
 
+    incognitoOverride: "spanning",
+
     // This WebExtension only proxies a response's data through a StreamFilter;
     // it doesn't modify the data itself in any way.
     background() {

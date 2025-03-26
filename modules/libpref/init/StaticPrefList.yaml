@@ -4483,6 +4483,15 @@
   value: 400 * 1024
   mirror: always
 
+# Enable ServiceWorkers in Private Browsing Mode (PBM).  This requires
+# dom.cache.privateBrowsing.enabled to be enabled as well.  Registrations are
+# not persisted to disk; installed scripts are stored in Cache API storage which
+# is encrypted in PBM.
+- name: dom.serviceWorkers.privateBrowsing.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: dom.serviceWorkers.testing.enabled
   type: RelaxedAtomicBool
   value: false

@@ -14,11 +14,11 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
+#include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_privacy.h"
-#include "mozilla/StorageAccess.h"
 #include "nsIGlobalObject.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
@@ -88,11 +88,10 @@ already_AddRefed<Promise> Clients::Get(const nsAString& aClientID,
           [outerPromise, holder, scope](const ClientOpResult& aResult) {
             holder->Complete();
             NS_ENSURE_TRUE_VOID(holder->GetParentObject());
-            RefPtr<Client> client = new Client(
-                holder->GetParentObject(), aResult.get_ClientInfoAndState());
-            if (client->GetStorageAccess() == StorageAccess::eAllow ||
-                (StaticPrefs::privacy_partition_serviceWorkers() &&
-                 ShouldPartitionStorage(client->GetStorageAccess()))) {
+            if (ServiceWorkersStorageAllowedForClient(
+                    aResult.get_ClientInfoAndState())) {
+              RefPtr<Client> client = new Client(
+                  holder->GetParentObject(), aResult.get_ClientInfoAndState());
               outerPromise->MaybeResolve(std::move(client));
               return;
             }
@@ -171,14 +170,11 @@ already_AddRefed<Promise> Clients::MatchAll(const ClientQueryOptions& aOptions,
         bool storageDenied = false;
         for (const ClientInfoAndState& value :
              aResult.get_ClientList().values()) {
-          RefPtr<Client> client = new Client(global, value);
-          if (client->GetStorageAccess() != StorageAccess::eAllow &&
-              (!StaticPrefs::privacy_partition_serviceWorkers() ||
-               !ShouldPartitionStorage(client->GetStorageAccess()))) {
+          if (!ServiceWorkersStorageAllowedForClient(value)) {
             storageDenied = true;
             continue;
           }
-          clientList.AppendElement(std::move(client));
+          clientList.AppendElement(new Client(global, value));
         }
         if (storageDenied) {
           nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(

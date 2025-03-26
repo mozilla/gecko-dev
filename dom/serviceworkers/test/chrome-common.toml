@@ -17,6 +17,9 @@ support-files = [
 ["test_devtools_track_serviceworker_time.html"]
 
 ["test_privateBrowsing.html"]
+# verify mode enables comparePrefs and SearchUIUtils spams changes to the
+# `browser.urlbar.placeholderName.private` pref which causes the test to fail.
+skip-if = ["verify"]
 
 ["test_serviceworkerinfo.xhtml"]
 skip-if = ["true"] # nsIWorkerDebugger attribute not implemented
