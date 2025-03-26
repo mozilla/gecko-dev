@@ -89,6 +89,7 @@ fuzzy-if(winWidget,0-1,0-10) == grid-max-sizing-flex-003.html grid-max-sizing-fl
 == grid-max-sizing-flex-008.html grid-max-sizing-flex-008-ref.html
 == grid-flex-min-sizing-001.html grid-flex-min-sizing-001-ref.html
 == grid-flex-min-sizing-002.html grid-flex-min-sizing-002-ref.html
+fails == grid-flex-min-sizing-003.html grid-flex-min-sizing-003-ref.html
 == grid-item-align-001.html grid-item-align-001-ref.html
 == grid-item-align-002.html grid-item-align-002-ref.html
 == grid-item-align-003.html grid-item-align-003-ref.html

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: flex/auto min-sizing</title>
+  <style type="text/css">
+body,html { color:black; background:white; font-family:monospace; font-size:16px; padding:0; margin:0; }
+
+.grid {
+ display: grid;
+ border: 1px solid;
+ float: left;
+}
+
+.g0 {
+ display: grid;
+ grid-template-columns: minmax(min-content,min-content);
+ border:1px solid;
+ float: left;
+ margin-right: 20px;
+}
+
+.g8 {
+ grid-template-columns: minmax(min-content,1fr)
+                        minmax(min-content,0)
+                        minmax(min-content,0)
+                        20px;
+}
+
+.t { grid-column: span 3; border:2px solid; }
+.d1 { grid-column: 1 / span 2; background: grey; }
+.d3 { grid-column: 3 / span 2; background: blue; }
+div { min-width:0; min-height:10px; }
+t { display:inline-block; width:20px; }
+
+  </style>
+</head>
+<body>
+
+<div class="g0">
+<div class="g8 grid">
+  <div class="t"><t>1 </t><t>2 </t><t>3 </t><t>4 </t><t>5</t></div>
+  <div class="d1"></div>
+  <div class="d3"></div>
+</div>
+</div>
+
+</body>
+</html>
