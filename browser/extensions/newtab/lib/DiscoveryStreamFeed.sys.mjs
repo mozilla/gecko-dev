@@ -453,9 +453,12 @@ export class DiscoveryStreamFeed {
 
     try {
       // Make sure the requested endpoint is allowed
-      const allowed = this.store
-        .getState()
-        .Prefs.values[PREF_ENDPOINTS].split(",");
+      const allowed =
+        this.store
+          .getState()
+          .Prefs.values[PREF_ENDPOINTS].split(",")
+          .map(item => item.trim())
+          .filter(item => item) || [];
       if (!allowed.some(prefix => endpoint.startsWith(prefix))) {
         throw new Error(`Not one of allowed prefixes (${allowed})`);
       }
