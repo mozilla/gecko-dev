@@ -173,32 +173,6 @@ tasks:
             env:
                 GOOGLE_PROJECT: moz-fenix
 
-    fenix-x86-nightly:
-        attributes:
-            build-type: fenix-nightly-firebase
-            shipping-product: fenix
-        dependencies:
-            signing: signing-apk-fenix-nightly-firebase
-            signing-android-test: signing-apk-fenix-android-test-nightly
-        run:
-            secrets:
-                - name: project/gecko/level-any/firefox-android/fenix/firebase
-                  key: firebaseToken
-                  path: .firebase_token.json
-                  json: true
-            pre-commands:
-                - ["cd", "mobile/android/fenix"]
-            commands:
-                - [wget, {artifact-reference: '<signing/public/build/target.x86.apk>'}, '-O', app.apk]
-                - [wget, {artifact-reference: '<signing-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
-                - [python3, ../../../taskcluster/scripts/tests/test-lab.py, x86-start-test, app.apk, --apk_test, android-test.apk]
-        treeherder:
-            platform: fenix-android-all/opt
-            symbol: fenix-nightly(startup-x86)
-        worker:
-            env:
-                GOOGLE_PROJECT: moz-fenix
-
     focus-arm64-v8a-nightly:
         attributes:
             build-type: focus-nightly-firebase
@@ -247,32 +221,6 @@ tasks:
         treeherder:
             platform: focus-android-all/opt
             symbol: focus-nightly(startup-armeabi-v7a)
-        worker:
-            env:
-                GOOGLE_PROJECT: moz-focus-android
-
-    focus-x86-nightly:
-        attributes:
-            build-type: focus-nightly-firebase
-            shipping-product: focus
-        dependencies:
-            signed-apk-debug-apk: signing-apk-focus-nightly-firebase
-            signed-apk-android-test: signing-apk-focus-android-test-nightly
-        run:
-            secrets:
-                - name: project/gecko/level-any/firefox-android/focus-android/firebase
-                  key: firebaseToken
-                  path: .firebase_token.json
-                  json: true
-            pre-commands:
-                - ["cd", "mobile/android/focus-android"]
-            commands:
-                - [wget, {artifact-reference: '<signed-apk-debug-apk/public/build/target.x86.apk>'}, '-O', app.apk]
-                - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
-                - [python3, ../../../taskcluster/scripts/tests/test-lab.py, x86-start-test, app.apk, --apk_test, android-test.apk]
-        treeherder:
-            symbol: focus-nightly(startup-x86)
-            platform: focus-android-all/opt
         worker:
             env:
                 GOOGLE_PROJECT: moz-focus-android
