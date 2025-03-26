@@ -33,23 +33,6 @@ namespace TelemetryStopwatch {
                 optional TelemetryStopwatchOptions options = {});
 
   /**
-   * Returns whether a timer associated with a telemetry histogram is currently
-   * running. The timer can be directly associated with a histogram, or with a
-   * pair of a histogram and an object.
-   *
-   * @param histogram - a string which must be a valid histogram name.
-   *
-   * @param obj - Optional parameter. If specified, the timer is
-   *              associated with this object, meaning that multiple
-   *              timers for the same histogram may be run
-   *              concurrently, as long as they are associated with
-   *              different objects.
-   *
-   * @returns True if the timer exists and is currently running.
-   */
-  boolean running(HistogramID histogram, optional object? obj = null);
-
-  /**
    * Deletes the timer associated with a telemetry histogram. The timer can be
    * directly associated with a histogram, or with a pair of a histogram and
    * an object. Important: Only use this method when a legitimate cancellation

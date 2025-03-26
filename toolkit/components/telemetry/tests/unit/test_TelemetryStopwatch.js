@@ -38,13 +38,6 @@ function run_test() {
   Assert.ok(TelemetryStopwatch.start("NON-EXISTENT_HISTOGRAM", refObj));
   Assert.ok(!TelemetryStopwatch.finish("NON-EXISTENT_HISTOGRAM", refObj));
 
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME2));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME, refObj));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME2, refObj));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME, refObj2));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME2, refObj2));
-
   Assert.ok(TelemetryStopwatch.start(HIST_NAME));
   Assert.ok(TelemetryStopwatch.start(HIST_NAME2));
   Assert.ok(TelemetryStopwatch.start(HIST_NAME, refObj));
@@ -52,28 +45,12 @@ function run_test() {
   Assert.ok(TelemetryStopwatch.start(HIST_NAME, refObj2));
   Assert.ok(TelemetryStopwatch.start(HIST_NAME2, refObj2));
 
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME2));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME, refObj));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME2, refObj));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME, refObj2));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME2, refObj2));
-
   Assert.ok(TelemetryStopwatch.finish(HIST_NAME));
   Assert.ok(TelemetryStopwatch.finish(HIST_NAME2));
   Assert.ok(TelemetryStopwatch.finish(HIST_NAME, refObj));
   Assert.ok(TelemetryStopwatch.finish(HIST_NAME2, refObj));
   Assert.ok(TelemetryStopwatch.finish(HIST_NAME, refObj2));
   Assert.ok(TelemetryStopwatch.finish(HIST_NAME2, refObj2));
-
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME2));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME, refObj));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME2, refObj));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME, refObj2));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME2, refObj2));
 
   // Verify that TS.finish deleted the timers
   Assert.ok(!TelemetryStopwatch.finish(HIST_NAME));
@@ -90,12 +67,8 @@ function run_test() {
   Assert.ok(!TelemetryStopwatch.finish(HIST_NAME, {})); // Known mark on unknown object
 
   // Test cancel
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME, refObj));
   Assert.ok(TelemetryStopwatch.start(HIST_NAME));
   Assert.ok(TelemetryStopwatch.start(HIST_NAME, refObj));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(TelemetryStopwatch.running(HIST_NAME, refObj));
   Assert.ok(TelemetryStopwatch.cancel(HIST_NAME));
   Assert.ok(TelemetryStopwatch.cancel(HIST_NAME, refObj));
 
@@ -104,8 +77,6 @@ function run_test() {
   Assert.ok(!TelemetryStopwatch.cancel(HIST_NAME, refObj));
 
   // Verify that cancel removes the timers
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME));
-  Assert.ok(!TelemetryStopwatch.running(HIST_NAME, refObj));
   Assert.ok(!TelemetryStopwatch.finish(HIST_NAME));
   Assert.ok(!TelemetryStopwatch.finish(HIST_NAME, refObj));
 

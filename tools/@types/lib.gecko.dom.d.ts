@@ -24641,7 +24641,6 @@ declare namespace SessionStoreUtils {
 declare namespace TelemetryStopwatch {
     function cancel(histogram: HistogramID, obj?: any): boolean;
     function finish(histogram: HistogramID, obj?: any, canceledOkay?: boolean): boolean;
-    function running(histogram: HistogramID, obj?: any): boolean;
     function setTestModeEnabled(testing?: boolean): void;
     function start(histogram: HistogramID, obj?: any, options?: TelemetryStopwatchOptions): boolean;
 }

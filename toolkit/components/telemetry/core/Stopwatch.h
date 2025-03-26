@@ -19,9 +19,6 @@ class Stopwatch {
                     JS::Handle<JSObject*> obj,
                     const dom::TelemetryStopwatchOptions& options);
 
-  static bool Running(const GlobalObject& global, const nsAString& histogram,
-                      JS::Handle<JSObject*> obj);
-
   static bool Cancel(const GlobalObject& global, const nsAString& histogram,
                      JS::Handle<JSObject*> obj);
 
