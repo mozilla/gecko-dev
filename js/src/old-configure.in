@@ -16,6 +16,16 @@ dnl = Maintainer debug option (no --enable equivalent)
 dnl =
 dnl ========================================================
 
+AC_SUBST(MOZ_APP_DISPLAYNAME)
+
+dnl Set various defines and substitutions
+dnl ========================================================
+
+AC_SUBST(MOZ_DEV_EDITION)
+if test -n "$MOZ_DEV_EDITION"; then
+    AC_DEFINE(MOZ_DEV_EDITION)
+fi
+
 dnl Spit out some output
 dnl ========================================================
 MOZ_CREATE_CONFIG_STATUS()

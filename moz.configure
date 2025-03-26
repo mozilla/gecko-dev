@@ -436,41 +436,31 @@ dmd = dependable(False)
 
 # Only available when toolkit/moz.configure is included
 pack_relative_relocs_flags = dependable(False)
-real_branding_directory = dependable(None)
 
 include(include_project_configure)
 
 
-@template
-def load_keyvalue_file(location, filename):
-
-    @depends(build_environment, location, "--help", when=location)
-    @checking(f"if configuration file {filename} exists")
-    # This gives access to the sandbox. Don't copy this blindly.
-    @imports("__sandbox__")
-    @imports(_from="mozbuild.configure", _import="confvars")
-    @imports("os.path")
-    def load_keyvalue_file_impl(build_env, location, help):
-        file_path = os.path.join(build_env.topsrcdir, location, filename)
-        if os.path.exists(file_path):
-            helper = __sandbox__._helper
-            # parse confvars
-            try:
-                keyvals = confvars.parse(file_path)
-            except confvars.ConfVarsSyntaxError as e:
-                die(str(e))
-            for key, value in keyvals.items():
-                # FIXME: remove test once we no longer load confvars from old-configure.
-                if key in __sandbox__._options:
-                    # ~= imply_option, but with an accurate origin
-                    helper.add(f"{key}={value}", origin="confvars", args=helper._args)
-            return file_path
-
-    return load_keyvalue_file_impl
-
-
-load_confvars = load_keyvalue_file(build_project, "confvars.sh")
-load_brandvars = load_keyvalue_file(real_branding_directory, "configure.sh")
+@depends(build_environment, build_project, "--help")
+@checking("if project-specific confvars.sh exists")
+# This gives access to the sandbox. Don't copy this blindly.
+@imports("__sandbox__")
+@imports(_from="mozbuild.configure", _import="confvars")
+@imports("os.path")
+def load_confvars(build_env, build_project, help):
+    confvars_path = os.path.join(build_env.topsrcdir, build_project, "confvars.sh")
+    if os.path.exists(confvars_path):
+        helper = __sandbox__._helper
+        # parse confvars
+        try:
+            keyvals = confvars.parse(confvars_path)
+        except confvars.ConfVarsSyntaxError as e:
+            die(str(e))
+        for key, value in keyvals.items():
+            # FIXME: remove test once we no longer load confvars from old-configure.
+            if key in __sandbox__._options:
+                # ~= imply_option, but with an accurate origin
+                helper.add(f"{key}={value}", origin="confvars", args=helper._args)
+        return confvars_path
 
 
 # Final flags validation and gathering
