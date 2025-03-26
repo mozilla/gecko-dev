@@ -474,6 +474,7 @@
     }
 
     #initSmartTabGroupsOptin() {
+      this.#handleMLOptinTelemetry("step0-optin-shown");
       this.suggestionState = MozTabbrowserTabGroupMenu.State.OPTIN;
 
       // Init optin component
@@ -486,18 +487,28 @@
 
       // On Confirm
       this.#suggestionsOptin.addEventListener("MlModelOptinConfirm", () => {
+        this.#handleMLOptinTelemetry("step1-optin-confirmed");
         Services.prefs.setBoolPref("browser.tabs.groups.smart.optin", true);
         this.#handleFirstDownloadAndSuggest();
       });
 
       // On Deny
       this.#suggestionsOptin.addEventListener("MlModelOptinDeny", () => {
-        this.SmartTabGroupingManager.terminateProcess();
+        this.#handleMLOptinTelemetry("step1-optin-denied");
+        this.#smartTabGroupingManager.terminateProcess();
         this.suggestionState = this.createMode
           ? MozTabbrowserTabGroupMenu.State.CREATE_AI_INITIAL
           : MozTabbrowserTabGroupMenu.State.EDIT_AI_INITIAL;
         this.#setFormToDisabled(false);
       });
+
+      // On Cancel Model Download
+      this.#suggestionsOptin.addEventListener(
+        "MlModelOptinCancelDownload",
+        () => {
+          this.#handleMLOptinTelemetry("step2-optin-cancel-download");
+        }
+      );
 
       this.#suggestionsOptinContainer.appendChild(this.#suggestionsOptin);
     }
@@ -806,6 +817,12 @@
           this.dispatchEvent(
             new CustomEvent("TabGroupCreateDone", { bubbles: true })
           );
+          if (
+            this.smartTabGroupsEnabled &&
+            (this.#suggestedMlLabel || this.#hasSuggestedMlTabs)
+          ) {
+            this.#handleMlTelemetry("save-popup-hidden");
+          }
         } else {
           this.activeGroup.ungroupTabs();
         }
@@ -940,6 +957,7 @@
       this.#suggestionsOptin.isHidden = true;
 
       // Continue on with the suggest flow
+      this.#handleMLOptinTelemetry("step3-optin-completed");
       this.#initMlGroupLabel();
       this.#handleSmartSuggest();
     }
@@ -957,6 +975,13 @@
         this.suggestionState = this.#createMode
           ? MozTabbrowserTabGroupMenu.State.CREATE_AI_WITH_NO_SUGGESTIONS
           : MozTabbrowserTabGroupMenu.State.EDIT_AI_WITH_NO_SUGGESTIONS;
+
+        // there's no "save" button from the edit ai interaction with
+        // no tab suggestions, so we need to capture here
+        if (!this.#createMode) {
+          this.#hasSuggestedMlTabs = true;
+          this.#handleMlTelemetry("save");
+        }
         return;
       }
 
@@ -975,7 +1000,7 @@
 
     /**
      * Sends Glean metrics if smart tab grouping is enabled
-     * @param {string} action "save" or "cancel"
+     * @param {string} action "save", "save-popup-hidden" or "cancel"
      */
     #handleMlTelemetry(action) {
       if (!this.smartTabGroupsEnabled) {
@@ -987,6 +1012,7 @@
           numTabsInGroup: this.#activeGroup.tabs.length,
           mlLabel: this.#suggestedMlLabel,
           userLabel: this.#nameField.value,
+          id: this.#activeGroup.id,
         });
         this.#suggestedMlLabel = "";
       }
@@ -999,9 +1025,20 @@
           numTabsApproved: this.#selectedSuggestedTabs.length,
           numTabsRemoved:
             this.#suggestedTabs.length - this.#selectedSuggestedTabs.length,
+          id: this.#activeGroup.id,
         });
         this.#hasSuggestedMlTabs = false;
       }
+    }
+
+    /**
+     * Sends Glean metrics for opt-in UI flow
+     * @param {string} step contains step number and description of flow
+     */
+    #handleMLOptinTelemetry(step) {
+      Glean.tabgroup.smartTabOptin.record({
+        step,
+      });
     }
 
     #createRow(tab, index) {

@@ -119,91 +119,6 @@ browser.ui.interaction:
     no_lint:
       - COMMON_PREFIX
 
-browser.ml.interaction:
-  smart_tab_topic:
-    type: event
-    description: >
-      Recorded when the user saves a tab group label with the ml topic
-      model
-    notification_emails:
-      - rrando@mozilla.com
-      - vbaungally@mozilla.com
-    bugs:
-      - https://bugzil.la/1949010
-    data_reviews:
-      - https://bugzil.la/1949010
-    data_sensitivity:
-      - interaction
-    extra_keys:
-      action:
-        description: >
-          whether the user saved or canceled generating a label
-        type: string
-      num_tabs_in_group:
-        description: >
-          number of tabs in the group for which model is generating a
-          label
-        type: quantity
-      ml_label_length:
-        description: length of label suggested by model
-        type: quantity
-      user_label_length:
-        description: length of label saved by the user
-        type: quantity
-      levenshtein_distance:
-        description: >
-          Levenshtein distance between label suggested by model
-          and saved by user
-        type: quantity
-      model_revision:
-        description: topic model version currently running
-        type: string
-    expires: never
-    no_lint:
-      - COMMON_PREFIX
-
-  smart_tab_suggest:
-    type: event
-    description: >
-      Recorded when the user saves suggested tabs using the ml
-      embedding model
-    notification_emails:
-      - rrando@mozilla.com
-      - vbaungally@mozilla.com
-    bugs:
-      - https://bugzil.la/1949010
-    data_reviews:
-      - https://bugzil.la/1949010
-    data_sensitivity:
-      - interaction
-    extra_keys:
-      action:
-        description: whether the user saved or canceled
-        type: string
-      num_tabs_in_window:
-        description: number of tabs in current window
-        type: quantity
-      num_tabs_in_group:
-        description: number of tabs in the current group
-        type: quantity
-      num_tabs_suggested:
-        description: number of tabs suggested by the ml model
-        type: quantity
-      num_tabs_approved:
-        description: number of tabs the user saved from the suggestions
-        type: quantity
-      num_tabs_removed:
-        description: >
-          number of tabs the user removed from the
-          suggestions
-        type: quantity
-      model_revision:
-        description: embedding model version currently running
-        type: string
-    expires: never
-    no_lint:
-      - COMMON_PREFIX
-
 tabgroup:
   create_group:
     type: event
@@ -317,6 +232,117 @@ tabgroup:
     labels:
       - inside
       - outside
+
+  smart_tab_optin:
+    type: event
+    description: >
+      Recorded when onboards to smart tab grouping through opt-in UI
+    notification_emails:
+      - rrando@mozilla.com
+      - vbaungally@mozilla.com
+    bugs:
+      - https://bugzil.la/1956073
+    data_reviews:
+      - https://bugzil.la/1956073
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      step:
+        description: step and description of opt-in screen interaction
+        type: string
+    expires: never
+    no_lint:
+      - COMMON_PREFIX
+
+  smart_tab_topic:
+    type: event
+    description: >
+      Recorded when the user saves a tab group label with the ml topic
+      model
+    notification_emails:
+      - rrando@mozilla.com
+      - vbaungally@mozilla.com
+    bugs:
+      - https://bugzil.la/1949010
+    data_reviews:
+      - https://bugzil.la/1949010
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      action:
+        description: >
+          whether the user saved or canceled generating a label
+        type: string
+      tabs_in_group:
+        description: >
+          number of tabs in the group for which model is generating a
+          label
+        type: quantity
+      ml_label_length:
+        description: length of label suggested by model
+        type: quantity
+      user_label_length:
+        description: length of label saved by the user
+        type: quantity
+      levenshtein_distance:
+        description: >
+          Levenshtein distance between label suggested by model
+          and saved by user
+        type: quantity
+      model_revision:
+        description: topic model version currently running
+        type: string
+      id:
+        description: The ID of the created tab group
+        type: string
+    expires: never
+    no_lint:
+      - COMMON_PREFIX
+
+  smart_tab_suggest:
+    type: event
+    description: >
+      Recorded when the user saves suggested tabs using the ml
+      embedding model
+    notification_emails:
+      - rrando@mozilla.com
+      - vbaungally@mozilla.com
+    bugs:
+      - https://bugzil.la/1949010
+    data_reviews:
+      - https://bugzil.la/1949010
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      action:
+        description: whether the user saved or canceled
+        type: string
+      tabs_in_window:
+        description: number of tabs in current window
+        type: quantity
+      tabs_in_group:
+        description: number of tabs in the current group
+        type: quantity
+      tabs_suggested:
+        description: number of tabs suggested by the ml model
+        type: quantity
+      tabs_approved:
+        description: number of tabs the user saved from the suggestions
+        type: quantity
+      tabs_removed:
+        description: >
+          number of tabs the user removed from the
+          suggestions
+        type: quantity
+      model_revision:
+        description: embedding model version currently running
+        type: string
+      id:
+        description: The ID of the created tab group
+        type: string
+    expires: never
+    no_lint:
+      - COMMON_PREFIX
 
 browser.tabswitch:
   update:

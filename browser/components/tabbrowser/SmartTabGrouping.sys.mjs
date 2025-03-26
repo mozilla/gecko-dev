@@ -836,13 +836,20 @@ export class SmartTabGroupingManager {
    * @param {number} numTabsInGroup Number of tabs used to generate the label
    * @param {string} mlLabel ML generated label for the tab group
    * @param {string} userLabel User saved label for the tab group
+   * @param {string} id The id of the group
    */
-  async handleLabelTelemetry({ action, numTabsInGroup, mlLabel, userLabel }) {
+  async handleLabelTelemetry({
+    action,
+    numTabsInGroup,
+    mlLabel,
+    userLabel,
+    id = "",
+  }) {
     const { [ML_TASK_TEXT2TEXT]: topicEngineConfig } =
       await this.getEngineConfigs();
-    Glean.browserMlInteraction.smartTabTopic.record({
+    Glean.tabgroup.smartTabTopic.record({
       action,
-      num_tabs_in_group: numTabsInGroup,
+      tabs_in_group: numTabsInGroup,
       ml_label_length: (mlLabel || "").length,
       user_label_length: (userLabel || "").length,
       levenshtein_distance: lazy.NLP.levenshtein(
@@ -850,6 +857,7 @@ export class SmartTabGroupingManager {
         mlLabel || ""
       ),
       model_revision: topicEngineConfig.modelRevision || "",
+      id,
     });
   }
 
@@ -863,6 +871,7 @@ export class SmartTabGroupingManager {
    * @param {number} numTabsSuggested Number of tabs suggested by the model
    * @param {number} numTabsApproved Number of tabs approved by the user
    * @param {number} numTabsRemoved Number of tabs removed by the user
+   * @param {string} id The id of the group
    */
   async handleSuggestTelemetry({
     action,
@@ -871,17 +880,19 @@ export class SmartTabGroupingManager {
     numTabsSuggested,
     numTabsApproved,
     numTabsRemoved,
+    id = "",
   }) {
     const { [ML_TASK_FEATURE_EXTRACTION]: embeddingEngineConfig } =
       await this.getEngineConfigs();
-    Glean.browserMlInteraction.smartTabSuggest.record({
+    Glean.tabgroup.smartTabSuggest.record({
       action,
-      num_tabs_in_window: numTabsInWindow,
-      num_tabs_in_group: numTabsInGroup,
-      num_tabs_suggested: numTabsSuggested,
-      num_tabs_approved: numTabsApproved,
-      num_tabs_removed: numTabsRemoved,
+      tabs_in_window: numTabsInWindow,
+      tabs_in_group: numTabsInGroup,
+      tabs_suggested: numTabsSuggested,
+      tabs_approved: numTabsApproved,
+      tabs_removed: numTabsRemoved,
       model_revision: embeddingEngineConfig.modelRevision || "",
+      id,
     });
   }
 
@@ -893,14 +904,14 @@ export class SmartTabGroupingManager {
   async getEngineConfigs() {
     if (!this.topicEngineConfig) {
       this.topicEngineConfig = await lazy.MLEngineParent.getInferenceOptions(
-        this.config.topicGeneration.engineId,
+        this.config.topicGeneration.featureId,
         this.config.topicGeneration.taskName
       );
     }
     if (!this.embeddingEngineConfig) {
       this.embeddingEngineConfig =
         await lazy.MLEngineParent.getInferenceOptions(
-          this.config.embedding.engineId,
+          this.config.embedding.featureId,
           this.config.embedding.taskName
         );
     }
