@@ -2346,18 +2346,34 @@ export class nsContextMenu {
     });
   }
 
-  addSearchFieldAsEngine() {
-    this.actor
-      .getSearchFieldEngineData(this.targetIdentifier)
-      .then(async ({ url, formData, charset, method }) => {
-        let icon = this.browser.mIconURL;
-        let uri = Services.io.newURI(url);
-        await this.window.gDialogBox.open(
-          "chrome://browser/content/search/addEngine.xhtml",
-          { uri, formData, charset, method, icon, mode: "FORM", title: true }
-        );
-      })
-      .catch(console.error);
+  async addSearchFieldAsEngine() {
+    let { url, formData, charset, method } =
+      await this.actor.getSearchFieldEngineData(this.targetIdentifier);
+
+    let { engineInfo } = await this.window.gDialogBox.open(
+      "chrome://browser/content/search/addEngine.xhtml",
+      {
+        mode: "FORM",
+        title: true,
+        nameTemplate: Services.io.newURI(url).host,
+      }
+    );
+
+    // If the user saved, engineInfo contains `name` and `alias`.
+    // Otherwise, it's undefined.
+    if (engineInfo) {
+      let searchEngine = await Services.search.addUserEngine({
+        name: engineInfo.name,
+        alias: engineInfo.alias,
+        url,
+        formData,
+        charset,
+        method,
+        icon: this.browser.mIconURL,
+      });
+
+      this.window.gURLBar.search("", { searchEngine });
+    }
   }
 
   /**

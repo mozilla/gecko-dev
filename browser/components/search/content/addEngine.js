@@ -8,8 +8,8 @@
 // in about:preferences, or when adding a search engine via the context menu of
 // an HTML form. Depending on the scenario where it is used, different arguments
 // must be supplied in an object in `window.arguments[0]`:
-// - `mode` (required)
-// - `title` (optional, to display a title in the window element)
+// - `mode`  [required] - The type of dialog: NEW, EDIT or FORM.
+// - `title` [optional] - To display a title in the window element.
 // - all arguments required by the constructor of the dialog class
 
 const lazy = {};
@@ -117,10 +117,12 @@ class EditEngineDialog extends EngineDialog {
   /**
    * Initializes the dialog with information from a user search engine.
    *
-   * @param {nsISearchEngine} engine
+   * @param {object} args
+   *   The arguments.
+   * @param {nsISearchEngine} args.engine
    *   The search engine to edit. Must be a UserSearchEngine.
    */
-  constructor(engine) {
+  constructor({ engine }) {
     super();
     this._postData = document.getElementById("enginePostData");
 
@@ -228,48 +230,33 @@ class EditEngineDialog extends EngineDialog {
 }
 
 /**
- * This dialog is opened via the context menu of an input and
- * will add a search engine based on the input's form.
+ * This dialog is opened via the context menu of an input and lets the
+ * user choose a name and an alias for an engine. Unlike the other two
+ * dialogs, it does not add or change an engine in the search service,
+ * and instead returns the user input to the caller.
+ *
+ * The chosen name and alias are returned via `window.arguments[0].engineInfo`.
+ * If the user chooses to not save the engine, it's undefined.
  */
 class NewEngineFromFormDialog extends EngineDialog {
-  #formData;
-  #charset;
-  #method;
-  #icon;
-  #uri;
-
   /**
-   * Initializes the dialog with data from an HTML form. The search input's
-   * formData value should be "{searchTerms}".
+   * Initializes the dialog.
    *
    * @param {object} args
    *   The arguments.
-   * @param {nsIURI} args.uri
-   *   The full action url of the form.
-   * @param {FormData} args.formData
-   *   The FormData of the form.
-   * @param {string} args.charset
-   *   The character encoding of the form's page.
-   * @param {string} args.method
-   *   The HTTP method used to submit the form.
-   * @param {string} args.icon
-   *   Url of the page's favicon.
+   * @param {string} args.nameTemplate
+   *   The initial value of the name input.
    */
-  constructor({ uri, formData, charset, method, icon }) {
+  constructor({ nameTemplate }) {
     super();
-    this.#formData = formData;
-    this.#charset = charset;
-    this.#method = method;
-    this.#icon = icon;
-    this.#uri = uri.spec;
-
-    this._name.value = uri.host;
+    this._name.value = nameTemplate;
     this.onNameInput();
     this.onAliasInput();
 
     document.getElementById("engineUrlRow").remove();
-    document.getElementById("suggestUrlRow").remove();
     this._url = null;
+    document.getElementById("suggestUrlRow").remove();
+    this._suggestUrl = null;
 
     let title = { raw: document.title };
     document.documentElement.setAttribute("headertitle", JSON.stringify(title));
@@ -280,15 +267,11 @@ class NewEngineFromFormDialog extends EngineDialog {
   }
 
   onAddEngine() {
-    Services.search.addUserEngine({
-      url: this.#uri,
+    window.arguments[0].engineInfo = {
       name: this._name.value.trim(),
+      // Empty string means no alias.
       alias: this._alias.value.trim(),
-      formData: this.#formData,
-      charset: this.#charset,
-      method: this.#method,
-      icon: this.#icon,
-    });
+    };
   }
 }
 
@@ -307,7 +290,7 @@ window.addEventListener("DOMContentLoaded", () => {
         gAddEngineDialog = new NewEngineDialog();
         break;
       case "EDIT":
-        gAddEngineDialog = new EditEngineDialog(window.arguments[0].engine);
+        gAddEngineDialog = new EditEngineDialog(window.arguments[0]);
         break;
       case "FORM":
         gAddEngineDialog = new NewEngineFromFormDialog(window.arguments[0]);

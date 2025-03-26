@@ -222,7 +222,7 @@ document.addEventListener(
           if (!gContextMenu) {
             throw new Error("Context menu doesn't seem to be open.");
           }
-          gContextMenu.addSearchFieldAsEngine();
+          gContextMenu.addSearchFieldAsEngine().catch(console.error);
           break;
         case "context-searchselect": {
           let { searchTerms, usePrivate, principal, csp } = event.target;

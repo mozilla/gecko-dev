@@ -217,7 +217,11 @@ export class SearchModeSwitcher {
 
     switch (topic) {
       case "browser-search-engine-modified": {
-        if (data === "engine-default" || data === "engine-default-private") {
+        if (
+          data === "engine-default" ||
+          data === "engine-default-private" ||
+          data === "engine-icon-changed"
+        ) {
           this.updateSearchIcon();
         }
         break;

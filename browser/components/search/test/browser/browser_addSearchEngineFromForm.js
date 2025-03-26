@@ -3,6 +3,14 @@
 
 "use strict";
 
+ChromeUtils.defineLazyGetter(this, "UrlbarTestUtils", () => {
+  const { UrlbarTestUtils: module } = ChromeUtils.importESModule(
+    "resource://testing-common/UrlbarTestUtils.sys.mjs"
+  );
+  module.init(this);
+  return module;
+});
+
 const TESTS = [
   {
     action: "/search",
@@ -95,13 +103,13 @@ async function addEngine(browser, selector, name, alias) {
   fillTextField("engineAlias", alias, dialogWin);
 
   info("Saving engine.");
-  let promiseAdded = SearchTestUtils.promiseSearchNotification(
-    SearchUtils.MODIFIED_TYPE.ADDED,
-    SearchUtils.TOPIC_ENGINE_MODIFIED
-  );
   EventUtils.synthesizeKey("VK_RETURN", {}, dialogWin);
-  await window.gDialogBox.dialog._closingPromise;
-  await promiseAdded;
+  await TestUtils.waitForCondition(
+    () => gURLBar.searchMode?.engineName == name
+  );
+  Assert.ok(true, "Went into search mode.");
+
+  await UrlbarTestUtils.exitSearchMode(window);
   return Services.search.getEngineByName(name);
 }
 
