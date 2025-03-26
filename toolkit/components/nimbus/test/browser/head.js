@@ -62,3 +62,38 @@ async function setupTest() {
     await IOUtils.remove(store._store.path);
   };
 }
+
+/**
+ * Assert the store has no active experiments or rollouts.
+ */
+async function assertEmptyStore(store) {
+  Assert.deepEqual(
+    store
+      .getAll()
+      .filter(e => e.active)
+      .map(e => e.slug),
+    [],
+    "Store should have no active enrollments"
+  );
+
+  store
+    .getAll()
+    .filter(e => !e.active)
+    .forEach(e => store._deleteForTests(e.slug));
+
+  Assert.deepEqual(
+    store
+      .getAll()
+      .filter(e => !e.active)
+      .map(e => e.slug),
+    [],
+    "Store should have no inactive enrollments"
+  );
+
+  store._store._saver.disarm();
+  if (store._store._saver.isRunning) {
+    await store._store._saver._runningPromise;
+  }
+
+  await IOUtils.remove(store._store.path);
+}

@@ -21,6 +21,9 @@ add_setup(async function () {
     ],
   });
 
+  await ExperimentAPI.ready();
+  await RemoteSettingsExperimentLoader.finishedUpdating();
+
   registerCleanupFunction(async () => {
     await SpecialPowers.popPrefEnv();
     await rsClient.db.clear();
@@ -28,9 +31,6 @@ add_setup(async function () {
 });
 
 add_task(async function test_experimentEnrollment() {
-  await ExperimentAPI.ready();
-  await RemoteSettingsExperimentLoader.finishedUpdating();
-
   // Need to randomize the slug so subsequent test runs don't skip enrollment
   // due to a conflicting slug
   const recipe = ExperimentFakes.recipe("foo" + Math.random(), {
@@ -62,7 +62,8 @@ add_task(async function test_experimentEnrollment() {
   });
 
   Assert.ok(!experiment.active, "Experiment is no longer active");
-  ExperimentAPI._manager.store._deleteForTests(recipe.slug);
+
+  assertEmptyStore(ExperimentManager.store);
 });
 
 add_task(async function test_experimentEnrollment_startup() {

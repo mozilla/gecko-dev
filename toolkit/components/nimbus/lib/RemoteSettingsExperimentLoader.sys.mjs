@@ -260,6 +260,7 @@ export class _RemoteSettingsExperimentLoader {
     this._enabled = false;
     this._updating = false;
     this._hasUpdatedOnce = false;
+    this._updatingDeferred = Promise.withResolvers();
   }
 
   /**
@@ -297,8 +298,21 @@ export class _RemoteSettingsExperimentLoader {
     }
 
     this._updating = true;
+
+    // If recipes have been updated once, replace the deferred with a new one so
+    // that finishedUpdating() will not immediately resolve until we finish this
+    // update.
+    if (this._hasUpdatedOnce) {
+      this._updatingDeferred = Promise.withResolvers();
+    }
+
     await this.withUpdateLock(() => this.#updateImpl(trigger, options));
+
+    this._hasUpdatedOnce = true;
     this._updating = false;
+    this._updatingDeferred.resolve();
+
+    this.recordIsReady();
   }
 
   /**
@@ -400,11 +414,6 @@ export class _RemoteSettingsExperimentLoader {
     }
 
     Services.obs.notifyObservers(null, "nimbus:enrollments-updated");
-
-    this._hasUpdatedOnce = true;
-    this._updatingDeferred.resolve();
-
-    this.recordIsReady();
   }
 
   /**
