@@ -38,15 +38,22 @@ mod metrics {
 }
 
 mod pings {
-    use super::*;
     use glean::private::PingType;
     use once_cell::sync::Lazy;
 
     #[allow(non_upper_case_globals)]
     pub static validation: Lazy<PingType> = Lazy::new(|| {
-        common::PingBuilder::new("validation")
-            .with_send_if_empty(true)
-            .build()
+        glean::private::PingType::new(
+            "validation",
+            true,
+            true,
+            true,
+            true,
+            true,
+            vec![],
+            vec![],
+            true,
+        )
     });
 }
 

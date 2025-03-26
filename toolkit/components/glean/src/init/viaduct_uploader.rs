@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use glean::net::{CapablePingUploadRequest, PingUploadRequest, PingUploader, UploadResult};
+use glean::net::{PingUploadRequest, PingUploader, UploadResult};
 use once_cell::sync::OnceCell;
 use std::sync::Once;
 use url::Url;
@@ -22,13 +22,7 @@ impl PingUploader for ViaductUploader {
     /// # Arguments
     ///
     /// * `upload_request` - the ping and its metadata to upload.
-    fn upload(&self, upload_request: CapablePingUploadRequest) -> UploadResult {
-        let upload_request = match upload_request
-            .capable(|capabilities| capabilities.is_empty() || capabilities == ["ohttp"])
-        {
-            Some(req) => req,
-            None => return UploadResult::incapable(),
-        };
+    fn upload(&self, upload_request: PingUploadRequest) -> UploadResult {
         log::trace!("FOG Ping Uploader uploading to {}", upload_request.url);
 
         // SAFETY NOTE: Safe because it returns a primitive by value.
@@ -51,7 +45,6 @@ impl PingUploader for ViaductUploader {
 
         // Localhost-destined pings are sent without OHTTP,
         // even if configured to use OHTTP.
-        // TODO(bug 1955943): Replace with ping capabilities check
         let result = if localhost_port == 0 && should_ohttp_upload(&upload_request) {
             ohttp_upload(upload_request)
         } else {

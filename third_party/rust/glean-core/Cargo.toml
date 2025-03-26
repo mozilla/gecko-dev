@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "glean-core"
-version = "64.0.0"
+version = "63.1.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -29,7 +29,6 @@ include = [
     "/uniffi.toml",
     "/build.rs",
 ]
-autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -41,17 +40,7 @@ license = "MPL-2.0"
 repository = "https://github.com/mozilla/glean"
 
 [package.metadata.glean]
-glean-parser = "17.0.1"
-
-[badges.circle-ci]
-branch = "main"
-repository = "mozilla/glean"
-
-[badges.maintenance]
-status = "actively-developed"
-
-[features]
-enable_env_logger = ["env_logger"]
+glean-parser = "16.1.0"
 
 [lib]
 name = "glean_core"
@@ -179,7 +168,7 @@ version = "1.0.4"
 version = "0.1.40"
 
 [dependencies.uniffi]
-version = "0.29.0"
+version = "0.28.0"
 default-features = false
 
 [dependencies.uuid]
@@ -204,9 +193,12 @@ version = "0.4"
 version = "3.8.0"
 
 [build-dependencies.uniffi]
-version = "0.29.0"
+version = "0.28.0"
 features = ["build"]
 default-features = false
+
+[features]
+enable_env_logger = ["env_logger"]
 
 [target.'cfg(target_os = "android")'.dependencies.android_logger]
 version = "0.12.0"
@@ -216,3 +208,10 @@ default-features = false
 version = "0.1.0"
 features = ["logger"]
 default-features = false
+
+[badges.circle-ci]
+branch = "main"
+repository = "mozilla/glean"
+
+[badges.maintenance]
+status = "actively-developed"

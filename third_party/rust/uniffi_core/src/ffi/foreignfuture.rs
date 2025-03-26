@@ -40,7 +40,9 @@ pub struct ForeignFutureResult<T> {
     call_status: RustCallStatus,
 }
 
-/// C struct that represents a foreign future, used to perform a call to a foreign async method.
+/// Perform a call to a foreign async method
+
+/// C struct that represents the foreign future.
 ///
 /// This is what's returned by the async scaffolding functions.
 #[repr(C)]

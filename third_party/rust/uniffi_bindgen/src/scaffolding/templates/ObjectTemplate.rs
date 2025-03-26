@@ -33,11 +33,7 @@ pub trait r#{{ obj.name() }} {
 #[uniffi::export(Eq)]
 {%      endmatch %}
 {% endfor %}
-{%- if obj.remote() %}
-#[::uniffi::udl_remote(Object)]
-{%- else %}
 #[::uniffi::udl_derive(Object)]
-{%- endif %}
 struct {{ obj.rust_name() }} { }
 
 {%- for cons in obj.constructors() %}

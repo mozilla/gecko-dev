@@ -25,16 +25,6 @@ pub enum UploadResult {
         unused: i8,
     },
 
-    /// The uploader is not capable of uploading this request due to lack of or
-    /// mismatched capabilities.
-    ///
-    /// e.g. The ping requires upload over OHTTP, but the uploader doesn't support OHTTP.
-    Incapable {
-        #[doc(hidden)]
-        /// Unused field. Required because UniFFI can't handle variants without fields.
-        unused: i8,
-    },
-
     /// A HTTP response code.
     ///
     /// This can still indicate an error, depending on the status code.
@@ -65,7 +55,6 @@ impl UploadResult {
             UploadResult::HttpStatus { .. } => Some("status_code_unknown"),
             UploadResult::UnrecoverableFailure { .. } => Some("unrecoverable"),
             UploadResult::RecoverableFailure { .. } => Some("recoverable"),
-            UploadResult::Incapable { .. } => Some("incapable"),
             UploadResult::Done { .. } => None,
         }
     }
@@ -84,14 +73,6 @@ impl UploadResult {
     /// A possible cause might be a malformed URL.
     pub fn unrecoverable_failure() -> Self {
         Self::UnrecoverableFailure { unused: 0 }
-    }
-
-    /// The uploader is not capable of uploading this request due to lack of or
-    /// mismatched capabilities.
-    ///
-    /// e.g. The ping requires upload over OHTTP, but the uploader doesn't support OHTTP.
-    pub fn incapable() -> Self {
-        Self::Incapable { unused: 0 }
     }
 
     /// A HTTP response code.

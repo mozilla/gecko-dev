@@ -5,9 +5,7 @@
 use super::CodeType;
 use crate::{
     backend::{Literal, Type},
-    bail,
     bindings::python::gen_python::AsCodeType,
-    Result,
 };
 
 #[derive(Debug)]
@@ -36,11 +34,11 @@ impl CodeType for OptionalCodeType {
         )
     }
 
-    fn literal(&self, literal: &Literal) -> Result<String> {
+    fn literal(&self, literal: &Literal) -> String {
         match literal {
-            Literal::None => Ok("None".into()),
+            Literal::None => "None".into(),
             Literal::Some { inner } => super::PythonCodeOracle.find(&self.inner).literal(inner),
-            _ => bail!("Invalid literal for Optional type: {literal:?}"),
+            _ => panic!("Invalid literal for Optional type: {literal:?}"),
         }
     }
 }
@@ -72,10 +70,10 @@ impl CodeType for SequenceCodeType {
         )
     }
 
-    fn literal(&self, literal: &Literal) -> Result<String> {
+    fn literal(&self, literal: &Literal) -> String {
         match literal {
-            Literal::EmptySequence => Ok("[]".into()),
-            _ => bail!("Invalid literal for sequence type: {literal:?}"),
+            Literal::EmptySequence => "[]".into(),
+            _ => unimplemented!(),
         }
     }
 }
@@ -109,10 +107,10 @@ impl CodeType for MapCodeType {
         )
     }
 
-    fn literal(&self, literal: &Literal) -> Result<String> {
+    fn literal(&self, literal: &Literal) -> String {
         match literal {
-            Literal::EmptyMap => Ok("{}".into()),
-            _ => bail!("Invalid literal for map type: {literal:?}"),
+            Literal::EmptyMap => "{}".into(),
+            _ => unimplemented!(),
         }
     }
 }

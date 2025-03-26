@@ -297,6 +297,14 @@ criteria = "safe-to-deploy"
 version = "0.2.0"
 criteria = "safe-to-deploy"
 
+[[exemptions.askama_derive]]
+version = "0.11.2"
+criteria = "safe-to-deploy"
+
+[[exemptions.askama_escape]]
+version = "0.10.3"
+criteria = "safe-to-deploy"
+
 [[exemptions.async-task]]
 version = "4.0.3"
 criteria = "safe-to-deploy"
@@ -518,6 +526,10 @@ criteria = "safe-to-deploy"
 version = "0.10.3"
 criteria = "safe-to-deploy"
 
+[[exemptions.khronos-egl]]
+version = "4.1.0"
+criteria = "safe-to-deploy"
+
 [[exemptions.khronos_api]]
 version = "3.1.0"
 criteria = "safe-to-deploy"
@@ -628,6 +640,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.quick-error]]
 version = "1.2.3"
+criteria = "safe-to-deploy"
+
+[[exemptions.rand]]
+version = "0.8.5"
 criteria = "safe-to-deploy"
 
 [[exemptions.remove_dir_all]]

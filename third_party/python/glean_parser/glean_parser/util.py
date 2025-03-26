@@ -546,7 +546,6 @@ ping_args = [
     "schedules_pings",
     "reason_codes",
     "follows_collection_enabled",
-    "uploader_capabilities",
 ]
 
 

@@ -128,6 +128,15 @@ impl Function {
         Ok(())
     }
 
+    pub fn iter_types(&self) -> TypeIterator<'_> {
+        Box::new(
+            self.arguments
+                .iter()
+                .flat_map(Argument::iter_types)
+                .chain(self.return_type.iter().flat_map(Type::iter_types)),
+        )
+    }
+
     pub fn docstring(&self) -> Option<&str> {
         self.docstring.as_deref()
     }
@@ -229,15 +238,15 @@ impl From<&Argument> for FfiArgument {
 
 /// Combines the return and throws type of a function/method
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub struct ResultType<'a> {
-    pub return_type: Option<&'a Type>,
-    pub throws_type: Option<&'a Type>,
+pub struct ResultType {
+    pub return_type: Option<Type>,
+    pub throws_type: Option<Type>,
 }
 
-impl ResultType<'_> {
+impl ResultType {
     /// Get the `T` parameters for the `FutureCallback<T>` for this ResultType
     pub fn future_callback_param(&self) -> FfiType {
-        match self.return_type {
+        match &self.return_type {
             Some(t) => t.into(),
             None => FfiType::UInt8,
         }
@@ -247,33 +256,18 @@ impl ResultType<'_> {
 /// Implemented by function-like types (Function, Method, Constructor)
 pub trait Callable {
     fn arguments(&self) -> Vec<&Argument>;
-    fn return_type(&self) -> Option<&Type>;
-    fn throws_type(&self) -> Option<&Type>;
+    fn return_type(&self) -> Option<Type>;
+    fn throws_type(&self) -> Option<Type>;
     fn is_async(&self) -> bool;
-    fn docstring(&self) -> Option<&str>;
     fn takes_self(&self) -> bool {
         false
     }
-    fn result_type(&self) -> ResultType<'_> {
+    fn result_type(&self) -> ResultType {
         ResultType {
             return_type: self.return_type(),
             throws_type: self.throws_type(),
         }
     }
-
-    fn iter_types(&self) -> TypeIterator<'_> {
-        let types: Vec<&Type> = self
-            .arguments()
-            .iter()
-            .flat_map(|a| a.iter_types())
-            .chain(self.return_type().iter().flat_map(|t| t.iter_types()))
-            .chain(self.throws_type().iter().flat_map(|t| t.iter_types()))
-            .collect();
-        Box::new(types.into_iter())
-    }
-
-    // Scaffolding function
-    fn ffi_func(&self) -> &FfiFunction;
 
     // Quick way to get the rust future scaffolding function that corresponds to our return type.
 
@@ -307,51 +301,35 @@ impl Callable for Function {
         self.arguments()
     }
 
-    fn return_type(&self) -> Option<&Type> {
-        self.return_type()
+    fn return_type(&self) -> Option<Type> {
+        self.return_type().cloned()
     }
 
-    fn throws_type(&self) -> Option<&Type> {
-        self.throws_type()
-    }
-
-    fn docstring(&self) -> Option<&str> {
-        self.docstring()
+    fn throws_type(&self) -> Option<Type> {
+        self.throws_type().cloned()
     }
 
     fn is_async(&self) -> bool {
         self.is_async
     }
-
-    fn ffi_func(&self) -> &FfiFunction {
-        &self.ffi_func
-    }
 }
 
-// Needed because Rinja likes to add extra refs to variables
+// Needed because Askama likes to add extra refs to variables
 impl<T: Callable> Callable for &T {
     fn arguments(&self) -> Vec<&Argument> {
         (*self).arguments()
     }
 
-    fn return_type(&self) -> Option<&Type> {
+    fn return_type(&self) -> Option<Type> {
         (*self).return_type()
     }
 
-    fn throws_type(&self) -> Option<&Type> {
+    fn throws_type(&self) -> Option<Type> {
         (*self).throws_type()
     }
 
     fn is_async(&self) -> bool {
         (*self).is_async()
-    }
-
-    fn docstring(&self) -> Option<&str> {
-        (*self).docstring()
-    }
-
-    fn ffi_func(&self) -> &FfiFunction {
-        (*self).ffi_func()
     }
 
     fn takes_self(&self) -> bool {
@@ -427,30 +405,5 @@ mod test {
                 .unwrap(),
             "informative docstring"
         );
-    }
-
-    #[test]
-    fn test_iter_types() {
-        let f = Function {
-            name: "fn".to_string(),
-            module_path: "fn".to_string(),
-            is_async: false,
-            arguments: vec![Argument {
-                name: "a".to_string(),
-                type_: Type::Int32,
-                by_ref: false,
-                optional: true,
-                default: None,
-            }],
-            return_type: Some(Type::Int64),
-            ffi_func: FfiFunction::default(),
-            docstring: None,
-            throws: Some(Type::Int8),
-            checksum_fn_name: "".to_string(),
-            checksum: None,
-        };
-        assert!(f.iter_types().any(|t| matches!(t, Type::Int32)));
-        assert!(f.iter_types().any(|t| matches!(t, Type::Int64)));
-        assert!(f.iter_types().any(|t| matches!(t, Type::Int8)));
     }
 }

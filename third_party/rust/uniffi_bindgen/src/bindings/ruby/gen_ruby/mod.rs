@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use anyhow::Result;
-use rinja::Template;
+use askama::Template;
 
 use heck::{ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use serde::{Deserialize, Serialize};
@@ -71,7 +71,8 @@ pub fn canonical_name(t: &Type) -> String {
             canonical_name(key_type).to_upper_camel_case(),
             canonical_name(value_type).to_upper_camel_case()
         ),
-        Type::Custom { name, .. } => format!("Type{name}"),
+        // A type that exists externally.
+        Type::External { name, .. } | Type::Custom { name, .. } => format!("Type{name}"),
     }
 }
 
@@ -105,17 +106,23 @@ impl Config {
 pub struct RubyWrapper<'a> {
     config: Config,
     ci: &'a ComponentInterface,
+    canonical_name: &'a dyn Fn(&Type) -> String,
 }
 impl<'a> RubyWrapper<'a> {
     pub fn new(config: Config, ci: &'a ComponentInterface) -> Self {
-        Self { config, ci }
+        Self {
+            config,
+            ci,
+            canonical_name: &canonical_name,
+        }
     }
 }
 
 mod filters {
     use super::*;
+    pub use crate::backend::filters::*;
 
-    pub fn type_ffi(type_: &FfiType) -> Result<String, rinja::Error> {
+    pub fn type_ffi(type_: &FfiType) -> Result<String, askama::Error> {
         Ok(match type_ {
             FfiType::Int8 => ":int8".to_string(),
             FfiType::UInt8 => ":uint8".to_string(),
@@ -137,7 +144,7 @@ mod filters {
             // definitions use references.  Those FFI functions aren't actually used, so we just
             // pick something that runs and makes some sense.  Revisit this once the references
             // are actually implemented.
-            FfiType::Reference(_) | FfiType::MutReference(_) => ":pointer".to_string(),
+            FfiType::Reference(_) => ":pointer".to_string(),
             FfiType::VoidPointer => ":pointer".to_string(),
             FfiType::Struct(_) => {
                 unimplemented!("Structs are not implemented")
@@ -145,7 +152,7 @@ mod filters {
         })
     }
 
-    pub fn literal_rb(literal: &Literal) -> Result<String, rinja::Error> {
+    pub fn literal_rb(literal: &Literal) -> Result<String, askama::Error> {
         Ok(match literal {
             Literal::Boolean(v) => {
                 if *v {
@@ -181,32 +188,26 @@ mod filters {
         })
     }
 
-    pub fn class_name_rb(nm: &str) -> Result<String, rinja::Error> {
+    pub fn class_name_rb(nm: &str) -> Result<String, askama::Error> {
         Ok(nm.to_string().to_upper_camel_case())
     }
 
-    pub fn fn_name_rb(nm: &str) -> Result<String, rinja::Error> {
+    pub fn fn_name_rb(nm: &str) -> Result<String, askama::Error> {
         Ok(nm.to_string().to_snake_case())
     }
 
-    pub fn var_name_rb(nm: &str) -> Result<String, rinja::Error> {
+    pub fn var_name_rb(nm: &str) -> Result<String, askama::Error> {
         let nm = nm.to_string();
         let prefix = if is_reserved_word(&nm) { "_" } else { "" };
 
         Ok(format!("{prefix}{}", nm.to_snake_case()))
     }
 
-    pub fn enum_name_rb(nm: &str) -> Result<String, rinja::Error> {
+    pub fn enum_name_rb(nm: &str) -> Result<String, askama::Error> {
         Ok(nm.to_string().to_shouty_snake_case())
     }
 
-    pub fn coerce_rb<S1: AsRef<str>, S2: AsRef<str>>(
-        nm: S1,
-        ns: S2,
-        type_: &Type,
-    ) -> Result<String, rinja::Error> {
-        let nm = nm.as_ref();
-        let ns = ns.as_ref();
+    pub fn coerce_rb(nm: &str, ns: &str, type_: &Type) -> Result<String, askama::Error> {
         Ok(match type_ {
             Type::Int8 => format!("{ns}::uniffi_in_range({nm}, \"i8\", -2**7, 2**7)"),
             Type::Int16 => format!("{ns}::uniffi_in_range({nm}, \"i16\", -2**15, 2**15)"),
@@ -246,12 +247,12 @@ mod filters {
                     )
                 }
             }
+            Type::External { .. } => panic!("No support for external types, yet"),
             Type::Custom { .. } => panic!("No support for custom types, yet"),
         })
     }
 
-    pub fn check_lower_rb<S: AsRef<str>>(nm: S, type_: &Type) -> Result<String, rinja::Error> {
-        let nm = nm.as_ref();
+    pub fn check_lower_rb(nm: &str, type_: &Type) -> Result<String, askama::Error> {
         Ok(match type_ {
             Type::Object { name, .. } => {
                 format!("({}.uniffi_check_lower {nm})", class_name_rb(name)?)
@@ -269,7 +270,7 @@ mod filters {
         })
     }
 
-    pub fn lower_rb(nm: &str, type_: &Type) -> Result<String, rinja::Error> {
+    pub fn lower_rb(nm: &str, type_: &Type) -> Result<String, askama::Error> {
         Ok(match type_ {
             Type::Int8
             | Type::UInt8
@@ -299,11 +300,12 @@ mod filters {
                 class_name_rb(&canonical_name(type_))?,
                 nm
             ),
+            Type::External { .. } => panic!("No support for lowering external types, yet"),
             Type::Custom { .. } => panic!("No support for lowering custom types, yet"),
         })
     }
 
-    pub fn lift_rb(nm: &str, type_: &Type) -> Result<String, rinja::Error> {
+    pub fn lift_rb(nm: &str, type_: &Type) -> Result<String, askama::Error> {
         Ok(match type_ {
             Type::Int8
             | Type::UInt8
@@ -338,6 +340,7 @@ mod filters {
                 nm,
                 class_name_rb(&canonical_name(type_))?
             ),
+            Type::External { .. } => panic!("No support for lifting external types, yet"),
             Type::Custom { .. } => panic!("No support for lifting custom types, yet"),
         })
     }

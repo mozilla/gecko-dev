@@ -3,8 +3,7 @@
 
 {% endif %}
 
-
-{%- for type_ in ci.iter_local_types() %}
+{%- for type_ in ci.iter_types() %}
 {%- let ffi_converter = type_.ffi_converter() %}
 {%- match type_ %}
 
@@ -76,6 +75,9 @@
 {%- when Type::Custom { name, builtin, module_path } %}
 {%- include "CustomType.sys.mjs" %}
 
+{%- when Type::External { name, module_path, kind, namespace, tagged } %}
+{%- include "ExternalType.sys.mjs" %}
+
 {%- when Type::CallbackInterface { name, module_path } %}
 {%- include "CallbackInterface.sys.mjs" %}
 
@@ -85,14 +87,6 @@
 {%- endmatch %}
 
 {% endfor %}
-
-{%- for type_ in ci.iter_external_types() %}
-{%- let ffi_converter = type_.ffi_converter() %}
-{%- let name = type_.name().expect("External type without name") %}
-{%- let module_path = type_.module_path().expect("External type without module path") %}
-{%- include "ExternalType.sys.mjs" %}
-{%- endfor %}
-
 
 {%- if !ci.callback_interface_definitions().is_empty() %}
 // Define callback interface handlers, this must come after the type loop since they reference the FfiConverters defined above.

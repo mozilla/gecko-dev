@@ -51,6 +51,14 @@ impl ObjectImpl {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Checksum, Ord, PartialOrd)]
+pub enum ExternalKind {
+    Interface,
+    Trait,
+    // Either a record or enum
+    DataClass,
+}
+
 /// Represents all the different high-level types that can be used in a component interface.
 /// At this level we identify user-defined types by name, without knowing any details
 /// of their internal structure apart from what type of thing they are (record, enum, etc).
@@ -104,6 +112,15 @@ pub enum Type {
         key_type: Box<Type>,
         value_type: Box<Type>,
     },
+    // An FfiConverter we `use` from an external crate
+    External {
+        module_path: String,
+        name: String,
+        #[checksum_ignore] // The namespace is not known generating scaffolding.
+        namespace: String,
+        kind: ExternalKind,
+        tagged: bool, // does its FfiConverter use <UniFFITag>?
+    },
     // Custom type on the scaffolding side
     Custom {
         module_path: String,
@@ -113,14 +130,8 @@ pub enum Type {
 }
 
 impl Type {
-    // iterate over all types contained in the type, *including self*.
     pub fn iter_types(&self) -> TypeIterator<'_> {
-        Box::new(std::iter::once(self).chain(self.iter_nested_types()))
-    }
-
-    // iterate over all types contained in the type but *not including self*.
-    pub fn iter_nested_types(&self) -> TypeIterator<'_> {
-        match self {
+        let nested_types = match self {
             Type::Optional { inner_type } | Type::Sequence { inner_type } => {
                 inner_type.iter_types()
             }
@@ -128,29 +139,19 @@ impl Type {
                 key_type,
                 value_type,
             } => Box::new(key_type.iter_types().chain(value_type.iter_types())),
-            Type::Custom { builtin, .. } => builtin.iter_types(),
             _ => Box::new(std::iter::empty()),
-        }
+        };
+        Box::new(std::iter::once(self).chain(nested_types))
     }
 
-    pub fn name(&self) -> Option<&str> {
+    pub fn name(&self) -> Option<String> {
         match self {
-            Type::Object { name, .. } => Some(name),
-            Type::Record { name, .. } => Some(name),
-            Type::Enum { name, .. } => Some(name),
-            Type::Custom { name, .. } => Some(name),
-            Type::CallbackInterface { name, .. } => Some(name),
-            _ => None,
-        }
-    }
-
-    pub fn module_path(&self) -> Option<&str> {
-        match self {
-            Type::Object { module_path, .. } => Some(module_path),
-            Type::Record { module_path, .. } => Some(module_path),
-            Type::Enum { module_path, .. } => Some(module_path),
-            Type::Custom { module_path, .. } => Some(module_path),
-            Type::CallbackInterface { module_path, .. } => Some(module_path),
+            Type::Object { name, .. } => Some(name.to_string()),
+            Type::Record { name, .. } => Some(name.to_string()),
+            Type::Enum { name, .. } => Some(name.to_string()),
+            Type::External { name, .. } => Some(name.to_string()),
+            Type::Custom { name, .. } => Some(name.to_string()),
+            Type::Optional { inner_type } | Type::Sequence { inner_type } => inner_type.name(),
             _ => None,
         }
     }
@@ -160,6 +161,7 @@ impl Type {
             Type::Object { name, .. } => *name = new_name,
             Type::Record { name, .. } => *name = new_name,
             Type::Enum { name, .. } => *name = new_name,
+            Type::External { name, .. } => *name = new_name,
             Type::Custom { name, .. } => *name = new_name,
             _ => {}
         }
@@ -168,7 +170,7 @@ impl Type {
     pub fn rename_recursive(&mut self, name_transformer: &impl Fn(&str) -> String) {
         // Rename the current type if it has a name
         if let Some(name) = self.name() {
-            self.rename(name_transformer(name));
+            self.rename(name_transformer(&name));
         }
 
         // Recursively rename nested types

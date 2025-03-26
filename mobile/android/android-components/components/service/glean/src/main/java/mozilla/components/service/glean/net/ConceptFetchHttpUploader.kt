@@ -11,11 +11,8 @@ import mozilla.components.concept.fetch.Header
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.toMutableHeaders
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.telemetry.glean.net.CapablePingUploadRequest
 import mozilla.telemetry.glean.net.HeadersList
 import mozilla.telemetry.glean.net.HttpStatus
-import mozilla.telemetry.glean.net.Incapable
-import mozilla.telemetry.glean.net.PingUploadRequest
 import mozilla.telemetry.glean.net.RecoverableFailure
 import mozilla.telemetry.glean.net.UploadResult
 import java.io.IOException
@@ -67,12 +64,8 @@ class ConceptFetchHttpUploader(
      *         or faced an unrecoverable error), false if there was a recoverable
      *         error callers can deal with.
      */
-    override fun upload(request: CapablePingUploadRequest): UploadResult {
-        val req: PingUploadRequest? = request.capable({ capabilities: List<String> -> capabilities.size == 0 })
-        if (req == null) {
-            return Incapable(0)
-        }
-        val request = buildRequest(req)
+    override fun upload(url: String, data: ByteArray, headers: HeadersList): UploadResult {
+        val request = buildRequest(url, data, headers)
 
         return try {
             performUpload(client.value, request)
@@ -83,11 +76,15 @@ class ConceptFetchHttpUploader(
     }
 
     @VisibleForTesting(otherwise = PRIVATE)
-    internal fun buildRequest(request: PingUploadRequest): Request {
-        val conceptHeaders = request.headers.map { (name, value) -> Header(name, value) }.toMutableHeaders()
+    internal fun buildRequest(
+        url: String,
+        data: ByteArray,
+        headers: HeadersList,
+    ): Request {
+        val conceptHeaders = headers.map { (name, value) -> Header(name, value) }.toMutableHeaders()
 
         return Request(
-            url = request.url,
+            url = url,
             method = Request.Method.POST,
             connectTimeout = Pair(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS),
             readTimeout = Pair(DEFAULT_READ_TIMEOUT, TimeUnit.MILLISECONDS),
@@ -96,7 +93,7 @@ class ConceptFetchHttpUploader(
             // offer a better API to do that, so we nuke all cookies going to our telemetry
             // endpoint.
             cookiePolicy = Request.CookiePolicy.OMIT,
-            body = Request.Body(request.data.inputStream()),
+            body = Request.Body(data.inputStream()),
             private = usePrivateRequest,
             conservative = true,
         )

@@ -61,12 +61,12 @@ rust-version = "1.82.0"
 
 [workspace.dependencies]
 # Shared across multiple UniFFI consumers.
-uniffi = "0.29.0"
-uniffi_bindgen = "0.29.0"
+uniffi = "0.28.2"
+uniffi_bindgen = "0.28.2"
 # Shared across multiple application-services consumers.
 rusqlite = "0.31.0"
 # Shared across multiple glean consumers.
-glean = "=64.0.0"
+glean = "=63.1.0"
 
 # Explicitly specify what our profiles use.  The opt-level setting here is
 # a total fiction; see the setup of MOZ_RUST_DEFAULT_FLAGS for what the
@@ -176,9 +176,6 @@ goblin = { path = "build/rust/goblin" }
 # Implement getrandom 0.2 in terms of 0.3
 getrandom = { path = "build/rust/getrandom" }
 
-# Patch rustc-hash 1.1.0 to 2.1.1
-rustc-hash = { path = "build/rust/rustc-hash" }
-
 # Patch memoffset from 0.8.0 to 0.9.0 since it's compatible and it avoids duplication
 memoffset = { path = "build/rust/memoffset" }
 
@@ -244,14 +241,14 @@ malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 objc = { git = "https://github.com/glandium/rust-objc", rev = "4de89f5aa9851ceca4d40e7ac1e2759410c04324" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-search = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "50c3f77fa264974678ec59e752fe7dc39c29900b" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+relevancy = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+search = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+suggest = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "d773da92641d92930b7308300e9fc2746a05ce6a" }
 
 allocator-api2 = { path = "third_party/rust/allocator-api2" }

@@ -298,8 +298,7 @@ add_task(async function test_jog_custom_pings() {
     true,
     [],
     [],
-    true,
-    []
+    true
   );
   Assert.ok("jogPing" in GleanPings);
   let submitted = false;
@@ -662,8 +661,7 @@ add_task(async function test_jog_ping_works() {
     true,
     [],
     [kReason],
-    true,
-    []
+    true
   );
   let submitted = false;
   GleanPings.myPing.testBeforeNextSubmit(reason => {
@@ -685,8 +683,7 @@ add_task(async function test_jog_noinfo_ping_works() {
     true,
     [],
     [kReason],
-    true,
-    []
+    true
   );
   let submitted = false;
   GleanPings.noinfoPing.testBeforeNextSubmit(reason => {

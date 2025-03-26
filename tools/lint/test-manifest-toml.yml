@@ -13,7 +13,6 @@ test-manifest-toml:
         - 'testing/mozbase/manifestparser/tests/'
         - 'testing/raptor/raptor/tests/'
         - 'third_party/rust/'
-        - 'toolkit/components/uniffi-bindgen-gecko-js/rinja.toml'
         - '**/.*ruff.toml'
         - '**/Cargo.toml'
         - '**/Cross.toml'

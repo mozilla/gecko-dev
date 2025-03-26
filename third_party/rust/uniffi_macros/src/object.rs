@@ -67,7 +67,6 @@ pub fn expand_object(input: DeriveInput, options: DeriveOptions) -> syn::Result<
             ptr: *const ::std::ffi::c_void,
             call_status: &mut ::uniffi::RustCallStatus
         ) -> *const ::std::ffi::c_void {
-            ::uniffi::deps::trace!("clone: {} ({:?})", #name, ptr);
             ::uniffi::rust_call(call_status, || {
                 unsafe { ::std::sync::Arc::increment_strong_count(ptr) };
                 ::std::result::Result::Ok(ptr)
@@ -80,7 +79,6 @@ pub fn expand_object(input: DeriveInput, options: DeriveOptions) -> syn::Result<
             ptr: *const ::std::ffi::c_void,
             call_status: &mut ::uniffi::RustCallStatus
         ) {
-            ::uniffi::deps::trace!("free: {} ({:?})", #name, ptr);
             ::uniffi::rust_call(call_status, || {
                 assert!(!ptr.is_null());
                 let ptr = ptr.cast::<#ident>();
@@ -146,14 +144,11 @@ fn interface_impl(object: &ObjectItem, options: &DeriveOptions) -> TokenStream {
             /// call the destructor function specific to the type `T`. Calling the destructor
             /// function for other types may lead to undefined behaviour.
             fn lower(obj: ::std::sync::Arc<Self>) -> Self::FfiType {
-                let ptr = ::std::sync::Arc::into_raw(obj) as Self::FfiType;
-                ::uniffi::deps::trace!("lower: {} ({:?})", #name, ptr);
-                ptr
+                ::std::sync::Arc::into_raw(obj) as Self::FfiType
             }
 
             /// When lifting, we receive an owned `Arc` that the foreign language code cloned.
             fn try_lift(v: Self::FfiType) -> ::uniffi::Result<::std::sync::Arc<Self>> {
-                ::uniffi::deps::trace!("lift: {} ({:?})", #name, v);
                 let v = v as *const #ident;
                 ::std::result::Result::Ok(unsafe { ::std::sync::Arc::<Self>::from_raw(v) })
             }

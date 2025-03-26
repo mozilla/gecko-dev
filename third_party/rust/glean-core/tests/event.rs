@@ -163,11 +163,17 @@ fn test_sending_of_event_ping_when_it_fills_up() {
     let store_names: Vec<String> = vec!["events".into()];
 
     for store_name in &store_names {
-        glean.register_ping_type(
-            &PingBuilder::new(store_name)
-                .with_reasons(vec!["max_capacity".to_string()])
-                .build(),
-        );
+        glean.register_ping_type(&PingType::new(
+            store_name.clone(),
+            true,
+            false,
+            true,
+            true,
+            true,
+            vec![],
+            vec!["max_capacity".to_string()],
+            true,
+        ));
     }
 
     let click = EventMetric::new(
@@ -225,11 +231,17 @@ fn test_server_knobs_config_changing_max_events() {
     let store_names: Vec<String> = vec!["events".into()];
 
     for store_name in &store_names {
-        glean.register_ping_type(
-            &PingBuilder::new(store_name)
-                .with_reasons(vec!["max_capacity".to_string()])
-                .build(),
-        );
+        glean.register_ping_type(&PingType::new(
+            store_name.clone(),
+            true,
+            false,
+            true,
+            true,
+            true,
+            vec![],
+            vec!["max_capacity".to_string()],
+            true,
+        ));
     }
 
     // 1. Set up an event to record
@@ -501,7 +513,17 @@ fn event_storage_trimming() {
     let new_ping = |glean: &mut Glean, ping: &str| {
         // In Rust, pings are registered via construction.
         // But that's done asynchronously, so we do it synchronously here:
-        glean.register_ping_type(&PingBuilder::new(ping).build());
+        glean.register_ping_type(&PingType::new(
+            ping.to_string(),
+            true,
+            false,
+            true,
+            true,
+            true,
+            vec![],
+            vec![],
+            true,
+        ));
     };
 
     // First, register both pings, so that we can record the event in the two pings.
@@ -556,7 +578,17 @@ fn with_event_timestamps() {
         ping_lifetime_max_time: 0,
     };
     let mut glean = Glean::new(cfg).unwrap();
-    let ping = PingBuilder::new("store1").build();
+    let ping = PingType::new(
+        "store1",
+        true,
+        false,
+        true,
+        true,
+        true,
+        vec![],
+        vec![],
+        true,
+    );
     glean.register_ping_type(&ping);
 
     let store_name = "store1";

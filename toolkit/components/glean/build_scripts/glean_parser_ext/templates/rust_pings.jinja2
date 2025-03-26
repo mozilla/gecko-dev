@@ -25,7 +25,6 @@ pub static {{ obj.name|snake_case }}: Lazy<Ping> = Lazy::new(|| {
         {{ obj.schedules_pings|rust }},
         {{ obj.reason_codes|rust }},
         {{ obj.follows_collection_enabled|rust }},
-        {{ obj.uploader_capabilities|rust }},
     )
 });
 

@@ -14,8 +14,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Interest: "resource://gre/modules/RustRelevancy.sys.mjs",
   InterestVector: "resource://gre/modules/RustRelevancy.sys.mjs",
   RelevancyStore: "resource://gre/modules/RustRelevancy.sys.mjs",
-  RemoteSettingsConfig2: "resource://gre/modules/RustRemoteSettings.sys.mjs",
-  RemoteSettingsService: "resource://gre/modules/RustRemoteSettings.sys.mjs",
   score: "resource://gre/modules/RustRelevancy.sys.mjs",
 });
 
@@ -535,15 +533,7 @@ class RustRelevancyStoreManager {
     if (rustRelevancyStore === undefined) {
       rustRelevancyStore = lazy.RelevancyStore;
     }
-    // Initialize a RemoteSettingsService for the relevancy store
-    // TODO (1956519): consolidate this with the Suggest code and only create a single app-wide remote settings
-    // service.  For now this duplication is okay though because we're not really shipping Relevancy -- it's only enabled via a
-    // pref.
-    const rsService = lazy.RemoteSettingsService.init(
-      Services.dirsvc.get("ProfLD", Ci.nsIFile).path,
-      new lazy.RemoteSettingsConfig2({})
-    );
-    this.#store = rustRelevancyStore.init(path, rsService);
+    this.#store = rustRelevancyStore.init(path);
   }
 
   get store() {

@@ -40,7 +40,7 @@ private enum InitializationResult {
 }
 // Use a global variable to perform the versioning checks. Swift ensures that
 // the code inside is only computed once.
-private let initializationResult: InitializationResult = {
+private var initializationResult: InitializationResult = {
     // Get the bindings contract version from our ComponentInterface
     let bindings_contract_version = {{ ci.uniffi_contract_version() }}
     // Get the scaffolding contract version by calling the into the dylib
@@ -49,13 +49,11 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.contractVersionMismatch
     }
 
-{%- if !config.omit_checksums %}
     {%- for (name, expected_checksum) in ci.iter_checksums() %}
     if ({{ name }}() != {{ expected_checksum }}) {
         return InitializationResult.apiChecksumMismatch
     }
     {%- endfor %}
-{%- endif %}
 
     {% for fn in self.initialization_fns() -%}
     {{ fn }}()
@@ -64,9 +62,7 @@ private let initializationResult: InitializationResult = {
     return InitializationResult.ok
 }()
 
-// Make the ensure init function public so that other modules which have external type references to
-// our types can call it.
-public func {{ ensure_init_fn_name }}() {
+private func uniffiEnsureInitialized() {
     switch initializationResult {
     case .ok:
         break

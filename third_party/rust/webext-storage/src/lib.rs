@@ -32,17 +32,28 @@ pub use api::{StorageChanges, StorageValueChange};
 uniffi::include_scaffolding!("webext-storage");
 
 use serde_json::Value as JsonValue;
+impl UniffiCustomTypeConverter for JsonValue {
+    type Builtin = String;
 
-uniffi::custom_type!(JsonValue, String, {
-    remote,
-    try_lift: |val| Ok(serde_json::from_str(val.as_str()).unwrap()),
-    lower: |obj| obj.to_string(),
-});
+    fn into_custom(val: Self::Builtin) -> uniffi::Result<JsonValue> {
+        Ok(serde_json::from_str(val.as_str()).unwrap())
+    }
+
+    fn from_custom(obj: Self) -> Self::Builtin {
+        obj.to_string()
+    }
+}
 
 // Our UDL uses a `Guid` type.
 use sync_guid::Guid;
-uniffi::custom_type!(Guid, String, {
-    remote,
-    try_lift: |val| Ok(Guid::new(val.as_str())),
-    lower: |obj| obj.into()
-});
+impl UniffiCustomTypeConverter for Guid {
+    type Builtin = String;
+
+    fn into_custom(val: Self::Builtin) -> uniffi::Result<Guid> {
+        Ok(Guid::new(val.as_str()))
+    }
+
+    fn from_custom(obj: Self) -> Self::Builtin {
+        obj.into()
+    }
+}

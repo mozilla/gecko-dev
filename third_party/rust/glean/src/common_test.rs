@@ -46,18 +46,7 @@ pub(crate) fn new_glean(
             .build(),
     };
 
-    _ = PingType::new(
-        "store1",
-        true,
-        true,
-        true,
-        true,
-        true,
-        vec![],
-        vec![],
-        true,
-        vec![],
-    );
+    _ = PingType::new("store1", true, true, true, true, true, vec![], vec![], true);
 
     crate::test_reset_glean(cfg, ClientInfoMetrics::unknown(), clear_stores);
     dir

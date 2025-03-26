@@ -35,7 +35,6 @@ impl InternalPings {
                     "inactive".to_string(),
                 ],
                 true,
-                vec![],
             ),
             metrics: PingType::new(
                 "metrics",
@@ -53,7 +52,6 @@ impl InternalPings {
                     "upgrade".to_string(),
                 ],
                 true,
-                vec![],
             ),
             events: PingType::new(
                 "events",
@@ -69,7 +67,6 @@ impl InternalPings {
                     "max_capacity".to_string(),
                 ],
                 true,
-                vec![],
             ),
             deletion_request: PingType::new(
                 "deletion-request",
@@ -81,7 +78,6 @@ impl InternalPings {
                 vec![],
                 vec!["at_init".to_string(), "set_upload_enabled".to_string()],
                 true,
-                vec![],
             ),
         }
     }

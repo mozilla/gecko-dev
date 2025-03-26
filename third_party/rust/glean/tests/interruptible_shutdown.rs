@@ -39,15 +39,22 @@ mod metrics {
 }
 
 mod pings {
-    use super::*;
     use glean::private::PingType;
     use once_cell::sync::Lazy;
 
     #[allow(non_upper_case_globals)]
     pub static validation: Lazy<PingType> = Lazy::new(|| {
-        common::PingBuilder::new("validation")
-            .with_send_if_empty(true)
-            .build()
+        glean::private::PingType::new(
+            "validation",
+            true,
+            true,
+            true,
+            true,
+            true,
+            vec![],
+            vec![],
+            true,
+        )
     });
 }
 
@@ -59,8 +66,7 @@ struct ReportingUploader {
 }
 
 impl net::PingUploader for ReportingUploader {
-    fn upload(&self, upload_request: net::CapablePingUploadRequest) -> net::UploadResult {
-        let upload_request = upload_request.capable(|_| true).unwrap();
+    fn upload(&self, upload_request: net::PingUploadRequest) -> net::UploadResult {
         let calls = self.calls.fetch_add(1, Ordering::SeqCst);
         let body = upload_request.body;
         let decode = |body: Vec<u8>| {
