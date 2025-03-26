@@ -3617,12 +3617,12 @@ set_define("ENABLE_SYSTEM_EXTENSION_DIRS", True, when="--enable-system-extension
 # ==============================================================
 with only_when(compile_environment):
     system_lib_option(
-        "--enable-system-pixman",
+        "--with-system-pixman",
         help="Use system pixman (located with pkgconfig)",
         when=use_pkg_config,
     )
 
-    @depends("--enable-system-pixman", when=use_pkg_config)
+    @depends("--with-system-pixman", when=use_pkg_config)
     def enable_system_pixman_option(enable_system_pixman):
         return enable_system_pixman
 
@@ -3633,8 +3633,8 @@ with only_when(compile_environment):
     set_config("MOZ_TREE_PIXMAN", True, when=in_tree_pixman)
     set_define("MOZ_TREE_PIXMAN", True, when=in_tree_pixman)
 
-    pkg_check_modules("MOZ_PIXMAN", "pixman-1 >= 0.40.0", when="--enable-system-pixman")
-    # Set MOZ_PIXMAN_CFLAGS to an explicit empty value when --enable-system-pixman is *not* used,
+    pkg_check_modules("MOZ_PIXMAN", "pixman-1 >= 0.40.0", when="--with-system-pixman")
+    # Set MOZ_PIXMAN_CFLAGS to an explicit empty value when --with-system-pixman is *not* used,
     # for layout/style/extra-bindgen-flags
     set_config("MOZ_PIXMAN_CFLAGS", [], when=in_tree_pixman)
 
