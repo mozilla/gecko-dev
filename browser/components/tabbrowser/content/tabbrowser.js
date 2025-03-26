@@ -2588,6 +2588,7 @@
               index: tab._tPos + 1,
               userContextId: tab.userContextId,
               tabGroup: tab.group,
+              focusUrlBar: true,
             });
             resolve(this.selectedBrowser);
           }),
