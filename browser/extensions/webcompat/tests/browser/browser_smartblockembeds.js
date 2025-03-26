@@ -351,3 +351,55 @@ add_task(async function test_smartblock_click_while_panel_open() {
 
   await BrowserTestUtils.removeTab(tab);
 });
+
+add_task(async function test_smartblock_embed_replaced_after_init_load() {
+  // Open a site with a test "embed"
+  const tab = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    waitForLoad: true,
+  });
+
+  await loadSmartblockPageOnTab(tab);
+
+  // Check TP enabled
+  const TrackingProtection = gProtectionsHandler.blockers.TrackingProtection;
+  ok(TrackingProtection, "TP is attached to the tab");
+  ok(TrackingProtection.enabled, "TP is enabled");
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    // Check that the "embed" was replaced with a placeholder
+    let placeholders = content.document.querySelectorAll(
+      ".shimmed-embedded-content"
+    );
+    is(placeholders.length, 1, "Embed is replaced with a placeholder");
+  });
+
+  let smartblockScriptFinished = BrowserTestUtils.waitForContentEvent(
+    tab.linkedBrowser,
+    "smartblockEmbedScriptFinished",
+    false,
+    null,
+    true
+  );
+
+  // inject a second placeholder into the page
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    let newPlaceholder = content.document.createElement("div");
+    newPlaceholder.classList.add("broken-embed-content");
+
+    content.document.body.appendChild(newPlaceholder);
+  });
+
+  // wait for replacement to run
+  await smartblockScriptFinished;
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
+    // Check that the second "embed" was replaced with a placeholder
+    let placeholders = content.document.querySelectorAll(
+      ".shimmed-embedded-content"
+    );
+    is(placeholders.length, 2, "Embed is replaced with a placeholder");
+  });
+
+  await BrowserTestUtils.removeTab(tab);
+});

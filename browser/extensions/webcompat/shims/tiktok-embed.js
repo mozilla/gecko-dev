@@ -10,15 +10,23 @@ if (!window.smartblockTikTokShimInitialized) {
 
   const SHIM_ID = "TiktokEmbed";
 
-  // Original URL of the TikTok embed script.
-  const ORIGINAL_URL = "https://www.tiktok.com/embed.js";
+  const SHIM_EMBED_CLASSES = ["tiktok-embed"];
+  const SHIM_CLASS_SELECTORS = SHIM_EMBED_CLASSES.map(
+    className => `.${className}`
+  ).join(",");
 
+  // Original URL of the embed script.
+  const ORIGINAL_URL = "https://www.tiktok.com/embed.js";
   const LOGO_URL = "https://smartblock.firefox.etp/tiktok.svg";
 
-  let originalEmbedContainers = document.querySelectorAll(".tiktok-embed");
+  // Timeout for observing new changes to the page
+  const OBSERVER_TIMEOUT_MS = 10000;
+  let observerTimeout;
+  let newEmbedObserver;
+
+  let originalEmbedContainers = [];
   let embedPlaceholders = [];
 
-  // Bug 1925582: this should be a common snippet for use in multiple shims.
   function sendMessageToAddon(message) {
     return browser.runtime.sendMessage({ message, shimId: SHIM_ID });
   }
@@ -31,6 +39,15 @@ if (!window.smartblockTikTokShimInitialized) {
     }
 
     if (topic === "smartblock:unblock-embed") {
+      if (newEmbedObserver) {
+        newEmbedObserver.disconnect();
+        newEmbedObserver = null;
+      }
+
+      if (observerTimeout) {
+        clearTimeout(observerTimeout);
+      }
+
       // remove embed placeholders
       embedPlaceholders.forEach((p, idx) => {
         p.replaceWith(originalEmbedContainers[idx]);
@@ -47,11 +64,24 @@ if (!window.smartblockTikTokShimInitialized) {
     }
   }
 
-  async function createShimPlaceholders() {
+  /**
+   * Replaces embeds with a SmartBlock Embed placeholder. Optionally takes a list
+   * of embeds to replace, otherwise will search for all embeds on the page.
+   *
+   * @param {HTMLElement[]} embedContainers - Array of elements to replace with placeholders.
+   *                                  If the array is empty, this function will search
+   *                                  for and replace all embeds on the page.
+   */
+  async function createShimPlaceholders(embedContainers = []) {
     const [titleString, descriptionString, buttonString] =
       await sendMessageToAddon("smartblockGetFluentString");
 
-    originalEmbedContainers.forEach(originalEmbedContainer => {
+    if (!embedContainers.length) {
+      // No containers were passed in, do own search for containers
+      embedContainers = document.querySelectorAll(SHIM_CLASS_SELECTORS);
+    }
+
+    embedContainers.forEach(originalContainer => {
       // this string has to be defined within this function to avoid linting errors
       // see: https://github.com/mozilla/eslint-plugin-no-unsanitized/issues/259
       const SMARTBLOCK_PLACEHOLDER_HTML_STRING = `
@@ -124,7 +154,6 @@ if (!window.smartblockTikTokShimInitialized) {
 
       // Create the placeholder inside a shadow dom
       const placeholderDiv = document.createElement("div");
-      embedPlaceholders.push(placeholderDiv);
 
       const shadowRoot = placeholderDiv.attachShadow({ mode: "closed" });
 
@@ -144,13 +173,17 @@ if (!window.smartblockTikTokShimInitialized) {
           if (!isTrusted) {
             return;
           }
-          // Send a message to the addon to allow loading TikTok tracking resources
+          // Send a message to the addon to allow loading tracking resources
           // needed by the embed.
           sendMessageToAddon("embedClicked");
         });
 
+      // Save the original embed element and the newly created placeholder
+      embedPlaceholders.push(placeholderDiv);
+      originalEmbedContainers.push(originalContainer);
+
       // Replace the embed with the placeholder
-      originalEmbedContainer.replaceWith(placeholderDiv);
+      originalContainer.replaceWith(placeholderDiv);
 
       sendMessageToAddon("smartblockEmbedReplaced");
     });
@@ -160,6 +193,45 @@ if (!window.smartblockTikTokShimInitialized) {
   browser.runtime.onMessage.addListener(request => {
     addonMessageHandler(request);
   });
+
+  // Monitor for new embeds being added after page load so we can replace them
+  // with placeholders.
+  newEmbedObserver = new MutationObserver(mutations => {
+    for (let { addedNodes, target, type } of mutations) {
+      const nodes = type === "attributes" ? [target] : addedNodes;
+      for (const node of nodes) {
+        if (
+          SHIM_EMBED_CLASSES.some(className =>
+            node.classList?.contains(className)
+          )
+        ) {
+          // If node is an embed, replace with placeholder
+          createShimPlaceholders([node]);
+        } else {
+          // If node is not an embed, check if any children are
+          // and replace if needed
+          let maybeEmbedNodeList =
+            node.querySelectorAll?.(SHIM_CLASS_SELECTORS);
+          if (maybeEmbedNodeList) {
+            createShimPlaceholders(maybeEmbedNodeList);
+          }
+        }
+      }
+    }
+  });
+
+  newEmbedObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+
+  // Disconnect the mutation observer after a fixed (long) timeout to conserve resources.
+  observerTimeout = setTimeout(
+    () => newEmbedObserver.disconnect(),
+    OBSERVER_TIMEOUT_MS
+  );
 
   createShimPlaceholders();
 }
