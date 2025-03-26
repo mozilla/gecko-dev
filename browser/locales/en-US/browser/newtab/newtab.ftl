@@ -46,7 +46,6 @@ newtab-search-box-input =
 
 newtab-topsites-add-search-engine-header = Add Search Engine
 newtab-topsites-add-shortcut-header = New Shortcut
-newtab-topsites-edit-topsites-header = Edit Top Site
 newtab-topsites-edit-shortcut-header = Edit Shortcut
 newtab-topsites-add-shortcut-label = Add Shortcut
 newtab-topsites-title-label = Title
@@ -98,10 +97,6 @@ newtab-dismiss-button-tooltip =
 newtab-menu-content-tooltip =
     .title = Open menu
     .aria-label = Open context menu for { $title }
-# Tooltip on an empty topsite box to open the New Top Site dialog.
-newtab-menu-topsites-placeholder-tooltip =
-    .title = Edit this site
-    .aria-label = Edit this site
 
 ## Context Menu: These strings are displayed in a context menu and are meant as a call to action for a given page.
 
@@ -198,23 +193,7 @@ newtab-label-source-read-time = { $source } · { $timeToRead } min
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
 
-newtab-section-menu-remove-section = Remove Section
-newtab-section-menu-collapse-section = Collapse Section
-newtab-section-menu-expand-section = Expand Section
-newtab-section-menu-manage-section = Manage Section
-newtab-section-menu-manage-webext = Manage Extension
-newtab-section-menu-add-topsite = Add Top Site
-newtab-section-menu-add-search-engine = Add Search Engine
-newtab-section-menu-move-up = Move Up
-newtab-section-menu-move-down = Move Down
 newtab-section-menu-privacy-notice = Privacy Notice
-
-## Section aria-labels
-
-newtab-section-collapse-section-label =
-    .aria-label = Collapse Section
-newtab-section-expand-section-label =
-    .aria-label = Expand Section
 
 ## Section Headers.
 
@@ -239,14 +218,6 @@ newtab-discovery-empty-section-topstories-try-again-button = Try Again
 newtab-discovery-empty-section-topstories-loading = Loading…
 # Displays when a layout in a section took too long to fetch articles.
 newtab-discovery-empty-section-topstories-timed-out = Oops! We almost loaded this section, but not quite.
-
-## Pocket Content Section.
-
-# A save to Pocket button that shows over the card thumbnail on hover.
-newtab-pocket-image =
-    .aria-label = { -pocket-brand-name }
-newtab-pocket-save = Save
-newtab-pocket-saved = Saved
 
 ## Thumbs up and down buttons that shows over a newtab stories card thumbnail on hover.
 
