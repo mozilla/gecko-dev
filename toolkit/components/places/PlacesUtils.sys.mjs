@@ -28,11 +28,6 @@ ChromeUtils.defineLazyGetter(lazy, "CryptoHash", () => {
   );
 });
 
-/**
- * @import {PageInfo} from "resource://gre/modules/History.sys.mjs"
- * @import {OpenedConnection} from "resource://gre/modules/Sqlite.sys.mjs"
- */
-
 // On Mac OSX, the transferable system converts "\r\n" to "\n\n", where
 // we really just want "\n". On other platforms, the transferable system
 // converts "\r\n" to "\n".
@@ -57,12 +52,10 @@ function asQuery(aNode) {
 /**
  * Sends a keyword change notification.
  *
- * @param {string} url
- *   The url to notify about.
- * @param {string} keyword
- *   The keyword to notify, or empty string if a keyword was removed.
- * @param {nsINavBookmarksService.ChangeSource} source
- *   The source of the change.
+ * @param url
+ *        the url to notify about.
+ * @param keyword
+ *        The keyword to notify, or empty string if a keyword was removed.
  */
 async function notifyKeywordChange(url, keyword, source) {
   // Notify bookmarks about the removal.
@@ -93,10 +86,8 @@ async function notifyKeywordChange(url, keyword, source) {
 /**
  * Serializes the given node in JSON format.
  *
- * @param {nsINavHistoryResultNode} aNode
- *   An nsINavHistoryResultNode.
- * @returns {string}
- *   The node as a JSON string.
+ * @param aNode
+ *        An nsINavHistoryResultNode
  */
 function serializeNode(aNode) {
   let data = {};
@@ -166,11 +157,10 @@ const DB_SITENAME_LENGTH_MAX = 50;
 /**
  * Executes a boolean validate function, throwing if it returns false.
  *
- * @param {Function} boolValidateFn
- *   A boolean validate function with at most two arguments.
- * @returns {Function}
- *   A function that computes boolValidateFn. If it passes, it returns its
- *   first argument, otherwise it throws.
+ * @param boolValidateFn
+ *        A boolean validate function.
+ * @returns the input value.
+ * @throws if input doesn't pass the validate function.
  */
 function simpleValidateFunc(boolValidateFn) {
   return (v, input) => {
@@ -206,7 +196,6 @@ const BOOKMARK_VALIDATORS = Object.freeze({
         PlacesUtils.bookmarks.TYPE_SEPARATOR,
       ].includes(v)
   ),
-  /** @type {(v: ?string) => string} */
   title: v => {
     if (v === null) {
       return "";
@@ -216,7 +205,6 @@ const BOOKMARK_VALIDATORS = Object.freeze({
     }
     throw new Error("Invalid title");
   },
-  /** @type {(v: string|URL|nsIURI) => URL} */
   url: v => {
     simpleValidateFunc(
       val =>
@@ -237,9 +225,9 @@ const BOOKMARK_VALIDATORS = Object.freeze({
       Number.isInteger(v) &&
       Object.values(PlacesUtils.bookmarks.SOURCES).includes(v)
   ),
-  keyword: simpleValidateFunc(v => typeof v == "string" && !!v.length),
-  charset: simpleValidateFunc(v => typeof v == "string" && !!v.length),
-  postData: simpleValidateFunc(v => typeof v == "string" && !!v.length),
+  keyword: simpleValidateFunc(v => typeof v == "string" && v.length),
+  charset: simpleValidateFunc(v => typeof v == "string" && v.length),
+  postData: simpleValidateFunc(v => typeof v == "string" && v.length),
   tags: simpleValidateFunc(
     v =>
       Array.isArray(v) &&
@@ -264,7 +252,7 @@ const SYNC_BOOKMARK_VALIDATORS = Object.freeze({
       typeof v == "string" &&
       Object.values(lazy.PlacesSyncUtils.bookmarks.KINDS).includes(v)
   ),
-  query: simpleValidateFunc(v => v === null || (typeof v == "string" && !!v)),
+  query: simpleValidateFunc(v => v === null || (typeof v == "string" && v)),
   folder: simpleValidateFunc(
     v =>
       typeof v == "string" &&
@@ -461,10 +449,8 @@ export var PlacesUtils = {
   /**
    * Checks if a guid is a virtual left-pane root.
    *
-   * @param {string} guid
-   *   The guid of the item to look for.
-   * @returns {boolean}
-   *   True if guid is a virtual root, false otherwise.
+   * @param {string} guid The guid of the item to look for.
+   * @returns {boolean} true if guid is a virtual root, false otherwise.
    */
   isVirtualLeftPaneItem(guid) {
     return (
@@ -483,10 +469,8 @@ export var PlacesUtils = {
   /**
    * Is a string a valid GUID?
    *
-   * @param {string} guid
-   *   A string to test.
-   * @returns {boolean}
-   *   Whether the input is a valid GUID.
+   * @param guid: (String)
+   * @returns (Boolean)
    */
   isValidGuid(guid) {
     return typeof guid == "string" && guid && /^[a-zA-Z0-9\-_]{12}$/.test(guid);
@@ -495,8 +479,8 @@ export var PlacesUtils = {
   /**
    * Is a string a valid GUID prefix?
    *
-   * @param {string} guidPrefix
-   * @returns {boolean}
+   * @param guidPrefix: (String)
+   * @returns (Boolean)
    */
   isValidGuidPrefix(guidPrefix) {
     return (
@@ -511,8 +495,8 @@ export var PlacesUtils = {
    * prefix. We do this instead of just prepending the prefix to keep
    * the correct character length.
    *
-   * @param {string} prefix
-   * @returns {string}
+   * @param prefix: (String)
+   * @returns (String)
    */
   generateGuidWithPrefix(prefix) {
     return prefix + this.history.makeGuid().substring(prefix.length);
@@ -521,10 +505,9 @@ export var PlacesUtils = {
   /**
    * Converts a string or an URL object to an nsIURI.
    *
-   * @param {string|URL|nsIURI} url
-   *   The URL to convert.
-   * @returns {nsIURI}
-   *   nsIURI for the given URL.
+   * @param url (URL) or (String)
+   *        the URL to convert.
+   * @returns nsIURI for the given URL.
    */
   toURI(url) {
     if (url instanceof Ci.nsIURI) {
@@ -539,44 +522,42 @@ export var PlacesUtils = {
   /**
    * Convert a Date object to a PRTime (microseconds).
    *
-   * @param {Date|number} date
-   *   The Date object to convert.
-   * @returns {number}
-   *   Microseconds from the epoch.
+   * @param date
+   *        the Date object to convert.
+   * @returns microseconds from the epoch.
    */
   toPRTime(date) {
-    if (date instanceof Date) {
-      return date.getTime() * 1000;
-    } else if (typeof date == "number" && !isNaN(date)) {
-      return date * 1000;
+    if (
+      (typeof date != "number" && date.constructor.name != "Date") ||
+      isNaN(date)
+    ) {
+      throw new Error("Invalid value passed to toPRTime");
     }
-    throw new Error("Invalid value passed to toPRTime");
+    return date * 1000;
   },
 
   /**
    * Convert a PRTime to a Date object.
    *
-   * @param {number} time
-   *   Microseconds since the epoch.
-   * @returns {Date}
-   *   The time as a Date object.
+   * @param time
+   *        microseconds from the epoch.
+   * @returns a Date object.
    */
   toDate(time) {
     if (typeof time != "number" || isNaN(time)) {
       throw new Error("Invalid value passed to toDate");
     }
-    return new Date(Math.trunc(time / 1000));
+    return new Date(parseInt(time / 1000));
   },
 
   /**
    * Wraps a string in a nsISupportsString wrapper.
    *
-   * @param {string} aString
-   *   The string to wrap.
-   * @returns {nsISupportsString}
-   *   A nsISupportsString object containing a string.
+   * @param   aString
+   *          The string to wrap.
+   * @returns A nsISupportsString object containing a string.
    */
-  toISupportsString(aString) {
+  toISupportsString: function PU_toISupportsString(aString) {
     let s = Cc["@mozilla.org/supports-string;1"].createInstance(
       Ci.nsISupportsString
     );
@@ -595,10 +576,8 @@ export var PlacesUtils = {
   /**
    * Parses a moz-action URL and returns its parts.
    *
-   * @param {string|URL|nsIURI} url
-   *   A moz-action URL (i.e. moz-action:ACTION,JSON_ENCODED_PARAMS).
-   * @returns {?{type: string, params: any}}
-   *   The parts of `url`, or null if `url` is not a valid moz-action URL.
+   * @param url A moz-action URI.
+   * @note URL is in the format moz-action:ACTION,JSON_ENCODED_PARAMS
    */
   parseActionUrl(url) {
     if (url instanceof Ci.nsIURI) {
@@ -630,11 +609,9 @@ export var PlacesUtils = {
   /**
    * Determines if a bookmark folder or folder shortcut is generated by a query.
    *
-   * @param {nsINavHistoryResultNode} node
-   *   A result node.
-   * @returns {boolean}
-   *   Whether `node` is a bookmark folder or folder
-   *   shortcut generated as result of a query.
+   * @param {nsINavHistoryResultNode} node A result node.
+   * @returns {boolean} whether `node` is a bookmark folder or folder shortcut
+   * generated as result of a query.
    */
   nodeIsQueryGeneratedFolder(node) {
     return (
@@ -648,10 +625,8 @@ export var PlacesUtils = {
    * Determines whether or not a ResultNode is a bookmark folder or folder
    * shortcut.
    *
-   * @param {nsINavHistoryResultNode} node
-   *   A result node.
-   * @returns {boolean}
-   *   Whether `node` is a bookmark folder or folder shortcut.
+   * @param {nsINavHistoryResultNode} node A result node.
+   * @returns {boolean} whether `node` is a bookmark folder or folder shortcut.
    */
   nodeIsFolderOrShortcut(node) {
     return [
@@ -665,10 +640,8 @@ export var PlacesUtils = {
    * For most UI purposes it's better to use nodeIsFolderOrShortcut,
    * as folder shortcuts behave like the target folder.
    *
-   * @param {nsINavHistoryResultNode} node
-   *   A result node.
-   * @returns {boolean}
-   *   Whether the node is a bookmark folder.
+   * @param {nsINavHistoryResultNode} node A result node.
+   * @returns {boolean} whether the node is a bookmark folder.
    */
   nodeIsConcreteFolder(node) {
     return node.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER;
@@ -677,25 +650,21 @@ export var PlacesUtils = {
   /**
    * Determines whether or not a ResultNode represents a bookmarked URI.
    *
-   * @param {nsINavHistoryResultNode} node
-   *   A result node.
-   * @returns {boolean}
-   *   Whether the node is a bookmarked URI.
+   * @param {nsINavHistoryResultNode} node A result node.
+   * @returns {boolean} whether the node is a bookmarked URI.
    */
   nodeIsBookmark(node) {
     return (
       node.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_URI &&
-      (node.itemId != -1 || !!node.bookmarkGuid)
+      (node.itemId != -1 || node.bookmarkGuid)
     );
   },
 
   /**
    * Determines whether or not a ResultNode is a bookmark separator.
    *
-   * @param {nsINavHistoryResultNode} node
-   *   A result node.
-   * @returns {boolean}
-   *   Whether the node is a bookmark separator.
+   * @param {nsINavHistoryResultNode} node A result node.
+   * @returns {boolean} whether the node is a bookmark separator.
    */
   nodeIsSeparator(node) {
     return node.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR;
@@ -704,10 +673,8 @@ export var PlacesUtils = {
   /**
    * Determines whether or not a ResultNode represents a URL.
    *
-   * @param {nsINavHistoryResultNode} node
-   *   A result node.
-   * @returns {boolean}
-   *   Whether the node represents a URL.
+   * @param {nsINavHistoryResultNode} node A result node.
+   * @returns {boolean} whether the node represents a URL.
    */
   nodeIsURI(node) {
     return node.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_URI;
@@ -716,10 +683,8 @@ export var PlacesUtils = {
   /**
    * Determines whether or not a ResultNode is a Places query.
    *
-   * @param {nsINavHistoryResultNode} node
-   *   A result node.
-   * @returns {boolean}
-   *   Whether the node is a Places Query.
+   * @param {nsINavHistoryResultNode} node A result node.
+   * @returns {boolean} whether the node is a Places Query.
    */
   nodeIsQuery(node) {
     return node.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY;
@@ -728,12 +693,10 @@ export var PlacesUtils = {
   /**
    * Generator for a node's ancestors.
    *
-   * @param {nsINavHistoryResultNode} aNode
-   *   A result node.
-   * @yields {nsINavHistoryResultNode}
-   *   The node's ancestors.
+   * @param aNode
+   *        A result node
    */
-  *nodeAncestors(aNode) {
+  nodeAncestors: function* PU_nodeAncestors(aNode) {
     let node = aNode.parent;
     while (node) {
       yield node;
@@ -745,34 +708,31 @@ export var PlacesUtils = {
    * Checks validity of an object, filling up default values for optional
    * properties.
    *
-   * Note: any unknown properties are pass-through.
-   *
    * @param {string} name
-   *   The operation name. This is included in the error message if
-   *   validation fails.
-   * @param {object} validators
-   *   An object containing input validators. Keys should be field names;
-   *   values should be validation functions.
-   * @param {object} props
-   *   The object to validate.
-   * @param {object} [behavior]
-   *   Object defining special behavior for some of the properties.
-   *   The following behaviors may be optionally set:
-   *    - required: this property is required.
-   *    - replaceWith: this property will be overwritten with the value
-   *                   provided
-   *    - requiredIf: if the provided condition is satisfied, then this
-   *                  property is required.
-   *    - validIf: if the provided condition is not satisfied, then this
-   *               property is invalid.
-   *    - defaultValue: an undefined property should default to this value.
-   *    - fixup: a function invoked when validation fails, takes the input
-   *             object as argument and must fix the property.
+   *        The operation name. This is included in the error message if
+   *        validation fails.
+   * @param validators (object)
+   *        An object containing input validators. Keys should be field names;
+   *        values should be validation functions.
+   * @param props (object)
+   *        The object to validate.
+   * @param behavior (object) [optional]
+   *        Object defining special behavior for some of the properties.
+   *        The following behaviors may be optionally set:
+   *         - required: this property is required.
+   *         - replaceWith: this property will be overwritten with the value
+   *                        provided
+   *         - requiredIf: if the provided condition is satisfied, then this
+   *                       property is required.
+   *         - validIf: if the provided condition is not satisfied, then this
+   *                    property is invalid.
+   *         - defaultValue: an undefined property should default to this value.
+   *         - fixup: a function invoked when validation fails, takes the input
+   *                  object as argument and must fix the property.
    *
-   * @returns {object}
-   *   A validated and normalized item.
-   * @throws
-   *   If the object contains invalid data.
+   * @returns a validated and normalized item.
+   * @throws if the object contains invalid data.
+   * @note any unknown properties are pass-through.
    */
   validateItemProperties(name, validators, props, behavior = {}) {
     if (typeof props != "object" || !props) {
@@ -876,7 +836,7 @@ export var PlacesUtils = {
   },
 
   // nsIObserver
-  observe(aSubject, aTopic) {
+  observe: function PU_observe(aSubject, aTopic) {
     switch (aTopic) {
       case this.TOPIC_SHUTDOWN:
         Services.obs.removeObserver(this, this.TOPIC_SHUTDOWN);
@@ -890,12 +850,11 @@ export var PlacesUtils = {
   /**
    * Determines whether or not a ResultNode is a host container.
    *
-   * @param {nsINavHistoryResultNode} aNode
-   *  A result node.
-   * @returns {boolean}
-   *  True if the node is a host container, false otherwise.
+   * @param   aNode
+   *          A result node
+   * @returns true if the node is a host container, false otherwise
    */
-  nodeIsHost(aNode) {
+  nodeIsHost: function PU_nodeIsHost(aNode) {
     return (
       aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY &&
       aNode.parent &&
@@ -907,12 +866,11 @@ export var PlacesUtils = {
   /**
    * Determines whether or not a ResultNode is a day container.
    *
-   * @param {nsINavHistoryResultNode} aNode
-   *  A result node.
-   * @returns {boolean}
-   *  True if the node is a day container, false otherwise.
+   * @param   node
+   *          A NavHistoryResultNode
+   * @returns true if the node is a day container, false otherwise
    */
-  nodeIsDay(aNode) {
+  nodeIsDay: function PU_nodeIsDay(aNode) {
     var resultType;
     return (
       aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY &&
@@ -926,12 +884,11 @@ export var PlacesUtils = {
   /**
    * Determines whether or not a result-node is a tag container.
    *
-   * @param {nsINavHistoryResultNode} aNode
-   *   A result node.
-   * @returns {boolean}
-   *   True if the node is a tag container, false otherwise.
+   * @param   aNode
+   *          A result-node
+   * @returns true if the node is a tag container, false otherwise
    */
-  nodeIsTagQuery(aNode) {
+  nodeIsTagQuery: function PU_nodeIsTagQuery(aNode) {
     if (aNode.type != Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY) {
       return false;
     }
@@ -957,33 +914,30 @@ export var PlacesUtils = {
     return false;
   },
 
+  /**
+   * Determines whether or not a ResultNode is a container.
+   *
+   * @param   aNode
+   *          A result node
+   * @returns true if the node is a container item, false otherwise
+   */
   containerTypes: [
     Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER,
     Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT,
     Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY,
   ],
-
-  /**
-   * Determines whether or not a ResultNode is a container.
-   *
-   * @param {nsINavHistoryResultNode} aNode
-   *   A result node.
-   * @returns {boolean}
-   *   True if the node is a container item, false otherwise.
-   */
-  nodeIsContainer(aNode) {
+  nodeIsContainer: function PU_nodeIsContainer(aNode) {
     return this.containerTypes.includes(aNode.type);
   },
 
   /**
    * Determines whether or not a ResultNode is an history related container.
    *
-   * @param {nsINavHistoryResultNode} aNode
-   *   A result node.
-   * @returns {boolean}
-   *   True if the node is an history related container, false otherwise.
+   * @param   node
+   *          A result node
+   * @returns true if the node is an history related container, false otherwise
    */
-  nodeIsHistoryContainer(aNode) {
+  nodeIsHistoryContainer: function PU_nodeIsHistoryContainer(aNode) {
     var resultType;
     return (
       this.nodeIsQuery(aNode) &&
@@ -1001,10 +955,9 @@ export var PlacesUtils = {
    * shortcuts, this is just node.bookmarkGuid.  For folder shortcuts, this is
    * node.targetFolderGuid (see nsINavHistoryService.idl for the semantics).
    *
-   * @param {nsINavHistoryResultNode} aNode
-   *   A result node.
-   * @returns {string}
-   *   The concrete item-guid for aNode.
+   * @param aNode
+   *        a result node.
+   * @returns the concrete item-guid for aNode.
    */
   getConcreteItemGuid(aNode) {
     if (aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT) {
@@ -1015,13 +968,12 @@ export var PlacesUtils = {
 
   /**
    * Reverse a host based on the moz_places algorithm, that is reverse the host
-   * string and add a trailing period. For example "google.com" becomes
+   * string and add a trailing period.  For example "google.com" becomes
    * "moc.elgoog.".
    *
-   * @param {URL|nsIURI} url
-   *   The URL to generate a rev host for.
-   * @returns {string}
-   *   The reversed host string.
+   * @param url
+   *        the URL to generate a rev host for.
+   * @returns the reversed host string.
    */
   getReversedHost(url) {
     return url.host.split("").reverse().join("") + ".";
@@ -1065,12 +1017,11 @@ export var PlacesUtils = {
    * String-wraps a result node according to the rules of the specified
    * content type for copy or move operations.
    *
-   * @param {nsINavHistoryResultNode} aNode
-   *   The Result node to wrap (serialize).
-   * @param {string} aType
-   *   The content type to serialize as.
-   * @returns {string}
-   *   A string serialization of the node
+   * @param   aNode
+   *          The Result node to wrap (serialize)
+   * @param   aType
+   *          The content type to serialize as
+   * @returns  A string serialization of the node
    */
   wrapNode(aNode, aType) {
     // When wrapping a node, we want all the items, even if the original
@@ -1186,7 +1137,6 @@ export var PlacesUtils = {
           return aNode.uri + NEWLINE + aNode.title;
         }
         if (PlacesUtils.nodeIsContainer(aNode)) {
-          // @ts-ignore
           return PlacesUtils.getURLsForContainerNode(aNode)
             .map(item => item.uri + "\n" + item.title)
             .join("\n");
@@ -1204,19 +1154,17 @@ export var PlacesUtils = {
 
   /**
    * Unwraps data from the Clipboard or the current Drag Session.
-   * Returns two arrays, one with objects representing each valid item
-   * and one with objects representing each invalid item.
    *
-   * @param {string} blob
-   *   A blob (string) of data, in some format we potentially know how to parse.
-   * @param {string} type
-   *   The content type of the blob.
-   * @throws
-   *   If the blob contains invalid data.
+   * @param   blob
+   *          A blob (string) of data, in some format we potentially know how
+   *          to parse.
+   * @param   type
+   *          The content type of the blob.
+   * @returns An array of objects representing each item contained by the source.
+   * @throws if the blob contains invalid data.
    */
-  unwrapNodes(blob, type) {
+  unwrapNodes: function PU_unwrapNodes(blob, type) {
     // We split on "\n"  because the transferable system converts "\r\n" to "\n"
-    /** @type {{uri: string, title: string, type: string}[]} */
     let validNodes = [];
     let invalidNodes = [];
     switch (type) {
@@ -1304,12 +1252,8 @@ export var PlacesUtils = {
   /**
    * Validate an input PageInfo object, returning a valid PageInfo object.
    *
-   * @param {PageInfo} pageInfo
-   *   PageInfo to validate.
-   * @param {boolean} [validateVisits=true]
-   *   Whether the visits should also be validated.
-   * @returns {PageInfo}
-   *   The validated PageInfo object.
+   * @param pageInfo: (PageInfo)
+   * @returns (PageInfo)
    */
   validatePageInfo(pageInfo, validateVisits = true) {
     return this.validateItemProperties(
@@ -1323,16 +1267,13 @@ export var PlacesUtils = {
       }
     );
   },
-
   /**
    * Normalize a key to either a string (if it is a valid GUID) or an
    * instance of `URL` (if it is a `URL`, `nsIURI`, or a string
    * representing a valid url).
    *
-   * @param {string|URL|nsIURI} key
-   *   The key to normalize.
-   * @throws {TypeError}
-   *   If the key is neither a valid guid nor a valid url.
+   * @throws (TypeError)
+   *         If the key is neither a valid guid nor a valid url.
    */
   normalizeToURLOrGUID(key) {
     if (typeof key === "string") {
@@ -1354,17 +1295,17 @@ export var PlacesUtils = {
   /**
    * Generates a nsINavHistoryResult for the contents of a folder.
    *
-   * @param {string} aFolderGuid
-   *   The folder to open
-   * @param {boolean} [aExcludeItems]
-   *   True to hide all items (individual bookmarks).
-   *   This is used on the left places pane so you just get a folder hierarchy.
-   * @param {boolean} [aExpandQueries]
-   *   True to make query items expand as new containers. For managing, you
-   *   want this to be false, for menus and such, you want this to be true.
-   * @returns {nsINavHistoryResult}
-   *   A nsINavHistoryResult containing the contents of the folder.
-   *   The result.root is guaranteed to be open.
+   * @param   aFolderGuid
+   *          The folder to open
+   * @param   [optional] excludeItems
+   *          True to hide all items (individual bookmarks). This is used on
+   *          the left places pane so you just get a folder hierarchy.
+   * @param   [optional] expandQueries
+   *          True to make query items expand as new containers. For managing,
+   *          you want this to be false, for menus and such, you want this to
+   *          be true.
+   * @returns A nsINavHistoryResult containing the contents of the
+   *          folder. The result.root is guaranteed to be open.
    */
   getFolderContents(aFolderGuid, aExcludeItems, aExpandQueries) {
     if (!this.isValidGuid(aFolderGuid)) {
@@ -1381,24 +1322,19 @@ export var PlacesUtils = {
     return result;
   },
 
-  /**
-   * Identifier getters for special folders.
-   * You should use these everywhere PlacesUtils is available
-   * to avoid XPCOM traversal just to get roots' ids.
-   *
-   * @type {number}
-   */
+  // Identifier getters for special folders.
+  // You should use these everywhere PlacesUtils is available to avoid XPCOM
+  // traversal just to get roots' ids.
   get tagsFolderId() {
-    return (this._tagsFolderId ??= this.bookmarks.tagsFolder);
+    delete this.tagsFolderId;
+    return (this.tagsFolderId = this.bookmarks.tagsFolder);
   },
 
   /**
    * Checks if item is a root.
    *
-   * @param {string} guid
-   *    The guid of the item to look for.
-   * @returns {boolean}
-   *   True if guid is a root, false otherwise.
+   * @param {string} guid The guid of the item to look for.
+   * @returns {boolean} true if guid is a root, false otherwise.
    */
   isRootItem(guid) {
     return (
@@ -1415,22 +1351,25 @@ export var PlacesUtils = {
    * Returns a nsNavHistoryContainerResultNode with forced excludeItems and
    * expandQueries.
    *
-   * @param {nsINavHistoryContainerResultNode} aNode
-   *   The node to convert
-   * @param {boolean} [aExcludeItems]
-   *   True to hide all items (individual bookmarks). This is used on
-   *   the left places pane so you just get a folder hierarchy.
-   * @param {boolean} [aExpandQueries]
-   *   True to make query items expand as new containers. For managing,
-   *   you want this to be false, for menus and such, you want this to
-   *   be true.
-   * @returns {nsINavHistoryContainerResultNode}
-   *   A nsINavHistoryContainerResultNode containing the unfiltered
-   *   contents of the container.
-   *   Note: The returned container node could be open or closed,
-   *   we don't guarantee its status.
+   * @param   aNode
+   *          The node to convert
+   * @param   [optional] excludeItems
+   *          True to hide all items (individual bookmarks). This is used on
+   *          the left places pane so you just get a folder hierarchy.
+   * @param   [optional] expandQueries
+   *          True to make query items expand as new containers. For managing,
+   *          you want this to be false, for menus and such, you want this to
+   *          be true.
+   * @returns A nsINavHistoryContainerResultNode containing the unfiltered
+   *          contents of the container.
+   * @note    The returned container node could be open or closed, we don't
+   *          guarantee its status.
    */
-  getContainerNodeWithOptions(aNode, aExcludeItems, aExpandQueries) {
+  getContainerNodeWithOptions: function PU_getContainerNodeWithOptions(
+    aNode,
+    aExcludeItems,
+    aExpandQueries
+  ) {
     if (!this.nodeIsContainer(aNode)) {
       throw Components.Exception("", Cr.NS_ERROR_INVALID_ARG);
     }
@@ -1462,12 +1401,11 @@ export var PlacesUtils = {
    * Returns true if a container has uri nodes in its first level.
    * Has better performance than (getURLsForContainerNode(node).length > 0).
    *
-   * @param {nsINavHistoryContainerResultNode} aNode
-   *   The container node to search through.
-   * @returns {boolean}
-   *   True if the node contains uri nodes, false otherwise.
+   * @param aNode
+   *        The container node to search through.
+   * @returns true if the node contains uri nodes, false otherwise.
    */
-  hasChildURIs(aNode) {
+  hasChildURIs: function PU_hasChildURIs(aNode) {
     if (!this.nodeIsContainer(aNode)) {
       return false;
     }
@@ -1507,11 +1445,11 @@ export var PlacesUtils = {
    * passed in container.
    * If you only need to know if the node contains uris, use hasChildURIs.
    *
-   * @param {nsINavHistoryContainerResultNode} aNode
-   *   The container node to search through.
+   * @param aNode
+   *        The container node to search through
+   * @returns array of uris in the first level of the container.
    */
-  getURLsForContainerNode(aNode) {
-    /** @type {{uri: string, isBookmark: boolean, title: string}[]} */
+  getURLsForContainerNode: function PU_getURLsForContainerNode(aNode) {
     let urls = [];
     if (!this.nodeIsContainer(aNode)) {
       return urls;
@@ -1605,13 +1543,11 @@ export var PlacesUtils = {
    *    // Shutdown will not interrupt operations that take place here.
    * }));
    *
-   * @template T
-   * @param {string} name
-   *   The name of the operation. Used for debugging, logging and crash reporting.
-   * @param {(db: OpenedConnection) => Promise<T>} task
-   *   A function that takes as argument a Sqlite.sys.mjs connection and returns
-   *   a Promise. Shutdown is guaranteed to not interrupt execution of `task`.
-   * @returns {Promise<T>}
+   * @param {string} name The name of the operation. Used for debugging, logging
+   *   and crash reporting.
+   * @param {function(db)} task A function that takes as argument a Sqlite.sys.mjs
+   *   connection and returns a Promise. Shutdown is guaranteed to not interrupt
+   *   execution of `task`.
    */
   async withConnectionWrapper(name, task) {
     if (!name) {
@@ -1624,14 +1560,14 @@ export var PlacesUtils = {
   /**
    * Gets favicon data for a given page url.
    *
-   * @param {string|URL|nsIURI} aPageUrl
-   *   Url of the page to get favicon for.
-   * @param {number} [preferredWidth]
+   * @param {string | URL | nsIURI} aPageUrl
+   *   url of the page to look favicon for.
+   * @param {number} preferredWidth
    *   The preferred width of the favicon in pixels. The default value of 0
    *   returns the largest icon available.
-   * @returns {Promise<{uri: nsIURI, dataLen: number, data: number[], mimeType: string, size: number}>}
-   *   Resolves an object representing a favicon entry.
-   *   Rejects if the given url has no associated favicon.
+   * @resolves to an object representing a favicon entry, having the following
+   *           properties: { uri, dataLen, data, mimeType }
+   * @rejects JavaScript exception if the given url has no associated favicon.
    */
   promiseFaviconData(aPageUrl, preferredWidth = 0) {
     return new Promise((resolve, reject) => {
@@ -1656,14 +1592,13 @@ export var PlacesUtils = {
    * Returns the passed URL with a #size ref for the specified size and
    * devicePixelRatio.
    *
-   * @param {Window} window
-   *   The window where the icon will appear.
-   * @param {string} href
-   *   The string href we should add the ref to.
-   * @param {number} size
-   *   The target image size
-   * @returns {string}
-   *   The URL with the fragment at the end, in the same format as input.
+   * @param window
+   *        The window where the icon will appear.
+   * @param href
+   *        The string href we should add the ref to.
+   * @param size
+   *        The target image size
+   * @returns The URL with the fragment at the end, in the same formar as input.
    */
   urlWithSizeRef(window, href, size) {
     return (
@@ -1679,46 +1614,43 @@ export var PlacesUtils = {
    * item (a bookmark, a folder, or a separator) along with all of its
    * descendants.
    *
-   * @param {string} [aItemGuid]
-   *   The (topmost) item to be queried. If it's not passed, the places root is
-   *   queried: i.e., you get a representation of the entire bookmarks hierarchy.
-   * @param {object} [aOptions]
-   *   Options object for customizing the query behavior,
-   *   with any of the following properties:
-   * @param {(item: object) => boolean} [aOptions.excludeItemsCallback]
-   *   A function for excluding items, along with their descendants.
-   *   Given an item object (that has everything set apart its potential
-   *   children data), it should return true if the item should be excluded.
-   *   Once an item is excluded, the function isn't called for any of its
-   *   descendants. This isn't called for the root item.
-   *   WARNING: since the function may be called for each item, using
-   *   this option can slow down the process significantly if the
-   *   callback does anything that's not relatively trivial. It is
-   *   highly recommended to avoid any synchronous I/O or DB queries.
-   * @param {any} [aOptions.includeItemIds]
-   *   Opt-in to include the deprecated id property.
-   *   Use it if you must. It'll be removed once the switch to GUIDs is complete.
+   * @param [optional] aItemGuid
+   *        the (topmost) item to be queried.  If it's not passed, the places
+   *        root is queried: that is, you get a representation of the entire
+   *        bookmarks hierarchy.
+   * @param [optional] aOptions
+   *        Options for customizing the query behavior, in the form of a JS
+   *        object with any of the following properties:
+   *         - excludeItemsCallback: a function for excluding items, along with
+   *           their descendants.  Given an item object (that has everything set
+   *           apart its potential children data), it should return true if the
+   *           item should be excluded.  Once an item is excluded, the function
+   *           isn't called for any of its descendants.  This isn't called for
+   *           the root item.
+   *           WARNING: since the function may be called for each item, using
+   *           this option can slow down the process significantly if the
+   *           callback does anything that's not relatively trivial.  It is
+   *           highly recommended to avoid any synchronous I/O or DB queries.
+   *        - includeItemIds: opt-in to include the deprecated id property.
+   *          Use it if you must. It'll be removed once the switch to GUIDs is
+   *          complete.
    *
    * @returns {Promise}
-   *   Resolves to a JS object that represents either a single item or a
-   *   bookmarks tree. Rejects if the query failed for any reason.
-   *   Note: if aItemGuid points to a non-existent item, the returned promise
-   *   is resolved to null.
-   *
-   * Each node in the tree has the following properties set:
-   * - guid (string): the item's GUID (same as aItemGuid for the top item).
-   * - [deprecated] id (number): the item's id. This is only if
-   *   aOptions.includeItemIds is set.
-   * - type (string):  the item's type.  @see PlacesUtils.TYPE_X_*
-   * - typeCode (number):  the item's type in numeric format.
-   *   @see PlacesUtils.bookmarks.TYPE_*
-   * - title (string): the item's title. If it has no title, this property
-   *   isn't set.
-   * - dateAdded (number, microseconds from the epoch): the date-added value of
-   *   the item.
-   * - lastModified (number, microseconds from the epoch): the last-modified
-   *   value of the item.
-   * - index: the item's index under it's parent.
+   * @resolves to a JS object that represents either a single item or a
+   * bookmarks tree.  Each node in the tree has the following properties set:
+   *  - guid (string): the item's GUID (same as aItemGuid for the top item).
+   *  - [deprecated] id (number): the item's id. This is only if
+   *    aOptions.includeItemIds is set.
+   *  - type (string):  the item's type.  @see PlacesUtils.TYPE_X_*
+   *  - typeCode (number):  the item's type in numeric format.
+   *    @see PlacesUtils.bookmarks.TYPE_*
+   *  - title (string): the item's title. If it has no title, this property
+   *    isn't set.
+   *  - dateAdded (number, microseconds from the epoch): the date-added value of
+   *    the item.
+   *  - lastModified (number, microseconds from the epoch): the last-modified
+   *    value of the item.
+   *  - index: the item's index under it's parent.
    *
    * The root object (i.e. the one for aItemGuid) also has the following
    * properties set:
@@ -1741,14 +1673,14 @@ export var PlacesUtils = {
    * Folders may also have the following properties:
    *  - children (array): the folder's children information, each of them
    *    having the same set of properties as above.
+   *
+   * @rejects if the query failed for any reason.
+   * @note if aItemGuid points to a non-existent item, the returned promise is
+   * resolved to null.
    */
   async promiseBookmarksTree(aItemGuid = "", aOptions = {}) {
-    let createItemInfoObject = async function (
-      /** @type {mozIStorageRow} */ aRow,
-      /** @type {boolean}*/ aIncludeParentGuid
-    ) {
+    let createItemInfoObject = async function (aRow, aIncludeParentGuid) {
       let item = {};
-      /** @type {(...props: string[]) => void} */
       let copyProps = (...props) => {
         for (let prop of props) {
           let val = aRow.getResultByName(prop);
@@ -1762,13 +1694,11 @@ export var PlacesUtils = {
         copyProps("parentGuid");
       }
 
-      /** @type {number} */
       let itemId = aRow.getResultByName("id");
       if (aOptions.includeItemIds) {
         item.id = itemId;
       }
 
-      /** @type {number} */
       let type = aRow.getResultByName("type");
       item.typeCode = type;
       if (type == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
@@ -1779,12 +1709,9 @@ export var PlacesUtils = {
         case PlacesUtils.bookmarks.TYPE_BOOKMARK: {
           item.type = PlacesUtils.TYPE_X_MOZ_PLACE;
           // If this fails due to an invalid url, the item will be skipped.
-          item.uri = URL.parse(
-            /** @type {string} */ aRow.getResultByName("url")
-          )?.href;
+          item.uri = URL.parse(aRow.getResultByName("url"))?.href;
           if (!item.uri) {
             let error = new Error("Invalid bookmark URL");
-            // @ts-ignore
             error.becauseInvalidURL = true;
             throw error;
           }
@@ -1938,7 +1865,7 @@ export var PlacesUtils = {
       // So we let everyone else have a go every few items (bug 1186714).
       if (++yieldCounter % 50 == 0) {
         await new Promise(resolve => {
-          Services.tm.dispatchToMainThread(() => resolve());
+          Services.tm.dispatchToMainThread(resolve);
         });
       }
     }
@@ -1950,15 +1877,10 @@ export var PlacesUtils = {
    * Returns a generator that iterates over `array` and yields slices of no
    * more than `chunkLength` elements at a time.
    *
-   * @template T
-   * @param {T[]} array
-   *   An array containing zero or more elements.
-   * @param {number} chunkLength
-   *   The maximum number of elements in each chunk.
-   * @yields {T[]}
-   *   Chunks of the array.
-   * @throws
-   *   If `chunkLength` is negative or not an integer.
+   * @param  {Array} array An array containing zero or more elements.
+   * @param  {number} chunkLength The maximum number of elements in each chunk.
+   * @yields {Array} A chunk of the array.
+   * @throws if `chunkLength` is negative or not an integer.
    */
   *chunkArray(array, chunkLength) {
     if (chunkLength <= 0 || !Number.isInteger(chunkLength)) {
@@ -1995,22 +1917,18 @@ export var PlacesUtils = {
   /**
    * Run some text through md5 and return the hash.
    *
-   * @param {string} data
-   *   The string to hash.
-   * @param {object} [options]
-   * @param {string} [options.format]
-   *   Which format of the hash to return:
-   *    - "base64" for ascii format.
-   *    - "hex" for hex format.
-   * @returns {string}
-   *   Hash of the input data in the required format.
+   * @param {string} data The string to hash.
+   * @param {string} [format] Which format of the hash to return:
+   *   - "base64" for ascii format.
+   *   - "hex" for hex format.
+   * @returns {string} hash of the input data in the required format.
    * @deprecated use sha256 instead.
    */
   md5(data, { format = "base64" } = {}) {
     let hasher = new lazy.CryptoHash("md5");
     // Convert the data to a byte array for hashing.
-    let encodedData = new TextEncoder().encode(data);
-    hasher.update(encodedData, encodedData.length);
+    data = new TextEncoder().encode(data);
+    hasher.update(data, data.length);
     switch (format) {
       case "hex": {
         let hash = hasher.finish(false);
@@ -2027,20 +1945,16 @@ export var PlacesUtils = {
   /**
    * Run some text through SHA256 and return the hash.
    *
-   * @param {string|nsIStringInputStream} data
-   *   The data to hash.
-   * @param {object} [options]
-   * @param {string} [options.format]
-   *   Which format of the hash to return:
-   *    - "base64" (default) for ascii format, not safe for URIs or file names.
-   *    - "hex" for hex format.
-   *    - "base64url" for ascii format safe to be used in file names (RFC 4648).
-   *        You should normally use the "hex" format for file names, but if the
-   *        user may manipulate the file, it would be annoying to have very long
-   *        and unreadable file names, thus this provides a shorter alternative.
-   *        Note padding "=" are untouched and may have to be encoded in URIs.
-   * @returns {string}
-   *   Hash of the input data in the required format.
+   * @param {string|nsIStringInputStream} data The data to hash.
+   * @param {string} [format] Which format of the hash to return:
+   *   - "base64" (default) for ascii format, not safe for URIs or file names.
+   *   - "hex" for hex format.
+   *   - "base64url" for ascii format safe to be used in file names (RFC 4648).
+   *       You should normally use the "hex" format for file names, but if the
+   *       user may manipulate the file, it would be annoying to have very long
+   *       and unreadable file names, thus this provides a shorter alternative.
+   *       Note padding "=" are untouched and may have to be encoded in URIs.
+   * @returns {string} hash of the input data in the required format.
    */
   sha256(data, { format = "base64" } = {}) {
     let hasher = new lazy.CryptoHash("sha256");
@@ -2048,8 +1962,8 @@ export var PlacesUtils = {
       hasher.updateFromStream(data, -1);
     } else {
       // Convert the data string to a byte array for hashing.
-      let encodedData = new TextEncoder().encode(data);
-      hasher.update(encodedData, encodedData.length);
+      data = new TextEncoder().encode(data);
+      hasher.update(data, data.length);
     }
     switch (format) {
       case "hex": {
@@ -2073,12 +1987,11 @@ export var PlacesUtils = {
    * some additional foreign table. Otherwise this will just create an orphan
    * entry that could be expired at any time.
    *
-   * @param {OpenedConnection} db
-   *   The database connection to use.
-   * @param {URL} url
-   *   A valid URL object.
-   * @returns {Promise}
-   *   Resolved when the operation is complete.
+   * @param db
+   *        The database connection to use.
+   * @param url
+   *        A valid URL object.
+   * @returns {Promise} resolved when the operation is complete.
    */
   async maybeInsertPlace(db, url) {
     // The IGNORE conflict can trigger on `guid`.
@@ -2105,12 +2018,11 @@ export var PlacesUtils = {
    * some additional foreign table. Otherwise this will just create an orphan
    * entry that could be expired at any time.
    *
-   * @param {OpenedConnection} db
-   *   The database to use.
-   * @param {URL[]} urls
-   *   An array with all the url objects to insert.
-   * @returns {Promise}
-   *   Resolved when the operation is complete.
+   * @param db
+   *        The database to use
+   * @param urls
+   *        An array with all the url objects to insert.
+   * @returns {Promise} resolved when the operation is complete.
    */
   async maybeInsertManyPlaces(db, urls) {
     await db.executeCached(
@@ -2142,7 +2054,7 @@ export var PlacesUtils = {
    * Creates a console logger.
    * Logging level can be controlled through the `places.loglevel` preference.
    *
-   * @param {object} [options]
+   * @param {object} options
    * @param {string} [options.prefix] Prefix to use for the logged messages.
    * @returns {ConsoleInstance} The console logger.
    */
@@ -2160,821 +2072,7 @@ export var PlacesUtils = {
     }
     return logger;
   },
-
-  /**
-   * The metadata API allows consumers to store simple key-value metadata in
-   * Places. Keys are strings, values can be any type that SQLite supports:
-   * numbers (integers and doubles), Booleans, strings, and blobs. Values are
-   * cached in memory for faster lookups.
-   *
-   * Since some consumers set metadata as part of an existing operation or active
-   * transaction, the API also exposes a `*withConnection` variant for each
-   * method that takes an open database connection.
-   */
-  metadata: {
-    cache: new Map(),
-    jsonPrefix: "data:application/json;base64,",
-
-    /**
-     * Returns the value associated with a metadata key.
-     *
-     * @param  {string} key
-     *   The metadata key to look up.
-     * @param  {any} [defaultValue]
-     *   The default value to return if the value is not present, or cannot be parsed.
-     * @returns {Promise}
-     *   Resolves to the value associated with the key, or the defaultValue if
-     *   there is one.
-     *   Rejectes if the value is not found or it cannot be parsed and there is
-     *   no defaultValue.
-     */
-    get(key, defaultValue) {
-      return PlacesUtils.withConnectionWrapper("PlacesUtils.metadata.get", db =>
-        this.getWithConnection(db, key, defaultValue)
-      );
-    },
-
-    /**
-     * Sets the value for a metadata key.
-     *
-     * @param {string} key
-     *   The metadata key to update.
-     * @param {any} value
-     *   The value to associate with the key.
-     */
-    set(key, value) {
-      return PlacesUtils.withConnectionWrapper("PlacesUtils.metadata.set", db =>
-        this.setWithConnection(db, new Map([[key, value]]))
-      );
-    },
-
-    /**
-     * Sets the value for multiple keys.
-     *
-     * @param {Map<string, any>} pairs
-     *   The metadata keys to update, with their value.
-     */
-    setMany(pairs) {
-      return PlacesUtils.withConnectionWrapper("PlacesUtils.metadata.set", db =>
-        this.setWithConnection(db, pairs)
-      );
-    },
-
-    /**
-     * Removes the values for the given metadata keys.
-     *
-     * @param {...string} keys
-     *   One or more metadata keys to remove.
-     */
-    delete(...keys) {
-      return PlacesUtils.withConnectionWrapper(
-        "PlacesUtils.metadata.delete",
-        db => this.deleteWithConnection(db, ...keys)
-      );
-    },
-
-    /**
-     * @param {OpenedConnection} db
-     * @param {string} key
-     * @param {any} [defaultValue]
-     */
-    async getWithConnection(db, key, defaultValue) {
-      key = this.canonicalizeKey(key);
-      if (this.cache.has(key)) {
-        return this.cache.get(key);
-      }
-      let rows = await db.executeCached(
-        `
-        SELECT value FROM moz_meta WHERE key = :key`,
-        { key }
-      );
-      let value = null;
-      if (rows.length) {
-        let row = rows[0];
-        let rawValue = row.getResultByName("value");
-        // Convert blobs back to `Uint8Array`s.
-        if (row.getTypeOfIndex(0) == row.VALUE_TYPE_BLOB) {
-          value = new Uint8Array(rawValue);
-        } else if (
-          typeof rawValue == "string" &&
-          rawValue.startsWith(this.jsonPrefix)
-        ) {
-          try {
-            value = JSON.parse(
-              this._base64Decode(rawValue.substr(this.jsonPrefix.length))
-            );
-          } catch (ex) {
-            if (defaultValue !== undefined) {
-              // We must create a new array in the local scope to avoid a memory
-              // leak due to the array global object.
-              value = Cu.cloneInto(defaultValue, {});
-            } else {
-              throw ex;
-            }
-          }
-        } else {
-          value = rawValue;
-        }
-      } else if (defaultValue !== undefined) {
-        // We must create a new array in the local scope to avoid a memory leak due
-        // to the array global object.
-        value = Cu.cloneInto(defaultValue, {});
-      } else {
-        throw new Error(`No data stored for key ${key}`);
-      }
-      this.cache.set(key, value);
-      return value;
-    },
-
-    /**
-     * @param {OpenedConnection} db
-     * @param {Map<string, any>} pairs
-     */
-    async setWithConnection(db, pairs) {
-      let entriesToSet = [];
-      let keysToDelete = Array.from(pairs.entries())
-        .filter(([key, value]) => {
-          if (value !== null) {
-            entriesToSet.push({ key: this.canonicalizeKey(key), value });
-            return false;
-          }
-          return true;
-        })
-        .map(([key]) => key);
-      if (keysToDelete.length) {
-        await this.deleteWithConnection(db, ...keysToDelete);
-        if (keysToDelete.length == pairs.size) {
-          return;
-        }
-      }
-
-      // Generate key{i}, value{i} pairs for the SQL bindings.
-      let params = entriesToSet.reduce((accumulator, { key, value }, i) => {
-        accumulator[`key${i}`] = key;
-        // Convert Objects to base64 JSON urls.
-        accumulator[`value${i}`] =
-          typeof value == "object" &&
-          ChromeUtils.getClassName(value) != "Uint8Array"
-            ? this.jsonPrefix + this._base64Encode(JSON.stringify(value))
-            : value;
-        return accumulator;
-      }, {});
-      await db.executeCached(
-        "REPLACE INTO moz_meta (key, value) VALUES " +
-          entriesToSet.map((e, i) => `(:key${i}, :value${i})`).join(),
-        params
-      );
-
-      // Update the cache.
-      entriesToSet.forEach(({ key, value }) => {
-        this.cache.set(key, value);
-      });
-    },
-
-    /**
-     * @param {OpenedConnection} db
-     * @param {...string} keys
-     *   One or more metadata keys to remove.
-     */
-    async deleteWithConnection(db, ...keys) {
-      keys = keys.map(this.canonicalizeKey);
-      if (!keys.length) {
-        return;
-      }
-      await db.execute(
-        `
-        DELETE FROM moz_meta
-        WHERE key IN (${new Array(keys.length).fill("?").join(",")})`,
-        keys
-      );
-      for (let key of keys) {
-        this.cache.delete(key);
-      }
-    },
-
-    /**
-     * @param {string} key
-     * @returns {string}
-     */
-    canonicalizeKey(key) {
-      if (typeof key != "string" || !/^[a-zA-Z0-9\/_]+$/.test(key)) {
-        throw new TypeError("Invalid metadata key: " + key);
-      }
-      return key.toLowerCase();
-    },
-
-    /**
-     * Base64 encodes a utf-8 string.
-     *
-     * @param {string} str
-     *   The string to encode.
-     * @returns {string}
-     * The base64 representation of `str`.
-     */
-    _base64Encode(str) {
-      return ChromeUtils.base64URLEncode(new TextEncoder().encode(str), {
-        pad: true,
-      });
-    },
-
-    /**
-     * Decodes a base64 string. The encoded data must be valid utf-8.
-     *
-     * @param {string} str
-     *   Base64 encoded string.
-     * @returns {string}
-     *   Data in `str`.
-     */
-    _base64Decode(str) {
-      return new TextDecoder("utf-8").decode(
-        ChromeUtils.base64URLDecode(str, { padding: "require" })
-      );
-    },
-  },
-
-  /**
-   * Keywords management API.
-   * Sooner or later these keywords will merge with search aliases, this is an
-   * interim API that should then be replaced by a unified one.
-   * Keywords are associated with URLs and can have POST data.
-   * The relations between URLs and keywords are the following:
-   *  - 1 keyword can only point to 1 URL
-   *  - 1 URL can have multiple keywords, iff they differ by POST data (included the empty one).
-   */
-  keywords: {
-    /**
-     * @typedef KeywordEntry
-     * @property {string} keyword
-     *  The keyword.
-     * @property {URL} url
-     *  The URL.
-     * @property {?string} postData
-     *  Optional post data.
-     */
-
-    /**
-     * Fetches a keyword entry based on keyword or URL.
-     *
-     * @param {string|object} keywordOrEntry
-     *  Either the keyword to fetch or an object providing keyword or url
-     *  property to find keywords for. If both properties are set, this
-     *  returns their intersection.
-     * @param {(entry: KeywordEntry) => void} [onResult]
-     *  Optional callback invoked for each found entry.
-     * @returns {Promise<?KeywordEntry>}
-     *  Resolves to a keyword entry, or null if no keyword entry was found.
-     */
-    async fetch(keywordOrEntry, onResult = null) {
-      if (typeof keywordOrEntry == "string") {
-        keywordOrEntry = { keyword: keywordOrEntry };
-      }
-
-      if (
-        keywordOrEntry === null ||
-        typeof keywordOrEntry != "object" ||
-        ("keyword" in keywordOrEntry &&
-          typeof keywordOrEntry.keyword != "string")
-      ) {
-        throw new Error("Invalid keyword");
-      }
-
-      let hasKeyword = "keyword" in keywordOrEntry;
-      let hasUrl = "url" in keywordOrEntry;
-
-      if (!hasKeyword && !hasUrl) {
-        throw new Error("At least keyword or url must be provided");
-      }
-      if (onResult && typeof onResult != "function") {
-        throw new Error("onResult callback must be a valid function");
-      }
-
-      if (hasUrl) {
-        try {
-          keywordOrEntry.url = BOOKMARK_VALIDATORS.url(keywordOrEntry.url);
-        } catch (ex) {
-          throw new Error(keywordOrEntry.url + " is not a valid URL");
-        }
-      }
-      if (hasKeyword) {
-        keywordOrEntry.keyword = keywordOrEntry.keyword.trim().toLowerCase();
-      }
-      /** @type {(entry: KeywordEntry) => void} */
-      let safeOnResult = entry => {
-        if (onResult) {
-          try {
-            onResult(entry);
-          } catch (ex) {
-            console.error(ex);
-          }
-        }
-      };
-
-      let cache = await promiseKeywordsCache();
-      let entries = [];
-      if (hasKeyword) {
-        let entry = cache.get(keywordOrEntry.keyword);
-        if (entry) {
-          entries.push(entry);
-        }
-      }
-      if (hasUrl) {
-        for (let entry of cache.values()) {
-          if (entry.url.href == keywordOrEntry.url.href) {
-            entries.push(entry);
-          }
-        }
-      }
-
-      entries = entries.filter(e => {
-        return (
-          (!hasUrl || e.url.href == keywordOrEntry.url.href) &&
-          (!hasKeyword || e.keyword == keywordOrEntry.keyword)
-        );
-      });
-
-      entries.forEach(safeOnResult);
-      return entries.length ? entries[0] : null;
-    },
-
-    /**
-     * Adds a new keyword and postData for the given URL.
-     *
-     * @param {object} keywordEntry
-     *  An object describing the keyword to insert.
-     * @param {string} keywordEntry.keyword
-     *  Non-empty string.
-     * @param {URL} keywordEntry.url
-     *  URL or href to associate to the keyword.
-     * @param {string} [keywordEntry.postData]
-     *  Optional POST data to associate to the keyword.
-     *  Note: Do not define a postData property if there isn't any POST data.
-     *  Defining an empty string for POST data is equivalent to not having it.
-     * @param {nsINavBookmarksService.ChangeSource} [keywordEntry.source]
-     *  The change source, forwarded to all bookmark observers.
-     *  Defaults to nsINavBookmarksService::SOURCE_DEFAULT.
-     * @returns {Promise}
-     *  Resolves when the addition is complete.
-     */
-    insert(keywordEntry) {
-      if (!keywordEntry || typeof keywordEntry != "object") {
-        throw new Error("Input should be a valid object");
-      }
-
-      if (
-        !("keyword" in keywordEntry) ||
-        !keywordEntry.keyword ||
-        typeof keywordEntry.keyword != "string"
-      ) {
-        throw new Error("Invalid keyword");
-      }
-      if (
-        "postData" in keywordEntry &&
-        keywordEntry.postData &&
-        typeof keywordEntry.postData != "string"
-      ) {
-        throw new Error("Invalid POST data");
-      }
-      if (!("url" in keywordEntry)) {
-        throw new Error("undefined is not a valid URL");
-      }
-
-      if (!("source" in keywordEntry)) {
-        keywordEntry.source = PlacesUtils.bookmarks.SOURCES.DEFAULT;
-      }
-      let { keyword, url, source } = keywordEntry;
-      keyword = keyword.trim().toLowerCase();
-      let postData = keywordEntry.postData || "";
-      // This also checks href for validity
-      try {
-        url = BOOKMARK_VALIDATORS.url(url);
-      } catch (ex) {
-        throw new Error(url + " is not a valid URL");
-      }
-
-      return PlacesUtils.withConnectionWrapper(
-        "PlacesUtils.keywords.insert",
-        async db => {
-          let cache = await promiseKeywordsCache();
-
-          // Trying to set the same keyword is a no-op.
-          let oldEntry = cache.get(keyword);
-          if (
-            oldEntry &&
-            oldEntry.url.href == url.href &&
-            (oldEntry.postData || "") == postData
-          ) {
-            return;
-          }
-
-          // A keyword can only be associated to a single page.
-          // If another page is using the new keyword, we must update the keyword
-          // entry.
-          // Note we cannot use INSERT OR REPLACE cause it wouldn't invoke the delete
-          // trigger.
-          if (oldEntry) {
-            await db.executeCached(
-              `UPDATE moz_keywords
-               SET place_id = (SELECT id FROM moz_places WHERE url_hash = hash(:url) AND url = :url),
-                   post_data = :post_data
-               WHERE keyword = :keyword
-              `,
-              { url: url.href, keyword, post_data: postData }
-            );
-            await notifyKeywordChange(oldEntry.url.href, "", source);
-          } else {
-            // An entry for the given page could be missing, in such a case we need to
-            // create it.  The IGNORE conflict can trigger on `guid`.
-            await db.executeTransaction(async () => {
-              await PlacesUtils.maybeInsertPlace(db, url);
-
-              // A new keyword could be assigned to an url that already has one,
-              // then we must replace the old keyword with the new one.
-              let oldKeywords = [];
-              for (let entry of cache.values()) {
-                if (
-                  entry.url.href == url.href &&
-                  (entry.postData || "") == postData
-                ) {
-                  oldKeywords.push(entry.keyword);
-                }
-              }
-              if (oldKeywords.length) {
-                for (let oldKeyword of oldKeywords) {
-                  await db.executeCached(
-                    `DELETE FROM moz_keywords WHERE keyword = :oldKeyword`,
-                    { oldKeyword }
-                  );
-                  cache.delete(oldKeyword);
-                }
-              }
-
-              await db.executeCached(
-                `INSERT INTO moz_keywords (keyword, place_id, post_data)
-                 VALUES (:keyword, (SELECT id FROM moz_places WHERE url_hash = hash(:url) AND url = :url), :post_data)
-                `,
-                { url: url.href, keyword, post_data: postData }
-              );
-
-              await lazy.PlacesSyncUtils.bookmarks.addSyncChangesForBookmarksWithURL(
-                db,
-                url,
-                lazy.PlacesSyncUtils.bookmarks.determineSyncChangeDelta(source)
-              );
-            });
-          }
-
-          cache.set(keyword, { keyword, url, postData: postData || null });
-
-          // In any case, notify about the new keyword.
-          await notifyKeywordChange(url.href, keyword, source);
-        }
-      );
-    },
-
-    /**
-     * Removes a keyword.
-     *
-     * @param {string|{keyword: string, source?: nsINavBookmarksService.ChangeSource}} keywordOrEntry
-     *  The keyword to remove.
-     * @returns {Promise}
-     *  Resolves when the removal is complete.
-     */
-    remove(keywordOrEntry) {
-      if (typeof keywordOrEntry == "string") {
-        keywordOrEntry = {
-          keyword: keywordOrEntry,
-          source: Ci.nsINavBookmarksService.SOURCE_DEFAULT,
-        };
-      }
-
-      if (
-        keywordOrEntry === null ||
-        typeof keywordOrEntry != "object" ||
-        !keywordOrEntry.keyword ||
-        typeof keywordOrEntry.keyword != "string"
-      ) {
-        throw new Error("Invalid keyword");
-      }
-
-      let { keyword, source = Ci.nsINavBookmarksService.SOURCE_DEFAULT } =
-        keywordOrEntry;
-      keyword = keywordOrEntry.keyword.trim().toLowerCase();
-      return PlacesUtils.withConnectionWrapper(
-        "PlacesUtils.keywords.remove",
-        async db => {
-          let cache = await promiseKeywordsCache();
-          if (!cache.has(keyword)) {
-            return;
-          }
-          let { url } = cache.get(keyword);
-          cache.delete(keyword);
-
-          await db.executeTransaction(async function () {
-            await db.execute(
-              `DELETE FROM moz_keywords WHERE keyword = :keyword`,
-              { keyword }
-            );
-
-            await lazy.PlacesSyncUtils.bookmarks.addSyncChangesForBookmarksWithURL(
-              db,
-              url,
-              lazy.PlacesSyncUtils.bookmarks.determineSyncChangeDelta(source)
-            );
-          });
-
-          // Notify bookmarks about the removal.
-          await notifyKeywordChange(url.href, "", source);
-        }
-      );
-    },
-
-    /**
-     * Moves all (keyword, POST data) pairs from one URL to another, and fires
-     * observer notifications for all affected bookmarks. If the destination URL
-     * already has keywords, they will be removed and replaced with the source
-     * URL's keywords.
-     *
-     * @param {string|URL|nsIURI} oldURL
-     *  The source URL.
-     * @param {string|URL|nsIURI} newURL
-     *  The destination URL.
-     * @param {nsINavBookmarksService.ChangeSource} source
-     *  The change source, forwarded to all bookmark observers.
-     * @returns {Promise}
-     *  Resolves when all keywords have been moved to the destination URL.
-     */
-    reassign(oldURL, newURL, source = lazy.Bookmarks.SOURCES.DEFAULT) {
-      try {
-        oldURL = BOOKMARK_VALIDATORS.url(oldURL);
-      } catch (ex) {
-        throw new Error(oldURL + " is not a valid source URL");
-      }
-      try {
-        newURL = BOOKMARK_VALIDATORS.url(newURL);
-      } catch (ex) {
-        throw new Error(newURL + " is not a valid destination URL");
-      }
-      return PlacesUtils.withConnectionWrapper(
-        "PlacesUtils.keywords.reassign",
-        async function (db) {
-          let keywordsToReassign = [];
-          let keywordsToRemove = [];
-          let cache = await promiseKeywordsCache();
-          for (let [keyword, entry] of cache) {
-            if (entry.url.href == oldURL.href) {
-              keywordsToReassign.push(keyword);
-            }
-            if (entry.url.href == newURL.href) {
-              keywordsToRemove.push(keyword);
-            }
-          }
-          if (!keywordsToReassign.length) {
-            return;
-          }
-
-          await db.executeTransaction(async function () {
-            // Remove existing keywords from the new URL.
-            await db.executeCached(
-              `DELETE FROM moz_keywords WHERE keyword = :keyword`,
-              keywordsToRemove.map(keyword => ({ keyword }))
-            );
-
-            // Move keywords from the old URL to the new URL.
-            await db.executeCached(
-              `
-            UPDATE moz_keywords SET
-              place_id = (SELECT id FROM moz_places
-                          WHERE url_hash = hash(:newURL) AND
-                                url = :newURL)
-            WHERE place_id = (SELECT id FROM moz_places
-                              WHERE url_hash = hash(:oldURL) AND
-                                    url = :oldURL)`,
-              { newURL: newURL.href, oldURL: oldURL.href }
-            );
-          });
-          for (let keyword of keywordsToReassign) {
-            let entry = cache.get(keyword);
-            entry.url = newURL;
-          }
-          for (let keyword of keywordsToRemove) {
-            cache.delete(keyword);
-          }
-
-          if (keywordsToReassign.length) {
-            // If we moved any keywords, notify that we removed all keywords from
-            // the old and new URLs, then notify for each moved keyword.
-            await notifyKeywordChange(oldURL.href, "", source);
-            await notifyKeywordChange(newURL.href, "", source);
-            for (let keyword of keywordsToReassign) {
-              await notifyKeywordChange(newURL.href, keyword, source);
-            }
-          } else if (keywordsToRemove.length) {
-            // If the old URL didn't have any keywords, but the new URL did, just
-            // notify that we removed all keywords from the new URL.
-            await notifyKeywordChange(oldURL.href, "", source);
-          }
-        }
-      );
-    },
-
-    /**
-     * Removes all orphaned keywords from the given URLs. Orphaned keywords are
-     * associated with URLs that are no longer bookmarked. If a given URL is still
-     * bookmarked, its keywords will not be removed.
-     *
-     * @param {(string|URL|nsIURI)[]} urls
-     *  A list of URLs to check for orphaned keywords.
-     * @returns {Promise}
-     *  Resolves when all keywords have been removed from URLs that are no longer
-     *  bookmarked.
-     */
-    removeFromURLsIfNotBookmarked(urls) {
-      let hrefs = new Set();
-      for (let url of urls) {
-        try {
-          url = BOOKMARK_VALIDATORS.url(url);
-        } catch (ex) {
-          throw new Error(url + " is not a valid URL");
-        }
-        hrefs.add(url.href);
-      }
-      return PlacesUtils.withConnectionWrapper(
-        "PlacesUtils.keywords.removeFromURLsIfNotBookmarked",
-        async function (db) {
-          let keywordsByHref = new Map();
-          let cache = await promiseKeywordsCache();
-          for (let [keyword, entry] of cache) {
-            let href = entry.url.href;
-            if (!hrefs.has(href)) {
-              continue;
-            }
-            if (!keywordsByHref.has(href)) {
-              keywordsByHref.set(href, [keyword]);
-              continue;
-            }
-            let existingKeywords = keywordsByHref.get(href);
-            existingKeywords.push(keyword);
-          }
-          if (!keywordsByHref.size) {
-            return;
-          }
-
-          let placeInfosToRemove = [];
-          let rows = await db.execute(
-            `
-            SELECT h.id, h.url
-            FROM moz_places h
-            JOIN moz_keywords k ON k.place_id = h.id
-            GROUP BY h.id
-            HAVING h.foreign_count = count(*) +
-              (SELECT count(*)
-               FROM moz_bookmarks b
-               JOIN moz_bookmarks p ON b.parent = p.id
-               WHERE p.parent = :tags_root AND b.fk = h.id)
-            `,
-            { tags_root: PlacesUtils.tagsFolderId }
-          );
-          for (let row of rows) {
-            placeInfosToRemove.push({
-              placeId: row.getResultByName("id"),
-              href: row.getResultByName("url"),
-            });
-          }
-          if (!placeInfosToRemove.length) {
-            return;
-          }
-
-          await db.execute(
-            `DELETE FROM moz_keywords WHERE place_id IN (${Array.from(
-              placeInfosToRemove.map(info => info.placeId)
-            ).join()})`
-          );
-          for (let { href } of placeInfosToRemove) {
-            let keywords = keywordsByHref.get(href);
-            for (let keyword of keywords) {
-              cache.delete(keyword);
-            }
-          }
-        }
-      );
-    },
-
-    /**
-     * Removes all keywords from all URLs.
-     *
-     * @returns {Promise}
-     *  Resolves when all keywords have been removed.
-     */
-    eraseEverything() {
-      return PlacesUtils.withConnectionWrapper(
-        "PlacesUtils.keywords.eraseEverything",
-        async function (db) {
-          let cache = await promiseKeywordsCache();
-          if (!cache.size) {
-            return;
-          }
-          await db.executeCached(`DELETE FROM moz_keywords`);
-          cache.clear();
-        }
-      );
-    },
-
-    /**
-     * Invalidates the keywords cache, leaving all existing keywords in place.
-     * The cache will be repopulated on the next `PlacesUtils.keywords.*` call.
-     *
-     * @returns {Promise}
-     *  Resolves when the cache has been cleared.
-     */
-    invalidateCachedKeywords() {
-      gKeywordsCachePromise = gKeywordsCachePromise.then(_ => null);
-      this.ensureCacheInitialized();
-      return gKeywordsCachePromise;
-    },
-    /**
-     * Ensures the keywords cache is initialized.
-     *
-     * @returns {Promise}
-     *  Resolved when keywords cache is initialized.
-     */
-    async ensureCacheInitialized() {
-      this._cache = await promiseKeywordsCache();
-    },
-    /** @type {?Map<string, KeywordEntry>} */
-    _cache: null,
-    /**
-     * Checks from the cache if a given word is a bookmark keyword.
-     * We must make sure the cache is populated, and await ensureCacheInitialized()
-     * before calling this function.
-     *
-     * @param {string} keyword
-     *  Word to check.
-     * @returns {boolean}
-     *  Whether the given word is a keyword.
-     */
-    isKeywordFromCache(keyword) {
-      return this._cache?.has(keyword);
-    },
-  },
 };
-
-/** @type {Promise<?Map<string, KeywordEntry>>} */
-var gKeywordsCachePromise = Promise.resolve(null);
-
-/**
- * Returns the keyword cache, or fetches the keywords
- * if not cached.
- *
- * @returns {Promise<Map<string, KeywordEntry>>}
- *  Resolves to the keywords that are now cached.
- */
-function promiseKeywordsCache() {
-  let promise = gKeywordsCachePromise.then(function (cache) {
-    if (cache) {
-      return cache;
-    }
-    return PlacesUtils.withConnectionWrapper(
-      "PlacesUtils: promiseKeywordsCache",
-      async db => {
-        /** @type {Map<string, KeywordEntry>} */
-        let newCache = new Map();
-        let rows = await db.execute(
-          `SELECT keyword, url, post_data
-           FROM moz_keywords k
-           JOIN moz_places h ON h.id = k.place_id
-          `
-        );
-        let brokenKeywords = [];
-        for (let row of rows) {
-          let keyword = row.getResultByName("keyword");
-          let url = URL.parse(row.getResultByName("url"));
-          if (url) {
-            let entry = {
-              keyword,
-              url,
-              postData: row.getResultByName("post_data") || null,
-            };
-            newCache.set(keyword, entry);
-          } else {
-            // The url is invalid, don't load the keyword and remove it, or it
-            // would break the whole keywords API.
-            brokenKeywords.push(keyword);
-          }
-        }
-        if (brokenKeywords.length) {
-          await db.execute(
-            `DELETE FROM moz_keywords
-             WHERE keyword IN (${brokenKeywords.map(kw => JSON.stringify(kw)).join(",")})
-            `
-          );
-        }
-        return newCache;
-      }
-    );
-  });
-  gKeywordsCachePromise = promise.catch(_ => new Map());
-  return promise;
-}
 
 ChromeUtils.defineLazyGetter(PlacesUtils, "history", function () {
   let hs = Cc["@mozilla.org/browser/nav-history-service;1"].getService(
@@ -3059,9 +2157,6 @@ ChromeUtils.defineLazyGetter(PlacesUtils, "instanceId", () => {
  * 3. Before we can close `conn`, we need to make sure that all external clients
  *   have stopped using `conn`.
  * 4. Before we can close Sqlite, we need to close `conn`.
- *
- * @param {OpenedConnection} conn
- * @param {string} name
  */
 function setupDbForShutdown(conn, name) {
   try {
@@ -3169,3 +2264,757 @@ ChromeUtils.defineLazyGetter(lazy, "gAsyncDBLargeCacheConnPromised", () =>
     })
     .catch(console.error)
 );
+
+/**
+ * The metadata API allows consumers to store simple key-value metadata in
+ * Places. Keys are strings, values can be any type that SQLite supports:
+ * numbers (integers and doubles), Booleans, strings, and blobs. Values are
+ * cached in memory for faster lookups.
+ *
+ * Since some consumers set metadata as part of an existing operation or active
+ * transaction, the API also exposes a `*withConnection` variant for each
+ * method that takes an open database connection.
+ */
+PlacesUtils.metadata = {
+  cache: new Map(),
+  jsonPrefix: "data:application/json;base64,",
+
+  /**
+   * Returns the value associated with a metadata key.
+   *
+   * @param  {string} key
+   *         The metadata key to look up.
+   * @param  {string | object | Array} defaultValue
+   *         Optional. The default value to return if the value is not present,
+   *         or cannot be parsed.
+   * @resolves {*}
+   *         The value associated with the key, or the defaultValue if there is one.
+   * @rejects
+   *         Rejected if the value is not found or it cannot be parsed
+   *         and there is no defaultValue.
+   */
+  get(key, defaultValue) {
+    return PlacesUtils.withConnectionWrapper("PlacesUtils.metadata.get", db =>
+      this.getWithConnection(db, key, defaultValue)
+    );
+  },
+
+  /**
+   * Sets the value for a metadata key.
+   *
+   * @param {string} key
+   *        The metadata key to update.
+   * @param {*}
+   *        The value to associate with the key.
+   */
+  set(key, value) {
+    return PlacesUtils.withConnectionWrapper("PlacesUtils.metadata.set", db =>
+      this.setWithConnection(db, new Map([[key, value]]))
+    );
+  },
+
+  /**
+   * Sets the value for multiple keys.
+   *
+   * @param {Map} pairs
+   *        The metadata keys to update, with their value.
+   */
+  setMany(pairs) {
+    return PlacesUtils.withConnectionWrapper("PlacesUtils.metadata.set", db =>
+      this.setWithConnection(db, pairs)
+    );
+  },
+
+  /**
+   * Removes the values for the given metadata keys.
+   *
+   * @param {String...}
+   *        One or more metadata keys to remove.
+   */
+  delete(...keys) {
+    return PlacesUtils.withConnectionWrapper(
+      "PlacesUtils.metadata.delete",
+      db => this.deleteWithConnection(db, ...keys)
+    );
+  },
+
+  async getWithConnection(db, key, defaultValue) {
+    key = this.canonicalizeKey(key);
+    if (this.cache.has(key)) {
+      return this.cache.get(key);
+    }
+    let rows = await db.executeCached(
+      `
+      SELECT value FROM moz_meta WHERE key = :key`,
+      { key }
+    );
+    let value = null;
+    if (rows.length) {
+      let row = rows[0];
+      let rawValue = row.getResultByName("value");
+      // Convert blobs back to `Uint8Array`s.
+      if (row.getTypeOfIndex(0) == row.VALUE_TYPE_BLOB) {
+        value = new Uint8Array(rawValue);
+      } else if (
+        typeof rawValue == "string" &&
+        rawValue.startsWith(this.jsonPrefix)
+      ) {
+        try {
+          value = JSON.parse(
+            this._base64Decode(rawValue.substr(this.jsonPrefix.length))
+          );
+        } catch (ex) {
+          if (defaultValue !== undefined) {
+            // We must create a new array in the local scope to avoid a memory
+            // leak due to the array global object.
+            value = Cu.cloneInto(defaultValue, {});
+          } else {
+            throw ex;
+          }
+        }
+      } else {
+        value = rawValue;
+      }
+    } else if (defaultValue !== undefined) {
+      // We must create a new array in the local scope to avoid a memory leak due
+      // to the array global object.
+      value = Cu.cloneInto(defaultValue, {});
+    } else {
+      throw new Error(`No data stored for key ${key}`);
+    }
+    this.cache.set(key, value);
+    return value;
+  },
+
+  async setWithConnection(db, pairs) {
+    let entriesToSet = [];
+    let keysToDelete = Array.from(pairs.entries())
+      .filter(([key, value]) => {
+        if (value !== null) {
+          entriesToSet.push({ key: this.canonicalizeKey(key), value });
+          return false;
+        }
+        return true;
+      })
+      .map(([key]) => key);
+    if (keysToDelete.length) {
+      await this.deleteWithConnection(db, ...keysToDelete);
+      if (keysToDelete.length == pairs.size) {
+        return;
+      }
+    }
+
+    // Generate key{i}, value{i} pairs for the SQL bindings.
+    let params = entriesToSet.reduce((accumulator, { key, value }, i) => {
+      accumulator[`key${i}`] = key;
+      // Convert Objects to base64 JSON urls.
+      accumulator[`value${i}`] =
+        typeof value == "object" &&
+        ChromeUtils.getClassName(value) != "Uint8Array"
+          ? this.jsonPrefix + this._base64Encode(JSON.stringify(value))
+          : value;
+      return accumulator;
+    }, {});
+    await db.executeCached(
+      "REPLACE INTO moz_meta (key, value) VALUES " +
+        entriesToSet.map((e, i) => `(:key${i}, :value${i})`).join(),
+      params
+    );
+
+    // Update the cache.
+    entriesToSet.forEach(({ key, value }) => {
+      this.cache.set(key, value);
+    });
+  },
+
+  async deleteWithConnection(db, ...keys) {
+    keys = keys.map(this.canonicalizeKey);
+    if (!keys.length) {
+      return;
+    }
+    await db.execute(
+      `
+      DELETE FROM moz_meta
+      WHERE key IN (${new Array(keys.length).fill("?").join(",")})`,
+      keys
+    );
+    for (let key of keys) {
+      this.cache.delete(key);
+    }
+  },
+
+  canonicalizeKey(key) {
+    if (typeof key != "string" || !/^[a-zA-Z0-9\/_]+$/.test(key)) {
+      throw new TypeError("Invalid metadata key: " + key);
+    }
+    return key.toLowerCase();
+  },
+
+  _base64Encode(str) {
+    return ChromeUtils.base64URLEncode(new TextEncoder().encode(str), {
+      pad: true,
+    });
+  },
+
+  _base64Decode(str) {
+    return new TextDecoder("utf-8").decode(
+      ChromeUtils.base64URLDecode(str, { padding: "require" })
+    );
+  },
+};
+
+/**
+ * Keywords management API.
+ * Sooner or later these keywords will merge with search aliases, this is an
+ * interim API that should then be replaced by a unified one.
+ * Keywords are associated with URLs and can have POST data.
+ * The relations between URLs and keywords are the following:
+ *  - 1 keyword can only point to 1 URL
+ *  - 1 URL can have multiple keywords, iff they differ by POST data (included the empty one).
+ */
+PlacesUtils.keywords = {
+  /**
+   * Fetches a keyword entry based on keyword or URL.
+   *
+   * @param keywordOrEntry
+   *        Either the keyword to fetch or an entry providing keyword
+   *        or url property to find keywords for.  If both properties are set,
+   *        this returns their intersection.
+   * @param onResult [optional]
+   *        Callback invoked for each found entry.
+   * @returns {Promise}
+   * @resolves to an object in the form: { keyword, url, postData },
+   *           or null if a keyword entry was not found.
+   */
+  fetch(keywordOrEntry, onResult = null) {
+    if (typeof keywordOrEntry == "string") {
+      keywordOrEntry = { keyword: keywordOrEntry };
+    }
+
+    if (
+      keywordOrEntry === null ||
+      typeof keywordOrEntry != "object" ||
+      ("keyword" in keywordOrEntry && typeof keywordOrEntry.keyword != "string")
+    ) {
+      throw new Error("Invalid keyword");
+    }
+
+    let hasKeyword = "keyword" in keywordOrEntry;
+    let hasUrl = "url" in keywordOrEntry;
+
+    if (!hasKeyword && !hasUrl) {
+      throw new Error("At least keyword or url must be provided");
+    }
+    if (onResult && typeof onResult != "function") {
+      throw new Error("onResult callback must be a valid function");
+    }
+
+    if (hasUrl) {
+      try {
+        keywordOrEntry.url = BOOKMARK_VALIDATORS.url(keywordOrEntry.url);
+      } catch (ex) {
+        throw new Error(keywordOrEntry.url + " is not a valid URL");
+      }
+    }
+    if (hasKeyword) {
+      keywordOrEntry.keyword = keywordOrEntry.keyword.trim().toLowerCase();
+    }
+
+    let safeOnResult = entry => {
+      if (onResult) {
+        try {
+          onResult(entry);
+        } catch (ex) {
+          console.error(ex);
+        }
+      }
+    };
+
+    return promiseKeywordsCache().then(cache => {
+      let entries = [];
+      if (hasKeyword) {
+        let entry = cache.get(keywordOrEntry.keyword);
+        if (entry) {
+          entries.push(entry);
+        }
+      }
+      if (hasUrl) {
+        for (let entry of cache.values()) {
+          if (entry.url.href == keywordOrEntry.url.href) {
+            entries.push(entry);
+          }
+        }
+      }
+
+      entries = entries.filter(e => {
+        return (
+          (!hasUrl || e.url.href == keywordOrEntry.url.href) &&
+          (!hasKeyword || e.keyword == keywordOrEntry.keyword)
+        );
+      });
+
+      entries.forEach(safeOnResult);
+      return entries.length ? entries[0] : null;
+    });
+  },
+
+  /**
+   * Adds a new keyword and postData for the given URL.
+   *
+   * @param keywordEntry
+   *        An object describing the keyword to insert, in the form:
+   *        {
+   *          keyword: non-empty string,
+   *          url: URL or href to associate to the keyword,
+   *          postData: optional POST data to associate to the keyword
+   *          source: The change source, forwarded to all bookmark observers.
+   *            Defaults to nsINavBookmarksService::SOURCE_DEFAULT.
+   *        }
+   * @note Do not define a postData property if there isn't any POST data.
+   *       Defining an empty string for POST data is equivalent to not having it.
+   * @resolves when the addition is complete.
+   */
+  insert(keywordEntry) {
+    if (!keywordEntry || typeof keywordEntry != "object") {
+      throw new Error("Input should be a valid object");
+    }
+
+    if (
+      !("keyword" in keywordEntry) ||
+      !keywordEntry.keyword ||
+      typeof keywordEntry.keyword != "string"
+    ) {
+      throw new Error("Invalid keyword");
+    }
+    if (
+      "postData" in keywordEntry &&
+      keywordEntry.postData &&
+      typeof keywordEntry.postData != "string"
+    ) {
+      throw new Error("Invalid POST data");
+    }
+    if (!("url" in keywordEntry)) {
+      throw new Error("undefined is not a valid URL");
+    }
+
+    if (!("source" in keywordEntry)) {
+      keywordEntry.source = PlacesUtils.bookmarks.SOURCES.DEFAULT;
+    }
+    let { keyword, url, source } = keywordEntry;
+    keyword = keyword.trim().toLowerCase();
+    let postData = keywordEntry.postData || "";
+    // This also checks href for validity
+    try {
+      url = BOOKMARK_VALIDATORS.url(url);
+    } catch (ex) {
+      throw new Error(url + " is not a valid URL");
+    }
+
+    return PlacesUtils.withConnectionWrapper(
+      "PlacesUtils.keywords.insert",
+      async db => {
+        let cache = await promiseKeywordsCache();
+
+        // Trying to set the same keyword is a no-op.
+        let oldEntry = cache.get(keyword);
+        if (
+          oldEntry &&
+          oldEntry.url.href == url.href &&
+          (oldEntry.postData || "") == postData
+        ) {
+          return;
+        }
+
+        // A keyword can only be associated to a single page.
+        // If another page is using the new keyword, we must update the keyword
+        // entry.
+        // Note we cannot use INSERT OR REPLACE cause it wouldn't invoke the delete
+        // trigger.
+        if (oldEntry) {
+          await db.executeCached(
+            `UPDATE moz_keywords
+             SET place_id = (SELECT id FROM moz_places WHERE url_hash = hash(:url) AND url = :url),
+                 post_data = :post_data
+             WHERE keyword = :keyword
+            `,
+            { url: url.href, keyword, post_data: postData }
+          );
+          await notifyKeywordChange(oldEntry.url.href, "", source);
+        } else {
+          // An entry for the given page could be missing, in such a case we need to
+          // create it.  The IGNORE conflict can trigger on `guid`.
+          await db.executeTransaction(async () => {
+            await PlacesUtils.maybeInsertPlace(db, url);
+
+            // A new keyword could be assigned to an url that already has one,
+            // then we must replace the old keyword with the new one.
+            let oldKeywords = [];
+            for (let entry of cache.values()) {
+              if (
+                entry.url.href == url.href &&
+                (entry.postData || "") == postData
+              ) {
+                oldKeywords.push(entry.keyword);
+              }
+            }
+            if (oldKeywords.length) {
+              for (let oldKeyword of oldKeywords) {
+                await db.executeCached(
+                  `DELETE FROM moz_keywords WHERE keyword = :oldKeyword`,
+                  { oldKeyword }
+                );
+                cache.delete(oldKeyword);
+              }
+            }
+
+            await db.executeCached(
+              `INSERT INTO moz_keywords (keyword, place_id, post_data)
+               VALUES (:keyword, (SELECT id FROM moz_places WHERE url_hash = hash(:url) AND url = :url), :post_data)
+              `,
+              { url: url.href, keyword, post_data: postData }
+            );
+
+            await lazy.PlacesSyncUtils.bookmarks.addSyncChangesForBookmarksWithURL(
+              db,
+              url,
+              lazy.PlacesSyncUtils.bookmarks.determineSyncChangeDelta(source)
+            );
+          });
+        }
+
+        cache.set(keyword, { keyword, url, postData: postData || null });
+
+        // In any case, notify about the new keyword.
+        await notifyKeywordChange(url.href, keyword, source);
+      }
+    );
+  },
+
+  /**
+   * Removes a keyword.
+   *
+   * @param keyword
+   *        The keyword to remove.
+   * @returns {Promise}
+   * @resolves when the removal is complete.
+   */
+  remove(keywordOrEntry) {
+    if (typeof keywordOrEntry == "string") {
+      keywordOrEntry = {
+        keyword: keywordOrEntry,
+        source: Ci.nsINavBookmarksService.SOURCE_DEFAULT,
+      };
+    }
+
+    if (
+      keywordOrEntry === null ||
+      typeof keywordOrEntry != "object" ||
+      !keywordOrEntry.keyword ||
+      typeof keywordOrEntry.keyword != "string"
+    ) {
+      throw new Error("Invalid keyword");
+    }
+
+    let { keyword, source = Ci.nsINavBookmarksService.SOURCE_DEFAULT } =
+      keywordOrEntry;
+    keyword = keywordOrEntry.keyword.trim().toLowerCase();
+    return PlacesUtils.withConnectionWrapper(
+      "PlacesUtils.keywords.remove",
+      async db => {
+        let cache = await promiseKeywordsCache();
+        if (!cache.has(keyword)) {
+          return;
+        }
+        let { url } = cache.get(keyword);
+        cache.delete(keyword);
+
+        await db.executeTransaction(async function () {
+          await db.execute(
+            `DELETE FROM moz_keywords WHERE keyword = :keyword`,
+            { keyword }
+          );
+
+          await lazy.PlacesSyncUtils.bookmarks.addSyncChangesForBookmarksWithURL(
+            db,
+            url,
+            lazy.PlacesSyncUtils.bookmarks.determineSyncChangeDelta(source)
+          );
+        });
+
+        // Notify bookmarks about the removal.
+        await notifyKeywordChange(url.href, "", source);
+      }
+    );
+  },
+
+  /**
+   * Moves all (keyword, POST data) pairs from one URL to another, and fires
+   * observer notifications for all affected bookmarks. If the destination URL
+   * already has keywords, they will be removed and replaced with the source
+   * URL's keywords.
+   *
+   * @param oldURL
+   *        The source URL.
+   * @param newURL
+   *        The destination URL.
+   * @param source
+   *        The change source, forwarded to all bookmark observers.
+   * @returns {Promise}
+   * @resolves when all keywords have been moved to the destination URL.
+   */
+  reassign(oldURL, newURL, source = PlacesUtils.bookmarks.SOURCES.DEFAULT) {
+    try {
+      oldURL = BOOKMARK_VALIDATORS.url(oldURL);
+    } catch (ex) {
+      throw new Error(oldURL + " is not a valid source URL");
+    }
+    try {
+      newURL = BOOKMARK_VALIDATORS.url(newURL);
+    } catch (ex) {
+      throw new Error(oldURL + " is not a valid destination URL");
+    }
+    return PlacesUtils.withConnectionWrapper(
+      "PlacesUtils.keywords.reassign",
+      async function (db) {
+        let keywordsToReassign = [];
+        let keywordsToRemove = [];
+        let cache = await promiseKeywordsCache();
+        for (let [keyword, entry] of cache) {
+          if (entry.url.href == oldURL.href) {
+            keywordsToReassign.push(keyword);
+          }
+          if (entry.url.href == newURL.href) {
+            keywordsToRemove.push(keyword);
+          }
+        }
+        if (!keywordsToReassign.length) {
+          return;
+        }
+
+        await db.executeTransaction(async function () {
+          // Remove existing keywords from the new URL.
+          await db.executeCached(
+            `DELETE FROM moz_keywords WHERE keyword = :keyword`,
+            keywordsToRemove.map(keyword => ({ keyword }))
+          );
+
+          // Move keywords from the old URL to the new URL.
+          await db.executeCached(
+            `
+          UPDATE moz_keywords SET
+            place_id = (SELECT id FROM moz_places
+                        WHERE url_hash = hash(:newURL) AND
+                              url = :newURL)
+          WHERE place_id = (SELECT id FROM moz_places
+                            WHERE url_hash = hash(:oldURL) AND
+                                  url = :oldURL)`,
+            { newURL: newURL.href, oldURL: oldURL.href }
+          );
+        });
+        for (let keyword of keywordsToReassign) {
+          let entry = cache.get(keyword);
+          entry.url = newURL;
+        }
+        for (let keyword of keywordsToRemove) {
+          cache.delete(keyword);
+        }
+
+        if (keywordsToReassign.length) {
+          // If we moved any keywords, notify that we removed all keywords from
+          // the old and new URLs, then notify for each moved keyword.
+          await notifyKeywordChange(oldURL, "", source);
+          await notifyKeywordChange(newURL, "", source);
+          for (let keyword of keywordsToReassign) {
+            await notifyKeywordChange(newURL, keyword, source);
+          }
+        } else if (keywordsToRemove.length) {
+          // If the old URL didn't have any keywords, but the new URL did, just
+          // notify that we removed all keywords from the new URL.
+          await notifyKeywordChange(oldURL, "", source);
+        }
+      }
+    );
+  },
+
+  /**
+   * Removes all orphaned keywords from the given URLs. Orphaned keywords are
+   * associated with URLs that are no longer bookmarked. If a given URL is still
+   * bookmarked, its keywords will not be removed.
+   *
+   * @param urls
+   *        A list of URLs to check for orphaned keywords.
+   * @returns {Promise}
+   * @resolves when all keywords have been removed from URLs that are no longer
+   *           bookmarked.
+   */
+  removeFromURLsIfNotBookmarked(urls) {
+    let hrefs = new Set();
+    for (let url of urls) {
+      try {
+        url = BOOKMARK_VALIDATORS.url(url);
+      } catch (ex) {
+        throw new Error(url + " is not a valid URL");
+      }
+      hrefs.add(url.href);
+    }
+    return PlacesUtils.withConnectionWrapper(
+      "PlacesUtils.keywords.removeFromURLsIfNotBookmarked",
+      async function (db) {
+        let keywordsByHref = new Map();
+        let cache = await promiseKeywordsCache();
+        for (let [keyword, entry] of cache) {
+          let href = entry.url.href;
+          if (!hrefs.has(href)) {
+            continue;
+          }
+          if (!keywordsByHref.has(href)) {
+            keywordsByHref.set(href, [keyword]);
+            continue;
+          }
+          let existingKeywords = keywordsByHref.get(href);
+          existingKeywords.push(keyword);
+        }
+        if (!keywordsByHref.size) {
+          return;
+        }
+
+        let placeInfosToRemove = [];
+        let rows = await db.execute(
+          `
+          SELECT h.id, h.url
+          FROM moz_places h
+          JOIN moz_keywords k ON k.place_id = h.id
+          GROUP BY h.id
+          HAVING h.foreign_count = count(*) +
+            (SELECT count(*)
+             FROM moz_bookmarks b
+             JOIN moz_bookmarks p ON b.parent = p.id
+             WHERE p.parent = :tags_root AND b.fk = h.id)
+          `,
+          { tags_root: PlacesUtils.tagsFolderId }
+        );
+        for (let row of rows) {
+          placeInfosToRemove.push({
+            placeId: row.getResultByName("id"),
+            href: row.getResultByName("url"),
+          });
+        }
+        if (!placeInfosToRemove.length) {
+          return;
+        }
+
+        await db.execute(
+          `DELETE FROM moz_keywords WHERE place_id IN (${Array.from(
+            placeInfosToRemove.map(info => info.placeId)
+          ).join()})`
+        );
+        for (let { href } of placeInfosToRemove) {
+          let keywords = keywordsByHref.get(href);
+          for (let keyword of keywords) {
+            cache.delete(keyword);
+          }
+        }
+      }
+    );
+  },
+
+  /**
+   * Removes all keywords from all URLs.
+   *
+   * @returns {Promise}
+   * @resolves when all keywords have been removed.
+   */
+  eraseEverything() {
+    return PlacesUtils.withConnectionWrapper(
+      "PlacesUtils.keywords.eraseEverything",
+      async function (db) {
+        let cache = await promiseKeywordsCache();
+        if (!cache.size) {
+          return;
+        }
+        await db.executeCached(`DELETE FROM moz_keywords`);
+        cache.clear();
+      }
+    );
+  },
+
+  /**
+   * Invalidates the keywords cache, leaving all existing keywords in place.
+   * The cache will be repopulated on the next `PlacesUtils.keywords.*` call.
+   *
+   * @returns {Promise}
+   * @resolves when the cache has been cleared.
+   */
+  invalidateCachedKeywords() {
+    gKeywordsCachePromise = gKeywordsCachePromise.then(_ => null);
+    this.ensureCacheInitialized();
+    return gKeywordsCachePromise;
+  },
+
+  /**
+   * Ensures the keywords cache is initialized.
+   */
+  async ensureCacheInitialized() {
+    this._cache = await promiseKeywordsCache();
+  },
+
+  /**
+   * Checks from the cache if a given word is a bookmark keyword.
+   * We must make sure the cache is populated, and await ensureCacheInitialized()
+   * before calling this function.
+   *
+   * @returns {boolean} Whether the given word is a keyword.
+   */
+  isKeywordFromCache(keyword) {
+    return this._cache?.has(keyword);
+  },
+};
+
+var gKeywordsCachePromise = Promise.resolve();
+
+function promiseKeywordsCache() {
+  let promise = gKeywordsCachePromise.then(function (cache) {
+    if (cache) {
+      return cache;
+    }
+    return PlacesUtils.withConnectionWrapper(
+      "PlacesUtils: promiseKeywordsCache",
+      async db => {
+        let cache = new Map();
+        let rows = await db.execute(
+          `SELECT keyword, url, post_data
+           FROM moz_keywords k
+           JOIN moz_places h ON h.id = k.place_id
+          `
+        );
+        let brokenKeywords = [];
+        for (let row of rows) {
+          let keyword = row.getResultByName("keyword");
+          let url = URL.parse(row.getResultByName("url"));
+          if (url) {
+            let entry = {
+              keyword,
+              url,
+              postData: row.getResultByName("post_data") || null,
+            };
+            cache.set(keyword, entry);
+          } else {
+            // The url is invalid, don't load the keyword and remove it, or it
+            // would break the whole keywords API.
+            brokenKeywords.push(keyword);
+          }
+        }
+        if (brokenKeywords.length) {
+          await db.execute(
+            `DELETE FROM moz_keywords
+             WHERE keyword IN (${brokenKeywords.map(JSON.stringify).join(",")})
+            `
+          );
+        }
+        return cache;
+      }
+    );
+  });
+  gKeywordsCachePromise = promise.catch(_ => {});
+  return promise;
+}

@@ -61,14 +61,12 @@ interface nsINavBookmarksService : nsISupports
   // Sync and bookmarks import from other Places consumers, though they can
   // be extended to support other callers. Sources are passed as optional
   // parameters to methods used by Sync, and forwarded to observers.
-  cenum ChangeSource : 8 {
-    SOURCE_DEFAULT = 0,
-    SOURCE_SYNC = 1,
-    SOURCE_IMPORT = 2,
-    SOURCE_SYNC_REPARENT_REMOVED_FOLDER_CHILDREN = 4,
-    SOURCE_RESTORE = 5,
-    SOURCE_RESTORE_ON_STARTUP = 6,
-  };
+  const unsigned short SOURCE_DEFAULT = 0;
+  const unsigned short SOURCE_SYNC = 1;
+  const unsigned short SOURCE_IMPORT = 2;
+  const unsigned short SOURCE_SYNC_REPARENT_REMOVED_FOLDER_CHILDREN = 4;
+  const unsigned short SOURCE_RESTORE = 5;
+  const unsigned short SOURCE_RESTORE_ON_STARTUP = 6;
 
   /**
    * Sync status flags, stored in Places for each item. These affect conflict

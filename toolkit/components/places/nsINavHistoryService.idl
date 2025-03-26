@@ -54,27 +54,24 @@ interface nsINavHistoryResultNode : nsISupports
    * Identifies the type of this node. This node can then be QI-ed to the
    * corresponding specialized result node interface.
    */
-  cenum ResultType : 8 {
-    RESULT_TYPE_URI = 0,               // nsINavHistoryResultNode
+  const unsigned long RESULT_TYPE_URI = 0;               // nsINavHistoryResultNode
 
-    // Visit nodes are deprecated and unsupported.
-    // This line exists just to avoid reusing the value:
-    // RESULT_TYPE_VISIT = 1,
+  // Visit nodes are deprecated and unsupported.
+  // This line exists just to avoid reusing the value:
+  // const unsigned long RESULT_TYPE_VISIT = 1;
 
-    // Full visit nodes are deprecated and unsupported.
-    // This line exists just to avoid reusing the value:
-    // RESULT_TYPE_FULL_VISIT = 2,
+  // Full visit nodes are deprecated and unsupported.
+  // This line exists just to avoid reusing the value:
+  // const unsigned long RESULT_TYPE_FULL_VISIT = 2;
 
-    // Dynamic containers are deprecated and unsupported.
-    // This const exists just to avoid reusing the value:
-    // RESULT_TYPE_DYNAMIC_CONTAINER = 4, // nsINavHistoryContainerResultNode
+  // Dynamic containers are deprecated and unsupported.
+  // This const exists just to avoid reusing the value:
+  // const unsigned long RESULT_TYPE_DYNAMIC_CONTAINER = 4; // nsINavHistoryContainerResultNode
 
-    RESULT_TYPE_QUERY = 5,             // nsINavHistoryQueryResultNode
-    RESULT_TYPE_FOLDER = 6,            // nsINavHistoryQueryResultNode
-    RESULT_TYPE_SEPARATOR = 7,         // nsINavHistoryResultNode
-    RESULT_TYPE_FOLDER_SHORTCUT = 9,   // nsINavHistoryQueryResultNode
-  };
-
+  const unsigned long RESULT_TYPE_QUERY = 5;             // nsINavHistoryQueryResultNode
+  const unsigned long RESULT_TYPE_FOLDER = 6;            // nsINavHistoryQueryResultNode
+  const unsigned long RESULT_TYPE_SEPARATOR = 7;         // nsINavHistoryResultNode
+  const unsigned long RESULT_TYPE_FOLDER_SHORTCUT = 9;   // nsINavHistoryQueryResultNode
   readonly attribute unsigned long type;
 
   /**
@@ -918,61 +915,59 @@ interface nsINavHistoryService : nsISupports
    *                          for access reasons.
    */
 
-  cenum TransitionType : 8 {
-    /**
-     * This transition type means the user followed a link and got a new toplevel
-     * window.
-     */
-    TRANSITION_LINK = 1,
+  /**
+   * This transition type means the user followed a link and got a new toplevel
+   * window.
+   */
+  const unsigned long TRANSITION_LINK = 1;
 
-    /**
-     * This transition type means that the user typed the page's URL in the
-     * URL bar or selected it from URL bar autocomplete results, clicked on
-     * it from a history query (from the History sidebar, History menu,
-     * or history query in the personal toolbar or Places organizer.
-     */
-    TRANSITION_TYPED = 2,
+  /**
+   * This transition type means that the user typed the page's URL in the
+   * URL bar or selected it from URL bar autocomplete results, clicked on
+   * it from a history query (from the History sidebar, History menu,
+   * or history query in the personal toolbar or Places organizer.
+   */
+  const unsigned long TRANSITION_TYPED = 2;
 
-    /**
-     * This transition is set when the user followed a bookmark to get to the
-     * page.
-     */
-    TRANSITION_BOOKMARK = 3,
+  /**
+   * This transition is set when the user followed a bookmark to get to the
+   * page.
+   */
+  const unsigned long TRANSITION_BOOKMARK = 3;
 
-    /**
-     * This transition type is set when some inner content is loaded. This is
-     * true of all images on a page, and the contents of the iframe. It is also
-     * true of any content in a frame if the user did not explicitly follow
-     * a link to get there.
-     */
-    TRANSITION_EMBED = 4,
+  /**
+   * This transition type is set when some inner content is loaded. This is
+   * true of all images on a page, and the contents of the iframe. It is also
+   * true of any content in a frame if the user did not explicitly follow
+   * a link to get there.
+   */
+  const unsigned long TRANSITION_EMBED = 4;
 
-    /**
-     * Set when the transition was a permanent redirect.
-     */
-    TRANSITION_REDIRECT_PERMANENT = 5,
+  /**
+   * Set when the transition was a permanent redirect.
+   */
+  const unsigned long TRANSITION_REDIRECT_PERMANENT = 5;
 
-    /**
-     * Set when the transition was a temporary redirect.
-     */
-    TRANSITION_REDIRECT_TEMPORARY = 6,
+  /**
+   * Set when the transition was a temporary redirect.
+   */
+  const unsigned long TRANSITION_REDIRECT_TEMPORARY = 6;
 
-    /**
-     * Set when the transition is a download.
-     */
-    TRANSITION_DOWNLOAD = 7,
+  /**
+   * Set when the transition is a download.
+   */
+  const unsigned long TRANSITION_DOWNLOAD = 7;
 
-    /**
-     * This transition type means the user followed a link and got a visit in
-     * a frame.
-     */
-    TRANSITION_FRAMED_LINK = 8,
+  /**
+   * This transition type means the user followed a link and got a visit in
+   * a frame.
+   */
+  const unsigned long TRANSITION_FRAMED_LINK = 8;
 
-    /**
-     * This transition type means the page has been reloaded.
-     */
-    TRANSITION_RELOAD = 9,
-  };
+  /**
+   * This transition type means the page has been reloaded.
+   */
+  const unsigned long TRANSITION_RELOAD = 9;
 
   /**
    * Set when database is coherent

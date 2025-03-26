@@ -4,63 +4,61 @@
 
 /**
  * Asynchronous API for managing history.
- * The API makes use of `PageInfo` and `VisitInfo` objects.
  *
- * Each successful operation notifies through the PlacesObservers.
- * To listen to such notifications, you must register using
+ *
+ * The API makes use of `PageInfo` and `VisitInfo` objects, defined as follows.
+ *
+ * A `PageInfo` object is any object that contains A SUBSET of the
+ * following properties:
+ *
+ * - guid: (string)
+ *   The globally unique id of the page.
+ * - url: (URL|nsIURI|string)
+ *   The full URI of the page. Note that `PageInfo` values passed as
+ *   argument may hold `nsIURI` or `string` values for property `url`,
+ *   but `PageInfo` objects returned by this module always hold `URL`
+ *   values.
+ * - title: (string)
+ *   The title associated with the page, if any.
+ * - description: (string)
+ *   The description of the page, if any.
+ * - previewImageURL: (URL|nsIURI|string)
+ *   The preview image URL of the page, if any.
+ * - frecency: (number)
+ *   The frecency of the page, if any.
+ *   See https://developer.mozilla.org/en-US/docs/Mozilla/Tech/Places/Frecency_algorithm
+ *   Note that this property may not be used to change the actualy frecency
+ *   score of a page, only to retrieve it. In other words, any `frecency` field
+ *   passed as argument to a function of this API will be ignored.
+ * - visits: (Array<VisitInfo>)
+ *   All the visits for this page, if any.
+ * - annotations: (Map)
+ *   A map containing key/value pairs of the annotations for this page, if any.
+ *
+ * See the documentation of individual methods to find out which properties
+ * are required for `PageInfo` arguments or returned for `PageInfo` results.
+ *
+ * A `VisitInfo` object is any object that contains A SUBSET of the following
+ * properties:
+ * - date: (Date)
+ *   The time the visit occurred.
+ * - transition: (number)
+ *   How the user reached the page. See constants `TRANSITIONS.*`
+ *   for the possible transition types.
+ * - referrer: (URL|nsIURI|string)
+ *   The referring URI of this visit. Note that `VisitInfo` passed
+ *   as argument may hold `nsIURI` or `string` values for property `referrer`,
+ *   but `VisitInfo` objects returned by this module always hold `URL`
+ *   values.
+ *
+ * See the documentation of individual methods to find out which properties
+ * are required for `VisitInfo` arguments or returned for `VisitInfo` results.
+ *
+ * Each successful operation notifies through the PlacesObservers. To listen to such
+ * notifications you must register using
  * PlacesObservers `addListener` and `removeListener` methods.
  *
  * @see PlacesObservers
- */
-
-/**
- * @typedef PageInfo
- * A `PageInfo` object is any object that contains A SUBSET of the
- * following properties. See the documentation of individual methods
- * to find out which properties are required for `PageInfo` arguments
- * or returned for `PageInfo` results.
- *
- * @property {string} [guid]
- *  The globally unique id of the page.
- * @property {string|URL|nsIURI} [url]
- *  The full URI of the page. Note that `PageInfo` values passed as
- *  argument may hold `nsIURI` or `string` values for property `url`,
- *  but `PageInfo` objects returned by this module always hold `URL`
- *  values.
- * @property {string} [title]
- *  The title associated with the page, if any.
- * @property {string} [description]
- *  The description of the page, if any.
- * @property {string|URL|nsIURI} [previewImageURL]
- *  The preview image URL of the page, if any.
- * @property {number} [frecency]
- *  The frecency of the page, if any.
- *  See https://firefox-source-docs.mozilla.org/browser/urlbar/ranking.html.
- *  Note that this property may not be used to change the actual frecency
- *  score of a page, only to retrieve it. In other words, any `frecency` field
- *  passed as argument to a function of this API will be ignored.
- * @property {VisitInfo[]} [visits]
- *  All the visits for this page, if any.
- * @property {Map} [annotations]
- *  A map containing key/value pairs of the annotations for this page, if any.
- */
-
-/**
- * @typedef VisitInfo
- * A `VisitInfo` object is any object that contains A SUBSET of the following
- * properties. See the documentation of individual methods to find out which
- * properties are required for `VisitInfo` arguments or returned for `VisitInfo`
- * results.
- *
- * @property {Date} [date]
- * The time the visit occurred.
- * @property {nsINavHistoryService.TransitionType} [transition]
- *  How the user reached the page.
- * @property {string|URL|nsIURI} [referrer]
- *  The referring URI of this visit. Note that `VisitInfo` passed
- *  as argument may hold `nsIURI` or `string` values for property `referrer`,
- *  but `VisitInfo` objects returned by this module always hold `URL`
- *  values.
  */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
