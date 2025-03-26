@@ -1,31 +1,15 @@
-# Version of this schema
 schema: 1
 
 bugzilla:
-  # Bugzilla product and component for this directory and subdirectories
   product: Core
   component: "Graphics: WebGPU"
 
-# Document the source of externally hosted code
 origin:
-
-  # Short name of the package/library
   name: wgpu
-
   description: A cross-platform pure-Rust graphics API, modeled on the WebGPU standard
-
-  # Full URL for the package's homepage/etc
-  # Usually different from repository url
   url: https://github.com/gfx-rs/wgpu
-
-  # Human-readable identifier for this version/release
-  # Generally "version NNN", "tag SSS", "bookmark SSS"
   release: c6286791febc64cf8ef054b5356c2669327ef51c (2025-03-19T16:26:50Z).
-
-  # Revision to pull in
-  # Must be a long or short commit SHA (long preferred)
   revision: c6286791febc64cf8ef054b5356c2669327ef51c
-
   license: ['MIT', 'Apache-2.0']
 
 updatebot:
