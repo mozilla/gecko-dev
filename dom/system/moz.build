@@ -86,6 +86,7 @@ EXPORTS.mozilla.dom += [
 UNIFIED_SOURCES += [
     "IOUtils.cpp",
     "nsDeviceSensors.cpp",
+    "nsHapticFeedback.cpp",
     "nsOSPermissionRequestBase.cpp",
     "PathUtils.cpp",
 ]

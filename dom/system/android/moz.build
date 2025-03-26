@@ -6,7 +6,6 @@
 
 SOURCES += [
     "AndroidLocationProvider.cpp",
-    "nsHapticFeedback.cpp",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")
