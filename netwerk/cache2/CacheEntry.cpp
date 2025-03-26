@@ -1197,7 +1197,7 @@ nsresult CacheEntry::OpenInputStreamInternal(int64_t offset,
                                            getter_AddRefs(stream));
     if (NS_FAILED(rv)) {
       // Failure of this method may be legal when the alternative data requested
-      // is not avaialble or of a different type.  Console error logs are
+      // is not available or of a different type.  Console error logs are
       // ensured by CacheFile::OpenAlternativeInputStream.
       return rv;
     }
