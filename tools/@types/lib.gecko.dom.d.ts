@@ -24640,16 +24640,11 @@ declare namespace SessionStoreUtils {
 
 declare namespace TelemetryStopwatch {
     function cancel(histogram: HistogramID, obj?: any): boolean;
-    function cancelKeyed(histogram: HistogramID, key: HistogramKey, obj?: any): boolean;
     function finish(histogram: HistogramID, obj?: any, canceledOkay?: boolean): boolean;
-    function finishKeyed(histogram: HistogramID, key: HistogramKey, obj?: any, canceledOkay?: boolean): boolean;
     function running(histogram: HistogramID, obj?: any): boolean;
-    function runningKeyed(histogram: HistogramID, key: HistogramKey, obj?: any): boolean;
     function setTestModeEnabled(testing?: boolean): void;
     function start(histogram: HistogramID, obj?: any, options?: TelemetryStopwatchOptions): boolean;
-    function startKeyed(histogram: HistogramID, key: HistogramKey, obj?: any, options?: TelemetryStopwatchOptions): boolean;
     function timeElapsed(histogram: HistogramID, obj?: any, canceledOkay?: boolean): number;
-    function timeElapsedKeyed(histogram: HistogramID, key: HistogramKey, obj?: any, canceledOkay?: boolean): number;
 }
 
 declare namespace TestUtils {

@@ -32,27 +32,6 @@ class Stopwatch {
   static bool Finish(const GlobalObject& global, const nsAString& histogram,
                      JS::Handle<JSObject*> obj, bool canceledOkay);
 
-  static bool StartKeyed(const GlobalObject& global, const nsAString& histogram,
-                         const nsAString& key, JS::Handle<JSObject*> obj,
-                         const dom::TelemetryStopwatchOptions& options);
-
-  static bool RunningKeyed(const GlobalObject& global,
-                           const nsAString& histogram, const nsAString& key,
-                           JS::Handle<JSObject*> obj);
-
-  static bool CancelKeyed(const GlobalObject& global,
-                          const nsAString& histogram, const nsAString& key,
-                          JS::Handle<JSObject*> obj);
-
-  static int32_t TimeElapsedKeyed(const GlobalObject& global,
-                                  const nsAString& histogram,
-                                  const nsAString& key,
-                                  JS::Handle<JSObject*> obj, bool canceledOkay);
-
-  static bool FinishKeyed(const GlobalObject& global,
-                          const nsAString& histogram, const nsAString& key,
-                          JS::Handle<JSObject*> obj, bool canceledOkay);
-
   static void SetTestModeEnabled(const GlobalObject& global, bool testing);
 };
 
