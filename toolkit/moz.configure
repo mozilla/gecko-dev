@@ -3227,7 +3227,83 @@ def real_branding_directory(moz_branding_directory, build_project):
     return f"{build_project}/branding/nightly"
 
 
-add_old_configure_assignment("REAL_BRANDING_DIRECTORY", real_branding_directory)
+confvar(
+    "MOZ_APP_DISPLAYNAME",
+    nargs=1,
+    set_as_config=False,
+    help="Branded application name",
+)
+
+
+with only_when(target_is_android):
+
+    confvar(
+        env="ANDROID_APPEND_USERNAME_TO_PACKAGE_NAME",
+        set_as_config=False,
+        help="Append username to app display and android name",
+    )
+
+    confvar(
+        env="ANDROID_PACKAGE_NAME",
+        nargs=1,
+        set_as_config=False,
+        help="Name of the Android package (default org.mozilla.$MOZ_APP_NAME)",
+    )
+
+    with only_when("ANDROID_APPEND_USERNAME_TO_PACKAGE_NAME"):
+        option(env="USER", nargs=1, help="System user name")
+
+        @depends("USER")
+        def mangled_username(user):
+            if user:
+                return user[0].replace("-", "_")
+            else:
+                return "unknown"
+
+    @depends("ANDROID_PACKAGE_NAME", moz_app_name, mangled_username)
+    def android_package_name(value, moz_app_name, username):
+        if value:
+            if username:
+                return f"{value[0]}_{username}"
+            else:
+                return value[0]
+        if moz_app_name == "fennec":
+            return "org.mozilla.fennec_aurora"
+        return "org.mozilla.%s" % moz_app_name
+
+    set_config("ANDROID_PACKAGE_NAME", android_package_name)
+
+
+@depends("MOZ_APP_DISPLAYNAME", mangled_username)
+def moz_app_displayname(value, username):
+    if not value:
+        return
+
+    if username:
+        return f"{value[0]} {username}"
+
+    return value[0]
+
+
+set_config("MOZ_APP_DISPLAYNAME", moz_app_displayname)
+
+
+confvar(
+    "MOZ_DEV_EDITION",
+    nargs=1,
+    set_as_define=True,
+    help="Whether this a dev edition build",
+)
+
+confvar(
+    "MOZ_MACBUNDLE_ID",
+    nargs=1,
+    set_as_config=False,
+    help="ID of the associated mac bundle",
+)
+add_old_configure_assignment(
+    "MOZ_MACBUNDLE_ID", depends_if("MOZ_MACBUNDLE_ID")(lambda v: v[0])
+)
 
 option(
     env="MOZ_APP_REMOTINGNAME",
@@ -3248,24 +3324,6 @@ def moz_app_remotingname(value, moz_app_name, update_channel):
 
 
 set_config("MOZ_APP_REMOTINGNAME", moz_app_remotingname)
-
-option(
-    env="ANDROID_PACKAGE_NAME",
-    nargs=1,
-    help="Name of the Android package (default org.mozilla.$MOZ_APP_NAME)",
-)
-
-
-@depends("ANDROID_PACKAGE_NAME", moz_app_name)
-def android_package_name(value, moz_app_name):
-    if value:
-        return value[0]
-    if moz_app_name == "fennec":
-        return "org.mozilla.fennec_aurora"
-    return "org.mozilla.%s" % moz_app_name
-
-
-set_config("ANDROID_PACKAGE_NAME", android_package_name)
 
 
 # Miscellaneous options
