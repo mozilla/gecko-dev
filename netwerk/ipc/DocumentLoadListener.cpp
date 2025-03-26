@@ -2330,6 +2330,46 @@ void DocumentLoadListener::TriggerRedirectToRealChannel(
     }
   }
 
+  // Check if the load is for a "silent" error (i.e. no document or error page
+  // will load). This is the case for all failed object/embed loads, and some
+  // failed document loads.
+  // We never process switch for these silent loads (as that will destroy the
+  // existing document, which is being navigated away from)
+  nsresult status = NS_OK;
+  mChannel->GetStatus(&status);
+  bool silentErrorLoad = !DocShellWillDisplayContent(status);
+
+  // Get the unsandboxed result principal for our channel. This is required both
+  // to validate that the response which will be loaded is being sent to the
+  // appropriate process, as well as to apply origin keying.
+  nsCOMPtr<nsIPrincipal> unsandboxedPrincipal;
+  nsresult rv = nsScriptSecurityManager::GetScriptSecurityManager()
+                    ->GetChannelResultPrincipalIfNotSandboxed(
+                        mChannel, getter_AddRefs(unsandboxedPrincipal));
+  if (NS_FAILED(rv)) {
+    LOG(
+        ("DocumentLoadListener::TriggerRedirectToRealChannel [this=%p] "
+         "GetChannelResultPrincipalIfNotSandboxed failed",
+         this));
+    RedirectToRealChannelFinished(NS_ERROR_FAILURE);
+    return;
+  }
+
+  // Validate that the target process, if specified, would be allowed to load
+  // this principal, and fail the navigation if it would not.
+  // Don't enforce this requirement for silent error loads, as those never
+  // process switch, and should not result in a document being loaded in the
+  // content process.
+  // System principals are allowed for now, as they are used in some edge-cases.
+  if (!silentErrorLoad && contentParent &&
+      !contentParent->ValidatePrincipal(
+          unsandboxedPrincipal, {ValidatePrincipalOptions::AllowSystem})) {
+    ContentParent::LogAndAssertFailedPrincipalValidationInfo(
+        unsandboxedPrincipal, "TriggerRedirectToRealChannel");
+    RedirectToRealChannelFinished(NS_ERROR_FAILURE);
+    return;
+  }
+
   // Ensure that the BrowsingContextGroup which will finish this load has the
   // UseOriginAgentCluster flag set to a value. We'll try to base it on
   // `mChannel` if it has the appropriate header.
@@ -2342,13 +2382,9 @@ void DocumentLoadListener::TriggerRedirectToRealChannel(
   // map being populated in the BrowsingContextGroup.
   //
   // https://html.spec.whatwg.org/#obtain-similar-origin-window-agent
-  nsCOMPtr<nsIPrincipal> unsandboxedPrincipal;
-  nsresult rv = nsScriptSecurityManager::GetScriptSecurityManager()
-                    ->GetChannelResultPrincipalIfNotSandboxed(
-                        mChannel, getter_AddRefs(unsandboxedPrincipal));
-  if (NS_SUCCEEDED(rv) && aDestinationBrowsingContext->Group()
-                              ->UsesOriginAgentCluster(unsandboxedPrincipal)
-                              .isNothing()) {
+  if (aDestinationBrowsingContext->Group()
+          ->UsesOriginAgentCluster(unsandboxedPrincipal)
+          .isNothing()) {
     // UseOriginAgentCluster requires a secure context, so never origin key
     // unless we're a potentially-trustworthy origin.
     //
@@ -2464,14 +2500,6 @@ bool DocumentLoadListener::DocShellWillDisplayContent(nsresult aStatus) {
   nsresult rv = nsDocShell::FilterStatusForErrorPage(
       aStatus, mChannel, mLoadStateLoadType, loadingContext->IsTop(),
       loadingContext->GetUseErrorPages(), nullptr);
-
-  if (NS_SUCCEEDED(rv)) {
-    MOZ_LOG(gProcessIsolationLog, LogLevel::Verbose,
-            ("Skipping process switch, as DocShell will not display content "
-             "(status: %s) %s",
-             GetStaticErrorName(aStatus),
-             GetChannelCreationURI()->GetSpecOrDefault().get()));
-  }
 
   // If filtering returned a failure code, then an error page will
   // be display for that code, so return true;
@@ -2724,15 +2752,23 @@ nsresult DocumentLoadListener::DoOnStartRequest(nsIRequest* aRequest) {
 
   MaybeReportBlockedByURLClassifier(status);
 
-  // Determine if a new process needs to be spawned. If it does, this will
-  // trigger a cross process switch, and we should hold off on redirecting to
-  // the real channel.
   // If the channel has failed, and the docshell isn't going to display an
   // error page for that failure, then don't allow process switching, since
   // we just want to keep our existing document.
+  bool silentErrorLoad = !DocShellWillDisplayContent(status);
+  if (silentErrorLoad) {
+    MOZ_LOG(gProcessIsolationLog, LogLevel::Verbose,
+            ("Skipping process switch, as DocShell will not display content "
+             "(status: %s) %s",
+             GetStaticErrorName(status),
+             GetChannelCreationURI()->GetSpecOrDefault().get()));
+  }
+
+  // Determine if a new process needs to be spawned. If it does, this will
+  // trigger a cross process switch, and we should hold off on redirecting to
+  // the real channel.
   bool willBeRemote = false;
-  if (!DocShellWillDisplayContent(status) ||
-      !MaybeTriggerProcessSwitch(&willBeRemote)) {
+  if (silentErrorLoad || !MaybeTriggerProcessSwitch(&willBeRemote)) {
     // We're not going to be doing a process switch, so redirect to the real
     // channel within our current process.
     nsTArray<StreamFilterRequest> streamFilterRequests =
