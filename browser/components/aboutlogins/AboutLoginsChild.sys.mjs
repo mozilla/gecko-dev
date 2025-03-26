@@ -241,6 +241,7 @@ export class AboutLoginsChild extends JSWindowActorChild {
     });
   }
 
+  // eslint-disable-next-line consistent-return
   receiveMessage(message) {
     switch (message.name) {
       case "AboutLogins:ImportReportData":
@@ -255,6 +256,21 @@ export class AboutLoginsChild extends JSWindowActorChild {
       case "AboutLogins:Setup":
         this.#setup(message.data);
         break;
+      case "AboutLogins:WaitForFocus": {
+        return new Promise(resolve => {
+          if (!this.document.hasFocus()) {
+            this.document.ownerGlobal.addEventListener(
+              "focus",
+              () => {
+                resolve();
+              },
+              { once: true }
+            );
+          } else {
+            resolve();
+          }
+        });
+      }
       default:
         this.#passMessageDataToContent(message);
     }
