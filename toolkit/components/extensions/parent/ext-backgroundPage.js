@@ -1065,11 +1065,16 @@ var IdleManager = class IdleManager {
       }
 
       if (Cu.now() - start > backgroundIdleTimeout) {
-        ExtensionTelemetry.eventPageIdleResult.histogramAdd({
-          extension: this.extension,
-          category: reason,
-          value: Math.round((Cu.now() - start) / backgroundIdleTimeout),
-        });
+        let value = Math.round((Cu.now() - start) / backgroundIdleTimeout);
+        // GIFFT doesn't support mirroring to a categorical histogram with
+        // values that are not 1, so do the histogramAdd call as many times
+        // as needed. It will be once most of the time, sometimes twice.
+        while (value--) {
+          ExtensionTelemetry.eventPageIdleResult.histogramAdd({
+            extension: this.extension,
+            category: reason,
+          });
+        }
       }
     });
   }

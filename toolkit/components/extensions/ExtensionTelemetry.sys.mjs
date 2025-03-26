@@ -10,16 +10,9 @@ const { DefaultWeakMap } = ExtensionUtils;
 
 // Map of the base histogram ids for the metrics recorded for the extensions.
 const HISTOGRAMS_IDS = {
-  backgroundPageLoad: "WEBEXT_BACKGROUND_PAGE_LOAD_MS",
-  browserActionPopupOpen: "WEBEXT_BROWSERACTION_POPUP_OPEN_MS",
   browserActionPreloadResult: "WEBEXT_BROWSERACTION_POPUP_PRELOAD_RESULT_COUNT",
-  contentScriptInjection: "WEBEXT_CONTENT_SCRIPT_INJECTION_MS",
   eventPageRunningTime: "WEBEXT_EVENTPAGE_RUNNING_TIME_MS",
   eventPageIdleResult: "WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT",
-  extensionStartup: "WEBEXT_EXTENSION_STARTUP_MS",
-  pageActionPopupOpen: "WEBEXT_PAGEACTION_POPUP_OPEN_MS",
-  storageLocalGetIdb: "WEBEXT_STORAGE_LOCAL_IDB_GET_MS",
-  storageLocalSetIdb: "WEBEXT_STORAGE_LOCAL_IDB_SET_MS",
 };
 
 const GLEAN_METRICS_TYPES = {
@@ -105,12 +98,10 @@ class ExtensionTelemetryMetric {
 
   // Stopwatch methods.
   stopwatchStart(extension, obj = extension) {
-    this._wrappedStopwatchMethod("start", this.metric, extension, obj);
     this._wrappedTimingDistributionMethod("start", this.metric, extension, obj);
   }
 
   stopwatchFinish(extension, obj = extension) {
-    this._wrappedStopwatchMethod("finish", this.metric, extension, obj);
     this._wrappedTimingDistributionMethod(
       "stopAndAccumulate",
       this.metric,
@@ -120,7 +111,6 @@ class ExtensionTelemetryMetric {
   }
 
   stopwatchCancel(extension, obj = extension) {
-    this._wrappedStopwatchMethod("cancel", this.metric, extension, obj);
     this._wrappedTimingDistributionMethod(
       "cancel",
       this.metric,
@@ -167,10 +157,18 @@ class ExtensionTelemetryMetric {
       return;
     }
 
+    let extensionId = getTrimmedString(extension.id);
+    // Capitalization on 'ByAddonid' is a result of glean naming rules.
+    let metricByAddonid = metric + "ByAddonid";
+
     switch (method) {
       case "start": {
         const timerId = Glean.extensionsTiming[metric].start();
-        this.gleanTimerIdsMap.get(extension).set(obj, timerId);
+        const labeledTimerId =
+          Glean.extensionsTiming[metricByAddonid][extensionId].start();
+        this.gleanTimerIdsMap
+          .get(extension)
+          .set(obj, { timerId, labeledTimerId });
         break;
       }
       case "stopAndAccumulate": // Intentional fall-through.
@@ -184,9 +182,14 @@ class ExtensionTelemetryMetric {
           );
           return;
         }
-        const timerId = this.gleanTimerIdsMap.get(extension).get(obj);
+        const { timerId, labeledTimerId } = this.gleanTimerIdsMap
+          .get(extension)
+          .get(obj);
         this.gleanTimerIdsMap.get(extension).delete(obj);
         Glean.extensionsTiming[metric][method](timerId);
+        Glean.extensionsTiming[metricByAddonid][extensionId][method](
+          labeledTimerId
+        );
         break;
       }
       default:
@@ -194,42 +197,6 @@ class ExtensionTelemetryMetric {
           `Unknown method ${method} call for Glean metric ${metric}`
         );
     }
-  }
-
-  /**
-   * Wraps a call to a TelemetryStopwatch method for a given metric and extension.
-   *
-   * @param {string} method
-   *        The stopwatch method to call ("start", "finish" or "cancel").
-   * @param {string} metric
-   *        The stopwatch metric to record (used to retrieve the base histogram id from the HISTOGRAMS_IDS object).
-   * @param {Extension | ExtensionChild} extension
-   *        The extension to record the telemetry for.
-   * @param {any | undefined} [obj = extension]
-   *        An optional telemetry stopwatch object (which defaults to the extension parameter when missing).
-   */
-  _wrappedStopwatchMethod(method, metric, extension, obj = extension) {
-    if (!extension) {
-      Cu.reportError(`Mandatory extension parameter is undefined`);
-      return;
-    }
-
-    const baseId = HISTOGRAMS_IDS[metric];
-    if (!baseId) {
-      Cu.reportError(`Unknown metric ${metric}`);
-      return;
-    }
-
-    // Record metric in the general histogram.
-    TelemetryStopwatch[method](baseId, obj);
-
-    // Record metric in the histogram keyed by addon id.
-    let extensionId = getTrimmedString(extension.id);
-    TelemetryStopwatch[`${method}Keyed`](
-      `${baseId}_BY_ADDONID`,
-      extensionId,
-      obj
-    );
   }
 
   /**
@@ -257,23 +224,7 @@ class ExtensionTelemetryMetric {
       return;
     }
 
-    const histogram = Services.telemetry.getHistogramById(baseId);
-    if (typeof category === "string") {
-      histogram.add(category, value);
-    } else {
-      histogram.add(value);
-    }
-
-    const keyedHistogram = Services.telemetry.getKeyedHistogramById(
-      `${baseId}_BY_ADDONID`
-    );
     const extensionId = getTrimmedString(extension.id);
-
-    if (typeof category === "string") {
-      keyedHistogram.add(extensionId, category, value);
-    } else {
-      keyedHistogram.add(extensionId, value);
-    }
 
     switch (GLEAN_METRICS_TYPES[metric]) {
       case "custom_distribution": {
@@ -287,6 +238,10 @@ class ExtensionTelemetryMetric {
         // map once we may introduce new histograms that are not part of the
         // extensionsTiming Glean metrics category.
         Glean.extensionsTiming[metric].accumulateSingleSample(value);
+        // Capitalization on 'ByAddonid' is a result of glean naming rules.
+        Glean.extensionsTiming[metric + "ByAddonid"][
+          extensionId
+        ].accumulateSingleSample(value);
         break;
       }
       case "labeled_counter": {
@@ -297,6 +252,12 @@ class ExtensionTelemetryMetric {
           return;
         }
         Glean.extensionsCounters[metric][category].add(value ?? 1);
+
+        // TODO: migrate this to Glean once bug 1657470 is fixed.
+        Services.telemetry
+          .getKeyedHistogramById(`${baseId}_BY_ADDONID`)
+          .add(extensionId, category, value);
+
         break;
       }
       default:
@@ -314,7 +275,7 @@ const metricsCache = new Map();
 
 /**
  * This proxy object provides the telemetry helpers for the currently supported metrics (the ones listed in
- * HISTOGRAMS_IDS), the telemetry helpers for a particular metric are lazily created
+ * GLEAN_METRICS_TYPES), the telemetry helpers for a particular metric are lazily created
  * when the related property is being accessed on this object for the first time, e.g.:
  *
  *      ExtensionTelemetry.extensionStartup.stopwatchStart(extension);
@@ -324,10 +285,7 @@ const metricsCache = new Map();
 // @ts-ignore no easy way in TS to say Proxy is a different type from target.
 export var ExtensionTelemetry = new Proxy(metricsCache, {
   get(target, prop) {
-    // NOTE: if we would be start adding glean probes that do not have a unified
-    // telemetry histogram counterpart, we would need to change this check
-    // accordingly.
-    if (!(prop in HISTOGRAMS_IDS)) {
+    if (!(prop in GLEAN_METRICS_TYPES)) {
       throw new Error(`Unknown metric ${String(prop)}`);
     }
 

@@ -30,6 +30,7 @@ interface GleanImpl {
     migrateResult: GleanEvent;
     storageLocalError: GleanEvent;
     syncUsageQuotas: GleanEvent;
+    migrateResultCount: Record<string, GleanCounter>;
   }
 
   extensionsCounters: {
@@ -39,12 +40,20 @@ interface GleanImpl {
 
   extensionsTiming: {
     backgroundPageLoad: GleanTimingDistribution;
+    backgroundPageLoadByAddonid: Record<string, GleanTimingDistribution>;
     browserActionPopupOpen: GleanTimingDistribution;
+    browserActionPopupOpenByAddonid: Record<string, GleanTimingDistribution>;
     contentScriptInjection: GleanTimingDistribution;
+    contentScriptInjectionByAddonid: Record<string, GleanTimingDistribution>;
     eventPageRunningTime: GleanCustomDistribution;
+    eventPageRunningTimeByAddonid: Record<string, GleanTimingDistribution>;
     extensionStartup: GleanTimingDistribution;
+    extensionStartupByAddonid: Record<string, GleanTimingDistribution>;
     pageActionPopupOpen: GleanTimingDistribution;
+    pageActionPopupOpenByAddonid: Record<string, GleanTimingDistribution>;
     storageLocalGetIdb: GleanTimingDistribution;
+    storageLocalGetIdbByAddonid: Record<string, GleanTimingDistribution>;
     storageLocalSetIdb: GleanTimingDistribution;
+    storageLocalSetIdbByAddonid: Record<string, GleanTimingDistribution>;
   }
 }
