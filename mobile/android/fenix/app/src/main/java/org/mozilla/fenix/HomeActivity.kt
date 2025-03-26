@@ -55,6 +55,7 @@ import mozilla.components.browser.state.action.SearchAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
@@ -75,6 +76,8 @@ import mozilla.components.support.ktx.android.content.call
 import mozilla.components.support.ktx.android.content.email
 import mozilla.components.support.ktx.android.content.share
 import mozilla.components.support.ktx.android.view.setupPersistentInsets
+import mozilla.components.support.ktx.kotlin.isUrl
+import mozilla.components.support.ktx.kotlin.toNormalizedUrl
 import mozilla.components.support.locale.LocaleAwareAppCompatActivity
 import mozilla.components.support.utils.BootUtils
 import mozilla.components.support.utils.BrowsersCache
@@ -1224,13 +1227,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         additionalHeaders: Map<String, String>? = null,
     ) {
         openToBrowser(from, customTabSessionId)
-
-        components.useCases.fenixBrowserUseCases.loadUrlOrSearch(
+        load(
             searchTermOrURL = searchTermOrURL,
             newTab = newTab,
+            engine = engine,
             forceSearch = forceSearch,
-            private = browsingModeManager.mode.isPrivate,
-            searchEngine = engine,
             flags = flags,
             historyMetadata = historyMetadata,
             additionalHeaders = additionalHeaders,
@@ -1243,6 +1244,85 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         val directions = getNavDirections(from, customTabSessionId)
         if (directions != null) {
             navHost.navController.nav(fragmentId, directions)
+        }
+    }
+
+    /**
+     * Loads a URL or performs a search (depending on the value of [searchTermOrURL]).
+     *
+     * @param searchTermOrURL The entered search term to search or URL to be loaded.
+     * @param newTab Whether or not to load the URL in a new tab.
+     * @param engine Optional [SearchEngine] to use when performing a search.
+     * @param forceSearch Whether or not to force performing a search.
+     * @param flags Flags that will be used when loading the URL (not applied to searches).
+     * @param historyMetadata The [HistoryMetadataKey] of the new tab in case this tab
+     * was opened from history.
+     * @param additionalHeaders The extra headers to use when loading the URL.
+     */
+    private fun load(
+        searchTermOrURL: String,
+        newTab: Boolean,
+        engine: SearchEngine?,
+        forceSearch: Boolean,
+        flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
+        historyMetadata: HistoryMetadataKey? = null,
+        additionalHeaders: Map<String, String>? = null,
+    ) {
+        val startTime = components.core.engine.profiler?.getProfilerTime()
+        val private = browsingModeManager.mode.isPrivate
+
+        // In situations where we want to perform a search but have no search engine (e.g. the user
+        // has removed all of them, or we couldn't load any) we will pass searchTermOrURL to Gecko
+        // and let it try to load whatever was entered.
+        if ((!forceSearch && searchTermOrURL.isUrl()) || engine == null) {
+            if (newTab) {
+                components.useCases.tabsUseCases.addTab(
+                    url = searchTermOrURL.toNormalizedUrl(),
+                    flags = flags,
+                    private = private,
+                    historyMetadata = historyMetadata,
+                    originalInput = searchTermOrURL,
+                )
+            } else {
+                components.useCases.sessionUseCases.loadUrl(
+                    url = searchTermOrURL.toNormalizedUrl(),
+                    flags = flags,
+                    originalInput = searchTermOrURL,
+                )
+            }
+        } else {
+            if (newTab) {
+                val searchUseCase = if (private) {
+                    components.useCases.searchUseCases.newPrivateTabSearch
+                } else {
+                    components.useCases.searchUseCases.newTabSearch
+                }
+                searchUseCase.invoke(
+                    searchTerms = searchTermOrURL,
+                    source = SessionState.Source.Internal.UserEntered,
+                    selected = true,
+                    searchEngine = engine,
+                    flags = flags,
+                    additionalHeaders = additionalHeaders,
+                )
+            } else {
+                components.useCases.searchUseCases.defaultSearch.invoke(
+                    searchTerms = searchTermOrURL,
+                    searchEngine = engine,
+                    flags = flags,
+                    additionalHeaders = additionalHeaders,
+                )
+            }
+        }
+
+        if (components.core.engine.profiler?.isProfilerActive() == true) {
+            // Wrapping the `addMarker` method with `isProfilerActive` even though it's no-op when
+            // profiler is not active. That way, `text` argument will not create a string builder all the time.
+            components.core.engine.profiler?.addMarker(
+                "HomeActivity.load",
+                startTime,
+                "newTab: $newTab",
+            )
         }
     }
 

@@ -17,7 +17,6 @@ import io.mockk.mockkObject
 import io.mockk.spyk
 import io.mockk.unmockkObject
 import io.mockk.verify
-import io.mockk.verifyOrder
 import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.action.BrowserAction
@@ -50,13 +49,11 @@ import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGleanDebugToolsFragment
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGlobalAddonsManagementFragment
-import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGlobalBrowser
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGlobalSearchEngineFragment
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 import org.mozilla.fenix.settings.SupportUtils
@@ -78,9 +75,6 @@ class SearchDialogControllerTest {
 
     @MockK(relaxed = true)
     private lateinit var settings: Settings
-
-    @MockK(relaxed = true)
-    private lateinit var fenixBrowserUseCases: FenixBrowserUseCases
 
     private lateinit var middleware: CaptureActionsMiddleware<BrowserState, BrowserAction>
     private lateinit var browserStore: BrowserStore
@@ -122,15 +116,13 @@ class SearchDialogControllerTest {
 
         browserStore.waitUntilIdle()
 
-        verifyOrder {
-            navController.navigate(actionGlobalBrowser())
-
-            fenixBrowserUseCases.loadUrlOrSearch(
+        verify {
+            activity.openToBrowserAndLoad(
                 searchTermOrURL = url,
                 newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
                 forceSearch = false,
-                private = activity.browsingModeManager.mode.isPrivate,
-                searchEngine = searchEngine,
             )
         }
 
@@ -157,15 +149,13 @@ class SearchDialogControllerTest {
 
         browserStore.waitUntilIdle()
 
-        verifyOrder {
-            navController.navigate(actionGlobalBrowser())
-
-            fenixBrowserUseCases.loadUrlOrSearch(
+        verify {
+            activity.openToBrowserAndLoad(
                 searchTermOrURL = url,
                 newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
                 forceSearch = false,
-                private = activity.browsingModeManager.mode.isPrivate,
-                searchEngine = searchEngine,
             )
         }
 
@@ -190,15 +180,13 @@ class SearchDialogControllerTest {
 
         browserStore.waitUntilIdle()
 
-        verifyOrder {
-            navController.navigate(actionGlobalBrowser())
-
-            fenixBrowserUseCases.loadUrlOrSearch(
+        verify {
+            activity.openToBrowserAndLoad(
                 searchTermOrURL = url,
                 newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
                 forceSearch = true,
-                private = activity.browsingModeManager.mode.isPrivate,
-                searchEngine = searchEngine,
             )
         }
 
@@ -240,15 +228,13 @@ class SearchDialogControllerTest {
 
         browserStore.waitUntilIdle()
 
-        verifyOrder {
-            navController.navigate(actionGlobalBrowser())
-
-            fenixBrowserUseCases.loadUrlOrSearch(
+        verify {
+            activity.openToBrowserAndLoad(
                 searchTermOrURL = searchTerm,
                 newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
                 forceSearch = true,
-                private = activity.browsingModeManager.mode.isPrivate,
-                searchEngine = searchEngine,
             )
         }
 
@@ -268,15 +254,13 @@ class SearchDialogControllerTest {
 
         browserStore.waitUntilIdle()
 
-        verifyOrder {
-            navController.navigate(actionGlobalBrowser())
-
-            fenixBrowserUseCases.loadUrlOrSearch(
+        verify {
+            activity.openToBrowserAndLoad(
                 searchTermOrURL = searchTerm,
                 newTab = false,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
                 forceSearch = true,
-                private = activity.browsingModeManager.mode.isPrivate,
-                searchEngine = searchEngine,
             )
         }
 
@@ -371,15 +355,12 @@ class SearchDialogControllerTest {
 
         browserStore.waitUntilIdle()
 
-        verifyOrder {
-            navController.navigate(actionGlobalBrowser())
-
-            fenixBrowserUseCases.loadUrlOrSearch(
+        verify {
+            activity.openToBrowserAndLoad(
                 searchTermOrURL = SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.MANIFESTO),
                 newTab = false,
-                forceSearch = false,
-                private = activity.browsingModeManager.mode.isPrivate,
-                searchEngine = searchEngine,
+                from = BrowserDirection.FromSearchDialog,
+                engine = searchEngine,
             )
         }
 
@@ -791,7 +772,6 @@ class SearchDialogControllerTest {
             activity = activity,
             store = browserStore,
             tabsUseCases = TabsUseCases(browserStore),
-            fenixBrowserUseCases = fenixBrowserUseCases,
             fragmentStore = store,
             navController = navController,
             settings = settings,

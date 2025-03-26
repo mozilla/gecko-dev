@@ -250,7 +250,6 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                 activity = activity,
                 store = requireComponents.core.store,
                 tabsUseCases = requireComponents.useCases.tabsUseCases,
-                fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
                 fragmentStore = store,
                 navController = findNavController(),
                 settings = requireContext().settings(),
