@@ -102,10 +102,6 @@ export const INITIAL_STATE = {
     isUserLoggedIn: false,
     recentSavesEnabled: false,
     showTopicSelection: false,
-    report: {
-      visible: false,
-      data: {},
-    },
   },
   // Messages received from ASRouter to render in newtab
   Messages: {
@@ -895,22 +891,6 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         ...prevState,
         showBlockSectionConfirmation: true,
         sectionData: action.data,
-      };
-    case at.REPORT_OPEN:
-      return {
-        ...prevState,
-        report: {
-          ...prevState.report,
-          visible: true,
-        },
-      };
-    case at.REPORT_CLOSE:
-      return {
-        ...prevState,
-        report: {
-          ...prevState.report,
-          visible: false,
-        },
       };
     default:
       return prevState;

@@ -6,32 +6,28 @@ import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import { ContextMenuButton } from "content-src/components/ContextMenu/ContextMenuButton";
 import { actionCreators as ac } from "common/Actions.mjs";
 import React from "react";
-import { connect } from "react-redux";
 
-export class _DSLinkMenu extends React.PureComponent {
+export class DSLinkMenu extends React.PureComponent {
   render() {
     const { index, dispatch } = this.props;
     let TOP_STORIES_CONTEXT_MENU_OPTIONS;
-    const PREF_REPORT_CONTENT_ENABLED = "discoverystream.reportContent.enabled";
-    const prefs = this.props.Prefs.values;
-    const showReporting = prefs[PREF_REPORT_CONTENT_ENABLED];
-    const isSpoc = this.props.card_type === "spoc";
 
-    if (isSpoc) {
+    // Sponsored stories have their own context menu options.
+    if (this.props.card_type === "spoc") {
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "BlockUrl",
-        ...(showReporting ? ["ReportAd"] : []),
         "ManageSponsoredContent",
         "OurSponsorsAndYourPrivacy",
       ];
+      // Recommended stories have a different context menu.
     } else {
+      // If Pocket is enabled, insert extra menu options after the bookmark.
       const saveToPocketOptions = this.props.pocket_button_enabled
         ? ["CheckArchiveFromPocket", "CheckSavedToPocket"]
         : [];
 
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "CheckBookmark",
-        ...(showReporting ? ["ReportContent"] : []),
         ...saveToPocketOptions,
         "Separator",
         "OpenInNewWindow",
@@ -92,7 +88,3 @@ export class _DSLinkMenu extends React.PureComponent {
     );
   }
 }
-
-export const DSLinkMenu = connect(state => ({
-  Prefs: state.Prefs,
-}))(_DSLinkMenu);

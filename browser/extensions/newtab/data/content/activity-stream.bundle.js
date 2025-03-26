@@ -210,8 +210,6 @@ for (const type of [
   "PREVIEW_REQUEST_CANCEL",
   "PREVIEW_RESPONSE",
   "REMOVE_DOWNLOAD_FILE",
-  "REPORT_OPEN",
-  "REPORT_CLOSE",
   "RICH_ICON_MISSING",
   "SAVE_SESSION_PERF_DATA",
   "SAVE_TO_POCKET",
@@ -2209,14 +2207,6 @@ const LinkMenuOptions = {
       },
     }),
   }),
-  ReportAd: () => ({
-    id: "newtab-menu-report-this-ad",
-    action: actionCreators.BroadcastToContent({ type: actionTypes.REPORT_OPEN }),
-  }),
-  ReportContent: () => ({
-    id: "newtab-menu-report-content",
-    action: actionCreators.BroadcastToContent({ type: actionTypes.REPORT_OPEN }),
-  }),
 };
 
 ;// CONCATENATED MODULE: ./content-src/components/LinkMenu/LinkMenu.jsx
@@ -2398,23 +2388,22 @@ class ContextMenuButton extends (external_React_default()).PureComponent {
 
 
 
-
-class _DSLinkMenu extends (external_React_default()).PureComponent {
+class DSLinkMenu extends (external_React_default()).PureComponent {
   render() {
     const {
       index,
       dispatch
     } = this.props;
     let TOP_STORIES_CONTEXT_MENU_OPTIONS;
-    const PREF_REPORT_CONTENT_ENABLED = "discoverystream.reportContent.enabled";
-    const prefs = this.props.Prefs.values;
-    const showReporting = prefs[PREF_REPORT_CONTENT_ENABLED];
-    const isSpoc = this.props.card_type === "spoc";
-    if (isSpoc) {
-      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["BlockUrl", ...(showReporting ? ["ReportAd"] : []), "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
+
+    // Sponsored stories have their own context menu options.
+    if (this.props.card_type === "spoc") {
+      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["BlockUrl", "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
+      // Recommended stories have a different context menu.
     } else {
+      // If Pocket is enabled, insert extra menu options after the bookmark.
       const saveToPocketOptions = this.props.pocket_button_enabled ? ["CheckArchiveFromPocket", "CheckSavedToPocket"] : [];
-      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", ...(showReporting ? ["ReportContent"] : []), ...saveToPocketOptions, "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
+      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", ...saveToPocketOptions, "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
     }
     const type = this.props.type || "DISCOVERY_STREAM";
     const title = this.props.title || this.props.source;
@@ -2464,9 +2453,6 @@ class _DSLinkMenu extends (external_React_default()).PureComponent {
     })));
   }
 }
-const DSLinkMenu = (0,external_ReactRedux_namespaceObject.connect)(state => ({
-  Prefs: state.Prefs
-}))(_DSLinkMenu);
 ;// CONCATENATED MODULE: ./content-src/components/TopSites/TopSitesConstants.mjs
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -4354,12 +4340,9 @@ function AdBannerContextMenu({
   dispatch,
   spoc,
   position,
-  type,
-  prefs
+  type
 }) {
-  const PREF_REPORT_CONTENT_ENABLED = "discoverystream.reportContent.enabled";
-  const showReporting = prefs[PREF_REPORT_CONTENT_ENABLED];
-  const ADBANNER_CONTEXT_MENU_OPTIONS = ["BlockAdUrl", ...(showReporting ? ["ReportAd"] : []), "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
+  const ADBANNER_CONTEXT_MENU_OPTIONS = ["BlockAdUrl", "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
   const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
   const onClick = e => {
     e.preventDefault();
@@ -4500,8 +4483,7 @@ const AdBanner = ({
     dispatch: dispatch,
     spoc: spoc,
     position: row,
-    type: type,
-    prefs: prefs
+    type: type
   }), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
     className: "ad-banner-link",
     url: spoc.url,
@@ -5627,97 +5609,6 @@ class DSPrivacyModal extends (external_React_default()).PureComponent {
     })));
   }
 }
-;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/ReportContent/ReportContent.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-
-
-const ReportContent = () => {
-  const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
-  const modal = (0,external_React_namespaceObject.useRef)(null);
-  const radioGroupRef = (0,external_React_namespaceObject.useRef)(null);
-  const submitButtonRef = (0,external_React_namespaceObject.useRef)(null);
-  const report = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream.report);
-  const [valueSelected, setValueSelected] = (0,external_React_namespaceObject.useState)(false);
-
-  // Sends a dispatch to update the redux store when modal is cancelled
-  const handleCancel = (0,external_React_namespaceObject.useCallback)(() => {
-    dispatch(actionCreators.BroadcastToContent({
-      type: actionTypes.REPORT_CLOSE
-    }));
-  }, [dispatch]);
-  const handleSubmit = (0,external_React_namespaceObject.useCallback)(e => {
-    e.preventDefault();
-  }, []);
-
-  // Opens and closes the modal based on user interaction
-  (0,external_React_namespaceObject.useEffect)(() => {
-    if (report.visible && modal?.current) {
-      modal.current.showModal();
-    } else if (!report.visible && modal?.current?.open) {
-      modal.current.close();
-    }
-  }, [report.visible]);
-
-  // Updates the submit button's state based on if a value is selected
-  (0,external_React_namespaceObject.useEffect)(() => {
-    const radioGroup = radioGroupRef.current;
-    const submitButton = submitButtonRef.current;
-    const handleRadioChange = () => setValueSelected(true);
-    if (radioGroup) {
-      radioGroup.addEventListener("change", handleRadioChange);
-    }
-
-    // Handle submit button state on valueSelected change
-    const updateSubmitState = () => {
-      if (valueSelected) {
-        submitButton.removeAttribute("disabled");
-      } else {
-        submitButton.setAttribute("disabled", "");
-      }
-    };
-    updateSubmitState();
-    return () => {
-      if (radioGroup) {
-        radioGroup.removeEventListener("change", handleRadioChange);
-      }
-    };
-  }, [valueSelected]);
-  return /*#__PURE__*/external_React_default().createElement("dialog", {
-    className: "report-content-form",
-    id: "dialog-report",
-    ref: modal,
-    onClose: () => dispatch({
-      type: actionTypes.REPORT_CLOSE
-    })
-  }, /*#__PURE__*/external_React_default().createElement("form", {
-    action: ""
-  }, /*#__PURE__*/external_React_default().createElement("moz-radio-group", {
-    name: "report",
-    ref: radioGroupRef,
-    id: "report-group",
-    "data-l10n-id": "newtab-report-ads-why-reporting"
-  }, /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    value: "unsafe",
-    "data-l10n-id": "newtab-report-ads-reason-unsafe"
-  }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    "data-l10n-id": "newtab-report-ads-reason-inappropriate",
-    value: "inappropriate"
-  }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    "data-l10n-id": "newtab-report-ads-reason-seen-it-too-many-times",
-    value: "too-many"
-  })), /*#__PURE__*/external_React_default().createElement("moz-button-group", null, /*#__PURE__*/external_React_default().createElement("moz-button", {
-    "data-l10n-id": "newtab-topic-selection-cancel-button",
-    onClick: handleCancel
-  }), /*#__PURE__*/external_React_default().createElement("moz-button", {
-    type: "primary",
-    "data-l10n-id": "newtab-report-submit",
-    ref: submitButtonRef,
-    onClick: handleSubmit
-  }))));
-};
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSSignup/DSSignup.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -7011,10 +6902,6 @@ const INITIAL_STATE = {
     isUserLoggedIn: false,
     recentSavesEnabled: false,
     showTopicSelection: false,
-    report: {
-      visible: false,
-      data: {},
-    },
   },
   // Messages received from ASRouter to render in newtab
   Messages: {
@@ -7804,22 +7691,6 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         ...prevState,
         showBlockSectionConfirmation: true,
         sectionData: action.data,
-      };
-    case actionTypes.REPORT_OPEN:
-      return {
-        ...prevState,
-        report: {
-          ...prevState.report,
-          visible: true,
-        },
-      };
-    case actionTypes.REPORT_CLOSE:
-      return {
-        ...prevState,
-        report: {
-          ...prevState.report,
-          visible: false,
-        },
       };
     default:
       return prevState;
@@ -10958,7 +10829,6 @@ function CardSections({
 
 
 
-
 const ALLOWED_CSS_URL_PREFIXES = ["chrome://", "resource://", "https://img-getpocket.cdn.mozilla.net/"];
 const DUMMY_CSS_SELECTOR = "DUMMY#CSS.SELECTOR";
 
@@ -11171,7 +11041,6 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
       config
     } = this.props.DiscoveryStream;
     const topicSelectionEnabled = this.props.Prefs.values["discoverystream.topicSelection.enabled"];
-    const reportContentEnabled = this.props.Prefs.values["discoverystream.reportContent.enabled"];
 
     // Allow rendering without extracting special components
     if (!config.collapsible) {
@@ -11237,7 +11106,7 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
     // Render a DS-style TopSites then the rest if any in a collapsible section
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, this.props.DiscoveryStream.isPrivacyInfoModalVisible && /*#__PURE__*/external_React_default().createElement(DSPrivacyModal, {
       dispatch: this.props.dispatch
-    }), reportContentEnabled && /*#__PURE__*/external_React_default().createElement(ReportContent, null), topSites && this.renderLayout([{
+    }), topSites && this.renderLayout([{
       width: 12,
       components: [topSites],
       sectionType: "topsites"

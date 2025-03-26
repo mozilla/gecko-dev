@@ -1224,13 +1224,6 @@ newTabSectionsExperiment:
         pref:  browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.enabled
       description: >-
         Enable the inferred personalization for topics
-    reportContentEnabled:
-      type: boolean
-      setPref:
-        branch: user
-        pref:  browser.newtabpage.activity-stream.discoverystream.reportContent.enabled
-      description: >-
-        Enable reporting for ads and content
     localeSectionstConfig:
       type: string
       setPref:
