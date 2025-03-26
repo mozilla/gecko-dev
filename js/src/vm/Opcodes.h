@@ -966,7 +966,7 @@
      * `*[Symbol.iterator]() {}`.
      *
      * `JSOp::InitHiddenElem` is the same but defines a non-enumerable property,
-     * for class methods.
+     * for class methods and private fields.
      * `JSOp::InitLockedElem` is the same but defines a non-enumerable, non-writable, non-configurable property,
      * for private class methods.
      *

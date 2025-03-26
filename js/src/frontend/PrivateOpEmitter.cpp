@@ -237,7 +237,7 @@ bool PrivateOpEmitter::emitAssignment() {
       }
     }
 
-    JSOp setOp = isFieldInit() ? JSOp::InitElem : JSOp::StrictSetElem;
+    JSOp setOp = isFieldInit() ? JSOp::InitHiddenElem : JSOp::StrictSetElem;
     if (!bce_->emitElemOpBase(setOp)) {
       //            [stack] RHS
       return false;
