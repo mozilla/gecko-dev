@@ -154,9 +154,9 @@ Notification.prototype = {
   },
 
   /**
-   * Adds a value to the specified histogram, that must be keyed by ID.
+   * Adds a value to the specified metric, that must be labeled by ID.
    */
-  _recordTelemetry(histogramId, value) {
+  _recordTelemetry(metricName, value) {
     if (this.isPrivate && !this.options.recordTelemetryInPrivateBrowsing) {
       // The reason why we don't record telemetry in private windows is because
       // the available actions can be different from regular mode. The main
@@ -167,9 +167,9 @@ Notification.prototype = {
       // well, but it's just simpler to use the same check for everything.
       return;
     }
-    let histogram = Services.telemetry.getKeyedHistogramById(histogramId);
-    histogram.add("(all)", value);
-    histogram.add(this.id, value);
+    let metric = Glean.popupNotification[metricName];
+    metric["(all)"].accumulateSingleSample(value);
+    metric[this.id].accumulateSingleSample(value);
   },
 
   /**
@@ -187,7 +187,7 @@ Notification.prototype = {
     }
     if (!this.recordedTelemetryStats.has(value)) {
       this.recordedTelemetryStats.add(value);
-      this._recordTelemetry("POPUP_NOTIFICATION_STATS", value);
+      this._recordTelemetry("stats", value);
     }
   },
 };
@@ -1784,10 +1784,7 @@ PopupNotifications.prototype = {
         !notificationObj.wasDismissed &&
         !notificationObj.recordedTelemetryMainAction
       ) {
-        notificationObj._recordTelemetry(
-          "POPUP_NOTIFICATION_DISMISSAL_MS",
-          timeSinceShown
-        );
+        notificationObj._recordTelemetry("dismissal", timeSinceShown);
       }
 
       // Do not mark the notification as dismissed or fire NOTIFICATION_EVENT_DISMISSED
@@ -1896,10 +1893,7 @@ PopupNotifications.prototype = {
       let timeSinceCreated = Cu.now() - notification.timeCreated;
       if (!notification.recordedTelemetryMainAction) {
         notification.recordedTelemetryMainAction = true;
-        notification._recordTelemetry(
-          "POPUP_NOTIFICATION_MAIN_ACTION_MS",
-          timeSinceCreated
-        );
+        notification._recordTelemetry("mainAction", timeSinceCreated);
       }
     }
 
