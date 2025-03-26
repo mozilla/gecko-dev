@@ -1139,7 +1139,6 @@
     min-height: auto;
     > h1 {
       margin-top: 0;
-      margin-bottom: var(--space-small);
     }
   }
 
@@ -1219,6 +1218,10 @@
   toolbarbutton {
     margin: 0;
   }
+}
+
+.tab-group-editor-panel.tab-group-editor-panel-expanded {
+  --panel-width: 25em;
 }
 
 @media not (prefers-contrast) {
@@ -1943,10 +1946,14 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   flex-direction: column;
 }
 
+#tab-group-default-actions {
+  padding-top: var(--space-medium);
+}
+
 #tab-group-default-actions,
 #tab-group-suggestions-load-actions,
 #tab-group-suggestion-button,
-#tab-group-suggestions-message {
+#tab-group-suggestions-message-container {
   display: none;
 }
 
@@ -1956,11 +1963,11 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 #tab-group-suggestions-load-actions:not([hidden]),
 #tab-group-suggestions-loading:not([hidden]),
 #tab-group-default-actions:not([hidden]),
-#tab-group-suggestion-button:not([hidden]),
-#tab-group-suggestions-message:not([hidden]) {
+#tab-group-suggestion-button:not([hidden]) {
   display: flex;
 }
 
+#tab-group-suggestions-message-container:not([hidden]),
 #tab-group-suggestions-container:not([hidden]) {
   display: block;
 }
@@ -1980,8 +1987,13 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 #tab-group-suggestion-button {
+  --button-border-color-ghost: var(--color-accent-primary);
   color: var(--color-accent-primary);
-  --button-font-weight: var(--font-weight-normal);
+  width: 100%;
+
+  &:hover {
+    --button-border-color-ghost-hover: var(--color-accent-primary);
+  }
 }
 
 #tab-group-suggestions-loading {
@@ -1990,9 +2002,15 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   margin: 0 8px 8px;
 }
 
-#tab-group-suggestions-message {
+#tab-group-suggestions-message-container {
+  --button-opacity-disabled: 1;
+  color: inherit;
   font-size: 0.85em;
-  --button-font-weight: var(--font-weight-normal);
+  margin-bottom: var(--space-medium);
+  & > p {
+    margin-top: 0;
+    padding-inline: 35px var(--space-medium);
+  }
 }
 
 .tab-group-suggestions-loading-header,

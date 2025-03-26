@@ -18,6 +18,7 @@ class ModelOptin extends MozLitElement {
     messageL10nId: { type: String, fluent: true },
     optinButtonL10nId: { type: String, fluent: true },
     optoutButtonL10nId: { type: String, fluent: true },
+    footerMessageL10nId: { type: String, fluent: true },
     cancelDownloadButtonL10nId: { type: String, fluent: true },
     isLoading: { type: Boolean, reflect: true },
     progressStatus: { type: Number }, // Expected to be a number between 0 and 100
@@ -28,6 +29,7 @@ class ModelOptin extends MozLitElement {
     confirm: "MlModelOptinConfirm",
     deny: "MlModelOptinDeny",
     cancelDownload: "MlModelOptinCancelDownload",
+    footerLinkClick: "MlModelOptinFooterLinkClick",
   };
 
   static eventBehaviors = {
@@ -65,6 +67,14 @@ class ModelOptin extends MozLitElement {
     this.progressStatus = undefined;
   }
 
+  handleFooterLinkClick(e) {
+    // ftl overrides the html, need to manually watch for event in parent.
+    if (e.target.id !== "optin-footer-link") {
+      return;
+    }
+    this.dispatch(ModelOptin.events.footerLinkClick);
+  }
+
   render() {
     return html`
       <link
@@ -72,6 +82,18 @@ class ModelOptin extends MozLitElement {
         href="chrome://browser/content/genai/content/model-optin.css"
       />
       <section ?hidden=${this.isHidden} class="optin-wrapper">
+        ${this.isLoading
+          ? html`
+              <div class="optin-progress-bar-wrapper">
+                <progress
+                  class="optin-progress-bar"
+                  value=${this.progressStatus}
+                  max="100"
+                ></progress>
+              </div>
+            `
+          : ""}
+
         <div class="optin-header-wrapper">
           <div class="optin-header">
             ${this.headingIcon
@@ -90,28 +112,20 @@ class ModelOptin extends MozLitElement {
 
         ${this.isLoading
           ? html`
-              <div>
-                <div class="optin-actions">
-                  <moz-button
-                    data-l10n-id=${this.cancelDownloadButtonL10nId}
-                    @click=${this.handleCancelDownloadClick}
-                  >
-                  </moz-button>
-                </div>
-                <!-- Inlined progress bar -->
-                <div class="optin-progress-bar-wrapper">
-                  <progress
-                    class="optin-progress-bar"
-                    value=${this.progressStatus}
-                    max="100"
-                  ></progress>
-                </div>
+              <div class="optin-actions">
+                <moz-button
+                  size="small"
+                  data-l10n-id=${this.cancelDownloadButtonL10nId}
+                  @click=${this.handleCancelDownloadClick}
+                >
+                </moz-button>
               </div>
             `
           : html`
               <div class="optin-actions">
                 <moz-button-group>
                   <moz-button
+                    size="small"
                     id="optin-confirm-button"
                     type="primary"
                     data-l10n-id=${this.optinButtonL10nId}
@@ -119,6 +133,7 @@ class ModelOptin extends MozLitElement {
                   >
                   </moz-button>
                   <moz-button
+                    size="small"
                     id="optin-deny-button"
                     data-l10n-id=${this.optoutButtonL10nId}
                     @click=${this.handleDenyClick}
@@ -127,6 +142,21 @@ class ModelOptin extends MozLitElement {
                 </moz-button-group>
               </div>
             `}
+        ${!this.isLoading && this.footerMessageL10nId !== ""
+          ? html`
+              <p
+                class="optin-footer-message"
+                data-l10n-id=${this.footerMessageL10nId}
+                @click=${this.handleFooterLinkClick}
+              >
+                <a
+                  id="optin-footer-link"
+                  data-l10n-name="settings"
+                  href="#"
+                ></a>
+              </p>
+            `
+          : ""}
       </section>
     `;
   }

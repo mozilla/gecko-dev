@@ -31,6 +31,11 @@
   font-size: var(--font-size-large);
 }
 
+.optin-footer-message {
+  margin-top: var(--space-large);
+  text-align: center;
+}
+
 .optin-heading-icon {
   width: 12px;
   height: 12px;
@@ -39,7 +44,7 @@
 }
 
 .optin-progress-bar-wrapper {
-  margin-top: var(--space-medium);
+  margin-bottom: var(--space-medium);
 }
 
 .optin-progress-bar {
