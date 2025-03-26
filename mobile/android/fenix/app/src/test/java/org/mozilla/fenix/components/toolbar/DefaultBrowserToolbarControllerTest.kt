@@ -64,8 +64,8 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.directionsEq
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
-import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.HomeScreenViewModel
+import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_PRIVATE_TABS
 import org.mozilla.fenix.utils.Settings
 
 @RunWith(FenixRobolectricTestRunner::class)
@@ -391,7 +391,7 @@ class DefaultBrowserToolbarControllerTest {
         controller.handleEraseButtonClick()
 
         verify {
-            homeViewModel.sessionToDelete = HomeFragment.ALL_PRIVATE_TABS
+            homeViewModel.sessionToDelete = ALL_PRIVATE_TABS
             navController.navigate(BrowserFragmentDirections.actionGlobalHome())
         }
         assertNotNull(Events.browserToolbarEraseTapped.testGetValue())

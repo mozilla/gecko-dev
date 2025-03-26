@@ -6,9 +6,28 @@ package org.mozilla.fenix.home
 
 import androidx.lifecycle.ViewModel
 
+/**
+ * [ViewModel] that shares data on the sessions to delete between various fragments.
+ */
 class HomeScreenViewModel : ViewModel() {
     /**
-     * Used to delete a specific session once the home screen is resumed
+     * The session ID or a session code specified by [ALL_NORMAL_TABS] or [ALL_PRIVATE_TABS]
+     * to queue the sessions to delete once the home screen is resumed.
      */
     var sessionToDelete: String? = null
+
+    /**
+     * Contains constants used by [sessionToDelete].
+     */
+    companion object {
+        /**
+         * Session code to use in [sessionToDelete] to specify all normal tabs should be deleted.
+         */
+        const val ALL_NORMAL_TABS = "all_normal"
+
+        /**
+         * Session code to use in [sessionToDelete] to specify all private tabs should be deleted.
+         */
+        const val ALL_PRIVATE_TABS = "all_private"
+    }
 }
