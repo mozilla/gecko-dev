@@ -12,6 +12,7 @@
 #include "mozilla/AbstractThread.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ProfilerRunnable.h"
+#include "mozilla/FlowMarkers.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIDirectTaskDispatcher.h"
 #include "nsISupportsImpl.h"
@@ -29,7 +30,10 @@ class SimpleTaskQueue {
     if (!mTasks) {
       mTasks.emplace();
     }
-    mTasks->push(std::move(aRunnable));
+    nsCOMPtr<nsIRunnable> runnable(aRunnable);
+    PROFILER_MARKER("SimpleTaskQueue::AddTask", OTHER, {MarkerStack::Capture()},
+                   FlowMarker, Flow::FromPointer(runnable.get()));
+    mTasks->push(std::move(runnable));
   }
 
   void DrainTasks() {
