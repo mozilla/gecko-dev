@@ -59,10 +59,20 @@ class RenderPassEncoder final : public ObjectBase,
   nsTArray<RefPtr<const TextureView>> mUsedTextureViews;
   nsTArray<RefPtr<const RenderBundle>> mUsedRenderBundles;
 
- public:
   // programmable pass encoder
+ private:
   void SetBindGroup(uint32_t aSlot, BindGroup* const aBindGroup,
-                    const dom::Sequence<uint32_t>& aDynamicOffsets);
+                    const uint32_t* aDynamicOffsets,
+                    uint64_t aDynamicOffsetsLength);
+
+ public:
+  void SetBindGroup(uint32_t aSlot, BindGroup* const aBindGroup,
+                    const dom::Sequence<uint32_t>& aDynamicOffsets,
+                    ErrorResult& aRv);
+  void SetBindGroup(uint32_t aSlot, BindGroup* const aBindGroup,
+                    const dom::Uint32Array& aDynamicOffsetsData,
+                    uint64_t aDynamicOffsetsDataStart,
+                    uint64_t aDynamicOffsetsDataLength, ErrorResult& aRv);
   // render encoder base
   void SetPipeline(const RenderPipeline& aPipeline);
   void SetIndexBuffer(const Buffer& aBuffer,

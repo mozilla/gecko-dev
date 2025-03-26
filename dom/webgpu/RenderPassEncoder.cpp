@@ -9,6 +9,7 @@
 #include "CommandEncoder.h"
 #include "RenderBundle.h"
 #include "RenderPipeline.h"
+#include "Utility.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 
 namespace mozilla::webgpu {
@@ -240,20 +241,46 @@ void RenderPassEncoder::Cleanup() {
   mUsedRenderBundles.Clear();
 }
 
-void RenderPassEncoder::SetBindGroup(
-    uint32_t aSlot, BindGroup* const aBindGroup,
-    const dom::Sequence<uint32_t>& aDynamicOffsets) {
-  if (!mValid) {
-    return;
-  }
+void RenderPassEncoder::SetBindGroup(uint32_t aSlot,
+                                     BindGroup* const aBindGroup,
+                                     const uint32_t* aDynamicOffsets,
+                                     uint64_t aDynamicOffsetsLength) {
   RawId bindGroup = 0;
   if (aBindGroup) {
     mUsedBindGroups.AppendElement(aBindGroup);
     bindGroup = aBindGroup->mId;
   }
-  ffi::wgpu_recorded_render_pass_set_bind_group(mPass.get(), aSlot, bindGroup,
-                                                aDynamicOffsets.Elements(),
-                                                aDynamicOffsets.Length());
+  ffi::wgpu_recorded_render_pass_set_bind_group(
+      mPass.get(), aSlot, bindGroup, aDynamicOffsets, aDynamicOffsetsLength);
+}
+
+void RenderPassEncoder::SetBindGroup(
+    uint32_t aSlot, BindGroup* const aBindGroup,
+    const dom::Sequence<uint32_t>& aDynamicOffsets, ErrorResult& aRv) {
+  if (!mValid) {
+    return;
+  }
+  this->SetBindGroup(aSlot, aBindGroup, aDynamicOffsets.Elements(),
+                     aDynamicOffsets.Length());
+}
+
+void RenderPassEncoder::SetBindGroup(
+    uint32_t aSlot, BindGroup* const aBindGroup,
+    const dom::Uint32Array& aDynamicOffsetsData,
+    uint64_t aDynamicOffsetsDataStart, uint64_t aDynamicOffsetsDataLength,
+    ErrorResult& aRv) {
+  if (!mValid) {
+    return;
+  }
+
+  auto dynamicOffsets =
+      GetDynamicOffsetsFromArray(aDynamicOffsetsData, aDynamicOffsetsDataStart,
+                                 aDynamicOffsetsDataLength, aRv);
+
+  if (dynamicOffsets.isSome()) {
+    this->SetBindGroup(aSlot, aBindGroup, dynamicOffsets->Elements(),
+                       dynamicOffsets->Length());
+  }
 }
 
 void RenderPassEncoder::SetPipeline(const RenderPipeline& aPipeline) {
