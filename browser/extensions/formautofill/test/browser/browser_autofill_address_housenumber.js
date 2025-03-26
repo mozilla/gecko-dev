@@ -278,4 +278,44 @@ add_autofill_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "Test autofill with the house number field being recognized in alternative field name",
+    // house number field is recognized as both cc-number and house-number
+    fixtureData: `<form>
+      <input id="email" autocomplete="email">
+      <input id="address-line1" autocomplete="address-line1">
+      <label for="delivery-houseNumber">Numero civico*</label>
+      <input id="delivery-houseNumber" name="delivery-houseNumber">
+      <label for="delivery-line2">Indirizzo aggiuntivo</label>
+      <input id="delivery-line2" name="delivery-line2">
+      <input id="postal-code" autocomplete="postal-code">
+    </form>`,
+    profile: TEST_PROFILE_CA,
+    expectedResult: [
+      {
+        default: {
+          reason: "autocomplete",
+        },
+        fields: [
+          { fieldName: "email", autofill: TEST_PROFILE_CA.email },
+          { fieldName: "address-line1", autofill: "Main St" },
+          {
+            fieldName: "address-housenumber",
+            autofill: "160",
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-line2",
+            autofill: "Apartment 306",
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_CA["postal-code"],
+          },
+        ],
+      },
+    ],
+  },
 ]);
