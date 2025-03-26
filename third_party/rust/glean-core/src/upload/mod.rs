@@ -331,6 +331,7 @@ impl PingUploadManager {
             headers,
             body_has_info_sections,
             ping_name,
+            uploader_capabilities,
         } = ping;
         let mut request = PingRequest::builder(
             &self.language_binding_name,
@@ -340,7 +341,8 @@ impl PingUploadManager {
         .path(path)
         .body(body)
         .body_has_info_sections(body_has_info_sections)
-        .ping_name(ping_name);
+        .ping_name(ping_name)
+        .uploader_capabilities(uploader_capabilities);
 
         if let Some(headers) = headers {
             request = request.headers(headers);
@@ -742,7 +744,7 @@ impl PingUploadManager {
                 self.directory_manager.delete_file(document_id);
             }
 
-            UnrecoverableFailure { .. } | HttpStatus { code: 400..=499 } => {
+            UnrecoverableFailure { .. } | HttpStatus { code: 400..=499 } | Incapable { .. } => {
                 log::warn!(
                     "Unrecoverable upload failure while attempting to send ping {}. Error was {:?}",
                     document_id,
@@ -889,6 +891,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "ping-name".into(),
+                uploader_capabilities: vec![],
             },
         );
 
@@ -916,6 +919,7 @@ mod test {
                     headers: None,
                     body_has_info_sections: true,
                     ping_name: "ping-name".into(),
+                    uploader_capabilities: vec![],
                 },
             );
         }
@@ -954,6 +958,7 @@ mod test {
                     headers: None,
                     body_has_info_sections: true,
                     ping_name: "ping-name".into(),
+                    uploader_capabilities: vec![],
                 },
             );
         }
@@ -974,6 +979,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "ping-name".into(),
+                uploader_capabilities: vec![],
             },
         );
 
@@ -1007,6 +1013,7 @@ mod test {
                     headers: None,
                     body_has_info_sections: true,
                     ping_name: "ping-name".into(),
+                    uploader_capabilities: vec![],
                 },
             );
         }
@@ -1036,6 +1043,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1078,6 +1086,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1118,6 +1127,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1158,6 +1168,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1198,6 +1209,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1240,6 +1252,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1290,6 +1303,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "test-ping".into(),
+                uploader_capabilities: vec![],
             },
         );
 
@@ -1310,6 +1324,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "test-ping".into(),
+                uploader_capabilities: vec![],
             },
         );
 
@@ -1358,6 +1373,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1394,6 +1410,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "test-ping".into(),
+                uploader_capabilities: vec![],
             },
         );
         upload_manager.enqueue_ping(
@@ -1405,6 +1422,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "test-ping".into(),
+                uploader_capabilities: vec![],
             },
         );
 
@@ -1434,6 +1452,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1494,6 +1513,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1575,6 +1595,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1657,6 +1678,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1741,6 +1763,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         );
         glean.register_ping_type(&ping_type);
 
@@ -1841,6 +1864,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "ping-name".into(),
+                uploader_capabilities: vec![],
             },
         );
         upload_manager.enqueue_ping(
@@ -1852,6 +1876,7 @@ mod test {
                 headers: None,
                 body_has_info_sections: true,
                 ping_name: "ping-name".into(),
+                uploader_capabilities: vec![],
             },
         );
 
@@ -1917,6 +1942,7 @@ mod test {
             headers: None,
             body_has_info_sections: true,
             ping_name: "ping-name".into(),
+            uploader_capabilities: vec![],
         };
         upload_manager.enqueue_ping(&glean, ping);
         assert!(upload_manager.get_upload_task(&glean, false).is_upload());
@@ -1929,6 +1955,7 @@ mod test {
             headers: None,
             body_has_info_sections: true,
             ping_name: "ping-name".into(),
+            uploader_capabilities: vec![],
         };
         upload_manager.enqueue_ping(&glean, ping);
 

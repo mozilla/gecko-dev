@@ -13,16 +13,16 @@
 //! 0. At startup, register a [RustFutureContinuationCallback] by calling
 //!    rust_future_continuation_callback_set.
 //! 1. Call the scaffolding function to get a [Handle]
-//! 2a. In a loop:
+//! 2. In a loop:
 //!   - Call [rust_future_poll]
 //!   - Suspend the function until the [rust_future_poll] continuation function is called
 //!   - If the continuation was function was called with [RustFuturePoll::Ready], then break
 //!     otherwise continue.
-//! 2b. If the async function is cancelled, then call [rust_future_cancel].  This causes the
-//!     continuation function to be called with [RustFuturePoll::Ready] and the [RustFuture] to
-//!     enter a cancelled state.
-//! 3. Call [rust_future_complete] to get the result of the future.
-//! 4. Call [rust_future_free] to free the future, ideally in a finally block.  This:
+//! 3. If the async function is cancelled, then call [rust_future_cancel].  This causes the
+//!    continuation function to be called with [RustFuturePoll::Ready] and the [RustFuture] to
+//!    enter a cancelled state.
+//! 4. Call [rust_future_complete] to get the result of the future.
+//! 5. Call [rust_future_free] to free the future, ideally in a finally block.  This:
 //!    - Releases any resources held by the future
 //!    - Calls any continuation callbacks that have not been called yet
 //!
@@ -76,7 +76,6 @@
 //! [`RawWaker`]: https://doc.rust-lang.org/std/task/struct.RawWaker.html
 
 use std::{
-    future::Future,
     marker::PhantomData,
     ops::Deref,
     panic,
@@ -85,14 +84,14 @@ use std::{
     task::{Context, Poll, Wake},
 };
 
-use super::{RustFutureContinuationCallback, RustFuturePoll, Scheduler};
+use super::{RustFutureContinuationCallback, RustFuturePoll, Scheduler, UniffiCompatibleFuture};
 use crate::{rust_call_with_out_status, FfiDefault, LiftArgsError, LowerReturn, RustCallStatus};
 
 /// Wraps the actual future we're polling
 struct WrappedFuture<F, T, UT>
 where
     // See rust_future_new for an explanation of these trait bounds
-    F: Future<Output = Result<T, LiftArgsError>> + Send + 'static,
+    F: UniffiCompatibleFuture<Result<T, LiftArgsError>> + 'static,
     T: LowerReturn<UT> + Send + 'static,
     UT: Send + 'static,
 {
@@ -106,7 +105,7 @@ where
 impl<F, T, UT> WrappedFuture<F, T, UT>
 where
     // See rust_future_new for an explanation of these trait bounds
-    F: Future<Output = Result<T, LiftArgsError>> + Send + 'static,
+    F: UniffiCompatibleFuture<Result<T, LiftArgsError>> + 'static,
     T: LowerReturn<UT> + Send + 'static,
     UT: Send + 'static,
 {
@@ -157,7 +156,7 @@ where
                 }
             }
         } else {
-            log::error!("poll with neither future nor result set");
+            trace!("poll with neither future nor result set");
             true
         }
     }
@@ -186,7 +185,7 @@ where
 unsafe impl<F, T, UT> Send for WrappedFuture<F, T, UT>
 where
     // See rust_future_new for an explanation of these trait bounds
-    F: Future<Output = Result<T, LiftArgsError>> + Send + 'static,
+    F: UniffiCompatibleFuture<Result<T, LiftArgsError>> + 'static,
     T: LowerReturn<UT> + Send + 'static,
     UT: Send + 'static,
 {
@@ -196,7 +195,7 @@ where
 pub(super) struct RustFuture<F, T, UT>
 where
     // See rust_future_new for an explanation of these trait bounds
-    F: Future<Output = Result<T, LiftArgsError>> + Send + 'static,
+    F: UniffiCompatibleFuture<Result<T, LiftArgsError>> + 'static,
     T: LowerReturn<UT> + Send + 'static,
     UT: Send + 'static,
 {
@@ -212,7 +211,7 @@ where
 impl<F, T, UT> RustFuture<F, T, UT>
 where
     // See rust_future_new for an explanation of these trait bounds
-    F: Future<Output = Result<T, LiftArgsError>> + Send + 'static,
+    F: UniffiCompatibleFuture<Result<T, LiftArgsError>> + 'static,
     T: LowerReturn<UT> + Send + 'static,
     UT: Send + 'static,
 {
@@ -225,12 +224,14 @@ where
     }
 
     pub(super) fn poll(self: Arc<Self>, callback: RustFutureContinuationCallback, data: u64) {
-        let ready = self.is_cancelled() || {
+        let cancelled = self.is_cancelled();
+        let ready = cancelled || {
             let mut locked = self.future.lock().unwrap();
             let waker: std::task::Waker = Arc::clone(&self).into();
             locked.poll(&mut Context::from_waker(&waker))
         };
         if ready {
+            trace!("RustFuture::poll is ready (cancelled: {cancelled})");
             callback(data, RustFuturePoll::Ready)
         } else {
             self.scheduler.lock().unwrap().store(callback, data);
@@ -242,6 +243,7 @@ where
     }
 
     pub(super) fn wake(&self) {
+        trace!("RustFuture::wake called");
         self.scheduler.lock().unwrap().wake();
     }
 
@@ -264,7 +266,7 @@ where
 impl<F, T, UT> Wake for RustFuture<F, T, UT>
 where
     // See rust_future_new for an explanation of these trait bounds
-    F: Future<Output = Result<T, LiftArgsError>> + Send + 'static,
+    F: UniffiCompatibleFuture<Result<T, LiftArgsError>> + 'static,
     T: LowerReturn<UT> + Send + 'static,
     UT: Send + 'static,
 {
@@ -299,7 +301,7 @@ pub trait RustFutureFfi<ReturnType>: Send + Sync {
 impl<F, T, UT> RustFutureFfi<T::ReturnType> for RustFuture<F, T, UT>
 where
     // See rust_future_new for an explanation of these trait bounds
-    F: Future<Output = Result<T, LiftArgsError>> + Send + 'static,
+    F: UniffiCompatibleFuture<Result<T, LiftArgsError>> + 'static,
     T: LowerReturn<UT> + Send + 'static,
     UT: Send + 'static,
 {

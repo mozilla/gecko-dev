@@ -168,21 +168,21 @@ impl OutgoingBso {
     }
 }
 
-/// We also have the concept of "content", which helps work with a `T` which
-/// is represented inside the payload. Real-world examples of a `T` include
-/// Bookmarks or Tabs.
-/// See the content module for the implementations.
-///
-/// So this all flows together in the following way:
-/// * Incoming encrypted data:
-///   EncryptedIncomingBso -> IncomingBso -> [specific engine] -> IncomingContent<T>
-/// * Incoming cleartext data:
-///   IncomingBso -> IncomingContent<T>
-///   (Note that incoming cleartext only happens for a few collections managed by
-///   the sync client and never by specific engines - engine BSOs are always encryted)
-/// * Outgoing encrypted data:
-///   OutgoingBso (created in the engine) -> [this crate] -> EncryptedOutgoingBso
-///  * Outgoing cleartext data: just an OutgoingBso with no conversions needed.
+// We also have the concept of "content", which helps work with a `T` which
+// is represented inside the payload. Real-world examples of a `T` include
+// Bookmarks or Tabs.
+// See the content module for the implementations.
+//
+// So this all flows together in the following way:
+// * Incoming encrypted data:
+//   EncryptedIncomingBso -> IncomingBso -> [specific engine] -> IncomingContent<T>
+// * Incoming cleartext data:
+//   IncomingBso -> IncomingContent<T>
+//   (Note that incoming cleartext only happens for a few collections managed by
+//   the sync client and never by specific engines - engine BSOs are always encryted)
+// * Outgoing encrypted data:
+//   OutgoingBso (created in the engine) -> [this crate] -> EncryptedOutgoingBso
+//  * Outgoing cleartext data: just an OutgoingBso with no conversions needed.
 
 /// [IncomingContent] is the result of converting an [IncomingBso] into
 /// some <T> - it consumes the Bso, so you get the envelope, and the [IncomingKind]

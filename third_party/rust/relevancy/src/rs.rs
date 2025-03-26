@@ -4,7 +4,7 @@
  */
 
 use crate::{Error, Result};
-use remote_settings::RemoteSettingsResponse;
+use remote_settings::{RemoteSettingsClient, RemoteSettingsRecord};
 use serde::Deserialize;
 /// The Remote Settings collection name.
 pub(crate) const REMOTE_SETTINGS_COLLECTION: &str = "content-relevance";
@@ -14,26 +14,46 @@ pub(crate) const REMOTE_SETTINGS_COLLECTION: &str = "content-relevance";
 /// This trait lets tests use a mock client.
 pub(crate) trait RelevancyRemoteSettingsClient {
     /// Fetches records from the Suggest Remote Settings collection.
-    fn get_records(&self) -> Result<RemoteSettingsResponse>;
+    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>>;
 
     /// Fetches a record's attachment from the Suggest Remote Settings
     /// collection.
-    fn get_attachment(&self, location: &str) -> Result<Vec<u8>>;
+    fn get_attachment(&self, record: &RemoteSettingsRecord) -> Result<Vec<u8>>;
 }
 
-impl RelevancyRemoteSettingsClient for remote_settings::RemoteSettings {
-    fn get_records(&self) -> Result<RemoteSettingsResponse> {
-        Ok(remote_settings::RemoteSettings::get_records(self)?)
+impl RelevancyRemoteSettingsClient for RemoteSettingsClient {
+    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
+        self.sync()?;
+        Ok(self
+            .get_records(false)
+            .expect("RemoteSettingsClient::get_records() returned None after `sync()` called"))
     }
 
-    fn get_attachment(&self, location: &str) -> Result<Vec<u8>> {
-        Ok(remote_settings::RemoteSettings::get_attachment(
-            self, location,
-        )?)
+    fn get_attachment(&self, record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
+        Ok(self.get_attachment(record)?)
     }
 }
 
-/// A record in the Relevancy Remote Settings collection.
+impl<T: RelevancyRemoteSettingsClient> RelevancyRemoteSettingsClient for &T {
+    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
+        (*self).get_records()
+    }
+
+    fn get_attachment(&self, record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
+        (*self).get_attachment(record)
+    }
+}
+
+impl<T: RelevancyRemoteSettingsClient> RelevancyRemoteSettingsClient for std::sync::Arc<T> {
+    fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
+        (**self).get_records()
+    }
+
+    fn get_attachment(&self, record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
+        (**self).get_attachment(record)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct RelevancyRecord {
     #[allow(dead_code)]
@@ -82,4 +102,24 @@ pub fn from_json_slice<T: serde::de::DeserializeOwned>(value: &[u8]) -> Result<T
             error: e,
         })?;
     from_json(json_value)
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::*;
+
+    // Type that implements RelevancyRemoteSettingsClient, but panics if the methods are actually
+    // called.  This is used in tests that need to construct a `RelevancyStore`, but don't want to
+    // construct an actual remote settings client.
+    pub struct NullRelavancyRemoteSettingsClient;
+
+    impl RelevancyRemoteSettingsClient for NullRelavancyRemoteSettingsClient {
+        fn get_records(&self) -> Result<Vec<RemoteSettingsRecord>> {
+            panic!("NullRelavancyRemoteSettingsClient::get_records was called")
+        }
+
+        fn get_attachment(&self, _record: &RemoteSettingsRecord) -> Result<Vec<u8>> {
+            panic!("NullRelavancyRemoteSettingsClient::get_records was called")
+        }
+    }
 }

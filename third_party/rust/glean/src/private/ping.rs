@@ -34,6 +34,7 @@ impl PingType {
     /// * `schedules_pings` - A list of pings which are triggered for submission when this ping is
     ///   submitted.
     /// * `reason_codes` - The valid reason codes for this ping.
+    /// * `uploader_capabilities` - The capabilities required during this ping's upload.
     #[allow(clippy::too_many_arguments)]
     pub fn new<A: Into<String>>(
         name: A,
@@ -45,6 +46,7 @@ impl PingType {
         schedules_pings: Vec<String>,
         reason_codes: Vec<String>,
         follows_collection_enabled: bool,
+        uploader_capabilities: Vec<String>,
     ) -> Self {
         let inner = glean_core::metrics::PingType::new(
             name.into(),
@@ -56,6 +58,7 @@ impl PingType {
             schedules_pings,
             reason_codes,
             follows_collection_enabled,
+            uploader_capabilities,
         );
 
         Self {

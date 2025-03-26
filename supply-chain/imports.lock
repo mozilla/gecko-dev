@@ -258,15 +258,15 @@ user-login = "jrmuizel"
 user-name = "Jeff Muizelaar"
 
 [[publisher.glean]]
-version = "63.1.0"
-when = "2025-01-30"
+version = "64.0.0"
+when = "2025-03-18"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
 [[publisher.glean-core]]
-version = "63.1.0"
-when = "2025-01-30"
+version = "64.0.0"
+when = "2025-03-18"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
@@ -335,8 +335,8 @@ user-login = "carllerche"
 user-name = "Carl Lerche"
 
 [[publisher.itoa]]
-version = "1.0.5"
-when = "2022-12-17"
+version = "1.0.11"
+when = "2024-03-26"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -711,56 +711,56 @@ user-login = "Manishearth"
 user-name = "Manish Goregaokar"
 
 [[publisher.uniffi]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_bindgen]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_build]]
-version = "0.28.2"
-when = "2024-10-08"
-user-id = 127697
-user-login = "bendk"
-
-[[publisher.uniffi_checksum_derive]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_core]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
+user-id = 127697
+user-login = "bendk"
+
+[[publisher.uniffi_internal_macros]]
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_macros]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_meta]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_testing]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_udl]]
-version = "0.28.2"
-when = "2024-10-08"
+version = "0.29.0"
+when = "2025-02-06"
 user-id = 127697
 user-login = "bendk"
 
@@ -1203,6 +1203,11 @@ crate is broadly used throughout the ecosystem and does not contain anything
 suspicious.
 """
 
+[[audits.bytecode-alliance.audits.itoa]]
+who = "Dan Gohman <dev@sunfishcode.online>"
+criteria = "safe-to-deploy"
+delta = "1.0.11 -> 1.0.14"
+
 [[audits.bytecode-alliance.audits.jobserver]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
@@ -1545,6 +1550,13 @@ criteria = "safe-to-run"
 version = "0.14.20"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
 
+[[audits.google.audits.itoa]]
+who = "Daniel Cheng <dcheng@chromium.org>"
+criteria = "safe-to-deploy"
+delta = "1.0.14 -> 1.0.15"
+notes = "Only minor rustdoc changes."
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
 [[audits.google.audits.nom]]
 who = "danakj@chromium.org"
 criteria = "safe-to-deploy"
@@ -1596,6 +1608,15 @@ Comment-only changes in `build.rs`.
 Reordering of `Cargo.toml` entries.
 Just bumping up the version number in `lib.rs`.
 Config-related changes in `test_size.rs`.
+"""
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.rand]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+version = "0.8.5"
+notes = """
+For more detailed unsafe review notes please see https://crrev.com/c/6362797
 """
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
@@ -1950,6 +1971,14 @@ who = "Ameer Ghani <inahga@divviup.org>"
 criteria = "safe-to-deploy"
 delta = "0.4.1 -> 0.4.2"
 
+[[audits.mozilla.wildcard-audits.uniffi_internal_macros]]
+who = "Jan-Erik Rediger <jrediger@mozilla.com>"
+criteria = "safe-to-deploy"
+user-id = 127697 # bendk
+start = "2025-02-06"
+end = "2026-03-14"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
 [[audits.mozilla.wildcard-audits.weedle2]]
 who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -1966,20 +1995,6 @@ user-id = 48 # Jan-Erik Rediger (badboy)
 start = "2021-03-03"
 end = "2025-08-05"
 notes = "Maintained by me"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.audits.askama]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.11.1 -> 0.12.0"
-notes = "No new unsafe usage, mostly dependency updates and smaller API changes"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
-
-[[audits.mozilla.audits.askama_derive]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.11.2 -> 0.12.1"
-notes = "Dependency updates, a new toml dependency and some API changes. No unsafe use."
 aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
 
 [[audits.mozilla.audits.basic-toml]]

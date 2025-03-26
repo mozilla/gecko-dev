@@ -144,7 +144,8 @@ extension {{ namespace }} {
             enabled: {{obj.enabled|swift}},
             schedulesPings: {{obj.schedules_pings|swift}},
             reasonCodes: {{obj.reason_codes|swift}},
-            followsCollectionEnabled: {{obj.follows_collection_enabled|swift}}
+            followsCollectionEnabled: {{obj.follows_collection_enabled|swift}},
+            uploaderCapabilities: {{obj.uploader_capabilities|swift}}
         )
 
       {% endfor %}

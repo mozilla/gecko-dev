@@ -1,4 +1,4 @@
-{%- let rec = ci|get_record_definition(name) %}
+{%- let rec = ci.get_record_definition(name).unwrap() %}
 class {{ type_name }}:
     {%- call py::docstring(rec, 4) %}
     {%- for field in rec.fields() %}
@@ -17,7 +17,7 @@ class {{ type_name }}:
         {%- match field.default_value() %}
         {%- when None %}
         self.{{ field_name }} = {{ field_name }}
-        {%- when Some with(literal) %}
+        {%- when Some(literal) %}
         if {{ field_name }} is _DEFAULT:
             self.{{ field_name }} = {{ literal|literal_py(field) }}
         else:

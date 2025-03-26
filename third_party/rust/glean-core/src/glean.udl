@@ -108,6 +108,7 @@ dictionary PingRateLimit {
 };
 
 // An enum representing the different logging levels for the `log` crate.
+[Remote]
 enum LevelFilter {
     "Off",
     "Error",
@@ -214,6 +215,8 @@ dictionary PingRequest {
     boolean body_has_info_sections;
     // The ping's name. Likely also somewhere in `path`.
     string ping_name;
+    // The capabilities required during this ping's upload.
+    sequence<string> uploader_capabilities;
 };
 
 // An enum representing the possible upload tasks to be performed by an uploader.
@@ -223,6 +226,7 @@ interface PingUploadTask {
     //
     // * request: the ping request for upload
     Upload(PingRequest request);
+
     // A flag signaling that the pending pings directories are not done being processed,
     // thus the requester should wait and come back later.
     //
@@ -253,6 +257,15 @@ interface UploadResult {
     //
     // * unused: _ignored_.
     UnrecoverableFailure(i8 unused);
+
+    // The uploader is not capable of uploading this request due to lack of or
+    // mismatched capabilities.
+    //
+    // e.g. The ping requires upload over OHTTP,
+    //      but the uploader doesn't support OHTTP.
+    //
+    // * unused: _ignored_.
+    Incapable(i8 unused);
 
     // A HTTP response code.
     //
@@ -309,7 +322,8 @@ interface PingType {
         boolean enabled,
         sequence<string> schedules_pings,
         sequence<string> reason_codes,
-        boolean follows_collection_enabled
+        boolean follows_collection_enabled,
+        sequence<string> uploader_capabilities
     );
     void submit(optional string? reason = null);
 

@@ -1,4 +1,4 @@
-{%- let rec = ci|get_record_definition(name) %}
+{%- let rec = ci.get_record_definition(name).unwrap() %}
 
 {%- if rec.has_fields() %}
 {%- call kt::docstring(rec, 0) %}
@@ -7,7 +7,7 @@ data class {{ type_name }} (
     {%- call kt::docstring(field, 4) %}
     {% if config.generate_immutable_records() %}val{% else %}var{% endif %} {{ field.name()|var_name }}: {{ field|type_name(ci) -}}
     {%- match field.default_value() %}
-        {%- when Some with(literal) %} = {{ literal|render_literal(field, ci) }}
+        {%- when Some(literal) %} = {{ literal|render_literal(field, ci) }}
         {%- else %}
     {%- endmatch -%}
     {% if !loop.last %}, {% endif %}

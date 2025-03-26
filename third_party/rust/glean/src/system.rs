@@ -46,11 +46,36 @@ pub const ARCH: &str = "x86";
 /// `target_arch` when building this crate: `x86_64`
 pub const ARCH: &str = "x86_64";
 
+#[cfg(target_arch = "powerpc64")]
+/// `target_arch` when building this crate: `powerpc64`
+pub const ARCH: &str = "powerpc64";
+
+#[cfg(target_arch = "riscv64")]
+/// `target_arch` when building this crate: `riscv64`
+pub const ARCH: &str = "riscv64";
+
+#[cfg(target_arch = "mips")]
+/// `target_arch` when building this crate: `mips`
+pub const ARCH: &str = "mips";
+
+#[cfg(target_arch = "loongarch64")]
+/// `target_arch` when building this crate: `loongarch64`
+pub const ARCH: &str = "loongarch64";
+
+#[cfg(target_arch = "s390x")]
+/// `target_arch` when building this crate: `s390x`
+pub const ARCH: &str = "s390x";
+
 #[cfg(not(any(
     target_arch = "aarch64",
     target_arch = "arm",
     target_arch = "x86",
-    target_arch = "x86_64"
+    target_arch = "x86_64",
+    target_arch = "powerpc64",
+    target_arch = "riscv64",
+    target_arch = "mips",
+    target_arch = "loongarch64",
+    target_arch = "s390x",
 )))]
 /// `target_arch` when building this crate: unknown!
 pub const ARCH: &str = "Unknown";

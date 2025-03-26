@@ -13,12 +13,18 @@
 edition = "2018"
 rust-version = "1.36"
 name = "itoa"
-version = "1.0.5"
+version = "1.0.15"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
+build = false
 exclude = [
     "performance.png",
     "chart/**",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Fast integer primitive to string conversion"
 documentation = "https://docs.rs/itoa"
 readme = "README.md"
@@ -26,12 +32,31 @@ keywords = ["integer"]
 categories = [
     "value-formatting",
     "no-std",
+    "no-std::no-alloc",
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/dtolnay/itoa"
 
 [package.metadata.docs.rs]
+rustdoc-args = [
+    "--generate-link-to-definition",
+    "--extern-html-root-url=core=https://doc.rust-lang.org",
+    "--extern-html-root-url=alloc=https://doc.rust-lang.org",
+    "--extern-html-root-url=std=https://doc.rust-lang.org",
+]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[lib]
+name = "itoa"
+path = "src/lib.rs"
+
+[[test]]
+name = "test"
+path = "tests/test.rs"
+
+[[bench]]
+name = "bench"
+path = "benches/bench.rs"
 
 [dependencies.no-panic]
 version = "0.1"

@@ -1,0 +1,1 @@
+table_order = ["workspace", "package", "badges", "lib", "features", "dependencies", "build-dependencies", "dev-dependencies", "bench"]

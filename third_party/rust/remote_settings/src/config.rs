@@ -17,7 +17,7 @@ use crate::{ApiResult, Error, RemoteSettingsContext, Result};
 /// This is the version used in the new API, hence the `2` at the end.  The plan is to move
 /// consumers to the new API, remove the RemoteSettingsConfig struct, then remove the `2` from this
 /// name.
-#[derive(Debug, Clone, uniffi::Record)]
+#[derive(Debug, Default, Clone, uniffi::Record)]
 pub struct RemoteSettingsConfig2 {
     /// The Remote Settings server to use. Defaults to [RemoteSettingsServer::Prod],
     #[uniffi(default = None)]

@@ -127,6 +127,21 @@ additionalProperties:
         only takes effect when `metadata.include_info_sections` is `true`.
       type: boolean
 
+    uploader_capabilities:
+      title: Uploader Capabilities
+      description: |
+        **Optional.**
+
+        An optional list of capability strings that the ping uploader must be
+        capable of supporting in order to upload this ping.
+        These are supplied exactly as defined (including order) to the uploader
+        every time upload is attempted for this ping.
+        The uploader must only attempt upload if it satisfies the supplied
+        capabilities. If not, it must refuse to upload the ping.
+      type: [array, "null"]
+      items:
+        type: string
+
     send_if_empty:
       title: Send if empty
       description: |
