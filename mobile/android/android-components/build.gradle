@@ -22,13 +22,6 @@ buildscript {
     dependencies {
         classpath libs.tools.androidgradle
     }
-
-    // Variables in plugins {} aren't directly supported. Hack around it by setting an
-    // intermediate variable which can pull from DependenciesPlugin.kt and be used later.
-    ext {
-        detekt_plugin = libs.versions.detekt.get()
-        python_envs_plugin = libs.versions.python.envs.plugin.get()
-    }
 }
 
 plugins {

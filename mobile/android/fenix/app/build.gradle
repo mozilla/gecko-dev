@@ -21,8 +21,8 @@ buildscript {
 plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id "com.jetbrains.python.envs" version "$python_envs_plugin"
-    id "com.google.protobuf" version "$protobuf_plugin"
+    alias(libs.plugins.python.envs.plugin)
+    alias(libs.plugins.protobuf.plugin)
 }
 
 apply plugin: 'com.android.application'

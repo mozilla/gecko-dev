@@ -94,6 +94,11 @@ robolectric = "4.14.1"
 adjust = "5.1.0"
 sentry = "8.5.0"
 
+apilint = "0.5.3"
+commons-exec = "1.3"
+spotless = "6.25.0"
+tomlj = "1.1.0"
+
 [libraries]
 
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
@@ -240,9 +245,16 @@ ktlint = { group = "com.pinterest", name = "ktlint", version.ref = "ktlint" }
 # Third party library versions
 adjust = { group = "com.adjust.sdk", name = "adjust-android", version.ref = "adjust" }
 
+apilint = { group = "org.mozilla.apilint", name = "apilint", version.ref = "apilint" }
+commons-exec = { group = "org.apache.commons", name = "commons-exec", version.ref = "commons-exec" }
+spotless = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
+tomlj = { group = "org.tomlj", name = "tomlj", version.ref = "tomlj" }
+
 [plugins]
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-dsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlin-dsl" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp-plugin" }
+python-envs-plugin = {id = "com.jetbrains.python.envs", version.ref = "python-envs-plugin"}
+protobuf-plugin = {id = "com.google.protobuf", version.ref = "protobuf-plugin"}
