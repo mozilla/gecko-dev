@@ -21,7 +21,6 @@ class ServiceWorkerRegistrationChild final
     : public PServiceWorkerRegistrationChild {
   RefPtr<IPCWorkerRef> mIPCWorkerRef;
   ServiceWorkerRegistration* mOwner;
-  bool mTeardownStarted;
 
   ServiceWorkerRegistrationChild();
 
@@ -44,7 +43,8 @@ class ServiceWorkerRegistrationChild final
 
   void RevokeOwner(ServiceWorkerRegistration* aOwner);
 
-  void MaybeStartTeardown();
+  // Idempotently delete the actor.
+  void Shutdown();
 };
 
 }  // namespace mozilla::dom

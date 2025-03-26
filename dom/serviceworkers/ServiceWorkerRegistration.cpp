@@ -133,6 +133,7 @@ ServiceWorkerRegistration::CreateForWorker(
 
 void ServiceWorkerRegistration::DisconnectFromOwner() {
   DOMEventTargetHelper::DisconnectFromOwner();
+  Shutdown();
 }
 
 void ServiceWorkerRegistration::RegistrationCleared() {
@@ -272,6 +273,10 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
     }
   }
 
+  // Keep the SWR and thereby its actor live throughout the IPC call (unless
+  // the global is torn down and DisconnectFromOwner is called which will cause
+  // us to call Shutdown() which will shutdown the actor and reject the IPC
+  // calls).
   RefPtr<ServiceWorkerRegistration> self = this;
 
   if (!mActor) {
@@ -281,9 +286,9 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
 
   mActor->SendUpdate(
       newestWorkerDescriptor.ref().ScriptURL(),
-      [outer,
-       self](const IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult&
-                 aResult) {
+      [outer, self = std::move(self)](
+          const IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult&
+              aResult) {
         AUTO_PROFILER_MARKER_UNTYPED(
             "ServiceWorkerRegistration::Update (inner)", DOM, {});
 
@@ -300,25 +305,20 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
         const auto& ipcDesc =
             aResult.get_IPCServiceWorkerRegistrationDescriptor();
         nsIGlobalObject* global = self->GetParentObject();
-        // It's possible this binding was detached from the global.  In cases
-        // where we use IPC with Promise callbacks, we use
-        // DOMMozPromiseRequestHolder in order to auto-disconnect the promise
-        // that would hold these callbacks.  However in bug 1466681 we changed
-        // this call to use (synchronous) callbacks because the use of
-        // MozPromise introduced an additional runnable scheduling which made
-        // it very difficult to maintain ordering required by the standard.
-        //
-        // If we were to delete this actor at the time of DETH detaching, we
-        // would not need to do this check because the IPC callback of the
-        // RemoteServiceWorkerRegistrationImpl lambdas would never occur.
-        // However, its actors currently depend on asking the parent to delete
-        // the actor for us.  Given relaxations in the IPC lifecyle, we could
-        // potentially issue a direct termination, but that requires additional
-        // evaluation.
+        // Given that we destroy the actor on DisconnectFromOwner, it should be
+        // impossible for global to be null here since we should only process
+        // the reject case below in that case.  (And in the event there is an
+        // in-flight IPC message, it will be discarded.)  This assertion will
+        // help validate this without inconveniencing users.
+        MOZ_ASSERT_DEBUG_OR_FUZZING(global);
         if (!global) {
           outer->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
           return;
         }
+        // TODO: Given that we are keeping this registration alive through the
+        // call, it's not clear how `ref` could be anything but this instance.
+        // Consider just returning `self` after doing the code archaeology to
+        // ensure there isn't some still-valid reason.
         RefPtr<ServiceWorkerRegistration> ref =
             global->GetOrCreateServiceWorkerRegistration(
                 ServiceWorkerRegistrationDescriptor(ipcDesc));
@@ -354,8 +354,14 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Unregister(
     return outer.forget();
   }
 
+  // Keep the SWR and thereby its actor live throughout the IPC call (unless
+  // the global is torn down and DisconnectFromOwner is called which will cause
+  // us to call Shutdown() which will shutdown the actor and reject the IPC
+  // calls).
+  RefPtr<ServiceWorkerRegistration> self = this;
   mActor->SendUnregister(
-      [outer](std::tuple<bool, CopyableErrorResult>&& aResult) {
+      [self = std::move(self),
+       outer](std::tuple<bool, CopyableErrorResult>&& aResult) {
         if (std::get<1>(aResult).Failed()) {
           // application layer error
           // register() should be resilient and resolve false instead of
@@ -465,11 +471,18 @@ already_AddRefed<Promise> ServiceWorkerRegistration::GetNotifications(
     return promise.forget();
   }
 
+  // Keep the SWR and thereby its actor live throughout the IPC call (unless
+  // the global is torn down and DisconnectFromOwner is called which will cause
+  // us to call Shutdown() which will shutdown the actor and reject the IPC
+  // calls).
+  RefPtr<ServiceWorkerRegistration> self = this;
+
   // Step 5.3: Queue a global task on the DOM manipulation task source
   // given global to run these steps:
   mActor->SendGetNotifications(aOptions.mTag)
       ->Then(GetCurrentSerialEventTarget(), __func__,
-             [promise, scope = NS_ConvertUTF8toUTF16(mDescriptor.Scope())](
+             [self = std::move(self), promise,
+              scope = NS_ConvertUTF8toUTF16(mDescriptor.Scope())](
                  const PServiceWorkerRegistrationChild::
                      GetNotificationsPromise::ResolveOrRejectValue&& aValue) {
                if (aValue.IsReject()) {
@@ -521,9 +534,16 @@ void ServiceWorkerRegistration::SetNavigationPreloadEnabled(
     return;
   }
 
+  // Keep the SWR and thereby its actor live throughout the IPC call (unless
+  // the global is torn down and DisconnectFromOwner is called which will cause
+  // us to call Shutdown() which will shutdown the actor and reject the IPC
+  // calls).
+  RefPtr<ServiceWorkerRegistration> self = this;
+
   mActor->SendSetNavigationPreloadEnabled(
       aEnabled,
-      [successCB = std::move(aSuccessCB), aFailureCB](bool aResult) {
+      [self = std::move(self), successCB = std::move(aSuccessCB),
+       aFailureCB](bool aResult) {
         if (!aResult) {
           aFailureCB(CopyableErrorResult(NS_ERROR_DOM_INVALID_STATE_ERR));
           return;
@@ -543,9 +563,16 @@ void ServiceWorkerRegistration::SetNavigationPreloadHeader(
     return;
   }
 
+  // Keep the SWR and thereby its actor live throughout the IPC call (unless
+  // the global is torn down and DisconnectFromOwner is called which will cause
+  // us to call Shutdown() which will shutdown the actor and reject the IPC
+  // calls).
+  RefPtr<ServiceWorkerRegistration> self = this;
+
   mActor->SendSetNavigationPreloadHeader(
       aHeader,
-      [successCB = std::move(aSuccessCB), aFailureCB](bool aResult) {
+      [self = std::move(self), successCB = std::move(aSuccessCB),
+       aFailureCB](bool aResult) {
         if (!aResult) {
           aFailureCB(CopyableErrorResult(NS_ERROR_DOM_INVALID_STATE_ERR));
           return;
@@ -565,8 +592,14 @@ void ServiceWorkerRegistration::GetNavigationPreloadState(
     return;
   }
 
+  // Keep the SWR and thereby its actor live throughout the IPC call (unless
+  // the global is torn down and DisconnectFromOwner is called which will cause
+  // us to call Shutdown() which will shutdown the actor and reject the IPC
+  // calls).
+  RefPtr<ServiceWorkerRegistration> self = this;
+
   mActor->SendGetNavigationPreloadState(
-      [successCB = std::move(aSuccessCB),
+      [self = std::move(self), successCB = std::move(aSuccessCB),
        aFailureCB](Maybe<IPCNavigationPreloadState>&& aState) {
         if (NS_WARN_IF(!aState)) {
           aFailureCB(CopyableErrorResult(NS_ERROR_DOM_INVALID_STATE_ERR));
@@ -757,7 +790,7 @@ void ServiceWorkerRegistration::Shutdown() {
 
   if (mActor) {
     mActor->RevokeOwner(this);
-    mActor->MaybeStartTeardown();
+    mActor->Shutdown();
     mActor = nullptr;
   }
 }

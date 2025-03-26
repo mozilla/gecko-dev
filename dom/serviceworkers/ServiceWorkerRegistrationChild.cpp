@@ -51,9 +51,9 @@ ServiceWorkerRegistrationChild::Create() {
     RefPtr<IPCWorkerRefHelper<ServiceWorkerRegistrationChild>> helper =
         new IPCWorkerRefHelper<ServiceWorkerRegistrationChild>(actor);
 
-    actor->mIPCWorkerRef = IPCWorkerRef::Create(
-        workerPrivate, "ServiceWorkerRegistrationChild",
-        [helper] { helper->Actor()->MaybeStartTeardown(); });
+    actor->mIPCWorkerRef =
+        IPCWorkerRef::Create(workerPrivate, "ServiceWorkerRegistrationChild",
+                             [helper] { helper->Actor()->Shutdown(); });
 
     if (NS_WARN_IF(!actor->mIPCWorkerRef)) {
       return nullptr;
@@ -64,7 +64,7 @@ ServiceWorkerRegistrationChild::Create() {
 }
 
 ServiceWorkerRegistrationChild::ServiceWorkerRegistrationChild()
-    : mOwner(nullptr), mTeardownStarted(false) {}
+    : mOwner(nullptr) {}
 
 void ServiceWorkerRegistrationChild::SetOwner(
     ServiceWorkerRegistration* aOwner) {
@@ -80,12 +80,11 @@ void ServiceWorkerRegistrationChild::RevokeOwner(
   mOwner = nullptr;
 }
 
-void ServiceWorkerRegistrationChild::MaybeStartTeardown() {
-  if (mTeardownStarted) {
+void ServiceWorkerRegistrationChild::Shutdown() {
+  if (!CanSend()) {
     return;
   }
-  mTeardownStarted = true;
-  Unused << SendTeardown();
+  Unused << Send__delete__(this);
 }
 
 }  // namespace mozilla::dom

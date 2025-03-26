@@ -21,11 +21,6 @@ void ServiceWorkerRegistrationParent::ActorDestroy(ActorDestroyReason aReason) {
   }
 }
 
-IPCResult ServiceWorkerRegistrationParent::RecvTeardown() {
-  MaybeSendDelete();
-  return IPC_OK();
-}
-
 namespace {
 
 void ResolveUnregister(
@@ -143,8 +138,7 @@ IPCResult ServiceWorkerRegistrationParent::RecvGetNotifications(
   return IPC_OK();
 }
 
-ServiceWorkerRegistrationParent::ServiceWorkerRegistrationParent()
-    : mDeleteSent(false) {}
+ServiceWorkerRegistrationParent::ServiceWorkerRegistrationParent() {}
 
 ServiceWorkerRegistrationParent::~ServiceWorkerRegistrationParent() {
   MOZ_DIAGNOSTIC_ASSERT(!mProxy);
@@ -160,10 +154,9 @@ void ServiceWorkerRegistrationParent::Init(
 }
 
 void ServiceWorkerRegistrationParent::MaybeSendDelete() {
-  if (mDeleteSent) {
+  if (!CanSend()) {
     return;
   }
-  mDeleteSent = true;
   Unused << Send__delete__(this);
 }
 
