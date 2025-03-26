@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MozBoxLink Tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-box-link.mjs"
+    ></script>
+    <script src="lit-test-helpers.js"></script>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <script>
+      let testHelpers = new LitTestHelpers();
+
+      add_setup(async function setup() {
+        const { html } = await testHelpers.setupLit();
+        let templateFn = attrs => html`
+          <moz-box-link ${attrs}></moz-box-link>
+        `;
+        testHelpers.setupTests({ templateFn });
+      });
+
+      add_task(async function testMozBoxLinkProperties() {
+        const testLabel = "this is a test";
+        const testLink = "https://testing.com/xyz";
+        const labelledTemplate = testHelpers.templateFn({
+          label: testLabel,
+          href: testLink,
+        });
+        const renderTarget = await testHelpers.renderTemplate(labelledTemplate);
+        const host = renderTarget.firstElementChild;
+
+        ok(host, "The box link renders.");
+
+        await host.updateComplete;
+
+        const anchor = host.shadowRoot.querySelector("a");
+        ok(anchor, "Renders an anchor element");
+        is(anchor.href, testLink, "Sets passed href onto href of anchor");
+        is(anchor.getAttribute("is"), null, "Sets no 'is' attribute");
+        is(
+          anchor.getAttribute("support-page"),
+          null,
+          "Has no support-page attribute"
+        );
+        is(anchor.getAttribute("target"), "_blank", "Sets _blank target");
+
+        is(host.label, testLabel, "Has expected label");
+        is(
+          host.labelEl.textContent.trim(),
+          testLabel,
+          "The box link label is rendered"
+        );
+
+        const testDescription = "This is a description";
+        host.description = testDescription;
+        await host.updateComplete;
+
+        is(
+          host.descriptionEl.textContent.trim(),
+          testDescription,
+          "Supports setting a description"
+        );
+      });
+
+      add_task(async function testMozBoxLinkSupportLink() {
+        const supportPage = "test-abc";
+        const supportPageTemplate = testHelpers.templateFn({
+          "support-page": supportPage,
+        });
+        const renderTarget =
+          await testHelpers.renderTemplate(supportPageTemplate);
+        const host = renderTarget.firstElementChild;
+        await host.updateComplete;
+
+        const anchor = host.shadowRoot.querySelector("a");
+
+        is(
+          anchor.getAttribute("is"),
+          "moz-support-link",
+          "is attribute is set to 'moz-support-link'"
+        );
+        is(host.supportPage, supportPage, "supportPage property is set");
+        is(
+          anchor.getAttribute("support-page"),
+          supportPage,
+          "support-page attribute is set"
+        );
+        ok(
+          anchor.href.includes(supportPage),
+          "href is set as expected on the support link"
+        );
+      });
+    </script>
+  </head>
+  <body></body>
+</html>

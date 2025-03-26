@@ -61,7 +61,11 @@ export default class MozBoxButton extends MozBoxBase {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-box-button.css"
       />
-      <button ?disabled=${this.disabled} accesskey=${ifDefined(this.accessKey)}>
+      <button
+        class="button"
+        ?disabled=${this.disabled}
+        accesskey=${ifDefined(this.accessKey)}
+      >
         ${super.textTemplate()}
         <img
           class="icon nav-icon"

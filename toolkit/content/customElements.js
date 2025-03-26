@@ -823,6 +823,7 @@
             "chrome://global/content/elements/moz-box-button.mjs",
           ],
           ["moz-box-item", "chrome://global/content/elements/moz-box-item.mjs"],
+          ["moz-box-link", "chrome://global/content/elements/moz-box-link.mjs"],
           ["moz-button", "chrome://global/content/elements/moz-button.mjs"],
           [
             "moz-button-group",
