@@ -103,19 +103,44 @@ add_task(async function test_onOptIn() {
       gBrowser,
     },
     async browser => {
-      await SpecialPowers.spawn(browser, [], async () => {
-        await ContentTaskUtils.waitForMutationCondition(
-          content.document,
-          { childList: true, subtree: true },
-          () => !!content.document.querySelector("shopping-container .primary")
-        );
+      const REVIEW_CHECKER_ACTOR = "ReviewChecker";
 
-        // "Yes, try it" button
-        let primary = content.document.querySelector(
-          "shopping-container .primary"
-        );
-        primary.click();
-      });
+      await SpecialPowers.spawn(
+        browser,
+        [{ REVIEW_CHECKER_ACTOR, PRODUCT_TEST_URL }],
+        async args => {
+          if (
+            Services.prefs.getBoolPref(
+              "browser.shopping.experience2023.integratedSidebar"
+            )
+          ) {
+            let actor = content.windowGlobalChild.getExistingActor(
+              args.REVIEW_CHECKER_ACTOR
+            );
+            Assert.ok(actor, "ReviewCheckerChild found");
+
+            /**
+             * We normally exit early on location change if the URL is about:shoppingsidebar.
+             * For this test, make sure the onboarding UI renders by directly calling
+             * ReviewCheckerChild.locationChanged and passing in a mock PDP URL.
+             */
+            actor.locationChanged({ url: args.PRODUCT_TEST_URL });
+          }
+
+          await ContentTaskUtils.waitForMutationCondition(
+            content.document,
+            { childList: true, subtree: true },
+            () =>
+              !!content.document.querySelector("shopping-container .primary")
+          );
+
+          // "Yes, try it" button
+          let primary = content.document.querySelector(
+            "shopping-container .primary"
+          );
+          primary.click();
+        }
+      );
     }
   );
 
@@ -136,6 +161,7 @@ add_task(async function test_onOptIn() {
  * Helper function to click the links in the Link Paragraph.
  */
 async function linkParagraphClickLinks() {
+  const REVIEW_CHECKER_ACTOR = "ReviewChecker";
   const sandbox = sinon.createSandbox();
 
   let handleActionStub = sandbox
@@ -152,22 +178,44 @@ async function linkParagraphClickLinks() {
       gBrowser,
     },
     async browser => {
-      await SpecialPowers.spawn(browser, [], async () => {
-        await ContentTaskUtils.waitForMutationCondition(
-          content.document,
-          { childList: true, subtree: true },
-          // Can safely assume that if one of the link exists, they both do.
-          () =>
-            !!content.document.querySelector(
-              ".legal-paragraph a[value='terms_of_use']"
+      await SpecialPowers.spawn(
+        browser,
+        [{ REVIEW_CHECKER_ACTOR, PRODUCT_TEST_URL }],
+        async args => {
+          if (
+            Services.prefs.getBoolPref(
+              "browser.shopping.experience2023.integratedSidebar"
             )
-        );
+          ) {
+            let actor = content.windowGlobalChild.getExistingActor(
+              args.REVIEW_CHECKER_ACTOR
+            );
+            Assert.ok(actor, "ReviewCheckerChild found");
 
-        let termsOfUse = content.document.querySelector(
-          "shopping-container .legal-paragraph a[value='terms_of_use']"
-        );
-        termsOfUse.click();
-      });
+            /**
+             * We normally exit early on location change if the URL is about:shoppingsidebar.
+             * For this test, make sure the onboarding UI renders by directly calling
+             * ReviewCheckerChild.locationChanged and passing in a mock PDP URL.
+             */
+            actor.locationChanged({ url: args.PRODUCT_TEST_URL });
+          }
+
+          await ContentTaskUtils.waitForMutationCondition(
+            content.document,
+            { childList: true, subtree: true },
+            // Can safely assume that if one of the link exists, they both do.
+            () =>
+              !!content.document.querySelector(
+                ".legal-paragraph a[value='terms_of_use']"
+              )
+          );
+
+          let termsOfUse = content.document.querySelector(
+            "shopping-container .legal-paragraph a[value='terms_of_use']"
+          );
+          termsOfUse.click();
+        }
+      );
     }
   );
 
@@ -185,21 +233,43 @@ async function linkParagraphClickLinks() {
       gBrowser,
     },
     async browser => {
-      await SpecialPowers.spawn(browser, [], async () => {
-        await ContentTaskUtils.waitForMutationCondition(
-          content.document,
-          { childList: true, subtree: true },
-          // Can safely assume that if one of the link exists, they both do.
-          () =>
-            !!content.document.querySelector(
-              ".legal-paragraph a[value='terms_of_use']"
+      await SpecialPowers.spawn(
+        browser,
+        [{ REVIEW_CHECKER_ACTOR, PRODUCT_TEST_URL }],
+        async args => {
+          if (
+            Services.prefs.getBoolPref(
+              "browser.shopping.experience2023.integratedSidebar"
             )
-        );
-        let privacyPolicy = content.document.querySelector(
-          "shopping-container .legal-paragraph a[value='privacy_policy']"
-        );
-        privacyPolicy.click();
-      });
+          ) {
+            let actor = content.windowGlobalChild.getExistingActor(
+              args.REVIEW_CHECKER_ACTOR
+            );
+            Assert.ok(actor, "ReviewCheckerChild found");
+
+            /**
+             * We normally exit early on location change if the URL is about:shoppingsidebar.
+             * For this test, make sure the onboarding UI renders by directly calling
+             * ReviewCheckerChild.locationChanged and passing in a mock PDP URL.
+             */
+            actor.locationChanged({ url: args.PRODUCT_TEST_URL });
+          }
+
+          await ContentTaskUtils.waitForMutationCondition(
+            content.document,
+            { childList: true, subtree: true },
+            // Can safely assume that if one of the link exists, they both do.
+            () =>
+              !!content.document.querySelector(
+                ".legal-paragraph a[value='terms_of_use']"
+              )
+          );
+          let privacyPolicy = content.document.querySelector(
+            "shopping-container .legal-paragraph a[value='privacy_policy']"
+          );
+          privacyPolicy.click();
+        }
+      );
     }
   );
   await handleActionStubCalled;
@@ -216,18 +286,39 @@ async function linkParagraphClickLinks() {
       gBrowser,
     },
     async browser => {
-      await SpecialPowers.spawn(browser, [], async () => {
-        await ContentTaskUtils.waitForMutationCondition(
-          content.document,
-          { childList: true, subtree: true },
-          () => content.document.querySelector(".link-paragraph a")
-        );
-        let learnMore = content.document.querySelector(
-          "shopping-container .link-paragraph a[value='learn_more']"
-        );
-        // Learn More link button.
-        learnMore.click();
-      });
+      await SpecialPowers.spawn(
+        browser,
+        [{ REVIEW_CHECKER_ACTOR, PRODUCT_TEST_URL }],
+        async args => {
+          if (
+            Services.prefs.getBoolPref(
+              "browser.shopping.experience2023.integratedSidebar"
+            )
+          ) {
+            let actor = content.windowGlobalChild.getExistingActor(
+              args.REVIEW_CHECKER_ACTOR
+            );
+            Assert.ok(actor, "ReviewCheckerChild found");
+
+            /**
+             * We normally exit early on location change if the URL is about:shoppingsidebar.
+             * For this test, make sure the onboarding UI renders by directly calling
+             * ReviewCheckerChild.locationChanged and passing in a mock PDP URL.
+             */
+            actor.locationChanged({ url: args.PRODUCT_TEST_URL });
+          }
+          await ContentTaskUtils.waitForMutationCondition(
+            content.document,
+            { childList: true, subtree: true },
+            () => content.document.querySelector(".link-paragraph a")
+          );
+          let learnMore = content.document.querySelector(
+            "shopping-container .link-paragraph a[value='learn_more']"
+          );
+          // Learn More link button.
+          learnMore.click();
+        }
+      );
     }
   );
   await handleActionStubCalled;

@@ -325,12 +325,6 @@ export class ReviewCheckerChild extends RemotePageChild {
   async setLocation() {
     // check if can fetch and show data
     let url = await this.sendQuery("GetCurrentURL");
-
-    // Bail out if we opted out in the meantime, or don't have a URI.
-    if (!this.canContinue(null, false)) {
-      return;
-    }
-
     await this.locationChanged({ url });
   }
 
@@ -634,7 +628,7 @@ export class ReviewCheckerChild extends RemotePageChild {
       adsEnabledByUser: lazy.adsEnabledByUser,
       autoOpenEnabled: lazy.autoOpenEnabled,
       autoOpenEnabledByUser: lazy.autoOpenEnabledByUser,
-      showOnboarding: !this.canFetchAndShowData,
+      showOnboarding: false,
       data: null,
       recommendationData: null,
       focusCloseButton,
