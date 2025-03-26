@@ -38,8 +38,6 @@ class CredentialsContainer final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<Promise> PreventSilentAccess(ErrorResult& aRv);
 
-  static bool IsSameOriginWithAncestors(nsPIDOMWindowInner* aParent);
-
  private:
   ~CredentialsContainer();
 

@@ -40,7 +40,6 @@ using mozilla::dom::IdentityCredentialDisconnectOptions from "mozilla/dom/Identi
 using mozilla::dom::IdentityCredentialInit from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::IdentityCredentialRequestOptions from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::IdentityLoginTargetType from "mozilla/dom/IdentityCredentialBinding.h";
-using mozilla::dom::LoginStatus from "mozilla/dom/LoginStatusBinding.h";
 
 namespace mozilla {
 namespace dom {
@@ -218,9 +217,6 @@ parent:
       returns (nsresult rv);
   async DisconnectIdentityCredential(IdentityCredentialDisconnectOptions aOptions) returns (nsresult rv);
   async PreventSilentAccess() returns (nsresult rv);
-
-  // Indicate that the page has reported itself as logged in
-  async SetLoginStatus(LoginStatus foo) returns (nsresult rv);
 
   async GetStorageAccessPermission(bool aIncludeIdentityCredential) returns(uint32_t permission_action);
 

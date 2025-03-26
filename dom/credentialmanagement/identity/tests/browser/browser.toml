@@ -13,7 +13,6 @@ support-files = [
   "server_disconnect.json^headers^",
   "server_idtoken.json",
   "server_idtoken.json^headers^",
-  "server_loginStatus.sjs",
   "server_manifest_disconnect_failure.json",
   "server_manifest_disconnect_failure.json^headers^",
   "server_manifest.json",
@@ -25,7 +24,5 @@ support-files = [
 ["browser_close_prompt_on_timeout.js"]
 
 ["browser_disconnect.js"]
-
-["browser_loginStatus.js"]
 
 ["browser_single_concurrent_identity_request.js"]

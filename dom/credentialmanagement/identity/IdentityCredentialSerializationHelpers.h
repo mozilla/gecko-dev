@@ -11,7 +11,6 @@
 #include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/IdentityCredentialBinding.h"
 #include "mozilla/dom/CredentialManagementBinding.h"
-#include "mozilla/dom/LoginStatusBinding.h"
 
 namespace IPC {
 
@@ -81,10 +80,6 @@ struct ParamTraits<mozilla::dom::IdentityCredentialRequestOptions> {
     return ReadParam(aReader, &aResult->mProviders);
   }
 };
-
-template <>
-struct ParamTraits<mozilla::dom::LoginStatus>
-    : public mozilla::dom::WebIDLEnumSerializer<mozilla::dom::LoginStatus> {};
 
 }  // namespace IPC
 
