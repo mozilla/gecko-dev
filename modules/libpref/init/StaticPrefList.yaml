@@ -4848,6 +4848,17 @@
   value: true
   mirror: always
 
+# Sites we shouldn't defer timeouts and intervals while loading a page.
+# comma-separated list, see IsURIInPrefList() for format details
+- name: dom.timeout.defer_during_load.force-disable
+  type: String
+  value: >-
+    *.usps.com,
+    *.nvidia.com,
+    *.fedex.com,
+    *.msci.com
+  mirror: never
+
 # Maximum amount of time in milliseconds consecutive setTimeout()/setInterval()
 # callback are allowed to run before yielding the event loop.
 - name: dom.timeout.max_consecutive_callbacks_ms
