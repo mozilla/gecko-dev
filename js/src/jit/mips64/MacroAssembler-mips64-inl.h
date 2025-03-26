@@ -226,10 +226,13 @@ CodeOffset MacroAssembler::sub32FromStackPtrWithPatch(Register dest) {
 void MacroAssembler::patchSub32FromStackPtr(CodeOffset offset, Imm32 imm) {
   Instruction* lui =
       (Instruction*)m_buffer.getInst(BufferOffset(offset.offset()));
-  MOZ_ASSERT(lui->extractOpcode() == ((uint32_t)op_lui >> OpcodeShift));
-  MOZ_ASSERT(lui->next()->extractOpcode() == ((uint32_t)op_ori >> OpcodeShift));
+  Instruction* ori =
+      (Instruction*)m_buffer.getInst(BufferOffset(offset.offset() + 4));
 
-  MacroAssemblerMIPSShared::UpdateLuiOriValue(lui, lui->next(), imm.value);
+  MOZ_ASSERT(lui->extractOpcode() == ((uint32_t)op_lui >> OpcodeShift));
+  MOZ_ASSERT(ori->extractOpcode() == ((uint32_t)op_ori >> OpcodeShift));
+
+  MacroAssemblerMIPSShared::UpdateLuiOriValue(lui, ori, imm.value);
 }
 
 void MacroAssembler::subPtr(Register src, Register dest) {

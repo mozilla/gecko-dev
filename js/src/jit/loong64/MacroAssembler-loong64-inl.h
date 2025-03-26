@@ -398,20 +398,18 @@ CodeOffset MacroAssembler::sub32FromStackPtrWithPatch(Register dest) {
 
 void MacroAssembler::patchSub32FromStackPtr(CodeOffset offset, Imm32 imm) {
   // TODO: by wangqing
-  Instruction* inst0 =
-      (Instruction*)m_buffer.getInst(BufferOffset(offset.offset()));
+  InstImm* lu12i_w = (InstImm*)m_buffer.getInst(BufferOffset(offset.offset()));
+  InstImm* ori = (InstImm*)m_buffer.getInst(BufferOffset(offset.offset() + 4));
 
-  InstImm* i0 = (InstImm*)inst0;
-  InstImm* i1 = (InstImm*)i0->next();
+  MOZ_ASSERT((lu12i_w->extractBitField(31, 25)) ==
+             ((uint32_t)op_lu12i_w >> 25));
+  MOZ_ASSERT((ori->extractBitField(31, 22)) == ((uint32_t)op_ori >> 22));
 
-  MOZ_ASSERT((i0->extractBitField(31, 25)) == ((uint32_t)op_lu12i_w >> 25));
-  MOZ_ASSERT((i1->extractBitField(31, 22)) == ((uint32_t)op_ori >> 22));
-
-  *i0 = InstImm(op_lu12i_w, (int32_t)((imm.value >> 12) & 0xfffff),
-                Register::FromCode(i0->extractRD()), false);
-  *i1 = InstImm(op_ori, (int32_t)(imm.value & 0xfff),
-                Register::FromCode(i1->extractRJ()),
-                Register::FromCode(i1->extractRD()), 12);
+  *lu12i_w = InstImm(op_lu12i_w, (int32_t)((imm.value >> 12) & 0xfffff),
+                     Register::FromCode(lu12i_w->extractRD()), false);
+  *ori = InstImm(op_ori, (int32_t)(imm.value & 0xfff),
+                 Register::FromCode(ori->extractRJ()),
+                 Register::FromCode(ori->extractRD()), 12);
 }
 
 void MacroAssembler::subPtr(Register src, Register dest) {
