@@ -160,12 +160,7 @@ addAccessibleTask(
 // test dynamic translation
 addAccessibleTask(
   `<div id="container" style="position: absolute; left: -300px; top: 100px;">Hello</div>
-   <button id="b">Move</button>
-   <script>
-    document.getElementById("b").onclick = () => {
-      container.style.transform = 'translateX(400px)'
-    };
-   </script>`,
+   <button id="b">Move</button>`,
   async function (browser, accDoc) {
     const container = findAccessibleChildByID(accDoc, "container");
     await untilCacheOk(
@@ -183,5 +178,15 @@ addAccessibleTask(
       "container should be on screen and visible"
     );
   },
-  { chrome: true, iframe: true, remoteIframe: true }
+  {
+    chrome: true,
+    iframe: true,
+    remoteIframe: true,
+    contentSetup: async function contentSetup() {
+      content.document.getElementById("b").onclick = () => {
+        content.document.getElementById("container").style.transform =
+          "translateX(400px)";
+      };
+    },
+  }
 );

@@ -73,16 +73,7 @@ addAccessibleTask(snippet2, async function (browser, accDoc) {
  * messes with the body element and we don't want that to impact other tests.
  */
 addAccessibleTask(
-  `
-<div id="host"></div>
-<script>
-  const host = document.getElementById("host");
-  host.attachShadow({ mode: "open" });
-  const emptyScript = document.createElement("script");
-  emptyScript.id = "emptyScript";
-  document.head.append(emptyScript);
-</script>
-  `,
+  `<div id="host"></div>`,
   async function (browser, docAcc) {
     info("Moving body and setting slot on body");
     let reordered = waitForEvent(EVENT_REORDER, docAcc);
@@ -97,7 +88,20 @@ addAccessibleTask(
     await reordered;
     is(docAcc.childCount, 0, "document has no children after body move");
   },
-  { chrome: true, topLevel: true, iframe: true, remoteIframe: true }
+  {
+    chrome: true,
+    topLevel: true,
+    iframe: true,
+    remoteIframe: true,
+    contentSetup: async function contentSetup() {
+      const doc = content.document;
+      const host = doc.getElementById("host");
+      host.attachShadow({ mode: "open" });
+      const emptyScript = doc.createElement("script");
+      emptyScript.id = "emptyScript";
+      doc.head.append(emptyScript);
+    },
+  }
 );
 
 addAccessibleTask(

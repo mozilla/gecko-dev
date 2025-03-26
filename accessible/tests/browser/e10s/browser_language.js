@@ -5,21 +5,7 @@
 "use strict";
 
 addAccessibleTask(
-  `
-<script>
-  // We can't include the html element in snippets, so set lang on it here.
-  document.documentElement.lang = "en";
-</script>
-<div id="inheritEn">inheritEn</div>
-<img id="imgInheritEn" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" alt="imgInheritEn">
-<div id="de" lang="de">
-  <div id="inheritDe">inheritDe <span id="es" role="none" lang="es">esLeaf</span></div>
-  <img id="imgInheritDe" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" alt="imgInheritDe">
-  <div id="fr" lang="fr"></div>
-  <img id="imgFr" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" lang="fr" alt="imgFr">
-  <input id="radioFr" type="radio" lang="fr" aria-label="radioFr">
-</div>
-  `,
+  "e10s/doc_language.html",
   async function (browser, docAcc) {
     is(docAcc.language, "en", "Document language correct");
     const inheritEn = findAccessibleChildByID(docAcc, "inheritEn");

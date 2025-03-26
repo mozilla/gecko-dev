@@ -122,14 +122,6 @@ addAccessibleTask(
       -->
     <area id="area" href="#" shape="rect" coords="0,0,2,2" alt="area">
   </map>
-
-  <script>
-    // Attach dummy event handlers here, because inline event handler attributes
-    // will be blocked in the chrome context.
-    for (const el of document.querySelectorAll('[data-event]')) {
-      el["on" + el.dataset.event] = () => {};
-    }
-  </script>
   `,
   async function (browser, docAcc) {
     is(docAcc.actionCount, 0, "Doc should not have any actions");
@@ -255,6 +247,13 @@ addAccessibleTask(
     topLevel: true,
     iframe: true,
     remoteIframe: true,
+    contentSetup: async function contentSetup() {
+      // Attach dummy event handlers here, because inline event handler attributes
+      // will be blocked in the chrome context.
+      for (const el of content.document.querySelectorAll("[data-event]")) {
+        el["on" + el.dataset.event] = () => {};
+      }
+    },
   }
 );
 

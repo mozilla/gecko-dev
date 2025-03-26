@@ -2,6 +2,7 @@
 subsuite = "a11y"
 support-files = [
   "head.js",
+  "doc_language.html",
   "doc_treeupdate_ariadialog.html",
   "doc_treeupdate_ariaowns.html",
   "doc_treeupdate_imagemap.html",
