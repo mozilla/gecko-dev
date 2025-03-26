@@ -6124,10 +6124,10 @@ class Downloader {
         );
       })
       .finally(() => {
+        let timerId = this._langPackTimeout.gleanTimerId;
         this._langPackTimeout = null;
-
-        if (TelemetryStopwatch.running("UPDATE_LANGPACK_OVERTIME", update)) {
-          TelemetryStopwatch.finish("UPDATE_LANGPACK_OVERTIME", update);
+        if (timerId) {
+          Glean.update.langpackOvertime.stopAndAccumulate(timerId);
         }
       });
 
@@ -7130,11 +7130,8 @@ class Downloader {
     if (this._langPackTimeout) {
       // Start a timer to measure how much longer it takes for the language
       // packs to stage.
-      TelemetryStopwatch.start(
-        "UPDATE_LANGPACK_OVERTIME",
-        unwrap(this._update),
-        { inSeconds: true }
-      );
+      this._langPackTimeout.gleanTimerId =
+        Glean.update.langpackOvertime.start();
 
       lazy.setTimeout(
         this._langPackTimeout,

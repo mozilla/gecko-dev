@@ -1464,3 +1464,22 @@ update:
       - bytesized@mozilla.com
     expires: never
     telemetry_mirror: h#UPDATE_NOTIFICATION_MAIN_ACTION_MENU
+
+  langpack_overtime:
+    type: timing_distribution
+    description: >
+      Update: How much longer langpacks took to download than the app update in
+      seconds.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram UPDATE_LANGPACK_OVERTIME.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656994
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1656994
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_LANGPACK_OVERTIME
