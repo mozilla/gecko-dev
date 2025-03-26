@@ -18,10 +18,6 @@
     }
   );
 
-  const { TabGroupMetrics } = ChromeUtils.importESModule(
-    "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs"
-  );
-
   class MozTabbrowserTabGroupMenu extends MozXULElement {
     static COLORS = [
       "blue",
@@ -445,10 +441,7 @@
       document
         .getElementById("tabGroupEditor_deleteGroup")
         .addEventListener("command", () => {
-          gBrowser.removeTabGroup(this.activeGroup, {
-            isUserTriggered: true,
-            telemetrySource: TabGroupMetrics.METRIC_SOURCE.TAB_GROUP_MENU,
-          });
+          gBrowser.removeTabGroup(this.activeGroup);
         });
 
       this.panel.addEventListener("popupshown", this);

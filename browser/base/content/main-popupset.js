@@ -8,12 +8,6 @@
 document.addEventListener(
   "DOMContentLoaded",
   () => {
-    const lazy = {};
-    ChromeUtils.defineESModuleGetters(lazy, {
-      TabGroupMetrics:
-        "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs",
-    });
-
     let mainPopupSet = document.getElementById("mainPopupSet");
     // eslint-disable-next-line complexity
     mainPopupSet.addEventListener("command", event => {
@@ -136,11 +130,7 @@ document.addEventListener(
             let tabGroup = gBrowser.getTabGroupById(tabGroupId);
             // Tabs need to be removed by their owning `Tabbrowser` or else
             // there are errors.
-            tabGroup.ownerGlobal.gBrowser.removeTabGroup(tabGroup, {
-              isUserTriggered: true,
-              telemetrySource:
-                lazy.TabGroupMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU,
-            });
+            tabGroup.ownerGlobal.gBrowser.removeTabGroup(tabGroup);
           }
           break;
 
