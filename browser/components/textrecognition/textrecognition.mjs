@@ -24,8 +24,9 @@ class TextRecognitionModal {
    * @param {string} openLinkIn.url
    * @param {string} openLinkIn.where
    * @param {object} openLinkIn.params
+   * @param {TimerId} timerId
    */
-  constructor(resultsPromise, resizeVertically, openLinkIn) {
+  constructor(resultsPromise, resizeVertically, openLinkIn, timerId) {
     /** @type {HTMLElement} */
     this.textEl = document.querySelector(".textRecognitionText");
 
@@ -50,10 +51,7 @@ class TextRecognitionModal {
           // Update the UI to indicate that there were no results.
           this.showHeaderByID("text-recognition-header-no-results");
           // It's still worth recording telemetry times, as the API was still invoked.
-          TelemetryStopwatch.finish(
-            "TEXT_RECOGNITION_API_PERFORMANCE",
-            resultsPromise
-          );
+          Glean.textRecognition.apiPerformance.stopAndAccumulate(timerId);
           return;
         }
 
@@ -61,10 +59,7 @@ class TextRecognitionModal {
         // the results to the UI.
         this.runClusteringAndUpdateUI(results, direction);
         this.showHeaderByID("text-recognition-header-results");
-        TelemetryStopwatch.finish(
-          "TEXT_RECOGNITION_API_PERFORMANCE",
-          resultsPromise
-        );
+        Glean.textRecognition.apiPerformance.stopAndAccumulate(timerId);
 
         TextRecognitionModal.recordInteractionTime();
       },
@@ -78,10 +73,7 @@ class TextRecognitionModal {
           error
         );
         Glean.browserUiInteraction.textrecognitionError.add(1);
-        TelemetryStopwatch.cancel(
-          "TEXT_RECOGNITION_API_PERFORMANCE",
-          resultsPromise
-        );
+        Glean.textRecognition.apiPerformance.cancel(timerId);
       }
     );
   }
@@ -90,15 +82,10 @@ class TextRecognitionModal {
    * After the results are shown, measure how long a user interacts with the modal.
    */
   static recordInteractionTime() {
-    TelemetryStopwatch.start(
-      "TEXT_RECOGNITION_INTERACTION_TIMING",
-      // Pass the instance of the window in case multiple tabs are doing text recognition
-      // and there is a race condition.
-      window
-    );
+    let timerId = Glean.textRecognition.interactionTiming.start();
 
     const finish = () => {
-      TelemetryStopwatch.finish("TEXT_RECOGNITION_INTERACTION_TIMING", window);
+      Glean.textRecognition.interactionTiming.stopAndAccumulate(timerId);
       window.removeEventListener("blur", finish);
       window.removeEventListener("unload", finish);
     };
@@ -118,9 +105,7 @@ class TextRecognitionModal {
    * @param {number} textLength
    */
   static recordTextLengthTelemetry(textLength) {
-    Services.telemetry
-      .getHistogramById("TEXT_RECOGNITION_TEXT_LENGTH")
-      .add(textLength);
+    Glean.textRecognition.textLength.accumulateSingleSample(textLength);
   }
 
   setupCloseHandler() {

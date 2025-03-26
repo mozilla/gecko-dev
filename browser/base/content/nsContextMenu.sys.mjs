@@ -2631,10 +2631,7 @@ export class nsContextMenu {
   getImageText() {
     let dialogBox = this.window.gBrowser.getTabDialogBox(this.browser);
     const imageTextResult = this.actor.getImageText(this.targetIdentifier);
-    TelemetryStopwatch.start(
-      "TEXT_RECOGNITION_API_PERFORMANCE",
-      imageTextResult
-    );
+    let timerId = Glean.textRecognition.apiPerformance.start();
     const { dialog } = dialogBox.open(
       "chrome://browser/content/textrecognition/textrecognition.html",
       {
@@ -2643,7 +2640,8 @@ export class nsContextMenu {
       },
       imageTextResult,
       () => dialog.resizeVertically(),
-      this.window.openLinkIn
+      this.window.openLinkIn,
+      timerId
     );
   }
 
