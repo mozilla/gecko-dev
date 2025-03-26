@@ -13159,6 +13159,22 @@ broken_site_report.browser_info.graphics:
     send_in_pings:
       - broken-site-report
 broken_site_report.browser_info.system:
+  is_tablet:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      Whether the device is a tablet
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
   memory:
     type: quantity
     unit: mb
@@ -13225,6 +13241,22 @@ broken_site_report.browser_info.prefs:
       - webcompat-reporting-tool-telemetry@mozilla.com
     send_in_pings:
       - broken-site-report
+  forced_accelerated_layers:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `layers.acceleration_force.enabled`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
   cookie_behavior:
     type: quantity
     unit: integer
@@ -13258,6 +13290,22 @@ broken_site_report.browser_info.prefs:
       - webcompat-reporting-tool-telemetry@mozilla.com
     send_in_pings:
       - broken-site-report
+  h1_in_section_useragent_styles_enabled:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `layout.css.h1-in-section-ua-styles.enabled`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952996
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
   resist_fingerprinting_enabled:
     type: boolean
     expires: never
@@ -13269,6 +13317,87 @@ broken_site_report.browser_info.prefs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1925088
     data_reviews:
       - https://phabricator.services.mozilla.com/D230555
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  third_party_cookie_blocking_enabled:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `network.cookie.cookieBehavior.optInPartitioning`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917791
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  third_party_cookie_blocking_enabled_in_pbm:
+    type: boolean
+    expires: never
+    data_sensitivity:
+      - interaction
+    description: >
+      Value of `network.cookie.cookieBehavior.optInPartitioning.pbmode`
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917791
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+broken_site_report.browser_info.security:
+  antivirus:
+    type: string_list
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      Which antivirus software was reported on this system.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  antispyware:
+    type: string_list
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      Which antispyware software was reported on this system.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
+    notification_emails:
+      - twisniewski@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    send_in_pings:
+      - broken-site-report
+  firewall:
+    type: string_list
+    expires: never
+    data_sensitivity:
+      - technical
+    description: >
+      Which firewall software was reported on this system.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
     notification_emails:
       - twisniewski@mozilla.com
       - webcompat-reporting-tool-telemetry@mozilla.com
