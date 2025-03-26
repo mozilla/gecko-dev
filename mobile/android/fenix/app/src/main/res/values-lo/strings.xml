@@ -813,6 +813,8 @@
   <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s ບໍ່ສາມາດປະຕິເສດຄຳຮ້ອງຂໍຄຸກກີໃນເວັບໄຊນີ້ໄດ້ໂດຍອັດຕະໂນມັດ. ທ່ານສາມາດສົ່ງຄໍາຮ້ອງຂໍເພື່ອສະຫນັບສະຫນູນເວັບໄຊທ໌ນີ້ໃນອະນາຄົດ.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">ປິດ ແລະ %1$s ຈະລຶບລ້າງຄຸກກີ້ ແລະ ໂຫຼດເວັບໄຊນີ້ຄືນໃໝ່. ນີ້ອາດຈະເຮັດໃຫ້ທ່ານອອກຈາກລະບົບ ຫຼື ຫວ່າງເປົ່າກະຕ່າຊື້ເຄື່ອງ.</string>
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">ເປີດ ແລະ %1$s ຈະພະຍາຍາມປະຕິເສດປ້າຍໂຄສະນາຄຸກກີທັງໝົດຢູ່ໃນເວັບໄຊນີ້ໂດຍອັດຕະໂນມັດ.</string>
   <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
   <string name="cookie_banner_cfr_title">%1$s ຫາກໍ່ປະຕິເສດຄຸກກີ້ສຳລັບທ່ານ</string>
   <!-- Message for the cookie banner re-engagement CFR -->
@@ -843,6 +845,8 @@
   <string name="preferences_override_account_server">ເຊີບເວີບັນຊີ Mozilla ແບບກຳນົດເອງ</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">ກຳຫນົດເຊີເວີ Sync</string>
+  <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
+  <string name="toast_override_account_sync_server_done">ບັນຊີ Mozilla/ເຊີບເວີ Sync ຖືກແກ້ໄຂ. ກຳລັງອອກຈາກແອັບພລິເຄຊັນເພື່ອນຳໃຊ້ການປ່ຽນແປງ...</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">ບັນຊີ</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1119,6 +1123,8 @@
   <string name="preferences_daily_usage_ping_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການໃຊ້ ping ປະຈໍາວັນ</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
+  <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
+  <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">ແບ່ງປັນຂໍ້ມູນການຂັດຂ້ອງໂດຍອັດຕະໂນມັດເມື່ອເລີ່ມຕົ້ນດ້ວຍ Mozilla ຫຼັງຈາກເກີດການຂັດຂ້ອງ</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
   <!-- Title for studies preferences -->
@@ -1405,11 +1411,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">ລຶບການດາວໂຫລດແລ້ວ</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບການດາວໂຫລດແລ້ວ</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">ລຶບ %1$s ແລ້ວ</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບ %1$s ແລ້ວ</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">ບໍ່ມີໄຟລທີ່ໄດ້ດາວໂຫລດມາ</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ບໍ່ມີໄຟລທີ່ໄດ້ດາວໂຫລດມາ</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1431,6 +1437,12 @@
   <string name="download_time_period_last_30_days">30 ມື້ທີ່ຜ່ານມາ</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">ເກົ່າກວ່າ</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">ທັງໝົດ</string>
   <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
   <string name="webcompat_reporter_description">ຊ່ວຍເຮັດໃຫ້ %1$s ດີຂຶ້ນສຳລັບທຸກຄົນ. ພະນັກງານ Mozilla ໃຊ້ຂໍ້ມູນທີ່ທ່ານສົ່ງເພື່ອແກ້ໄຂບັນຫາເວັບໄຊທ໌.</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
@@ -2123,6 +2135,8 @@
   <string name="preference_doh_default_protection_info_2">ໃຊ້ຕົວແກ້ໄຂ DNS ເລີ່ມຕົ້ນຂອງທ່ານຖ້າມີບັນຫາກັບຜູ້ໃຫ້ບໍລິການ DNS ທີ່ປອດໄພ</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">ການປົກປ້ອງສູງສຸດ</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">ເອົາຂໍ້ຍົກເວັ້ນທັງໝົດອອກ</string>
   <!-- About page link text to open support link -->
   <string name="about_support">ສະຫນັບສະຫນູນ</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2181,6 +2195,8 @@
   <string name="preferences_android_autofill">ຕື່ມຂໍ້ມູນອັດຕະໂນມັດໃນແອັບຯອື່ນ</string>
   <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill_description">ຕື່ມຂໍ້ມູນຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານໃນແອັບຯອື່ນໃນອຸປະກອນຂອງທ່ານ.</string>
+  <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">ລະ​ຫັດ​ຜ່ານ​ທີ່​ທ່ານ​ບັນ​ທຶກ​ ຫຼື sync ກັບ %s ຈະ​ມີ​ລາຍ​ການ​ຢູ່​ທີ່​ນີ້​. ລະຫັດຜ່ານທັງໝົດທີ່ທ່ານບັນທຶກໄວ້ແມ່ນຖືກເຂົ້າລະຫັດໄວ້.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການຊິ້ງ</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2213,6 +2229,8 @@
   <string name="saved_login_reveal_password">ສະແດງລະຫັດຜ່ານ</string>
   <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
   <string name="saved_login_hide_password">ເຊື່ອງລະຫັດຜ່ານ</string>
+  <!-- Message of warning dialog if users have no device authentication set up -->
+  <string name="logins_warning_dialog_message_2">ຕັ້ງຄ່າຮູບແບບການລັອກອຸປະກອນ, PIN, ຫຼື ລະຫັດຜ່ານເພື່ອປົກປ້ອງລະຫັດຜ່ານທີ່ບັນທຶກໄວ້ຂອງທ່ານຈາກການຖືກເຂົ້າເຖິງຖ້າຄົນອື່ນມີອຸປະກອນຂອງທ່ານ.</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
   <string name="logins_warning_dialog_later">ພາຍຫຼັງ</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -2235,6 +2253,8 @@
   <string name="preferences_autofill">ຕື່ມຂໍ້ມູນອັດຕະໂນມັດ</string>
   <!-- Preference and title for managing the settings for addresses -->
   <string name="preferences_addresses">ທີ່ຢູ່</string>
+  <!-- Preference summary for saving and autofilling payment method data. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s ເຂົ້າລະຫັດທຸກວິທີການຈ່າຍເງິນທີ່ທ່ານບັນທຶກໄວ້</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
   <string name="preferences_credit_cards_sync_cards_across_devices">Sync ຂໍ້ມູນບັດລະຫວ່າງອຸປະກອນຕ່າງໆ</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
@@ -2538,6 +2558,8 @@
   <string name="experiments_snackbar_button">ໄປທີ່ການຕັ້ງຄ່າ</string>
   <!-- Text for learn more caption presenting a link with information about review quality. %s is a link using review_quality_check_info_learn_more_link as text. -->
   <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມກ່ຽວກັບ %s.</string>
+  <!-- Text for title of settings section. -->
+  <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">ການຕັ້ງຄ່າ</string>
   <!-- Clickable text that links to review quality check recommended products support article. -->
   <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມຕື່ມ</string>
   <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
@@ -2570,6 +2592,30 @@
   <string name="translations_bottom_sheet_info_message_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
   <string name="translations_bottom_sheet_negative_button">ບໍ່ແມ່ນຕອນນີ້</string>
+  <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
+  <string name="translation_option_bottom_sheet_switch_never_translate_site_description">ແທນທີການຕັ້ງຄ່າອື່ນທັງໝົດ</string>
+  <!-- Button text for the button that will take the user to the translation settings dialog. -->
+  <string name="translation_option_bottom_sheet_translation_settings">ການຕັ້ງຄ່າການແປ</string>
+  <!-- The title of the warning card informs the user that an error has occurred at page settings. -->
+  <string name="translation_option_bottom_sheet_error_warning_text">ບາງການຕັ້ງຄ່າບໍ່ສາມາດໃຊ້ໄດ້ຊົ່ວຄາວ.</string>
+  <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_always_translate_summary_preference">%1$s ຈະແປພາສານີ້ໂດຍອັດຕະໂນມັດເມື່ອໜ້າໂຫຼດ.</string>
   <!-- Clickable text from the screen header that links to a website. -->
   <string name="download_languages_header_learn_more_preference">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <!-- All languages list item. When the user presses this item, they can download all languages. -->
+  <string name="download_language_all_languages_item_preference">ພາສາທັງໝົດ</string>
+  <!-- All languages list item. When the user presses this item, they can delete all languages that were downloaded. -->
+  <string name="download_language_all_languages_item_preference_to_delete">ລຶບທຸກພາສາ</string>
+  <!--
+    Title for the dialog used by the translations feature to confirm deleting all languages file.
+    The dialog will be presented when the user requests deletion of all languages file.
+    %1$s is the size in kilobytes or megabytes of the language file.
+  -->
+  <string name="delete_language_all_languages_file_dialog_title">ລຶບທຸກພາສາ (%1$s) ບໍ?</string>
+  <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="delete_language_all_languages_file_dialog_message">ຖ້າທ່ານລຶບທຸກພາສາ, %1$s ຈະດາວໂຫຼດບາງພາສາໃສ່ແຄດຂອງທ່ານເມື່ອທ່ານແປ.</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">ການຕັ້ງຄ່າຄວາມເປັນສ່ວນຕົວ ແລະ ຄວາມປອດໄພ</string>
+  <!-- The title of the button for deleting in the debug drawer all addresses. -->
+  <string name="debug_drawer_delete_all_addresses">ລຶບທີ່ຢູ່ທັງໝົດ</string>
 </resources>

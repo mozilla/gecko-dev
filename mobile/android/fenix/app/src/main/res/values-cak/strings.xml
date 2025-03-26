@@ -1038,11 +1038,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Xesilöx taq Qasanïk</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Xesilöx taq Qasanïk</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">Xsilöx %1$s</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Xsilöx %1$s</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Man xeqasäx ta taq yakb\'äl</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Man xeqasäx ta taq yakb\'äl</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

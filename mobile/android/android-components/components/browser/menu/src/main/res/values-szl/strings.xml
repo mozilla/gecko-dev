@@ -4,4 +4,6 @@
   <string name="mozac_browser_menu_button">Myni</string>
   <!-- Content description (not visible, for screen readers etc.): Indicates the overflow menu has a highlight -->
   <string name="mozac_browser_menu_highlighted">Ôbznoczōne</string>
+  <!-- Label for extensions submenu section -->
+  <string name="mozac_browser_menu_extensions">Rozszyrzynia</string>
 </resources>

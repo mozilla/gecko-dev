@@ -881,6 +881,8 @@
   <string name="preferences_show_nonsponsored_suggestions">%1$s-ൽ നിന്നുള്ള നിർദ്ദേശങ്ങൾ</string>
   <!-- Preference for link sharing -->
   <string name="preferences_link_sharing">കണ്ണി പങ്കിടൽ</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">വാറ്റ്സാപ്പിൽ പങ്കിടുമ്പോഴു് %1$s ഇറക്കിവയ്ക്കാനുള്ള കണ്ണിയും ഉൾപ്പെടുത്തുക</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">കണ്ണി പങ്കിട്ടു</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -1390,11 +1392,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">ഇറക്കിവയ്ക്കലുകൾ മാറ്റി</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ഇറക്കിവയ്ക്കലുകൾ മാറ്റി</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">%1$s മാറ്റി</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s മാറ്റി</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">ഇറക്കിവച്ച ഫയലുകളൊന്നുമില്ല</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ഇറക്കിവച്ച ഫയലുകളൊന്നുമില്ല</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

@@ -1,19 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">Downloads</string>
+  <!--
+    Text shown on the second row of an in progress download notification.
+    %1$s will be replaced with the percentage of download completed so far.
+  -->
+  <string name="mozac_feature_downloads_percentage_notification_text">%1$s abgeschlossen</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Download pausiert</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_completed_notification_text2">Download abgeschlossen</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">Download fehlgeschlagen</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">Datei erneut herunterladen? (%1$s)</string>
+  <!--
+    Alert dialog confirmation before downloading a file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_dialog_title_3">Datei herunterladen? (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2">Herunterladen (%1$s)</string>
+  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Herunterladen (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Herunterladen</string>
+  <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">Erneut herunterladen</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">Abbrechen</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s existiert bereits.</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s wurde nicht heruntergeladen.</string>
+  <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s kann diesen Dateityp nicht herunterladen</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

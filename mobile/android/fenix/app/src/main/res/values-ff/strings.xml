@@ -574,9 +574,9 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Gaawte Momtaama</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Gaawte Momtaama</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Alaa piille gaawtaaɗe</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Alaa piille gaawtaaɗe</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

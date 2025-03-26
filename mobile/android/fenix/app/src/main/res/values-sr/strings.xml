@@ -1286,11 +1286,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Преузимања уклоњена</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Преузимања уклоњена</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">Уклоњено %1$s</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Уклоњено %1$s</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Нема преузетих датотека</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Нема преузетих датотека</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
+  <string name="mozac_feature_prompts_saved_logins_2">Spamiyntane hasła</string>
+</resources>

@@ -1455,11 +1455,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Ñemboguejy Mboguetepyre</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Ñemboguejy Mboguetepyre</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">Emboguete %1$s</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Emboguete %1$s</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Ndaipóri marandurenda mboguejypyre</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ndaipóri marandurenda mboguejypyre</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

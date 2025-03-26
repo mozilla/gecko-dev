@@ -1446,11 +1446,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">بارگیری‌ها حذف شدند</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">بارگیری‌ها حذف شدند</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">%1$s حذف شد</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s حذف شد</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">تا به حال پرونده‌ای بارگیری نشده است</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">تا به حال پرونده‌ای بارگیری نشده است</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

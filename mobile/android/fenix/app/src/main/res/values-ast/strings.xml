@@ -790,11 +790,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Quitáronse les descargues</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Quitáronse les descargues</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">Quitóse «%1$s»</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Quitóse «%1$s»</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Nun hai nengún ficheru baxáu</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Nun hai nengún ficheru baxáu</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

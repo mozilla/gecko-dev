@@ -1474,11 +1474,19 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Prenosi odstranjeni</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Prenosi odstranjeni</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">%1$s odstranjen</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s odstranjen</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Podrobnosti</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Prenos dokončan</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Odpri</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Razveljavi</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Ni prenesenih datotek</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ni prenesenih datotek</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1486,6 +1494,12 @@
   <string name="download_multi_select_title">%1$d izbranih</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1">Odstrani</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Ali ste prepričani, da želite izbrisati izbrane predmete?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Izbriši</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Prekliči</string>
   <!--
     Time period headers for downloads
 
@@ -1500,6 +1514,10 @@
   <string name="download_time_period_last_30_days">Zadnjih 30 dni</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Starejše</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">Iskanje po prenosih</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Ni zadetkov</string>
   <!--
     Downloads Content Type Filters
 

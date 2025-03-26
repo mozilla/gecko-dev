@@ -1471,11 +1471,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Nedlastinger fjernet</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Nedlastinger fjernet</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">Fjernet %1$s</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Fjernet %1$s</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Ingen nedlastede filer</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ingen nedlastede filer</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

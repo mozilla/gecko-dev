@@ -1474,11 +1474,11 @@
 
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
-  <string name="download_delete_multiple_items_snackbar_1">Deskargak kenduta</string>
+  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Deskargak kenduta</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar">%1$s kenduta</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s kenduta</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1">Deskargatutako fitxategirik ez</string>
+  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Deskargatutako fitxategirik ez</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
