@@ -2099,14 +2099,6 @@ export class FfiConverterSequenceTypeTabsGuid extends FfiConverterArrayBuffer {
     }
 }
 
-import {
-  FfiConverterTypeDeviceType,
-  DeviceType,
-} from "resource://gre/modules/RustSync15.sys.mjs";
-
-// Export the FFIConverter object to make external types work.
-export { FfiConverterTypeDeviceType, DeviceType };
-
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeTabsGuid extends FfiConverter {
     static lift(buf) {
@@ -2155,6 +2147,12 @@ export class FfiConverterTypeTimestamp extends FfiConverter {
 }
 // TODO: We should also allow JS to customize the type eventually.
 
+import {
+  FfiConverterTypeDeviceType,
+  DeviceType,
+} from "resource://gre/modules/RustSync15.sys.mjs";
 
+// Export the FFIConverter object to make external types work.
+export { FfiConverterTypeDeviceType, DeviceType };
 
 
