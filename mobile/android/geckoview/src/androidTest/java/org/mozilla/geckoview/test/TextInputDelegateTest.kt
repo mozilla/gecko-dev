@@ -1389,6 +1389,41 @@ class TextInputDelegateTest : BaseSessionTest() {
     @WithDisplay(width = 512, height = 512)
     // Child process updates require having a display.
     @Test
+    fun editorInfo_dynamic() {
+        // no way on designmode
+        assumeThat("Not in designmode", id, not(equalTo("#designmode")))
+
+        mainSession.textInput.view = View(InstrumentationRegistry.getInstrumentation().targetContext)
+
+        mainSession.loadTestPath(INPUTS_PATH)
+        mainSession.waitForPageStop()
+        textContent = ""
+
+        mainSession.evaluateJS(
+            """
+            document.querySelector('$id').setAttribute('inputmode', 'text');
+            document.querySelector('$id').focus()""",
+        )
+        mainSession.waitUntilCalled(GeckoSession.TextInputDelegate::class, "restartInput")
+
+        mainSession.setHandlingUserInput(true)
+        mainSession.evaluateJS("document.querySelector('$id').setAttribute('inputmode', 'numeric')")
+        mainSession.setHandlingUserInput(false)
+        mainSession.waitUntilCalled(GeckoSession.TextInputDelegate::class, "restartInput")
+
+        val editorInfo = EditorInfo()
+        mainSession.textInput.onCreateInputConnection(editorInfo)
+
+        assertThat(
+            "EditorInfo.inputType by dynamic change",
+            editorInfo.inputType and InputType.TYPE_NUMBER_VARIATION_NORMAL,
+            equalTo(InputType.TYPE_NUMBER_VARIATION_NORMAL),
+        )
+    }
+
+    @WithDisplay(width = 512, height = 512)
+    // Child process updates require having a display.
+    @Test
     fun bug1613804_finishComposingText() {
         mainSession.textInput.view = View(InstrumentationRegistry.getInstrumentation().targetContext)
 

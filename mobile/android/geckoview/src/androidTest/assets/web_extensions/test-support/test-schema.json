@@ -312,6 +312,23 @@
             "additionalProperties": { "type": "any" }
           }
         ]
+      },
+
+      {
+        "name": "setHandlingUserInput",
+        "type": "function",
+        "async": true,
+        "description": "Invokes nsIDOMWindowUtils.setHandlingUserInput to simulate user input activation.",
+        "parameters": [
+          {
+            "type": "number",
+            "name": "tabId"
+          },
+          {
+            "type": "boolean",
+            "name": "handlingUserInput"
+          }
+        ]
       }
     ]
   }

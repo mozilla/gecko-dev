@@ -260,6 +260,13 @@ this.test = class extends ExtensionAPI {
             })
           );
         },
+
+        async setHandlingUserInput(tabId, handlingUserInput) {
+          return getActorForTab(tabId, "TestSupport").sendQuery(
+            "SetHandlingUserInput",
+            { handlingUserInput }
+          );
+        },
       },
     };
   }

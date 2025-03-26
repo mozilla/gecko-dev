@@ -294,6 +294,9 @@ open class BaseSessionTest(
     fun GeckoSession.setResolutionAndScaleTo(resolution: Float) =
         sessionRule.setResolutionAndScaleTo(this, resolution)
 
+    fun GeckoSession.setHandlingUserInput(handlingUserInput: Boolean) =
+        sessionRule.setHandlingUserInput(this, handlingUserInput)
+
     fun GeckoSession.triggerCookieBannerDetected() =
         sessionRule.triggerCookieBannerDetected(this)
 

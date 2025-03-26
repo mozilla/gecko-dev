@@ -92,6 +92,9 @@ const APIS = {
   TriggerLanguageStateChange({ tab, languageState }) {
     return browser.test.triggerLanguageStateChange(tab.id, languageState);
   },
+  SetHandlingUserInput({ tab, handlingUserInput }) {
+    return browser.test.setHandlingUserInput(tab.id, handlingUserInput);
+  },
 };
 
 port.onMessage.addListener(async message => {

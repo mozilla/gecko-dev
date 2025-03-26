@@ -2760,6 +2760,16 @@ public class GeckoSessionTestRule implements TestRule {
     webExtensionApiCall(session, "PromiseAllPaintsDone", null);
   }
 
+  /** Invokes nsIDOMWindowUtils.setHandlingUserInput. */
+  public void setHandlingUserInput(final GeckoSession session, final boolean handlingUserInput) {
+    webExtensionApiCall(
+        session,
+        "SetHandlingUserInput",
+        args -> {
+          args.put("handlingUserInput", handlingUserInput);
+        });
+  }
+
   /** Returns true if Gecko is using a GPU process. */
   public boolean usingGpuProcess() {
     return (Boolean) webExtensionApiCall("UsingGpuProcess", null);

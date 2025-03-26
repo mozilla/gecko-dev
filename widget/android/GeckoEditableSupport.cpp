@@ -1487,12 +1487,15 @@ void GeckoEditableSupport::SetInputContext(const InputContext& aContext,
       ToString(aContext).c_str(), ToString(aAction.mCause).c_str(),
       ToString(aAction.mFocusChange).c_str());
 
+  const bool changingEnabledState =
+      aContext.IsInputAttributeChanged(mInputContext);
+
   mInputContext = aContext;
 
   if (mInputContext.mIMEState.mEnabled != IMEEnabled::Disabled &&
       !ShouldKeyboardDismiss(mInputContext.mHTMLInputType,
                              mInputContext.mHTMLInputMode) &&
-      aAction.UserMightRequestOpenVKB()) {
+      aAction.UserMightRequestOpenVKB() && !changingEnabledState) {
     // Don't reset keyboard when we should simply open the vkb
     mEditable->NotifyIME(EditableListener::NOTIFY_IME_OPEN_VKB);
     return;
