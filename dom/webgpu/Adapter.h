@@ -63,6 +63,8 @@ class AdapterInfo final : public nsWrapperCache, public ChildOf<Adapter> {
   void GetArchitecture(nsString& s) const { s = nsString(); }
   void GetDevice(nsString& s) const { s = nsString(); }
   void GetDescription(nsString& s) const { s = nsString(); }
+  uint32_t SubgroupMinSize() const;
+  uint32_t SubgroupMaxSize() const;
   bool IsFallbackAdapter() const;
 
   // Non-standard field getters; see also TODO BUGZILLA LINK

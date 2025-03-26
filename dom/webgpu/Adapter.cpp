@@ -21,6 +21,42 @@ namespace mozilla::webgpu {
 GPU_IMPL_CYCLE_COLLECTION(AdapterInfo, mParent)
 GPU_IMPL_JS_WRAP(AdapterInfo)
 
+uint32_t AdapterInfo::SubgroupMinSize() const {
+  // From the spec. at
+  // <https://www.w3.org/TR/2025/CRD-webgpu-20250319/#dom-gpuadapterinfo-subgroupminsize>:
+  //
+  // > If `["subgroups"](https://www.w3.org/TR/webgpu/#subgroups)` is supported,
+  // > set `subgroupMinSize` to the smallest supported subgroup size. Otherwise,
+  // > set this value to 4.
+  // >
+  // > Note: To preserve privacy, the user agent may choose to not support some
+  // > features or provide values for the property which do not distinguish
+  // > different devices, but are still usable (e.g. use the default value of
+  // > 4 for all devices).
+
+  // TODO: When we support `subgroups`, use the supported amount instead:
+  // <https://bugzilla.mozilla.org/show_bug.cgi?id=1955417>
+  return 4;
+}
+
+uint32_t AdapterInfo::SubgroupMaxSize() const {
+  // From the spec. at
+  // <https://www.w3.org/TR/2025/CRD-webgpu-20250319/#dom-gpuadapterinfo-subgroupmaxsize>:
+  //
+  // > If `["subgroups"](https://www.w3.org/TR/webgpu/#subgroups)` is supported,
+  // > set `subgroupMaxSize` to the largest supported subgroup size. Otherwise,
+  // > set this value to 128.
+  // >
+  // > Note: To preserve privacy, the user agent may choose to not support some
+  // > features or provide values for the property which do not distinguish
+  // > different devices, but are still usable (e.g. use the default value of
+  // > 128 for all devices).
+
+  // TODO: When we support `subgroups`, use the supported amount instead:
+  // <https://bugzilla.mozilla.org/show_bug.cgi?id=1955417>
+  return 128;
+}
+
 bool AdapterInfo::IsFallbackAdapter() const {
   if (GetParentObject()->ShouldResistFingerprinting(
           RFPTarget::WebGPUIsFallbackAdapter)) {
@@ -183,6 +219,11 @@ struct FeatureImplementationStatus {
         // return implemented(WGPUWEBGPU_FEATURE_DUAL_SOURCE_BLENDING);
         return unimplemented(
             "https://bugzilla.mozilla.org/show_bug.cgi?id=1924328");
+
+      case dom::GPUFeatureName::Subgroups:
+        // return implemented(WGPUWEBGPU_FEATURE_SUBGROUPS);
+        return unimplemented(
+            "https://bugzilla.mozilla.org/show_bug.cgi?id=1955417");
     }
     MOZ_CRASH("Bad GPUFeatureName.");
   }

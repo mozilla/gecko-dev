@@ -70,6 +70,8 @@ interface GPUAdapterInfo {
     readonly attribute DOMString architecture;
     readonly attribute DOMString device;
     readonly attribute DOMString description;
+    readonly attribute unsigned long subgroupMinSize;
+    readonly attribute unsigned long subgroupMaxSize;
     readonly attribute boolean isFallbackAdapter;
 
     // Non-standard; see <https://bugzilla.mozilla.org/show_bug.cgi?id=1831994>.
@@ -148,6 +150,7 @@ enum GPUFeatureName {
     "float32-blendable",
     "clip-distances",
     "dual-source-blending",
+    "subgroups",
 };
 
 [Func="mozilla::webgpu::Instance::PrefEnabled",
