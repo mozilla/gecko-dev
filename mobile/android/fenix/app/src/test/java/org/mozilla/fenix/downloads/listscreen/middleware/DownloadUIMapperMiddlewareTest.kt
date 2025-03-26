@@ -107,10 +107,10 @@ class DownloadUIMapperMiddlewareTest {
                     fileName = "3.pdf",
                     filePath = "downloads/3.pdf",
                     formattedSize = "10000",
+                    displayedShortUrl = "google.com",
                     contentType = "text/plain",
                     status = DownloadState.Status.COMPLETED,
                     createdTime = CreatedTime.TODAY,
-                    displayedShortUrl = "google.com",
                 ),
                 HeaderItem(CreatedTime.OLDER),
                 FileItem(
@@ -119,10 +119,10 @@ class DownloadUIMapperMiddlewareTest {
                     fileName = "1.pdf",
                     filePath = "downloads/1.pdf",
                     formattedSize = "10000",
+                    displayedShortUrl = "google.com",
                     contentType = "application/pdf",
                     status = DownloadState.Status.COMPLETED,
                     createdTime = CreatedTime.OLDER,
-                    displayedShortUrl = "google.com",
                 ),
             )
 
@@ -181,8 +181,8 @@ class DownloadUIMapperMiddlewareTest {
                 fileName = "1.pdf",
                 filePath = "downloads/1.pdf",
                 formattedSize = "10000",
-                contentType = "application/pdf",
                 displayedShortUrl = "google.com",
+                contentType = "application/pdf",
                 status = DownloadState.Status.COMPLETED,
                 createdTime = CreatedTime.OLDER,
             ),

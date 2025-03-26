@@ -81,8 +81,8 @@ class DownloadUIMapperMiddleware(
             fileName = fileName,
             filePath = filePath,
             formattedSize = fileSizeFormatter.formatSizeInBytes(contentLength ?: 0),
-            contentType = contentType,
             displayedShortUrl = url.getBaseDomainUrl(),
+            contentType = contentType,
             status = status,
             createdTime = categorizeTime(createdTime),
         )

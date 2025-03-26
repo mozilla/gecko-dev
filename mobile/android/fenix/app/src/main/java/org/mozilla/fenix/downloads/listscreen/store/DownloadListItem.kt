@@ -22,9 +22,8 @@ sealed interface DownloadListItem
  * @property fileName File name of the download item
  * @property filePath Full path of the download item
  * @property formattedSize The formatted size of the download item
+ * @property displayedShortUrl The shortened url of the download item
  * @property contentType The type of file the download is
- * @property displayedShortUrl A shortened or simplified version of the source URL for
- * display purposes (e.g., "example.com" instead of "https://www.example.com/long/path/to/file").
  * @property status The status that represents every state that a download can be in
  * @property createdTime The time period the file was downloaded in
  */
@@ -34,11 +33,17 @@ data class FileItem(
     val fileName: String?,
     val filePath: String,
     val formattedSize: String,
-    val contentType: String?,
     val displayedShortUrl: String,
+    val contentType: String?,
     val status: DownloadState.Status,
     val createdTime: CreatedTime,
 ) : DownloadListItem {
+
+    /**
+     * A concise description that combines the `formattedSize` and
+     * the base domain of the `url` in the format "formattedSize • baseDomainUrl".
+     */
+    val description = "$formattedSize • $displayedShortUrl"
 
     /**
      * The icon resource ID associated with this [FileItem].

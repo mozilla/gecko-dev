@@ -12,8 +12,8 @@ fun fileItem(
     fileName: String? = "file1",
     filePath: String = "path1",
     formattedSize: String = "1MB",
-    contentType: String? = "image/png",
     displayedShortUrl: String = "mozilla.org",
+    contentType: String? = "image/png",
     status: DownloadState.Status = DownloadState.Status.COMPLETED,
     createdTime: CreatedTime = CreatedTime.LAST_30_DAYS,
 ) = FileItem(
@@ -22,8 +22,8 @@ fun fileItem(
     fileName = fileName,
     filePath = filePath,
     formattedSize = formattedSize,
-    contentType = contentType,
     displayedShortUrl = displayedShortUrl,
+    contentType = contentType,
     status = status,
     createdTime = createdTime,
 )
