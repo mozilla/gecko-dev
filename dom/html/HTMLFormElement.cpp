@@ -1899,28 +1899,27 @@ nsresult HTMLFormElement::AddElementToTableInternal(
             list->Length() > 1,
             "List should have been converted back to a single element");
 
+        PositionComparator cmp(aChild);
+
         // Fast-path appends; this check is ok even if the child is
         // already in the list, since if it tests true the child would
         // have come at the end of the list, and the PositionIsBefore
         // will test false.
-        if (nsContentUtils::PositionIsBefore(list->Item(list->Length() - 1),
-                                             aChild)) {
+        if (cmp(list->Item(list->Length() - 1)) > 0) {
           list->AppendElement(aChild);
           return NS_OK;
         }
 
-        // If a control has a name equal to its id, it could be in the
-        // list already.
-        if (list->IndexOf(aChild) != -1) {
+        size_t idx;
+        const bool found = BinarySearchIf(RadioNodeListAdaptor(list), 0,
+                                          list->Length(), cmp, &idx);
+        if (found &&
+            (list->Item(idx) == aChild || list->IndexOf(aChild) != -1)) {
+          // If a control has a name equal to its id, it could be in the list
+          // already. Also, found could be true mid-unbind even though the node
+          // is not the same. That's a temporarily-broken state.
           return NS_OK;
         }
-
-        size_t idx;
-        DebugOnly<bool> found =
-            BinarySearchIf(RadioNodeListAdaptor(list), 0, list->Length(),
-                           PositionComparator(aChild), &idx);
-        MOZ_ASSERT(!found, "should not have found an element");
-
         list->InsertElementAt(aChild, idx);
       }
     }
