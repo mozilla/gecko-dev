@@ -89,6 +89,7 @@ export const AdBanner = ({
           spoc={spoc}
           position={row}
           type={type}
+          prefs={prefs}
         />
         <SafeAnchor
           className="ad-banner-link"

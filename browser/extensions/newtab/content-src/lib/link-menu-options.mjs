@@ -525,4 +525,12 @@ export const LinkMenuOptions = {
       },
     }),
   }),
+  ReportAd: () => ({
+    id: "newtab-menu-report-this-ad",
+    action: ac.BroadcastToContent({ type: at.REPORT_OPEN }),
+  }),
+  ReportContent: () => ({
+    id: "newtab-menu-report-content",
+    action: ac.BroadcastToContent({ type: at.REPORT_OPEN }),
+  }),
 };
