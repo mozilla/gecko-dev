@@ -1946,7 +1946,7 @@ export class _ASRouter {
     return this.loadMessagesFromAllProviders();
   }
 
-  async sendPBNewTabMessage({ tabId, hideDefault }) {
+  async sendPBNewTabMessage({ hideDefault }) {
     let message = null;
     const PromoInfo = {
       FOCUS: { enabledPref: "browser.promo.focus.enabled" },
@@ -1980,12 +1980,11 @@ export class _ASRouter {
       ),
     }));
 
-    const telemetryObject = { tabId };
-    TelemetryStopwatch.start("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+    const timerId = Glean.messagingSystem.messageRequestTime.start();
     message = await this.handleMessageRequest({
       template: "pb_newtab",
     });
-    TelemetryStopwatch.finish("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+    Glean.messagingSystem.messageRequestTime.stopAndAccumulate(timerId);
 
     // Format urls if any are defined
     ["infoLinkUrl"].forEach(key => {
@@ -2026,7 +2025,6 @@ export class _ASRouter {
    * @param {object} [trigger.context] an object with data about the source of
    *   the trigger, matched against the message's targeting expression
    * @param {MozBrowser} trigger.browser the browser to route messages to
-   * @param {number} [trigger.tabId] identifier used only for exposure testing
    * @param {boolean} [skipLoadingMessages=false] pass true to skip looking for
    *   new messages. use when calling from loadMessagesFromAllProviders to avoid
    *   recursion. we call this from loadMessagesFromAllProviders in order to
@@ -2035,7 +2033,7 @@ export class _ASRouter {
    * @resolves {message} an object with the routed message
    */
   async sendTriggerMessage(
-    { tabId, browser, ...trigger },
+    { browser, ...trigger },
     skipLoadingMessages = false
   ) {
     if (!skipLoadingMessages) {
@@ -2052,8 +2050,7 @@ export class _ASRouter {
           browser === browser.ownerGlobal.gBrowser?.selectedBrowser;
       }
     }
-    const telemetryObject = { tabId };
-    TelemetryStopwatch.start("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+    const timerId = Glean.messagingSystem.messageRequestTime.start();
     // Return all the messages so that it can record the Reach event
     const messages =
       (await this.handleMessageRequest({
@@ -2062,7 +2059,7 @@ export class _ASRouter {
         triggerContext: trigger.context,
         returnAll: true,
       })) || [];
-    TelemetryStopwatch.finish("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+    Glean.messagingSystem.messageRequestTime.stopAndAccumulate(timerId);
 
     // Record the Reach event for all the messages with `forReachEvent`,
     // only send the first message without forReachEvent to the target

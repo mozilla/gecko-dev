@@ -107,14 +107,13 @@ export class _MomentsPageHub {
   }
 
   async messageRequest({ triggerId, template }) {
-    const telemetryObject = { triggerId };
-    TelemetryStopwatch.start("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+    const timerId = Glean.messagingSystem.messageRequestTime.start();
     const messages = await this._handleMessageRequest({
       triggerId,
       template,
       returnAll: true,
     });
-    TelemetryStopwatch.finish("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
+    Glean.messagingSystem.messageRequestTime.stopAndAccumulate(timerId);
 
     // Record the "reach" event for all the messages with `forReachEvent`,
     // only execute action for the first message without forReachEvent.

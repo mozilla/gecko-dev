@@ -466,6 +466,24 @@ messaging_system:
     send_in_pings:
       - messaging-system
 
+  message_request_time:
+    type: timing_distribution
+    description: >
+      Firefox: Time in ms spent selecting and matching messages to user profile.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram MS_MESSAGE_REQUEST_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1600335
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1600335
+    notification_emails:
+      - omc@mozilla.com
+      - dmosedale@mozilla.com
+    expires: never
+    telemetry_mirror: MS_MESSAGE_REQUEST_TIME_MS
+
 
 messaging_system.attribution:
   source:

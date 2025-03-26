@@ -549,10 +549,6 @@ const TEST_GLOBAL = {
       settings: {},
     },
   },
-  TelemetryStopwatch: {
-    start: () => {},
-    finish: () => {},
-  },
   Sampling: {
     ratioSample(_seed, _ratios) {
       return Promise.resolve(0);
@@ -582,6 +578,12 @@ const TEST_GLOBAL = {
     messagingExperiments: {
       reachCfr: {
         record() {},
+      },
+    },
+    messagingSystem: {
+      messageRequestTime: {
+        start() {},
+        stopAndAccumulate() {},
       },
     },
     newtab: {

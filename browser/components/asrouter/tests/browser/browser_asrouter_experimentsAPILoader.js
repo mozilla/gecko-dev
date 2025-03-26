@@ -262,7 +262,6 @@ add_task(async function test_exposure_ping() {
   const exposureSpy = sinon.spy(NimbusTelemetry, "recordExposure");
 
   await ASRouter.sendTriggerMessage({
-    tabId: 1,
     browser: gBrowser.selectedBrowser,
     id: "openURL",
     param: { host: "messenger.com" },

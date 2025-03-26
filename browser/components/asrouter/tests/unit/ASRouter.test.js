@@ -1652,7 +1652,6 @@ describe("ASRouter", () => {
       Router.loadMessagesFromAllProviders.onFirstCall().resolves();
 
       await Router.sendTriggerMessage({
-        tabId: 0,
         browser: gBrowser.selectedBrowser,
         id: "firstRun",
       });
@@ -1668,35 +1667,24 @@ describe("ASRouter", () => {
       );
     });
     it("should record telemetry information", async () => {
-      const startTelemetryStopwatch = sandbox.stub(
-        global.TelemetryStopwatch,
-        "start"
+      const fakeTimerId = 42;
+      const start = sandbox
+        .stub(global.Glean.messagingSystem.messageRequestTime, "start")
+        .returns(fakeTimerId);
+      const stopAndAccumulate = sandbox.stub(
+        global.Glean.messagingSystem.messageRequestTime,
+        "stopAndAccumulate"
       );
-      const finishTelemetryStopwatch = sandbox.stub(
-        global.TelemetryStopwatch,
-        "finish"
-      );
-
-      const tabId = 123;
 
       await Router.sendTriggerMessage({
-        tabId,
         browser: {},
         id: "firstRun",
       });
 
-      assert.calledTwice(startTelemetryStopwatch);
-      assert.calledWithExactly(
-        startTelemetryStopwatch,
-        "MS_MESSAGE_REQUEST_TIME_MS",
-        { tabId }
-      );
-      assert.calledTwice(finishTelemetryStopwatch);
-      assert.calledWithExactly(
-        finishTelemetryStopwatch,
-        "MS_MESSAGE_REQUEST_TIME_MS",
-        { tabId }
-      );
+      assert.calledTwice(start);
+      assert.calledWithExactly(start);
+      assert.calledTwice(stopAndAccumulate);
+      assert.calledWithExactly(stopAndAccumulate, fakeTimerId);
     });
     it("should have previousSessionEnd in the message context", () => {
       assert.propertyVal(
@@ -1737,7 +1725,6 @@ describe("ASRouter", () => {
       sandbox.spy(Glean.messagingExperiments.reachCfr, "record");
 
       await Router.sendTriggerMessage({
-        tabId: 0,
         browser: {},
         id: "foo",
       });
@@ -1760,7 +1747,6 @@ describe("ASRouter", () => {
       sandbox.spy(Glean.messagingExperiments.reachCfr, "record");
 
       await Router.sendTriggerMessage({
-        tabId: 0,
         browser: {},
         id: "foo",
       });
@@ -1790,7 +1776,6 @@ describe("ASRouter", () => {
           sandbox.stub(Router, "handleMessageRequest").resolves(messages);
 
           await Router.sendTriggerMessage({
-            tabId: 0,
             browser: {},
             id: "foo",
           });

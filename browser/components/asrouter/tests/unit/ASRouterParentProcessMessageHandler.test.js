@@ -206,7 +206,6 @@ describe("ASRouterParentProcessMessageHandler", () => {
         assert.calledOnce(config.router.sendTriggerMessage);
         assert.calledWith(config.router.sendTriggerMessage, {
           stuff: {},
-          tabId: 100,
           browser: { ownerGlobal: {} },
         });
         assert.deepEqual(result, { value: 1 });
