@@ -12,31 +12,56 @@ const { TYPES } = ChromeUtils.importESModule(
 );
 const HIGHLIGHTER_TYPE = TYPES.SHAPES;
 
-add_task(async function () {
+add_task(async function testPolygon() {
+  const config = await taskSetup();
+
+  await testPolygonMovePoint(config);
+  await testPolygonAddPoint(config);
+  await testPolygonRemovePoint(config);
+
+  config.helper.finalize();
+});
+
+add_task(async function testCircle() {
+  const config = await taskSetup();
+
+  await testCircleMoveCenter(config);
+  await testCircleWithoutPosition(config);
+
+  config.helper.finalize();
+});
+
+add_task(async function testEllipse() {
+  const config = await taskSetup();
+
+  await testEllipseMoveRadius(config);
+
+  config.helper.finalize();
+});
+
+add_task(async function testInset() {
+  const config = await taskSetup();
+
+  await testInsetMoveEdges(config);
+
+  config.helper.finalize();
+});
+
+async function taskSetup() {
   const env = await openInspectorForURL(TEST_URL);
   const helper = await getHighlighterHelperFor(HIGHLIGHTER_TYPE)(env);
   const { highlighterTestFront, inspector } = env;
   const view = selectRuleView(inspector);
   const highlighters = view.highlighters;
 
-  const config = {
+  return {
     inspector,
     view,
     highlighters,
     highlighterTestFront,
     helper,
   };
-
-  await testPolygonMovePoint(config);
-  await testPolygonAddPoint(config);
-  await testPolygonRemovePoint(config);
-  await testCircleMoveCenter(config);
-  await testCircleWithoutPosition(config);
-  await testEllipseMoveRadius(config);
-  await testInsetMoveEdges(config);
-
-  helper.finalize();
-});
+}
 
 async function getComputedPropertyValue(selector, property, inspector) {
   const highlightedNode = await getNodeFront(selector, inspector);
