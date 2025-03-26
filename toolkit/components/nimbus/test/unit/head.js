@@ -18,8 +18,11 @@ RegionTestUtils.setNetworkRegion("US");
 
 /**
  * Assert the store has no active experiments or rollouts.
+ *
+ * It is important that tests clean up their stores because active enrollments
+ * may set prefs that can cause other tests to fail.
  */
-async function assertEmptyStore(store, { cleanup = false } = {}) {
+function assertEmptyStore(store) {
   Assert.deepEqual(
     store
       .getAll()
@@ -42,12 +45,4 @@ async function assertEmptyStore(store, { cleanup = false } = {}) {
     [],
     "Store should have no inactive enrollments"
   );
-
-  if (cleanup) {
-    // We need to call finalize first to ensure that any pending saves from
-    // JSONFile.saveSoon overwrite files on disk.
-    store._store.saveSoon();
-    await store._store.finalize();
-    await IOUtils.remove(store._store.path);
-  }
 }

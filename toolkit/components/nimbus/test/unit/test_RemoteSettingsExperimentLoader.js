@@ -335,5 +335,5 @@ add_task(async function test_experiment_optin_targeting() {
   sandbox.restore();
   Services.prefs.clearUserPref(DEBUG_PREF);
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });

@@ -98,7 +98,7 @@ add_task(async function readyCallAfterStore_with_remote_value() {
   manager.unenroll(MATCHING_ROLLOUT.slug, "test-cleanup");
 
   sandbox.restore();
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function has_sync_value_before_ready() {
@@ -130,7 +130,7 @@ add_task(async function has_sync_value_before_ready() {
   Services.prefs.clearUserPref(
     "nimbus.syncdefaultsstore.aboutwelcome.remoteValue"
   );
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function update_remote_defaults_onUpdate() {
@@ -149,7 +149,7 @@ add_task(async function update_remote_defaults_onUpdate() {
   manager.unenroll(MATCHING_ROLLOUT.slug, "test-cleanup");
 
   sandbox.restore();
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_features_over_feature() {
@@ -204,7 +204,7 @@ add_task(async function test_features_over_feature() {
   manager.store._deleteForTests("aboutwelcome");
   manager.store._deleteForTests("matching-rollout");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   sandbox.restore();
 });
@@ -225,7 +225,7 @@ add_task(async function update_remote_defaults_readyPromise() {
   );
 
   manager.unenroll(MATCHING_ROLLOUT.slug, "test-cleanup");
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -247,7 +247,7 @@ add_task(async function update_remote_defaults_enabled() {
   );
 
   manager.unenroll(NON_MATCHING_ROLLOUT.slug, "test-cleanup");
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -270,7 +270,7 @@ add_task(async function test_getVariable_no_mutation() {
 
   Assert.ok(feature.getVariable("mochitest"), "Got back the expected feature");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -306,5 +306,5 @@ add_task(async function remote_isEarlyStartup_config() {
   );
 
   manager.unenroll(rollout.slug, "test-cleanup");
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
