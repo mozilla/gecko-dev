@@ -525,7 +525,7 @@ var FullScreen = {
         // If there is no appropriate actor to send the message we have
         // no way to complete the transition and should abort by exiting
         // fullscreen.
-        this._abortEnterFullscreen();
+        this._abortEnterFullscreen(aActor);
         return;
       }
       // Record that the actor is waiting for its child to enter
@@ -552,7 +552,7 @@ var FullScreen = {
       // full-screen was made. Cancel full-screen.
       Services.focus.activeWindow != window
     ) {
-      this._abortEnterFullscreen();
+      this._abortEnterFullscreen(aActor);
       return;
     }
 
@@ -670,17 +670,18 @@ var FullScreen = {
     return needToWaitForChildExit;
   },
 
-  _abortEnterFullscreen() {
+  _abortEnterFullscreen(aActor) {
     // This function is called synchronously in fullscreen change, so
     // we have to avoid calling exitFullscreen synchronously here.
     //
     // This could reject if we're not currently in fullscreen
     // so just ignore rejection.
     setTimeout(() => document.exitFullscreen().catch(() => {}), 0);
-    if (TelemetryStopwatch.running("FULLSCREEN_CHANGE_MS")) {
+    if (aActor.timerId) {
       // Cancel the stopwatch for any fullscreen change to avoid
       // errors if it is started again.
-      TelemetryStopwatch.cancel("FULLSCREEN_CHANGE_MS");
+      Glean.fullscreen.change.cancel(aActor.timerId);
+      aActor.timerId = null;
     }
   },
 

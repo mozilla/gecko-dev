@@ -873,7 +873,9 @@ async function promiseFullscreenEntered(window, asyncFn) {
   await entered;
 
   await BrowserTestUtils.waitForCondition(() => {
-    return !TelemetryStopwatch.running("FULLSCREEN_CHANGE_MS");
+    return !gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getActor(
+      "DOMFullscreen"
+    ).timerId;
   });
 
   if (AppConstants.platform == "macosx") {
@@ -907,7 +909,9 @@ async function promiseFullscreenExited(window, asyncFn) {
   await exited;
 
   await BrowserTestUtils.waitForCondition(() => {
-    return !TelemetryStopwatch.running("FULLSCREEN_CHANGE_MS");
+    return !gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getActor(
+      "DOMFullscreen"
+    ).timerId;
   });
 
   if (AppConstants.platform == "macosx") {

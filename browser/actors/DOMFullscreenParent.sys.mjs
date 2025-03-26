@@ -174,7 +174,8 @@ export class DOMFullscreenParent extends JSWindowActorParent {
         this.waitingForChildExitFullscreen = false;
         Services.obs.notifyObservers(window, "fullscreen-painted");
         this.sendAsyncMessage("DOMFullscreen:Painted", {});
-        TelemetryStopwatch.finish("FULLSCREEN_CHANGE_MS");
+        Glean.fullscreen.change.stopAndAccumulate(this.timerId);
+        this.timerId = null;
         break;
       }
     }
@@ -215,7 +216,7 @@ export class DOMFullscreenParent extends JSWindowActorParent {
           window.gXPInstallObserver.removeAllNotifications(browser);
         }
 
-        TelemetryStopwatch.start("FULLSCREEN_CHANGE_MS");
+        this.timerId = Glean.fullscreen.change.start();
         window.FullScreen.enterDomFullscreen(browser, this);
         this.updateFullscreenWindowReference(window);
 
@@ -227,7 +228,7 @@ export class DOMFullscreenParent extends JSWindowActorParent {
         break;
       }
       case "MozDOMFullscreen:Exited": {
-        TelemetryStopwatch.start("FULLSCREEN_CHANGE_MS");
+        this.timerId = Glean.fullscreen.change.start();
 
         // Make sure that the actor has not been destroyed before
         // accessing its browsing context. Otherwise, a error may
