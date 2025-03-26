@@ -1485,7 +1485,21 @@ float nsPresContext::GetDeviceFullZoom() {
 }
 
 void nsPresContext::SetFullZoom(float aZoom) {
-  if (!mPresShell || mFullZoom == aZoom) {
+  if (!mPresShell) {
+    return;
+  }
+
+  // Sanitize aZoom to check for bogus values. (Outer iframes with small or
+  // huge css 'zoom' can end up stacking to propagate an extremely small/huge
+  // full-zoom value to inner iframes, possibly reaching 0 or infinity. We
+  // handle that edge case by just falling back to 1.0f here, so we can render
+  // something, and particularly so we don't do something invalid like trying
+  // to allocate a zero-sized or infinite-sized surface.)
+  if (MOZ_UNLIKELY(!std::isfinite(aZoom) || aZoom <= 0.0f)) {
+    aZoom = 1.0f;
+  }
+
+  if (mFullZoom == aZoom) {
     return;
   }
 
