@@ -44,7 +44,11 @@ function mockService(serviceNames, contractId, interfaceObj, mockService) {
   const { MockRegistrar } = ChromeUtils.importESModule(
     "resource://testing-common/MockRegistrar.sys.mjs"
   );
-  let cid = MockRegistrar.register(contractId, o);
+  let cid = MockRegistrar.registerEx(
+    contractId,
+    { shouldCreateInstance: false },
+    o
+  );
   registerCleanupFunction(() => {
     MockRegistrar.unregister(cid);
   });
