@@ -31,6 +31,7 @@ Preferences.addAll([
   { id: "browser.urlbar.recentsearches.featureGate", type: "bool" },
   { id: "browser.urlbar.suggest.recentsearches", type: "bool" },
   { id: "browser.urlbar.scotchBonnet.enableOverride", type: "bool" },
+  { id: "browser.urlbar.update2.engineAliasRefresh", type: "bool" },
 ]);
 
 const ENGINE_FLAVOR = "text/x-moz-search-engine";
@@ -82,6 +83,11 @@ var gSearchPane = {
     let urlbarSuggestsPref = Preferences.get("browser.urlbar.suggest.searches");
     let privateSuggestsPref = Preferences.get(
       "browser.search.suggest.enabled.private"
+    );
+
+    Preferences.get("browser.urlbar.update2.engineAliasRefresh").on(
+      "change",
+      () => gEngineView.updateUserEngineButtonVisibility()
     );
 
     let updateSuggestionCheckboxes =
@@ -809,7 +815,7 @@ class EngineView {
 
     this.loadL10nNames();
     this.#addListeners();
-    this.#showAddEngineButton();
+    this.updateUserEngineButtonVisibility();
   }
 
   async loadL10nNames() {
@@ -864,17 +870,15 @@ class EngineView {
   }
 
   /**
-   * Shows the "Add Search Engine" button if the pref is enabled.
+   * Shows the Add and Edit Search Engines buttons if the pref is enabled.
    */
-  #showAddEngineButton() {
+  updateUserEngineButtonVisibility() {
     let aliasRefresh = Services.prefs.getBoolPref(
       "browser.urlbar.update2.engineAliasRefresh",
       false
     );
-    if (aliasRefresh) {
-      let addButton = document.getElementById("addEngineButton");
-      addButton.hidden = false;
-    }
+    document.getElementById("addEngineButton").hidden = !aliasRefresh;
+    document.getElementById("editEngineButton").hidden = !aliasRefresh;
   }
 
   get lastEngineIndex() {
@@ -1024,10 +1028,19 @@ class EngineView {
           case "removeEngineButton":
             Services.search.removeEngine(this.selectedEngine.originalEngine);
             break;
+          case "editEngineButton":
+            gSubDialog.open(
+              "chrome://browser/content/search/addEngine.xhtml",
+              { features: "resizable=no, modal=yes" },
+              { engine: this.selectedEngine.originalEngine, mode: "EDIT" }
+            );
+            break;
           case "addEngineButton":
-            gSubDialog.open("chrome://browser/content/search/addEngine.xhtml", {
-              features: "resizable=no, modal=yes",
-            });
+            gSubDialog.open(
+              "chrome://browser/content/search/addEngine.xhtml",
+              { features: "resizable=no, modal=yes" },
+              { mode: "NEW" }
+            );
             break;
         }
         break;
@@ -1078,6 +1091,8 @@ class EngineView {
   #onTreeSelect() {
     document.getElementById("removeEngineButton").disabled =
       !this.isEngineSelectedAndRemovable();
+    document.getElementById("editEngineButton").disabled =
+      !this.selectedEngine?.isUserEngine;
   }
 
   #onTreeKeyPress(aEvent) {

@@ -2354,7 +2354,7 @@ export class nsContextMenu {
         let uri = Services.io.newURI(url);
         await this.window.gDialogBox.open(
           "chrome://browser/content/search/addEngine.xhtml",
-          { uri, formData, charset, method, icon }
+          { uri, formData, charset, method, icon, mode: "FORM", title: true }
         );
       })
       .catch(console.error);

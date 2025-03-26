@@ -166,12 +166,6 @@
                 data-l10n-id="search-restore-default"
                 />
         <spacer flex="1"/>
-        <button id="removeEngineButton"
-                is="highlightable-button"
-                class="searchEngineAction"
-                data-l10n-id="search-remove-engine"
-                disabled="true"
-                />
         <button id="addEngineButton"
                 is="highlightable-button"
                 class="searchEngineAction"
@@ -185,6 +179,20 @@
                   add-engine-dialog.buttonlabelaccept,
                 "
                 />
+        <button id="editEngineButton"
+                is="highlightable-button"
+                class="searchEngineAction"
+                hidden="true"
+                disabled="true"
+                label="Edit"
+                />
+        <button id="removeEngineButton"
+                is="highlightable-button"
+                class="searchEngineAction"
+                data-l10n-id="search-remove-engine"
+                disabled="true"
+                />
+
       </hbox>
       <hbox id="addEnginesBox" pack="start">
         <label id="addEngines" data-l10n-id="search-find-more-link" is="text-link"></label>

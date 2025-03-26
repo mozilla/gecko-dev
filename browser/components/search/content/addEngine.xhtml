@@ -8,7 +8,6 @@
 <window
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  data-l10n-id="add-engine-window"
   data-l10n-attrs="title, style"
   headerparent="add-engine-dialog"
   neediconheader="true"
@@ -18,7 +17,6 @@
     id="add-engine-dialog"
     buttons="accept,cancel"
     buttondisabledaccept="true"
-    data-l10n-id="add-engine-dialog"
     data-l10n-attrs="buttonlabelaccept, buttonaccesskeyaccept"
   >
     <linkset>
@@ -32,8 +30,8 @@
       <html:link rel="localization" href="browser/search.ftl" />
     </linkset>
 
-    <script src="chrome://browser/content/search/addEngine.js" />
     <script src="chrome://global/content/adjustableTitle.js" />
+    <script src="chrome://browser/content/search/addEngine.js" />
 
     <separator class="thin" />
 
@@ -65,7 +63,7 @@
             id="engineUrl"
             type="url"
             required="required"
-            pattern="https?:.*%s.*"
+            pattern="https?:.*"
           />
         </hbox>
       </html:div>
@@ -77,7 +75,18 @@
           data-l10n-id="add-engine-suggest-url"
         />
         <hbox>
-          <html:input id="suggestUrl" type="url" pattern="https?:.*%s.*" />
+          <html:input id="suggestUrl" type="url" pattern="https?:.*" />
+        </hbox>
+      </html:div>
+
+      <html:div class="dialogRow" id="enginePostDataRow" hidden="hidden">
+        <html:label
+          id="enginePostDataLabel"
+          for="enginePostData"
+          data-l10n-id="add-engine-post-data"
+        />
+        <hbox>
+          <html:input id="enginePostData" type="text" />
         </hbox>
       </html:div>
 

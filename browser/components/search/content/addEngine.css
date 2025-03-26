@@ -10,10 +10,7 @@ hbox {
   width: 100%;
 }
 
-#engineNameLabel,
-#engineUrlLabel,
-#suggestUrlLabel,
-#engineAliasLabel {
+.dialogRow > label {
   /* Align the labels with the inputs */
   margin-inline-start: 4px;
 }
@@ -25,7 +22,7 @@ hbox {
   text-align: match-parent;
 }
 
-.dialogRow {
+.dialogRow:not([hidden]) {
   --grid-padding: 16px;
   margin-block: 0 var(--grid-padding);
   display: flex;

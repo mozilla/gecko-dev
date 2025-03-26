@@ -71,7 +71,10 @@
   margin-bottom: 1em;
 }
 
-#removeEngineButton,
+#removeEngineButton{
+  margin-inline-end: 0;
+}
+
 #restoreDefaultSearchEngines {
-  margin-inline: 0;
+  margin-inline-start: 0;
 }

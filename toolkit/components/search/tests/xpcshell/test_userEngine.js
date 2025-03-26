@@ -109,3 +109,69 @@ add_task(async function test_user_engine_rename_duplicate() {
   await Services.search.removeEngine(engine);
   await Services.search.removeEngine(engine2);
 });
+
+add_task(async function test_user_engine_changeUrl() {
+  let engine = await Services.search.addUserEngine({
+    name: "user",
+    url: "https://example.com/user?q={searchTerms}",
+    alias: "u",
+  });
+
+  let submission = engine.getSubmission("foo");
+  Assert.equal(
+    submission.uri.spec,
+    "https://example.com/user?q=foo",
+    "Submission URL is correct initially."
+  );
+  Assert.ok(!submission.postData, "No post data.");
+
+  let promiseEngineChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  engine.wrappedJSObject.changeUrl(
+    SearchUtils.URL_TYPE.SEARCH,
+    "https://example.com/user?query={searchTerms}",
+    null
+  );
+  await promiseEngineChanged;
+  Assert.ok(true, "Received change notification.");
+
+  submission = engine.getSubmission("foo");
+  Assert.equal(
+    submission.uri.spec,
+    "https://example.com/user?query=foo",
+    "Submission URL was changed."
+  );
+  Assert.ok(!submission.postData, "No post data.");
+
+  engine.wrappedJSObject.changeUrl(
+    SearchUtils.URL_TYPE.SEARCH,
+    "https://example.com/user",
+    "query={searchTerms}"
+  );
+  submission = engine.getSubmission("foo");
+  Assert.equal(
+    submission.uri.spec,
+    "https://example.com/user",
+    "Submission URL was changed."
+  );
+  Assert.ok(submission.postData, "Has post data.");
+
+  submission = engine.getSubmission("foo", SearchUtils.URL_TYPE.SUGGEST_JSON);
+  Assert.ok(!submission, "No suggest URL yet.");
+
+  engine.wrappedJSObject.changeUrl(
+    SearchUtils.URL_TYPE.SUGGEST_JSON,
+    "https://example.com/suggest?query={searchTerms}",
+    "GET"
+  );
+  submission = engine.getSubmission("foo", SearchUtils.URL_TYPE.SUGGEST_JSON);
+  Assert.equal(
+    submission.uri.spec,
+    "https://example.com/suggest?query=foo",
+    "Suggest URL was changed."
+  );
+
+  await Services.search.removeEngine(engine);
+});
