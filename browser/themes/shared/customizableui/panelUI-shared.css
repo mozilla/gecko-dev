@@ -2291,10 +2291,6 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   display: none;
 }
 
-#profiles-header-title {
-  margin-inline-end: 0;
-}
-
 #profiles-header-content {
   max-width: 16em;
   white-space: nowrap;
@@ -2304,7 +2300,6 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 #profiles-edit-this-profile-button {
   list-style-image: url("chrome://global/skin/icons/edit-outline.svg");
-  opacity: 1;
   padding: var(--arrowpanel-header-back-icon-padding);
   margin: 0;
 }
@@ -2347,22 +2342,6 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 }
 
 /* ----- Profiles FxA panel ----- */
-
-panelmultiview[mainViewId="PanelUI-fxa"]  {
-  #PanelUI-profiles-header {
-    padding-block-start: 0;
-    padding-block-end: 0;
-    padding-inline-end: 0;
-  }
-
-  #profiles-edit-this-profile-button {
-    padding-inline-start: 0;
-
-    &:hover {
-      background-color: inherit;
-    }
-  }
-}
 
 /* Special case: hide the profiles menuitem if the FxA/Sync panel is shown as
  * a submenu of the app menu, rather than anchored to the FxA/Sync toolbar
