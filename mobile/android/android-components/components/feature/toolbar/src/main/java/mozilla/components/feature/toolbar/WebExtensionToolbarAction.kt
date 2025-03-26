@@ -4,12 +4,12 @@
 
 package mozilla.components.feature.toolbar
 
-import android.graphics.drawable.BitmapDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.graphics.drawable.toDrawable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -72,7 +72,7 @@ open class WebExtensionToolbarAction(
                 val icon = action.loadIcon?.invoke(imageView.measuredHeight)
                 icon?.let {
                     MainScope().launch {
-                        imageView.setImageDrawable(BitmapDrawable(view.context.resources, it))
+                        imageView.setImageDrawable(it.toDrawable(view.context.resources))
                     }
                 }
             } catch (throwable: Throwable) {

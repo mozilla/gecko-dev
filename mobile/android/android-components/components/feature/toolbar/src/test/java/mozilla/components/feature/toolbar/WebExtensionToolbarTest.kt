@@ -4,9 +4,12 @@
 
 package mozilla.components.feature.toolbar
 
+import android.content.Context
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
+import android.util.DisplayMetrics
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -45,10 +48,15 @@ class WebExtensionToolbarTest {
         val imageView: ImageView = mock()
         val textView: TextView = mock()
         val view: View = mock()
+        val context: Context = mock()
+        val resources: Resources = mock()
+        val displayMetrics = mock<DisplayMetrics>()
 
         whenever(view.findViewById<ImageView>(R.id.action_image)).thenReturn(imageView)
         whenever(view.findViewById<TextView>(R.id.badge_text)).thenReturn(textView)
-        whenever(view.context).thenReturn(mock())
+        whenever(view.context).thenReturn(context)
+        whenever(context.resources).thenReturn(resources)
+        whenever(resources.displayMetrics).thenReturn(displayMetrics)
 
         val browserAction = Action(
             title = "title",

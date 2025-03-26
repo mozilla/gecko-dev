@@ -5,10 +5,10 @@
 package mozilla.components.feature.addons.ui
 
 import android.content.Context
-import android.graphics.drawable.BitmapDrawable
 import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.feature.addons.update.AddonUpdater
@@ -139,7 +139,7 @@ private fun AddonUpdater.UpdateAttempt.getDialogMessage(context: Context): Strin
 fun ImageView.setIcon(addon: Addon) {
     val icon = addon.provideIcon()
     if (icon != null) {
-        setImageDrawable(BitmapDrawable(resources, icon))
+        setImageDrawable(icon.toDrawable(resources))
     } else {
         setDefaultAddonIcon()
     }
