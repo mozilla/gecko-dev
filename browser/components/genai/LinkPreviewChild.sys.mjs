@@ -203,13 +203,25 @@ export class LinkPreviewChild extends JSWindowActorChild {
         const {
           title,
           byline,
-          textContent,
+          content,
           length,
           siteName,
           excerpt,
           readingTimeMinsSlow,
           readingTimeMinsFast,
         } = article;
+
+        // parseDocument return a `textContent` that strips structure and newlines, which we need for the model.
+        // So we convert the HTML `content` to plain text directly, preserving formatting and newlines.
+        const textContent = Cc["@mozilla.org/parserutils;1"]
+          .getService(Ci.nsIParserUtils)
+          .convertToPlainText(
+            content,
+            Ci.nsIDocumentEncoder.OutputSelectionOnly | // Use only selected reader-view fragment
+              Ci.nsIDocumentEncoder.OutputAbsoluteLinks |
+              Ci.nsIDocumentEncoder.OutputFormatted, // Pretty-print formatting
+            0 // No line-wrapping
+          );
 
         return {
           title,
