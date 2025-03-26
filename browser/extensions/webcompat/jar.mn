@@ -2,6 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# NOTE: Please keep the files listed in here in sync with the ones listed in
+# xpi-build/moz.build, as this ensures that the XPI generated at build time
+# shares the same structure as the built-in instance. (bug 1955994)
+
 # NOTE: the '*' on the run.js asset is required to ensure that it will be
 # preprocessed (and data/interventions.json content interpolated as expected)
 # by the `mach build` command.

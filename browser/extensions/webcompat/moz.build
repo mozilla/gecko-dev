@@ -6,6 +6,8 @@
 
 JAR_MANIFESTS += ["jar.mn"]
 
+DIRS += ["xpi-build"]
+
 XPCOM_MANIFESTS += [
     "components.conf",
 ]
