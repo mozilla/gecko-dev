@@ -49,8 +49,6 @@ skip-if = ["os == 'linux' && bits == 64"] # Bug 1757875
 
 ["browser_aboutwelcome_multistage_transitions.js"]
 
-["browser_aboutwelcome_multistage_video.js"]
-
 ["browser_aboutwelcome_observer.js"]
 https_first_disabled = true
 
