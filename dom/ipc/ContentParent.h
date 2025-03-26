@@ -99,7 +99,6 @@ class MemoryReport;
 class TabContext;
 class GetFilesHelper;
 class MemoryReportRequestHost;
-class RemoteWorkerDebuggerManagerParent;
 class RemoteWorkerManager;
 class RemoteWorkerServiceParent;
 class ThreadsafeContentParentHandle;
@@ -1560,8 +1559,6 @@ class ContentParent final : public PContentParent,
   RefPtr<PProcessHangMonitorParent> mHangMonitorActor;
 
   RefPtr<RemoteWorkerServiceParent> mRemoteWorkerServiceActor;
-
-  RefPtr<RemoteWorkerDebuggerManagerParent> mRemoteWorkerDebuggerManagerActor;
 
   UniquePtr<gfx::DriverCrashGuard> mDriverCrashGuard;
   UniquePtr<MemoryReportRequestHost> mMemoryReportRequest;
