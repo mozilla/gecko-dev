@@ -15816,7 +15816,11 @@ void CodeGenerator::visitRest(LRest* lir) {
   Register temp3 = ToRegister(lir->temp3());
   unsigned numFormals = lir->mir()->numFormals();
 
-  constexpr uint32_t arrayCapacity = 2;
+  // In baseline, DoRestFallback calls into NewArray to allocate the rest array.
+  // If the length is 0, NewArray guesses a good capacity for it. We don't want
+  // a smaller capacity in Ion, because that can lead to bailout loops.
+  constexpr uint32_t arrayCapacity = 6;
+  MOZ_ASSERT(GuessArrayGCKind(0) == GuessArrayGCKind(arrayCapacity));
 
   if (Shape* shape = lir->mir()->shape()) {
     uint32_t arrayLength = 0;
@@ -15894,8 +15898,11 @@ void CodeGenerator::visitRest(LRest* lir) {
     masm.bind(&ok);
 #endif
 
-    Label initialized;
-    masm.branch32(Assembler::Equal, lengthReg, Imm32(0), &initialized);
+    Label nonZeroLength;
+    masm.branch32(Assembler::NotEqual, lengthReg, Imm32(0), &nonZeroLength);
+    masm.movePtr(temp2, ReturnReg);
+    masm.jump(&done);
+    masm.bind(&nonZeroLength);
 
     // Store length and initializedLength.
     Register elements = temp3;
@@ -15906,18 +15913,22 @@ void CodeGenerator::visitRest(LRest* lir) {
     masm.store32(lengthReg, lengthAddr);
     masm.store32(lengthReg, initLengthAddr);
 
-    // Store either one or two elements. This may clobber lengthReg (temp0).
-    static_assert(arrayCapacity == 2, "code handles 1 or 2 elements");
-    Label storeFirst;
-    masm.branch32(Assembler::Equal, lengthReg, Imm32(1), &storeFirst);
-    masm.storeValue(Address(temp1, sizeof(Value)),
-                    Address(elements, sizeof(Value)), temp0);
-    masm.bind(&storeFirst);
-    masm.storeValue(Address(temp1, 0), Address(elements, 0), temp0);
+    masm.push(temp2);  // Spill result to free up register.
 
-    // Done.
-    masm.bind(&initialized);
-    masm.movePtr(temp2, ReturnReg);
+    Register end = temp0;
+    Register args = temp1;
+    Register scratch = temp2;
+    masm.computeEffectiveAddress(BaseValueIndex(elements, lengthReg), end);
+
+    Label loop;
+    masm.bind(&loop);
+    masm.storeValue(Address(args, 0), Address(elements, 0), scratch);
+    masm.addPtr(Imm32(sizeof(Value)), args);
+    masm.addPtr(Imm32(sizeof(Value)), elements);
+    masm.branchPtr(Assembler::Below, elements, end, &loop);
+
+    // Pop result
+    masm.pop(ReturnReg);
     masm.jump(&done);
   }
 
