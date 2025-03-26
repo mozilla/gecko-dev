@@ -55,7 +55,6 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.lib.state.ext.observeAsState
-import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ext.isItemPartiallyVisible
 import org.mozilla.fenix.compose.list.ExpandableListHeader
@@ -339,9 +338,8 @@ private fun DownloadChip(
             BorderStroke(1.dp, FirefoxTheme.colors.borderPrimary)
         },
         colors = ChipDefaults.filterChipColors(
-            // Update to use token when available in design system
-            selectedBackgroundColor = PhotonColors.Violet05,
-            selectedContentColor = FirefoxTheme.colors.actionPrimary,
+            selectedBackgroundColor = FirefoxTheme.colors.layerAccentNonOpaque,
+            selectedContentColor = FirefoxTheme.colors.textPrimary,
             backgroundColor = FirefoxTheme.colors.layer1,
             contentColor = FirefoxTheme.colors.textPrimary,
         ),
@@ -357,7 +355,7 @@ private fun DownloadChip(
                 Icon(
                     painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
                     contentDescription = null,
-                    tint = FirefoxTheme.colors.actionPrimary,
+                    tint = FirefoxTheme.colors.iconPrimary,
                     modifier = Modifier.size(16.dp),
                 )
             }
