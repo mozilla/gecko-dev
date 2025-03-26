@@ -4959,7 +4959,7 @@
 # Whether view transitions use webrender for old-capture
 - name: dom.viewTransitions.wr-old-capture
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # Whether view transitions use webrender for live-capture
