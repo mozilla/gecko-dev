@@ -9,12 +9,14 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.search.ext.createSearchEngine
@@ -29,6 +31,7 @@ class FenixBrowserUseCasesTest {
 
     private lateinit var searchEngine: SearchEngine
     private lateinit var browserStore: BrowserStore
+    private lateinit var profiler: Profiler
     private lateinit var addNewTabUseCase: TabsUseCases.AddNewTabUseCase
     private lateinit var loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase
     private lateinit var searchUseCases: SearchUseCases
@@ -40,6 +43,11 @@ class FenixBrowserUseCasesTest {
         addNewTabUseCase = mockk(relaxed = true)
         loadUrlUseCase = mockk(relaxed = true)
         searchUseCases = mockk(relaxed = true)
+
+        profiler = mockk(relaxed = true) {
+            every { getProfilerTime() } returns PROFILER_START_TIME
+            every { isProfilerActive() } returns true
+        }
 
         searchEngine = createSearchEngine(
             name = "name",
@@ -71,6 +79,7 @@ class FenixBrowserUseCasesTest {
             addNewTabUseCase = addNewTabUseCase,
             loadUrlUseCase = loadUrlUseCase,
             searchUseCases = searchUseCases,
+            profiler = profiler,
         )
     }
 
@@ -263,5 +272,39 @@ class FenixBrowserUseCasesTest {
                 additionalHeaders = null,
             )
         }
+    }
+
+    @Test
+    fun `GIVEN an URL input and profiler is active WHEN the load url or search use case is invoked THEN load the URL and add the profiler marker`() {
+        val url = "https://www.mozilla.org"
+        val newTab = false
+
+        useCases.loadUrlOrSearch(
+            searchTermOrURL = url,
+            newTab = newTab,
+            forceSearch = false,
+            private = false,
+            searchEngine = mockk(relaxed = true),
+        )
+
+        verifyOrder {
+            profiler.getProfilerTime()
+
+            loadUrlUseCase.invoke(
+                url = url,
+                flags = EngineSession.LoadUrlFlags.none(),
+                originalInput = url,
+            )
+
+            profiler.addMarker(
+                markerName = "FenixBrowserUseCases.loadUrlOrSearch",
+                startTime = PROFILER_START_TIME,
+                text = "newTab: $newTab",
+            )
+        }
+    }
+
+    companion object {
+        private const val PROFILER_START_TIME = Double.MAX_VALUE
     }
 }

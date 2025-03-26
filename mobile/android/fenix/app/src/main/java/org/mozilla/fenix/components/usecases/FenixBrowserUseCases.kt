@@ -6,6 +6,7 @@ package org.mozilla.fenix.components.usecases
 
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.feature.search.SearchUseCases
@@ -20,11 +21,13 @@ import mozilla.components.support.ktx.kotlin.toNormalizedUrl
  * @param addNewTabUseCase [TabsUseCases.AddNewTabUseCase] used for adding new tabs.
  * @param loadUrlUseCase [SessionUseCases.DefaultLoadUrlUseCase] used for loading a URL.
  * @param searchUseCases [SearchUseCases] used for performing a search.
+ * @param profiler [Profiler] used to add profiler markers.
  */
 class FenixBrowserUseCases(
     private val addNewTabUseCase: TabsUseCases.AddNewTabUseCase,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val searchUseCases: SearchUseCases,
+    private val profiler: Profiler?,
 ) {
     /**
      * Loads a URL or performs a search depending on the value of [searchTermOrURL].
@@ -49,6 +52,8 @@ class FenixBrowserUseCases(
         historyMetadata: HistoryMetadataKey? = null,
         additionalHeaders: Map<String, String>? = null,
     ) {
+        val startTime = profiler?.getProfilerTime()
+
         // In situations where we want to perform a search but have no search engine (e.g. the user
         // has removed all of them, or we couldn't load any) we will pass searchTermOrURL to Gecko
         // and let it try to load whatever was entered.
@@ -91,6 +96,17 @@ class FenixBrowserUseCases(
                     additionalHeaders = additionalHeaders,
                 )
             }
+        }
+
+        if (profiler?.isProfilerActive() == true) {
+            // Wrapping the `addMarker` method with `isProfilerActive` even though it's no-op when
+            // profiler is not active. That way, `text` argument will not create a string builder
+            // all the time.
+            profiler.addMarker(
+                markerName = "FenixBrowserUseCases.loadUrlOrSearch",
+                startTime = startTime,
+                text = "newTab: $newTab",
+            )
         }
     }
 }

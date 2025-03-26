@@ -1224,11 +1224,13 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         additionalHeaders: Map<String, String>? = null,
     ) {
         openToBrowser(from, customTabSessionId)
-        load(
+
+        components.useCases.fenixBrowserUseCases.loadUrlOrSearch(
             searchTermOrURL = searchTermOrURL,
             newTab = newTab,
-            engine = engine,
             forceSearch = forceSearch,
+            private = browsingModeManager.mode.isPrivate,
+            searchEngine = engine,
             flags = flags,
             historyMetadata = historyMetadata,
             additionalHeaders = additionalHeaders,
@@ -1241,51 +1243,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         val directions = getNavDirections(from, customTabSessionId)
         if (directions != null) {
             navHost.navController.nav(fragmentId, directions)
-        }
-    }
-
-    /**
-     * Loads a URL or performs a search (depending on the value of [searchTermOrURL]).
-     *
-     * @param searchTermOrURL The entered search term to search or URL to be loaded.
-     * @param newTab Whether or not to load the URL in a new tab.
-     * @param engine Optional [SearchEngine] to use when performing a search.
-     * @param forceSearch Whether or not to force performing a search.
-     * @param flags Flags that will be used when loading the URL (not applied to searches).
-     * @param historyMetadata The [HistoryMetadataKey] of the new tab in case this tab
-     * was opened from history.
-     * @param additionalHeaders The extra headers to use when loading the URL.
-     */
-    private fun load(
-        searchTermOrURL: String,
-        newTab: Boolean,
-        engine: SearchEngine?,
-        forceSearch: Boolean,
-        flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
-        historyMetadata: HistoryMetadataKey? = null,
-        additionalHeaders: Map<String, String>? = null,
-    ) {
-        val startTime = components.core.engine.profiler?.getProfilerTime()
-
-        components.useCases.fenixBrowserUseCases.loadUrlOrSearch(
-            searchTermOrURL = searchTermOrURL,
-            newTab = newTab,
-            forceSearch = forceSearch,
-            private = browsingModeManager.mode.isPrivate,
-            searchEngine = engine,
-            flags = flags,
-            historyMetadata = historyMetadata,
-            additionalHeaders = additionalHeaders,
-        )
-
-        if (components.core.engine.profiler?.isProfilerActive() == true) {
-            // Wrapping the `addMarker` method with `isProfilerActive` even though it's no-op when
-            // profiler is not active. That way, `text` argument will not create a string builder all the time.
-            components.core.engine.profiler?.addMarker(
-                "HomeActivity.load",
-                startTime,
-                "newTab: $newTab",
-            )
         }
     }
 

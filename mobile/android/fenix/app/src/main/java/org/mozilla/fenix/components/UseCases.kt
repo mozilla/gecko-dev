@@ -133,6 +133,7 @@ class UseCases(
             addNewTabUseCase = tabsUseCases.addTab,
             loadUrlUseCase = sessionUseCases.loadUrl,
             searchUseCases = searchUseCases,
+            profiler = engine.value.profiler,
         )
     }
 }
