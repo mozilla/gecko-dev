@@ -782,6 +782,7 @@ abstract class EngineSession(
      * @param additionalHeaders the extra headers to use when loading the provided url.
      * @param originalInput If the user entered a URL, this is the original
      * user input before any fixups were applied to it.
+     * @param textDirectiveUserActivation whether loading allows the scroll by text fragmentation.
      */
     abstract fun loadUrl(
         url: String,
@@ -789,6 +790,7 @@ abstract class EngineSession(
         flags: LoadUrlFlags = LoadUrlFlags.none(),
         additionalHeaders: Map<String, String>? = null,
         originalInput: String? = null,
+        textDirectiveUserActivation: Boolean = false,
     )
 
     /**

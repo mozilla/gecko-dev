@@ -163,6 +163,7 @@ class TabsUseCases(
          * @param additionalHeaders The extra headers to use when loading the provided URL.
          * @param originalInput If the user entered a URL, this is the
          * original user input before any fixups were applied to it.
+         * @param textDirectiveUserActivation whether loading allows the scroll by text fragmentation.
          * @return The ID of the created tab.
          */
         operator fun invoke(
@@ -181,6 +182,7 @@ class TabsUseCases(
             searchEngineName: String? = null,
             additionalHeaders: Map<String, String>? = null,
             originalInput: String? = null,
+            textDirectiveUserActivation: Boolean = false,
         ): String {
             val tab = createTab(
                 url = url,
@@ -195,6 +197,7 @@ class TabsUseCases(
                 historyMetadata = historyMetadata,
                 desktopMode = store.state.desktopMode,
                 originalInput = originalInput,
+                initialTextDirectiveUserActivation = textDirectiveUserActivation,
             )
 
             store.dispatch(TabListAction.AddTabAction(tab, select = selectTab))
@@ -211,6 +214,7 @@ class TabsUseCases(
                         flags = flags,
                         additionalHeaders = additionalHeaders,
                         includeParent = true,
+                        textDirectiveUserActivation = textDirectiveUserActivation,
                     ),
                 )
             }

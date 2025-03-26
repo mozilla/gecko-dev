@@ -85,6 +85,7 @@ internal class EngineDelegateMiddleware(
             parent = parentEngineSession,
             flags = action.flags,
             additionalHeaders = action.additionalHeaders,
+            textDirectiveUserActivation = action.textDirectiveUserActivation,
         )
     }
 

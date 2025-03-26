@@ -22,6 +22,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
+import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
@@ -61,6 +62,7 @@ class LinkingMiddlewareTest {
             id = "1",
             initialLoadFlags = loadFlags,
             initialAdditionalHeaders = additionalHeaders,
+            initialTextDirectiveUserActivation = true,
         )
         val store = BrowserStore(
             initialState = BrowserState(tabs = listOf(tab)),
@@ -76,6 +78,7 @@ class LinkingMiddlewareTest {
             url = tab.content.url,
             flags = loadFlags,
             additionalHeaders = additionalHeaders,
+            textDirectiveUserActivation = true,
         )
     }
 
@@ -161,7 +164,7 @@ class LinkingMiddlewareTest {
 
         dispatcher.scheduler.advanceUntilIdle()
 
-        verify(engineSession, never()).loadUrl(anyString(), any(), any(), any(), any())
+        verify(engineSession, never()).loadUrl(anyString(), any(), any(), any(), any(), anyBoolean())
     }
 
     @Test

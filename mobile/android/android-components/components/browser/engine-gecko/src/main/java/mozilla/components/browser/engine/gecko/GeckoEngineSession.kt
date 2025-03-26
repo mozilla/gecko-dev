@@ -175,6 +175,7 @@ class GeckoEngineSession(
         flags: LoadUrlFlags,
         additionalHeaders: Map<String, String>?,
         originalInput: String?,
+        textDirectiveUserActivation: Boolean,
     ) {
         notifyObservers { onLoadUrl() }
 
@@ -192,6 +193,7 @@ class GeckoEngineSession(
             .uri(url)
             .flags(flags.getGeckoFlags())
             .originalInput(originalInput)
+            .textDirectiveUserActivation(textDirectiveUserActivation)
 
         if (additionalHeaders != null) {
             val headerFilter = if (flags.contains(ALLOW_ADDITIONAL_HEADERS)) {

@@ -50,6 +50,7 @@ class ServiceWorkerSupportTest {
             searchEngineName = eq(null), // default
             additionalHeaders = eq(null), // default
             originalInput = eq(null), // default
+            textDirectiveUserActivation = eq(false), // default
         )
     }
 }

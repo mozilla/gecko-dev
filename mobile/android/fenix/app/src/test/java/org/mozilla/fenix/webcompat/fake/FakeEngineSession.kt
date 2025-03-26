@@ -36,6 +36,7 @@ internal class FakeEngineSession(
         flags: LoadUrlFlags,
         additionalHeaders: Map<String, String>?,
         originalInput: String?,
+        textDirectiveUserActivation: Boolean,
     ) {}
 
     override fun loadData(data: String, mimeType: String, encoding: String) {}

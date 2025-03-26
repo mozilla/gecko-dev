@@ -111,6 +111,7 @@ fun createTab(
     previewImageUrl: String? = null,
     hasFormData: Boolean = false,
     originalInput: String? = null,
+    initialTextDirectiveUserActivation: Boolean = false,
 ): TabSessionState {
     return TabSessionState(
         id = id,
@@ -140,6 +141,7 @@ fun createTab(
             crashed = crashed,
             initialLoadFlags = initialLoadFlags,
             initialAdditionalHeaders = initialAdditionalHeaders,
+            initialTextDirectiveUserActivation = initialTextDirectiveUserActivation,
         ),
         mediaSessionState = mediaSessionState,
         historyMetadata = historyMetadata,

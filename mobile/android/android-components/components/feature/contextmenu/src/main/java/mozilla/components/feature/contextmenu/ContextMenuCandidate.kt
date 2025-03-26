@@ -125,6 +125,7 @@ data class ContextMenuCandidate(
                     hitResult.getLink(),
                     selectTab = false,
                     startLoading = true,
+                    textDirectiveUserActivation = true,
                     parentId = parent.id,
                     contextId = parent.contextId,
                 )
@@ -168,6 +169,7 @@ data class ContextMenuCandidate(
                     hitResult.getLink(),
                     selectTab = false,
                     startLoading = true,
+                    textDirectiveUserActivation = true,
                     parentId = parent.id,
                     private = true,
                 )

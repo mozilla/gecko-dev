@@ -26,6 +26,7 @@ import mozilla.components.concept.engine.EngineSessionState
  * @property initialLoadFlags [EngineSession.LoadUrlFlags] to use for the first load of this session.
  * @property initializing whether or not the [EngineSession] is currently being initialized.
  * @property initialAdditionalHeaders The extra headers to use for the first load of this session.
+ * @property initialTextDirectiveUserActivation whether first load allows the scroll by text fragmentation.
  */
 data class EngineState(
     val engineSession: EngineSession? = null,
@@ -36,4 +37,5 @@ data class EngineState(
     val timestamp: Long? = null,
     val initialLoadFlags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
     val initialAdditionalHeaders: Map<String, String>? = null,
+    val initialTextDirectiveUserActivation: Boolean = false,
 )

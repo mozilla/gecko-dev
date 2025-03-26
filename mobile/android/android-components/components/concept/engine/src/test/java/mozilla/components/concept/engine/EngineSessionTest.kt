@@ -982,6 +982,7 @@ open class DummyEngineSession : EngineSession() {
         flags: LoadUrlFlags,
         additionalHeaders: Map<String, String>?,
         originalInput: String?,
+        textDirectiveUserActivation: Boolean,
     ) {}
 
     override fun loadData(data: String, mimeType: String, encoding: String) {}

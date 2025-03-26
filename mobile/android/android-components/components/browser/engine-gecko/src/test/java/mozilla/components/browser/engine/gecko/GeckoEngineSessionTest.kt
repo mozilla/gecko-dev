@@ -622,6 +622,11 @@ class GeckoEngineSessionTest {
             GeckoSession.Loader().uri("http://www.mozilla.org").additionalHeaders(extraHeaders)
                 .headerFilter(GeckoSession.HEADER_FILTER_CORS_SAFELISTED),
         )
+
+        engineSession.loadUrl("http://mozilla.org", textDirectiveUserActivation = true)
+        verify(geckoSession).load(
+            GeckoSession.Loader().uri("http://mozilla.org").textDirectiveUserActivation(true),
+        )
     }
 
     @Test

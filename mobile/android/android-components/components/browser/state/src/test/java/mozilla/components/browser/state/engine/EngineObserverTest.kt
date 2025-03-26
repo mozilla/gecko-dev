@@ -121,6 +121,7 @@ class EngineObserverTest {
                 flags: LoadUrlFlags,
                 additionalHeaders: Map<String, String>?,
                 originalInput: String?,
+                textDirectiveUserActivation: Boolean,
             ) {
                 notifyObservers { onLocationChange(url, false) }
                 notifyObservers { onProgress(100) }
@@ -201,6 +202,7 @@ class EngineObserverTest {
                 flags: LoadUrlFlags,
                 additionalHeaders: Map<String, String>?,
                 originalInput: String?,
+                textDirectiveUserActivation: Boolean,
             ) {
                 if (url.startsWith("https://")) {
                     notifyObservers { onSecurityChange(true, "host", "issuer") }
@@ -274,6 +276,7 @@ class EngineObserverTest {
                 flags: LoadUrlFlags,
                 additionalHeaders: Map<String, String>?,
                 originalInput: String?,
+                textDirectiveUserActivation: Boolean,
             ) {}
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun requestPdfToDownload() = Unit

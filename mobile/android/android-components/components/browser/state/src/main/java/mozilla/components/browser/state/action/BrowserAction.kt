@@ -1350,6 +1350,7 @@ sealed class EngineAction : BrowserAction() {
         val flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
         val additionalHeaders: Map<String, String>? = null,
         val includeParent: Boolean = false,
+        val textDirectiveUserActivation: Boolean = false,
     ) : EngineAction(), ActionWithTab
 
     /**

@@ -11,6 +11,8 @@ import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.MainScope
+import mozilla.components.browser.state.action.BrowserAction
+import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
@@ -30,6 +32,7 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.ui.widgets.SnackbarDelegate
@@ -272,6 +275,43 @@ class ContextMenuCandidateTest {
         store.waitUntilIdle()
 
         assertEquals("https://www.mozilla_uri.org", store.state.tabs.last().content.url)
+    }
+
+    @Test
+    fun `Open Link in New Tab with text fragment`() {
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware),
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+
+        val tabsUseCases = TabsUseCases(store)
+        val parentView = CoordinatorLayout(testContext)
+
+        val openInNewTab = ContextMenuCandidate.createOpenInNewTabCandidate(
+            testContext,
+            tabsUseCases,
+            parentView,
+            snackbarDelegate,
+        )
+
+        assertEquals(1, store.state.tabs.size)
+
+        openInNewTab.action.invoke(
+            store.state.tabs.first(),
+            HitResult.UNKNOWN("https://www.mozilla.org"),
+        )
+        store.waitUntilIdle()
+
+        middleware.assertLastAction(EngineAction.LoadUrlAction::class) { action ->
+            assertEquals("https://www.mozilla.org", action.url)
+            assertEquals(true, action.textDirectiveUserActivation)
+        }
     }
 
     @Test
