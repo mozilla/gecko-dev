@@ -369,7 +369,7 @@ export class SidebarState {
       mainEl.toggleAttribute("sidebar-launcher-expanded", expanded);
     }
     splitterEl?.toggleAttribute("sidebar-launcher-expanded", expanded);
-    boxEl.toggleAttribute("sidebar-launcher-expanded", expanded);
+    boxEl?.toggleAttribute("sidebar-launcher-expanded", expanded);
     contentAreaEl.toggleAttribute("sidebar-launcher-expanded", expanded);
     this.#controller.updateToolbarButton();
     if (!this.launcherDragActive) {

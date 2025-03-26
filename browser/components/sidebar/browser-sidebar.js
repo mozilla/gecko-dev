@@ -25,6 +25,7 @@ const toolsNameMap = {
 };
 const EXPAND_ON_HOVER_DEBOUNCE_RATE_MS = 200;
 const EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS = 1000;
+const LAUNCHER_SPLITTER_WIDTH = 4;
 
 var SidebarController = {
   makeSidebar({ elementId, ...rest }) {
@@ -266,8 +267,6 @@ var SidebarController = {
   _mainResizeObserverAdded: false,
   _mainResizeObserver: null,
   _ongoingAnimations: [],
-  _launcherMouseOverListenerAdded: false,
-  _launcherMouseOutListenerAdded: false,
 
   /**
    * @type {MutationObserver | null}
@@ -714,9 +713,6 @@ var SidebarController = {
    */
   reversePosition() {
     Services.prefs.setBoolPref(this.POSITION_START_PREF, !this._positionStart);
-    if (this.sidebarRevampVisibility === "expand-on-hover") {
-      this.setLauncherCollapsedWidth();
-    }
   },
 
   /**
@@ -1006,15 +1002,6 @@ var SidebarController = {
     ]);
   },
 
-  async _waitForOngoingAnimations() {
-    // Wait for any ongoing animations to finish
-    return new Promise(resolve => {
-      if (!this._ongoingAnimations.length) {
-        resolve();
-      }
-    });
-  },
-
   /**
    * Wait for Lit updates and ongoing animations to complete.
    *
@@ -1025,10 +1012,12 @@ var SidebarController = {
       // Legacy sidebar doesn't have animations, nothing to await.
       return null;
     }
-    const tasks = [
-      this.sidebarMain.updateComplete,
-      ...this._ongoingAnimations.map(animation => animation.finished),
-    ];
+    const tasks = [this.sidebarMain.updateComplete];
+    if (this._ongoingAnimations?.length) {
+      tasks.push(
+        ...this._ongoingAnimations.map(animation => animation.finished)
+      );
+    }
     return Promise.allSettled(tasks);
   },
 
@@ -1906,100 +1895,84 @@ var SidebarController = {
     this.sidebarMain.requestUpdate();
   },
 
-  onMouseOver() {
+  debouncedMouseEnter() {
     const contentArea = document.getElementById("tabbrowser-tabbox");
-    SidebarController._box.toggleAttribute("sidebar-launcher-hovered", true);
+    this._box.toggleAttribute("sidebar-launcher-hovered", true);
     contentArea.toggleAttribute("sidebar-launcher-hovered", true);
-    SidebarController._state.launcherHoverActive = true;
-    if (SidebarController._animationEnabled && !window.gReduceMotion) {
-      if (SidebarController._ongoingAnimations.length) {
-        SidebarController._ongoingAnimations.forEach(a => a.cancel());
-        SidebarController._ongoingAnimations = [];
-      }
-      SidebarController._animateSidebarMain();
+    this._state.launcherHoverActive = true;
+    if (this._animationEnabled && !window.gReduceMotion) {
+      this._animateSidebarMain();
     }
-    SidebarController._state.launcherExpanded = true;
-    SidebarController.sidebarContainer.removeEventListener(
-      "mouseover",
-      SidebarController.handleMouseOver
-    );
-    SidebarController._launcherMouseOverListenerAdded = false;
+    this._state.launcherExpanded = true;
   },
 
-  onMouseOut(e) {
-    if (SidebarController.sidebarContainer.matches(":hover")) {
-      // Don't fire mouseout if hovered over launcher child element
-      e?.stopPropagation();
-    } else {
-      const contentArea = document.getElementById("tabbrowser-tabbox");
-      SidebarController._box.toggleAttribute("sidebar-launcher-hovered", false);
-      contentArea.toggleAttribute("sidebar-launcher-hovered", false);
-      SidebarController._state.launcherHoverActive = false;
-      if (!SidebarController._launcherMouseOverListenerAdded) {
-        SidebarController.sidebarContainer.addEventListener(
-          "mouseover",
-          SidebarController.handleMouseOver
-        );
-        SidebarController._launcherMouseOverListenerAdded = true;
-      }
-      if (SidebarController._animationEnabled && !window.gReduceMotion) {
-        if (SidebarController._ongoingAnimations.length) {
-          SidebarController._ongoingAnimations.forEach(a => a.cancel());
-          SidebarController._ongoingAnimations = [];
-        }
-        SidebarController._animateSidebarMain();
-      }
-      SidebarController._state.launcherExpanded = false;
-      SidebarController.sidebarContainer.removeEventListener(
-        "mouseout",
-        SidebarController.onMouseOut
-      );
-      SidebarController._launcherMouseOutListenerAdded = false;
+  onMouseLeave() {
+    this.mouseEnterTask.disarm();
+    const contentArea = document.getElementById("tabbrowser-tabbox");
+    this._box.toggleAttribute("sidebar-launcher-hovered", false);
+    contentArea.toggleAttribute("sidebar-launcher-hovered", false);
+    this._state.launcherHoverActive = false;
+    if (this._animationEnabled && !window.gReduceMotion) {
+      this._animateSidebarMain();
     }
+    this._state.launcherExpanded = false;
   },
 
-  handleMouseOver(e) {
-    SidebarController.mouseOverTask = new DeferredTask(
+  onMouseEnter() {
+    this.mouseEnterTask = new DeferredTask(
       () => {
-        if (!SidebarController.sidebarContainer.matches(":hover")) {
-          // Don't fire mouseout if hovered over element outside of the launcher
-          e?.stopPropagation();
-        } else {
-          if (!SidebarController._launcherMouseOutListenerAdded) {
-            SidebarController.sidebarContainer.addEventListener(
-              "mouseout",
-              SidebarController.onMouseOut
-            );
-            SidebarController._launcherMouseOutListenerAdded = true;
-          }
-          SidebarController.onMouseOver();
-        }
+        this.debouncedMouseEnter();
       },
       EXPAND_ON_HOVER_DEBOUNCE_RATE_MS,
       EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS
     );
-    SidebarController.mouseOverTask?.arm();
+    this.mouseEnterTask?.arm();
   },
 
   async setLauncherCollapsedWidth() {
     let browserEl = document.getElementById("browser");
-    let collapsedWidth;
-    if (this.getUIState().launcherExpanded) {
-      this._state.launcherExpanded = false;
-      await this.sidebarMain.updateComplete;
-      collapsedWidth = await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          resolve(this._getRects([this.sidebarMain])[0][1].width);
-        });
-      });
-    } else {
-      collapsedWidth = this._getRects([this.sidebarMain])[0][1].width;
-    }
+    let collapsedWidth = this._getRects([this.sidebarMain])[0][1].width;
 
     browserEl.style.setProperty(
       "--sidebar-launcher-collapsed-width",
       `${collapsedWidth}px`
     );
+  },
+
+  handleEvent(e) {
+    switch (e.type) {
+      case "mouseout":
+        if (
+          (this._positionStart && e.x < 0) ||
+          (!this._positionStart && e.x > window.outerWidth)
+        ) {
+          this.mouseEnterTask?.disarm();
+          // Only collapse sidebar if not moused over the window
+          if (this.getUIState().launcherExpanded) {
+            if (this._animationEnabled && !window.gReduceMotion) {
+              this._animateSidebarMain();
+            }
+            this._state.launcherExpanded = false;
+          }
+        }
+        break;
+    }
+  },
+
+  getMouseTargetRect() {
+    let launcherRect = window.windowUtils.getBoundsWithoutFlushing(
+      SidebarController.sidebarContainer
+    );
+    return {
+      top: launcherRect.top,
+      bottom: launcherRect.bottom,
+      left: this._positionStart
+        ? launcherRect.left
+        : launcherRect.left + LAUNCHER_SPLITTER_WIDTH,
+      right: this._positionStart
+        ? launcherRect.right - LAUNCHER_SPLITTER_WIDTH
+        : launcherRect.right,
+    };
   },
 
   async toggleExpandOnHover(isEnabled, isDragEnded) {
@@ -2011,17 +1984,18 @@ var SidebarController = {
       if (!this._state) {
         this._state = new this.SidebarState(this);
       }
-      this.sidebarContainer.addEventListener("mouseover", this.handleMouseOver);
-      await this.sidebarMain.updateComplete;
-      await this._waitForOngoingAnimations();
+      if (this.getUIState().launcherExpanded && !isDragEnded) {
+        this._state.launcherExpanded = false;
+        await this.waitUntilStable();
+      }
+      MousePosTracker.addListener(this);
+      window.addEventListener("mouseout", this);
       if (!isDragEnded) {
         await this.setLauncherCollapsedWidth();
       }
     } else {
-      this.sidebarContainer.removeEventListener(
-        "mouseover",
-        this.handleMouseOver
-      );
+      MousePosTracker.removeListener(this);
+      window.removeEventListener("mouseout", this);
       if (!this.mouseOverTask?.isFinalized) {
         this.mouseOverTask?.finalize();
       }

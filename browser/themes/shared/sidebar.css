@@ -246,7 +246,7 @@ sidebar-main,
       * When the sidebar is expanded AND hovered
       * When the sidebar is in the process of moving from expanded to collapsed
     */
-    &[sidebar-launcher-expanded]:hover,
+    &[sidebar-launcher-expanded],
     &[sidebar-ongoing-animations]:not([sidebar-launcher-expanded]) {
       z-index: var(--browser-area-z-index-sidebar-wrapper);
       position: absolute;

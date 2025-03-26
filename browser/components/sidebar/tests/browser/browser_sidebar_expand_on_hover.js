@@ -30,7 +30,7 @@ async function mouseOverSidebarToExpand() {
     SidebarController.sidebarContainer,
     { attributes: true },
     async () => {
-      await SidebarController._waitForOngoingAnimations();
+      await SidebarController.waitUntilStable();
       return (
         SidebarController.sidebarContainer.hasAttribute(
           "sidebar-launcher-expanded"
@@ -61,7 +61,7 @@ async function mouseOutSidebarToCollapse() {
     SidebarController.sidebarContainer,
     { attributes: true },
     async () => {
-      await SidebarController._waitForOngoingAnimations();
+      await SidebarController.waitUntilStable();
       return (
         !SidebarController.sidebarContainer.hasAttribute(
           "sidebar-launcher-expanded"
@@ -129,6 +129,7 @@ add_task(async function test_enable_expand_on_hover() {
 
   await mouseOverSidebarToExpand();
   await mouseOutSidebarToCollapse();
+  await SidebarController.waitUntilStable();
 
   panel.positionInput.click();
   await BrowserTestUtils.waitForMutationCondition(
@@ -152,6 +153,15 @@ add_task(async function test_enable_expand_on_hover() {
     "The sidebar is positioned on the left"
   );
 
+  await mouseOutSidebarToCollapse();
+  await SidebarController.toggleExpandOnHover(false);
+  await SidebarController.waitUntilStable();
+});
+
+add_task(async function test_expand_on_hover_pinned_tabs() {
+  await SidebarController.toggleExpandOnHover(true);
+  await SidebarController.waitUntilStable();
+
   let newTabButton = document.getElementById("tabs-newtab-button");
   info("Open 2 new tabs using the new tab button.");
   newTabButton.click();
@@ -162,8 +172,6 @@ add_task(async function test_enable_expand_on_hover() {
   let unpinnedTabs = gBrowser.visibleTabs.filter(tab => !tab.pinned);
   gBrowser.pinTab(unpinnedTabs[0]);
   let pinnedTabs = gBrowser.visibleTabs.filter(tab => tab.pinned);
-
-  await mouseOverSidebarToExpand();
   let verticalPinnedTabsContainer = document.getElementById(
     "vertical-pinned-tabs-container"
   );
@@ -173,9 +181,17 @@ add_task(async function test_enable_expand_on_hover() {
   let inlineMuteButton =
     gBrowser.selectedTab.querySelector(".tab-audio-button");
   let muteButtonComputedStyle = window.getComputedStyle(inlineMuteButton);
-  await mouseOutSidebarToCollapse();
-  await mouseOverSidebarToExpand();
   let pinnedTabComputedStyle = window.getComputedStyle(pinnedTabs[0]);
+  await mouseOverSidebarToExpand();
+  await SidebarController.waitUntilStable();
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarContainer,
+    { attributes: true },
+    () =>
+      SidebarController._state.launcherExpanded &&
+      SidebarController.sidebarMain.hasAttribute("expanded"),
+    "The launcher is expanded"
+  );
   is(
     Math.round(parseInt(verticalTabsComputedStyle.width)),
     Math.round(parseInt(pinnedTabComputedStyle.width)),
@@ -189,5 +205,38 @@ add_task(async function test_enable_expand_on_hover() {
   );
 
   await mouseOutSidebarToCollapse();
-  SidebarController.hide();
+  await SidebarController.toggleExpandOnHover(false);
+  await SidebarController.waitUntilStable();
+});
+
+add_task(async function test_expand_on_hover_context_menu() {
+  await SidebarController.toggleExpandOnHover(true);
+  await SidebarController.waitUntilStable();
+  await mouseOverSidebarToExpand();
+  await SidebarController.waitUntilStable();
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarContainer,
+    { attributes: true },
+    () => SidebarController._state.launcherExpanded,
+    "The launcher is expanded"
+  );
+
+  const toolbarContextMenu = document.getElementById("toolbar-context-menu");
+  await openAndWaitForContextMenu(
+    toolbarContextMenu,
+    SidebarController.sidebarMain,
+    () => {
+      ok(
+        !document.getElementById("toolbar-context-customize-sidebar").hidden,
+        "The sidebar context menu is loaded"
+      );
+      ok(
+        SidebarController._state.launcherExpanded,
+        "The sidebar launcher is still expanded with the context menu open"
+      );
+    }
+  );
+  await mouseOutSidebarToCollapse();
+  await SidebarController.toggleExpandOnHover(false);
+  await SidebarController.waitUntilStable();
 });
