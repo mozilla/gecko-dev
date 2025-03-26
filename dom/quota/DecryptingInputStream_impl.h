@@ -393,6 +393,19 @@ NS_IMETHODIMP DecryptingInputStream<CipherStrategy>::Seek(const int32_t aWhence,
 
   int64_t baseCurrent;
   nsresult rv = (*mBaseSeekableStream)->Tell(&baseCurrent);
+  if (rv == NS_BASE_STREAM_CLOSED) {
+    // In the case our underlying stream is CLOSE_ON_EOF and REOPEN_ON_REWIND,
+    // as is the case for IDB Files/Blobs in the parent process, then this call
+    // to Tell can fail with NS_BASE_STREAM_CLOSED.
+    //
+    // Requesting any seek in this condition will re-open the file if the flags
+    // are set, so try that (but will fail if they are not set).
+    rv = (*mBaseSeekableStream)->Seek(NS_SEEK_CUR, 0);
+    // If that succeeded, perform the tell call again.
+    if (NS_SUCCEEDED(rv)) {
+      rv = (*mBaseSeekableStream)->Tell(&baseCurrent);
+    }
+  }
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return Err(rv);
   }
