@@ -149,6 +149,13 @@ support-files = [
   "counter_server.sjs",
 ]
 
+["browser_scriptCache_container.js"]
+skip-if = ["!nightly_build"]
+support-files = [
+  "page_scriptCache_container.html",
+  "counter_server.sjs",
+]
+
 ["browser_scriptCache_evict_with_non_cacheable.js"]
 support-files = [
   "cacheable_non_cacheable_server.sjs",
@@ -160,13 +167,6 @@ skip-if = ["!nightly_build"]
 support-files = [
   "file_scriptCache_load_events.js",
   "page_scriptCache_load_events.html",
-]
-
-["browser_scriptCache_container.js"]
-skip-if = ["!nightly_build"]
-support-files = [
-  "page_scriptCache_container.html",
-  "counter_server.sjs",
 ]
 
 ["browser_scriptCache_partition.js"]
@@ -208,6 +208,14 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # see bug 1261495 for Linux debug time outs
 ]
 support-files = ["test_new_window_from_content_child.html"]
+
+["browser_test_report_missing_child_module.js"]
+support-files = [
+  "file_test_report_missing_child_module_grandparent.mjs",
+  "file_test_report_missing_child_module_parent.mjs",
+  "file_test_report_missing_child_module_parent_02.mjs",
+  "page_test_report_missing_child_module.html",
+]
 
 ["browser_test_toolbars_visibility.js"]
 https_first_disabled = true
