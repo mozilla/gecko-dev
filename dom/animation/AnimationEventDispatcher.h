@@ -78,22 +78,14 @@ struct AnimationEventInfo {
   Maybe<dom::Animation::EventContext> GetEventContext() const {
     if (mData.is<CssAnimationData>()) {
       const auto& data = mData.as<CssAnimationData>();
-      return data.mMessage == eAnimationCancel
-                 ? Some(dom::Animation::EventContext{
-                       NonOwningAnimationTarget(data.mTarget),
-                       data.mAnimationIndex})
-                 : Nothing();
+      return Some(dom::Animation::EventContext{
+          NonOwningAnimationTarget(data.mTarget), data.mAnimationIndex});
     }
-
     if (mData.is<CssTransitionData>()) {
       const auto& data = mData.as<CssTransitionData>();
-      return data.mMessage == eTransitionCancel
-                 ? Some(dom::Animation::EventContext{
-                       NonOwningAnimationTarget(data.mTarget),
-                       data.mAnimationIndex})
-                 : Nothing();
+      return Some(dom::Animation::EventContext{
+          NonOwningAnimationTarget(data.mTarget), data.mAnimationIndex});
     }
-
     return Nothing();
   }
 
