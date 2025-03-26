@@ -14,6 +14,7 @@
 #include "mozilla/WeakPtr.h"
 #include "nsIClipboard.h"
 #include "nsIContentAnalysis.h"
+#include "nsIThreadPool.h"
 #include "nsITransferable.h"
 #include "nsString.h"
 #include "nsTHashMap.h"
@@ -179,11 +180,13 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
 
 class ContentAnalysisResponse;
 class ContentAnalysis final : public nsIContentAnalysis,
+                              public nsIObserver,
                               public SupportsWeakPtr {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(CONTENTANALYSIS_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSICONTENTANALYSIS
+  NS_DECL_NSIOBSERVER
 
   ContentAnalysis();
 
@@ -273,6 +276,10 @@ class ContentAnalysis final : public nsIContentAnalysis,
                                        nsString&& aClientSignatureSetting,
                                        bool aIsPerUser);
 
+  // Thread pool that all agent communications happen on.  Content Analysis
+  // occasionally uses other (random) background threads for other purposes.
+  nsCOMPtr<nsIThreadPool> mThreadPool;
+
   // Helper function to retry calling the client in case either the client
   // does not exist, or calling the client fails (indicating that the DLP agent
   // has terminated and possibly restarted)
@@ -314,8 +321,11 @@ class ContentAnalysis final : public nsIContentAnalysis,
                                             bool aAutoAcknowledge);
   bool LastRequestSucceeded();
 
+  // Destroy the service.  Happens during xpcom-shutdown-threads.
+  void Close();
+
   // Thread-safe check whether the service is being destroyed.
-  bool IsShuttingDown();
+  bool IsShutDown();
 
   // Did the URL filter completely handle the request or do we need to check
   // with the agent.
@@ -461,7 +471,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   std::vector<std::regex> mDenyUrlList;
   bool mParsedUrlLists = false;
   bool mForbidFutureRequests = false;
-  DataMutex<bool> mIsShuttingDown{false, "ContentAnalysis::IsShuttingDown"};
+  DataMutex<bool> mIsShutDown{false, "ContentAnalysis::IsShutDown"};
 
   friend class ContentAnalysisResponse;
   friend class ::ContentAnalysisTest;
