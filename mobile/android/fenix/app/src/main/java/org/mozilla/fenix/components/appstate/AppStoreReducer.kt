@@ -10,6 +10,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.readerview.ReaderViewStateReducer
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsReducer
 import org.mozilla.fenix.components.appstate.reducer.FindInPageStateReducer
+import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistReducer
 import org.mozilla.fenix.components.appstate.shopping.ShoppingStateReducer
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarStateReducer
@@ -208,6 +209,10 @@ internal object AppStoreReducer {
         )
 
         is AppAction.WebCompatAction -> WebCompatReducer.reduce(state = state, action = action)
+        is AppAction.SetupChecklistAction -> SetupChecklistReducer.reduce(
+            state = state,
+            action = action,
+        )
     }
 }
 

@@ -7,22 +7,24 @@ package org.mozilla.fenix.home.setup.store
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.fenix.GleanMetrics.Onboarding
-import org.mozilla.fenix.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 
 /**
  * [Middleware] for recording telemetry related to the setup checklist feature.
  */
 class SetupChecklistTelemetryMiddleware(val telemetry: SetupChecklistTelemetryRecorder) :
-    Middleware<SetupChecklistState, SetupChecklistAction> {
+    Middleware<SetupChecklistState, AppAction.SetupChecklistAction> {
     override fun invoke(
-        context: MiddlewareContext<SetupChecklistState, SetupChecklistAction>,
-        next: (SetupChecklistAction) -> Unit,
-        action: SetupChecklistAction,
+        context: MiddlewareContext<SetupChecklistState, AppAction.SetupChecklistAction>,
+        next: (AppAction.SetupChecklistAction) -> Unit,
+        action: AppAction.SetupChecklistAction,
     ) {
         next(action)
 
         when (action) {
-            is SetupChecklistAction.ChecklistItemClicked -> {
+            is AppAction.SetupChecklistAction.ChecklistItemClicked -> {
                 if (action.item is ChecklistItem.Task) {
                     telemetry.taskClicked(action.item)
                 }

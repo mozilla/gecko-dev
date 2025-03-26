@@ -6,7 +6,9 @@ package org.mozilla.fenix.home.setup.store
 
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
-import org.mozilla.fenix.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 
 /**
  * [Middleware] for handling side effects of the setup checklist feature.
@@ -17,18 +19,17 @@ class SetupChecklistMiddleware(
     private val navigateToCustomize: () -> Unit,
     private val navigateToExtensions: () -> Unit,
     private val installSearchWidget: () -> Unit,
-) : Middleware<SetupChecklistState, SetupChecklistAction> {
+) : Middleware<SetupChecklistState, AppAction.SetupChecklistAction> {
     override fun invoke(
-        context: MiddlewareContext<SetupChecklistState, SetupChecklistAction>,
-        next: (SetupChecklistAction) -> Unit,
-        action: SetupChecklistAction,
+        context: MiddlewareContext<SetupChecklistState, AppAction.SetupChecklistAction>,
+        next: (AppAction.SetupChecklistAction) -> Unit,
+        action: AppAction.SetupChecklistAction,
     ) {
         next(action)
 
         when (action) {
-            is SetupChecklistAction.Init -> {}
-            is SetupChecklistAction.Closed -> {}
-            is SetupChecklistAction.ChecklistItemClicked -> {
+            is AppAction.SetupChecklistAction.Closed -> {}
+            is AppAction.SetupChecklistAction.ChecklistItemClicked -> {
                 if (action.item is ChecklistItem.Task) {
                     when (action.item.type) {
                         ChecklistItem.Task.Type.SET_AS_DEFAULT -> triggerDefaultPrompt()

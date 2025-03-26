@@ -30,6 +30,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppAction
@@ -38,6 +39,8 @@ import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.UpdateMes
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.filterOut
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getFilteredStories
 import org.mozilla.fenix.ext.getStories
@@ -53,6 +56,7 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGrou
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.onboarding.FenixOnboarding
+import org.mozilla.fenix.testDispatch
 
 class AppStoreTest {
     private lateinit var context: Context
@@ -858,5 +862,125 @@ class AppStoreTest {
 
         assertEquals(recommendations, appStore.state.recommendationState.contentRecommendations)
         assertEquals(recommendations, appStore.state.recommendationState.pocketStories)
+    }
+
+    @Test
+    fun `WHEN the close action is dispatched THEN the setup checklist state remains the same`() {
+        val appState = AppState(setupChecklistState = SetupChecklistState())
+
+        appStore.testDispatch(AppAction.SetupChecklistAction.Closed)
+
+        assertEquals(SetupChecklistState(), appState.setupChecklistState)
+    }
+
+    @Test
+    fun `WHEN a group item is clicked action is dispatched THEN the group's expanded state is updated`() {
+        val group = ChecklistItem.Group(
+            title = "group",
+            tasks = listOf(),
+            isExpanded = false,
+        )
+
+        val appState =
+            AppState(setupChecklistState = SetupChecklistState(checklistItems = listOf(group)))
+        val store = AppStore(appState)
+        store.testDispatch(AppAction.SetupChecklistAction.ChecklistItemClicked(group))
+
+        assertTrue((store.state.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).isExpanded)
+    }
+
+    @Test
+    fun `WHEN a task item is clicked action is dispatched THEN the task's completed state is updated`() {
+        val task = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
+            title = "task",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = false,
+        )
+
+        val appState =
+            AppState(setupChecklistState = SetupChecklistState(checklistItems = listOf(task)))
+        val store = AppStore(appState)
+        store.testDispatch(AppAction.SetupChecklistAction.ChecklistItemClicked(task))
+
+        assertTrue((store.state.setupChecklistState!!.checklistItems[0] as ChecklistItem.Task).isCompleted)
+    }
+
+    @Test
+    fun `GIVEN tasks in a group WHEN a task is clicked THEN only the clicked task's completed state is updated`() {
+        val clickedTask = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
+            title = "task1",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = false,
+        )
+        val notClickedTask = ChecklistItem.Task(
+            type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
+            title = "task2",
+            icon = R.drawable.ic_addons_extensions,
+            isCompleted = false,
+        )
+        val group = ChecklistItem.Group(
+            title = "group",
+            tasks = listOf(clickedTask, notClickedTask),
+            isExpanded = true,
+        )
+
+        val appState =
+            AppState(setupChecklistState = SetupChecklistState(checklistItems = listOf(group)))
+        val store = AppStore(appState)
+        store.testDispatch(AppAction.SetupChecklistAction.ChecklistItemClicked(clickedTask))
+
+        assertTrue((store.state.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).tasks[0].isCompleted)
+        assertFalse((store.state.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).tasks[1].isCompleted)
+    }
+
+    @Test
+    fun `GIVEN a group is expanded WHEN a different group is clicked THEN the clicked group becomes expanded and the previously expanded group collapses`() {
+        val expandedGroup = ChecklistItem.Group(
+            title = "group1",
+            tasks = listOf(
+                ChecklistItem.Task(
+                    type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
+                    title = "task1",
+                    icon = R.drawable.ic_addons_extensions,
+                    isCompleted = false,
+                ),
+            ),
+            isExpanded = true,
+        )
+        val collapsedGroup = ChecklistItem.Group(
+            title = "group2",
+            tasks = listOf(
+                ChecklistItem.Task(
+                    type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
+                    title = "task2",
+                    icon = R.drawable.ic_addons_extensions,
+                    isCompleted = false,
+                ),
+            ),
+            isExpanded = false,
+        )
+
+        val appState =
+            AppState(
+                setupChecklistState = SetupChecklistState(
+                    checklistItems = listOf(
+                        expandedGroup,
+                        collapsedGroup,
+                    ),
+                ),
+            )
+        val store = AppStore(appState)
+
+        // Verify that the expanded group is expanded, and the other one is not
+        assertTrue((store.state.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).isExpanded)
+        assertFalse((store.state.setupChecklistState!!.checklistItems[1] as ChecklistItem.Group).isExpanded)
+
+        store.testDispatch(AppAction.SetupChecklistAction.ChecklistItemClicked(collapsedGroup))
+
+        // Verify that the expanded group was collapsed, and the other one got expanded
+        assertFalse((store.state.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).isExpanded)
+        assertTrue((store.state.setupChecklistState!!.checklistItems[1] as ChecklistItem.Group).isExpanded)
     }
 }

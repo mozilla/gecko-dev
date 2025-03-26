@@ -11,13 +11,15 @@ import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.junit.MockitoJUnitRunner
 import org.mozilla.fenix.R
-import org.mozilla.fenix.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 
 @RunWith(MockitoJUnitRunner::class)
 class SetupChecklistMiddlewareTest {
 
     @Mock
-    private lateinit var context: MiddlewareContext<SetupChecklistState, SetupChecklistAction>
+    private lateinit var context: MiddlewareContext<SetupChecklistState, AppAction.SetupChecklistAction>
 
     @Test
     fun `GIVEN click action contains a sign in task WHEN middleware is invoked THEN navigate to sign in callback is invoked`() {
@@ -27,7 +29,7 @@ class SetupChecklistMiddlewareTest {
         })
 
         val task = buildTask(type = ChecklistItem.Task.Type.SIGN_IN)
-        middleware.invoke(context, {}, SetupChecklistAction.ChecklistItemClicked(task))
+        middleware.invoke(context, {}, AppAction.SetupChecklistAction.ChecklistItemClicked(task))
 
         assertTrue(isInvoked)
     }
@@ -40,7 +42,7 @@ class SetupChecklistMiddlewareTest {
         })
 
         val task = buildTask(type = ChecklistItem.Task.Type.SET_AS_DEFAULT)
-        middleware.invoke(context, {}, SetupChecklistAction.ChecklistItemClicked(task))
+        middleware.invoke(context, {}, AppAction.SetupChecklistAction.ChecklistItemClicked(task))
 
         assertTrue(isInvoked)
     }
@@ -53,7 +55,7 @@ class SetupChecklistMiddlewareTest {
         })
 
         val task = buildTask(type = ChecklistItem.Task.Type.SELECT_THEME)
-        middleware.invoke(context, {}, SetupChecklistAction.ChecklistItemClicked(task))
+        middleware.invoke(context, {}, AppAction.SetupChecklistAction.ChecklistItemClicked(task))
 
         assertTrue(isInvoked)
     }
@@ -66,7 +68,7 @@ class SetupChecklistMiddlewareTest {
         })
 
         val task = buildTask(type = ChecklistItem.Task.Type.CHANGE_TOOLBAR_PLACEMENT)
-        middleware.invoke(context, {}, SetupChecklistAction.ChecklistItemClicked(task))
+        middleware.invoke(context, {}, AppAction.SetupChecklistAction.ChecklistItemClicked(task))
 
         assertTrue(isInvoked)
     }
@@ -79,7 +81,7 @@ class SetupChecklistMiddlewareTest {
         })
 
         val task = buildTask(type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET)
-        middleware.invoke(context, {}, SetupChecklistAction.ChecklistItemClicked(task))
+        middleware.invoke(context, {}, AppAction.SetupChecklistAction.ChecklistItemClicked(task))
 
         assertTrue(isInvoked)
     }
@@ -92,7 +94,7 @@ class SetupChecklistMiddlewareTest {
         })
 
         val task = buildTask(type = ChecklistItem.Task.Type.EXPLORE_EXTENSION)
-        middleware.invoke(context, {}, SetupChecklistAction.ChecklistItemClicked(task))
+        middleware.invoke(context, {}, AppAction.SetupChecklistAction.ChecklistItemClicked(task))
 
         assertTrue(isInvoked)
     }

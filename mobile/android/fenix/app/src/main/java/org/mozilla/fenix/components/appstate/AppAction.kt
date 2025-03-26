@@ -19,6 +19,7 @@ import mozilla.components.service.pocket.PocketStory.SponsoredContent
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
 import org.mozilla.fenix.components.appstate.shopping.ShoppingState
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
 import org.mozilla.fenix.home.bookmarks.Bookmark
@@ -620,5 +621,20 @@ sealed class AppAction : Action {
          * Dispatched when the WebCompat reporter has been submitted successfully.
          */
         data object WebCompatReportSent : WebCompatAction()
+    }
+
+    /**
+     * [AppAction]s related to the Setup Checklist feature.
+     */
+    sealed class SetupChecklistAction : AppAction() {
+        /**
+         * When the setup checklist is closed.
+         */
+        data object Closed : SetupChecklistAction()
+
+        /**
+         * When a setup checklist item is clicked.
+         */
+        data class ChecklistItemClicked(val item: ChecklistItem) : SetupChecklistAction()
     }
 }

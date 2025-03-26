@@ -19,9 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -29,21 +26,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.theme.layout.AcornLayout
-import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.setup.checklist.Progress
+import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.compose.button.PrimaryButton
-import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
-import org.mozilla.fenix.compose.snackbar.SnackbarHost
-import org.mozilla.fenix.compose.snackbar.SnackbarState
-import org.mozilla.fenix.home.setup.store.SetupChecklistAction
-import org.mozilla.fenix.home.setup.store.SetupChecklistMiddleware
-import org.mozilla.fenix.home.setup.store.SetupChecklistState
-import org.mozilla.fenix.home.setup.store.SetupChecklistStore
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val elevation = AcornLayout.AcornElevation.xLarge
@@ -52,7 +42,7 @@ private val shapeChecklist = RoundedCornerShape(size = AcornLayout.AcornCorner.l
 /**
  * The Setup checklist displayed on homepage that contains onboarding tasks.
  *
- * @param setupChecklistStore The [SetupChecklistStore] used to manage the state of feature.
+ * @param setupChecklistState The [SetupChecklistState] used to manage the state of feature.
  * @param title The checklist's title.
  * @param subtitle The checklist's subtitle.
  * @param labelRemoveChecklistButton The label of the checklist's button to remove it.
@@ -61,15 +51,13 @@ private val shapeChecklist = RoundedCornerShape(size = AcornLayout.AcornCorner.l
  */
 @Composable
 fun SetupChecklist(
-    setupChecklistStore: SetupChecklistStore,
+    setupChecklistState: SetupChecklistState,
     title: String,
     subtitle: String,
     labelRemoveChecklistButton: String,
     onChecklistItemClicked: (ChecklistItem) -> Unit,
     onRemoveChecklistButtonClicked: () -> Unit,
 ) {
-    val setupChecklistState by setupChecklistStore.observeAsState(initialValue = setupChecklistStore.state) { it }
-
     Card(
         shape = shapeChecklist,
         backgroundColor = FirefoxTheme.colors.layer1,
@@ -243,43 +231,11 @@ private fun createPreviewGroups() = listOf(
     ),
 )
 
-private fun showSnackbar(scope: CoroutineScope, hostState: AcornSnackbarHostState, message: String) {
-    scope.launch {
-        hostState.showSnackbar(SnackbarState(message = message))
-    }
-}
-
 @FlexibleWindowLightDarkPreview
 @Composable
 private fun SetupChecklistPreview(
     @PreviewParameter(SetupChecklistPreviewParameterProvider::class) initialState: SetupChecklistState,
 ) {
-    val snackbarHostState = remember { AcornSnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val middleware = SetupChecklistMiddleware(
-        triggerDefaultPrompt = {
-            showSnackbar(scope, snackbarHostState, "Should trigger default prompt")
-        },
-        navigateToSignIn = {
-            showSnackbar(scope, snackbarHostState, "Should navigate to sign in fragment")
-        },
-        navigateToCustomize = {
-            showSnackbar(scope, snackbarHostState, "Should navigate to Customize fragment")
-        },
-        navigateToExtensions = {
-            showSnackbar(scope, snackbarHostState, "Should navigate to Extensions fragment")
-        },
-        installSearchWidget = {
-            showSnackbar(scope, snackbarHostState, "Should trigger adding Firefox widget")
-        },
-    )
-    val store = remember {
-        SetupChecklistStore(
-            initialState = initialState,
-            middleware = listOf(middleware),
-        )
-    }
-
     FirefoxTheme {
         Spacer(Modifier.height(16.dp))
 
@@ -290,19 +246,12 @@ private fun SetupChecklistPreview(
                 .padding(16.dp),
         ) {
             SetupChecklist(
-                setupChecklistStore = store,
+                setupChecklistState = initialState,
                 title = "Finish setting up Firefox",
                 subtitle = "Complete all 6 steps to set up Firefox for the best browsing experience.",
                 labelRemoveChecklistButton = "Remove checklist",
-                onChecklistItemClicked = { item ->
-                    store.dispatch(SetupChecklistAction.ChecklistItemClicked(item))
-                },
+                onChecklistItemClicked = {},
                 onRemoveChecklistButtonClicked = {},
-            )
-
-            SnackbarHost(
-                snackbarHostState = snackbarHostState,
-                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
     }

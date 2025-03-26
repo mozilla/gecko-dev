@@ -6,8 +6,8 @@ package org.mozilla.fenix.home.setup.store
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.mozilla.fenix.checklist.ChecklistItem
-import org.mozilla.fenix.checklist.getTaskProgress
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
+import org.mozilla.fenix.components.appstate.setup.checklist.getTaskProgress
 
 class ChecklistItemTest {
 
