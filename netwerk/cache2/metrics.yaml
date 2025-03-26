@@ -99,6 +99,9 @@ network:
       This metric was generated to correspond to the Legacy Telemetry linear
       histogram NETWORK_CACHE_SIZE.
     memory_unit: megabyte
+    labels:
+      - SMARTSIZE
+      - USERDEFINEDSIZE
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1548472
     data_reviews:
@@ -122,6 +125,9 @@ network:
     bucket_count: 100
     histogram_type: exponential
     unit: cache entries
+    labels:
+      - SMARTSIZE
+      - USERDEFINEDSIZE
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1548472
     data_reviews:
@@ -143,6 +149,14 @@ network:
     range_max: 99
     bucket_count: 100
     histogram_type: linear
+    labels:
+      - UNKNOWN
+      - OTHER
+      - JAVASCRIPT
+      - IMAGE
+      - MEDIA
+      - STYLESHEET
+      - WASM
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1548472
     data_reviews:
@@ -164,6 +178,14 @@ network:
     range_max: 99
     bucket_count: 100
     histogram_type: linear
+    labels:
+      - UNKNOWN
+      - OTHER
+      - JAVASCRIPT
+      - IMAGE
+      - MEDIA
+      - STYLESHEET
+      - WASM
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1548472
     data_reviews:

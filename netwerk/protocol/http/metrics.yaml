@@ -1364,6 +1364,11 @@ orb:
       This metric was generated to correspond to the Legacy Telemetry
       exponential histogram ORB_JAVASCRIPT_VALIDATION_MS.
     time_unit: millisecond
+    labels:
+      - javascript
+      - json
+      - other
+      - failure
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1804638
     data_reviews:
@@ -1382,6 +1387,11 @@ orb:
       This metric was generated to correspond to the Legacy Telemetry
       exponential histogram ORB_RECEIVE_DATA_FOR_VALIDATION_MS.
     time_unit: millisecond
+    labels:
+      - javascript
+      - json
+      - other
+      - failure
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1804638
     data_reviews:

@@ -89,8 +89,8 @@ contentblocking:
       This metric was generated to correspond to the Legacy Telemetry enumerated
       histogram CANVAS_FINGERPRINTING_PER_TAB.
     labels:
-      - "unknown"
       - "known_text"
+      - "unknown"
     range_min: 0
     range_max: 8
     bucket_count: 9
