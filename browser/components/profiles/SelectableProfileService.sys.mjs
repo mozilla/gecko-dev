@@ -113,6 +113,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     "browser.crashReports.unsubmittedCheck.autoSubmit2",
     "browser.discovery.enabled",
     "browser.urlbar.quicksuggest.dataCollection.enabled",
+    "datareporting.healthreport.uploadEnabled",
     "datareporting.policy.currentPolicyVersion",
     "datareporting.policy.dataSubmissionEnabled",
     "datareporting.policy.dataSubmissionPolicyAcceptedVersion",
