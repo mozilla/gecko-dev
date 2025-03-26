@@ -95,7 +95,11 @@ def runCmd(cmd, workingDirectory, successMessage, captureStdout = true) {
     def result = proc.result.get().exitValue
 
     if (result != 0) {
-        throw new GradleException("Process '${cmd}' finished with non-zero exit value ${result}");
+        def message = "Process '${cmd}' finished with non-zero exit value ${result}"
+        println(message)
+        proc.standardOutput.asText.get().readLines().each { println("> ${it}") }
+        proc.standardError.asText.get().readLines().each { println("> ${it}") }
+        throw new GradleException(message)
     } else {
         logger.lifecycle("settings.gradle> ${successMessage}")
     }
