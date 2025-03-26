@@ -1771,7 +1771,7 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "topleft",
@@ -1780,7 +1780,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "topright",
@@ -2021,7 +2021,25 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "bottomleft",
@@ -2030,7 +2048,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "bottomright",
@@ -2500,7 +2518,7 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "topleft",
@@ -2509,7 +2527,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "topright",
@@ -2572,7 +2590,25 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "bottomleft",
@@ -2581,7 +2617,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "bottomright",
@@ -2698,7 +2734,7 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "topleft",
@@ -2707,7 +2743,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "topright",
@@ -2770,7 +2806,25 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "bottomleft",
@@ -2779,7 +2833,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "bottomright",
@@ -2842,7 +2896,7 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "topleft",
@@ -2851,7 +2905,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "topright",
@@ -2914,7 +2968,25 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar'].tools-overflow",
+                panel_position: {
+                  anchor_attachment: "topcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main:not([sidebar-positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "bottomleft",
@@ -2923,7 +2995,7 @@ const MESSAGES = () => {
               },
               {
                 selector:
-                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                  "#sidebar-main[sidebar-positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
                 panel_position: {
                   anchor_attachment: "leftcenter",
                   callout_attachment: "bottomright",
