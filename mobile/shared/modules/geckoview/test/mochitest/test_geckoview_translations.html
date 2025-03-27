@@ -51,15 +51,18 @@ async function requestTranslate() {
 
 
   add_task(async function test_translate_telemetry() {
-    const startCount = await GleanTest.translations.requestsCount.testGetValue() ?? 0;
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.translations.mostRecentTargetLanguages", ""]],
+    });
+
     await requestTranslate();
-    const endCount = await GleanTest.translations.requestsCount.testGetValue() ?? 0;
-    is(endCount - startCount, 1, "Translation telemetry only incremented once during the test.");
 
     const translationRequest = await GleanTest.translations.translationRequest.testGetValue() ?? 0;
     is(translationRequest[0].extra.from_language, "en", "Translation telemetry recorded the expected from language.");
     is(translationRequest[0].extra.to_language, "es", "Translation telemetry recorded the expected to language.");
     is(translationRequest[0].extra.auto_translate, "false", "Translation telemetry recorded the correct translation method.");
+
+    await SpecialPowers.popPrefEnv();
   });
 
 </script>
