@@ -31,6 +31,7 @@
 #include "SpecialSystemDirectory.h"
 #include "base/string_util.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/ipc/FileDescriptor.h"
@@ -41,19 +42,27 @@
 
 namespace mozilla {
 
+namespace {
+
 // kernel level limit defined at
 // https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L301
 // used at
 // https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L1087
 static const int kThreadNameMaxSize = 16;
 
+static Atomic<size_t> gNumBrokers;
+
+}  // namespace
+
 // This constructor signals failure by setting mFileDesc and aClientFd to -1.
 SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
                              int& aClientFd)
     : mChildPid(aChildPid), mPolicy(std::move(aPolicy)) {
+  ++gNumBrokers;
   int fds[2];
   if (0 != socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, fds)) {
-    SANDBOX_LOG_ERRNO("SandboxBroker: socketpair failed");
+    SANDBOX_LOG_ERRNO("SandboxBroker: socketpair failed (%d brokers)",
+                      gNumBrokers.operator size_t());
     mFileDesc = -1;
     aClientFd = -1;
     return;
@@ -67,7 +76,8 @@ SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
   NS_ADDREF_THIS();
 
   if (!PlatformThread::Create(0, this, &mThread)) {
-    SANDBOX_LOG_ERRNO("SandboxBroker: thread creation failed");
+    SANDBOX_LOG_ERRNO("SandboxBroker: thread creation failed (%d brokers)",
+                      gNumBrokers.operator size_t());
     close(mFileDesc);
     close(aClientFd);
     mFileDesc = -1;
@@ -115,7 +125,10 @@ void SandboxBroker::Terminate() {
   mFileDesc = -1;
 }
 
-SandboxBroker::~SandboxBroker() { Terminate(); }
+SandboxBroker::~SandboxBroker() {
+  Terminate();
+  --gNumBrokers;
+}
 
 SandboxBroker::Policy::Policy() = default;
 SandboxBroker::Policy::~Policy() = default;
