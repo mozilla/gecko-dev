@@ -52,7 +52,9 @@ add_task(async function test_NimbusIntegration_enable() {
 
   Assert.ok(ContentRelevancyManager.shouldEnable, "Should enable via Nimbus");
   Assert.ok(
-    TimerManager.prototype.registerTimer.calledWith(ContentRelevancyManager.TIMER_ID),
+    TimerManager.prototype.registerTimer.calledWith(
+      ContentRelevancyManager.TIMER_ID
+    ),
     "Should register timer when enabled"
   );
 
@@ -86,7 +88,9 @@ add_task(async function test_NimbusIntegration_disable() {
 
   Assert.ok(!ContentRelevancyManager.shouldEnable, "Should disable via Nimbus");
   Assert.ok(
-    !TimerManager.prototype.registerTimer.calledWith(ContentRelevancyManager.TIMER_ID),
+    !TimerManager.prototype.registerTimer.calledWith(
+      ContentRelevancyManager.TIMER_ID
+    ),
     "Should not register timer"
   );
 
