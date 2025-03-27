@@ -128,14 +128,6 @@ const BUILT_IN_SECTIONS = ({ pocketNewtab }) => ({
           name: "section.highlights.includeDownloads",
           titleString: "home-prefs-highlights-option-most-recent-download",
         },
-        {
-          name: "section.highlights.includePocket",
-          titleString: "home-prefs-highlights-option-saved-to-pocket",
-          hidden: !Services.prefs.getBoolPref(
-            "extensions.pocket.enabled",
-            true
-          ),
-        },
       ],
     },
     shouldHidePref: false,
