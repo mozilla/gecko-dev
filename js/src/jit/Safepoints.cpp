@@ -279,7 +279,7 @@ static_assert(PAYLOAD_INFO_SHIFT == 0);
 
 #ifdef JS_NUNBOX32
 static inline NunboxPartKind AllocationToPartKind(const LAllocation& a) {
-  if (a.isAnyRegister()) {
+  if (a.isGeneralReg()) {
     return Part_Reg;
   }
   if (a.isStackSlot()) {

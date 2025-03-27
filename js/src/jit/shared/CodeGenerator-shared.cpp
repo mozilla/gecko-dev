@@ -606,8 +606,8 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);
 #ifdef JS_NUNBOX32
       LAllocation* type = snapshot->typeOfSlot(*allocIndex);
-      if (type->isAnyRegister()) {
-        if (payload->isAnyRegister()) {
+      if (type->isGeneralReg()) {
+        if (payload->isGeneralReg()) {
           alloc =
               RValueAllocation::Untyped(ToRegister(type), ToRegister(payload));
         } else {
@@ -615,7 +615,7 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
                                             ToStackIndex(payload));
         }
       } else {
-        if (payload->isAnyRegister()) {
+        if (payload->isGeneralReg()) {
           alloc = RValueAllocation::Untyped(ToStackIndex(type),
                                             ToRegister(payload));
         } else {
@@ -624,7 +624,7 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
         }
       }
 #elif JS_PUNBOX64
-      if (payload->isAnyRegister()) {
+      if (payload->isGeneralReg()) {
         alloc = RValueAllocation::Untyped(ToRegister(payload));
       } else {
         alloc = RValueAllocation::Untyped(ToStackIndex(payload));

@@ -1173,7 +1173,7 @@ void CodeGenerator::visitInt32ToIntPtr(LInt32ToIntPtr* lir) {
 
   Register output = ToRegister(lir->output());
   const LAllocation* input = lir->input();
-  if (input->isAnyRegister()) {
+  if (input->isGeneralReg()) {
     masm.move32SignExtendToPtr(ToRegister(input), output);
   } else {
     masm.load32SignExtendToPtr(ToAddress(input), output);
@@ -1579,7 +1579,7 @@ void CodeGenerator::visitCompare(LCompare* comp) {
       MOZ_ASSERT(compareType == MCompare::Compare_IntPtr ||
                  compareType == MCompare::Compare_UIntPtr);
       masm.cmpPtrSet(cond, left, ImmWord(ToInt32(right)), output);
-    } else if (right->isAnyRegister()) {
+    } else if (right->isGeneralReg()) {
       masm.cmpPtrSet(cond, left, ToRegister(right), output);
     } else {
       masm.cmpPtrSet(ReverseCondition(cond), ToAddress(right), left, output);
@@ -1592,7 +1592,7 @@ void CodeGenerator::visitCompare(LCompare* comp) {
 
   if (right->isConstant()) {
     masm.cmp32Set(cond, left, Imm32(ToInt32(right)), output);
-  } else if (right->isAnyRegister()) {
+  } else if (right->isGeneralReg()) {
     masm.cmp32Set(cond, left, ToRegister(right), output);
   } else {
     masm.cmp32Set(ReverseCondition(cond), ToAddress(right), left, output);
@@ -1626,7 +1626,7 @@ void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
       MOZ_ASSERT(compareType == MCompare::Compare_IntPtr ||
                  compareType == MCompare::Compare_UIntPtr);
       masm.branchPtr(cond, left, ImmWord(ToInt32(right)), label);
-    } else if (right->isAnyRegister()) {
+    } else if (right->isGeneralReg()) {
       masm.branchPtr(cond, left, ToRegister(right), label);
     } else {
       masm.branchPtr(ReverseCondition(cond), ToAddress(right), left, label);
@@ -1637,7 +1637,7 @@ void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
 
     if (right->isConstant()) {
       masm.branch32(cond, left, Imm32(ToInt32(right)), label);
-    } else if (right->isAnyRegister()) {
+    } else if (right->isGeneralReg()) {
       masm.branch32(cond, left, ToRegister(right), label);
     } else {
       masm.branch32(ReverseCondition(cond), ToAddress(right), left, label);
@@ -4028,7 +4028,7 @@ void CodeGenerator::visitStackArgT(LStackArgT* lir) {
 
   if (arg->isFloatReg()) {
     masm.boxDouble(ToFloatRegister(arg), dest);
-  } else if (arg->isAnyRegister()) {
+  } else if (arg->isGeneralReg()) {
     masm.storeValue(ValueTypeFromMIRType(argType), ToRegister(arg), dest);
   } else {
     masm.storeValue(arg->toConstant()->toJSValue(), dest);
@@ -7833,7 +7833,7 @@ void CodeGenerator::emitValueResultChecks(LInstruction* lir, MDefinition* mir) {
   }
 
   MOZ_ASSERT(lir->numDefs() == BOX_PIECES);
-  if (!lir->getDef(0)->output()->isAnyRegister()) {
+  if (!lir->getDef(0)->output()->isGeneralReg()) {
     return;
   }
 
@@ -14726,7 +14726,7 @@ void CodeGenerator::visitBoundsCheck(LBoundsCheck* lir) {
       return;
     }
 
-    if (length->isAnyRegister()) {
+    if (length->isGeneralReg()) {
       bailoutCmpConstant(Assembler::BelowOrEqual, ToRegister(length), idx);
     } else {
       bailoutCmpConstant(Assembler::BelowOrEqual, ToAddress(length), idx);
@@ -14737,7 +14737,7 @@ void CodeGenerator::visitBoundsCheck(LBoundsCheck* lir) {
   Register indexReg = ToRegister(index);
   if (length->isConstant()) {
     bailoutCmpConstant(Assembler::AboveOrEqual, indexReg, ToInt32(length));
-  } else if (length->isAnyRegister()) {
+  } else if (length->isGeneralReg()) {
     bailoutCmp(Assembler::BelowOrEqual, ToRegister(length), indexReg);
   } else {
     bailoutCmp(Assembler::BelowOrEqual, ToAddress(length), indexReg);
@@ -14778,7 +14778,7 @@ void CodeGenerator::visitBoundsCheckRange(LBoundsCheckRange* lir) {
     int32_t nmin, nmax;
     int32_t index = ToInt32(lir->index());
     if (SafeAdd(index, min, &nmin) && SafeAdd(index, max, &nmax) && nmin >= 0) {
-      if (length->isAnyRegister()) {
+      if (length->isGeneralReg()) {
         bailoutCmpConstant(Assembler::BelowOrEqual, ToRegister(length), nmax);
       } else {
         bailoutCmpConstant(Assembler::BelowOrEqual, ToAddress(length), nmax);
@@ -14843,7 +14843,7 @@ void CodeGenerator::visitBoundsCheckRange(LBoundsCheckRange* lir) {
     }
   }
 
-  if (length->isAnyRegister()) {
+  if (length->isGeneralReg()) {
     bailoutCmp(Assembler::BelowOrEqual, ToRegister(length), temp);
   } else {
     bailoutCmp(Assembler::BelowOrEqual, ToAddress(length), temp);
@@ -14864,14 +14864,14 @@ void CodeGenerator::visitSpectreMaskIndex(LSpectreMaskIndex* lir) {
   Register output = ToRegister(lir->output());
 
   if (lir->mir()->type() == MIRType::Int32) {
-    if (length->isAnyRegister()) {
+    if (length->isGeneralReg()) {
       masm.spectreMaskIndex32(index, ToRegister(length), output);
     } else {
       masm.spectreMaskIndex32(index, ToAddress(length), output);
     }
   } else {
     MOZ_ASSERT(lir->mir()->type() == MIRType::IntPtr);
-    if (length->isAnyRegister()) {
+    if (length->isGeneralReg()) {
       masm.spectreMaskIndexPtr(index, ToRegister(length), output);
     } else {
       masm.spectreMaskIndexPtr(index, ToAddress(length), output);
@@ -18651,7 +18651,7 @@ void CodeGenerator::visitStoreTypedArrayElementHole(
   }
 
   Label skip;
-  if (length->isAnyRegister()) {
+  if (length->isGeneralReg()) {
     masm.spectreBoundsCheckPtr(index, ToRegister(length), temp, &skip);
   } else {
     masm.spectreBoundsCheckPtr(index, ToAddress(length), temp, &skip);
@@ -18676,7 +18676,7 @@ void CodeGenerator::visitStoreTypedArrayElementHoleInt64(
   Register spectreTemp = ToTempRegisterOrInvalid(lir->temp0());
 
   Label skip;
-  if (length->isAnyRegister()) {
+  if (length->isGeneralReg()) {
     masm.spectreBoundsCheckPtr(index, ToRegister(length), spectreTemp, &skip);
   } else {
     masm.spectreBoundsCheckPtr(index, ToAddress(length), spectreTemp, &skip);

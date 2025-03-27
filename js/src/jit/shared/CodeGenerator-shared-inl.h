@@ -128,10 +128,10 @@ static inline Register64 ToOutRegister64(LInstruction* ins) {
 
 static inline bool IsRegister64(const LInt64Allocation& a) {
 #if JS_BITS_PER_WORD == 32
-  MOZ_ASSERT(a.low().isAnyRegister() == a.high().isAnyRegister());
-  return a.low().isAnyRegister();
+  MOZ_ASSERT(a.low().isGeneralReg() == a.high().isGeneralReg());
+  return a.low().isGeneralReg();
 #else
-  return a.value().isAnyRegister();
+  return a.value().isGeneralReg();
 #endif
 }
 

@@ -1597,7 +1597,7 @@ void CodeGenerator::visitWasmSelect(LWasmSelect* ins) {
     Register out = ToRegister(ins->output());
     MOZ_ASSERT(ToRegister(ins->trueExpr()) == out,
                "true expr input is reused for output");
-    if (falseExpr->isAnyRegister()) {
+    if (falseExpr->isGeneralReg()) {
       masm.as_movz(out, ToRegister(falseExpr), cond);
     } else {
       masm.cmp32Load32(Assembler::Zero, cond, cond, ToAddress(falseExpr), out);

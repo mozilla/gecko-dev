@@ -1676,13 +1676,13 @@ class LSafepoint : public TempObject {
     if (alloc.isMemory()) {
       return addSlotsOrElementsSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
-    MOZ_ASSERT(alloc.isAnyRegister());
+    MOZ_ASSERT(alloc.isGeneralReg());
     addSlotsOrElementsRegister(alloc.toGeneralReg()->reg());
     assertInvariants();
     return true;
   }
   bool hasSlotsOrElementsPointer(LAllocation alloc) const {
-    if (alloc.isAnyRegister()) {
+    if (alloc.isGeneralReg()) {
       return slotsOrElementsRegs().has(alloc.toGeneralReg()->reg());
     }
     for (size_t i = 0; i < slotsOrElementsSlots_.length(); i++) {
@@ -1699,7 +1699,7 @@ class LSafepoint : public TempObject {
     if (alloc.isMemory()) {
       return addGcSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
-    if (alloc.isAnyRegister()) {
+    if (alloc.isGeneralReg()) {
       addGcRegister(alloc.toGeneralReg()->reg());
     }
     assertInvariants();
@@ -1707,7 +1707,7 @@ class LSafepoint : public TempObject {
   }
 
   bool hasGcPointer(LAllocation alloc) const {
-    if (alloc.isAnyRegister()) {
+    if (alloc.isGeneralReg()) {
       return gcRegs().has(alloc.toGeneralReg()->reg());
     }
     MOZ_ASSERT(alloc.isMemory());
@@ -1739,14 +1739,14 @@ class LSafepoint : public TempObject {
     if (alloc.isMemory()) {
       return addWasmAnyRefSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
-    if (alloc.isAnyRegister()) {
+    if (alloc.isGeneralReg()) {
       addWasmAnyRefReg(alloc.toGeneralReg()->reg());
     }
     assertInvariants();
     return true;
   }
   bool hasWasmAnyRef(LAllocation alloc) const {
-    if (alloc.isAnyRegister()) {
+    if (alloc.isGeneralReg()) {
       return wasmAnyRefRegs().has(alloc.toGeneralReg()->reg());
     }
     MOZ_ASSERT(alloc.isMemory());
@@ -1877,7 +1877,7 @@ class LSafepoint : public TempObject {
   LiveGeneralRegisterSet valueRegs() const { return valueRegs_; }
 
   [[nodiscard]] bool addBoxedValue(LAllocation alloc) {
-    if (alloc.isAnyRegister()) {
+    if (alloc.isGeneralReg()) {
       Register reg = alloc.toGeneralReg()->reg();
       if (!valueRegs().has(reg)) {
         addValueRegister(reg);
@@ -1891,7 +1891,7 @@ class LSafepoint : public TempObject {
   }
 
   bool hasBoxedValue(LAllocation alloc) const {
-    if (alloc.isAnyRegister()) {
+    if (alloc.isGeneralReg()) {
       return valueRegs().has(alloc.toGeneralReg()->reg());
     }
     return hasValueSlot(alloc.isStackSlot(), alloc.memorySlot());
