@@ -378,6 +378,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
     return mozilla::PreferenceSheet::PrefsFor(*mDocument);
   }
 
+  mozilla::StyleForcedColors ForcedColors() const { return mForcedColors; }
   bool ForcingColors() const;
 
   mozilla::ColorScheme DefaultBackgroundColorScheme() const;

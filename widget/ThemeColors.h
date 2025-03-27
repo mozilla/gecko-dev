@@ -32,6 +32,7 @@ class ThemeAccentColor {
   explicit ThemeAccentColor(const ComputedStyle&, ColorScheme);
   virtual ~ThemeAccentColor() = default;
 
+  bool IsCustom() const { return mAccentColor.isSome(); }
   sRGBColor Get() const;
   sRGBColor GetForeground() const;
   sRGBColor GetLight() const;
@@ -54,17 +55,18 @@ class ThemeColors {
   };
 
   const Document& mDoc;
-  const HighContrastInfo mHighContrastInfo;
   const ColorScheme mColorScheme;
   const AccentColor mAccentColor;
+  const HighContrastInfo mHighContrastInfo;
 
  public:
   explicit ThemeColors(const nsIFrame* aFrame, StyleAppearance aAppearance)
       : mDoc(*aFrame->PresContext()->Document()),
-        mHighContrastInfo(ShouldBeHighContrast(*aFrame->PresContext())),
         mColorScheme(
             ColorSchemeForWidget(aFrame, aAppearance, mHighContrastInfo)),
-        mAccentColor(*aFrame->Style(), mColorScheme) {}
+        mAccentColor(*aFrame->Style(), mColorScheme),
+        mHighContrastInfo(ShouldBeHighContrast(*aFrame->PresContext(),
+                                               mAccentColor.IsCustom())) {}
   virtual ~ThemeColors() = default;
 
   [[nodiscard]] static float ScaleLuminanceBy(float aLuminance, float aFactor) {
@@ -100,7 +102,8 @@ class ThemeColors {
   }
 
   // Whether we should use system colors (for high contrast mode).
-  static HighContrastInfo ShouldBeHighContrast(const nsPresContext&);
+  static HighContrastInfo ShouldBeHighContrast(const nsPresContext&,
+                                               bool aCustomAccentColor);
   static ColorScheme ColorSchemeForWidget(const nsIFrame*, StyleAppearance,
                                           const HighContrastInfo&);
 

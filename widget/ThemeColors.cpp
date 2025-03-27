@@ -157,17 +157,39 @@ sRGBColor ThemeAccentColor::GetDarker() const {
   return sRGBColor::FromABGR(ColorPalette::GetDarker(*mAccentColor));
 }
 
-auto ThemeColors::ShouldBeHighContrast(const nsPresContext& aPc)
+auto ThemeColors::ShouldBeHighContrast(const nsPresContext& aPc,
+                                       bool aCustomAccentColor)
     -> HighContrastInfo {
-  // We make sure that we're drawing backgrounds, since otherwise layout will
-  // darken our used text colors etc anyways, and that can cause contrast issues
-  // with dark high-contrast themes.
   if (!aPc.GetBackgroundColorDraw()) {
+    // We make sure that we're drawing backgrounds, since otherwise layout
+    // will darken our used text colors etc anyways, and that can cause
+    // contrast issues with dark high-contrast themes.
+    //
+    // TODO(emilio): Is this needed given we force standins for printing in
+    // PreferenceSheet::Initialize?
     return {};
   }
-  const auto& prefs = PreferenceSheet::PrefsFor(*aPc.Document());
-  return {prefs.NonNativeThemeShouldBeHighContrast(),
-          prefs.mMustUseLightSystemColors};
+  const bool highContrast = [&] {
+    if (StaticPrefs::widget_non_native_theme_always_high_contrast()) {
+      return true;
+    }
+    // We only use high contrast mode if we are overriding the document colors,
+    // or in "requested" mode (chrome-only) with no custom accent color.
+    // Otherwise it causes issues when pages only override some of the system
+    // colors, specially in dark themes.
+    switch (aPc.ForcedColors()) {
+      case StyleForcedColors::None:
+        break;
+      case StyleForcedColors::Requested:
+        return !aCustomAccentColor;
+      case StyleForcedColors::Active:
+        return true;
+    }
+    return false;
+  }();
+  const bool mustUseLight =
+      PreferenceSheet::PrefsFor(*aPc.Document()).mMustUseLightSystemColors;
+  return {highContrast, mustUseLight};
 }
 
 ColorScheme ThemeColors::ColorSchemeForWidget(const nsIFrame* aFrame,

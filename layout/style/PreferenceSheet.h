@@ -45,9 +45,6 @@ struct PreferenceSheet {
 
     ColorScheme mColorScheme = ColorScheme::Light;
 
-    // Whether the non-native theme should use real system colors for widgets.
-    bool NonNativeThemeShouldBeHighContrast() const;
-
     void Load(bool aIsChrome);
     void LoadColors(bool aIsLight);
   };

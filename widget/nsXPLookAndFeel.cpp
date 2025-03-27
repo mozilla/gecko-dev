@@ -1234,8 +1234,8 @@ static bool ShouldUseStandinsForNativeColorForNonNativeTheme(
             aColor == LookAndFeel::ColorID::Accentcolortext);
   }();
 
-  return shouldUseStandinsForColor && aDoc.ShouldAvoidNativeTheme() &&
-         !aPrefs.NonNativeThemeShouldBeHighContrast();
+  return shouldUseStandinsForColor && !aPrefs.mUseDocumentColors &&
+         !StaticPrefs::widget_non_native_theme_always_high_contrast();
 }
 
 bool LookAndFeel::IsDarkColor(nscolor aColor) {
