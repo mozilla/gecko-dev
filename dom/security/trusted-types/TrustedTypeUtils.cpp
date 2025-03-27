@@ -73,6 +73,7 @@ static constexpr nsLiteralString kAsyncFunctionStarAnonymousPrefix =
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-sink-type-mismatch-violation-be-blocked-by-content-security-policy
 static void ReportSinkTypeMismatchViolations(
     nsIContentSecurityPolicy* aCSP, nsICSPEventListener* aCSPEventListener,
+    const nsCString& aFileName, uint32_t aLine, uint32_t aColumn,
     const nsAString& aSink, const nsAString& aSinkGroup,
     const nsAString& aSource) {
   MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
@@ -117,16 +118,14 @@ static void ReportSinkTypeMismatchViolations(
       continue;
     }
 
-    auto caller = JSCallingLocation::Get();
-
     CSPViolationData cspViolationData{
         i,
         CSPViolationData::Resource{
             CSPViolationData::BlockedContentSource::TrustedTypesSink},
         nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE,
-        caller.FileName(),
-        caller.mLine,
-        caller.mColumn,
+        aFileName,
+        aLine,
+        aColumn,
         /* aElement */ nullptr,
         sample};
 
@@ -142,12 +141,17 @@ class LogSinkTypeMismatchViolationsRunnable final
     : public WorkerMainThreadRunnable {
  public:
   LogSinkTypeMismatchViolationsRunnable(WorkerPrivate* aWorker,
+                                        const nsCString& aFileName,
+                                        uint32_t aLine, uint32_t aColumn,
                                         const nsAString& aSink,
                                         const nsAString& aSinkGroup,
                                         const nsAString& aSource)
       : WorkerMainThreadRunnable(
             aWorker,
             "RuntimeService :: LogSinkTypeMismatchViolationsRunnable"_ns),
+        mFileName(aFileName),
+        mLine(aLine),
+        mColumn(aColumn),
         mSink(aSink),
         mSinkGroup(aSinkGroup),
         mSource(aSource) {
@@ -159,14 +163,17 @@ class LogSinkTypeMismatchViolationsRunnable final
     MOZ_ASSERT(mWorkerRef);
     if (nsIContentSecurityPolicy* csp = mWorkerRef->Private()->GetCsp()) {
       ReportSinkTypeMismatchViolations(
-          csp, mWorkerRef->Private()->CSPEventListener(), mSink, mSinkGroup,
-          mSource);
+          csp, mWorkerRef->Private()->CSPEventListener(), mFileName, mLine,
+          mColumn, mSink, mSinkGroup, mSource);
     }
     return true;
   }
 
  private:
   ~LogSinkTypeMismatchViolationsRunnable() = default;
+  const nsCString& mFileName;
+  uint32_t mLine;
+  uint32_t mColumn;
   const nsString mSink;
   const nsString mSinkGroup;
   const nsString mSource;
@@ -512,16 +519,20 @@ MOZ_CAN_RUN_SCRIPT inline const nsAString* GetTrustedTypesCompliantString(
   }
 
   if (!convertedInput) {
+    auto location = JSCallingLocation::Get();
     if (piDOMWindowInner) {
       ReportSinkTypeMismatchViolations(csp, nullptr /* aCSPEventListener */,
-                                       aSink, aSinkGroup, *GetAsString(aInput));
+                                       location.FileName(), location.mLine,
+                                       location.mColumn, aSink, aSinkGroup,
+                                       *GetAsString(aInput));
     } else {
       MOZ_ASSERT(IsWorkerGlobal(globalObject->GetGlobalJSObject()));
       MOZ_ASSERT(!NS_IsMainThread());
       WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
       RefPtr<LogSinkTypeMismatchViolationsRunnable> runnable =
           new LogSinkTypeMismatchViolationsRunnable(
-              workerPrivate, aSink, aSinkGroup, *GetAsString(aInput));
+              workerPrivate, location.FileName(), location.mLine,
+              location.mColumn, aSink, aSinkGroup, *GetAsString(aInput));
       ErrorResult rv;
       runnable->Dispatch(workerPrivate, Killing, rv);
       if (NS_WARN_IF(rv.Failed())) {
