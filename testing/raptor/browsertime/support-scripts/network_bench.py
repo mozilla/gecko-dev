@@ -202,6 +202,10 @@ class NetworkBench(BasePythonSupport):
                     },
                 },
                 "tls": {
+                    # Disable 0RTT for now. Can be reverted once
+                    # https://github.com/quic-go/quic-go/issues/5001 and
+                    # https://github.com/mozilla/neqo/issues/2476 are fixed.
+                    "session_tickets": {"disabled": True},
                     "certificates": {
                         "load_files": [
                             {
@@ -210,7 +214,7 @@ class NetworkBench(BasePythonSupport):
                                 "tags": ["cert1"],
                             }
                         ]
-                    }
+                    },
                 },
             },
         }
