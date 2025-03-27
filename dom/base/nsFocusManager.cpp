@@ -4415,8 +4415,10 @@ nsresult nsFocusManager::GetNextTabbableContent(
         }
       }
 
-      if (!aForward) {
-        if (InvokerForPopoverShowingState(currentContent)) {
+      if (!aForward && InvokerForPopoverShowingState(currentContent)) {
+        int32_t tabIndex = frame->IsFocusable().mTabIndex;
+        if (tabIndex >= 0 &&
+            (aIgnoreTabIndex || aCurrentTabIndex == tabIndex)) {
           RefPtr<nsIContent> popover =
               currentContent->GetEffectivePopoverTargetElement();
           nsIContent* contentToFocus = GetNextTabbableContentInScope(
