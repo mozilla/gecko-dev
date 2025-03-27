@@ -114,6 +114,11 @@ interface FeatureSettingsHelper {
     var onboardingFeatureEnabled: Boolean
 
     /**
+     * Enable or disable the compose home screen feature.
+     */
+    var isComposeHomepageEnabled: Boolean
+
+    /**
      * Enable or disable the translations prompt after a page that can be translated is loaded.
      */
     fun enableOrDisablePageLoadTranslationsPrompt(enableTranslationsPrompt: Boolean) {

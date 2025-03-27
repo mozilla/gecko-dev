@@ -49,6 +49,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         isMicrosurveyEnabled = settings.microsurveyFeatureEnabled,
         shouldUseBottomToolbar = settings.shouldUseBottomToolbar,
         onboardingFeatureEnabled = settings.onboardingFeatureEnabled,
+        isComposeHomepageEnabled = settings.enableComposeHomepage,
     )
 
     /**
@@ -84,6 +85,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var isMicrosurveyEnabled: Boolean by updatedFeatureFlags::isMicrosurveyEnabled
     override var shouldUseBottomToolbar: Boolean by updatedFeatureFlags::shouldUseBottomToolbar
     override var onboardingFeatureEnabled: Boolean by updatedFeatureFlags::onboardingFeatureEnabled
+    override var isComposeHomepageEnabled: Boolean by updatedFeatureFlags::isComposeHomepageEnabled
 
     override fun applyFlagUpdates() {
         Log.i(TAG, "applyFlagUpdates: Trying to apply the updated feature flags: $updatedFeatureFlags")
@@ -120,6 +122,7 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         setETPPolicy(featureFlags.etpPolicy)
         setPermissions(PhoneFeature.LOCATION, featureFlags.isLocationPermissionEnabled)
         settings.onboardingFeatureEnabled = featureFlags.onboardingFeatureEnabled
+        settings.enableComposeHomepage = featureFlags.isComposeHomepageEnabled
     }
 }
 
@@ -144,6 +147,7 @@ private data class FeatureFlags(
     var isMicrosurveyEnabled: Boolean,
     var shouldUseBottomToolbar: Boolean,
     var onboardingFeatureEnabled: Boolean,
+    var isComposeHomepageEnabled: Boolean,
 )
 
 internal fun getETPPolicy(settings: Settings): ETPPolicy {
