@@ -2313,6 +2313,12 @@ dohPrefs:
       setPref:
         branch: default
         pref: "doh-rollout.provider-list"
+    dohProviderSteeringList:
+      description: An override of the rollout steering provider-list json
+      type: string
+      setPref:
+        branch: default
+        pref: "doh-rollout.provider-steering.provider-list"
     nativeHTTPSRecords:
       description: Whether we can perform native DNS HTTPS lookups
       type: boolean
