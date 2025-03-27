@@ -38,7 +38,6 @@
 #include "WebGLTexelConversions.h"
 #include "WebGLValidateStrings.h"
 #include <algorithm>
-#include <fmt/format.h>
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -866,7 +865,13 @@ bool WebGLContext::DoReadPixelsAndConvert(
   const auto& x = desc.srcOffset.x;
   const auto& y = desc.srcOffset.y;
   const auto size = *ivec2::From(desc.size);
-  const auto& pi = desc.pi;
+
+  auto pi = desc.pi;
+  if (mRemapImplReadType_HalfFloatOes) {
+    if (pi.type == LOCAL_GL_HALF_FLOAT_OES) {
+      pi.type = LOCAL_GL_HALF_FLOAT;
+    }
+  }
 
   // On at least Win+NV, we'll get PBO errors if we don't have at least
   // `rowStride * height` bytes available to read into.
@@ -985,8 +990,8 @@ static webgl::PackingInfo DefaultReadPixelPI(
     case webgl::ComponentType::Float:
       return {LOCAL_GL_RGBA, LOCAL_GL_FLOAT};
 
-    case webgl::ComponentType::NormInt:
-      MOZ_CRASH("SNORM formats are never color-renderable!");
+    default:
+      MOZ_CRASH();
   }
 }
 
@@ -1017,48 +1022,33 @@ static bool ArePossiblePackEnums(const webgl::PackingInfo& pi) {
 
 webgl::PackingInfo WebGLContext::ValidImplementationColorReadPI(
     const webgl::FormatUsageInfo* usage) const {
-  if (const auto implPI = usage->implReadPiCache) return *implPI;
-
   const auto defaultPI = DefaultReadPixelPI(usage);
-  usage->implReadPiCache = [&]() {
-    if (StaticPrefs::webgl_porting_strict_readpixels_formats())
-      return defaultPI;
-    auto implPI = defaultPI;
-    // ES2_compatibility always returns RGBA/UNSIGNED_BYTE, so branch on actual
-    // IsGLES(). Also OSX+NV generates an error here.
-    if (gl->IsGLES()) {
-      gl->GetInt(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT, &implPI.format);
-      gl->GetInt(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE, &implPI.type);
-    } else {
-      if (StaticPrefs::webgl_porting_strict_readpixels_formats_non_es())
-        return defaultPI;
-      // Non-ES GL is way more open, and basically supports reading anything.
-      // (Sucks to be their driver team!)
-      if (usage->idealUnpack) {
-        for (const auto& [validPi, validDui] : usage->validUnpacks) {
-          if (validDui != *usage->idealUnpack) continue;
-          implPI = validPi;
-          break;
-        }
-      }
-    }
-    // Normalize HALF_FLOAT_OES to HALF_FLOAT internally.
-    if (implPI.type == LOCAL_GL_HALF_FLOAT_OES) {
-      implPI.type = LOCAL_GL_HALF_FLOAT;
-    }
-    if (!ArePossiblePackEnums(implPI)) return defaultPI;
-    return implPI;
-  }();
-  return *usage->implReadPiCache;
-}
 
-std::string webgl::format_as(const PackingInfo& pi) {
-  return fmt::format(FMT_STRING("{}/{}"), pi.format, pi.type);
+  // ES2_compatibility always returns RGBA/UNSIGNED_BYTE, so branch on actual
+  // IsGLES(). Also OSX+NV generates an error here.
+  if (!gl->IsGLES()) return defaultPI;
+
+  webgl::PackingInfo implPI;
+  gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT,
+                   (GLint*)&implPI.format);
+  gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE,
+                   (GLint*)&implPI.type);
+
+  if (!IsWebGL2()) {
+    if (implPI.type == LOCAL_GL_HALF_FLOAT) {
+      mRemapImplReadType_HalfFloatOes = true;
+      implPI.type = LOCAL_GL_HALF_FLOAT_OES;
+    }
+  }
+
+  if (!ArePossiblePackEnums(implPI)) return defaultPI;
+
+  return implPI;
 }
 
 static bool ValidateReadPixelsFormatAndType(
     const webgl::FormatUsageInfo* srcUsage, const webgl::PackingInfo& pi,
-    WebGLContext* webgl) {
+    gl::GLContext* gl, WebGLContext* webgl) {
   if (!ArePossiblePackEnums(pi)) {
     webgl->ErrorInvalidEnum("Unexpected format or type.");
     return false;
@@ -1072,48 +1062,32 @@ static bool ValidateReadPixelsFormatAndType(
   // OpenGL ES 3.0.4 p194 - When the internal format of the rendering surface is
   // RGB10_A2, a third combination of format RGBA and type
   // UNSIGNED_INT_2_10_10_10_REV is accepted.
-  std::optional<webgl::PackingInfo> bonusValidPi;
-  if (srcUsage->format->effectiveFormat == webgl::EffectiveFormat::RGB10_A2) {
-    bonusValidPi =
-        webgl::PackingInfo{LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_INT_2_10_10_10_REV};
+
+  if (webgl->IsWebGL2() &&
+      srcUsage->format->effectiveFormat == webgl::EffectiveFormat::RGB10_A2 &&
+      pi.format == LOCAL_GL_RGBA &&
+      pi.type == LOCAL_GL_UNSIGNED_INT_2_10_10_10_REV) {
+    return true;
   }
-  if (bonusValidPi && pi == *bonusValidPi) return true;
 
   ////
 
   const auto implPI = webgl->ValidImplementationColorReadPI(srcUsage);
-  MOZ_ASSERT(pi.type != LOCAL_GL_HALF_FLOAT_OES);      // HALF_FLOAT-only
-  MOZ_ASSERT(implPI.type != LOCAL_GL_HALF_FLOAT_OES);  // HALF_FLOAT-only
   if (pi == implPI) return true;
 
   ////
 
-  // Map HALF_FLOAT to HALF_FLOAT_OES for error messages in webgl1.
-  webgl::PackingInfo clientImplPI = implPI;
-  if (clientImplPI.type == LOCAL_GL_HALF_FLOAT && !webgl->IsWebGL2()) {
-    clientImplPI.type = LOCAL_GL_HALF_FLOAT_OES;
-  }
-
-  auto validPiStr =
-      fmt::format(FMT_STRING("{} (spec-required baseline for format {})"),
-                  defaultPI, srcUsage->format->name);
-  if (implPI != defaultPI) {
-    validPiStr += fmt::format(
-        FMT_STRING(
-            ", or {} (spec-optional implementation-chosen format-dependant"
-            " IMPLEMENTATION_COLOR_READ_FORMAT/_TYPE)"),
-        clientImplPI);
-  }
-  if (bonusValidPi) {
-    validPiStr +=
-        fmt::format(FMT_STRING(", or {} (spec-required bonus for format {})"),
-                    *bonusValidPi, srcUsage->format->name);
-  }
-
+  // clang-format off
   webgl->ErrorInvalidOperation(
-      "Format/type %s/%s incompatible with this %s framebuffer. Must use: %s.",
+      "Format and type %s/%s incompatible with this %s attachment."
+      " This framebuffer requires either %s/%s or"
+      " getParameter(IMPLEMENTATION_COLOR_READ_FORMAT/_TYPE) %s/%s.",
       EnumString(pi.format).c_str(), EnumString(pi.type).c_str(),
-      srcUsage->format->name, validPiStr.c_str());
+      srcUsage->format->name,
+      EnumString(defaultPI.format).c_str(), EnumString(defaultPI.type).c_str(),
+      EnumString(implPI.format).c_str(), EnumString(implPI.type).c_str());
+  // clang-format on
+
   return false;
 }
 
@@ -1127,7 +1101,7 @@ webgl::ReadPixelsResult WebGLContext::ReadPixelsImpl(
 
   //////
 
-  if (!ValidateReadPixelsFormatAndType(srcFormat, desc.pi, this)) return {};
+  if (!ValidateReadPixelsFormatAndType(srcFormat, desc.pi, gl, this)) return {};
 
   //////
 

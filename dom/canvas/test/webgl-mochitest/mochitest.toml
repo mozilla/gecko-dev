@@ -210,9 +210,6 @@ skip-if = [
 
 ["test_read_pixels_no_format.html"]
 
-["test_read_pixels_naive_impl_read_formats.html"]
-tags = "os_integration"
-
 ["test_renderer_strings.html"]
 skip-if = ["display == 'wayland'"]
 tags = "os_integration"

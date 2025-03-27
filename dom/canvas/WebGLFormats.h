@@ -351,9 +351,6 @@ struct FormatUsageInfo {
   std::map<PackingInfo, DriverUnpackInfo> validUnpacks;
   const DriverUnpackInfo* idealUnpack = nullptr;
 
-  // LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT/_TYPE:
-  mutable std::optional<PackingInfo> implReadPiCache;
-
   const GLint* textureSwizzleRGBA = nullptr;
 
  private:

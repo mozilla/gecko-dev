@@ -17755,16 +17755,6 @@
   value: false
   mirror: always
 
-- name: webgl.porting.strict_readpixels_formats
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
-- name: webgl.porting.strict_readpixels_formats.non_es
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 - name: webgl.dxgl.enabled
   type: RelaxedAtomicBool
 #ifdef XP_WIN
