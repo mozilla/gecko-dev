@@ -10206,7 +10206,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.1.66",
+    apiVersion: "5.1.72",
     data,
     password,
     disableAutoFetch,
@@ -11838,8 +11838,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.1.66";
-const build = "828398f60";
+const version = "5.1.72";
+const build = "3da8901f2";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -19336,7 +19336,7 @@ class SignatureEditor extends DrawingEditor {
     this._willKeepAspectRatio = true;
     this.#signatureData = params.signatureData || null;
     this.#description = null;
-    this.defaultL10nId = "pdfjs-editor-signature-editor";
+    this.defaultL10nId = "pdfjs-editor-signature-editor1";
   }
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
@@ -19421,6 +19421,9 @@ class SignatureEditor extends DrawingEditor {
         });
         this.addSignature(outline, heightInPage, description, uuid);
       } else {
+        this.div.setAttribute("data-l10n-args", JSON.stringify({
+          description: ""
+        }));
         this.div.hidden = true;
         this._uiManager.getSignature(this);
       }
@@ -19498,7 +19501,9 @@ class SignatureEditor extends DrawingEditor {
     } = this.#signatureData = data;
     this.#isExtracted = outline instanceof ContourDrawOutline;
     this.#description = description;
-    this.div.setAttribute("aria-description", description);
+    this.div.setAttribute("data-l10n-args", JSON.stringify({
+      description
+    }));
     let drawingOptions;
     if (this.#isExtracted) {
       drawingOptions = SignatureEditor.getDefaultDrawingOptions();
@@ -21214,8 +21219,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.1.66";
-const pdfjsBuild = "828398f60";
+const pdfjsVersion = "5.1.72";
+const pdfjsBuild = "3da8901f2";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;
