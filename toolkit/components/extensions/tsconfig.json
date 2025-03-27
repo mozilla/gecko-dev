@@ -51,6 +51,9 @@
       "resource://gre/modules/addons/crypto-utils.sys.mjs": ["../../mozapps/extensions/internal/crypto-utils.sys.mjs"],
       "resource://gre/modules/XPCOMUtils.sys.mjs": ["../../../js/xpconnect/loader/XPCOMUtils.sys.mjs"],
       "resource://testing-common/XPCShellContentUtils.sys.mjs": ["../../../testing/modules/XPCShellContentUtils.sys.mjs"],
+      "resource://gre/modules/AppConstants.sys.mjs": [
+        "../../../tools/@types/substitutions/AppConstants.sys.d.mts"
+      ],
 
       // Catch-all redirect for all other modules.
       "resource://gre/modules/*.sys.mjs": ["./types/globals.ts"],

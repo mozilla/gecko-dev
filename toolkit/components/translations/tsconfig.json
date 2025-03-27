@@ -1,18 +1,16 @@
 {
   "include": ["content/translations-document.sys.mjs", "translations.d.ts"],
+  "extends": "../../../tools/@types/tsconfig.json",
 
   "compilerOptions": {
     "checkJs": true,
-    "noEmit": true,
-    "target": "es2024",
-    "types": ["gecko"],
     "strict": true,
 
-    // prettier-ignore
-    "paths": {
-      "chrome://global/content/translations/*": ["./*"],
-      // External.
-      "resource://gre/modules/XPCOMUtils.sys.mjs": ["../../../js/xpconnect/loader/XPCOMUtils.sys.mjs"]
-    }
+    "plugins": [
+      {
+        "transform": "../../../tools/ts/plugins/checkRootJs.js",
+        "transformProgram": true
+      }
+    ]
   }
 }
