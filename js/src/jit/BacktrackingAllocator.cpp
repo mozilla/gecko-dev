@@ -1175,7 +1175,7 @@ LiveRange* VirtualRegister::rangeFor(CodePosition pos,
   do {
     LiveRange* range = ranges_[index];
     if (range->covers(pos)) {
-      if (!preferRegister || range->bundle()->allocation().isRegister()) {
+      if (!preferRegister || range->bundle()->allocation().isAnyRegister()) {
         return range;
       }
       if (!found) {
@@ -1366,7 +1366,7 @@ bool BacktrackingAllocator::isRegisterDefinition(LiveRange* range) {
   }
 
   if (reg.def()->policy() == LDefinition::FIXED &&
-      !reg.def()->output()->isRegister()) {
+      !reg.def()->output()->isAnyRegister()) {
     return false;
   }
 
@@ -1467,7 +1467,7 @@ bool BacktrackingAllocator::minimalBundle(LiveBundle* bundle, bool* pfixed) {
     }
     if (pfixed) {
       *pfixed = reg.def()->policy() == LDefinition::FIXED &&
-                reg.def()->output()->isRegister();
+                reg.def()->output()->isAnyRegister();
     }
     return true;
   }
@@ -1544,7 +1544,7 @@ size_t BacktrackingAllocator::computeSpillWeight(LiveBundle* bundle) {
     if (range->hasDefinition()) {
       VirtualRegister& reg = range->vreg();
       if (reg.def()->policy() == LDefinition::FIXED &&
-          reg.def()->output()->isRegister()) {
+          reg.def()->output()->isAnyRegister()) {
         usesTotal += 2000;
         fixed = true;
       } else if (!reg.ins()->isPhi()) {
@@ -2293,7 +2293,7 @@ bool BacktrackingAllocator::tryMergeReusedRegister(VirtualRegister& def,
 
   // If the input will start out in memory then adding a separate bundle for
   // memory uses after the def won't help.
-  if (input.def()->isFixed() && !input.def()->output()->isRegister()) {
+  if (input.def()->isFixed() && !input.def()->output()->isAnyRegister()) {
     def.setMustCopyInput();
     return true;
   }
@@ -3637,7 +3637,7 @@ bool BacktrackingAllocator::tryAllocateFixed(LiveBundle* bundle,
                                              bool* success, bool* hasCall,
                                              LiveBundleVector& conflicting) {
   // Spill bundles which are required to be in a certain stack slot.
-  if (!requirement.allocation().isRegister()) {
+  if (!requirement.allocation().isAnyRegister()) {
     JitSpew(JitSpew_RegAlloc, "  stack allocation requirement");
     bundle->setAllocation(requirement.allocation());
     *success = true;
@@ -3880,7 +3880,7 @@ bool BacktrackingAllocator::pickStackSlot(SpillSet* spillSet) {
       if (range->hasDefinition()) {
         LDefinition* def = range->vreg().def();
         if (def->policy() == LDefinition::FIXED) {
-          MOZ_ASSERT(!def->output()->isRegister());
+          MOZ_ASSERT(!def->output()->isAnyRegister());
           MOZ_ASSERT(!def->output()->isStackSlot());
           spillSet->setAllocation(*def->output());
           return true;
@@ -4069,8 +4069,8 @@ static void AssertCorrectRangeForPosition(const VirtualRegister& reg,
   // Assert the result is consistent with rangeFor. The ranges can be different
   // but must be equivalent (both register or both non-register ranges).
   LiveRange* expected = reg.rangeFor(pos, /* preferRegister = */ true);
-  MOZ_ASSERT(range->bundle()->allocation().isRegister() ==
-             expected->bundle()->allocation().isRegister());
+  MOZ_ASSERT(range->bundle()->allocation().isAnyRegister() ==
+             expected->bundle()->allocation().isAnyRegister());
 #endif
 }
 
@@ -4123,7 +4123,7 @@ bool BacktrackingAllocator::createMoveGroupsForControlFlowEdges(
         foundSameAllocation = true;
         break;
       }
-      if (iter->bundle()->allocation().isRegister()) {
+      if (iter->bundle()->allocation().isAnyRegister()) {
         predecessorRange = *iter;
         break;
       }
@@ -4183,7 +4183,7 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
     // later ranges.
     auto moveToNextRange = [&](LiveRange* range) {
       MOZ_ASSERT(*iter == range);
-      if (range->bundle()->allocation().isRegister()) {
+      if (range->bundle()->allocation().isAnyRegister()) {
         if (!registerRange || range->to() > registerRange->to()) {
           registerRange = range;
         }
@@ -4409,7 +4409,7 @@ void BacktrackingAllocator::addLiveRegistersForRange(
     VirtualRegister& reg, LiveRange* range, size_t* firstNonCallSafepoint) {
   // Fill in the live register sets for all non-call safepoints.
   LAllocation a = range->bundle()->allocation();
-  if (!a.isRegister()) {
+  if (!a.isAnyRegister()) {
     return;
   }
 

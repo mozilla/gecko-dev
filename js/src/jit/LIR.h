@@ -156,7 +156,7 @@ class LAllocation {
   bool isStackSlot() const { return kind() == STACK_SLOT; }
   bool isStackArea() const { return kind() == STACK_AREA; }
   bool isArgument() const { return kind() == ARGUMENT_SLOT; }
-  bool isRegister() const { return isGeneralReg() || isFloatReg(); }
+  bool isAnyRegister() const { return isGeneralReg() || isFloatReg(); }
   bool isMemory() const { return isStackSlot() || isArgument(); }
   inline uint32_t memorySlot() const;
   inline LUse* toUse();
@@ -1676,13 +1676,13 @@ class LSafepoint : public TempObject {
     if (alloc.isMemory()) {
       return addSlotsOrElementsSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
-    MOZ_ASSERT(alloc.isRegister());
+    MOZ_ASSERT(alloc.isAnyRegister());
     addSlotsOrElementsRegister(alloc.toGeneralReg()->reg());
     assertInvariants();
     return true;
   }
   bool hasSlotsOrElementsPointer(LAllocation alloc) const {
-    if (alloc.isRegister()) {
+    if (alloc.isAnyRegister()) {
       return slotsOrElementsRegs().has(alloc.toGeneralReg()->reg());
     }
     for (size_t i = 0; i < slotsOrElementsSlots_.length(); i++) {
@@ -1699,7 +1699,7 @@ class LSafepoint : public TempObject {
     if (alloc.isMemory()) {
       return addGcSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
-    if (alloc.isRegister()) {
+    if (alloc.isAnyRegister()) {
       addGcRegister(alloc.toGeneralReg()->reg());
     }
     assertInvariants();
@@ -1707,7 +1707,7 @@ class LSafepoint : public TempObject {
   }
 
   bool hasGcPointer(LAllocation alloc) const {
-    if (alloc.isRegister()) {
+    if (alloc.isAnyRegister()) {
       return gcRegs().has(alloc.toGeneralReg()->reg());
     }
     MOZ_ASSERT(alloc.isMemory());
@@ -1739,14 +1739,14 @@ class LSafepoint : public TempObject {
     if (alloc.isMemory()) {
       return addWasmAnyRefSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
-    if (alloc.isRegister()) {
+    if (alloc.isAnyRegister()) {
       addWasmAnyRefReg(alloc.toGeneralReg()->reg());
     }
     assertInvariants();
     return true;
   }
   bool hasWasmAnyRef(LAllocation alloc) const {
-    if (alloc.isRegister()) {
+    if (alloc.isAnyRegister()) {
       return wasmAnyRefRegs().has(alloc.toGeneralReg()->reg());
     }
     MOZ_ASSERT(alloc.isMemory());
@@ -1877,7 +1877,7 @@ class LSafepoint : public TempObject {
   LiveGeneralRegisterSet valueRegs() const { return valueRegs_; }
 
   [[nodiscard]] bool addBoxedValue(LAllocation alloc) {
-    if (alloc.isRegister()) {
+    if (alloc.isAnyRegister()) {
       Register reg = alloc.toGeneralReg()->reg();
       if (!valueRegs().has(reg)) {
         addValueRegister(reg);
@@ -1891,7 +1891,7 @@ class LSafepoint : public TempObject {
   }
 
   bool hasBoxedValue(LAllocation alloc) const {
-    if (alloc.isRegister()) {
+    if (alloc.isAnyRegister()) {
       return valueRegs().has(alloc.toGeneralReg()->reg());
     }
     return hasValueSlot(alloc.isStackSlot(), alloc.memorySlot());
@@ -2097,7 +2097,7 @@ LAllocation::LAllocation(AnyRegister reg) {
 }
 
 AnyRegister LAllocation::toAnyRegister() const {
-  MOZ_ASSERT(isRegister());
+  MOZ_ASSERT(isAnyRegister());
   if (isFloatReg()) {
     return AnyRegister(toFloatReg()->reg());
   }

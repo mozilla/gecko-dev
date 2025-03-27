@@ -331,7 +331,7 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   }
 
   LAllocation* input = unbox->getOperand(LUnbox::Input);
-  if (input->isRegister()) {
+  if (input->isAnyRegister()) {
     Register inputReg = ToRegister(input);
     switch (mir->type()) {
       case MIRType::Int32:
@@ -501,7 +501,7 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   MOZ_ASSERT(ToRegister64(lir->trueExpr()) == out,
              "true expr is reused for input");
 
-  if (falseExpr.value().isRegister()) {
+  if (falseExpr.value().isAnyRegister()) {
     masm.moveIfZero(out.reg, ToRegister(falseExpr.value()), cond);
   } else {
     Label done;
@@ -1867,7 +1867,7 @@ void CodeGenerator::visitWasmSelect(LWasmSelect* ins) {
     Register out = ToRegister(ins->output());
     MOZ_ASSERT(ToRegister(ins->trueExpr()) == out,
                "true expr input is reused for output");
-    if (falseExpr->isRegister()) {
+    if (falseExpr->isAnyRegister()) {
       masm.moveIfZero(out, ToRegister(falseExpr), cond);
     } else {
       masm.cmp32Load32(Assembler::Zero, cond, cond, ToAddress(falseExpr), out);

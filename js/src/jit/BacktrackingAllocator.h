@@ -69,7 +69,7 @@ class Requirement {
 
     MOZ_ASSERT(newRequirement.kind() == Requirement::REGISTER);
     if (kind() == Requirement::FIXED) {
-      return allocation().isRegister();
+      return allocation().isAnyRegister();
     }
 
     *this = newRequirement;

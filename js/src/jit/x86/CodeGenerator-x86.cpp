@@ -1021,8 +1021,8 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
   const LAllocation* falseExpr = ins->ifFalseExpr();
   Register lhs = ToRegister(ins->leftExpr());
 
-  if (rhs->isRegister()) {
-    if (falseExpr->isRegister()) {
+  if (rhs->isAnyRegister()) {
+    if (falseExpr->isAnyRegister()) {
       masm.cmp32Move32(cond, lhs, ToRegister(rhs), ToRegister(falseExpr),
                        trueExprAndDest);
     } else {
@@ -1030,7 +1030,7 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
                        trueExprAndDest);
     }
   } else {
-    if (falseExpr->isRegister()) {
+    if (falseExpr->isAnyRegister()) {
       masm.cmp32Move32(cond, lhs, ToAddress(rhs), ToRegister(falseExpr),
                        trueExprAndDest);
     } else {

@@ -159,7 +159,7 @@ void CodeGenerator::visitAddI(LAddI* ins) {
   if (rhs->isConstant()) {
     masm.ma_add(ToRegister(lhs), Imm32(ToInt32(rhs)), ToRegister(dest), scratch,
                 SetCC);
-  } else if (rhs->isRegister()) {
+  } else if (rhs->isAnyRegister()) {
     masm.ma_add(ToRegister(lhs), ToRegister(rhs), ToRegister(dest), SetCC);
   } else {
     masm.ma_add(ToRegister(lhs), Operand(ToAddress(rhs)), ToRegister(dest),
@@ -195,7 +195,7 @@ void CodeGenerator::visitSubI(LSubI* ins) {
   if (rhs->isConstant()) {
     masm.ma_sub(ToRegister(lhs), Imm32(ToInt32(rhs)), ToRegister(dest), scratch,
                 SetCC);
-  } else if (rhs->isRegister()) {
+  } else if (rhs->isAnyRegister()) {
     masm.ma_sub(ToRegister(lhs), ToRegister(rhs), ToRegister(dest), SetCC);
   } else {
     masm.ma_sub(ToRegister(lhs), Operand(ToAddress(rhs)), ToRegister(dest),
@@ -2565,7 +2565,7 @@ void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
              "true expr is reused for input");
 
   masm.as_cmp(cond, Imm8(0));
-  if (falseExpr.low().isRegister()) {
+  if (falseExpr.low().isAnyRegister()) {
     masm.ma_mov(ToRegister(falseExpr.low()), out.low, LeaveCC,
                 Assembler::Equal);
     masm.ma_mov(ToRegister(falseExpr.high()), out.high, LeaveCC,

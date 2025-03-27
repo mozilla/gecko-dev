@@ -451,8 +451,8 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
 
   // We generate one of four cmp+cmov pairings, depending on whether one of
   // the cmp args and one of the cmov args is in memory or a register.
-  if (rhs->isRegister()) {
-    if (falseExpr->isRegister()) {
+  if (rhs->isAnyRegister()) {
+    if (falseExpr->isAnyRegister()) {
       (masm.*cmpMove_CRRRR)(cond, lhs, ToRegister(rhs), ToRegister(falseExpr),
                             trueExprAndDest);
     } else {
@@ -460,7 +460,7 @@ void CodeGenerator::visitWasmCompareAndSelect(LWasmCompareAndSelect* ins) {
                             trueExprAndDest);
     }
   } else {
-    if (falseExpr->isRegister()) {
+    if (falseExpr->isAnyRegister()) {
       (masm.*cmpMove_CRARR)(cond, lhs, ToAddress(rhs), ToRegister(falseExpr),
                             trueExprAndDest);
     } else {

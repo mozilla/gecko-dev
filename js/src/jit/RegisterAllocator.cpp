@@ -124,7 +124,7 @@ bool AllocationIntegrityState::check() {
 
       for (size_t i = 0; i < ins->numTemps(); i++) {
         LDefinition* temp = ins->getTemp(i);
-        MOZ_ASSERT_IF(!temp->isBogusTemp(), temp->output()->isRegister());
+        MOZ_ASSERT_IF(!temp->isBogusTemp(), temp->output()->isAnyRegister());
 
         LDefinition oldTemp = instructions[ins->id()].temps[i];
         MOZ_ASSERT_IF(
@@ -325,11 +325,11 @@ void AllocationIntegrityState::checkSafepointAllocation(LInstruction* ins,
   LSafepoint* safepoint = ins->safepoint();
   MOZ_ASSERT(safepoint);
 
-  if (ins->isCall() && alloc.isRegister()) {
+  if (ins->isCall() && alloc.isAnyRegister()) {
     return;
   }
 
-  if (alloc.isRegister()) {
+  if (alloc.isAnyRegister()) {
     MOZ_ASSERT(safepoint->liveRegs().has(alloc.toAnyRegister()));
   }
 

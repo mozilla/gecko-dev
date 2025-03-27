@@ -436,7 +436,7 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
 
       JSValueType valueType = ValueTypeFromMIRType(type);
 
-      MOZ_DIAGNOSTIC_ASSERT(payload->isMemory() || payload->isRegister());
+      MOZ_DIAGNOSTIC_ASSERT(payload->isMemory() || payload->isAnyRegister());
       if (payload->isMemory()) {
         MOZ_ASSERT_IF(payload->isStackSlot(),
                       payload->toStackSlot()->width() ==
@@ -606,8 +606,8 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);
 #ifdef JS_NUNBOX32
       LAllocation* type = snapshot->typeOfSlot(*allocIndex);
-      if (type->isRegister()) {
-        if (payload->isRegister()) {
+      if (type->isAnyRegister()) {
+        if (payload->isAnyRegister()) {
           alloc =
               RValueAllocation::Untyped(ToRegister(type), ToRegister(payload));
         } else {
@@ -615,7 +615,7 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
                                             ToStackIndex(payload));
         }
       } else {
-        if (payload->isRegister()) {
+        if (payload->isAnyRegister()) {
           alloc = RValueAllocation::Untyped(ToStackIndex(type),
                                             ToRegister(payload));
         } else {
@@ -624,7 +624,7 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
         }
       }
 #elif JS_PUNBOX64
-      if (payload->isRegister()) {
+      if (payload->isAnyRegister()) {
         alloc = RValueAllocation::Untyped(ToRegister(payload));
       } else {
         alloc = RValueAllocation::Untyped(ToStackIndex(payload));
