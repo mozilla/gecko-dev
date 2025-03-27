@@ -910,7 +910,6 @@ MSG_DEF(JSMSG_TEMPORAL_CALENDAR_OVERFLOW_FIELD,     2, JSEXN_RANGEERR, "calendar
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INVALID_MONTHCODE,  1, JSEXN_RANGEERR, "invalid \"monthCode\" calendar field: {0}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INVALID_ERA,        1, JSEXN_RANGEERR, "invalid \"era\" calendar field: {0}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,       2, JSEXN_RANGEERR, "calendars \"{0}\" and \"{1}\" aren't compatible")
-MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_ERA, 3, JSEXN_RANGEERR, "\"era\" and computed \"era\" calendar fields are inconsistent: {0} - {1} (from year {2})")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_ERAYEAR, 3, JSEXN_RANGEERR, "\"eraYear\" and computed \"eraYear\" calendar fields are inconsistent: {0} - {1} (from year {2})")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_YEAR, 2, JSEXN_RANGEERR, "\"year\" and computed \"year\" calendar fields are inconsistent: {0} - {1}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE_MONTHCODE, 2, JSEXN_RANGEERR, "\"monthCode\" and \"month\" calendar fields are inconsistent: {0} - {1}")
