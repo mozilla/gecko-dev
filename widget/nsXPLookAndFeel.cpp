@@ -1234,7 +1234,8 @@ static bool ShouldUseStandinsForNativeColorForNonNativeTheme(
             aColor == LookAndFeel::ColorID::Accentcolortext);
   }();
 
-  return shouldUseStandinsForColor && !aPrefs.mUseDocumentColors &&
+  return shouldUseStandinsForColor && aDoc.ShouldAvoidNativeTheme() &&
+         aPrefs.mUseDocumentColors &&
          !StaticPrefs::widget_non_native_theme_always_high_contrast();
 }
 
