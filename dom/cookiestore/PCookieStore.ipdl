@@ -8,7 +8,6 @@ include PBackgroundSharedTypes;
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 using struct nsID from "nsID.h";
-[RefCounted] using class nsIURI from "nsIURI.h";
 
 namespace mozilla {
 namespace dom {
@@ -38,7 +37,7 @@ protocol PCookieStore
   manager PBackground;
 
 parent:
-  async GetRequest(nullable nsIURI cookieURI,
+  async GetRequest(nsString domain,
                    OriginAttributes attrs,
                    OriginAttributes? partitionedAttrs,
                    bool thirdPartyContext,
@@ -50,7 +49,7 @@ parent:
                    nsCString path,
                    bool onlyFirstMatch) returns (CookieData[] data);
 
-  async SetRequest(nullable nsIURI cookieURI,
+  async SetRequest(nsString domain,
                    OriginAttributes attrs,
                    bool thirdPartyContext,
                    bool partitionForeign,
@@ -60,20 +59,18 @@ parent:
                    nsString value,
                    bool session,
                    int64_t expires,
-                   nsString domain,
                    nsString path,
                    int32_t sameSite,
                    bool partitioned,
                    nsID operationId) returns (bool waitForNotification);
 
-  async DeleteRequest(nullable nsIURI cookieURI,
+  async DeleteRequest(nsString domain,
                       OriginAttributes attrs,
                       bool thirdPartyContext,
                       bool partitionForeign,
                       bool usingStorageAccess,
                       bool isOn3PCBExceptionList,
                       nsString name,
-                      nsString domain,
                       nsString path,
                       bool partitioned,
                       nsID operationID) returns (bool waitForNotification);

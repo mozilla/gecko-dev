@@ -32,7 +32,6 @@ class CookieParser final {
     RejectedInvalidCharName,
     RejectedInvalidDomain,
     RejectedInvalidPrefix,
-    RejectedInvalidPath,
     RejectedInvalidCharValue,
     RejectedHttpOnlyButFromScript,
     RejectedSecureButNonHttps,
@@ -70,13 +69,6 @@ class CookieParser final {
   // Public for testing
   bool ParseMaxAgeAttribute(const nsACString& aMaxage, int64_t* aValue);
 
-  static Rejection CheckCookieStruct(CookieStruct& aCookieStruct,
-                                     nsIURI* aHostURI,
-                                     const nsCString& aCookieString,
-                                     const nsACString& aBaseDomain,
-                                     bool aRequireHostMatch, bool aFromHttp,
-                                     CookieParser* aParser = nullptr);
-
  private:
   static void GetTokenValue(nsACString::const_char_iterator& aIter,
                             nsACString::const_char_iterator& aEndIter,
@@ -91,18 +83,16 @@ class CookieParser final {
                  const nsACString& aMaxage, int64_t aCurrentTime,
                  const nsACString& aDateHeader, bool aFromHttp);
 
-  static bool CheckPath(CookieStruct& aCookieData, nsIURI* aHostURI,
-                        CookieParser* aParser = nullptr);
-  static bool CheckAttributeSize(const nsACString& currentValue,
-                                 const char* aAttribute,
-                                 const nsACString& aValue,
-                                 CookieParser* aParser = nullptr);
+  bool CheckPath();
+  bool CheckAttributeSize(const nsACString& currentValue,
+                          const char* aAttribute, const nsACString& aValue);
+
+  static bool CheckPrefixes(CookieStruct& aCookieData, bool aSecureRequest);
   static bool CheckDomain(CookieStruct& aCookieData, nsIURI* aHostURI,
                           const nsACString& aBaseDomain,
                           bool aRequireHostMatch);
   static bool HasSecurePrefix(const nsACString& aString);
   static bool HasHostPrefix(const nsACString& aString);
-  static bool CheckPrefixes(CookieStruct& aCookieData, bool aSecureRequest);
 
   nsCOMPtr<nsIConsoleReportCollector> mCRC;
   nsCOMPtr<nsIURI> mHostURI;
