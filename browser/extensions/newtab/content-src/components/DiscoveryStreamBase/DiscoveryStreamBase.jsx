@@ -8,6 +8,7 @@ import { CollapsibleSection } from "content-src/components/CollapsibleSection/Co
 import { connect } from "react-redux";
 import { DSMessage } from "content-src/components/DiscoveryStreamComponents/DSMessage/DSMessage";
 import { DSPrivacyModal } from "content-src/components/DiscoveryStreamComponents/DSPrivacyModal/DSPrivacyModal";
+import { ReportContent } from "../DiscoveryStreamComponents/ReportContent/ReportContent";
 import { DSSignup } from "content-src/components/DiscoveryStreamComponents/DSSignup/DSSignup";
 import { DSTextPromo } from "content-src/components/DiscoveryStreamComponents/DSTextPromo/DSTextPromo";
 import { Highlights } from "content-src/components/DiscoveryStreamComponents/Highlights/Highlights";
@@ -252,6 +253,8 @@ export class _DiscoveryStreamBase extends React.PureComponent {
     const { config } = this.props.DiscoveryStream;
     const topicSelectionEnabled =
       this.props.Prefs.values["discoverystream.topicSelection.enabled"];
+    const reportContentEnabled =
+      this.props.Prefs.values["discoverystream.reportContent.enabled"];
 
     // Allow rendering without extracting special components
     if (!config.collapsible) {
@@ -322,6 +325,9 @@ export class _DiscoveryStreamBase extends React.PureComponent {
         {this.props.DiscoveryStream.isPrivacyInfoModalVisible && (
           <DSPrivacyModal dispatch={this.props.dispatch} />
         )}
+
+        {reportContentEnabled && <ReportContent />}
+
         {topSites &&
           this.renderLayout([
             {

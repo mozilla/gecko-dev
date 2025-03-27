@@ -20,9 +20,13 @@ import { LinkMenu } from "../../LinkMenu/LinkMenu";
  * @returns {Element}
  * @constructor
  */
-export function AdBannerContextMenu({ dispatch, spoc, position, type }) {
+export function AdBannerContextMenu({ dispatch, spoc, position, type, prefs }) {
+  const PREF_REPORT_CONTENT_ENABLED = "discoverystream.reportContent.enabled";
+  const showReporting = prefs[PREF_REPORT_CONTENT_ENABLED];
+
   const ADBANNER_CONTEXT_MENU_OPTIONS = [
     "BlockAdUrl",
+    ...(showReporting ? ["ReportAd"] : []),
     "ManageSponsoredContent",
     "OurSponsorsAndYourPrivacy",
   ];

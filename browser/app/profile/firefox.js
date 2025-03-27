@@ -1939,6 +1939,9 @@ pref("browser.newtabpage.activity-stream.discoverystream.spocMessageVariant", ""
 
 pref("browser.newtabpage.activity-stream.discoverystream.sendToPocket.enabled", true);
 
+// Pref enabling content reporting
+pref("browser.newtabpage.activity-stream.discoverystream.reportContent.enabled", false);
+
 // List of regions that do not get stories, regardless of locale-list-config.
 pref("browser.newtabpage.activity-stream.discoverystream.region-stories-block", "");
 // List of locales that get stories, regardless of region-stories-config.
