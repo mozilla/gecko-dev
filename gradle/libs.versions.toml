@@ -74,7 +74,7 @@ scip-java = "0.10.4"
 # Kotlin versions
 coroutines = "1.10.1"
 kotlin = "2.1.20" # remember to change ksp-plugin
-ksp-plugin = "2.1.20-1.0.31"
+ksp-plugin = "2.1.20-1.0.32"
 serialization = "1.8.0"
 
 # Testing versions
