@@ -963,8 +963,10 @@ nimbus_events:
         description: If the enrollment hit a feature conflict, the slug of the conflicting experiment/rollout
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817481
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955169
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1817481
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955169
     data_sensitivity:
       - technical
     notification_emails:

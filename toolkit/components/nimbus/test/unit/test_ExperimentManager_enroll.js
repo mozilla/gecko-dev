@@ -346,14 +346,20 @@ add_task(async function test_failure_name_conflict() {
 
   // Clear any pre-existing data in Glean
   Services.fog.testResetFOG();
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   await manager.onStartup();
 
   // Check that there aren't any Glean enroll_failed events yet
-  var failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
   Assert.equal(
-    undefined,
-    failureEvents,
+    Glean.nimbusEvents.enrollFailed.testGetValue("events"),
+    null,
     "no Glean enroll_failed events before failure"
   );
 
@@ -366,27 +372,33 @@ add_task(async function test_failure_name_conflict() {
     "should throw if a conflicting experiment exists"
   );
 
-  Assert.equal(
-    NimbusTelemetry.recordEnrollmentFailure.calledWith("foo", "name-conflict"),
-    true,
-    "should send failure telemetry if a conflicting experiment exists"
+  // Check that the Glean events were recorded.
+  Assert.deepEqual(
+    Glean.nimbusEvents.enrollFailed.testGetValue("events").map(ev => ev.extra),
+    [
+      {
+        experiment: "foo",
+        reason: "name-conflict",
+      },
+    ],
+    "enrollFailed telemetry recorded correctly"
   );
 
-  // Check that the Glean enrollment event was recorded.
-  failureEvents = Glean.nimbusEvents.enrollFailed.testGetValue("events");
-  // We expect only one event
-  Assert.equal(1, failureEvents.length);
-  // And that one event matches the expected enrolled experiment
-  Assert.equal(
-    "foo",
-    failureEvents[0].extra.experiment,
-    "Glean.nimbusEvents.enroll_failed recorded with correct experiment slug"
+  Assert.deepEqual(
+    Glean.nimbusEvents.enrollmentStatus
+      .testGetValue("events")
+      .map(ev => ev.extra),
+    [
+      {
+        slug: "foo",
+        status: "NotEnrolled",
+        reason: "NameConflict",
+      },
+    ],
+    "enrollmentStatus telemetry recorded correctly"
   );
-  Assert.equal(
-    "name-conflict",
-    failureEvents[0].extra.reason,
-    "Glean.nimbusEvents.enroll_failed recorded with correct reason"
-  );
+
+  Services.fog.testResetFOG();
 
   manager.unenroll("foo");
 
