@@ -37,6 +37,16 @@ document.addEventListener(
     containerPopup.addEventListener("popupshowing", event =>
       PlacesUIUtils.createContainerTabMenu(event)
     );
+
+    const containerHistoryPopup = document.getElementById(
+      "sidebar-history-context-menu-container-popup"
+    );
+    containerHistoryPopup.addEventListener("command", event =>
+      PlacesUIUtils.openInContainerTab(event)
+    );
+    containerHistoryPopup.addEventListener("popupshowing", event =>
+      PlacesUIUtils.createContainerTabMenu(event)
+    );
   },
   { once: true }
 );
