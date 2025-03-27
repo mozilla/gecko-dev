@@ -23,6 +23,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "gTelemetryEnabled",
+  "datareporting.healthreport.uploadEnabled",
+  false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "gDapEndpoint",
   "toolkit.telemetry.dap.leader.url"
 );
@@ -284,6 +291,11 @@ export const DAPTelemetrySender = new (class {
    * @resolves {undefined} Once the attempt to send the report completes, whether or not it was successful.
    */
   async sendReport(leader_endpoint, task_id, report, abortSignal, options) {
+    // If telemetry disabled, don't upload DAP reports either.
+    if (!lazy.gTelemetryEnabled) {
+      return;
+    }
+
     const upload_path = leader_endpoint + "/tasks/" + task_id + "/reports";
     try {
       let requestOptions = {

@@ -23,9 +23,11 @@ const BinaryInputStream = Components.Constructor(
 const PREF_LEADER = "toolkit.telemetry.dap.leader.url";
 const PREF_HELPER = "toolkit.telemetry.dap.helper.url";
 
-let received = false;
+const PREF_DATAUPLOAD = "datareporting.healthreport.uploadEnabled";
+
 let server;
 let server_addr;
+let server_requests = 0;
 
 const tasks = [
   {
@@ -60,7 +62,9 @@ function uploadHandler(request, response) {
     body.available() == 886 || body.available() == 3654,
     "Wrong request body size."
   );
-  received = true;
+
+  server_requests += 1;
+
   response.setStatusLine(request.httpVersion, 200);
 }
 
@@ -72,16 +76,14 @@ add_setup(async function () {
   server = new HttpServer();
   server.registerPrefixHandler("/leader_endpoint/tasks/", uploadHandler);
   server.start(-1);
-
-  const orig_leader = Services.prefs.getStringPref(PREF_LEADER);
-  const orig_helper = Services.prefs.getStringPref(PREF_HELPER);
   const i = server.identity;
   server_addr = i.primaryScheme + "://" + i.primaryHost + ":" + i.primaryPort;
+
   Services.prefs.setStringPref(PREF_LEADER, server_addr + "/leader_endpoint");
   Services.prefs.setStringPref(PREF_HELPER, server_addr + "/helper_endpoint");
   registerCleanupFunction(() => {
-    Services.prefs.setStringPref(PREF_LEADER, orig_leader);
-    Services.prefs.setStringPref(PREF_HELPER, orig_helper);
+    Services.prefs.clearUserPref(PREF_LEADER);
+    Services.prefs.clearUserPref(PREF_HELPER);
 
     return new Promise(resolve => {
       server.stop(resolve);
@@ -92,21 +94,46 @@ add_setup(async function () {
 add_task(async function testVerificationTask() {
   Services.fog.testResetFOG();
 
-  await lazy.DAPTelemetrySender.sendTestReports(tasks, 5000);
-
-  Assert.ok(received, "Report upload successful.");
+  server_requests = 0;
+  await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
+  Assert.equal(server_requests, tasks.length, "Report upload successful.");
 });
 
 add_task(async function testNetworkError() {
   Services.fog.testResetFOG();
+
+  const test_leader = Services.prefs.getStringPref(PREF_LEADER);
   Services.prefs.setStringPref(PREF_LEADER, server_addr + "/invalid-endpoint");
 
   let thrownErr;
   try {
-    await lazy.DAPTelemetrySender.sendTestReports(tasks, 5000);
+    await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
   } catch (e) {
     thrownErr = e;
   }
 
   Assert.ok(thrownErr.message.startsWith("Sending failed."));
+
+  Services.prefs.setStringPref(PREF_LEADER, test_leader);
+});
+
+add_task(async function testTelemetryToggle() {
+  Services.fog.testResetFOG();
+
+  // Normal
+  server_requests = 0;
+  await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
+  Assert.equal(server_requests, tasks.length);
+
+  // Telemetry off
+  server_requests = 0;
+  Services.prefs.setBoolPref(PREF_DATAUPLOAD, false);
+  await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
+  Assert.equal(server_requests, 0);
+
+  // Normal
+  server_requests = 0;
+  Services.prefs.clearUserPref(PREF_DATAUPLOAD);
+  await lazy.DAPTelemetrySender.sendTestReports(tasks, { timeout: 5000 });
+  Assert.equal(server_requests, tasks.length);
 });

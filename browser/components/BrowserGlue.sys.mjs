@@ -3021,12 +3021,7 @@ BrowserGlue.prototype = {
 
       {
         name: "DAPTelemetrySender.startup",
-        condition:
-          AppConstants.MOZ_TELEMETRY_REPORTING &&
-          Services.prefs.getBoolPref(
-            "datareporting.healthreport.uploadEnabled",
-            false
-          ),
+        condition: AppConstants.MOZ_TELEMETRY_REPORTING,
         task: async () => {
           await lazy.DAPTelemetrySender.startup();
         },
