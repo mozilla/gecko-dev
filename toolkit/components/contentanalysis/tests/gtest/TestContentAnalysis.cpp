@@ -1352,12 +1352,10 @@ TEST_F(
       mContentAnalysis, request, WarnDialogResponse::Allow,
       WaitForAgentResponseToRespondToWarn::Yes, AutoAcknowledge::Yes);
 
-  // Disabling this until bug 1953778 is fixed.
-  /*WaitForTooLateAcknowledgement(rawAcknowledgementObserver, requestToken,
-    ::content_analysis::sdk::
-                          ContentAnalysisAcknowledgement_FinalAction::
-                              ContentAnalysisAcknowledgement_FinalAction_ALLOW
-  );*/
+  WaitForTooLateAcknowledgement(
+      rawAcknowledgementObserver, requestToken,
+      ::content_analysis::sdk::ContentAnalysisAcknowledgement_FinalAction::
+          ContentAnalysisAcknowledgement_FinalAction_ALLOW);
 }
 
 TEST_F(ContentAnalysisTest,
@@ -1437,12 +1435,10 @@ TEST_F(
       mContentAnalysis, request, WarnDialogResponse::Block,
       WaitForAgentResponseToRespondToWarn::Yes, AutoAcknowledge::Yes);
 
-  // Disabling this until bug 1953778 is fixed.
-  /*WaitForTooLateAcknowledgement(rawAcknowledgementObserver, requestToken,
-    ::content_analysis::sdk::
-                          ContentAnalysisAcknowledgement_FinalAction::
-                              ContentAnalysisAcknowledgement_FinalAction_BLOCK
-  );*/
+  WaitForTooLateAcknowledgement(
+      rawAcknowledgementObserver, requestToken,
+      ::content_analysis::sdk::ContentAnalysisAcknowledgement_FinalAction::
+          ContentAnalysisAcknowledgement_FinalAction_BLOCK);
 }
 
 TEST_F(ContentAnalysisTest,

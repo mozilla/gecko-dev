@@ -301,25 +301,31 @@ class ContentAnalysis final : public nsIContentAnalysis,
       const nsACString& aRequestToken);
   nsresult CreateClientIfNecessary(bool aForceCreate = false);
 
-  // Actually send the request to the client and get a response (or error).
+  // Actually send the request to the client and handle the response (or error).
   // Note that the response may be for a different request!
-  static Result<std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>,
-                nsresult>
-  DoAnalyzeRequest(
+  static Result<std::nullptr_t, nsresult> DoAnalyzeRequest(
       nsCString&& aUserActionId,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
+      bool aAutoAcknowledge,
       const std::shared_ptr<content_analysis::sdk::Client>& aClient);
-  // Map of request token to user action id.
-  DataMutex<nsTHashMap<nsCString, nsCString>> mRequestTokenToUserActionIdMap;
+  static void HandleResponseFromAgent(
+      content_analysis::sdk::ContentAnalysisResponse&& aResponse);
+
+  struct UserActionIdAndAutoAcknowledge final {
+    nsCString mUserActionId;
+    bool mAutoAcknowledge;
+  };
+  DataMutex<nsTHashMap<nsCString, UserActionIdAndAutoAcknowledge>>
+      mRequestTokenToUserActionIdMap;
   void IssueResponse(ContentAnalysisResponse* response,
-                     nsCString&& aUserActionId, bool aAutoAcknowledge);
+                     nsCString&& aUserActionId, bool aAutoAcknowledge,
+                     bool aIsTooLate);
   void NotifyResponseObservers(ContentAnalysisResponse* aResponse,
                                nsCString&& aUserActionId, bool aAutoAcknowledge,
                                bool aIsTimeout);
-  void NotifyObserversAndMaybeIssueResponse(ContentAnalysisResponse* aResponse,
-                                            nsCString&& aUserActionId,
-                                            bool aAutoAcknowledge);
-  bool LastRequestSucceeded();
+  void NotifyObserversAndMaybeIssueResponseFromAgent(
+      ContentAnalysisResponse* aResponse, nsCString&& aUserActionId,
+      bool aAutoAcknowledge);
 
   // Destroy the service.  Happens during xpcom-shutdown-threads.
   void Close();
@@ -361,7 +367,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
     static RefPtr<MultipartRequestCallback> Create(
         ContentAnalysis* aContentAnalysis,
         const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-        nsIContentAnalysisCallback* aCallback);
+        nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge);
 
     bool HasResponded() const { return mResponded; }
 
@@ -375,7 +381,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
     void Initialize(
         ContentAnalysis* aContentAnalysis,
         const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-        nsIContentAnalysisCallback* aCallback);
+        nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge);
 
     void CancelRequests();
     void RemoveFromUserActionMap();
@@ -422,6 +428,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
     RefPtr<nsIContentAnalysisCallback> mCallback;
     nsTHashSet<nsCString> mRequestTokens;
     RefPtr<mozilla::CancelableRunnable> mTimeoutRunnable;
+    bool mAutoAcknowledge;
     bool mIsHandlingTimeout = false;
   };
 

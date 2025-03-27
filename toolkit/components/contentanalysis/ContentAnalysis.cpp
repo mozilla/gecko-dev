@@ -1541,11 +1541,13 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
 
   AutoTArray<nsCString, 1> tokens;
   RefPtr<nsIContentAnalysisCallback> callback;
+  bool autoAcknowledge;
   if (auto maybeUserActionData = mUserActionMap.Lookup(aUserActionId)) {
     // We are cancelling all existing requests for this user action.
     tokens =
         ToTArray<AutoTArray<nsCString, 1>>(maybeUserActionData->mRequestTokens);
     callback = maybeUserActionData->mCallback;
+    autoAcknowledge = maybeUserActionData->mAutoAcknowledge;
   } else {
     LOGD(
         "ContentAnalysis::CancelWithError user action not found -- already "
@@ -1645,8 +1647,8 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     response->SetCancelError(cancelError);
     // Alert the UI and (if action is not warn) the callback.  We aren't
     // handling an actual response so we have nothing to acknowledge.
-    NotifyResponseObservers(response, nsCString(aUserActionId),
-                            false /* autoAcknowledge */, isTimeout);
+    NotifyResponseObservers(response, nsCString(aUserActionId), autoAcknowledge,
+                            isTimeout);
     if (action != nsIContentAnalysisResponse::Action::eWarn) {
       if (callback) {
         if (isShutdown) {
@@ -1692,7 +1694,7 @@ NS_IMETHODIMP ContentAnalysis::SendCancelToAgent(
       __func__,
       [userActionId = nsCString(aUserActionId)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-      -> Result<std::nullptr_t, nsresult> {
+          -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         auto owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -1895,93 +1897,16 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
                              "dlp-request-sent-raw", requestArray.Elements());
   }
 
-  CallClientWithRetry<
-      std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>>(
+  CallClientWithRetry<std::nullptr_t>(
       __func__,
-      [userActionId, pbRequest = std::move(pbRequest)](
+      [userActionId, pbRequest = std::move(pbRequest), aAutoAcknowledge](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable {
         MOZ_ASSERT(!NS_IsMainThread());
         return DoAnalyzeRequest(std::move(userActionId), std::move(pbRequest),
-                                client);
+                                aAutoAcknowledge, client);
       })
       ->Then(
-          GetMainThreadSerialEventTarget(), __func__,
-          [aAutoAcknowledge](
-              std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>
-                  aResponse) mutable {
-            AssertIsOnMainThread();
-            if (!aResponse) {
-              // There was an error and we don't want to retry.
-              return;
-            }
-            LogResponse(aResponse.get());
-            LOGD("RunAnalyzeRequestTask on main thread about to send response");
-            RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
-            if (!owner) {
-              // May be shutting down
-              return;
-            }
-
-            nsCOMPtr<nsIObserverService> obsServ =
-                mozilla::services::GetObserverService();
-            // This message is only used for testing purposes, so avoid
-            // serializing the string here if no one is observing this message.
-            // This message is only really useful if we're in a timeout
-            // situation, otherwise dlp-response is fine.
-            if (obsServ->HasObservers("dlp-response-received-raw")) {
-              std::string responseString = aResponse->SerializeAsString();
-              nsTArray<char16_t> responseArray;
-              responseArray.SetLength(responseString.size() + 1);
-              for (size_t i = 0; i < responseString.size(); ++i) {
-                // Since NotifyObservers() expects a null-terminated string,
-                // make sure none of these values are 0.
-                responseArray[i] = responseString[i] + 0xFF00;
-              }
-              responseArray[responseString.size()] = 0;
-              obsServ->NotifyObservers(static_cast<nsIContentAnalysis*>(owner),
-                                       "dlp-response-received-raw",
-                                       responseArray.Elements());
-            }
-
-            // Note that the response we got may be for a different request, so
-            // look up the user action id again.
-            Maybe<nsCString> maybeUserActionId;
-            {
-              auto map = owner->mRequestTokenToUserActionIdMap.Lock();
-              maybeUserActionId =
-                  map->Extract(nsCString(aResponse->request_token()));
-            }
-            if (maybeUserActionId.isNothing()) {
-              LOGE(
-                  "RunAnalyzeRequestTask could not find userActionId for "
-                  "request token %s",
-                  aResponse->request_token().c_str());
-              // We have no hope of doing anything useful, so just early return.
-              return;
-            }
-            nsCString userActionId = maybeUserActionId.valueOr(nsCString());
-
-            RefPtr<ContentAnalysisResponse> response =
-                ContentAnalysisResponse::FromProtobuf(std::move(*aResponse),
-                                                      userActionId);
-            if (!response) {
-              LOGE("Content analysis got invalid response!");
-              return;
-            }
-
-            // Normally, if we timeout/user-cancel a request, we remove the
-            // adjacent entry in mUserActionMap.  However, we don't do that if
-            // the chosen default behavior is to warn.  We don't want to issue
-            // a response in that case.
-            nsCString requestToken;
-            MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(requestToken));
-            if (owner->mWarnResponseDataMap.Contains(requestToken)) {
-              return;
-            }
-
-            owner->NotifyObserversAndMaybeIssueResponse(
-                response, std::move(userActionId), aAutoAcknowledge);
-          },
+          GetMainThreadSerialEventTarget(), __func__, []() { /* do nothing */ },
           [userActionId, requestToken](nsresult rv) mutable {
             LOGD(
                 "RunAnalyzeRequestTask failed to get client a second time for "
@@ -1998,11 +1923,10 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
   return NS_OK;
 }
 
-Result<std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>,
-       nsresult>
-ContentAnalysis::DoAnalyzeRequest(
+Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
     nsCString&& aUserActionId,
     content_analysis::sdk::ContentAnalysisRequest&& aRequest,
+    bool aAutoAcknowledge,
     const std::shared_ptr<content_analysis::sdk::Client>& aClient) {
   MOZ_ASSERT(!NS_IsMainThread());
   RefPtr<ContentAnalysis> owner =
@@ -2010,8 +1934,7 @@ ContentAnalysis::DoAnalyzeRequest(
   if (!owner) {
     // May be shutting down
     // Don't return an error because we don't want to retry
-    return std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>(
-        nullptr);
+    return nullptr;
   }
 
   if (aRequest.has_file_path() && !aRequest.file_path().empty() &&
@@ -2026,8 +1949,7 @@ ContentAnalysis::DoAnalyzeRequest(
     if (NS_FAILED(rv)) {
       owner->CancelWithError(std::move(aUserActionId), rv);
       // Don't return an error because we don't want to retry
-      return std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>(
-          nullptr);
+      return nullptr;
     }
     if (!digest.IsEmpty()) {
       aRequest.mutable_request_data()->set_digest(digest.get());
@@ -2041,7 +1963,9 @@ ContentAnalysis::DoAnalyzeRequest(
     // Insert this into the map before calling Send() because another thread
     // calling Send() may get a response before our Send() call finishes.
     auto map = owner->mRequestTokenToUserActionIdMap.Lock();
-    map->InsertOrUpdate(nsCString(aRequest.request_token()), aUserActionId);
+    map->InsertOrUpdate(
+        nsCString(aRequest.request_token()),
+        UserActionIdAndAutoAcknowledge{aUserActionId, aAutoAcknowledge});
   }
   int err = aClient->Send(aRequest, &pbResponse);
   if (err != 0) {
@@ -2054,8 +1978,84 @@ ContentAnalysis::DoAnalyzeRequest(
 
     return Err(NS_ERROR_FAILURE);
   }
-  return std::make_shared<content_analysis::sdk::ContentAnalysisResponse>(
-      pbResponse);
+  HandleResponseFromAgent(std::move(pbResponse));
+  return nullptr;
+}
+
+void ContentAnalysis::HandleResponseFromAgent(
+    content_analysis::sdk::ContentAnalysisResponse&& aResponse) {
+  MOZ_ASSERT(!NS_IsMainThread());
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      __func__, [aResponse = std::move(aResponse)]() mutable {
+        LOGD("RunAnalyzeRequestTask on main thread about to send response");
+        LogResponse(&aResponse);
+        RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
+        if (!owner) {
+          // May be shutting down
+          return;
+        }
+
+        nsCOMPtr<nsIObserverService> obsServ =
+            mozilla::services::GetObserverService();
+        // This message is only used for testing purposes, so avoid
+        // serializing the string here if no one is observing this message.
+        // This message is only really useful if we're in a timeout
+        // situation, otherwise dlp-response is fine.
+        if (obsServ->HasObservers("dlp-response-received-raw")) {
+          std::string responseString = aResponse.SerializeAsString();
+          nsTArray<char16_t> responseArray;
+          responseArray.SetLength(responseString.size() + 1);
+          for (size_t i = 0; i < responseString.size(); ++i) {
+            // Since NotifyObservers() expects a null-terminated string,
+            // make sure none of these values are 0.
+            responseArray[i] = responseString[i] + 0xFF00;
+          }
+          responseArray[responseString.size()] = 0;
+          obsServ->NotifyObservers(static_cast<nsIContentAnalysis*>(owner),
+                                   "dlp-response-received-raw",
+                                   responseArray.Elements());
+        }
+
+        Maybe<UserActionIdAndAutoAcknowledge>
+            maybeUserActionIdAndAutoAcknowledge;
+        {
+          auto map = owner->mRequestTokenToUserActionIdMap.Lock();
+          maybeUserActionIdAndAutoAcknowledge =
+              map->Extract(nsCString(aResponse.request_token()));
+        }
+        if (maybeUserActionIdAndAutoAcknowledge.isNothing()) {
+          LOGE(
+              "RunAnalyzeRequestTask could not find userActionId for "
+              "request token %s",
+              aResponse.request_token().c_str());
+          // We have no hope of doing anything useful, so just early return.
+          return;
+        }
+        nsCString userActionId =
+            maybeUserActionIdAndAutoAcknowledge->mUserActionId;
+
+        RefPtr<ContentAnalysisResponse> response =
+            ContentAnalysisResponse::FromProtobuf(std::move(aResponse),
+                                                  userActionId);
+        if (!response) {
+          LOGE("Content analysis got invalid response!");
+          return;
+        }
+
+        // Normally, if we timeout/user-cancel a request, we remove the
+        // adjacent entry in mUserActionMap.  However, we don't do that if
+        // the chosen default behavior is to warn.  We don't want to issue
+        // a response in that case.
+        nsCString requestToken;
+        MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(requestToken));
+        if (owner->mWarnResponseDataMap.Contains(requestToken)) {
+          return;
+        }
+
+        owner->NotifyObserversAndMaybeIssueResponseFromAgent(
+            response, std::move(userActionId),
+            maybeUserActionIdAndAutoAcknowledge->mAutoAcknowledge);
+      }));
 }
 
 void ContentAnalysis::NotifyResponseObservers(
@@ -2082,7 +2082,7 @@ void ContentAnalysis::NotifyResponseObservers(
 
 void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
                                     nsCString&& aUserActionId,
-                                    bool aAutoAcknowledge) {
+                                    bool aAutoAcknowledge, bool aIsTimeout) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aResponse->GetAction() !=
              nsIContentAnalysisResponse::Action::eWarn);
@@ -2142,7 +2142,8 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
   if (aAutoAcknowledge) {
     // Acknowledge every response we receive.
     auto acknowledgement = MakeRefPtr<ContentAnalysisAcknowledgement>(
-        nsIContentAnalysisAcknowledgement::Result::eSuccess,
+        aIsTimeout ? nsIContentAnalysisAcknowledgement::Result::eTooLate
+                   : nsIContentAnalysisAcknowledgement::Result::eSuccess,
         ConvertResult(aResponse->GetAction()));
     aResponse->Acknowledge(acknowledgement);
   }
@@ -2157,7 +2158,7 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
              !mUserActionMap.Contains(aUserActionId));
 }
 
-void ContentAnalysis::NotifyObserversAndMaybeIssueResponse(
+void ContentAnalysis::NotifyObserversAndMaybeIssueResponseFromAgent(
     ContentAnalysisResponse* aResponse, nsCString&& aUserActionId,
     bool aAutoAcknowledge) {
   NotifyResponseObservers(aResponse, nsCString(aUserActionId), aAutoAcknowledge,
@@ -2166,7 +2167,9 @@ void ContentAnalysis::NotifyObserversAndMaybeIssueResponse(
   // For warn responses, IssueResponse will be called later by
   // RespondToWarnDialog, with the action replaced with the user's selection.
   if (aResponse->GetAction() != nsIContentAnalysisResponse::Action::eWarn) {
-    IssueResponse(aResponse, std::move(aUserActionId), aAutoAcknowledge);
+    // This is a response from the agent, so not a timeout.
+    IssueResponse(aResponse, std::move(aUserActionId), aAutoAcknowledge,
+                  false /* aIsTimeout */);
   }
 }
 
@@ -2459,16 +2462,16 @@ RefPtr<ContentAnalysis::MultipartRequestCallback>
 ContentAnalysis::MultipartRequestCallback::Create(
     ContentAnalysis* aContentAnalysis,
     const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-    nsIContentAnalysisCallback* aCallback) {
+    nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge) {
   auto mpcb = MakeRefPtr<MultipartRequestCallback>();
-  mpcb->Initialize(aContentAnalysis, aRequests, aCallback);
+  mpcb->Initialize(aContentAnalysis, aRequests, aCallback, aAutoAcknowledge);
   return mpcb;
 }
 
 void ContentAnalysis::MultipartRequestCallback::Initialize(
     ContentAnalysis* aContentAnalysis,
     const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-    nsIContentAnalysisCallback* aCallback) {
+    nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge) {
   MOZ_ASSERT(aContentAnalysis);
   MOZ_ASSERT(aCallback);
   MOZ_ASSERT(NS_IsMainThread());
@@ -2581,7 +2584,8 @@ void ContentAnalysis::MultipartRequestCallback::Initialize(
 
   // Update our entry in the user action map with the request tokens and a
   // timeout event.
-  auto uaData = UserActionData{this, std::move(requestTokens), timeoutRunnable};
+  auto uaData = UserActionData{this, std::move(requestTokens), timeoutRunnable,
+                               aAutoAcknowledge};
   MOZ_ASSERT(mWeakContentAnalysis->mUserActionMap.Lookup(mUserActionId));
   mWeakContentAnalysis->mUserActionMap.InsertOrUpdate(mUserActionId,
                                                       std::move(uaData));
@@ -3036,8 +3040,8 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
       }
     }
   }
-  mUserActionMap.InsertOrUpdate(userActionId,
-                                UserActionData{aCallback, {}, nullptr});
+  mUserActionMap.InsertOrUpdate(
+      userActionId, UserActionData{aCallback, {}, nullptr, aAutoAcknowledge});
 
   Result<RefPtr<RequestsPromise::AllPromiseType>,
          RefPtr<nsIContentAnalysisResult>>
@@ -3088,7 +3092,8 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
           return;
         }
         RefPtr<MultipartRequestCallback> mpcb =
-            MultipartRequestCallback::Create(weakThis, aRequests, safeCallback);
+            MultipartRequestCallback::Create(weakThis, aRequests, safeCallback,
+                                             aAutoAcknowledge);
         if (mpcb->HasResponded()) {
           // Already responded because the request has been canceled already
           // (or some other error)
@@ -3257,7 +3262,7 @@ ContentAnalysis::RespondToWarnDialog(const nsACString& aRequestToken,
         CanceledResponse{ConvertResult(entry->mResponse->GetAction()), count});
   }
   IssueResponse(entry->mResponse, nsCString(entry->mUserActionId),
-                entry->mAutoAcknowledge);
+                entry->mAutoAcknowledge, entry->mWasTimeout);
   return NS_OK;
 }
 
@@ -3844,7 +3849,7 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
       __func__,
       [pbAck = std::move(pbAck)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-      -> Result<std::nullptr_t, nsresult> {
+          -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -3883,7 +3888,7 @@ ContentAnalysis::GetDiagnosticInfo(JSContext* aCx, dom::Promise** aPromise) {
       __func__,
       [promiseHolder](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
-      -> Result<std::nullptr_t, nsresult> {
+          -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
         // I don't think this will be slow, but do it on the background thread
         // just to be safe
