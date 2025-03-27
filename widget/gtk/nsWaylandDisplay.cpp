@@ -433,9 +433,9 @@ void nsWaylandDisplay::SetXdgActivation(xdg_activation_v1* aXdgActivation) {
   mXdgActivation = aXdgActivation;
 }
 
-void nsWaylandDisplay::SetXdgDbusAnnotationManager(
-    xdg_dbus_annotation_manager_v1* aXdgDbusAnnotationManager) {
-  mXdgDbusAnnotationManager = aXdgDbusAnnotationManager;
+void nsWaylandDisplay::SetAppMenuManager(
+    org_kde_kwin_appmenu_manager* aAppMenuManager) {
+  mAppMenuManager = aAppMenuManager;
 }
 
 void nsWaylandDisplay::SetCMSupportedFeature(uint32_t aFeature) {
@@ -571,11 +571,10 @@ static void global_registry_handler(void* data, wl_registry* registry,
     auto* activation = WaylandRegistryBind<xdg_activation_v1>(
         registry, id, &xdg_activation_v1_interface, 1);
     display->SetXdgActivation(activation);
-  } else if (iface.EqualsLiteral("xdg_dbus_annotation_manager_v1")) {
-    auto* annotationManager =
-        WaylandRegistryBind<xdg_dbus_annotation_manager_v1>(
-            registry, id, &xdg_dbus_annotation_manager_v1_interface, 1);
-    display->SetXdgDbusAnnotationManager(annotationManager);
+  } else if (iface.EqualsLiteral("org_kde_kwin_appmenu_manager")) {
+    auto* appMenuManager = WaylandRegistryBind<org_kde_kwin_appmenu_manager>(
+        registry, id, &org_kde_kwin_appmenu_manager_interface, MIN(version, 2));
+    display->SetAppMenuManager(appMenuManager);
   } else if (iface.EqualsLiteral("wl_seat") &&
              version >= WL_POINTER_RELEASE_SINCE_VERSION) {
     auto* seat = WaylandRegistryBind<wl_seat>(

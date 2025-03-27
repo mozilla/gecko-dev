@@ -11,7 +11,7 @@
 #include "mozilla/EventForwards.h"
 #include "GRefPtr.h"
 
-struct xdg_dbus_annotation_v1;
+struct org_kde_kwin_appmenu;
 
 namespace mozilla {
 
@@ -80,7 +80,7 @@ class DBusMenuBar final : public RefCounted<DBusMenuBar> {
   RefPtr<DbusmenuServer> mServer;
   RefPtr<GDBusProxy> mProxy;
 #  ifdef MOZ_WAYLAND
-  xdg_dbus_annotation_v1* mAnnotation = nullptr;
+  org_kde_kwin_appmenu* mAppMenu = nullptr;
 #  endif
 };
 

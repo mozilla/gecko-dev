@@ -14,13 +14,13 @@
 #include "gbm/gbm.h"
 #include "mozilla/widget/fractional-scale-v1-client-protocol.h"
 #include "mozilla/widget/idle-inhibit-unstable-v1-client-protocol.h"
-#include "mozilla/widget/relative-pointer-unstable-v1-client-protocol.h"
+#include "mozilla/widget/kde-appmenu-client-protocol.h"
+#include "mozilla/widget/linux-dmabuf-unstable-v1-client-protocol.h"
 #include "mozilla/widget/pointer-constraints-unstable-v1-client-protocol.h"
 #include "mozilla/widget/pointer-gestures-unstable-v1-client-protocol.h"
-#include "mozilla/widget/linux-dmabuf-unstable-v1-client-protocol.h"
+#include "mozilla/widget/relative-pointer-unstable-v1-client-protocol.h"
 #include "mozilla/widget/viewporter-client-protocol.h"
 #include "mozilla/widget/xdg-activation-v1-client-protocol.h"
-#include "mozilla/widget/xdg-dbus-annotation-v1-client-protocol.h"
 #include "mozilla/widget/xdg-output-unstable-v1-client-protocol.h"
 #include "mozilla/widget/color-management-v1-client-protocol.h"
 
@@ -58,9 +58,7 @@ class nsWaylandDisplay {
   }
   zwp_linux_dmabuf_v1* GetDmabuf() { return mDmabuf; };
   xdg_activation_v1* GetXdgActivation() { return mXdgActivation; };
-  xdg_dbus_annotation_manager_v1* GetXdgDbusAnnotationManager() {
-    return mXdgDbusAnnotationManager;
-  }
+  org_kde_kwin_appmenu_manager* GetAppMenuManager() { return mAppMenuManager; }
   wp_fractional_scale_manager_v1* GetFractionalScaleManager() {
     return mFractionalScaleManager;
   }
@@ -91,8 +89,7 @@ class nsWaylandDisplay {
   void SetPointerGestures(zwp_pointer_gestures_v1* aPointerGestures);
   void SetDmabuf(zwp_linux_dmabuf_v1* aDmabufFeedback, int aVersion);
   void SetXdgActivation(xdg_activation_v1* aXdgActivation);
-  void SetXdgDbusAnnotationManager(
-      xdg_dbus_annotation_manager_v1* aXdgDbusAnnotationManager);
+  void SetAppMenuManager(org_kde_kwin_appmenu_manager* appMenuManager);
   void SetFractionalScaleManager(wp_fractional_scale_manager_v1* aManager) {
     mFractionalScaleManager = aManager;
   }
@@ -132,7 +129,7 @@ class nsWaylandDisplay {
   bool mDmabufIsFeedback = false;
   zwp_linux_dmabuf_v1* mDmabuf = nullptr;
   xdg_activation_v1* mXdgActivation = nullptr;
-  xdg_dbus_annotation_manager_v1* mXdgDbusAnnotationManager = nullptr;
+  org_kde_kwin_appmenu_manager* mAppMenuManager = nullptr;
   wp_fractional_scale_manager_v1* mFractionalScaleManager = nullptr;
   wp_color_manager_v1* mColorManager = nullptr;
   RefPtr<DMABufFormats> mFormats;
