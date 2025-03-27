@@ -10,7 +10,6 @@ kind-dependencies:
     - build-apk
     - signing-apk
     - fetch
-    - upload-symbols
 
 transforms:
     - gecko_taskgraph.transforms.perftest:transforms

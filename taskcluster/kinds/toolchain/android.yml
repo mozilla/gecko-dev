@@ -218,17 +218,6 @@ linux64-android-ndk-linux-repack:
         toolchain-artifact: project/gecko/android-ndk/android-ndk.tar.zst
         toolchain-alias: android-ndk-linux
 
-linux64-android-simpleperf-linux-repack:
-    description: "Android Simpleperf NDK (Linux) repack toolchain build"
-    treeherder:
-        symbol: TL(android-simpleperf-linux)
-    run:
-        script: repack-android-simpleperf-linux.sh
-        resources:
-            - 'python/mozboot/**/*android*'
-        toolchain-artifact: project/gecko/android-simpleperf/android-simpleperf.tar.zst
-        toolchain-alias: android-simpleperf-linux
-
 linux64-android-gradle-dependencies:
     description: "Android Gradle dependencies toolchain task"
     treeherder:
