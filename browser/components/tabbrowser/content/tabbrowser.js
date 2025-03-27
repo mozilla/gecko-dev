@@ -2960,7 +2960,7 @@
      *   An optional argument that accepts a single tab, which, if passed, will
      *   cause the group to be inserted just before this tab in the tab strip. By
      *   default, the group will be created at the end of the tab strip.
-     * @param {boolean} [options.isUserCreated]
+     * @param {boolean} [options.isUserTriggered]
      *   Should be true if this group is being created in response to an
      *   explicit request from the user (as opposed to a group being created
      *   for technical reasons, such as when an already existing group
@@ -2976,7 +2976,7 @@
         color = null,
         label = "",
         insertBefore = null,
-        isUserCreated = false,
+        isUserTriggered = false,
         telemetryUserCreateSource = "unknown",
       } = {}
     ) {
@@ -3009,7 +3009,7 @@
         new CustomEvent("TabGroupCreate", {
           bubbles: true,
           detail: {
-            isUserCreated,
+            isUserTriggered,
             telemetryUserCreateSource,
           },
         })
@@ -6879,7 +6879,7 @@
           break;
         }
         case "TabGroupCreate":
-          if (aEvent.detail.isUserCreated) {
+          if (aEvent.detail.isUserTriggered) {
             this.tabGroupMenu.openCreateModal(aEvent.target);
           }
           break;
@@ -9014,7 +9014,7 @@ var TabContextMenu = {
   moveTabsToNewGroup() {
     gBrowser.addTabGroup(this.contextTabs, {
       insertBefore: this.contextTab,
-      isUserCreated: true,
+      isUserTriggered: true,
       telemetryUserCreateSource: "tab_menu",
     });
 

@@ -262,14 +262,24 @@
 
     /**
      * Save group data to session store.
+     *
+     * @param {object} [options]
+     * @param {boolean} [options.isUserTriggered]
+     *   Whether or not the save operation was explicitly called by the user.
+     *   Used for telemetry. Default is false.
      */
-    save() {
+    save({ isUserTriggered = false } = {}) {
       SessionStore.addSavedTabGroup(this);
-      this.dispatchEvent(new CustomEvent("TabGroupSaved", { bubbles: true }));
+      this.dispatchEvent(
+        new CustomEvent("TabGroupSaved", {
+          bubbles: true,
+          detail: { isUserTriggered },
+        })
+      );
     }
 
-    saveAndClose() {
-      this.save();
+    saveAndClose({ isUserTriggered } = {}) {
+      this.save({ isUserTriggered });
       gBrowser.removeTabGroup(this);
     }
 

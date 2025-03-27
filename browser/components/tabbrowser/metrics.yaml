@@ -210,6 +210,29 @@ tabgroup:
       - inside
       - outside
 
+  save:
+    type: event
+    description: >
+      Recorded when the user saves a tab group
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+    bugs:
+      - https://bugzil.la/1938426
+    data_reviews:
+      - https://bugzil.la/1938426
+    expires: never
+    extra_keys:
+      user_triggered:
+        description: >
+          Whether the user explicitly chose to save the tab group, or the group
+          was automatically saved as a result of browser operations (e.g. the
+          user closed a window that has open tab groups).
+        type: boolean
+      id:
+        description: The ID of the saved tab group
+        type: string
+
   smart_tab_optin:
     type: event
     description: >

@@ -90,7 +90,7 @@
           data-l10n-id="tab-group-editor-action-ungroup">
         </toolbarbutton>
       </html:div>
-        
+
       <toolbarseparator class="tab-group-edit-mode-only" />
 
       <html:div class="tab-group-edit-mode-only panel-body tab-group-delete">
@@ -234,9 +234,9 @@
         />
 
         <toolbarseparator class="tab-group-edit-mode-only"/>
-        
+
         ${this.editActions}
-        
+
         <toolbarseparator id="tab-group-suggestions-separator" hidden="true"/>
 
         ${this.suggestionsButton}
@@ -254,7 +254,7 @@
         </html:div>
         
         ${this.defaultActions}
-      
+
       </html:div>
       
       ${this.loadingSection}
@@ -435,7 +435,7 @@
       document
         .getElementById("tabGroupEditor_saveAndCloseGroup")
         .addEventListener("command", () => {
-          this.activeGroup.saveAndClose();
+          this.activeGroup.saveAndClose({ isUserTriggered: true });
         });
 
       document

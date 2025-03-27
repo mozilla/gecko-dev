@@ -16,7 +16,7 @@ add_task(async function test_tabGroupTelemetry() {
   await BrowserTestUtils.browserLoaded(group1tab.linkedBrowser);
 
   let group1 = gBrowser.addTabGroup([group1tab], {
-    isUserCreated: true,
+    isUserTriggered: true,
     telemetryUserCreateSource: "test-source",
   });
   gBrowser.tabGroupMenu.close();
@@ -84,7 +84,7 @@ add_task(async function test_tabGroupTelemetry() {
   );
 
   let group2 = gBrowser.addTabGroup(group2Tabs, {
-    isUserCreated: true,
+    isUserTriggered: true,
     telemetryUserCreateSource: "test-source",
   });
   gBrowser.tabGroupMenu.close();
@@ -195,4 +195,50 @@ add_task(async function test_tabGroupTelemetry() {
 
   await removeTabGroup(group1);
   await removeTabGroup(group2);
+});
+
+add_task(async function test_tabGroupTelemetrySaveGroup() {
+  let tabGroupSaveTelemetry;
+
+  await resetTelemetry();
+
+  let group1tab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  await BrowserTestUtils.browserLoaded(group1tab.linkedBrowser);
+  let group1 = gBrowser.addTabGroup([group1tab]);
+  group1.saveAndClose();
+
+  await BrowserTestUtils.waitForCondition(() => {
+    tabGroupSaveTelemetry = Glean.tabgroup.save.testGetValue();
+    return tabGroupSaveTelemetry?.length == 1;
+  }, "Wait for tabgroup.save event after tab group save");
+
+  Assert.deepEqual(
+    tabGroupSaveTelemetry[0].extra,
+    {
+      user_triggered: "false",
+      id: group1.id,
+    },
+    "tabgroup.save event extra_keys has correct values after tab group save"
+  );
+
+  await resetTelemetry();
+
+  let group2tab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  await BrowserTestUtils.browserLoaded(group2tab.linkedBrowser);
+  let group2 = gBrowser.addTabGroup([group2tab]);
+  group2.saveAndClose({ isUserTriggered: true });
+
+  await BrowserTestUtils.waitForCondition(() => {
+    tabGroupSaveTelemetry = Glean.tabgroup.save.testGetValue();
+    return tabGroupSaveTelemetry?.length == 1;
+  }, "Wait for tabgroup.save event after tab group save with explicit user event");
+
+  Assert.deepEqual(
+    tabGroupSaveTelemetry[0].extra,
+    {
+      user_triggered: "true",
+      id: group2.id,
+    },
+    "tabgroup.save event extra_keys has correct values after tab group save by explicit user event"
+  );
 });
