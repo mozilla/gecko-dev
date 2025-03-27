@@ -1276,7 +1276,7 @@
       background-image: linear-gradient(
         to top,
         transparent 0%,
-        var(--toolbox-bgcolor)
+        light-dark(rgba(0, 0, 0, .05), rgba(255, 255, 255, .05))
       );
       background-repeat: no-repeat;
       pointer-events: none;
@@ -1460,7 +1460,7 @@
       background-image: linear-gradient(
         to top,
         transparent 0%,
-        var(--toolbox-bgcolor)
+        light-dark(rgba(0, 0, 0, .05), rgba(255, 255, 255, .05))
       );
       background-repeat: no-repeat;
       pointer-events: none;
