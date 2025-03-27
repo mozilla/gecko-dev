@@ -17,6 +17,7 @@
 #include "mozilla/dom/WheelEventBinding.h"
 
 #include <cmath>
+#include <uxtheme.h>
 
 using namespace mozilla;
 using namespace mozilla::widget;
