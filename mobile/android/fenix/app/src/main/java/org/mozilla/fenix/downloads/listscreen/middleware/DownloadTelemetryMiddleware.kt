@@ -36,6 +36,14 @@ class DownloadTelemetryMiddleware : Middleware<DownloadUIState, DownloadUIAction
                 Downloads.filtered.set(action.contentTypeFilter.name)
             }
 
+            is DownloadUIAction.ShareUrlClicked -> {
+                Downloads.shareUrl.record(NoExtras())
+            }
+
+            is DownloadUIAction.ShareFileClicked -> {
+                Downloads.shareFile.record(NoExtras())
+            }
+
             else -> {}
         }
     }

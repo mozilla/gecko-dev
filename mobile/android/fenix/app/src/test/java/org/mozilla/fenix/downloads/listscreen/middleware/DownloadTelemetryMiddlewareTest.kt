@@ -59,6 +59,34 @@ class DownloadTelemetryMiddlewareTest {
         assertEquals(FileItem.ContentTypeFilter.Other.name, snapshot)
     }
 
+    @Test
+    fun `WHEN the user share the downloaded file THEN record share file telemetry`() {
+        val store = createStore()
+
+        assertNull(Downloads.shareFile.testGetValue())
+
+        store.dispatch(DownloadUIAction.ShareFileClicked(filePath = "path", contentType = ""))
+
+        assertNotNull(Downloads.shareFile.testGetValue())
+        val snapshot = Downloads.shareFile.testGetValue()!!
+        assertEquals(1, snapshot.size)
+        assertEquals("share_file", snapshot.single().name)
+    }
+
+    @Test
+    fun `WHEN the user share the downloaded file url THEN record share url telemetry`() {
+        val store = createStore()
+
+        assertNull(Downloads.shareUrl.testGetValue())
+
+        store.dispatch(DownloadUIAction.ShareUrlClicked("url"))
+
+        assertNotNull(Downloads.shareUrl.testGetValue())
+        val snapshot = Downloads.shareUrl.testGetValue()!!
+        assertEquals(1, snapshot.size)
+        assertEquals("share_url", snapshot.single().name)
+    }
+
     private fun createStore(
         downloadUIState: DownloadUIState = DownloadUIState.INITIAL,
     ) = DownloadUIStore(

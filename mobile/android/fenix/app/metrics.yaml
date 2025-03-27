@@ -13609,3 +13609,29 @@ downloads:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+  share_file:
+    type: event
+    description: |
+      A user shared the downloaded file.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956437
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243323
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  share_url:
+    type: event
+    description: |
+      A user shared the downloaded file URL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956437
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243323
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
