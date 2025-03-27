@@ -413,3 +413,79 @@ add_task(async function test_new_position_notification_card_show_settings() {
   SidebarController.hide();
   await SpecialPowers.popPrefEnv();
 });
+
+/**
+ * Tests that the notification card starts with "Move to left" if window is in RTL and
+ * correctly switches to "Move to right" when changing positions.
+ */
+add_task(async function test_new_position_notification_card_rtl() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.newPositionCard.hasSeen", false],
+      ["sidebar.position_start", true],
+      // Mock RTL
+      ["intl.l10n.pseudo", "bidi"],
+    ],
+  });
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async _browser => {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    info("Waiting for sidebar to update.");
+    await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
+
+    await withReviewCheckerSidebar(async _args => {
+      let card;
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+
+      card = shoppingContainer.newPositionNotificationCardEl;
+      Assert.ok(card.moveLeftButtonEl, "Card has 'Move left' button for RTL");
+    });
+
+    await testMoveToLeft();
+
+    await TestUtils.waitForTick();
+
+    let hasSeen = Services.prefs.getBoolPref(
+      "browser.shopping.experience2023.newPositionCard.hasSeen"
+    );
+    Assert.ok(
+      !hasSeen,
+      "browser.shopping.experience2023.newPositionCard.hasSeen is false after reverse position"
+    );
+
+    let startPosition = Services.prefs.getBoolPref("sidebar.position_start");
+    Assert.ok(!startPosition, "sidebar.position_start is false");
+
+    await withReviewCheckerSidebar(async _args => {
+      let card;
+      let shoppingContainer = await ContentTaskUtils.waitForCondition(
+        () =>
+          content.document.querySelector("shopping-container")?.wrappedJSObject,
+        "Review Checker is loaded."
+      );
+
+      card = shoppingContainer.newPositionNotificationCardEl;
+      Assert.ok(card.moveRightButtonEl, "Card has 'Move right' button for RTL");
+    });
+
+    await testMoveToRight();
+
+    await TestUtils.waitForTick();
+
+    hasSeen = Services.prefs.getBoolPref(
+      "browser.shopping.experience2023.newPositionCard.hasSeen"
+    );
+    Assert.ok(
+      !hasSeen,
+      "browser.shopping.experience2023.newPositionCard.hasSeen is still false after undoing reverse position"
+    );
+
+    startPosition = Services.prefs.getBoolPref("sidebar.position_start");
+    Assert.ok(startPosition, "sidebar.position_start is now true");
+  });
+  SidebarController.hide();
+  await SpecialPowers.popPrefEnv();
+});

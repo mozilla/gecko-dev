@@ -24,6 +24,7 @@ const HAS_SEEN_NEW_POSITION_NOTIFICATION_CARD_PREF =
 
 class NewPositionNotificationCard extends MozLitElement {
   static properties = {
+    isRTL: { type: Boolean, state: true },
     isSidebarStartPosition: { type: Boolean },
   };
 
@@ -64,26 +65,53 @@ class NewPositionNotificationCard extends MozLitElement {
     }
   }
 
+  /**
+   * Flips the sidebar position between starting position
+   * and ending position. Also records Glean click events for
+   * the button. Which event we dispatch depends on the current
+   * sidebar position.
+   *
+   * @see movePositionButtonTemplate
+   */
   handleClickPositionButton() {
-    if (this.isSidebarStartPosition) {
-      Glean.shopping.surfaceNotificationCardMoveRightClicked.record();
-      this.isSidebarStartPosition = false;
-      window.dispatchEvent(
-        new CustomEvent("MoveSidebarToRight", {
-          bubbles: true,
-          composed: true,
-        })
-      );
-    } else {
-      Glean.shopping.surfaceNotificationCardMoveLeftClicked.record();
-      this.isSidebarStartPosition = true;
-      window.dispatchEvent(
-        new CustomEvent("MoveSidebarToLeft", {
-          bubbles: true,
-          composed: true,
-        })
-      );
+    if (this.isRTL) {
+      if (this.isSidebarStartPosition) {
+        this.isSidebarStartPosition = false;
+        this._handleMoveLeftButton();
+      } else {
+        this.isSidebarStartPosition = true;
+        this._handleMoveRightButton();
+      }
+      return;
     }
+
+    if (this.isSidebarStartPosition) {
+      this.isSidebarStartPosition = false;
+      this._handleMoveRightButton();
+    } else {
+      this.isSidebarStartPosition = true;
+      this._handleMoveLeftButton();
+    }
+  }
+
+  _handleMoveLeftButton() {
+    Glean.shopping.surfaceNotificationCardMoveLeftClicked.record();
+    window.dispatchEvent(
+      new CustomEvent("MoveSidebarToLeft", {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  _handleMoveRightButton() {
+    Glean.shopping.surfaceNotificationCardMoveRightClicked.record();
+    window.dispatchEvent(
+      new CustomEvent("MoveSidebarToRight", {
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   handleClickDismissButton() {
@@ -100,7 +128,56 @@ class NewPositionNotificationCard extends MozLitElement {
     );
   }
 
+  /**
+   * Renders the move sidebar position button with the appropriate strings.
+   *
+   * For LTR builds:
+   * - starting position = left (button = "move to right")
+   * - ending position = right (button = "move to left")
+   *
+   * For RTL builds:
+   * - starting position = right (button = "move to left")
+   * - ending position = left (button = "move to right")
+   *
+   * @see handleClickPositionButton
+   */
+  movePositionButtonTemplate() {
+    let buttonId;
+    let buttonDataL10nId;
+
+    // For RTL, the sidebar starts on the right side.
+    if (this.isRTL) {
+      buttonId = this.isSidebarStartPosition
+        ? "notification-card-move-left-button"
+        : "notification-card-move-right-button";
+      buttonDataL10nId = this.isSidebarStartPosition
+        ? "shopping-integrated-new-position-notification-move-left-button"
+        : "shopping-integrated-new-position-notification-move-right-button";
+    } else {
+      buttonId = this.isSidebarStartPosition
+        ? "notification-card-move-right-button"
+        : "notification-card-move-left-button";
+      buttonDataL10nId = this.isSidebarStartPosition
+        ? "shopping-integrated-new-position-notification-move-right-button"
+        : "shopping-integrated-new-position-notification-move-left-button";
+    }
+
+    return html`
+      <moz-button
+        id=${buttonId}
+        data-l10n-id=${buttonDataL10nId}
+        type="primary"
+        size="small"
+        @click=${this.handleClickPositionButton}
+      >
+      </moz-button>
+    `;
+  }
+
   render() {
+    // this.isSidebarStartPosition = RPMGetBoolPref("sidebar.position_start", false);
+    this.isRTL = window.document.dir === "rtl";
+
     return html`
       <link
         rel="stylesheet"
@@ -120,7 +197,9 @@ class NewPositionNotificationCard extends MozLitElement {
           ></h2>
           <p
             id="notification-card-body"
-            data-l10n-id="shopping-integrated-new-position-notification-move-right-subtitle"
+            data-l10n-id=${this.isRTL
+              ? "shopping-integrated-new-position-notification-move-left-subtitle"
+              : "shopping-integrated-new-position-notification-move-right-subtitle"}
             @click=${this.handleClickSettingsLink}
           >
             <a
@@ -130,18 +209,7 @@ class NewPositionNotificationCard extends MozLitElement {
             ></a>
           </p>
           <div id="notification-card-button-group">
-            <moz-button
-              id=${this.isSidebarStartPosition
-                ? "notification-card-move-right-button"
-                : "notification-card-move-left-button"}
-              data-l10n-id=${this.isSidebarStartPosition
-                ? "shopping-integrated-new-position-notification-move-right-button"
-                : "shopping-integrated-new-position-notification-move-left-button"}
-              type="primary"
-              size="small"
-              @click=${this.handleClickPositionButton}
-            >
-            </moz-button>
+            ${this.movePositionButtonTemplate()}
             <moz-button
               id="notification-card-dismiss-button"
               data-l10n-id="shopping-integrated-new-position-notification-dismiss-button"
