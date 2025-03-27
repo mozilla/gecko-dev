@@ -11,7 +11,6 @@
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/dom/MessageManagerCallback.h"
 #include "mozilla/dom/MediaSessionBinding.h"
-#include "mozilla/dom/ProcessIsolation.h"
 #include "mozilla/dom/RemoteBrowser.h"
 #include "mozilla/dom/RemoteType.h"
 #include "mozilla/dom/JSProcessActorParent.h"
@@ -654,6 +653,11 @@ class ContentParent final : public PContentParent,
 
   // Whenever receiving a Principal we need to validate that Principal case
   // by case, where we grant individual callsites to customize the checks!
+  enum class ValidatePrincipalOptions {
+    AllowNullPtr,  // Not a NullPrincipal but a nullptr as Principal.
+    AllowSystem,
+    AllowExpanded,
+  };
   bool ValidatePrincipal(
       nsIPrincipal* aPrincipal,
       const EnumSet<ValidatePrincipalOptions>& aOptions = {});
