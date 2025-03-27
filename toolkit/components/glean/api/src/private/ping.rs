@@ -38,6 +38,7 @@ impl Ping {
         schedules_pings: Vec<String>,
         reason_codes: Vec<String>,
         follows_collection_enabled: bool,
+        uploader_capabilities: Vec<String>,
     ) -> Self {
         if need_ipc() {
             Ping::Child
@@ -54,6 +55,7 @@ impl Ping {
                     schedules_pings,
                     reason_codes,
                     follows_collection_enabled,
+                    uploader_capabilities,
                 ),
                 name,
             }
@@ -151,6 +153,7 @@ mod test {
             vec![],
             vec![],
             true,
+            vec![],
         )
     });
 

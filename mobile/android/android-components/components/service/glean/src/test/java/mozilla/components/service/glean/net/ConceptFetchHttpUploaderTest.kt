@@ -13,7 +13,9 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.telemetry.glean.config.Configuration
+import mozilla.telemetry.glean.net.CapablePingUploadRequest
 import mozilla.telemetry.glean.net.HttpStatus
+import mozilla.telemetry.glean.net.PingUploadRequest
 import mozilla.telemetry.glean.net.RecoverableFailure
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -59,7 +61,8 @@ class ConceptFetchHttpUploaderTest {
         val uploader =
             spy<ConceptFetchHttpUploader>(ConceptFetchHttpUploader(lazy { HttpURLConnectionClient() }))
 
-        val request = uploader.buildRequest(testPath, testPing.toByteArray(), emptyMap())
+        val uploadRequest = PingUploadRequest(url = testPath, data = testPing.toByteArray(), emptyMap(), emptyList())
+        val request = uploader.buildRequest(uploadRequest)
 
         assertEquals(
             Pair(ConceptFetchHttpUploader.DEFAULT_READ_TIMEOUT, TimeUnit.MILLISECONDS),
@@ -85,7 +88,8 @@ class ConceptFetchHttpUploaderTest {
         )
 
         val uploader = ConceptFetchHttpUploader(lazy { mockClient })
-        uploader.upload(testPath, testPing.toByteArray(), expectedHeaders)
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = testPath, data = testPing.toByteArray(), expectedHeaders, emptyList()))
+        uploader.upload(uploadRequest)
         val requestCaptor = argumentCaptor<Request>()
         verify(mockClient).fetch(requestCaptor.capture())
 
@@ -102,7 +106,8 @@ class ConceptFetchHttpUploaderTest {
         val uploader =
             spy<ConceptFetchHttpUploader>(ConceptFetchHttpUploader(lazy { HttpURLConnectionClient() }))
 
-        val request = uploader.buildRequest(testPath, testPing.toByteArray(), emptyMap())
+        val uploadRequest = PingUploadRequest(url = testPath, data = testPing.toByteArray(), emptyMap(), emptyList())
+        val request = uploader.buildRequest(uploadRequest)
 
         assertEquals(request.cookiePolicy, Request.CookiePolicy.OMIT)
     }
@@ -121,7 +126,8 @@ class ConceptFetchHttpUploaderTest {
 
         val uploader = spy<ConceptFetchHttpUploader>(ConceptFetchHttpUploader(lazy { mockClient }))
 
-        assertEquals(HttpStatus(200), uploader.upload(testPath, testPing.toByteArray(), emptyMap()))
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = testPath, data = testPing.toByteArray(), emptyMap(), emptyList()))
+        assertEquals(HttpStatus(200), uploader.upload(uploadRequest))
     }
 
     @Test
@@ -139,7 +145,8 @@ class ConceptFetchHttpUploaderTest {
 
             val uploader = spy<ConceptFetchHttpUploader>(ConceptFetchHttpUploader(lazy { mockClient }))
 
-            assertEquals(HttpStatus(responseCode), uploader.upload(testPath, testPing.toByteArray(), emptyMap()))
+            val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = testPath, data = testPing.toByteArray(), emptyMap(), emptyList()))
+            assertEquals(HttpStatus(responseCode), uploader.upload(uploadRequest))
         }
     }
 
@@ -158,7 +165,8 @@ class ConceptFetchHttpUploaderTest {
 
             val uploader = spy<ConceptFetchHttpUploader>(ConceptFetchHttpUploader(lazy { mockClient }))
 
-            assertEquals(HttpStatus(responseCode), uploader.upload(testPath, testPing.toByteArray(), emptyMap()))
+            val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = testPath, data = testPing.toByteArray(), emptyMap(), emptyList()))
+            assertEquals(HttpStatus(responseCode), uploader.upload(uploadRequest))
         }
     }
 
@@ -177,7 +185,8 @@ class ConceptFetchHttpUploaderTest {
 
             val uploader = spy<ConceptFetchHttpUploader>(ConceptFetchHttpUploader(lazy { mockClient }))
 
-            assertEquals(HttpStatus(responseCode), uploader.upload(testPath, testPing.toByteArray(), emptyMap()))
+            val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = testPath, data = testPing.toByteArray(), emptyMap(), emptyList()))
+            assertEquals(HttpStatus(responseCode), uploader.upload(uploadRequest))
         }
     }
 
@@ -188,7 +197,8 @@ class ConceptFetchHttpUploaderTest {
         val client = ConceptFetchHttpUploader(lazy { HttpURLConnectionClient() })
 
         val submissionUrl = "http://" + server.hostName + ":" + server.port + testPath
-        assertEquals(HttpStatus(200), client.upload(submissionUrl, testPing.toByteArray(), mapOf("test" to "header")))
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = submissionUrl, data = testPing.toByteArray(), mapOf("test" to "header"), emptyList()))
+        assertEquals(HttpStatus(200), client.upload(uploadRequest))
 
         val request = server.takeRequest()
         assertEquals(testPath, request.path)
@@ -206,7 +216,8 @@ class ConceptFetchHttpUploaderTest {
         val client = ConceptFetchHttpUploader(lazy { HttpURLConnectionClient() })
 
         val submissionUrl = "http://" + server.hostName + ":" + server.port + testPath
-        assertEquals(HttpStatus(200), client.upload(submissionUrl, testPing.toByteArray(), mapOf("test" to "header")))
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = submissionUrl, data = testPing.toByteArray(), mapOf("test" to "header"), emptyList()))
+        assertEquals(HttpStatus(200), client.upload(uploadRequest))
 
         val request = server.takeRequest()
         assertEquals(testPath, request.path)
@@ -225,7 +236,8 @@ class ConceptFetchHttpUploaderTest {
         val client = ConceptFetchHttpUploader(lazy { OkHttpClient() })
 
         val submissionUrl = "http://" + server.hostName + ":" + server.port + testPath
-        assertEquals(HttpStatus(200), client.upload(submissionUrl, testPing.toByteArray(), mapOf("test" to "header")))
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = submissionUrl, data = testPing.toByteArray(), mapOf("test" to "header"), emptyList()))
+        assertEquals(HttpStatus(200), client.upload(uploadRequest))
 
         val request = server.takeRequest()
         assertEquals(testPath, request.path)
@@ -274,7 +286,8 @@ class ConceptFetchHttpUploaderTest {
         // Trigger the connection.
         val client = ConceptFetchHttpUploader(lazy { HttpURLConnectionClient() })
         val submissionUrl = testConfig.serverEndpoint + testPath
-        assertEquals(HttpStatus(200), client.upload(submissionUrl, testPing.toByteArray(), emptyMap()))
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = submissionUrl, data = testPing.toByteArray(), emptyMap(), emptyList()))
+        assertEquals(HttpStatus(200), client.upload(uploadRequest))
 
         val request = server.takeRequest()
         assertEquals(testPath, request.path)
@@ -298,7 +311,8 @@ class ConceptFetchHttpUploaderTest {
 
         // And IOException during upload is a failed upload that we should retry. The client should
         // return false in this case.
-        assertEquals(RecoverableFailure(0), uploader.upload("path", "ping".toByteArray(), emptyMap()))
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = "path", data = "ping".toByteArray(), emptyMap(), emptyList()))
+        assertEquals(RecoverableFailure(0), uploader.upload(uploadRequest))
     }
 
     @Test
@@ -311,7 +325,8 @@ class ConceptFetchHttpUploaderTest {
         assertFalse(uploader.client.isInitialized())
 
         // After calling upload, the client must get instantiated.
-        uploader.upload("path", "ping".toByteArray(), emptyMap())
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = "path", data = "ping".toByteArray(), emptyMap(), emptyList()))
+        uploader.upload(uploadRequest)
         assertTrue(uploader.client.isInitialized())
     }
 
@@ -329,7 +344,8 @@ class ConceptFetchHttpUploaderTest {
         )
 
         val uploader = ConceptFetchHttpUploader(lazy { mockClient }, true)
-        uploader.upload(testPath, testPing.toByteArray(), expectedHeaders)
+        val uploadRequest = CapablePingUploadRequest(PingUploadRequest(url = "path", data = "ping".toByteArray(), expectedHeaders, emptyList()))
+        uploader.upload(uploadRequest)
 
         val captor = argumentCaptor<Request>()
 

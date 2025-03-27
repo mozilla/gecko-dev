@@ -145,6 +145,7 @@ pub extern "C" fn jog_test_register_ping(
     schedules_pings: &ThinVec<nsCString>,
     reason_codes: &ThinVec<nsCString>,
     follows_collection_enabled: bool,
+    uploader_capabilities: &ThinVec<nsCString>,
 ) -> u32 {
     let ping_name = name.to_string();
     let reason_codes = reason_codes
@@ -154,6 +155,10 @@ pub extern "C" fn jog_test_register_ping(
     let schedules_pings = schedules_pings
         .iter()
         .map(|ping| ping.to_string())
+        .collect();
+    let uploader_capabilities = uploader_capabilities
+        .iter()
+        .map(|capability| capability.to_string())
         .collect();
     create_and_register_ping(
         ping_name,
@@ -165,6 +170,7 @@ pub extern "C" fn jog_test_register_ping(
         schedules_pings,
         reason_codes,
         follows_collection_enabled,
+        uploader_capabilities,
     )
     .expect("Creation or registration of ping failed.") // permitted to panic in test-only method.
 }
@@ -180,6 +186,7 @@ fn create_and_register_ping(
     schedules_pings: Vec<String>,
     reason_codes: Vec<String>,
     follows_collection_enabled: bool,
+    uploader_capabilities: Vec<String>,
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let ns_name = nsCString::from(&ping_name);
     let ping_id = factory::create_and_register_ping(
@@ -192,6 +199,7 @@ fn create_and_register_ping(
         schedules_pings,
         reason_codes,
         follows_collection_enabled,
+        uploader_capabilities,
     );
     extern "C" {
         fn JOG_RegisterPing(name: &nsACString, ping_id: u32);
@@ -246,6 +254,7 @@ struct PingDefinitionData {
     schedules_pings: Option<Vec<String>>,
     reason_codes: Option<Vec<String>>,
     follows_collection_enabled: bool,
+    uploader_capabilities: Vec<String>,
 }
 
 /// Read the file at the provided location, interpret it as a jogfile,
@@ -296,6 +305,7 @@ pub extern "C" fn jog_load_jogfile(jogfile_path: &nsAString) -> bool {
             ping.schedules_pings.unwrap_or_else(Vec::new),
             ping.reason_codes.unwrap_or_else(Vec::new),
             ping.follows_collection_enabled,
+            ping.uploader_capabilities,
         );
     }
     true
