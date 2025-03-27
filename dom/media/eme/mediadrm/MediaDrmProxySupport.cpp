@@ -223,7 +223,8 @@ void MediaDrmProxySupport::CreateSession(uint32_t aCreateSessionToken,
   MOZ_ASSERT(mBridgeProxy);
 
   auto initDataBytes = mozilla::jni::ByteArray::New(
-      reinterpret_cast<const int8_t*>(&aInitData[0]), aInitData.Length());
+      reinterpret_cast<const int8_t*>(aInitData.Elements()),
+      aInitData.Length());
   // TODO: aSessionType is not used here.
   // Refer to
   // http://androidxref.com/5.1.1_r6/xref/external/chromium_org/media/base/android/java/src/org/chromium/media/MediaDrmBridge.java#420

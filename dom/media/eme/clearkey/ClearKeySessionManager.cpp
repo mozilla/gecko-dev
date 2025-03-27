@@ -264,14 +264,14 @@ void ClearKeySessionManager::PersistentSessionDataLoaded(
     keyPairs.push_back(keyPair);
 
     KeyInformation keyInfo = {};
-    keyInfo.key_id = &keyPairs.back().mKeyId[0];
+    keyInfo.key_id = keyPairs.back().mKeyId.data();
     keyInfo.key_id_size = keyPair.mKeyId.size();
     keyInfo.status = KeyStatus::kUsable;
 
     keyInfos.push_back(keyInfo);
   }
 
-  mHost->OnSessionKeysChange(&aSessionId[0], aSessionId.size(), true,
+  mHost->OnSessionKeysChange(aSessionId.data(), aSessionId.size(), true,
                              keyInfos.data(), keyInfos.size());
 
   mHost->OnResolveNewSessionPromise(aPromiseId, aSessionId.c_str(),
@@ -352,7 +352,7 @@ void ClearKeySessionManager::UpdateSession(uint32_t aPromiseId,
     mKeyIds.insert(keyPair.mKeyId);
 
     KeyInformation keyInfo = {};
-    keyInfo.key_id = &keyPair.mKeyId[0];
+    keyInfo.key_id = keyPair.mKeyId.data();
     keyInfo.key_id_size = keyPair.mKeyId.size();
     keyInfo.status = KeyStatus::kUsable;
 

@@ -133,7 +133,7 @@ void ClearKeyDecryptionManager::ReleaseKeyId(KeyId aKeyId) {
 
 Status ClearKeyDecryptionManager::Decrypt(std::vector<uint8_t>& aBuffer,
                                           const CryptoMetaData& aMetadata) {
-  return Decrypt(&aBuffer[0], aBuffer.size(), aMetadata);
+  return Decrypt(aBuffer.data(), aBuffer.size(), aMetadata);
 }
 
 Status ClearKeyDecryptionManager::Decrypt(uint8_t* aBuffer,
@@ -234,7 +234,7 @@ Status ClearKeyDecryptor::Decrypt(uint8_t* aBuffer, uint32_t aBufferSize,
     mozilla::CheckedInt<uintptr_t> data = reinterpret_cast<uintptr_t>(aBuffer);
     const uintptr_t endBuffer =
         reinterpret_cast<uintptr_t>(aBuffer + aBufferSize);
-    uint8_t* iter = &tmp[0];
+    uint8_t* iter = tmp.data();
     for (size_t i = 0; i < aMetadata.NumSubsamples(); i++) {
       data += aMetadata.mClearBytes[i];
       if (!data.isValid() || data.value() > endBuffer) {
@@ -254,9 +254,9 @@ Status ClearKeyDecryptor::Decrypt(uint8_t* aBuffer, uint32_t aBufferSize,
       iter += cipherBytes;
     }
 
-    tmp.resize((size_t)(iter - &tmp[0]));
+    tmp.resize((size_t)(iter - tmp.data()));
   } else {
-    memcpy(&tmp[0], aBuffer, aBufferSize);
+    memcpy(tmp.data(), aBuffer, aBufferSize);
   }
 
   // It is possible that we could be passed an unencrypted sample, if all
@@ -276,7 +276,7 @@ Status ClearKeyDecryptor::Decrypt(uint8_t* aBuffer, uint32_t aBufferSize,
     // Take the decrypted buffer, split up into subsamples, and insert those
     // subsamples back into their original position in the original buffer.
     uint8_t* data = aBuffer;
-    uint8_t* iter = &tmp[0];
+    uint8_t* iter = tmp.data();
     for (size_t i = 0; i < aMetadata.NumSubsamples(); i++) {
       data += aMetadata.mClearBytes[i];
       uint32_t cipherBytes = aMetadata.mCipherBytes[i];
@@ -287,7 +287,7 @@ Status ClearKeyDecryptor::Decrypt(uint8_t* aBuffer, uint32_t aBufferSize,
       iter += cipherBytes;
     }
   } else {
-    memcpy(aBuffer, &tmp[0], aBufferSize);
+    memcpy(aBuffer, tmp.data(), aBufferSize);
   }
 
   return Status::kSuccess;
