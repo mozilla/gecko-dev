@@ -11,20 +11,6 @@ AC_INIT(config/config.mk)
 AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
 
 dnl ========================================================
-dnl =
-dnl = Application
-dnl =
-dnl ========================================================
-
-dnl ========================================================
-dnl = Trademarked Branding
-dnl ========================================================
-
-if test -f "${_topsrcdir}/$REAL_BRANDING_DIRECTORY/configure.sh"; then
-  . "${_topsrcdir}/$REAL_BRANDING_DIRECTORY/configure.sh"
-fi
-
-dnl ========================================================
 dnl = Mac bundle name
 dnl ========================================================
 
@@ -94,16 +80,7 @@ AC_SUBST(MOZ_EME_PROCESS_BUNDLEID)
 # version_display.txt or version.txt in the application directory, or
 # browser/config/version_display.txt.
 
-AC_SUBST(MOZ_APP_DISPLAYNAME)
 AC_DEFINE_UNQUOTED(MOZ_APP_UA_VERSION, "$MOZ_APP_VERSION")
-
-dnl Set various defines and substitutions
-dnl ========================================================
-
-AC_SUBST(MOZ_DEV_EDITION)
-if test -n "$MOZ_DEV_EDITION"; then
-    AC_DEFINE(MOZ_DEV_EDITION)
-fi
 
 dnl Spit out some output
 dnl ========================================================
