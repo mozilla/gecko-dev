@@ -31,7 +31,7 @@ if CONFIG["FUZZING_INTERFACES"]:
     else:
         USE_LIBS += ["static:fuzzer-interface"]
 
-if CONFIG["FUZZING_JS_FUZZILLI"]:
+if CONFIG["FUZZING_JS_FUZZILLI"] and CONFIG["OS_ARCH"] == "Linux":
     OS_LIBS += ["rt"]
 
 DEFINES["EXPORT_JS_API"] = True

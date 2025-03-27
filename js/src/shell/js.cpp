@@ -4100,7 +4100,11 @@ static bool Fuzzilli(JSContext* cx, unsigned argc, Value* vp) {
         MOZ_ASSERT(false);
         break;
       case 3:
+      #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
         __asm__("int3");
+      #elif defined(JS_CODEGEN_ARM64)
+        __asm__("brk #0");
+      #endif
         break;
       default:
         exit(1);
