@@ -998,6 +998,7 @@ class StyleSheetsManager extends EventEmitter {
     // sheets system sheets, then remove this special-case.
     if (
       href === "resource://content-accessible/accessiblecaret.css" ||
+      href === "resource://content-accessible/details.css" ||
       (href === "resource://devtools-highlighter-styles/highlighters.css" &&
         this.#targetActor.sessionContext.type !== "all")
     ) {
