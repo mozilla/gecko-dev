@@ -1188,7 +1188,7 @@ var SidebarController = {
       return;
     }
     if (this.sidebarRevampVisibility === "expand-on-hover") {
-      this.toggleExpandOnHover(initialExpandedValue);
+      await this.toggleExpandOnHover(initialExpandedValue);
     }
     if (this._animationEnabled && !window.gReduceMotion) {
       this._animateSidebarMain();
@@ -1200,7 +1200,7 @@ var SidebarController = {
       this._show(this._state.command);
     }
     if (this.sidebarRevampVisibility === "expand-on-hover") {
-      this.toggleExpandOnHover(initialExpandedValue);
+      await this.toggleExpandOnHover(initialExpandedValue);
     }
     this.updateToolbarButton();
 
@@ -1935,7 +1935,11 @@ var SidebarController = {
 
   async setLauncherCollapsedWidth() {
     let browserEl = document.getElementById("browser");
-    let collapsedWidth = this._getRects([this.sidebarMain])[0][1].width;
+    let collapsedWidth = await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        resolve(this._getRects([this.sidebarMain])[0][1].width);
+      });
+    });
 
     browserEl.style.setProperty(
       "--sidebar-launcher-collapsed-width",
@@ -1990,8 +1994,8 @@ var SidebarController = {
       }
       if (this.getUIState().launcherExpanded && !isDragEnded) {
         this._state.launcherExpanded = false;
-        await this.waitUntilStable();
       }
+      await this.waitUntilStable();
       MousePosTracker.addListener(this);
       window.addEventListener("mouseout", this);
       if (!isDragEnded) {
@@ -2112,12 +2116,14 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebarRevampVisibility",
   "sidebar.visibility",
   "always-show",
-  (_aPreference, _previousValue, newValue) => {
+  async (_aPreference, _previousValue, newValue) => {
     if (
       !SidebarController.inSingleTabWindow &&
       !SidebarController.uninitializing
     ) {
-      SidebarController.toggleExpandOnHover(newValue === "expand-on-hover");
+      await SidebarController.toggleExpandOnHover(
+        newValue === "expand-on-hover"
+      );
       SidebarController.recordVisibilitySetting(newValue);
       if (SidebarController._state) {
         // we need to use the pref rather than SidebarController's getter here
