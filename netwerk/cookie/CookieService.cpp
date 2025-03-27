@@ -719,18 +719,21 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
     return NS_ERROR_INVALID_ARG;
   }
 
-  return AddNative(aHost, aPath, aName, aValue, aIsSecure, aIsHttpOnly,
+  return AddNative(nullptr, aHost, aPath, aName, aValue, aIsSecure, aIsHttpOnly,
                    aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap,
-                   aIsPartitioned, nullptr);
+                   aIsPartitioned, nullptr,
+                   [](CookieStruct&) -> bool { return true; });
 }
 
 NS_IMETHODIMP_(nsresult)
-CookieService::AddNative(const nsACString& aHost, const nsACString& aPath,
-                         const nsACString& aName, const nsACString& aValue,
-                         bool aIsSecure, bool aIsHttpOnly, bool aIsSession,
-                         int64_t aExpiry, OriginAttributes* aOriginAttributes,
-                         int32_t aSameSite, nsICookie::schemeType aSchemeMap,
-                         bool aIsPartitioned, const nsID* aOperationID) {
+CookieService::AddNative(nsIURI* aCookieURI, const nsACString& aHost,
+                         const nsACString& aPath, const nsACString& aName,
+                         const nsACString& aValue, bool aIsSecure,
+                         bool aIsHttpOnly, bool aIsSession, int64_t aExpiry,
+                         OriginAttributes* aOriginAttributes, int32_t aSameSite,
+                         nsICookie::schemeType aSchemeMap, bool aIsPartitioned,
+                         const nsID* aOperationID,
+                         const std::function<bool(CookieStruct&)>& aCheck) {
   if (NS_WARN_IF(!aOriginAttributes)) {
     return NS_ERROR_FAILURE;
   }
@@ -751,20 +754,22 @@ CookieService::AddNative(const nsACString& aHost, const nsACString& aPath,
   NS_ENSURE_SUCCESS(rv, rv);
 
   int64_t currentTimeInUsec = PR_Now();
-  CookieKey key = CookieKey(baseDomain, *aOriginAttributes);
-
-  CookieStruct cookieData(nsCString(aName), nsCString(aValue), nsCString(aHost),
+  CookieStruct cookieData(nsCString(aName), nsCString(aValue), host,
                           nsCString(aPath), aExpiry, currentTimeInUsec,
                           Cookie::GenerateUniqueCreationTime(currentTimeInUsec),
                           aIsHttpOnly, aIsSession, aIsSecure, aIsPartitioned,
                           aSameSite, aSameSite, aSchemeMap);
 
-  RefPtr<Cookie> cookie = Cookie::Create(cookieData, key.mOriginAttributes);
+  if (!aCheck(cookieData)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<Cookie> cookie = Cookie::Create(cookieData, *aOriginAttributes);
   MOZ_ASSERT(cookie);
 
   CookieStorage* storage = PickStorage(*aOriginAttributes);
   storage->AddCookie(nullptr, baseDomain, *aOriginAttributes, cookie,
-                     currentTimeInUsec, nullptr, VoidCString(), true,
+                     currentTimeInUsec, aCookieURI, VoidCString(), true,
                      !aOriginAttributes->mPartitionKey.IsEmpty(), nullptr,
                      aOperationID);
   return NS_OK;

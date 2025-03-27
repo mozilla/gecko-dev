@@ -6,14 +6,20 @@
 #include "nsISupports.idl"
 #include "nsICookie.idl"
 #include "nsIThirdPartyCookieBlockingExceptionListService.idl"
+#include "nsIURI.idl"
 
 %{ C++
+#include <functional>
 namespace mozilla {
 class OriginAttributes;
+namespace net {
+class CookieStruct;
+} // namespace net
 } // mozilla namespace
 %}
 
 [ptr] native OriginAttributesPtr(mozilla::OriginAttributes);
+native CheckStructFunctionRef(const std::function< bool(mozilla::net::CookieStruct&) > &);
 
 /**
  * An optional interface for accessing or removing the cookies
@@ -139,7 +145,8 @@ interface nsICookieManager : nsISupports
            [optional] in boolean aIsPartitioned);
 
   [notxpcom]
-  nsresult addNative(in AUTF8String aHost,
+  nsresult addNative(in nsIURI aCookieURI,
+                     in AUTF8String aHost,
                      in AUTF8String aPath,
                      in ACString    aName,
                      in AUTF8String aValue,
@@ -151,7 +158,8 @@ interface nsICookieManager : nsISupports
                      in int32_t aSameSite,
                      in nsICookie_schemeType aSchemeMap,
                      in boolean     aIsPartitioned,
-                     in nsIDPtr     aOperationID);
+                     in nsIDPtr     aOperationID,
+                     in CheckStructFunctionRef aCheckValid);
 
   /**
    * Find whether a given cookie already exists.
