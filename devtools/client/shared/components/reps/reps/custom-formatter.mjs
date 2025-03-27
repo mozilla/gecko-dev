@@ -101,6 +101,7 @@ class CustomFormatter extends Component {
       return createElement(
         "span",
         {
+          "data-link-actor-id": this.props.object.actor,
           className: "objectBox objectBox-failure",
           title:
             "This object could not be rendered, " +
@@ -118,6 +119,7 @@ class CustomFormatter extends Component {
     return createElement(
       "span",
       {
+        "data-link-actor-id": this.props.object.actor,
         className: "objectBox-jsonml-wrapper",
         "data-expandable": this.props.object.hasBody,
         "aria-expanded": this.state.open,
