@@ -4006,6 +4006,7 @@ class nsDisplaySolidColor final : public nsPaintedDisplayItem {
   }
 
   void SetOverrideZIndex(int32_t aZIndex) { mOverrideZIndex = Some(aZIndex); }
+  void OverrideColor(nscolor aColor) { mColor = aColor; }
 
  private:
   nscolor mColor;

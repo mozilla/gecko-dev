@@ -422,10 +422,16 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // own items.
   nsDisplayList list(aBuilder);
 
-  // Put a scrolled background color item in place, at the bottom of the list,
-  // if the canvas background was specified by CSS. If it is not specified by
-  // CSS, we generally don't need to / shouldn't paint it, but we might if not
-  // required for blending correctness.
+  // Put a scrolled background color item in place, at the bottom of the list.
+  //
+  // If the canvas background is specified by CSS, we must paint it. If it's
+  // not, we don't need to paint it, but we still want to if we can without
+  // compromising blending correctness.
+  //
+  // Painting this extra background used to be desirable for performance in the
+  // FrameLayerBuilder era. It's unclear whether it still is (probably not), but
+  // changing it causes a lot of fuzzy changes due to subpixel AA (not
+  // necessarily regressions, tho?).
   //
   // NOTE(emilio): We used to have an optimization to try _not_ to draw it if
   // there was a fixed image (layers.mImageCount > 0 &&
@@ -433,12 +439,18 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // it's unclear it was fully correct (didn't check for mix-blend-mode), and it
   // complicates quite a bit the logic. If it's useful for performance on real
   // world websites we could try to re-introduce it.
-  const bool paintColor = NS_GET_A(canvasBg.mColor) && canvasBg.mCSSSpecified;
-  if (paintColor) {
-    list.AppendNewToTop<nsDisplaySolidColor>(
+  nsDisplaySolidColor* backgroundColorItem = nullptr;
+  if (NS_GET_A(canvasBg.mColor)) {
+    // Note that if CSS didn't specify the background, it can't really be
+    // semi-transparent.
+    MOZ_ASSERT(
+        canvasBg.mCSSSpecified || NS_GET_A(canvasBg.mColor) == 255,
+        "Default canvas background should either be transparent or opaque");
+    backgroundColorItem = MakeDisplayItem<nsDisplaySolidColor>(
         aBuilder, this,
         CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
         canvasBg.mColor);
+    list.AppendToTop(backgroundColorItem);
   }
 
   // Create separate items for each background layer.
@@ -525,31 +537,13 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     BuildDisplayListForChild(aBuilder, kid, aLists);
   }
 
-  // NOTE(emilio): If we didn't paint the background because it was not
-  // specified by CSS, but we could do that now without sacrificing blending
-  // correctness, do it.
-  //
-  // Painting this extra background used to be desirable for performance in the
-  // FrameLayerBuilder era. It's unclear whether it still is (probably not), but
-  // changing it causes a lot of fuzzy changes due to subpixel AA (not
-  // necessarily regressions, tho?).
-  //
-  // Note that this background can't really be semi-transparent (if CSS has not
-  // specified it, the canvas background should always be opaque).
-  if (!paintColor && NS_GET_A(canvasBg.mColor) && !isPage &&
-      !needBlendContainerForBackgroundBlendMode &&
-      !aBuilder->ContainsBlendMode()) {
-    MOZ_ASSERT(
-        NS_GET_A(canvasBg.mColor) == 255,
-        "Default canvas background should either be transparent or opaque");
-    // Do this shuffle to insert the solid color item at the bottom.
-    nsDisplayList list(aBuilder);
-    list.AppendToTop(aLists.BorderBackground());
-    aLists.BorderBackground()->AppendNewToTop<nsDisplaySolidColor>(
-        aBuilder, this,
-        CanvasArea() + aBuilder->GetCurrentFrameOffsetToReferenceFrame(),
-        canvasBg.mColor);
-    aLists.BorderBackground()->AppendToTop(&list);
+  if (!canvasBg.mCSSSpecified && backgroundColorItem &&
+      (needBlendContainerForBackgroundBlendMode ||
+       aBuilder->ContainsBlendMode())) {
+    // We can't draw the scrolled canvas background without compromising
+    // correctness, since the non-CSS-specified background is not supposed to be
+    // part of the blend group. Suppress it by making it transparent.
+    backgroundColorItem->OverrideColor(NS_TRANSPARENT);
   }
 
   if (mDoPaintFocus) {

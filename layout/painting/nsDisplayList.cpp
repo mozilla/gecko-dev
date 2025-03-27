@@ -2770,6 +2770,9 @@ nsRect nsDisplaySolidColor::GetBounds(nsDisplayListBuilder* aBuilder,
 
 void nsDisplaySolidColor::Paint(nsDisplayListBuilder* aBuilder,
                                 gfxContext* aCtx) {
+  if (!NS_GET_A(mColor)) {
+    return;
+  }
   int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
   DrawTarget* drawTarget = aCtx->GetDrawTarget();
   Rect rect = NSRectToSnappedRect(GetPaintRect(aBuilder, aCtx),
@@ -2787,6 +2790,9 @@ bool nsDisplaySolidColor::CreateWebRenderCommands(
     wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
+  if (!NS_GET_A(mColor)) {
+    return true;
+  }
   LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(
       mBounds, mFrame->PresContext()->AppUnitsPerDevPixel());
   wr::LayoutRect r = wr::ToLayoutRect(bounds);
