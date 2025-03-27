@@ -375,6 +375,7 @@ nsXPLookAndFeel* nsXPLookAndFeel::GetInstance() {
   if (XRE_IsParentProcess()) {
     nsLayoutUtils::RecomputeSmoothScrollDefault();
   }
+  PreferenceSheet::Refresh();
   return sInstance;
 }
 
@@ -1154,10 +1155,6 @@ void LookAndFeel::DoHandleGlobalThemeChange() {
   // Clear all cached LookAndFeel colors.
   LookAndFeel::Refresh();
 
-  // Reset default background and foreground colors for the document since they
-  // may be using system colors, color scheme, etc.
-  PreferenceSheet::Refresh();
-
   // Vector images (SVG) may be using theme colors so we discard all cached
   // surfaces. (We could add a vector image only version of DiscardAll, but
   // in bug 940625 we decided theme changes are rare enough not to bother.)
@@ -1473,6 +1470,9 @@ void LookAndFeel::Refresh() {
     widget::RemoteLookAndFeel::ClearCachedData();
   }
   widget::Theme::LookAndFeelChanged();
+  // Reset default background and foreground colors for the document since they
+  // may be using system colors, color scheme, etc.
+  PreferenceSheet::Refresh();
 }
 
 // static

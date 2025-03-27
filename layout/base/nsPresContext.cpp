@@ -434,8 +434,6 @@ void nsPresContext::GetUserPreferences() {
     return;
   }
 
-  PreferenceSheet::EnsureInitialized();
-
   Document()->SetMayNeedFontPrefsUpdate();
 
   // * image animation
