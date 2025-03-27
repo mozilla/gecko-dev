@@ -4,7 +4,7 @@
 
 package mozilla.components.feature.search.telemetry
 
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -14,8 +14,8 @@ import org.junit.runner.RunWith
 class UtilsKtTest {
     @Test
     fun `GIVEN an Uri with uppercase for parameter keys WHEN lowercasing these THEN get the expected result`() {
-        val uri = Uri.parse("https://mozilla.com/search?q=Firefox&ThIs=Test&AgaiN=TEST")
-        val expected = Uri.parse("https://mozilla.com/search?q=Firefox&this=Test&again=TEST")
+        val uri = "https://mozilla.com/search?q=Firefox&ThIs=Test&AgaiN=TEST".toUri()
+        val expected = "https://mozilla.com/search?q=Firefox&this=Test&again=TEST".toUri()
 
         val result = uri.lowercaseQueryParameterKeys()
 

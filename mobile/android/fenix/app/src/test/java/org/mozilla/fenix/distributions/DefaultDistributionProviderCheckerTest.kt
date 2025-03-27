@@ -13,6 +13,7 @@ import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import androidx.core.net.toUri
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -129,7 +130,7 @@ class DefaultDistributionProviderCheckerTest {
         val contentProvider = Robolectric.buildContentProvider(TestContentProvider::class.java)
             .create(providerInfo)
             .get()
-        val uri = Uri.parse("content://$packageName/trackers")
+        val uri = "content://$packageName/trackers".toUri()
         val values = ContentValues().apply {
             columns.forEach {
                 put(it.first, it.second)

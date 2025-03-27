@@ -7,6 +7,7 @@ package org.mozilla.fenix.helpers
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import androidx.core.net.toUri
 import androidx.test.platform.app.InstrumentationRegistry
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -14,7 +15,6 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import okio.Buffer
 import okio.source
-import org.mozilla.fenix.helpers.ext.toUri
 import java.io.IOException
 import java.io.InputStream
 
@@ -67,7 +67,7 @@ class AndroidAssetDispatcher : Dispatcher() {
     override fun dispatch(request: RecordedRequest): MockResponse {
         val assetManager = InstrumentationRegistry.getInstrumentation().context.assets
         try {
-            val pathWithoutQueryParams = Uri.parse(request.path!!.drop(1)).path
+            val pathWithoutQueryParams = request.path!!.drop(1).toUri().path
             assetManager.open(pathWithoutQueryParams!!).use { inputStream ->
                 return fileToResponse(pathWithoutQueryParams, inputStream)
             }

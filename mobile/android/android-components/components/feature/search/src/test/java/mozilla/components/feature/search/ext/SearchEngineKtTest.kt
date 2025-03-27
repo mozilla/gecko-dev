@@ -5,7 +5,7 @@
 package mozilla.components.feature.search.ext
 
 import android.graphics.Bitmap
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.SearchState
@@ -116,17 +116,17 @@ class SearchEngineKtTest {
             url = "https://www.ecosia.org/search?q={searchTerms}",
         )
 
-        assertNull(searchEngine.parseSearchTerms(Uri.parse("https://www.ecosia.org/search?q=")))
-        assertNull(searchEngine.parseSearchTerms(Uri.parse("https://www.ecosia.org/search?attr=moz-test")))
+        assertNull(searchEngine.parseSearchTerms("https://www.ecosia.org/search?q=".toUri()))
+        assertNull(searchEngine.parseSearchTerms("https://www.ecosia.org/search?attr=moz-test".toUri()))
 
         assertEquals(
             "second test search",
-            searchEngine.parseSearchTerms(Uri.parse("https://www.ecosia.org/search?q=second%20test%20search")),
+            searchEngine.parseSearchTerms("https://www.ecosia.org/search?q=second%20test%20search".toUri()),
         )
 
         assertEquals(
             "Another test",
-            searchEngine.parseSearchTerms(Uri.parse("https://www.ecosia.org/search?r=134s7&attr=moz-test&q=Another%20test&d=136697676793")),
+            searchEngine.parseSearchTerms("https://www.ecosia.org/search?r=134s7&attr=moz-test&q=Another%20test&d=136697676793".toUri()),
         )
     }
 

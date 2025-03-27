@@ -4,8 +4,8 @@
 
 package org.mozilla.geckoview.test
 
-import android.net.Uri
 import android.view.KeyEvent
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -1154,7 +1154,7 @@ class PromptDelegateTest : BaseSessionTest(
                 return GeckoResult.fromValue(
                     prompt.confirm(
                         InstrumentationRegistry.getInstrumentation().targetContext,
-                        Uri.parse("file:///storage/emulated/0/Download"),
+                        "file:///storage/emulated/0/Download".toUri(),
                     ),
                 )
             }

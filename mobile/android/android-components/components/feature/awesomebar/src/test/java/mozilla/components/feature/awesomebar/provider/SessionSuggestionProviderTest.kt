@@ -5,7 +5,6 @@
 package mozilla.components.feature.awesomebar.provider
 
 import android.content.res.Resources
-import android.net.Uri
 import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -397,7 +396,7 @@ class SessionSuggestionProviderTest {
         )
         val resources: Resources = mock()
         `when`(resources.getString(anyInt())).thenReturn("Switch to tab")
-        val uriFilter = Uri.parse("https://mozilla.org")
+        val uriFilter = "https://mozilla.org".toUri()
         val provider = SessionSuggestionProvider(
             resources = resources,
             store = store,

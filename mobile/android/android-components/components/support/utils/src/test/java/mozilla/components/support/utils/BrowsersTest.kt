@@ -8,7 +8,7 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.Browsers.Companion.SAMPLE_BROWSER_HTTP_URL
@@ -342,7 +342,7 @@ class BrowsersTest {
         browsers.forEach { packageName ->
             val intent = Intent(Intent.ACTION_VIEW)
             intent.`package` = packageName
-            intent.data = Uri.parse(url)
+            intent.data = url.toUri()
             intent.addCategory(Intent.CATEGORY_BROWSABLE)
 
             val packageInfo = PackageInfo()
@@ -363,7 +363,7 @@ class BrowsersTest {
 
         if (defaultBrowser != null) {
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse(url)
+            intent.data = url.toUri()
             intent.addCategory(Intent.CATEGORY_BROWSABLE)
 
             val activityInfo = ActivityInfo()

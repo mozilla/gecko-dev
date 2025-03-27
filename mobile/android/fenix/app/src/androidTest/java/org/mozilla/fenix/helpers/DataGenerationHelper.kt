@@ -12,12 +12,12 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.net.Uri
 import android.util.Log
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.core.net.toUri
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiSelector
 import mozilla.components.browser.state.search.SearchEngine
@@ -55,7 +55,7 @@ object DataGenerationHelper {
                 true,
             )
             .build()
-        customTabsIntent.intent.data = Uri.parse(pageUrl)
+        customTabsIntent.intent.data = pageUrl.toUri()
         Log.i(TAG, "createCustomTabIntent: Created custom tab intent with url: $pageUrl")
         return customTabsIntent.intent
     }

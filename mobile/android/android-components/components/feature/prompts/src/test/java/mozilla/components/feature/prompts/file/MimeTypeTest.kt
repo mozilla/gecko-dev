@@ -21,6 +21,7 @@ import android.provider.MediaStore.ACTION_VIDEO_CAPTURE
 import android.provider.MediaStore.Audio.Media.RECORD_SOUND_ACTION
 import android.provider.MediaStore.EXTRA_OUTPUT
 import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.support.test.robolectric.testContext
@@ -232,7 +233,7 @@ class MimeTypeTest {
     fun `Image buildIntent`() {
         assertNull(MimeType.Image().buildIntent(context, request))
 
-        val uri = Uri.parse("context://abcd")
+        val uri = "context://abcd".toUri()
         val image = MimeType.Image { _, _, _ -> uri }
 
         @Suppress("DEPRECATION")

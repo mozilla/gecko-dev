@@ -6,7 +6,7 @@ package org.mozilla.fenix.search.awesomebar
 
 import android.app.Activity
 import android.graphics.drawable.VectorDrawable
-import android.net.Uri
+import androidx.core.net.toUri
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -262,7 +262,7 @@ class AwesomeBarViewTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        val url = Uri.parse("test.com")
+        val url = "test.com".toUri()
         every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
@@ -287,7 +287,7 @@ class AwesomeBarViewTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        val url = Uri.parse("test.com")
+        val url = "test.com".toUri()
         every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
@@ -667,7 +667,7 @@ class AwesomeBarViewTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        val url = Uri.parse("test.com")
+        val url = "test.com".toUri()
         every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
@@ -692,7 +692,7 @@ class AwesomeBarViewTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        val url = Uri.parse("test.com")
+        val url = "test.com".toUri()
         every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
@@ -771,7 +771,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN normal browsing mode and needing to show all local tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -794,7 +794,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN normal browsing mode and needing to show all local tabs suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -817,7 +817,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN normal browsing mode and needing to show filtered local tabs suggestions WHEN configuring providers THEN add the tabs provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -853,7 +853,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN needing to show all synced tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the synced tabs provider with a sponsored filter`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -876,7 +876,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN needing to show filtered synced tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the synced tabs provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -899,7 +899,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN needing to show all synced tabs suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the synced tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -922,7 +922,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN needing to show all bookmarks suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the bookmarks provider with a sponsored filter`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -945,7 +945,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN needing to show all bookmarks suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the bookmarks provider`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -968,7 +968,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN needing to show filtered bookmarks suggestions WHEN configuring providers THEN add the bookmarks provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -1003,7 +1003,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN a search from the default engine with all suggestions asked and sponsored suggestions are enabled WHEN configuring providers THEN add them all`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -1041,7 +1041,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN a search from the default engine with all suggestions asked and sponsored suggestions are disabled WHEN configuring providers THEN add them all`() {
         val settings: Settings = mockk(relaxed = true)
-        val url = Uri.parse("https://www.test.com")
+        val url = "https://www.test.com".toUri()
         every { activity.settings() } returns settings
         every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
@@ -1377,10 +1377,10 @@ class AwesomeBarViewTest {
         )
         val filter = requireNotNull(awesomeBarView.getFilterToExcludeSponsoredResults(state))
 
-        assertFalse(filter.shouldIncludeUri(Uri.parse("http://example.com?query=value")))
-        assertFalse(filter.shouldIncludeUri(Uri.parse("http://example.com/a?query=value")))
-        assertFalse(filter.shouldIncludeUri(Uri.parse("http://example.com/a?b=c&query=value")))
-        assertFalse(filter.shouldIncludeUri(Uri.parse("http://example.com/a?b=c&query=value&d=e")))
+        assertFalse(filter.shouldIncludeUri("http://example.com?query=value".toUri()))
+        assertFalse(filter.shouldIncludeUri("http://example.com/a?query=value".toUri()))
+        assertFalse(filter.shouldIncludeUri("http://example.com/a?b=c&query=value".toUri()))
+        assertFalse(filter.shouldIncludeUri("http://example.com/a?b=c&query=value&d=e".toUri()))
 
         assertFalse(filter.shouldIncludeUrl("http://example.com?query=value"))
         assertFalse(filter.shouldIncludeUrl("http://example.com/a?query=value"))
@@ -1399,11 +1399,11 @@ class AwesomeBarViewTest {
         )
         val filter = requireNotNull(awesomeBarView.getFilterToExcludeSponsoredResults(state))
 
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://example.com")))
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://example.com?query")))
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://example.com/a")))
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://example.com/a?b")))
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://example.com/a?b&c=d")))
+        assertTrue(filter.shouldIncludeUri("http://example.com".toUri()))
+        assertTrue(filter.shouldIncludeUri("http://example.com?query".toUri()))
+        assertTrue(filter.shouldIncludeUri("http://example.com/a".toUri()))
+        assertTrue(filter.shouldIncludeUri("http://example.com/a?b".toUri()))
+        assertTrue(filter.shouldIncludeUri("http://example.com/a?b&c=d".toUri()))
 
         assertTrue(filter.shouldIncludeUrl("http://example.com"))
         assertTrue(filter.shouldIncludeUrl("http://example.com?query"))
@@ -1414,7 +1414,7 @@ class AwesomeBarViewTest {
 
     @Test
     fun `GIVEN an engine with a results URL and an engine filter WHEN a URL matches the results URL THEN that URL should be included`() {
-        val url = Uri.parse("http://test.com")
+        val url = "http://test.com".toUri()
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(
                 mockk(relaxed = true) {
@@ -1425,10 +1425,10 @@ class AwesomeBarViewTest {
 
         val filter = requireNotNull(awesomeBarView.getFilterForCurrentEngineResults(state))
 
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://test.com")))
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://test.com/a")))
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://mobile.test.com")))
-        assertTrue(filter.shouldIncludeUri(Uri.parse("http://mobile.test.com/a")))
+        assertTrue(filter.shouldIncludeUri("http://test.com".toUri()))
+        assertTrue(filter.shouldIncludeUri("http://test.com/a".toUri()))
+        assertTrue(filter.shouldIncludeUri("http://mobile.test.com".toUri()))
+        assertTrue(filter.shouldIncludeUri("http://mobile.test.com/a".toUri()))
 
         assertTrue(filter.shouldIncludeUrl("http://test.com"))
         assertTrue(filter.shouldIncludeUrl("http://test.com/a"))
@@ -1436,7 +1436,7 @@ class AwesomeBarViewTest {
 
     @Test
     fun `GIVEN an engine with a results URL and an engine filter WHEN a URL does not match the results URL THEN that URL should be excluded`() {
-        val url = Uri.parse("http://test.com")
+        val url = "http://test.com".toUri()
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(
                 mockk(relaxed = true) {
@@ -1447,8 +1447,8 @@ class AwesomeBarViewTest {
 
         val filter = requireNotNull(awesomeBarView.getFilterForCurrentEngineResults(state))
 
-        assertFalse(filter.shouldIncludeUri(Uri.parse("http://other.com")))
-        assertFalse(filter.shouldIncludeUri(Uri.parse("http://subdomain.test.com")))
+        assertFalse(filter.shouldIncludeUri("http://other.com".toUri()))
+        assertFalse(filter.shouldIncludeUri("http://subdomain.test.com".toUri()))
 
         assertFalse(filter.shouldIncludeUrl("http://mobile.test.com"))
     }

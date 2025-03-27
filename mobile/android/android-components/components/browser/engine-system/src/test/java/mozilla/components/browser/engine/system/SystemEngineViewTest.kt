@@ -28,6 +28,7 @@ import android.webkit.WebView
 import android.webkit.WebView.HitTestResult
 import android.webkit.WebViewClient
 import android.webkit.WebViewDatabase
+import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -504,7 +505,7 @@ class SystemEngineViewTest {
         val webViewClient = engineSession.webView.webViewClient
         val invalidRequest = mock<WebResourceRequest>()
         whenever(invalidRequest.isForMainFrame).thenReturn(false)
-        whenever(invalidRequest.url).thenReturn(Uri.parse("market://foo.bar/"))
+        whenever(invalidRequest.url).thenReturn("market://foo.bar/".toUri())
 
         var response = webViewClient.shouldInterceptRequest(engineSession.webView, invalidRequest)
         assertNull(response)
@@ -518,7 +519,7 @@ class SystemEngineViewTest {
 
         val faviconRequest = mock<WebResourceRequest>()
         whenever(faviconRequest.isForMainFrame).thenReturn(false)
-        whenever(faviconRequest.url).thenReturn(Uri.parse("http://foo/favicon.ico"))
+        whenever(faviconRequest.url).thenReturn("http://foo/favicon.ico".toUri())
         response = webViewClient.shouldInterceptRequest(engineSession.webView, faviconRequest)
         assertNotNull(response)
         assertNull(response!!.data)
@@ -527,7 +528,7 @@ class SystemEngineViewTest {
 
         val blockedRequest = mock<WebResourceRequest>()
         whenever(blockedRequest.isForMainFrame).thenReturn(false)
-        whenever(blockedRequest.url).thenReturn(Uri.parse("http://blocked.random"))
+        whenever(blockedRequest.url).thenReturn("http://blocked.random".toUri())
 
         var trackerBlocked: Tracker? = null
         engineSession.register(
@@ -615,17 +616,17 @@ class SystemEngineViewTest {
         val blockedRequest = mock<WebResourceRequest>()
         whenever(blockedRequest.isForMainFrame).thenReturn(false)
 
-        whenever(blockedRequest.url).thenReturn(Uri.parse("http://www.adtest1.com/"))
+        whenever(blockedRequest.url).thenReturn("http://www.adtest1.com/".toUri())
         webViewClient.shouldInterceptRequest(engineSession.webView, blockedRequest)
 
         assertTrue(trackerBlocked!!.trackingCategories.first() == TrackingCategory.AD)
 
-        whenever(blockedRequest.url).thenReturn(Uri.parse("http://analyticsTest1.com/"))
+        whenever(blockedRequest.url).thenReturn("http://analyticsTest1.com/".toUri())
         webViewClient.shouldInterceptRequest(engineSession.webView, blockedRequest)
 
         assertTrue(trackerBlocked!!.trackingCategories.first() == TrackingCategory.ANALYTICS)
 
-        whenever(blockedRequest.url).thenReturn(Uri.parse("http://www.socialtest1.com/"))
+        whenever(blockedRequest.url).thenReturn("http://www.socialtest1.com/".toUri())
         webViewClient.shouldInterceptRequest(engineSession.webView, blockedRequest)
 
         assertTrue(trackerBlocked!!.trackingCategories.first() == TrackingCategory.SOCIAL)
@@ -840,7 +841,7 @@ class SystemEngineViewTest {
 
         val webViewClient = engineSession.webView.webViewClient
         val webFontRequest = mock<WebResourceRequest>()
-        whenever(webFontRequest.url).thenReturn(Uri.parse("/fonts/test.woff"))
+        whenever(webFontRequest.url).thenReturn("/fonts/test.woff".toUri())
         assertNull(webViewClient.shouldInterceptRequest(engineSession.webView, webFontRequest))
 
         engineView.render(engineSession)
@@ -849,7 +850,7 @@ class SystemEngineViewTest {
         engineSession.settings.webFontsEnabled = false
 
         val request = mock<WebResourceRequest>()
-        whenever(request.url).thenReturn(Uri.parse("http://mozilla.org"))
+        whenever(request.url).thenReturn("http://mozilla.org".toUri())
         assertNull(webViewClient.shouldInterceptRequest(engineSession.webView, request))
 
         val response = webViewClient.shouldInterceptRequest(engineSession.webView, webFontRequest)
@@ -1104,7 +1105,7 @@ class SystemEngineViewTest {
     fun `permission requests are forwarded to observers`() {
         val permissionRequest: android.webkit.PermissionRequest = mock()
         whenever(permissionRequest.resources).thenReturn(emptyArray())
-        whenever(permissionRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+        whenever(permissionRequest.origin).thenReturn("https://mozilla.org".toUri())
 
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
@@ -1135,7 +1136,7 @@ class SystemEngineViewTest {
     fun `window requests are forwarded to observers`() {
         val permissionRequest: android.webkit.PermissionRequest = mock()
         whenever(permissionRequest.resources).thenReturn(emptyArray())
-        whenever(permissionRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+        whenever(permissionRequest.origin).thenReturn("https://mozilla.org".toUri())
 
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)

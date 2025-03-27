@@ -5,7 +5,6 @@
 package org.mozilla.geckoview.test
 
 import android.content.ClipDescription
-import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +16,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputContentInfo
+import androidx.core.net.toUri
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
@@ -962,7 +962,7 @@ class TextInputDelegateTest : BaseSessionTest() {
 
         // InputContentInfo requires content:// uri, so we have to set test data to custom content provider.
         TestContentProvider.setTestData(this.getTestBytes("/assets/www/images/test.gif"), "image/gif")
-        val info = InputContentInfo(Uri.parse("content://org.mozilla.geckoview.test.provider/gif"), ClipDescription("test", arrayOf("image/gif")))
+        val info = InputContentInfo("content://org.mozilla.geckoview.test.provider/gif".toUri(), ClipDescription("test", arrayOf("image/gif")))
         ic.commitContent(info, 0, null)
         promise.value
         assertThat("Input event is fired by inserting image", true, equalTo(true))

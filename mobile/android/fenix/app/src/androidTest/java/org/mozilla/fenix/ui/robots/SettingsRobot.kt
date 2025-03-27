@@ -7,8 +7,8 @@
 package org.mozilla.fenix.ui.robots
 
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions
@@ -480,7 +480,7 @@ class SettingsRobot {
                 intended(
                     allOf(
                         hasAction(Intent.ACTION_VIEW),
-                        hasData(Uri.parse(SupportUtils.RATE_APP_URL)),
+                        hasData(SupportUtils.RATE_APP_URL.toUri()),
                     ),
                 )
                 Log.i(TAG, "verifyGooglePlayRedirect: Verified intent to: $GOOGLE_PLAY_SERVICES")

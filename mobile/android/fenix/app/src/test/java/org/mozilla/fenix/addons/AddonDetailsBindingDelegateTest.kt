@@ -4,11 +4,11 @@
 
 package org.mozilla.fenix.addons
 
-import android.net.Uri
 import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
+import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import io.mockk.mockk
 import io.mockk.verify
@@ -92,7 +92,7 @@ class AddonDetailsBindingDelegateTest {
 
         binding.reviewCount.performClick()
 
-        verify { interactor.openWebsite(Uri.parse("https://example.org/")) }
+        verify { interactor.openWebsite("https://example.org/".toUri()) }
     }
 
     @Test
@@ -105,7 +105,7 @@ class AddonDetailsBindingDelegateTest {
 
         binding.homePageLabel.performClick()
 
-        verify { interactor.openWebsite(Uri.parse("https://mozilla.org")) }
+        verify { interactor.openWebsite("https://mozilla.org".toUri()) }
     }
 
     @Test
@@ -171,7 +171,7 @@ class AddonDetailsBindingDelegateTest {
 
         binding.authorText.performClick()
 
-        verify { interactor.openWebsite(Uri.parse("https://example.org/")) }
+        verify { interactor.openWebsite("https://example.org/".toUri()) }
     }
 
     @Test
@@ -220,7 +220,7 @@ class AddonDetailsBindingDelegateTest {
 
         binding.detailUrl.performClick()
 
-        verify { interactor.openWebsite(Uri.parse("https://example.org")) }
+        verify { interactor.openWebsite("https://example.org".toUri()) }
     }
 
     @Test

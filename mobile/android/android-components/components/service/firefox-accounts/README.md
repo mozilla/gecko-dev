@@ -252,7 +252,7 @@ When spawning the WebView, be sure to override the `OnPageStarted` function to i
 ```kotlin
 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
     if (url != null && url.startsWith(redirectUrl)) {
-        val uri = Uri.parse(url)
+        val uri = url.toUri()
         val mCode = uri.getQueryParameter("code")
         val mState = uri.getQueryParameter("state")
         if (mCode != null && mState != null) {

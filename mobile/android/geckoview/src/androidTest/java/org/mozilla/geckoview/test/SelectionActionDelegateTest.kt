@@ -9,9 +9,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Point
 import android.graphics.RectF
-import android.net.Uri
 import android.os.Build
 import android.util.Base64
+import androidx.core.net.toUri
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
@@ -710,7 +710,7 @@ class SelectionActionDelegateTest : BaseSessionTest() {
         val oldClip = clipboard.primaryClip
         try {
             TestContentProvider.setTestData(this.getTestBytes(contentPath), mime)
-            val clipData = ClipData("image", arrayOf(mime), ClipData.Item(Uri.parse("content://org.mozilla.geckoview.test.provider/gif")))
+            val clipData = ClipData("image", arrayOf(mime), ClipData.Item("content://org.mozilla.geckoview.test.provider/gif".toUri()))
             clipboard.setPrimaryClip(clipData)
 
             sessionRule.addExternalDelegateUntilTestEnd(

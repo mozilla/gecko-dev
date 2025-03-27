@@ -13,6 +13,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
@@ -3294,7 +3295,7 @@ class PromptFeatureTest {
 
         feature.filePicker = mock()
 
-        val uris = arrayOf(Uri.parse("content://path/to/file1"), Uri.parse("content://path/to/file2"))
+        val uris = arrayOf("content://path/to/file1".toUri(), "content://path/to/file2".toUri())
 
         feature.onAndroidPhotoPickerResult(uris)
 

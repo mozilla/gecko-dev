@@ -4,7 +4,7 @@
 
 package mozilla.components.browser.engine.system.matcher
 
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.engine.system.matcher.UrlMatcher.Companion.ADVERTISING
 import mozilla.components.browser.engine.system.matcher.UrlMatcher.Companion.ANALYTICS
@@ -251,12 +251,12 @@ class UrlMatcherTest {
     @Test
     fun isWebFont() {
         assertFalse(UrlMatcher.isWebFont(mock()))
-        assertFalse(UrlMatcher.isWebFont(Uri.parse("mozilla.org")))
-        assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.woff2")))
-        assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.woff")))
-        assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.eot")))
-        assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.ttf")))
-        assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.otf")))
+        assertFalse(UrlMatcher.isWebFont("mozilla.org".toUri()))
+        assertTrue(UrlMatcher.isWebFont("/fonts/test.woff2".toUri()))
+        assertTrue(UrlMatcher.isWebFont("/fonts/test.woff".toUri()))
+        assertTrue(UrlMatcher.isWebFont("/fonts/test.eot".toUri()))
+        assertTrue(UrlMatcher.isWebFont("/fonts/test.ttf".toUri()))
+        assertTrue(UrlMatcher.isWebFont("/fonts/test.otf".toUri()))
     }
 
     @Test

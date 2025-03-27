@@ -12,7 +12,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.storage.StorageManager
@@ -21,6 +20,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.IdlingRegistry
@@ -662,7 +662,7 @@ object AppAndSystemHelper {
         val context = InstrumentationRegistry.getInstrumentation().getTargetContext()
         val intent = Intent().apply {
             action = Intent.ACTION_VIEW
-            data = Uri.parse(url)
+            data = url.toUri()
             `package` = TestHelper.packageName
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }

@@ -5,12 +5,12 @@
 package mozilla.components.feature.customtabs
 
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.support.customtabs.ICustomTabsCallback
 import android.support.customtabs.ICustomTabsService
 import androidx.browser.customtabs.CustomTabsService
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
@@ -105,7 +105,7 @@ class AbstractCustomTabsServiceTest {
 
         val stub = customTabsService.onBind(mock()) as ICustomTabsService.Stub
 
-        assertTrue(stub.mayLaunchUrl(mock(), Uri.parse("https://www.mozilla.org"), Bundle(), listOf()))
+        assertTrue(stub.mayLaunchUrl(mock(), "https://www.mozilla.org".toUri(), Bundle(), listOf()))
 
         verify(engine).speculativeConnect("https://www.mozilla.org")
     }

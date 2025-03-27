@@ -5,7 +5,6 @@
 package mozilla.components.browser.engine.system
 
 import android.content.Context
-import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -14,6 +13,7 @@ import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebViewDatabase
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -590,7 +590,7 @@ class SystemEngineSessionTest {
         engineView.render(engineSession)
 
         val request: WebResourceRequest = mock()
-        doReturn(Uri.parse("sample:about")).`when`(request).url
+        doReturn("sample:about".toUri()).`when`(request).url
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
@@ -612,7 +612,7 @@ class SystemEngineSessionTest {
         val request: WebResourceRequest = mock()
         doReturn(true).`when`(request).isForMainFrame
         doReturn(true).`when`(request).hasGesture()
-        doReturn(Uri.parse(url)).`when`(request).url
+        doReturn(url.toUri()).`when`(request).url
 
         val engineSession = SystemEngineSession(testContext)
         engineSession.webView = spy(engineSession.webView)
@@ -629,7 +629,7 @@ class SystemEngineSessionTest {
         val redirect: WebResourceRequest = mock()
         doReturn(true).`when`(redirect).isForMainFrame
         doReturn(false).`when`(redirect).hasGesture()
-        doReturn(Uri.parse("sample:about")).`when`(redirect).url
+        doReturn("sample:about".toUri()).`when`(redirect).url
 
         engineSession.webView.webViewClient.shouldInterceptRequest(engineSession.webView, redirect)
 
@@ -641,7 +641,7 @@ class SystemEngineSessionTest {
         val request: WebResourceRequest = mock()
         doReturn(true).`when`(request).isForMainFrame
         doReturn(true).`when`(request).hasGesture()
-        doReturn(Uri.parse("sample:about")).`when`(request).url
+        doReturn("sample:about".toUri()).`when`(request).url
 
         val interceptor = object : RequestInterceptor {
             override fun onLoadRequest(
@@ -704,7 +704,7 @@ class SystemEngineSessionTest {
         engineView.render(engineSession)
 
         val request: WebResourceRequest = mock()
-        doReturn(Uri.parse("sample:about")).`when`(request).url
+        doReturn("sample:about".toUri()).`when`(request).url
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
@@ -726,7 +726,7 @@ class SystemEngineSessionTest {
         engineView.render(engineSession)
 
         val request: WebResourceRequest = mock()
-        doReturn(Uri.parse("sample:about")).`when`(request).url
+        doReturn("sample:about".toUri()).`when`(request).url
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
@@ -764,7 +764,7 @@ class SystemEngineSessionTest {
         engineView.render(engineSession)
 
         val request: WebResourceRequest = mock()
-        doReturn(Uri.parse("sample:about")).`when`(request).url
+        doReturn("sample:about".toUri()).`when`(request).url
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,

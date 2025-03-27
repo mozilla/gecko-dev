@@ -5,7 +5,7 @@
 package org.mozilla.fenix.toolbar
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleOwner
 import io.mockk.every
 import io.mockk.mockk
@@ -42,8 +42,8 @@ class DefaultToolbarMenuTest {
 
     @Before
     fun setUp() {
-        mockkStatic(Uri::class)
-        every { Uri.parse(any()) } returns mockk(relaxed = true)
+        mockkStatic("androidx.core.net.UriKt")
+        every { any<String>().toUri() } returns mockk(relaxed = true)
 
         lifecycleOwner = mockk(relaxed = true)
         context = mockk(relaxed = true)
@@ -65,7 +65,7 @@ class DefaultToolbarMenuTest {
 
     @After
     fun tearDown() {
-        unmockkStatic(Uri::class)
+        unmockkStatic("androidx.core.net.UriKt")
     }
 
     private fun createMenu() {

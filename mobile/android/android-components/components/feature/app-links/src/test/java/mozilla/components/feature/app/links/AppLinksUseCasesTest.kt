@@ -11,6 +11,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageInfo
 import android.content.pm.ResolveInfo
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -463,7 +464,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `OpenAppLinkRedirect should not try to open data URIs`() {
         val context = createContext()
-        val uri = Uri.parse(dataUrl)
+        val uri = dataUrl.toUri()
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndType(uri, fileType)
         val subject = AppLinksUseCases(context, { true })
@@ -476,7 +477,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `OpenAppLinkRedirect should not try to open javascript URIs`() {
         val context = createContext()
-        val uri = Uri.parse(javascriptUrl)
+        val uri = javascriptUrl.toUri()
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndType(uri, fileType)
         val subject = AppLinksUseCases(context, { true })
@@ -489,7 +490,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `OpenAppLinkRedirect should not try to open about URIs`() {
         val context = createContext()
-        val uri = Uri.parse(aboutUrl)
+        val uri = aboutUrl.toUri()
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndType(uri, fileType)
         val subject = AppLinksUseCases(context, { true })
@@ -502,7 +503,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `OpenAppLinkRedirect should not try to open jar URIs`() {
         val context = createContext()
-        val uri = Uri.parse(jarUrl)
+        val uri = jarUrl.toUri()
         val intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndType(uri, fileType)
         val subject = AppLinksUseCases(context, { true })

@@ -7,7 +7,7 @@ package org.mozilla.fenix
 import android.app.Activity
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY
-import android.net.Uri
+import androidx.core.net.toUri
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -100,7 +100,7 @@ class IntentReceiverActivityTest {
     @Test
     fun `GIVEN a deeplink intent WHEN processing the intent THEN add the className HomeActivity`() =
         runTest {
-            val uri = Uri.parse(BuildConfig.DEEP_LINK_SCHEME + "://settings_wallpapers")
+            val uri = "${BuildConfig.DEEP_LINK_SCHEME}://settings_wallpapers".toUri()
             val intent = Intent("", uri)
             assertNull(Events.openedLink.testGetValue())
 

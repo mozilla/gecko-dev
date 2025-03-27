@@ -4,7 +4,7 @@
 
 package mozilla.components.feature.top.sites
 
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
@@ -1122,7 +1122,7 @@ class DefaultTopSitesStorageTest {
         )
 
         val filterMethod: ((TopSite) -> Boolean) = { topSite ->
-            val uri = Uri.parse(topSite.url)
+            val uri = topSite.url.toUri()
             if (!uri.queryParameterNames.contains("key")) {
                 true
             } else {

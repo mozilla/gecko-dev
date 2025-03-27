@@ -5,10 +5,10 @@
 package org.mozilla.geckoview.test
 
 import android.graphics.SurfaceTexture
-import android.net.Uri
 import android.view.PointerIcon
 import android.view.Surface
 import androidx.annotation.AnyThread
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
@@ -313,7 +313,7 @@ class ContentDelegateTest : BaseSessionTest() {
 
                 val icon = manifest.getJSONArray("icons").getJSONObject(0)
 
-                val iconSrc = Uri.parse(icon.getString("src"))
+                val iconSrc = icon.getString("src").toUri()
                 assertThat("icon should have a valid src", iconSrc, notNullValue())
                 assertThat("icon src should be absolute", iconSrc.isAbsolute, equalTo(true))
                 assertThat("icon should have sizes", icon.getString("sizes"), not(isEmptyOrNullString()))

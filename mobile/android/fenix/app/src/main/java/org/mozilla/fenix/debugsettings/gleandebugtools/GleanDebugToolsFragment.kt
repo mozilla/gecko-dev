@@ -6,7 +6,6 @@ package org.mozilla.fenix.debugsettings.gleandebugtools
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -16,6 +15,7 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.core.net.toUri
 import androidx.navigation.fragment.findNavController
 import mozilla.telemetry.glean.Glean
 import org.mozilla.fenix.R
@@ -42,7 +42,7 @@ class GleanDebugToolsFragment : ComposeFragment() {
                     clipboardHandler = requireComponents.clipboardHandler,
                     openDebugView = { debugViewLink ->
                         val intent = Intent(Intent.ACTION_VIEW)
-                        intent.data = Uri.parse(debugViewLink)
+                        intent.data = debugViewLink.toUri()
                         requireContext().startActivity(intent)
                     },
                     showToast = { pingType ->

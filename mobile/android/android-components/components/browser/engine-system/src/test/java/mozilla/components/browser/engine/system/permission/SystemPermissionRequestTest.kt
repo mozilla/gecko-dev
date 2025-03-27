@@ -4,11 +4,11 @@
 
 package mozilla.components.browser.engine.system.permission
 
-import android.net.Uri
 import android.webkit.PermissionRequest
 import android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE
 import android.webkit.PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID
 import android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE
+import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.engine.permission.Permission
 import mozilla.components.support.test.eq
@@ -25,7 +25,7 @@ class SystemPermissionRequestTest {
     @Test
     fun `uri is equal to native request origin`() {
         val nativeRequest: PermissionRequest = mock()
-        whenever(nativeRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+        whenever(nativeRequest.origin).thenReturn("https://mozilla.org".toUri())
         whenever(nativeRequest.resources).thenReturn(emptyArray())
         val request = SystemPermissionRequest(nativeRequest)
         assertEquals(request.uri, "https://mozilla.org")
@@ -34,7 +34,7 @@ class SystemPermissionRequestTest {
     @Test
     fun `resources are correctly mapped to permissions`() {
         val nativeRequest: PermissionRequest = mock()
-        whenever(nativeRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+        whenever(nativeRequest.origin).thenReturn("https://mozilla.org".toUri())
         whenever(nativeRequest.resources).thenReturn(
             arrayOf(
                 RESOURCE_AUDIO_CAPTURE,
@@ -55,7 +55,7 @@ class SystemPermissionRequestTest {
     @Test
     fun `reject denies native request`() {
         val nativeRequest: PermissionRequest = mock()
-        whenever(nativeRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+        whenever(nativeRequest.origin).thenReturn("https://mozilla.org".toUri())
         whenever(nativeRequest.resources).thenReturn(emptyArray())
 
         val request = SystemPermissionRequest(nativeRequest)
@@ -72,7 +72,7 @@ class SystemPermissionRequestTest {
         )
 
         val nativeRequest: PermissionRequest = mock()
-        whenever(nativeRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+        whenever(nativeRequest.origin).thenReturn("https://mozilla.org".toUri())
         whenever(nativeRequest.resources).thenReturn(resources)
 
         val request = SystemPermissionRequest(nativeRequest)
@@ -89,7 +89,7 @@ class SystemPermissionRequestTest {
         )
 
         val nativeRequest: PermissionRequest = mock()
-        whenever(nativeRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+        whenever(nativeRequest.origin).thenReturn("https://mozilla.org".toUri())
         whenever(nativeRequest.resources).thenReturn(resources)
 
         val request = SystemPermissionRequest(nativeRequest)

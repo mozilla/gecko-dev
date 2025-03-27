@@ -217,10 +217,10 @@ dependencies {
     implementation libs.androidx.annotation
     implementation libs.androidx.collection
     implementation libs.androidx.core
+    implementation libs.androidx.core.ktx
 
     implementation libs.play.services.fido
     implementation "org.yaml:snakeyaml:2.2"
-    implementation 'androidx.core:core:1.12.0'
 
     implementation libs.androidx.lifecycle.common
     implementation libs.androidx.lifecycle.process
