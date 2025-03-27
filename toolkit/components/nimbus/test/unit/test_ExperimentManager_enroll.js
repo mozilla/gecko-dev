@@ -714,6 +714,8 @@ add_task(async function enroll_in_reference_aw_experiment() {
 });
 
 add_task(async function test_forceEnroll_cleanup() {
+  Services.fog.testResetFOG();
+
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
   const existingRecipe = ExperimentFakes.recipe("foo", {
@@ -740,8 +742,36 @@ add_task(async function test_forceEnroll_cleanup() {
   await manager.onStartup();
   await manager.enroll(existingRecipe, "test_forceEnroll_cleanup");
 
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
+
   sandbox.spy(NimbusTelemetry, "setExperimentActive");
   manager.forceEnroll(forcedRecipe, forcedRecipe.branches[0]);
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.enrollmentStatus
+      .testGetValue("events")
+      ?.map(ev => ev.extra),
+    [
+      {
+        slug: "foo",
+        branch: "treatment",
+        status: "Disqualified",
+        reason: "ForceEnrollment",
+      },
+      {
+        slug: "bar",
+        branch: "treatment",
+        status: "Enrolled",
+        reason: "OptIn",
+      },
+    ]
+  );
 
   Assert.ok(
     manager._unenroll.calledOnceWith(

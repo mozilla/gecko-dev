@@ -1963,6 +1963,13 @@ add_task(async function test_prefFlip_setPref_restore() {
 
   for (const [i, { name, ...testCase }] of TEST_CASES.entries()) {
     Services.fog.testResetFOG();
+    Services.fog.applyServerKnobsConfig(
+      JSON.stringify({
+        metrics_enabled: {
+          "nimbus_events.enrollment_status": true,
+        },
+      })
+    );
     Services.telemetry.snapshotEvents(
       Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
       /* clear = */ true
@@ -2036,6 +2043,32 @@ add_task(async function test_prefFlip_setPref_restore() {
           reason: "prefFlips-conflict",
           experiment: enrollmentOrder[0],
           conflicting_slug: enrollmentOrder[1],
+        },
+      ]
+    );
+    Assert.deepEqual(
+      Glean.nimbusEvents.enrollmentStatus
+        .testGetValue("events")
+        ?.map(ev => ev.extra),
+      [
+        {
+          slug: enrollmentOrder[0],
+          branch: "control",
+          status: "Enrolled",
+          reason: "Qualified",
+        },
+        {
+          slug: enrollmentOrder[0],
+          branch: "control",
+          status: "Disqualified",
+          reason: "PrefFlipsConflict",
+          conflict_slug: enrollmentOrder[1],
+        },
+        {
+          slug: enrollmentOrder[1],
+          branch: "control",
+          status: "Enrolled",
+          reason: "Qualified",
         },
       ]
     );
