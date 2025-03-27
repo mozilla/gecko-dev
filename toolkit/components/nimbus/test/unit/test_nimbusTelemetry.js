@@ -204,7 +204,7 @@ add_task(
     manager.store._deleteForTests("experiment");
     manager.store._deleteForTests("rollout");
 
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store);
   }
 );
 
@@ -339,7 +339,7 @@ add_task(
     await recordTargetingContext();
 
     await cleanup();
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store);
     await sandbox.restore();
 
     Services.fog.testResetFOG();

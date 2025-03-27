@@ -510,7 +510,7 @@ add_task(async function test_prefFlips() {
       Services.prefs.deleteBranch(prefName);
     }
 
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store, { cleanup: true });
     assertNoObservers(manager);
 
     sandbox.restore();
@@ -1589,7 +1589,7 @@ add_task(async function test_prefFlips_unenrollment() {
       info(`Unenrolling from ${computedSlug}\n`);
       manager.unenroll(computedSlug, "cleanup");
     }
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store, { cleanup: true });
     assertNoObservers(manager);
 
     info("Cleaning up prefs...");
@@ -2046,7 +2046,7 @@ add_task(async function test_prefFlip_setPref_restore() {
     info("Checking expected prefs...");
     checkExpectedPrefBranches(expectedPrefs);
 
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store, { cleanup: true });
     assertNoObservers(manager);
 
     info("Cleaning up prefs...");
@@ -2125,7 +2125,7 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
     !Services.prefs.prefHasUserValue("test.pref.please.ignore"),
     "pref unset after unenrollment"
   );
-  assertEmptyStore(manager.store);
+  await assertEmptyStore(manager.store, { cleanup: true });
 
   sandbox.restore();
 });
@@ -2157,7 +2157,6 @@ add_task(async function test_prefFlips_restore_unenroll() {
   });
 
   // Set up a previous ExperimentStore on disk.
-  let storePath;
   {
     const enrollment = {
       slug: recipe.slug,
@@ -2183,8 +2182,6 @@ add_task(async function test_prefFlips_restore_unenroll() {
     store.set(enrollment.slug, enrollment);
     store._store.saveSoon();
     await store._store.finalize();
-
-    storePath = store._store.path;
   }
 
   // Set the pref controlled by the experiment.
@@ -2192,8 +2189,7 @@ add_task(async function test_prefFlips_restore_unenroll() {
 
   const sandbox = sinon.createSandbox();
 
-  const store = ExperimentFakes.store(storePath);
-  const manager = ExperimentFakes.manager(store);
+  const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
@@ -2213,7 +2209,7 @@ add_task(async function test_prefFlips_restore_unenroll() {
     "pref unset after unenrollment"
   );
 
-  assertEmptyStore(manager.store);
+  await assertEmptyStore(manager.store, { cleanup: true });
 
   sandbox.restore();
 });
@@ -2300,7 +2296,7 @@ add_task(async function test_prefFlips_failed() {
 
   Services.prefs.deleteBranch(PREF);
 
-  assertEmptyStore(manager.store);
+  await assertEmptyStore(manager.store);
 });
 
 add_task(async function test_prefFlips_failed_multiple_prefs() {
@@ -2385,7 +2381,7 @@ add_task(async function test_prefFlips_failed_multiple_prefs() {
   Services.prefs.deleteBranch(GOOD_PREF);
   Services.prefs.deleteBranch(BAD_PREF);
 
-  assertEmptyStore(manager.store);
+  await assertEmptyStore(manager.store);
   sandbox.reset();
 });
 
@@ -2516,7 +2512,7 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout() {
     Services.prefs.deleteBranch(PREFS[ROLLOUT]);
     Services.prefs.deleteBranch(PREFS[EXPERIMENT]);
 
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store);
     assertNoObservers(manager);
     sandbox.restore();
   }
@@ -2576,7 +2572,7 @@ add_task(async function test_prefFlips_update_failure() {
   Services.prefs.deleteBranch("pref.two");
 
   doCleanup();
-  assertEmptyStore(manager.store);
+  await assertEmptyStore(manager.store);
   assertNoObservers(manager);
 
   sandbox.restore();
@@ -2612,7 +2608,6 @@ add_task(async function test_prefFlips_restore_failure() {
     },
   });
 
-  let storePath;
   {
     const prevEnrollment = {
       slug: recipe.slug,
@@ -2638,15 +2633,12 @@ add_task(async function test_prefFlips_restore_failure() {
     store.set(prevEnrollment.slug, prevEnrollment);
     store._store.saveSoon();
     await store._store.finalize();
-
-    storePath = store._store.path;
   }
 
   Services.prefs.setIntPref(PREF, 123);
 
   const sandbox = sinon.createSandbox();
-  const store = ExperimentFakes.store(storePath);
-  const manager = ExperimentFakes.manager(store);
+  const manager = ExperimentFakes.manager();
 
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
@@ -2663,7 +2655,7 @@ add_task(async function test_prefFlips_restore_failure() {
   );
   Assert.equal(Services.prefs.getIntPref(PREF), 123, "pref value unchanged");
 
-  assertEmptyStore(manager.store);
+  await assertEmptyStore(manager.store, { cleanup: true });
   assertNoObservers(manager);
 
   Services.prefs.deleteBranch(PREF);
@@ -2717,7 +2709,7 @@ add_task(
     Assert.ok(!enrollment.active, "enrollment should not be active");
     Assert.equal(enrollment.unenrollReason, "prefFlips-failed");
 
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store);
     assertNoObservers(manager);
 
     Services.prefs.deleteBranch(PREF);

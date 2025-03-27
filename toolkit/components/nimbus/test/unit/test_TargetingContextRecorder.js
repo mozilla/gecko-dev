@@ -49,10 +49,10 @@ async function setupNimbusForTest() {
 
   Services.locale = mockLocaleService;
 
-  const cleanup = () => {
+  const cleanup = async () => {
     Services.locale = localeService;
     sandbox.restore();
-    assertEmptyStore(manager.store);
+    await assertEmptyStore(manager.store, { cleanup: true });
 
     Services.fog.testResetFOG();
   };
@@ -206,7 +206,7 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
   manager.store._deleteForTests("experiment");
   manager.store._deleteForTests("rollout");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testNimbusTargetingEnvironmentUserSetPrefs() {
@@ -252,7 +252,7 @@ add_task(async function testNimbusTargetingEnvironmentUserSetPrefs() {
   Services.prefs.deleteBranch("nimbus.testing.testInt");
   Services.prefs.deleteBranch("nimbus.testing.testSetString");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testNimbusTargetingEnvironmentPrefValues() {
@@ -300,7 +300,7 @@ add_task(async function testNimbusTargetingEnvironmentPrefValues() {
 
   Services.prefs.deleteBranch(PREF);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testExperimentMetrics() {
@@ -384,7 +384,7 @@ add_task(async function testExperimentMetrics() {
   manager.store._deleteForTests("experiment-2");
   manager.store._deleteForTests("rollout-1");
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function testErrorMetrics() {
@@ -457,7 +457,7 @@ add_task(async function testErrorMetrics() {
     });
   });
 
-  cleanup();
+  await cleanup();
 
   Services.prefs.deleteBranch(PREF);
 });
@@ -564,5 +564,5 @@ add_task(async function testRecordingErrors() {
     );
   });
 
-  cleanup();
+  await cleanup();
 });

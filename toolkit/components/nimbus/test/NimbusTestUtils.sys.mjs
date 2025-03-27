@@ -48,6 +48,8 @@ ChromeUtils.defineLazyGetter(lazy, "enrollmentSchema", () => {
 
 const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
 
+const PATH = FileTestUtils.getTempFile("shared-data-map").path;
+
 async function fetchSchema(url) {
   const response = await fetch(url);
   const schema = await response.json();
@@ -168,7 +170,7 @@ export const ExperimentTestUtils = {
 export const ExperimentFakes = {
   manager(store) {
     let sandbox = lazy.sinon.createSandbox();
-    let manager = new lazy._ExperimentManager({ store: store ?? this.store() });
+    let manager = new lazy._ExperimentManager({ store: store || this.store() });
     // We want calls to `store.addEnrollment` to implicitly validate the
     // enrollment before saving to store
     let origAddExperiment = manager.store.addEnrollment.bind(manager.store);
@@ -179,9 +181,10 @@ export const ExperimentFakes = {
 
     return manager;
   },
-  store(path) {
-    return new ExperimentStore("ExperimentStoreData", {
-      path: path ?? FileTestUtils.getTempFile("test-experiment-store").path,
+  store() {
+    return new ExperimentStore("FakeStore", {
+      path: PATH,
+      isParent: true,
     });
   },
   /**
@@ -276,6 +279,9 @@ export const ExperimentFakes = {
     } catch (e) {
       // Expected if nothing is cached
     }
+  },
+  childStore() {
+    return new ExperimentStore("FakeStore", { isParent: false });
   },
   rsLoader() {
     const loader = new lazy._RemoteSettingsExperimentLoader();

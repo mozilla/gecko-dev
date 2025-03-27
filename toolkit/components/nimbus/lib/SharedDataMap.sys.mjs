@@ -13,11 +13,11 @@ const IS_MAIN_PROCESS =
   Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
 
 export class SharedDataMap extends EventEmitter {
-  constructor(sharedDataKey, { path, isParent = IS_MAIN_PROCESS } = {}) {
+  constructor(sharedDataKey, options = { isParent: IS_MAIN_PROCESS }) {
     super();
 
     this._sharedDataKey = sharedDataKey;
-    this._isParent = isParent;
+    this._isParent = options.isParent;
     this._isReady = false;
     this._readyDeferred = Promise.withResolvers();
     this._data = null;
@@ -25,16 +25,22 @@ export class SharedDataMap extends EventEmitter {
     if (this.isParent) {
       // Lazy-load JSON file that backs Storage instances.
       ChromeUtils.defineLazyGetter(this, "_store", () => {
+        let path = options.path;
+        let store = null;
+        if (!path) {
+          try {
+            const profileDir = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
+            path = PathUtils.join(profileDir, `${sharedDataKey}.json`);
+          } catch (e) {
+            console.error(e);
+          }
+        }
         try {
-          return new lazy.JSONFile({
-            path:
-              path ??
-              PathUtils.join(PathUtils.profileDir, `${sharedDataKey}.json`),
-          });
+          store = new lazy.JSONFile({ path });
         } catch (e) {
           console.error(e);
         }
-        return null;
+        return store;
       });
     } else {
       this._syncFromParent();

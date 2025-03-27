@@ -30,8 +30,8 @@ function setupTest({ recipes }) {
     sandbox,
     loader,
     manager,
-    cleanup() {
-      assertEmptyStore(manager.store);
+    async cleanup() {
+      await assertEmptyStore(manager.store);
 
       ExperimentAPI._resetForTests();
       sandbox.restore();
@@ -120,7 +120,7 @@ add_task(async function test_all() {
     "Should return all opt in recipes that match targeting and bucketing"
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_enroll() {
@@ -188,7 +188,7 @@ add_task(async function test_enroll() {
 
   labs.unenroll(recipe.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_reenroll() {
@@ -248,7 +248,7 @@ add_task(async function test_reenroll() {
 
   labs.unenroll(recipe.slug);
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_unenroll() {
@@ -331,5 +331,5 @@ add_task(async function test_unenroll() {
   labs.unenroll("opt-in");
 
   manager.unenroll("rollout");
-  cleanup();
+  await cleanup();
 });

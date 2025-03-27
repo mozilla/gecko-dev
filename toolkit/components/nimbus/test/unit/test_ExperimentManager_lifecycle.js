@@ -432,5 +432,5 @@ add_task(async function test_experimentStore_updateEvent() {
     })
   );
 
-  assertEmptyStore(manager.store);
+  await assertEmptyStore(manager.store);
 });

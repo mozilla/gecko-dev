@@ -123,8 +123,8 @@ async function setupTest({
     sandbox,
     loader,
     manager: loader.manager,
-    cleanup() {
-      assertEmptyStore(loader.manager.store);
+    async cleanup({ removeStore = false } = {}) {
+      await assertEmptyStore(loader.manager.store, { cleanup: removeStore });
       ExperimentAPI._resetForTests();
       removeExperimentManagerListeners(loader.manager);
       Services.prefs.deleteBranch(NIMBUS_MIGRATION_PREF);
@@ -177,7 +177,7 @@ add_task(async function test_migration_unset() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_partially_done() {
@@ -204,7 +204,7 @@ add_task(async function test_migration_partially_done() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_throws() {
@@ -249,7 +249,7 @@ add_task(async function test_migration_throws() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_throws_MigrationError() {
@@ -294,7 +294,7 @@ add_task(async function test_migration_throws_MigrationError() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_firefoxLabsEnrollments() {
@@ -361,7 +361,7 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
       ]
     );
 
-    cleanup();
+    await cleanup();
   }
 
   await doTest([]);
@@ -422,7 +422,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_falseTargeting() {
     ]
   );
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
@@ -475,7 +475,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
     manager.unenroll(slug);
   }
 
-  cleanup();
+  await cleanup({ removeStore: true });
 
   for (const pref of prefs) {
     Services.prefs.clearUserPref(pref);
