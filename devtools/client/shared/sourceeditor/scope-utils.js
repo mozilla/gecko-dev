@@ -26,7 +26,7 @@ function containsLocation(parentLocation, childLocation) {
 }
 
 function getInnerLocations(locations, position) {
-  // First, find the function which  directly contains the specified position (line / column)
+  // First, find the function which directly contains the specified position (line / column)
   let parentIndex;
   for (let i = locations.length - 1; i >= 0; i--) {
     if (containsPosition(locations[i], position)) {

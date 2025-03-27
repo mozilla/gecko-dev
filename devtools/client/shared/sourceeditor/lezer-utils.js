@@ -71,6 +71,11 @@ const nodeTypeSets = {
   numberAndProperty: new Set([nodeTypes.PropertyDefinition, nodeTypes.Number]),
   memberExpression: new Set([nodeTypes.MemberExpression]),
   classes: new Set([nodeTypes.ClassDeclaration, nodeTypes.ClassExpression]),
+  bindingReferences: new Set([
+    nodeTypes.VariableDefinition,
+    nodeTypes.VariableName,
+  ]),
+  expressionProperty: new Set([nodeTypes.PropertyName]),
 };
 
 const ast = new Map();
@@ -133,24 +138,41 @@ function clear() {
 }
 
 /**
- * Gets the name of the function which immediately encloses the node (representing a location)
+ * Gets the node and the function name which immediately encloses the node (representing a location)
  *
  * @param {Object} doc - The codemirror document used to retrive the part of content
  * @param {Object} node - The parser syntax node https://lezer.codemirror.net/docs/ref/#common.SyntaxNode
+ * @params {Object} options
+ *                  options.includeAnonymousFunctions - if true, allow matching anonymous functions
  * @returns
  */
-function getEnclosingFunctionName(doc, node) {
+function getEnclosingFunction(
+  doc,
+  node,
+  options = { includeAnonymousFunctions: false }
+) {
   let parentNode = node.parent;
   while (parentNode !== null) {
     if (nodeTypeSets.functionsVarDecl.has(parentNode.name)) {
+      // For anonymous functions, we use variable declarations, but we only care about variable declarations which are part of function expressions
+      if (
+        parentNode.name == nodeTypes.VariableDeclaration &&
+        !hasChildNodeOfType(parentNode.node, nodeTypeSets.functionExpressions)
+      ) {
+        parentNode = parentNode.parent;
+        continue;
+      }
       const funcName = getFunctionName(doc, parentNode);
-      if (funcName) {
-        return funcName;
+      if (funcName || options.includeAnonymousFunctions) {
+        return {
+          node: parentNode,
+          funcName,
+        };
       }
     }
     parentNode = parentNode.parent;
   }
-  return "";
+  return null;
 }
 
 /**
@@ -162,9 +184,36 @@ function getEnclosingFunctionName(doc, node) {
  * @returns {Object} node - https://lezer.codemirror.net/docs/ref/#common.SyntaxNodeRef
  */
 function getTreeNodeAtLocation(doc, tree, location) {
-  const line = doc.line(location.line);
-  const pos = line.from + location.column;
-  return tree.resolve(pos, 1);
+  try {
+    const line = doc.line(location.line);
+    const pos = line.from + location.column;
+    return tree.resolve(pos, 1);
+  } catch (e) {
+    // if the line is not found in the document doc.line() will throw
+    console.warn(e.message);
+  }
+  return null;
+}
+
+/**
+ * Converts Codemirror position to valid source location. Used only for CM6
+ *
+ * @param {Object} doc - The Codemirror document used to retrive the part of content
+ * @param {Number} pos - Codemirror offset
+ * @returns
+ */
+function positionToLocation(doc, pos) {
+  if (pos == null) {
+    return {
+      line: null,
+      column: null,
+    };
+  }
+  const line = doc.lineAt(pos);
+  return {
+    line: line.number,
+    column: pos - line.from,
+  };
 }
 
 /**
@@ -350,6 +399,28 @@ function getFunctionClass(doc, node) {
 }
 
 /**
+ * Gets the meta data for member expression nodes
+ *
+ * @param {Object} doc - The codemirror document used to retrieve the part of content
+ * @param {Object} node - The parser syntax node https://lezer.codemirror.net/docs/ref/#common.SyntaxNode
+ * @returns
+ */
+function getMetaBindings(doc, node) {
+  if (!node || node.name !== nodeTypes.MemberExpression) {
+    return null;
+  }
+
+  const memExpr = doc.sliceString(node.from, node.to).split(".");
+  return {
+    type: "member",
+    start: positionToLocation(doc, node.from),
+    end: positionToLocation(doc, node.to),
+    property: memExpr.at(-1),
+    parent: getMetaBindings(doc, node.parent),
+  };
+}
+
+/**
  * Walk the syntax tree of the langauge provided
  *
  * @param {Object}   view - Codemirror view (https://codemirror.net/docs/ref/#view)
@@ -380,15 +451,34 @@ async function walkTree(view, language, options) {
   });
 }
 
+/**
+ * This enables walking a specific part of the syntax tree using the cursor
+ * provided by the node (which is the parent)
+ * @param {Object} cursor - https://lezer.codemirror.net/docs/ref/#common.TreeCursor
+ * @param {Object} options
+ *        {Function} options.enterVisitor - A function that is called when a node is entered
+ *        {Set}      options.filterSet - A set of node types which should be visited, all others should be ignored
+ */
+async function walkCursor(cursor, options) {
+  await cursor.iterate(node => {
+    if (options.filterSet?.has(node.name)) {
+      options.enterVisitor(node);
+    }
+  });
+}
+
 module.exports = {
   getFunctionName,
   getFunctionParameterNames,
   getFunctionClass,
-  getEnclosingFunctionName,
+  getEnclosingFunction,
   getTreeNodeAtLocation,
+  getMetaBindings,
   nodeTypes,
   nodeTypeSets,
   walkTree,
   getTree,
   clear,
+  walkCursor,
+  positionToLocation,
 };
