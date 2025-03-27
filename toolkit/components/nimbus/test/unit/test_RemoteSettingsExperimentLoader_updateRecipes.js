@@ -100,7 +100,7 @@ add_task(async function test_updateRecipes_invalidFeatureId() {
   );
   Assert.ok(manager.enroll.notCalled, "Would not enroll");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
   Services.telemetry.snapshotEvents(
@@ -161,7 +161,7 @@ add_task(async function test_updateRecipes_invalidFeatureValue() {
   );
   Assert.ok(manager.enroll.notCalled, "Would not enroll");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
   Services.telemetry.snapshotEvents(
@@ -195,7 +195,7 @@ add_task(async function test_updateRecipes_invalidRecipe() {
   );
   Assert.ok(manager.enroll.notCalled, "Would not enroll");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
@@ -260,7 +260,7 @@ add_task(async function test_updateRecipes_invalidRecipeAfterUpdate() {
     "Should unenroll"
   );
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
   Services.telemetry.snapshotEvents(
@@ -372,7 +372,7 @@ add_task(async function test_updateRecipes_invalidBranchAfterUpdate() {
     "should unenroll"
   );
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
   Services.telemetry.snapshotEvents(
@@ -499,7 +499,7 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
 
   EnrollmentsContext.prototype._generateVariablesOnlySchema.restore();
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
   Services.telemetry.snapshotEvents(
@@ -636,7 +636,7 @@ add_task(async function test_updateRecipes_validationTelemetry() {
 
     Services.fog.testResetFOG();
 
-    await assertEmptyStore(manager.store, { cleanup: true });
+    assertEmptyStore(manager.store);
     sandbox.restore();
   }
 });
@@ -717,7 +717,7 @@ add_task(async function test_updateRecipes_validationDisabled() {
       "Would enroll"
     );
 
-    await assertEmptyStore(manager.store, { cleanup: true });
+    assertEmptyStore(manager.store);
     sandbox.restore();
   }
 
@@ -788,7 +788,7 @@ add_task(async function test_updateRecipes_appId() {
 
   Services.prefs.clearUserPref("nimbus.appId");
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_withPropNotInManifest() {
@@ -839,7 +839,7 @@ add_task(async function test_updateRecipes_withPropNotInManifest() {
     "should call onRecipe with this recipe"
   );
 
-  await assertEmptyStore(loader.manager.store, { cleanup: true });
+  assertEmptyStore(loader.manager.store);
 });
 
 add_task(async function test_updateRecipes_recipeAppId() {
@@ -875,7 +875,7 @@ add_task(async function test_updateRecipes_recipeAppId() {
 
   Assert.ok(manager.onRecipe.notCalled, ".onRecipe was never called");
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_featureValidationOptOut() {
@@ -962,7 +962,7 @@ add_task(async function test_updateRecipes_featureValidationOptOut() {
       "should call onRecipe for optOutRecipe with targeting and bucketing match"
     );
 
-    await assertEmptyStore(manager.store, { cleanup: true });
+    assertEmptyStore(manager.store);
   }
 
   Services.fog.testResetFOG();
@@ -1035,7 +1035,7 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
     "Should not have submitted validation failed telemetry"
   );
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 
   sandbox.restore();
 });
@@ -1165,7 +1165,7 @@ add_task(async function test_updateRecipes_rollout_bucketing() {
   );
 
   manager.unenroll(experiment.slug);
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_reenroll_rollout_resized() {
@@ -1228,7 +1228,7 @@ add_task(async function test_reenroll_rollout_resized() {
   );
 
   manager.unenroll(rollout.slug);
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_experiment_reenroll() {
@@ -1270,7 +1270,7 @@ add_task(async function test_experiment_reenroll() {
     "Should not re-enroll in experiment"
   );
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_rollout_reenroll_optout() {
@@ -1308,7 +1308,7 @@ add_task(async function test_rollout_reenroll_optout() {
     "Should not re-enroll in rollout"
   );
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_active_and_past_experiment_targeting() {
@@ -1441,7 +1441,7 @@ add_task(async function test_active_and_past_experiment_targeting() {
   manager.unenroll("experiment-c", "test");
   manager.unenroll("rollout-c", "test");
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
   cleanupFeatures();
 });
 
@@ -1627,7 +1627,7 @@ add_task(async function test_enrollment_targeting() {
     manager.unenroll(slug);
   }
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
   cleanupFeatures();
 });
 
@@ -1662,7 +1662,7 @@ add_task(async function test_update_experiments_ordered_by_published_date() {
   ok(onRecipe.getCall(2).calledWithMatch({ slug: "qux" }, "rs-loader"));
   ok(onRecipe.getCall(3).calledWithMatch({ slug: "baz" }, "rs-loader"));
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(
@@ -1687,7 +1687,7 @@ add_task(
 
     Assert.equal(isReadyEvents.length, 1);
 
-    await assertEmptyStore(manager.store);
+    assertEmptyStore(manager.store);
   }
 );
 
@@ -1742,7 +1742,7 @@ add_task(
 
     Assert.equal(isReadyEvents.length, 3);
     manager.unenroll(EXPERIMENT.slug);
-    await assertEmptyStore(manager.store, { cleanup: true });
+    assertEmptyStore(manager.store);
 
     sandbox.restore();
   }
@@ -1917,7 +1917,7 @@ add_task(async function test_updateRecipesClearsOptIns() {
 
   Assert.deepEqual(manager.optInRecipes, recipes);
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_optInsStayEnrolled() {
@@ -1972,7 +1972,7 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
   manager.unenroll("opt-in");
   manager.store._deleteForTests("opt-in");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
@@ -2027,7 +2027,7 @@ add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
 
   manager.store._deleteForTests("opt-in");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
@@ -2077,7 +2077,7 @@ add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
 
   manager.store._deleteForTests("opt-in");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
@@ -2131,7 +2131,7 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
   await loader.updateRecipes();
   Assert.ok(!manager.store.get("opt-in").active, "Opt-in not re-enrolled");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
@@ -2318,7 +2318,7 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
 
   manager.unenroll("stays-enrolled", "test");
   manager.unenroll("enrolls", "test");
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
   cleanupFeatures();
@@ -2360,7 +2360,7 @@ add_task(async function test_updateRecipesWithPausedEnrollment() {
     "Should not call enroll for paused recipe"
   );
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_updateRecipesUnenrollsNotSeenRecipes() {
@@ -2473,7 +2473,7 @@ add_task(async function test_updateRecipesUnenrollsNotSeenRecipes() {
     }
   );
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -2511,7 +2511,7 @@ add_task(async function test_updateRecipesUnenrollsTargetingMismatch() {
     "Unenroll reason matches"
   );
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -2564,5 +2564,5 @@ add_task(async function testUnenrollsFirst() {
   manager.unenroll("e3", "test");
   manager.unenroll("r3", "test");
 
-  await assertEmptyStore(manager.store, { cleanup: true });
+  assertEmptyStore(manager.store);
 });

@@ -16,6 +16,10 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
+const { TimerManager } = ChromeUtils.importESModule(
+  "resource://gre/modules/UpdateTimerManager.sys.mjs"
+);
+
 let gSandbox;
 
 add_setup(() => {
@@ -31,6 +35,7 @@ add_setup(() => {
  */
 add_task(async function test_NimbusIntegration_enable() {
   gSandbox.spy(ContentRelevancyManager, "notify");
+  gSandbox.spy(TimerManager.prototype, "registerTimer");
 
   await ExperimentAPI.ready();
   const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
@@ -45,9 +50,10 @@ add_task(async function test_NimbusIntegration_enable() {
     },
   });
 
-  await TestUtils.waitForCondition(
-    () => ContentRelevancyManager.shouldEnable,
-    "Should enable it via Nimbus"
+  Assert.ok(ContentRelevancyManager.shouldEnable, "Should enable via Nimbus");
+  Assert.ok(
+    TimerManager.prototype.registerTimer.calledWith(ContentRelevancyManager.TIMER_ID),
+    "Should register timer when enabled"
   );
 
   await TestUtils.waitForCondition(
@@ -63,7 +69,7 @@ add_task(async function test_NimbusIntegration_enable() {
  * Test Nimbus integration - disable.
  */
 add_task(async function test_NimbusIntegration_disable() {
-  gSandbox.spy(ContentRelevancyManager, "notify");
+  gSandbox.spy(TimerManager.prototype, "registerTimer");
 
   await ExperimentAPI.ready();
   const doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
@@ -78,14 +84,10 @@ add_task(async function test_NimbusIntegration_disable() {
     },
   });
 
-  await TestUtils.waitForCondition(
-    () => !ContentRelevancyManager.shouldEnable,
-    "Should disable it via Nimbus"
-  );
-
-  await TestUtils.waitForCondition(
-    () => ContentRelevancyManager.notify.notCalled,
-    "The timer callback should not be called"
+  Assert.ok(!ContentRelevancyManager.shouldEnable, "Should disable via Nimbus");
+  Assert.ok(
+    !TimerManager.prototype.registerTimer.calledWith(ContentRelevancyManager.TIMER_ID),
+    "Should not register timer"
   );
 
   doExperimentCleanup();

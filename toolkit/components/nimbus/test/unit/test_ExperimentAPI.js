@@ -101,7 +101,7 @@ add_task(async function test_getRolloutMetaData() {
   Assert.ok(exposureStub.notCalled, "Not called for this method");
 
   manager.unenroll(expected.slug);
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   sandbox.restore();
 });
@@ -359,7 +359,7 @@ add_task(async function test_addEnrollment_eventEmit_add() {
   store.off("featureUpdate:purple", featureStub);
 
   manager.unenroll(experiment.slug);
-  await assertEmptyStore(store);
+  assertEmptyStore(store);
 
   sandbox.restore();
 });
@@ -400,7 +400,7 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   store._offFeatureUpdate("featureUpdate:purple", featureStub);
 
   manager.unenroll(experiment.slug);
-  await assertEmptyStore(store);
+  assertEmptyStore(store);
 });
 
 add_task(async function test_updateExperiment_eventEmit_off() {
@@ -431,7 +431,7 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   Assert.equal(featureStub.callCount, 1, "Called only once before `off`");
 
   manager.unenroll(experiment.slug);
-  await assertEmptyStore(store);
+  assertEmptyStore(store);
 
   sandbox.restore();
 });
@@ -460,7 +460,7 @@ add_task(async function test_getActiveBranch() {
   );
 
   manager.unenroll(experiment.slug);
-  await assertEmptyStore(store);
+  assertEmptyStore(store);
 
   sandbox.restore();
 });
@@ -512,7 +512,7 @@ add_task(async function test_getActiveBranch_storeFailure() {
   Assert.equal(stub.callCount, 0, "Not called if store somehow fails");
 
   manager.unenroll(experiment.slug);
-  await assertEmptyStore(store);
+  assertEmptyStore(store);
 
   sandbox.restore();
 });
@@ -540,7 +540,7 @@ add_task(async function test_getActiveBranch_noActivationEvent() {
   Assert.equal(stub.callCount, 0, "Not called: sendExposureEvent is false");
 
   manager.unenroll(experiment.slug);
-  await assertEmptyStore(store);
+  assertEmptyStore(store);
 
   sandbox.restore();
 });

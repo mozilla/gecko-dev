@@ -11,9 +11,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
 });
 
-const IS_MAIN_PROCESS =
-  Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
-
 // This branch is used to store experiment data
 const SYNC_DATA_PREF_BRANCH = "nimbus.syncdatastore.";
 // This branch is used to store remote rollouts
@@ -230,8 +227,8 @@ export class ExperimentStore extends SharedDataMap {
   static SYNC_DATA_PREF_BRANCH = SYNC_DATA_PREF_BRANCH;
   static SYNC_DEFAULTS_PREF_BRANCH = SYNC_DEFAULTS_PREF_BRANCH;
 
-  constructor(sharedDataKey, options = { isParent: IS_MAIN_PROCESS }) {
-    super(sharedDataKey || DEFAULT_STORE_ID, options);
+  constructor(sharedDataKey, options) {
+    super(sharedDataKey ?? DEFAULT_STORE_ID, options);
   }
 
   async init() {

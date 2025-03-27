@@ -61,7 +61,7 @@ add_task(async function test_add_to_store() {
 
   manager.unenroll("foo", "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_add_rollout_to_store() {
@@ -94,7 +94,7 @@ add_task(async function test_add_rollout_to_store() {
 
   manager.unenroll("rollout-slug", "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 /**
@@ -144,7 +144,7 @@ add_task(async function test_enroll_optin_recipe_branch_selection() {
     "should call ._enroll() with the correct arguments"
   );
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_setExperimentActive_recordEnrollment_called() {
@@ -221,7 +221,7 @@ add_task(async function test_setExperimentActive_recordEnrollment_called() {
 
   manager.unenroll("foo", "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -329,7 +329,7 @@ add_task(async function test_setRolloutActive_recordEnrollment_called() {
 
   manager.unenroll("rollout", "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -390,7 +390,7 @@ add_task(async function test_failure_name_conflict() {
 
   manager.unenroll("foo", "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -470,7 +470,7 @@ add_task(async function test_failure_group_conflict() {
 
   manager.unenroll("foo", "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -537,7 +537,7 @@ add_task(async function test_rollout_failure_group_conflict() {
 
   manager.unenroll("rollout-recipe", "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -596,7 +596,7 @@ add_task(async function test_rollout_experiment_no_conflict() {
     manager,
   });
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
   sandbox.restore();
 });
 
@@ -654,7 +654,7 @@ add_task(async function test_sampling_check() {
     "called with expected total"
   );
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   sandbox.restore();
 });
@@ -698,7 +698,7 @@ add_task(async function enroll_in_reference_aw_experiment() {
 
   manager.unenroll(recipe.slug, "enroll_in_reference_aw_experiment:cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_forceEnroll_cleanup() {
@@ -753,7 +753,7 @@ add_task(async function test_forceEnroll_cleanup() {
 
   manager.unenroll(`optin-${forcedRecipe.slug}`, "test-cleanup");
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   sandbox.restore();
 });
@@ -778,7 +778,7 @@ add_task(async function test_rollout_unenroll_conflict() {
   Assert.ok(enrollStub.calledOnce, "Should call enroll as expected");
 
   manager.unenroll(rollout.slug, "test-cleanup");
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 
   sandbox.restore();
 });
@@ -852,7 +852,7 @@ add_task(async function test_forceEnroll() {
     }
   }
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_featureIds_is_stored() {
@@ -880,7 +880,7 @@ add_task(async function test_featureIds_is_stored() {
 
   doExperimentCleanup();
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function experiment_and_rollout_enroll_and_cleanup() {
@@ -946,7 +946,7 @@ add_task(async function experiment_and_rollout_enroll_and_cleanup() {
     )
   );
 
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_reEnroll() {
@@ -1011,7 +1011,7 @@ add_task(async function test_reEnroll() {
   );
 
   manager.unenroll(rollout.slug);
-  await assertEmptyStore(store);
+  assertEmptyStore(store);
 });
 
 add_task(async function test_randomizationUnit() {
@@ -1116,10 +1116,10 @@ add_task(async function test_group_enrollment() {
 
   // Cleanup
   manager1.unenroll("group_enroll", "test-cleanup");
-  await assertEmptyStore(manager1.store);
+  assertEmptyStore(manager1.store);
 
   manager2.unenroll("group_enroll", "test-cleanup");
-  await assertEmptyStore(manager2.store);
+  assertEmptyStore(manager2.store);
 });
 
 add_task(async function test_getSingleOptInRecipe() {
@@ -1153,7 +1153,7 @@ add_task(async function test_getSingleOptInRecipe() {
   );
 
   sandbox.restore();
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });
 
 add_task(async function test_getAllOptInRecipes() {
@@ -1238,5 +1238,5 @@ add_task(async function test_getAllOptInRecipes() {
   );
 
   sandbox.restore();
-  await assertEmptyStore(manager.store);
+  assertEmptyStore(manager.store);
 });

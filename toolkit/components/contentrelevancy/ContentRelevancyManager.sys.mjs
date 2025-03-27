@@ -88,6 +88,10 @@ function setupLogging() {
 setupLogging();
 
 class RelevancyManager {
+  get TIMER_ID() {
+    return TIMER_ID;
+  }
+
   get initialized() {
     return this.#initialized;
   }
