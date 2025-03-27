@@ -1485,7 +1485,7 @@
   -->
   <string name="download_multi_select_title">Вибрано %1$d</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Вилучити</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Вилучити</string>
   <!--
     Time period headers for downloads
 

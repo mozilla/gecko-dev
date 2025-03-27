@@ -1477,6 +1477,8 @@
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Prenosi odstranjeni</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s odstranjen</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Prenos poteka …</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Podrobnosti</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1487,19 +1489,29 @@
   <string name="download_undo_delete_snackbar_action">Razveljavi</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ni prenesenih datotek</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Ni še prenosov</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">Tukaj bodo prikazane datoteke, ki jih boste prenesli.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d izbranih</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Odstrani</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Odstrani</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">Deli URL</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Deli datoteko</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
   <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Ali ste prepričani, da želite izbrisati izbrane predmete?</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
   <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Izbriši</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Prekliči</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">V teku</string>
   <!--
     Time period headers for downloads
 
@@ -1514,6 +1526,8 @@
   <string name="download_time_period_last_30_days">Zadnjih 30 dni</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Starejše</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">Prenos ni uspel</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Iskanje po prenosih</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1531,7 +1545,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Dokumenti</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">Drugo</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Drugo</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1644,6 +1658,14 @@
   <string name="bookmark_menu_delete_button">Izbriši</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Shrani</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Razvrsti od najnovejšega</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Razvrsti od najstarejšega</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Razvrsti od A do Ž</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Razvrsti od Ž do A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected

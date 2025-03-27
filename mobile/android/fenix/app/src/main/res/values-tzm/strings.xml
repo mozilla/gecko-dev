@@ -219,7 +219,7 @@
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ttwakksen wagamen </string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Kkes</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Kkes</string>
   <!-- Close tab button text on the tab crash page -->
   <string name="tab_crash_close">Mdel aseksel</string>
   <!-- Screen title for adding a bookmarks folder -->

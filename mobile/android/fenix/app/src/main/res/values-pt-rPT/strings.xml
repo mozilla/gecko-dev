@@ -708,7 +708,7 @@
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Imagem do tema %1$s</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
-  <string name="onboarding_customize_theme_a11y_action_label_select">selecione</string>
+  <string name="onboarding_customize_theme_a11y_action_label_select">selecionar</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Agora não</string>
   <!--
@@ -1487,7 +1487,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Eliminada “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Descarga em curso…</string>
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Transferência em progresso…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detalhes</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1508,7 +1508,9 @@
   -->
   <string name="download_multi_select_title">%1$d selecionados</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Remover</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Remover</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Apagar</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Partilhar URL</string>
   <!-- Text for the button to share the download file -->
@@ -1516,11 +1518,11 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
   <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Tem a certeza que pretende eliminar os itens selecionados?</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
-  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Apagar</string>
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Eliminar</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Cancelar</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">Em curso</string>
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">Em progresso</string>
   <!--
     Time period headers for downloads
 
@@ -1541,13 +1543,13 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s remanescentes</string>
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s restantes</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">em pausa</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pendente</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">Erro ao descarregar</string>
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">Transferência falhou</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder" tools:ignore="UnusedResources">Pesquisar transferências</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1565,7 +1567,9 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Documentos</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">Outros</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Outros</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Outro</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1681,7 +1685,7 @@
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Ordenar por mais recentes</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_oldest">Ordenar pelas mais antigas</string>
+  <string name="bookmark_sort_menu_oldest">Ordenar por mais antigos</string>
   <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_a_to_z">Ordenar por A a Z</string>
   <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->

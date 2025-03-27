@@ -1509,7 +1509,9 @@
   -->
   <string name="download_multi_select_title">%1$d개 선택됨</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">삭제</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">삭제</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">삭제</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL 공유</string>
   <!-- Text for the button to share the download file -->
@@ -1566,7 +1568,9 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">문서</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">기타</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">기타</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">기타</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.

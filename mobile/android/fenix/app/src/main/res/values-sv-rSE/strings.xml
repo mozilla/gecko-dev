@@ -1499,7 +1499,7 @@
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Inga nedladdade filer</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_2">Inga hämtningar än</string>
+  <string name="download_empty_message_2">Inga hämtningar ännu</string>
   <!-- Text description shown when no download exists -->
   <string name="download_empty_description">Filer du hämtar visas här.</string>
   <!--
@@ -1508,7 +1508,9 @@
   -->
   <string name="download_multi_select_title">%1$d markerade</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Ta bort</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Ta bort</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Ta bort</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Dela URL</string>
   <!-- Text for the button to share the download file -->
@@ -1545,7 +1547,7 @@
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">pausad</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pågår</string>
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">väntande</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">Nedladdning misslyckades</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
@@ -1565,7 +1567,9 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Dokument</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">Övrigt</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Övrigt</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Annat</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1679,13 +1683,13 @@
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Spara</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_newest">Sortera efter nyaste</string>
+  <string name="bookmark_sort_menu_newest">Sortera efter senaste</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_oldest">Sortera efter äldst</string>
   <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_a_to_z">Sortera efter A till Ö</string>
+  <string name="bookmark_sort_menu_a_to_z">Sortera från A till Ö</string>
   <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_z_to_a">Sortera efter Ö till A</string>
+  <string name="bookmark_sort_menu_z_to_a">Sortera från Ö till A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected

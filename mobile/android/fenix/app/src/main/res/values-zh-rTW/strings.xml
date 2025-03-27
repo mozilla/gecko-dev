@@ -1475,8 +1475,17 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">已移除下載紀錄</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">已刪除 %1$d 個項目</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">已移除 %1$s</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">已刪除「%1$s」</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">下載中…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">詳細資訊</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1487,6 +1496,8 @@
   <string name="download_undo_delete_snackbar_action">復原</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">無已下載的檔案</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">還沒有下載的檔案</string>
   <!-- Text description shown when no download exists -->
   <string name="download_empty_description">您下載的檔案將顯示於此處。</string>
   <!--
@@ -1495,15 +1506,19 @@
   -->
   <string name="download_multi_select_title">已選擇 %1$d 個下載的檔案</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">移除</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">移除</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">分享網址</string>
   <!-- Text for the button to share the download file -->
   <string name="download_share_file">分享檔案</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">您確定要刪除選擇的項目嗎？</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
   <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">刪除</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">取消</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">進行中</string>
   <!--
     Time period headers for downloads
 
@@ -1518,12 +1533,23 @@
   <string name="download_time_period_last_30_days">最近 30 天</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">更久之前</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • 剩餘 %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">已暫停</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">擱置中</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">下載失敗</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">搜尋下載項目</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">找不到結果</string>
   <!--
     Downloads Content Type Filters
 
@@ -1537,7 +1563,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">文件</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">其他</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">其他</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1650,6 +1676,14 @@
   <string name="bookmark_menu_delete_button">刪除</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">儲存</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">以新加入優先</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">以舊加入優先</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">依照名稱升冪排序（A-Z）</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">依照名稱降冪排序（Z-A）</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected

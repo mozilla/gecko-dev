@@ -702,7 +702,7 @@
   -->
   <string name="download_multi_select_title">%1$d ఎంచుకున్నారు</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">తొలగించు</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">తొలగించు</string>
   <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
   <string name="webcompat_reporter_cancel">రద్దుచేయి</string>
   <!-- The button text for the send button to submit the provided form data. -->

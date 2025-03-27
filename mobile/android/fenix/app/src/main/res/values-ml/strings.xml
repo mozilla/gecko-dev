@@ -1405,7 +1405,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">“%1$s”-നെ മായ്ചു</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">ഇറക്കിവയ്ക്കൽ നടപ്പിലാണു്...</string>
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">ഇറക്കിവയ്ക്കൽ നടപ്പിലാണു്…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">വിശദാംശങ്ങൾ</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1426,7 +1426,9 @@
   -->
   <string name="download_multi_select_title">%1$d തിരഞ്ഞെടുത്തിരിക്കുന്നു</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">മാറ്റുക</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">മാറ്റുക</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">മായ്ക്കുക</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">കണ്ണി പങ്കിടുക</string>
   <!-- Text for the button to share the download file -->
@@ -1483,7 +1485,9 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">രേഖകളും</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">വേറെ</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">വേറെ</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">മറ്റുള്ളവ</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.

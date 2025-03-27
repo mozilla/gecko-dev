@@ -431,7 +431,7 @@
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">এখানে কোন ইতিহাস নেই</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">অপসারণ</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">অপসারণ</string>
   <!--
     Crashes
 

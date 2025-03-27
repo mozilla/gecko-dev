@@ -1488,7 +1488,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Eliminouse “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Descarga en curso...</string>
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Descarga en curso…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detalles</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1509,7 +1509,9 @@
   -->
   <string name="download_multi_select_title">Seleccionouse %1$d</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Retirar</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Retirar</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Eliminar</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Compartir URL</string>
   <!-- Text for the button to share the download file -->
@@ -1566,7 +1568,9 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Documentos</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">Outros</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Outros</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Outro</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.

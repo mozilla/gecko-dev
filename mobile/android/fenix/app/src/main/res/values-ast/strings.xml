@@ -801,7 +801,7 @@
   -->
   <string name="download_multi_select_title">%1$d na seleición</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Quitar</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Quitar</string>
   <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
   <string name="webcompat_reporter_send_more_info">Unviar más información</string>
   <!--

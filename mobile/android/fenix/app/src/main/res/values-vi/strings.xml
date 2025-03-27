@@ -1508,7 +1508,7 @@
   -->
   <string name="download_multi_select_title">%1$d đã chọn</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">Xóa</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Xóa</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Chia sẻ URL</string>
   <!-- Text for the button to share the download file -->
@@ -1565,7 +1565,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Tài liệu</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">Khác</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Khác</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.

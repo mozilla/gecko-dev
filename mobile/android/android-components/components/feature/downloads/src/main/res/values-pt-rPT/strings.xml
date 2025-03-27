@@ -17,12 +17,12 @@
     Alert dialog confirmation before downloading a previously downloaded file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">Transferir o ficheiro novamente? (%1$s)</string>
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">Transferir novamente o ficheiro? (%1$s)</string>
   <!--
     Alert dialog confirmation before downloading a file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_dialog_title_3">Transferir ficheiro? (%1$s)</string>
+  <string name="mozac_feature_downloads_dialog_title_3">Transferir o ficheiro? (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Transferência (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->

@@ -1498,7 +1498,7 @@
   -->
   <string name="download_multi_select_title">已选择 %1$d 个下载项</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">移除</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">移除</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">分享 URL</string>
   <!-- Text for the button to share the download file -->
@@ -1549,7 +1549,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">文档</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other">其他</string>
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">其他</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.

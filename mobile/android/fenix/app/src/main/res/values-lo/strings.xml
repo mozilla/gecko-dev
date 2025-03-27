@@ -848,7 +848,7 @@
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">ກຳຫນົດເຊີເວີ Sync</string>
   <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
-  <string name="toast_override_account_sync_server_done">ບັນຊີ Mozilla/ເຊີບເວີ Sync ຖືກແກ້ໄຂ. ກຳລັງອອກຈາກແອັບພລິເຄຊັນເພື່ອນຳໃຊ້ການປ່ຽນແປງ...</string>
+  <string name="toast_override_account_sync_server_done">ບັນຊີ Mozilla/ເຊີບເວີ Sync ຖືກແກ້ໄຂ. ກຳລັງອອກຈາກແອັບພລິເຄຊັນເພື່ອນຳໃຊ້ການປ່ຽນແປງ…</string>
   <!-- Preference category for account information -->
   <string name="preferences_category_account">ບັນຊີ</string>
   <!-- Preference for changing where the AddressBar is positioned -->
@@ -1424,7 +1424,7 @@
   -->
   <string name="download_multi_select_title">ເລືອກ %1$d ແລ້ວ</string>
   <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1">ລຶບ</string>
+  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບ</string>
   <!--
     Time period headers for downloads
 
