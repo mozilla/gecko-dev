@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <body>
+    <script>
+"use strict";
+
+class CustomElement extends HTMLElement {
+  publicProperty = 1;
+
+  // eslint-disable-next-line no-unused-private-class-members
+  #privateProperty = 2;
+
+  constructor() {
+    super();
+    this["#privateProperty"] = "Actually a public property";
+  }
+};
+customElements.define("custom-element", CustomElement);
+
+console.log("custom-element-private-properties-test", document.createElement("custom-element"));
+    </script>
+  </body>
+</html>

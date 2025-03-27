@@ -409,9 +409,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_error_with_url.js"]
 
-["browser_webconsole_errors_after_page_reload.js"]
-
 ["browser_webconsole_errors.js"]
+
+["browser_webconsole_errors_after_page_reload.js"]
 
 ["browser_webconsole_eval_error.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -489,6 +489,8 @@ skip-if = [
 
 ["browser_webconsole_inspect_cross_domain_object.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+
+["browser_webconsole_json_mime_warning.js"]
 
 ["browser_webconsole_keyboard_accessibility.js"]
 
@@ -574,8 +576,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_non_javascript_mime_warning.js"]
 
-["browser_webconsole_json_mime_warning.js"]
-
 ["browser_webconsole_non_javascript_mime_worker_error.js"]
 
 ["browser_webconsole_non_standard_doctype_errors.js"]
@@ -621,6 +621,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_object_inspector_private_properties.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+support-files = [
+  "page_webconsole_object_inspector_private_properties.html"
+]
 
 ["browser_webconsole_object_inspector_scroll.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -764,9 +767,6 @@ skip-if = [
 
 ["browser_webconsole_stubs_platform_messages.js"]
 
-["browser_webconsole_temporal.js"]
-skip-if = ["!nightly_build"] # Bug 1912511
-
 ["browser_webconsole_telemetry_execute_js.js"]
 
 ["browser_webconsole_telemetry_filters_changed.js"]
@@ -782,6 +782,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_webconsole_telemetry_persist_toggle_changed.js"]
 
 ["browser_webconsole_telemetry_reverse_search.js"]
+
+["browser_webconsole_temporal.js"]
+skip-if = ["!nightly_build"] # Bug 1912511
 
 ["browser_webconsole_time_methods.js"]
 
