@@ -9805,9 +9805,9 @@ void CodeGenerator::prepareWasmStackSwitchTrampolineCall(Register suspender,
 void CodeGenerator::visitWasmStackSwitchToSuspendable(
     LWasmStackSwitchToSuspendable* lir) {
 #ifdef ENABLE_WASM_JSPI
-  const Register SuspenderReg = lir->suspender()->toAnyRegister().gpr();
-  const Register FnReg = lir->fn()->toAnyRegister().gpr();
-  const Register DataReg = lir->data()->toAnyRegister().gpr();
+  const Register SuspenderReg = lir->suspender()->toGeneralReg()->reg();
+  const Register FnReg = lir->fn()->toGeneralReg()->reg();
+  const Register DataReg = lir->data()->toGeneralReg()->reg();
   const Register SuspenderDataReg = ABINonArgReg3;
 
 #  ifdef JS_CODEGEN_ARM64
@@ -9954,9 +9954,9 @@ void CodeGenerator::visitWasmStackSwitchToSuspendable(
 
 void CodeGenerator::visitWasmStackSwitchToMain(LWasmStackSwitchToMain* lir) {
 #ifdef ENABLE_WASM_JSPI
-  const Register SuspenderReg = lir->suspender()->toAnyRegister().gpr();
-  const Register FnReg = lir->fn()->toAnyRegister().gpr();
-  const Register DataReg = lir->data()->toAnyRegister().gpr();
+  const Register SuspenderReg = lir->suspender()->toGeneralReg()->reg();
+  const Register FnReg = lir->fn()->toGeneralReg()->reg();
+  const Register DataReg = lir->data()->toGeneralReg()->reg();
   const Register SuspenderDataReg = ABINonArgReg3;
 
 #  ifdef JS_CODEGEN_ARM64
@@ -10151,8 +10151,8 @@ void CodeGenerator::visitWasmStackSwitchToMain(LWasmStackSwitchToMain* lir) {
 void CodeGenerator::visitWasmStackContinueOnSuspendable(
     LWasmStackContinueOnSuspendable* lir) {
 #ifdef ENABLE_WASM_JSPI
-  const Register SuspenderReg = lir->suspender()->toAnyRegister().gpr();
-  const Register ResultReg = lir->result()->toAnyRegister().gpr();
+  const Register SuspenderReg = lir->suspender()->toGeneralReg()->reg();
+  const Register ResultReg = lir->result()->toGeneralReg()->reg();
   const Register SuspenderDataReg = ABINonArgReg3;
 
 #  ifdef JS_CODEGEN_ARM64

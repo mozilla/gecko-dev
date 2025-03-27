@@ -1677,13 +1677,13 @@ class LSafepoint : public TempObject {
       return addSlotsOrElementsSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
     MOZ_ASSERT(alloc.isRegister());
-    addSlotsOrElementsRegister(alloc.toAnyRegister().gpr());
+    addSlotsOrElementsRegister(alloc.toGeneralReg()->reg());
     assertInvariants();
     return true;
   }
   bool hasSlotsOrElementsPointer(LAllocation alloc) const {
     if (alloc.isRegister()) {
-      return slotsOrElementsRegs().has(alloc.toAnyRegister().gpr());
+      return slotsOrElementsRegs().has(alloc.toGeneralReg()->reg());
     }
     for (size_t i = 0; i < slotsOrElementsSlots_.length(); i++) {
       const SlotEntry& entry = slotsOrElementsSlots_[i];
@@ -1700,7 +1700,7 @@ class LSafepoint : public TempObject {
       return addGcSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
     if (alloc.isRegister()) {
-      addGcRegister(alloc.toAnyRegister().gpr());
+      addGcRegister(alloc.toGeneralReg()->reg());
     }
     assertInvariants();
     return true;
@@ -1708,7 +1708,7 @@ class LSafepoint : public TempObject {
 
   bool hasGcPointer(LAllocation alloc) const {
     if (alloc.isRegister()) {
-      return gcRegs().has(alloc.toAnyRegister().gpr());
+      return gcRegs().has(alloc.toGeneralReg()->reg());
     }
     MOZ_ASSERT(alloc.isMemory());
     for (size_t i = 0; i < gcSlots_.length(); i++) {
@@ -1740,14 +1740,14 @@ class LSafepoint : public TempObject {
       return addWasmAnyRefSlot(alloc.isStackSlot(), alloc.memorySlot());
     }
     if (alloc.isRegister()) {
-      addWasmAnyRefReg(alloc.toAnyRegister().gpr());
+      addWasmAnyRefReg(alloc.toGeneralReg()->reg());
     }
     assertInvariants();
     return true;
   }
   bool hasWasmAnyRef(LAllocation alloc) const {
     if (alloc.isRegister()) {
-      return wasmAnyRefRegs().has(alloc.toAnyRegister().gpr());
+      return wasmAnyRefRegs().has(alloc.toGeneralReg()->reg());
     }
     MOZ_ASSERT(alloc.isMemory());
     for (size_t i = 0; i < wasmAnyRefSlots_.length(); i++) {
@@ -1878,7 +1878,7 @@ class LSafepoint : public TempObject {
 
   [[nodiscard]] bool addBoxedValue(LAllocation alloc) {
     if (alloc.isRegister()) {
-      Register reg = alloc.toAnyRegister().gpr();
+      Register reg = alloc.toGeneralReg()->reg();
       if (!valueRegs().has(reg)) {
         addValueRegister(reg);
       }
@@ -1892,7 +1892,7 @@ class LSafepoint : public TempObject {
 
   bool hasBoxedValue(LAllocation alloc) const {
     if (alloc.isRegister()) {
-      return valueRegs().has(alloc.toAnyRegister().gpr());
+      return valueRegs().has(alloc.toGeneralReg()->reg());
     }
     return hasValueSlot(alloc.isStackSlot(), alloc.memorySlot());
   }
