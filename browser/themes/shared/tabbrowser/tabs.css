@@ -1982,8 +1982,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   display: initial;
 }
 
-#tab-group-select-toggle {
-  position: relative;
+#tab-group-select-checkbox {
   margin-top: 0.5em;
 }
 
@@ -1995,6 +1994,10 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   &:hover {
     --button-border-color-ghost-hover: var(--color-accent-primary);
   }
+}
+
+#tab-group-suggestions {
+  margin-inline-start: var(--space-xlarge);
 }
 
 #tab-group-suggestions-loading {

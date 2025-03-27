@@ -27,7 +27,8 @@ tab-group-editor-no-tabs-found-title =
 
 tab-group-editor-no-tabs-found-message = Open similar tabs, and AI will suggest a name and group them with this window’s tabs.
 
-tab-group-suggestions-disclaimer = { -brand-short-name } uses AI to <a data-l10n-name="support">suggest tabs and group names.</a> Some suggestions may be inaccurate.
+# Message is shown to the user whenever there are smart tags suggest
+tab-group-editor-information-message = AI suggests names and tabs based on similar open tabs in this window.
 
 # Title appears when user is shown the optin flow to use smart tab grouping
 tab-group-suggestions-optin-title = Suggest more of my tabs
