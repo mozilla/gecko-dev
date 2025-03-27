@@ -235,7 +235,7 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
         mEchExtensionStatus = EchExtensionStatus::kGREASE;
       }
     }
-  } else if (gHttpHandler->EchConfigEnabled(true) && !config.IsEmpty()) {
+  } else if (nsHttpHandler::EchConfigEnabled(true) && !config.IsEmpty()) {
     mSocketControl->SetEchConfig(config);
     mEchExtensionStatus = EchExtensionStatus::kReal;
     HttpConnectionActivity activity(

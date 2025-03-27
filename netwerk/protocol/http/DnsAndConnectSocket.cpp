@@ -1276,7 +1276,7 @@ nsresult DnsAndConnectSocket::TransportSetup::SetupStreams(
   rv = socketTransport->SetSecurityCallbacks(dnsAndSock);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (gHttpHandler->EchConfigEnabled() && !ci->GetEchConfig().IsEmpty()) {
+  if (nsHttpHandler::EchConfigEnabled() && !ci->GetEchConfig().IsEmpty()) {
     MOZ_ASSERT(!ci->IsHttp3());
     LOG(("Setting ECH"));
     rv = socketTransport->SetEchConfig(ci->GetEchConfig());

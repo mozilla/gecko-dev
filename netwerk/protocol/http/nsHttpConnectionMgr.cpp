@@ -1826,7 +1826,7 @@ nsresult nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction* trans) {
       trans->Caps() & NS_HTTP_DISALLOW_HTTP3, &isWildcard);
   MOZ_ASSERT(ent);
 
-  if (gHttpHandler->EchConfigEnabled(ci->IsHttp3())) {
+  if (nsHttpHandler::EchConfigEnabled(ci->IsHttp3())) {
     ent->MaybeUpdateEchConfig(ci);
   }
 
@@ -3513,7 +3513,7 @@ void nsHttpConnectionMgr::DoSpeculativeConnection(
       aTrans->ConnectionInfo(), false, aTrans->Caps() & NS_HTTP_DISALLOW_SPDY,
       aTrans->Caps() & NS_HTTP_DISALLOW_HTTP3, &isWildcard);
   if (!aFetchHTTPSRR &&
-      gHttpHandler->EchConfigEnabled(aTrans->ConnectionInfo()->IsHttp3())) {
+      nsHttpHandler::EchConfigEnabled(aTrans->ConnectionInfo()->IsHttp3())) {
     // This happens when this is called from
     // SpeculativeTransaction::OnHTTPSRRAvailable. We have to update this
     // entry's echConfig so that the newly created connection can use the latest

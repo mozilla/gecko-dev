@@ -2890,7 +2890,7 @@ void nsHttpHandler::MaybeAddAltSvcForTesting(
   }
 }
 
-bool nsHttpHandler::EchConfigEnabled(bool aIsHttp3) const {
+bool nsHttpHandler::EchConfigEnabled(bool aIsHttp3) {
   if (sParentalControlsEnabled) {
     return false;
   }
