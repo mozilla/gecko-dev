@@ -6,7 +6,7 @@ typedef string TabsGuid;
 typedef i64 Timestamp;
 
 [External="sync15"]
-typedef extern DeviceType;
+typedef enum DeviceType;
 
 namespace tabs {
 

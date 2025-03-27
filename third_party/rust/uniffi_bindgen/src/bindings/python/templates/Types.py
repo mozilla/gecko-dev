@@ -1,6 +1,6 @@
 {%- import "macros.py" as py %}
 
-{%- for type_ in ci.iter_types() %}
+{%- for type_ in ci.iter_local_types() %}
 {%- let type_name = type_|type_name %}
 {%- let ffi_converter_name = type_|ffi_converter_name %}
 {%- let canonical_type_name = type_|canonical_name %}
@@ -67,9 +67,6 @@
 {%- when Type::Record { name, module_path } %}
 {%- include "RecordTemplate.py" %}
 
-{%- when Type::Object { name, module_path, imp } %}
-{%- include "ObjectTemplate.py" %}
-
 {%- when Type::Timestamp %}
 {%- include "TimestampHelper.py" %}
 
@@ -89,15 +86,32 @@
 {%- include "CallbackInterfaceTemplate.py" %}
 
 {%- when Type::Custom { name, module_path, builtin } %}
-{%- include "CustomType.py" %}
-
-{%- when Type::External { name, module_path, namespace, kind, tagged } %}
+{%- if ci.is_external(type_) %}
 {%- include "ExternalTemplate.py" %}
+{%- else %}
+{%- include "CustomType.py" %}
+{%- endif %}
 
 {%- else %}
 {%- endmatch %}
 {%- endfor %}
 
+# objects.
+{%- for type_ in ci.filter_local_types(self.iter_sorted_object_types()) %}
+{%- match type_ %}
+{%- when Type::Object { name, .. } %}
+{%-     let type_name = type_|type_name %}
+{%-     let ffi_converter_name = type_|ffi_converter_name %}
+{%-     let canonical_type_name = type_|canonical_name %}
+{%-     include "ObjectTemplate.py" %}
+{%- else %}
+{%- endmatch %}
+{%- endfor %}
+
+{%- for type_ in ci.iter_external_types() %}
+{%- let name = type_.name().unwrap() %}
+{%- include "ExternalTemplate.py" %}
+{%- endfor %}
 {#-
 Setup type aliases for our custom types, has complications due to
 forward type references, #2067

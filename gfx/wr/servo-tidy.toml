@@ -28,6 +28,8 @@ packages = [
     "parking_lot_core",
     "rand",
     "rand_core",
+    # rinja (dependency of uniffi) requires 2.1, rowan requires 1.1
+    "rustc-hash",
     # transition to syn 2 is underway.
     "syn",
     "synstructure",

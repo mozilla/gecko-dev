@@ -24,10 +24,9 @@ pub struct ClientRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fxa_device_id: Option<String>,
 
-    /// `version`, `protocols`, `formfactor`, `os`, `appPackage`, `application`,
-    /// and `device` are unused and optional in all implementations (Desktop,
-    /// iOS, and Fennec), but we round-trip them.
-
+    // `version`, `protocols`, `formfactor`, `os`, `appPackage`, `application`,
+    // and `device` are unused and optional in all implementations (Desktop,
+    // iOS, and Fennec), but we round-trip them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 

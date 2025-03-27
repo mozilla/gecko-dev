@@ -172,6 +172,7 @@ impl UploadMetrics {
                     Cow::from("status_code_unknown"),
                     Cow::from("unrecoverable"),
                     Cow::from("recoverable"),
+                    Cow::from("incapable"),
                 ]),
             ),
 

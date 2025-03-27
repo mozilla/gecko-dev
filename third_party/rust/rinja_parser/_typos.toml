@@ -1,0 +1,26 @@
+[default]
+locale = "en-us"
+
+[files]
+extend-exclude = [
+    # generated files
+    "book/ethicalads-theme.css",
+    "fuzzing/fuzz/artifacts/",
+    "fuzzing/fuzz/corpus/",
+    "target/",
+    "rinja_parser/tests/*.txt",
+    # fillter texts
+    "rinja/benches/strings.inc",
+    # too many false positives
+    "testing/tests/gen_ws_tests.py",
+]
+
+[default.extend-words]
+# French words
+exemple = "exemple"
+existant = "existant"
+# used in tests
+Ba = "Ba"
+fo = "fo"
+Fo = "Fo"
+sur = "sur"

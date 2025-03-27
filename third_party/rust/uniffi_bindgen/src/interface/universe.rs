@@ -6,10 +6,10 @@
 //! which can be used by the bindings generator code to determine what type-related helper
 //! functions to emit for a given component.
 //!
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::{collections::hash_map::Entry, collections::BTreeSet, collections::HashMap};
 
-pub use uniffi_meta::{AsType, ExternalKind, NamespaceMetadata, ObjectImpl, Type, TypeIterator};
+pub use uniffi_meta::{AsType, NamespaceMetadata, ObjectImpl, Type, TypeIterator};
 
 /// The set of all possible types used in a particular component interface.
 ///
@@ -45,9 +45,12 @@ impl TypeUniverse {
     fn add_type_definition(&mut self, name: &str, type_: &Type) -> Result<()> {
         match self.type_definitions.entry(name.to_string()) {
             Entry::Occupied(o) => {
-                // all conflicts have been resolved by now in udl.
-                // I doubt procmacros could cause this?
-                assert_eq!(type_, o.get());
+                // mismatched types are bad.
+                let cur = o.get();
+                anyhow::ensure!(
+                    type_ == cur,
+                    "conflicting types:\ncur: {cur:?}\nnew: {type_:?}",
+                );
                 Ok(())
             }
             Entry::Vacant(e) => {
@@ -68,42 +71,13 @@ impl TypeUniverse {
         if !self.all_known_types.contains(type_) {
             self.all_known_types.insert(type_.to_owned());
         }
-        match type_ {
-            Type::UInt8 => self.add_type_definition("u8", type_)?,
-            Type::Int8 => self.add_type_definition("i8", type_)?,
-            Type::UInt16 => self.add_type_definition("u16", type_)?,
-            Type::Int16 => self.add_type_definition("i16", type_)?,
-            Type::UInt32 => self.add_type_definition("i32", type_)?,
-            Type::Int32 => self.add_type_definition("u32", type_)?,
-            Type::UInt64 => self.add_type_definition("u64", type_)?,
-            Type::Int64 => self.add_type_definition("i64", type_)?,
-            Type::Float32 => self.add_type_definition("f32", type_)?,
-            Type::Float64 => self.add_type_definition("f64", type_)?,
-            Type::Boolean => self.add_type_definition("bool", type_)?,
-            Type::String => self.add_type_definition("string", type_)?,
-            Type::Bytes => self.add_type_definition("bytes", type_)?,
-            Type::Timestamp => self.add_type_definition("timestamp", type_)?,
-            Type::Duration => self.add_type_definition("duration", type_)?,
-            Type::Object { name, .. }
-            | Type::Record { name, .. }
-            | Type::Enum { name, .. }
-            | Type::CallbackInterface { name, .. }
-            | Type::External { name, .. } => self.add_type_definition(name, type_)?,
-            Type::Custom { name, builtin, .. } => {
-                self.add_type_definition(name, type_)?;
-                self.add_known_type(builtin)?;
-            }
-            // Structurally recursive types.
-            Type::Optional { inner_type, .. } | Type::Sequence { inner_type, .. } => {
-                self.add_known_type(inner_type)?;
-            }
-            Type::Map {
-                key_type,
-                value_type,
-            } => {
-                self.add_known_type(key_type)?;
-                self.add_known_type(value_type)?;
-            }
+        // all sub-types, but we want to skip this type as we just added it above.
+        for sub in type_.iter_nested_types() {
+            self.add_known_type(sub)?;
+        }
+        if let Some(name) = type_.name() {
+            self.add_type_definition(name, type_)
+                .with_context(|| format!("adding named type {name}"))?;
         }
         Ok(())
     }
@@ -111,9 +85,16 @@ impl TypeUniverse {
     /// Add many [`Type`]s...
     pub fn add_known_types(&mut self, types: TypeIterator<'_>) -> Result<()> {
         for t in types {
-            self.add_known_type(t)?
+            self.add_known_type(t)
+                .with_context(|| format!("adding type {t:?}"))?
         }
         Ok(())
+    }
+
+    pub fn is_external(&self, t: &Type) -> bool {
+        t.module_path()
+            .map(|p| p != self.namespace.crate_name)
+            .unwrap_or(false)
     }
 
     #[cfg(test)]
@@ -122,9 +103,20 @@ impl TypeUniverse {
         self.all_known_types.contains(type_)
     }
 
-    /// Iterator over all the known types in this universe.
-    pub fn iter_known_types(&self) -> impl Iterator<Item = &Type> {
-        self.all_known_types.iter()
+    pub fn iter_local_types(&self) -> impl Iterator<Item = &Type> {
+        self.filter_local_types(self.all_known_types.iter())
+    }
+
+    pub fn iter_external_types(&self) -> impl Iterator<Item = &Type> {
+        self.all_known_types.iter().filter(|t| self.is_external(t))
+    }
+
+    // Keep only the local types in an iterator of types.
+    pub fn filter_local_types<'a>(
+        &'a self,
+        types: impl Iterator<Item = &'a Type>,
+    ) -> impl Iterator<Item = &'a Type> {
+        types.filter(|t| !self.is_external(t))
     }
 }
 

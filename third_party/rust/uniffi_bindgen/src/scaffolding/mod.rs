@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use anyhow::Result;
-use askama::Template;
+use rinja::Template;
 use std::borrow::Borrow;
 
 use super::interface::*;
-use heck::{ToShoutySnakeCase, ToSnakeCase};
+use heck::ToShoutySnakeCase;
 
 #[derive(Template)]
 #[template(syntax = "rs", escape = "none", path = "scaffolding_template.rs")]
@@ -23,7 +23,7 @@ impl<'a> RustScaffolding<'a> {
 mod filters {
     use super::*;
 
-    pub fn type_rs(type_: &Type) -> Result<String, askama::Error> {
+    pub fn type_rs(type_: &Type) -> Result<String, rinja::Error> {
         Ok(match type_ {
             Type::Int8 => "i8".into(),
             Type::UInt8 => "u8".into(),
@@ -58,22 +58,6 @@ mod filters {
                 type_rs(value_type)?
             ),
             Type::Custom { name, .. } => format!("r#{name}"),
-            Type::External {
-                name,
-                kind: ExternalKind::Interface,
-                ..
-            } => format!("::std::sync::Arc<r#{name}>"),
-            Type::External {
-                name,
-                kind: ExternalKind::Trait,
-                ..
-            } => format!("::std::sync::Arc<dyn r#{name}>"),
-            Type::External { name, .. } => format!("r#{name}"),
         })
-    }
-
-    // Turns a `crate-name` into the `crate_name` the .rs code needs to specify.
-    pub fn crate_name_rs(nm: &str) -> Result<String, askama::Error> {
-        Ok(format!("r#{}", nm.to_string().to_snake_case()))
     }
 }

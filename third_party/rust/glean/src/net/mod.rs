@@ -34,6 +34,26 @@ pub struct PingUploadRequest {
     pub ping_name: String,
 }
 
+/// A PingUploadRequest requiring proof of uploader capability.
+pub struct CapablePingUploadRequest {
+    request: PingUploadRequest,
+    capabilities: Vec<String>,
+}
+
+impl CapablePingUploadRequest {
+    /// If you are capable of satisfying this ping upload request's capabilities,
+    /// obtain the PingUploadRequest.
+    pub fn capable<F>(self, func: F) -> Option<PingUploadRequest>
+    where
+        F: FnOnce(Vec<String>) -> bool,
+    {
+        if func(self.capabilities) {
+            return Some(self.request);
+        }
+        None
+    }
+}
+
 /// A description of a component used to upload pings.
 pub trait PingUploader: std::fmt::Debug + Send + Sync {
     /// Uploads a ping to a server.
@@ -44,7 +64,7 @@ pub trait PingUploader: std::fmt::Debug + Send + Sync {
     /// * `body` - the serialized text data to send.
     /// * `headers` - a vector of tuples containing the headers to send with
     ///   the request, i.e. (Name, Value).
-    fn upload(&self, upload_request: PingUploadRequest) -> UploadResult;
+    fn upload(&self, upload_request: CapablePingUploadRequest) -> UploadResult;
 }
 
 /// The logic for uploading pings: this leaves the actual upload mechanism as
@@ -131,6 +151,10 @@ impl UploadManager {
                                 headers,
                                 body_has_info_sections: request.body_has_info_sections,
                                 ping_name: request.ping_name,
+                            };
+                            let upload_request = CapablePingUploadRequest {
+                                request: upload_request,
+                                capabilities: request.uploader_capabilities,
                             };
                             let result = inner.uploader.upload(upload_request);
                             // Process the upload response.

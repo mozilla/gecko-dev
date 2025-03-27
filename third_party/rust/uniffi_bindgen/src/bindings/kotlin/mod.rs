@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::{BindingGenerator, Component, GenerationSettings};
-use anyhow::Result;
+use crate::{BindingGenerator, Component, GenerationSettings, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use fs_err as fs;
 use std::collections::HashMap;
@@ -74,6 +73,9 @@ impl BindingGenerator for KotlinBindingGenerator {
             kt_file.push(format!("{}.kt", ci.namespace()));
             fs::write(&kt_file, generate_bindings(config, ci)?)?;
             if settings.try_format_code {
+                println!(
+                    "Code generation complete, formatting with ktlint (use --no-format to disable)"
+                );
                 if let Err(e) = Command::new("ktlint").arg("-F").arg(&kt_file).output() {
                     println!(
                         "Warning: Unable to auto-format {} using ktlint: {e:?}",

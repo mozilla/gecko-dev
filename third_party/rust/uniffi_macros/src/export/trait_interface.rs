@@ -54,6 +54,7 @@ pub(super) fn gen_trait_scaffolding(
             ptr: *const ::std::ffi::c_void,
             call_status: &mut ::uniffi::RustCallStatus
         ) -> *const ::std::ffi::c_void {
+            ::uniffi::deps::trace!("clonining trait: {} ({:?})", #trait_name, ptr);
             ::uniffi::rust_call(call_status, || {
                 let ptr = ptr as *mut ::std::sync::Arc<dyn #self_ident>;
                 let arc: ::std::sync::Arc<_> = unsafe { ::std::clone::Clone::clone(&*ptr) };
@@ -78,6 +79,7 @@ pub(super) fn gen_trait_scaffolding(
             ptr: *const ::std::ffi::c_void,
             call_status: &mut ::uniffi::RustCallStatus
         ) {
+            ::uniffi::deps::trace!("freeing trait: {} ({:?})", #trait_name, ptr);
             ::uniffi::rust_call(call_status, || {
                 ::std::assert!(!ptr.is_null());
                 ::std::mem::drop(unsafe {
@@ -107,7 +109,7 @@ pub(super) fn gen_trait_scaffolding(
         interface_meta_static_var(&self_ident, imp, mod_path, docstring.as_str())
             .unwrap_or_else(syn::Error::into_compile_error)
     });
-    let ffi_converter_tokens = ffi_converter(mod_path, &self_ident, udl_mode, with_foreign);
+    let ffi_converter_tokens = ffi_converter(mod_path, &self_ident, with_foreign);
 
     Ok(quote_spanned! { self_ident.span() =>
         #meta_static_var
@@ -121,11 +123,12 @@ pub(super) fn gen_trait_scaffolding(
 pub(crate) fn ffi_converter(
     mod_path: &str,
     trait_ident: &Ident,
-    udl_mode: bool,
     with_foreign: bool,
 ) -> TokenStream {
-    let impl_spec = tagged_impl_header("FfiConverterArc", &quote! { dyn #trait_ident }, udl_mode);
-    let lift_ref_impl_spec = tagged_impl_header("LiftRef", &quote! { dyn #trait_ident }, udl_mode);
+    // TODO: support defining remote trait interfaces
+    let remote = false;
+    let impl_spec = tagged_impl_header("FfiConverterArc", &quote! { dyn #trait_ident }, remote);
+    let lift_ref_impl_spec = tagged_impl_header("LiftRef", &quote! { dyn #trait_ident }, remote);
     let trait_name = ident_to_string(trait_ident);
     let try_lift = if with_foreign {
         let trait_impl_ident = callback_interface::trait_impl_ident(&trait_name);

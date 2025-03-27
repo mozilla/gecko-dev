@@ -1,4 +1,4 @@
-{%- let cbi = ci|get_callback_interface_definition(name) %}
+{%- let cbi = ci.get_callback_interface_definition(name).unwrap() %}
 {%- let callback_handler = format!("uniffiCallbackHandler{}", name) %}
 {%- let callback_init = format!("uniffiCallbackInit{}", name) %}
 {%- let methods = cbi.methods() %}
@@ -16,7 +16,7 @@
 @_documentation(visibility: private)
 #endif
 fileprivate struct {{ ffi_converter_name }} {
-    fileprivate static var handleMap = UniffiHandleMap<{{ type_name }}>()
+    fileprivate static let handleMap = UniffiHandleMap<{{ type_name }}>()
 }
 
 #if swift(>=5.8)
@@ -54,4 +54,22 @@ extension {{ ffi_converter_name }} : FfiConverter {
     public static func write(_ v: SwiftType, into buf: inout [UInt8]) {
         writeInt(&buf, lower(v))
     }
+}
+
+{#
+We always write these public functions just in case the callback is used as
+an external type by another crate.
+#}
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}_lift(_ handle: UInt64) throws -> {{ type_name }} {
+    return try {{ ffi_converter_name }}.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}_lower(_ v: {{ type_name }}) -> UInt64 {
+    return {{ ffi_converter_name }}.lower(v)
 }

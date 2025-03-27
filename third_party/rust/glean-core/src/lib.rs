@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#![allow(clippy::doc_overindented_list_items)]
 #![allow(clippy::significant_drop_in_scrutinee)]
 #![allow(clippy::uninlined_format_args)]
 #![deny(rustdoc::broken_intra_doc_links)]
@@ -411,7 +412,7 @@ fn initialize_inner(
                 // The debug view tag might have been set before initialize,
                 // get the cached value and set it.
                 let debug_tag = PRE_INIT_DEBUG_VIEW_TAG.lock().unwrap();
-                if debug_tag.len() > 0 {
+                if !debug_tag.is_empty() {
                     glean.set_debug_view_tag(&debug_tag);
                 }
 
@@ -425,7 +426,7 @@ fn initialize_inner(
                 // The source tags might have been set before initialize,
                 // get the cached value and set them.
                 let source_tags = PRE_INIT_SOURCE_TAGS.lock().unwrap();
-                if source_tags.len() > 0 {
+                if !source_tags.is_empty() {
                     glean.set_source_tags(source_tags.to_vec());
                 }
 
@@ -1306,31 +1307,19 @@ mod ffi {
 
     type CowString = Cow<'static, str>;
 
-    impl UniffiCustomTypeConverter for CowString {
-        type Builtin = String;
-
-        fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
-            Ok(Cow::from(val))
-        }
-
-        fn from_custom(obj: Self) -> Self::Builtin {
-            obj.into_owned()
-        }
-    }
+    uniffi::custom_type!(CowString, String, {
+        remote,
+        lower: |s| s.into_owned(),
+        try_lift: |s| Ok(Cow::from(s))
+    });
 
     type JsonValue = serde_json::Value;
 
-    impl UniffiCustomTypeConverter for JsonValue {
-        type Builtin = String;
-
-        fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
-            Ok(serde_json::from_str(&val)?)
-        }
-
-        fn from_custom(obj: Self) -> Self::Builtin {
-            serde_json::to_string(&obj).unwrap()
-        }
-    }
+    uniffi::custom_type!(JsonValue, String, {
+        remote,
+        lower: |s| serde_json::to_string(&s).unwrap(),
+        try_lift: |s| Ok(serde_json::from_str(&s)?)
+    });
 }
 pub use ffi::*;
 
