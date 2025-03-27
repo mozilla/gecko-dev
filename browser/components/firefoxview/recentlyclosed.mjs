@@ -225,12 +225,9 @@ class RecentlyClosedTabsInView extends ViewPage {
       page: this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
     });
     if (this.searchQuery) {
-      Services.telemetry
-        .getKeyedHistogramById("FIREFOX_VIEW_CUMULATIVE_SEARCHES")
-        .add(
-          this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
-          this.cumulativeSearches
-        );
+      Glean.firefoxview.cumulativeSearches[
+        this.recentBrowsing ? "recentbrowsing" : "recentlyclosed"
+      ].accumulateSingleSample(this.cumulativeSearches);
       this.cumulativeSearches = 0;
     }
   }

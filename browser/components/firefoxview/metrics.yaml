@@ -407,3 +407,30 @@ firefoxview_next:
           Section within which show all is clicked.
         type: string
     telemetry_mirror: Firefoxview_next_SearchShowAll_Showallbutton
+
+firefoxview:
+  cumulative_searches:
+    type: labeled_custom_distribution
+    description: >
+      Cumulative no. of searches performed before selecting a resulting tab.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram FIREFOX_VIEW_CUMULATIVE_SEARCHES.
+    labels:
+      - recentbrowsing
+      - opentabs
+      - recentlyclosed
+      - history
+      - syncedtabs
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1869765
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1869765
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    telemetry_mirror: FIREFOX_VIEW_CUMULATIVE_SEARCHES

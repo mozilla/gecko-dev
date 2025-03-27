@@ -168,12 +168,9 @@ class SyncedTabsInView extends ViewPage {
     });
 
     if (this.controller.searchQuery) {
-      Services.telemetry
-        .getKeyedHistogramById("FIREFOX_VIEW_CUMULATIVE_SEARCHES")
-        .add(
-          this.recentBrowsing ? "recentbrowsing" : "syncedtabs",
-          this.cumulativeSearches
-        );
+      Glean.firefoxview.cumulativeSearches[
+        this.recentBrowsing ? "recentbrowsing" : "syncedtabs"
+      ].accumulateSingleSample(this.cumulativeSearches);
       this.cumulativeSearches = 0;
     }
   }

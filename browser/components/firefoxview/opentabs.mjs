@@ -494,12 +494,9 @@ class OpenTabsInViewCard extends ViewPageContent {
       window: this.title || "Window 1 (Current)",
     });
     if (this.searchQuery) {
-      Services.telemetry
-        .getKeyedHistogramById("FIREFOX_VIEW_CUMULATIVE_SEARCHES")
-        .add(
-          this.recentBrowsing ? "recentbrowsing" : "opentabs",
-          this.cumulativeSearches
-        );
+      Glean.firefoxview.cumulativeSearches[
+        this.recentBrowsing ? "recentbrowsing" : "opentabs"
+      ].accumulateSingleSample(this.cumulativeSearches);
       this.cumulativeSearches = 0;
     }
   }
