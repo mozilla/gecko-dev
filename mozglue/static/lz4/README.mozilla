@@ -15,4 +15,4 @@ Note that we do NOT use the copy of xxhash.{c,h} from the LZ4 repo. We
 instead use the newer release from that project's upstream repo:
 https://github.com/Cyan4973/xxHash
 
-Current version: 0.8.2 [bbb27a5efb85b92a0486cf361a8635715a53f6ba]
+Current version: 0.8.3 [e626a72bc2321cd320e953a0ccf1584cad60f363]
