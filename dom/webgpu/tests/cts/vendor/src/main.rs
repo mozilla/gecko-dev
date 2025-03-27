@@ -1,24 +1,21 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env::{current_dir, set_current_dir},
-    path::{Path, PathBuf},
+    env::set_current_dir,
+    path::PathBuf,
     process::ExitCode,
 };
 
 use clap::Parser;
 use itertools::Itertools;
-use lets_find_up::{find_up_with, FindUpKind, FindUpOptions};
-use miette::{bail, ensure, miette, Context, Diagnostic, IntoDiagnostic, Report, SourceSpan};
+use miette::{ensure, miette, Context, Diagnostic, IntoDiagnostic, Report, SourceSpan};
 use regex::Regex;
 
 use crate::{
-    fs::{copy_dir, create_dir_all, remove_file, FileRoot},
-    path::join_path,
+    fs::{create_dir_all, remove_file, FileRoot},
     process::{which, EasyCommand},
 };
 
 mod fs;
-mod path;
 mod process;
 
 /// Vendor WebGPU CTS tests from a local Git checkout of [our `gpuweb/cts` fork].
@@ -54,214 +51,9 @@ fn main() -> ExitCode {
 fn run(args: CliArgs) -> miette::Result<()> {
     let CliArgs { cts_checkout_path } = args;
 
-    let orig_working_dir = current_dir().unwrap();
+    let cts_ckt = FileRoot::new("cts", cts_checkout_path).unwrap();
 
-    let cts_dir = join_path(["dom", "webgpu", "tests", "cts"]);
-    let cts_vendor_dir = join_path([&*cts_dir, "vendor".as_ref()]);
-    let gecko_ckt = {
-        let find_up_opts = || FindUpOptions {
-            cwd: Path::new("."),
-            kind: FindUpKind::Dir,
-        };
-        let find_up = |repo_tech_name, root_dir_name| {
-            let err = || {
-                miette!(
-                    concat!(
-                        "failed to find a {} repository ({:?}) in any of current ",
-                        "working directory and its parent directories",
-                    ),
-                    repo_tech_name,
-                    root_dir_name,
-                )
-            };
-            find_up_with(root_dir_name, find_up_opts())
-                .map_err(Report::msg)
-                .wrap_err_with(err)
-                .and_then(|loc_opt| loc_opt.ok_or_else(err))
-                .map(|mut dir| {
-                    dir.pop();
-                    dir
-                })
-        };
-        let gecko_source_root = find_up("Mercurial", ".hg").or_else(|hg_err| {
-            find_up("Git", ".git").or_else(|git_err| match find_up("Jujutsu", ".jj") {
-                Ok(path) => {
-                    log::debug!("{hg_err:?}");
-                    Ok(path)
-                }
-                Err(jj_err) => {
-                    log::warn!("{hg_err:?}");
-                    log::warn!("{git_err:?}");
-                    log::warn!("{jj_err:?}");
-                    bail!("failed to find a Gecko repository root")
-                }
-            })
-        })?;
-
-        let root = FileRoot::new("gecko", &gecko_source_root)?;
-        log::info!("detected Gecko repository root at {root}");
-
-        ensure!(
-            root.try_child(&orig_working_dir)
-                .is_ok_and(|c| c.relative_path() == cts_vendor_dir),
-            concat!(
-                "It is expected to run this tool from the root of its Cargo project, ",
-                "but this does not appear to have been done. Bailing."
-            )
-        );
-
-        root
-    };
-
-    let cts_vendor_dir = gecko_ckt.child(orig_working_dir.parent().unwrap());
-
-    let wpt_tests_dir = {
-        let child = gecko_ckt.child(join_path(["testing", "web-platform", "mozilla", "tests"]));
-        ensure!(
-            child.is_dir(),
-            "WPT tests dir ({child}) does not appear to exist"
-        );
-        child
-    };
-
-    let (cts_ckt_git_dir, cts_ckt) = {
-        let failed_find_git_err = || {
-            miette!(concat!(
-                "failed to find a Git repository (`.git` directory) in the provided path ",
-                "and all of its parent directories"
-            ))
-        };
-        let git_dir = find_up_with(
-            ".git",
-            FindUpOptions {
-                cwd: &cts_checkout_path,
-                kind: FindUpKind::Dir,
-            },
-        )
-        .map_err(Report::msg)
-        .wrap_err_with(failed_find_git_err)?
-        .ok_or_else(failed_find_git_err)?;
-
-        let ckt = FileRoot::new("cts", git_dir.parent().unwrap())?;
-        log::debug!("detected CTS checkout root at {ckt}");
-        (git_dir, ckt)
-    };
-
-    let git_bin = which("git", "Git binary")?;
     let npm_bin = which("npm", "NPM binary")?;
-
-    // XXX: It'd be nice to expose separate operations for copying in source and generating WPT
-    // cases from the vendored copy. Checks like these really only matter when updating source.
-    let ensure_no_child = |p1: &FileRoot, p2| {
-        ensure!(
-            p1.try_child(p2).is_err(),
-            format!("{p1} is a child path of {p2}, which is not supported")
-        );
-        Ok(())
-    };
-    ensure_no_child(&cts_ckt, &gecko_ckt)?;
-    ensure_no_child(&gecko_ckt, &cts_ckt)?;
-
-    log::info!("making a vendored copy of checked-in files from {cts_ckt}…",);
-    gecko_ckt.regen_file(
-        join_path([&*cts_dir, "checkout_commit.txt".as_ref()]),
-        |checkout_commit_file| {
-            let mut git_status_porcelain_cmd = EasyCommand::new(&git_bin, |cmd| {
-                cmd.args(["status", "--porcelain"])
-                    .envs([("GIT_DIR", &*cts_ckt_git_dir), ("GIT_WORK_TREE", &*cts_ckt)])
-            });
-            log::info!(
-                "  …ensuring the working tree and index are clean with {}…",
-                git_status_porcelain_cmd
-            );
-            let git_status_porcelain_output = git_status_porcelain_cmd.just_stdout_utf8()?;
-            ensure!(
-                git_status_porcelain_output.is_empty(),
-                concat!(
-                    "expected a clean CTS working tree and index, ",
-                    "but {}'s output was not empty; ",
-                    "for reference, it was:\n\n{}",
-                ),
-                git_status_porcelain_cmd,
-                git_status_porcelain_output,
-            );
-
-            gecko_ckt.regen_dir(cts_vendor_dir.join("checkout"), |vendored_ckt_dir| {
-                log::info!("  …copying files tracked by Git to {vendored_ckt_dir}…");
-                let files_to_vendor = {
-                    let mut git_ls_files_cmd = EasyCommand::new(&git_bin, |cmd| {
-                        cmd.arg("ls-files").env("GIT_DIR", &cts_ckt_git_dir)
-                    });
-                    log::debug!("  …getting files to vendor from {git_ls_files_cmd}…");
-                    let output = git_ls_files_cmd.just_stdout_utf8()?;
-                    let mut files = output
-                        .split_terminator('\n')
-                        .map(PathBuf::from)
-                        .collect::<BTreeSet<_>>();
-                    log::trace!("  …files from {git_ls_files_cmd}: {files:#?}");
-
-                    log::trace!("  …validating that files from Git repo still exist…");
-                    let files_not_found = files
-                        .iter()
-                        .filter(|p| !cts_ckt.child(p).exists())
-                        .collect::<Vec<_>>();
-                    ensure!(
-                        files_not_found.is_empty(),
-                        concat!(
-                            "the following files were returned by `git ls-files`, ",
-                            "but do not exist on disk: {:#?}",
-                        ),
-                        files_not_found,
-                    );
-
-                    log::trace!("  …stripping files we actually don't want to vendor…");
-                    let files_to_actually_not_vendor = [
-                        // There's no reason to bring this over, and lots of reasons to not bring in
-                        // security-sensitive content unless we have to.
-                        "deploy_key.enc",
-                    ]
-                    .map(Path::new);
-                    log::trace!("    …files we don't want: {files_to_actually_not_vendor:?}");
-                    for path in files_to_actually_not_vendor {
-                        ensure!(
-                            files.remove(path),
-                            concat!(
-                                "failed to remove {} from list of files to vendor; ",
-                                "does it still exist?"
-                            ),
-                            cts_ckt.child(path)
-                        );
-                    }
-                    files
-                };
-
-                log::debug!("  …now doing the copying…");
-                for path in files_to_vendor {
-                    let vendor_from_path = cts_ckt.child(&path);
-                    let vendor_to_path = vendored_ckt_dir.child(&path);
-                    if let Some(parent) = vendor_to_path.parent() {
-                        create_dir_all(vendored_ckt_dir.child(parent))?;
-                    }
-                    log::trace!("    …copying {vendor_from_path} to {vendor_to_path}…");
-                    fs::copy(&vendor_from_path, &vendor_to_path)?;
-                }
-
-                Ok(())
-            })?;
-
-            log::info!("  …writing commit ref pointed to by `HEAD` to {checkout_commit_file}…");
-            let mut git_rev_parse_head_cmd = EasyCommand::new(&git_bin, |cmd| {
-                cmd.args(["rev-parse", "HEAD"])
-                    .env("GIT_DIR", &cts_ckt_git_dir)
-            });
-            log::trace!("    …getting output of {git_rev_parse_head_cmd}…");
-            fs::write(
-                checkout_commit_file,
-                git_rev_parse_head_cmd.just_stdout_utf8()?,
-            )
-            .wrap_err_with(|| format!("failed to write HEAD ref to {checkout_commit_file}"))
-        },
-    )?;
 
     set_current_dir(&*cts_ckt)
         .into_diagnostic()
@@ -657,11 +449,6 @@ fn run(args: CliArgs) -> miette::Result<()> {
         log::debug!("  …finished moving ready-to-go WPT test files");
 
         Ok(())
-    })?;
-
-    gecko_ckt.regen_dir(wpt_tests_dir.join("webgpu"), |wpt_webgpu_tests_dir| {
-        log::info!("copying contents of {out_wpt_dir} to {wpt_webgpu_tests_dir}…");
-        copy_dir(&out_wpt_dir, wpt_webgpu_tests_dir)
     })?;
 
     log::info!("All done! Now get your CTS _ON_! :)");

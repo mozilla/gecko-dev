@@ -93,21 +93,6 @@ impl FileRoot {
         Ok(child)
     }
 
-    fn removed_file<P>(&self, path: P) -> miette::Result<Child<'_>>
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref();
-        let child = self.child(path);
-        if child.exists() {
-            log::info!("removing old copy of {child}…",);
-            fs::remove_file(&*child)
-                .map_err(miette::Report::msg)
-                .wrap_err_with(|| format!("failed to remove old copy of {child}"))?;
-        }
-        Ok(child)
-    }
-
     pub(crate) fn regen_dir<P>(
         &self,
         path: P,
@@ -120,24 +105,6 @@ impl FileRoot {
         gen(&child)?;
         ensure!(
             child.is_dir(),
-            "{} was not regenerated for an unknown reason",
-            child,
-        );
-        Ok(child)
-    }
-
-    pub(crate) fn regen_file<P>(
-        &self,
-        path: P,
-        gen: impl FnOnce(&Child<'_>) -> miette::Result<()>,
-    ) -> miette::Result<Child<'_>>
-    where
-        P: AsRef<Path>,
-    {
-        let child = self.removed_file(path)?;
-        gen(&child)?;
-        ensure!(
-            child.is_file(),
             "{} was not regenerated for an unknown reason",
             child,
         );
@@ -245,21 +212,6 @@ impl Display for Child<'_> {
     }
 }
 
-pub(crate) fn copy_dir<P, Q>(source: P, dest: Q) -> miette::Result<()>
-where
-    P: Display + AsRef<Path>,
-    Q: Display + AsRef<Path>,
-{
-    log::debug!(
-        "copy-merging directories from {} into {}",
-        source.as_ref().display(),
-        dest.as_ref().display(),
-    );
-    ::dircpy::copy_dir(&source, &dest)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("failed to copy files from {source} to {dest}"))
-}
-
 pub(crate) fn read_to_string<P>(path: P) -> miette::Result<String>
 where
     P: AsRef<Path>,
@@ -272,20 +224,6 @@ where
                 path.as_ref().display()
             )
         })
-}
-
-pub(crate) fn copy<P1, P2>(from: P1, to: P2) -> miette::Result<u64>
-where
-    P1: AsRef<Path>,
-    P2: AsRef<Path>,
-{
-    fs::copy(&from, &to).into_diagnostic().wrap_err_with(|| {
-        format!(
-            "failed to copy {} to {}",
-            from.as_ref().display(),
-            to.as_ref().display()
-        )
-    })
 }
 
 pub(crate) fn rename<P1, P2>(from: P1, to: P2) -> miette::Result<()>

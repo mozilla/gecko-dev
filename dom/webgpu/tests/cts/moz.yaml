@@ -1,0 +1,60 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "Graphics: WebGPU"
+
+origin:
+  name: WebGPU CTS
+  description: WebGPU Compliance Test Suite
+  url: https://gpuweb.github.io/cts/
+  release: 4e4a9927460d556e7eb847c84f1656b087c972e4 (2025-03-19T18:11:50Z).
+  revision: 4e4a9927460d556e7eb847c84f1656b087c972e4
+  license: ['BSD-3-Clause']
+
+updatebot:
+    maintainer-phab: '#webgpu-reviewers!'
+    maintainer-bz: egubler@mozilla.com
+    try-preset: webgpu
+    tasks:
+      - type: vendoring
+        enabled: false
+        frequency: 1 week
+        blocking: 1863146  # webgpu-update-cts
+
+vendoring:
+  url: https://github.com/gpuweb/cts
+  source-hosting: github
+  vendor-directory: dom/webgpu/tests/cts/checkout/
+  include:
+    - .gitattributes
+    - .gitignore  # Avoids re-formatting of generated files.
+    - .github/
+  update-actions:
+    - action: run-command
+      cwd: '{yaml_dir}/vendor/'
+      command: cargo
+      args:
+        - run
+        - --
+        - '{yaml_dir}/checkout/'
+
+    - action: delete-path
+      path: '../../../../../testing/web-platform/mozilla/tests/webgpu/'
+    # Work around an issue where Gecko's Git version is used, instead of a vendor checkou-out.
+    - action: replace-in-file-regex
+      file: '{yaml_dir}/checkout/out-wpt/common/internal/version.js'
+      pattern: "export const version = '[a-fA-F0-9]+(-dirty)?';"
+      with: "export const version = '{revision}';"
+    - action: move-dir
+      from: '{yaml_dir}/checkout/out-wpt/'
+      to: '../../../../../testing/web-platform/mozilla/tests/webgpu/'
+
+    - action: delete-path
+      path: '{yaml_dir}/checkout/node_modules/'
+    - action: delete-path
+      path: '{yaml_dir}/checkout/gen/'
+    - action: delete-path
+      path: '{yaml_dir}/checkout/out/'
+    - action: delete-path
+      path: '{yaml_dir}/checkout/deploy_key.enc'

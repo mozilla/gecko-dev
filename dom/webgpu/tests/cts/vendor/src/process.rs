@@ -2,7 +2,7 @@ use std::{
     ffi::{OsStr, OsString},
     fmt::{self, Display},
     iter::once,
-    process::{Command, Output},
+    process::Command,
 };
 
 use format::lazy_format;
@@ -43,34 +43,6 @@ impl EasyCommand {
         log::debug!("{self} returned {:?}", status.code());
         ensure!(status.success(), "{self} returned {:?}", status.code());
         Ok(())
-    }
-
-    fn just_stdout(&mut self) -> miette::Result<Vec<u8>> {
-        log::debug!("getting `stdout` output of {self}");
-        let output = self
-            .inner
-            .output()
-            .into_diagnostic()
-            .wrap_err_with(|| format!("failed to execute `{self}`"))?;
-        let Output {
-            status,
-            stdout: _,
-            stderr,
-        } = &output;
-        log::debug!("{self} returned {:?}", status.code());
-        ensure!(
-            status.success(),
-            "{self} returned {:?}; full output: {output:#?}",
-            status.code(),
-        );
-        assert!(stderr.is_empty());
-        Ok(output.stdout)
-    }
-
-    pub(crate) fn just_stdout_utf8(&mut self) -> miette::Result<String> {
-        String::from_utf8(self.just_stdout()?)
-            .into_diagnostic()
-            .wrap_err_with(|| format!("output of {self} was not UTF-8 (!?)"))
     }
 }
 
