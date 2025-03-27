@@ -178,12 +178,12 @@ extern "C" {
   uint32_t ffi_error_support_uniffi_contract_version();
   void* uniffi_relevancy_fn_clone_relevancystore(void*, RustCallStatus*);
   void uniffi_relevancy_fn_free_relevancystore(void*, RustCallStatus*);
-  void* uniffi_relevancy_fn_constructor_relevancystore_new(RustBuffer, RustBuffer, RustCallStatus*);
+  void* uniffi_relevancy_fn_constructor_relevancystore_new(RustBuffer, RustCallStatus*);
   void uniffi_relevancy_fn_method_relevancystore_bandit_init(void*, RustBuffer, RustBuffer, RustCallStatus*);
   RustBuffer uniffi_relevancy_fn_method_relevancystore_bandit_select(void*, RustBuffer, RustBuffer, RustCallStatus*);
   void uniffi_relevancy_fn_method_relevancystore_bandit_update(void*, RustBuffer, RustBuffer, int8_t, RustCallStatus*);
-  RustBuffer uniffi_relevancy_fn_method_relevancystore_calculate_metrics(void*, RustCallStatus*);
   void uniffi_relevancy_fn_method_relevancystore_close(void*, RustCallStatus*);
+  void uniffi_relevancy_fn_method_relevancystore_ensure_interest_data_populated(void*, RustCallStatus*);
   RustBuffer uniffi_relevancy_fn_method_relevancystore_get_bandit_data(void*, RustBuffer, RustBuffer, RustCallStatus*);
   RustBuffer uniffi_relevancy_fn_method_relevancystore_ingest(void*, RustBuffer, RustCallStatus*);
   void uniffi_relevancy_fn_method_relevancystore_interrupt(void*, RustCallStatus*);
@@ -249,8 +249,8 @@ extern "C" {
   uint16_t uniffi_relevancy_checksum_method_relevancystore_bandit_init();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_bandit_select();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_bandit_update();
-  uint16_t uniffi_relevancy_checksum_method_relevancystore_calculate_metrics();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_close();
+  uint16_t uniffi_relevancy_checksum_method_relevancystore_ensure_interest_data_populated();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_get_bandit_data();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_ingest();
   uint16_t uniffi_relevancy_checksum_method_relevancystore_interrupt();
@@ -2458,40 +2458,6 @@ public:
   virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
-class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreCalculateMetrics : public UniffiSyncCallHandler {
-private:
-  // PrepareRustArgs stores the resulting arguments in these fields
-  typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
-
-  // MakeRustCall stores the result of the call in these fields
-  typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
-
-public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
-    ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
-    if (aError.Failed()) {
-      return;
-    }
-  }
-
-  void MakeRustCall(RustCallStatus* aOutStatus) override {
-    mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
-      uniffi_relevancy_fn_method_relevancystore_calculate_metrics(
-        ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
-        aOutStatus
-      )
-    );
-  }
-
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
-    ScaffoldingConverter<RustBuffer>::IntoJs(
-      aCx,
-      std::move(mUniffiReturnValue),
-      &aDest.Construct(),
-      aError
-    );
-  }
-};
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreClose : public UniffiSyncCallHandler {
 private:
   // PrepareRustArgs stores the resulting arguments in these fields
@@ -2509,6 +2475,31 @@ public:
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
     uniffi_relevancy_fn_method_relevancystore_close(
+      ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
+      aOutStatus
+    );
+  }
+
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  }
+};
+class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreEnsureInterestDataPopulated : public UniffiSyncCallHandler {
+private:
+  // PrepareRustArgs stores the resulting arguments in these fields
+  typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mPtr;
+
+  // MakeRustCall stores the result of the call in these fields
+
+public:
+  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    uniffi_relevancy_fn_method_relevancystore_ensure_interest_data_populated(
       ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoRust(std::move(mPtr)),
       aOutStatus
     );
@@ -2666,7 +2657,6 @@ class ScaffoldingCallHandlerUniffiRelevancyFnConstructorRelevancystoreNew : publ
 private:
   // PrepareRustArgs stores the resulting arguments in these fields
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mDbPath;
-  typename ScaffoldingConverter<RustBuffer>::IntermediateType mRemoteSettingsService;
 
   // MakeRustCall stores the result of the call in these fields
   typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mUniffiReturnValue;
@@ -2677,17 +2667,12 @@ public:
     if (aError.Failed()) {
       return;
     }
-    ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mRemoteSettingsService, aError);
-    if (aError.Failed()) {
-      return;
-    }
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
     mUniffiReturnValue = ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromRust(
       uniffi_relevancy_fn_constructor_relevancystore_new(
         ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mDbPath)),
-        ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mRemoteSettingsService)),
         aOutStatus
       )
     );
@@ -10282,10 +10267,10 @@ UniquePtr<UniffiSyncCallHandler> GetSyncCallHandler(uint64_t aId) {
       return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreBanditUpdate>();
     }
     case 6: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreCalculateMetrics>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreClose>();
     }
     case 7: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreClose>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreEnsureInterestDataPopulated>();
     }
     case 8: {
       return MakeUnique<ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreGetBanditData>();
