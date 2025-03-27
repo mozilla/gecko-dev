@@ -15,6 +15,9 @@
 #include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/TrustedTypePolicy.h"
 #include "mozilla/dom/TrustedTypeUtils.h"
+#include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/dom/WorkerRunnable.h"
+#include "mozilla/dom/WorkerScope.h"
 #include "mozilla/dom/nsCSPUtils.h"
 
 using namespace mozilla::dom::TrustedTypeUtils;
@@ -35,10 +38,10 @@ JSObject* TrustedTypePolicyFactory::WrapObject(
 
 constexpr size_t kCreatePolicyCSPViolationMaxSampleLength = 40;
 
-static CSPViolationData CreateCSPViolationData(JSContext* aJSContext,
+static CSPViolationData CreateCSPViolationData(const nsCString& aFileName,
+                                               uint32_t aLine, uint32_t aColumn,
                                                uint32_t aPolicyIndex,
                                                const nsAString& aPolicyName) {
-  auto caller = JSCallingLocation::Get(aJSContext);
   const nsAString& sample =
       Substring(aPolicyName, /* aStartPos */ 0,
                 /* aLength */ kCreatePolicyCSPViolationMaxSampleLength);
@@ -47,9 +50,9 @@ static CSPViolationData CreateCSPViolationData(JSContext* aJSContext,
           CSPViolationData::Resource{
               CSPViolationData::BlockedContentSource::TrustedTypesPolicy},
           nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE,
-          caller.FileName(),
-          caller.mLine,
-          caller.mColumn,
+          aFileName,
+          aLine,
+          aColumn,
           /* aElement */ nullptr,
           sample};
 }
@@ -58,48 +61,110 @@ static CSPViolationData CreateCSPViolationData(JSContext* aJSContext,
 // requires a definition for `TrustedTypePolicy`.
 TrustedTypePolicyFactory::~TrustedTypePolicyFactory() = default;
 
+// Implement reporting of violations for policy creation.
+// https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy
+static void ReportPolicyCreationViolations(
+    nsIContentSecurityPolicy* aCSP, nsICSPEventListener* aCSPEventListener,
+    const nsCString& aFileName, uint32_t aLine, uint32_t aColumn,
+    const nsTArray<nsString>& aCreatedPolicyNames,
+    const nsAString& aPolicyName) {
+  MOZ_ASSERT(aCSP);
+  uint32_t numPolicies = 0;
+  aCSP->GetPolicyCount(&numPolicies);
+  for (uint64_t i = 0; i < numPolicies; ++i) {
+    const nsCSPPolicy* policy = aCSP->GetPolicy(i);
+    if (policy->hasDirective(
+            nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE)) {
+      if (policy->ShouldCreateViolationForNewTrustedTypesPolicy(
+              aPolicyName, aCreatedPolicyNames)) {
+        CSPViolationData cspViolationData{
+            CreateCSPViolationData(aFileName, aLine, aColumn, i, aPolicyName)};
+        aCSP->LogTrustedTypesViolationDetailsUnchecked(
+            std::move(cspViolationData),
+            NS_LITERAL_STRING_FROM_CSTRING(
+                TRUSTED_TYPES_VIOLATION_OBSERVER_TOPIC),
+            aCSPEventListener);
+      }
+    }
+  }
+}
+
+class LogPolicyCreationViolationsRunnable final
+    : public WorkerMainThreadRunnable {
+ public:
+  LogPolicyCreationViolationsRunnable(
+      WorkerPrivate* aWorker, const nsCString& aFileName, uint32_t aLine,
+      uint32_t aColumn, const nsTArray<nsString>& aCreatedPolicyNames,
+      const nsAString& aPolicyName)
+      : WorkerMainThreadRunnable(
+            aWorker,
+            "RuntimeService :: LogPolicyCreationViolationsRunnable"_ns),
+        mFileName(aFileName),
+        mLine(aLine),
+        mColumn(aColumn),
+        mCreatedPolicyNames(aCreatedPolicyNames),
+        mPolicyName(aPolicyName) {
+    MOZ_ASSERT(aWorker);
+  }
+
+  virtual bool MainThreadRun() override {
+    AssertIsOnMainThread();
+    MOZ_ASSERT(mWorkerRef);
+    if (nsIContentSecurityPolicy* csp = mWorkerRef->Private()->GetCsp()) {
+      ReportPolicyCreationViolations(
+          csp, mWorkerRef->Private()->CSPEventListener(), mFileName, mLine,
+          mColumn, mCreatedPolicyNames, mPolicyName);
+    }
+    return true;
+  }
+
+ private:
+  ~LogPolicyCreationViolationsRunnable() = default;
+  const nsCString& mFileName;
+  uint32_t mLine;
+  uint32_t mColumn;
+  const nsTArray<nsString>& mCreatedPolicyNames;
+  const nsString mPolicyName;
+};
+
 auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
     JSContext* aJSContext, const nsAString& aPolicyName) const
     -> PolicyCreation {
-  // CSP-support for Workers will be added in
-  // <https://bugzilla.mozilla.org/show_bug.cgi?id=1901492>.
-  // That is, currently only Windows are supported.
-  nsIContentSecurityPolicy* csp =
-      mGlobalObject->GetAsInnerWindow()
-          ? mGlobalObject->GetAsInnerWindow()->GetCsp()
-          : nullptr;
-
   auto result = PolicyCreation::Allowed;
-
-  if (csp) {
-    uint32_t numPolicies = 0;
-    csp->GetPolicyCount(&numPolicies);
-
-    for (uint64_t i = 0; i < numPolicies; ++i) {
-      const nsCSPPolicy* policy = csp->GetPolicy(i);
-      if (policy->hasDirective(
-              nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE)) {
-        if (policy->ShouldCreateViolationForNewTrustedTypesPolicy(
+  auto location = JSCallingLocation::Get(aJSContext);
+  if (auto* piDOMWindowInner = mGlobalObject->GetAsInnerWindow()) {
+    if (auto* csp = piDOMWindowInner->GetCsp()) {
+      ReportPolicyCreationViolations(
+          csp, nullptr /* aCSPEventListener */, location.FileName(),
+          location.mLine, location.mColumn, mCreatedPolicyNames, aPolicyName);
+      uint32_t numPolicies = 0;
+      csp->GetPolicyCount(&numPolicies);
+      for (uint64_t i = 0; i < numPolicies; ++i) {
+        const nsCSPPolicy* policy = csp->GetPolicy(i);
+        if (policy->hasDirective(
+                nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE) &&
+            policy->getDisposition() == nsCSPPolicy::Disposition::Enforce &&
+            policy->ShouldCreateViolationForNewTrustedTypesPolicy(
                 aPolicyName, mCreatedPolicyNames)) {
-          // Only required for Workers;
-          // https://bugzilla.mozilla.org/show_bug.cgi?id=1901492.
-          nsICSPEventListener* cspEventListener{nullptr};
-
-          CSPViolationData cspViolationData{
-              CreateCSPViolationData(aJSContext, i, aPolicyName)};
-
-          csp->LogTrustedTypesViolationDetailsUnchecked(
-              std::move(cspViolationData),
-              NS_LITERAL_STRING_FROM_CSTRING(
-                  TRUSTED_TYPES_VIOLATION_OBSERVER_TOPIC),
-              cspEventListener);
-
-          if (policy->getDisposition() == nsCSPPolicy::Disposition::Enforce) {
-            result = PolicyCreation::Blocked;
-          }
+          result = PolicyCreation::Blocked;
+          break;
         }
       }
     }
+  } else {
+    MOZ_ASSERT(IsWorkerGlobal(mGlobalObject->GetGlobalJSObject()));
+    MOZ_ASSERT(!NS_IsMainThread());
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    RefPtr<LogPolicyCreationViolationsRunnable> runnable =
+        new LogPolicyCreationViolationsRunnable(
+            workerPrivate, location.FileName(), location.mLine,
+            location.mColumn, mCreatedPolicyNames, aPolicyName);
+    ErrorResult rv;
+    runnable->Dispatch(workerPrivate, Killing, rv);
+    if (NS_WARN_IF(rv.Failed())) {
+      rv.SuppressException();
+    }
+    // TODO(bug 1901492): Determine result from workerPrivate->GetCSPInfo().
   }
 
   return result;
