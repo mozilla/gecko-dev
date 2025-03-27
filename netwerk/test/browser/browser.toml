@@ -45,9 +45,6 @@ support-files = [
   "res_http_index_format",
   "res_http_index_format^headers^",
   "square.png",
-  "103_preload.html",
-  "103_preload.html^informationalResponse^",
-  "103_preload.html^headers^",
   "no_103_preload.html",
   "no_103_preload.html^headers^",
   "103_preload_anchor.html^informationalResponse^",
@@ -89,11 +86,10 @@ prefs = [
 ["browser_103_assets_extension.js"]
 
 ["browser_103_cleanup.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1829935
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1829935
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt", # Bug 1829935
-  "win11_2009 && processor == 'x86_64' && opt", # Bug 1829935
+support-files = [
+  "103_preload_no_img.html",
+  "103_preload_no_img.html^headers^",
+  "103_preload_no_img.html^informationalResponse^",
 ]
 
 ["browser_103_csp.js"]
