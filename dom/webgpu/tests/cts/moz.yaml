@@ -29,7 +29,6 @@ vendoring:
   include:
     - .gitattributes
     - .gitignore  # Avoids re-formatting of generated files.
-    - .github/
   update-actions:
     - action: run-command
       cwd: '{yaml_dir}/vendor/'
