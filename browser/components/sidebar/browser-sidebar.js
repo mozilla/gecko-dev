@@ -47,8 +47,12 @@ var SidebarController = {
 
     let switcherMenuitem;
     const updateMenus = visible => {
-      // Hide the sidebar if it is open and should not be visible.
-      if (!visible && this.isOpen && this.currentID == commandID) {
+      // Hide the sidebar if it is open and should not be visible,
+      // and unset the current command and lastOpenedId so they do not
+      // re-open the next time the sidebar does.
+      if (!visible && this._state.command == commandID) {
+        this._state.command = "";
+        this.lastOpenedId = null;
         this.hide();
       }
 

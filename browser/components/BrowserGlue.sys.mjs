@@ -881,7 +881,7 @@ let JSWINDOWACTORS = {
     matches: ["about:shoppingsidebar"],
     remoteTypes: ["privilegedabout"],
     messageManagerGroups: ["shopping-sidebar", "browsers"],
-    enablePreference: "browser.shopping.experience2023.shoppingSidebar",
+    enablePreference: "browser.shopping.experience2023.enabled",
   },
 
   SpeechDispatcher: {

@@ -10,11 +10,11 @@ const PRODUCT_PAGE = "https://example.com/product/Y4YM0Z1LL4";
 
 let verifySidebarPanelNotAdded = async win => {
   const { document } = win;
-  let sidebar = document.querySelector("sidebar-main");
-  await TestUtils.waitForCondition(
-    () => sidebar.toolButtons,
-    "Sidebar tools have been added."
-  );
+  let sidebar;
+  await TestUtils.waitForCondition(() => {
+    sidebar = document.querySelector("sidebar-main");
+    return sidebar.toolButtons;
+  }, "Sidebar tools have been added.");
   let reviewCheckerButton = sidebar.shadowRoot.querySelector(
     "moz-button[view=viewReviewCheckerSidebar]"
   );
@@ -36,8 +36,14 @@ add_task(async function test_bug_1901979_pref_toggle_private_windows() {
   verifySidebarPanelNotAdded(privateWindow);
 
   // Flip the prefs to trigger the bug.
-  Services.prefs.setBoolPref("browser.shopping.experience2023.enabled", false);
-  Services.prefs.setBoolPref("browser.shopping.experience2023.enabled", true);
+  Services.prefs.setBoolPref(
+    "browser.shopping.experience2023.integratedSidebar",
+    false
+  );
+  Services.prefs.setBoolPref(
+    "browser.shopping.experience2023.integratedSidebar",
+    true
+  );
 
   // Verify we still haven't displayed the sidebar.
   verifySidebarPanelNotAdded(privateWindow);

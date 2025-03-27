@@ -41,23 +41,29 @@ export const ShoppingUtils = {
   handledAutoActivate: false,
   nimbusEnabled: false,
   nimbusControl: false,
+  nimbusIntegratedSidebar: false,
   everyWindowCallbackId: `shoppingutils-${Services.uuid.generateUUID()}`,
   managers: new WeakMap(),
 
   _updateNimbusVariables() {
+    this.nimbusIntegratedSidebar =
+      lazy.NimbusFeatures.shopping2023.getVariable("integratedSidebar");
     this.nimbusEnabled =
+      this.nimbusIntegratedSidebar ||
       lazy.NimbusFeatures.shopping2023.getVariable("enabled");
     this.nimbusControl =
       lazy.NimbusFeatures.shopping2023.getVariable("control");
   },
 
   onNimbusUpdate() {
+    if (this.initialized) {
+      ShoppingUtils.uninit();
+    }
     this._updateNimbusVariables();
     if (this.nimbusEnabled) {
       ShoppingUtils.init();
       Glean.shoppingSettings.nimbusDisabledShopping.set(false);
     } else {
-      ShoppingUtils.uninit();
       Glean.shoppingSettings.nimbusDisabledShopping.set(true);
     }
   },
@@ -71,7 +77,6 @@ export const ShoppingUtils = {
     }
     this.onNimbusUpdate = this.onNimbusUpdate.bind(this);
     this.onActiveUpdate = this.onActiveUpdate.bind(this);
-    this.onIntegratedSidebarUpdate = this.onIntegratedSidebarUpdate.bind(this);
     this._addManagerForWindow = this._addManagerForWindow.bind(this);
     this._removeManagerForWindow = this._removeManagerForWindow.bind(this);
 
@@ -95,21 +100,16 @@ export const ShoppingUtils = {
     this.recordUserAdsPreference();
     this.recordUserAutoOpenPreference();
 
-    if (this.isAutoOpenEligible()) {
-      Services.prefs.setBoolPref(ACTIVE_PREF, true);
+    if (this.nimbusIntegratedSidebar) {
+      this._addReviewCheckerManagers();
+    } else {
+      if (this.isAutoOpenEligible()) {
+        Services.prefs.setBoolPref(ACTIVE_PREF, true);
+      }
+      Services.prefs.addObserver(ACTIVE_PREF, this.onActiveUpdate);
     }
-    Services.prefs.addObserver(ACTIVE_PREF, this.onActiveUpdate);
-
-    Services.prefs.addObserver(
-      INTEGRATED_SIDEBAR_PREF,
-      this.onIntegratedSidebarUpdate
-    );
 
     Services.prefs.setIntPref(SIDEBAR_CLOSED_COUNT_PREF, 0);
-
-    if (ShoppingUtils.integratedSidebar) {
-      this._addReviewCheckerManagers();
-    }
 
     this.initialized = true;
   },
@@ -126,11 +126,6 @@ export const ShoppingUtils = {
     // prefs for onboarding.
 
     Services.prefs.removeObserver(ACTIVE_PREF, this.onActiveUpdate);
-
-    Services.prefs.removeObserver(
-      INTEGRATED_SIDEBAR_PREF,
-      this.onIntegratedSidebarUpdate
-    );
 
     if (this.managers.size) {
       this._removeReviewCheckerManagers();

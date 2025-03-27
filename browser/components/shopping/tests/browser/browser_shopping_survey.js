@@ -357,6 +357,7 @@ add_task(async function test_onboarding_resets_after_opt_out() {
       ["browser.shopping.experience2023.survey.pdpVisits", 5],
       ["browser.shopping.experience2023.survey.optedInTime", time25HrsAgo],
       ["browser.shopping.experience2023.integratedSidebar", false],
+      ["browser.shopping.experience2023.enabled", true],
     ],
   });
   await BrowserTestUtils.withNewTab(
@@ -463,7 +464,7 @@ add_task(
         ["browser.shopping.experience2023.survey.pdpVisits", 5],
         ["browser.shopping.experience2023.survey.optedInTime", time25HrsAgo],
         ["browser.shopping.experience2023.integratedSidebar", true],
-        ["browser.shopping.experience2023.shoppingSidebar", false],
+        ["browser.shopping.experience2023.enabled", false],
       ],
     });
     await BrowserTestUtils.withNewTab(

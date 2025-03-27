@@ -131,7 +131,7 @@ add_setup(async function setup() {
     set: [
       ["sidebar.revamp", true],
       ["browser.shopping.experience2023.integratedSidebar", true],
-      ["browser.shopping.experience2023.shoppingSidebar", false],
+      ["browser.shopping.experience2023.enabled", false],
       ["browser.shopping.experience2023.autoOpen.enabled", true],
       ["browser.shopping.experience2023.autoOpen.userEnabled", true],
       ["sidebar.main.tools", "aichat,reviewchecker,syncedtabs,history"],

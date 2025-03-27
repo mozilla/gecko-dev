@@ -835,9 +835,8 @@ pref("browser.search.widget.removeAfterDaysUnused", 120);
 // capped at 100.
 pref("browser.search.totalSearches", 0);
 
-// Enable new experimental shopping features. This is solely intended as a
-// rollout/"emergency stop" button - it will go away once the feature has
-// rolled out. There will be separate controls for user opt-in/opt-out.
+// Enables the Review Checker feature in the Shopping sidebar.
+// There are separate controls for user opt-in/opt-out.
 pref("browser.shopping.experience2023.enabled", false);
 
 // Ternary int-valued pref indicating if the user has opted into the new
@@ -886,15 +885,10 @@ pref("browser.shopping.experience2023.sidebarClosedCount", 0);
 // When conditions are met, shows a prompt on the shopping sidebar asking users if they want to disable auto-open behavior
 pref("browser.shopping.experience2023.showKeepSidebarClosedMessage", true);
 
-// Integrates the Review Checker shopping feature into the global sidebar
-// shoppingSidebar pref should be opposite of this to disable
+// Integrates the Review Checker feature into the global sidebar.
+// `enabled` pref should be opposite of this to disable
 // the custom shopping sidebar.
 pref("browser.shopping.experience2023.integratedSidebar", false);
-
-// Enables showing the Review Checker in the Shopping sidebar.
-// integratedSidebar pref should be opposite of this to disable
-// the Review Checker sidebar panel.
-pref("browser.shopping.experience2023.shoppingSidebar", true);
 
 // If true, users have already seen a card in the Review Checker sidebar panel
 // notifying users of the feature's new location and asking if they want to

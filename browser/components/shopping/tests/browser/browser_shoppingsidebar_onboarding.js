@@ -211,7 +211,7 @@ add_task(async function test_hideOnboarding_onClose() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.shopping.experience2023.integratedSidebar", false],
-      ["browser.shopping.experience2023.shoppingSidebar", true],
+      ["browser.shopping.experience2023.enabled", true],
     ],
   });
 
