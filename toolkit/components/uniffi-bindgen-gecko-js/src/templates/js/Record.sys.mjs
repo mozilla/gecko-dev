@@ -22,7 +22,7 @@ export class {{ record.js_name() }} {
     equals(other) {
         return (
             {%- for field in record.fields() %}
-            {{ field.as_type().equals("this.{}"|format(field.js_name()), "other.{}"|format(field.js_name())) }}{% if !loop.last %} &&{% endif %}
+            {{ field.as_type().equals(&("this.{}"|format(field.js_name())), &("other.{}"|format(field.js_name()))) }}{% if !loop.last %} &&{% endif %}
             {%- endfor %}
         )
     }

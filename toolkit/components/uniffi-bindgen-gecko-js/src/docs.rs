@@ -5,8 +5,8 @@
 use std::fs;
 
 use anyhow::Context;
-use askama::Template;
 use camino::Utf8Path;
+use rinja::Template;
 use uniffi_bindgen::ComponentInterface;
 
 use crate::{render::js::*, Component, Result};
