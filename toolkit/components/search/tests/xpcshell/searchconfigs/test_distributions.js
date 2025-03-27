@@ -167,8 +167,8 @@ tests.push({
       "https://go.gmx.es/br/moz_search_web/?enc=UTF-8&q=test",
       "https://suggestplugin.gmx.es/s?brand=gmxes&origin=moz_splugin_ff&enc=UTF-8&q=test"
     ) &&
-    hasDefault(engines, "GMX Search") &&
-    hasEnginesFirst(engines, ["GMX Search"]),
+    hasDefault(engines, "GMX - Búsqueda web") &&
+    hasEnginesFirst(engines, ["GMX - Búsqueda web"]),
 });
 
 tests.push({
@@ -188,8 +188,8 @@ tests.push({
       "https://go.gmx.fr/br/moz_search_web/?enc=UTF-8&q=test",
       "https://suggestplugin.gmx.fr/s?brand=gmxfr&origin=moz_splugin_ff&enc=UTF-8&q=test"
     ) &&
-    hasDefault(engines, "GMX Search") &&
-    hasEnginesFirst(engines, ["GMX Search"]),
+    hasDefault(engines, "GMX - Recherche web") &&
+    hasEnginesFirst(engines, ["GMX - Recherche web"]),
 });
 
 tests.push({
@@ -229,11 +229,44 @@ tests.push({
   locale: "en-GB",
   region: "GB",
   distribution: "vivo-001",
+  application: "firefox-android",
   test: engines =>
+    hasParams(engines, "Bing", "pc=MZCP") &&
+    hasParams(engines, "Bing", "form=MZVIVO") &&
+    hasTelemetryId(engines, "Bing", "bing-MZCP") &&
     hasParams(engines, "Google", "client=firefox-b-vv") &&
     hasDefault(engines, "Google") &&
     hasEnginesFirst(engines, ["Google"]) &&
     hasTelemetryId(engines, "Google", "google-b-vv"),
+});
+
+// This distribution is used on mobile, but we can test it here as it only
+// needs the distribution id referencing.
+tests.push({
+  locale: "en-GB",
+  region: "GB",
+  distribution: "dt-001",
+  application: "firefox-android",
+  test: engines =>
+    hasParams(engines, "Google", "client=firefox-b-tf") &&
+    hasDefault(engines, "Google") &&
+    hasEnginesFirst(engines, ["Google"]) &&
+    hasTelemetryId(engines, "Google", "google-b-tf"),
+});
+
+// This distribution is used on mobile, but we can test it here as it only
+// needs the distribution id referencing.
+tests.push({
+  locale: "en-GB",
+  region: "GB",
+  distribution: "dt-001",
+  application: "firefox-android",
+  test: engines =>
+    hasParams(engines, "Bing", "pc=MZTOF") &&
+    hasParams(engines, "Bing", "form=MZTOFO") &&
+    hasDefault(engines, "Google") &&
+    hasEnginesFirst(engines, ["Google"]) &&
+    hasTelemetryId(engines, "Bing", "bing-MZTOF"),
 });
 
 function hasURLs(engines, engineName, url, suggestURL) {
@@ -253,6 +286,7 @@ function hasURLs(engines, engineName, url, suggestURL) {
     suggestURL,
     `Should have the correct suggestion url for ${engineName}`
   );
+  return true;
 }
 
 function hasParams(engines, engineName, param) {
@@ -305,6 +339,7 @@ function hasEnginesFirst(engines, expectedEngines) {
       `Should have the expected engine in position ${i}`
     );
   }
+  return true;
 }
 
 add_setup(async function () {
@@ -321,11 +356,18 @@ add_setup(async function () {
 add_task(async function test_expected_distribution_engines() {
   let engineSelector = new SearchEngineSelector();
 
-  for (const { distribution, locale = "en-US", region = "US", test } of tests) {
+  for (const {
+    application = "firefox",
+    distribution,
+    locale = "en-US",
+    region = "US",
+    test,
+  } of tests) {
     let config = await engineSelector.fetchEngineConfiguration({
       locale,
       region,
       distroID: distribution,
+      appName: application,
     });
 
     let engines = await SearchTestUtils.searchConfigToEngines(config.engines);
