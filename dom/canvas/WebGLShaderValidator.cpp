@@ -35,15 +35,11 @@ static ShCompileOptions ChooseValidatorCompileOptions(
   options.initGLPosition = true;
   options.initializeUninitializedLocals = true;
   options.initOutputVariables = true;
-
-#ifdef XP_MACOSX
-  options.removeInvariantAndCentroidForESSL3 = true;
-#else
-  // We want to do this everywhere, but to do this on Mac, we need
-  // to do it only on Mac OSX > 10.6 as this causes the shader
-  // compiler in 10.6 to crash
   options.clampIndirectArrayBounds = true;
-#endif
+
+  if (kIsMacOS) {
+    options.removeInvariantAndCentroidForESSL3 = true;
+  }
 
   if (gl->WorkAroundDriverBugs()) {
     if (kIsMacOS) {
