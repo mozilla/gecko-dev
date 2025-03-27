@@ -1101,12 +1101,16 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
       productHostname = new URL(productUrl).hostname;
     }
     let content = lazy.isIntegratedSidebar
-      ? this._AWGetOptInSidebarVariantContent(isProductPage, isSupportedSite)
+      ? this._AWGetOptInSidebarVariantContent(
+          productUrl,
+          isProductPage,
+          isSupportedSite
+        )
       : this._AWGetOptInDefaultContent(productHostname);
     optInDynamicContent = content;
   }
 
-  _AWGetOptInSidebarVariantContent(isProductPage, isSupportedSite) {
+  _AWGetOptInSidebarVariantContent(productUrl, isProductPage, isSupportedSite) {
     let content;
 
     if (!isProductPage && !isSupportedSite) {
@@ -1115,6 +1119,33 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
       );
     } else {
       content = JSON.parse(JSON.stringify(OPTIN_SIDEBAR_VARIANT));
+    }
+
+    const [optInScreen] = content.screens;
+
+    switch (productUrl) {
+      case "www.walmart.com":
+        optInScreen.content.above_button_content[0].text.args = {
+          firstSite: "Walmart",
+          secondSite: "Amazon",
+          thirdSite: "Best Buy",
+        };
+        break;
+      case "www.bestbuy.com":
+        optInScreen.content.above_button_content[0].text.args = {
+          firstSite: "Best Buy",
+          secondSite: "Amazon",
+          thirdSite: "Walmart",
+        };
+        break;
+      case "www.amazon.com":
+      // Intentional fall-through
+      default:
+        optInScreen.content.above_button_content[0].text.args = {
+          firstSite: "Amazon",
+          secondSite: "Walmart",
+          thirdSite: "Best Buy",
+        };
     }
 
     return content;

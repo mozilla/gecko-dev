@@ -1792,7 +1792,7 @@ const MESSAGES = () => {
               position: "callout",
               width: "401px",
               title: {
-                string_id: "shopping-opt-in-integrated-headline",
+                string_id: "shopping-callout-opt-in-integrated-headline",
                 fontSize: "20px",
                 letterSpacing: "0",
               },
@@ -2060,7 +2060,7 @@ const MESSAGES = () => {
               position: "callout",
               width: "401px",
               title: {
-                string_id: "shopping-opt-in-integrated-headline",
+                string_id: "shopping-callout-opt-in-integrated-headline",
                 fontSize: "20px",
                 letterSpacing: "0",
               },
@@ -2539,12 +2539,11 @@ const MESSAGES = () => {
               position: "callout",
               width: "401px",
               title: {
-                string_id:
-                  "shopping-integrated-callout-disabled-auto-open-title",
+                string_id: "shopping-integrated-callout-sidebar-closed-title",
               },
               subtitle: {
                 string_id:
-                  "shopping-integrated-callout-disabled-auto-open-subtitle",
+                  "shopping-integrated-callout-sidebar-closed-subtitle",
                 letterSpacing: "0",
               },
               logo: {
@@ -2629,12 +2628,11 @@ const MESSAGES = () => {
               position: "callout",
               width: "401px",
               title: {
-                string_id:
-                  "shopping-integrated-callout-disabled-auto-open-title",
+                string_id: "shopping-integrated-callout-sidebar-closed-title",
               },
               subtitle: {
                 string_id:
-                  "shopping-integrated-callout-disabled-auto-open-subtitle",
+                  "shopping-integrated-callout-sidebar-closed-subtitle",
                 letterSpacing: "0",
               },
               logo: {
@@ -2690,12 +2688,11 @@ const MESSAGES = () => {
               position: "callout",
               width: "401px",
               title: {
-                string_id:
-                  "shopping-integrated-callout-disabled-auto-open-title",
+                string_id: "shopping-integrated-callout-sidebar-closed-title",
               },
               subtitle: {
                 string_id:
-                  "shopping-integrated-callout-no-logo-disabled-auto-open-subtitle",
+                  "shopping-integrated-callout-no-logo-sidebar-closed-subtitle",
                 letterSpacing: "0",
               },
               dismiss_button: {

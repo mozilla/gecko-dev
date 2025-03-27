@@ -120,7 +120,7 @@ class NewPositionNotificationCard extends MozLitElement {
           ></h2>
           <p
             id="notification-card-body"
-            data-l10n-id="shopping-integrated-new-position-notification-subtitle"
+            data-l10n-id="shopping-integrated-new-position-notification-move-right-subtitle"
             @click=${this.handleClickSettingsLink}
           >
             <a
