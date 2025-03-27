@@ -141,16 +141,16 @@ class _MLSuggest {
   }
 
   async #initializeModelEngine(options) {
-    const engineId = options.engineId;
+    const featureId = options.featureId;
 
     // uses cache if engine was used
-    if (this.#modelEngines[engineId]) {
-      return this.#modelEngines[engineId];
+    if (this.#modelEngines[featureId]) {
+      return this.#modelEngines[featureId];
     }
 
-    const engine = await this.createEngine({ ...options, engineId });
+    const engine = await this.createEngine(options);
     // Cache the engine
-    this.#modelEngines[engineId] = engine;
+    this.#modelEngines[featureId] = engine;
     return engine;
   }
 
@@ -167,7 +167,7 @@ class _MLSuggest {
    */
   async _findIntent(query, options = {}) {
     const engineIntentClassifier =
-      this.#modelEngines[this.INTENT_OPTIONS.engineId];
+      this.#modelEngines[this.INTENT_OPTIONS.featureId];
     if (!engineIntentClassifier) {
       return null;
     }
@@ -181,7 +181,7 @@ class _MLSuggest {
     } catch (error) {
       // engine could timeout or fail, so remove that from cache
       // and reinitialize
-      this.#modelEngines[this.INTENT_OPTIONS.engineId] = null;
+      this.#modelEngines[this.INTENT_OPTIONS.featureId] = null;
       this.#initializeModelEngine(this.INTENT_OPTIONS);
       return null;
     }
@@ -200,13 +200,13 @@ class _MLSuggest {
    *   The NER results or null if the model is not initialized.
    */
   async _findNER(query, options = {}) {
-    const engineNER = this.#modelEngines[this.NER_OPTIONS.engineId];
+    const engineNER = this.#modelEngines[this.NER_OPTIONS.featureId];
     try {
       return engineNER?.run({ args: [query], options });
     } catch (error) {
       // engine could timeout or fail, so remove that from cache
       // and reinitialize
-      this.#modelEngines[this.NER_OPTIONS.engineId] = null;
+      this.#modelEngines[this.NER_OPTIONS.featureId] = null;
       this.#initializeModelEngine(this.NER_OPTIONS);
       return null;
     }
