@@ -12,7 +12,7 @@ with Files("geckoview_example/**"):
     BUG_COMPONENT = ("GeckoView", "GeckoViewExample")
 
 with Files("fenix/**"):
-    BUG_COMPONENT = ("Fenix", "General")
+    BUG_COMPONENT = ("Firefox for Android", "General")
     SCHEDULES.exclusive = ["android", "fenix"]
 
 with Files("focus-android/**"):
@@ -20,7 +20,7 @@ with Files("focus-android/**"):
     SCHEDULES.exclusive = ["android", "focus-android"]
 
 with Files("android-components/**"):
-    BUG_COMPONENT = ("Fenix", "General")
+    BUG_COMPONENT = ("Firefox for Android", "General")
 
 # The Android APKs are assembled in the `export` tier, which usually occurs
 # before the following files are generated. However, mechanisms in `recurse.mk`
