@@ -217,7 +217,6 @@ dependencies {
     implementation libs.androidx.annotation
     implementation libs.androidx.collection
     implementation libs.androidx.core
-    implementation libs.androidx.core.ktx
 
     implementation libs.play.services.fido
     implementation "org.yaml:snakeyaml:2.2"
@@ -233,6 +232,7 @@ dependencies {
     testImplementation libs.testing.robolectric
 
     androidTestImplementation libs.testing.coroutines
+    androidTestImplementation libs.androidx.core.ktx
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.rules
     androidTestImplementation libs.androidx.test.junit
