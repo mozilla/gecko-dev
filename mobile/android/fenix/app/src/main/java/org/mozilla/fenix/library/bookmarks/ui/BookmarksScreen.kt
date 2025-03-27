@@ -393,7 +393,7 @@ private fun BookmarksListTopBar(
     }
     val folderTitle by store.observeAsState(store.state.currentFolder.title) { store.state.currentFolder.title }
     var showMenu by remember { mutableStateOf(false) }
-    var showSortMenu by remember { mutableStateOf(false) }
+    val showSortMenu by store.observeAsState(store.state.sortMenuShown) { it.sortMenuShown }
 
     val backgroundColor = if (selectedItems.isEmpty()) {
         FirefoxTheme.colors.layer1
@@ -441,7 +441,9 @@ private fun BookmarksListTopBar(
                 when {
                     selectedItems.isEmpty() -> {
                         Box {
-                            IconButton(onClick = { showSortMenu = true }) {
+                            IconButton(onClick = {
+                                store.dispatch(BookmarksListMenuAction.SortMenu.SortMenuButtonClicked)
+                            }) {
                                 Icon(
                                     painter = painterResource(R.drawable.mozac_ic_filter),
                                     contentDescription = stringResource(
@@ -453,7 +455,9 @@ private fun BookmarksListTopBar(
 
                             BookmarkSortOverflowMenu(
                                 showMenu = showSortMenu,
-                                onDismissRequest = { showSortMenu = false },
+                                onDismissRequest = {
+                                    store.dispatch(BookmarksListMenuAction.SortMenu.SortMenuDismissed)
+                                },
                                 store = store,
                             )
                         }
@@ -1321,6 +1325,7 @@ private fun EditBookmarkScreenPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            sortMenuShown = false,
             sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
@@ -1376,6 +1381,7 @@ private fun BookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = bookmarkItems,
                 selectedItems = listOf(),
+                sortMenuShown = false,
                 sortOrder = BookmarksListSortOrder.default,
                 recursiveSelectedCount = null,
                 currentFolder = BookmarkItem.Folder(
@@ -1410,6 +1416,7 @@ private fun EmptyBookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = listOf(),
                 selectedItems = listOf(),
+                sortMenuShown = false,
                 sortOrder = BookmarksListSortOrder.default,
                 recursiveSelectedCount = null,
                 currentFolder = BookmarkItem.Folder(
@@ -1443,6 +1450,7 @@ private fun AddFolderPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            sortMenuShown = false,
             sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
@@ -1481,6 +1489,7 @@ private fun SelectFolderPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            sortMenuShown = false,
             sortOrder = BookmarksListSortOrder.default,
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(

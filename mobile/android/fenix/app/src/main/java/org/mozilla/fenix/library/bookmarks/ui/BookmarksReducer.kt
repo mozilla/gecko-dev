@@ -236,6 +236,12 @@ private fun BookmarksState.respondToBackClick(): BookmarksState = when {
 
 private fun BookmarksState.handleSortMenuAction(action: BookmarksListMenuAction.SortMenu): BookmarksState =
     when (action) {
+        BookmarksListMenuAction.SortMenu.SortMenuButtonClicked -> copy(
+            sortMenuShown = !sortMenuShown,
+        )
+        BookmarksListMenuAction.SortMenu.SortMenuDismissed -> copy(
+            sortMenuShown = false,
+        )
         BookmarksListMenuAction.SortMenu.NewestClicked -> copy(
             sortOrder = BookmarksListSortOrder.Created(true),
         )

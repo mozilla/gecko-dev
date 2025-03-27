@@ -4499,6 +4499,86 @@ bookmarks_management:
     metadata:
       tags:
         - Bookmarks
+  sort_menu_clicked:
+    type: event
+    description: |
+      A user clicked the sort icon on the bookmarks screen.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1953993
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243210
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Bookmarks
+  sort_by_newest:
+    type: event
+    description: |
+      A user sorted their bookmarks by the newest added.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1953993
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243210
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Bookmarks
+  sort_by_oldest:
+    type: event
+    description: |
+      A user sorted their bookmarks by the oldest added.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1953993
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243210
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Bookmarks
+  sort_by_a_to_z:
+    type: event
+    description: |
+      A user sorted their bookmarks by A to Z.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1953993
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243210
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Bookmarks
+  sort_by_z_to_a:
+    type: event
+    description: |
+      A user sorted their bookmarks by Z to A.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1953993
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243210
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Bookmarks
 
 activation:
   identifier:
