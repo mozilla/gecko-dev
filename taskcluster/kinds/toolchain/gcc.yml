@@ -59,6 +59,20 @@ linux64-gcc-11:
             - mpc-1.0.3
             - mpfr-3.1.4
 
+linux64-gcc-14:
+    description: "GCC 14 toolchain build"
+    treeherder:
+        symbol: TL(gcc14)
+    run:
+        script: build-gcc-linux.sh
+    fetches:
+        fetch:
+            - gcc-14.2.0
+            - gmp-6.1.0
+            - isl-0.16.1
+            - mpc-1.0.3
+            - mpfr-3.1.4
+
 linux64-gcc-sixgill:
     description: "sixgill GCC plugin build"
     treeherder:
