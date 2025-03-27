@@ -563,6 +563,8 @@
   margin-left: -6px;
   border: none;
   background-color: transparent;
+  /* Prevent line break when copy/pasting an entire rule */
+  user-select: auto;
 }
 
 .ruleview-propertycontainer .ruleview-expander:dir(rtl)[aria-expanded="false"] {
