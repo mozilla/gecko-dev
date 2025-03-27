@@ -17,19 +17,14 @@ XPCOMUtils.defineLazyPreferenceGetter(
  *
  * @typedef {object} SidebarStateProps
  *
- * @property {boolean} command
- *   The id of the current sidebar panel. The panel may be closed and still have a command value.
- *   Re-opening the sidebar panel will then load the current command id.
  * @property {boolean} panelOpen
  *   Whether there is an open panel.
  * @property {number} panelWidth
  *   Current width of the sidebar panel.
  * @property {boolean} launcherVisible
  *   Whether the launcher is visible.
- *   This is always true when the sidebar.visibility pref value is "always-show", and toggle between true/false when visibility is "hide-sidebar"
  * @property {boolean} launcherExpanded
  *   Whether the launcher is expanded.
- *   When sidebar.visibility pref value is "always-show", the toolbar button serves to toggle this property
  * @property {boolean} launcherDragActive
  *   Whether the launcher is currently being dragged.
  * @property {boolean} launcherHoverActive
@@ -60,13 +55,7 @@ export class SidebarState {
     launcherDragActive: false,
     launcherHoverActive: false,
   };
-
-  static defaultProperties = Object.freeze({
-    command: "",
-    launcherExpanded: false,
-    launcherVisible: false,
-    panelOpen: false,
-  });
+  #previousLauncherExpanded = undefined;
 
   /**
    * Construct a new SidebarState.
@@ -239,11 +228,17 @@ export class SidebarState {
     if (open) {
       // Launcher must be visible to open a panel.
       this.launcherVisible = true;
+      // We need to know how to revert the launcher when the panel closes
+      this.#previousLauncherExpanded = this.launcherExpanded;
 
       Services.prefs.setBoolPref(
         this.revampEnabled ? REVAMP_USED_PREF : LEGACY_USED_PREF,
         true
       );
+    } else if (this.revampVisibility === "hide-sidebar") {
+      this.launcherExpanded = lazy.verticalTabsEnabled
+        ? this.#previousLauncherExpanded
+        : false;
     }
 
     const mainEl = this.#controller.sidebarContainer;
@@ -272,26 +267,62 @@ export class SidebarState {
   }
 
   /**
-   * Update the launcher `visible` and `expanded` states
+   * Update the launcher `visible` and `expanded` states to handle the
+   * following scenarios:
+   *
+   * - Toggling "Hide tabs and sidebar" from the customize panel.
+   * - Clicking sidebar button from the toolbar.
+   * - Removing sidebar button from the toolbar.
+   * - Force expand value
    *
    * @param {boolean} visible
+   * @param {boolean} onUserToggle
+   * @param {boolean} onToolbarButtonRemoval
    * @param {boolean} forceExpandValue
    */
-  updateVisibility(visible, forceExpandValue = null) {
+  updateVisibility(
+    visible,
+    onUserToggle = false,
+    onToolbarButtonRemoval = false,
+    forceExpandValue = null
+  ) {
     switch (this.revampVisibility) {
       case "hide-sidebar":
-        if (lazy.verticalTabsEnabled) {
-          forceExpandValue = visible;
+        if (onToolbarButtonRemoval) {
+          // If we are hiding the sidebar because we removed the toolbar button, close everything
+          this.#previousLauncherExpanded = false;
+          this.launcherVisible = false;
+          this.launcherExpanded = false;
+
+          if (this.panelOpen) {
+            this.#controller.hide();
+          }
+          return;
+        }
+        // we need this set to verticalTabsEnabled to ensure it has the correct state when toggling the sidebar button
+        this.launcherExpanded = lazy.verticalTabsEnabled && visible;
+        if (!visible && this.panelOpen) {
+          if (onUserToggle) {
+            // Hiding the launcher with the toolbar button or context menu should also close out any open panels and resets panelOpen
+            this.#controller.hide();
+          } else {
+            // Hide the launcher when the pref is set to hide-sidebar
+            this.launcherVisible = false;
+            this.#previousLauncherExpanded = false;
+            return;
+          }
         }
         this.launcherVisible = visible;
         break;
       case "always-show":
       case "expand-on-hover":
         this.launcherVisible = true;
+        if (forceExpandValue !== null) {
+          this.launcherExpanded = forceExpandValue;
+        } else if (onUserToggle) {
+          this.launcherExpanded = !this.launcherExpanded;
+        }
         break;
-    }
-    if (forceExpandValue !== null) {
-      this.launcherExpanded = forceExpandValue;
     }
   }
 

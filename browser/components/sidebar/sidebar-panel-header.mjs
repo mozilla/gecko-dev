@@ -21,7 +21,8 @@ export class SidebarPanelHeader extends MozLitElement {
 
   closeSidebarPanel(e) {
     e.preventDefault();
-    this.getWindow().SidebarController.hide();
+    let view = e.target.getAttribute("view");
+    this.getWindow().SidebarController.toggle(view);
   }
 
   render() {

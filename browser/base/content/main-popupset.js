@@ -180,8 +180,7 @@ document.addEventListener(
           SidebarController.reversePosition();
           break;
         case "sidebar-menu-close":
-          // Close the sidebar UI, but leave it otherwise in its current state
-          SidebarController.hide({ dismissPanel: false });
+          SidebarController.hide();
           break;
 
         // == toolbar-context-menu ==

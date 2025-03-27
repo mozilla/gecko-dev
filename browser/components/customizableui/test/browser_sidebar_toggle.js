@@ -45,7 +45,6 @@ add_task(async function () {
     "sidebar.revamp",
     false
   );
-  info(`sidebarRevampEnabled: ${sidebarRevampEnabled}`);
   if (!sidebarRevampEnabled) {
     CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
 
@@ -70,7 +69,7 @@ add_task(async function () {
     const sidebar = document.querySelector("sidebar-main");
     ok(sidebar, "Sidebar is shown.");
     for (const [index, toolButton] of sidebar.toolButtons.entries()) {
-      await SidebarController.toggle(toolButton.getAttribute("view"));
+      await SidebarController.show(toolButton.getAttribute("view"));
       is(
         SidebarController.currentID,
         toolButton.getAttribute("view"),
