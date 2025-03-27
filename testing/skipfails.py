@@ -527,7 +527,10 @@ class Skipfails(object):
                             allpaths = [path]
                             manifest = os.path.dirname(mmpath)
                             if manifest not in manifest_paths:
+                                # this can be a subdir, or translated path
                                 manifest_paths[manifest] = {}
+                            if config not in manifest_paths[manifest]:
+                                manifest_paths[manifest][config] = []
                             if manifest not in failures:
                                 failures[manifest] = deepcopy(manifest_)
                                 failures[manifest][KIND] = kind
@@ -1027,6 +1030,7 @@ class Skipfails(object):
         manifest_path = self.full_path(manifest)
         manifest_str = ""
         additional_comment = ""
+        path = path.split(":")[-1]
         comment, bug_reference, bugid, attachments = self.generate_bugzilla_comment(
             manifest,
             kind,
