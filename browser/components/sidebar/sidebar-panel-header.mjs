@@ -37,6 +37,7 @@ export class SidebarPanelHeader extends MozLitElement {
           view=${this.view}
           size="default"
           type="icon ghost"
+          tabindex="-1"
         >
         </moz-button>
       </div>

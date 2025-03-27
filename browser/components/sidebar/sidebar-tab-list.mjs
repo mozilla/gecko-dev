@@ -34,8 +34,25 @@ export class SidebarTabList extends FxviewTabListBase {
    * @param {KeyboardEvent} e
    */
   handleFocusElementInRow(e) {
-    if (e.code == "ArrowUp" || e.code == "ArrowDown") {
+    if (
+      (e.code == "ArrowUp" && this.activeIndex > 0) ||
+      (e.code == "ArrowDown" && this.activeIndex < this.rowEls.length - 1)
+    ) {
       super.handleFocusElementInRow(e);
+    } else if (e.code == "ArrowUp" && this.activeIndex == 0) {
+      let parentCard = e.target.getRootNode().host.closest("moz-card");
+      if (parentCard) {
+        parentCard.summaryEl.focus();
+      }
+    } else if (
+      e.code == "ArrowDown" &&
+      this.activeIndex == this.rowEls.length - 1
+    ) {
+      let parentCard = e.target.getRootNode().host.closest("moz-card");
+      let nextCard = parentCard.nextElementSibling;
+      if (nextCard && nextCard.localName == "moz-card") {
+        nextCard.summaryEl.focus();
+      }
     }
   }
 
@@ -63,7 +80,7 @@ export class SidebarTabList extends FxviewTabListBase {
         .sourceClosedId=${ifDefined(tabItem.sourceClosedId)}
         .sourceWindowId=${ifDefined(tabItem.sourceWindowId)}
         .tabElement=${ifDefined(tabItem.tabElement)}
-        tabindex="0"
+        tabindex="-1"
         .title=${tabItem.title}
         .url=${tabItem.url}
         @keydown=${e => e.currentTarget.primaryActionHandler(e)}

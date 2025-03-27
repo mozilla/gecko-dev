@@ -35,7 +35,9 @@ export default class MozCard extends MozLitElement {
   static queries = {
     detailsEl: "#moz-card-details",
     headingEl: "#heading",
-    contentSlotEl: "#content",
+    contentEl: "#content",
+    summaryEl: "summary",
+    contentSlotEl: "#content-slot",
   };
 
   static properties = {
@@ -82,7 +84,7 @@ export default class MozCard extends MozLitElement {
           ?open=${this.expanded}
         >
           <summary part="summary">${this.headingTemplate()}</summary>
-          <div id="content"><slot></slot></div>
+          <div id="content"><slot id="content-slot"></slot></div>
         </details>
       `;
     }

@@ -79,13 +79,13 @@
           "The content should be unchanged"
         );
         is(
-          card.contentSlotEl.id,
+          card.contentEl.id,
           "content",
           "The content container should have the correct ID"
         );
         if (card.type != "accordion") {
           is(
-            card.contentSlotEl.getAttribute("aria-describedby"),
+            card.contentEl.getAttribute("aria-describedby"),
             "content",
             "The content container should be described by the 'content' slot"
           );

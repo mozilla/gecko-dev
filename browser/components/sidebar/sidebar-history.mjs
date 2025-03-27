@@ -4,7 +4,11 @@
 
 const lazy = {};
 
-import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
+import {
+  html,
+  ifDefined,
+  when,
+} from "chrome://global/content/vendor/lit.all.mjs";
 import { navigateToLink } from "chrome://browser/content/firefoxview/helpers.mjs";
 
 import { SidebarPage } from "./sidebar-page.mjs";
@@ -103,6 +107,41 @@ export class SidebarHistory extends SidebarPage {
     this.controller.deleteFromHistory();
   }
 
+  handleCardKeydown(e) {
+    if (e.originalTarget != e.target.summaryEl) {
+      return;
+    }
+    let nextSibling = e.target.nextElementSibling;
+    let prevSibling = e.target.previousElementSibling;
+    switch (e.code) {
+      case "Tab":
+        if (prevSibling.localName == "moz-card") {
+          e.preventDefault();
+        }
+        break;
+      case "ArrowUp":
+        if (!prevSibling || prevSibling.localName !== "moz-card") {
+          return;
+        }
+        if (prevSibling.expanded) {
+          let tabsList = prevSibling.contentSlotEl.assignedElements()[0];
+          let lastRow = tabsList.rowEls[tabsList.rowEls.length - 1];
+          lastRow.focus();
+        } else {
+          prevSibling.summaryEl.focus();
+        }
+        break;
+      case "ArrowDown":
+        if (e.target.expanded) {
+          let tabsList = e.target.contentSlotEl.assignedElements()[0];
+          tabsList.rowEls[0].focus();
+        } else if (nextSibling && nextSibling.localName == "moz-card") {
+          nextSibling.summaryEl.focus();
+        }
+        break;
+    }
+  }
+
   /**
    * The template to use for cards-container.
    */
@@ -122,26 +161,34 @@ export class SidebarHistory extends SidebarPage {
     const { historyVisits } = this.controller;
     switch (this.controller.sortOption) {
       case "date":
-        return historyVisits.map(
-          ({ l10nId, items }, i) =>
-            html` <moz-card
-              type="accordion"
-              ?expanded=${i < DAYS_EXPANDED_INITIALLY}
-              data-l10n-id=${l10nId}
-              data-l10n-args=${JSON.stringify({
-                date: items[0].time,
-              })}
-            >
-              <div>${this.#tabListTemplate(this.getTabItems(items))}</div>
-            </moz-card>`
-        );
+        return historyVisits.map(({ l10nId, items }, i) => {
+          let tabIndex = i > 0 ? "-1" : undefined;
+          return html` <moz-card
+            type="accordion"
+            ?expanded=${i < DAYS_EXPANDED_INITIALLY}
+            data-l10n-id=${l10nId}
+            data-l10n-args=${JSON.stringify({
+              date: items[0].time,
+            })}
+            @keydown=${this.handleCardKeydown}
+            tabindex=${ifDefined(tabIndex)}
+          >
+            ${this.#tabListTemplate(this.getTabItems(items))}
+          </moz-card>`;
+        });
       case "site":
-        return historyVisits.map(
-          ({ domain, items }) =>
-            html` <moz-card type="accordion" expanded heading=${domain}>
-              <div>${this.#tabListTemplate(this.getTabItems(items))}</div>
-            </moz-card>`
-        );
+        return historyVisits.map(({ domain, items }, i) => {
+          let tabIndex = i > 0 ? "-1" : undefined;
+          return html` <moz-card
+            type="accordion"
+            expanded
+            heading=${domain}
+            @keydown=${this.handleCardKeydown}
+            tabindex=${ifDefined(tabIndex)}
+          >
+            ${this.#tabListTemplate(this.getTabItems(items))}
+          </moz-card>`;
+        });
       default:
         return [];
     }
@@ -215,6 +262,7 @@ export class SidebarHistory extends SidebarPage {
 
   #tabListTemplate(tabItems, searchQuery) {
     return html`<sidebar-tab-list
+      .handleFocusElementToCard=${this.handleFocusElementToCard}
       maxTabsLength="-1"
       .searchQuery=${searchQuery}
       secondaryActionClass="delete-button"

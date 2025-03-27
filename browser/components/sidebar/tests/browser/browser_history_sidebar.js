@@ -238,7 +238,7 @@ add_task(async function test_history_sort() {
 
 add_task(async function test_history_keyboard_navigation() {
   const { component, contentWindow } = await showHistorySidebar();
-  const { lists } = component;
+  const { lists, cards } = component;
   await BrowserTestUtils.waitForMutationCondition(
     component.shadowRoot,
     { childList: true, subtree: true },
@@ -250,24 +250,62 @@ add_task(async function test_history_keyboard_navigation() {
     () => lists[0].rowEls.length === URLs.length
   );
   ok(true, "History rows are shown.");
-
   const rows = lists[0].rowEls;
-  rows[0].focus();
+
+  cards[0].summaryEl.focus();
 
   info("Focus the next row.");
-  let focused = BrowserTestUtils.waitForEvent(rows[1], "focus", contentWindow);
+  let focused = BrowserTestUtils.waitForEvent(rows[0], "focus", contentWindow);
+  EventUtils.synthesizeKey("KEY_ArrowDown", {}, contentWindow);
+  await focused;
+
+  info("Focus the previous card.");
+  focused = BrowserTestUtils.waitForEvent(
+    cards[0].summaryEl,
+    "focus",
+    contentWindow
+  );
+  EventUtils.synthesizeKey("KEY_ArrowUp", {}, contentWindow);
+  await focused;
+
+  info("Focus the next row.");
+  focused = BrowserTestUtils.waitForEvent(rows[0], "focus", contentWindow);
+  EventUtils.synthesizeKey("KEY_ArrowDown", {}, contentWindow);
+  await focused;
+
+  info("Focus the next row.");
+  focused = BrowserTestUtils.waitForEvent(rows[1], "focus", contentWindow);
+  EventUtils.synthesizeKey("KEY_ArrowDown", {}, contentWindow);
+  await focused;
+
+  info("Focus the next row.");
+  focused = BrowserTestUtils.waitForEvent(rows[2], "focus", contentWindow);
+  EventUtils.synthesizeKey("KEY_ArrowDown", {}, contentWindow);
+  await focused;
+
+  info("Focus the next row.");
+  focused = BrowserTestUtils.waitForEvent(rows[3], "focus", contentWindow);
+  EventUtils.synthesizeKey("KEY_ArrowDown", {}, contentWindow);
+  await focused;
+
+  info("Focus the next card.");
+  focused = BrowserTestUtils.waitForEvent(
+    cards[1].summaryEl,
+    "focus",
+    contentWindow
+  );
   EventUtils.synthesizeKey("KEY_ArrowDown", {}, contentWindow);
   await focused;
 
   info("Focus the previous row.");
-  focused = BrowserTestUtils.waitForEvent(rows[0], "focus", contentWindow);
+  focused = BrowserTestUtils.waitForEvent(rows[3], "focus", contentWindow);
   EventUtils.synthesizeKey("KEY_ArrowUp", {}, contentWindow);
   await focused;
 
   info("Open the focused link.");
   await waitForPageLoadTask(
     () => EventUtils.synthesizeKey("KEY_Enter", {}, contentWindow),
-    URLs[0]
+    URLs[1]
   );
   win.SidebarController.hide();
 });
@@ -291,7 +329,7 @@ add_task(async function test_history_hover_buttons() {
   info("Open the first link.");
   await waitForPageLoadTask(
     () => EventUtils.synthesizeMouseAtCenter(rows[0].mainEl, {}, contentWindow),
-    URLs[0]
+    URLs[1]
   );
 
   info("Remove the first entry.");
