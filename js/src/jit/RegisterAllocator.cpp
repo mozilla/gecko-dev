@@ -330,7 +330,7 @@ void AllocationIntegrityState::checkSafepointAllocation(LInstruction* ins,
   }
 
   if (alloc.isRegister()) {
-    MOZ_ASSERT(safepoint->liveRegs().has(alloc.toRegister()));
+    MOZ_ASSERT(safepoint->liveRegs().has(alloc.toAnyRegister()));
   }
 
   // The |this| argument slot is implicitly included in all safepoints.

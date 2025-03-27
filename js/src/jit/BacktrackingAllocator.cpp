@@ -1880,7 +1880,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         // this and shorten the temp to cover only the output.
         CodePosition from = inputOf(*ins);
         if (temp->policy() == LDefinition::FIXED) {
-          AnyRegister reg = temp->output()->toRegister();
+          AnyRegister reg = temp->output()->toAnyRegister();
           for (LInstruction::InputIterator alloc(**ins); alloc.more();
                alloc.next()) {
             if (alloc->isUse()) {
@@ -3486,7 +3486,8 @@ bool BacktrackingAllocator::tryAllocateRegister(PhysicalRegister& r,
       }
       const LiveRange* existing = existingPlus.liveRange();
       if (existing->hasVreg()) {
-        MOZ_ASSERT(existing->bundle()->allocation().toRegister() == rAlias.reg);
+        MOZ_ASSERT(existing->bundle()->allocation().toAnyRegister() ==
+                   rAlias.reg);
         bool duplicate = false;
         for (size_t i = 0; i < aliasedConflicting.length(); i++) {
           if (aliasedConflicting[i] == existing->bundle()) {
@@ -3615,7 +3616,7 @@ bool BacktrackingAllocator::evictBundle(LiveBundle* bundle) {
                    bundle->toString().get(), computePriority(bundle),
                    computeSpillWeight(bundle));
 
-  AnyRegister reg(bundle->allocation().toRegister());
+  AnyRegister reg(bundle->allocation().toAnyRegister());
   PhysicalRegister& physical = registers[reg.code()];
   MOZ_ASSERT(physical.reg == reg && physical.allocatable);
 
@@ -3643,7 +3644,7 @@ bool BacktrackingAllocator::tryAllocateFixed(LiveBundle* bundle,
     return true;
   }
 
-  AnyRegister reg = requirement.allocation().toRegister();
+  AnyRegister reg = requirement.allocation().toAnyRegister();
   return tryAllocateRegister(registers[reg.code()], bundle, success, hasCall,
                              conflicting);
 }
@@ -4421,7 +4422,7 @@ void BacktrackingAllocator::addLiveRegistersForRange(
     // So eagerly add this reg to the safepoint clobbered registers.
     if (reg.ins()->isInstruction()) {
       if (LSafepoint* safepoint = reg.ins()->toInstruction()->safepoint()) {
-        safepoint->addClobberedRegister(a.toRegister());
+        safepoint->addClobberedRegister(a.toAnyRegister());
       }
     }
 #endif
@@ -4445,11 +4446,11 @@ void BacktrackingAllocator::addLiveRegistersForRange(
     MOZ_ASSERT(range->covers(pos));
 
     LSafepoint* safepoint = ins->safepoint();
-    safepoint->addLiveRegister(a.toRegister());
+    safepoint->addLiveRegister(a.toAnyRegister());
 
 #ifdef CHECK_OSIPOINT_REGISTERS
     if (reg.isTemp()) {
-      safepoint->addClobberedRegister(a.toRegister());
+      safepoint->addClobberedRegister(a.toAnyRegister());
     }
 #endif
   }
