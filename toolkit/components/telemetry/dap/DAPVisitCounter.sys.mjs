@@ -17,21 +17,21 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 export const DAPVisitCounter = new (class {
-  startup() {
-    this._asyncShutdownBlocker = async () => {
+  counters = null;
+  timerId = null;
+
+  async startup() {
+    const asyncShutdownBlocker = async () => {
       lazy.logConsole.debug(`Sending on shutdown.`);
       await this.send(2 * 1000, "shutdown");
     };
 
-    lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
-      "DAPVisitCounter: sending data",
-      this._asyncShutdownBlocker
-    );
-
-    const listener = events => {
+    const placesTypes = ["page-visited"];
+    const placesListener = events => {
       // Even using the event.hidden flag there mayb be some double counting
       // here. It would have to be fixed in the Places API.
       for (const event of events) {
@@ -51,19 +51,42 @@ export const DAPVisitCounter = new (class {
     };
 
     lazy.NimbusFeatures.dapTelemetry.onUpdate(async () => {
-      if (typeof this.counters !== "undefined") {
+      // Cancel submission timer
+      lazy.clearTimeout(this.timerId);
+      this.timerId = null;
+
+      // Flush data when changing enrollment status
+      if (this.counters !== null) {
         await this.send(30 * 1000, "nimbus-update");
+        this.counters = null;
       }
-      this.initialize_counters();
+
+      // Clear registered calllbacks
+      lazy.PlacesUtils.observers.removeListener(placesTypes, placesListener);
+      lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+        asyncShutdownBlocker
+      );
+
+      // If we have an active Nimbus configuration, register this DAPVisitCounter.
+      if (
+        lazy.NimbusFeatures.dapTelemetry.getVariable("enabled") &&
+        lazy.NimbusFeatures.dapTelemetry.getVariable("visitCountingEnabled")
+      ) {
+        this.initialize_counters();
+
+        lazy.PlacesUtils.observers.addListener(placesTypes, placesListener);
+
+        lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+          "DAPVisitCounter: sending data",
+          asyncShutdownBlocker
+        );
+
+        this.timerId = lazy.setTimeout(
+          () => this.timed_send(),
+          this.timeout_value()
+        );
+      }
     });
-
-    if (typeof this.counters === "undefined") {
-      this.initialize_counters();
-    }
-
-    lazy.PlacesUtils.observers.addListener(["page-visited"], listener);
-
-    lazy.setTimeout(() => this.timed_send(), this.timeout_value());
   }
 
   initialize_counters() {
@@ -106,7 +129,10 @@ export const DAPVisitCounter = new (class {
   async timed_send() {
     lazy.logConsole.debug("Sending on timer.");
     await this.send(30 * 1000, "periodic");
-    lazy.setTimeout(() => this.timed_send(), this.timeout_value());
+    this.timerId = lazy.setTimeout(
+      () => this.timed_send(),
+      this.timeout_value()
+    );
   }
 
   timeout_value() {

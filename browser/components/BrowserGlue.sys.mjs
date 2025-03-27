@@ -32,6 +32,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ContextualIdentityService:
     "resource://gre/modules/ContextualIdentityService.sys.mjs",
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
+  DAPVisitCounter: "resource://gre/modules/DAPVisitCounter.sys.mjs",
   Discovery: "resource:///modules/Discovery.sys.mjs",
   DoHController: "resource:///modules/DoHController.sys.mjs",
   DownloadsViewableInternally:
@@ -3024,6 +3025,7 @@ BrowserGlue.prototype = {
         condition: AppConstants.MOZ_TELEMETRY_REPORTING,
         task: async () => {
           await lazy.DAPTelemetrySender.startup();
+          await lazy.DAPVisitCounter.startup();
         },
       },
 

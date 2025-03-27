@@ -16,7 +16,6 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", function () {
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  DAPVisitCounter: "resource://gre/modules/DAPVisitCounter.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   ObliviousHTTP: "resource://gre/modules/ObliviousHTTP.sys.mjs",
 });
@@ -55,17 +54,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
 export const DAPTelemetrySender = new (class {
   async startup() {
     await lazy.NimbusFeatures.dapTelemetry.ready();
-    if (!lazy.NimbusFeatures.dapTelemetry.getVariable("enabled")) {
-      return;
-    }
 
-    lazy.logConsole.debug("Performing DAP startup");
-
-    if (lazy.NimbusFeatures.dapTelemetry.getVariable("visitCountingEnabled")) {
-      lazy.DAPVisitCounter.startup();
-    }
-
-    if (lazy.NimbusFeatures.dapTelemetry.getVariable("task1Enabled")) {
+    if (
+      lazy.NimbusFeatures.dapTelemetry.getVariable("enabled") &&
+      lazy.NimbusFeatures.dapTelemetry.getVariable("task1Enabled")
+    ) {
       let tasks = [];
       lazy.logConsole.debug("Task 1 is enabled.");
       let task1_id =
