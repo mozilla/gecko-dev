@@ -286,6 +286,47 @@ class nsTArray_CopyDisabler {
   nsTArray_CopyDisabler& operator=(const nsTArray_CopyDisabler&) = delete;
 };
 
+template <typename Iter, typename Comparator>
+void AssertStrictWeakOrder(Iter aBegin, Iter aEnd, const Comparator& aCmp) {
+  // This check is present in newer libc++ versions, and it is a useful check,
+  // so check for it ourselves if we're not using libc++. Ported from:
+  // https://github.com/llvm/llvm-project/blob/cf0efb31880dab5f5b2f20bda6634c68a42d6908/libcxx/include/__cxx03/__debug_utils/strict_weak_ordering_check.h#L28
+#if defined(DEBUG) && !defined(_LIBCPP_VERSION)
+  MOZ_ASSERT(std::is_sorted(aBegin, aEnd, aCmp),
+             "Invalid strict-weak ordering comparator");
+  // Limit the number of elements we need to check.
+  auto size = std::min(size_t(aEnd - aBegin), size_t(100));
+  size_t p = 0;
+  while (p < size) {
+    size_t q = p + size_t(1);
+    // Find first element that is greater than *(aBegin+p).
+    while (q < size && !aCmp(*(aBegin + p), *(aBegin + q))) {
+      ++q;
+    }
+    // Check that the elements from p to q are equal between each other.
+    for (size_t b = p; b < q; ++b) {
+      for (size_t a = p; a <= b; ++a) {
+        MOZ_ASSERT(!aCmp(*(aBegin + a), *(aBegin + b)),
+                   "Your comparator is not a valid strict-weak ordering");
+        MOZ_ASSERT(!aCmp(*(aBegin + b), *(aBegin + a)),
+                   "Your comparator is not a valid strict-weak ordering");
+      }
+    }
+    // Check that elements between p and q are less than between q and size.
+    for (size_t a = p; a < q; ++a) {
+      for (size_t b = q; b < size; ++b) {
+        MOZ_ASSERT(aCmp(*(aBegin + a), *(aBegin + b)),
+                   "Your comparator is not a valid strict-weak ordering");
+        MOZ_ASSERT(!aCmp(*(aBegin + b), *(aBegin + a)),
+                   "Your comparator is not a valid strict-weak ordering");
+      }
+    }
+    // Skip these equal elements.
+    p = q;
+  }
+#endif
+}
+
 }  // namespace detail
 
 // This class provides a SafeElementAt method to nsTArray<E*> which does
@@ -2341,10 +2382,11 @@ class nsTArray_Impl
     static_assert(std::is_move_constructible_v<value_type>);
 
     ::detail::CompareWrapper<Comparator, value_type> comp(aComp);
-    std::sort(Elements(), Elements() + Length(),
-              [&comp](const auto& left, const auto& right) {
-                return comp.LessThan(left, right);
-              });
+    auto compFn = [&comp](const auto& left, const auto& right) {
+      return comp.LessThan(left, right);
+    };
+    std::sort(Elements(), Elements() + Length(), compFn);
+    ::detail::AssertStrictWeakOrder(Elements(), Elements() + Length(), compFn);
   }
 
   // A variation on the Sort method defined above that assumes that
@@ -2366,10 +2408,11 @@ class nsTArray_Impl
     static_assert(std::is_move_constructible_v<value_type>);
 
     const ::detail::CompareWrapper<Comparator, value_type> comp(aComp);
-    std::stable_sort(Elements(), Elements() + Length(),
-                     [&comp](const auto& lhs, const auto& rhs) {
-                       return comp.LessThan(lhs, rhs);
-                     });
+    auto compFn = [&comp](const auto& lhs, const auto& rhs) {
+      return comp.LessThan(lhs, rhs);
+    };
+    std::stable_sort(Elements(), Elements() + Length(), compFn);
+    ::detail::AssertStrictWeakOrder(Elements(), Elements() + Length(), compFn);
   }
 
   // A variation on the StableSort method defined above that assumes that
