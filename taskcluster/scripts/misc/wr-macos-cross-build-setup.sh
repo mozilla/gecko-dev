@@ -3,7 +3,7 @@ set -x -e -v
 
 export TARGET_TRIPLE="x86_64-apple-darwin"
 
-MACOS_SYSROOT="${MOZ_FETCHES_DIR}/MacOSX14.4.sdk"
+MACOS_SYSROOT=$(ls -d $MOZ_FETCHES_DIR/MacOSX1*.sdk)
 CLANGDIR="${MOZ_FETCHES_DIR}/clang"
 
 # Deploy the wrench dependencies
