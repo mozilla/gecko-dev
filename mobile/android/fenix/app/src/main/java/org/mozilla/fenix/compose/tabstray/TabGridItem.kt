@@ -223,6 +223,7 @@ private fun TabContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Spacer(modifier = Modifier.width(8.dp))
 
@@ -231,9 +232,7 @@ private fun TabContent(
                         Image(
                             bitmap = icon.asImageBitmap(),
                             contentDescription = null,
-                            modifier = Modifier
-                                .align(Alignment.CenterVertically)
-                                .size(16.dp),
+                            modifier = Modifier.size(16.dp),
                         )
                     }
 
@@ -249,6 +248,7 @@ private fun TabContent(
                     ) {
                         Text(
                             text = tab.toDisplayTitle().take(MAX_URI_LENGTH),
+                            modifier = Modifier.align(Alignment.CenterStart),
                             fontSize = 14.sp,
                             maxLines = 1,
                             softWrap = false,
@@ -263,7 +263,6 @@ private fun TabContent(
                         IconButton(
                             modifier = Modifier
                                 .size(24.dp)
-                                .align(Alignment.CenterVertically)
                                 .testTag(TabsTrayTestTag.tabItemClose),
                             onClick = {
                                 onCloseClick(tab)
