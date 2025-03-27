@@ -52,6 +52,9 @@
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "InProcessWinCompositorWidget.h"
 
+#include "nsUXThemeData.h"
+#include "nsUXThemeConstants.h"
+
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;

@@ -12,14 +12,14 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"
 #include "Theme.h"
-#include "nsLookAndFeel.h"
 #include "nsUXThemeConstants.h"
+#include "nsUXThemeData.h"
 
 namespace mozilla::widget {
 
-class nsNativeThemeWin final : public Theme {
+class nsNativeThemeWin : public Theme {
  protected:
-  virtual ~nsNativeThemeWin() = default;
+  virtual ~nsNativeThemeWin();
 
  public:
   // Whether we draw a non-native widget.
@@ -86,7 +86,7 @@ class nsNativeThemeWin final : public Theme {
   nsNativeThemeWin();
 
  protected:
-  Maybe<UXThemeClass> GetThemeClass(StyleAppearance aAppearance);
+  Maybe<nsUXThemeClass> GetThemeClass(StyleAppearance aAppearance);
   HANDLE GetTheme(StyleAppearance aAppearance);
   nsresult GetThemePartAndState(nsIFrame* aFrame, StyleAppearance aAppearance,
                                 int32_t& aPart, int32_t& aState);
@@ -121,14 +121,14 @@ class nsNativeThemeWin final : public Theme {
                                RECT* aWidgetRect, RECT* aClipRect);
 
   [[nodiscard]] LayoutDeviceIntMargin GetCachedWidgetBorder(
-      HANDLE aTheme, UXThemeClass aThemeClass, StyleAppearance aAppearance,
+      HANDLE aTheme, nsUXThemeClass aThemeClass, StyleAppearance aAppearance,
       int32_t aPart, int32_t aState);
 
   nsresult GetCachedMinimumWidgetSize(nsIFrame* aFrame, HANDLE aTheme,
-                                      UXThemeClass aThemeClass,
+                                      nsUXThemeClass aThemeClass,
                                       StyleAppearance aAppearance,
                                       int32_t aPart, int32_t aState,
-                                      int32_t aSizeReq,
+                                      THEMESIZE aSizeReq,
                                       LayoutDeviceIntSize* aResult);
 
   SIZE GetCachedGutterSize(HANDLE theme);
@@ -137,28 +137,24 @@ class nsNativeThemeWin final : public Theme {
   TimeStamp mProgressDeterminateTimeStamp;
   TimeStamp mProgressIndeterminateTimeStamp;
 
-  // UXThemeClass::NumClasses * THEME_PART_DISTINCT_VALUE_COUNT is about 800 at
-  // the time of writing this, and nsIntMargin is 16 bytes wide, which makes
-  // this cache (1/8 + 16) * 800 bytes, or about ~12KB. We could probably
-  // reduce this cache to 3KB by caching on the aAppearance value instead,
-  // but there would be some uncacheable values, since we derive some theme
-  // parts from other arguments.
-  uint8_t mBorderCacheValid[(size_t(UXThemeClass::NumClasses) *
-                                 THEME_PART_DISTINCT_VALUE_COUNT +
-                             7) /
-                            8];
-  LayoutDeviceIntMargin mBorderCache[size_t(UXThemeClass::NumClasses) *
-                                     THEME_PART_DISTINCT_VALUE_COUNT];
+  // eUXNumClasses * THEME_PART_DISTINCT_VALUE_COUNT is about 800 at the time of
+  // writing this, and nsIntMargin is 16 bytes wide, which makes this cache (1/8
+  // + 16) * 800 bytes, or about ~12KB. We could probably reduce this cache to
+  // 3KB by caching on the aAppearance value instead, but there would be some
+  // uncacheable values, since we derive some theme parts from other arguments.
+  uint8_t
+      mBorderCacheValid[(eUXNumClasses * THEME_PART_DISTINCT_VALUE_COUNT + 7) /
+                        8];
+  LayoutDeviceIntMargin
+      mBorderCache[eUXNumClasses * THEME_PART_DISTINCT_VALUE_COUNT];
 
   // See the above not for mBorderCache and friends. However
   // LayoutDeviceIntSize is half the size of nsIntMargin, making the
   // cache roughly half as large. In total the caches should come to about 18KB.
-  uint8_t mMinimumWidgetSizeCacheValid[(size_t(UXThemeClass::NumClasses) *
-                                            THEME_PART_DISTINCT_VALUE_COUNT +
-                                        7) /
-                                       8];
-  LayoutDeviceIntSize mMinimumWidgetSizeCache[size_t(UXThemeClass::NumClasses) *
-                                              THEME_PART_DISTINCT_VALUE_COUNT];
+  uint8_t mMinimumWidgetSizeCacheValid
+      [(eUXNumClasses * THEME_PART_DISTINCT_VALUE_COUNT + 7) / 8];
+  LayoutDeviceIntSize
+      mMinimumWidgetSizeCache[eUXNumClasses * THEME_PART_DISTINCT_VALUE_COUNT];
 
   bool mGutterSizeCacheValid;
   SIZE mGutterSizeCache;

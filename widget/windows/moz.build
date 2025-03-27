@@ -91,6 +91,7 @@ UNIFIED_SOURCES += [
     "nsSound.cpp",
     "nsToolkit.cpp",
     "nsUserIdleServiceWin.cpp",
+    "nsUXThemeData.cpp",
     "nsWindow.cpp",
     "nsWindowDbg.cpp",
     "nsWindowGfx.cpp",

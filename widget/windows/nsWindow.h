@@ -49,6 +49,7 @@
 #  include "mozilla/a11y/LocalAccessible.h"
 #endif
 
+#include "nsUXThemeData.h"
 #include "nsIUserIdleServiceInternal.h"
 
 #include "IMMHandler.h"

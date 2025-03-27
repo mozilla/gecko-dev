@@ -8,7 +8,6 @@
 
 #include <windows.h>
 
-#include "mozilla/EnumeratedArray.h"
 #include "nsXPLookAndFeel.h"
 #include "gfxFont.h"
 
@@ -49,46 +48,10 @@ namespace mozilla::widget::WinRegistry {
 class KeyWatcher;
 }
 
-enum class UXThemeClass : uint8_t {
-  Button = 0,
-  Edit,
-  Toolbar,
-  Progress,
-  Tab,
-  Trackbar,
-  Combobox,
-  Listview,
-  Menu,
-  NumClasses
-};
-
-// This class makes sure we don't attempt to open a theme if the previous
-// loading attempt has failed because OpenThemeData is a heavy task and
-// it's less likely that the API returns a different result.
-class UXThemeHandle final {
-  mozilla::Maybe<HANDLE> mHandle;
-
- public:
-  UXThemeHandle() = default;
-  ~UXThemeHandle();
-
-  // Disallow copy and move
-  UXThemeHandle(const UXThemeHandle&) = delete;
-  UXThemeHandle(UXThemeHandle&&) = delete;
-  UXThemeHandle& operator=(const UXThemeHandle&) = delete;
-  UXThemeHandle& operator=(UXThemeHandle&&) = delete;
-
-  operator HANDLE();
-  void OpenOnce(LPCWSTR aClassList);
-  void Close();
-};
-
 class nsLookAndFeel final : public nsXPLookAndFeel {
  public:
   nsLookAndFeel();
   virtual ~nsLookAndFeel();
-
-  static HANDLE GetTheme(UXThemeClass);
 
   void NativeInit() final;
   void RefreshImpl() override;
@@ -162,10 +125,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   nscolor mColorAccent = 0;
   nscolor mColorAccentText = 0;
 
-  nscolor mSysColorTable[SYS_COLOR_COUNT] {0};
-  bool mHighContrastOn = false;
-
-  mozilla::EnumeratedArray<UXThemeClass, UXThemeHandle, size_t(UXThemeClass::NumClasses)> mThemeHandles;
+  nscolor mSysColorTable[SYS_COLOR_COUNT];
 
   mozilla::UniquePtr<mozilla::widget::WinRegistry::KeyWatcher>
       mColorFilterWatcher;

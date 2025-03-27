@@ -7,6 +7,7 @@
 
 #include "TaskbarTabPreview.h"
 #include "nsWindowGfx.h"
+#include "nsUXThemeData.h"
 #include "WinUtils.h"
 #include <nsITaskbarPreviewController.h>
 
