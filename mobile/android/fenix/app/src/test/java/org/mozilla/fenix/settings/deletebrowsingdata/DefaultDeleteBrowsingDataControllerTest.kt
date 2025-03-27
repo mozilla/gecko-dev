@@ -24,6 +24,7 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.components.PermissionStorage
