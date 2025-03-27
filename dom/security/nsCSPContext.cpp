@@ -2154,14 +2154,28 @@ nsCSPContext::Read(nsIObjectInputStream* aStream) {
 
     bool deliveredViaMetaTag = false;
     rv = aStream->ReadBoolean(&deliveredViaMetaTag);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     bool hasRequireTrustedTypesForDirective = false;
     rv = aStream->ReadBoolean(&hasRequireTrustedTypesForDirective);
-
     NS_ENSURE_SUCCESS(rv, rv);
+
+    nsTArray<nsString> trustedTypesDirectiveExpressions;
+    uint32_t numExpressions;
+    rv = aStream->Read32(&numExpressions);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    while (numExpressions > 0) {
+      numExpressions--;
+      nsAutoString expressionString;
+      rv = aStream->ReadString(expressionString);
+      NS_ENSURE_SUCCESS(rv, rv);
+      trustedTypesDirectiveExpressions.AppendElement(expressionString);
+    }
+
     AddIPCPolicy(mozilla::ipc::ContentSecurityPolicy(
         policyString, reportOnly, deliveredViaMetaTag,
-        hasRequireTrustedTypesForDirective));
+        hasRequireTrustedTypesForDirective, trustedTypesDirectiveExpressions));
   }
 
   return NS_OK;
@@ -2189,12 +2203,23 @@ nsCSPContext::Write(nsIObjectOutputStream* aStream) {
     aStream->WriteBoolean(mPolicies[p]->getReportOnlyFlag());
     aStream->WriteBoolean(mPolicies[p]->getDeliveredViaMetaTagFlag());
     aStream->WriteBoolean(mPolicies[p]->hasRequireTrustedTypesForDirective());
+    nsTArray<nsString> trustedTypesDirectiveExpressions;
+    mPolicies[p]->getTrustedTypesDirectiveExpressions(
+        trustedTypesDirectiveExpressions);
+    aStream->Write32(trustedTypesDirectiveExpressions.Length());
+    for (auto& expression : trustedTypesDirectiveExpressions) {
+      aStream->WriteWStringZ(expression.get());
+    }
   }
   for (auto& policy : mIPCPolicies) {
     aStream->WriteWStringZ(policy.policy().get());
     aStream->WriteBoolean(policy.reportOnlyFlag());
     aStream->WriteBoolean(policy.deliveredViaMetaTagFlag());
     aStream->WriteBoolean(policy.hasRequireTrustedTypesForDirective());
+    aStream->Write32(policy.trustedTypesDirectiveExpressions().Length());
+    for (auto& expression : policy.trustedTypesDirectiveExpressions()) {
+      aStream->WriteWStringZ(expression.get());
+    }
   }
   return NS_OK;
 }
@@ -2217,10 +2242,14 @@ void nsCSPContext::SerializePolicies(
   for (auto* policy : mPolicies) {
     nsAutoString policyString;
     policy->toString(policyString);
+    nsTArray<nsString> trustedTypesDirectiveExpressions;
+    policy->getTrustedTypesDirectiveExpressions(
+        trustedTypesDirectiveExpressions);
     aPolicies.AppendElement(
         ContentSecurityPolicy(policyString, policy->getReportOnlyFlag(),
                               policy->getDeliveredViaMetaTagFlag(),
-                              policy->hasRequireTrustedTypesForDirective()));
+                              policy->hasRequireTrustedTypesForDirective(),
+                              trustedTypesDirectiveExpressions));
   }
 
   aPolicies.AppendElements(mIPCPolicies);

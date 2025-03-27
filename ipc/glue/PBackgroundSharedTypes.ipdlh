@@ -17,6 +17,9 @@ namespace ipc {
   bool reportOnlyFlag;
   bool deliveredViaMetaTagFlag;
   bool hasRequireTrustedTypesForDirective;
+  // This array contains the raw tt-expressions for specified trusted-types
+  // directives. https://w3c.github.io/trusted-types/dist/spec/#tt-expression
+  nsString[] trustedTypesDirectiveExpressions;
 };
 
 [Comparable] struct ContentPrincipalInfo

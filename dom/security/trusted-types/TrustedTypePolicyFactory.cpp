@@ -164,7 +164,19 @@ auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
     if (NS_WARN_IF(rv.Failed())) {
       rv.SuppressException();
     }
-    // TODO(bug 1901492): Determine result from workerPrivate->GetCSPInfo().
+    const mozilla::ipc::CSPInfo& cspInfo = workerPrivate->GetCSPInfo();
+    for (auto& policy : cspInfo.policyInfos()) {
+      if (!policy.reportOnlyFlag()) {
+        auto& trustedTypesDirectiveExpressions = policy.trustedTypesDirectiveExpressions();
+        if (!trustedTypesDirectiveExpressions.IsEmpty() &&
+            nsCSPDirective::ShouldCreateViolationForNewTrustedTypesPolicy(
+              trustedTypesDirectiveExpressions, aPolicyName,
+              mCreatedPolicyNames)) {
+          result = PolicyCreation::Blocked;
+          break;
+        }
+      };
+    }
   }
 
   return result;
