@@ -35,8 +35,6 @@ function setupTest({ recipes }) {
 
       ExperimentAPI._resetForTests();
       sandbox.restore();
-
-      Services.fog.testResetFOG();
     },
   };
 }
@@ -156,14 +154,6 @@ add_task(async function test_enroll() {
 
   const labs = await FirefoxLabs.create();
 
-  Services.fog.applyServerKnobsConfig(
-    JSON.stringify({
-      metrics_enabled: {
-        "nimbus_events.enrollment_status": true,
-      },
-    })
-  );
-
   await Assert.rejects(
     labs.enroll(),
     /enroll: slug and branchSlug are required/,
@@ -192,20 +182,6 @@ add_task(async function test_enroll() {
   Assert.ok(
     enrollSpy.calledOnceWith(recipe, "rs-loader", { branchSlug: "control" }),
     "ExperimentManager.enroll called"
-  );
-
-  Assert.deepEqual(
-    Glean.nimbusEvents.enrollmentStatus
-      .testGetValue("events")
-      ?.map(ev => ev.extra),
-    [
-      {
-        slug: recipe.slug,
-        branch: "control",
-        status: "Enrolled",
-        reason: "OptIn",
-      },
-    ]
   );
 
   Assert.ok(manager.store.get(recipe.slug)?.active, "Active enrollment exists");
@@ -338,14 +314,6 @@ add_task(async function test_unenroll() {
   await labs.enroll("opt-in", "control");
   Assert.ok(manager.store.get("opt-in")?.active, "Enrolled in opt-in");
 
-  Services.fog.applyServerKnobsConfig(
-    JSON.stringify({
-      metrics_enabled: {
-        "nimbus_events.enrollment_status": true,
-      },
-    })
-  );
-
   // Should not throw.
   labs.unenroll("bogus");
 
@@ -361,20 +329,6 @@ add_task(async function test_unenroll() {
 
   // Should not throw.
   labs.unenroll("opt-in");
-
-  Assert.deepEqual(
-    Glean.nimbusEvents.enrollmentStatus
-      .testGetValue("events")
-      ?.map(ev => ev.extra),
-    [
-      {
-        slug: "opt-in",
-        branch: "control",
-        status: "Disqualified",
-        reason: "OptOut",
-      },
-    ]
-  );
 
   manager.unenroll("rollout");
   cleanup();

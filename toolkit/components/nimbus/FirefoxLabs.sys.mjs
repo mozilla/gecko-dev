@@ -6,8 +6,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
-  NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
-  UnenrollmentCause: "resource://nimbus/lib/ExperimentManager.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -97,12 +95,7 @@ export class FirefoxLabs {
     }
 
     try {
-      lazy.ExperimentAPI._manager.unenroll(
-        slug,
-        lazy.UnenrollmentCause.fromReason(
-          lazy.NimbusTelemetry.UnenrollReason.LABS_OPT_OUT
-        )
-      );
+      lazy.ExperimentAPI._manager.unenroll(slug, "labs-opt-out");
     } catch (e) {
       lazy.log.error(`unenroll: failed to unenroll from ${slug}`, e);
     }
