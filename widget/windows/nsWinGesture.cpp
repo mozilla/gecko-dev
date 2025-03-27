@@ -9,7 +9,6 @@
 
 #include "nscore.h"
 #include "nsWinGesture.h"
-#include "nsUXThemeData.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"

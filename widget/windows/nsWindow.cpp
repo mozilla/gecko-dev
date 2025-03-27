@@ -701,8 +701,6 @@ nsWindow::nsWindow(bool aIsChildWindow)
     }
     NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
     MouseScrollHandler::Initialize();
-    // Init theme data
-    nsUXThemeData::UpdateNativeThemeInfo();
     RedirectedKeyDownMessageManager::Forget();
   }  // !sInstanceCount
 
@@ -4851,10 +4849,7 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
     case WM_THEMECHANGED: {
       // Update non-client margin offsets
       UpdateNonClientMargins();
-      nsUXThemeData::UpdateNativeThemeInfo();
-
-      // Invalidate the window so that the repaint will
-      // pick up the new theme.
+      // Invalidate the window so that the repaint will pick up the new theme.
       Invalidate(true, true, true);
     } break;
 

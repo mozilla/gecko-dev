@@ -14,7 +14,6 @@
 #include <nsIWidget.h>
 #include <nsServiceManagerUtils.h>
 
-#include "nsUXThemeData.h"
 #include "nsWindow.h"
 #include "nsAppShell.h"
 #include "TaskbarPreviewButton.h"
