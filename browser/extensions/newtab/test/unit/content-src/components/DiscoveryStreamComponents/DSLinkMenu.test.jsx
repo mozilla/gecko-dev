@@ -1,24 +1,15 @@
-import { mount } from "enzyme";
+import { mount, shallow } from "enzyme";
 import { DSLinkMenu } from "content-src/components/DiscoveryStreamComponents/DSLinkMenu/DSLinkMenu";
 import { ContextMenuButton } from "content-src/components/ContextMenu/ContextMenuButton";
 import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import React from "react";
-import { Provider } from "react-redux";
-import { combineReducers, createStore } from "redux";
-import { INITIAL_STATE, reducers } from "common/Reducers.sys.mjs";
 
 describe("<DSLinkMenu>", () => {
   let wrapper;
-  let store;
 
   describe("DS link menu actions", () => {
     beforeEach(() => {
-      store = createStore(combineReducers(reducers), INITIAL_STATE);
-      wrapper = mount(
-        <Provider store={store}>
-          <DSLinkMenu />
-        </Provider>
-      );
+      wrapper = mount(<DSLinkMenu />);
     });
 
     afterEach(() => {
@@ -27,11 +18,7 @@ describe("<DSLinkMenu>", () => {
 
     it("should parse args for fluent correctly ", () => {
       const title = '"fluent"';
-      wrapper = mount(
-        <Provider store={store}>
-          <DSLinkMenu title={title} />
-        </Provider>
-      );
+      wrapper = mount(<DSLinkMenu title={title} />);
 
       const button = wrapper.find(
         "button[data-l10n-id='newtab-menu-content-tooltip']"
@@ -48,15 +35,7 @@ describe("<DSLinkMenu>", () => {
     };
 
     beforeEach(() => {
-      wrapper = mount(
-        <Provider store={store}>
-          <DSLinkMenu {...ValidDSLinkMenuProps} />
-        </Provider>
-      );
-    });
-
-    afterEach(() => {
-      wrapper.unmount();
+      wrapper = shallow(<DSLinkMenu {...ValidDSLinkMenuProps} />);
     });
 
     it("should render a context menu button", () => {
@@ -107,10 +86,8 @@ describe("<DSLinkMenu>", () => {
     });
 
     it("should pass through the correct menu options to LinkMenu for recommended stories if Pocket is disabled", () => {
-      wrapper = mount(
-        <Provider store={store}>
-          <DSLinkMenu {...ValidDSLinkMenuProps} pocket_button_enabled={false} />
-        </Provider>
+      wrapper = shallow(
+        <DSLinkMenu {...ValidDSLinkMenuProps} pocket_button_enabled={false} />
       );
       wrapper
         .find(ContextMenuButton)
@@ -127,10 +104,8 @@ describe("<DSLinkMenu>", () => {
     });
 
     it("should pass through the correct menu options to LinkMenu for SPOCs", () => {
-      wrapper = mount(
-        <Provider store={store}>
-          <DSLinkMenu {...ValidDSLinkMenuProps} card_type="spoc" />
-        </Provider>
+      wrapper = shallow(
+        <DSLinkMenu {...ValidDSLinkMenuProps} card_type="spoc" />
       );
       wrapper
         .find(ContextMenuButton)

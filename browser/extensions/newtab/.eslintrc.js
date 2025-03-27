@@ -32,7 +32,6 @@ module.exports = {
         "content-src/components/WallpapersSection/**",
         "content-src/components/DiscoveryStreamComponents/TopicSelection/TopicSelection.jsx",
         "content-src/components/DiscoveryStreamComponents/InterestPicker/InterestPicker.jsx",
-        "content-src/components/DiscoveryStreamComponents/ReportContent/ReportContent.jsx",
       ],
       rules: {
         "jsx-a11y/anchor-has-content": "off",
