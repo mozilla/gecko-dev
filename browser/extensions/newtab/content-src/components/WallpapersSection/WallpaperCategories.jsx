@@ -518,6 +518,7 @@ export class _WallpaperCategories extends React.PureComponent {
                         this.categoryRef[index] = el;
                       }
                     }}
+                    name="wallpaper-category"
                     id={category}
                     style={style}
                     type="radio"

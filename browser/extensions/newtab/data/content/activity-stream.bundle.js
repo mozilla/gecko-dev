@@ -11931,6 +11931,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
             this.categoryRef[index] = el;
           }
         },
+        name: "wallpaper-category",
         id: category,
         style: style,
         type: "radio",
