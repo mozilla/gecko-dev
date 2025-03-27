@@ -553,6 +553,9 @@ struct PackingInfo final {
   friend bool operator==(const Self& a, const Self& b) {
     return TiedFields(a) == TiedFields(b);
   }
+  friend bool operator!=(const Self& a, const Self& b) {
+    return TiedFields(a) != TiedFields(b);
+  }
 
   template <class T>
   friend T& operator<<(T& s, const PackingInfo& pi) {
@@ -561,13 +564,28 @@ struct PackingInfo final {
     return s;
   }
 };
+std::string format_as(const PackingInfo& pi);
 
 struct DriverUnpackInfo final {
+  using Self = DriverUnpackInfo;
+
   GLenum internalFormat = 0;
   GLenum unpackFormat = 0;
   GLenum unpackType = 0;
 
   PackingInfo ToPacking() const { return {unpackFormat, unpackType}; }
+
+  template<class ConstOrMutSelf>
+  static constexpr auto Fields(ConstOrMutSelf& self) {
+    return std::tie(self.internalFormat, self.unpackFormat, self.unpackType);
+  }
+
+  constexpr bool operator==(const Self& rhs) const {
+    return Fields(*this) == Fields(rhs);
+  }
+  constexpr bool operator!=(const Self& rhs) const {
+    return Fields(*this) != Fields(rhs);
+  }
 };
 
 // -

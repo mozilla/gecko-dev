@@ -2224,7 +2224,8 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
                   dom::CallerType aCallerType, ErrorResult& out_error) const;
 
  protected:
-  bool ReadPixels_SharedPrecheck(dom::CallerType aCallerType,
+  bool ReadPixels_SharedPrecheck(GLenum* inout_readType,
+                                 dom::CallerType aCallerType,
                                  ErrorResult& out_error) const;
 
   // ------------------------------ Vertex Array ------------------------------
