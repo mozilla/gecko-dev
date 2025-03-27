@@ -15,12 +15,10 @@ import { actionCreators as ac } from "common/Actions.mjs";
 import { DSLinkMenu } from "content-src/components/DiscoveryStreamComponents/DSLinkMenu/DSLinkMenu";
 import { DSImage } from "content-src/components/DiscoveryStreamComponents/DSImage/DSImage";
 import React from "react";
-import { INITIAL_STATE, reducers } from "common/Reducers.sys.mjs";
+import { INITIAL_STATE } from "common/Reducers.sys.mjs";
 import { SafeAnchor } from "content-src/components/DiscoveryStreamComponents/SafeAnchor/SafeAnchor";
 import { shallow, mount } from "enzyme";
 import { FluentOrText } from "content-src/components/FluentOrText/FluentOrText";
-import { Provider } from "react-redux";
-import { combineReducers, createStore } from "redux";
 
 const DEFAULT_PROPS = {
   url: "about:robots",
@@ -85,34 +83,16 @@ describe("<DSCard>", () => {
   });
 
   it("should render badges for pocket, bookmark when not a spoc element ", () => {
-    const store = createStore(combineReducers(reducers), INITIAL_STATE);
-
-    wrapper = mount(
-      <Provider store={store}>
-        <DSCard context_type="bookmark" {...DEFAULT_PROPS} />
-      </Provider>
-    );
-
-    const dsCardInstance = wrapper.find(DSCard).instance();
-    dsCardInstance.setState({ isSeen: true });
-    wrapper.update();
-
+    wrapper = mount(<DSCard context_type="bookmark" {...DEFAULT_PROPS} />);
+    wrapper.setState({ isSeen: true });
     const contextFooter = wrapper.find(DSContextFooter);
+
     assert.lengthOf(contextFooter.find(StatusMessage), 1);
   });
 
   it("should render thumbs up/down UI when not a spoc element ", () => {
-    const store = createStore(combineReducers(reducers), INITIAL_STATE);
-    wrapper = mount(
-      <Provider store={store}>
-        <DSCard mayHaveThumbsUpDown={true} {...DEFAULT_PROPS} />
-      </Provider>
-    );
-
-    const dsCardInstance = wrapper.find(DSCard).instance();
-    dsCardInstance.setState({ isSeen: true });
-    wrapper.update();
-
+    wrapper = mount(<DSCard mayHaveThumbsUpDown={true} {...DEFAULT_PROPS} />);
+    wrapper.setState({ isSeen: true });
     const thumbs_up_down_buttons_component = wrapper.find(
       DSThumbsUpDownButtons
     );
@@ -120,17 +100,8 @@ describe("<DSCard>", () => {
   });
 
   it("thumbs up button should have active class when isThumbsUpActive is true", () => {
-    const store = createStore(combineReducers(reducers), INITIAL_STATE);
-    wrapper = mount(
-      <Provider store={store}>
-        <DSCard mayHaveThumbsUpDown={true} {...DEFAULT_PROPS} />
-      </Provider>
-    );
-
-    const dsCardInstance = wrapper.find(DSCard).instance();
-    dsCardInstance.setState({ isSeen: true, isThumbsUpActive: true });
-    wrapper.update();
-
+    wrapper = mount(<DSCard mayHaveThumbsUpDown={true} {...DEFAULT_PROPS} />);
+    wrapper.setState({ isSeen: true, isThumbsUpActive: true });
     const thumbs_up_down_buttons_component = wrapper.find(
       DSThumbsUpDownButtons
     );
@@ -141,20 +112,10 @@ describe("<DSCard>", () => {
   });
 
   it("should NOT render thumbs up/down UI when a spoc element ", () => {
-    const store = createStore(combineReducers(reducers), INITIAL_STATE);
-
     wrapper = mount(
-      <Provider store={store}>
-        <DSCard
-          mayHaveThumbsUpDown={true}
-          sponsor="Mozilla"
-          {...DEFAULT_PROPS}
-        />
-      </Provider>
+      <DSCard mayHaveThumbsUpDown={true} sponsor="Mozilla" {...DEFAULT_PROPS} />
     );
-    const dsCardInstance = wrapper.find(DSCard).instance();
-    dsCardInstance.setState({ isSeen: true });
-    wrapper.update();
+    wrapper.setState({ isSeen: true });
     // Note: The wrapper is still rendered for DSCard height but the contents is not
     const thumbs_up_down_buttons_component = wrapper.find(
       DSThumbsUpDownButtons
@@ -168,17 +129,10 @@ describe("<DSCard>", () => {
   it("should render Sponsored Context for a spoc element", () => {
     // eslint-disable-next-line no-shadow
     const context = "Sponsored by Foo";
-    const store = createStore(combineReducers(reducers), INITIAL_STATE);
     wrapper = mount(
-      <Provider store={store}>
-        <DSCard context_type="bookmark" context={context} {...DEFAULT_PROPS} />
-      </Provider>
+      <DSCard context_type="bookmark" context={context} {...DEFAULT_PROPS} />
     );
-
-    const dsCardInstance = wrapper.find(DSCard).instance();
-    dsCardInstance.setState({ isSeen: true });
-    wrapper.update();
-
+    wrapper.setState({ isSeen: true });
     const contextFooter = wrapper.find(DSContextFooter);
 
     assert.lengthOf(contextFooter.find(StatusMessage), 0);
@@ -186,25 +140,19 @@ describe("<DSCard>", () => {
   });
 
   it("should render time to read", () => {
-    const store = createStore(combineReducers(reducers), INITIAL_STATE);
     const discoveryStream = {
       ...INITIAL_STATE.DiscoveryStream,
       readTime: true,
     };
     wrapper = mount(
-      <Provider store={store}>
-        <DSCard
-          time_to_read={4}
-          {...DEFAULT_PROPS}
-          DiscoveryStream={discoveryStream}
-          Prefs={INITIAL_STATE.Prefs}
-        />
-      </Provider>
+      <DSCard
+        time_to_read={4}
+        {...DEFAULT_PROPS}
+        DiscoveryStream={discoveryStream}
+        Prefs={INITIAL_STATE.Prefs}
+      />
     );
-    const dsCardInstance = wrapper.find(DSCard).instance();
-    dsCardInstance.setState({ isSeen: true });
-    wrapper.update();
-
+    wrapper.setState({ isSeen: true });
     const defaultMeta = wrapper.find(DefaultMeta);
     assert.lengthOf(defaultMeta, 1);
     assert.equal(defaultMeta.props().timeToRead, 4);
@@ -488,15 +436,8 @@ describe("<DSCard>", () => {
 
   describe("DSCard with CTA", () => {
     beforeEach(() => {
-      const store = createStore(combineReducers(reducers), INITIAL_STATE);
-      wrapper = mount(
-        <Provider store={store}>
-          <DSCard {...DEFAULT_PROPS} />
-        </Provider>
-      );
-      const dsCardInstance = wrapper.find(DSCard).instance();
-      dsCardInstance.setState({ isSeen: true });
-      wrapper.update();
+      wrapper = mount(<DSCard {...DEFAULT_PROPS} />);
+      wrapper.setState({ isSeen: true });
     });
 
     it("should render Default Meta", () => {
@@ -572,17 +513,11 @@ describe("<DSCard>", () => {
         DiscoveryStream: INITIAL_STATE.DiscoveryStream,
         Prefs: INITIAL_STATE.Prefs,
       };
-      const store = createStore(combineReducers(reducers), INITIAL_STATE);
-      wrapper = mount(
-        <Provider store={store}>
-          <DSCard {...props} />
-        </Provider>
-      );
+      wrapper = mount(<DSCard {...props} />);
     });
 
     it("should be set as isSeen automatically", () => {
-      const dsCardInstance = wrapper.find(DSCard).instance();
-      assert.isTrue(dsCardInstance.state.isSeen);
+      assert.isTrue(wrapper.instance().state.isSeen);
     });
   });
 
@@ -692,16 +627,8 @@ describe("<DSCard>", () => {
         requestIdleCallback: sinon.stub().returns(1),
         cancelIdleCallback: sinon.stub(),
       };
-      const store = createStore(combineReducers(reducers), INITIAL_STATE);
-
-      wrapper = mount(
-        <Provider store={store}>
-          <DSCard {...DEFAULT_PROPS} windowObj={fakeWindow} />
-        </Provider>
-      );
-      const dsCardInstance = wrapper.find(DSCard).instance();
-      dsCardInstance.setState({ isSeen: true });
-      wrapper.update();
+      wrapper = mount(<DSCard {...DEFAULT_PROPS} windowObj={fakeWindow} />);
+      wrapper.setState({ isSeen: true });
       cardNode = wrapper.getDOMNode();
     });
 
@@ -714,8 +641,7 @@ describe("<DSCard>", () => {
         "ds-card ds-card-title-lines-3 ds-card-desc-lines-3 active"
       );
 
-      const dsCardInstance = wrapper.find(DSCard).instance();
-      dsCardInstance.onMenuUpdate(false);
+      wrapper.instance().onMenuUpdate(false);
       wrapper.update();
 
       assert.equal(
@@ -725,8 +651,7 @@ describe("<DSCard>", () => {
     });
 
     it("Should add active on Menu Show", async () => {
-      const dsCardInstance = wrapper.find(DSCard).instance();
-      await dsCardInstance.onMenuShow();
+      await wrapper.instance().onMenuShow();
       wrapper.update();
       assert.equal(
         cardNode.className,
@@ -736,8 +661,7 @@ describe("<DSCard>", () => {
 
     it("Should add last-item to support resized window", async () => {
       fakeWindow.scrollMaxX = 20;
-      const dsCardInstance = wrapper.find(DSCard).instance();
-      await dsCardInstance.onMenuShow();
+      await wrapper.instance().onMenuShow();
       wrapper.update();
       assert.equal(
         cardNode.className,
@@ -746,23 +670,22 @@ describe("<DSCard>", () => {
     });
 
     it("should remove .active and .last-item classes", () => {
-      const dsCardInstance = wrapper.find(DSCard).instance();
-
+      const instance = wrapper.instance();
       const remove = sinon.stub();
-      dsCardInstance.contextMenuButtonHostElement = {
+      instance.contextMenuButtonHostElement = {
         classList: { remove },
       };
-      dsCardInstance.onMenuUpdate();
+      instance.onMenuUpdate();
       assert.calledOnce(remove);
     });
 
     it("should add .active and .last-item classes", async () => {
-      const dsCardInstance = wrapper.find(DSCard).instance();
+      const instance = wrapper.instance();
       const add = sinon.stub();
-      dsCardInstance.contextMenuButtonHostElement = {
+      instance.contextMenuButtonHostElement = {
         classList: { add },
       };
-      await dsCardInstance.onMenuShow();
+      await instance.onMenuShow();
       assert.calledOnce(add);
     });
   });

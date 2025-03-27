@@ -174,13 +174,6 @@ module.exports = function (config) {
                 functions: 0,
                 branches: 0,
               },
-            "content-src/components/DiscoveryStreamComponents/ReportContent/ReportContent.jsx":
-              {
-                statements: 0,
-                lines: 0,
-                functions: 0,
-                branches: 0,
-              },
             /**
              * TopicSelection.jsx is tested via an xpcshell test
              */
@@ -203,9 +196,9 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx":
               {
-                statements: 95.39,
-                lines: 95.3,
-                functions: 9.91,
+                statements: 96.69,
+                lines: 96.62,
+                functions: 95.45,
                 branches: 72.95,
               },
             "content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx":
