@@ -2049,4 +2049,9 @@
             column="21"/>
     </issue>
 
+    <issue id="UnusedResources"
+        message="The resource R.drawable.ic_pbm_firefox_logo appears to be unused">
+        <location file="src/main/res/drawable/ic_pbm_firefox_logo.xml" />
+    </issue>
+
 </issues>
