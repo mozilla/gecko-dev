@@ -2772,12 +2772,15 @@
     }
 
     #setDragOverGroupColor(groupColorCode) {
+      this.toggleAttribute("movingtab-addToGroup", groupColorCode);
+
       if (!groupColorCode) {
         this.style.removeProperty("--dragover-tab-group-color");
         this.style.removeProperty("--dragover-tab-group-color-invert");
         this.style.removeProperty("--dragover-tab-group-color-pale");
         return;
       }
+
       this.style.setProperty(
         "--dragover-tab-group-color",
         `var(--tab-group-color-${groupColorCode})`
