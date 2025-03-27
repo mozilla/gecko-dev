@@ -157,9 +157,6 @@ class LAllocation {
   bool isStackArea() const { return kind() == STACK_AREA; }
   bool isArgument() const { return kind() == ARGUMENT_SLOT; }
   bool isRegister() const { return isGeneralReg() || isFloatReg(); }
-  bool isRegister(bool needFloat) const {
-    return needFloat ? isFloatReg() : isGeneralReg();
-  }
   bool isMemory() const { return isStackSlot() || isArgument(); }
   inline uint32_t memorySlot() const;
   inline LUse* toUse();
