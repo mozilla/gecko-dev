@@ -38,10 +38,13 @@ body {
 :root {
   user-select: none;
   color-scheme: light dark;
-  accent-color: var(--color-accent-primary);
   text-rendering: optimizeLegibility;
   min-height: 95px;
   min-width: 95px;
+
+  @media not (forced-colors) {
+    accent-color: var(--color-accent-primary);
+  }
 
   &:-moz-locale-dir(rtl) {
     direction: rtl;

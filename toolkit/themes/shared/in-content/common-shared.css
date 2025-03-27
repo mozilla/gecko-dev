@@ -79,8 +79,10 @@
   --card-padding: 16px;
 
   -moz-theme: non-native;
-  accent-color: var(--color-accent-primary);
   color-scheme: light dark;
+  @media not (forced-colors) {
+    accent-color: var(--color-accent-primary);
+  }
 }
 
 @media (prefers-color-scheme: dark) {

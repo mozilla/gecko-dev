@@ -65,7 +65,6 @@
     -moz-theme: non-native;
     min-width: var(--input-width);
     min-height: var(--input-height);
-    accent-color: var(--color-accent-primary);
     font-size: inherit;
     /* Bug 1901865: Due to the "MS Shell Dlg 2" font, we need inherits to
     * keep the checkbox aligned */
@@ -77,6 +76,10 @@
 
     :host(:not(:state(has-label))) & {
       margin-inline-end: 0;
+    }
+
+    @media not (forced-colors) {
+      accent-color: var(--color-accent-primary);
     }
   }
 
