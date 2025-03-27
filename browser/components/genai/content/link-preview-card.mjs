@@ -164,7 +164,7 @@ class LinkPreviewCard extends MozLitElement {
                     </p>`
                   : ""}
                 <p>
-                  Key points are AI-generated and may be wrong.
+                  Key points are AI-generated and may have mistakes.
                   <a @click=${this.handleLink} href=${FEEDBACK_LINK}>
                     Foxfooding feedback
                   </a>
