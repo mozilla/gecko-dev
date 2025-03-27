@@ -95,7 +95,7 @@ add_task(async function readyCallAfterStore_with_remote_value() {
 
   Assert.ok(!feature.getVariable("enabled"), "Loads value from store");
 
-  manager.unenroll(MATCHING_ROLLOUT.slug, "test-cleanup");
+  manager.unenroll(MATCHING_ROLLOUT.slug);
 
   sandbox.restore();
   assertEmptyStore(manager.store);
@@ -146,7 +146,7 @@ add_task(async function update_remote_defaults_onUpdate() {
   Assert.equal(stub.callCount, 1, "Called once for remote configs");
   Assert.equal(stub.firstCall.args[1], "rollout-updated", "Correct reason");
 
-  manager.unenroll(MATCHING_ROLLOUT.slug, "test-cleanup");
+  manager.unenroll(MATCHING_ROLLOUT.slug);
 
   sandbox.restore();
   assertEmptyStore(manager.store);
@@ -224,7 +224,7 @@ add_task(async function update_remote_defaults_readyPromise() {
     "Update called after enrollment processed."
   );
 
-  manager.unenroll(MATCHING_ROLLOUT.slug, "test-cleanup");
+  manager.unenroll(MATCHING_ROLLOUT.slug);
   assertEmptyStore(manager.store);
   sandbox.restore();
 });
@@ -246,7 +246,7 @@ add_task(async function update_remote_defaults_enabled() {
     "Feature is disabled by remote configuration"
   );
 
-  manager.unenroll(NON_MATCHING_ROLLOUT.slug, "test-cleanup");
+  manager.unenroll(NON_MATCHING_ROLLOUT.slug);
   assertEmptyStore(manager.store);
   sandbox.restore();
 });
@@ -305,6 +305,6 @@ add_task(async function remote_isEarlyStartup_config() {
     "nimbus.syncdefaultsstore.password-autocomplete"
   );
 
-  manager.unenroll(rollout.slug, "test-cleanup");
+  manager.unenroll(rollout.slug);
   assertEmptyStore(manager.store);
 });

@@ -59,7 +59,7 @@ add_task(async function test_add_to_store() {
   );
   Assert.equal(experiment.active, true, "should set .active = true");
 
-  manager.unenroll("foo", "test-cleanup");
+  manager.unenroll("foo");
 
   assertEmptyStore(manager.store);
 });
@@ -92,7 +92,7 @@ add_task(async function test_add_rollout_to_store() {
   );
   Assert.equal(experiment.isRollout, true, "should have .isRollout");
 
-  manager.unenroll("rollout-slug", "test-cleanup");
+  manager.unenroll("rollout-slug");
 
   assertEmptyStore(manager.store);
 });
@@ -219,7 +219,7 @@ add_task(async function test_setExperimentActive_recordEnrollment_called() {
     "Glean.nimbusEvents.enrollment recorded with correct experiment type"
   );
 
-  manager.unenroll("foo", "test-cleanup");
+  manager.unenroll("foo");
 
   assertEmptyStore(manager.store);
   sandbox.restore();
@@ -327,7 +327,7 @@ add_task(async function test_setRolloutActive_recordEnrollment_called() {
     "Glean.nimbusEvents.enrollment recorded with correct experiment type"
   );
 
-  manager.unenroll("rollout", "test-cleanup");
+  manager.unenroll("rollout");
 
   assertEmptyStore(manager.store);
   sandbox.restore();
@@ -388,7 +388,7 @@ add_task(async function test_failure_name_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("foo", "test-cleanup");
+  manager.unenroll("foo");
 
   assertEmptyStore(manager.store);
   sandbox.restore();
@@ -468,7 +468,7 @@ add_task(async function test_failure_group_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("foo", "test-cleanup");
+  manager.unenroll("foo");
 
   assertEmptyStore(manager.store);
   sandbox.restore();
@@ -535,7 +535,7 @@ add_task(async function test_rollout_failure_group_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("rollout-recipe", "test-cleanup");
+  manager.unenroll("rollout-recipe");
 
   assertEmptyStore(manager.store);
   sandbox.restore();
@@ -696,7 +696,7 @@ add_task(async function enroll_in_reference_aw_experiment() {
   // in prefs.
   Assert.ok(prefValue.length < 3498, "Make sure we don't bloat the prefs");
 
-  manager.unenroll(recipe.slug, "enroll_in_reference_aw_experiment:cleanup");
+  manager.unenroll(recipe.slug);
 
   assertEmptyStore(manager.store);
 });
@@ -704,8 +704,7 @@ add_task(async function enroll_in_reference_aw_experiment() {
 add_task(async function test_forceEnroll_cleanup() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
-  let unenrollStub = sandbox.spy(manager, "unenroll");
-  let existingRecipe = ExperimentFakes.recipe("foo", {
+  const existingRecipe = ExperimentFakes.recipe("foo", {
     branches: [
       {
         slug: "treatment",
@@ -714,7 +713,7 @@ add_task(async function test_forceEnroll_cleanup() {
       },
     ],
   });
-  let forcedRecipe = ExperimentFakes.recipe("bar", {
+  const forcedRecipe = ExperimentFakes.recipe("bar", {
     branches: [
       {
         slug: "treatment",
@@ -723,6 +722,8 @@ add_task(async function test_forceEnroll_cleanup() {
       },
     ],
   });
+
+  sandbox.spy(manager, "_unenroll");
 
   await manager.onStartup();
   await manager.enroll(existingRecipe, "test_forceEnroll_cleanup");
@@ -730,28 +731,25 @@ add_task(async function test_forceEnroll_cleanup() {
   sandbox.spy(NimbusTelemetry, "setExperimentActive");
   manager.forceEnroll(forcedRecipe, forcedRecipe.branches[0]);
 
-  Assert.ok(unenrollStub.called, "Unenrolled from existing experiment");
-  Assert.equal(
-    unenrollStub.firstCall.args[0],
-    existingRecipe.slug,
-    "Called with existing recipe slug"
+  Assert.ok(
+    manager._unenroll.calledOnceWith(
+      sinon.match({ slug: existingRecipe.slug }),
+      { reason: "force-enrollment" }
+    ),
+    "Unenrolled from existing experiment"
   );
   Assert.ok(
-    NimbusTelemetry.setExperimentActive.calledOnce,
+    NimbusTelemetry.setExperimentActive.calledOnceWith(
+      sinon.match({ slug: "optin-bar" })
+    ),
     "Activated forced experiment"
   );
-  Assert.equal(
-    NimbusTelemetry.setExperimentActive.firstCall.args[0].slug,
-    `optin-${forcedRecipe.slug}`,
-    "Called with forced experiment slug"
-  );
-  Assert.equal(
-    manager.store.getExperimentForFeature("force-enrollment").slug,
-    `optin-${forcedRecipe.slug}`,
+  Assert.ok(
+    manager.store.get("optin-bar")?.active,
     "Enrolled in forced experiment"
   );
 
-  manager.unenroll(`optin-${forcedRecipe.slug}`, "test-cleanup");
+  manager.unenroll(`optin-bar`);
 
   assertEmptyStore(manager.store);
 
@@ -761,23 +759,44 @@ add_task(async function test_forceEnroll_cleanup() {
 add_task(async function test_rollout_unenroll_conflict() {
   const manager = ExperimentFakes.manager();
   const sandbox = sinon.createSandbox();
-  let unenrollStub = sandbox.stub(manager, "unenroll").returns(true);
-  let enrollStub = sandbox.stub(manager, "_enroll").returns(true);
-  let rollout = ExperimentFakes.rollout("rollout_conflict");
+
+  const conflictingRollout = ExperimentFakes.recipe("conflicting-rollout", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+    isRollout: true,
+  });
+
+  const rollout = ExperimentFakes.recipe("rollout", { isRollout: true });
+
+  await manager.onStartup();
 
   // We want to force a conflict
-  sandbox.stub(manager.store, "getRolloutForFeature").returns(rollout);
+  await manager.enroll(conflictingRollout, "rs-loader");
 
-  manager.forceEnroll(rollout, rollout.branch);
+  sandbox.spy(manager, "_unenroll");
 
-  Assert.ok(unenrollStub.calledOnce, "Should unenroll the conflicting rollout");
+  manager.forceEnroll(rollout, rollout.branches[0]);
+
   Assert.ok(
-    unenrollStub.calledWith(rollout.slug, "force-enrollment"),
-    "Should call with expected slug"
+    manager._unenroll.calledOnceWith(
+      sinon.match({ slug: conflictingRollout.slug }),
+      { reason: "force-enrollment" }
+    ),
+    "Should unenroll the conflicting rollout"
   );
-  Assert.ok(enrollStub.calledOnce, "Should call enroll as expected");
 
-  manager.unenroll(rollout.slug, "test-cleanup");
+  Assert.ok(
+    !manager.store.get(conflictingRollout.slug)?.active,
+    "Conflicting rollout should be inactive"
+  );
+  Assert.ok(
+    manager.store.get(`optin-${rollout.slug}`)?.active,
+    "Rollout should be active"
+  );
+
+  manager.unenroll(`optin-${rollout.slug}`);
   assertEmptyStore(manager.store);
 
   sandbox.restore();
@@ -1115,10 +1134,10 @@ add_task(async function test_group_enrollment() {
   );
 
   // Cleanup
-  manager1.unenroll("group_enroll", "test-cleanup");
+  manager1.unenroll("group_enroll");
   assertEmptyStore(manager1.store);
 
-  manager2.unenroll("group_enroll", "test-cleanup");
+  manager2.unenroll("group_enroll");
   assertEmptyStore(manager2.store);
 });
 

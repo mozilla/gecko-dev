@@ -62,7 +62,9 @@ const UnenrollReason = Object.freeze({
   BRANCH_REMOVED: "branch-removed",
   BUCKETING: "bucketing",
   CHANGED_PREF: "changed-pref",
+  FORCE_ENROLLMENT: "force-enrollment",
   INDIVIDUAL_OPT_OUT: "individual-opt-out",
+  LABS_OPT_OUT: "labs-opt-out",
   PREF_FLIPS_CONFLICT: "prefFlips-conflict",
   PREF_FLIPS_FAILED: "prefFlips-failed",
   PREF_VARIABLE_CHANGED: "pref-variable-changed",
@@ -100,6 +102,15 @@ export const NimbusTelemetry = {
       experiment: enrollment.slug,
       branch: enrollment.branch.slug,
       experiment_type: enrollment.experimentType,
+    });
+
+    this.recordEnrollmentStatus({
+      slug: enrollment.slug,
+      branch: enrollment.branch.slug,
+      status: EnrollmentStatus.ENROLLED,
+      reason: enrollment.force
+        ? EnrollmentStatusReason.OPT_IN
+        : EnrollmentStatusReason.QUALIFIED,
     });
   },
 
@@ -161,57 +172,76 @@ export const NimbusTelemetry = {
     );
   },
 
-  recordUnenrollment(
-    slug,
-    reason,
-    branchSlug,
-    { changedPref, conflictingSlug, prefType, prefName } = {}
-  ) {
-    lazy.TelemetryEnvironment.setExperimentInactive(slug);
-    Services.fog.setExperimentInactive(slug);
+  recordUnenrollment(enrollment, cause) {
+    lazy.TelemetryEnvironment.setExperimentInactive(enrollment.slug);
+    Services.fog.setExperimentInactive(enrollment.slug);
+
+    const legacyEventExtra = {
+      branch: enrollment.branch.slug,
+      reason: cause.reason,
+    };
+    const gleanEvent = {
+      experiment: enrollment.slug,
+      branch: enrollment.branch.slug,
+      reason: cause.reason,
+    };
+
+    switch (cause.reason) {
+      case UnenrollReason.CHANGED_PREF:
+        legacyEventExtra.changedPref = cause.changedPref.name;
+        gleanEvent.changed_pref = cause.changedPref.name;
+        break;
+
+      case UnenrollReason.PREF_FLIPS_CONFLICT:
+        legacyEventExtra.conflictingSlug = cause.conflictingSlug;
+        gleanEvent.conflicting_slug = cause.conflictingSlug;
+        break;
+
+      case UnenrollReason.PREF_FLIPS_FAILED:
+        legacyEventExtra.prefType = cause.prefType;
+        gleanEvent.pref_type = cause.prefType;
+
+        legacyEventExtra.prefName = cause.prefName;
+        gleanEvent.pref_name = cause.prefName;
+        break;
+    }
 
     lazy.TelemetryEvents.sendEvent(
       LegacyTelemetryEvents.UNENROLL,
       LEGACY_TELEMETRY_EVENT_OBJECT,
-      slug,
-      Object.assign(
-        {
-          reason,
-          branch: branchSlug,
-        },
-        reason === UnenrollReason.CHANGED_PREF
-          ? { changedPref: changedPref.name }
-          : {},
-        reason === UnenrollReason.PREF_FLIPS_CONFLICT
-          ? { conflictingSlug }
-          : {},
-        reason === UnenrollReason.PREF_FLIPS_FAILED
-          ? { prefType, prefName }
-          : {}
-      )
+      enrollment.slug,
+      legacyEventExtra
     );
 
-    Glean.nimbusEvents.unenrollment.record(
-      Object.assign(
-        {
-          experiment: slug,
-          branch: branchSlug,
-          reason,
-        },
-        reason === UnenrollReason.CHANGED_PREF
-          ? { changed_pref: changedPref.name }
-          : {},
-        reason === UnenrollReason.PREF_FLIPS_CONFLICT
-          ? { conflicting_slug: conflictingSlug }
-          : {},
-        reason === UnenrollReason.PREF_FLIPS_FAILED
-          ? {
-              pref_type: prefType,
-              pref_name: prefName,
-            }
-          : {}
-      )
-    );
+    Glean.nimbusEvents.unenrollment.record(gleanEvent);
+
+    const enrollmentStatus = {
+      slug: enrollment.slug,
+      branch: enrollment.branch.slug,
+    };
+
+    switch (cause.reason) {
+      case UnenrollReason.BUCKETING:
+        enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
+        enrollmentStatus.reason = EnrollmentStatusReason.NOT_SELECTED;
+        break;
+
+      case UnenrollReason.RECIPE_NOT_SEEN:
+        enrollmentStatus.status = EnrollmentStatus.WAS_ENROLLED;
+        break;
+
+      case UnenrollReason.TARGETING_MISMATCH:
+        enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
+        enrollmentStatus.reason = EnrollmentStatusReason.NOT_TARGETED;
+        break;
+
+      default:
+        enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
+        enrollmentStatus.reason = EnrollmentStatusReason.ERROR;
+        enrollmentStatus.error_string = cause.reason;
+    }
+
+    this.recordEnrollmentStatus(enrollmentStatus);
   },
 
   recordUnenrollmentFailure(slug, reason) {

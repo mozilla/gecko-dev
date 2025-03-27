@@ -255,13 +255,13 @@ export const ExperimentFakes = {
     }
 
     return function doEnrollmentCleanup() {
-      manager.unenroll(enrollment.slug, "cleanup");
+      manager.unenroll(enrollment.slug);
       manager.store._deleteForTests(enrollment.slug);
     };
   },
   async cleanupAll(slugs, { manager = lazy.ExperimentAPI._manager } = {}) {
     for (const slug of slugs) {
-      manager.unenroll(slug, "cleanup");
+      manager.unenroll(slug);
     }
 
     if (manager.store.getAllActiveExperiments().length) {

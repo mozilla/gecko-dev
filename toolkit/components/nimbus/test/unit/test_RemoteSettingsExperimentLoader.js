@@ -330,7 +330,7 @@ add_task(async function test_experiment_optin_targeting() {
     "Should enroll in experiment"
   );
 
-  manager.unenroll(`optin-${recipe.slug}`, "test-cleanup");
+  manager.unenroll(`optin-${recipe.slug}`);
 
   sandbox.restore();
   Services.prefs.clearUserPref(DEBUG_PREF);
