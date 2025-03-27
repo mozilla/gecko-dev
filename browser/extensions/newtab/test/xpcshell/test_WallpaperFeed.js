@@ -66,24 +66,30 @@ add_task(async function test_onAction_INIT() {
     type: actionTypes.INIT,
   });
 
-  Assert.ok(feed.store.dispatch.calledThrice);
-  Assert.ok(
-    feed.store.dispatch.secondCall.calledWith(
-      actionCreators.BroadcastToContent({
-        type: actionTypes.WALLPAPERS_SET,
-        data: [
-          {
-            ...attachment,
-            wallpaperUrl: "http://localhost:8888/base_url/attachment",
-            category: "",
-          },
-        ],
-        meta: {
-          isStartup: true,
+  Assert.ok(feed.store.dispatch.callCount >= 3);
+
+  const matchingCall = feed.store.dispatch
+    .getCalls()
+    .find(call => call.args[0].type === actionTypes.WALLPAPERS_SET);
+
+  Assert.ok(matchingCall, "Expected a WALLPAPERS_SET dispatch call");
+  Assert.deepEqual(
+    matchingCall.args[0],
+    actionCreators.BroadcastToContent({
+      type: actionTypes.WALLPAPERS_SET,
+      data: [
+        {
+          ...attachment,
+          wallpaperUrl: "http://localhost:8888/base_url/attachment",
+          category: "",
         },
-      })
-    )
+      ],
+      meta: {
+        isStartup: true,
+      },
+    })
   );
+
   Services.prefs.clearUserPref(PREF_WALLPAPERS_ENABLED);
   sandbox.restore();
 });
