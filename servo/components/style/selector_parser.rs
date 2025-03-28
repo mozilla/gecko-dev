@@ -83,30 +83,30 @@ impl<'a> SelectorParser<'a> {
     }
 }
 
-/// This enumeration determines if a pseudo-element is eagerly cascaded or not.
-///
-/// If you're implementing a public selector for `Servo` that the end-user might
-/// customize, then you probably need to make it eager.
+/// This enumeration determines how a pseudo-element cascades.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PseudoElementCascadeType {
     /// Eagerly cascaded pseudo-elements are "normal" pseudo-elements (i.e.
     /// `::before` and `::after`). They inherit styles normally as another
     /// selector would do, and they're computed as part of the cascade.
+    ///
+    /// These kind of pseudo-elements require more up-front computation and
+    /// storage and thus should used for public pseudo-elements that can be used
+    /// on many element types (such as `::before` and `::after`).
     Eager,
     /// Lazy pseudo-elements are affected by selector matching, but they're only
     /// computed when needed, and not before. They're useful for general
-    /// pseudo-elements that are not very common.
-    ///
-    /// Note that in Servo lazy pseudo-elements are restricted to a subset of
-    /// selectors, so you can't use it for public pseudo-elements. This is not
-    /// the case with Gecko though.
+    /// pseudo-elements that are not very common or that do not apply to many
+    /// elements. For instance in Servo this is used for `::backdrop` and
+    /// `::marker`.
     Lazy,
     /// Precomputed pseudo-elements skip the cascade process entirely, mostly as
     /// an optimisation since they are private pseudo-elements (like
     /// `::-servo-details-content`).
     ///
     /// This pseudo-elements are resolved on the fly using *only* global rules
-    /// (rules of the form `*|*`), and applying them to the parent style.
+    /// (rules of the form `*|*`), and applying them to the parent style so are
+    /// mainly useful for user-agent stylesheets.
     Precomputed,
 }
 
