@@ -87,12 +87,37 @@ bool ValidateCookieNameAndValue(const nsAString& aName, const nsAString& aValue,
   return true;
 }
 
-bool ValidateCookieDomain(const nsAString& aHost, const nsAString& aDomain,
-                          Promise* aPromise) {
+bool HasSecurePrefix(const nsAString& aString) {
+  return StringBeginsWith(aString, u"__Secure-"_ns,
+                          nsCaseInsensitiveStringComparator);
+}
+
+bool HasHostPrefix(const nsAString& aString) {
+  return StringBeginsWith(aString, u"__Host-"_ns,
+                          nsCaseInsensitiveStringComparator);
+}
+
+bool ValidateCookieDomain(nsIPrincipal* aPrincipal, const nsAString& aName,
+                          const nsAString& aDomain, Promise* aPromise) {
   MOZ_ASSERT(aPromise);
 
   if (aDomain.IsEmpty()) {
     return true;
+  }
+
+  nsAutoCString utf8Domain;
+  nsresult rv =
+      nsContentUtils::GetHostOrIPv6WithBrackets(aPrincipal, utf8Domain);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aPromise->MaybeRejectWithNotAllowedError("Permission denied");
+    return false;
+  }
+
+  // If the name has a __Host- prefix, then aDomain must be empty.
+  if (HasHostPrefix(aName) && !aDomain.IsEmpty()) {
+    aPromise->MaybeRejectWithTypeError(
+        "Cookie domain is not allowed for cookies with a __Host- prefix");
+    return false;
   }
 
   if (aDomain[0] == '.') {
@@ -100,10 +125,11 @@ bool ValidateCookieDomain(const nsAString& aHost, const nsAString& aDomain,
     return false;
   }
 
-  if (aHost != aDomain) {
-    if ((aHost.Length() < aDomain.Length() + 1) ||
-        !StringEndsWith(aHost, aDomain) ||
-        aHost[aHost.Length() - aDomain.Length() - 1] != '.') {
+  NS_ConvertUTF8toUTF16 host(utf8Domain);
+  if (host != aDomain) {
+    if ((host.Length() < aDomain.Length() + 1) ||
+        !StringEndsWith(host, aDomain) ||
+        host[host.Length() - aDomain.Length() - 1] != '.') {
       aPromise->MaybeRejectWithTypeError(
           "Cookie domain must domain-match current host");
       return false;
@@ -141,16 +167,6 @@ bool ValidateCookiePath(const nsAString& aPath, nsAString& retPath,
 
   retPath.Assign(path);
   return true;
-}
-
-bool HasSecurePrefix(const nsAString& aString) {
-  return StringBeginsWith(aString, u"__Secure-"_ns,
-                          nsCaseInsensitiveStringComparator);
-}
-
-bool HasHostPrefix(const nsAString& aString) {
-  return StringBeginsWith(aString, u"__Host-"_ns,
-                          nsCaseInsensitiveStringComparator);
 }
 
 // Reject cookies whose name starts with the magic prefixes from
@@ -369,17 +385,8 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
           return;
         }
 
-        nsAutoCString baseDomainUtf8;
-        nsresult rv =
-            net::CookieCommons::GetBaseDomain(cookiePrincipal, baseDomainUtf8);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          promise->MaybeRejectWithNotAllowedError("Permission denied");
-          return;
-        }
-
-        NS_ConvertUTF8toUTF16 baseDomain(baseDomainUtf8);
-
-        if (!ValidateCookieDomain(baseDomain, aOptions.mDomain, promise)) {
+        if (!ValidateCookieDomain(cookiePrincipal, aOptions.mName,
+                                  aOptions.mDomain, promise)) {
           return;
         }
 
@@ -415,7 +422,7 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
         }
 
         nsID operationID;
-        rv = nsID::GenerateUUIDInPlace(operationID);
+        nsresult rv = nsID::GenerateUUIDInPlace(operationID);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           promise->MaybeReject(NS_ERROR_UNEXPECTED);
           return;
@@ -424,19 +431,19 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
         self->mNotificationWatcher->ResolvePromiseWhenNotified(operationID,
                                                                promise);
 
+        nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
         RefPtr<CookieStoreChild::SetRequestPromise> ipcPromise =
             self->mActor->SendSetRequest(
-                aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
-                                           : nsString(aOptions.mDomain),
-                cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
-                partitionForeign, usingStorageAccess, isOn3PCBExceptionList,
-                nsString(aOptions.mName), nsString(aOptions.mValue),
+                cookieURI, cookiePrincipal->OriginAttributesRef(),
+                thirdPartyContext, partitionForeign, usingStorageAccess,
+                isOn3PCBExceptionList, nsString(aOptions.mName),
+                nsString(aOptions.mValue),
                 // If expires is not set, it's a session cookie.
                 aOptions.mExpires.IsNull(),
                 aOptions.mExpires.IsNull()
                     ? INT64_MAX
                     : static_cast<int64_t>(aOptions.mExpires.Value() / 1000),
-                path, SameSiteToConst(aOptions.mSameSite),
+                aOptions.mDomain, path, SameSiteToConst(aOptions.mSameSite),
                 aOptions.mPartitioned, operationID);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
@@ -503,8 +510,8 @@ already_AddRefed<Promise> CookieStore::Delete(
           return;
         }
 
-        NS_ConvertUTF8toUTF16 baseDomain(baseDomainUtf8);
-        if (!ValidateCookieDomain(baseDomain, aOptions.mDomain, promise)) {
+        if (!ValidateCookieDomain(cookiePrincipal, aOptions.mName,
+                                  aOptions.mDomain, promise)) {
           return;
         }
 
@@ -548,14 +555,13 @@ already_AddRefed<Promise> CookieStore::Delete(
 
         self->mNotificationWatcher->ResolvePromiseWhenNotified(operationID,
                                                                promise);
-
+        nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
         RefPtr<CookieStoreChild::DeleteRequestPromise> ipcPromise =
             self->mActor->SendDeleteRequest(
-                aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
-                                           : nsString(aOptions.mDomain),
-                cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
-                partitionForeign, usingStorageAccess, isOn3PCBExceptionList,
-                nsString(aOptions.mName), path, aOptions.mPartitioned,
+                cookieURI, cookiePrincipal->OriginAttributesRef(),
+                thirdPartyContext, partitionForeign, usingStorageAccess,
+                isOn3PCBExceptionList, nsString(aOptions.mName),
+                nsString(aOptions.mDomain), path, aOptions.mPartitioned,
                 operationID);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
@@ -750,10 +756,10 @@ already_AddRefed<Promise> CookieStore::GetInternal(
           return;
         }
 
+        nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
         RefPtr<CookieStoreChild::GetRequestPromise> ipcPromise =
             self->mActor->SendGetRequest(
-                NS_ConvertUTF8toUTF16(baseDomain),
-                cookiePrincipal->OriginAttributesRef(),
+                cookieURI, cookiePrincipal->OriginAttributesRef(),
                 partitionedCookiePrincipal
                     ? Some(partitionedCookiePrincipal->OriginAttributesRef())
                     : Nothing(),

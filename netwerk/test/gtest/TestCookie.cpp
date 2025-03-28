@@ -750,53 +750,59 @@ TEST(TestCookie, TestCookieMain)
   const nsCOMPtr<nsICookieManager>& cookieMgr2 = cookieMgr;
   ASSERT_TRUE(cookieMgr2);
 
+  nsCOMPtr<nsIURI> uri;
+  NS_NewURI(getter_AddRefs(uri), "https://cookie.test"_ns);
+
   mozilla::OriginAttributes attrs;
 
   // first, ensure a clean slate
   EXPECT_NS_SUCCEEDED(cookieMgr->RemoveAll());
   // add some cookies
-  EXPECT_TRUE(NS_SUCCEEDED(cookieMgr2->AddNative("cookiemgr.test"_ns,  // domain
-                                                 "/foo"_ns,            // path
-                                                 "test1"_ns,           // name
-                                                 "yes"_ns,             // value
-                                                 false,      // is secure
-                                                 false,      // is httponly
-                                                 true,       // is session
-                                                 INT64_MAX,  // expiry time
-                                                 &attrs,     // originAttributes
-                                                 nsICookie::SAMESITE_NONE,
-                                                 nsICookie::SCHEME_HTTPS,
-                                                 false,   // is partitioned
-                                                 nullptr  // operation ID
-                                                 )));
-  EXPECT_TRUE(NS_SUCCEEDED(cookieMgr2->AddNative(
-      "cookiemgr.test"_ns,             // domain
-      "/foo"_ns,                       // path
-      "test2"_ns,                      // name
-      "yes"_ns,                        // value
-      false,                           // is secure
-      true,                            // is httponly
-      true,                            // is session
-      PR_Now() / PR_USEC_PER_SEC + 2,  // expiry time
-      &attrs,                          // originAttributes
-      nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
-      false,   // is partitioned
-      nullptr  // operation ID
-      )));
-  EXPECT_TRUE(NS_SUCCEEDED(cookieMgr2->AddNative("new.domain"_ns,  // domain
-                                                 "/rabbit"_ns,     // path
-                                                 "test3"_ns,       // name
-                                                 "yes"_ns,         // value
-                                                 false,            // is secure
-                                                 false,      // is httponly
-                                                 true,       // is session
-                                                 INT64_MAX,  // expiry time
-                                                 &attrs,     // originAttributes
-                                                 nsICookie::SAMESITE_NONE,
-                                                 nsICookie::SCHEME_HTTPS,
-                                                 false,   // is partitioned
-                                                 nullptr  // operation ID
-                                                 )));
+  EXPECT_TRUE(NS_SUCCEEDED(
+      cookieMgr2->AddNative(uri,
+                            "cookiemgr.test"_ns,  // domain
+                            "/foo"_ns,            // path
+                            "test1"_ns,           // name
+                            "yes"_ns,             // value
+                            false,                // is secure
+                            false,                // is httponly
+                            true,                 // is session
+                            INT64_MAX,            // expiry time
+                            &attrs,               // originAttributes
+                            nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
+                            false,    // is partitioned
+                            nullptr,  // operation ID
+                            [](CookieStruct&) -> bool { return true; })));
+  EXPECT_TRUE(NS_SUCCEEDED(
+      cookieMgr2->AddNative(uri,
+                            "cookiemgr.test"_ns,             // domain
+                            "/foo"_ns,                       // path
+                            "test2"_ns,                      // name
+                            "yes"_ns,                        // value
+                            false,                           // is secure
+                            true,                            // is httponly
+                            true,                            // is session
+                            PR_Now() / PR_USEC_PER_SEC + 2,  // expiry time
+                            &attrs,                          // originAttributes
+                            nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
+                            false,    // is partitioned
+                            nullptr,  // operation ID
+                            [](CookieStruct&) -> bool { return true; })));
+  EXPECT_TRUE(NS_SUCCEEDED(
+      cookieMgr2->AddNative(uri,
+                            "new.domain"_ns,  // domain
+                            "/rabbit"_ns,     // path
+                            "test3"_ns,       // name
+                            "yes"_ns,         // value
+                            false,            // is secure
+                            false,            // is httponly
+                            true,             // is session
+                            INT64_MAX,        // expiry time
+                            &attrs,           // originAttributes
+                            nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
+                            false,    // is partitioned
+                            nullptr,  // operation ID
+                            [](CookieStruct&) -> bool { return true; })));
   // confirm using enumerator
   nsTArray<RefPtr<nsICookie>> cookies;
   EXPECT_NS_SUCCEEDED(cookieMgr->GetCookies(cookies));
