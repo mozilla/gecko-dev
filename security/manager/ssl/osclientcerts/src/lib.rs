@@ -130,7 +130,7 @@ extern "C" fn C_Initialize(_pInitArgs: CK_VOID_PTR) -> CK_RV {
         vec![CKM_ECDSA, CKM_RSA_PKCS]
     };
     let mut module_state_guard = try_to_get_module_state_guard!();
-    let manager_proxy = match ManagerProxy::new(Backend {}) {
+    let manager_proxy = match ManagerProxy::new("osclientcerts", Backend {}) {
         Ok(p) => p,
         Err(e) => {
             log_with_thread_id!(error, "C_Initialize: ManagerProxy: {}", e);

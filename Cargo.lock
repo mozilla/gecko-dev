@@ -5577,6 +5577,7 @@ name = "rsclientcerts"
 version = "0.1.0"
 dependencies = [
  "byteorder",
+ "gecko-profiler",
  "pkcs11-bindings",
 ]
 
