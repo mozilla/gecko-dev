@@ -287,6 +287,9 @@ class BrowsertimeRunner(NodeRunner):
         # difficult to interpret type errors.
         extra_args = []
 
+        if not matches(args, "--allow-system-access"):
+            extra_args.extend(('--firefox.geckodriverArgs="--allow-system-access"',))
+
         # Default to Firefox.  Override with `-b ...` or `--browser=...`.
         if not matches(args, "-b", "--browser"):
             extra_args.extend(("-b", "firefox"))
