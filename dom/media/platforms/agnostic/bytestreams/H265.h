@@ -365,7 +365,10 @@ class SPSIterator final {
     }
   }
 
-  bool IsValid() const { return mCurrentIdx < mConfig.mNALUs.Length(); }
+  bool IsValid() const {
+    return mCurrentIdx < mConfig.mNALUs.Length() &&
+           mConfig.mNALUs[mCurrentIdx].IsSPS();
+  }
 
   size_t mCurrentIdx;
   const HVCCConfig& mConfig;
