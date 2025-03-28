@@ -121,6 +121,7 @@ export class ReviewCheckerManager {
     );
     this.window.addEventListener("ShowSidebarSettingsFromReviewChecker", this);
     this.window.addEventListener("SidebarShown", this);
+    this.window.addEventListener("SidebarWillHide", this);
     this.#hasListeners = true;
   }
 
@@ -468,6 +469,16 @@ export class ReviewCheckerManager {
           lazy.ShoppingUtils.clearWasClosedFlag(selectedBrowser);
         }
         break;
+      }
+      case "SidebarWillHide": {
+        lazy.ShoppingUtils.sendTrigger({
+          browser: this.browser,
+          id: "reviewCheckerSidebarClosedCallout",
+          context: {
+            isReviewCheckerInSidebarClosed: !this.SidebarController?.isOpen,
+            isSidebarVisible: this.SidebarController.launcherVisible,
+          },
+        });
       }
     }
   }

@@ -61,8 +61,8 @@ let patterns: string[];
 - [`pageActionInUrlbar`](#pageactioninurlbar)
 - [`onSearch`](#onsearch)
 - [`sidebarToolOpened`](#sidebartoolopened)
-- [`shoppingProductPageWithIntegratedRCSidebarClosed`](#shoppingproductpage)
-- [`reviewCheckerSidebarClosedCallout`](#sidebarclosed)
+- [`shoppingProductPageWithIntegratedRCSidebarClosed`](#shoppingproductpagewithintegratedrcsidebarclosed)
+- [`reviewCheckerSidebarClosedCallout`](#reviewcheckersidebarclosedcallout)
 - [`elementClicked`](#elementclicked)
 
 ### `openArticleURL`
@@ -389,7 +389,7 @@ The `clickCounts` object context variable is also available in targeting, and in
 
 Happens when the user navigates to a product page
 
-The `isReviewCheckerInSidebarClosed` string context variable is available in targeting, and will correspond with which whether the Review Checker panel in the sidebar is closed
+The `isReviewCheckerInSidebarClosed` string context variable is available in targeting, and will correspond with which whether the Review Checker panel in the sidebar is closed.
 
 ```js
 {
@@ -402,7 +402,9 @@ The `isReviewCheckerInSidebarClosed` string context variable is available in tar
 
 Happens when the user navigates to a product page
 
-The `isReviewCheckerInSidebarClosed` string context variable is available in targeting, and will correspond with which whether the Review Checker panel in the sidebar is closed
+The `isReviewCheckerInSidebarClosed` string context variable is available in targeting, and will correspond with which whether the Review Checker panel in the sidebar is closed.
+
+The `isSidebarVisible` string context variable is available in targeting, and will correspond with whether the sidebar launcher is visible.
 
 ```js
 {

@@ -952,6 +952,10 @@ var SidebarController = {
     return document.getElementById(sidebar.contextMenuId);
   },
 
+  get launcherVisible() {
+    return this._state?.launcherVisible;
+  },
+
   get title() {
     return this._title.value;
   },
@@ -1223,17 +1227,6 @@ var SidebarController = {
     }
 
     this.updateToolbarButton();
-
-    if (this.lastOpenedId == "viewReviewCheckerSidebar") {
-      ShoppingUtils.sendTrigger({
-        browser: this.browser,
-        id: "sidebarButtonClicked",
-        context: {
-          isReviewCheckerInSidebarClosed: !this?.isOpen,
-          isSidebarVisible: this._state?.launcherVisible,
-        },
-      });
-    }
   },
 
   /**

@@ -2653,7 +2653,7 @@ const MESSAGES = () => {
       },
       priority: 1,
       // Auto-open feature flag is enabled; User disabled auto-open behavior; User is opted in; Has not opted out of CFRs; integrated sidebar is enabled; new sidebar is active; Sidebar is visible; Callout 6 has not been shown within 24 hrs;
-      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue && !'browser.shopping.experience2023.autoOpen.userEnabled' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED[messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED | length - 1]) / 3600000) < 24)`,
+      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue && !'browser.shopping.experience2023.autoOpen.userEnabled' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && isSidebarVisible && 'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED[messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED | length - 1]) / 3600000) < 24)`,
       trigger: { id: "reviewCheckerSidebarClosedCallout" },
       frequency: { lifetime: 1 },
       skip_in_tests:
@@ -2705,9 +2705,9 @@ const MESSAGES = () => {
       },
       priority: 1,
       // Auto-open feature flag is enabled; User disabled auto-open behavior; User is opted in; Has not opted out of CFRs; integrated sidebar is enabled; new sidebar is active; Sidebar is not visible; Callout 6 has not shown within 24 hrs;
-      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue == true && 'browser.shopping.experience2023.autoOpen.userEnabled' | preferenceValue == false && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue == true && 'sidebar.revamp' | preferenceValue == true && !isSidebarVisible && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED[messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED | length - 1]) / 3600000) < 24)`,
+      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue == true && 'browser.shopping.experience2023.autoOpen.userEnabled' | preferenceValue == false && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && !isSidebarVisible && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED[messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED | length - 1]) / 3600000) < 24)`,
       trigger: {
-        id: "sidebarButtonClicked",
+        id: "reviewCheckerSidebarClosedCallout",
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
@@ -2939,7 +2939,7 @@ const MESSAGES = () => {
       },
       priority: 1,
       // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Using horizontal tabs; Neither Callout 4A or 4B has shown within 24 hrs;
-      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && !'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24) && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24)`,
+      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && isSidebarVisible && !'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24) && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24)`,
       trigger: {
         id: "reviewCheckerSidebarClosedCallout",
       },
@@ -3029,7 +3029,7 @@ const MESSAGES = () => {
       },
       priority: 1,
       // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Vertical tabs is enabled; Neither callout 4A or 4B has shown within 24 hrs;
-      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && 'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24) && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24)`,
+      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isSidebarVisible && isReviewCheckerInSidebarClosed && 'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24) && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24)`,
       trigger: {
         id: "reviewCheckerSidebarClosedCallout",
       },
