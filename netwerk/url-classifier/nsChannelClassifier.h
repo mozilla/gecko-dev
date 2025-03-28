@@ -54,14 +54,6 @@ class nsChannelClassifier final : public nsIURIClassifierCallback,
                                       const nsACString& aProvider,
                                       const nsACString& aList,
                                       const nsACString& aFullHash);
-
- public:
-  // If we are blocking content, update the corresponding flag in the respective
-  // docshell and call nsDocLoader::OnSecurityChange.
-  static nsresult SetBlockedContent(nsIChannel* channel, nsresult aErrorCode,
-                                    const nsACString& aList,
-                                    const nsACString& aProvider,
-                                    const nsACString& aFullHash);
 };
 
 }  // namespace net
