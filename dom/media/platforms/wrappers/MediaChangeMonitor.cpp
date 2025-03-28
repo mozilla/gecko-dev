@@ -16,6 +16,7 @@
 #include "MediaInfo.h"
 #include "PDMFactory.h"
 #include "VPXDecoder.h"
+#include "nsPrintfCString.h"
 #ifdef MOZ_AV1
 #  include "AOMDecoder.h"
 #endif
@@ -58,6 +59,11 @@ inline gfx::IntSize ApplyPixelAspectRatio(double aPixelAspectRatio,
     return aImage;
   }
   return gfx::IntSize(static_cast<int32_t>(width), aImage.Height());
+}
+
+static bool IsBeingProfiledOrLogEnabled() {
+  return MOZ_LOG_TEST(gMediaDecoderLog, LogLevel::Info) ||
+         profiler_thread_is_being_profiled_for_markers();
 }
 
 // H264ChangeMonitor is used to ensure that only AVCC or AnnexB is fed to the
@@ -139,9 +145,13 @@ class H264ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
     mPreviousExtraData = aSample->mExtraData;
     UpdateConfigFromExtraData(extra_data);
 
-    PROFILER_MARKER_TEXT("H264 Stream Change", MEDIA_PLAYBACK, {},
-                         "H264ChangeMonitor::CheckForChange has detected a "
-                         "change in the stream and will request a new decoder");
+    if (IsBeingProfiledOrLogEnabled()) {
+      nsPrintfCString msg(
+          "H264ChangeMonitor::CheckForChange has detected a "
+          "change in the stream and will request a new decoder");
+      LOG("%s", msg.get());
+      PROFILER_MARKER_TEXT("H264 Stream Change", MEDIA_PLAYBACK, {}, msg);
+    }
     return NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER;
   }
 
@@ -275,11 +285,13 @@ class HEVCChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
     }
     UpdateConfigFromExtraData(extraData);
 
-    nsPrintfCString msg(
-        "HEVCChangeMonitor::CheckForChange has detected a change in the stream "
-        "and will request a new decoder");
-    LOG("%s", msg.get());
-    PROFILER_MARKER_TEXT("HEVC Stream Change", MEDIA_PLAYBACK, {}, msg);
+    if (IsBeingProfiledOrLogEnabled()) {
+      nsPrintfCString msg(
+          "HEVCChangeMonitor::CheckForChange has detected a change in the "
+          "stream and will request a new decoder");
+      LOG("%s", msg.get());
+      PROFILER_MARKER_TEXT("HEVC Stream Change", MEDIA_PLAYBACK, {}, msg);
+    }
     return NS_ERROR_DOM_MEDIA_NEED_NEW_DECODER;
   }
 
