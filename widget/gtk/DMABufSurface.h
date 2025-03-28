@@ -184,6 +184,8 @@ class DMABufSurface {
   void GlobalRefAdd();
   void GlobalRefRelease();
 
+  static void DeleteSnapshotGLContext();
+
   // Release all underlying data.
   virtual void ReleaseSurface() = 0;
 

@@ -124,8 +124,11 @@ VideoFramePool<LIBAV_VER>::VideoFramePool(int aFFMPEGPoolSize)
 }
 
 VideoFramePool<LIBAV_VER>::~VideoFramePool() {
+  DMABUF_LOG("VideoFramePool::~VideoFramePool()");
   MutexAutoLock lock(mSurfaceLock);
   mDMABufSurfaces.Clear();
+
+  DMABufSurface::DeleteSnapshotGLContext();
 }
 
 void VideoFramePool<LIBAV_VER>::ReleaseUnusedVAAPIFrames() {

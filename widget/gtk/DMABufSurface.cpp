@@ -167,6 +167,12 @@ void ReturnSnapshotGLContext(RefPtr<GLContext> aGLContext) {
   egl->fMakeCurrent(EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
+void DMABufSurface::DeleteSnapshotGLContext() {
+  StaticMutexAutoLock lock(sSnapshotContextMutex);
+  sSnapshotContext = nullptr;
+  GLContextProviderEGL::Shutdown();
+}
+
 bool DMABufSurface::UseDmaBufGL(GLContext* aGLContext) {
   static bool useDmabufGL =
       [&]() {
