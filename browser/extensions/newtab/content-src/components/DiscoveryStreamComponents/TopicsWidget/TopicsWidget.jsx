@@ -47,6 +47,7 @@ export function _TopicsWidget(props) {
             ...(positionInCard || positionInCard === 0
               ? { position_in_card: positionInCard }
               : {}),
+            section_position: position,
           },
         })
       );

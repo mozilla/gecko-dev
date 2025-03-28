@@ -121,6 +121,7 @@ describe("Discovery Stream <TopicsWidget>", () => {
             card_type: "topics_widget",
             topic: "technology",
             position_in_card: 0,
+            section_position: 2,
           },
         })
       );
@@ -171,6 +172,7 @@ describe("Discovery Stream <TopicsWidget>", () => {
             card_type: "topics_widget",
             topic: "must-reads",
             position_in_card: 8,
+            section_position: 2,
           },
         })
       );
@@ -217,7 +219,11 @@ describe("Discovery Stream <TopicsWidget>", () => {
           event: "CLICK",
           source: "CARDGRID_WIDGET",
           action_position: 2,
-          value: { card_type: "topics_widget", topic: "more-topics" },
+          value: {
+            card_type: "topics_widget",
+            topic: "more-topics",
+            section_position: 2,
+          },
         })
       );
       assert.calledWith(

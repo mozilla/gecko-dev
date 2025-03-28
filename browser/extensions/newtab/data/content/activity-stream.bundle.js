@@ -4131,7 +4131,8 @@ function _TopicsWidget(props) {
           topic,
           ...(positionInCard || positionInCard === 0 ? {
             position_in_card: positionInCard
-          } : {})
+          } : {}),
+          section_position: position
         }
       }));
       dispatch(actionCreators.ImpressionStats({
@@ -10452,7 +10453,7 @@ function InterestPicker({
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.INLINE_SELECTION_IMPRESSION,
       data: {
-        position: receivedFeedRank
+        section_position: receivedFeedRank
       }
     }));
   }, [dispatch, receivedFeedRank]);
@@ -10506,7 +10507,7 @@ function InterestPicker({
         topic,
         is_followed: checked,
         topic_position: index,
-        position: receivedFeedRank
+        section_position: receivedFeedRank
       }
     }));
     dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(", ")));

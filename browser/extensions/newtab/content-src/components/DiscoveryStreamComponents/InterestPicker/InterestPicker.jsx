@@ -36,7 +36,7 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
       ac.AlsoToMain({
         type: at.INLINE_SELECTION_IMPRESSION,
         data: {
-          position: receivedFeedRank,
+          section_position: receivedFeedRank,
         },
       })
     );
@@ -101,7 +101,7 @@ function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
           topic,
           is_followed: checked,
           topic_position: index,
-          position: receivedFeedRank,
+          section_position: receivedFeedRank,
         },
       })
     );

@@ -1042,11 +1042,12 @@ export class TelemetryFeed {
     if (session) {
       switch (action.type) {
         case "INLINE_SELECTION_CLICK": {
-          const { topic, topic_position, position, is_followed } = action.data;
+          const { topic, section_position, position, is_followed } =
+            action.data;
           Glean.newtab.inlineSelectionClick.record({
             newtab_visit_id: session.session_id,
             topic,
-            topic_position,
+            section_position,
             position,
             is_followed,
           });
@@ -1055,7 +1056,7 @@ export class TelemetryFeed {
         case "INLINE_SELECTION_IMPRESSION":
           Glean.newtab.inlineSelectionImpression.record({
             newtab_visit_id: session.session_id,
-            position: action.data.position,
+            section_position: action.data.section_position,
           });
           break;
       }
