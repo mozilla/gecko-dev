@@ -49,19 +49,10 @@ struct PreferenceSheet {
     void LoadColors(bool aIsLight);
   };
 
-  static void EnsureInitialized() {
-    if (sInitialized) {
-      return;
-    }
-    Initialize();
-  }
-
   static void Refresh() {
     sInitialized = false;
     Initialize();
   }
-
-  static bool AffectedByPref(const nsACString&);
 
   enum class ChromeColorSchemeSetting { Light, Dark, System };
   static ChromeColorSchemeSetting ColorSchemeSettingForChrome();

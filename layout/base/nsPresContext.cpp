@@ -332,9 +332,6 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
 }
 
 static const char* gExactCallbackPrefs[] = {
-    "browser.active_color",
-    "browser.anchor_color",
-    "browser.visited_color",
     "dom.meta-viewport.enabled",
     "image.animation_mode",
     "intl.accept_languages",
@@ -343,13 +340,15 @@ static const char* gExactCallbackPrefs[] = {
     "layout.css.letter-spacing.model",
     "layout.css.text-transform.uppercase-eszett.enabled",
     "privacy.trackingprotection.enabled",
-    "ui.use_standins_for_native_colors",
     nullptr,
 };
 
 static const char* gPrefixCallbackPrefs[] = {
-    "bidi.", "browser.display.",    "browser.viewport.",
-    "font.", "gfx.font_rendering.", "layout.css.font-visibility.",
+    "bidi.",
+    "browser.viewport.",
+    "font.",
+    "gfx.font_rendering.",
+    "layout.css.font-visibility.",
     nullptr,
 };
 
@@ -433,8 +432,6 @@ void nsPresContext::GetUserPreferences() {
     // get a presshell.
     return;
   }
-
-  PreferenceSheet::EnsureInitialized();
 
   Document()->SetMayNeedFontPrefsUpdate();
 
@@ -572,14 +569,6 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
 
   auto changeHint = nsChangeHint{0};
   auto restyleHint = RestyleHint{0};
-  // Changing any of these potentially changes the value of @media
-  // (prefers-contrast).
-  if (prefName.EqualsLiteral("browser.display.document_color_use") ||
-      prefName.EqualsLiteral("browser.display.foreground_color") ||
-      prefName.EqualsLiteral("browser.display.background_color")) {
-    MediaFeatureValuesChanged({MediaFeatureChangeReason::PreferenceChange},
-                              MediaFeatureChangePropagation::JustThisDocument);
-  }
   if (prefName.EqualsLiteral(GFX_MISSING_FONTS_NOTIFY_PREF)) {
     if (StaticPrefs::gfx_missing_fonts_notify()) {
       if (!mMissingFonts) {
@@ -614,12 +603,6 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
           "layout.css.text-transform.uppercase-eszett.enabled") ||
       prefName.EqualsLiteral("layout.css.letter-spacing.model")) {
     changeHint |= NS_STYLE_HINT_REFLOW;
-  }
-
-  if (PreferenceSheet::AffectedByPref(prefName)) {
-    restyleHint |= RestyleHint::RestyleSubtree();
-    PreferenceSheet::Refresh();
-    UpdateForcedColors();
   }
 
   // Same, this just frees a bunch of memory.

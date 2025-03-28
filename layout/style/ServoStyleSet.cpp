@@ -118,7 +118,6 @@ class MOZ_RAII AutoPrepareTraversal {
 };
 
 ServoStyleSet::ServoStyleSet(Document& aDocument) : mDocument(&aDocument) {
-  PreferenceSheet::EnsureInitialized();
   PodArrayZero(mCachedAnonymousContentStyleIndexes);
   mRawData.reset(Servo_StyleSet_Init(&aDocument));
 }

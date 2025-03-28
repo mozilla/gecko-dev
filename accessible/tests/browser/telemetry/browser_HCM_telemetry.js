@@ -13,11 +13,20 @@ const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
 
-registerCleanupFunction(() => {
-  reset();
-});
+registerCleanupFunction(reset);
 
-function reset() {
+function pushPref(name, val) {
+  return SpecialPowers.pushPrefEnv({ set: [[name, val]] });
+}
+
+function refresh() {
+  // These prefs get taken into account asynchronously.
+  return new Promise(r =>
+    requestAnimationFrame(() => requestAnimationFrame(r))
+  );
+}
+
+async function reset() {
   // This (manually) runs after every task in this test suite.
   // We have to add this in because the initial state of
   // `document_color_use` affects the initial state of
@@ -27,10 +36,13 @@ function reset() {
   Services.prefs.clearUserPref("browser.display.document_color_use");
   Services.prefs.clearUserPref("browser.display.permit_backplate");
   Services.prefs.clearUserPref("layout.css.always_underline_links");
-  Services.telemetry.clearEvents();
-  TelemetryTestUtils.assertNumberOfEvents(0);
   Services.prefs.clearUserPref("browser.display.foreground_color");
   Services.prefs.clearUserPref("browser.display.background_color");
+
+  await refresh();
+
+  Services.telemetry.clearEvents();
+  TelemetryTestUtils.assertNumberOfEvents(0);
 }
 
 function verifyBackplate(expectedValue) {
@@ -67,17 +79,17 @@ function testIsBlack(pref, snapshot) {
   is(snapshot[pref], 4278190080, "Scalar is logged as black");
 }
 
-async function setForegroundColor(color) {
+function setForegroundColor(color) {
   // Note: we set the foreground and background colors by modifying this pref
   // instead of setting the value attribute on the color input direclty.
   // This is because setting the value of the input with setAttribute
   // doesn't generate the correct event to save the new value to the prefs
   // store, so we have to do it ourselves.
-  Services.prefs.setStringPref("browser.display.foreground_color", color);
+  return pushPref("browser.display.foreground_color", color);
 }
 
 async function setBackgroundColor(color) {
-  Services.prefs.setStringPref("browser.display.background_color", color);
+  return pushPref("browser.display.background_color", color);
 }
 
 add_task(async function testInit() {
@@ -141,7 +153,7 @@ add_task(async function testInit() {
     );
   }
 
-  reset();
+  await reset();
   gBrowser.removeCurrentTab();
 });
 
@@ -160,6 +172,8 @@ add_task(async function testSetAlways() {
 
   is(contrastControlRadios.value, "2", "HCM menulist should be set to always");
 
+  await refresh();
+
   // Verify correct initial value
   let snapshot = TelemetryTestUtils.getProcessScalars("parent", true, true);
   TelemetryTestUtils.assertKeyedScalar(snapshot, "a11y.theme", "never", false);
@@ -169,15 +183,15 @@ add_task(async function testSetAlways() {
   testIsWhite("a11y.HCM_background", snapshot);
   testIsBlack("a11y.HCM_foreground", snapshot);
 
-  setBackgroundColor("#000000");
+  await setBackgroundColor("#000000");
   snapshot = TelemetryTestUtils.getProcessScalars("parent", false, true);
   testIsBlack("a11y.HCM_background", snapshot);
 
-  setForegroundColor("#ffffff");
+  await setForegroundColor("#ffffff");
   snapshot = TelemetryTestUtils.getProcessScalars("parent", false, true);
   testIsWhite("a11y.HCM_foreground", snapshot);
 
-  reset();
+  await reset();
   gBrowser.removeCurrentTab();
 });
 
@@ -194,6 +208,8 @@ add_task(async function testSetDefault() {
   newOption.click();
 
   is(contrastControlRadios.value, "0", "HCM menulist should be set to default");
+
+  await refresh();
 
   // Verify correct initial value
   TelemetryTestUtils.assertKeyedScalar(
@@ -228,7 +244,7 @@ add_task(async function testSetDefault() {
     "Background color shouldn't be present."
   );
 
-  reset();
+  await reset();
   gBrowser.removeCurrentTab();
 });
 
@@ -245,6 +261,8 @@ add_task(async function testSetNever() {
   newOption.click();
 
   is(contrastControlRadios.value, "1", "HCM menulist should be set to never");
+
+  await refresh();
 
   // Verify correct initial value
   TelemetryTestUtils.assertKeyedScalar(
@@ -279,7 +297,7 @@ add_task(async function testSetNever() {
     "Background color shouldn't be present."
   );
 
-  reset();
+  await reset();
   gBrowser.removeCurrentTab();
 });
 
@@ -290,15 +308,17 @@ add_task(async function testBackplate() {
     "Backplate is init'd to true"
   );
 
-  Services.prefs.setBoolPref("browser.display.permit_backplate", false);
+  await pushPref("browser.display.permit_backplate", false);
+
   // Verify correct recorded value
   verifyBackplate(false);
 
-  Services.prefs.setBoolPref("browser.display.permit_backplate", true);
+  await pushPref("browser.display.permit_backplate", true);
+
   // Verify correct recorded value
   verifyBackplate(true);
 
-  reset();
+  await reset();
 });
 
 add_task(async function testAlwaysUnderlineLinks() {
@@ -326,6 +346,6 @@ add_task(async function testAlwaysUnderlineLinks() {
     "Always underline links pref reflects new value."
   );
   await verifyAlwaysUnderlineLinks(!expectedInitVal);
-  reset();
+  await reset();
   gBrowser.removeCurrentTab();
 });

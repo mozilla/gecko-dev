@@ -375,6 +375,7 @@ nsXPLookAndFeel* nsXPLookAndFeel::GetInstance() {
   if (XRE_IsParentProcess()) {
     nsLayoutUtils::RecomputeSmoothScrollDefault();
   }
+  PreferenceSheet::Refresh();
   return sInstance;
 }
 
@@ -522,6 +523,24 @@ static constexpr struct {
     // need to re-layout.
     {"browser.theme.toolbar-theme"_ns, widget::ThemeChangeKind::AllBits},
     {"browser.theme.content-theme"_ns},
+    // Affects PreferenceSheet, and thus styling.
+    {"browser.anchor_color"_ns, widget::ThemeChangeKind::Style},
+    {"browser.anchor_color.dark"_ns, widget::ThemeChangeKind::Style},
+    {"browser.active_color"_ns, widget::ThemeChangeKind::Style},
+    {"browser.active_color.dark"_ns, widget::ThemeChangeKind::Style},
+    {"browser.visited_color"_ns, widget::ThemeChangeKind::Style},
+    {"browser.visited_color.dark"_ns, widget::ThemeChangeKind::Style},
+    {"browser.display.background_color"_ns, widget::ThemeChangeKind::Style},
+    {"browser.display.background_color.dark"_ns,
+     widget::ThemeChangeKind::Style},
+    {"browser.display.foreground_color"_ns, widget::ThemeChangeKind::Style},
+    {"browser.display.foreground_color.dark"_ns,
+     widget::ThemeChangeKind::Style},
+    {"browser.display.document_color_use"_ns, widget::ThemeChangeKind::Style},
+    {"browser.display.permit_backplate"_ns, widget::ThemeChangeKind::Style},
+    {"ui.use_standins_for_native_colors"_ns, widget::ThemeChangeKind::Style},
+    {"privacy.resistFingerprinting"_ns, widget::ThemeChangeKind::Style},
+    // End of PreferenceSheet prefs.
 };
 
 // Read values from the user's preferences.
@@ -1154,10 +1173,6 @@ void LookAndFeel::DoHandleGlobalThemeChange() {
   // Clear all cached LookAndFeel colors.
   LookAndFeel::Refresh();
 
-  // Reset default background and foreground colors for the document since they
-  // may be using system colors, color scheme, etc.
-  PreferenceSheet::Refresh();
-
   // Vector images (SVG) may be using theme colors so we discard all cached
   // surfaces. (We could add a vector image only version of DiscardAll, but
   // in bug 940625 we decided theme changes are rare enough not to bother.)
@@ -1474,6 +1489,9 @@ void LookAndFeel::Refresh() {
     widget::RemoteLookAndFeel::ClearCachedData();
   }
   widget::Theme::LookAndFeelChanged();
+  // Reset default background and foreground colors for the document since they
+  // may be using system colors, color scheme, etc.
+  PreferenceSheet::Refresh();
 }
 
 // static

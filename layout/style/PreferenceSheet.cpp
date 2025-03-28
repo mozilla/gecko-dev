@@ -296,26 +296,4 @@ void PreferenceSheet::Initialize() {
       StaticPrefs::layout_css_always_underline_links());
 }
 
-bool PreferenceSheet::AffectedByPref(const nsACString& aPref) {
-  const char* prefNames[] = {
-      StaticPrefs::GetPrefName_privacy_resistFingerprinting(),
-      StaticPrefs::GetPrefName_ui_use_standins_for_native_colors(),
-      "browser.anchor_color",
-      "browser.active_color",
-      "browser.visited_color",
-  };
-
-  if (StringBeginsWith(aPref, "browser.display."_ns)) {
-    return true;
-  }
-
-  for (const char* pref : prefNames) {
-    if (aPref.Equals(pref)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 }  // namespace mozilla
