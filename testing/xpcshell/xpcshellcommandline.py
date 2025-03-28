@@ -366,6 +366,15 @@ def add_common_arguments(parser):
         dest="repeat",
         help="repeat the test X times, default [0]",
     )
+    parser.add_argument(
+        "--profiler",
+        action="store_true",
+        default=False,
+        dest="profiler",
+        help="Run the Firefox Profiler and get a performance profile of the "
+        "test. This is useful to find performance issues, and also "
+        "to see what exactly the test is doing.",
+    )
 
 
 def add_remote_arguments(parser):

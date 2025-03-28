@@ -30,6 +30,10 @@ from threading import Event, Thread, Timer, current_thread
 
 import mozdebug
 import six
+from mozgeckoprofiler import (
+    symbolicate_profile_json,
+    view_gecko_profile,
+)
 from mozserve import Http3Server
 
 try:
@@ -224,6 +228,7 @@ class XPCShellTestThread(Thread):
         self.timeoutAsPass = kwargs.get("timeoutAsPass")
         self.crashAsPass = kwargs.get("crashAsPass")
         self.conditionedProfileDir = kwargs.get("conditionedProfileDir")
+        self.profiler = kwargs.get("profiler")
         if self.runFailures:
             self.retry = False
 
@@ -859,6 +864,18 @@ class XPCShellTestThread(Thread):
         if self.test_object.get("subprocess") == "true":
             self.env["PYTHON"] = sys.executable
 
+        if self.profiler:
+            if not self.singleFile:
+                self.log.error(
+                    "The --profiler flag is currently only supported when running a single test"
+                )
+            else:
+                self.env["MOZ_PROFILER_STARTUP"] = "1"
+                profile_path = os.path.join(
+                    self.profileDir, "profile_" + os.path.basename(name) + ".json"
+                )
+                self.env["MOZ_PROFILER_SHUTDOWN"] = profile_path
+
         if (
             self.test_object.get("headless", "true" if self.headless else None)
             == "true"
@@ -1041,6 +1058,9 @@ class XPCShellTestThread(Thread):
 
         finally:
             self.postCheck(proc)
+            if self.profiler and self.singleFile:
+                symbolicate_profile_json(profile_path, self.symbolsPath)
+                view_gecko_profile(profile_path)
             self.clean_temp_dirs(path)
 
         if gotSIGINT:
@@ -1832,6 +1852,7 @@ class XPCShellTests(object):
         self.conditionedProfile = options.get("conditionedProfile")
         self.repeat = options.get("repeat", 0)
         self.variant = options.get("variant", "")
+        self.profiler = options.get("profiler")
 
         if self.variant == "msix":
             self.appPath = options.get("msixAppPath")
@@ -1999,6 +2020,7 @@ class XPCShellTests(object):
             "crashAsPass": self.crashAsPass,
             "conditionedProfileDir": self.conditioned_profile_dir,
             "repeat": self.repeat,
+            "profiler": self.profiler,
         }
 
         if self.sequential:
