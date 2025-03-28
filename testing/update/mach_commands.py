@@ -3,7 +3,6 @@
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import logging
-import os
 import sys
 from pathlib import Path
 from platform import uname
@@ -67,7 +66,7 @@ def run_tests(binary=None, topsrcdir=None, **kwargs):
         setattr(args, k, v)
 
     args.tests = [
-        os.path.join(
+        Path(
             topsrcdir,
             "testing/update/manifest.toml",
         )
@@ -89,12 +88,11 @@ def set_up(binary_path):
         pass
 
     else:
-
-        with open(os.path.join(executable_dir, "update-settings.ini"), "w") as f:
+        with Path(executable_dir, "update-settings.ini").open("w") as f:
             f.write("[Settings]\n")
             f.write("ACCEPTED_MAR_CHANNEL_IDS=firefox-mozilla-central")
 
-        with open(
-            os.path.join(executable_dir, "defaults", "pref", "channel-prefs.js"), "w"
+        with Path(executable_dir, "defaults", "pref", "channel-prefs.js").open(
+            "w"
         ) as f:
             f.write('pref("app.update.channel", "nightlytest");')

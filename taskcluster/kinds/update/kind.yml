@@ -17,17 +17,16 @@ task-defaults:
         kind: other
         tier: 2
     worker:
-        # taskcluster-proxy: true
         max-run-time: 10800
         artifacts: []
 
 tasks:
     windows2012-64-firefox:
-        worker-type: b-win2022
+        worker-type: win11-64-24h2-source
         description: Test updates on Win64
         run-on-projects: []
         treeherder:
-            symbol: update-test(firefox)
+            symbol: update-test(standard)
             platform: windows2012-64/opt
         dependencies:
             build: build-win64-shippable/opt
@@ -46,7 +45,7 @@ tasks:
         description: Test updates on macOS
         run-on-projects: []
         treeherder:
-            symbol: update-test(firefox)
+            symbol: update-test(standard)
             platform: macosx1015-64-qr/opt
         dependencies:
             build: build-macosx64-shippable/opt
