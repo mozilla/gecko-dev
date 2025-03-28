@@ -17229,6 +17229,16 @@
   value: 0
   mirror: always
 
+# Indicates whether we are testng crash annotation validation. In DEBUG builds,
+# invalid crash annotations cause an assertion failure, which would prevent us
+# from checking the non-DEBUG behavior.
+#ifdef DEBUG
+- name: toolkit.crash_annotation.testing_validation
+  type: bool
+  value: false
+  mirror: always
+#endif
+
 # Returns true if BHR is disabled.
 - name: toolkit.content-background-hang-monitor.disabled
   type: bool

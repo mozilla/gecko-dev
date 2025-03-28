@@ -38,6 +38,13 @@ function run_test() {
   cr.minidumpPath = cwd;
   Assert.equal(cr.minidumpPath.path, cwd.path);
 
+  // Allow testing validation in debug builds (otherwise an assertion will trip
+  // on invalid annotation keys).
+  Services.prefs.setBoolPref(
+    "toolkit.crash_annotation.testing_validation",
+    true
+  );
+
   // Test annotateCrashReport()
   try {
     cr.annotateCrashReport(undefined, "");
@@ -87,4 +94,6 @@ function run_test() {
   // Testing setting the minidumpPath field
   cr.minidumpPath = cwd;
   Assert.equal(cr.minidumpPath.path, cwd.path);
+
+  Services.prefs.clearUserPref("toolkit.crash_annotation.testing_validation");
 }
