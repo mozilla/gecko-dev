@@ -128,8 +128,10 @@ shopping:
       The Shopping product Sidebar was displayed.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1849236
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921374
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1848870#c2
+      - https://phabricator.services.mozilla.com/D236083
     data_sensitivity:
       - interaction
     expires: 147
@@ -139,10 +141,19 @@ shopping:
     send_in_pings:
       - events
     extra_keys:
-      side_bar_state:
-        type: string
+      isProductPage:
+        type: boolean
         description: |
-          Which of the possible configurations of the sidebar was displayed.
+          Indicates if Review Checker was displayed while viewing a product page.
+      isSupportedSite:
+        type: boolean
+        description: |
+          Indicates if Review Checker was displayed while viewing a non product page in a supported site.
+      isIntegratedSidebar:
+        type: boolean
+        description: |
+          Indicates if pinged from the standalone Review Checker (false) or Review Checker integrated
+          in the sidebar (true).
 
   surface_reanalyze_clicked:
     type: event

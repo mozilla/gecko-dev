@@ -334,11 +334,32 @@ export class ReviewCheckerChild extends RemotePageChild {
 
     if (!isSimulated) {
       lazy.ShoppingUtils.recordExposure();
+      this.#recordSurfaceDisplayedGleanEvent(uri);
     }
 
     this.#currentURI = uri;
 
     await this.updateContent(uri);
+  }
+
+  /**
+   * Records Glean.shopping.surface_displayed. For migrated Review Checker,
+   * record if:
+   *  - the foregrounded tab navigates to a page with RC panel visible,
+   *  - a tab loaded in the background is foregrounded with RC panel visible,
+   *  - a foregrounded product page tab was loaded with the sidebar hidden and
+   *    now the sidebar has been shown.
+   *
+   * @param {nsIURI} uri
+   */
+  #recordSurfaceDisplayedGleanEvent(uri) {
+    let isProductPage = isProductURL(uri);
+    let isSupportedSite = isSupportedSiteURL(uri);
+    Glean.shopping.surfaceDisplayed.record({
+      isProductPage,
+      isSupportedSite,
+      isIntegratedSidebar: true,
+    });
   }
 
   /**
