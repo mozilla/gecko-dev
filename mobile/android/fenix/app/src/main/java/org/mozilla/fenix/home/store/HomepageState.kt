@@ -26,6 +26,8 @@ import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.home.topsites.TopSiteColors
+import org.mozilla.fenix.nimbus.FxNimbus
+import org.mozilla.fenix.nimbus.HomeScreenSection
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.wallpapers.WallpaperState
@@ -160,7 +162,7 @@ internal sealed class HomepageState {
                         showTopSites = settings.showTopSitesFeature && topSites.isNotEmpty(),
                         showRecentTabs = shouldShowRecentTabs(settings),
                         showBookmarks = settings.showBookmarksHomeFeature && bookmarks.isNotEmpty(),
-                        showRecentSyncedTab = shouldShowRecentSyncedTabs(),
+                        showRecentSyncedTab = shouldShowRecentSyncedTabs() && showSyncedTab,
                         showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
                         showPocketStories = settings.showPocketRecommendationsFeature &&
                             recommendationState.pocketStories.isNotEmpty() && firstFrameDrawn,
@@ -177,6 +179,9 @@ internal sealed class HomepageState {
         }
     }
 }
+
+private val showSyncedTab: Boolean
+    get() = FxNimbus.features.homescreen.value().sectionsEnabled[HomeScreenSection.SYNCED_TABS] == true
 
 @Composable
 private fun WallpaperState.customizeHomeButtonBackgroundColor(): Color {

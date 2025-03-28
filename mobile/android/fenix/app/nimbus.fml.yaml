@@ -50,6 +50,7 @@ features:
             "recent-explorations": true,
             "pocket": true,
             "pocket-sponsored-stories": true,
+            "synced-tabs": true,
           }
     defaults:
       - channel: nightly
@@ -60,6 +61,7 @@ features:
             "bookmarks": true,
             "recent-explorations": true,
             "pocket": true,
+            "synced-tabs": true,
           }
         }
   nimbus-validation:
@@ -770,6 +772,8 @@ types:
           description: The pocket section. This should only be available in the US.
         pocket-sponsored-stories:
           description: Subsection of the Pocket homescreen section which shows sponsored stories.
+        synced-tabs:
+          description: The synced tabs section of the homepage.
 
     MR2022Section:
       description: The identifiers for the sections of the MR 2022.
