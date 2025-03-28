@@ -91,8 +91,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared {
 
   void generateInvalidateEpilogue();
 
-  void canonicalizeIfDeterministic(Scalar::Type type, const LAllocation* value);
-
   template <typename T>
   Operand toMemoryAccessOperand(T* lir, int32_t disp);
 

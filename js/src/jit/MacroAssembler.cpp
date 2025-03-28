@@ -74,47 +74,40 @@ TrampolinePtr MacroAssembler::preBarrierTrampoline(MIRType type) {
 }
 
 template <typename T>
-static void StoreToTypedFloatArray(MacroAssembler& masm, Scalar::Type arrayType,
-                                   FloatRegister value, const T& dest,
-                                   Register temp,
-                                   LiveRegisterSet volatileLiveRegs) {
+void MacroAssembler::storeToTypedFloatArray(Scalar::Type arrayType,
+                                            FloatRegister value, const T& dest,
+                                            Register temp,
+                                            LiveRegisterSet volatileLiveRegs) {
   switch (arrayType) {
     case Scalar::Float16:
-      masm.storeFloat16(value, dest, temp, volatileLiveRegs);
+      storeFloat16(value, dest, temp, volatileLiveRegs);
       break;
     case Scalar::Float32: {
       if (value.isDouble()) {
-        ScratchFloat32Scope fpscratch(masm);
-        masm.convertDoubleToFloat32(value, fpscratch);
-        masm.storeFloat32(fpscratch, dest);
+        ScratchFloat32Scope fpscratch(*this);
+        convertDoubleToFloat32(value, fpscratch);
+        storeFloat32(fpscratch, dest);
       } else {
         MOZ_ASSERT(value.isSingle());
-        masm.storeFloat32(value, dest);
+        storeFloat32(value, dest);
       }
       break;
     }
     case Scalar::Float64:
       MOZ_ASSERT(value.isDouble());
-      masm.storeDouble(value, dest);
+      storeDouble(value, dest);
       break;
     default:
       MOZ_CRASH("Invalid typed array type");
   }
 }
 
-void MacroAssembler::storeToTypedFloatArray(Scalar::Type arrayType,
-                                            FloatRegister value,
-                                            const BaseIndex& dest,
-                                            Register temp,
-                                            LiveRegisterSet volatileLiveRegs) {
-  StoreToTypedFloatArray(*this, arrayType, value, dest, temp, volatileLiveRegs);
-}
-void MacroAssembler::storeToTypedFloatArray(Scalar::Type arrayType,
-                                            FloatRegister value,
-                                            const Address& dest, Register temp,
-                                            LiveRegisterSet volatileLiveRegs) {
-  StoreToTypedFloatArray(*this, arrayType, value, dest, temp, volatileLiveRegs);
-}
+template void MacroAssembler::storeToTypedFloatArray(
+    Scalar::Type arrayType, FloatRegister value, const BaseIndex& dest,
+    Register temp, LiveRegisterSet volatileLiveRegs);
+template void MacroAssembler::storeToTypedFloatArray(
+    Scalar::Type arrayType, FloatRegister value, const Address& dest,
+    Register temp, LiveRegisterSet volatileLiveRegs);
 
 void MacroAssembler::boxUint32(Register source, ValueOperand dest,
                                Uint32Mode mode, Label* fail) {
@@ -8360,7 +8353,6 @@ void MacroAssembler::storeFloat16(FloatRegister src, const T& dest,
 
   if (src.isDouble()) {
     if (MacroAssembler::SupportsFloat64To16()) {
-      canonicalizeDoubleIfDeterministic(src);
       convertDoubleToFloat16(src, fpscratch);
       storeUncanonicalizedFloat16(fpscratch, dest, temp);
       return;
@@ -8372,13 +8364,11 @@ void MacroAssembler::storeFloat16(FloatRegister src, const T& dest,
   MOZ_ASSERT(src.isSingle());
 
   if (MacroAssembler::SupportsFloat32To16()) {
-    canonicalizeFloatIfDeterministic(src);
     convertFloat32ToFloat16(src, fpscratch);
     storeUncanonicalizedFloat16(fpscratch, dest, temp);
     return;
   }
 
-  canonicalizeFloatIfDeterministic(src);
   moveFloat16ToGPR(src, temp, volatileLiveRegs);
   store16(temp, dest);
 }

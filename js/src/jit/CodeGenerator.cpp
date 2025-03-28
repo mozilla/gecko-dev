@@ -61,6 +61,7 @@
 #include "proxy/DOMProxy.h"
 #include "proxy/ScriptedProxyHandler.h"
 #include "util/CheckedArithmetic.h"
+#include "util/DifferentialTesting.h"
 #include "util/Unicode.h"
 #include "vm/ArrayBufferViewObject.h"
 #include "vm/AsyncFunction.h"
@@ -18486,19 +18487,16 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
       break;
     case Scalar::Float16: {
       FloatRegister fvalue = ToFloatRegister(value);
-      masm.canonicalizeFloatIfDeterministic(fvalue);
       masm.moveFloat16ToGPR(fvalue, temp, volatileRegs);
       break;
     }
     case Scalar::Float32: {
       FloatRegister fvalue = ToFloatRegister(value);
-      masm.canonicalizeFloatIfDeterministic(fvalue);
       masm.moveFloat32ToGPR(fvalue, temp);
       break;
     }
     case Scalar::Float64: {
       FloatRegister fvalue = ToFloatRegister(value);
-      masm.canonicalizeDoubleIfDeterministic(fvalue);
       masm.moveDoubleToGPR64(fvalue, temp64);
       break;
     }

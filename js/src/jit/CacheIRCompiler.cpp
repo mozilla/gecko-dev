@@ -36,6 +36,7 @@
 #include "proxy/DOMProxy.h"
 #include "proxy/Proxy.h"
 #include "proxy/ScriptedProxyHandler.h"
+#include "util/DifferentialTesting.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/ArrayBufferObject.h"
 #include "vm/ArrayBufferViewObject.h"
@@ -7168,6 +7169,12 @@ bool CacheIRCompiler::emitStoreTypedArrayElement(ObjOperandId objId,
 #endif
   } else if (Scalar::isFloatingType(elementType)) {
     Register temp = scratch2 ? scratch2->get() : InvalidReg;
+
+    // Canonicalize floating point values for differential testing.
+    if (js::SupportDifferentialTesting()) {
+      masm.canonicalizeDouble(floatScratch0);
+    }
+
     masm.storeToTypedFloatArray(elementType, floatScratch0, dest, temp,
                                 liveVolatileRegs());
   } else {
@@ -7681,6 +7688,11 @@ bool CacheIRCompiler::emitStoreDataViewValueResult(
   };
 #endif
 
+  // Canonicalize floating point values for differential testing.
+  if (Scalar::isFloatingType(elementType) && js::SupportDifferentialTesting()) {
+    masm.canonicalizeDouble(floatScratch0);
+  }
+
   // Load the value into a gpr register.
   switch (elementType) {
     case Scalar::Int16:
@@ -7693,19 +7705,16 @@ bool CacheIRCompiler::emitStoreDataViewValueResult(
       FloatRegister scratchFloat32 = floatScratch0.get().asSingle();
       masm.convertDoubleToFloat16(floatScratch0, scratchFloat32, valScratch32(),
                                   liveVolatileRegs());
-      masm.canonicalizeFloatIfDeterministic(scratchFloat32);
       masm.moveFloat16ToGPR(scratchFloat32, valScratch32(), liveVolatileRegs());
       break;
     }
     case Scalar::Float32: {
       FloatRegister scratchFloat32 = floatScratch0.get().asSingle();
       masm.convertDoubleToFloat32(floatScratch0, scratchFloat32);
-      masm.canonicalizeFloatIfDeterministic(scratchFloat32);
       masm.moveFloat32ToGPR(scratchFloat32, valScratch32());
       break;
     }
     case Scalar::Float64: {
-      masm.canonicalizeDoubleIfDeterministic(floatScratch0);
       masm.moveDoubleToGPR64(floatScratch0, valScratch64());
       break;
     }

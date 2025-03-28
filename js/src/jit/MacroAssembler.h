@@ -2226,10 +2226,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // ========================================================================
   // Canonicalization primitives.
   inline void canonicalizeDouble(FloatRegister reg);
-  inline void canonicalizeDoubleIfDeterministic(FloatRegister reg);
 
   inline void canonicalizeFloat(FloatRegister reg);
-  inline void canonicalizeFloatIfDeterministic(FloatRegister reg);
 
  public:
   // ========================================================================
@@ -5272,11 +5270,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
     }
   }
 
+  template <typename T>
   void storeToTypedFloatArray(Scalar::Type arrayType, FloatRegister value,
-                              const BaseIndex& dest, Register temp,
-                              LiveRegisterSet volatileLiveRegs);
-  void storeToTypedFloatArray(Scalar::Type arrayType, FloatRegister value,
-                              const Address& dest, Register temp,
+                              const T& dest, Register temp,
                               LiveRegisterSet volatileLiveRegs);
 
   template <typename S, typename T>

@@ -18,7 +18,6 @@
 #include "jit/JitFrames.h"
 #include "jit/JSJitFrameIter.h"
 #include "js/Prefs.h"
-#include "util/DifferentialTesting.h"
 #include "vm/BigIntType.h"
 #include "vm/JSObject.h"
 #include "vm/ProxyObject.h"
@@ -912,13 +911,6 @@ void MacroAssembler::canonicalizeFloat(FloatRegister reg) {
   bind(&notNaN);
 }
 
-void MacroAssembler::canonicalizeFloatIfDeterministic(FloatRegister reg) {
-  // See the comment in TypedArrayObjectTemplate::getElement.
-  if (js::SupportDifferentialTesting()) {
-    canonicalizeFloat(reg);
-  }
-}
-
 void MacroAssembler::canonicalizeDouble(FloatRegister reg) {
   Label notNaN;
   branchDouble(DoubleOrdered, reg, reg, &notNaN);
@@ -926,19 +918,11 @@ void MacroAssembler::canonicalizeDouble(FloatRegister reg) {
   bind(&notNaN);
 }
 
-void MacroAssembler::canonicalizeDoubleIfDeterministic(FloatRegister reg) {
-  // See the comment in TypedArrayObjectTemplate::getElement.
-  if (js::SupportDifferentialTesting()) {
-    canonicalizeDouble(reg);
-  }
-}
-
 // ========================================================================
 // Memory access primitives.
 template <class T>
 FaultingCodeOffset MacroAssembler::storeDouble(FloatRegister src,
                                                const T& dest) {
-  canonicalizeDoubleIfDeterministic(src);
   return storeUncanonicalizedDouble(src, dest);
 }
 
@@ -955,7 +939,6 @@ void MacroAssembler::boxDouble(FloatRegister src, const T& dest) {
 template <class T>
 FaultingCodeOffset MacroAssembler::storeFloat32(FloatRegister src,
                                                 const T& dest) {
-  canonicalizeFloatIfDeterministic(src);
   return storeUncanonicalizedFloat32(src, dest);
 }
 

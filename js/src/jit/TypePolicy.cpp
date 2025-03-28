@@ -11,6 +11,7 @@
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 #include "js/ScalarType.h"  // js::Scalar::Type
+#include "util/DifferentialTesting.h"
 
 using namespace js;
 using namespace js::jit;
@@ -925,6 +926,12 @@ bool StoreUnboxedScalarPolicy::adjustValueInput(TempAllocator& alloc,
       break;
     default:
       MOZ_CRASH("Invalid array type");
+  }
+
+  // Canonicalize floating point values for differential testing.
+  if (Scalar::isFloatingType(writeType) && js::SupportDifferentialTesting()) {
+    value = MCanonicalizeNaN::New(alloc, value);
+    ins->block()->insertBefore(ins, value->toInstruction());
   }
 
   if (value != curValue) {

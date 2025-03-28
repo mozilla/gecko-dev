@@ -23,6 +23,7 @@
 #include <initializer_list>
 
 #include "jit/MIR.h"
+#include "util/DifferentialTesting.h"
 
 namespace js {
 
