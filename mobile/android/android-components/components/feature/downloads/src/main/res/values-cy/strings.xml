@@ -17,30 +17,30 @@
     Alert dialog confirmation before downloading a previously downloaded file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">Lawrlwytho ffeil eto? (%1$s)</string>
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">Llwytho ffeil i lawr eto? (%1$s)</string>
   <!--
     Alert dialog confirmation before downloading a file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_dialog_title_3">Lawrlwytho ffeil? (%1$s)</string>
+  <string name="mozac_feature_downloads_dialog_title_3">Llwytho ffeil i lawr? (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Llwytho (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Llwytho i Lawr</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
-  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">Lawrlwythwch eto</string>
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">Llwytho i lawr eto</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">Na</string>
   <!--
     Alert dialog confirmation before downloading a previously downloaded file, this is the description.
     %1$s will be replaced with the name of the file.
   -->
-  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">Mae %1$s yn bodoli yn barod.</string>
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">Mae %1$s yn bodoli\'n barod.</string>
   <!--
     Alert dialog confirmation before downloading a file without network connection, this is the description.
     %1$s will be replaced with the name of the file.
   -->
-  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">Ni lawrlwythwyd %1$s.</string>
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">Nid yw %1$s wedi ei llwytho i lawr.</string>
   <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
   <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Gwiriwch eich cysylltiad a rhowch gynnig arall arni.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->

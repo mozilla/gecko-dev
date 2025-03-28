@@ -1477,6 +1477,14 @@
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Stiahnuté súbory boli odstránené</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Súbor %1$s bol odstránený</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Podrobnosti</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Sťahovanie je dokončené</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Otvoriť</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Späť</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Žiadne stiahnuté súbory</string>
   <!--
@@ -1486,6 +1494,20 @@
   <string name="download_multi_select_title">Počet vybraných položiek: %1$d</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Odstrániť</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Odstrániť</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">Zdieľať URL</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Zdieľať súbor</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Naozaj chcete odstrániť označené položky?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Odstrániť</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Zrušiť</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">Prebieha</string>
   <!--
     Time period headers for downloads
 
@@ -1519,7 +1541,7 @@
     %1$s: The size of the downloaded file.
     %2$s: The URL of the downloaded file.
   -->
-  <string name="download_item_description">%1$s • %2$s</string>
+  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 

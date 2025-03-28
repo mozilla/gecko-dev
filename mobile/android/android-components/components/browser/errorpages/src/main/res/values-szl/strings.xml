@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- The button that appears at the bottom of an error page. -->
+  <string name="mozac_browser_errorpages_page_refresh">Sprōbuj zaś</string>
+  <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
+  <string name="mozac_browser_errorpages_generic_title">Niy szło dokōńczyć fołdrowanio</string>
+  <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
+  <string name="mozac_browser_errorpages_generic_message">
+      &lt;p&gt;Brak teroz ekstra informacyji ô tym problymie abo felerze.&lt;/p&gt;
+    </string>
+  <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_ssl_title">Feler bezpiecznego połōnczynio</string>
+  <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_title">Feler bezpiecznego połōnczynio</string>
+  <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_advanced">Rozszyrzōne…</string>
+  <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_back">Nazod (Doradzane)</string>
+  <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+  <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Akceptuja ryzyko i chca kōntynuować</string>
+  <!-- The document title and heading of the error page shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Ta strōna fołdruje bezpieczne połōnczynie.</string>
+  <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Rozszyrzōne…</string>
+  <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Nazod</string>
+  <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
+  <string name="mozac_browser_errorpages_net_interrupt_title">Połōnczynie serwane</string>
+  <!-- The document title and heading of the error page shown when a website takes too long to load. -->
+  <string name="mozac_browser_errorpages_net_timeout_title">Czas połōnczynio minōł</string>
+  <!-- The document title and heading of the error page shown when a website could not be reached. -->
+  <string name="mozac_browser_errorpages_connection_failure_title">Niy idzie połōnczyć</string>
+  <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
+  <string name="mozac_browser_errorpages_unknown_socket_type_title">Niyspodziywano ôdpowiydź ze serwera</string>
+  <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
+  <string name="mozac_browser_errorpages_redirect_loop_title">Strōna felernie przekerowuje</string>
+  <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
+  <string name="mozac_browser_errorpages_offline_title">Tryb offline</string>
+  <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
+  <string name="mozac_browser_errorpages_port_blocked_title">Przistymp do portu zawarty skirz bezpieczyństwa</string>
+  <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
+  <string name="mozac_browser_errorpages_net_reset_title">Połōnczynie zresetowane</string>
+  <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
+  <string name="mozac_browser_errorpages_unsafe_content_type_title">Niybezpieczny typ zbioru</string>
+  <!-- The document title and heading of the error page shown when a file cannot be loaded because of a detected data corruption. -->
+  <string name="mozac_browser_errorpages_corrupted_content_title">Feler we treści strōny</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_content_crashed_title">Awaryjo treści</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_invalid_content_encoding_title">Feler kodowanio treści</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_unknown_host_title">Niy szło znojś adresy</string>
+  <!-- Text that will show up on the button at the bottom of the error page -->
+  <string name="mozac_browser_errorpages_no_internet_refresh_button">Przeladuj</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_malformed_uri_title">Felerno adresa</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_unknown_protocol_title">Niyznōmy protokōł</string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_file_not_found_title">Niy szło znojś zbioru</string>
+</resources>

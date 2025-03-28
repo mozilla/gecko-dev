@@ -30,6 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Dostymp do twojich danych na %1$d inkszych dōmynach</string>
+  <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
+  <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d ze %3$d</string>
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">Dostymp do kart przeglōndarki</string>
   <!-- Description for unlimited_storage permission. -->
@@ -80,6 +82,8 @@
   <string name="mozac_feature_addons_permissions_devtools_description">Dostymp do twojich danych w ôtwartych kartach bez rozszyrzōne deweloperskie noczynia</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Wersyjo</string>
+  <!-- The author of an add-on. -->
+  <string name="mozac_feature_addons_author">Autōr</string>
   <!-- The last date that the add-on was updated. -->
   <string name="mozac_feature_addons_last_updated">Ôstatnio aktualizowane</string>
   <!-- The developer website (Homepage) of the add-on. -->
