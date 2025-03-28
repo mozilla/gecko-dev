@@ -3,6 +3,8 @@
 
 "use strict";
 
+requestLongerTimeout(2);
+
 /**
  * Tests that the about:home startup cache is cleared if the app
  * locale changes.
