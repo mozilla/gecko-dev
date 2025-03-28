@@ -451,7 +451,8 @@
     get smartTabGroupsEnabled() {
       return (
         this.smartTabGroupsUserEnabled &&
-        this.smartTabGroupsFeatureConfigEnabled
+        this.smartTabGroupsFeatureConfigEnabled &&
+        !PrivateBrowsingUtils.isWindowPrivate(this.ownerGlobal)
       );
     }
 
