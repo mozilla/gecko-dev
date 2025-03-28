@@ -160,6 +160,9 @@ add_task(async function test_link_preview_panel_shown() {
       return toResolve.promise;
     });
 
+  const READABLE_PAGE_URL =
+    "https://example.com/browser/toolkit/components/reader/tests/browser/readerModeArticle.html";
+
   window.dispatchEvent(
     new KeyboardEvent("keydown", {
       bubbles: true,
@@ -167,7 +170,7 @@ add_task(async function test_link_preview_panel_shown() {
       altKey: true,
     })
   );
-  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+  XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
 
   const panel = await TestUtils.waitForCondition(() =>
     document.getElementById("link-preview-panel")
@@ -202,4 +205,46 @@ add_task(async function test_link_preview_panel_shown() {
 
   panel.remove();
   stub.restore();
+});
+
+/**
+ * Test that link preview panel doesn't generate key points when URL is not readable.
+ */
+add_task(async function test_skip_keypoints_generation_if_url_not_readable() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+
+  const generateStub = sinon.stub(LinkPreviewModel, "generateTextAI");
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      altKey: true,
+    })
+  );
+  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+
+  const panel = await TestUtils.waitForCondition(() =>
+    document.getElementById("link-preview-panel")
+  );
+  ok(panel, "Panel created for link preview");
+
+  await BrowserTestUtils.waitForEvent(panel, "popupshown");
+
+  is(
+    generateStub.callCount,
+    0,
+    "generateTextAI should not be called when article has no text content"
+  );
+
+  const card = panel.querySelector("link-preview-card");
+  ok(card, "card created for link preview");
+  ok(!card.generating, "card should not be in generating state");
+  ok(!card.showWait, "card should not be in waiting state");
+  ok(!LinkPreview.downloadingModel, "downloading model flag should not be set");
+
+  panel.remove();
+  generateStub.restore();
 });
