@@ -10,7 +10,7 @@ tab-group-editor-smart-suggest-button-edit=
 # Button appearing during creation of new tab group.
 # Clicking will suggest tabs to group together in the tab group.
 tab-group-editor-smart-suggest-button-create=
-  .label = Suggest tabs to group
+  .label = Suggest more of my tabs
 
 tab-group-editor-suggestions-header = Suggested Tabs
 
