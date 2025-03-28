@@ -1085,24 +1085,6 @@ void nsCSPTrustedTypesDirectivePolicyName::toString(nsAString& aOutStr) const {
   aOutStr.Append(mName);
 }
 
-/* =============== nsCSPTrustedTypesDirectiveInvalidToken =============== */
-
-nsCSPTrustedTypesDirectiveInvalidToken::nsCSPTrustedTypesDirectiveInvalidToken(
-    const nsAString& aInvalidToken)
-    : mInvalidToken{aInvalidToken} {}
-
-bool nsCSPTrustedTypesDirectiveInvalidToken::visit(
-    nsCSPSrcVisitor* aVisitor) const {
-  MOZ_ASSERT_UNREACHABLE(
-      "Should only be called for other overloads of this method.");
-  return false;
-}
-
-void nsCSPTrustedTypesDirectiveInvalidToken::toString(
-    nsAString& aOutStr) const {
-  aOutStr.Append(mInvalidToken);
-}
-
 /* ===== nsCSPDirective ====================== */
 
 nsCSPDirective::nsCSPDirective(CSPDirective aDirective) {
