@@ -875,11 +875,17 @@ static bool IsValidRequireTrustedTypesForDirectiveValue(
 }
 
 void nsCSPParser::handleRequireTrustedTypesForDirective(nsCSPDirective* aDir) {
+  CSPPARSERLOG(("nsCSPParser::handleTrustedTypesDirective"));
+
   // "srcs" start at index 1. Here "srcs" should represent Trusted Types' sink
   // groups
   // (https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-csp-directive).
-
-  if (mCurDir.Length() != 2) {
+  // We align with other browsers and make the syntax forgiving i.e. invalid
+  // trusted-types-sink-group-keyword are discarded without invalidating the
+  // whole directive. However, if no valid trusted-types-sink-group-keyword is
+  // found, the directive has no effect and can just be discarded completely.
+  // See https://github.com/w3c/trusted-types/issues/580.
+  if (mCurDir.Length() < 2) {
     nsString numberOfTokensStr;
 
     // Casting is required to avoid ambiguous function calls on some platforms.
@@ -892,24 +898,33 @@ void nsCSPParser::handleRequireTrustedTypesForDirective(nsCSPDirective* aDir) {
     return;
   }
 
-  mCurToken = mCurDir.LastElement();
+  nsTArray<nsCSPBaseSrc*> trustedTypesSinkGroupKeywords;
+  bool foundValidTrustedTypesSinkGroupKeyword = false;
+  for (uint32_t i = 1; i < mCurDir.Length(); ++i) {
+    mCurToken = mCurDir[i];
 
-  CSPPARSERLOG(
-      ("nsCSPParser::handleRequireTrustedTypesForDirective, mCurToken: %s",
-       NS_ConvertUTF16toUTF8(mCurToken).get()));
+    CSPPARSERLOG(
+        ("nsCSPParser::handleRequireTrustedTypesForDirective, mCurToken: %s",
+         NS_ConvertUTF16toUTF8(mCurToken).get()));
 
-  if (!IsValidRequireTrustedTypesForDirectiveValue(mCurToken)) {
-    AutoTArray<nsString, 1> token = {mCurToken};
-    logWarningErrorToConsole(nsIScriptError::errorFlag,
-                             "invalidRequireTrustedTypesForDirectiveValue",
-                             token);
+    if (!IsValidRequireTrustedTypesForDirectiveValue(mCurToken)) {
+      AutoTArray<nsString, 1> token = {mCurToken};
+      logWarningErrorToConsole(nsIScriptError::warningFlag,
+                               "invalidRequireTrustedTypesForDirectiveValue",
+                               token);
+    } else {
+      foundValidTrustedTypesSinkGroupKeyword = true;
+    }
+    trustedTypesSinkGroupKeywords.AppendElement(
+        new nsCSPRequireTrustedTypesForDirectiveValue(mCurToken));
+  }
+  if (!foundValidTrustedTypesSinkGroupKeyword) {
+    for (auto* trustedTypesSinkGroupKeyword : trustedTypesSinkGroupKeywords) {
+      delete trustedTypesSinkGroupKeyword;
+    }
     return;
   }
-
-  nsTArray<nsCSPBaseSrc*> srcs = {
-      new nsCSPRequireTrustedTypesForDirectiveValue(mCurToken)};
-
-  aDir->addSrcs(srcs);
+  aDir->addSrcs(trustedTypesSinkGroupKeywords);
   mPolicy->addDirective(aDir);
 }
 
