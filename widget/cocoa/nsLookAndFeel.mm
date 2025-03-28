@@ -23,6 +23,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import <Carbon/Carbon.h>
+#import <Accessibility/Accessibility.h>
 #import <AppKit/NSColor.h>
 
 // This must be included last:
@@ -386,6 +387,13 @@ static bool SystemWantsDarkTheme() {
   return [aquaOrDarkAqua isEqualToString:NSAppearanceNameDarkAqua];
 }
 
+static bool PrefersNonBlinkingTextInsertionIndicator() {
+  if (@available(macOS 15.0, *)) {
+    return AXPrefersNonBlinkingTextInsertionIndicator();
+  }
+  return false;
+}
+
 nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
@@ -400,7 +408,7 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       aResult = 3;
       break;
     case IntID::CaretBlinkTime:
-      aResult = 567;
+      aResult = PrefersNonBlinkingTextInsertionIndicator() ? -1 : 567;
       break;
     case IntID::CaretWidth:
       aResult = 1;
@@ -608,6 +616,15 @@ nsresult nsLookAndFeel::GetKeyboardLayoutImpl(nsACString& aLayout) {
 
 - (instancetype)init {
   self = [super init];
+
+  if (@available(macOS 15.0, *)) {
+    [NSNotificationCenter.defaultCenter
+        addObserver:self
+           selector:@selector(cachedValuesChanged)
+               name:
+                   AXPrefersNonBlinkingTextInsertionIndicatorDidChangeNotification
+             object:nil];
+  }
 
   [NSNotificationCenter.defaultCenter
       addObserver:self
