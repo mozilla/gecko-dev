@@ -1,0 +1,54 @@
+.. _mozilla_projects_nss_nss_3_110_release_notes:
+
+NSS 3.110 release notes
+========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.110 was released on *28 March 2025**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_110_RTM. NSS 3.110 requires NSPR 4.35 or newer. The latest version of NSPR is 4.36.
+
+   NSS 3.110 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_110_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.110:
+
+`Changes in NSS 3.110 <#changes_in_nss_3.110>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1930806 - FIPS changes need to be upstreamed: force ems policy.
+   - Bug 1954724 - Prevent excess allocations in sslBuffer_Grow.
+   - Bug 1953429 - Remove Crl templates from ASN1 fuzz target.
+   - Bug 1953429 - Remove CERT_CrlTemplate from ASN1 fuzz target.
+   - Bug 1952855 - Fix memory leak in NSS_CMSMessage_IsSigned.
+   - Bug 1930807 - NSS policy updates.
+   - Bug 1951161 - Improve locking in nssPKIObject_GetInstances.
+   - Bug 1951394 - Fix race in sdb_GetMetaData.
+   - Bug 1951800 - Fix member access within null pointer.
+   - Bug 1950077 - Increase smime fuzzer memory limit.
+   - Bug 1949677 - Enable resumption when using custom extensions.
+   - Bug 1952568 - change CN of server12 test certificate.
+   - Bug 1949118 - Part 2: Add missing check in NSS_CMSDigestContext_FinishSingle.
+   - Bug 1949118 - Part 1: Fix smime UBSan errors.
+   - Bug 1930806 - FIPS changes need to be upstreamed: updated key checks.
+   - Bug 1951491 - Don't build libpkix in static builds.
+   - Bug 1951395 - handle `-p all` in try syntax.
+   - Bug 1951346 - fix opt-make builds to actually be opt.
+   - Bug 1951346 - fix opt-static builds to actually be opt.
+   - Bug 1916439 - Remove extraneous assert.
+

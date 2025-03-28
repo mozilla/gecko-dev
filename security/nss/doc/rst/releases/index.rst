@@ -8,6 +8,7 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_110.rst
    nss_3_109.rst
    nss_3_108.rst
    nss_3_101_3.rst
@@ -82,43 +83,33 @@ Releases
 
 .. note::
 
-   **NSS 3.109** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_109_release_notes`
+   **NSS 3.110** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_110_release_notes`
 
    **NSS 3.101.3 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_3_release_notes`
 
 .. container::
 
-   Changes in 3.109 included in this release:
+   Changes in 3.110 included in this release:
 
-   - Bug 1939512 - Call BL_Init before RNG_RNGInit() so that special SHA instructions can be used if available
-   - Bug 1930807 - NSS policy updates - fix inaccurate key policy issues
-   - Bug 1945883 - SMIME fuzz target
-   - Bug 1914256 - ASN1 decoder fuzz target
-   - Bug 1936001 - Part 2: Revert "Extract testcases from ssl gtests for fuzzing"
-   - Bug 1915155 - Add fuzz/README.md
-   - Bug 1936001 - Part 4: Fix tstclnt arguments script
-   - Bug 1944545 - Extend pkcs7 fuzz target
-   - Bug 1912320 - Extend certDN fuzz target
-   - Bug 1854095 - delete old docker image definitions and task scheduling code  
-   - Bug 1854095 - apply nspr patch in acvp script
-   - Bug 1854095 - parse try syntax on pushes to nss-try
-   - Bug 1854095 - add "fuzz" task kind
-   - Bug 1854095 - add "test" task kind
-   - Bug 1854095 - add "certs" task kind
-   - Bug 1854095 - add "build" task kind
-   - Bug 1854095 - add "tools" task kind
-   - Bug 1854095 - add "fuzz" docker image
-   - Bug 1854095 - add "gcc-4.4" docker image
-   - Bug 1854095 - add "clang-format" docker image
-   - Bug 1854095 - add "acvp" docker image
-   - Bug 1854095 - add "builds" docker image
-   - Bug 1854095 - switch .taskcluster.yml to taskgraph
-   - Bug 1944300 - restore alloca.h include
-   - Bug 1944300 - refactor run_hacl.sh slightly
-   - Bug 1944300 - ignore all libcrux files in run_hacl.sh
-   - Bug 1944300 - use `diff -u` in HACL* consistency check
-   - Bug 1944300 - revert changes to HACL* files from bug 1866841
-   - Bug 1936001 - Part 3: Package frida corpus script
-
+   - Bug 1930806 - FIPS changes need to be upstreamed: force ems policy.
+   - Bug 1954724 - Prevent excess allocations in sslBuffer_Grow.
+   - Bug 1953429 - Remove Crl templates from ASN1 fuzz target.
+   - Bug 1953429 - Remove CERT_CrlTemplate from ASN1 fuzz target.
+   - Bug 1952855 - Fix memory leak in NSS_CMSMessage_IsSigned.
+   - Bug 1930807 - NSS policy updates.
+   - Bug 1951161 - Improve locking in nssPKIObject_GetInstances.
+   - Bug 1951394 - Fix race in sdb_GetMetaData.
+   - Bug 1951800 - Fix member access within null pointer.
+   - Bug 1950077 - Increase smime fuzzer memory limit.
+   - Bug 1949677 - Enable resumption when using custom extensions.
+   - Bug 1952568 - change CN of server12 test certificate.
+   - Bug 1949118 - Part 2: Add missing check in NSS_CMSDigestContext_FinishSingle.
+   - Bug 1949118 - Part 1: Fix smime UBSan errors.
+   - Bug 1930806 - FIPS changes need to be upstreamed: updated key checks.
+   - Bug 1951491 - Don't build libpkix in static builds.
+   - Bug 1951395 - handle `-p all` in try syntax.
+   - Bug 1951346 - fix opt-make builds to actually be opt.
+   - Bug 1951346 - fix opt-static builds to actually be opt.
+   - Bug 1916439 - Remove extraneous assert.
