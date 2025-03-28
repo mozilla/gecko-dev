@@ -100,8 +100,8 @@ const UPDATE_INTERVAL = 60 * 60 * 24 * 14;
 
 const MAX_RETRIES = 3;
 
-// If the user never uses geolocation, schedule a periodic
-// update to check the current location (in seconds).
+// If the user never uses geolocation, or geolocation is disabled, schedule a
+// periodic update to check the current location (in seconds).
 const UPDATE_CHECK_NAME = "region-update-timer";
 const UPDATE_CHECK_INTERVAL = 60 * 60 * 24 * 7;
 
