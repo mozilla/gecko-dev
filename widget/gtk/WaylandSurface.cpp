@@ -1065,7 +1065,7 @@ void WaylandSurface::InvalidateLocked(const WaylandSurfaceLock& aProofOfLock) {
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
   MOZ_DIAGNOSTIC_ASSERT(mSurface);
 
-  wl_surface_damage(mSurface, 0, 0, INT32_MAX, INT32_MAX);
+  wl_surface_damage_buffer(mSurface, 0, 0, INT32_MAX, INT32_MAX);
   mSurfaceNeedsCommit = true;
 }
 
