@@ -733,7 +733,32 @@ class QATests(SnapTestsBase):
                 (By.CSS_SELECTOR, ".download-state .downloadProgress")
             )
         )
-        self._wait.until(lambda d: download_progress.get_property("value") == 100)
+        self._logger.info(
+            "Download process {}".format(download_progress.get_property("value"))
+        )
+
+        try:
+            self._wait.until(lambda d: download_progress.get_property("value") == 100)
+        except TimeoutException as ex:
+            details_normal = self._wait.until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, ".download-state .downloadDetailsNormal")
+                )
+            )
+            self._logger.info(
+                "Download details normal {}".format(
+                    details_normal.get_property("value")
+                )
+            )
+            details_hover = self._wait.until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, ".download-state .downloadDetailsHover")
+                )
+            )
+            self._logger.info(
+                "Download details hover {}".format(details_hover.get_property("value"))
+            )
+            raise ex
 
         # back to page
         self._driver.set_context("content")
@@ -757,7 +782,16 @@ class QATests(SnapTestsBase):
             download_dir_pref == new
         ), "download directory from pref should match new directory"
 
+    def enable_downloads_debug(self):
+        self._driver.set_context("chrome")
+        self._logger.info("Setting downloads loglevel to Debug")
+        self._driver.execute_script(
+            "return Services.prefs.setStringPref('browser.download.loglevel', 'Debug');"
+        )
+        self._driver.set_context("content")
+
     def open_lafibre(self):
+        self.enable_downloads_debug()
         download_site = self.open_tab("https://ip.lafibre.info/connectivite.php")
         return download_site
 
