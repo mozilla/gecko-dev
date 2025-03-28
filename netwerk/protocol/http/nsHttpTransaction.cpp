@@ -217,6 +217,7 @@ nsresult nsHttpTransaction::Init(
   if (NS_FAILED(rv)) return rv;
 
   mConnInfo = cinfo;
+  mFinalizedConnInfo = cinfo;
   mCallbacks = callbacks;
   mConsumerTarget = target;
   mCaps = caps;
@@ -438,11 +439,17 @@ void nsHttpTransaction::SetH2WSConnRefTaken() {
   }
 }
 
-UniquePtr<nsHttpResponseHead> nsHttpTransaction::TakeResponseHead() {
+UniquePtr<nsHttpResponseHead> nsHttpTransaction::TakeResponseHeadAndConnInfo(
+    nsHttpConnectionInfo** aOut) {
   MOZ_ASSERT(!mResponseHeadTaken, "TakeResponseHead called 2x");
 
   // Lock TakeResponseHead() against main thread
   MutexAutoLock lock(mLock);
+
+  if (aOut) {
+    RefPtr<nsHttpConnectionInfo> connInfo = mFinalizedConnInfo;
+    connInfo.forget(aOut);
+  }
 
   mResponseHeadTaken = true;
 
@@ -523,6 +530,7 @@ void nsHttpTransaction::OnActivated() {
 
   mActivated = true;
   gHttpHandler->ConnMgr()->AddActiveTransaction(this);
+  FinalizeConnInfo();
 }
 
 void nsHttpTransaction::GetSecurityCallbacks(nsIInterfaceRequestor** cb) {
@@ -1827,6 +1835,14 @@ static inline void RemoveAlternateServiceUsedHeader(
     DebugOnly<nsresult> rv =
         aRequestHead->SetHeader(nsHttp::Alternate_Service_Used, "0"_ns);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
+  }
+}
+
+void nsHttpTransaction::FinalizeConnInfo() {
+  RefPtr<nsHttpConnectionInfo> cloned = mConnInfo->Clone();
+  {
+    MutexAutoLock lock(mLock);
+    mFinalizedConnInfo.swap(cloned);
   }
 }
 
