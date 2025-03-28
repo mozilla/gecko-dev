@@ -2226,6 +2226,91 @@ onboarding:
       tags:
         - Onboarding
 
+private_browsing_locked:
+  feature_enabled:
+    type: event
+    description: |
+      Logged when the user enables Private Browsing Mode Locked from settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944178
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243351
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  feature_disabled:
+    type: event
+    description: |
+      Logged when the user disables Private Browsing Mode Locked from settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944178
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243351
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  prompt_shown:
+    type: event
+    description: |
+      Logged when the Private Browsing Mode Locked prompt is triggered upon entering or re-entering private browsing.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944178
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243351
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  auth_success:
+    type: event
+    description: |
+      Logged when the user successfully unlocks Private Browsing Mode using biometrics.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944178
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243351
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  auth_failure:
+    type: event
+    description: |
+      Logged when the user fails to unlock Private Browsing Mode using biometrics (e.g. unrecognized face/fingerprint).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944178
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243351
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  see_other_tabs_clicked:
+    type: event
+    description: |
+      Logged when the user selects a fallback option like "See other tabs" instead of unlocking Private Browsing Mode.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944178
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243351
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
 search_shortcuts:
   selected:
     type: event
