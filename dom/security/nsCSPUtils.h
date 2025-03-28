@@ -437,6 +437,19 @@ class nsCSPTrustedTypesDirectivePolicyName : public nsCSPBaseSrc {
   const nsString mName;
 };
 
+class nsCSPTrustedTypesDirectiveInvalidToken : public nsCSPBaseSrc {
+ public:
+  explicit nsCSPTrustedTypesDirectiveInvalidToken(
+      const nsAString& aInvalidToken);
+  virtual ~nsCSPTrustedTypesDirectiveInvalidToken() = default;
+
+  bool visit(nsCSPSrcVisitor* aVisitor) const override;
+  void toString(nsAString& aOutStr) const override;
+
+ private:
+  const nsString mInvalidToken;
+};
+
 /* =============== nsCSPSrcVisitor ================== */
 
 class nsCSPSrcVisitor {
