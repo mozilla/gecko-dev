@@ -29,12 +29,17 @@ const AREAS = [
   "preferences_paneContainers",
 ];
 
+function resetGleanEvents() {
+  Services.fog.testResetFOG();
+  GleanPings.prototypeNoCodeEvents.setEnabled(true);
+}
+
 // Checks that the correct number of clicks are registered against the correct
 // keys in the scalars. Also runs keyed scalar checks against non-area types
 // passed in through expectedOther.
 function assertInteractionScalars(expectedAreas, expectedOther = {}) {
   // Every time this checks Scalars, it clears them. So clear FOG too.
-  Services.fog.testResetFOG();
+  resetGleanEvents();
   let processScalars =
     Services.telemetry.getSnapshotForKeyedScalars("main", true)?.parent ?? {};
 
@@ -96,7 +101,7 @@ add_task(async function toolbarButtons() {
     });
 
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
-    Services.fog.testResetFOG();
+    resetGleanEvents();
     // We want to record events into this ping, so it has to be enabled.
     GleanPings.prototypeNoCodeEvents.setEnabled(true);
 
@@ -224,7 +229,7 @@ add_task(async function toolbarButtons() {
 add_task(async function contextMenu() {
   await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
-    Services.fog.testResetFOG();
+    resetGleanEvents();
 
     let tab = gBrowser.getTabForBrowser(browser);
     let context = elem("tabContextMenu");
@@ -243,6 +248,7 @@ add_task(async function contextMenu() {
     let events = Glean.browserUsage.interaction
       .testGetValue()
       .map(e => [e.extra.source, e.extra.widget_id]);
+
     Assert.deepEqual(
       [
         ["tabs-context", "context-toggleMuteTab"],
@@ -371,7 +377,7 @@ add_task(async function contextMenu_entrypoints() {
 add_task(async function appMenu() {
   await BrowserTestUtils.withNewTab("https://example.com", async () => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
-    Services.fog.testResetFOG();
+    resetGleanEvents();
 
     let shown = BrowserTestUtils.waitForEvent(
       elem("appMenu-popup"),
@@ -416,7 +422,7 @@ add_task(async function appMenu() {
 add_task(async function devtools() {
   await BrowserTestUtils.withNewTab("https://example.com", async () => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
-    Services.fog.testResetFOG();
+    resetGleanEvents();
 
     let shown = BrowserTestUtils.waitForEvent(
       elem("appMenu-popup"),
@@ -476,7 +482,7 @@ add_task(async function webextension() {
 
   await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
-    Services.fog.testResetFOG();
+    resetGleanEvents();
 
     function background() {
       browser.commands.onCommand.addListener(() => {
@@ -821,7 +827,7 @@ add_task(async function mainMenu() {
 
   await BrowserTestUtils.withNewTab("https://example.com", async () => {
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
-    Services.fog.testResetFOG();
+    resetGleanEvents();
 
     CustomizableUI.setToolbarVisibility("toolbar-menubar", true);
 
@@ -864,7 +870,7 @@ add_task(async function preferences() {
     await finalPrefPaneLoaded;
 
     Services.telemetry.getSnapshotForKeyedScalars("main", true);
-    Services.fog.testResetFOG();
+    resetGleanEvents();
 
     await BrowserTestUtils.synthesizeMouseAtCenter(
       "#browserRestoreSession",
