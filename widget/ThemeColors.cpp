@@ -157,10 +157,10 @@ sRGBColor ThemeAccentColor::GetDarker() const {
   return sRGBColor::FromABGR(ColorPalette::GetDarker(*mAccentColor));
 }
 
-auto ThemeColors::ShouldBeHighContrast(const nsPresContext& aPc,
-                                       bool aCustomAccentColor)
+auto ThemeColors::ShouldBeHighContrast(const nsIFrame* aFrame)
     -> HighContrastInfo {
-  if (!aPc.GetBackgroundColorDraw()) {
+  auto* pc = aFrame->PresContext();
+  if (!pc->GetBackgroundColorDraw()) {
     // We make sure that we're drawing backgrounds, since otherwise layout
     // will darken our used text colors etc anyways, and that can cause
     // contrast issues with dark high-contrast themes.
@@ -177,18 +177,18 @@ auto ThemeColors::ShouldBeHighContrast(const nsPresContext& aPc,
     // or in "requested" mode (chrome-only) with no custom accent color.
     // Otherwise it causes issues when pages only override some of the system
     // colors, specially in dark themes.
-    switch (aPc.ForcedColors()) {
+    switch (pc->ForcedColors()) {
       case StyleForcedColors::None:
         break;
       case StyleForcedColors::Requested:
-        return !aCustomAccentColor;
+        return aFrame->StyleUI()->mAccentColor.IsAuto();
       case StyleForcedColors::Active:
         return true;
     }
     return false;
   }();
   const bool mustUseLight =
-      PreferenceSheet::PrefsFor(*aPc.Document()).mMustUseLightSystemColors;
+      PreferenceSheet::PrefsFor(*pc->Document()).mMustUseLightSystemColors;
   return {highContrast, mustUseLight};
 }
 
