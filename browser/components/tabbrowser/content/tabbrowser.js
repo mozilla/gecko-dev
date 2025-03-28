@@ -5362,6 +5362,10 @@
         ourBrowser.isDistinctProductPageVisit = true;
       }
 
+      if (otherBrowser.reviewCheckerWasClosed) {
+        ourBrowser.reviewCheckerWasClosed = true;
+      }
+
       SitePermissions.copyTemporaryPermissions(otherBrowser, ourBrowser);
 
       // If the other tab is pending (i.e. has not been restored, yet)

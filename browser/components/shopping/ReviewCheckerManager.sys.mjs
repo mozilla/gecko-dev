@@ -41,6 +41,7 @@ export class ReviewCheckerManager {
   #enabled = false;
   #hasListeners = null;
   #didAutoOpenForOptedInUser = false;
+  #currentURI = null;
 
   /**
    * Creates manager to open and close the review checker sidebar
@@ -82,6 +83,7 @@ export class ReviewCheckerManager {
   uninit() {
     this.#removeListeners();
     this.#didAutoOpenForOptedInUser = null;
+    this.#currentURI = null;
   }
 
   get optedIn() {
@@ -108,7 +110,8 @@ export class ReviewCheckerManager {
     if (this.#hasListeners) {
       return;
     }
-    this.window.gBrowser.addProgressListener(this);
+    this.window.gBrowser.addTabsProgressListener(this);
+    this.window.gBrowser.tabContainer.addEventListener("TabSelect", this);
     this.window.addEventListener("OpenReviewCheckerSidebar", this);
     this.window.addEventListener("CloseReviewCheckerSidebar", this);
     this.window.addEventListener("DispatchNewPositionCardIfEligible", this);
@@ -117,6 +120,7 @@ export class ReviewCheckerManager {
       this
     );
     this.window.addEventListener("ShowSidebarSettingsFromReviewChecker", this);
+    this.window.addEventListener("SidebarShown", this);
     this.#hasListeners = true;
   }
 
@@ -124,7 +128,8 @@ export class ReviewCheckerManager {
     if (!this.#hasListeners) {
       return;
     }
-    this.window.gBrowser.removeProgressListener(this);
+    this.window.gBrowser.removeTabsProgressListener(this);
+    this.window.gBrowser.tabContainer.removeEventListener("TabSelect", this);
     this.window.removeEventListener("OpenReviewCheckerSidebar", this);
     this.window.removeEventListener("CloseReviewCheckerSidebar", this);
     this.window.removeEventListener("DispatchNewPositionCardIfEligible", this);
@@ -143,14 +148,20 @@ export class ReviewCheckerManager {
    * Show the Review Checker in the sidebar for the managed window.
    */
   showSidebar() {
+    let { selectedBrowser } = this.window.gBrowser;
+    lazy.ShoppingUtils.clearWasClosedFlag(selectedBrowser);
     this.SidebarController.show(ReviewCheckerManager.SIDEBAR_ID);
   }
 
   /**
    * Hide the sidebar for the managed window if the Review Checker
    * is currently shown.
+   *
+   * @param {boolean} autoClosed
+   *    true if the sidebar was auto-closed instead
+   *    of by a user action.
    */
-  hideSidebar() {
+  hideSidebar(autoClosed) {
     if (
       !this.SidebarController.isOpen ||
       this.SidebarController.currentID !== ReviewCheckerManager.SIDEBAR_ID
@@ -158,7 +169,23 @@ export class ReviewCheckerManager {
       return;
     }
 
+    // Prevent auto-opening this product again on tab switch.
+    if (!autoClosed && this.#canAutoOpen) {
+      let { selectedBrowser } = this.window.gBrowser;
+      selectedBrowser.reviewCheckerWasClosed = true;
+    }
+
     this.SidebarController.hide();
+  }
+
+  /**
+   * Checks if the sidebar is open to the Review Checker.
+   */
+  isSidebarOpen() {
+    return (
+      this.SidebarController.isOpen &&
+      this.SidebarController.currentID == ReviewCheckerManager.SIDEBAR_ID
+    );
   }
 
   /**
@@ -200,24 +227,18 @@ export class ReviewCheckerManager {
   }
 
   /**
-   * Listens to location changes from tabbrowser and handles new top level
-   * location changes and tab switches.
+   * Called by onLocationChange or onTabSelect to handle navigations
+   * and tab switches.
    *
-   * This is called on navigation in the current tab and fires a simulated
-   * change when switching to a different tab.
+   * This is called on navigations in the current tab or as a
+   * simulated change when switching tabs.
    *
    * Updates ShoppingUtils with the location changes.
    *
    * If a new location is a product url this will:
    *  - Check if the sidebar should be auto-opened.
    *  - Show the sidebar if needed.
-   *  - Mark the browser with `isDistinctProductPageVisit=true` so that
-   *    each navigation is only handled once.
    *
-   * @param {nsIWebProgress} aWebProgress
-   *   The nsIWebProgress instance that fired the notification.
-   * @param {nsIRequest} _aRequest
-   *  Unused and is null when change is simulated.
    * @param {nsIURI} aLocationURI
    *   The URI of the new location.
    * @param {integer} aFlags
@@ -226,57 +247,66 @@ export class ReviewCheckerManager {
    *   True when change is from switching tabs
    *   and undefined otherwise.
    */
-  onLocationChange(
-    aWebProgress,
-    _aRequest,
-    aLocationURI,
-    aFlags,
-    aIsSimulated
-  ) {
-    if (aWebProgress && !aWebProgress.isTopLevel) {
-      return;
-    }
-
-    let { selectedBrowser } = this.window.gBrowser;
-    // If this was not a tab change, clear any previously set product visit
-    // as we have navigated to a new location.
-    if (!aIsSimulated && selectedBrowser.isDistinctProductPageVisit) {
-      delete selectedBrowser.isDistinctProductPageVisit;
-    }
-
+  locationChangeHandler(aLocationURI, aFlags, aIsSimulated) {
     this.#didAutoOpenForOptedInUser = false;
 
+    let previousURI = this.#currentURI;
     let isSupportedSite = lazy.isSupportedSiteURL(aLocationURI);
     let isProductURL = lazy.isProductURL(aLocationURI);
+    let { selectedBrowser } = this.window.gBrowser;
 
-    if (this.#canAutoOpen() && !isSupportedSite && !isProductURL) {
-      this.hideSidebar();
-    }
+    // Only product URIs are needed for comparison.
+    this.#currentURI = isProductURL ? aLocationURI : null;
 
-    // If we have previously handled the location we should not do it again.
-    if (selectedBrowser.isDistinctProductPageVisit) {
+    // Close the sidebar on tab switches if user has previously closed
+    // the sidebar in this tab (for this location).
+    let wasClosed = aIsSimulated && selectedBrowser.reviewCheckerWasClosed;
+
+    let canAutoClose = this.#canAutoOpen() && !isSupportedSite && !isProductURL;
+    if (canAutoClose || wasClosed) {
+      this.hideSidebar(true);
       return;
     }
 
-    // Only auto-open the sidebar for a product page navigation.
-    let isProductPageNavigation = lazy.ShoppingUtils.isProductPageNavigation(
+    // Check if this is a new location.
+    let hasLocationChanged = lazy.ShoppingUtils.hasLocationChanged(
       aLocationURI,
-      aFlags
+      aFlags,
+      previousURI
     );
-    if (!isProductPageNavigation) {
+
+    // Only auto-open the sidebar for a product page.
+    if (!isProductURL || !hasLocationChanged) {
       return;
     }
 
-    // Record a product exposure for the location change.
-    lazy.ShoppingUtils.recordExposure(aLocationURI, aFlags);
+    // Allow this tab to auto-open again if this was a navigation
+    // to a new product.
+    if (!aIsSimulated) {
+      lazy.ShoppingUtils.clearWasClosedFlag(selectedBrowser);
+    }
+
+    // If the sidebar is currently open there is no need to auto-open,
+    // and the ReviewCheckerParent will handle recording the exposure.
+    let isSidebarOpen = this.isSidebarOpen();
+    if (isSidebarOpen) {
+      return;
+    }
 
     let shouldAutoOpen;
     if (this.optedIn) {
-      shouldAutoOpen = this.#canAutoOpen();
+      /**
+       * We can auto-open the sidebar if:
+       * - Auto-open is enabled.
+       * - This sidebar has not been closed for this product in this tab.
+       * - This is a navigation to a product page, or the location change
+       *   is from switching to this tab.
+       * - The user has not had a chance to opt-in or out yet.
+       */
+      shouldAutoOpen = this.#canAutoOpen() && !wasClosed;
     } else {
       // Check if we should auto-open to allow opting in.
       shouldAutoOpen = lazy.ShoppingUtils.handleAutoActivateOnProduct();
-
       // Only trigger the callout if the panel is not auto-opening
       if (!shouldAutoOpen) {
         lazy.ShoppingUtils.sendTrigger({
@@ -297,10 +327,82 @@ export class ReviewCheckerManager {
       if (this.optedIn) {
         this.#didAutoOpenForOptedInUser = true;
       }
+
+      return;
     }
 
-    // Mark product location as distinct the first time we see it.
-    selectedBrowser.isDistinctProductPageVisit = true;
+    // Record a product exposure for the location change,
+    // if the sidebar is not going to open and record it.
+    if (!aIsSimulated) {
+      lazy.ShoppingUtils.recordExposure(aLocationURI, aFlags);
+      lazy.ShoppingUtils.clearIsDistinctProductPageVisitFlag(selectedBrowser);
+    }
+  }
+
+  /**
+   * Listens to TabsProgressListener and handles new top level
+   * location changes in any browser in the window.
+   *
+   * Calls locationChangeHandler with the location changes.
+   *
+   * If a background tab navigated to a location that is a product url,
+   * this will mark the browser with `isDistinctProductPageVisit=true`
+   * so that navigation can be handled when the background tab is selected.
+   *
+   *  @param {Browser} aBrowser
+   *   The browser the location change took place in.
+   * @param {nsIWebProgress} aWebProgress
+   *   The nsIWebProgress instance that fired the notification.
+   * @param {nsIRequest} _aRequest
+   *  Unused and is null when change is simulated.
+   * @param {nsIURI} aLocationURI
+   *   The URI of the new location.
+   * @param {integer} aFlags
+   *   The reason for the location change.
+   */
+  onLocationChange(aBrowser, aWebProgress, _aRequest, aLocationURI, aFlags) {
+    if (!aWebProgress.isTopLevel) {
+      return;
+    }
+
+    let { selectedBrowser } = this.window.gBrowser;
+    // No need to handle background navigations until they
+    // are foregrounded.
+    if (aBrowser != selectedBrowser) {
+      let isProductURL = lazy.isProductURL(aLocationURI);
+      if (isProductURL) {
+        // Mark this product page to be handled in the future.
+        aBrowser.isDistinctProductPageVisit = true;
+      } else {
+        // Otherwise this is no longer a product page that
+        // needs to be handled.
+        lazy.ShoppingUtils.clearIsDistinctProductPageVisitFlag(selectedBrowser);
+      }
+      return;
+    }
+
+    this.locationChangeHandler(aLocationURI, aFlags, false);
+  }
+
+  /**
+   * Listens for changes to the selected tab.
+   *
+   * Calls locationChangeHandler with URI of the current tab.
+   *
+   * If this tabs location changed when not selected, the location will be
+   * handled like a navigation and `isDistinctProductPageVisit` will be removed
+   * by the ReviewCheckerParent after the sidebar has been updated.
+   *
+   * Otherwise the change will be sent as a simulated change to represent that it
+   * is just a tab switch as `gBrowser.onProgressListener` does.
+   */
+  onTabSelect() {
+    let { selectedBrowser, currentURI } = this.window.gBrowser;
+
+    let isSimulated = !selectedBrowser.isDistinctProductPageVisit;
+    this.#currentURI = null;
+
+    this.locationChangeHandler(currentURI, null, isSimulated);
   }
 
   handleEvent(event) {
@@ -349,6 +451,22 @@ export class ReviewCheckerManager {
           }
         );
         this.window.dispatchEvent(showNewPositionCardEvent);
+        break;
+      }
+      case "TabSelect": {
+        this.onTabSelect();
+        break;
+      }
+      case "SidebarShown": {
+        // Clear that the sidebar was closed as it has opened
+        // to the ReviewChecker again.
+        if (
+          this.SidebarController.isOpen ||
+          this.SidebarController.currentID == ReviewCheckerManager.SIDEBAR_ID
+        ) {
+          let { selectedBrowser } = this.window.gBrowser;
+          lazy.ShoppingUtils.clearWasClosedFlag(selectedBrowser);
+        }
         break;
       }
     }

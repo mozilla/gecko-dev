@@ -951,3 +951,26 @@ export function isSupportedSiteURL(url) {
   let productInfo = ShoppingProduct.fromURL(url);
   return ShoppingProduct.isSupportedSite(productInfo);
 }
+
+/**
+ * Get the product ID of a valid product URL.
+ *
+ * @param {URL | nsIURI } url
+ *  URL to check.
+ * @returns {number} id
+ */
+export function getProductIdFromURL(url) {
+  if (url instanceof Ci.nsIURI) {
+    url = URL.fromURI(url);
+  }
+  if (!URL.isInstance(url)) {
+    return null;
+  }
+
+  let productInfo = ShoppingProduct.fromURL(url);
+  if (!ShoppingProduct.isProduct(productInfo)) {
+    return null;
+  }
+
+  return productInfo.id;
+}

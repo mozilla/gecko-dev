@@ -4,10 +4,14 @@
 
 "use strict";
 
-const { ShoppingProduct, isProductURL, isSupportedSiteURL } =
-  ChromeUtils.importESModule(
-    "chrome://global/content/shopping/ShoppingProduct.mjs"
-  );
+const {
+  ShoppingProduct,
+  isProductURL,
+  isSupportedSiteURL,
+  getProductIdFromURL,
+} = ChromeUtils.importESModule(
+  "chrome://global/content/shopping/ShoppingProduct.mjs"
+);
 
 add_task(function test_product_fromUrl() {
   Assert.deepEqual(
@@ -440,4 +444,38 @@ add_task(function test_getSupportedDomains() {
     null,
     "Got null for ShoppingProduct.getSupportedDomains with invalid config"
   );
+});
+
+add_task(function test_getProductIdFromURL() {
+  let product_string =
+    "https://www.amazon.com/Furmax-Electric-Adjustable-Standing-Computer/dp/B09TJGHL5F/";
+  let product_url = new URL(product_string);
+  let product_uri = Services.io.newURI(product_string);
+  Assert.equal(
+    getProductIdFromURL(product_url),
+    "B09TJGHL5F",
+    "Passing a product URL returns true"
+  );
+  Assert.equal(
+    getProductIdFromURL(product_uri),
+    "B09TJGHL5F",
+    "Passing a product URI returns true"
+  );
+
+  let content_string =
+    "https://www.walmart.com/browse/food/grilling-foods/976759_1567409_8808777";
+  let content_url = new URL(content_string);
+  let content_uri = Services.io.newURI(content_string);
+  Assert.equal(
+    getProductIdFromURL(content_url),
+    null,
+    "Passing a content URL returns null"
+  );
+  Assert.equal(
+    getProductIdFromURL(content_uri),
+    null,
+    "Passing a content URI returns null"
+  );
+
+  Assert.equal(getProductIdFromURL(), null, "Passing nothing returns null");
 });

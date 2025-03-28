@@ -10,6 +10,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   isProductURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
+  getProductIdFromURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
@@ -176,6 +177,53 @@ export const ShoppingUtils = {
     );
   },
 
+  /**
+   * Similar to isProductPageNavigation but compares the
+   * current location URI to a previous location URI and
+   * checks if the URI and product has changed.
+   *
+   * This lets us avoid issues with over-counting products
+   * that have multiple loads or history changes.
+   *
+   * @param {nsIURI} aLocationURI
+   *    The current location.
+   * @param {integer} aFlags
+   *    The load flags or null.
+   * @param {nsIURI} aPreviousURI
+   *    A previous product URI or null.
+   * @returns {boolean} isNewProduct
+   */
+  hasLocationChanged(aLocationURI, aFlags, aPreviousURI) {
+    let isReload = aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_RELOAD;
+    let isSessionRestore =
+      aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SESSION_STORE;
+
+    // If we have reloaded, restored or there isn't a previous URI
+    // this is a location change.
+    if (isReload || isSessionRestore || !aPreviousURI) {
+      return true;
+    }
+
+    let isCurrentLocationProduct = lazy.isProductURL(aLocationURI);
+    let isPrevLocationProduct = lazy.isProductURL(aPreviousURI);
+
+    // If the locations are not products, we can just compare URIs.
+    if (!isCurrentLocationProduct && !isPrevLocationProduct) {
+      return aLocationURI.equalsExceptRef(aPreviousURI);
+    }
+
+    // If one of the URIs is not a product url, but the other is
+    // this is a location change.
+    if (!isCurrentLocationProduct || !isPrevLocationProduct) {
+      return true;
+    }
+
+    // If URIs are both products we will need to check,
+    // if the product have changed by comparing them.
+    let isSameProduct = this.isSameProduct(aLocationURI, aPreviousURI);
+    return !isSameProduct;
+  },
+
   // For users in either the nimbus control or treatment groups, increment a
   // counter when they visit supported product pages.
   recordExposure() {
@@ -289,7 +337,7 @@ export const ShoppingUtils = {
     );
 
     if (isProductPageNavigation) {
-      this.recordExposure(aLocationURI, aFlags);
+      this.recordExposure();
     }
 
     if (
@@ -300,6 +348,60 @@ export const ShoppingUtils = {
     ) {
       this.resetActiveOnNextProductPage = false;
       Services.prefs.setBoolPref(ACTIVE_PREF, true);
+    }
+  },
+
+  /**
+   * Check if two URIs represent the same product by
+   * comparing URLs and then parsed product ID.
+   *
+   * @param {nsIURI} aURI
+   * @param {nsIURI} bURI
+   *
+   * @returns {boolean}
+   */
+  isSameProduct(aURI, bURI) {
+    if (!aURI || !bURI) {
+      return false;
+    }
+
+    // Check if the URIs are equal and are products.
+    if (aURI.equalsExceptRef(bURI)) {
+      return lazy.isProductURL(aURI);
+    }
+
+    // Check if the product ids are the same:
+    let aProductID = lazy.getProductIdFromURL(aURI);
+    let bProductID = lazy.getProductIdFromURL(bURI);
+
+    if (!aProductID || !bProductID) {
+      return false;
+    }
+
+    return aProductID === bProductID;
+  },
+
+  /**
+   * Removes browser `reviewCheckerWasClosed` flag that indicates the
+   * Review Checker sidebar was closed by a user action.
+   *
+   * @param {browser} browser
+   */
+  clearWasClosedFlag(browser) {
+    if (browser.reviewCheckerWasClosed) {
+      delete browser.reviewCheckerWasClosed;
+    }
+  },
+
+  /**
+   * Removes browser `isDistinctProductPageVisit` flag that indicates
+   * a tab has an unhandled product navigation.
+   *
+   * @param {browser} browser
+   */
+  clearIsDistinctProductPageVisitFlag(browser) {
+    if (browser.isDistinctProductPageVisit) {
+      delete browser.isDistinctProductPageVisit;
     }
   },
 
