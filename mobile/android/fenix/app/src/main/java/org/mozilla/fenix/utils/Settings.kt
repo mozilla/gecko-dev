@@ -2465,11 +2465,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     }
 
     /**
-     * Secret setting to indicate whether or not to show the tab strip.
+     * Indicates whether or not to show the tab strip.
      */
-    var tabStripEnabled by booleanPreference(
+    var tabStripEnabled by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_tab_strip),
-        default = false,
+        default = { FxNimbus.features.tabStrip.value().enabled },
+        featureFlag = true,
     )
 
     /**

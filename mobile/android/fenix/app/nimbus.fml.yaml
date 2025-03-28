@@ -622,6 +622,15 @@ features:
         type: Boolean
         default: false
 
+  tab-strip:
+    description: Enables tab strip.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable tab strip.
+        type: Boolean
+        default: false
+
   trending-searches:
     description: Enables trending searches.
     variables:
