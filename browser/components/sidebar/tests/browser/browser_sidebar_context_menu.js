@@ -183,8 +183,8 @@ add_task(async function test_extension_context_menu() {
   sinon.restore();
   await extension.unload();
   ok(
-    BrowserTestUtils.isHidden(sidebar),
-    "Unloading the extension causes the sidebar launcher to hide"
+    BrowserTestUtils.isVisible(sidebar),
+    "Unloading the extension does not cause the sidebar launcher to hide"
   );
   await BrowserTestUtils.closeWindow(win);
 });
