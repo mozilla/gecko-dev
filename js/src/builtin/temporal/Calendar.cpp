@@ -1411,8 +1411,21 @@ static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
   // Note: Assigning MaxLength to ICUEraNameMaxLength() breaks the CDT indexer.
   constexpr size_t MaxLength = 15;
 #ifdef IMPLEMENTS_DR2126
+
+// Disable tautological-value-range-compare to avoid a bogus Clang warning.
+// See bug 1956918 and bug 1936626.
+#  ifdef __clang__
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wtautological-value-range-compare"
+#  endif
+
   static_assert(MaxLength >= ICUEraNameMaxLength(),
                 "Storage size is at least as large as the largest known era");
+
+#  ifdef __clang__
+#    pragma clang diagnostic pop
+#  endif
+
 #endif
 
   // Storage for the largest known era string and the terminating NUL-character.
