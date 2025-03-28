@@ -9401,6 +9401,29 @@ class MPostIntPtrConversion : public MUnaryInstruction,
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 };
 
+class MCanonicalizeNaN : public MUnaryInstruction, public NoTypePolicy::Data {
+  explicit MCanonicalizeNaN(MDefinition* input)
+      : MUnaryInstruction(classOpcode, input) {
+    MOZ_ASSERT(IsFloatingPointType(input->type()));
+    setResultType(input->type());
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(CanonicalizeNaN)
+  TRIVIAL_NEW_WRAPPERS
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins);
+  }
+
+  bool canProduceFloat32() const override { return type() == MIRType::Float32; }
+
+  ALLOW_CLONE(MCanonicalizeNaN)
+};
+
 class MRotate : public MBinaryInstruction, public NoTypePolicy::Data {
   bool isLeftRotate_;
 

@@ -3458,6 +3458,9 @@
 - name: PostIntPtrConversion
   gen_boilerplate: false
 
+- name: CanonicalizeNaN
+  gen_boilerplate: false
+
 - name: WasmNeg
   gen_boilerplate: false
 

@@ -4964,6 +4964,18 @@
     input: WordSized
   call_instruction: true
 
+# Canonicalize a double value.
+- name: CanonicalizeNaND
+  result_type: WordSized
+  operands:
+    input: WordSized
+
+# Canonicalize a float32 value.
+- name: CanonicalizeNaNF
+  result_type: WordSized
+  operands:
+    input: WordSized
+
 - name: IonToWasmCall
   gen_boilerplate: false
 

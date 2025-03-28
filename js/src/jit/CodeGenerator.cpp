@@ -21362,6 +21362,20 @@ void CodeGenerator::visitDateSecondsFromSecondsIntoYear(
   masm.dateSecondsFromSecondsIntoYear(secondsIntoYear, output, temp0, temp1);
 }
 
+void CodeGenerator::visitCanonicalizeNaND(LCanonicalizeNaND* ins) {
+  auto output = ToFloatRegister(ins->output());
+  MOZ_ASSERT(output == ToFloatRegister(ins->input()));
+
+  masm.canonicalizeDouble(output);
+}
+
+void CodeGenerator::visitCanonicalizeNaNF(LCanonicalizeNaNF* ins) {
+  auto output = ToFloatRegister(ins->output());
+  MOZ_ASSERT(output == ToFloatRegister(ins->input()));
+
+  masm.canonicalizeFloat(output);
+}
+
 template <size_t NumDefs>
 void CodeGenerator::emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir) {
   wasm::JitCallStackArgVector stackArgs;

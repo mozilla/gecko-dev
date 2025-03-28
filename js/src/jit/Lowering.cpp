@@ -7842,6 +7842,22 @@ void LIRGenerator::visitPostIntPtrConversion(MPostIntPtrConversion* ins) {
   redefine(ins, ins->input());
 }
 
+void LIRGenerator::visitCanonicalizeNaN(MCanonicalizeNaN* ins) {
+  MOZ_ASSERT(ins->type() == ins->input()->type());
+
+  auto input = useRegisterAtStart(ins->input());
+  switch (ins->type()) {
+    case MIRType::Double:
+      defineReuseInput(new (alloc()) LCanonicalizeNaND(input), ins, 0);
+      return;
+    case MIRType::Float32:
+      defineReuseInput(new (alloc()) LCanonicalizeNaNF(input), ins, 0);
+      return;
+    default:
+      MOZ_CRASH("unexpected floating point type");
+  }
+}
+
 void LIRGenerator::visitConstant(MConstant* ins) {
   if (!IsFloatingPointType(ins->type()) && ins->canEmitAtUses()) {
     emitAtUses(ins);
