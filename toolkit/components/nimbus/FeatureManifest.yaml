@@ -4323,6 +4323,18 @@ chatbot:
         sub-pref and values objects indicating the desired branch and value
         defaulting to clearing the user branch value.
 
+linkPreviews:
+  description: Enabling the link previews feature
+  owner: elee@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.ml.linkPreview.enabled
+      description: If true, will show previews when over link and keyboard shortcut is pressed
+
 sidebar:
   description: Sidebar feature configuration
   owner: elee@mozilla.com
