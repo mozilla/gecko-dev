@@ -1257,70 +1257,66 @@ void MacroAssembler::spectreZeroRegister(Condition cond, Register scratch,
 
 // ========================================================================
 // Memory access primitives.
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedDouble(
-    FloatRegister src, const Address& dest) {
+FaultingCodeOffset MacroAssembler::storeDouble(FloatRegister src,
+                                               const Address& dest) {
   FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
   vmovsd(src, dest);
   return fco;
 }
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedDouble(
-    FloatRegister src, const BaseIndex& dest) {
+FaultingCodeOffset MacroAssembler::storeDouble(FloatRegister src,
+                                               const BaseIndex& dest) {
   FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
   vmovsd(src, dest);
   return fco;
 }
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedDouble(
-    FloatRegister src, const Operand& dest) {
+FaultingCodeOffset MacroAssembler::storeDouble(FloatRegister src,
+                                               const Operand& dest) {
   switch (dest.kind()) {
     case Operand::MEM_REG_DISP:
-      return storeUncanonicalizedDouble(src, dest.toAddress());
+      return storeDouble(src, dest.toAddress());
     case Operand::MEM_SCALE:
-      return storeUncanonicalizedDouble(src, dest.toBaseIndex());
+      return storeDouble(src, dest.toBaseIndex());
     default:
       MOZ_CRASH("unexpected operand kind");
   }
 }
 
-template FaultingCodeOffset MacroAssembler::storeDouble(FloatRegister src,
-                                                        const Operand& dest);
-
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
-    FloatRegister src, const Address& dest) {
+FaultingCodeOffset MacroAssembler::storeFloat32(FloatRegister src,
+                                                const Address& dest) {
   FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
   vmovss(src, dest);
   return fco;
 }
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
-    FloatRegister src, const BaseIndex& dest) {
+FaultingCodeOffset MacroAssembler::storeFloat32(FloatRegister src,
+                                                const BaseIndex& dest) {
   FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
   vmovss(src, dest);
   return fco;
 }
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat32(
-    FloatRegister src, const Operand& dest) {
+FaultingCodeOffset MacroAssembler::storeFloat32(FloatRegister src,
+                                                const Operand& dest) {
   switch (dest.kind()) {
     case Operand::MEM_REG_DISP:
-      return storeUncanonicalizedFloat32(src, dest.toAddress());
+      return storeFloat32(src, dest.toAddress());
     case Operand::MEM_SCALE:
-      return storeUncanonicalizedFloat32(src, dest.toBaseIndex());
+      return storeFloat32(src, dest.toBaseIndex());
     default:
       MOZ_CRASH("unexpected operand kind");
   }
 }
 
-template FaultingCodeOffset MacroAssembler::storeFloat32(FloatRegister src,
-                                                         const Operand& dest);
-
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
-    FloatRegister src, const Address& dest, Register scratch) {
+FaultingCodeOffset MacroAssembler::storeFloat16(FloatRegister src,
+                                                const Address& dest,
+                                                Register scratch) {
   vmovd(src, scratch);
 
   FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
   movw(scratch, Operand(dest));
   return fco;
 }
-FaultingCodeOffset MacroAssembler::storeUncanonicalizedFloat16(
-    FloatRegister src, const BaseIndex& dest, Register scratch) {
+FaultingCodeOffset MacroAssembler::storeFloat16(FloatRegister src,
+                                                const BaseIndex& dest,
+                                                Register scratch) {
   vmovd(src, scratch);
 
   FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());

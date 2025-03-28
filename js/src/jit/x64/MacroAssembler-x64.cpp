@@ -1252,13 +1252,12 @@ void MacroAssembler::wasmStore(const wasm::MemoryAccessDesc& access,
       movq(value.gpr(), dstAddr);
       break;
     case Scalar::Float32: {
-      FaultingCodeOffset fco =
-          storeUncanonicalizedFloat32(value.fpu(), dstAddr);
+      FaultingCodeOffset fco = storeFloat32(value.fpu(), dstAddr);
       append(access, wasm::TrapMachineInsn::Store32, fco);
       break;
     }
     case Scalar::Float64: {
-      FaultingCodeOffset fco = storeUncanonicalizedDouble(value.fpu(), dstAddr);
+      FaultingCodeOffset fco = storeDouble(value.fpu(), dstAddr);
       append(access, wasm::TrapMachineInsn::Store64, fco);
       break;
     }

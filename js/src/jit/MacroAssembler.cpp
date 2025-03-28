@@ -8354,7 +8354,7 @@ void MacroAssembler::storeFloat16(FloatRegister src, const T& dest,
   if (src.isDouble()) {
     if (MacroAssembler::SupportsFloat64To16()) {
       convertDoubleToFloat16(src, fpscratch);
-      storeUncanonicalizedFloat16(fpscratch, dest, temp);
+      storeFloat16(fpscratch, dest, temp);
       return;
     }
 
@@ -8365,7 +8365,7 @@ void MacroAssembler::storeFloat16(FloatRegister src, const T& dest,
 
   if (MacroAssembler::SupportsFloat32To16()) {
     convertFloat32ToFloat16(src, fpscratch);
-    storeUncanonicalizedFloat16(fpscratch, dest, temp);
+    storeFloat16(fpscratch, dest, temp);
     return;
   }
 

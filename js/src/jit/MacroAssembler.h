@@ -2232,38 +2232,30 @@ class MacroAssembler : public MacroAssemblerSpecific {
  public:
   // ========================================================================
   // Memory access primitives.
-  inline FaultingCodeOffset storeUncanonicalizedDouble(
-      FloatRegister src, const Address& dest) PER_SHARED_ARCH;
-  inline FaultingCodeOffset storeUncanonicalizedDouble(
-      FloatRegister src, const BaseIndex& dest) PER_SHARED_ARCH;
-  inline FaultingCodeOffset storeUncanonicalizedDouble(FloatRegister src,
-                                                       const Operand& dest)
+  inline FaultingCodeOffset storeDouble(FloatRegister src,
+                                        const Address& dest) PER_SHARED_ARCH;
+  inline FaultingCodeOffset storeDouble(FloatRegister src,
+                                        const BaseIndex& dest) PER_SHARED_ARCH;
+  inline FaultingCodeOffset storeDouble(FloatRegister src, const Operand& dest)
       DEFINED_ON(x86_shared);
-
-  template <class T>
-  inline FaultingCodeOffset storeDouble(FloatRegister src, const T& dest);
 
   template <class T>
   inline void boxDouble(FloatRegister src, const T& dest);
 
   using MacroAssemblerSpecific::boxDouble;
 
-  inline FaultingCodeOffset storeUncanonicalizedFloat32(
-      FloatRegister src, const Address& dest) PER_SHARED_ARCH;
-  inline FaultingCodeOffset storeUncanonicalizedFloat32(
-      FloatRegister src, const BaseIndex& dest) PER_SHARED_ARCH;
-  inline FaultingCodeOffset storeUncanonicalizedFloat32(FloatRegister src,
-                                                        const Operand& dest)
+  inline FaultingCodeOffset storeFloat32(FloatRegister src,
+                                         const Address& dest) PER_SHARED_ARCH;
+  inline FaultingCodeOffset storeFloat32(FloatRegister src,
+                                         const BaseIndex& dest) PER_SHARED_ARCH;
+  inline FaultingCodeOffset storeFloat32(FloatRegister src, const Operand& dest)
       DEFINED_ON(x86_shared);
 
-  template <class T>
-  inline FaultingCodeOffset storeFloat32(FloatRegister src, const T& dest);
-
-  inline FaultingCodeOffset storeUncanonicalizedFloat16(
-      FloatRegister src, const Address& dest, Register scratch) PER_SHARED_ARCH;
-  inline FaultingCodeOffset storeUncanonicalizedFloat16(
-      FloatRegister src, const BaseIndex& dest,
-      Register scratch) PER_SHARED_ARCH;
+  inline FaultingCodeOffset storeFloat16(FloatRegister src, const Address& dest,
+                                         Register scratch) PER_SHARED_ARCH;
+  inline FaultingCodeOffset storeFloat16(FloatRegister src,
+                                         const BaseIndex& dest,
+                                         Register scratch) PER_SHARED_ARCH;
 
   template <typename T>
   void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
