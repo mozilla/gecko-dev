@@ -14,21 +14,34 @@ mod sync;
 
 pub use types::Timestamp;
 
-uniffi::custom_type!(Timestamp, i64, {
-    remote,
-    try_lift: |val| Ok(Self(val as u64)),
-    lower: |obj| obj.as_millis() as i64,
-});
+// for the UDL
+impl UniffiCustomTypeConverter for Timestamp {
+    type Builtin = i64;
+
+    fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
+        Ok(Self(val as u64))
+    }
+
+    fn from_custom(obj: Self) -> Self::Builtin {
+        obj.as_millis() as i64
+    }
+}
 
 uniffi::include_scaffolding!("tabs");
 
 // Our UDL uses a `Guid` type.
 use sync_guid::Guid as TabsGuid;
-uniffi::custom_type!(TabsGuid, String, {
-    remote,
-    try_lift: |val| Ok(TabsGuid::new(val.as_str())),
-    lower: |obj| obj.into(),
-});
+impl UniffiCustomTypeConverter for TabsGuid {
+    type Builtin = String;
+
+    fn into_custom(val: Self::Builtin) -> uniffi::Result<TabsGuid> {
+        Ok(TabsGuid::new(val.as_str()))
+    }
+
+    fn from_custom(obj: Self) -> Self::Builtin {
+        obj.into()
+    }
+}
 
 pub use crate::storage::{ClientRemoteTabs, RemoteTabRecord, TabsDeviceType};
 pub use crate::store::{RemoteCommandStore, TabsStore};

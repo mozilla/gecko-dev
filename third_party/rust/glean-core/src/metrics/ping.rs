@@ -40,9 +40,6 @@ struct InnerPing {
     /// True when it follows the `collection_enabled` flag (aka `upload_enabled`) flag.
     /// Otherwise it needs to be enabled through `enabled_pings`.
     follows_collection_enabled: AtomicBool,
-
-    /// Ordered list of uploader capabilities required to upload this ping.
-    uploader_capabilities: Vec<String>,
 }
 
 impl fmt::Debug for PingType {
@@ -60,7 +57,6 @@ impl fmt::Debug for PingType {
                 "follows_collection_enabled",
                 &self.0.follows_collection_enabled.load(Ordering::Relaxed),
             )
-            .field("uploader_capabilities", &self.0.uploader_capabilities)
             .finish()
     }
 }
@@ -83,7 +79,6 @@ impl PingType {
     /// * `enabled` - Whether or not this ping is enabled. Note: Data that would be sent on a disabled
     ///   ping will still be collected but is discarded rather than being submitted.
     /// * `reason_codes` - The valid reason codes for this ping.
-    /// * `uploader_capabilities` - The ordered list of capabilities this ping requires to be uploaded with.
     #[allow(clippy::too_many_arguments)]
     pub fn new<A: Into<String>>(
         name: A,
@@ -95,7 +90,6 @@ impl PingType {
         schedules_pings: Vec<String>,
         reason_codes: Vec<String>,
         follows_collection_enabled: bool,
-        uploader_capabilities: Vec<String>,
     ) -> Self {
         Self::new_internal(
             name,
@@ -107,7 +101,6 @@ impl PingType {
             schedules_pings,
             reason_codes,
             follows_collection_enabled,
-            uploader_capabilities,
         )
     }
 
@@ -122,7 +115,6 @@ impl PingType {
         schedules_pings: Vec<String>,
         reason_codes: Vec<String>,
         follows_collection_enabled: bool,
-        uploader_capabilities: Vec<String>,
     ) -> Self {
         let this = Self(Arc::new(InnerPing {
             name: name.into(),
@@ -134,7 +126,6 @@ impl PingType {
             schedules_pings,
             reason_codes,
             follows_collection_enabled: AtomicBool::new(follows_collection_enabled),
-            uploader_capabilities,
         }));
 
         // Register this ping.
@@ -229,11 +220,6 @@ impl PingType {
     /// Reason codes that this ping can send.
     pub fn reason_codes(&self) -> &[String] {
         &self.0.reason_codes
-    }
-
-    /// The capabilities this ping requires to be uploaded under.
-    pub fn uploader_capabilities(&self) -> &[String] {
-        &self.0.uploader_capabilities
     }
 
     /// Submits the ping for eventual uploading.
@@ -357,7 +343,6 @@ impl PingType {
                         headers: Some(ping.headers),
                         body_has_info_sections: self.0.include_info_sections,
                         ping_name: self.0.name.to_string(),
-                        uploader_capabilities: self.0.uploader_capabilities.clone(),
                     };
 
                     glean.upload_manager.enqueue_ping(glean, ping);

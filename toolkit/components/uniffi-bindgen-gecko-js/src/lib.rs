@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use anyhow::{Context, Result};
+use askama::Template;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
-use rinja::Template;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs::File;

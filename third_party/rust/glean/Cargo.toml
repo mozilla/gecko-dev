@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "glean"
-version = "64.0.0"
+version = "63.1.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -26,7 +26,6 @@ include = [
     "/tests",
     "/Cargo.toml",
 ]
-autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -40,24 +39,9 @@ keywords = [
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/glean"
 
-[badges.circle-ci]
-branch = "main"
-repository = "mozilla/glean"
-
-[badges.maintenance]
-status = "actively-developed"
-
 [lib]
 name = "glean"
 path = "src/lib.rs"
-
-[[test]]
-name = "collection_enabled"
-path = "tests/collection_enabled.rs"
-
-[[test]]
-name = "collection_enabled_bin"
-path = "tests/collection_enabled_bin.rs"
 
 [[test]]
 name = "custom_distribution_buffered"
@@ -115,15 +99,11 @@ path = "tests/timing_distribution_single_sample.rs"
 name = "upload_timing"
 path = "tests/upload_timing.rs"
 
-[[test]]
-name = "uploader_capabilities"
-path = "tests/uploader_capabilities.rs"
-
 [dependencies.crossbeam-channel]
 version = "0.5"
 
 [dependencies.glean-core]
-version = "64.0.0"
+version = "63.1.0"
 
 [dependencies.inherent]
 version = "1"
@@ -156,3 +136,10 @@ version = "1.0.44"
 
 [dev-dependencies.tempfile]
 version = "3.1.0"
+
+[badges.circle-ci]
+branch = "main"
+repository = "mozilla/glean"
+
+[badges.maintenance]
+status = "actively-developed"

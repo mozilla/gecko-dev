@@ -35,7 +35,6 @@ pub fn new_glean(tempdir: Option<tempfile::TempDir>) -> (Glean, tempfile::TempDi
         vec![],
         vec![],
         true,
-        vec![],
     );
     glean.register_ping_type(&ping);
     let ping = PingType::new_internal(
@@ -48,7 +47,6 @@ pub fn new_glean(tempdir: Option<tempfile::TempDir>) -> (Glean, tempfile::TempDi
         vec![],
         vec![],
         true,
-        vec![],
     );
     glean.register_ping_type(&ping);
     (glean, dir)
@@ -350,11 +348,12 @@ fn client_id_is_managed_correctly_when_toggling_uploading() {
 
     glean.set_upload_enabled(false);
     assert_eq!(
-        None,
+        *KNOWN_CLIENT_ID,
         glean
             .core_metrics
             .client_id
             .get_value(&glean, "glean_client_info")
+            .unwrap()
     );
 
     glean.set_upload_enabled(true);
@@ -368,17 +367,18 @@ fn client_id_is_managed_correctly_when_toggling_uploading() {
 }
 
 #[test]
-fn client_id_is_not_set_when_uploading_disabled_at_start() {
+fn client_id_is_set_to_known_value_when_uploading_disabled_at_start() {
     let dir = tempfile::tempdir().unwrap();
     let tmpname = dir.path().display().to_string();
     let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, false, true);
 
     assert_eq!(
-        None,
+        *KNOWN_CLIENT_ID,
         glean
             .core_metrics
             .client_id
             .get_value(&glean, "glean_client_info")
+            .unwrap()
     );
 }
 
@@ -1218,7 +1218,6 @@ fn disabled_pings_are_not_submitted() {
         vec![],
         vec![],
         true,
-        vec![],
     );
     glean.register_ping_type(&ping);
 
@@ -1272,7 +1271,6 @@ fn pings_are_controllable_from_remote_settings_config() {
         vec![],
         vec![],
         true,
-        vec![],
     );
     glean.register_ping_type(&disabled_ping);
     let enabled_ping = PingType::new(
@@ -1285,7 +1283,6 @@ fn pings_are_controllable_from_remote_settings_config() {
         vec![],
         vec![],
         true,
-        vec![],
     );
     glean.register_ping_type(&enabled_ping);
 

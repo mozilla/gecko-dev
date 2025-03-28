@@ -35,11 +35,5 @@ impl<T> UniffiForeignPointerCell<T> {
     }
 }
 
-impl<T> Default for UniffiForeignPointerCell<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 unsafe impl<T> Send for UniffiForeignPointerCell<T> {}
 unsafe impl<T> Sync for UniffiForeignPointerCell<T> {}

@@ -122,8 +122,6 @@ not-ohttp:
   metadata:
     include_info_sections: false
     use_ohttp: true
-  uploader_capabilities:
-    - ohttp
   send_if_empty: true
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1862002

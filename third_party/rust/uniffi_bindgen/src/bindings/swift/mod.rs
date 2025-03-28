@@ -12,10 +12,10 @@
 //! we generate:
 //!
 //!   * A C header file `exampleFFI.h` declaring the low-level structs and functions for calling
-//!     into Rust, along with a corresponding `exampleFFI.modulemap` to expose them to Swift.
+//!    into Rust, along with a corresponding `exampleFFI.modulemap` to expose them to Swift.
 //!
 //!   * A Swift source file `example.swift` that imports the `exampleFFI` module and wraps it
-//!     to provide the higher-level Swift API.
+//!    to provide the higher-level Swift API.
 //!
 //! Most of the concepts in a [`crate::ComponentInterface`] have an obvious counterpart in Swift,
 //! with the details documented in inline comments where appropriate.
@@ -107,27 +107,13 @@ impl BindingGenerator for SwiftBindingGenerator {
             }
 
             if settings.try_format_code {
-                let commands_to_try = [
-                    // Available in Xcode 16.
-                    vec!["xcrun", "swift-format"],
-                    // The official swift-format command name.
-                    vec!["swift-format"],
-                    // Shortcut for the swift-format command.
-                    vec!["swift", "format"],
-                    vec!["swiftformat"],
-                ];
-
-                let successful_output = commands_to_try.into_iter().find_map(|command| {
-                    Command::new(command[0])
-                        .args(&command[1..])
-                        .arg(source_file.as_str())
-                        .output()
-                        .ok()
-                });
-                if successful_output.is_none() {
+                if let Err(e) = Command::new("swiftformat")
+                    .arg(source_file.as_str())
+                    .output()
+                {
                     println!(
-                        "Warning: Unable to auto-format {} using swift-format. Please make sure it is installed.",
-                        source_file.as_str()
+                        "Warning: Unable to auto-format {} using swiftformat: {e:?}",
+                        source_file.file_name().unwrap(),
                     );
                 }
             }

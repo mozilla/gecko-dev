@@ -4,7 +4,7 @@ android-gradle-plugin = "8.9.1" # Keep lint version in sync
 lint = "31.9.1"
 
 python-envs-plugin = "0.0.31"
-mozilla-glean = "64.0.0"
+mozilla-glean = "63.1.0"
 maven-ant-tasks = "2.1.3"
 jacoco = "0.8.12"
 okhttp = "4.12.0"

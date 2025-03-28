@@ -209,25 +209,33 @@ pub fn either_attribute_arg<T: ToTokens>(a: Option<T>, b: Option<T>) -> syn::Res
 pub(crate) fn tagged_impl_header(
     trait_name: &str,
     ident: &impl ToTokens,
-    remote: bool,
+    udl_mode: bool,
 ) -> TokenStream {
     let trait_name = Ident::new(trait_name, Span::call_site());
-    if remote {
+    if udl_mode {
         quote! { impl ::uniffi::#trait_name<crate::UniFfiTag> for #ident }
     } else {
         quote! { impl<T> ::uniffi::#trait_name<T> for #ident }
     }
 }
 
+pub(crate) fn derive_all_ffi_traits(ty: &Ident, udl_mode: bool) -> TokenStream {
+    if udl_mode {
+        quote! { ::uniffi::derive_ffi_traits!(local #ty); }
+    } else {
+        quote! { ::uniffi::derive_ffi_traits!(blanket #ty); }
+    }
+}
+
 pub(crate) fn derive_ffi_traits(
     ty: impl ToTokens,
-    remote: bool,
+    udl_mode: bool,
     trait_names: &[&str],
 ) -> TokenStream {
     let trait_idents = trait_names
         .iter()
         .map(|name| Ident::new(name, Span::call_site()));
-    if remote {
+    if udl_mode {
         quote! {
             #(
                 ::uniffi::derive_ffi_traits!(impl #trait_idents<crate::UniFfiTag> for #ty);
@@ -254,9 +262,6 @@ pub mod kw {
     syn::custom_keyword!(with_try_read);
     syn::custom_keyword!(name);
     syn::custom_keyword!(non_exhaustive);
-    syn::custom_keyword!(lower);
-    syn::custom_keyword!(try_lift);
-    syn::custom_keyword!(remote);
     syn::custom_keyword!(Record);
     syn::custom_keyword!(Enum);
     syn::custom_keyword!(Error);
@@ -287,7 +292,7 @@ impl Parse for ExternalTypeItem {
 }
 
 pub(crate) fn extract_docstring(attrs: &[Attribute]) -> syn::Result<String> {
-    attrs
+    return attrs
         .iter()
         .filter(|attr| attr.path().is_ident("doc"))
         .map(|attr| {
@@ -300,5 +305,5 @@ pub(crate) fn extract_docstring(attrs: &[Attribute]) -> syn::Result<String> {
             Err(syn::Error::new_spanned(attr, "Cannot parse doc attribute"))
         })
         .collect::<syn::Result<Vec<_>>>()
-        .map(|lines| lines.join("\n"))
+        .map(|lines| lines.join("\n"));
 }

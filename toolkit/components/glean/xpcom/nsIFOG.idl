@@ -195,6 +195,5 @@ interface nsIFOG : nsISupports
                                    in boolean aEnabled,
                                    in Array<ACString> aSchedulesPings,
                                    in Array<ACString> aReasonCodes,
-                                   in boolean aFollowsCollectionEnabled,
-                                   in Array<ACString> aUploaderCapabilities);
+                                   in boolean aFollowsCollectionEnabled);
 };

@@ -61,19 +61,19 @@ _DEFAULT = object() # type: typing.Any
 __all__ = [
     "InternalError",
     {%- for e in ci.enum_definitions() %}
-    "{{ e.name() }}",
+    "{{ e|type_name }}",
     {%- endfor %}
     {%- for record in ci.record_definitions() %}
-    "{{ record.name() }}",
+    "{{ record|type_name }}",
     {%- endfor %}
     {%- for func in ci.function_definitions() %}
     "{{ func.name() }}",
     {%- endfor %}
     {%- for obj in ci.object_definitions() %}
-    "{{ obj.name() }}",
+    "{{ obj|type_name }}",
     {%- endfor %}
     {%- for c in ci.callback_interface_definitions() %}
-    "{{ c.name() }}",
+    "{{ c.name()|class_name }}",
     {%- endfor %}
 ]
 

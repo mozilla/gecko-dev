@@ -1,22 +1,22 @@
-# `unicode-width`
+# unicode-width
 
-[![Build status](https://github.com/unicode-rs/unicode-width/actions/workflows/rust.yml/badge.svg)](https://github.com/unicode-rs/unicode-width/actions/workflows/rust.yml)
-[![crates.io version](https://img.shields.io/crates/v/unicode-width)](https://crates.io/crates/unicode-width)
-[![Docs status](https://img.shields.io/docsrs/unicode-width)](https://docs.rs/unicode-width/)
-
-Determine displayed width of `char` and `str` types according to [Unicode Standard Annex #11][UAX11]
-and other portions of the Unicode standard.
-
-This crate is `#![no_std]`.
+Determine displayed width of `char` and `str` types according to
+[Unicode Standard Annex #11][UAX11] rules.
 
 [UAX11]: http://www.unicode.org/reports/tr11/
 
+[![Build Status](https://travis-ci.org/unicode-rs/unicode-width.svg)](https://travis-ci.org/unicode-rs/unicode-width)
+
+[Documentation](https://unicode-rs.github.io/unicode-width/unicode_width/index.html)
+
 ```rust
+extern crate unicode_width;
+
 use unicode_width::UnicodeWidthStr;
 
 fn main() {
     let teststr = "Ｈｅｌｌｏ, ｗｏｒｌｄ!";
-    let width = teststr.width();
+    let width = UnicodeWidthStr::width(teststr);
     println!("{}", teststr);
     println!("The above string is {} columns wide.", width);
     let width = teststr.width_cjk();
@@ -25,26 +25,27 @@ fn main() {
 ```
 
 **NOTE:** The computed width values may not match the actual rendered column
-width. For example, many Brahmic scripts like Devanagari have complex rendering rules
-which this crate does not currently handle (and will never fully handle, because
-the exact rendering depends on the font):
+width. For example, the woman scientist emoji comprises of a woman emoji, a
+zero-width joiner and a microscope emoji.
 
 ```rust
 extern crate unicode_width;
 use unicode_width::UnicodeWidthStr;
 
 fn main() {
-    assert_eq!("क".width(), 1); // Devanagari letter Ka
-    assert_eq!("ष".width(), 1); // Devanagari letter Ssa
-    assert_eq!("क्ष".width(), 2); // Ka + Virama + Ssa
+    assert_eq!(UnicodeWidthStr::width("👩"), 2); // Woman
+    assert_eq!(UnicodeWidthStr::width("🔬"), 2); // Microscope
+    assert_eq!(UnicodeWidthStr::width("👩‍🔬"), 4); // Woman scientist
 }
 ```
 
-Additionally, [defective combining character sequences](https://unicode.org/glossary/#defective_combining_character_sequence)
-and nonstandard [Korean jamo](https://unicode.org/glossary/#jamo) sequences may
-be rendered with a different width than what this crate says. (This is not an
-exhaustive list.) For a list of what this crate *does* handle, see
-[docs.rs](https://docs.rs/unicode-width/latest/unicode_width/#rules-for-determining-width).
+See [Unicode Standard Annex #11][UAX11] for precise details on what is and isn't
+covered by this crate.
+
+## features
+
+unicode-width does not depend on libstd, so it can be used in crates
+with the `#![no_std]` attribute.
 
 ## crates.io
 
@@ -53,18 +54,5 @@ to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-unicode-width = "0.1.11"
+unicode-width = "0.1.7"
 ```
-
-
-## Changelog
-
-
-### 0.2.0
-
- - Treat `\n` as width 1 (#60)
- - Treat ambiguous `Modifier_Letter`s as narrow (#63)
- - Support `Grapheme_Cluster_Break=Prepend` (#62)
- - Support lots of ligatures (#53)
-
-Note: If you are using `unicode-width` for linebreaking, the change treating `\n` as width 1 _may cause behavior changes_. It is recommended that in such cases you feed already-line segmented text to `unicode-width`. In other words, please apply higher level control character based line breaking protocols before feeding text to `unicode-width`. Relying on any character producing a stable width in this crate is likely the sign of a bug.

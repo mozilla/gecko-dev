@@ -64,7 +64,7 @@ fn client_info_metrics(cfg: &Config) -> ClientInfoMetrics {
 
 mod uploader {
     use crate::net::http;
-    use glean::net::{CapablePingUploadRequest, PingUploader, UploadResult};
+    use glean::net::{PingUploadRequest, PingUploader, UploadResult};
 
     #[derive(Debug)]
     pub struct Uploader {
@@ -82,8 +82,7 @@ mod uploader {
     }
 
     impl PingUploader for Uploader {
-        fn upload(&self, upload_request: CapablePingUploadRequest) -> UploadResult {
-            let upload_request = upload_request.capable(|cap| cap.is_empty()).unwrap();
+        fn upload(&self, upload_request: PingUploadRequest) -> UploadResult {
             let request_builder = http::RequestBuilder::Post {
                 body: upload_request.body.as_slice(),
                 headers: upload_request.headers.as_slice(),

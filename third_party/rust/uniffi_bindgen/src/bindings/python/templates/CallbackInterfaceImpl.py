@@ -51,9 +51,11 @@ class {{ trait_impl }}:
             uniffi_future_callback(
                 uniffi_callback_data,
                 {{ meth.foreign_future_ffi_result_struct().name()|ffi_struct_name }}(
-                    {%- if let Some(return_type) = meth.return_type() %}
+                    {%- match meth.return_type() %}
+                    {%- when Some(return_type) %}
                     {{ return_type|lower_fn }}(return_value),
-                    {%- endif %}
+                    {%- when None %}
+                    {%- endmatch %}
                     _UniffiRustCallStatus.default()
                 )
             )
@@ -85,7 +87,7 @@ class {{ trait_impl }}:
         {{ ffi_converter_name }}._handle_map.remove(uniffi_handle)
 
     # Generate the FFI VTable.  This has a field for each callback interface method.
-    _uniffi_vtable = {{ vtable|ffi_type_name(ci) }}(
+    _uniffi_vtable = {{ vtable|ffi_type_name }}(
         {%- for (_, meth) in vtable_methods.iter() %}
         {{ meth.name() }},
         {%- endfor %}

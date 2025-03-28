@@ -11,7 +11,7 @@ public enum {{ type_name }} {
     ){% endif -%}
     {% endfor %}
 }
-{% when Some(variant_discr_type) %}
+{% when Some with (variant_discr_type) %}
 public enum {{ type_name }} : {{ variant_discr_type|type_name }} {
     {% for variant in e.variants() %}
     {%- call swift::docstring(variant, 4) %}
@@ -21,10 +21,6 @@ public enum {{ type_name }} : {{ variant_discr_type|type_name }} {
     {% endfor %}
 }
 {% endmatch %}
-
-#if compiler(>=6)
-extension {{ type_name }}: Sendable {}
-#endif
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
@@ -88,5 +84,6 @@ public func {{ ffi_converter_name }}_lower(_ value: {{ type_name }}) -> RustBuff
 }
 
 {% if !contains_object_references %}
+{% if config.experimental_sendable_value_types() %}extension {{ type_name }}: Sendable {} {% endif %}
 extension {{ type_name }}: Equatable, Hashable {}
 {% endif %}

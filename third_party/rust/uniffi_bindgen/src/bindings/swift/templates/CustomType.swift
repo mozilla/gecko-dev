@@ -1,4 +1,4 @@
-{%- let ffi_type_name=builtin|ffi_type|ref|ffi_type_name %}
+{%- let ffi_type_name=builtin|ffi_type|ffi_type_name %}
 {%- match config.custom_types.get(name.as_str())  %}
 {%- when None %}
 {#- No config, just forward all methods to our builtin type #}
@@ -29,22 +29,26 @@ public struct FfiConverterType{{ name }}: FfiConverter {
     }
 }
 
-{%- when Some(config) %}
+{%- when Some with (config) %}
 
 {# When the config specifies a different type name, create a typealias for it #}
-{%- if let Some(concrete_type_name) = config.type_name %}
+{%- match config.type_name %}
+{%- when Some with (concrete_type_name) %}
 /**
  * Typealias from the type name used in the UDL file to the custom type.  This
  * is needed because the UDL type name is used in function/method signatures.
  */
 public typealias {{ type_name }} = {{ concrete_type_name }}
-{%- endif %}
+{%- else %}
+{%- endmatch %}
 
-{%- if let Some(imports) = config.imports %}
+{%- match config.imports %}
+{%- when Some(imports) %}
 {%- for import_name in imports %}
 {{ self.add_import(import_name) }}
 {%- endfor %}
-{%- endif %}
+{%- else %}
+{%- endmatch %}
 
 #if swift(>=5.8)
 @_documentation(visibility: private)

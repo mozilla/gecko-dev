@@ -392,24 +392,30 @@ export class FfiConverterOptionalTypePoint extends FfiConverterArrayBuffer {
 }
 
 import {
-  FfiConverterTypeSprite,
-  Sprite,
-} from "resource://gre/modules/RustSprites.sys.mjs";
-
-// Export the FFIConverter object to make external types work.
-export { FfiConverterTypeSprite, Sprite };import {
   FfiConverterTypeLine,
   Line,
 } from "resource://gre/modules/RustGeometry.sys.mjs";
 
 // Export the FFIConverter object to make external types work.
-export { FfiConverterTypeLine, Line };import {
+export { FfiConverterTypeLine, Line };
+
+import {
   FfiConverterTypePoint,
   Point,
 } from "resource://gre/modules/RustGeometry.sys.mjs";
 
 // Export the FFIConverter object to make external types work.
 export { FfiConverterTypePoint, Point };
+
+import {
+  FfiConverterTypeSprite,
+  Sprite,
+} from "resource://gre/modules/RustSprites.sys.mjs";
+
+// Export the FFIConverter object to make external types work.
+export { FfiConverterTypeSprite, Sprite };
+
+
 
 
 

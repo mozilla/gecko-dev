@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::CodeType;
-use crate::{backend::Literal, bail, interface::Radix, Result};
+use crate::backend::Literal;
+use crate::interface::Radix;
 use paste::paste;
 
-fn render_literal(literal: &Literal) -> Result<String> {
-    Ok(match literal {
+fn render_literal(literal: &Literal) -> String {
+    match literal {
         Literal::Boolean(v) => {
             if *v {
                 "True".into()
@@ -29,8 +30,8 @@ fn render_literal(literal: &Literal) -> Result<String> {
         },
         Literal::Float(string, _type_) => string.clone(),
 
-        _ => bail!("Invalid literal {literal:?}"),
-    })
+        _ => unreachable!("Literal"),
+    }
 }
 
 macro_rules! impl_code_type_for_primitive {
@@ -47,7 +48,7 @@ macro_rules! impl_code_type_for_primitive {
                     $canonical_name.into()
                 }
 
-                fn literal(&self, literal: &Literal) -> Result<String> {
+                fn literal(&self, literal: &Literal) -> String {
                     render_literal(&literal)
                 }
             }

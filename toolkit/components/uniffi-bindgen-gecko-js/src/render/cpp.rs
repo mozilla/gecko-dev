@@ -16,8 +16,8 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 
 use std::collections::HashSet;
 
+use askama::Template;
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use rinja::Template;
 use uniffi_bindgen::interface::{
     AsType, Callable, CallbackInterface, ComponentInterface, FfiDefinition, FfiFunction, FfiType,
 };
@@ -416,10 +416,8 @@ fn scaffolding_converter(ci: &ComponentInterface, ffi_type: &FfiType) -> String 
     match ffi_type {
         FfiType::RustArcPtr(name) => {
             // Check if this is an external type
-            for ty in ci.iter_external_types() {
-                let external_ty_name = ty.name().expect("External type without name");
-                let crate_name = ty.module_path().expect("External type without module path");
-                if external_ty_name == name {
+            for (extern_name, crate_name, _, _) in ci.iter_external_types() {
+                if extern_name == name {
                     return format!(
                         "ScaffoldingObjectConverter<&{}>",
                         pointer_type(crate_name_to_namespace(&crate_name), name),
@@ -463,9 +461,7 @@ fn cpp_type(ffi_type: &FfiType) -> String {
         FfiType::RustCallStatus => "RustCallStatus".to_owned(),
         FfiType::Callback(name) | FfiType::Struct(name) => name.to_owned(),
         FfiType::VoidPointer => "void*".to_owned(),
-        FfiType::MutReference(inner) | FfiType::Reference(inner) => {
-            format!("{}*", cpp_type(inner.as_ref()))
-        }
+        FfiType::Reference(inner) => format!("{}*", cpp_type(inner.as_ref())),
     }
 }
 

@@ -11,6 +11,13 @@
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 
+// Lower type
+pub fn lower_type(ty: impl ToTokens) -> TokenStream {
+    quote! {
+        <#ty as ::uniffi::Lower<crate::UniFfiTag>>::FfiType
+    }
+}
+
 // Lower function
 pub fn lower(ty: impl ToTokens) -> TokenStream {
     quote! {

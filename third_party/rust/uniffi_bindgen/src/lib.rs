@@ -262,7 +262,7 @@ impl BindgenCrateConfigSupplier for EmptyCrateConfigSupplier {}
 /// A convenience function for the CLI to help avoid using static libs
 /// in places cdylibs are required.
 pub fn is_cdylib(library_file: impl AsRef<Utf8Path>) -> bool {
-    library_mode::calc_cdylib_name(library_file.as_ref()).is_some()
+    crate::library_mode::calc_cdylib_name(library_file.as_ref()).is_some()
 }
 
 /// Generate bindings for an external binding generator
@@ -311,7 +311,7 @@ pub fn generate_external_bindings<T: BindingGenerator>(
     let settings = GenerationSettings {
         cdylib: match library_file {
             Some(ref library_file) => {
-                library_mode::calc_cdylib_name(library_file.as_ref()).map(ToOwned::to_owned)
+                crate::library_mode::calc_cdylib_name(library_file.as_ref()).map(ToOwned::to_owned)
             }
             None => None,
         },
@@ -335,8 +335,7 @@ pub fn generate_component_scaffolding(
     out_dir_override: Option<&Utf8Path>,
     format_code: bool,
 ) -> Result<()> {
-    let component = parse_udl(udl_file, &crate_name_from_cargo_toml(udl_file)?)
-        .with_context(|| format!("parsing udl file {udl_file}"))?;
+    let component = parse_udl(udl_file, &crate_name_from_cargo_toml(udl_file)?)?;
     generate_component_scaffolding_inner(component, udl_file, out_dir_override, format_code)
 }
 
@@ -349,8 +348,7 @@ pub fn generate_component_scaffolding_for_crate(
     out_dir_override: Option<&Utf8Path>,
     format_code: bool,
 ) -> Result<()> {
-    let component =
-        parse_udl(udl_file, crate_name).with_context(|| format!("parsing udl file {udl_file}"))?;
+    let component = parse_udl(udl_file, crate_name)?;
     generate_component_scaffolding_inner(component, udl_file, out_dir_override, format_code)
 }
 
@@ -367,7 +365,7 @@ fn generate_component_scaffolding_inner(
     write!(f, "{}", RustScaffolding::new(&component, file_stem))
         .context("Failed to write output file")?;
     if format_code {
-        format_code_with_rustfmt(&out_path).context("formatting generated Rust code")?;
+        format_code_with_rustfmt(&out_path)?;
     }
     Ok(())
 }
@@ -533,14 +531,14 @@ fn merge_toml(a: &mut toml::value::Table, b: toml::value::Table) {
 }
 
 // FIXME(HACK):
-// Include the rinja config file into the build.
+// Include the askama config file into the build.
 // That way cargo tracks the file and other tools relying on file tracking see it as well.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1774585
-// In the future rinja should handle that itself by using the `track_path::path` API,
+// In the future askama should handle that itself by using the `track_path::path` API,
 // see https://github.com/rust-lang/rust/pull/84029
 #[allow(dead_code)]
 mod __unused {
-    const _: &[u8] = include_bytes!("../rinja.toml");
+    const _: &[u8] = include_bytes!("../askama.toml");
 }
 
 #[cfg(test)]

@@ -438,9 +438,9 @@ export class RelevancyStore {
      * This is non-blocking since databases and other resources are lazily opened.
      * @returns {RelevancyStore}
      */
-    static init(dbPath) {
+    static init(dbPath,remoteSettingsService = null) {
         const liftResult = (result) => FfiConverterTypeRelevancyStore.lift(result);
-        const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
+        const liftError = null;
         const functionCall = () => {
             try {
                 FfiConverterString.checkType(dbPath)
@@ -450,9 +450,18 @@ export class RelevancyStore {
                 }
                 throw e;
             }
+            try {
+                FfiConverterOptionalTypeRemoteSettingsService.checkType(remoteSettingsService)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("remoteSettingsService");
+                }
+                throw e;
+            }
             return UniFFIScaffolding.callSync(
                 12, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
                 FfiConverterString.lower(dbPath),
+                FfiConverterOptionalTypeRemoteSettingsService.lower(remoteSettingsService),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -596,6 +605,29 @@ export class RelevancyStore {
     }
 
     /**
+     * Calculate metrics for the validation phase
+     *
+     * This runs after [Self::ingest].  It takes the interest vector that ingest created and
+     * calculates a set of metrics that we can report to glean.
+     * @returns {InterestMetrics}
+     */
+    calculateMetrics() {
+        const liftResult = (result) => FfiConverterTypeInterestMetrics.lift(result);
+        const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsyncWrapper(
+                6, // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
+                FfiConverterTypeRelevancyStore.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
+    /**
      * Close any open resources (for example databases)
      *
      * Calling `close` will interrupt any in-progress queries on other threads.
@@ -605,30 +637,11 @@ export class RelevancyStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                6, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
+                7, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
-    }
-
-    /**
-     * Download the interest data from remote settings if needed
-     */
-    ensureInterestDataPopulated() {
-        const liftResult = (result) => undefined;
-        const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
-        const functionCall = () => {
-            return UniFFIScaffolding.callAsyncWrapper(
-                7, // relevancy:uniffi_relevancy_fn_method_relevancystore_ensure_interest_data_populated
-                FfiConverterTypeRelevancyStore.lower(this),
-            )
-        }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
     }
 
     /**
@@ -1861,6 +1874,43 @@ export class FfiConverterTypeRelevancyApiError extends FfiConverterArrayBuffer {
 }
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeRemoteSettingsService extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeRemoteSettingsService.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeRemoteSettingsService.read(dataStream)
+            default:
+                throw new UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeRemoteSettingsService.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeRemoteSettingsService.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterSequencestring extends FfiConverterArrayBuffer {
     static read(dataStream) {
         const len = dataStream.readInt32();
@@ -1947,6 +1997,14 @@ export class FfiConverterSequenceTypeInterest extends FfiConverterArrayBuffer {
         })
     }
 }
+
+import {
+  FfiConverterTypeRemoteSettingsService,
+  RemoteSettingsService,
+} from "resource://gre/modules/RustRemoteSettings.sys.mjs";
+
+// Export the FFIConverter object to make external types work.
+export { FfiConverterTypeRemoteSettingsService, RemoteSettingsService };
 
 
 

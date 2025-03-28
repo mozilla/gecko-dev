@@ -3,21 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::CodeType;
-use crate::{
-    backend::Literal,
-    bail,
-    interface::{ComponentInterface, Radix, Type},
-    Result,
-};
+use crate::backend::Literal;
+use crate::interface::{ComponentInterface, Radix, Type};
 use paste::paste;
 
-fn render_literal(literal: &Literal, _ci: &ComponentInterface) -> Result<String> {
-    fn typed_number(type_: &Type, num_str: String) -> Result<String> {
+fn render_literal(literal: &Literal, _ci: &ComponentInterface) -> String {
+    fn typed_number(type_: &Type, num_str: String) -> String {
         let unwrapped_type = match type_ {
             Type::Optional { inner_type } => inner_type,
             t => t,
         };
-        Ok(match unwrapped_type {
+        match unwrapped_type {
             // Bytes, Shorts and Ints can all be inferred from the type.
             Type::Int8 | Type::Int16 | Type::Int32 => num_str,
             Type::Int64 => format!("{num_str}L"),
@@ -27,13 +23,13 @@ fn render_literal(literal: &Literal, _ci: &ComponentInterface) -> Result<String>
 
             Type::Float32 => format!("{num_str}f"),
             Type::Float64 => num_str,
-            _ => bail!("Unexpected literal: {num_str} for type: {type_:?}"),
-        })
+            _ => panic!("Unexpected literal: {num_str} for type: {type_:?}"),
+        }
     }
 
     match literal {
-        Literal::Boolean(v) => Ok(format!("{v}")),
-        Literal::String(s) => Ok(format!("\"{s}\"")),
+        Literal::Boolean(v) => format!("{v}"),
+        Literal::String(s) => format!("\"{s}\""),
         Literal::Int(i, radix, type_) => typed_number(
             type_,
             match radix {
@@ -52,7 +48,7 @@ fn render_literal(literal: &Literal, _ci: &ComponentInterface) -> Result<String>
         ),
         Literal::Float(string, type_) => typed_number(type_, string.clone()),
 
-        _ => bail!("Invalid literal {literal:?}"),
+        _ => unreachable!("Literal"),
     }
 }
 
@@ -71,7 +67,7 @@ macro_rules! impl_code_type_for_primitive {
                     $class_name.into()
                 }
 
-                fn literal(&self, literal: &Literal, ci: &ComponentInterface) -> Result<String> {
+                fn literal(&self, literal: &Literal, ci: &ComponentInterface) -> String {
                     render_literal(&literal, ci)
                 }
             }

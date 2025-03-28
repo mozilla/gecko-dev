@@ -354,8 +354,7 @@
         "dirty_startup",
         "foreground"
       ],
-      true,
-      []
+      true
     ],
     [
       "not-deletion-request",
@@ -366,8 +365,7 @@
       true,
       [],
       [],
-      true,
-      []
+      true
     ],
     [
       "not-events",
@@ -382,8 +380,7 @@
         "max_capacity",
         "startup"
       ],
-      true,
-      []
+      true
     ],
     [
       "not-metrics",
@@ -400,8 +397,7 @@
         "tomorrow",
         "upgrade"
       ],
-      true,
-      []
+      true
     ],
     [
       "not-ohttp",
@@ -412,10 +408,7 @@
       true,
       [],
       [],
-      true,
-      [
-        "ohttp"
-      ]
+      true
     ],
     [
       "ridealong-test",
@@ -426,8 +419,7 @@
       true,
       [],
       [],
-      true,
-      []
+      true
     ]
   ]
 }

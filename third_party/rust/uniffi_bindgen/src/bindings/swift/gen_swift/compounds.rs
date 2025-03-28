@@ -3,10 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::CodeType;
-use crate::{
-    backend::{Literal, Type},
-    bail, Result,
-};
+use crate::backend::{Literal, Type};
 
 #[derive(Debug)]
 pub struct OptionalCodeType {
@@ -31,11 +28,11 @@ impl CodeType for OptionalCodeType {
         )
     }
 
-    fn literal(&self, literal: &Literal) -> Result<String> {
+    fn literal(&self, literal: &Literal) -> String {
         match literal {
-            Literal::None => Ok("nil".into()),
+            Literal::None => "nil".into(),
             Literal::Some { inner } => super::SwiftCodeOracle.find(&self.inner).literal(inner),
-            _ => bail!("Invalid literal for Optional type: {literal:?}"),
+            _ => panic!("Invalid literal for Optional type: {literal:?}"),
         }
     }
 }
@@ -66,10 +63,10 @@ impl CodeType for SequenceCodeType {
         )
     }
 
-    fn literal(&self, literal: &Literal) -> Result<String> {
+    fn literal(&self, literal: &Literal) -> String {
         match literal {
-            Literal::EmptySequence => Ok("[]".into()),
-            _ => bail!("Invalid literal for sequence type: {literal:?}"),
+            Literal::EmptySequence => "[]".into(),
+            _ => unreachable!(),
         }
     }
 }
@@ -103,10 +100,10 @@ impl CodeType for MapCodeType {
         )
     }
 
-    fn literal(&self, literal: &Literal) -> Result<String> {
+    fn literal(&self, literal: &Literal) -> String {
         match literal {
-            Literal::EmptyMap => Ok("[:]".into()),
-            _ => bail!("Invalid literal for map type: {literal:?}"),
+            Literal::EmptyMap => "[:]".into(),
+            _ => unreachable!(),
         }
     }
 }

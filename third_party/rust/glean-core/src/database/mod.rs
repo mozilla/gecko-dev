@@ -826,6 +826,7 @@ impl Database {
         data: &BTreeMap<String, Metric>,
     ) -> Result<()> {
         if self.ping_lifetime_threshold == 0 && self.ping_lifetime_max_time.is_zero() {
+            log::trace!("Auto-flush disabled.");
             return Ok(());
         }
 

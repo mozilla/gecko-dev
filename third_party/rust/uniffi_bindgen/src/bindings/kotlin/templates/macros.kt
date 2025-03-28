@@ -16,7 +16,7 @@
 
 {%- macro to_raw_ffi_call(func) -%}
     {%- match func.throws_type() %}
-    {%- when Some(e) %}
+    {%- when Some with (e) %}
     uniffiRustCallWithError({{ e|type_name(ci) }})
     {%- else %}
     uniffiRustCall()
@@ -29,16 +29,7 @@
 {%- endmacro -%}
 
 {%- macro func_decl(func_decl, callable, indent) %}
-    {%- if self::can_render_callable(callable, ci) %}
-        {%- call render_func_decl(func_decl, callable, indent) %}
-    {%- else %}
-// Sorry, the callable "{{ callable.name() }}" isn't supported.
-    {%- endif %}
-{%- endmacro %}
-
-{%- macro render_func_decl(func_decl, callable, indent) %}
     {%- call docstring(callable, indent) %}
-
     {%- match callable.throws_type() -%}
     {%-     when Some(throwable) %}
     @Throws({{ throwable|type_name(ci) }}::class)
@@ -48,14 +39,14 @@
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
     {{ func_decl }} suspend fun {{ callable.name()|fn_name }}(
         {%- call arg_list(callable, !callable.takes_self()) -%}
-    ){% match callable.return_type() %}{% when Some(return_type) %} : {{ return_type|type_name(ci) }}{% when None %}{%- endmatch %} {
+    ){% match callable.return_type() %}{% when Some with (return_type) %} : {{ return_type|type_name(ci) }}{% when None %}{%- endmatch %} {
         return {% call call_async(callable) %}
     }
     {%- else -%}
     {{ func_decl }} fun {{ callable.name()|fn_name }}(
         {%- call arg_list(callable, !callable.takes_self()) -%}
     ){%- match callable.return_type() -%}
-    {%-         when Some(return_type) -%}
+    {%-         when Some with (return_type) -%}
         : {{ return_type|type_name(ci) }} {
             return {{ return_type|lift_fn }}({% call to_ffi_call(callable) %})
     }
@@ -114,7 +105,7 @@
         {{ arg.name()|var_name }}: {{ arg|type_name(ci) }}
 {%-     if is_decl %}
 {%-         match arg.default_value() %}
-{%-             when Some(literal) %} = {{ literal|render_literal(arg, ci) }}
+{%-             when Some with(literal) %} = {{ literal|render_literal(arg, ci) }}
 {%-             else %}
 {%-         endmatch %}
 {%-     endif %}
@@ -128,7 +119,7 @@
 -#}
 {%- macro arg_list_ffi_decl(func) %}
     {%- for arg in func.arguments() %}
-        {{- arg.name()|var_name }}: {{ arg.type_().borrow()|ffi_type_name_by_value(ci) -}},
+        {{- arg.name()|var_name }}: {{ arg.type_().borrow()|ffi_type_name_by_value -}},
     {%- endfor %}
     {%- if func.has_rust_call_status_arg() %}uniffi_out_err: UniffiRustCallStatus, {% endif %}
 {%- endmacro -%}

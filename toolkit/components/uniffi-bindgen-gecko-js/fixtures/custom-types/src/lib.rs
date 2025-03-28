@@ -8,17 +8,33 @@ use url::Url;
 pub struct Handle(pub i64);
 
 // We must implement the UniffiCustomTypeConverter trait for each custom type on the scaffolding side
-uniffi::custom_type!(Handle, i64, {
-    try_lift: |val| Ok(Handle(val)),
-    lower: |obj| obj.0,
-});
+impl UniffiCustomTypeConverter for Handle {
+    // The `Builtin` type will be used to marshall values across the FFI
+    type Builtin = i64;
+
+    // Convert Builtin to our custom type
+    fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
+        Ok(Handle(val))
+    }
+
+    // Convert our custom type to Builtin
+    fn from_custom(obj: Self) -> Self::Builtin {
+        obj.0
+    }
+}
 
 // Use `url::Url` as a custom type, with `String` as the Builtin
-uniffi::custom_type!(Url, String, {
-    remote,
-    try_lift: |val| Ok(Url::parse(&val)?),
-    lower: |obj| obj.to_string(),
-});
+impl UniffiCustomTypeConverter for Url {
+    type Builtin = String;
+
+    fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
+        Ok(Url::parse(&val)?)
+    }
+
+    fn from_custom(obj: Self) -> Self::Builtin {
+        obj.to_string()
+    }
+}
 
 // And a little struct and function that ties them together.
 pub struct CustomTypesDemo {

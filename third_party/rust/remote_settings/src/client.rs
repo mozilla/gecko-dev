@@ -9,7 +9,9 @@ use crate::jexl_filter::JexlFilter;
 use crate::signatures;
 use crate::storage::Storage;
 use crate::RemoteSettingsContext;
-use crate::{packaged_attachments, packaged_collections, RemoteSettingsServer};
+use crate::{
+    packaged_attachments, packaged_collections, RemoteSettingsServer, UniffiCustomTypeConverter,
+};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -933,9 +935,11 @@ pub struct Attachment {
 // conflicted with the declaration in Nimbus. This shouldn't really impact Android, since the type
 // is converted into the platform JsonObject thanks to the UniFFI binding.
 pub type RsJsonObject = serde_json::Map<String, serde_json::Value>;
-uniffi::custom_type!(RsJsonObject, String, {
-    remote,
-    try_lift: |val| {
+uniffi::custom_type!(RsJsonObject, String);
+
+impl UniffiCustomTypeConverter for RsJsonObject {
+    type Builtin = String;
+    fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
         let json: serde_json::Value = serde_json::from_str(&val)?;
 
         match json {
@@ -944,9 +948,12 @@ uniffi::custom_type!(RsJsonObject, String, {
                 "Unexpected JSON-non-object in the bagging area"
             )),
         }
-    },
-    lower: |obj| serde_json::Value::Object(obj).to_string(),
-});
+    }
+
+    fn from_custom(obj: Self) -> Self::Builtin {
+        serde_json::Value::Object(obj).to_string()
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct RemoteState {
