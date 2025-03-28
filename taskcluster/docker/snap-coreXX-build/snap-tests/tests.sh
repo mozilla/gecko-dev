@@ -46,6 +46,13 @@ fi;
 
 sudo snap refresh --hold=24h firefox
 
+snap connections firefox
+
+# Collect existing connections from Snap store
+# Replace "firefox" snap name by SNAP_FIREFOX_INSTANCE
+(snap connections firefox | grep -v "Interface" | while read -r line; do INT=$(echo "${line}" | awk '{ print $1 }'); CONN=$(echo "${line}" | awk '{ print $2 }' | sed -e 's/firefox:/SNAP_FIREFOX_INSTANCE:/g'); PLUG=$(echo "${line}" | awk '{ print $3 }' | sed -e 's/firefox:/SNAP_FIREFOX_INSTANCE:/g'); echo "${INT};${CONN};${PLUG}"; done) > firefox.connections.txt
+cat firefox.connections.txt
+
 while true; do
   if snap changes 2>&1 | grep -E '(Doing|Undoing|Do\s|restarting)'; then
     echo wait; sleep 0.5
@@ -54,7 +61,37 @@ while true; do
   fi
 done
 
-sudo snap install --name firefox --dangerous ./firefox.snap
+export TEST_SNAP_INSTANCE=${TEST_SNAP_INSTANCE:-firefox}
+
+sudo snap install --name "${TEST_SNAP_INSTANCE}" --dangerous ./firefox.snap
+
+snap connections "${TEST_SNAP_INSTANCE}"
+
+(snap connections "${TEST_SNAP_INSTANCE}" | grep -v "Interface" | while read -r line; do INT=$(echo "${line}" | awk '{ print $1 }'); CONN=$(echo "${line}" | awk '{ print $2 }' | sed -e "s/${TEST_SNAP_INSTANCE}:/SNAP_FIREFOX_INSTANCE:/g"); PLUG=$(echo "${line}" | awk '{ print $3 }' | sed -e "s/${TEST_SNAP_INSTANCE}:/SNAP_FIREFOX_INSTANCE:/g"); echo "${INT};${CONN};${PLUG}"; done) > instance.connections.txt
+cat instance.connections.txt
+
+# shellcheck disable=SC2013
+for missing_connection in $(grep ';-$' instance.connections.txt);
+do
+  echo "MISSING ${missing_connection}"
+  KEY="$(echo "$missing_connection" | cut -d';' -f1,2)"
+  STORE=$(grep "$KEY;" firefox.connections.txt | cut -d';' -f3)
+  PLUG="$STORE"
+  if [ "${STORE}" = "-" ] || [ -z "${STORE}" ]; then
+    echo "NO PREVIOUS STORE CONNECTION FOUND FOR '${KEY}' CHECKING FOR NEW LOCAL"
+    LOCAL=$(grep "$KEY;" local.connections.txt | cut -d';' -f3)
+    if [ "${LOCAL}" = "-" ] || [ -z "${LOCAL}" ]; then
+      echo "NO PREVIOUS STORE NOR LOCAL CONNECTION FOUND FOR '${KEY}'. ABORTING"
+      continue
+    else
+      PLUG="$LOCAL"
+    fi
+  fi
+  CONNECTOR="$(echo "${missing_connection}" | cut -d';' -f2 | sed -e "s/SNAP_FIREFOX_INSTANCE/$TEST_SNAP_INSTANCE/g")"
+  sudo snap connect "${CONNECTOR}" "${PLUG}"
+done;
+
+snap connections "${TEST_SNAP_INSTANCE}"
 
 RUNTIME_VERSION=$(snap run firefox --version | awk '{ print $3 }')
 
@@ -63,7 +100,6 @@ mkdir -p ~/.config/pip/ && cat > ~/.config/pip/pip.conf <<EOF
 break-system-packages = true
 EOF
 
-export TEST_SNAP_INSTANCE=${TEST_SNAP_INSTANCE:-firefox}
 SNAP_PROFILE_PATH="$HOME/snap/${TEST_SNAP_INSTANCE}/common/.mozilla/firefox/"
 if [ ! -d "${SNAP_PROFILE_PATH}" ]; then
   mkdir -p "${SNAP_PROFILE_PATH}"
