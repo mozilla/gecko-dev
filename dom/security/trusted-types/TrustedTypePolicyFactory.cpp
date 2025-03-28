@@ -36,27 +36,6 @@ JSObject* TrustedTypePolicyFactory::WrapObject(
   return TrustedTypePolicyFactory_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-constexpr size_t kCreatePolicyCSPViolationMaxSampleLength = 40;
-
-static CSPViolationData CreateCSPViolationData(const nsCString& aFileName,
-                                               uint32_t aLine, uint32_t aColumn,
-                                               uint32_t aPolicyIndex,
-                                               const nsAString& aPolicyName) {
-  const nsAString& sample =
-      Substring(aPolicyName, /* aStartPos */ 0,
-                /* aLength */ kCreatePolicyCSPViolationMaxSampleLength);
-
-  return {aPolicyIndex,
-          CSPViolationData::Resource{
-              CSPViolationData::BlockedContentSource::TrustedTypesPolicy},
-          nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE,
-          aFileName,
-          aLine,
-          aColumn,
-          /* aElement */ nullptr,
-          sample};
-}
-
 // Default implementation in the .cpp file required because `mDefaultPolicy`
 // requires a definition for `TrustedTypePolicy`.
 TrustedTypePolicyFactory::~TrustedTypePolicyFactory() = default;
@@ -71,14 +50,22 @@ static void ReportPolicyCreationViolations(
   MOZ_ASSERT(aCSP);
   uint32_t numPolicies = 0;
   aCSP->GetPolicyCount(&numPolicies);
-  for (uint64_t i = 0; i < numPolicies; ++i) {
+  for (uint32_t i = 0; i < numPolicies; ++i) {
     const nsCSPPolicy* policy = aCSP->GetPolicy(i);
     if (policy->hasDirective(
             nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE)) {
       if (policy->ShouldCreateViolationForNewTrustedTypesPolicy(
               aPolicyName, aCreatedPolicyNames)) {
         CSPViolationData cspViolationData{
-            CreateCSPViolationData(aFileName, aLine, aColumn, i, aPolicyName)};
+            i,
+            CSPViolationData::Resource{
+                CSPViolationData::BlockedContentSource::TrustedTypesPolicy},
+            nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE,
+            aFileName,
+            aLine,
+            aColumn,
+            /* aElement */ nullptr,
+            CSPViolationData::MaybeTruncateSample(aPolicyName)};
         aCSP->LogTrustedTypesViolationDetailsUnchecked(
             std::move(cspViolationData),
             NS_LITERAL_STRING_FROM_CSTRING(

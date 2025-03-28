@@ -53,12 +53,14 @@ CSPViolationData::CSPViolationData(uint32_t aViolatedPolicyIndex,
       mLineNumber{aLineNumber},
       mColumnNumber{aColumnNumber},
       mElement{aElement},
-      // For TrustedTypesSink, sample is already truncated and formatted in
-      // ShouldSinkTypeMismatchViolationBeBlockedByCSP.
+      // For TrustedTypesSink/TrustedTypesPolicy, sample is already truncated
+      // and formatted in ReportSinkTypeMismatch/PolicyCreationViolations.
       // TODO(bug 1935996): The specifications do not mention adding an
       // ellipsis.
-      mSample{BlockedContentSourceOrUnknown() ==
-                      BlockedContentSource::TrustedTypesSink
+      mSample{(BlockedContentSourceOrUnknown() ==
+                   BlockedContentSource::TrustedTypesSink ||
+               BlockedContentSourceOrUnknown() ==
+                   BlockedContentSource::TrustedTypesPolicy)
                   ? nsString(aSample)
                   : MaybeTruncateSampleWithEllipsis(aSample)} {}
 
