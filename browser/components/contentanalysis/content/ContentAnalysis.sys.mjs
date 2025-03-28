@@ -792,10 +792,12 @@ export const ContentAnalysis = {
           // any dialogs they might later try to show.
           const busyDialogInfo =
             this.userActionToBusyDialogMap.get(aUserActionId);
-          busyDialogInfo.requestTokenSet.forEach(requestToken => {
-            this.requestTokenToRequestInfo.delete(requestToken);
-            this._removeSlowCAMessage(aUserActionId, requestToken);
-          });
+          if (busyDialogInfo) {
+            busyDialogInfo.requestTokenSet.forEach(requestToken => {
+              this.requestTokenToRequestInfo.delete(requestToken);
+              this._removeSlowCAMessage(aUserActionId, requestToken);
+            });
+          }
           message = await this.l10n.formatValue(messageId, {
             agent: lazy.agentName,
             content: this._getErrorDialogMessage(aResourceNameOrOperationType),
