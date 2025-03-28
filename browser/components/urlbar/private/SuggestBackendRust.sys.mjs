@@ -439,7 +439,7 @@ export class SuggestBackendRust extends SuggestBackend {
     }
 
     let customTargetingAttributes = {
-      form_factor: "desktop",
+      formFactor: "desktop",
     };
     if (lazy.Region.home) {
       // We assume `QuickSuggest` init already awaited `Region.init()`.

@@ -18,17 +18,17 @@
 // variables. This example matches desktop clients in the U.S.:
 //
 // ```
-// env.country == 'US' && env.form_factor == 'desktop'
+// env.country == 'US' && env.formFactor == 'desktop'
 // ```
 //
 // In this example, if the client's context value for `country` is "US" and its
-// value for `form_factor` is "desktop", the expression will match. The values
-// of other keys in the client's context dictionary do not matter.
+// value for `formFactor` is "desktop", the expression will match. The values of
+// other keys in the client's context dictionary do not matter.
 //
 // Currently we expect the following variables in a `filter_expression`:
 //
 // * `country` - ISO 3166-2 country code, i.e., two uppercase chars
-// * `form_factor` - One of "desktop", "phone", or "tablet"
+// * `formFactor` - One of "desktop", "phone", or "tablet"
 
 "use strict";
 
@@ -62,7 +62,7 @@ add_setup(async function () {
             opts.filterExpression.country = country;
           }
           if (formFactor) {
-            opts.filterExpression.form_factor = formFactor;
+            opts.filterExpression.formFactor = formFactor;
           }
           remoteSettingsRecords.push(makeRecord(opts));
         }
@@ -305,7 +305,7 @@ function makeRecord({ collection, type, filterExpression }) {
     //
     // Example:
     //
-    // filterExpression: { country: "US", form_factor: "desktop" }
+    // filterExpression: { country: "US", formFactor: "desktop" }
     // key: "amp us desktop"
     parts.push(...Object.values(filterExpression));
   } else {
