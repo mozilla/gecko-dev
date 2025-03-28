@@ -3089,7 +3089,7 @@ main section {
   overflow: visible;
 }
 .weatherCard:hover {
-  box-shadow: var(--box-shadow-10);
+  box-shadow: var(--box-shadow-card);
 }
 .weatherCard a {
   color: var(--text-color);
