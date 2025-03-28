@@ -144,6 +144,8 @@ class NewPositionNotificationCard extends MozLitElement {
   movePositionButtonTemplate() {
     let buttonId;
     let buttonDataL10nId;
+    let iconSrc;
+    let iconPosition = this.isSidebarStartPosition ? "end" : "start";
 
     // For RTL, the sidebar starts on the right side.
     if (this.isRTL) {
@@ -153,6 +155,9 @@ class NewPositionNotificationCard extends MozLitElement {
       buttonDataL10nId = this.isSidebarStartPosition
         ? "shopping-integrated-new-position-notification-move-left-button"
         : "shopping-integrated-new-position-notification-move-right-button";
+      iconSrc = this.isSidebarStartPosition
+        ? "chrome://browser/skin/back.svg"
+        : "chrome://browser/skin/forward.svg";
     } else {
       buttonId = this.isSidebarStartPosition
         ? "notification-card-move-right-button"
@@ -160,6 +165,9 @@ class NewPositionNotificationCard extends MozLitElement {
       buttonDataL10nId = this.isSidebarStartPosition
         ? "shopping-integrated-new-position-notification-move-right-button"
         : "shopping-integrated-new-position-notification-move-left-button";
+      iconSrc = this.isSidebarStartPosition
+        ? "chrome://browser/skin/forward.svg"
+        : "chrome://browser/skin/back.svg";
     }
 
     return html`
@@ -168,6 +176,8 @@ class NewPositionNotificationCard extends MozLitElement {
         data-l10n-id=${buttonDataL10nId}
         type="primary"
         size="small"
+        iconSrc=${iconSrc}
+        iconPosition=${iconPosition}
         @click=${this.handleClickPositionButton}
       >
       </moz-button>
