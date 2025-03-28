@@ -9,10 +9,9 @@ add_task(async function test_tools_prefs() {
   const sidebar = document.querySelector("sidebar-main");
   await sidebar.updateComplete;
 
-  is(
-    Services.prefs.getStringPref("sidebar.main.tools"),
-    "aichat,syncedtabs,history,bookmarks",
-    "Default tools pref unchanged"
+  Services.prefs.setStringPref(
+    "sidebar.main.tools",
+    "aichat,syncedtabs,history,bookmarks"
   );
 
   // Open customize sidebar

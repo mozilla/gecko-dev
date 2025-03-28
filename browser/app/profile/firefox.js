@@ -890,6 +890,9 @@ pref("browser.shopping.experience2023.showKeepSidebarClosedMessage", true);
 // the custom shopping sidebar.
 pref("browser.shopping.experience2023.integratedSidebar", false);
 
+// Adds the Review Checker tool to the sidebar if the integratedSidebar pref is enabled.
+pref("sidebar.newTool.migration.reviewchecker", '{"visibilityPref": "browser.shopping.experience2023.integratedSidebar"}');
+
 // If true, users have already seen a card in the Review Checker sidebar panel
 // notifying users of the feature's new location and asking if they want to
 // move the sidebar to the left or right side. Else if false, users are yet to

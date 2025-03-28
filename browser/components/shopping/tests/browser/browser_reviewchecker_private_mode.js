@@ -10,6 +10,7 @@ const PRODUCT_PAGE = "https://example.com/product/Y4YM0Z1LL4";
 
 let verifySidebarPanelNotAdded = async win => {
   const { document } = win;
+  win.SidebarController.show();
   let sidebar;
   await TestUtils.waitForCondition(() => {
     sidebar = document.querySelector("sidebar-main");

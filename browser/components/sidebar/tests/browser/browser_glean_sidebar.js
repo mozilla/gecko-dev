@@ -371,8 +371,7 @@ add_task(async function test_customize_review_checker_enabled() {
   });
   await testCustomizeToggle(
     "viewReviewCheckerSidebar",
-    Glean.sidebarCustomize.shoppingReviewCheckerEnabled,
-    false
+    Glean.sidebarCustomize.shoppingReviewCheckerEnabled
   );
   await SpecialPowers.popPrefEnv();
   await SidebarController.waitUntilStable();
@@ -588,19 +587,24 @@ async function testIconClick(expanded) {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.ml.chat.enabled", true],
+      ["browser.shopping.experience2023.integratedSidebar", true],
       [TAB_DIRECTION_PREF, true],
     ],
   });
   await waitForTabstripOrientation("vertical");
 
   const { sidebarMain } = SidebarController;
-  const gleanEvents = [
-    Glean.sidebar.chatbotIconClick,
-    Glean.sidebar.syncedTabsIconClick,
-    Glean.sidebar.historyIconClick,
-    Glean.sidebar.bookmarksIconClick,
-  ];
-  for (const [i, button] of Array.from(sidebarMain.toolButtons).entries()) {
+  const gleanEvents = new Map([
+    ["viewReviewCheckerSidebar", Glean.sidebar.shoppingReviewCheckerIconClick],
+    ["viewGenaiChatSidebar", Glean.sidebar.chatbotIconClick],
+    ["viewTabsSidebar", Glean.sidebar.syncedTabsIconClick],
+    ["viewHistorySidebar", Glean.sidebar.historyIconClick],
+    ["viewBookmarksSidebar", Glean.sidebar.bookmarksIconClick],
+  ]);
+
+  sidebarMain.updateComplete;
+
+  for (const button of sidebarMain.toolButtons) {
     await SidebarController.initializeUIState({
       launcherExpanded: expanded,
       command: "",
@@ -612,11 +616,18 @@ async function testIconClick(expanded) {
     );
     Assert.ok(!SidebarController._state.panelOpen, "No panel is open");
 
-    info(`Click the icon for: ${button.getAttribute("view")}`);
-    EventUtils.synthesizeMouseAtCenter(button, {});
+    let view = button.getAttribute("view");
+    info(`Click the icon for: ${view}`);
 
-    if (gleanEvents[i]) {
-      const events = gleanEvents[i].testGetValue();
+    // The nodelist for sidebarMain may be out of date.
+    let buttonEl = sidebarMain.shadowRoot.querySelector(
+      `moz-button[view='${view}']`
+    );
+    EventUtils.synthesizeMouseAtCenter(buttonEl, {});
+
+    let gleanEvent = gleanEvents.get(view);
+    if (gleanEvent) {
+      const events = gleanEvent.testGetValue();
       Assert.equal(events?.length, 1, "One event was reported.");
       Assert.deepEqual(
         events?.[0].extra,
@@ -672,15 +683,6 @@ async function testIconClick(expanded) {
 }
 
 async function testIconClickReviewChecker(expanded) {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      [
-        "sidebar.main.tools",
-        "aichat,syncedtabs,history,bookmarks,reviewchecker",
-      ],
-    ],
-  });
-
   const { sidebarMain } = SidebarController;
 
   await SidebarController.initializeUIState({
