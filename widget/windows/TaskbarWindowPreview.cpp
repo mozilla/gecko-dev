@@ -10,7 +10,6 @@
 #include <nsITaskbarPreviewController.h>
 #include "TaskbarWindowPreview.h"
 #include "WindowHook.h"
-#include "nsUXThemeData.h"
 #include "TaskbarPreviewButton.h"
 #include "nsWindow.h"
 #include "nsWindowGfx.h"
