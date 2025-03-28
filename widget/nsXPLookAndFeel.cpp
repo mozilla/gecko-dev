@@ -407,6 +407,9 @@ void nsXPLookAndFeel::FillStores(nsXPLookAndFeel* aInst) {
     }
   }
 
+  // NOTE(emilio): As of right now we depend on this being last, as fonts
+  // depend on things like GetTextScaleFactor(). This is not great but it's
+  // tested in test_textScaleFactor_system_font.html.
   StaticAutoWriteLock guard(sFontStoreLock);
   for (FontID id : MakeEnumeratedRange(FontID(0), FontID::End)) {
     sFontStore[id] = aInst->GetFontValue(id);
