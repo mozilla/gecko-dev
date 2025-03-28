@@ -2998,6 +2998,7 @@ already_AddRefed<AsyncPanZoomController> APZCTreeManager::GetTargetAPZC(
 already_AddRefed<AsyncPanZoomController> APZCTreeManager::GetTargetAPZC(
     const LayersId& aLayersId, const ScrollableLayerGuid::ViewID& aScrollId,
     const MutexAutoLock& aProofOfMapLock) const {
+  mMapLock.AssertCurrentThreadOwns();
   ScrollableLayerGuid guid(aLayersId, 0, aScrollId);
   auto it = mApzcMap.find(guid);
   RefPtr<AsyncPanZoomController> apzc =
