@@ -16,7 +16,7 @@ const DEFAULT_PROPS = {
   },
   type: "foo",
   firstVisibleTimestamp: new Date("March 21, 2024 10:11:12").getTime(),
-  row: "3",
+  row: 3,
   spoc: {
     format: "billboard",
     id: "12345",

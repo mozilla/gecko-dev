@@ -4468,7 +4468,7 @@ const AdBanner = ({
       event: "CLICK",
       source: type.toUpperCase(),
       // Banner ads don't have a position, but a row number
-      action_position: row,
+      action_position: parseInt(row, 10),
       value: {
         card_type: "spoc",
         tile_id: spoc.id,
@@ -4480,7 +4480,7 @@ const AdBanner = ({
         format: spoc.format,
         ...(sectionsEnabled ? {
           section: spoc.format,
-          section_position: row
+          section_position: parseInt(row, 10)
         } : {})
       }
     }));
