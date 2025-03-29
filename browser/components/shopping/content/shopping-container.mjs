@@ -693,6 +693,18 @@ export class ShoppingContainer extends MozLitElement {
   handleCloseButtonClick() {
     let canShowKeepClosedMessage;
 
+    let showingNewPositionCard =
+      RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF, false) &&
+      this.showNewPositionCard &&
+      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true);
+
+    // Consider the notification card as seen if the user closes RC with the X button
+    // when the card is already rendered.
+    if (showingNewPositionCard) {
+      this.showNewPositionCard = false;
+      RPMSetPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true);
+    }
+
     if (this.autoOpenEnabled && this.autoOpenEnabledByUser) {
       canShowKeepClosedMessage =
         this._canShowKeepClosedMessageOnCloseButtonClick();

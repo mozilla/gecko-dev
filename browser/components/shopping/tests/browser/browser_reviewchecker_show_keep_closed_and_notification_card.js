@@ -11,6 +11,14 @@
 
 const NON_PDP_PAGE = "about:about";
 
+const HAS_SEEN_PREF = "browser.shopping.experience2023.newPositionCard.hasSeen";
+const SIDEBAR_POSITION_START_PREF = "sidebar.position_start";
+const SHOW_KEEP_MESSAGE_PREF =
+  "browser.shopping.experience2023.showKeepSidebarClosedMessage";
+
+/**
+ * Checks that the notification card is visible. Closes RC afterwards.
+ */
 async function testNotificationCardThenCloseRC() {
   await withReviewCheckerSidebar(async _args => {
     let shoppingContainer = await ContentTaskUtils.waitForCondition(
@@ -38,19 +46,15 @@ async function testNotificationCardThenCloseRC() {
     shoppingContainer.closeButtonEl.click();
 
     await shoppingContainer.updateComplete;
-
-    Assert.ok(
-      !shoppingContainer.showingKeepClosedMessage,
-      "showingKeepClosedMessage is false"
-    );
-    Assert.ok(
-      !shoppingContainer.keepClosedMessageBarEl,
-      "'Keep closed' message is not visible"
-    );
   });
 }
 
-async function testDismissNotificationThenCheckKeepClosed() {
+/**
+ * Checks that the notification card is visible before closing the RC panel.
+ * Then, dismisses the notification card, checks card visibility, and closes
+ * the RC panel.
+ */
+async function testDismissNotificationThenCloseRC() {
   await withReviewCheckerSidebar(async _args => {
     let shoppingContainer = await ContentTaskUtils.waitForCondition(
       () =>
@@ -99,7 +103,10 @@ async function testDismissNotificationThenCheckKeepClosed() {
   });
 }
 
-async function testKeepClosedAfterNotificationDismissed() {
+/**
+ * Checks that the keep closed message is visible in RC.
+ */
+async function testKeepClosedIsVisible() {
   await withReviewCheckerSidebar(async _args => {
     let shoppingContainer = await ContentTaskUtils.waitForCondition(
       () =>
@@ -146,15 +153,15 @@ add_setup(async function setup() {
 
 /**
  * Tests that the 'Keep closed' message does not appear when the notification card
- * is set to be displayed. Only show the message once the notification card is dismissed.
+ * is set to be displayed.
  */
 add_task(
-  async function test_do_not_show_keep_closed_until_notification_dismissed() {
+  async function test_do_not_show_keep_closed_if_notification_card_visible() {
     await SpecialPowers.pushPrefEnv({
       set: [
-        ["browser.shopping.experience2023.newPositionCard.hasSeen", false],
-        ["sidebar.position_start", true],
-        ["browser.shopping.experience2023.showKeepSidebarClosedMessage", true],
+        [HAS_SEEN_PREF, false],
+        [SIDEBAR_POSITION_START_PREF, true],
+        [SHOW_KEEP_MESSAGE_PREF, true],
         // Set to minimum closed counts met, to speed up testing
         ["browser.shopping.experience2023.sidebarClosedCount", 4],
       ],
@@ -164,6 +171,8 @@ add_task(
       info("Waiting for sidebar to update.");
       await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
 
+      let hasSeenPrefUpdated = TestUtils.waitForPrefChange(HAS_SEEN_PREF);
+
       await testNotificationCardThenCloseRC();
 
       Assert.ok(
@@ -171,48 +180,44 @@ add_task(
         "Sidebar is closed without a problem"
       );
 
-      let hasSeen = Services.prefs.getBoolPref(
-        "browser.shopping.experience2023.newPositionCard.hasSeen"
-      );
+      await hasSeenPrefUpdated;
+
+      let hasSeen = Services.prefs.getBoolPref(HAS_SEEN_PREF);
       Assert.ok(
-        !hasSeen,
-        "browser.shopping.experience2023.newPositionCard.hasSeen is still false"
+        hasSeen,
+        "browser.shopping.experience2023.newPositionCard.hasSeen is true after closing RC"
       );
+    });
 
-      // Let's open another tab, to force auto open and show the notification card again
-      let newProductTab = BrowserTestUtils.addTab(
-        gBrowser,
-        OTHER_PRODUCT_TEST_URL
-      );
-      let newProductBrowser = newProductTab.linkedBrowser;
-      let browserLoadedPromise = BrowserTestUtils.browserLoaded(
-        newProductBrowser,
-        false,
-        OTHER_PRODUCT_TEST_URL
-      );
-      await browserLoadedPromise;
+    await SpecialPowers.popPrefEnv();
+  }
+);
 
-      let shownPromise = BrowserTestUtils.waitForEvent(window, "SidebarShown");
-
-      info("Switching tabs now");
-      await BrowserTestUtils.switchTab(gBrowser, newProductTab);
-
-      Assert.ok(true, "Browser is loaded");
-
-      info("Waiting for shown");
-      await shownPromise;
-      await TestUtils.waitForTick();
-
-      Assert.ok(SidebarController.isOpen, "Sidebar is open now");
+/**
+ * Tests that the 'Keep closed' message is shown after dismissing the notification card.
+ */
+add_task(
+  async function test_do_not_show_keep_closed_until_notification_dismissed() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [HAS_SEEN_PREF, false],
+        [SIDEBAR_POSITION_START_PREF, true],
+        [SHOW_KEEP_MESSAGE_PREF, true],
+        // Set to minimum closed counts met, to speed up testing
+        ["browser.shopping.experience2023.sidebarClosedCount", 4],
+      ],
+    });
+    await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async _browser => {
+      await SidebarController.show("viewReviewCheckerSidebar");
+      info("Waiting for sidebar to update.");
+      await reviewCheckerSidebarUpdated(PRODUCT_TEST_URL);
 
       // Now, check content again to dismiss the notification and verify "Keep closed"
-      await testDismissNotificationThenCheckKeepClosed();
+      await testDismissNotificationThenCloseRC();
 
       Assert.ok(SidebarController.isOpen, "Sidebar is still open");
 
-      hasSeen = Services.prefs.getBoolPref(
-        "browser.shopping.experience2023.newPositionCard.hasSeen"
-      );
+      let hasSeen = Services.prefs.getBoolPref(HAS_SEEN_PREF);
       Assert.ok(
         hasSeen,
         "browser.shopping.experience2023.newPositionCard.hasSeen is now true"
@@ -224,10 +229,9 @@ add_task(
           "Asserting false. Cannot test 'Keep closed' message if sidebar is closed"
         );
       } else {
-        await testKeepClosedAfterNotificationDismissed();
+        Assert.ok(true, "Sidebar is not closed yet");
+        await testKeepClosedIsVisible();
       }
-
-      await BrowserTestUtils.removeTab(newProductTab);
     });
 
     SidebarController.hide();
@@ -238,8 +242,8 @@ add_task(
 add_task(async function test_keep_closed_message_not_visible_non_pdp() {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.shopping.experience2023.newPositionCard.hasSeen", true],
-      ["browser.shopping.experience2023.showKeepSidebarClosedMessage", true],
+      [HAS_SEEN_PREF, true],
+      [SHOW_KEEP_MESSAGE_PREF, true],
       // Set to minimum closed counts met, to speed up testing
       ["browser.shopping.experience2023.sidebarClosedCount", 4],
     ],
@@ -263,14 +267,12 @@ add_task(async function test_keep_closed_message_not_visible_non_pdp() {
       await shoppingContainer.updateComplete;
       info("Shopping container update complete");
 
-      let keepClosedPromise = ContentTaskUtils.waitForCondition(
-        () => shoppingContainer.keepClosedMessageBarEl,
-        "Keep closed message is visible."
-      );
-
       shoppingContainer.closeButtonEl.click();
 
-      await keepClosedPromise;
+      await ContentTaskUtils.waitForCondition(
+        () => shoppingContainer.keepClosedMessageBarEl,
+        "Keep closed message is visible"
+      );
     });
 
     let nonPDPTab = BrowserTestUtils.addTab(gBrowser, NON_PDP_PAGE);
@@ -288,35 +290,39 @@ add_task(async function test_keep_closed_message_not_visible_non_pdp() {
     Assert.ok(true, "Browser is loaded");
     await SidebarController.show("viewReviewCheckerSidebar");
 
-    await withReviewCheckerSidebar(async _args => {
-      let shoppingContainer = await ContentTaskUtils.waitForCondition(
-        () =>
-          content.document.querySelector("shopping-container")?.wrappedJSObject,
-        "Review Checker is loaded."
-      );
+    await withReviewCheckerSidebar(
+      async showKeepClosedMessagePref => {
+        let shoppingContainer = await ContentTaskUtils.waitForCondition(
+          () =>
+            content.document.querySelector("shopping-container")
+              ?.wrappedJSObject,
+          "Review Checker is loaded."
+        );
 
-      await shoppingContainer.updateComplete;
+        await shoppingContainer.updateComplete;
 
-      Assert.ok(
-        !shoppingContainer.keepClosedMessageBarEl,
-        "'Keep closed' message is not visible before close button click"
-      );
+        Assert.ok(
+          !shoppingContainer.keepClosedMessageBarEl,
+          "'Keep closed' message is not visible before close button click"
+        );
 
-      shoppingContainer.closeButtonEl.click();
+        shoppingContainer.closeButtonEl.click();
 
-      let showKeepSidebarClosedMessage = Services.prefs.getBoolPref(
-        "browser.shopping.experience2023.showKeepSidebarClosedMessage"
-      );
+        Assert.ok(
+          !shoppingContainer.keepClosedMessageBarEl,
+          "'Keep closed' message is not visible after close button click"
+        );
 
-      Assert.ok(
-        showKeepSidebarClosedMessage,
-        "browser.shopping.experience2023.showKeepSidebarClosedMessage is true"
-      );
-    });
+        let showKeepSidebarClosedMessage = Services.prefs.getBoolPref(
+          showKeepClosedMessagePref
+        );
 
-    Assert.ok(
-      !SidebarController.isOpen,
-      "'Keep closed' message did not prevent sidebar from closing"
+        Assert.ok(
+          showKeepSidebarClosedMessage,
+          "browser.shopping.experience2023.showKeepSidebarClosedMessage is true"
+        );
+      },
+      [SHOW_KEEP_MESSAGE_PREF]
     );
 
     await BrowserTestUtils.removeTab(nonPDPTab);
