@@ -342,7 +342,7 @@ quickactions-cmd-restart = restart
 
 # Opens the screenshot tool
 quickactions-screenshot3 = Take a screenshot
-quickactions-cmd-screenshot = screenshot
+quickactions-cmd-screenshot2 = screenshot, take a screenshot
 
 # Opens about:preferences
 quickactions-settings2 = Manage settings

@@ -209,7 +209,7 @@ const DEFAULT_ACTIONS = {
     },
   },
   screenshot: {
-    l10nCommands: ["quickactions-cmd-screenshot"],
+    l10nCommands: ["quickactions-cmd-screenshot2"],
     label: "quickactions-screenshot3",
     icon: "chrome://browser/skin/screenshot.svg",
     isVisible: () => {
