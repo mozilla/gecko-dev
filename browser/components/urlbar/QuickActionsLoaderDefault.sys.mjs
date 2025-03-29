@@ -129,7 +129,7 @@ const DEFAULT_ACTIONS = {
     },
   },
   inspect: {
-    l10nCommands: ["quickactions-cmd-inspector"],
+    l10nCommands: ["quickactions-cmd-inspector2"],
     icon: "chrome://devtools/skin/images/open-inspector.svg",
     label: "quickactions-inspector2",
     isVisible: () => {

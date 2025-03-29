@@ -314,7 +314,7 @@ quickactions-cmd-help = help, support
 
 # Opens the devtools web inspector
 quickactions-inspector2 = Open Developer Tools
-quickactions-cmd-inspector = inspector, devtools
+quickactions-cmd-inspector2 = inspector, devtools, dev tools
 
 # Opens about:logins
 quickactions-logins2 = Manage passwords
