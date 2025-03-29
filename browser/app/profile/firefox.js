@@ -2128,7 +2128,7 @@ pref("browser.ml.chat.shortcuts.custom", true);
 pref("browser.ml.chat.shortcuts.longPress", 60000);
 pref("browser.ml.chat.sidebar", true);
 
-// Whether link preview feature should be active
+pref("browser.ml.linkPreview.allowedLanguages", "en");
 pref("browser.ml.linkPreview.enabled", false);
 pref("browser.ml.linkPreview.outputSentences", 3);
 

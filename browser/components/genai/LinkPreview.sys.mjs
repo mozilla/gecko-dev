@@ -12,6 +12,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "allowedLanguages",
+  "browser.ml.linkPreview.allowedLanguages"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "gLinkPreviewEnabled",
   "browser.ml.linkPreview.enabled",
   false,
@@ -172,7 +177,14 @@ export const LinkPreview = {
     // Assume we need to wait if another generate is downloading.
     ogCard.showWait = this.downloadingModel;
 
-    if (pageData.article.textContent) {
+    // Generate key points if we have content, language and configured for any
+    // language or restricted.
+    if (
+      pageData.article.textContent &&
+      pageData.article.language &&
+      (!lazy.allowedLanguages ||
+        lazy.allowedLanguages.split(",").includes(pageData.article.language))
+    ) {
       this.generateKeyPoints(ogCard);
     }
     return ogCard;
