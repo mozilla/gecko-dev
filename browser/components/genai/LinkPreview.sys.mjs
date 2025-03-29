@@ -108,10 +108,8 @@ export const LinkPreview = {
   handleEvent(event) {
     switch (event.type) {
       case "keydown":
-        this._onKeyDown(event);
-        break;
       case "keyup":
-        this._onKeyUp(event);
+        this._onKeyEvent(event);
         break;
       case "OverLink":
         this._onLinkPreview(event);
@@ -122,34 +120,18 @@ export const LinkPreview = {
   },
 
   /**
-   * Handles "keydown" events.
+   * Handles "keydown" and "keyup" events.
    *
    * @param {KeyboardEvent} event - The keyboard event to be processed.
    */
-  _onKeyDown(event) {
+  _onKeyEvent(event) {
     const win = event.currentTarget;
-    if (event.altKey) {
-      if (!this.keyboardComboActive) {
-        this.keyboardComboActive = true;
-        this._maybeLinkPreview(win);
-      }
-    }
-  },
-
-  /**
-   * Handles "keyup" events.
-   *
-   * @param {KeyboardEvent} event - The keyboard event to be processed.
-   */
-  _onKeyUp(event) {
-    const win = event.currentTarget;
-    // Clear the flag when the Alt key is released.
-    if (!event.altKey) {
-      if (this.keyboardComboActive) {
-        this.keyboardComboActive = false;
-        this._maybeLinkPreview(win);
-      }
-    }
+    // Save the last state of the keyboard with both alt and shift pressed
+    // without other modifiers.
+    this.keyboardComboActive =
+      event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey;
+    // New presses or releases can result in desired combo for previewing.
+    this._maybeLinkPreview(win);
   },
 
   /**

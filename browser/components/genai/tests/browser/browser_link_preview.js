@@ -13,7 +13,8 @@ const { sinon } = ChromeUtils.importESModule(
 const TEST_LINK_URL = "https://example.com";
 
 /**
- * Tests that the Link Preview feature is correctly triggered when the Alt key is pressed.
+ * Tests that the Link Preview feature is correctly triggered when the Shift+Alt
+ * key is pressed.
  *
  * This test performs the following steps:
  * 1. Enables the Link Preview feature via the preference `"browser.ml.linkPreview.enabled"`.
@@ -21,19 +22,56 @@ const TEST_LINK_URL = "https://example.com";
  * 3. Sets an over link using `XULBrowserWindow.setOverLink`.
  * 4. Verifies that the `_maybeLinkPreview` method of `LinkPreview` is called with the correct window.
  */
-add_task(async function test_link_preview_with_alt_key_event() {
+add_task(async function test_link_preview_with_shift_alt_key_event() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.ml.linkPreview.enabled", true]],
   });
 
   let stub = sinon.stub(LinkPreview, "_maybeLinkPreview");
 
+  ok(!LinkPreview.keyboardComboActive, "not yet active");
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      altKey: true,
+    })
+  );
+
+  ok(!LinkPreview.keyboardComboActive, "just alt insufficient");
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      shiftKey: true,
+    })
+  );
+
+  ok(!LinkPreview.keyboardComboActive, "just shift insufficient");
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      altKey: true,
+      ctrlKey: true,
+      shiftKey: true,
+    })
+  );
+
+  ok(!LinkPreview.keyboardComboActive, "extra control also not active");
+
   let keydownEvent = new KeyboardEvent("keydown", {
     bubbles: true,
     cancelable: true,
     altKey: true,
+    shiftKey: true,
   });
   window.dispatchEvent(keydownEvent);
+
+  ok(LinkPreview.keyboardComboActive, "shift+alt active");
 
   XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
 
@@ -44,6 +82,7 @@ add_task(async function test_link_preview_with_alt_key_event() {
 
   stub.restore();
   Services.prefs.clearUserPref("browser.ml.linkPreview.enabled");
+  LinkPreview.keyboardComboActive = false;
 });
 
 /**
@@ -66,6 +105,7 @@ add_task(async function test_no_event_triggered_when_disabled_with_alt_key() {
     bubbles: true,
     cancelable: true,
     altKey: true,
+    shiftKey: true,
   });
   window.dispatchEvent(keydownEvent);
 
@@ -78,6 +118,7 @@ add_task(async function test_no_event_triggered_when_disabled_with_alt_key() {
 
   stub.restore();
   Services.prefs.clearUserPref("browser.ml.linkPreview.enabled");
+  LinkPreview.keyboardComboActive = false;
 });
 
 /**
@@ -168,6 +209,7 @@ add_task(async function test_link_preview_panel_shown() {
       bubbles: true,
       cancelable: true,
       altKey: true,
+      shiftKey: true,
     })
   );
   XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
@@ -205,6 +247,7 @@ add_task(async function test_link_preview_panel_shown() {
 
   panel.remove();
   stub.restore();
+  LinkPreview.keyboardComboActive = false;
 });
 
 /**
@@ -222,6 +265,7 @@ add_task(async function test_skip_keypoints_generation_if_url_not_readable() {
       bubbles: true,
       cancelable: true,
       altKey: true,
+      shiftKey: true,
     })
   );
   XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
@@ -247,4 +291,5 @@ add_task(async function test_skip_keypoints_generation_if_url_not_readable() {
 
   panel.remove();
   generateStub.restore();
+  LinkPreview.keyboardComboActive = false;
 });
