@@ -16,7 +16,7 @@ add_setup(() => {
 add_task(async function test_storing_a_normal_16x16_icon() {
   const PAGE_URL = Services.io.newURI("http://places.test");
   await PlacesTestUtils.addVisits(PAGE_URL);
-  await PlacesUtils.favicons.setFaviconForPage(
+  await PlacesTestUtils.setFaviconForPage(
     PAGE_URL,
     SMALLPNG_DATA_URI,
     SMALLPNG_DATA_URI
@@ -36,7 +36,7 @@ add_task(async function test_storing_a_normal_16x16_icon() {
   );
 
   info("Refresh favicon");
-  await PlacesUtils.favicons.setFaviconForPage(
+  await PlacesTestUtils.setFaviconForPage(
     PAGE_URL,
     SMALLPNG_DATA_URI,
     SMALLPNG_DATA_URI

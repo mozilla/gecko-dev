@@ -104,10 +104,10 @@ function test()
     // icon with a page explicitly in order for it to be visible through
     // the protocol.
     info("Replace favicon data");
-    PlacesUtils.favicons.setFaviconForPage(
-      Services.io.newURI("https://example.com/favicon_annotations"),
-      Services.io.newURI(tests[1].url),
-      Services.io.newURI(tests[1].expectedIcon),
+    PlacesTestUtils.setFaviconForPage(
+      "https://example.com/favicon_annotations",
+      tests[1].url,
+      tests[1].expectedIcon,
       (Date.now() + 86400) * 1000,
     );
 

@@ -168,13 +168,9 @@ export var PlacesTestUtils = Object.freeze({
     isRichIcon = false
   ) {
     return lazy.PlacesUtils.favicons.setFaviconForPage(
-      pageURI instanceof Ci.nsIURI ? pageURI : Services.io.newURI(pageURI),
-      faviconURI instanceof Ci.nsIURI
-        ? faviconURI
-        : Services.io.newURI(faviconURI),
-      faviconDataURL instanceof Ci.nsIURI
-        ? faviconDataURL
-        : Services.io.newURI(faviconDataURL),
+      lazy.PlacesUtils.toURI(pageURI),
+      lazy.PlacesUtils.toURI(faviconURI),
+      lazy.PlacesUtils.toURI(faviconDataURL),
       expiration,
       isRichIcon
     );

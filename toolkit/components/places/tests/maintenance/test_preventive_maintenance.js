@@ -2610,7 +2610,7 @@ tests.push({
     });
 
     PlacesUtils.tagging.tagURI(this._uri1, ["testtag"]);
-    await PlacesUtils.favicons.setFaviconForPage(
+    await PlacesTestUtils.setFaviconForPage(
       this._uri2,
       SMALLPNG_DATA_URI,
       SMALLPNG_DATA_URI

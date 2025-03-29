@@ -41,8 +41,8 @@ add_task(async function test_add_icon() {
       )
   );
 
-  PlacesUtils.favicons.setFaviconForPage(
-    NetUtil.newURI("http://book.ma.rk/"),
+  PlacesTestUtils.setFaviconForPage(
+    "http://book.ma.rk/",
     SMALLPNG_DATA_URI,
     SMALLPNG_DATA_URI
   );

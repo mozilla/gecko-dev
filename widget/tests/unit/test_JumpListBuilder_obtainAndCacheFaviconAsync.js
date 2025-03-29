@@ -6,9 +6,6 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
-const { PlacesUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/PlacesUtils.sys.mjs"
-);
 const { PlacesTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PlacesTestUtils.sys.mjs"
 );
@@ -68,10 +65,10 @@ add_setup(async () => {
     reader.readAsDataURL(blob);
   });
 
-  await PlacesUtils.favicons.setFaviconForPage(
+  await PlacesTestUtils.setFaviconForPage(
     TEST_PAGE_URI,
     TEST_FAVICON_URI,
-    Services.io.newURI(dataURL)
+    dataURL
   );
 });
 
