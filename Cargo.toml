@@ -217,6 +217,9 @@ rure = { path = "third_party/rust/rure" }
 # Patch `plist` to work with `indexmap` 2.*
 plist = { path = "third_party/rust/plist" }
 
+# Patch `unicode-width` 0.1.* to 0.2.
+unicode-width = { path = "build/rust/unicode-width" }
+
 # To-be-published changes.
 unicode-bidi = { git = "https://github.com/servo/unicode-bidi", rev = "ca612daf1c08c53abe07327cb3e6ef6e0a760f0c" }
 nss-gk-api = { git = "https://github.com/beurdouche/nss-gk-api", rev = "e48a946811ffd64abc78de3ee284957d8d1c0d63" }
