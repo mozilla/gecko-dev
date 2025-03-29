@@ -270,6 +270,22 @@ void gfxConfigManager::ConfigureWebRender() {
                              "FEATURE_FAILURE_NO_GPU_PROCESS"_ns);
   }
 
+  if (!mIsWin11OrLater) {
+    // Disable DirectComposition for NVIDIA users on Windows 10 with high/mixed
+    // refresh rate monitors due to rendering artifacts. (See bug 1638709.)
+    nsAutoString adapterVendorID;
+    mGfxInfo->GetAdapterVendorID(adapterVendorID);
+    if (adapterVendorID == u"0x10de") {
+      bool mixed = false;
+      int32_t maxRefreshRate = mGfxInfo->GetMaxRefreshRate(&mixed);
+      if (maxRefreshRate > 60 && mixed) {
+        mFeatureWrDComp->Disable(FeatureStatus::Blocked,
+                                 "Monitor refresh rate too high/mixed",
+                                 "NVIDIA_REFRESH_RATE_MIXED"_ns);
+      }
+    }
+  }
+
   mFeatureWrDComp->MaybeSetFailed(
       mFeatureWr->IsEnabled(), FeatureStatus::Unavailable, "Requires WebRender",
       "FEATURE_FAILURE_DCOMP_NOT_WR"_ns);
