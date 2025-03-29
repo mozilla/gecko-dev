@@ -183,11 +183,13 @@ export var PlacesTestUtils = Object.freeze({
   /**
    * Get favicon data for given URL from database.
    *
-   * @param {nsIURI} faviconURI
-   *        nsIURI for the favicon
+   * @param {string or nsIURI} faviconURI
+   *        uri for the favicon
    * @return {nsIURI} data URL
    */
   async getFaviconDataURLFromDB(faviconURI) {
+    faviconURI = lazy.PlacesUtils.toURI(faviconURI);
+
     const db = await lazy.PlacesUtils.promiseDBConnection();
     const rows = await db.executeCached(
       `SELECT data, width
@@ -218,7 +220,7 @@ export var PlacesTestUtils = Object.freeze({
   /**
    * Get favicon data for given URL from network.
    *
-   * @param {nsIURI} faviconURI
+   * @param {string or nsIURI} faviconURI
    *        nsIURI for the favicon.
    * @param {nsIPrincipal} [optional] loadingPrincipal
    *        The principal to load from network. If no, use system principal.
@@ -232,6 +234,7 @@ export var PlacesTestUtils = Object.freeze({
     faviconURI,
     loadingPrincipal = Services.scriptSecurityManager.getSystemPrincipal()
   ) {
+    faviconURI = lazy.PlacesUtils.toURI(faviconURI);
     if (faviconURI.schemeIs("data")) {
       return faviconURI;
     }

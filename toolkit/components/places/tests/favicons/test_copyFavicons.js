@@ -72,7 +72,11 @@ add_task(async function test_copyFavicons_noop() {
   );
 
   info("Unknown dest uri, source has icon");
-  await setFaviconForPage(TEST_URI1, SMALLPNG_DATA_URI);
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI1,
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
   Assert.equal(
     await copyFavicons(TEST_URI1, TEST_URI2, false),
     null,
@@ -94,8 +98,16 @@ add_task(async function test_copyFavicons_noop() {
 add_task(async function test_copyFavicons() {
   info("Normal copy across 2 pages");
   await PlacesTestUtils.addVisits(TEST_URI1);
-  await setFaviconForPage(TEST_URI1, SMALLPNG_DATA_URI);
-  await setFaviconForPage(TEST_URI1, SMALLSVG_DATA_URI);
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI1,
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI1,
+    SMALLSVG_DATA_URI,
+    SMALLSVG_DATA_URI
+  );
   await PlacesTestUtils.addVisits(TEST_URI2);
   let promiseChange = promisePageChanged(TEST_URI2.spec);
   Assert.equal(
@@ -145,10 +157,22 @@ add_task(async function test_copyFavicons() {
 add_task(async function test_copyFavicons_overlap() {
   info("Copy to a page that has one of the favicons already");
   await PlacesTestUtils.addVisits(TEST_URI1);
-  await setFaviconForPage(TEST_URI1, SMALLPNG_DATA_URI);
-  await setFaviconForPage(TEST_URI1, SMALLSVG_DATA_URI);
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI1,
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI1,
+    SMALLSVG_DATA_URI,
+    SMALLSVG_DATA_URI
+  );
   await PlacesTestUtils.addVisits(TEST_URI2);
-  await setFaviconForPage(TEST_URI2, SMALLPNG_DATA_URI);
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI2,
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
   let promiseChange = promisePageChanged(TEST_URI2.spec);
   Assert.equal(
     (await copyFavicons(TEST_URI1, TEST_URI2, false)).spec,
@@ -170,7 +194,11 @@ add_task(async function test_copyFavicons_overlap() {
 
 add_task(async function test_copyFavicons_local_uri() {
   await PlacesTestUtils.addVisits(TEST_URI1);
-  await setFaviconForPage(TEST_URI1, SMALLPNG_DATA_URI);
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI1,
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
 
   Assert.throws(
     () => PlacesUtils.favicons.copyFavicons(TEST_URI1, TEST_LOCAL_URI, false),
