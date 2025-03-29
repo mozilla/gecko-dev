@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{WindowWrapper, NotifierEvent};
+use base64::Engine as _;
 use image::load as load_piston_image;
 use image::png::PNGEncoder;
 use image::{ColorType, ImageFormat};
@@ -325,7 +326,7 @@ impl ReftestImage {
                 .encode(&self.data[..], width as u32, height as u32, ColorType::Rgba8)
                 .expect("Unable to encode PNG!");
         }
-        let png_base64 = base64::encode(&png);
+        let png_base64 = base64::engine::general_purpose::STANDARD.encode(&png);
         format!("data:image/png;base64,{}", png_base64)
     }
 }
