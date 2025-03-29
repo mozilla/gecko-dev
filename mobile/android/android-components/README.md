@@ -1,12 +1,10 @@
 # Android components
 
-[![Task Status](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/main/badge.svg)](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/main/latest)
-[![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/mozilla-mobile/android-components&style=flat)](https://mergify.io)
 [![chat.mozilla.org](https://img.shields.io/badge/chat-on%20matrix-51bb9c)](https://chat.mozilla.org/#/room/#android-components:mozilla.org)
 
 _A collection of Android libraries to build browsers or browser-like applications._
 
-ℹ️ For more information **[see the website](https://mozilla-mobile.github.io/android-components/)**.
+ℹ️ For more information **[see the website](https://mozac.org/)**.
 
 A fully-featured reference browser implementation based on the components can be found in the [reference-browser repository](https://github.com/mozilla-mobile/reference-browser).
 
@@ -18,7 +16,7 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * Matrix: [android-components:mozilla.org chat room](https://chat.mozilla.org/#/room/#android-components:mozilla.org) ([How to connect](https://wiki.mozilla.org/Matrix#Connect_to_Matrix)).
 
-* Localization happens on [Pontoon](https://pontoon.mozilla.org/projects/android-l10n/). Please get in touch with delphine (at) mozilla (dot) com directly for more information.
+* Localization happens on [Pontoon](https://pontoon.mozilla.org/projects/firefox-for-android/). Please get in touch with delphine (at) mozilla (dot) com directly for more information.
 
 # Maven repository
 
@@ -54,8 +52,6 @@ Nightly builds are created every day from the `main` branch and published on [ni
 ## Browser
 
 High-level components for building browser(-like) apps.
-
-* 🔵 [**Awesomebar**](components/browser/awesomebar/README.md) - A customizable [Awesome Bar](https://support.mozilla.org/en-US/kb/awesome-bar-search-firefox-bookmarks-history-tabs) implementation for browsers.
 
 * 🔵 [**Domains**](components/browser/domains/README.md) Localized and customizable domain lists for auto-completion in browsers.
 
@@ -135,8 +131,6 @@ _Combined components to implement feature-specific use cases._
 
 * 🔵 [**Share**](components/feature/share/README.md) - Feature implementation for saving and sorting recent apps used for sharing.
 
-* 🔵 [**Sync**](components/feature/sync/README.md) -A component that provides synchronization orchestration for groups of (concept) SyncableStore objects.
-
 * 🔵 [**Tabs**](components/feature/tabs/README.md) - A component that connects a tabs tray implementation with the session and toolbar modules.
 
 * 🔵 [**Tab Collections**](components/feature/tab-collections/README.md) - Feature implementation for saving, restoring and organizing collections of tabs.
@@ -151,7 +145,7 @@ _Combined components to implement feature-specific use cases._
 
 * 🔵 [**Find In Page**](components/feature/findinpage/README.md) - A component that provides an UI widget for [find in page functionality](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links).
 
-* 🔵 [**Remote Tabs**](components/feature/remotetabs/README.md) - Feature that provides access to other device's tabs in the same account.
+* 🔵 [**Synced Tabs**](components/feature/syncedtabs/README.md) - Feature that provides access to other device's tabs in the same account.
 
 * 🔵 [**Site Permissions**](components/feature/sitepermissions/README.md) - A feature for showing site permission request prompts.
 
@@ -183,6 +177,8 @@ _Generic low-level UI components for building apps._
 
 Compose UI components for building apps.
 
+* 🔵 [**Awesomebar**](components/compose/awesomebar/README.md) - A customizable [Awesome Bar](https://support.mozilla.org/en-US/kb/awesome-bar-search-firefox-bookmarks-history-tabs) implementation for browsers using Jetpack Compose.
+
 * 🔵 [**Base**](components/compose/base/README.md) - Base component containing Composable components based on [Acorn Design System](https://acorn.firefox.com/) that are used as building blocks for building UI.
 
 ## Service
@@ -195,7 +191,7 @@ _Components and libraries to interact with backend services._
 
 * 🔵 [**Firefox Sync - Autofill**](components/service/sync-autofill/README.md) - A library for integrating with Firefox Sync - Autofill.
 
-* 🔵 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
+* 🔵 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service.
 
 * 🔵 [**Location**](components/service/location/README.md) - A library for accessing Mozilla's and other location services.
 
@@ -203,7 +199,7 @@ _Components and libraries to interact with backend services._
 
 * 🔵 [**Pocket**](components/service/pocket/README.md) - A library for communicating with the Pocket API.
 
-* 🔵 [**Contile**](components/service/contile/README.md) - A library for communicating with the Contile services API.
+* 🔵 [**MARS**](components/service/mars/README.md) - A library for communicating with the MARS API.
 
 ## Support
 
@@ -231,21 +227,21 @@ _Supporting components with generic helper code._
 
 * 🔵 [**Dataprotect**](components/lib/dataprotect/README.md) - A component using AndroidKeyStore to protect user data.
 
-* 🔵 [**Fetch-HttpURLConnection**](components/lib/fetch-httpurlconnection/README.md) - A [concept-fetch](concept/fetch/README.md) implementation using [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection.html).
+* 🔵 [**Fetch-HttpURLConnection**](components/lib/fetch-httpurlconnection/README.md) - A [concept-fetch](components/concept/fetch/README.md) implementation using [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection.html).
 
-* 🔵 [**Fetch-OkHttp**](components/lib/fetch-okhttp/README.md) - A [concept-fetch](concept/fetch/README.md) implementation using [OkHttp](https://github.com/square/okhttp).
+* 🔵 [**Fetch-OkHttp**](components/lib/fetch-okhttp/README.md) - A [concept-fetch](components/concept/fetch/README.md) implementation using [OkHttp](https://github.com/square/okhttp).
 
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
 * 🔵 [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
 
-* 🔵 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
+* 🔵 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](components/concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
 
 * 🔵 [**State**](components/lib/state/README.md) - A library for maintaining application state.
 
 ## Tooling
 
-* 🔵 [**Fetch-Tests**](components/tooling/fetch-tests/README.md) - A generic test suite for components that implement [concept-fetch](concept/fetch/README.md).
+* 🔵 [**Fetch-Tests**](components/tooling/fetch-tests/README.md) - A generic test suite for components that implement [concept-fetch](components/concept/fetch/README.md).
 
 * 🔵 [**Lint**](components/tooling/lint/README.md) - Custom Lint rules for the components repository.
 
@@ -274,8 +270,8 @@ _Sample apps using various components._
 ## Command line ##
 
 ```
-$ git clone https://github.com/mozilla-mobile/android-components.git
-$ cd android-components
+$ hg clone https://hg.mozilla.org/mozilla-central/
+$ cd mozilla-central/mobile/android/android-components
 $ ./gradlew assemble
 ```
 
@@ -296,7 +292,7 @@ If your build fails, you may find you get more instructive error messages by att
 # Coding Standards #
 
 ## Style ##
-We follow the style enforced by [ktlint](https://ktlint.github.io/) and [detekt](https://github.com/detekt/detekt). See [how to configure Android Studio appropriately](https://github.com/pinterest/ktlint#option-1-recommended).
+We follow the style enforced by [ktlint](https://ktlint.github.io/) and [detekt](https://github.com/detekt/detekt). See [how to configure Android Studio appropriately](https://pinterest.github.io/ktlint/latest/install/setup/).
 
 To check your style, run:
 
@@ -308,7 +304,7 @@ To check your style, run:
 ## Documentation ##
 We use `README.md` files for each component.
 
-If you fix a bug or change an API, you should update [docs/changelog.md](https://github.com/mozilla-mobile/android-components/blob/main/docs/changelog.md).
+If you fix a bug or change an API, you should update [docs/changelog.md](docs/changelog.md).
 
 ## Testing ##
 You are expected to both add tests for code that you write and make sure that your changes do not
@@ -322,7 +318,7 @@ cause existing tests to fail. You may find these command lines helpful:
 See also [how to measure code coverage](https://mozac.org/contributing/code-coverage).
 
 ## Accessibility ##
-If your code has user-facing changes, follow [Android accessibility best practices](https://github.com/mozilla-mobile/shared-docs/blob/main/android/accessibility_guide.md).
+If your code has user-facing changes, follow [Android accessibility best practices](../docs/shared/android/accessibility_guide.md).
 
 # License
 
