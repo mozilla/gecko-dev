@@ -42,11 +42,6 @@ let COMMANDS_TESTS = [
     testFun: async () => isSelected("button[name=discover]"),
   },
   {
-    cmd: "plugins",
-    uri: "about:addons",
-    testFun: async () => isSelected("button[name=plugin]"),
-  },
-  {
     cmd: "extensions",
     uri: "about:addons",
     testFun: async () => isSelected("button[name=extension]"),
@@ -73,24 +68,6 @@ let COMMANDS_TESTS = [
     uri: "about:addons",
     loadType: LOAD_TYPE.NEW_TAB,
     testFun: async () => isSelected("button[name=discover]"),
-  },
-  {
-    cmd: "plugins",
-    setup: async () => {
-      const onLoad = BrowserTestUtils.browserLoaded(
-        gBrowser.selectedBrowser,
-        false,
-        "https://example.com/"
-      );
-      BrowserTestUtils.startLoadingURIString(
-        gBrowser.selectedBrowser,
-        "https://example.com/"
-      );
-      await onLoad;
-    },
-    uri: "about:addons",
-    loadType: LOAD_TYPE.NEW_TAB,
-    testFun: async () => isSelected("button[name=plugin]"),
   },
   {
     cmd: "extensions",

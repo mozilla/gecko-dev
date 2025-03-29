@@ -51,11 +51,6 @@ add_task(async function test_about_pages() {
       component: "button[name=extension]",
     },
     {
-      firstInput: "plugins",
-      uri: "about:addons",
-      component: "button[name=plugin]",
-    },
-    {
       firstInput: "themes",
       uri: "about:addons",
       component: "button[name=theme]",
@@ -135,10 +130,6 @@ add_task(async function test_about_addons_pages() {
     {
       cmd: "add-ons",
       testFun: async () => isSelected("button[name=discover]"),
-    },
-    {
-      cmd: "plugins",
-      testFun: async () => isSelected("button[name=plugin]"),
     },
     {
       cmd: "extensions",

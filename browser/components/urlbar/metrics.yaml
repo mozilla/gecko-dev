@@ -154,7 +154,7 @@ urlbar:
         description: >
           Comma separated list of actions keys in the order they were shown to
           the user. Possible keys are: `addons`, `bookmarks`, `clear`, `downloads`,
-          `extensions`, `inspect`, `logins`, `plugins`, `print`, `private`,
+          `extensions`, `inspect`, `logins`, `print`, `private`,
           `refresh`, `restart`, `savepdf`, `screenshot`, `settings`, `tabswitch`,
           `themes`, `update`, `viewsource`.
           If there is no action shown in a position that is denoted with `none`.
@@ -422,7 +422,7 @@ urlbar:
         description: >
           Comma separated list of actions keys in the order they were shown to
           the user. Possible keys are: `addons`, `bookmarks`, `clear`, `downloads`,
-          `extensions`, `inspect`, `logins`, `plugins`, `print`, `private`,
+          `extensions`, `inspect`, `logins`, `print`, `private`,
           `refresh`, `restart`, `savepdf`, `screenshot`, `settings`, `tabswitch`,
           `themes`, `update`, `viewsource`.
           If there is no action shown in a position that is denoted with `none`.

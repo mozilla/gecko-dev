@@ -320,10 +320,6 @@ quickactions-cmd-inspector = inspector, devtools
 quickactions-logins2 = Manage passwords
 quickactions-cmd-logins = logins, passwords
 
-# Opens about:addons page in the plugins section
-quickactions-plugins = Manage plugins
-quickactions-cmd-plugins = plugins
-
 # Opens the print dialog
 quickactions-print2 = Print page
 quickactions-cmd-print = print

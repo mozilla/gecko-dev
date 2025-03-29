@@ -154,12 +154,6 @@ const DEFAULT_ACTIONS = {
     label: "quickactions-logins2",
     onPick: openUrlFun("about:logins"),
   },
-  plugins: {
-    l10nCommands: ["quickactions-cmd-plugins"],
-    icon: "chrome://mozapps/skin/extensions/category-extensions.svg",
-    label: "quickactions-plugins",
-    onPick: openAddonsUrl("addons://list/plugin"),
-  },
   print: {
     l10nCommands: ["quickactions-cmd-print"],
     label: "quickactions-print2",
