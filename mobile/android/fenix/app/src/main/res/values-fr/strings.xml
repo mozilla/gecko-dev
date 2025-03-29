@@ -687,6 +687,8 @@
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Image de la barre d’outils inférieure</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Image de la barre d’outils supérieure</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">sélectionner</string>
   <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Plus tard</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
@@ -705,6 +707,8 @@
   <string name="onboarding_customize_theme_main_image_content_description">Grande image d’en-tête de la vue de la sélection de thème, montrant un artiste illustré et des outils créatifs.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Image du thème %1$s</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">sélectionner</string>
   <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Plus tard</string>
   <!--
@@ -1473,10 +1477,31 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Téléchargements supprimés</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Éléments supprimés : %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s a été supprimé </string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">« %1$s » supprimé</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Téléchargement en cours…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Détails</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Téléchargement terminé</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Ouvrir</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Annuler</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Aucun fichier téléchargé</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Aucun téléchargement pour l’instant</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">Les fichiers que vous téléchargez apparaîtront ici.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1484,6 +1509,20 @@
   <string name="download_multi_select_title">%1$d sélectionné(s)</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Supprimer</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Supprimer</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">Partager l’URL</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Partager le fichier</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Voulez-vous vraiment supprimer les éléments sélectionnés ?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Supprimer</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Annuler</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">En cours</string>
   <!--
     Time period headers for downloads
 
@@ -1499,6 +1538,23 @@
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Avant le mois dernier</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s restant</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">en pause</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">en attente</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">Échec du téléchargement</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">Rechercher dans les téléchargements</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Aucun résultat</string>
+  <!--
     Downloads Content Type Filters
 
     Text for the filter button to show all files in the downloads list
@@ -1512,6 +1568,8 @@
   <string name="download_content_type_filter_document">Documents</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Autres</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Autre</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1624,6 +1682,14 @@
   <string name="bookmark_menu_delete_button">Supprimer</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Enregistrer</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Trier par plus récent</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Trier par plus ancien</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Trier de A à Z</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Trier de Z à A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected

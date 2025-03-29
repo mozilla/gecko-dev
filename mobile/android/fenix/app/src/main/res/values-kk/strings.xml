@@ -1471,6 +1471,10 @@
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s өшірілді</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Жүктеліп алынған файлдар жоқ</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Жүктемелер әлі жоқ</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">Сіз жүктеп алған файлдар осы жерде болады.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1478,6 +1482,12 @@
   <string name="download_multi_select_title">%1$d таңдалды</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Өшіру</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Өшіру</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">URL адресін бөлісу</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Файлды бөлісу</string>
   <!--
     Time period headers for downloads
 
@@ -1492,6 +1502,26 @@
   <string name="download_time_period_last_30_days">Соңғы 30 күн</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Ескілеу</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">Барлығы</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">Суреттер</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">Видеолар</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">Құжаттар</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Басқа</string>
+  <!--
+    Description of a downloaded item, displayed in the downloads list.
+    %1$s: The size of the downloaded file.
+    %2$s: The URL of the downloaded file.
+  -->
+  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 

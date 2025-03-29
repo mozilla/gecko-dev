@@ -689,7 +689,7 @@
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Imagen de la barra de herramientas inferior</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Imagen de la barra de herramientas superior</string>
   <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
-  <string name="onboarding_customize_toolbar_a11y_action_label_select">elegí</string>
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">seleccionar</string>
   <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">No ahora</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->

@@ -1536,6 +1536,13 @@
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Régebbi</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s van hátra</string>
+  <!--
     Downloads Content Type Filters
 
     Text for the filter button to show all files in the downloads list
