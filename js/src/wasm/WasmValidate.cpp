@@ -3832,6 +3832,10 @@ bool wasm::StartsCodeSection(const uint8_t* begin, const uint8_t* end,
     }
 
     if (id == uint8_t(SectionId::Code)) {
+      if (range.size > MaxCodeSectionBytes) {
+        return false;
+      }
+
       *codeSection = range;
       return true;
     }
