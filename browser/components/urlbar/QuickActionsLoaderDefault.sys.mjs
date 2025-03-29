@@ -258,7 +258,7 @@ const DEFAULT_ACTIONS = {
     onPick: restartBrowser,
   },
   viewsource: {
-    l10nCommands: ["quickactions-cmd-viewsource"],
+    l10nCommands: ["quickactions-cmd-viewsource2"],
     icon: "chrome://global/skin/icons/settings.svg",
     label: "quickactions-viewsource2",
     isVisible: () => currentBrowser()?.currentURI.scheme !== "view-source",

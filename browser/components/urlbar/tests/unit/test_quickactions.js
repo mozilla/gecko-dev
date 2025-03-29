@@ -36,6 +36,28 @@ add_task(async function quickactions_match() {
   Assert.ok(results[0].key == "newaction", "Matched the new action");
 });
 
+add_task(async function quickactions_match_multiple() {
+  ActionsProviderQuickActions.addAction("multiaction", {
+    commands: ["testcommand1", "commandtest2"],
+  });
+
+  let context = createContext("testcommand1", {});
+  let results = await ActionsProviderQuickActions.queryActions(context);
+  Assert.ok(
+    results[0].key == "multiaction",
+    "Matched the action with first keyword"
+  );
+
+  context = createContext("commandtest2", {});
+  results = await ActionsProviderQuickActions.queryActions(context);
+  Assert.ok(
+    results[0].key == "multiaction",
+    "Matched the action with first keyword"
+  );
+
+  ActionsProviderQuickActions.removeAction("multiaction");
+});
+
 add_task(async function duplicate_matches() {
   ActionsProviderQuickActions.addAction("testaction", {
     commands: ["testaction", "test"],

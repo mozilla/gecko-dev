@@ -357,8 +357,8 @@ quickactions-update = Update { -brand-short-name }
 quickactions-cmd-update = update
 
 # Opens the view-source UI with current pages source
-quickactions-viewsource2 = View Page Source
-quickactions-cmd-viewsource = view source, source
+quickactions-viewsource2 = View page source
+quickactions-cmd-viewsource2 = view source, source, page source
 
 # Tooltip text for the help button shown in the result.
 quickactions-learn-more =
