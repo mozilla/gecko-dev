@@ -308,7 +308,8 @@ export const LinkPreviewModel = {
         data => {
           if (data.type == lazy.Progress.ProgressType.DOWNLOAD) {
             onDownload?.(
-              data.statusText != lazy.Progress.ProgressStatusText.DONE
+              data.statusText != lazy.Progress.ProgressStatusText.DONE,
+              Math.round((100 * data.totalLoaded) / data.total)
             );
           }
         }

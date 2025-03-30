@@ -27,11 +27,13 @@ class LinkPreviewCard extends MozLitElement {
     keyPoints: { type: Array },
     pageData: { type: Object },
     showWait: { type: Boolean },
+    progressPercentage: { type: Number },
   };
 
   constructor() {
     super();
     this.keyPoints = [];
+    this.progress = 0;
   }
 
   addKeyPoint(text) {
@@ -110,6 +112,12 @@ class LinkPreviewCard extends MozLitElement {
     const readingTimeMinsFast = articleData.readingTimeMinsFast || "";
     const readingTimeMinsSlow = articleData.readingTimeMinsSlow || "";
 
+    let displayProgressPercentage = this.progressPercentage;
+    // Handle non-finite values (NaN, Infinity) by defaulting to 100%
+    if (!Number.isFinite(displayProgressPercentage)) {
+      displayProgressPercentage = 100;
+    }
+
     return html`
       <link
         rel="stylesheet"
@@ -158,10 +166,18 @@ class LinkPreviewCard extends MozLitElement {
                 </ul>
                 <hr />
                 ${this.showWait
-                  ? html`<p>
-                      This may take a moment the first time you preview a link.
-                      Key points should appear more quickly next time.
-                    </p>`
+                  ? html`
+                      <p>
+                        ${this.progressPercentage > 0
+                          ? html`Preparing Firefox •
+                              <strong>${displayProgressPercentage}%</strong>`
+                          : ""}
+                      </p>
+                      <p>
+                        This may take a moment the first time you preview a
+                        link. Key points should appear more quickly next time.
+                      </p>
+                    `
                   : ""}
                 <p>
                   Key points are AI-generated and may have mistakes.

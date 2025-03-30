@@ -215,9 +215,10 @@ export const LinkPreview = {
       await lazy.LinkPreviewModel.generateTextAI(
         ogCard.pageData.article.textContent,
         {
-          onDownload: state => {
+          onDownload: (state, progressPercentage) => {
             ogCard.showWait = state;
             this.downloadingModel = state;
+            ogCard.progressPercentage = progressPercentage;
           },
           onError: console.error,
           onText: text => {
