@@ -15,7 +15,7 @@
   <!-- Color option for the background -->
   <string name="mozac_feature_readerview_dark">ഇരുണ്ടത്</string>
   <!-- Accessible description for the color option -->
-  <string name="mozac_feature_readerview_dark_color_scheme_desc">ഡാർക്ക് കളർ സ്കീം</string>
+  <string name="mozac_feature_readerview_dark_color_scheme_desc">ഇരുണ്ടന്നിറയലങ്കാരം</string>
   <!-- Color option for the background -->
   <string name="mozac_feature_readerview_sephia">സെപിയ</string>
   <!-- Accessible description for the color option -->

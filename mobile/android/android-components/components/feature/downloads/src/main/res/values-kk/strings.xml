@@ -31,6 +31,11 @@
   <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">Қайта жүктеп алу</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">Бас тарту</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s бар болып тұр.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s бұл файл түрін жүктей алмайды</string>
   <!-- Message that appears when the downloaded file could not be opened. -->
