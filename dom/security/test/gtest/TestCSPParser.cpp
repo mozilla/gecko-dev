@@ -228,12 +228,9 @@ TEST(CSPParser, Directives)
       "script-src http://example.com"},
     { "require-trusted-types-for 'script'",
       "require-trusted-types-for 'script'" },
-    { "require-trusted-types-for 'script' invalid",
-      "require-trusted-types-for 'script' 'invalid'"}, // bug 1956731
     { "trusted-types somePolicyName", "trusted-types somePolicyName" },
     { "trusted-types somePolicyName anotherPolicyName 1 - # = _ / @ . % *",
       "trusted-types somePolicyName anotherPolicyName 1 - # = _ / @ . % *" },
-    { "trusted-types $", "trusted-types 'invalid'" }, // bug 1935434
       // clang-format on
   };
 
@@ -411,8 +408,7 @@ TEST(CSPParser, Paths)
     { "script-src http://www.example.com:88/.js",
       "script-src http://www.example.com:88/.js" },
     { "script-src https://foo.com/_abc/abc_/_/_a_b_c_",
-      "script-src https://foo.com/_abc/abc_/_/_a_b_c_" }
-      // clang-format on
+      "script-src https://foo.com/_abc/abc_/_/_a_b_c_" }  // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -612,8 +608,8 @@ TEST(CSPParser, BadPolicies)
     { "report-uri http://:foo", ""},
     { "require-sri-for", ""},
     { "require-sri-for style", ""},
-    { "require-trusted-types-for invalid" },
-    { "require-trusted-types-for 'invalid'" },
+    { "trusted-types $", ""},
+    { "trusted-types 'report-sample'", "" },
 
       // clang-format on
   };
