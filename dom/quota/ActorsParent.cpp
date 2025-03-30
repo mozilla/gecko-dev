@@ -2520,9 +2520,13 @@ void QuotaManager::Shutdown() {
   // `isAllClientsShutdownComplete` calls because it should be sufficient
   // to rely on `ShutdownStorage` to abort all existing operations and to
   // wait for all existing directory locks to be released as well.
+  //
+  // This might not be possible after adding mInitializingAllTemporaryOrigins
+  // to the checks below.
 
-  const bool needsToWait =
-      initiateShutdownWorkThreads() || static_cast<bool>(gNormalOriginOps);
+  const bool needsToWait = initiateShutdownWorkThreads() ||
+                           static_cast<bool>(gNormalOriginOps) ||
+                           mInitializingAllTemporaryOrigins;
 
   // If any clients cannot shutdown immediately, spin the event loop while we
   // wait on all the threads to close.
@@ -2530,8 +2534,9 @@ void QuotaManager::Shutdown() {
     startKillActorsTimer();
 
     MOZ_ALWAYS_TRUE(SpinEventLoopUntil(
-        "QuotaManager::Shutdown"_ns, [isAllClientsShutdownComplete]() {
-          return !gNormalOriginOps && isAllClientsShutdownComplete();
+        "QuotaManager::Shutdown"_ns, [this, isAllClientsShutdownComplete]() {
+          return !gNormalOriginOps && isAllClientsShutdownComplete() &&
+                 !mInitializingAllTemporaryOrigins;
         }));
 
     stopKillActorsTimer();

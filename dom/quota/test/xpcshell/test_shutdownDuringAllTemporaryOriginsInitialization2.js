@@ -167,7 +167,6 @@ async function testSteps() {
         ["dom.quotaManager.loadQuotaFromCache", false],
         ["dom.quotaManager.groupInitialization.pauseOnIOThreadMs", 2000],
       ],
-      skip_if: () => true,
     },
     testShutdownDuringAllTemporaryOriginsInitialization2
   );
