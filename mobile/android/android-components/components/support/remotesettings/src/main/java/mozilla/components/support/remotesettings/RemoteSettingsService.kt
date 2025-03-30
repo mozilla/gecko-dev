@@ -56,7 +56,7 @@ private fun generateAppContext(context: Context, channel: String, isLargeScreenS
         osVersion = Build.VERSION.RELEASE,
         androidSdkVersion = Build.VERSION.SDK_INT.toString(),
         customTargetingAttributes = JSONObject().apply {
-            put("form_factor", formFactor)
+            put("formFactor", formFactor)
             put("country", locale.country)
         },
         appBuild = null,
