@@ -13731,6 +13731,41 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.prefersDarkQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
     this.prefersDarkQuery.addEventListener("change", this.handleColorModeChange);
     this.handleColorModeChange();
+    this.updateWallpaper();
+  }
+  componentDidUpdate(prevProps) {
+    // destructure current and previous props with fallbacks
+    // (preventing undefined errors)
+    const {
+      Wallpapers: {
+        uploadedWallpaper = null,
+        wallpaperList = null
+      } = {},
+      Prefs: {
+        values: currentPrefs = {}
+      } = {}
+    } = this.props;
+    const {
+      Wallpapers: {
+        uploadedWallpaper: prevUploadedWallpaper = null,
+        wallpaperList: prevWallpaperList = null
+      } = {},
+      Prefs: {
+        values: prevPrefs = {}
+      } = {}
+    } = prevProps;
+    const selectedWallpaper = currentPrefs["newtabWallpapers.wallpaper"];
+    const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
+
+    // don't update wallpaper unless the wallpaper is being changed.
+    if (selectedWallpaper !== prevSelectedWallpaper ||
+    // selecting a new wallpaper
+    uploadedWallpaper !== prevUploadedWallpaper ||
+    // uploading a new wallpaper
+    wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
+    ) {
+      this.updateWallpaper();
+    }
   }
   handleColorModeChange() {
     const colorMode = this.prefersDarkQuery?.matches ? "dark" : "light";
@@ -14101,9 +14136,6 @@ class BaseContent extends (external_React_default()).PureComponent {
     // Shortcuts refresh experiment
     pocketEnabled ? "has-recommended-stories" : "no-recommended-stories", sectionsEnabled ? "has-sections-grid" : ""].filter(v => v).join(" ");
     const outerClassName = ["outer-wrapper", isDiscoveryStream && pocketEnabled && "ds-outer-wrapper-search-alignment", isDiscoveryStream && "ds-outer-wrapper-breakpoint-override", prefs.showSearch && this.state.fixedSearch && !noSectionsEnabled && "fixed-search", prefs.showSearch && noSectionsEnabled && "only-search", prefs["feeds.topsites"] && !pocketEnabled && !prefs.showSearch && "only-topsites", noSectionsEnabled && "no-sections", prefs["logowordmark.alwaysVisible"] && "visible-logo", hasThumbsUpDownLayout && hasThumbsUpDown && "thumbs-ui-compact"].filter(v => v).join(" ");
-    if (wallpapersV2Enabled) {
-      this.updateWallpaper();
-    }
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: featureClassName
     }, /*#__PURE__*/external_React_default().createElement("menu", {

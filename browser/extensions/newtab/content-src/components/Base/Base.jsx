@@ -179,6 +179,36 @@ export class BaseContent extends React.PureComponent {
       this.handleColorModeChange
     );
     this.handleColorModeChange();
+    this.updateWallpaper();
+  }
+
+  componentDidUpdate(prevProps) {
+    // destructure current and previous props with fallbacks
+    // (preventing undefined errors)
+    const {
+      Wallpapers: { uploadedWallpaper = null, wallpaperList = null } = {},
+      Prefs: { values: currentPrefs = {} } = {},
+    } = this.props;
+
+    const {
+      Wallpapers: {
+        uploadedWallpaper: prevUploadedWallpaper = null,
+        wallpaperList: prevWallpaperList = null,
+      } = {},
+      Prefs: { values: prevPrefs = {} } = {},
+    } = prevProps;
+
+    const selectedWallpaper = currentPrefs["newtabWallpapers.wallpaper"];
+    const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
+
+    // don't update wallpaper unless the wallpaper is being changed.
+    if (
+      selectedWallpaper !== prevSelectedWallpaper || // selecting a new wallpaper
+      uploadedWallpaper !== prevUploadedWallpaper || // uploading a new wallpaper
+      wallpaperList !== prevWallpaperList // remote settings wallpaper list updates
+    ) {
+      this.updateWallpaper();
+    }
   }
 
   handleColorModeChange() {
@@ -640,9 +670,6 @@ export class BaseContent extends React.PureComponent {
     ]
       .filter(v => v)
       .join(" ");
-    if (wallpapersV2Enabled) {
-      this.updateWallpaper();
-    }
 
     return (
       <div className={featureClassName}>
