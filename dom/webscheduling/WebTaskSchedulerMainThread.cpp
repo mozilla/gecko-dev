@@ -12,6 +12,8 @@
 
 namespace mozilla::dom {
 
+uint32_t gNumNormalOrHighPriorityQueuesHaveTaskScheduledMainThread = 0;
+
 NS_IMETHODIMP WebTaskMainThreadRunnable::Run() {
   if (mScheduler) {
     RefPtr<WebTask> task = mScheduler->GetNextTask(true /* aIsMainThread */);
@@ -51,5 +53,17 @@ bool WebTaskSchedulerMainThread::DispatchEventLoopRunnable(
   MOZ_ALWAYS_SUCCEEDS(
       NS_DispatchToMainThreadQueue(runnable.forget(), aPriority));
   return true;
+}
+
+void WebTaskSchedulerMainThread::
+    IncreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() {
+  ++gNumNormalOrHighPriorityQueuesHaveTaskScheduledMainThread;
+}
+
+void WebTaskSchedulerMainThread::
+    DecreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() {
+  MOZ_DIAGNOSTIC_ASSERT(
+      gNumNormalOrHighPriorityQueuesHaveTaskScheduledMainThread > 0);
+  --gNumNormalOrHighPriorityQueuesHaveTaskScheduledMainThread;
 }
 }  // namespace mozilla::dom

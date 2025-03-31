@@ -347,6 +347,10 @@ class nsIGlobalObject : public nsISupports {
 
   virtual bool IsXPCSandbox() { return false; }
 
+  virtual bool HasScheduledNormalOrHighPriorityWebTasks() const {
+    return false;
+  }
+
   /**
    * Report a localized error message to the error console.  Currently this
    * amounts to a wrapper around nsContentUtils::ReportToConsole for window

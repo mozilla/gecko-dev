@@ -21,6 +21,14 @@ MOZ_RUNINIT static LinkedList<WebTaskScheduler> gWebTaskSchedulersMainThread;
 
 static Atomic<uint64_t> gWebTaskEnqueueOrder(0);
 
+// According to
+// https://github.com/WICG/scheduling-apis/issues/113#issuecomment-2596102676,
+// tasks with User_blocking or User_visible needs to run before timers.
+static bool IsNormalOrHighPriority(TaskPriority aPriority) {
+  return aPriority == TaskPriority::User_blocking ||
+         aPriority == TaskPriority::User_visible;
+}
+
 inline void ImplCycleCollectionTraverse(
     nsCycleCollectionTraversalCallback& aCallback, WebTaskQueue& aQueue,
     const char* aName, uint32_t aFlags = 0) {
@@ -113,6 +121,10 @@ void WebTask::RunAbortAlgorithm() {
     // was async and there's a signal.abort() call in the callback.
     if (isInList()) {
       remove();
+      MOZ_ASSERT(mScheduler);
+      if (HasScheduled()) {
+        mScheduler->NotifyTaskWillBeRunOrAborted(this);
+      }
     }
 
     AutoJSAPI jsapi;
@@ -134,7 +146,7 @@ bool WebTask::Run() {
   MOZ_ASSERT(mScheduler);
   remove();
 
-  mScheduler->RemoveEntryFromTaskQueueMapIfNeeded(mWebTaskQueueHashKey);
+  mScheduler->NotifyTaskWillBeRunOrAborted(this);
   ClearWebTaskScheduler();
 
   if (!mCallback) {
@@ -341,7 +353,9 @@ already_AddRefed<Promise> WebTaskScheduler::PostTask(
 
   if (delay > 0) {
     nsresult rv = SetTimeoutForDelayedTask(
-        task, delay, GetEventQueuePriority(finalPrioritySource->Priority()));
+        task, delay,
+        GetEventQueuePriority(finalPrioritySource->Priority(),
+                              false /* aIsContinuation */));
     if (NS_FAILED(rv)) {
       promise->MaybeRejectWithUnknownError(
           "Failed to setup timeout for delayed task");
@@ -349,8 +363,8 @@ already_AddRefed<Promise> WebTaskScheduler::PostTask(
     return promise.forget();
   }
 
-  if (!QueueTask(task,
-                 GetEventQueuePriority(finalPrioritySource->Priority()))) {
+  if (!DispatchTask(task, GetEventQueuePriority(finalPrioritySource->Priority(),
+                                                false /* aIsContinuation */))) {
     MOZ_ASSERT(task->isInList());
     task->remove();
 
@@ -422,9 +436,9 @@ already_AddRefed<Promise> WebTaskScheduler::YieldImpl() {
       CreateTask(optionalSignal, {}, true /* aIsContinuation */, Nothing(),
                  nullptr, promise);
 
-  EventQueuePriority eventQueuePriority =
-      GetEventQueuePriority(prioritySource->Priority());
-  if (!QueueTask(task, eventQueuePriority)) {
+  EventQueuePriority eventQueuePriority = GetEventQueuePriority(
+      prioritySource->Priority(), true /* aIsContinuation */);
+  if (!DispatchTask(task, eventQueuePriority)) {
     MOZ_ASSERT(task->isInList());
     // CreateTask adds the task to WebTaskScheduler's queue, so we
     // need to remove from it when we failed to dispatch the runnable.
@@ -460,12 +474,23 @@ already_AddRefed<WebTask> WebTaskScheduler::CreateTask(
   return task.forget();
 }
 
-bool WebTaskScheduler::QueueTask(WebTask* aTask, EventQueuePriority aPriority) {
+bool WebTaskScheduler::DispatchTask(WebTask* aTask,
+                                    EventQueuePriority aPriority) {
   if (!DispatchEventLoopRunnable(aPriority)) {
     return false;
   }
   MOZ_ASSERT(!aTask->HasScheduled());
-  aTask->SetHasScheduled(true);
+
+  auto taskQueue = mWebTaskQueues.Lookup(aTask->TaskQueueHashKey());
+  MOZ_ASSERT(taskQueue);
+
+  if (IsNormalOrHighPriority(aTask->Priority()) &&
+      !taskQueue->HasScheduledTasks()) {
+    // This is the first task that is scheduled for this queue.
+    IncreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled();
+  }
+
+  aTask->SetHasScheduled();
   return true;
 }
 
@@ -540,7 +565,24 @@ void WebTaskScheduler::Disconnect() {
 }
 
 void WebTaskScheduler::RunTaskSignalPriorityChange(TaskSignal* aTaskSignal) {
-  if (auto entry = mWebTaskQueues.Lookup({aTaskSignal, false})) {
+  // aIsContinuation is always false because continued tasks,
+  // a.k.a yield(), can't change its priority.
+  WebTaskQueueHashKey key(aTaskSignal, false /* aIsContinuation */);
+  if (auto entry = mWebTaskQueues.Lookup(key)) {
+    if (IsNormalOrHighPriority(entry.Data().Priority()) !=
+        IsNormalOrHighPriority(key.Priority())) {
+      // The counter needs to be adjusted if it has scheduled tasks
+      // because this queue changes its priority.
+      if (entry.Data().HasScheduledTasks()) {
+        if (IsNormalOrHighPriority(key.Priority())) {
+          // Promoted from lower priority to high priority.
+          IncreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled();
+        } else {
+          // Demoted from high priority to low priority.
+          DecreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled();
+        }
+      }
+    }
     entry.Data().SetPriority(aTaskSignal->Priority());
   }
 }
@@ -575,28 +617,55 @@ WebTaskScheduler::SelectedTaskQueueData WebTaskScheduler::SelectTaskQueue(
 }
 
 EventQueuePriority WebTaskScheduler::GetEventQueuePriority(
-    const TaskPriority& aPriority) const {
+    const TaskPriority& aPriority, bool aIsContinuation) const {
   switch (aPriority) {
     case TaskPriority::User_blocking:
+      return EventQueuePriority::MediumHigh;
     case TaskPriority::User_visible:
+      return aIsContinuation ? EventQueuePriority::MediumHigh
+                             : EventQueuePriority::Normal;
     case TaskPriority::Background:
-      // Bug 1941888 intends to tweak the runnable priorities
-      // for better results.
-      return EventQueuePriority::Normal;
+      return EventQueuePriority::Low;
     default:
       MOZ_ASSERT_UNREACHABLE("Invalid TaskPriority");
       return EventQueuePriority::Normal;
   }
 }
 
-void WebTaskScheduler::RemoveEntryFromTaskQueueMapIfNeeded(
-    const WebTaskQueueHashKey& aHashKey) {
-  MOZ_ASSERT(mWebTaskQueues.Contains(aHashKey));
-  if (auto entry = mWebTaskQueues.Lookup(aHashKey)) {
-    WebTaskQueue& taskQueue = *entry;
-    if (taskQueue.IsEmpty()) {
-      DeleteEntryFromWebTaskQueueMap(aHashKey);
+void WebTaskScheduler::NotifyTaskWillBeRunOrAborted(const WebTask* aWebTask) {
+  const WebTaskQueueHashKey& hashKey = aWebTask->TaskQueueHashKey();
+  MOZ_ASSERT(mWebTaskQueues.Contains(hashKey));
+  if (auto entry = mWebTaskQueues.Lookup(hashKey)) {
+    const WebTaskQueue& taskQueue = *entry;
+    if (IsNormalOrHighPriority(taskQueue.Priority())) {
+      // If the taskQueue
+      //   1. is empty
+      //   2. or it's not empty but the existing tasks are
+      //   not scheduled (delay tasks).
+      if (!taskQueue.HasScheduledTasks()) {
+        DecreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled();
+      }
     }
+    if (taskQueue.IsEmpty()) {
+      DeleteEntryFromWebTaskQueueMap(hashKey);
+    }
+  }
+}
+
+WebTaskQueue::~WebTaskQueue() {
+  MOZ_ASSERT(mScheduler);
+
+  bool hasScheduledTask = false;
+  for (const auto& task : mTasks) {
+    if (!hasScheduledTask && task->HasScheduled()) {
+      hasScheduledTask = true;
+    }
+    task->ClearWebTaskScheduler();
+  }
+  mTasks.clear();
+
+  if (hasScheduledTask && IsNormalOrHighPriority(Priority())) {
+    mScheduler->DecreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled();
   }
 }
 }  // namespace mozilla::dom

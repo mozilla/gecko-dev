@@ -24,6 +24,7 @@
 #include "mozilla/net/WebSocketEventService.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/dom/WorkerScope.h"
+#include "mozilla/dom/WebTaskScheduler.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -976,8 +977,12 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
       }
       // Check to see if we have run out of time to execute timeout handlers.
       // If we've exceeded our time budget then terminate the loop immediately.
+      //
+      // Or if there are high priority tasks dispatched by the Scheduler API,
+      // they should run first before timers.
       TimeDuration elapsed = now - start;
-      if (elapsed >= totalTimeLimit) {
+      if (elapsed >= totalTimeLimit ||
+          mGlobalObject.HasScheduledNormalOrHighPriorityWebTasks()) {
         // We ran out of time.  Make sure to schedule the executor to
         // run immediately for the next timer, if it exists.  Its possible,
         // however, that the last timeout handler suspended the window.  If

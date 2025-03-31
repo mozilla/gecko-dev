@@ -2907,6 +2907,10 @@ bool nsPIDOMWindowInner::IsCurrentInnerWindow() const {
   return outer && outer->GetCurrentInnerWindow() == this;
 }
 
+bool nsGlobalWindowInner::HasScheduledNormalOrHighPriorityWebTasks() const {
+  return gNumNormalOrHighPriorityQueuesHaveTaskScheduledMainThread > 0;
+}
+
 bool nsPIDOMWindowInner::IsFullyActive() const {
   WindowContext* wc = GetWindowContext();
   if (!wc || wc->IsDiscarded() || !wc->IsCurrent()) {
