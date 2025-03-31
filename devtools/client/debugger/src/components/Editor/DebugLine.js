@@ -21,6 +21,7 @@ import {
   getPauseReason,
   getSourceTextContent,
   getCurrentThread,
+  getViewport,
 } from "../../selectors/index";
 import { features } from "../../utils/prefs";
 
@@ -171,6 +172,15 @@ const mapStateToProps = state => {
   const location = frame?.location;
   if (!location) {
     return {};
+  }
+  // For CM6, also check if we have a valid viewport.
+  // This is a way to know if the actual source is displayed
+  // and we are no longer on the "loading..." message
+  if (features.codemirrorNext) {
+    const viewport = getViewport(state);
+    if (!viewport) {
+      return {};
+    }
   }
   const sourceTextContent = getSourceTextContent(state, location);
   if (!isDocumentReady(location, sourceTextContent)) {
