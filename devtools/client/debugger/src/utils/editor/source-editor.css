@@ -18,12 +18,14 @@
     /* dark theme requires some specific luminosity factor */
     hsl(from var(--paused-background-color) h s calc( l * 2 ) / 30%)
   );
+  --paused-line-color: inherits;
   --paused-line-border: var(--paused-color);
 }
 
 :root[forced-colors-active] {
   --paused-line-background: Mark;
-  --paused-line-border: MarkText;
+  --paused-line-color: MarkText;
+  --paused-line-border: SelectedItem;
 }
 
 .CodeMirror .errors {
@@ -58,6 +60,7 @@
 /* For CM6 */
 .cm-editor .cm-line.paused-line {
   background-color: var(--paused-line-background);
+  color: var(--paused-line-color);
   outline: var(--paused-line-border) solid 1px;
 }
 
