@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/TaskController.h"
 #include "mozilla/dom/TimeoutManager.h"
 
 #include "nsContentUtils.h"
@@ -23,8 +22,8 @@ NS_IMETHODIMP WebTaskMainThreadRunnable::Run() {
   return NS_OK;
 }
 
-nsresult WebTaskSchedulerMainThread::SetTimeoutForDelayedTask(WebTask* aTask,
-                                                              uint64_t aDelay) {
+nsresult WebTaskSchedulerMainThread::SetTimeoutForDelayedTask(
+    WebTask* aTask, uint64_t aDelay, EventQueuePriority aPriority) {
   JSContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     return NS_ERROR_UNEXPECTED;
@@ -33,7 +32,7 @@ nsresult WebTaskSchedulerMainThread::SetTimeoutForDelayedTask(WebTask* aTask,
   MOZ_ASSERT(global);
 
   RefPtr<DelayedWebTaskHandler> handler =
-      new DelayedWebTaskHandler(cx, this, aTask);
+      new DelayedWebTaskHandler(cx, this, aTask, aPriority);
 
   int32_t delay = aDelay > INT32_MAX ? INT32_MAX : (int32_t)aDelay;
 
@@ -44,12 +43,13 @@ nsresult WebTaskSchedulerMainThread::SetTimeoutForDelayedTask(WebTask* aTask,
                    Timeout::Reason::eDelayedWebTaskTimeout, &handle);
 }
 
-bool WebTaskSchedulerMainThread::DispatchEventLoopRunnable() {
+bool WebTaskSchedulerMainThread::DispatchEventLoopRunnable(
+    EventQueuePriority aPriority) {
   RefPtr<WebTaskMainThreadRunnable> runnable =
       new WebTaskMainThreadRunnable(this);
 
-  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThreadQueue(runnable.forget(),
-                                                   EventQueuePriority::Normal));
+  MOZ_ALWAYS_SUCCEEDS(
+      NS_DispatchToMainThreadQueue(runnable.forget(), aPriority));
   return true;
 }
 }  // namespace mozilla::dom

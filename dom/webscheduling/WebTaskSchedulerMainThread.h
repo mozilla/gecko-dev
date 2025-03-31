@@ -33,8 +33,9 @@ class WebTaskSchedulerMainThread final : public WebTaskScheduler {
       : WebTaskScheduler(aParent) {}
 
  private:
-  nsresult SetTimeoutForDelayedTask(WebTask* aTask, uint64_t aDelay) override;
-  bool DispatchEventLoopRunnable() override;
+  nsresult SetTimeoutForDelayedTask(WebTask* aTask, uint64_t aDelay,
+                                    EventQueuePriority aPriority) override;
+  bool DispatchEventLoopRunnable(EventQueuePriority aPriority) override;
 
   ~WebTaskSchedulerMainThread() = default;
 };

@@ -3606,8 +3606,9 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
       if (data->mScope) {
         data->mScope->NoteTerminating();
         data->mScope->DisconnectGlobalTeardownObservers();
-        if (data->mScope->GetExistingScheduler()) {
-          data->mScope->GetExistingScheduler()->Disconnect();
+        if (WebTaskScheduler* scheduler =
+                data->mScope->GetExistingScheduler()) {
+          scheduler->Disconnect();
         }
       }
     }
