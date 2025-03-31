@@ -10,6 +10,7 @@ BROWSER_CHROME_MANIFESTS += [
 
 addons = [
     "browser_dragdrop1",
+    "browser_dragdrop1.1",
     "browser_dragdrop2",
     "browser_dragdrop_incompat",
     "browser_installssl",
