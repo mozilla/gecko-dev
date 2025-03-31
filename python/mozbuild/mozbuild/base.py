@@ -1003,6 +1003,13 @@ class MachCommandConditions(object):
         return False
 
     @staticmethod
+    def is_android_cpu(cls):
+        """Targeting Android CPU."""
+        if hasattr(cls, "substs"):
+            return "ANDROID_CPU_ARCH" in cls.substs
+        return False
+
+    @staticmethod
     def is_firefox_or_android(cls):
         """Must have a Firefox or Android build."""
         return MachCommandConditions.is_firefox(
