@@ -9,11 +9,11 @@ It supports various types (`default`, `primary`, `destructive`, `icon`, `icon gh
   <moz-button label="Default">"Default"</moz-button>
   <moz-button type="primary" label="Primary"></moz-button>
   <moz-button type="destructive" label="Destructive"></moz-button>
-  <moz-button iconSrc="chrome://global/skin/icons/more.svg"
-              tooltipText="Icon">
+  <moz-button iconsrc="chrome://global/skin/icons/more.svg"
+              tooltiptext="Icon">
   </moz-button>
-  <moz-button iconSrc="chrome://global/skin/icons/more.svg"
-              tooltipText="Icon Ghost" type="ghost">
+  <moz-button iconsrc="chrome://global/skin/icons/more.svg"
+              tooltiptext="Icon Ghost" type="ghost">
   </moz-button>
   <moz-button type="ghost" label="Ghost"></moz-button>
 </div>
@@ -25,9 +25,7 @@ More information about this component including design, writing, and localizatio
 
 ### When to use
 
-* Use `moz-button` for actions that require user interaction, such as submitting forms or triggering commands.
-* Use the `type` property to indicate the button's purpose (e.g., `primary`, `destructive`).
-* Use an icon button when the purpose of your button may be easily understood or when space is limited.
+* Confirm an action or make a change.
 
 ### When not to use
 
@@ -103,17 +101,17 @@ moz-button::part(button) {
   background-image: url("chrome://global/skin/icons/more.svg");
 }
 ```
-2) Or you can provide an icon URI via `iconsrc`, in which case setting `type="icon"` is redundant:
+2) Or you can provide an icon URI via `.iconSrc` property / `iconsrc` attribute, in which case setting `type="icon"` is redundant:
 
 ```html
-<moz-button iconSrc="chrome://global/skin/icons/more.svg"
+<moz-button iconsrc="chrome://global/skin/icons/more.svg"
             title="I am an icon button"
             aria-label="I am an icon button">
 </moz-button>
 ```
 
 ```html story
-<moz-button iconSrc="chrome://global/skin/icons/more.svg"
+<moz-button iconsrc="chrome://global/skin/icons/more.svg"
             title="I am an icon button"
             aria-label="I am an icon button">
 </moz-button>
@@ -121,11 +119,39 @@ moz-button::part(button) {
 You can also use `iconsrc` together with `label` to get a button with both icon and text.
 
 ```html
-<moz-button iconSrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+<moz-button iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
 ```
 
 ```html story
-<moz-button iconSrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+<moz-button iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+```
+
+To adjust the icon's position, use the `.iconPosition` property / `iconposition` attribute. It accepts two values: `start` (the default) or `end`.
+
+```html
+<moz-button iconposition="end" iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+```
+
+```html story
+<moz-button iconposition="end" iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+```
+
+To add a badge to the icon button, set `.attention` boolean property to `true` or add `attention` attribute to the markup.
+
+```html
+<moz-button iconsrc="chrome://global/skin/icons/more.svg"
+            title="I am an icon button"
+            aria-label="I am an icon button"
+            attention>
+</moz-button>
+```
+
+```html story
+<moz-button iconsrc="chrome://global/skin/icons/more.svg"
+            title="I am an icon button"
+            aria-label="I am an icon button"
+            attention>
+</moz-button>
 ```
 
 ##### Ghost
@@ -174,6 +200,20 @@ In order to disable the `moz-button`, add `disabled=""` or `disabled` to the mar
 ```
 ```html story
 <moz-button label="Button" accesskey="t"></moz-button>
+```
+
+### Customizing `moz-button`
+
+You can add the inner padding on the `moz-button` to give the button a larger target, and make it clickable when the window and cursor are up against the edge of the screen.
+Use the following variables to achieve this:
+
+```
+--button-outer-padding-inline - Used to set the outer inline padding of toolbar style buttons.
+--button-outer-padding-block - Used to set the outer block padding of toolbar style buttons.
+--button-outer-padding-inline-start - Used to set the outer inline-start padding of toolbar style buttons.
+--button-outer-padding-inline-end - Used to set the outer inline-end padding of toolbar style buttons.
+--button-outer-padding-block-start - Used to set the outer block-start padding of toolbar style buttons.
+--button-outer-padding-block-end - Used to set the outer block-end padding of toolbar style buttons.
 ```
 
 ### Fluent usage
