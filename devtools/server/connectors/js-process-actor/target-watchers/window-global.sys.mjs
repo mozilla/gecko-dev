@@ -157,8 +157,15 @@ function createTargetsForWatcher(watcherDataObject, isProcessActorStartup) {
   }
 
   const topWindows = [];
-  for (const window of Services.ww.getWindowEnumerator()) {
-    topWindows.push(window);
+  // Do not use a for loop on `windowEnumerator` as underlying call to `getNext` may throw on some windows
+  const windowEnumerator = Services.ww.getWindowEnumerator();
+  while (windowEnumerator.hasMoreElements()) {
+    try {
+      const window = windowEnumerator.getNext();
+      topWindows.push(window);
+    } catch (e) {
+      console.error("Failed to process a top level window", e);
+    }
   }
 
   // When debugging an extension, we have to ensure create the top level target first.
