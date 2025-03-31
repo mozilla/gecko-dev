@@ -312,15 +312,6 @@ a,
   cursor: pointer;
   text-decoration: underline;
 
-  &:hover {
-    color: var(--link-color-hover);
-  }
-
-  &:hover:active {
-    color: var(--link-color-active);
-    text-decoration: none;
-  }
-
   &:focus-visible {
     outline: var(--focus-outline);
     outline-offset: var(--link-focus-outline-offset);

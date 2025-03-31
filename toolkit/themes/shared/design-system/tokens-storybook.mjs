@@ -771,29 +771,33 @@ export const storybookTables = {
   link: [
     {
       value: {
-        default: "var(--color-accent-primary)",
-        forcedColors: "LinkText",
+        prefersContrast: "LinkText",
+        brand: { default: "var(--color-accent-primary)" },
+        platform: { default: "LinkText" },
       },
       name: "--link-color",
     },
     {
       value: {
-        default: "var(--color-accent-primary-hover)",
-        forcedColors: "LinkText",
+        prefersContrast: "LinkText",
+        brand: { default: "var(--color-accent-primary-hover)" },
+        platform: { default: "LinkText" },
       },
       name: "--link-color-hover",
     },
     {
       value: {
-        default: "var(--color-accent-primary-active)",
-        forcedColors: "ActiveText",
+        prefersContrast: "ActiveText",
+        brand: { default: "var(--color-accent-primary-active)" },
+        platform: { default: "ActiveText" },
       },
       name: "--link-color-active",
     },
     {
       value: {
-        default: "var(--link-color)",
-        forcedColors: "var(--link-color)",
+        prefersContrast: "var(--link-color)",
+        brand: { default: "var(--link-color)" },
+        platform: { default: "var(--link-color)" },
       },
       name: "--link-color-visited",
     },
@@ -1314,20 +1318,24 @@ export const variableLookupTable = {
   "input-text-min-height": "var(--button-min-height)",
   "input-space-block": "var(--space-xsmall)",
   "link-color": {
-    default: "var(--color-accent-primary)",
-    forcedColors: "LinkText",
+    prefersContrast: "LinkText",
+    brand: { default: "var(--color-accent-primary)" },
+    platform: { default: "LinkText" },
   },
   "link-color-hover": {
-    default: "var(--color-accent-primary-hover)",
-    forcedColors: "LinkText",
+    prefersContrast: "LinkText",
+    brand: { default: "var(--color-accent-primary-hover)" },
+    platform: { default: "LinkText" },
   },
   "link-color-active": {
-    default: "var(--color-accent-primary-active)",
-    forcedColors: "ActiveText",
+    prefersContrast: "ActiveText",
+    brand: { default: "var(--color-accent-primary-active)" },
+    platform: { default: "ActiveText" },
   },
   "link-color-visited": {
-    default: "var(--link-color)",
-    forcedColors: "var(--link-color)",
+    prefersContrast: "var(--link-color)",
+    brand: { default: "var(--link-color)" },
+    platform: { default: "var(--link-color)" },
   },
   "link-focus-outline-offset": "1px",
   "outline-color-error": {
