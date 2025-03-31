@@ -17,8 +17,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/StaticPtr.h"
-#include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TextRange.h"
 #include "mozilla/widget/IMEData.h"
@@ -86,17 +84,19 @@ class TSFTextStore final : public TSFTextStoreBase,
   static bool GetIMEOpenState(void);
 
   static void CommitComposition(bool aDiscard) {
-    NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
+    NS_ASSERTION(TSFUtils::IsAvailable(),
+                 "Not in TSF mode, shouldn't be called");
     if (const RefPtr<TSFTextStore> textStore = TSFUtils::GetActiveTextStore()) {
       textStore->CommitCompositionInternal(aDiscard);
     }
   }
 
-  static void SetInputContext(nsWindow* aWidget, const InputContext& aContext,
-                              const InputContextAction& aAction);
+  // TODO: Move the following notification receiver methods to TSFUtils because
+  // TSFEmptyTextStore might want to receive the notifications in the future.
 
   static nsresult OnTextChange(const IMENotification& aIMENotification) {
-    NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
+    NS_ASSERTION(TSFUtils::IsAvailable(),
+                 "Not in TSF mode, shouldn't be called");
     if (const RefPtr<TSFTextStore> textStore = TSFUtils::GetActiveTextStore()) {
       return textStore->OnTextChangeInternal(aIMENotification);
     }
@@ -104,7 +104,8 @@ class TSFTextStore final : public TSFTextStoreBase,
   }
 
   static nsresult OnSelectionChange(const IMENotification& aIMENotification) {
-    NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
+    NS_ASSERTION(TSFUtils::IsAvailable(),
+                 "Not in TSF mode, shouldn't be called");
     if (const RefPtr<TSFTextStore> textStore = TSFUtils::GetActiveTextStore()) {
       return textStore->OnSelectionChangeInternal(aIMENotification);
     }
@@ -112,7 +113,8 @@ class TSFTextStore final : public TSFTextStoreBase,
   }
 
   static nsresult OnLayoutChange() {
-    NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
+    NS_ASSERTION(TSFUtils::IsAvailable(),
+                 "Not in TSF mode, shouldn't be called");
     if (const RefPtr<TSFTextStore> textStore = TSFUtils::GetActiveTextStore()) {
       return textStore->OnLayoutChangeInternal();
     }
@@ -120,7 +122,8 @@ class TSFTextStore final : public TSFTextStoreBase,
   }
 
   static nsresult OnUpdateComposition() {
-    NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
+    NS_ASSERTION(TSFUtils::IsAvailable(),
+                 "Not in TSF mode, shouldn't be called");
     if (const RefPtr<TSFTextStore> textStore = TSFUtils::GetActiveTextStore()) {
       return textStore->OnUpdateCompositionInternal();
     }
@@ -128,16 +131,15 @@ class TSFTextStore final : public TSFTextStoreBase,
   }
 
   static nsresult OnMouseButtonEvent(const IMENotification& aIMENotification) {
-    NS_ASSERTION(IsInTSFMode(), "Not in TSF mode, shouldn't be called");
+    NS_ASSERTION(TSFUtils::IsAvailable(),
+                 "Not in TSF mode, shouldn't be called");
     if (const RefPtr<TSFTextStore> textStore = TSFUtils::GetActiveTextStore()) {
       return textStore->OnMouseButtonEventInternal(aIMENotification);
     }
     return NS_OK;
   }
 
-  static IMENotificationRequests GetIMENotificationRequests();
-
-  static bool IsInTSFMode() { return TSFUtils::GetThreadMgr() != nullptr; }
+  [[nodiscard]] IMENotificationRequests GetIMENotificationRequests() final;
 
   static bool IsComposing() {
     return TSFUtils::GetActiveTextStore() &&
@@ -376,13 +378,6 @@ class TSFTextStore final : public TSFTextStoreBase,
 
   class Selection {
    public:
-    static TS_SELECTION_ACP EmptyACP() {
-      return TS_SELECTION_ACP{
-          .acpStart = 0,
-          .acpEnd = 0,
-          .style = {.ase = TS_AE_NONE, .fInterimChar = FALSE}};
-    }
-
     bool HasRange() const { return mACP.isSome(); }
     const TS_SELECTION_ACP& ACPRef() const { return mACP.ref(); }
 

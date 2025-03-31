@@ -15,6 +15,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TextEventDispatcher.h"
+#include "mozilla/WritingModes.h"
 #include "mozilla/widget/IMEData.h"
 
 #include <msctf.h>
@@ -74,7 +75,13 @@ class TSFTextStoreBase : public ITextStoreACP {
   [[nodiscard]] ITfContext* GetContext() const { return mContext; }
   [[nodiscard]] nsWindow* GetWindow() const { return mWidget; }
 
+  [[nodiscard]] virtual IMENotificationRequests
+  GetIMENotificationRequests() = 0;
+
   virtual void Destroy() = 0;
+
+  static void SetInputContext(nsWindow* aWindow, const InputContext& aContext,
+                              const InputContextAction& aAction);
 
  protected:
   TSFTextStoreBase() = default;

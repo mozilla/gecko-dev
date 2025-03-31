@@ -106,6 +106,7 @@ UNIFIED_SOURCES += [
     "TaskbarPreviewButton.cpp",
     "TaskbarTabPreview.cpp",
     "TaskbarWindowPreview.cpp",
+    "TSFEmptyTextStore.cpp",
     "TSFInputScope.cpp",
     "TSFStaticSink.cpp",
     "TSFTextStore.cpp",

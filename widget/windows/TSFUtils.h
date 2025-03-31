@@ -39,6 +39,10 @@ class nsWindow;
 
 namespace mozilla::widget {
 class TSFTextStore;
+class TSFTextStoreBase;
+struct IMENotificationRequests;
+struct InputContext;
+struct InputContextAction;
 
 class TSFUtils final {
  public:
@@ -53,6 +57,8 @@ class TSFUtils final {
    */
   [[nodiscard]] static bool IsAvailable() { return sThreadMgr; }
 
+  [[nodiscard]] static IMENotificationRequests GetIMENotificationRequests();
+
   enum class GotFocus : bool { No, Yes };
   /**
    * Called when focus changed in the DOM level and aContext has the details of
@@ -62,10 +68,43 @@ class TSFUtils final {
                                 const InputContext& aContext);
 
   /**
-   * Return active TextStore which is for handling inputs in editable content.
+   * Called when input context for aWindow is set.  aWindow should have focus
+   * when this is called.
+   */
+  static void OnSetInputContext(nsWindow* aWindow, const InputContext& aContext,
+                                const InputContextAction& aAction);
+
+  /**
+   * Active TextStore is a TSFTextStoreBase instance which is for editable
+   * content.
+   * Note that it may disable IME, e.g., when the editable content is a password
+   * field or `ime-mode: disabled`.
    */
   [[nodiscard]] static TSFTextStore* GetActiveTextStore() {
+    MOZ_ASSERT_IF(sActiveTextStore, (void*)sActiveTextStore.get() ==
+                                        (void*)sCurrentTextStore.get());
     return sActiveTextStore.get();
+  }
+
+  /**
+   * Current TextStore ia TSFTextStoreBase instance for either the content is
+   * editable nor not editable.
+   */
+  [[nodiscard]] static TSFTextStoreBase* GetCurrentTextStore() {
+    MOZ_ASSERT_IF(sActiveTextStore, (void*)sActiveTextStore.get() ==
+                                        (void*)sCurrentTextStore.get());
+    return sCurrentTextStore.get();
+  }
+
+  /**
+   * Check whether current TextStore is for editable one.  I.e., when there is
+   * an active TextStore.  This is just an alias to make the caller easier to
+   * read.
+   */
+  [[nodiscard]] static bool CurrentTextStoreIsEditable() {
+    MOZ_ASSERT_IF(sActiveTextStore, (void*)sActiveTextStore.get() ==
+                                        (void*)sCurrentTextStore.get());
+    return sActiveTextStore;
   }
 
   template <typename TSFTextStoreClass>
@@ -89,10 +128,6 @@ class TSFUtils final {
   [[nodiscard]] static ITfDisplayAttributeMgr* GetDisplayAttributeMgr();
   [[nodiscard]] static ITfCategoryMgr* GetCategoryMgr();
   [[nodiscard]] static ITfCompartment* GetCompartmentForOpenClose();
-
-  [[nodiscard]] static ITfDocumentMgr* GetDocumentMgrForDisabled() {
-    return sDisabledDocumentMgr;
-  }
 
   [[nodiscard]] static DWORD ClientId() { return sClientId; }
 
@@ -154,14 +189,19 @@ class TSFUtils final {
     // Used for result of GetRequestedAttrIndex()
     NotSupported = -1,
 
-    // Supported attributes
+    // Supported attributes even in TSFEmptyTextStore.
     InputScope = 0,
     DocumentURL,
-    TextVerticalWriting,
+
+    // Count of the supported attrs in empty text store
+    NUM_OF_SUPPORTED_ATTRS_IN_EMPTY_TEXT_STORE,
+
+    // Supported attributes in any TextStores.
+    TextVerticalWriting = NUM_OF_SUPPORTED_ATTRS_IN_EMPTY_TEXT_STORE,
     TextOrientation,
 
     // Count of the supported attributes
-    NUM_OF_SUPPORTED_ATTRS
+    NUM_OF_SUPPORTED_ATTRS,
   };
 
   /**
@@ -202,6 +242,13 @@ class TSFUtils final {
   static const char* CommonHRESULTToChar(HRESULT);
   static const char* HRESULTToChar(HRESULT);
 
+  static TS_SELECTION_ACP EmptySelectionACP() {
+    return TS_SELECTION_ACP{
+        .acpStart = 0,
+        .acpEnd = 0,
+        .style = {.ase = TS_AE_NONE, .fInterimChar = FALSE}};
+  }
+
  private:
   static void EnsureMessagePump();
   static void EnsureKeystrokeMgr();
@@ -222,15 +269,14 @@ class TSFUtils final {
 
   static StaticRefPtr<ITfInputProcessorProfiles> sInputProcessorProfiles;
 
-  // For IME (keyboard) disabled state:
-  static StaticRefPtr<ITfDocumentMgr> sDisabledDocumentMgr;
-  static StaticRefPtr<ITfContext> sDisabledContext;
-
-  // Current text store which is managing a keyboard enabled editor (i.e.,
-  // editable editor).  Currently only ONE TSFTextStore instance is ever used,
-  // although Create is called when an editor is focused and Destroy called
-  // when the focused editor is blurred.
+  // Current active text store which is managing a keyboard enabled editor
+  // (i.e., editable editor).  Currently only ONE TSFTextStore instance is ever
+  // used, although Create is called when an editor is focused and Destroy
+  // called when the focused editor is blurred.
   static StaticRefPtr<TSFTextStore> sActiveTextStore;
+
+  // Current text store which may be an empty one for disabled state.
+  static StaticRefPtr<TSFTextStoreBase> sCurrentTextStore;
 
   // TSF client ID for the current application
   static DWORD sClientId;

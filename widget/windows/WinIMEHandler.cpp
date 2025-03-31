@@ -82,14 +82,13 @@ void IMEHandler::Initialize() {
   IMMHandler::Initialize();
 
   sForceDisableCurrentIMM_IME = IMMHandler::IsActiveIMEInBlockList();
+
+  mozilla::RunOnShutdown(IMEHandler::Terminate);
 }
 
 // static
 void IMEHandler::Terminate() {
-  if (TSFUtils::IsAvailable()) {
-    TSFUtils::Shutdown();
-  }
-
+  TSFUtils::Shutdown();
   IMMHandler::Terminate();
   WinTextEventDispatcherListener::Shutdown();
 }
@@ -355,7 +354,7 @@ nsresult IMEHandler::NotifyIME(nsWindow* aWindow,
 IMENotificationRequests IMEHandler::GetIMENotificationRequests() {
   if (IsTSFAvailable()) {
     if (!sIsIMMEnabled) {
-      return TSFTextStore::GetIMENotificationRequests();
+      return TSFUtils::GetIMENotificationRequests();
     }
     // Even if TSF is available, the active IME may be an IMM-IME.
     // Unfortunately, changing the result of GetIMENotificationRequests() while
@@ -363,7 +362,7 @@ IMENotificationRequests IMEHandler::GetIMENotificationRequests() {
     // ContentCacheInParent.  Therefore, we need to request whole notifications
     // which are necessary either IMMHandler or TSFTextStore.
     return IMMHandler::GetIMENotificationRequests() |
-           TSFTextStore::GetIMENotificationRequests();
+           TSFUtils::GetIMENotificationRequests();
   }
 
   return IMMHandler::GetIMENotificationRequests();
@@ -433,7 +432,7 @@ void IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext,
 
   // Note that even while a plugin has focus, we need to notify TSF of that.
   if (TSFUtils::IsAvailable()) {
-    TSFTextStore::SetInputContext(aWindow, aInputContext, aAction);
+    TSFTextStoreBase::SetInputContext(aWindow, aInputContext, aAction);
     if (IsTSFAvailable()) {
       if (sIsIMMEnabled) {
         // Associate IMC with aWindow only when it's necessary.
@@ -496,7 +495,7 @@ void IMEHandler::InitInputContext(nsWindow* aWindow,
   aInputContext.mIMEState.mEnabled = IMEEnabled::Enabled;
 
   if (TSFUtils::IsAvailable()) {
-    TSFTextStore::SetInputContext(
+    TSFTextStoreBase::SetInputContext(
         aWindow, aInputContext,
         InputContextAction(InputContextAction::CAUSE_UNKNOWN,
                            InputContextAction::WIDGET_CREATED));

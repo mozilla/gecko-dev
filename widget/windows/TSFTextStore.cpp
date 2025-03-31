@@ -7,7 +7,6 @@
 
 #include "IMMHandler.h"
 #include "KeyboardLayout.h"
-#include "TSFInputScope.h"
 #include "TSFStaticSink.h"
 #include "TSFUtils.h"
 #include "WinIMEHandler.h"
@@ -84,7 +83,7 @@ bool TSFTextStore::Init(nsWindow* aWidget, const InputContext& aContext) {
   }
 
   // Create document manager
-  RefPtr<ITfThreadMgr> threadMgr = TSFUtils::GetThreadMgr();
+  const RefPtr<ITfThreadMgr> threadMgr = TSFUtils::GetThreadMgr();
   RefPtr<ITfDocumentMgr> documentMgr;
   HRESULT hr = threadMgr->CreateDocumentMgr(getter_AddRefs(documentMgr));
   if (NS_WARN_IF(FAILED(hr))) {
@@ -211,10 +210,10 @@ void TSFTextStore::ReleaseTSFObjects() {
 
   mDocumentURL.Truncate();
   mContext = nullptr;
-  if (mDocumentMgr) {
-    RefPtr<ITfDocumentMgr> documentMgr = mDocumentMgr.forget();
+  if (const RefPtr<ITfDocumentMgr> documentMgr = mDocumentMgr.forget()) {
     documentMgr->Pop(TF_POPF_ALL);
   }
+  MOZ_ASSERT(!mDocumentMgr);
   mSink = nullptr;
   mWidget = nullptr;
   mDispatcher = nullptr;
@@ -766,7 +765,7 @@ STDMETHODIMP TSFTextStore::GetSelection(ULONG ulIndex, ULONG ulCount,
   Maybe<Selection>& selectionForTSF = SelectionForTSF();
   if (selectionForTSF.isNothing()) {
     if (TSFUtils::DoNotReturnErrorFromGetSelection()) {
-      *pSelection = Selection::EmptyACP();
+      *pSelection = TSFUtils::EmptySelectionACP();
       *pcFetched = 1;
       MOZ_LOG(
           gIMELog, LogLevel::Info,
@@ -782,7 +781,7 @@ STDMETHODIMP TSFTextStore::GetSelection(ULONG ulIndex, ULONG ulCount,
     return E_FAIL;
   }
   if (!selectionForTSF->HasRange()) {
-    *pSelection = Selection::EmptyACP();
+    *pSelection = TSFUtils::EmptySelectionACP();
     *pcFetched = 0;
     return TS_E_NOSELECTION;
   }
@@ -1780,7 +1779,6 @@ STDMETHODIMP TSFTextStore::RetrieveRequestedAttrs(ULONG ulCount,
   if (*pcFetched) {
     return S_OK;
   }
-
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p   TSFTextStore::RetrieveRequestedAttrs() called "
            "for unknown TS_ATTRVAL, *pcFetched=0 (S_OK)",
@@ -3090,7 +3088,7 @@ Result<RefPtr<TSFTextStore>, nsresult> TSFTextStore::CreateAndSetFocus(
     TSFUtils::ClearStoringTextStoresIf(textStore);
     return Err(NS_ERROR_FAILURE);
   }
-  if (NS_WARN_IF(TSFUtils::GetActiveTextStore())) {
+  if (NS_WARN_IF(TSFUtils::GetCurrentTextStore())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "creating TextStore has lost focus during calling "
@@ -3123,7 +3121,7 @@ Result<RefPtr<TSFTextStore>, nsresult> TSFTextStore::CreateAndSetFocus(
     TSFUtils::ClearStoringTextStoresIf(textStore);
     return Err(NS_ERROR_FAILURE);
   }
-  if (NS_WARN_IF(TSFUtils::GetActiveTextStore())) {
+  if (NS_WARN_IF(TSFUtils::GetCurrentTextStore())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "creating TextStore has lost focus during calling "
@@ -3132,6 +3130,7 @@ Result<RefPtr<TSFTextStore>, nsresult> TSFTextStore::CreateAndSetFocus(
     TSFUtils::ClearStoringTextStoresIf(textStore);
     return Err(NS_ERROR_FAILURE);
   }
+
   if (textStore->mSink) {
     MOZ_LOG(gIMELog, LogLevel::Info,
             ("  TSFTextStore::CreateAndSetFocus(), calling "
@@ -3139,7 +3138,7 @@ Result<RefPtr<TSFTextStore>, nsresult> TSFTextStore::CreateAndSetFocus(
              textStore.get()));
     const RefPtr<ITextStoreACPSink> sink = textStore->mSink;
     sink->OnLayoutChange(TS_LC_CREATE, TSFUtils::sDefaultView);
-    if (NS_WARN_IF(TSFUtils::GetActiveTextStore())) {
+    if (NS_WARN_IF(TSFUtils::GetCurrentTextStore())) {
       MOZ_LOG(gIMELog, LogLevel::Error,
               ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
                "creating TextStore has lost focus during calling "
@@ -3900,83 +3899,6 @@ bool TSFTextStore::GetIMEOpenState() {
   }
 
   return variant.lVal != 0;
-}
-
-// static
-void TSFTextStore::SetInputContext(nsWindow* aWidget,
-                                   const InputContext& aContext,
-                                   const InputContextAction& aAction) {
-  MOZ_LOG(
-      gIMELog, LogLevel::Debug,
-      ("TSFTextStore::SetInputContext(aWidget=%p, "
-       "aContext=%s, aAction.mFocusChange=%s), "
-       "EnabledTextStore(0x%p)={ mWidget=0x%p }, "
-       "TSFUtils::GetActiveTextStore()->MaybeHasFocus()=%s",
-       aWidget, mozilla::ToString(aContext).c_str(),
-       mozilla::ToString(aAction.mFocusChange).c_str(),
-       TSFUtils::GetActiveTextStore(),
-       TSFUtils::GetActiveTextStore()
-           ? TSFUtils::GetActiveTextStore()->mWidget.get()
-           : nullptr,
-       TSFUtils::BoolToChar(TSFUtils::GetActiveTextStore() &&
-                            TSFUtils::GetActiveTextStore()->MaybeHasFocus())));
-  switch (aAction.mFocusChange) {
-    case InputContextAction::WIDGET_CREATED:
-      // If this is called when the widget is created, there is nothing to do.
-      return;
-    case InputContextAction::FOCUS_NOT_CHANGED:
-    case InputContextAction::MENU_LOST_PSEUDO_FOCUS:
-      if (NS_WARN_IF(!IsInTSFMode())) {
-        return;
-      }
-      // In these cases, `NOTIFY_IME_OF_FOCUS` won't be sent.  Therefore,
-      // we need to reset text store for new state right now.
-      break;
-    default:
-      NS_WARNING_ASSERTION(IsInTSFMode(),
-                           "Why is this called when TSF is disabled?");
-      if (TSFUtils::GetActiveTextStore()) {
-        const RefPtr<TSFTextStore> textStore(TSFUtils::GetActiveTextStore());
-        textStore->mInPrivateBrowsing = aContext.mInPrivateBrowsing;
-        textStore->SetInputScope(aContext.mHTMLInputType,
-                                 aContext.mHTMLInputMode);
-        if (aContext.mURI) {
-          nsAutoCString spec;
-          if (NS_SUCCEEDED(aContext.mURI->GetSpec(spec))) {
-            CopyUTF8toUTF16(spec, textStore->mDocumentURL);
-          } else {
-            textStore->mDocumentURL.Truncate();
-          }
-        } else {
-          textStore->mDocumentURL.Truncate();
-        }
-      }
-      return;
-  }
-
-  const bool activeTextStoreMaybeHasFocus =
-      TSFUtils::GetActiveTextStore() &&
-      TSFUtils::GetActiveTextStore()->MaybeHasFocus();
-
-  // If focus isn't actually changed but the enabled state is changed,
-  // emulate the focus move.
-  if (!activeTextStoreMaybeHasFocus && aContext.mIMEState.IsEditable()) {
-    if (!IMEHandler::GetFocusedWindow()) {
-      MOZ_LOG(gIMELog, LogLevel::Error,
-              ("  TSFTextStore::SetInputContent() gets called to enable IME, "
-               "but IMEHandler has not received focus notification"));
-    } else {
-      MOZ_LOG(gIMELog, LogLevel::Debug,
-              ("  TSFTextStore::SetInputContent() emulates focus for IME "
-               "state change"));
-      TSFUtils::OnFocusChange(TSFUtils::GotFocus::Yes, aWidget, aContext);
-    }
-  } else if (activeTextStoreMaybeHasFocus && !aContext.mIMEState.IsEditable()) {
-    MOZ_LOG(gIMELog, LogLevel::Debug,
-            ("  TSFTextStore::SetInputContent() emulates blur for IME "
-             "state change"));
-    TSFUtils::OnFocusChange(TSFUtils::GotFocus::No, aWidget, aContext);
-  }
 }
 
 // static

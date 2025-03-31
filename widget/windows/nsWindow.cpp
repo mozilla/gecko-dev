@@ -726,9 +726,15 @@ nsWindow::~nsWindow() {
 
   // Global shutdown
   if (sInstanceCount == 0) {
-    IMEHandler::Terminate();
     sCurrentCursor = {};
     if (sIsOleInitialized) {
+      // When we reach here, IMEHandler::Terminate() should've already been
+      // called because it causes releasing the last nsWindow instance.
+      // However, it **could** occur that we are shutting down without giving
+      // IME focus, but we need to release TSF objects before the following
+      // ::OleUninitialize() call.  Fortunately, it's fine to call the method
+      // twice so that we can always call it here.
+      IMEHandler::Terminate();
       ::OleFlushClipboard();
       ::OleUninitialize();
       sIsOleInitialized = false;

@@ -7,6 +7,7 @@
 
 #include "IMMHandler.h"
 #include "TSFInputScope.h"
+#include "TSFTextStore.h"
 #include "TSFUtils.h"
 #include "WinIMEHandler.h"
 #include "WinMessages.h"
@@ -1012,7 +1013,9 @@ STDMETHODIMP TSFTextStoreBase::InsertEmbeddedAtSelection(
 HRESULT TSFTextStoreBase::HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
                                              const TS_ATTRID* aFilterAttrs,
                                              int32_t aNumOfSupportedAttrs) {
-  MOZ_ASSERT(aNumOfSupportedAttrs == TSFUtils::NUM_OF_SUPPORTED_ATTRS);
+  MOZ_ASSERT(aNumOfSupportedAttrs == TSFUtils::NUM_OF_SUPPORTED_ATTRS ||
+             aNumOfSupportedAttrs ==
+                 TSFUtils::NUM_OF_SUPPORTED_ATTRS_IN_EMPTY_TEXT_STORE);
   MOZ_LOG(gIMELog, LogLevel::Info,
           ("0x%p TSFTextStoreBase::HandleRequestAttrs(aFlags=%s, "
            "aFilterCount=%lu, aNumOfSupportedAttrs=%d)",
@@ -1050,7 +1053,9 @@ HRESULT TSFTextStoreBase::HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
 HRESULT TSFTextStoreBase::RetrieveRequestedAttrsInternal(
     ULONG ulCount, TS_ATTRVAL* paAttrVals, ULONG* pcFetched,
     int32_t aNumOfSupportedAttrs) {
-  MOZ_ASSERT(aNumOfSupportedAttrs == TSFUtils::NUM_OF_SUPPORTED_ATTRS);
+  MOZ_ASSERT(aNumOfSupportedAttrs == TSFUtils::NUM_OF_SUPPORTED_ATTRS ||
+             aNumOfSupportedAttrs ==
+                 TSFUtils::NUM_OF_SUPPORTED_ATTRS_IN_EMPTY_TEXT_STORE);
 
   if (!pcFetched || !paAttrVals) {
     MOZ_LOG(gIMELog, LogLevel::Error,
@@ -1154,5 +1159,70 @@ HRESULT TSFTextStoreBase::RetrieveRequestedAttrsInternal(
 }
 
 #undef DEBUG_PRINT_DOCUMENT_URL
+
+// static
+void TSFTextStoreBase::SetInputContext(nsWindow* aWindow,
+                                       const InputContext& aContext,
+                                       const InputContextAction& aAction) {
+  MOZ_LOG(gIMELog, LogLevel::Debug,
+          ("TSFUtils::OnSetInputContext(aWidget=%p, "
+           "aContext=%s, aAction.mFocusChange=%s), "
+           "CurrentTextStore(0x%p)={ mWidget=0x%p, mContext=0x%p }",
+           aWindow, mozilla::ToString(aContext).c_str(),
+           mozilla::ToString(aAction.mFocusChange).c_str(),
+           TSFUtils::GetCurrentTextStore(),
+           TSFUtils::GetCurrentTextStore()
+               ? TSFUtils::GetCurrentTextStore()->GetWindow()
+               : nullptr,
+           TSFUtils::GetCurrentTextStore()
+               ? TSFUtils::GetCurrentTextStore()->GetContext()
+               : nullptr));
+
+  const bool isEditable =
+      aContext.mIMEState.IsEditable() && !aWindow->Destroyed();
+  switch (aAction.mFocusChange) {
+    case InputContextAction::WIDGET_CREATED:
+      // If this is called when the widget is created, there is nothing to do.
+      return;
+    case InputContextAction::FOCUS_NOT_CHANGED:
+    case InputContextAction::MENU_LOST_PSEUDO_FOCUS:
+      // In these cases, `NOTIFY_IME_OF_FOCUS` won't be sent.  Therefore,
+      // we need to reset text store for new state right now.
+      break;
+    default: {
+      // If IME enabled state is changed, we need to recreate proper
+      // TSFTextStoreBase instance.
+      if (isEditable != TSFUtils::CurrentTextStoreIsEditable()) {
+        break;
+      }
+      // If the editable state is not changed, we can just update the input
+      // scopes and the document URL.
+      const RefPtr<TSFTextStoreBase> textStore =
+          TSFUtils::GetCurrentTextStore();
+      if (!textStore) {
+        break;
+      }
+      textStore->mInPrivateBrowsing = aContext.mInPrivateBrowsing;
+      textStore->SetInputScope(aContext.mHTMLInputType,
+                               aContext.mHTMLInputMode);
+      if (aContext.mURI) {
+        nsAutoCString spec;
+        if (NS_SUCCEEDED(aContext.mURI->GetSpec(spec))) {
+          CopyUTF8toUTF16(spec, textStore->mDocumentURL);
+        } else {
+          textStore->mDocumentURL.Truncate();
+        }
+      } else {
+        textStore->mDocumentURL.Truncate();
+      }
+      return;
+    }
+  }
+
+  // Emulate a focus move to make a current TextStore to interact with TSF.
+  TSFUtils::OnFocusChange(
+      isEditable ? TSFUtils::GotFocus::Yes : TSFUtils::GotFocus::No, aWindow,
+      aContext);
+}
 
 }  // namespace mozilla::widget
