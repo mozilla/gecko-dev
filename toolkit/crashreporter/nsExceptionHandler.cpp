@@ -6,6 +6,7 @@
 
 #include "nsExceptionHandler.h"
 #include "nsExceptionHandlerUtils.h"
+#include "ExtraFileParser.h"
 
 #include "json/json.h"
 #include "nsAppDirectoryServiceDefs.h"
