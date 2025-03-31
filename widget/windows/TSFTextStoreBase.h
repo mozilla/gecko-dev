@@ -12,6 +12,7 @@
 #include "WinUtils.h"
 #include "WritingModes.h"
 
+#include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/widget/IMEData.h"
@@ -98,6 +99,10 @@ class TSFTextStoreBase : public ITextStoreACP {
 
   [[nodiscard]] bool GetScreenExtInternal(RECT& aScreenExt);
 
+  [[nodiscard]] virtual Maybe<WritingMode> GetWritingMode() {
+    return Nothing();
+  }
+
   // DispatchEvent() dispatches the event and if it may not be handled
   // synchronously, this makes the instance not notify TSF of pending
   // notifications until next notification from content.
@@ -117,24 +122,12 @@ class TSFTextStoreBase : public ITextStoreACP {
    */
   void PrintExposingURL(const char* aPrefix) const;
 
-  // Holds the pointer to our current win32 widget
-  RefPtr<nsWindow> mWidget;
-  // mDispatcher is a helper class to dispatch composition events.
-  RefPtr<TextEventDispatcher> mDispatcher;
-  // Document manager for the currently focused editor
-  RefPtr<ITfDocumentMgr> mDocumentMgr;
-  // Edit cookie associated with the current editing context
-  DWORD mEditCookie = 0;
-  // Editing context at the bottom of mDocumentMgr's context stack
-  RefPtr<ITfContext> mContext;
-  // Currently installed notification sink
-  RefPtr<ITextStoreACPSink> mSink;
-  // TS_AS_* mask of what events to notify
-  DWORD mSinkMask = 0;
-  // 0 if not locked, otherwise TS_LF_* indicating the current lock
-  DWORD mLock = 0;
-  // 0 if no lock is queued, otherwise TS_LF_* indicating the queue lock
-  DWORD mLockQueued = 0;
+  HRESULT HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
+                             const TS_ATTRID* aFilterAttrs,
+                             int32_t aNumOfSupportedAttrs);
+  HRESULT RetrieveRequestedAttrsInternal(ULONG ulCount, TS_ATTRVAL* paAttrVals,
+                                         ULONG* pcFetched,
+                                         int32_t aNumOfSupportedAttrs);
 
   /**
    * IsHandlingCompositionInParent() returns true if eCompositionStart is
@@ -156,11 +149,34 @@ class TSFTextStoreBase : public ITextStoreACP {
     return mDispatcher && mDispatcher->IsHandlingComposition();
   }
 
+  // Holds the pointer to our current win32 widget
+  RefPtr<nsWindow> mWidget;
+  // mDispatcher is a helper class to dispatch composition events.
+  RefPtr<TextEventDispatcher> mDispatcher;
+  // Document manager for the currently focused editor
+  RefPtr<ITfDocumentMgr> mDocumentMgr;
+  // Edit cookie associated with the current editing context
+  DWORD mEditCookie = 0;
+  // Editing context at the bottom of mDocumentMgr's context stack
+  RefPtr<ITfContext> mContext;
+  // Currently installed notification sink
+  RefPtr<ITextStoreACPSink> mSink;
+  // TS_AS_* mask of what events to notify
+  DWORD mSinkMask = 0;
+  // 0 if not locked, otherwise TS_LF_* indicating the current lock
+  DWORD mLock = 0;
+  // 0 if no lock is queued, otherwise TS_LF_* indicating the queue lock
+  DWORD mLockQueued = 0;
+
   // The input scopes for this context, defaults to IS_DEFAULT.
   nsTArray<InputScope> mInputScopes;
 
   // The URL cache of the focused document.
   nsString mDocumentURL;
+
+  bool mRequestedAttrs[TSFUtils::NUM_OF_SUPPORTED_ATTRS] = {false};
+
+  bool mRequestedAttrValues = false;
 
   // Before calling ITextStoreACPSink::OnLayoutChange() and
   // ITfContextOwnerServices::OnLayoutChange(), mWaitingQueryLayout is set to

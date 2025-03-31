@@ -6,6 +6,7 @@
 #include "TSFTextStoreBase.h"
 
 #include "IMMHandler.h"
+#include "TSFInputScope.h"
 #include "TSFUtils.h"
 #include "WinIMEHandler.h"
 #include "WinMessages.h"
@@ -1007,5 +1008,151 @@ STDMETHODIMP TSFTextStoreBase::InsertEmbeddedAtSelection(
   // embedded objects are not supported
   return E_NOTIMPL;
 }
+
+HRESULT TSFTextStoreBase::HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
+                                             const TS_ATTRID* aFilterAttrs,
+                                             int32_t aNumOfSupportedAttrs) {
+  MOZ_ASSERT(aNumOfSupportedAttrs == TSFUtils::NUM_OF_SUPPORTED_ATTRS);
+  MOZ_LOG(gIMELog, LogLevel::Info,
+          ("0x%p TSFTextStoreBase::HandleRequestAttrs(aFlags=%s, "
+           "aFilterCount=%lu, aNumOfSupportedAttrs=%d)",
+           this, AutoFindFlagsCString(aFlags).get(), aFilterCount,
+           aNumOfSupportedAttrs));
+
+  // This is a little weird! RequestSupportedAttrs gives us advanced notice
+  // of a support query via RetrieveRequestedAttrs for a specific attribute.
+  // RetrieveRequestedAttrs needs to return valid data for all attributes we
+  // support, but the text service will only want the input scope object
+  // returned in RetrieveRequestedAttrs if the dwFlags passed in here contains
+  // TS_ATTR_FIND_WANT_VALUE.
+  for (const int32_t i : IntegerRange(aNumOfSupportedAttrs)) {
+    mRequestedAttrs[i] = false;
+  }
+  mRequestedAttrValues = !!(aFlags & TS_ATTR_FIND_WANT_VALUE);
+
+  for (uint32_t i : IntegerRange(aFilterCount)) {
+    MOZ_LOG(gIMELog, LogLevel::Info,
+            ("0x%p   TSFEmptyTextStore::HandleRequestAttrs(), "
+             "requested attr=%s",
+             this, AutoGuidCString(aFilterAttrs[i]).get()));
+    TSFUtils::AttrIndex index =
+        TSFUtils::GetRequestedAttrIndex(aFilterAttrs[i]);
+    if (index != TSFUtils::AttrIndex::NotSupported) {
+      mRequestedAttrs[index] = true;
+    }
+  }
+  return S_OK;
+}
+
+// To test the document URL result, define this to out put it to the stdout
+// #define DEBUG_PRINT_DOCUMENT_URL
+
+HRESULT TSFTextStoreBase::RetrieveRequestedAttrsInternal(
+    ULONG ulCount, TS_ATTRVAL* paAttrVals, ULONG* pcFetched,
+    int32_t aNumOfSupportedAttrs) {
+  MOZ_ASSERT(aNumOfSupportedAttrs == TSFUtils::NUM_OF_SUPPORTED_ATTRS);
+
+  if (!pcFetched || !paAttrVals) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("0x%p TSFTextStoreBase::RetrieveRequestedAttrs() FAILED due to "
+             "null argument",
+             this));
+    return E_INVALIDARG;
+  }
+
+  const ULONG expectedCount = [&]() {
+    ULONG count = 0;
+    for (int32_t i : IntegerRange(aNumOfSupportedAttrs)) {
+      if (mRequestedAttrs[i]) {
+        count++;
+      }
+    }
+    return count;
+  }();
+  if (ulCount < expectedCount) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("0x%p TSFTextStoreBase::RetrieveRequestedAttrs() FAILED due to "
+             "not enough count ulCount=%lu, expectedCount=%lu",
+             this, ulCount, expectedCount));
+    return E_INVALIDARG;
+  }
+
+  MOZ_LOG(gIMELog, LogLevel::Info,
+          ("0x%p TSFTextStoreBase::RetrieveRequestedAttrs() called "
+           "ulCount=%lu, mRequestedAttrValues=%s",
+           this, ulCount, TSFUtils::BoolToChar(mRequestedAttrValues)));
+
+#ifdef DEBUG_PRINT_DOCUMENT_URL
+  PrintExposingURL("TSFTextStoreBase::RetrieveRequestedAttrs");
+#endif  // #ifdef DEBUG_PRINT_DOCUMENT_URL
+
+  int32_t count = 0;
+  for (int32_t i = 0; i < TSFUtils::NUM_OF_SUPPORTED_ATTRS; i++) {
+    if (!mRequestedAttrs[i]) {
+      continue;
+    }
+    mRequestedAttrs[i] = false;
+
+    TS_ATTRID attrID = TSFUtils::GetAttrID(static_cast<TSFUtils::AttrIndex>(i));
+
+    MOZ_LOG(gIMELog, LogLevel::Info,
+            ("0x%p   TSFTextStoreBase::RetrieveRequestedAttrs() for %s", this,
+             AutoGuidCString(attrID).get()));
+
+    paAttrVals[count].idAttr = attrID;
+    paAttrVals[count].dwOverlapId = 0;
+
+    if (!mRequestedAttrValues) {
+      paAttrVals[count].varValue.vt = VT_EMPTY;
+    } else {
+      switch (i) {
+        case TSFUtils::AttrIndex::InputScope: {
+          paAttrVals[count].varValue.vt = VT_UNKNOWN;
+          RefPtr<IUnknown> inputScope = new TSFInputScope(mInputScopes);
+          paAttrVals[count].varValue.punkVal = inputScope.forget().take();
+          break;
+        }
+        case TSFUtils::AttrIndex::DocumentURL: {
+          paAttrVals[count].varValue.vt = VT_BSTR;
+          paAttrVals[count].varValue.bstrVal = GetExposingURL();
+          break;
+        }
+        case TSFUtils::AttrIndex::TextVerticalWriting: {
+          const Maybe<WritingMode> writingMode = GetWritingMode();
+          paAttrVals[count].varValue.vt = VT_BOOL;
+          paAttrVals[count].varValue.boolVal =
+              writingMode.isSome() && writingMode->IsVertical() ? VARIANT_TRUE
+                                                                : VARIANT_FALSE;
+          break;
+        }
+        case TSFUtils::AttrIndex::TextOrientation: {
+          const Maybe<WritingMode> writingMode = GetWritingMode();
+          paAttrVals[count].varValue.vt = VT_I4;
+          paAttrVals[count].varValue.lVal =
+              writingMode.isSome() && writingMode->IsVertical() ? 2700 : 0;
+          break;
+        }
+        default:
+          MOZ_CRASH("Invalid index? Or not implemented yet?");
+          break;
+      }
+    }
+    count++;
+  }
+
+  mRequestedAttrValues = false;
+
+  if (count) {
+    *pcFetched = count;
+    return S_OK;
+  }
+
+  paAttrVals->dwOverlapId = 0;
+  paAttrVals->varValue.vt = VT_EMPTY;
+  *pcFetched = 0;
+  return S_OK;
+}
+
+#undef DEBUG_PRINT_DOCUMENT_URL
 
 }  // namespace mozilla::widget

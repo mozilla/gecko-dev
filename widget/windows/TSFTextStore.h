@@ -256,9 +256,6 @@ class TSFTextStore final : public TSFTextStoreBase,
   bool NotifyTSFOfLayoutChange();
   void NotifyTSFOfLayoutChangeAgain();
 
-  HRESULT HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
-                             const TS_ATTRID* aFilterAttrs);
-
   // Creates native caret over our caret.  This method only works on desktop
   // application.  Otherwise, this does nothing.
   void CreateNativeCaret();
@@ -580,6 +577,14 @@ class TSFTextStore final : public TSFTextStoreBase,
    */
   Maybe<Selection>& SelectionForTSF();
 
+  Maybe<WritingMode> GetWritingMode() final {
+    const Maybe<Selection>& selectionForTSF = SelectionForTSF();
+    if (selectionForTSF.isNothing()) {
+      return Nothing();
+    }
+    return Some(selectionForTSF->WritingModeRef());
+  };
+
   struct PendingAction final {
     enum class Type : uint8_t {
       CompositionStart,
@@ -868,10 +873,6 @@ class TSFTextStore final : public TSFTextStoreBase,
   // mMouseTrackers is an array to store each information of installed
   // ITfMouseSink instance.
   nsTArray<MouseTracker> mMouseTrackers;
-
-  bool mRequestedAttrs[TSFUtils::NUM_OF_SUPPORTED_ATTRS] = {false};
-
-  bool mRequestedAttrValues = false;
 
   // If edit actions are being recorded without document lock, this is true.
   // Otherwise, false.

@@ -1746,38 +1746,6 @@ STDMETHODIMP TSFTextStore::SetText(DWORD dwFlags, LONG acpStart, LONG acpEnd,
   return S_OK;
 }
 
-HRESULT TSFTextStore::HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
-                                         const TS_ATTRID* aFilterAttrs) {
-  MOZ_LOG(gIMELog, LogLevel::Info,
-          ("0x%p TSFTextStore::HandleRequestAttrs(aFlags=%s, "
-           "aFilterCount=%lu)",
-           this, AutoFindFlagsCString(aFlags).get(), aFilterCount));
-
-  // This is a little weird! RequestSupportedAttrs gives us advanced notice
-  // of a support query via RetrieveRequestedAttrs for a specific attribute.
-  // RetrieveRequestedAttrs needs to return valid data for all attributes we
-  // support, but the text service will only want the input scope object
-  // returned in RetrieveRequestedAttrs if the dwFlags passed in here contains
-  // TS_ATTR_FIND_WANT_VALUE.
-  for (int32_t i = 0; i < TSFUtils::NUM_OF_SUPPORTED_ATTRS; i++) {
-    mRequestedAttrs[i] = false;
-  }
-  mRequestedAttrValues = !!(aFlags & TS_ATTR_FIND_WANT_VALUE);
-
-  for (uint32_t i = 0; i < aFilterCount; i++) {
-    MOZ_LOG(gIMELog, LogLevel::Info,
-            ("0x%p   TSFTextStore::HandleRequestAttrs(), "
-             "requested attr=%s",
-             this, AutoGuidCString(aFilterAttrs[i]).get()));
-    TSFUtils::AttrIndex index =
-        TSFUtils::GetRequestedAttrIndex(aFilterAttrs[i]);
-    if (index != TSFUtils::AttrIndex::NotSupported) {
-      mRequestedAttrs[index] = true;
-    }
-  }
-  return S_OK;
-}
-
 STDMETHODIMP TSFTextStore::RequestSupportedAttrs(
     DWORD dwFlags, ULONG cFilterAttrs, const TS_ATTRID* paFilterAttrs) {
   MOZ_LOG(gIMELog, LogLevel::Info,
@@ -1785,7 +1753,8 @@ STDMETHODIMP TSFTextStore::RequestSupportedAttrs(
            "cFilterAttrs=%lu)",
            this, AutoFindFlagsCString(dwFlags).get(), cFilterAttrs));
 
-  return HandleRequestAttrs(dwFlags, cFilterAttrs, paFilterAttrs);
+  return HandleRequestAttrs(dwFlags, cFilterAttrs, paFilterAttrs,
+                            TSFUtils::NUM_OF_SUPPORTED_ATTRS);
 }
 
 STDMETHODIMP TSFTextStore::RequestAttrsAtPosition(
@@ -1797,109 +1766,18 @@ STDMETHODIMP TSFTextStore::RequestAttrsAtPosition(
            this, acpPos, cFilterAttrs, AutoFindFlagsCString(dwFlags).get()));
 
   return HandleRequestAttrs(dwFlags | TS_ATTR_FIND_WANT_VALUE, cFilterAttrs,
-                            paFilterAttrs);
+                            paFilterAttrs, TSFUtils::NUM_OF_SUPPORTED_ATTRS);
 }
-
-// To test the document URL result, define this to out put it to the stdout
-// #define DEBUG_PRINT_DOCUMENT_URL
 
 STDMETHODIMP TSFTextStore::RetrieveRequestedAttrs(ULONG ulCount,
                                                   TS_ATTRVAL* paAttrVals,
                                                   ULONG* pcFetched) {
-  if (!pcFetched || !paAttrVals) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("0x%p TSFTextStore::RetrieveRequestedAttrs() FAILED due to "
-             "null argument",
-             this));
-    return E_INVALIDARG;
+  HRESULT hr = RetrieveRequestedAttrsInternal(ulCount, paAttrVals, pcFetched,
+                                              TSFUtils::NUM_OF_SUPPORTED_ATTRS);
+  if (FAILED(hr)) {
+    return hr;
   }
-
-  ULONG expectedCount = 0;
-  for (int32_t i = 0; i < TSFUtils::NUM_OF_SUPPORTED_ATTRS; i++) {
-    if (mRequestedAttrs[i]) {
-      expectedCount++;
-    }
-  }
-  if (ulCount < expectedCount) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("0x%p TSFTextStore::RetrieveRequestedAttrs() FAILED due to "
-             "not enough count ulCount=%lu, expectedCount=%lu",
-             this, ulCount, expectedCount));
-    return E_INVALIDARG;
-  }
-
-  MOZ_LOG(gIMELog, LogLevel::Info,
-          ("0x%p TSFTextStore::RetrieveRequestedAttrs() called "
-           "ulCount=%lu, mRequestedAttrValues=%s",
-           this, ulCount, TSFUtils::BoolToChar(mRequestedAttrValues)));
-
-#ifdef DEBUG_PRINT_DOCUMENT_URL
-  PrintExposingURL("TSFTextStore::RetrieveRequestedAttrs");
-#endif  // #ifdef DEBUG_PRINT_DOCUMENT_URL
-
-  int32_t count = 0;
-  for (int32_t i = 0; i < TSFUtils::NUM_OF_SUPPORTED_ATTRS; i++) {
-    if (!mRequestedAttrs[i]) {
-      continue;
-    }
-    mRequestedAttrs[i] = false;
-
-    TS_ATTRID attrID = TSFUtils::GetAttrID(static_cast<TSFUtils::AttrIndex>(i));
-
-    MOZ_LOG(gIMELog, LogLevel::Info,
-            ("0x%p   TSFTextStore::RetrieveRequestedAttrs() for %s", this,
-             AutoGuidCString(attrID).get()));
-
-    paAttrVals[count].idAttr = attrID;
-    paAttrVals[count].dwOverlapId = 0;
-
-    if (!mRequestedAttrValues) {
-      paAttrVals[count].varValue.vt = VT_EMPTY;
-    } else {
-      switch (i) {
-        case TSFUtils::AttrIndex::InputScope: {
-          paAttrVals[count].varValue.vt = VT_UNKNOWN;
-          RefPtr<IUnknown> inputScope = new TSFInputScope(mInputScopes);
-          paAttrVals[count].varValue.punkVal = inputScope.forget().take();
-          break;
-        }
-        case TSFUtils::AttrIndex::DocumentURL: {
-          paAttrVals[count].varValue.vt = VT_BSTR;
-          paAttrVals[count].varValue.bstrVal = GetExposingURL();
-          break;
-        }
-        case TSFUtils::AttrIndex::TextVerticalWriting: {
-          Maybe<Selection>& selectionForTSF = SelectionForTSF();
-          paAttrVals[count].varValue.vt = VT_BOOL;
-          paAttrVals[count].varValue.boolVal =
-              selectionForTSF.isSome() &&
-                      selectionForTSF->WritingModeRef().IsVertical()
-                  ? VARIANT_TRUE
-                  : VARIANT_FALSE;
-          break;
-        }
-        case TSFUtils::AttrIndex::TextOrientation: {
-          Maybe<Selection>& selectionForTSF = SelectionForTSF();
-          paAttrVals[count].varValue.vt = VT_I4;
-          paAttrVals[count].varValue.lVal =
-              selectionForTSF.isSome() &&
-                      selectionForTSF->WritingModeRef().IsVertical()
-                  ? 2700
-                  : 0;
-          break;
-        }
-        default:
-          MOZ_CRASH("Invalid index? Or not implemented yet?");
-          break;
-      }
-    }
-    count++;
-  }
-
-  mRequestedAttrValues = false;
-
-  if (count) {
-    *pcFetched = count;
+  if (*pcFetched) {
     return S_OK;
   }
 
@@ -1907,14 +1785,8 @@ STDMETHODIMP TSFTextStore::RetrieveRequestedAttrs(ULONG ulCount,
           ("0x%p   TSFTextStore::RetrieveRequestedAttrs() called "
            "for unknown TS_ATTRVAL, *pcFetched=0 (S_OK)",
            this));
-
-  paAttrVals->dwOverlapId = 0;
-  paAttrVals->varValue.vt = VT_EMPTY;
-  *pcFetched = 0;
   return S_OK;
 }
-
-#undef DEBUG_PRINT_DOCUMENT_URL
 
 STDMETHODIMP TSFTextStore::GetEndACP(LONG* pacp) {
   HRESULT hr = TSFTextStoreBase::GetEndACP(pacp);
