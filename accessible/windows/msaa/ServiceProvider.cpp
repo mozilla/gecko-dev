@@ -15,8 +15,8 @@
 #include "RootAccessible.h"
 #include "uiaRawElmProvider.h"
 
+#include "mozilla/a11y/Compatibility.h"
 #include "mozilla/a11y/DocAccessibleChild.h"
-#include "mozilla/StaticPrefs_accessibility.h"
 
 #include "ISimpleDOM.h"
 
@@ -87,8 +87,7 @@ ServiceProvider::QueryService(REFGUID aGuidService, REFIID aIID,
       aGuidService == IID_SimpleDOMDeprecated ||
       aGuidService == IID_IAccessible || aGuidService == IID_IAccessible2 ||
       // UIA IAccessibleEx
-      (aGuidService == IID_IAccessibleEx &&
-       StaticPrefs::accessibility_uia_enable())) {
+      (aGuidService == IID_IAccessibleEx && Compatibility::IsUiaEnabled())) {
     return mMsaa->QueryInterface(aIID, aInstancePtr);
   }
 

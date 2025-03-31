@@ -12,7 +12,6 @@
 #include "mozilla/a11y/Platform.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/mscom/ProcessRuntime.h"
-#include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
 #include "MsaaRootAccessible.h"
@@ -111,7 +110,7 @@ already_AddRefed<IAccessible> LazyInstantiator::GetRootAccessible(HWND aHwnd) {
 /* static */
 already_AddRefed<IRawElementProviderSimple> LazyInstantiator::GetRootUia(
     HWND aHwnd) {
-  if (!StaticPrefs::accessibility_uia_enable()) {
+  if (!Compatibility::IsUiaEnabled()) {
     return nullptr;
   }
   return GetRoot<IRawElementProviderSimple>(aHwnd);
@@ -381,7 +380,7 @@ LazyInstantiator::MaybeResolveRoot() {
     }
     // mWeakAccessible is weak, so don't hold a strong ref
     mWeakAccessible->Release();
-    if (StaticPrefs::accessibility_uia_enable()) {
+    if (Compatibility::IsUiaEnabled()) {
       hr = mRealRootUnk->QueryInterface(IID_IRawElementProviderSimple,
                                         (void**)&mWeakUia);
       if (FAILED(hr)) {
@@ -418,7 +417,7 @@ IMPL_IUNKNOWN_QUERY_IFACE_AMBIGIOUS(IUnknown, IAccessible)
 IMPL_IUNKNOWN_QUERY_IFACE(IAccessible)
 IMPL_IUNKNOWN_QUERY_IFACE(IDispatch)
 IMPL_IUNKNOWN_QUERY_IFACE(IServiceProvider)
-if (StaticPrefs::accessibility_uia_enable()) {
+if (Compatibility::IsUiaEnabled()) {
   IMPL_IUNKNOWN_QUERY_IFACE(IRawElementProviderSimple)
 }
 // See EnableBlindAggregation for comments.

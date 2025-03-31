@@ -214,3 +214,9 @@ SuppressionReasons Compatibility::A11ySuppressionReasons() {
   }
   return reasons;
 }
+
+/* static */
+bool Compatibility::IsUiaEnabled() {
+  // This is the only function which should call the UIA pref function directly.
+  return StaticPrefs::accessibility_uia_enable_DoNotUseDirectly();
+}

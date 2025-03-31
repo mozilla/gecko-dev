@@ -17,8 +17,8 @@
 #include "ia2AccessibleTable.h"
 #include "ia2AccessibleTableCell.h"
 #include "LocalAccessible-inl.h"
+#include "mozilla/a11y/Compatibility.h"
 #include "mozilla/a11y/RemoteAccessible.h"
-#include "mozilla/StaticPrefs_accessibility.h"
 #include "MsaaAccessible.h"
 #include "MsaaRootAccessible.h"
 #include "nsAccessibilityService.h"
@@ -140,7 +140,7 @@ Accessible* uiaRawElmProvider::Acc() const {
 /* static */
 void uiaRawElmProvider::RaiseUiaEventForGeckoEvent(Accessible* aAcc,
                                                    uint32_t aGeckoEvent) {
-  if (!StaticPrefs::accessibility_uia_enable()) {
+  if (!Compatibility::IsUiaEnabled()) {
     return;
   }
   auto* uia = MsaaAccessible::GetFrom(aAcc);
@@ -220,7 +220,7 @@ void uiaRawElmProvider::RaiseUiaEventForGeckoEvent(Accessible* aAcc,
 void uiaRawElmProvider::RaiseUiaEventForStateChange(Accessible* aAcc,
                                                     uint64_t aState,
                                                     bool aEnabled) {
-  if (!StaticPrefs::accessibility_uia_enable()) {
+  if (!Compatibility::IsUiaEnabled()) {
     return;
   }
   auto* uia = MsaaAccessible::GetFrom(aAcc);

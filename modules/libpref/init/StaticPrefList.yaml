@@ -293,6 +293,7 @@
   type: bool
   value: false
   mirror: always
+  do_not_use_directly: true
 
 # Whether to avoid accessibility activation on Windows shortly after clipboard
 # copy.
