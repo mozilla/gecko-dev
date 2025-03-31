@@ -63,7 +63,7 @@ add_task(async function test_experiment_enroll_unenroll_Telemetry() {
         object: TELEMETRY_OBJECT,
         value: experiment.slug,
         extra: {
-          reason: "unknown",
+          reason: "cleanup",
           branch: experiment.branch.slug,
         },
       },

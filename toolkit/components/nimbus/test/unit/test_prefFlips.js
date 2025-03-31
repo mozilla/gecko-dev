@@ -1587,7 +1587,7 @@ add_task(async function test_prefFlips_unenrollment() {
     for (const { slug, isRollout = false } of expectedEnrollments) {
       const computedSlug = `${slug}-${isRollout ? "rollout" : "experiment"}`;
       info(`Unenrolling from ${computedSlug}\n`);
-      manager.unenroll(computedSlug);
+      manager.unenroll(computedSlug, "cleanup");
     }
     assertEmptyStore(manager.store);
     assertNoObservers(manager);
@@ -1963,13 +1963,6 @@ add_task(async function test_prefFlip_setPref_restore() {
 
   for (const [i, { name, ...testCase }] of TEST_CASES.entries()) {
     Services.fog.testResetFOG();
-    Services.fog.applyServerKnobsConfig(
-      JSON.stringify({
-        metrics_enabled: {
-          "nimbus_events.enrollment_status": true,
-        },
-      })
-    );
     Services.telemetry.snapshotEvents(
       Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
       /* clear = */ true
@@ -2046,35 +2039,9 @@ add_task(async function test_prefFlip_setPref_restore() {
         },
       ]
     );
-    Assert.deepEqual(
-      Glean.nimbusEvents.enrollmentStatus
-        .testGetValue("events")
-        ?.map(ev => ev.extra),
-      [
-        {
-          slug: enrollmentOrder[0],
-          branch: "control",
-          status: "Enrolled",
-          reason: "Qualified",
-        },
-        {
-          slug: enrollmentOrder[0],
-          branch: "control",
-          status: "Disqualified",
-          reason: "PrefFlipsConflict",
-          conflict_slug: enrollmentOrder[1],
-        },
-        {
-          slug: enrollmentOrder[1],
-          branch: "control",
-          status: "Enrolled",
-          reason: "Qualified",
-        },
-      ]
-    );
 
     info("Unenrolling...");
-    manager.unenroll(enrollmentOrder[1]);
+    manager.unenroll(enrollmentOrder[1], "test-cleanup");
 
     info("Checking expected prefs...");
     checkExpectedPrefBranches(expectedPrefs);
@@ -2153,7 +2120,7 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
     "originalValues cached on serialized enrollment"
   );
 
-  manager.unenroll(recipe.slug);
+  manager.unenroll(recipe.slug, "test");
   Assert.ok(
     !Services.prefs.prefHasUserValue("test.pref.please.ignore"),
     "pref unset after unenrollment"
@@ -2240,7 +2207,7 @@ add_task(async function test_prefFlips_restore_unenroll() {
     null
   );
 
-  manager.unenroll(recipe.slug);
+  manager.unenroll(recipe.slug, "test");
   Assert.ok(
     !Services.prefs.prefHasUserValue("test.pref.please.ignore"),
     "pref unset after unenrollment"
@@ -2539,10 +2506,10 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout() {
 
     info("Unenrolling...");
     if (expectedEnrollments.includes(ROLLOUT)) {
-      manager.unenroll(ROLLOUT);
+      manager.unenroll(ROLLOUT, "test-cleanup");
     }
     if (expectedEnrollments.includes(EXPERIMENT)) {
-      manager.unenroll(EXPERIMENT);
+      manager.unenroll(EXPERIMENT, "test-cleanup");
     }
 
     info("Cleaning up...");

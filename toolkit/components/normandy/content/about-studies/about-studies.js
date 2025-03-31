@@ -319,6 +319,7 @@ class MessagingSystemListItem extends React.Component {
   handleClickRemove() {
     sendPageEvent("RemoveMessagingSystemExperiment", {
       slug: this.props.study.slug,
+      reason: "individual-opt-out",
     });
   }
 

@@ -297,7 +297,7 @@ add_task(async function test_forceEnrollUpdatesMessages() {
 
   await assertMessageInState("xman_test_message");
 
-  await ExperimentManager.unenroll(`optin-${experiment.slug}`);
+  await ExperimentManager.unenroll(`optin-${experiment.slug}`, "cleanup");
   await SpecialPowers.popPrefEnv();
   await cleanup();
 });

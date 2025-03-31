@@ -16,7 +16,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
-  UnenrollmentCause: "resource://nimbus/lib/ExperimentManager.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -593,9 +592,7 @@ export class _ExperimentFeature {
     );
 
     if (missingIds?.size) {
-      throw new ExperimentLocalizationError(
-        lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY
-      );
+      throw new ExperimentLocalizationError("l10n-missing-entry");
     }
 
     return result;
@@ -648,9 +645,7 @@ export class _ExperimentFeature {
             missingIds.add(value.id);
             break;
           } else {
-            throw new ExperimentLocalizationError(
-              lazy.NimbusTelemetry.ValidationFailureReason.L10N_MISSING_ENTRY
-            );
+            throw new ExperimentLocalizationError("l10n-missing-entry");
           }
         }
 
@@ -686,12 +681,7 @@ export class _ExperimentFeature {
         (typeof enrollment.localizations[locale] !== "object" ||
           enrollment.localizations[locale] === null)
       ) {
-        ExperimentAPI._manager._unenroll(
-          enrollment,
-          lazy.UnenrollmentCause.fromReason(
-            lazy.NimbusTelemetry.UnenrollReason.L10N_MISSING_LOCALE
-          )
-        );
+        ExperimentAPI._manager.unenroll(enrollment.slug, "l10n-missing-locale");
         return undefined;
       }
 
@@ -708,10 +698,7 @@ export class _ExperimentFeature {
         } catch (e) {
           // This should never happen.
           if (e instanceof ExperimentLocalizationError) {
-            ExperimentAPI._manager._unenroll(
-              enrollment,
-              lazy.UnenrollmentCause.fromReason(e.reason)
-            );
+            ExperimentAPI._manager.unenroll(enrollment.slug, e.reason);
           } else {
             throw e;
           }
