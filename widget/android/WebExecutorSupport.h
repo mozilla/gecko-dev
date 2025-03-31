@@ -10,6 +10,8 @@
 #include "mozilla/java/GeckoResultWrappers.h"
 #include "mozilla/java/WebRequestWrappers.h"
 
+class nsIChannel;
+
 namespace mozilla {
 namespace widget {
 
@@ -20,10 +22,24 @@ class WebExecutorSupport final
                     jni::Object::Param result);
   static void Resolve(jni::String::Param aUri, jni::Object::Param result);
 
- protected:
+  static void CompleteWithError(java::GeckoResult::Param aResult,
+                                nsresult aStatus, nsIChannel* aChannel);
+
+  static void CompleteWithError(java::GeckoResult::Param aResult,
+                                nsresult aStatus) {
+    CompleteWithError(aResult, aStatus, nullptr);
+  }
+
   static nsresult CreateStreamLoader(java::WebRequest::Param aRequest,
                                      int32_t aFlags,
                                      java::GeckoResult::Param aResult);
+
+  // Ohttp requires fetching config first, so we need to queue the request if
+  // the config is not fetched yet.
+  static nsresult PerformOrQueueOhttpRequest(java::WebRequest::Param aRequest,
+                                             int32_t aFlags,
+                                             java::GeckoResult::Param aResult,
+                                             bool bypassConfigCache = false);
 };
 
 }  // namespace widget
