@@ -47,14 +47,6 @@ void* MapBufferMemory(wasm::AddressType, size_t mappedSize,
 // size.  Returns false on failure.
 bool CommitBufferMemory(void* dataEnd, size_t delta);
 
-// Extend an existing mapping by adding uncommited pages to it.  `dataStart`
-// must be the pointer to the start of the existing mapping, `mappedSize` the
-// size of the existing mapping, and `newMappedSize` the size of the extended
-// mapping (sizes in bytes), with `mappedSize` <= `newMappedSize`.  Both sizes
-// must be divisible by the page size.  Returns false on failure.
-bool ExtendBufferMapping(void* dataStart, size_t mappedSize,
-                         size_t newMappedSize);
-
 // Remove an existing mapping.  `dataStart` must be the pointer to the start of
 // the mapping, and `mappedSize` the size of that mapping.
 void UnmapBufferMemory(wasm::AddressType t, void* dataStart, size_t mappedSize,
@@ -954,12 +946,6 @@ class WasmArrayRawBuffer {
   mozilla::Maybe<wasm::Pages> sourceMaxPages() const { return sourceMaxPages_; }
 
   [[nodiscard]] bool growToPagesInPlace(wasm::Pages newPages);
-
-  [[nodiscard]] bool extendMappedSize(wasm::Pages maxPages);
-
-  // Try and grow the mapped region of memory. Does not change current size.
-  // Does not move memory if no space to grow.
-  void tryGrowMaxPagesInPlace(wasm::Pages deltaMaxPages);
 
   // Discard a region of memory, zeroing the pages and releasing physical memory
   // back to the operating system. byteOffset and byteLen must be wasm page

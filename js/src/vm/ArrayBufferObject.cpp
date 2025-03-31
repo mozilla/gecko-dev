@@ -266,37 +266,6 @@ bool js::CommitBufferMemory(void* dataEnd, size_t delta) {
   return true;
 }
 
-bool js::ExtendBufferMapping(void* dataPointer, size_t mappedSize,
-                             size_t newMappedSize) {
-  MOZ_ASSERT(mappedSize % gc::SystemPageSize() == 0);
-  MOZ_ASSERT(newMappedSize % gc::SystemPageSize() == 0);
-  MOZ_ASSERT(newMappedSize >= mappedSize);
-
-#ifdef XP_WIN
-  void* mappedEnd = (char*)dataPointer + mappedSize;
-  uint32_t delta = newMappedSize - mappedSize;
-  if (!VirtualAlloc(mappedEnd, delta, MEM_RESERVE, PAGE_NOACCESS)) {
-    return false;
-  }
-  gc::RecordMemoryAlloc(delta);
-  return true;
-#elif defined(__wasi__)
-  return false;
-#elif defined(XP_LINUX)
-  // Note this will not move memory (no MREMAP_MAYMOVE specified)
-  if (MAP_FAILED == mremap(dataPointer, mappedSize, newMappedSize, 0)) {
-    return false;
-  }
-  uint32_t delta = newMappedSize - mappedSize;
-  gc::RecordMemoryAlloc(delta);
-  return true;
-#else
-  // No mechanism for remapping on MacOS and other Unices. Luckily
-  // shouldn't need it here as most of these are 64-bit.
-  return false;
-#endif
-}
-
 void js::UnmapBufferMemory(wasm::AddressType t, void* base, size_t mappedSize,
                            size_t committedSize) {
   MOZ_ASSERT(mappedSize % gc::SystemPageSize() == 0);
@@ -1117,10 +1086,7 @@ void ResizableArrayBufferObject::resize(size_t newByteLength) {
  *  - Memories with a maximum - we do our best to reserve the entire maximum
  *    space up front so that grows will not fail later. If we fail to map the
  *    entire maximum, we iteratively map less and less memory until allocation
- *    succeeds, then iteratively extend the mapping as much as possible. For
- *    example, suppose a memory declares a maximum size of 2GiB. We first try
- *    mapping 2GiB + guard region, and then if that fails, we map less and less
- *    until mapping succeeds.
+ *    succeeds.
  *
  *
  * ## Grow strategies
@@ -1140,10 +1106,9 @@ void ResizableArrayBufferObject::resize(size_t newByteLength) {
  *    afterwards the entirety of the old buffer's contents will be resident in
  *    memory (even if some pages had never been touched before the move).
  *
- *    To avoid this, we first attempt to extend the previous mapping, reserving
- *    more memory from the OS at the end. This may fail if any other memory has
- *    been allocated in that space in the meantime, but if it succeeds, we can
- *    then simply fall back to a grow in place.
+ *    A moving grow can fall back to a grow in place if the mappedSize allows
+ *    for it. However, at the time of writing, our memory allocation/grow
+ *    strategies do not allow this to happen.
  *
  */
 
@@ -1168,36 +1133,6 @@ void ResizableArrayBufferObject::resize(size_t newByteLength) {
   length_ = newSize;
 
   return true;
-}
-
-bool WasmArrayRawBuffer::extendMappedSize(Pages maxPages) {
-  size_t newMappedSize = wasm::ComputeMappedSize(maxPages);
-  MOZ_ASSERT(mappedSize_ <= newMappedSize);
-  if (mappedSize_ == newMappedSize) {
-    return true;
-  }
-
-  if (!ExtendBufferMapping(dataPointer(), mappedSize_, newMappedSize)) {
-    return false;
-  }
-
-  mappedSize_ = newMappedSize;
-  return true;
-}
-
-void WasmArrayRawBuffer::tryGrowMaxPagesInPlace(Pages deltaMaxPages) {
-  Pages newMaxPages = clampedMaxPages_;
-
-  DebugOnly<bool> valid = newMaxPages.checkedIncrement(deltaMaxPages);
-  // Caller must ensure increment does not overflow or increase over the
-  // specified maximum pages.
-  MOZ_ASSERT(valid);
-  MOZ_ASSERT_IF(sourceMaxPages_.isSome(), newMaxPages <= *sourceMaxPages_);
-
-  if (!extendMappedSize(newMaxPages)) {
-    return;
-  }
-  clampedMaxPages_ = newMaxPages;
 }
 
 void WasmArrayRawBuffer::discard(size_t byteOffset, size_t byteLen) {
@@ -1363,11 +1298,6 @@ static ArrayBufferObjectMaybeShared* CreateSpecificWasmBuffer(
                 initialPages.value());
       ReportOutOfMemory(cx);
       return nullptr;
-    }
-
-    // Try to grow our chunk as much as possible.
-    for (size_t d = cur / 2; d >= 1; d /= 2) {
-      buffer->tryGrowMaxPagesInPlace(Pages(d));
     }
   }
 
@@ -1751,10 +1681,9 @@ ArrayBufferObject* ArrayBufferObject::wasmMovingGrowToPages(
   // to byte lengths now.
   size_t newSize = newPages.byteLength();
 
-  if (wasm::ComputeMappedSize(newPages) <= oldBuf->wasmMappedSize() ||
-      oldBuf->contents().wasmBuffer()->extendMappedSize(newPages)) {
-    return wasmGrowToPagesInPlace(t, newPages, oldBuf, cx);
-  }
+  // TODO: If the memory reservation allows, or if we can extend the mapping in
+  // place, fall back to wasmGrowToPagesInPlace to avoid a new allocation +
+  // copy.
 
   Rooted<ArrayBufferObject*> newBuf(cx, ArrayBufferObject::createEmpty(cx));
   if (!newBuf) {

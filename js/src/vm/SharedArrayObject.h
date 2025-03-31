@@ -192,8 +192,6 @@ class WasmSharedArrayRawBuffer : public SharedArrayRawBuffer {
 
   size_t mappedSize() const { return mappedSize_; }
 
-  void tryGrowMaxPagesInPlace(wasm::Pages deltaMaxPages);
-
   bool wasmGrowToPagesInPlace(const Lock&, wasm::AddressType t,
                               wasm::Pages newPages);
 

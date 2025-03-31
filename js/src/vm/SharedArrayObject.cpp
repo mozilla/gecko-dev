@@ -128,28 +128,6 @@ WasmSharedArrayRawBuffer* WasmSharedArrayRawBuffer::AllocateWasm(
       sourceMaxPages.valueOr(Pages(0)), computedMappedSize);
 }
 
-void WasmSharedArrayRawBuffer::tryGrowMaxPagesInPlace(Pages deltaMaxPages) {
-  Pages newMaxPages = clampedMaxPages_;
-  DebugOnly<bool> valid = newMaxPages.checkedIncrement(deltaMaxPages);
-  // Caller must ensure increment does not overflow or increase over the
-  // specified maximum pages.
-  MOZ_ASSERT(valid);
-  MOZ_ASSERT(newMaxPages <= sourceMaxPages_);
-
-  size_t newMappedSize = wasm::ComputeMappedSize(newMaxPages);
-  MOZ_ASSERT(mappedSize_ <= newMappedSize);
-  if (mappedSize_ == newMappedSize) {
-    return;
-  }
-
-  if (!ExtendBufferMapping(basePointer(), mappedSize_, newMappedSize)) {
-    return;
-  }
-
-  mappedSize_ = newMappedSize;
-  clampedMaxPages_ = newMaxPages;
-}
-
 bool WasmSharedArrayRawBuffer::wasmGrowToPagesInPlace(const Lock&,
                                                       wasm::AddressType t,
                                                       wasm::Pages newPages) {
