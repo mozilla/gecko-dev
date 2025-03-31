@@ -15,6 +15,11 @@ DIRS += [
     "jni",
 ]
 
+if CONFIG["ENABLE_TESTS"]:
+    DIRS += [
+        "tests",
+    ]
+
 EXPORTS += [
     "AndroidBridge.h",
 ]
@@ -110,6 +115,7 @@ EXPORTS.mozilla.widget += [
     "GeckoViewSupport.h",
     "InProcessAndroidCompositorWidget.h",
     "nsWindow.h",
+    "WebExecutorSupport.h",
     "WindowEvent.h",
 ]
 

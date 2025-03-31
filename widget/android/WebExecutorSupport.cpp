@@ -10,6 +10,7 @@
 #include "ReferrerInfo.h"
 #include "WebExecutorSupport.h"
 #include "OhttpHelper.h"
+#include "JavaExceptions.h"
 
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsICancelable.h"
@@ -276,6 +277,67 @@ nsresult WebExecutorSupport::PerformOrQueueOhttpRequest(
 
   return OhttpHelper::FetchConfigAndFulfillRequests();
 }
+
+#if defined(ENABLE_TESTS)
+
+void WebExecutorSupport::TestOhttp(const nsACString& url,
+                                   const nsACString& method,
+                                   const nsACString& body,
+                                   const nsTArray<nsCString>& headerKeys,
+                                   const nsTArray<nsCString>& headerValues,
+                                   ohttpClientTestCallback* callback) {
+  auto result = java::GeckoResult::New();
+
+  nsCOMPtr<ohttpClientTestCallback> callbackRef(callback);
+  auto resolve = jni::GeckoResultCallback::CreateAndAttach(
+      [callbackRef](jni::Object::Param aResolveVal) {
+        auto response = java::WebResponse::LocalRef(aResolveVal);
+        auto responseBase =
+            java::WebMessage::LocalRef(response.Cast<java::WebMessage>());
+
+        auto headerKeysJava = responseBase->GetHeaderKeys();
+        auto headerValuesJava = responseBase->GetHeaderValues();
+        nsTArray<nsCString> headersKeys(headerKeysJava->Length());
+        nsTArray<nsCString> headersValues(headerValuesJava->Length());
+        for (size_t i = 0; i < headerKeysJava->Length(); i++) {
+          headersKeys.AppendElement(
+              jni::String::LocalRef(headerKeysJava->GetElement(i))
+                  ->ToCString());
+          headersValues.AppendElement(
+              jni::String::LocalRef(headerValuesJava->GetElement(i))
+                  ->ToCString());
+        }
+
+        callbackRef->OnResponse(responseBase->Uri()->ToCString(),
+                                response->StatusCode(), headersKeys,
+                                headersValues, ""_ns);
+      });
+  auto reject = jni::GeckoResultCallback::CreateAndAttach(
+      [callbackRef](jni::Object::Param aRejectVal) {
+        auto error = java::sdk::Throwable::LocalRef(aRejectVal);
+
+        callbackRef->OnResponse(""_ns, 0, nsTArray<nsCString>(),
+                                nsTArray<nsCString>(),
+                                error->GetMessage()->ToCString());
+      });
+  result->NativeThen(resolve, reject);
+
+  const auto requestBuilder =
+      java::WebRequest::Builder::New(url)->Method(method)->Body(body);
+  for (size_t i = 0; i < headerKeys.Length(); i++) {
+    requestBuilder->AddHeader(headerKeys[i], headerValues[i]);
+  }
+  const auto request = requestBuilder->Build();
+
+  nsresult rv = PerformOrQueueOhttpRequest(
+      request, java::GeckoWebExecutor::FETCH_FLAGS_OHTTP, result, true);
+
+  if (NS_FAILED(rv)) {
+    CompleteWithError(result, rv);
+  }
+}
+
+#endif
 
 static nsresult ConvertCacheMode(int32_t mode, int32_t& result) {
   switch (mode) {

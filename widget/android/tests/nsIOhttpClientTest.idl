@@ -1,0 +1,21 @@
+/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 8 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[function, scriptable, uuid(cdec8db3-3868-41e7-a91a-68a3b5a24de0)]
+interface ohttpClientTestCallback : nsISupports
+{
+    void onResponse(in ACString url, in long statusCode, in Array<ACString> headerKeys, in Array<ACString> headerValues, in ACString errorMessage);
+};
+
+[scriptable, uuid(b3150bd2-689c-4cf0-b4ee-4f90aaf1cbd3)]
+interface nsIOhttpClientTest : nsISupports
+{
+  void fetch(
+    in ACString url, in ACString method, in ACString body, in Array<ACString> headerKeys, in Array<ACString> headerValues,
+    in ohttpClientTestCallback callback
+  );
+};
