@@ -17,9 +17,9 @@
   </style>
 </head>
 <body>
-  <!-- For now we load the iframe in the same site as the damp top frame.
-       We will switch to a different-site URL (eg http://damp.iframe.com) when
-       DevTools work against remote frames. -->
+  <!-- Bug 1454025: Update this test to target http://damp.iframe.com to assert
+       remote frames. Regresses the performance of custom.styleeditor.reload.
+       -->
   <iframe
     src="http://damp.top.com/tests/devtools/addon/content/pages/custom/styleeditor/iframe.html"
   ></iframe>

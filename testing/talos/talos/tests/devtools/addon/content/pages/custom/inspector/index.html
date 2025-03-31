@@ -17,9 +17,12 @@
   </style>
 </head>
 <body>
-  <!-- For now we load the iframe in the same site as the damp top frame.
-       We will switch to a different-site URL (eg http://damp.iframe.com) when
-       DevTools work against remote frames. -->
+  <!-- TODO: DevTools can debug remote frames so we could update this test to
+       target http://damp.iframe.com. However the test itself accesses the
+       iframe's window from the toplevel page.
+       (see https://searchfox.org/mozilla-central/rev/b22ec3f983078ff98b04cee7dafe4b90342a42bf/testing/talos/talos/tests/devtools/addon/content/tests/inspector/custom.js#63-78)
+
+       This will need to be updated if we want to assert cross origin frames. -->
   <iframe
     src="http://damp.top.com/tests/devtools/addon/content/pages/custom/inspector/iframe.html"
   ></iframe>
