@@ -12,6 +12,7 @@ const {
   URLChecker,
   removeFromOPFS,
   RejectionType,
+  BlockListManager,
 } = ChromeUtils.importESModule("chrome://global/content/ml/Utils.sys.mjs");
 
 /**
@@ -640,4 +641,192 @@ add_task(async function testURLChecker() {
       )}: ${description}`
     );
   }
+});
+
+/**
+ * Test the Block List Manager with a single blocked n-grams at word boundaries
+ *
+ */
+add_task(async function testBlockListManager_single_blocked_word() {
+  const manager = new BlockListManager({
+    blockNgrams: [BlockListManager.encodeBase64("would like")],
+  });
+
+  Assert.equal(
+    manager.blockNgramSet.values().next().value,
+    "would like",
+    "decoded blocked n-grams should match the original value"
+  );
+
+  Assert.equal(
+    BlockListManager.decodeBase64(BlockListManager.encodeBase64("would like")),
+    "would like",
+    "round trip encode/decode should give original input"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People are here" }),
+    false,
+    "should have no match if blocked n-gram not in input"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People would likes" }),
+    false,
+    "should have no match even if only part of blocked n-gram in input"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People would do like" }),
+    false,
+    "should have no match if they are other words separating a blocked  2-grams"
+  );
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People wouldlike" }),
+    false,
+    "should have no match if text contains blocked n-grams but without the spaces"
+  );
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People would_like" }),
+    false,
+    "should have no match text contain special characters between a blocked 2-grams"
+  );
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People would liketo " }),
+    false,
+    "should have no match if the blocked 2-grams is not at word boundary"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People are here and would like go" }),
+    true,
+    "should match if blocked 2-grams in input"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "would like to do it" }),
+    true,
+    "should match if blocked 2-grams is at the beginning of input"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "I need to would like." }),
+    true,
+    "should match if blocked 2-grams is at end of input even with punctuation"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "I need to would like" }),
+    true,
+    "should match if blocked 2-grams is at end of input"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "I need to would like  " }),
+    true,
+    "should match even if blocked 2-grams has extra spaces after it"
+  );
+});
+
+/**
+ * Test the Block List Manager with multiple blocked n-grams at word boundaries
+ *
+ */
+add_task(async function testBlockListManager_multiple_blocked_ngrams() {
+  const manager = new BlockListManager({
+    blockNgrams: [
+      BlockListManager.encodeBase64("would like"),
+      BlockListManager.encodeBase64("vast"),
+
+      BlockListManager.encodeBase64("blocked"),
+    ],
+  });
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People are here" }),
+    false,
+    "should have no match if blocked n-grams are not present"
+  );
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People wouldlike iblocked" }),
+    false,
+    "should have no match if blocked n-grams are not at words boundary"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "People are here and blocked" }),
+    true,
+    "should match if blocked n-grams are at word boundary"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "would like to do it" }),
+    true,
+    "should match for all blocked n-grams in the list"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "I need to would like blocked." }),
+    true,
+    "should match for all blocked n-grams in the list"
+  );
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "I have a vast amount." }),
+    true,
+    "should match for all blocked n-grams in the list"
+  );
+});
+
+/**
+ * Test the Block List Manager with multiple blocked n-grams anywhere
+ *
+ */
+add_task(async function testBlockListManager_anywhere() {
+  const manager = new BlockListManager({
+    blockNgrams: [
+      BlockListManager.encodeBase64("would like"),
+      BlockListManager.encodeBase64("vast"),
+
+      BlockListManager.encodeBase64("blocked"),
+    ],
+  });
+
+  Assert.equal(
+    manager.matchAnywhere({ text: "People are here" }),
+    false,
+    "should have no match if blocked n-grams are not present"
+  );
+  Assert.equal(
+    manager.matchAnywhere({ text: "People wouldlike iblocked" }),
+    true,
+    "should match even if blocked n-grams are not at word boundary"
+  );
+
+  Assert.equal(
+    manager.matchAnywhere({ text: "People are here and blocked" }),
+    true,
+    "should match for all blocked n-grams"
+  );
+
+  Assert.equal(
+    manager.matchAnywhere({ text: "would like to do it" }),
+    true,
+    "should match for all blocked n-grams"
+  );
+
+  Assert.equal(
+    manager.matchAnywhere({ text: "I need to would like blocked." }),
+    true,
+    "should match for all blocked n-grams"
+  );
+  Assert.equal(
+    manager.matchAnywhere({ text: "I have a vast amount." }),
+    true,
+    "should match for all blocked n-grams"
+  );
+  Assert.equal(
+    manager.matchAnywhere({ text: "I have avast amount." }),
+    true,
+    "should match for all blocked n-grams even if not at word boundary"
+  );
 });

@@ -1,6 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+const lazy = {};
+
+const IN_WORKER = typeof importScripts !== "undefined";
+
+const ES_MODULES_OPTIONS = IN_WORKER ? { global: "current" } : {};
+
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    BLOCK_WORDS_ENCODED: "chrome://global/content/ml/BlockWords.sys.mjs",
+  },
+  ES_MODULES_OPTIONS
+);
 
 /**
  * Enumeration for the progress status text.
@@ -694,4 +707,199 @@ export class URLChecker {
 export function getOptimalCPUConcurrency() {
   let mlUtils = Cc["@mozilla.org/ml-utils;1"].createInstance(Ci.nsIMLUtils);
   return mlUtils.getOptimalCPUConcurrency();
+}
+
+/**
+ * A class to check if some text belongs to a blocked list of n-grams.
+ *
+ */
+export class BlockListManager {
+  /**
+   * The set of blocked word n-grams.
+   *
+   * This set contains the n-grams (combinations of words) that are considered blocked.
+   * The n-grams are decoded from base64 to strings.
+   *
+   * @type {Set<string>}
+   */
+  blockNgramSet = null;
+
+  /**
+   * Word segmenter for identifying word boundaries in the text.
+   *
+   * Used to segment the input text into words and ensure that n-grams are checked at word boundaries.
+   *
+   * @type {Intl.Segmenter}
+   */
+  wordSegmenter = null;
+
+  /**
+   * The unique lengths of the blocked n-grams.
+   *
+   * This set stores the lengths of the blocked n-grams, allowing for efficient length-based checks.
+   * For example, if the blocked n-grams are "apple" (5 characters) and "orange" (6 characters),
+   * this set will store lengths {5, 6}.
+   *
+   * @type {Set<number>}
+   */
+  blockNgramLengths = null;
+
+  /**
+   * Create an instance of the block list manager.
+   *
+   * @param {object} options - Configuration object.
+   * @param {string} options.language - A string with a BCP 47 language tag for the language of the blocked n-grams.
+   *                                    Example: "en" for English, "fr" for French.
+   *                                    See https://en.wikipedia.org/wiki/IETF_language_tag.
+   * @param {Array<string>} options.blockNgrams - Base64-encoded blocked n-grams.
+   */
+  constructor({ blockNgrams, language = "en" } = {}) {
+    const blockNgramList = blockNgrams.map(base64Str =>
+      BlockListManager.decodeBase64(base64Str)
+    );
+    // TODO: Can be optimized by grouping the set by the word n-gram lenghts.
+    this.blockNgramSet = new Set(blockNgramList);
+
+    this.blockNgramLengths = new Set(blockNgramList.map(k => k.length)); // unique lengths
+
+    this.wordSegmenter = new Intl.Segmenter(language, { granularity: "word" });
+  }
+
+  /**
+   * Initialize the block list manager from the default list.
+   *
+   * @param {object} options - Configuration object.
+   * @param {string} options.language - A string with a BCP 47 language tag for the language of the blocked n-grams.
+   *                                    Example: "en" for English, "fr" for French.
+   *                                    See https://en.wikipedia.org/wiki/IETF_language_tag.
+   *
+   * @returns {BlockListManager} A new BlockListManager instance.
+   */
+  static initializeFromDefault({ language = "en" } = {}) {
+    return new BlockListManager({
+      blockNgrams: lazy.BLOCK_WORDS_ENCODED[language],
+      language,
+    });
+  }
+
+  /**
+   * Decode a base64 encoded string to its original representation.
+   *
+   * @param {string} base64Str - The base64 encoded string to decode.
+   * @returns {string} The decoded string.
+   */
+  static decodeBase64(base64Str) {
+    const binary = atob(base64Str); // binary string
+
+    // Convert binary string to byte array
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+
+    // Decode bytes to Unicode string
+    return new TextDecoder().decode(bytes);
+  }
+
+  /**
+   * Encode a string to base64.
+   *
+   * @param {string} str - The string to encode.
+   * @returns {string} The base64 encoded string.
+   */
+  static encodeBase64(str) {
+    // Convert Unicode string to bytes
+    const bytes = new TextEncoder().encode(str); // Uint8Array
+
+    // Convert bytes to binary string
+    const binary = String.fromCharCode(...bytes);
+
+    // Encode binary string to base64
+    return btoa(binary);
+  }
+
+  /**
+   * Check if blocked n-grams are present at word boundaries in the given text.
+   *
+   * This method checks the text at word boundaries (using the word segmenter) for any n-grams that are blocked.
+   *
+   * @param {object} options - Configuration object.
+   * @param {string} options.text - The text to check for blocked n-grams.
+   * @returns {boolean} True if the text contains a blocked word n-gram, false otherwise.
+   *
+   * @example
+   * const result = blockListManager.matchAtWordBoundary({ text: "this is spam text" });
+   * console.log(result); // true if 'spam' is a blocked n-gram.
+   * const result2 = blockListManager.matchAtWordBoundary({ text: "this isspam text" });
+   * console.log(result2); // false even if spam is a blocked n-gram.
+   */
+  matchAtWordBoundary({ text }) {
+    const isTextOffsetAtEndOfWordBoundary = new Array(text.length).fill(false);
+
+    // Keep hold of the index of the first character of each word in the text
+    const startWordIndices = Array.from(
+      this.wordSegmenter.segment(text),
+      segment => {
+        if (segment.index > 0) {
+          // segment.index returns start of word. Subtracting one for end of word.
+          isTextOffsetAtEndOfWordBoundary[segment.index - 1] = true;
+        }
+
+        return segment.index;
+      }
+    );
+    // End of text always at word boundary
+    isTextOffsetAtEndOfWordBoundary[text.length - 1] = true;
+
+    for (const startTextOffset of startWordIndices) {
+      // Check if there is a word starting at offset startTextOffset and matching a blocked n-gram words of given length
+      for (const blockLength of this.blockNgramLengths) {
+        const endTextOffset = startTextOffset + blockLength;
+
+        if (
+          // Skip checking when the pattern to check does not end at word boundary.
+          isTextOffsetAtEndOfWordBoundary[endTextOffset - 1] &&
+          // check if we have this word in the block list
+          this.blockNgramSet.has(text.slice(startTextOffset, endTextOffset))
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if blocked n-grams are present anywhere in the text.
+   *
+   * This method checks the entire text (not limited to word boundaries) for any n-grams that are blocked.
+   *
+   * @param {object} options - Configuration object.
+   * @param {string} options.text - The text to check for blocked n-grams.
+   * @returns {boolean} True if the text contains a blocked word n-gram, false otherwise.
+   *
+   * @example
+   * const result = blockListManager.matchAnywhere({ text: "this is spam text" });
+   * console.log(result); // true if 'spam' is a blocked n-gram.
+   * const result2 = blockListManager.matchAnywhere({ text: "this isspam text" });
+   * console.log(result2); // true if 'spam' is a blocked n-gram.
+   * const result3 = blockListManager.matchAnywhere({ text: "this is s_p_a_m text" });
+   * console.log(result3); // false even if 'spam' is a blocked n-gram.
+   */
+  matchAnywhere({ text }) {
+    for (
+      let startTextOffset = 0;
+      startTextOffset < text.length;
+      startTextOffset++
+    ) {
+      for (const blockLength of this.blockNgramLengths) {
+        if (
+          this.blockNgramSet.has(
+            text.slice(startTextOffset, startTextOffset + blockLength)
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
 }
