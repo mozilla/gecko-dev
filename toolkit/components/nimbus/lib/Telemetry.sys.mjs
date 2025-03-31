@@ -237,6 +237,12 @@ export const NimbusTelemetry = {
         enrollmentStatus.reason = EnrollmentStatusReason.NOT_TARGETED;
         break;
 
+      case UnenrollReason.INDIVIDUAL_OPT_OUT:
+      case UnenrollReason.LABS_OPT_OUT:
+        enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
+        enrollmentStatus.reason = EnrollmentStatusReason.OPT_OUT;
+        break;
+
       default:
         enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
         enrollmentStatus.reason = EnrollmentStatusReason.ERROR;
