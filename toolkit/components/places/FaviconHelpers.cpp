@@ -20,6 +20,7 @@
 #include "mozilla/dom/PlacesFavicon.h"
 #include "mozilla/dom/PlacesObservers.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/Base64.h"
 #include "mozilla/storage.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Telemetry.h"
@@ -593,6 +594,62 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
   return NS_OK;
 }
 
+class Favicon final : public nsIFavicon {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  Favicon(const nsACString& aURISpec, const nsACString& aRawData,
+          const nsACString& aMimeType, const uint16_t& aWidth)
+      : mURISpec(aURISpec),
+        mRawData(aRawData),
+        mMimeType(aMimeType),
+        mWidth(aWidth) {}
+
+  NS_IMETHODIMP GetUri(nsIURI** aURI) override {
+    NS_ENSURE_ARG_POINTER(aURI);
+    return NS_NewURI(aURI, mURISpec);
+  }
+
+  NS_IMETHODIMP GetDataURI(nsIURI** aDataURI) override {
+    NS_ENSURE_ARG_POINTER(aDataURI);
+
+    nsAutoCString spec;
+    spec.AssignLiteral("data:");
+    spec.Append(mMimeType);
+    spec.AppendLiteral(";base64,");
+    nsresult rv = Base64EncodeAppend(mRawData, spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_NewURI(aDataURI, spec);
+  }
+
+  NS_IMETHOD GetRawData(nsTArray<uint8_t>& aRawData) override {
+    Unused << aRawData.ReplaceElementsAt(0, aRawData.Length(),
+                                         TO_INTBUFFER(mRawData),
+                                         mRawData.Length(), fallible);
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetMimeType(nsACString& aMimeType) override {
+    aMimeType.Assign(mMimeType);
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetWidth(uint16_t* aWidth) override {
+    *aWidth = mWidth;
+    return NS_OK;
+  }
+
+ private:
+  ~Favicon() = default;
+
+  nsCString mURISpec;
+  nsCString mRawData;
+  nsCString mMimeType;
+  uint16_t mWidth;
+};
+NS_IMPL_ISUPPORTS(Favicon, nsIFavicon)
+
 }  // namespace
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -886,6 +943,61 @@ AsyncGetFaviconDataForPage::Run() {
       new NotifyIconObservers(iconData, pageData, mCallback);
   rv = NS_DispatchToMainThread(event);
   NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//// AsyncGetFaviconForPageRunnable
+
+AsyncGetFaviconForPageRunnable::AsyncGetFaviconForPageRunnable(
+    const nsCOMPtr<nsIURI>& aPageURI, uint16_t aPreferredWidth,
+    FaviconPromise::Private* aPromise)
+    : Runnable("places::AsyncGetFaviconForPage"),
+      mPageURI(aPageURI),
+      mPreferredWidth(aPreferredWidth == 0 ? UINT16_MAX : aPreferredWidth),
+      mPromise(new nsMainThreadPtrHolder<FaviconPromise::Private>(
+          "AsyncGetFaviconForPageRunnable::Promise", aPromise, false)) {
+  MOZ_ASSERT(NS_IsMainThread());
+}
+
+NS_IMETHODIMP
+AsyncGetFaviconForPageRunnable::Run() {
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  IconData iconData;
+  nsresult rv = NS_OK;
+
+  auto guard = MakeScopeExit([&]() {
+    if (NS_FAILED(rv)) {
+      mPromise->Reject(rv, __func__);
+      return;
+    }
+
+    if (iconData.payloads.Length() == 0) {
+      // Not found.
+      mPromise->Resolve(nullptr, __func__);
+      return;
+    }
+
+    IconPayload& payload = iconData.payloads[0];
+    nsCOMPtr<nsIFavicon> favicon = new Favicon(iconData.spec, payload.data,
+                                               payload.mimeType, payload.width);
+    mPromise->Resolve(favicon.forget(), __func__);
+  });
+
+  RefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
+
+  rv = FetchIconPerSpec(DB, mPageURI, iconData, mPreferredWidth);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (iconData.spec.IsEmpty()) {
+    return NS_OK;
+  }
+
+  rv = FetchIconInfo(DB, mPreferredWidth, iconData);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
