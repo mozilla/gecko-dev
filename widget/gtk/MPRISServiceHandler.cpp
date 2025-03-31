@@ -921,7 +921,28 @@ void MPRISServiceHandler::SetSupportedMediaKeys(
 
 void MPRISServiceHandler::SetPositionState(
     const Maybe<dom::PositionState>& aState) {
+  bool rateChanged = false;
+  bool durationChanged = false;
+  bool positionChanged = mPositionState.isSome() || aState.isSome();
+  if (mPositionState.isSome() && aState.isSome()) {
+    rateChanged = mPositionState->mPlaybackRate != aState->mPlaybackRate;
+    durationChanged = mPositionState->mDuration != aState->mDuration;
+  } else if (mPositionState.isNothing() && aState.isSome()) {
+    rateChanged = aState->mPlaybackRate != 1.0;
+    durationChanged = true;
+  } else if (mPositionState.isSome() && aState.isNothing()) {
+    rateChanged = mPositionState->mPlaybackRate != 1.0;
+    durationChanged = true;
+  }
+
   mPositionState = aState;
+
+  if (rateChanged || durationChanged) {
+    EmitPositionStateChanges(rateChanged, durationChanged);
+  }
+  if (positionChanged) {
+    EmitSeekedSignal();
+  }
 }
 
 double MPRISServiceHandler::GetPositionSeconds() const {
@@ -965,6 +986,28 @@ bool MPRISServiceHandler::EmitSupportedKeyChanged(dom::MediaControlKey aKey,
   return EmitPropertiesChangedSignal(parameters);
 }
 
+bool MPRISServiceHandler::EmitPositionStateChanges(
+    bool aRateChanged, bool aDurationChanged) const {
+  GVariantBuilder builder;
+  g_variant_builder_init(&builder, G_VARIANT_TYPE("a{sv}"));
+  if (aRateChanged) {
+    double rate = 1.0;
+    if (mPositionState.isSome()) {
+      rate = mPositionState->mPlaybackRate;
+    }
+    g_variant_builder_add(&builder, "{sv}", "Rate", g_variant_new_double(rate));
+  }
+  if (aDurationChanged) {
+    g_variant_builder_add(&builder, "{sv}", "Metadata",
+                          GetMetadataAsGVariant());
+  }
+
+  GVariant* parameters = g_variant_new(
+      "(sa{sv}as)", "org.mpris.MediaPlayer2.Player", &builder, nullptr);
+
+  return EmitPropertiesChangedSignal(parameters);
+}
+
 bool MPRISServiceHandler::EmitPropertiesChangedSignal(
     GVariant* aParameters) const {
   if (!mConnection) {
@@ -978,6 +1021,45 @@ bool MPRISServiceHandler::EmitPropertiesChangedSignal(
           "org.freedesktop.DBus.Properties", "PropertiesChanged", aParameters,
           &error)) {
     LOGMPRIS("Failed to emit MPRIS property changes: %s",
+             error ? error->message : "Unknown Error");
+    if (error) {
+      g_error_free(error);
+    }
+    return false;
+  }
+
+  return true;
+}
+
+bool MPRISServiceHandler::EmitSeekedSignal() const {
+  if (!mConnection) {
+    LOGMPRIS("No D-Bus Connection. Cannot emit seeked signal");
+    return false;
+  }
+  if (mPositionState.isNothing()) {
+    LOGMPRIS("No position state. Cannot emit seeked signal");
+    return false;
+  }
+
+  constexpr double kMaxMicroseconds =
+      static_cast<double>(std::numeric_limits<gint64>::max());
+
+  double currentPositionSec = mPositionState->CurrentPlaybackPosition();
+  double currentPositionUs = currentPositionSec * 1.e6;
+  if (currentPositionUs > kMaxMicroseconds) {
+    LOGMPRIS("Failed to convert %f microseconds to gint64 (overflow)",
+             currentPositionUs);
+    return false;
+  }
+
+  GVariant* position =
+      g_variant_new("(x)", static_cast<gint64>(currentPositionUs));
+
+  GError* error = nullptr;
+  if (!g_dbus_connection_emit_signal(
+          mConnection, nullptr, DBUS_MPRIS_OBJECT_PATH,
+          "org.mpris.MediaPlayer2.Player", "Seeked", position, &error)) {
+    LOGMPRIS("Failed to emit MPRIS player seeked: %s",
              error ? error->message : "Unknown Error");
     if (error) {
       g_error_free(error);
