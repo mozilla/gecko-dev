@@ -8,6 +8,7 @@ extern crate rust_minidump_writer_linux;
 mod breakpad_crash_generator;
 mod crash_generation;
 mod ipc_server;
+mod logging;
 mod phc;
 
 use crash_helper_common::{BreakpadData, BreakpadRawData, IPCConnector, IPCListener, Pid};
@@ -39,6 +40,8 @@ pub unsafe extern "C" fn crash_generator_logic_desktop(
     listener: *const c_char,
     pipe: *const c_char,
 ) -> i32 {
+    logging::init();
+
     let breakpad_data = BreakpadData::new(breakpad_data);
     let minidump_path = unsafe { CStr::from_ptr(minidump_path) }
         .to_owned()
@@ -46,10 +49,24 @@ pub unsafe extern "C" fn crash_generator_logic_desktop(
         .unwrap();
     let minidump_path = OsString::from(minidump_path);
     let listener = unsafe { CStr::from_ptr(listener) };
-    let listener = IPCListener::deserialize(listener, client_pid).unwrap();
+    let listener = IPCListener::deserialize(listener, client_pid)
+        .map_err(|error| {
+            log::error!("Could not parse the crash generator's listener (error: {error})");
+        })
+        .unwrap();
     let pipe = unsafe { CStr::from_ptr(pipe) };
-    let connector = IPCConnector::deserialize(pipe).unwrap();
-    let crash_generator = CrashGenerator::new(client_pid, breakpad_data, minidump_path).unwrap();
+    let connector = IPCConnector::deserialize(pipe)
+        .map_err(|error| {
+            log::error!("Could not parse the crash generator's connector (error: {error})");
+        })
+        .unwrap();
+
+    let crash_generator = CrashGenerator::new(client_pid, breakpad_data, minidump_path)
+        .map_err(|error| {
+            log::error!("Could not create the crash generator (error: {error})");
+            error
+        })
+        .unwrap();
 
     let ipc_server = IPCServer::new(client_pid, listener, connector);
 
@@ -77,18 +94,33 @@ pub unsafe extern "C" fn crash_generator_logic_android(
     listener: RawFd,
     pipe: RawFd,
 ) {
+    logging::init();
+
     let breakpad_data = BreakpadData::new(breakpad_data);
     let minidump_path = unsafe { CStr::from_ptr(minidump_path) }
         .to_owned()
         .into_string()
         .unwrap();
     let minidump_path = OsString::from(minidump_path);
-    let crash_generator = CrashGenerator::new(client_pid, breakpad_data, minidump_path).unwrap();
+    let crash_generator = CrashGenerator::new(client_pid, breakpad_data, minidump_path)
+        .map_err(|error| {
+            log::error!("Could not create the crash generator (error: {error})");
+            error
+        })
+        .unwrap();
 
     let listener = unsafe { OwnedFd::from_raw_fd(listener) };
-    let listener = IPCListener::from_fd(client_pid, listener).unwrap();
+    let listener = IPCListener::from_fd(client_pid, listener)
+        .map_err(|error| {
+            log::error!("Could not use the listener (error: {error})");
+        })
+        .unwrap();
     let pipe = unsafe { OwnedFd::from_raw_fd(pipe) };
-    let connector = IPCConnector::from_fd(pipe).unwrap();
+    let connector = IPCConnector::from_fd(pipe)
+        .map_err(|error| {
+            log::error!("Could not use the pipe (error: {error})");
+        })
+        .unwrap();
     let ipc_server = IPCServer::new(client_pid, listener, connector);
 
     // On Android the main thread is used to respond to the intents so we
@@ -102,7 +134,8 @@ fn main_loop(mut ipc_server: IPCServer, mut crash_generator: CrashGenerator) -> 
             Ok(_result @ IPCServerState::ClientDisconnected) => {
                 return 0;
             }
-            Err(_error) => {
+            Err(error) => {
+                log::error!("The crashhelper encountered an error, exiting (error: {error})");
                 return -1;
             }
             _ => {} // Go on

@@ -420,13 +420,18 @@ static void CreateFileFromPath(const xpstring& path, nsIFile** file) {
       DependentPathString(path.c_str(), path.size()), file);
 }
 
-[[nodiscard]] static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
-  AutoPathString path;
+nsresult GetNativePathFromFile(nsIFile* aFile, PathString& aPathString) {
 #ifdef XP_WIN
-  nsresult rv = file->GetPath(path);
+  return aFile->GetPath(aPathString);
 #else
-  nsresult rv = file->GetNativePath(path);
+  return aFile->GetNativePath(aPathString);
 #endif
+}
+
+[[nodiscard]]
+static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
+  AutoPathString path;
+  nsresult rv = GetNativePathFromFile(file, path);
   if (NS_FAILED(rv)) {
     return {};
   }
@@ -2285,11 +2290,7 @@ nsresult SetupExtraData(nsIFile* aAppDataDirectory,
   memset(lastCrashTimeFilename, 0, sizeof(lastCrashTimeFilename));
 
   PathString filename;
-#if defined(XP_WIN)
-  rv = lastCrashFile->GetPath(filename);
-#else
-  rv = lastCrashFile->GetNativePath(filename);
-#endif
+  rv = GetNativePathFromFile(lastCrashFile, filename);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (filename.Length() < XP_PATH_MAX) {
@@ -2871,12 +2872,9 @@ static void PopulatePendingDir(nsIFile* aUserAppDataDir) {
   pendingDir->Append(u"pending"_ns);
 
   PathString path;
-#ifdef XP_WIN
-  pendingDir->GetPath(path);
-#else
-  pendingDir->GetNativePath(path);
-#endif
-  pendingDirectory = xpstring(path.get());
+  if (NS_SUCCEEDED(GetNativePathFromFile(pendingDir, path))) {
+    pendingDirectory = xpstring(path.get());
+  }
 }
 
 void SetUserAppDataDirectory(nsIFile* aDir) {
@@ -2930,12 +2928,9 @@ void SetMemoryReportFile(nsIFile* aFile) {
   }
 
   PathString path;
-#ifdef XP_WIN
-  aFile->GetPath(path);
-#else
-  aFile->GetNativePath(path);
-#endif
-  memoryReportPath = xpstring(path.get());
+  if (NS_SUCCEEDED(GetNativePathFromFile(aFile, path))) {
+    memoryReportPath = xpstring(path.get());
+  }
 }
 
 nsresult GetDefaultMemoryReportFile(nsIFile** aFile) {
@@ -3128,11 +3123,7 @@ bool WriteExtraFile(const nsAString& id, const AnnotationTable& annotations) {
 
   extra->Append(id + u".extra"_ns);
   PathString path;
-#ifdef XP_WIN
-  NS_ENSURE_SUCCESS(extra->GetPath(path), false);
-#elif defined(XP_UNIX)
-  NS_ENSURE_SUCCESS(extra->GetNativePath(path), false);
-#endif
+  NS_ENSURE_SUCCESS(GetNativePathFromFile(extra, path), false);
 
   PlatformWriter pw(path.get());
   return WriteExtraFile(pw, annotations);
