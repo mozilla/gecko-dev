@@ -68,32 +68,16 @@ class BrowserSearchTelemetryHandler {
   }
 
   /**
-   * Records the method by which the user selected a result from the urlbar or
-   * searchbar.
+   * Records the method by which the user selected a result from the searchbar.
    *
    * @param {Event} event
    *        The event that triggered the selection.
-   * @param {string} source
-   *        Either "urlbar" or "searchbar" depending on the source.
    * @param {number} index
    *        The index that the user chose in the popup, or -1 if there wasn't a
    *        selection.
-   * @param {string} userSelectionBehavior
-   *        How the user cycled through results before picking the current match.
-   *        Could be one of "tab", "arrow" or "none".
    */
-  recordSearchSuggestionSelectionMethod(
-    event,
-    source,
-    index,
-    userSelectionBehavior = "none"
-  ) {
-    // If the contents of the histogram are changed then
-    // `UrlbarTestUtils.SELECTED_RESULT_METHODS` should also be updated.
-    if (source == "searchbar" && userSelectionBehavior != "none") {
-      throw new Error("Did not expect a selection behavior for the searchbar.");
-    }
-    // command events are from the one-off context menu.  Treat them as clicks.
+  recordSearchSuggestionSelectionMethod(event, index) {
+    // command events are from the one-off context menu. Treat them as clicks.
     // Note that we only care about MouseEvent subclasses here when the
     // event type is "click", or else the subclasses are associated with
     // non-click interactions.
@@ -106,26 +90,12 @@ class BrowserSearchTelemetryHandler {
     if (isClick) {
       category = "click";
     } else if (index >= 0) {
-      switch (userSelectionBehavior) {
-        case "tab":
-          category = "tabEnterSelection";
-          break;
-        case "arrow":
-          category = "arrowEnterSelection";
-          break;
-        case "rightClick":
-          // Selected by right mouse button.
-          category = "rightClickEnter";
-          break;
-        default:
-          category = "enterSelection";
-      }
+      category = "enterSelection";
     } else {
       category = "enter";
     }
-    if (source == "searchbar") {
-      Glean.searchbar.selectedResultMethod[category].add(1);
-    }
+
+    Glean.searchbar.selectedResultMethod[category].add(1);
   }
 
   /**

@@ -837,9 +837,6 @@ export class UrlbarInput {
       return;
     }
 
-    let selectedResult = result || this.view.selectedResult;
-    this.controller.recordSelectedResult(event, selectedResult);
-
     let where = oneOffParams?.openWhere || this._whereToOpen(event);
     if (selectedPrivateResult) {
       where = "window";
@@ -848,6 +845,7 @@ export class UrlbarInput {
     openParams.allowInheritPrincipal = false;
     url = this._maybeCanonizeURL(event, url) || url.trim();
 
+    let selectedResult = result || this.view.selectedResult;
     this.controller.engagementEvent.record(event, {
       element,
       selType,
@@ -1095,8 +1093,6 @@ export class UrlbarInput {
     if (!this.#providesSearchMode(result)) {
       this.view.close({ elementPicked: true });
     }
-
-    this.controller.recordSelectedResult(event, result);
 
     if (isCanonized) {
       this.controller.engagementEvent.record(event, {
