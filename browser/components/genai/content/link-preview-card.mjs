@@ -13,8 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 // TODO put in actual link probably same as labs bug 1951144
-const FEEDBACK_LINK =
-  "https://docs.google.com/spreadsheets/d/1hsG7UXGJRN8D4ViaETICDyA0gbBArzmib1qTylmIu8M";
+const FEEDBACK_LINK = "https://connect.mozilla.org/";
 
 /**
  * Class representing a link preview element.
@@ -22,6 +21,11 @@ const FEEDBACK_LINK =
  * @augments MozLitElement
  */
 class LinkPreviewCard extends MozLitElement {
+  // Error message to display when we can't generate a preview
+  static ERROR_CARD_MESSAGE = "We can't preview this link";
+  // Text for the link to visit the original URL when in error state
+  static VISIT_LINK_TEXT = "Visit link";
+
   static properties = {
     generating: { type: Number }, // 0 = off, 1-4 = generating & dots state
     keyPoints: { type: Array },
@@ -81,6 +85,41 @@ class LinkPreviewCard extends MozLitElement {
   }
 
   /**
+   * Extracts and validates essential metadata for link preview.
+   *
+   * This utility function processes the metadata object to extract the title and
+   * description from various potential sources (Open Graph, Twitter, HTML).
+   * It also determines if there's sufficient metadata to generate a meaningful preview.
+   *
+   * @param {object} metaData - The metadata object containing page information
+   * @returns {object} An object containing:
+   *  - isMissingMetadata {boolean} - True if either title or description is missing
+   *  - title {string} - The extracted page title or empty string if none found
+   *  - description {string} - The extracted page description or empty string if none found
+   */
+  extractMetadataContent(metaData = {}) {
+    const title =
+      metaData["og:title"] ||
+      metaData["twitter:title"] ||
+      metaData["html:title"] ||
+      "";
+
+    const description =
+      metaData["og:description"] ||
+      metaData["twitter:description"] ||
+      metaData.description ||
+      "";
+
+    const isMissingMetadata = !title || !description;
+
+    return {
+      isMissingMetadata,
+      title,
+      description,
+    };
+  }
+
+  /**
    * Renders the link preview element.
    *
    * @returns {import('lit').TemplateResult} The rendered HTML template.
@@ -89,21 +128,10 @@ class LinkPreviewCard extends MozLitElement {
     const articleData = this.pageData?.article || {};
     const metaData = this.pageData?.metaInfo || {};
     const pageUrl = this.pageData?.url || "about:blank";
-
     const siteName = articleData.siteName || "";
 
-    const title =
-      metaData["og:title"] ||
-      metaData["twitter:title"] ||
-      metaData["html:title"] ||
-      "This link can’t be previewed";
-
-    const description =
-      articleData.excerpt ||
-      metaData["og:description"] ||
-      metaData["twitter:description"] ||
-      metaData.description ||
-      "No Reason. Just ’cause. (better error handling incoming)";
+    const { isMissingMetadata, title, description } =
+      this.extractMetadataContent(metaData);
 
     let imageUrl = metaData["og:image"] || metaData["twitter:image:src"] || "";
     if (!imageUrl.startsWith("https://")) {
@@ -118,11 +146,28 @@ class LinkPreviewCard extends MozLitElement {
       displayProgressPercentage = 100;
     }
 
-    return html`
-      <link
-        rel="stylesheet"
-        href="chrome://browser/content/genai/content/link-preview-card.css"
-      />
+    // Error Link Preview card UI: A simplified version of the preview card showing only an error message
+    // and a link to visit the URL. This is a fallback UI for cases when we don't have
+    // enough metadata to generate a useful preview.
+    const errorCard = html`
+      <div class="og-card">
+        <div class="og-card-content">
+          <div class="og-error-content">
+            <p class="og-error-message">
+              ${LinkPreviewCard.ERROR_CARD_MESSAGE}
+            </p>
+            <a class="og-card-title" @click=${this.handleLink} href=${pageUrl}>
+              ${LinkPreviewCard.VISIT_LINK_TEXT}
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Normal Link Preview card UI: Shown when we have sufficient metadata (at least title and description)
+    // Displays rich preview information including optional elements like site name, image,
+    // reading time, and AI-generated key points if available
+    const normalCard = html`
       <div class="og-card">
         <div class="og-card-content">
           ${imageUrl
@@ -194,6 +239,14 @@ class LinkPreviewCard extends MozLitElement {
             `
           : ""}
       </div>
+    `;
+
+    return html`
+      <link
+        rel="stylesheet"
+        href="chrome://browser/content/genai/content/link-preview-card.css"
+      />
+      ${isMissingMetadata ? errorCard : normalCard}
     `;
   }
 }
