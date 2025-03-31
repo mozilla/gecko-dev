@@ -5406,8 +5406,10 @@ void nsWindow::OnWindowStateEvent(GtkWidget* aWidget,
     return result;
   }();
 
-  if (mSizeMode != oldSizeMode || mIsTiled != oldIsTiled) {
+  if (mSizeMode != oldSizeMode) {
     mCsdMargin = kCsdMarginUnknown;
+  }
+  if (mSizeMode != oldSizeMode || mIsTiled != oldIsTiled) {
     RecomputeBounds(MayChangeCsdMargin::No);
   }
   if (mSizeMode != oldSizeMode && mWidgetListener) {
