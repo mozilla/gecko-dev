@@ -109,6 +109,7 @@ UNIFIED_SOURCES += [
     "TSFInputScope.cpp",
     "TSFStaticSink.cpp",
     "TSFTextStore.cpp",
+    "TSFTextStoreBase.cpp",
     "WinCompositorWindowThread.cpp",
     "WindowHook.cpp",
     "WindowsConsole.cpp",

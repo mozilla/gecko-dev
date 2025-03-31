@@ -9,6 +9,7 @@
 #include "nsIWidget.h"
 #include "nsWindow.h"
 
+#include "TSFTextStoreBase.h"
 #include "TSFUtils.h"
 #include "WinUtils.h"
 #include "WritingModes.h"
@@ -40,54 +41,32 @@ struct MSGResult;
  * Text Services Framework text store
  */
 
-class TSFTextStore final : public ITextStoreACP,
+class TSFTextStore final : public TSFTextStoreBase,
                            public ITfContextOwnerCompositionSink,
                            public ITfMouseTrackerACP {
   friend class TSFStaticSink;
 
- private:
-  using SelectionChangeDataBase = IMENotification::SelectionChangeDataBase;
-  using SelectionChangeData = IMENotification::SelectionChangeData;
-  using TextChangeDataBase = IMENotification::TextChangeDataBase;
-  using TextChangeData = IMENotification::TextChangeData;
-
  public: /*IUnknown*/
   STDMETHODIMP QueryInterface(REFIID, void**);
 
-  NS_INLINE_DECL_IUNKNOWN_REFCOUNTING(TSFTextStore)
+  NS_INLINE_DECL_IUNKNOWN_ADDREF_RELEASE(TSFTextStore);
 
  public: /*ITextStoreACP*/
-  STDMETHODIMP AdviseSink(REFIID, IUnknown*, DWORD);
-  STDMETHODIMP UnadviseSink(IUnknown*);
   STDMETHODIMP RequestLock(DWORD, HRESULT*);
-  STDMETHODIMP GetStatus(TS_STATUS*);
   STDMETHODIMP QueryInsert(LONG, LONG, ULONG, LONG*, LONG*);
   STDMETHODIMP GetSelection(ULONG, ULONG, TS_SELECTION_ACP*, ULONG*);
   STDMETHODIMP SetSelection(ULONG, const TS_SELECTION_ACP*);
   STDMETHODIMP GetText(LONG, LONG, WCHAR*, ULONG, ULONG*, TS_RUNINFO*, ULONG,
                        ULONG*, LONG*);
   STDMETHODIMP SetText(DWORD, LONG, LONG, const WCHAR*, ULONG, TS_TEXTCHANGE*);
-  STDMETHODIMP GetFormattedText(LONG, LONG, IDataObject**);
-  STDMETHODIMP GetEmbedded(LONG, REFGUID, REFIID, IUnknown**);
-  STDMETHODIMP QueryInsertEmbedded(const GUID*, const FORMATETC*, BOOL*);
-  STDMETHODIMP InsertEmbedded(DWORD, LONG, LONG, IDataObject*, TS_TEXTCHANGE*);
   STDMETHODIMP RequestSupportedAttrs(DWORD, ULONG, const TS_ATTRID*);
   STDMETHODIMP RequestAttrsAtPosition(LONG, ULONG, const TS_ATTRID*, DWORD);
-  STDMETHODIMP RequestAttrsTransitioningAtPosition(LONG, ULONG,
-                                                   const TS_ATTRID*, DWORD);
-  STDMETHODIMP FindNextAttrTransition(LONG, LONG, ULONG, const TS_ATTRID*,
-                                      DWORD, LONG*, BOOL*, LONG*);
   STDMETHODIMP RetrieveRequestedAttrs(ULONG, TS_ATTRVAL*, ULONG*);
   STDMETHODIMP GetEndACP(LONG*);
-  STDMETHODIMP GetActiveView(TsViewCookie*);
   STDMETHODIMP GetACPFromPoint(TsViewCookie, const POINT*, DWORD, LONG*);
   STDMETHODIMP GetTextExt(TsViewCookie, LONG, LONG, RECT*, BOOL*);
-  STDMETHODIMP GetScreenExt(TsViewCookie, RECT*);
-  STDMETHODIMP GetWnd(TsViewCookie, HWND*);
   STDMETHODIMP InsertTextAtSelection(DWORD, const WCHAR*, ULONG, LONG*, LONG*,
                                      TS_TEXTCHANGE*);
-  STDMETHODIMP InsertEmbeddedAtSelection(DWORD, IDataObject*, LONG*, LONG*,
-                                         TS_TEXTCHANGE*);
 
  public: /*ITfContextOwnerCompositionSink*/
   STDMETHODIMP OnStartComposition(ITfCompositionView*, BOOL*);
@@ -248,20 +227,10 @@ class TSFTextStore final : public ITextStoreACP,
   void Destroy();
   void ReleaseTSFObjects();
 
-  bool IsReadLock(DWORD aLock) const {
-    return (TS_LF_READ == (aLock & TS_LF_READ));
-  }
-  bool IsReadWriteLock(DWORD aLock) const {
-    return (TS_LF_READWRITE == (aLock & TS_LF_READWRITE));
-  }
-  bool IsReadLocked() const { return IsReadLock(mLock); }
-  bool IsReadWriteLocked() const { return IsReadWriteLock(mLock); }
-
   // This is called immediately after a call of OnLockGranted() of mSink.
   // Note that mLock isn't cleared yet when this is called.
-  void DidLockGranted();
+  void DidLockGranted() final;
 
-  bool GetScreenExtInternal(RECT& aScreenExt);
   // If aDispatchCompositionChangeEvent is true, this method will dispatch
   // compositionchange event if this is called during IME composing.
   // aDispatchCompositionChangeEvent should be true only when this is called
@@ -291,10 +260,6 @@ class TSFTextStore final : public ITextStoreACP,
   HRESULT RecordCompositionUpdateAction();
   HRESULT RecordCompositionEndAction();
 
-  // DispatchEvent() dispatches the event and if it may not be handled
-  // synchronously, this makes the instance not notify TSF of pending
-  // notifications until next notification from content.
-  void DispatchEvent(WidgetGUIEvent& aEvent);
   void OnLayoutInformationAvailable();
 
   // FlushPendingActions() performs pending actions recorded in mPendingActions
@@ -326,8 +291,6 @@ class TSFTextStore final : public ITextStoreACP,
 
   HRESULT HandleRequestAttrs(DWORD aFlags, ULONG aFilterCount,
                              const TS_ATTRID* aFilterAttrs);
-  void SetInputScope(const nsString& aHTMLInputType,
-                     const nsString& aHTMLInputMode);
 
   // Creates native caret over our caret.  This method only works on desktop
   // application.  Otherwise, this does nothing.
@@ -361,25 +324,6 @@ class TSFTextStore final : public ITextStoreACP,
    *                    we cannot have proper unmodified characters.
    */
   bool MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd);
-
-  // Holds the pointer to our current win32 widget
-  RefPtr<nsWindow> mWidget;
-  // mDispatcher is a helper class to dispatch composition events.
-  RefPtr<TextEventDispatcher> mDispatcher;
-  // Document manager for the currently focused editor
-  RefPtr<ITfDocumentMgr> mDocumentMgr;
-  // Edit cookie associated with the current editing context
-  DWORD mEditCookie = 0;
-  // Editing context at the bottom of mDocumentMgr's context stack
-  RefPtr<ITfContext> mContext;
-  // Currently installed notification sink
-  RefPtr<ITextStoreACPSink> mSink;
-  // TS_AS_* mask of what events to notify
-  DWORD mSinkMask = 0;
-  // 0 if not locked, otherwise TS_LF_* indicating the current lock
-  DWORD mLock = 0;
-  // 0 if no lock is queued, otherwise TS_LF_* indicating the queue lock
-  DWORD mLockQueued = 0;
 
   uint32_t mHandlingKeyMessage = 0;
   void OnStartToHandleKeyMessage() {
@@ -465,26 +409,6 @@ class TSFTextStore final : public ITextStoreACP,
   // locked.  With mComposition, query methods can returns the text content
   // information.
   Maybe<Composition> mComposition;
-
-  /**
-   * IsHandlingCompositionInParent() returns true if eCompositionStart is
-   * dispatched, but eCompositionCommit(AsIs) is not dispatched.  This means
-   * that if composition is handled in a content process, this status indicates
-   * whether ContentCacheInParent has composition or not.  On the other hand,
-   * if it's handled in the chrome process, this is exactly same as
-   * IsHandlingCompositionInContent().
-   */
-  bool IsHandlingCompositionInParent() const {
-    return mDispatcher && mDispatcher->IsComposing();
-  }
-
-  /**
-   * IsHandlingCompositionInContent() returns true if there is a composition in
-   * the focused editor which may be in a content process.
-   */
-  bool IsHandlingCompositionInContent() const {
-    return mDispatcher && mDispatcher->IsHandlingComposition();
-  }
 
   class Selection {
    public:
@@ -978,12 +902,6 @@ class TSFTextStore final : public ITextStoreACP,
   // ITfMouseSink instance.
   nsTArray<MouseTracker> mMouseTrackers;
 
-  // The input scopes for this context, defaults to IS_DEFAULT.
-  nsTArray<InputScope> mInputScopes;
-
-  // The URL cache of the focused document.
-  nsString mDocumentURL;
-
   bool mRequestedAttrs[TSFUtils::NUM_OF_SUPPORTED_ATTRS] = {false};
 
   bool mRequestedAttrValues = false;
@@ -995,46 +913,18 @@ class TSFTextStore final : public ITextStoreACP,
   // calculated yet, these methods return TS_E_NOLAYOUT.  At that time,
   // mHasReturnedNoLayoutError is set to true.
   bool mHasReturnedNoLayoutError = false;
-  // Before calling ITextStoreACPSink::OnLayoutChange() and
-  // ITfContextOwnerServices::OnLayoutChange(), mWaitingQueryLayout is set to
-  // true.  This is set to  false when GetTextExt() or GetACPFromPoint() is
-  // called.
-  bool mWaitingQueryLayout = false;
-  // During the document is locked, we shouldn't destroy the instance.
-  // If this is true, the instance will be destroyed after unlocked.
-  bool mPendingDestroy = false;
   // When we need to create native caret with the latest selection, but we're
   // initializing selection, this is set to true.
   bool mPendingToCreateNativeCaret = false;
   // If this is false, MaybeFlushPendingNotifications() will clear the
   // mContentForTSF.
   bool mDeferClearingContentForTSF = false;
-  // While the instance is initializing content/selection cache, another
-  // initialization shouldn't run recursively.  Therefore, while the
-  // initialization is running, this is set to true.  Use AutoNotifyingTSFBatch
-  // to set this.
-  bool mDeferNotifyingTSF = false;
-  // While the instance is dispatching events, the event may not be handled
-  // synchronously when remote content has focus.  In the case, we cannot
-  // return the latest layout/content information to TSF/TIP until we get next
-  // update notification from ContentCacheInParent.  For preventing TSF/TIP
-  // retrieves the latest content/layout information while it becomes available,
-  // we should put off notifying TSF of any updates.
-  bool mDeferNotifyingTSFUntilNextUpdate = false;
   // While the document is locked, committing composition always fails since
   // TSF needs another document lock for modifying the composition, selection
   // and etc.  So, committing composition should be performed after the
   // document is unlocked.
   bool mDeferCommittingComposition = false;
   bool mDeferCancellingComposition = false;
-  // Immediately after a call of Destroy(), mDestroyed becomes true.  If this
-  // is true, the instance shouldn't grant any requests from the TIP anymore.
-  bool mDestroyed = false;
-  // While the instance is being destroyed, this is set to true for avoiding
-  // recursive Destroy() calls.
-  bool mBeingDestroyed = false;
-  // Whether we're in the private browsing mode.
-  bool mInPrivateBrowsing = true;
   // Debug flag to check whether we're initializing mContentForTSF and
   // mSelectionForTSF.
   bool mIsInitializingContentForTSF = false;
