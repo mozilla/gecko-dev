@@ -333,6 +333,60 @@ def metadata_for_app(app, aab=False):
     return metadata(activity_name, package_name, subcommand)
 
 
+def get_android_device(build_obj, device_serial=None, verbose=False):
+    # If device_serial not specified, check environment variables.
+    if device_serial is None:
+        device_serial = os.environ.get("ANDROID_SERIAL")
+    if device_serial is None:
+        device_serial = os.environ.get("DEVICE_SERIAL")
+
+    # If no serial specified, check for a connected and ready device
+    if device_serial is None:
+        adb_path = _find_sdk_exe(build_obj.substs, "adb", False)
+        if adb_path is None:
+            _log_info("Couldn't find ADB. Quitting")
+            return
+        adbhost = ADBHost(adb=adb_path, verbose=verbose, timeout=SHORT_TIMEOUT)
+        devices = adbhost.devices(timeout=SHORT_TIMEOUT)
+        ready_devices = [d["device_serial"] for d in devices if d["state"] == "device"]
+        if ready_devices:
+            if len(ready_devices) > 1:
+                _log_info(
+                    "Multiple Android devices available. Please set ANDROID_SERIAL to pick one."
+                )
+                return
+            device_serial = ready_devices[0]
+
+    # If no device available, ask about starting an emulator
+    if device_serial is None:
+        emulator = AndroidEmulator("*", substs=build_obj.substs, verbose=verbose)
+        if emulator.is_available():
+            response = input(
+                "No Android devices connected. Start an emulator? (Y/n) "
+            ).strip()
+            if response.lower().startswith("y") or response == "":
+                if not emulator.check_avd():
+                    _log_info("Android AVD not found, please run |mach bootstrap|")
+                    return
+                _log_info(
+                    "Starting emulator running %s..." % emulator.get_avd_description()
+                )
+                emulator.start()
+                emulator.wait_for_start()
+                device_serial = "emulator-5554"
+
+    # Try to open a connection to chosen device
+    device = None
+    if device_serial:
+        device = _get_device(substs=build_obj.substs, device_serial=device_serial)
+
+    # For compatability, we record active device in DEVICE_SERIAL environment
+    if device:
+        os.environ["DEVICE_SERIAL"] = device_serial
+
+    return [device, device_serial]
+
+
 def verify_android_device(
     build_obj,
     install=InstallIntent.NO,
@@ -387,52 +441,7 @@ def verify_android_device(
             "*********************************************************************"
         )
 
-    # If device_serial not specified, check environment variables.
-    if device_serial is None:
-        device_serial = os.environ.get("ANDROID_SERIAL")
-    if device_serial is None:
-        device_serial = os.environ.get("DEVICE_SERIAL")
-
-    # If no serial specified, check for a connected and ready device
-    if device_serial is None:
-        adb_path = _find_sdk_exe(build_obj.substs, "adb", False)
-        adbhost = ADBHost(adb=adb_path, verbose=verbose, timeout=SHORT_TIMEOUT)
-        devices = adbhost.devices(timeout=SHORT_TIMEOUT)
-        ready_devices = [d["device_serial"] for d in devices if d["state"] == "device"]
-        if ready_devices:
-            if len(ready_devices) > 1:
-                _log_info(
-                    "Multiple Android devices available. Please set ANDROID_SERIAL to pick one."
-                )
-                return
-            device_serial = ready_devices[0]
-
-    # If no device available, ask about starting an emulator
-    if device_serial is None:
-        emulator = AndroidEmulator("*", substs=build_obj.substs, verbose=verbose)
-        if emulator.is_available():
-            response = input(
-                "No Android devices connected. Start an emulator? (Y/n) "
-            ).strip()
-            if response.lower().startswith("y") or response == "":
-                if not emulator.check_avd():
-                    _log_info("Android AVD not found, please run |mach bootstrap|")
-                    return
-                _log_info(
-                    "Starting emulator running %s..." % emulator.get_avd_description()
-                )
-                emulator.start()
-                emulator.wait_for_start()
-                device_serial = "emulator-5554"
-
-    # Try to open a connection to chosen device
-    device = None
-    if device_serial:
-        device = _get_device(substs=build_obj.substs, device_serial=device_serial)
-
-    # For compatability, we record active device in DEVICE_SERIAL environment
-    if device:
-        os.environ["DEVICE_SERIAL"] = device_serial
+    [device, device_serial] = get_android_device(build_obj, device_serial, verbose)
 
     metadata = metadata_for_app(app, aab)
 
