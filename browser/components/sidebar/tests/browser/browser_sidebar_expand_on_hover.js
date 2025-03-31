@@ -116,7 +116,8 @@ add_task(async function test_enable_expand_on_hover() {
       !SidebarController._state.launcherExpanded &&
       SidebarController.sidebarRevampVisibility === "expand-on-hover" &&
       window.getComputedStyle(SidebarController.sidebarContainer).position ===
-        "relative",
+        "relative" &&
+      panel.expandOnHoverInput.checked,
     "Expand on hover has been enabled"
   );
 
@@ -154,8 +155,18 @@ add_task(async function test_enable_expand_on_hover() {
   );
 
   await mouseOutSidebarToCollapse();
-  await SidebarController.toggleExpandOnHover(false);
-  await SidebarController.waitUntilStable();
+  panel.expandOnHoverInput.click();
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarContainer,
+    { attributes: true },
+    () =>
+      !rootEl.hasAttribute("sidebar-expand-on-hover") &&
+      SidebarController.sidebarRevampVisibility !== "expand-on-hover" &&
+      window.getComputedStyle(SidebarController.sidebarContainer).position !==
+        "relative" &&
+      !panel.expandOnHoverInput.checked,
+    "Expand on hover has been disabled"
+  );
 });
 
 add_task(async function test_expand_on_hover_pinned_tabs() {
