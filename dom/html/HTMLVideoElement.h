@@ -202,6 +202,7 @@ class HTMLVideoElement final : public HTMLMediaElement {
   VideoFrameRequestManager mVideoFrameRequestManager;
   layers::ContainerFrameID mLastPresentedFrameID =
       layers::kContainerFrameID_Invalid;
+  uint32_t mPresentedFrames = 0;
 
  public:
   uint32_t RequestVideoFrameCallback(VideoFrameRequestCallback& aCallback,

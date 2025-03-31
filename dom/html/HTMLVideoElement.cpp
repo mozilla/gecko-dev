@@ -744,7 +744,7 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
   // If all of the available images are for future compositions, we must have
   // fired too early. Wait for the next invalidation.
   if (!selected || selected->mFrameID == layers::kContainerFrameID_Invalid ||
-      selected->mFrameID <= mLastPresentedFrameID) {
+      selected->mFrameID == mLastPresentedFrameID) {
     return;
   }
 
@@ -831,14 +831,27 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
   }
 #endif
 
+  // Note that if we seek, or restart a video, we may present an earlier frame
+  // that we already presented with the same ID. This would cause presented
+  // frames to go backwards when it must be monotonically increasing. Presented
+  // frames cannot simply increment by 1 each request callback because it is
+  // also used by the caller to determine if frames were missed. As such, we
+  // will typically use the difference between the current frame and the last
+  // presented via the callback, but otherwise assume a single frame due to the
+  // seek.
+  mPresentedFrames +=
+      selected->mFrameID > 1 && selected->mFrameID > mLastPresentedFrameID
+          ? selected->mFrameID - mLastPresentedFrameID
+          : 1;
+  mLastPresentedFrameID = selected->mFrameID;
+
   // Presented frames is a bit of a misnomer from a rendering perspective,
   // because we still need to advance regardless of composition. Video elements
   // that are outside of the DOM, or are not visible, still advance the video in
   // the background, and presumably the caller still needs some way to know how
   // many frames we have advanced.
-  aMd.mPresentedFrames = selected->mFrameID;
+  aMd.mPresentedFrames = mPresentedFrames;
 
-  mLastPresentedFrameID = selected->mFrameID;
   mVideoFrameRequestManager.Take(aCallbacks);
 
   NS_DispatchToMainThread(NewRunnableMethod(
