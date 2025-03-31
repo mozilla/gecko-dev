@@ -1363,7 +1363,7 @@
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Ativo</string>
   <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">O %1$s pode instalar e executar estudos esporadicamente.</string>
+  <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">Esporadicamente, o %1$s poderá instalar e executar estudos.</string>
   <!-- Description for studies -->
   <string name="studies_description_3">Experimente funcionalidades e ideias antes de serem disponibilizadas para todos.</string>
   <!-- Title of the Studies data preference -->
@@ -1487,7 +1487,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s removido</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">Eliminada “%1$s”</string>
+  <string name="download_delete_single_item_snackbar_2">“%1$s” eliminado</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Transferência em progresso…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1503,7 +1503,7 @@
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">Ainda sem transferências</string>
   <!-- Text description shown when no download exists -->
-  <string name="download_empty_description">Os ficheiros que transferir irão aparecer aqui.</string>
+  <string name="download_empty_description">Os ficheiros que transferir vão aparecer aqui.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1512,7 +1512,7 @@
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Remover</string>
   <!-- Text for the button to delete a single downloaded file item -->
-  <string name="download_delete_item">Apagar</string>
+  <string name="download_delete_item">Eliminar</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Partilhar URL</string>
   <!-- Text for the button to share the download file -->

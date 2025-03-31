@@ -27,6 +27,8 @@
   <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Baixar (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Baixar</string>
+  <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">Baixar novamente</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">Cancelar</string>
   <!--
@@ -34,6 +36,11 @@
     %1$s will be replaced with the name of the file.
   -->
   <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s já existe.</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s não foi baixado.</string>
   <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
   <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Verifique sua conexão e tente novamente.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
