@@ -15,11 +15,6 @@ DIRS += [
     "jni",
 ]
 
-if CONFIG["ENABLE_TESTS"]:
-    DIRS += [
-        "tests",
-    ]
-
 EXPORTS += [
     "AndroidBridge.h",
 ]
@@ -115,7 +110,6 @@ EXPORTS.mozilla.widget += [
     "GeckoViewSupport.h",
     "InProcessAndroidCompositorWidget.h",
     "nsWindow.h",
-    "WebExecutorSupport.h",
     "WindowEvent.h",
 ]
 
@@ -154,7 +148,6 @@ UNIFIED_SOURCES += [
     "nsUserIdleServiceAndroid.cpp",
     "nsWidgetFactory.cpp",
     "nsWindow.cpp",
-    "OhttpHelper.cpp",
     "ScreenHelperAndroid.cpp",
     "WebExecutorSupport.cpp",
 ]

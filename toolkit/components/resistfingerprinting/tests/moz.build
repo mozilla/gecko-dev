@@ -6,6 +6,4 @@ BROWSER_CHROME_MANIFESTS += [
     "browser/browser.toml",
 ]
 
-XPCSHELL_TESTS_MANIFESTS += ["xpcshell/xpcshell.toml"]
-
 TEST_DIRS += ["gtest"]

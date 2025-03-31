@@ -41,14 +41,6 @@ class GeckoResultCallback final
     return java;
   }
 
-  static java::GeckoResult::GeckoCallback::LocalRef CreateAndAttach(
-      OuterCallback&& aCallback) {
-    auto java = java::GeckoResult::GeckoCallback::New();
-    auto native = MakeUnique<GeckoResultCallback>(std::move(aCallback));
-    Base::AttachNative(java, std::move(native));
-    return java;
-  }
-
   explicit GeckoResultCallback(OuterCallback&& aCallback)
       : mCallback(std::move(aCallback)) {}
 
