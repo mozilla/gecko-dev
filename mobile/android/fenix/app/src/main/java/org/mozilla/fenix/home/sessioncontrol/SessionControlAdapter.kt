@@ -35,7 +35,6 @@ import org.mozilla.fenix.home.sessioncontrol.viewholders.CustomizeHomeButtonView
 import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescriptionViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
-import org.mozilla.fenix.home.setup.ui.SetupChecklistViewHolder
 import org.mozilla.fenix.home.topsites.TopSitePagerViewHolder
 import org.mozilla.fenix.home.topsites.TopSitesViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
@@ -170,11 +169,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
     object PocketCategoriesItem : AdapterItem(PocketCategoriesViewHolder.LAYOUT_ID)
     object PocketRecommendationsFooterItem : AdapterItem(PocketRecommendationsHeaderViewHolder.LAYOUT_ID)
 
-    /**
-     * Adapter item to hold the setup checklist feature view.
-     */
-    data object SetupChecklist : AdapterItem(SetupChecklistViewHolder.LAYOUT_ID)
-
     object BottomSpacer : AdapterItem(BottomSpacerViewHolder.LAYOUT_ID)
 
     /**
@@ -297,11 +291,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            SetupChecklistViewHolder.LAYOUT_ID -> return SetupChecklistViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
         }
 
         val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
@@ -342,7 +331,6 @@ class SessionControlAdapter(
             is PocketRecommendationsHeaderViewHolder,
             is PocketStoriesViewHolder,
             is TopSitesViewHolder,
-            is SetupChecklistViewHolder,
             -> {
                 // no op
                 // This previously called "composeView.disposeComposition" which would have the

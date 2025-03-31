@@ -13,7 +13,6 @@ import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.CustomizeHomeIteractor
 import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
-import org.mozilla.fenix.home.sessioncontrol.SetupChecklistInteractor
 import org.mozilla.fenix.home.sessioncontrol.TabSessionInteractor
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 import org.mozilla.fenix.home.sessioncontrol.WallpaperInteractor
@@ -37,5 +36,4 @@ interface HomepageInteractor :
     PocketStoriesInteractor,
     PrivateBrowsingInteractor,
     SearchSelectorInteractor,
-    WallpaperInteractor,
-    SetupChecklistInteractor
+    WallpaperInteractor

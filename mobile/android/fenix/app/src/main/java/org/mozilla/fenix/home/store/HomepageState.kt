@@ -14,7 +14,6 @@ import mozilla.components.feature.top.sites.TopSite
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppState
-import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.shouldShowRecentSyncedTabs
@@ -74,7 +73,6 @@ internal sealed class HomepageState {
      * @property showRecentlyVisited Whether to show recent history section.
      * @property showPocketStories Whether to show the pocket stories section.
      * @property showSearchBar Whether to show the search bar.
-     * @property setupChecklistState Optional state of the setup checklist feature.
      * @property topSiteColors The color set defined by [TopSiteColors] used to style a top site.
      * @property cardBackgroundColor Background color for card items.
      * @property buttonBackgroundColor Background [Color] for buttons.
@@ -99,7 +97,6 @@ internal sealed class HomepageState {
         val showRecentlyVisited: Boolean,
         val showPocketStories: Boolean,
         val showSearchBar: Boolean,
-        val setupChecklistState: SetupChecklistState?,
         val topSiteColors: TopSiteColors,
         val cardBackgroundColor: Color,
         val buttonBackgroundColor: Color,
@@ -170,7 +167,6 @@ internal sealed class HomepageState {
                         showPocketStories = settings.showPocketRecommendationsFeature &&
                             recommendationState.pocketStories.isNotEmpty() && firstFrameDrawn,
                         showSearchBar = settings.enableHomepageSearchBar,
-                        setupChecklistState = setupChecklistState,
                         topSiteColors = TopSiteColors.colors(wallpaperState = wallpaperState),
                         cardBackgroundColor = wallpaperState.cardBackgroundColor,
                         buttonBackgroundColor = wallpaperState.buttonBackgroundColor,

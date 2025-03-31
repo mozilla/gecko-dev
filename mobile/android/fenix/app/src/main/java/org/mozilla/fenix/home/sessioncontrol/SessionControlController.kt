@@ -54,7 +54,6 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
-import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
@@ -190,16 +189,6 @@ interface SessionControlController {
      * @see [SessionControlInteractor.reportSessionMetrics]
      */
     fun handleReportSessionMetrics(state: AppState)
-
-    /**
-     * @see [SetupChecklistInteractor.onChecklistItemClicked]
-     */
-    fun onChecklistItemClicked(item: ChecklistItem)
-
-    /**
-     * @see [SetupChecklistInteractor.onRemoveChecklistButtonClicked]
-     */
-    fun onRemoveChecklistButtonClicked()
 }
 
 @Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
@@ -673,13 +662,5 @@ class DefaultSessionControlController(
         }
 
         HomeBookmarks.bookmarksCount.set(state.bookmarks.size.toLong())
-    }
-
-    override fun onChecklistItemClicked(item: ChecklistItem) {
-        appStore.dispatch(AppAction.SetupChecklistAction.ChecklistItemClicked(item))
-    }
-
-    override fun onRemoveChecklistButtonClicked() {
-        appStore.dispatch(AppAction.SetupChecklistAction.Closed)
     }
 }

@@ -67,10 +67,6 @@ internal fun normalModeAdapterItems(
         }
     }
 
-    if (settings.showSetupChecklist) {
-        items.add(AdapterItem.SetupChecklist)
-    }
-
     if (showRecentTab) {
         shouldShowCustomizeHome = true
         items.add(AdapterItem.RecentTabsHeader)

@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +32,6 @@ import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.theme.AcornTheme
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
-import org.mozilla.fenix.home.sessioncontrol.SetupChecklistInteractor
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private const val ROTATE_180 = 180F
@@ -38,26 +39,25 @@ private const val ROTATE_180 = 180F
 /**
  * Renders a checklist for onboarding users.
  *
- * @param interactor the interactor to handle user actions.
  * @param checkListItems The list of [ChecklistItem] displayed in setup checklist.
+ * @param onChecklistItemClicked Gets invoked when the user clicks a check list item.
  */
 @Composable
 fun CheckListView(
-    interactor: SetupChecklistInteractor,
     checkListItems: List<ChecklistItem>,
+    onChecklistItemClicked: (ChecklistItem) -> Unit,
 ) {
-    Column {
-        checkListItems.forEachIndexed { index, item ->
+    LazyColumn {
+        itemsIndexed(checkListItems) { index, item ->
             when (item) {
                 is ChecklistItem.Group -> GroupWithTasks(
                     group = item,
-                    onChecklistItemClicked = { interactor.onChecklistItemClicked(item) },
+                    onChecklistItemClicked = onChecklistItemClicked,
                     // No divider for the last group, in case it is the last element
                     // in the parent composable.
                     addDivider = index != checkListItems.size - 1,
                 )
-
-                is ChecklistItem.Task -> Task(item) { interactor.onChecklistItemClicked(item) }
+                is ChecklistItem.Task -> Task(item, onChecklistItemClicked)
             }
         }
     }
@@ -87,7 +87,7 @@ private fun Task(
         }
 
         Text(
-            text = stringResource(task.title),
+            text = task.title,
             modifier = Modifier
                 .weight(1f)
                 .semantics { heading() },
@@ -142,7 +142,7 @@ private fun Group(
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
-                text = stringResource(group.title),
+                text = group.title,
                 style = FirefoxTheme.typography.subtitle1,
                 color = FirefoxTheme.colors.textPrimary,
                 modifier = Modifier.semantics { heading() },
@@ -178,35 +178,32 @@ private fun TasksChecklistPreview() {
             val tasks = listOf(
                 ChecklistItem.Task(
                     type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
-                    title = R.string.setup_checklist_task_explore_extensions,
+                    title = "First task",
                     icon = R.drawable.ic_addons_extensions,
                     isCompleted = true,
                 ),
                 ChecklistItem.Task(
                     type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
-                    title = R.string.setup_checklist_task_search_widget,
+                    title = "Second task",
                     icon = R.drawable.ic_search,
                     isCompleted = false,
                 ),
             )
 
             val group1 = ChecklistItem.Group(
-                title = R.string.setup_checklist_group_essentials,
+                title = "First group",
                 tasks = tasks,
                 isExpanded = true,
             )
             val group2 = ChecklistItem.Group(
-                title = R.string.setup_checklist_group_customize,
+                title = "Second group",
                 tasks = tasks,
                 isExpanded = false,
             )
 
             CheckListView(
-                interactor = object : SetupChecklistInteractor {
-                    override fun onChecklistItemClicked(item: ChecklistItem) { /* no op */ }
-                    override fun onRemoveChecklistButtonClicked() { /* no op */ }
-                },
                 checkListItems = listOf(group1, group2),
+                onChecklistItemClicked = {},
             )
         }
     }

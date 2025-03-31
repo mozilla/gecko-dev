@@ -2496,10 +2496,4 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         key = appContext.getPreferenceKey(R.string.pref_key_setup_step_extensions),
         default = false,
     )
-
-    /**
-     * Indicates whether or not to show the checklist feature.
-     */
-    val showSetupChecklist: Boolean
-        get() = FxNimbus.features.setupChecklist.value().enabled
 }
