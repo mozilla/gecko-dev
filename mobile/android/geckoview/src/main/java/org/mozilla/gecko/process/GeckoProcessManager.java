@@ -760,7 +760,6 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
         new StartInfo(
             type,
             GeckoThread.InitInfo.builder()
-                .child(type != GeckoProcessType.PARENT)
                 .args(args)
                 .userSerialNumber(System.getenv("MOZ_ANDROID_USER_SERIAL_NUMBER"))
                 .extras(GeckoThread.getActiveExtras())

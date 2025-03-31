@@ -43,19 +43,7 @@ function runScriptSubprocess(script, args) {
 
   var file = do_get_file(script);
   var proc = new Process(bin);
-  var procArgs = [];
-
-  if (AppConstants.platform != "macosx") {
-    var grebind = ds.get("GreBinD", Ci.nsIFile);
-    if (!grebind.exists()) {
-      do_throw("Could not find binary dir");
-    }
-
-    procArgs.push("-g", grebind.path);
-  }
-
-  procArgs.push(file.path);
-  procArgs = procArgs.concat(args);
+  var procArgs = [file.path].concat(args);
 
   proc.run(false, procArgs, procArgs.length);
 

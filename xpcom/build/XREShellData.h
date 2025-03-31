@@ -33,8 +33,6 @@ struct XREShellData {
 #if defined(ANDROID)
   FILE* outFile;
   FILE* errFile;
-  int crashChildNotificationSocket;
-  int crashHelperSocket;
 #endif
 #if defined(LIBFUZZER)
   LibFuzzerDriver fuzzerDriver;
