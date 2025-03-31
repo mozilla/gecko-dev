@@ -555,6 +555,9 @@ merge-automation:
                 - - "browser/extensions/webcompat/manifest.json"
                   - '"version": "[0-9]+.[0-9]+.0"'
                   - '"version": "{next_major_version}.0.0"'
+                - - "browser/extensions/newtab/manifest.json"
+                  - '"version": "[0-9]+.[0-9]+.0"'
+                  - '"version": "{next_major_version}.0.0"'
             merge-old-head: false
             end-tag: 'FIREFOX_NIGHTLY_{major_version}_END'
             to-repo: 'https://hg.mozilla.org/mozilla-central'
