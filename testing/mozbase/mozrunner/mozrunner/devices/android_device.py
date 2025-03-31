@@ -1007,12 +1007,20 @@ def _find_sdk_exe(substs, exe, tools):
     if not found:
         # Can exe be found in the default bootstrap location?
         for subdir in subdirs:
-            exe_path = os.path.join(MOZBUILD_PATH, "android-sdk-linux", subdir, exe)
-            if os.path.exists(exe_path):
-                found = True
+            for sdkdir in [
+                "android-sdk-linux",
+                "android-sdk-macosx",
+                "android-sdk-windows",
+            ]:
+                exe_path = os.path.join(MOZBUILD_PATH, sdkdir, subdir, exe)
+                if os.path.exists(exe_path):
+                    found = True
+                    break
+                else:
+                    _log_debug("Unable to find executable at %s" % exe_path)
+
+            if found:
                 break
-            else:
-                _log_debug("Unable to find executable at %s" % exe_path)
 
     if not found:
         # Is exe on PATH?
