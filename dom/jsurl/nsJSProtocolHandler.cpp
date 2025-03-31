@@ -63,14 +63,18 @@ using mozilla::dom::AutoEntryScript;
 
 static NS_DEFINE_CID(kJSURICID, NS_JSURI_CID);
 
-class nsJSThunk : public nsIInputStream {
+// A stream class used to handle javascript: URLs.
+class JSURLInputStream : public nsIInputStream {
  public:
-  nsJSThunk();
+  JSURLInputStream();
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_FORWARD_SAFE_NSIINPUTSTREAM(mInnerStream)
 
   nsresult Init(nsIURI* uri);
+
+  // @param aExecutionPolicy `nsIScriptChannel::NO_EXECUTION` or
+  //                         `nsIScriptChannel::EXECUTE_NORMAL`.
   nsresult EvaluateScript(
       nsIChannel* aChannel,
       mozilla::dom::PopupBlocker::PopupControlState aPopupState,
@@ -78,7 +82,7 @@ class nsJSThunk : public nsIInputStream {
       const mozilla::JSCallingLocation& aJSCallingLocation);
 
  protected:
-  virtual ~nsJSThunk();
+  virtual ~JSURLInputStream();
 
   nsCOMPtr<nsIInputStream> mInnerStream;
   nsCString mScript;
@@ -88,13 +92,13 @@ class nsJSThunk : public nsIInputStream {
 //
 // nsISupports implementation...
 //
-NS_IMPL_ISUPPORTS(nsJSThunk, nsIInputStream)
+NS_IMPL_ISUPPORTS(JSURLInputStream, nsIInputStream)
 
-nsJSThunk::nsJSThunk() = default;
+JSURLInputStream::JSURLInputStream() = default;
 
-nsJSThunk::~nsJSThunk() = default;
+JSURLInputStream::~JSURLInputStream() = default;
 
-nsresult nsJSThunk::Init(nsIURI* uri) {
+nsresult JSURLInputStream::Init(nsIURI* uri) {
   NS_ENSURE_ARG_POINTER(uri);
 
   // Get the script string to evaluate...
@@ -232,7 +236,7 @@ static void ExecScriptAndCoerceToString(JSContext* aCx,
   }
 }
 
-nsresult nsJSThunk::EvaluateScript(
+nsresult JSURLInputStream::EvaluateScript(
     nsIChannel* aChannel,
     mozilla::dom::PopupBlocker::PopupControlState aPopupState,
     uint32_t aExecutionPolicy, nsPIDOMWindowInner* aOriginalInnerWindow,
@@ -507,7 +511,7 @@ class nsJSChannel : public nsIChannel,
   nsLoadFlags mLoadFlags;
   nsLoadFlags mActualLoadFlags;  // See AsyncOpen
 
-  RefPtr<nsJSThunk> mIOThunk;
+  RefPtr<JSURLInputStream> mJSURIStream;
   mozilla::dom::PopupBlocker::PopupControlState mPopupState;
   mozilla::JSCallingLocation mJSCallingLocation;
   uint32_t mExecutionPolicy;
@@ -547,19 +551,19 @@ nsresult nsJSChannel::Init(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Create the nsIStreamIO layer used by the nsIStreamIOChannel.
-  mIOThunk = new nsJSThunk();
+  mJSURIStream = new JSURLInputStream();
 
   // Create a stock input stream channel...
   // Remember, until AsyncOpen is called, the script will not be evaluated
   // and the underlying Input Stream will not be created...
   nsCOMPtr<nsIChannel> channel;
-  RefPtr<nsJSThunk> thunk = mIOThunk;
+  RefPtr<JSURLInputStream> jsURIStream = mJSURIStream;
   rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel), aURI,
-                                        thunk.forget(), "text/html"_ns, ""_ns,
-                                        aLoadInfo);
+                                        jsURIStream.forget(), "text/html"_ns,
+                                        ""_ns, aLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mIOThunk->Init(aURI);
+  rv = mJSURIStream->Init(aURI);
   if (NS_SUCCEEDED(rv)) {
     mStreamChannel = channel;
     mPropertyBag = do_QueryInterface(channel);
@@ -674,8 +678,9 @@ nsJSChannel::Open(nsIInputStream** aStream) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   mJSCallingLocation = mozilla::JSCallingLocation::Get();
-  rv = mIOThunk->EvaluateScript(mStreamChannel, mPopupState, mExecutionPolicy,
-                                mOriginalInnerWindow, mJSCallingLocation);
+  rv = mJSURIStream->EvaluateScript(mStreamChannel, mPopupState,
+                                    mExecutionPolicy, mOriginalInnerWindow,
+                                    mJSCallingLocation);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return mStreamChannel->Open(aStream);
@@ -824,9 +829,9 @@ void nsJSChannel::EvaluateScript() {
   // script returns it).
 
   if (NS_SUCCEEDED(mStatus)) {
-    nsresult rv =
-        mIOThunk->EvaluateScript(mStreamChannel, mPopupState, mExecutionPolicy,
-                                 mOriginalInnerWindow, mJSCallingLocation);
+    nsresult rv = mJSURIStream->EvaluateScript(
+        mStreamChannel, mPopupState, mExecutionPolicy, mOriginalInnerWindow,
+        mJSCallingLocation);
 
     // Note that evaluation may have canceled us, so recheck mStatus again
     if (NS_FAILED(rv) && NS_SUCCEEDED(mStatus)) {
