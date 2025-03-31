@@ -6095,6 +6095,11 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
     return NS_OK;
   });
 
+#if defined(MOZ_WIDGET_ANDROID)
+  CrashReporter::SetCrashHelperPipes(aConfig.crashChildNotificationSocket,
+                                     aConfig.crashHelperSocket);
+#endif  // defined(MOZ_WIDGET_ANDROID)
+
   mozilla::AutoIOInterposer ioInterposerGuard;
   ioInterposerGuard.Init();
 
