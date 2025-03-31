@@ -4,7 +4,7 @@
 
 use api::{ColorF, DebugFlags, PrimitiveFlags, QualitySettings, RasterSpace, ClipId};
 use api::units::*;
-use crate::clip::{ClipItemKeyKind, ClipNodeId, ClipTreeBuilder};
+use crate::clip::{ClipNodeKind, ClipLeafId, ClipNodeId, ClipTreeBuilder};
 use crate::frame_builder::FrameBuilderConfig;
 use crate::internal_types::FastHashMap;
 use crate::picture::{PrimitiveList, PictureCompositeMode, PicturePrimitive, SliceId};
@@ -34,6 +34,7 @@ const MAX_CACHE_SLICES: usize = 12;
 struct SliceDescriptor {
     prim_list: PrimitiveList,
     scroll_root: SpatialNodeIndex,
+    shared_clip_node_id: ClipNodeId,
 }
 
 enum SliceKind {
@@ -202,6 +203,8 @@ impl TileCacheBuilder {
         &mut self,
         prim_list: PrimitiveList,
         spatial_tree: &SceneSpatialTree,
+        prim_instances: &[PrimitiveInstance],
+        clip_tree_builder: &ClipTreeBuilder,
     ) -> Option<SliceDescriptor> {
         if prim_list.is_empty() {
             return None;
@@ -261,8 +264,33 @@ impl TileCacheBuilder {
             .map(|(spatial_node_index, _)| *spatial_node_index)
             .unwrap_or(self.root_spatial_node_index);
 
+        // Work out which clips are shared by all prim instances and can thus be applied
+        // at the tile cache level. In future, we aim to remove this limitation by knowing
+        // during initial scene build which are the relevant compositor clips, but for now
+        // this is unlikely to be a significant cost.
+        let mut shared_clip_node_id = None;
+
+        for cluster in &prim_list.clusters {
+            for prim_instance in &prim_instances[cluster.prim_range()] {
+                let leaf = clip_tree_builder.get_leaf(prim_instance.clip_leaf_id);
+
+                // TODO(gw): Need to cache last clip-node id here?
+                shared_clip_node_id = match shared_clip_node_id {
+                    Some(current) => {
+                        Some(clip_tree_builder.find_lowest_common_ancestor(current, leaf.node_id))
+                    }
+                    None => {
+                        Some(leaf.node_id)
+                    }
+                }
+            }
+        }
+
+        let shared_clip_node_id = shared_clip_node_id.expect("bug: no shared clip root");
+
         Some(SliceDescriptor {
             scroll_root,
+            shared_clip_node_id,
             prim_list,
         })
     }
@@ -368,12 +396,38 @@ impl TileCacheBuilder {
                             curr_scroll_root != scroll_root
                         }
                     };
+
+                    // Update the list of clips that apply to this primitive instance, to track which are the
+                    // shared clips for this tile cache that can be applied during compositing.
+
+                    let shared_clip_node_id = find_shared_clip_root(
+                        current_scroll_root,
+                        prim_instance.clip_leaf_id,
+                        spatial_tree,
+                        clip_tree_builder,
+                        interners,
+                    );
+
+                    let current_shared_clip_node_id = secondary_slices.last().unwrap().shared_clip_node_id;
+
+                    // If the shared clips are not compatible, create a new slice.
+                    want_new_tile_cache |= shared_clip_node_id != current_shared_clip_node_id;
                 }
 
                 if want_new_tile_cache {
+
+                    let shared_clip_node_id = find_shared_clip_root(
+                        scroll_root,
+                        prim_instance.clip_leaf_id,
+                        spatial_tree,
+                        clip_tree_builder,
+                        interners,
+                    );
+
                     secondary_slices.push(SliceDescriptor {
                         prim_list: PrimitiveList::empty(),
                         scroll_root,
+                        shared_clip_node_id,
                     });
                 }
 
@@ -401,7 +455,6 @@ impl TileCacheBuilder {
         spatial_tree: &SceneSpatialTree,
         prim_instances: &[PrimitiveInstance],
         clip_tree_builder: &mut ClipTreeBuilder,
-        interners: &Interners,
     ) -> (TileCacheConfig, Vec<PictureIndex>) {
         let mut result = TileCacheConfig::new(self.primary_slices.len());
         let mut tile_cache_pictures = Vec::new();
@@ -423,6 +476,8 @@ impl TileCacheBuilder {
                     if let Some(descriptor) = self.build_tile_cache(
                         prim_list,
                         spatial_tree,
+                        prim_instances,
+                        clip_tree_builder,
                     ) {
                         create_tile_cache(
                             self.debug_flags,
@@ -432,14 +487,12 @@ impl TileCacheBuilder {
                             primary_slice.iframe_clip,
                             descriptor.prim_list,
                             primary_slice.background_color,
+                            descriptor.shared_clip_node_id,
                             prim_store,
-                            prim_instances,
                             config,
                             &mut result.tile_caches,
                             &mut tile_cache_pictures,
                             clip_tree_builder,
-                            interners,
-                            spatial_tree,
                         );
                     }
                 }
@@ -453,14 +506,12 @@ impl TileCacheBuilder {
                             primary_slice.iframe_clip,
                             descriptor.prim_list,
                             primary_slice.background_color,
+                            descriptor.shared_clip_node_id,
                             prim_store,
-                            prim_instances,
                             config,
                             &mut result.tile_caches,
                             &mut tile_cache_pictures,
                             clip_tree_builder,
-                            interners,
-                            spatial_tree,
                         );
                     }
                 }
@@ -488,6 +539,43 @@ fn find_scroll_root(
     scroll_root
 }
 
+fn find_shared_clip_root(
+    scroll_root: SpatialNodeIndex,
+    clip_leaf_id: ClipLeafId,
+    spatial_tree: &SceneSpatialTree,
+    clip_tree_builder: &ClipTreeBuilder,
+    interners: &Interners,
+) -> ClipNodeId {
+    let leaf = clip_tree_builder.get_leaf(clip_leaf_id);
+    let mut current_node_id = leaf.node_id;
+
+    while current_node_id != ClipNodeId::NONE {
+        let node = clip_tree_builder.get_node(current_node_id);
+
+        let clip_node_data = &interners.clip[node.handle];
+
+        if let ClipNodeKind::Rectangle = clip_node_data.key.kind.node_kind() {
+            let is_ancestor = spatial_tree.is_ancestor(
+                clip_node_data.key.spatial_node_index,
+                scroll_root,
+            );
+
+            let has_complex_clips = clip_tree_builder.clip_node_has_complex_clips(
+                current_node_id,
+                interners,
+            );
+
+            if is_ancestor && !has_complex_clips {
+                break;
+            }
+        }
+
+        current_node_id = node.parent;
+    }
+
+    current_node_id
+}
+
 /// Given a PrimitiveList and scroll root, construct a tile cache primitive instance
 /// that wraps the primitive list.
 fn create_tile_cache(
@@ -498,14 +586,12 @@ fn create_tile_cache(
     iframe_clip: Option<ClipId>,
     prim_list: PrimitiveList,
     background_color: Option<ColorF>,
+    shared_clip_node_id: ClipNodeId,
     prim_store: &mut PrimitiveStore,
-    prim_instances: &[PrimitiveInstance],
     frame_builder_config: &FrameBuilderConfig,
     tile_caches: &mut FastHashMap<SliceId, TileCacheParams>,
     tile_cache_pictures: &mut Vec<PictureIndex>,
     clip_tree_builder: &mut ClipTreeBuilder,
-    interners: &Interners,
-    spatial_tree: &SceneSpatialTree,
 ) {
     // Accumulate any clip instances from the iframe_clip into the shared clips
     // that will be applied by this tile cache during compositing.
@@ -513,95 +599,6 @@ fn create_tile_cache(
 
     if let Some(clip_id) = iframe_clip {
         additional_clips.push(clip_id);
-    }
-
-    // Find the best shared clip node that we can apply while compositing tiles,
-    // rather than applying to each item individually.
-
-    // Step 1: Walk the primitive list, and find the LCA of the clip-tree that
-    //         matches all primitives. This gives us our "best-case" shared
-    //         clip node that moves as many clips as possible to compositing.
-    let mut shared_clip_node_id = None;
-
-    for cluster in &prim_list.clusters {
-        for prim_instance in &prim_instances[cluster.prim_range()] {
-            let leaf = clip_tree_builder.get_leaf(prim_instance.clip_leaf_id);
-
-            // TODO(gw): Need to cache last clip-node id here?
-            shared_clip_node_id = match shared_clip_node_id {
-                Some(current) => {
-                    Some(clip_tree_builder.find_lowest_common_ancestor(current, leaf.node_id))
-                }
-                None => {
-                    Some(leaf.node_id)
-                }
-            }
-        }
-    }
-
-    // Step 2: Now we need to walk up the shared clip node hierarchy, and remove clips
-    //         that we can't handle during compositing, such as:
-    //         (a) Non axis-aligned clips
-    //         (b) Box-shadow or image-mask clips
-    //         (c) Rounded rect clips.
-    //
-    //         A follow up patch to this series will relax the condition on (c) to
-    //         allow tile caches to apply a single rounded-rect clip during compositing.
-    let mut shared_clip_node_id = shared_clip_node_id.unwrap_or(ClipNodeId::NONE);
-    let mut current_node_id = shared_clip_node_id;
-    let mut rounded_rect_count = 0;
-
-    // Walk up the hierarchy to the root of the clip-tree
-    while current_node_id != ClipNodeId::NONE {
-        let node = clip_tree_builder.get_node(current_node_id);
-        let clip_node_data = &interners.clip[node.handle];
-
-        // Check if this clip is in the root coord system (i.e. is axis-aligned with tile-cache)
-        let is_rcs = spatial_tree.is_root_coord_system(clip_node_data.key.spatial_node_index);
-
-        let node_valid = if is_rcs {
-            match clip_node_data.key.kind {
-                ClipItemKeyKind::BoxShadow(..) | ClipItemKeyKind::ImageMask(..) => {
-                    // Has a box-shadow / image-mask, we can't handle this as a shared clip
-                    false
-                }
-                ClipItemKeyKind::RoundedRectangle(..) => {
-                    rounded_rect_count += 1;
-
-                    // TODO(gw): This initial patch retains existing behavior by not
-                    //           allowing a rounded-rect clip to be part of the shared
-                    //           clip. Follow up patch in this series will relax this.
-                    false
-                }
-                ClipItemKeyKind::Rectangle(..) => {
-                    // We can apply multiple (via combining) axis-aligned rectangle
-                    // clips to the shared compositing clip.
-                    true
-                }
-            }
-        } else {
-            // Has a complex transform, we can't handle this as a shared clip
-            false
-        };
-
-        if node_valid {
-            // This node was found to be one we can apply during compositing.
-            if rounded_rect_count > 1 {
-                // However, we plan to only support one rounded-rect clip. If
-                // we have found > 1 rounded rect, drop children from the shared
-                // clip, and continue looking up the chain.
-                shared_clip_node_id = current_node_id;
-                rounded_rect_count = 1;
-            }
-        } else {
-            // Node was invalid, due to transform / clip type. Drop this clip
-            // and reset the rounded rect count to 0, since we drop children
-            // from here too.
-            shared_clip_node_id = node.parent;
-            rounded_rect_count = 0;
-        }
-
-        current_node_id = node.parent;
     }
 
     let shared_clip_leaf_id = Some(clip_tree_builder.build_for_tile_cache(
