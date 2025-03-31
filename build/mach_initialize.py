@@ -155,7 +155,7 @@ def initialize(topsrcdir, args=()):
     # Status messages from site.py break usages of `./mach environment`.
     # We pass `quiet` only for it to work around this, so that all other
     # commands can still write status messages.
-    if args and args[0] == "environment":
+    if args and (args[0] == "environment" or "--quiet" in args):
         quiet = True
     else:
         quiet = False

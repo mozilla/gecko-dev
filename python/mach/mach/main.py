@@ -363,6 +363,8 @@ To see more help for a specific command, run:
         log_level = logging.INFO
         if args.verbose:
             log_level = logging.DEBUG
+        elif args.quiet:
+            log_level = logging.ERROR
 
         self.log_manager.register_structured_logger(logging.getLogger("mach"))
 
@@ -538,13 +540,21 @@ def get_argument_parser(context=None, action=CommandAction, topsrcdir=None):
     # help messages are printed.
     global_group = parser.add_argument_group("Global Arguments")
 
-    global_group.add_argument(
+    verbosity = global_group.add_mutually_exclusive_group()
+    verbosity.add_argument(
         "-v",
         "--verbose",
         dest="verbose",
         action="store_true",
         default=False,
         help="Print verbose output.",
+    )
+    verbosity.add_argument(
+        "--quiet",
+        dest="quiet",
+        action="store_true",
+        default=False,
+        help="Don't print as much output.",
     )
     global_group.add_argument(
         "-l",
