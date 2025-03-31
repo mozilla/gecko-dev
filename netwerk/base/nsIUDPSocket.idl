@@ -264,6 +264,16 @@ interface nsIUDPSocket : nsISupports
     [noscript, notxpcom] int64_t getFileDescriptor();
 
     /**
+      * enableWritePoll
+      *
+      * Request that the UDP socket polls for write-availability.
+      * Typically called after a non-blocking send returns WOULD_BLOCK.
+      *
+      * Note that the socket always polls for read-availability.
+      */
+    [noscript, notxpcom] void enableWritePoll();
+
+    /**
      * addOutputBytes
      *
      * Add number of bytes written to the socket. Used when sending data through

@@ -990,8 +990,11 @@ nsresult Http3Session::ProcessOutput(nsIUDPSocket* socket) {
         Http3Session* self = (Http3Session*)aContext;
         self->SetupTimer(timeout);
       });
-  // Note: WOULD_BLOCK is handled in neqo_glue.
-  if (NS_FAILED(rv.result)) {
+  if (rv.result == NS_BASE_STREAM_WOULD_BLOCK) {
+    // The OS buffer was full. Tell the UDP socket to poll for
+    // write-availability.
+    socket->EnableWritePoll();
+  } else if (NS_FAILED(rv.result)) {
     mSocketError = rv.result;
     // If there was an error return from here. We do not need to set a timer,
     // because we will close the connection.

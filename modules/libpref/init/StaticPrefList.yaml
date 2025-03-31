@@ -14671,6 +14671,16 @@
   mirror: always
   rust: true
 
+# Poll UDP socket via PR_POLL_WRITE on WOULD_BLOCK. Noop if
+# network.http.http3.use_nspr_for_io is true.
+#
+# See <https://phabricator.services.mozilla.com/D239162> for details.
+- name: network.http.http3.pr_poll_write
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+  rust: true
+
 - name: network.http.http3.enable_qlog
   type: RelaxedAtomicBool
   value: false

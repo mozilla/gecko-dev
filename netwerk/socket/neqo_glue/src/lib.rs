@@ -76,6 +76,9 @@ pub struct NeqoHttp3Conn {
     // would close the file descriptor on `Drop`. The lifetime of the underlying
     // OS socket is managed not by `neqo_glue` but `NSPR`.
     socket: Option<neqo_udp::Socket<BorrowedSocket>>,
+    /// Buffered outbound datagram from previous send that failed with
+    /// WouldBlock. To be sent once UDP socket has write-availability again.
+    buffered_outbound_datagram: Option<Datagram>,
 
     datagram_segment_size_sent: LocalMemoryDistribution<'static>,
     datagram_segment_size_received: LocalMemoryDistribution<'static>,
@@ -349,6 +352,7 @@ impl NeqoHttp3Conn {
             datagram_size_received: networking::http_3_udp_datagram_size_received.start_buffer(),
             datagram_segments_received: networking::http_3_udp_datagram_segments_received
                 .start_buffer(),
+            buffered_outbound_datagram: None,
         }));
         unsafe { RefPtr::from_raw(conn).ok_or(NS_ERROR_NOT_CONNECTED) }
     }
@@ -822,7 +826,13 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
         } else {
             now + accumulated_time
         };
-        match conn.conn.process_output(conn.last_output_time) {
+
+        let output = conn
+            .buffered_outbound_datagram
+            .take()
+            .map(Output::Datagram)
+            .unwrap_or_else(|| conn.conn.process_output(conn.last_output_time));
+        match output {
             Output::Datagram(mut dg) => {
                 if !static_prefs::pref!("network.http.http3.ecn") {
                     dg.set_tos(IpTos::default());
@@ -841,8 +851,20 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
                 match conn.socket.as_mut().expect("non NSPR IO").send(&dg) {
                     Ok(()) => {}
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        qwarn!("dropping datagram as socket would block");
-                        break;
+                        if static_prefs::pref!("network.http.http3.pr_poll_write") {
+                            qdebug!("Buffer outbound datagram to be sent once UDP socket has write-availability.");
+                            conn.buffered_outbound_datagram = Some(dg);
+                            return ProcessOutputAndSendResult {
+                                // Propagate WouldBlock error, thus indicating that
+                                // the UDP socket should be polled for
+                                // write-availability.
+                                result: NS_BASE_STREAM_WOULD_BLOCK,
+                                bytes_written: bytes_written.try_into().unwrap_or(u32::MAX),
+                            };
+                        } else {
+                            qwarn!("dropping datagram as socket would block");
+                            break;
+                        }
                     }
                     Err(e) => {
                         qwarn!("failed to send datagram: {}", e);
