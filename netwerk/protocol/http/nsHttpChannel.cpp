@@ -3149,18 +3149,15 @@ void nsHttpChannel::UpdateCacheDisposition(bool aSuccessfulReval,
 nsresult nsHttpChannel::ContinueProcessResponse4(nsresult rv) {
   bool doNotRender = DoNotRender3xxBody(rv);
 
-  if (rv == NS_ERROR_DOM_BAD_URI && mRedirectURI) {
-    bool isHTTP =
-        mRedirectURI->SchemeIs("http") || mRedirectURI->SchemeIs("https");
-    if (!isHTTP) {
-      // This was a blocked attempt to redirect and subvert the system by
-      // redirecting to another protocol (perhaps javascript:)
-      // In that case we want to throw an error instead of displaying the
-      // non-redirected response body.
-      LOG(("ContinueProcessResponse4 detected rejected Non-HTTP Redirection"));
-      doNotRender = true;
-      rv = NS_ERROR_CORRUPTED_CONTENT;
-    }
+  if (rv == NS_ERROR_DOM_BAD_URI && mRedirectURI &&
+      !net::SchemeIsHttpOrHttps(mRedirectURI)) {
+    // This was a blocked attempt to redirect and subvert the system by
+    // redirecting to another protocol (perhaps javascript:)
+    // In that case we want to throw an error instead of displaying the
+    // non-redirected response body.
+    LOG(("ContinueProcessResponse4 detected rejected Non-HTTP Redirection"));
+    doNotRender = true;
+    rv = NS_ERROR_CORRUPTED_CONTENT;
   }
 
   if (doNotRender) {

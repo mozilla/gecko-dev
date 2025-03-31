@@ -231,8 +231,8 @@ uint32_t nsScriptSecurityManager::SecurityHashURI(nsIURI* aURI) {
 
 bool nsScriptSecurityManager::IsHttpOrHttpsAndCrossOrigin(nsIURI* aUriA,
                                                           nsIURI* aUriB) {
-  if (!aUriA || (!net::SchemeIsHTTP(aUriA) && !net::SchemeIsHTTPS(aUriA)) ||
-      !aUriB || (!net::SchemeIsHTTP(aUriB) && !net::SchemeIsHTTPS(aUriB))) {
+  if (!aUriA || !net::SchemeIsHttpOrHttps(aUriA) || !aUriB ||
+      !net::SchemeIsHttpOrHttps(aUriB)) {
     return false;
   }
   if (!SecurityCompareURIs(aUriA, aUriB)) {

@@ -1402,7 +1402,7 @@ nsresult nsObjectLoadingContent::OpenChannel() {
       true,                 // aInheritForAboutBlank
       false);               // aForceInherit
 
-  bool inheritPrincipal = inheritAttrs && !SchemeIsData(mURI);
+  bool inheritPrincipal = inheritAttrs && !mURI->SchemeIs("data");
 
   nsSecurityFlags securityFlags =
       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL;

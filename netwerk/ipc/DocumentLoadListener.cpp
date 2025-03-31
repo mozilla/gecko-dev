@@ -119,15 +119,15 @@ static auto SecurityFlagsForLoadInfo(nsDocShellLoadState* aLoadState)
   }
 
   if (aLoadState->PrincipalToInherit()) {
+    nsIURI* uri = aLoadState->URI();
     bool isSrcdoc = aLoadState->HasInternalLoadFlags(
         nsDocShell::INTERNAL_LOAD_FLAGS_IS_SRCDOC);
     bool inheritAttrs = nsContentUtils::ChannelShouldInheritPrincipal(
-        aLoadState->PrincipalToInherit(), aLoadState->URI(),
+        aLoadState->PrincipalToInherit(), uri,
         true,  // aInheritForAboutBlank
         isSrcdoc);
 
-    bool isData = SchemeIsData(aLoadState->URI());
-    if (inheritAttrs && !isData) {
+    if (inheritAttrs && !uri->SchemeIs("data")) {
       securityFlags |= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;
     }
   }
@@ -691,7 +691,7 @@ auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
   mLoadIdentifier = aLoadState->GetLoadIdentifier();
   // See description of  mFileName in nsDocShellLoadState.h
   mIsDownload = !aLoadState->FileName().IsVoid();
-  mIsLoadingJSURI = net::SchemeIsJavascript(aLoadState->URI());
+  mIsLoadingJSURI = aLoadState->URI()->SchemeIs("javascript");
   mHTTPSFirstDowngradeData = aLoadState->GetHttpsFirstDowngradeData().forget();
 
   // Check for infinite recursive object or iframe loads

@@ -455,7 +455,7 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI, nsACString& aBaseDomain) {
 
     // The aHostURI can be a view-source URI, in which case we need to get the
     // base domain from the inner most URI.
-    if (net::SchemeIsViewSource(aHostURI)) {
+    if (aHostURI->SchemeIs("view-source")) {
       rv = NS_GetInnermostURIHost(aHostURI, aBaseDomain);
     } else {
       rv = aHostURI->GetAsciiHost(aBaseDomain);

@@ -3277,7 +3277,7 @@ bool nsExternalHelperAppService::GetFileNameFromChannel(nsIChannel* aChannel,
     nsAutoCString query;
 
     // We only care about the query for HTTP and HTTPS URLs
-    if (url->SchemeIs("http") || url->SchemeIs("https")) {
+    if (net::SchemeIsHttpOrHttps(url)) {
       url->GetQuery(query);
     }
 

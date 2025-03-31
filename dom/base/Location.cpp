@@ -456,7 +456,7 @@ void Location::SetProtocol(const nsACString& aProtocol,
     return;
   }
 
-  if (!uri->SchemeIs("http") && !uri->SchemeIs("https")) {
+  if (!net::SchemeIsHttpOrHttps(uri)) {
     // No-op, per spec.
     return;
   }

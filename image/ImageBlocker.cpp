@@ -58,6 +58,5 @@ bool ImageBlocker::ShouldBlock(nsIURI* aContentLocation) {
 
   // we only want to check http, https
   // for chrome:// and resources and others, no need to check.
-  return aContentLocation->SchemeIs("http") ||
-         aContentLocation->SchemeIs("https");
+  return net::SchemeIsHttpOrHttps(aContentLocation);
 }

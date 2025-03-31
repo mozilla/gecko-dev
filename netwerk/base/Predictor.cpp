@@ -109,7 +109,7 @@ static bool IsNullOrHttp(nsIURI* uri) {
     return true;
   }
 
-  return uri->SchemeIs("http") || uri->SchemeIs("https");
+  return SchemeIsHttpOrHttps(uri);
 }
 
 // Listener for the speculative DNS requests we'll fire off, which just ignores

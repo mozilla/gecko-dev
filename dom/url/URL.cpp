@@ -153,8 +153,6 @@ URLSearchParams* URL::SearchParams() {
   return mSearchParams;
 }
 
-bool IsChromeURI(nsIURI* aURI) { return aURI->SchemeIs("chrome"); }
-
 void URL::CreateSearchParamsIfNeeded() {
   if (!mSearchParams) {
     mSearchParams = new URLSearchParams(mParent, this);

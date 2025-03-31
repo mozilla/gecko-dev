@@ -452,7 +452,7 @@ nsresult BounceTrackingState::OnDocumentStartRequest(nsIChannel* aChannel) {
   rv = aChannel->GetURI(getter_AddRefs(channelURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (channelURI->SchemeIs("http") || channelURI->SchemeIs("https")) {
+  if (mozilla::net::SchemeIsHttpOrHttps(channelURI)) {
     nsCOMPtr<nsIEffectiveTLDService> tldService =
         do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);

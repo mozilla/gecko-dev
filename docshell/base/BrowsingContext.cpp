@@ -2040,7 +2040,7 @@ nsresult BrowsingContext::LoadURI(nsDocShellLoadState* aLoadState,
 
   const auto& sourceBC = aLoadState->SourceBrowsingContext();
 
-  if (net::SchemeIsJavascript(aLoadState->URI())) {
+  if (aLoadState->URI()->SchemeIs("javascript")) {
     if (!XRE_IsParentProcess()) {
       // Web content should only be able to load javascript: URIs into documents
       // whose principals the caller principal subsumes, which by definition
@@ -2135,7 +2135,7 @@ nsresult BrowsingContext::InternalLoad(nsDocShellLoadState* aLoadState) {
 
   const auto& sourceBC = aLoadState->SourceBrowsingContext();
 
-  if (net::SchemeIsJavascript(aLoadState->URI())) {
+  if (aLoadState->URI()->SchemeIs("javascript")) {
     if (!XRE_IsParentProcess()) {
       // Web content should only be able to load javascript: URIs into documents
       // whose principals the caller principal subsumes, which by definition

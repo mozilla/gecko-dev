@@ -4473,7 +4473,7 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
     // the "external" flag, as loads that now go to other apps should be
     // allowed to go ahead and not trip infinite-loop protection
     // (see bug 1717314 for context).
-    if (!aNewURI->SchemeIs("http") && !aNewURI->SchemeIs("https")) {
+    if (!net::SchemeIsHttpOrHttps(aNewURI)) {
       newLoadInfo->SetLoadTriggeredFromExternal(false);
     }
     newLoadInfo->ResetSandboxedNullPrincipalID();

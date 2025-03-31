@@ -2346,7 +2346,7 @@ RefPtr<MozPromise<bool, bool, false>> nsWindow::OnLoadRequest(
   nsAutoCString spec, triggeringSpec;
   if (aUri) {
     aUri->GetDisplaySpec(spec);
-    if (aIsTopLevel && mozilla::net::SchemeIsData(aUri) &&
+    if (aIsTopLevel && aUri->SchemeIs("data") &&
         spec.Length() > MAX_TOPLEVEL_DATA_URI_LEN) {
       return MozPromise<bool, bool, false>::CreateAndResolve(false, __func__);
     }
