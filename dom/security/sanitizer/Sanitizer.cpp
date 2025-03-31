@@ -391,18 +391,20 @@ static CanonicalName CanonicalizeElement(const SanitizerElement& aElement) {
   const auto& elem = GetAsSanitizerElementNamespace(aElement);
   MOZ_ASSERT(!elem.mName.IsVoid());
 
-  // Step 4. Return «[
+  RefPtr<nsAtom> namespaceAtom;
+  // Step 4. Let namespace be name["namespace"] if it exists, otherwise defaultNamespace.
+  // Note: "namespace" always exists due to the WebIDL default value.
+  // Step 5. If namespace is the empty string, then set it to null.
+  if (!elem.mNamespace.IsEmpty()) {
+    namespaceAtom = NS_AtomizeMainThread(elem.mNamespace);
+  }
+
+  // Step 6. Return «[
   //  "name" → name["name"],
-  //  "namespace" → ( name["namespace"] if it exists, otherwise defaultNamespace
+  //  "namespace" → namespace
   //  )
   // ]».
   RefPtr<nsAtom> nameAtom = NS_AtomizeMainThread(elem.mName);
-  RefPtr<nsAtom> namespaceAtom;
-  if (!elem.mNamespace.IsVoid()) {
-    namespaceAtom = NS_AtomizeMainThread(elem.mNamespace);
-  } else {
-    namespaceAtom = nsGkAtoms::nsuri_xhtml;
-  }
   return CanonicalName(nameAtom, namespaceAtom);
 }
 
@@ -427,16 +429,19 @@ static CanonicalName CanonicalizeAttribute(
   const auto& attr = aAttribute.GetAsSanitizerAttributeNamespace();
   MOZ_ASSERT(!attr.mName.IsVoid());
 
-  // Step 4. Return «[
+  RefPtr<nsAtom> namespaceAtom;
+  // Step 4. Let namespace be name["namespace"] if it exists, otherwise defaultNamespace.
+  // Step 5. If namespace is the empty string, then set it to null.
+  if (!attr.mNamespace.IsEmpty()) {
+    namespaceAtom = NS_AtomizeMainThread(attr.mNamespace);
+  }
+
+  // Step 6. Return «[
   //  "name" → name["name"],
-  //  "namespace" → ( name["namespace"] if it exists, otherwise defaultNamespace
+  //  "namespace" → namespace,
   //  )
   // ]».
   RefPtr<nsAtom> nameAtom = NS_AtomizeMainThread(attr.mName);
-  RefPtr<nsAtom> namespaceAtom = nullptr;
-  if (!attr.mNamespace.IsVoid()) {
-    namespaceAtom = NS_AtomizeMainThread(attr.mNamespace);
-  }
   return CanonicalName(nameAtom, namespaceAtom);
 }
 

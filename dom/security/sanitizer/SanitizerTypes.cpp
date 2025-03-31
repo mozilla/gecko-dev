@@ -26,7 +26,7 @@ CanonicalElementWithAttributes::ToSanitizerElementNamespaceWithAttributes()
   if (mNamespace) {
     mNamespace->ToString(result.mNamespace);
   } else {
-    MOZ_ASSERT(false, "An element namespace should never be null");
+    result.mNamespace.SetIsVoid(true);
   }
   if (mAttributes) {
     result.mAttributes.Construct(ToSanitizerAttributes(*mAttributes));
@@ -44,7 +44,7 @@ SanitizerElementNamespace CanonicalName::ToSanitizerElementNamespace() const {
   if (mNamespace) {
     mNamespace->ToString(result.mNamespace);
   } else {
-    MOZ_ASSERT(false, "An element namespace should never be null");
+    result.mNamespace.SetIsVoid(true);
   }
   return result;
 }
