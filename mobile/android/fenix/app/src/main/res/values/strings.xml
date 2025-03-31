@@ -697,6 +697,10 @@
     <string name="preferences_add_private_browsing_shortcut">Add private browsing shortcut</string>
     <!-- Preference for enabling "HTTPS-Only" mode -->
     <string name="preferences_https_only_title">HTTPS-Only Mode</string>
+    <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+    <string name="preferences_pbm_lock_screen_title">Use screen lock to hide tabs in private browsing</string>
+    <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+    <string name="preferences_pbm_lock_screen_summary">View tabs with fingerprint, face unlock, or PIN.</string>
 
     <!-- Label for cookie banner section in quick settings panel. -->
     <string name="cookie_banner_blocker">Cookie Banner Blocker</string>
