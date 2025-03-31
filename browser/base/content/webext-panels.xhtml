@@ -5,8 +5,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-<?csp default-src chrome: ?>
-
 <window id="webextpanels-window"
         xmlns:html="http://www.w3.org/1999/xhtml"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
@@ -31,6 +29,17 @@
     <html:link rel="localization" href="browser/browserContext.ftl"/>
     <html:link rel="localization" href="browser/translations.ftl"/>
   </linkset>
+
+  <commandset id="mainCommandset">
+    <command id="Browser:Back"
+             oncommand="getPanelBrowser().webNavigation.goBack();"
+             disabled="true"/>
+    <command id="Browser:Forward"
+             oncommand="getPanelBrowser().webNavigation.goForward();"
+             disabled="true"/>
+    <command id="Browser:Stop" oncommand="PanelBrowserStop();"/>
+    <command id="Browser:Reload" oncommand="PanelBrowserReload();"/>
+  </commandset>
 
   <popupset id="mainPopupSet">
     <tooltip id="aHTMLTooltip" page="true"/>
