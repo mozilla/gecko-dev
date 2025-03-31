@@ -186,13 +186,13 @@
     --size-item-large: 32px;
 
     /** Space **/
-    --space-xxsmall: calc(0.5 * var(--space-xsmall));
-    --space-xsmall: 0.267rem;
-    --space-small: calc(2 * var(--space-xsmall));
-    --space-medium: calc(3 * var(--space-xsmall));
-    --space-large: calc(4 * var(--space-xsmall));
-    --space-xlarge: calc(6 * var(--space-xsmall));
-    --space-xxlarge: calc(8 * var(--space-xsmall));
+    --space-xxsmall: calc(0.5 * var(--space-xsmall)); /* 2px */
+    --space-xsmall: 0.267rem; /* 4px */
+    --space-small: calc(2 * var(--space-xsmall)); /* 8px */
+    --space-medium: calc(3 * var(--space-xsmall)); /* 12px */
+    --space-large: calc(4 * var(--space-xsmall)); /* 16px */
+    --space-xlarge: calc(6 * var(--space-xsmall)); /* 24px */
+    --space-xxlarge: calc(8 * var(--space-xsmall)); /* 32px */
 
     /** Table Row **/
     --table-row-background-color: var(--background-color-canvas);
