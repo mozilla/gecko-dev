@@ -58,30 +58,54 @@ using namespace mozilla;
 using namespace mozilla::css;
 using namespace mozilla::dom;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
-static already_AddRefed<const ComputedStyle> GetCleanComputedStyleForElement(
-    dom::Element* aElement, const PseudoStyleRequest& aPseudo) {
-  MOZ_ASSERT(aElement);
-
-  Document* doc = aElement->GetComposedDoc();
+static nsPresContext* EnsureSafeToHandOutRules(Element& aElement) {
+  Document* doc = aElement.GetComposedDoc();
   if (!doc) {
     return nullptr;
   }
-
-  PresShell* presShell = doc->GetPresShell();
+  const PresShell* presShell = doc->GetPresShell();
   if (!presShell) {
     return nullptr;
   }
-
   nsPresContext* presContext = presShell->GetPresContext();
   if (!presContext) {
     return nullptr;
   }
-
   presContext->EnsureSafeToHandOutCSSRules();
+  return presContext;
+}
 
+static already_AddRefed<const ComputedStyle> GetStartingStyle(
+    Element& aElement) {
+  // If this element is unstyled, or it doesn't have matched rules in
+  // @starting-style, we return.
+  if (!Servo_Element_MayHaveStartingStyle(&aElement)) {
+    return nullptr;
+  }
+  if (!EnsureSafeToHandOutRules(aElement)) {
+    return nullptr;
+  }
+  RefPtr<Document> doc = aElement.GetComposedDoc();
+  if (!doc) {
+    return nullptr;
+  }
+  doc->FlushPendingNotifications(FlushType::Style);
+  RefPtr<PresShell> ps = doc->GetPresShell();
+  if (!ps) {
+    return nullptr;
+  }
+  return ps->StyleSet()->ResolveStartingStyle(aElement);
+}
+
+static already_AddRefed<const ComputedStyle> GetCleanComputedStyleForElement(
+    dom::Element* aElement, const PseudoStyleRequest& aPseudo) {
+  MOZ_ASSERT(aElement);
+  nsPresContext* pc = EnsureSafeToHandOutRules(*aElement);
+  if (!pc) {
+    return nullptr;
+  }
   return nsComputedDOMStyle::GetComputedStyle(aElement, aPseudo);
 }
 
@@ -225,27 +249,6 @@ void InspectorUtils::GetChildrenForNode(nsINode& aNode,
   if (auto* node = nsLayoutUtils::GetAfterPseudo(parent)) {
     aResult.AppendElement(node);
   }
-}
-
-static already_AddRefed<const ComputedStyle> GetStartingStyle(
-    Element& aElement) {
-  // If this element is unstyled, or it doesn't have matched rules in
-  // @starting-style, we return.
-  if (!Servo_Element_MayHaveStartingStyle(&aElement)) {
-    return nullptr;
-  }
-
-  const PresShell* presShell = aElement.OwnerDoc()->GetPresShell();
-  if (!presShell) {
-    return nullptr;
-  }
-
-  ServoStyleSet* styleSet = presShell->StyleSet();
-  if (!styleSet) {
-    return nullptr;
-  }
-
-  return styleSet->ResolveStartingStyle(aElement);
 }
 
 static void GetCSSRulesFromComputedValues(
@@ -1078,5 +1081,4 @@ void InspectorUtils::ReplaceBlockRuleBodyTextInStylesheet(
   Servo_ReplaceBlockRuleBodyTextInStylesheetText(
       &aStyleSheetText, aLine, aColumn, &aNewBodyText, &aNewStyleSheetText);
 }
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
