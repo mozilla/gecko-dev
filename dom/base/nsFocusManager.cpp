@@ -169,8 +169,8 @@ NS_IMPL_CYCLE_COLLECTION_WEAK(nsFocusManager, mActiveWindow,
                               mActiveBrowsingContextInChrome, mFocusedWindow,
                               mFocusedBrowsingContextInContent,
                               mFocusedBrowsingContextInChrome, mFocusedElement,
-                              mFirstBlurEvent, mFirstFocusEvent,
-                              mWindowBeingLowered, mDelayedBlurFocusEvents)
+                              mFirstBlurEvent, mWindowBeingLowered,
+                              mDelayedBlurFocusEvents)
 
 StaticRefPtr<nsFocusManager> nsFocusManager::sInstance;
 bool nsFocusManager::sTestMode = false;
@@ -249,7 +249,6 @@ nsFocusManager::Observe(nsISupports* aSubject, const char* aTopic,
     mFocusedBrowsingContextInChrome = nullptr;
     mFocusedElement = nullptr;
     mFirstBlurEvent = nullptr;
-    mFirstFocusEvent = nullptr;
     mWindowBeingLowered = nullptr;
     mDelayedBlurFocusEvents.Clear();
   }
@@ -2594,8 +2593,7 @@ void nsFocusManager::Focus(
     return;
   }
 
-  if (aElement &&
-      (aElement == mFirstFocusEvent || aElement == mFirstBlurEvent)) {
+  if (aElement && aElement == mFirstBlurEvent) {
     return;
   }
 
@@ -2655,12 +2653,6 @@ void nsFocusManager::Focus(
       }
     }
     return;
-  }
-
-  Maybe<AutoRestore<RefPtr<Element>>> ar;
-  if (!mFirstFocusEvent) {
-    ar.emplace(mFirstFocusEvent);
-    mFirstFocusEvent = aElement;
   }
 
   LOGCONTENT("Element %s has been focused", aElement);
@@ -5557,10 +5549,6 @@ void nsFocusManager::MarkUncollectableForCCGeneration(uint32_t aGeneration) {
   }
   if (sInstance->mFirstBlurEvent) {
     sInstance->mFirstBlurEvent->OwnerDoc()->MarkUncollectableForCCGeneration(
-        aGeneration);
-  }
-  if (sInstance->mFirstFocusEvent) {
-    sInstance->mFirstFocusEvent->OwnerDoc()->MarkUncollectableForCCGeneration(
         aGeneration);
   }
 }
