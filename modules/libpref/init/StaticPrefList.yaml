@@ -288,10 +288,13 @@
 #endif
   mirror: always
 
-# Whether to enable support for the UI Automation API on Windows.
+# Whether to enable support for the UI Automation API on Windows. Values:
+# * 0: Never.
+# * 1: Always.
+# * 2: Enable unless incompatible accessibility clients are detected.
 - name: accessibility.uia.enable
-  type: bool
-  value: false
+  type: uint32_t
+  value: 0
   mirror: always
   do_not_use_directly: true
 

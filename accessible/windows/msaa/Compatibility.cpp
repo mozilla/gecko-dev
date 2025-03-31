@@ -218,5 +218,16 @@ SuppressionReasons Compatibility::A11ySuppressionReasons() {
 /* static */
 bool Compatibility::IsUiaEnabled() {
   // This is the only function which should call the UIA pref function directly.
-  return StaticPrefs::accessibility_uia_enable_DoNotUseDirectly();
+  const uint32_t pref =
+      StaticPrefs::accessibility_uia_enable_DoNotUseDirectly();
+  if (pref == 0) {
+    return false;  // Never enable.
+  }
+  if (pref == 1) {
+    return true;  // Always enable.
+  }
+  // Bug 1956415: Some screen readers break when native UIA is enabled, so don't
+  // enable it when they're detected.
+  return !IsJAWS() && !IsOldJAWS() && !IsVisperoShared() &&
+         !(sConsumers & NVDA);
 }
