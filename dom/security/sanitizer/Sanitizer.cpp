@@ -764,13 +764,15 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
 
     // Step 1.4.2. If configuration["removeElements"] contains elementName, or
     // if configuration["elements"] is not empty and does not contain
-    // elementName, then remove child.
+    // elementName:
     [[maybe_unused]] StaticAtomSet* elementAttributes = nullptr;
     if constexpr (!IsDefaultConfig) {
       if (mRemoveElements.Contains(*elementName) ||
           (!mElements.IsEmpty() && !mElements.Contains(*elementName))) {
         // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
+        // Step 1.4.2.1. Remove child.
         child->RemoveFromParent();
+        // Step 1.4.2.2. Continue.
         continue;
       }
     } else {
@@ -792,7 +794,9 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
         }
       }
       if (!found) {
+        // Step 1.4.2.1. Remove child.
         child->RemoveFromParent();
+        // Step 1.4.2.2. Continue.
         continue;
       }
       MOZ_ASSERT(!IsUnsafeElement(nameAtom, namespaceID));
@@ -812,6 +816,7 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
           ErrorResult rv;
           parent->InsertBefore(*newChild, child, rv);
           if (rv.Failed()) {
+            // TODO: Abort?
             break;
           }
         }
