@@ -11,9 +11,21 @@ ChromeUtils.defineESModuleGetters(
   lazy,
   {
     BLOCK_WORDS_ENCODED: "chrome://global/content/ml/BlockWords.sys.mjs",
+    RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+    TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
   },
   ES_MODULES_OPTIONS
 );
+
+ChromeUtils.defineLazyGetter(lazy, "console", () => {
+  return console.createInstance({
+    maxLogLevelPref: IN_WORKER ? "Error" : "browser.ml.logLevel",
+    prefix: "ML:Utils",
+  });
+});
+
+/** The name of the remote settings collection holding block list */
+const RS_BLOCK_LIST_COLLECTION = "ml-inference-words-block-list";
 
 /**
  * Enumeration for the progress status text.
@@ -783,6 +795,56 @@ export class BlockListManager {
   }
 
   /**
+   * Initialize the block list manager from remote settings
+   *
+   * @param {object} options - Configuration object.
+   * @param {string} options.blockListName - Name of the block list within the remote setting collection.
+   * @param {string} options.language - A string with a BCP 47 language tag for the language of the blocked n-grams.
+   *                                    Example: "en" for English, "fr" for French.
+   *                                    See https://en.wikipedia.org/wiki/IETF_language_tag.
+   * @param {boolean} options.fallbackToDefault - Whether to fall back to the default block list if the remote settings retrieval fails.
+   * @param {number} options.majorVersion - The target version of the block list in remote settings.
+   * @param {number} options.collectionName - The remote settings collection holding the block list.
+   *
+   * @returns {Promise<BlockListManager>} A promise to a new BlockListManager instance.
+   */
+  static async initializeFromRemoteSettings({
+    blockListName,
+    language = "en",
+    fallbackToDefault = true,
+    majorVersion = 1,
+    collectionName = RS_BLOCK_LIST_COLLECTION,
+  } = {}) {
+    try {
+      const record = await RemoteSettingsManager.getRemoteData({
+        collectionName,
+        filters: { name: blockListName, language },
+        majorVersion,
+      });
+
+      if (!record) {
+        throw new Error(
+          `No block list record found for ${JSON.stringify({ language, majorVersion, blockListName })}`
+        );
+      }
+
+      return new BlockListManager({
+        blockNgrams: record.blockList,
+        language,
+      });
+    } catch (error) {
+      if (fallbackToDefault) {
+        lazy.console.debug(
+          "Error when retrieving list from remote settings. Falling back to in-source list"
+        );
+        return BlockListManager.initializeFromDefault({ language });
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Decode a base64 encoded string to its original representation.
    *
    * @param {string} base64Str - The base64 encoded string to decode.
@@ -901,5 +963,129 @@ export class BlockListManager {
     }
 
     return false;
+  }
+}
+
+/**
+ * A class to retrieve data from remote setting
+ *
+ */
+export class RemoteSettingsManager {
+  /**
+   * The cached remote settings clients that downloads the data.
+   *
+   * @type {Record<string, RemoteSettingsClient>}
+   */
+  static #remoteClients = {};
+
+  /**
+   * Remote settings isn't available in tests, so provide mocked clients.
+   *
+   * @param {Record<string, RemoteSettingsClient>} remoteClients
+   */
+  static mockRemoteSettings(remoteClients) {
+    lazy.console.log("Mocking remote settings in RemoteSettingsManager.");
+    RemoteSettingsManager.#remoteClients = remoteClients;
+  }
+
+  /**
+   * Remove anything that could have been mocked.
+   */
+  static removeMocks() {
+    lazy.console.log("Removing mocked remote client in RemoteSettingsManager.");
+    RemoteSettingsManager.#remoteClients = {};
+  }
+
+  /**
+   * Lazily initialize the remote settings client responsible for downloading the data.
+   *
+   * @param {string} collectionName - The name of the collection to use.
+   * @returns {RemoteSettingsClient}
+   */
+  static getRemoteClient(collectionName) {
+    if (RemoteSettingsManager.#remoteClients[collectionName]) {
+      return RemoteSettingsManager.#remoteClients[collectionName];
+    }
+
+    /** @type {RemoteSettingsClient} */
+    const client = lazy.RemoteSettings(collectionName, {
+      bucketName: "main",
+    });
+
+    RemoteSettingsManager.#remoteClients[collectionName] = client;
+
+    client.on("sync", async ({ data: { created, updated, deleted } }) => {
+      lazy.console.debug(`"sync" event for ${collectionName}`, {
+        created,
+        updated,
+        deleted,
+      });
+
+      // Remove all the deleted records.
+      for (const record of deleted) {
+        await client.attachments.deleteDownloaded(record);
+      }
+
+      // Remove any updated records, and download the new ones.
+      for (const { old: oldRecord } of updated) {
+        await client.attachments.deleteDownloaded(oldRecord);
+      }
+
+      // Do nothing for the created records.
+    });
+
+    return client;
+  }
+
+  /**
+   * Gets data from remote settings.
+   *
+   * @param {object} options - Configuration object
+   * @param {string} options.collectionName - The name of the remote settings collection.
+   * @param {object} options.filters - The filters to use where key should match the schema in remote settings.
+   * @param {number|null} options.majorVersion - The target version or null if no version is supported.
+   * @param {Function} [options.lookupKey=(record => record.name)]
+   *     The function to use to extract a lookup key from each record when versionning is supported..
+   *     This function should take a record as input and return a string that represents the lookup key for the record.
+   * @returns {Promise<object|null>}
+   */
+
+  static async getRemoteData({
+    collectionName,
+    filters,
+    majorVersion,
+    lookupKey = record => record.name,
+  } = {}) {
+    const client = RemoteSettingsManager.getRemoteClient(collectionName);
+
+    let records = [];
+
+    if (majorVersion) {
+      records = await lazy.TranslationsParent.getMaxSupportedVersionRecords(
+        client,
+        {
+          filters,
+          minSupportedMajorVersion: majorVersion,
+          maxSupportedMajorVersion: majorVersion,
+          lookupKey,
+        }
+      );
+    } else {
+      records = await client.get({ filters });
+    }
+
+    // Handle case where multiple records exist
+    if (records.length > 1) {
+      throw new Error(
+        `Found more than one record in '${collectionName}' for filters ${JSON.stringify(filters)}. Double-check your filters.`
+      );
+    }
+
+    // If still no records, return null
+    if (records.length === 0) {
+      return null;
+    }
+
+    return records[0];
   }
 }

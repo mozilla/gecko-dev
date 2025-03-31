@@ -13,6 +13,7 @@ const {
   removeFromOPFS,
   RejectionType,
   BlockListManager,
+  RemoteSettingsManager,
 } = ChromeUtils.importESModule("chrome://global/content/ml/Utils.sys.mjs");
 
 /**
@@ -829,4 +830,278 @@ add_task(async function testBlockListManager_anywhere() {
     true,
     "should match for all blocked n-grams even if not at word boundary"
   );
+});
+
+/**
+ * Get test data for remote settings manager test.
+ *
+ */
+async function getMockedRemoteSettingsClients() {
+  const client1 = await createRemoteClient({
+    collectionName: "test-block-list",
+    records: [
+      {
+        version: "1.0.0",
+        name: "test-link-preview-en",
+        blockList: ["cGVyc29u"], // person
+        language: "en",
+        id: "1",
+      },
+      {
+        version: "1.0.0",
+        name: "test-link-preview-fr",
+        blockList: ["bW9p"], // moi
+        language: "fr",
+        id: "2",
+      },
+      {
+        version: "1.0.0",
+        name: "base-fr",
+        blockList: [],
+        language: "fr",
+        id: "3",
+      },
+      {
+        version: "2.0.0",
+        name: "test-link-preview-en",
+        blockList: ["b25l"], // one
+        language: "en",
+        id: "4",
+      },
+
+      {
+        version: "1.1.0",
+        name: "test-link-preview-en",
+        blockList: ["dHdv"], // two
+        language: "en",
+        id: "5",
+      },
+    ],
+  });
+
+  const client2 = await createRemoteClient({
+    collectionName: "test-request-options",
+    records: [
+      {
+        version: "1.0.0",
+        featureId: "test-link-preview",
+        options: JSON.stringify({ param1: "value1", number: 2 }),
+        id: "10",
+      },
+      {
+        version: "1.0.0",
+        featureId: "test-ml-suggest",
+        options: JSON.stringify({ suggest: "val" }),
+        id: "11",
+      },
+      {
+        version: "1.0.0",
+        featureId: "ml-i2t",
+        options: JSON.stringify({ size: 2 }),
+        id: "12",
+      },
+      {
+        version: "2.0.0",
+        featureId: "test-link-preview",
+        options: JSON.stringify({ param2: "value2", number2: 20 }),
+        id: "13",
+      },
+
+      {
+        version: "1.1.0",
+        featureId: "test-link-preview",
+        options: JSON.stringify({ param1: "value2", number: 3 }),
+        id: "14",
+      },
+    ],
+  });
+
+  const client3 = await createRemoteClient({
+    collectionName: "test-inference-options",
+    records: [
+      {
+        featureId: "test-link-preview",
+        id: "20",
+      },
+      {
+        featureId: "test-ml-suggest",
+        id: "21",
+      },
+    ],
+  });
+
+  return {
+    "test-block-list": client1,
+    "test-request-options": client2,
+    "test-inference-options": client3,
+  };
+}
+
+/**
+ * Test the Remote Settings Manager
+ *
+ */
+add_task(async function testRemoteSettingsManager() {
+  RemoteSettingsManager.mockRemoteSettings(
+    await getMockedRemoteSettingsClients()
+  );
+
+  let data = await RemoteSettingsManager.getRemoteData({
+    collectionName: "test-block-list",
+    filters: {
+      name: "test-link-preview-en",
+    },
+    majorVersion: 1,
+  });
+
+  Assert.deepEqual(
+    data,
+    {
+      version: "1.1.0",
+      name: "test-link-preview-en",
+      blockList: ["dHdv"],
+      language: "en",
+      id: "5",
+    },
+    "should retrieve the latest revision ignoring previous one"
+  );
+
+  data = await RemoteSettingsManager.getRemoteData({
+    collectionName: "test-block-list",
+    filters: {
+      name: "test-link-preview-en",
+      language: "en",
+    },
+    majorVersion: 2,
+  });
+
+  Assert.deepEqual(
+    data,
+    {
+      version: "2.0.0",
+      name: "test-link-preview-en",
+      blockList: ["b25l"],
+      language: "en",
+      id: "4",
+    },
+    "should retrieve the exact revision"
+  );
+
+  data = await RemoteSettingsManager.getRemoteData({
+    collectionName: "test-request-options",
+    filters: {
+      featureId: "test-link-preview",
+    },
+    majorVersion: 1,
+    lookupKey: record => record.featureId,
+  });
+
+  Assert.deepEqual(
+    data,
+    {
+      version: "1.1.0",
+      featureId: "test-link-preview",
+      options: JSON.stringify({ param1: "value2", number: 3 }),
+      id: "14",
+    },
+    "should retrieve from the correct collection even in presence of multiple"
+  );
+
+  data = await RemoteSettingsManager.getRemoteData({
+    collectionName: "test-inference-options",
+    filters: {
+      featureId: "test-link-preview",
+    },
+  });
+
+  Assert.deepEqual(
+    data,
+    {
+      featureId: "test-link-preview",
+      id: "20",
+    },
+    "should retrieve from the correct collection even in presence of multiple"
+  );
+
+  data = await RemoteSettingsManager.getRemoteData(
+    {
+      collectionName: "test-request-options",
+      filters: {
+        featureId: "test-link-previewP",
+      },
+      majorVersion: 1,
+      lookupKey: record => record.featureId,
+    },
+    "should work with lookupKey"
+  );
+
+  Assert.equal(data, null);
+
+  RemoteSettingsManager.removeMocks();
+});
+
+/**
+ * Test the Remote data Manager
+ *
+ */
+add_task(async function testBlockListManagerWithRS() {
+  RemoteSettingsManager.mockRemoteSettings(
+    await getMockedRemoteSettingsClients()
+  );
+
+  let manager = await BlockListManager.initializeFromRemoteSettings({
+    blockListName: "test-link-preview-en",
+    language: "en",
+    fallbackToDefault: false,
+    majorVersion: 1,
+    collectionName: "test-block-list",
+  });
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "two guy is here" }),
+    true,
+    "should retrieve the correct list and match <two> for the blocked word"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "one person is here, moi" }),
+    false,
+    "should retrieve the correct list and match nothing"
+  );
+
+  await Assert.rejects(
+    BlockListManager.initializeFromRemoteSettings({
+      blockListName: "test-link-preview-en-non-existing",
+      language: "en",
+      fallbackToDefault: false,
+      majorVersion: 1,
+      collectionName: "test-block-list",
+    }),
+    /./,
+    "should fails since the block list does not exist"
+  );
+
+  manager = await BlockListManager.initializeFromRemoteSettings({
+    blockListName: "test-link-preview-en-non-existing",
+    language: "en",
+    fallbackToDefault: true,
+    majorVersion: 1,
+    collectionName: "test-block-list",
+  });
+
+  Assert.equal(
+    manager.matchAtWordBoundary({
+      text: "the bells are ringing, ding dong ...",
+    }),
+    true,
+    "should not fail but fallback to default list with a match for dong"
+  );
+
+  Assert.equal(
+    manager.matchAtWordBoundary({ text: "two person is here, moi" }),
+    false,
+    "should not fail but fallback to default list with no matches found"
+  );
+
+  RemoteSettingsManager.removeMocks();
 });
