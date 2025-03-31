@@ -990,14 +990,10 @@ void nsCSPParser::handleTrustedTypesDirective(nsCSPDirective* aDir) {
           new nsCSPTrustedTypesDirectivePolicyName(mCurToken));
     } else {
       AutoTArray<nsString, 1> token = {mCurToken};
-      logWarningErrorToConsole(nsIScriptError::errorFlag,
+      logWarningErrorToConsole(nsIScriptError::warningFlag,
                                "invalidTrustedTypesExpression", token);
-
-      for (auto* trustedTypeExpression : trustedTypesExpressions) {
-        delete trustedTypeExpression;
-      }
-
-      return;
+      trustedTypesExpressions.AppendElement(
+          new nsCSPTrustedTypesDirectiveInvalidToken(mCurToken));
     }
   }
 
