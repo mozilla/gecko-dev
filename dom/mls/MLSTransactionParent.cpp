@@ -443,6 +443,32 @@ mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestGroupDetails(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestSend(
+    const nsTArray<uint8_t>& aGroupIdentifier,
+    const nsTArray<uint8_t>& aIdentifier, const nsTArray<uint8_t>& aMessage,
+    RequestSendResolver&& aResolver) {
+  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+          ("MLSTransactionParent::RecvRequestSend()"));
+
+  // Call to the MLS rust code
+  nsTArray<uint8_t> outputMessage;
+  nsresult rv = security::mls::mls_send(
+      &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
+      aIdentifier.Elements(), aIdentifier.Length(), aMessage.Elements(),
+      aMessage.Length(), &outputMessage);
+
+  // Return Nothing if failed
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aResolver(Nothing());
+    return IPC_OK();
+  }
+
+  // Return the result if success
+  aResolver(Some(RawBytes{std::move(outputMessage)}));
+
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestReceive(
     const nsTArray<uint8_t>& aClientIdentifier,
     const nsTArray<uint8_t>& aMessage, RequestReceiveResolver&& aResolver) {
@@ -469,6 +495,106 @@ mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestReceive(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestHasPendingProposals(
+    const nsTArray<uint8_t>& aGroupIdentifier,
+    const nsTArray<uint8_t>& aClientIdentifier,
+    RequestHasPendingProposalsResolver&& aResolver) {
+  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+          ("MLSTransactionParent::RecvRequestHasPendingProposals()"));
+
+  // Call to the MLS rust code
+  bool received = true;
+  nsresult rv = security::mls::mls_has_pending_proposals(
+      &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
+      aClientIdentifier.Elements(), aClientIdentifier.Length(), &received);
+
+  // Return Nothing if failed
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aResolver(received);
+    return IPC_OK();
+  }
+
+  // Return the result if success
+  aResolver(received);
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestClearPendingProposals(
+    const nsTArray<uint8_t>& aGroupIdentifier,
+    const nsTArray<uint8_t>& aClientIdentifier,
+    RequestClearPendingProposalsResolver&& aResolver) {
+  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+          ("MLSTransactionParent::RecvRequestCleanPendingProposals()"));
+
+  // Call to the MLS rust code
+  bool received = true;
+  nsresult rv = security::mls::mls_clear_pending_proposals(
+      &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
+      aClientIdentifier.Elements(), aClientIdentifier.Length(), &received);
+
+  // Return Nothing if failed
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aResolver(received);
+    return IPC_OK();
+  }
+
+  // Return the result if success
+  aResolver(received);
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestHasPendingCommit(
+    const nsTArray<uint8_t>& aGroupIdentifier,
+    const nsTArray<uint8_t>& aClientIdentifier,
+    RequestHasPendingCommitResolver&& aResolver) {
+  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+          ("MLSTransactionParent::RecvRequestHasPendingCommit()"));
+
+  // Call to the MLS rust code
+  bool received = true;
+  nsresult rv = security::mls::mls_has_pending_commit(
+      &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
+      aClientIdentifier.Elements(), aClientIdentifier.Length(), &received);
+
+  // Return Nothing if failed
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aResolver(received);
+    return IPC_OK();
+  }
+
+  // Return the result if success
+  aResolver(received);
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestClearPendingCommit(
+    const nsTArray<uint8_t>& aGroupIdentifier,
+    const nsTArray<uint8_t>& aClientIdentifier,
+    RequestClearPendingCommitResolver&& aResolver) {
+  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+          ("MLSTransactionParent::RecvRequestCleanPendingCommit()"));
+
+  // Call to the MLS rust code
+  bool received = true;
+  nsresult rv = security::mls::mls_clear_pending_commit(
+      &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
+      aClientIdentifier.Elements(), aClientIdentifier.Length(), &received);
+
+  // Return Nothing if failed
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aResolver(received);
+    return IPC_OK();
+  }
+
+  // Return the result if success
+  aResolver(received);
+
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestApplyPendingCommit(
     const nsTArray<uint8_t>& aGroupIdentifier,
     const nsTArray<uint8_t>& aClientIdentifier,
@@ -478,7 +604,7 @@ mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestApplyPendingCommit(
 
   // Call to the MLS rust code
   GkReceived received;
-  nsresult rv = security::mls::mls_receive_ack(
+  nsresult rv = security::mls::mls_apply_pending_commit(
       &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
       aClientIdentifier.Elements(), aClientIdentifier.Length(), &received);
 
@@ -490,32 +616,6 @@ mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestApplyPendingCommit(
 
   // Return the result if success
   aResolver(received);
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestSend(
-    const nsTArray<uint8_t>& aGroupIdentifier,
-    const nsTArray<uint8_t>& aIdentifier, const nsTArray<uint8_t>& aMessage,
-    RequestSendResolver&& aResolver) {
-  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
-          ("MLSTransactionParent::RecvRequestSend()"));
-
-  // Call to the MLS rust code
-  nsTArray<uint8_t> outputMessage;
-  nsresult rv = security::mls::mls_send(
-      &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
-      aIdentifier.Elements(), aIdentifier.Length(), aMessage.Elements(),
-      aMessage.Length(), &outputMessage);
-
-  // Return Nothing if failed
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aResolver(Nothing());
-    return IPC_OK();
-  }
-
-  // Return the result if success
-  aResolver(Some(RawBytes{std::move(outputMessage)}));
 
   return IPC_OK();
 }
@@ -566,6 +666,28 @@ mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestGetGroupIdentifier(
 
   // Return the result if success
   aResolver(Some(RawBytes{std::move(groupId)}));
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestGetGroupEpoch(
+    const nsTArray<uint8_t>& aMessage,
+    RequestGetGroupIdentifierResolver&& aResolver) {
+  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+          ("MLSTransactionParent::RecvRequestGetGroupEpoch()"));
+
+  nsTArray<uint8_t> groupEpoch;
+  nsresult rv = security::mls::mls_get_group_epoch(
+      aMessage.Elements(), aMessage.Length(), &groupEpoch);
+
+  // Return Nothing if failed
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aResolver(Nothing());
+    return IPC_OK();
+  }
+
+  // Return the result if success
+  aResolver(Some(RawBytes{std::move(groupEpoch)}));
 
   return IPC_OK();
 }

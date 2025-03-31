@@ -94,19 +94,39 @@ class MLSTransactionParent final : public PMLSTransactionParent {
       const nsTArray<uint8_t>& aIdentifier,
       RequestGroupDetailsResolver&& aResolver);
 
+  mozilla::ipc::IPCResult RecvRequestSend(
+      const nsTArray<uint8_t>& aGroupIdentifier,
+      const nsTArray<uint8_t>& aIdentifier, const nsTArray<uint8_t>& aMessage,
+      RequestSendResolver&& aResolver);
+
   mozilla::ipc::IPCResult RecvRequestReceive(
       const nsTArray<uint8_t>& aClientIdentifier,
       const nsTArray<uint8_t>& aMessage, RequestReceiveResolver&& aResolver);
+
+  mozilla::ipc::IPCResult RecvRequestHasPendingProposals(
+      const nsTArray<uint8_t>& aGroupIdentifier,
+      const nsTArray<uint8_t>& aClientIdentifier,
+      RequestHasPendingProposalsResolver&& aResolver);
+
+  mozilla::ipc::IPCResult RecvRequestClearPendingProposals(
+      const nsTArray<uint8_t>& aGroupIdentifier,
+      const nsTArray<uint8_t>& aClientIdentifier,
+      RequestClearPendingProposalsResolver&& aResolver);
+
+  mozilla::ipc::IPCResult RecvRequestHasPendingCommit(
+      const nsTArray<uint8_t>& aGroupIdentifier,
+      const nsTArray<uint8_t>& aClientIdentifier,
+      RequestHasPendingCommitResolver&& aResolver);
+
+  mozilla::ipc::IPCResult RecvRequestClearPendingCommit(
+      const nsTArray<uint8_t>& aGroupIdentifier,
+      const nsTArray<uint8_t>& aClientIdentifier,
+      RequestClearPendingCommitResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvRequestApplyPendingCommit(
       const nsTArray<uint8_t>& aGroupIdentifier,
       const nsTArray<uint8_t>& aClientIdentifier,
       RequestApplyPendingCommitResolver&& aResolver);
-
-  mozilla::ipc::IPCResult RecvRequestSend(
-      const nsTArray<uint8_t>& aGroupIdentifier,
-      const nsTArray<uint8_t>& aIdentifier, const nsTArray<uint8_t>& aMessage,
-      RequestSendResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvRequestExportSecret(
       const nsTArray<uint8_t>& aGroupIdentifier,
@@ -117,6 +137,10 @@ class MLSTransactionParent final : public PMLSTransactionParent {
   mozilla::ipc::IPCResult RecvRequestGetGroupIdentifier(
       const nsTArray<uint8_t>& aMessage,
       RequestGetGroupIdentifierResolver&& aResolver);
+
+  mozilla::ipc::IPCResult RecvRequestGetGroupEpoch(
+      const nsTArray<uint8_t>& aMessage,
+      RequestGetGroupEpochResolver&& aResolver);
 
  protected:
   ~MLSTransactionParent() = default;
