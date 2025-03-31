@@ -104,9 +104,9 @@ features:
               primary-button-label: onboarding_term_of_service_agree_and_continue_button_label
               extra-data:
                 term-of-service-data:
-                  line-one-text: onboarding_term_of_service_line_one
-                  line-one-link-text: onboarding_term_of_service_line_one_link_text
-                  line-two-text: onboarding_term_of_service_line_two
+                  line-one-text: onboarding_term_of_service_line_one_2
+                  line-one-link-text: onboarding_term_of_service_line_one_link_text_2
+                  line-two-text: onboarding_term_of_service_line_two_2
                   line-two-link-text: onboarding_term_of_service_line_two_link_text
                   line-three-text: onboarding_term_of_service_line_three
                   line-three-link-text: onboarding_term_of_service_line_three_link_text

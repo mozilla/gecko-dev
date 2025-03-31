@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 138.0 (In Development)
+# 139.0 (In Development)
+
+# 138.0
 * **support-ktx**
   * ⚠️ **Breaking change**: `Window.setupPersistentInsets()` will only work on Android 13+ to avoid framework insets inconsistencies on lower versions of Android. [Bug 1946404](https://bugzilla.mozilla.org/show_bug.cgi?id=1946404)
   * ⚠️ **Breaking change**: `ImeInsetsSynchronizer` will only work on Android 13+ to avoid framework insets inconsistencies on lower versions of Android. [Bug 1946404](https://bugzilla.mozilla.org/show_bug.cgi?id=1946404)
