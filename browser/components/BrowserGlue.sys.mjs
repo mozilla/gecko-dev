@@ -1874,7 +1874,9 @@ BrowserGlue.prototype = {
       Glean.startup.isCold.set(isColdStartup);
       Glean.startup.secondsSinceLastOsRestart.set(secondsSinceLastOSRestart);
     } catch (ex) {
-      console.error(ex);
+      if (ex.name !== "NS_ERROR_NOT_IMPLEMENTED") {
+        console.error(ex);
+      }
     }
   },
 
