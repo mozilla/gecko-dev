@@ -676,6 +676,17 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
     return;
   }
 
+  if (!GetInnerWindow()) {
+    // Workers don't use TaskController at the moment, so all the
+    // runnables have the same priorities. So we special case it
+    // here to allow "higher" prority tasks to run first before
+    // timers.
+    if (mGlobalObject.HasScheduledNormalOrHighPriorityWebTasks()) {
+      MOZ_ALWAYS_SUCCEEDS(MaybeSchedule(aNow));
+      return;
+    }
+  }
+
   Timeouts& timeouts(aProcessIdle ? mIdleTimeouts : mTimeouts);
 
   // Limit the overall time spent in RunTimeout() to reduce jank.
