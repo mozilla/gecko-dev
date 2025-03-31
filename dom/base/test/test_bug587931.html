@@ -12,15 +12,24 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=587931
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=587931">Mozilla Bug 587931</a>
 <pre id="test">
 <script type="application/javascript">
+
+var { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+
 /** Test for Bug 587931 **/
 SimpleTest.waitForExplicitFinish();
 var afterCount = 0;
 var lastBeforeExecute = null;
+var afterCountForSystemGroup = 0;
+// For system group
+var afterCountForSystemGroup = 0;
+var lastBeforeExecuteForSystemGroup = null;
 var expectedCurrentScriptInAfterScriptExecute = null;
 function verifyScript(n) {
   var curr = document.currentScript;
   is(curr, document.getElementById(n), "correct script (" + n + ")");
-  is(lastBeforeExecute, curr, "correct beforescript (" + n + ")");
+  is(lastBeforeExecute, AppConstants.NIGHTLY_BUILD ? null : curr, "correct beforescript (" + n + ")");
   document.addEventListener("afterscriptexecute", function(event) {
     afterCount++;
     lastBeforeExecute = null;
@@ -29,13 +38,26 @@ function verifyScript(n) {
        "document.currentScript in afterscriptexecute(" + n + ")");
     document.removeEventListener("afterscriptexecute", arguments.callee);
   });
+  // Test system group
+  SpecialPowers.wrap(document).addEventListener("afterscriptexecute", function(event) {
+    afterCountForSystemGroup++;
+    lastBeforeExecuteForSystemGroup = null;
+    is(event.target, curr, "correct afterscript (" + n + ") for system group");
+    is(document.currentScript, expectedCurrentScriptInAfterScriptExecute,
+       "document.currentScript in afterscriptexecute(" + n + ") for system group");
+  }, { mozSystemGroup: true, once: true });
 }
 document.onbeforescriptexecute = function(event) {
   lastBeforeExecute = event.target;
 };
+// Test system group
+SpecialPowers.wrap(document).addEventListener("beforescriptexecute", function(event) {
+  lastBeforeExecuteForSystemGroup = event.target;
+}, { mozSystemGroup: true });
 
 window.addEventListener("load", function() {
-  is(afterCount, 4, "correct number of afterscriptexecute");
+  is(afterCount, AppConstants.NIGHTLY_BUILD ? 0 : 4, "correct number of afterscriptexecute");
+  is(afterCountForSystemGroup, 4, "correct number of afterscriptexecute for system group");
   SimpleTest.finish();
 });
 </script>
@@ -64,17 +86,17 @@ document.body.appendChild(s);
 <!-- Test cancel using beforescriptexecute -->
 <script onbeforescriptexecute="return false;"
         onafterescriptexecute="window.firedAfterScriptExecuteForCancel = true;">
-ok(false, "should have been canceled");
+ok(AppConstants.NIGHTLY_BUILD, "should have been canceled");
 </script>
 <script>
 isnot(window.firedAfterScriptExecuteForCancel, true, "onafterscriptexecute executed");
 </script>
 
 <!-- Test cancel using beforescriptexecute for external -->
-<script onbeforescriptexecute="return false;"
+<script onbeforescriptexecute="window.extFiredBeforeScriptExecuteForCancel = true; return false;"
         onafterescriptexecute="window.extFiredAfterScriptExecuteForCancel = true;"
         onload="window.extFiredLoadForCancel = true;"
-        src="data:text/plain,ok(false, 'should have been canceled');">
+        src="data:text/plain,ok(!window.extFiredBeforeScriptExecuteForCancel, 'should have been canceled');">
 </script>
 <script>
 isnot(window.extFiredAfterScriptExecuteForCancel, true, "onafterscriptexecute executed");
@@ -86,17 +108,17 @@ is(extFiredLoadForCancel, true, "onload executed");
         onafterscriptexecute="window.afterDidExecute = true;"
         onload="window.loadDidExecute = true"
         onerror="window.errorDidExecute = true"
-        src="data:text/plain,
-is(window.beforeDidExecute, true, 'onbeforescriptexecute executed');
-isnot(window.afterDidExecute, true, 'onafterscriptexecute executed');
-isnot(window.loadDidExecute, true, 'onload executed');
-isnot(window.errorDidExecute, true, 'onerror executed');
-">
+        src="data:text/plain,window.didExecute=true">
+is(window.beforeDidExecute, AppConstants.NIGHTLY_BUILD ? undefined : true, 'onbeforescriptexecute executed');
+is(window.afterDidExecute, undefined, 'onafterscriptexecute executed');
+is(window.didExecute, true, 'script executed');
+is(window.loadDidExecute, undefined, 'onload executed');
+is(window.errorDidExecute, undefined, 'onerror executed');
 </script>
 <script>
-is(afterDidExecute, true, "onafterscriptexecute executed");
-is(loadDidExecute, true, "onload executed");
-isnot(window.errorDidExecute, true, "onerror executed");
+is(window.afterDidExecute, AppConstants.NIGHTLY_BUILD ? undefined : true, "onafterscriptexecute executed");
+is(window.loadDidExecute, true, "onload executed");
+is(window.errorDidExecute, undefined, "onerror executed");
 </script>
 </body>
 </html>

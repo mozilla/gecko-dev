@@ -137,25 +137,16 @@
       // Temporarily install a new onerror handler to catch script errors.
       var hasUncaughtError = false;
       var uncaughtError;
-      var eventOptions = {__proto__: null, once: true};
-      ReflectApply(EventTargetPrototypeAddEventListener, script, [
-        "beforescriptexecute", function() {
-          setGlobalOnError(function(messageOrEvent, source, lineno, colno, error) {
-            hasUncaughtError = true;
-            uncaughtError = error;
-            return true;
-          });
-        }, eventOptions
-      ]);
-      ReflectApply(EventTargetPrototypeAddEventListener, script, [
-        "afterscriptexecute", function() {
-          restoreGlobalOnError();
-        }, eventOptions
-      ]);
 
+      setGlobalOnError(function(messageOrEvent, source, lineno, colno, error) {
+        hasUncaughtError = true;
+        uncaughtError = error;
+        return true;
+      });
       ReflectApply(HTMLScriptElementTextSetter, script, [code]);
       AppendChild(documentDocumentElement, script);
       RemoveChild(documentDocumentElement, script);
+      restoreGlobalOnError();
 
       if (hasUncaughtError)
         throw uncaughtError;
@@ -554,7 +545,7 @@
         let nextScriptIndex = i + 1;
         if (nextScriptIndex < scripts.length) {
           var callNextAppend = () => appendScript(nextScriptIndex);
-          script.addEventListener("afterscriptexecute", callNextAppend, {once: true});
+          SpecialPowers.wrap(script).addEventListener("afterscriptexecute", callNextAppend, {mozSystemGroup: true, once: true});
 
           // Module scripts don't fire the "afterscriptexecute" event when there
           // was an error, instead the "error" event is emitted. So listen for

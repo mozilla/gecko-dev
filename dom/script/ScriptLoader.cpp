@@ -2435,7 +2435,10 @@ nsresult ScriptLoader::ProcessRequest(ScriptLoadRequest* aRequest) {
   if (runScript) {
     nsContentUtils::DispatchTrustedEvent(
         scriptElem->OwnerDoc(), scriptElem, u"beforescriptexecute"_ns,
-        CanBubble::eYes, Cancelable::eYes, &runScript);
+        CanBubble::eYes, Cancelable::eYes, &runScript,
+        StaticPrefs::dom_events_script_execute_enabled()
+            ? SystemGroupOnly::eNo
+            : SystemGroupOnly::eYes);
   }
 
   // Inner window could have gone away after firing beforescriptexecute
@@ -2454,9 +2457,12 @@ nsresult ScriptLoader::ProcessRequest(ScriptLoadRequest* aRequest) {
       doc->DecrementIgnoreDestructiveWritesCounter();
     }
 
-    nsContentUtils::DispatchTrustedEvent(scriptElem->OwnerDoc(), scriptElem,
-                                         u"afterscriptexecute"_ns,
-                                         CanBubble::eYes, Cancelable::eNo);
+    nsContentUtils::DispatchTrustedEvent(
+        scriptElem->OwnerDoc(), scriptElem, u"afterscriptexecute"_ns,
+        CanBubble::eYes, Cancelable::eNo, nullptr,
+        StaticPrefs::dom_events_script_execute_enabled()
+            ? SystemGroupOnly::eNo
+            : SystemGroupOnly::eYes);
   }
 
   FireScriptEvaluated(rv, aRequest);

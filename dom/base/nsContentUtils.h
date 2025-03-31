@@ -266,6 +266,7 @@ class nsContentUtils {
   using Trusted = mozilla::Trusted;
   using JSONBehavior = mozilla::dom::JSONBehavior;
   using RFPTarget = mozilla::RFPTarget;
+  using SystemGroupOnly = mozilla::SystemGroupOnly;
 
  public:
   static nsresult Init();
@@ -1556,24 +1557,22 @@ class nsContentUtils {
    */
   // TODO: annotate with `MOZ_CAN_RUN_SCRIPT`
   // (https://bugzilla.mozilla.org/show_bug.cgi?id=1625902).
-  static nsresult DispatchTrustedEvent(Document* aDoc,
-                                       mozilla::dom::EventTarget* aTarget,
-                                       const nsAString& aEventName, CanBubble,
-                                       Cancelable,
-                                       Composed aComposed = Composed::eDefault,
-                                       bool* aDefaultAction = nullptr);
+  static nsresult DispatchTrustedEvent(
+      Document* aDoc, mozilla::dom::EventTarget* aTarget,
+      const nsAString& aEventName, CanBubble, Cancelable,
+      Composed aComposed = Composed::eDefault, bool* aDefaultAction = nullptr,
+      SystemGroupOnly aSystemGroupOnly = SystemGroupOnly::eNo);
 
   // TODO: annotate with `MOZ_CAN_RUN_SCRIPT`
   // (https://bugzilla.mozilla.org/show_bug.cgi?id=1625902).
-  static nsresult DispatchTrustedEvent(Document* aDoc,
-                                       mozilla::dom::EventTarget* aTarget,
-                                       const nsAString& aEventName,
-                                       CanBubble aCanBubble,
-                                       Cancelable aCancelable,
-                                       bool* aDefaultAction) {
+  static nsresult DispatchTrustedEvent(
+      Document* aDoc, mozilla::dom::EventTarget* aTarget,
+      const nsAString& aEventName, CanBubble aCanBubble, Cancelable aCancelable,
+      bool* aDefaultAction,
+      SystemGroupOnly aSystemGroupOnly = SystemGroupOnly::eNo) {
     return DispatchTrustedEvent(aDoc, aTarget, aEventName, aCanBubble,
-                                aCancelable, Composed::eDefault,
-                                aDefaultAction);
+                                aCancelable, Composed::eDefault, aDefaultAction,
+                                aSystemGroupOnly);
   }
 
   /**
@@ -3577,7 +3576,8 @@ class nsContentUtils {
       Document* aDoc, mozilla::dom::EventTarget* aTarget,
       const nsAString& aEventName, CanBubble, Cancelable, Composed, Trusted,
       bool* aDefaultAction = nullptr,
-      ChromeOnlyDispatch = ChromeOnlyDispatch::eNo);
+      ChromeOnlyDispatch = ChromeOnlyDispatch::eNo,
+      SystemGroupOnly = SystemGroupOnly::eNo);
 
   // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
   MOZ_CAN_RUN_SCRIPT_BOUNDARY static nsresult DispatchEvent(

@@ -2914,6 +2914,12 @@
   value: true
   mirror: always
 
+# Whether to dispatch `beforescriptexecute` and `afterscriptexecute` event.
+- name: dom.events.script_execute.enabled
+  type: bool
+  value: @IS_NOT_NIGHTLY_BUILD@
+  mirror: always
+
 # Whether to expose test interfaces of various sorts
 - name: dom.expose_test_interfaces
   type: bool

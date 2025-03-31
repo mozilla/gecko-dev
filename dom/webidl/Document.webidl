@@ -373,7 +373,9 @@ partial interface Document {
 //  Mozilla extensions of various sorts
 partial interface Document {
   // @deprecated We are going to remove these (bug 1584269).
+  [Pref="dom.events.script_execute.enabled"]
   attribute EventHandler onbeforescriptexecute;
+  [Pref="dom.events.script_execute.enabled"]
   attribute EventHandler onafterscriptexecute;
 
   // Creates a new XUL element regardless of the document's default type.

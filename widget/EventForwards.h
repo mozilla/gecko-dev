@@ -48,6 +48,8 @@ enum class Trusted { eYes, eNo };
 
 enum class Composed { eYes, eNo, eDefault };
 
+enum class SystemGroupOnly { eYes, eNo };
+
 /**
  * Event messages
  */

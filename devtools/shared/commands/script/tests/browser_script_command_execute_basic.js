@@ -924,8 +924,7 @@ async function doEagerEvalDOMGetters(commands) {
     [`typeof document.lastModified`, "string"],
     [`typeof document.readyState`, "string"],
     [`typeof document.designMode`, "string"],
-    [`typeof document.onbeforescriptexecute`, "object"],
-    [`typeof document.onafterscriptexecute`, "object"],
+    [`typeof document.onabort`, "object"],
 
     // Element
     [`typeof document.documentElement.scrollTop`, "number"],
