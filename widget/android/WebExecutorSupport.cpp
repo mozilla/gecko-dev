@@ -9,6 +9,7 @@
 #include "InetAddress.h"  // for java::sdk::InetAddress and java::sdk::UnknownHostException
 #include "ReferrerInfo.h"
 #include "WebExecutorSupport.h"
+#include "OhttpHelper.h"
 
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsICancelable.h"
@@ -39,8 +40,9 @@ using namespace net;
 
 namespace widget {
 
-static void CompleteWithError(java::GeckoResult::Param aResult,
-                              nsresult aStatus, nsIChannel* aChannel) {
+void WebExecutorSupport::CompleteWithError(java::GeckoResult::Param aResult,
+                                           nsresult aStatus,
+                                           nsIChannel* aChannel) {
   nsCOMPtr<nsINSSErrorsService> errSvc =
       do_GetService("@mozilla.org/nss_errors_service;1");
   MOZ_ASSERT(errSvc);
@@ -61,11 +63,6 @@ static void CompleteWithError(java::GeckoResult::Param aResult,
       int64_t(aStatus), NS_ERROR_GET_MODULE(aStatus), errorClass, certBytes);
 
   aResult->CompleteExceptionally(error.Cast<jni::Throwable>());
-}
-
-static void CompleteWithError(java::GeckoResult::Param aResult,
-                              nsresult aStatus) {
-  CompleteWithError(aResult, aStatus, nullptr);
 }
 
 class ByteBufferStream final : public nsIInputStream {
@@ -181,7 +178,7 @@ class LoaderListener final : public GeckoViewStreamListener {
   }
 
   void CompleteWithError(nsresult aStatus, nsIChannel* aChannel) override {
-    mozilla::widget::CompleteWithError(mResult, aStatus, aChannel);
+    WebExecutorSupport::CompleteWithError(mResult, aStatus, aChannel);
   }
 
   virtual ~LoaderListener() {}
@@ -262,6 +259,23 @@ class DNSListener final : public nsIDNSListener {
 };
 
 NS_IMPL_ISUPPORTS(DNSListener, nsIDNSListener)
+
+nsresult WebExecutorSupport::PerformOrQueueOhttpRequest(
+    java::WebRequest::Param aRequest, int32_t aFlags,
+    java::GeckoResult::Param aResult, bool bypassConfigCache /* = false */) {
+  // Perform the request if the config has been fetched.
+  if (OhttpHelper::IsConfigReady() && !bypassConfigCache) {
+    return CreateStreamLoader(aRequest, aFlags, aResult);
+  }
+
+  RefPtr<OhttpHelper::OhttpRequest> request = new OhttpHelper::OhttpRequest();
+  request->request = aRequest;
+  request->flags = aFlags;
+  request->result = aResult;
+  OhttpHelper::QueueOhttpRequest(request);
+
+  return OhttpHelper::FetchConfigAndFulfillRequests();
+}
 
 static nsresult ConvertCacheMode(int32_t mode, int32_t& result) {
   switch (mode) {
@@ -379,33 +393,43 @@ nsresult WebExecutorSupport::CreateStreamLoader(
   NS_ENSURE_SUCCESS(rv, NS_ERROR_MALFORMED_URI);
 
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), uri,
-                     nsContentUtils::GetSystemPrincipal(),
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-                     nsIContentPolicy::TYPE_OTHER);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (aFlags & java::GeckoWebExecutor::FETCH_FLAGS_OHTTP) {
+    rv = OhttpHelper::CreateChannel(aRequest, uri, getter_AddRefs(channel));
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    rv = NS_NewChannel(getter_AddRefs(channel), uri,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+                       nsIContentPolicy::TYPE_OTHER);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   if (aFlags & java::GeckoWebExecutor::FETCH_FLAGS_ANONYMOUS) {
     channel->SetLoadFlags(nsIRequest::LOAD_ANONYMOUS);
   }
 
-  bool shouldResistFingerprinting = nsContentUtils::ShouldResistFingerprinting(
-      channel, RFPTarget::IsAlwaysEnabledForPrecompute);
-  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
-  if (aFlags & java::GeckoWebExecutor::FETCH_FLAGS_PRIVATE) {
-    nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(channel);
-    NS_ENSURE_TRUE(pbChannel, NS_ERROR_FAILURE);
-    pbChannel->SetPrivate(true);
-    cookieJarSettings = CookieJarSettings::Create(CookieJarSettings::ePrivate,
-                                                  shouldResistFingerprinting);
-  } else {
-    cookieJarSettings = CookieJarSettings::Create(CookieJarSettings::eRegular,
-                                                  shouldResistFingerprinting);
-  }
-  MOZ_ASSERT(cookieJarSettings);
+  // Don't set the cookie jar settings for Ohttp requests
+  if (!(aFlags & java::GeckoWebExecutor::FETCH_FLAGS_OHTTP)) {
+    bool shouldResistFingerprinting =
+        nsContentUtils::ShouldResistFingerprinting(
+            channel, RFPTarget::IsAlwaysEnabledForPrecompute);
+    nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+    if (aFlags & java::GeckoWebExecutor::FETCH_FLAGS_PRIVATE) {
+      nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel =
+          do_QueryInterface(channel);
+      NS_ENSURE_TRUE(pbChannel, NS_ERROR_FAILURE);
+      pbChannel->SetPrivate(true);
+      cookieJarSettings = CookieJarSettings::Create(CookieJarSettings::ePrivate,
+                                                    shouldResistFingerprinting);
+    } else {
+      cookieJarSettings = CookieJarSettings::Create(CookieJarSettings::eRegular,
+                                                    shouldResistFingerprinting);
+    }
+    MOZ_ASSERT(cookieJarSettings);
 
-  nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-  loadInfo->SetCookieJarSettings(cookieJarSettings);
+    nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+    loadInfo->SetCookieJarSettings(cookieJarSettings);
+  }
 
   // setup http/https specific things
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel, &rv));
@@ -434,6 +458,14 @@ void WebExecutorSupport::Fetch(jni::Object::Param aRequest, int32_t aFlags,
                                jni::Object::Param aResult) {
   const auto request = java::WebRequest::LocalRef(aRequest);
   auto result = java::GeckoResult::LocalRef(aResult);
+
+  if (aFlags & java::GeckoWebExecutor::FETCH_FLAGS_OHTTP) {
+    nsresult rv = PerformOrQueueOhttpRequest(request, aFlags, result);
+    if (NS_FAILED(rv)) {
+      CompleteWithError(result, rv);
+    }
+    return;
+  }
 
   nsresult rv = CreateStreamLoader(request, aFlags, result);
   if (NS_FAILED(rv)) {

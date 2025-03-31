@@ -60,6 +60,7 @@ public class GeckoWebExecutor {
     FETCH_FLAGS_NO_REDIRECTS,
     FETCH_FLAGS_PRIVATE,
     FETCH_FLAGS_STREAM_FAILURE_TEST,
+    FETCH_FLAGS_OHTTP,
   })
   public @interface FetchFlags {}
 
@@ -80,6 +81,9 @@ public class GeckoWebExecutor {
 
   /** This flag causes a read error in the {@link WebResponse} body. Useful for testing. */
   @WrapForJNI public static final int FETCH_FLAGS_STREAM_FAILURE_TEST = 1 << 10;
+
+  /** Use the OHTTP relay for this request. */
+  @WrapForJNI public static final int FETCH_FLAGS_OHTTP = 1 << 11;
 
   /**
    * Create a new GeckoWebExecutor instance.

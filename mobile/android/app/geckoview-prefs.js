@@ -370,6 +370,12 @@ pref("network.protocol-handler.warn-external.vnd.youtube", false);
 // (bug 888268)
 pref("network.tickle-wifi.enabled", true);
 
+// Controls OHTTP config URL
+pref("network.ohttp.configURL", "https://prod.ohttp-gateway.prod.webservices.mozgcp.net/ohttp-configs");
+
+// Controls OHTTP relay URL
+pref("network.ohttp.relayURL", "https://mozilla-ohttp.fastly-edge.com/");
+
 // Complete the page load progress bar at different places according to this pref.
 // See the possible values below:
 // 0 no change
