@@ -5,8 +5,17 @@
 const { UrlbarSearchUtils } = ChromeUtils.importESModule(
   "resource:///modules/UrlbarSearchUtils.sys.mjs"
 );
+const { updateAppInfo } = ChromeUtils.importESModule(
+  "resource://testing-common/AppInfo.sys.mjs"
+);
 
 let baconEngineExtension;
+
+add_setup(async function () {
+  updateAppInfo({
+    name: "firefox",
+  });
+});
 
 add_task(async function () {
   await UrlbarSearchUtils.init();
@@ -61,15 +70,18 @@ add_task(async function hide_search_engine_nomatch() {
 });
 
 add_task(async function onlyEnabled_option_nomatch() {
-  let engine = await Services.search.getDefault();
-  let domain = engine.searchUrlDomain;
+  let defaultEngine = await Services.search.getDefault();
+  let domain = defaultEngine.searchUrlDomain;
   let token = domain.substr(0, 1);
-  engine.hideOneOffButton = true;
+  defaultEngine.hideOneOffButton = true;
+
   let matchedEngines = await UrlbarSearchUtils.enginesForDomainPrefix(token);
-  Assert.equal(matchedEngines.length, 0);
-  engine.hideOneOffButton = false;
+  Assert.notEqual(matchedEngines[0], defaultEngine);
+
+  defaultEngine.hideOneOffButton = false;
   matchedEngines = await UrlbarSearchUtils.enginesForDomainPrefix(token);
   Assert.equal(matchedEngines[0].searchUrlDomain, domain);
+  Assert.equal(matchedEngines[0], defaultEngine);
 });
 
 add_task(async function add_search_engine_match() {
