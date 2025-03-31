@@ -11,6 +11,7 @@ import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.pocket.PocketStory
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.controller.BookmarksController
 import org.mozilla.fenix.home.interactor.HomepageInteractor
@@ -219,6 +220,21 @@ interface WallpaperInteractor {
 }
 
 /**
+ * Interface for setup checklist feature related actions.
+ */
+interface SetupChecklistInteractor {
+    /**
+     * Gets invoked when the user clicks a check list item.
+     */
+    fun onChecklistItemClicked(item: ChecklistItem)
+
+    /**
+     * Invoked when the remove button is clicked.
+     */
+    fun onRemoveChecklistButtonClicked()
+}
+
+/**
  * Interactor for the Home screen. Provides implementations for the CollectionInteractor,
  * OnboardingInteractor, TopSiteInteractor, TabSessionInteractor, ToolbarInteractor,
  * ExperimentCardInteractor, RecentTabInteractor, RecentBookmarksInteractor
@@ -299,6 +315,14 @@ class SessionControlInteractor(
 
     override fun showWallpapersOnboardingDialog(state: WallpaperState): Boolean {
         return controller.handleShowWallpapersOnboardingDialog(state)
+    }
+
+    override fun onChecklistItemClicked(item: ChecklistItem) {
+        controller.onChecklistItemClicked(item)
+    }
+
+    override fun onRemoveChecklistButtonClicked() {
+        controller.onRemoveChecklistButtonClicked()
     }
 
     override fun onToggleCollectionExpanded(collection: TabCollection, expand: Boolean) {

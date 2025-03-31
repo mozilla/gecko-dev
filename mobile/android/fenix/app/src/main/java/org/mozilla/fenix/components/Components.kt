@@ -32,6 +32,8 @@ import org.mozilla.fenix.autofill.AutofillSearchActivity
 import org.mozilla.fenix.autofill.AutofillUnlockActivity
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
+import org.mozilla.fenix.components.appstate.setup.checklist.getSetupChecklistCollection
 import org.mozilla.fenix.components.metrics.MetricsMiddleware
 import org.mozilla.fenix.crashes.CrashReportingAppMiddleware
 import org.mozilla.fenix.crashes.SettingsCrashReportCache
@@ -49,6 +51,7 @@ import org.mozilla.fenix.home.blocklist.BlocklistHandler
 import org.mozilla.fenix.home.blocklist.BlocklistMiddleware
 import org.mozilla.fenix.home.middleware.HomeTelemetryMiddleware
 import org.mozilla.fenix.messaging.state.MessagingMiddleware
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.FenixOnboarding
 import org.mozilla.fenix.perf.AppStartReasonProvider
 import org.mozilla.fenix.perf.StartupActivityLog
@@ -224,6 +227,7 @@ class Components(private val context: Context) {
                     emptyList()
                 },
                 recentHistory = emptyList(),
+                setupChecklistState = setupChecklistState(),
             ).run { filterState(blocklistHandler) },
             middlewares = listOf(
                 BlocklistMiddleware(blocklistHandler),
@@ -248,6 +252,13 @@ class Components(private val context: Context) {
         ).also {
             it.dispatch(AppAction.CrashActionWrapper(CrashAction.Initialize))
         }
+    }
+
+    private fun setupChecklistState() = if (settings.showSetupChecklist) {
+        val type = FxNimbus.features.setupChecklist.value().setupChecklistType
+        SetupChecklistState(checklistItems = getSetupChecklistCollection(type))
+    } else {
+        null
     }
 
     val remoteSettingsService = lazyMonitored {

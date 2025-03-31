@@ -27,6 +27,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.RecentlyVisitedHomepage
 import org.mozilla.fenix.R
+import org.mozilla.fenix.checklist.SetupChecklist
 import org.mozilla.fenix.compose.MessageCard
 import org.mozilla.fenix.compose.button.TertiaryButton
 import org.mozilla.fenix.compose.home.HomeSectionHeader
@@ -122,6 +123,16 @@ internal fun Homepage(
                     if (showSearchBar) {
                         SearchBar(
                             onClick = interactor::onNavigateSearch,
+                        )
+                    }
+
+                    if (setupChecklistState != null) {
+                        SetupChecklist(
+                            setupChecklistState = setupChecklistState,
+                            interactor = interactor,
+                            title = "Finish setting up Firefox",
+                            subtitle = "Complete all 6 steps to set up Firefox for the best browsing experience.",
+                            labelRemoveChecklistButton = "Remove checklist",
                         )
                     }
 
@@ -413,6 +424,7 @@ private fun HomepagePreview() {
                     showRecentlyVisited = true,
                     showPocketStories = true,
                     showSearchBar = true,
+                    setupChecklistState = null,
                     topSiteColors = TopSiteColors.colors(),
                     cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                     buttonTextColor = WallpaperState.default.buttonTextColor,
@@ -448,6 +460,7 @@ private fun HomepagePreviewCollections() {
                 showRecentlyVisited = true,
                 showPocketStories = true,
                 showSearchBar = true,
+                setupChecklistState = null,
                 topSiteColors = TopSiteColors.colors(),
                 cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                 buttonTextColor = WallpaperState.default.buttonTextColor,
