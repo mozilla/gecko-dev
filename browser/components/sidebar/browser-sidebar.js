@@ -2132,14 +2132,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebarRevampVisibility",
   "sidebar.visibility",
   "always-show",
-  async (_aPreference, _previousValue, newValue) => {
+  (_aPreference, _previousValue, newValue) => {
     if (
       !SidebarController.inSingleTabWindow &&
       !SidebarController.uninitializing
     ) {
-      await SidebarController.toggleExpandOnHover(
-        newValue === "expand-on-hover"
-      );
+      SidebarController.toggleExpandOnHover(newValue === "expand-on-hover");
       SidebarController.recordVisibilitySetting(newValue);
       if (SidebarController._state) {
         // we need to use the pref rather than SidebarController's getter here
