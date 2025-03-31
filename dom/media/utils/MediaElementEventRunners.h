@@ -91,7 +91,7 @@ class nsMediaEventRunner : public nsIRunnable, public nsINamed {
  protected:
   virtual ~nsMediaEventRunner() = default;
   bool IsCancelled() const;
-  nsresult DispatchEvent(const nsAString& aName);
+  MOZ_CAN_RUN_SCRIPT nsresult FireEvent(const nsAString& aName);
 
   virtual void ReportProfilerMarker();
   uint64_t GetElementDurationMs() const;
@@ -109,7 +109,7 @@ class nsAsyncEventRunner : public nsMediaEventRunner {
  public:
   nsAsyncEventRunner(const nsAString& aEventName, HTMLMediaElement* aElement)
       : nsMediaEventRunner(u"nsAsyncEventRunner"_ns, aElement, aEventName) {}
-  NS_IMETHOD Run() override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override;
 };
 
 /**
@@ -155,7 +155,7 @@ class nsNotifyAboutPlayingRunner
       nsTArray<RefPtr<PlayPromise>>&& aPendingPlayPromises)
       : nsResolveOrRejectPendingPlayPromisesRunner(
             aElement, std::move(aPendingPlayPromises)) {}
-  NS_IMETHOD Run() override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override;
 };
 
 /**
@@ -191,7 +191,7 @@ class nsTimeupdateRunner : public nsMediaEventRunner {
       : nsMediaEventRunner(u"nsTimeupdateRunner"_ns, aElement,
                            u"timeupdate"_ns),
         mIsMandatory(aIsMandatory) {}
-  NS_IMETHOD Run() override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override;
 
  private:
   void ReportProfilerMarker() override;

@@ -6504,15 +6504,15 @@ already_AddRefed<nsMediaEventRunner> HTMLMediaElement::GetEventRunner(
   return runner.forget();
 }
 
-nsresult HTMLMediaElement::DispatchEvent(const nsAString& aName) {
-  LOG_EVENT(LogLevel::Debug, ("%p Dispatching event %s", this,
-                              NS_ConvertUTF16toUTF8(aName).get()));
-
+nsresult HTMLMediaElement::FireEvent(const nsAString& aName) {
   if (mEventBlocker->ShouldBlockEventDelivery()) {
     RefPtr<nsMediaEventRunner> runner = GetEventRunner(aName);
     mEventBlocker->PostponeEvent(runner);
     return NS_OK;
   }
+
+  LOG_EVENT(LogLevel::Debug,
+            ("%p Firing event %s", this, NS_ConvertUTF16toUTF8(aName).get()));
 
   return nsContentUtils::DispatchTrustedEvent(OwnerDoc(), this, aName,
                                               CanBubble::eNo, Cancelable::eNo);

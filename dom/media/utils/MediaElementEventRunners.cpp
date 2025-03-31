@@ -30,11 +30,11 @@ bool nsMediaEventRunner::IsCancelled() const {
   return !mElement || mElement->GetCurrentLoadID() != mLoadID;
 }
 
-nsresult nsMediaEventRunner::DispatchEvent(const nsAString& aName) {
+nsresult nsMediaEventRunner::FireEvent(const nsAString& aName) {
   nsresult rv = NS_OK;
   if (mElement) {
     ReportProfilerMarker();
-    rv = mElement->DispatchEvent(aName);
+    rv = RefPtr { mElement } -> FireEvent(aName);
   }
   return rv;
 }
@@ -112,7 +112,7 @@ NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP nsAsyncEventRunner::Run() {
   // Silently cancel if our load has been cancelled or element has been CCed.
-  return IsCancelled() ? NS_OK : DispatchEvent(mEventName);
+  return IsCancelled() ? NS_OK : FireEvent(mEventName);
 }
 
 nsResolveOrRejectPendingPlayPromisesRunner::
@@ -145,7 +145,7 @@ NS_IMETHODIMP nsResolveOrRejectPendingPlayPromisesRunner::Run() {
 
 NS_IMETHODIMP nsNotifyAboutPlayingRunner::Run() {
   if (!IsCancelled()) {
-    DispatchEvent(u"playing"_ns);
+    FireEvent(u"playing"_ns);
   }
   return nsResolveOrRejectPendingPlayPromisesRunner::Run();
 }
@@ -192,7 +192,7 @@ NS_IMETHODIMP nsTimeupdateRunner::Run() {
   // of time then we end up spending all time handling just timeupdate events.
   // The spec is vague in this situation, so we choose to update time after we
   // dispatch the event in order to solve that issue.
-  nsresult rv = DispatchEvent(mEventName);
+  nsresult rv = FireEvent(mEventName);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     LOG_EVENT(LogLevel::Debug,
               ("%p Failed to dispatch 'timeupdate'", mElement.get()));
