@@ -642,6 +642,7 @@ let JSWINDOWACTORS = {
       // so it needs to be allowed for it.
       "about:translations",
     ],
+    messageManagerGroups: ["browsers"],
     enablePreference: "browser.translations.enable",
   },
 

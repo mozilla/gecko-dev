@@ -63,9 +63,9 @@ add_task(async function test_shutdown_blocker() {
   let promiseDisconnected = SyncDisconnect.disconnect(true);
 
   // Pretend we hit the shutdown blocker.
-  info("simulating quitApplicationGranted");
+  info("simulating appShutdownConfirmed");
   Services.prefs.setBoolPref("toolkit.asyncshutdown.testing", true);
-  AsyncShutdown.quitApplicationGranted._trigger();
+  AsyncShutdown.appShutdownConfirmed._trigger();
   Services.prefs.clearUserPref("toolkit.asyncshutdown.testing");
 
   info("waiting for disconnect to complete");

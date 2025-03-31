@@ -927,12 +927,12 @@ bool nsHTTPSOnlyUtils::IsHttpDowngrade(nsIURI* aFromURI, nsIURI* aToURI) {
   }
 
   // 2. If the target URI is not http, then it's not a http downgrade
-  if (!mozilla::net::SchemeIsHTTP(aToURI)) {
+  if (!aToURI->SchemeIs("http")) {
     return false;
   }
 
   // 3. If the origin URI isn't https, then it's not a http downgrade either.
-  if (!mozilla::net::SchemeIsHTTPS(aFromURI)) {
+  if (!aFromURI->SchemeIs("https")) {
     return false;
   }
 

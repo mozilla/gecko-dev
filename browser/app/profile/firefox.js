@@ -2131,6 +2131,7 @@ pref("browser.ml.chat.sidebar", true);
 pref("browser.ml.linkPreview.allowedLanguages", "en");
 pref("browser.ml.linkPreview.enabled", false);
 pref("browser.ml.linkPreview.outputSentences", 3);
+pref("browser.ml.linkPreview.blockListEnabled", true);
 
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);

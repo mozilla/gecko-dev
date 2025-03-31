@@ -826,7 +826,7 @@ EventSourceImpl::AsyncOnChannelRedirect(
   rv = NS_GetFinalChannelURI(aNewChannel, getter_AddRefs(newURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bool isValidScheme = newURI->SchemeIs("http") || newURI->SchemeIs("https");
+  bool isValidScheme = net::SchemeIsHttpOrHttps(newURI);
 
   rv =
       mIsMainThread ? GetEventSource()->CheckCurrentGlobalCorrectness() : NS_OK;
@@ -988,7 +988,7 @@ nsresult EventSourceImpl::InitChannelAndRequestEventSource(
     return NS_ERROR_ABORT;
   }
 
-  bool isValidScheme = mSrc->SchemeIs("http") || mSrc->SchemeIs("https");
+  bool isValidScheme = net::SchemeIsHttpOrHttps(mSrc);
 
   MOZ_ASSERT_IF(mIsMainThread, aEventTargetAccessAllowed);
 

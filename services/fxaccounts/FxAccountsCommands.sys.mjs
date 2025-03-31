@@ -638,7 +638,7 @@ export class CommandQueue {
     this.#isObservingTabSyncs = true;
     log.trace("Command queue observer created");
     this.#onShutdownBound = this.#onShutdown.bind(this);
-    lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+    lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
       "FxAccountsCommands: flush command queue",
       this.#onShutdownBound
     );
@@ -654,7 +654,7 @@ export class CommandQueue {
       Services.obs.removeObserver(this, "weave:engine:sync:finish");
       this.#isObservingTabSyncs = false;
     }
-    lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+    lazy.AsyncShutdown.appShutdownConfirmed.removeBlocker(
       this.#onShutdownBound
     );
     this.#onShutdownBound = null;

@@ -162,7 +162,7 @@ void LocationBase::SetURI(nsIURI* aURI, nsIPrincipal& aSubjectPrincipal,
   rv = bc->LoadURI(loadState);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     if (rv == NS_ERROR_DOM_BAD_CROSS_ORIGIN_URI &&
-        net::SchemeIsJavascript(loadState->URI())) {
+        loadState->URI()->SchemeIs("javascript")) {
       // Per spec[1], attempting to load a javascript: URI into a cross-origin
       // BrowsingContext is a no-op, and should not raise an exception.
       // Technically, Location setters run with exceptions enabled should only

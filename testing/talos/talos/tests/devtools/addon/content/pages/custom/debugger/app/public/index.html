@@ -17,10 +17,10 @@
   </style>
 </head>
 <body>
-
-  <!-- For now we load the iframe in the same site as the damp top frame.
-       We will switch to a different-site URL (eg http://damp.iframe.com) when
-       DevTools work against remote frames. -->
+  <!-- Bug 1454025: Update this test to target http://damp.iframe.com to assert
+       remote frames. Blocked because the test reaches the iframe window
+       directly (Bug 1597549).
+       -->
   <iframe
     src="http://damp.top.com/tests/devtools/addon/content/pages/custom/debugger/app-build/iframe.html"
   ></iframe>

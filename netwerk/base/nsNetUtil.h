@@ -1091,21 +1091,9 @@ nsresult GetParameterHTTP(const nsACString& aHeaderVal, const char* aParamName,
 bool ChannelIsPost(nsIChannel* aChannel);
 
 /**
- * Convenience functions for verifying nsIURI schemes. These functions simply
- * wrap aURI->SchemeIs(), but specify the protocol as part of the function name.
+ * Convenience function for verifying nsIURI scheme is either HTTP or HTTPS.
  */
-
-bool SchemeIsHTTP(nsIURI* aURI);
-bool SchemeIsHTTPS(nsIURI* aURI);
-bool SchemeIsJavascript(nsIURI* aURI);
-bool SchemeIsChrome(nsIURI* aURI);
-bool SchemeIsAbout(nsIURI* aURI);
-bool SchemeIsBlob(nsIURI* aURI);
-bool SchemeIsFile(nsIURI* aURI);
-bool SchemeIsData(nsIURI* aURI);
-bool SchemeIsViewSource(nsIURI* aURI);
-bool SchemeIsResource(nsIURI* aURI);
-bool SchemeIsFTP(nsIURI* aURI);
+bool SchemeIsHttpOrHttps(nsIURI* aURI);
 
 // Helper functions for SetProtocol methods to follow
 // step 2.1 in https://url.spec.whatwg.org/#scheme-state

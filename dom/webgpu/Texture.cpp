@@ -108,6 +108,7 @@ already_AddRefed<TextureView> Texture::CreateView(
   }
 
   RefPtr<TextureView> view = new TextureView(this, id);
+  view->SetLabel(aDesc.mLabel);
   return view.forget();
 }
 

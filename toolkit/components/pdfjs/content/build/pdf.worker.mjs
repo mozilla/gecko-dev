@@ -5836,7 +5836,10 @@ class JpxImage {
     const path = `${this.#wasmUrl}openjpeg_nowasm_fallback.js`;
     let instance = null;
     try {
-      const mod = await import(/*webpackIgnore: true*/path);
+      const mod = await import(
+      /*webpackIgnore: true*/
+      /*@vite-ignore*/
+      path);
       instance = mod.default();
     } catch (e) {
       warn(`JpxImage#getJsModule: ${e}`);
@@ -31097,7 +31100,7 @@ class PartialEvaluator {
       optionalContent = await this.parseMarkedContentProps(dict.get("OC"), resources);
     }
     const imageMask = dict.get("IM", "ImageMask") || false;
-    let imgData, args;
+    let imgData, fn, args;
     if (imageMask) {
       const interpolate = dict.get("I", "Interpolate");
       const bitStrideLength = w + 7 >> 3;
@@ -31113,11 +31116,12 @@ class PartialEvaluator {
           interpolate
         });
         imgData.cached = !!cacheKey;
+        fn = OPS.paintImageMaskXObject;
         args = [imgData];
-        operatorList.addImageOps(OPS.paintImageMaskXObject, args, optionalContent);
+        operatorList.addImageOps(fn, args, optionalContent);
         if (cacheKey) {
           const cacheData = {
-            fn: OPS.paintImageMaskXObject,
+            fn,
             args,
             optionalContent
           };
@@ -31138,11 +31142,13 @@ class PartialEvaluator {
         isOffscreenCanvasSupported: this.options.isOffscreenCanvasSupported
       });
       if (imgData.isSingleOpaquePixel) {
-        operatorList.addImageOps(OPS.paintSolidColorImageMask, [], optionalContent);
+        fn = OPS.paintSolidColorImageMask;
+        args = [];
+        operatorList.addImageOps(fn, args, optionalContent);
         if (cacheKey) {
           const cacheData = {
-            fn: OPS.paintSolidColorImageMask,
-            args: [],
+            fn,
+            args,
             optionalContent
           };
           localImageCache.set(cacheKey, imageRef, cacheData);
@@ -31156,6 +31162,7 @@ class PartialEvaluator {
       operatorList.addDependency(objId);
       imgData.dataLen = imgData.bitmap ? imgData.width * imgData.height * 4 : imgData.data.length;
       this._sendImgData(objId, imgData);
+      fn = OPS.paintImageMaskXObject;
       args = [{
         data: objId,
         width: imgData.width,
@@ -31163,11 +31170,11 @@ class PartialEvaluator {
         interpolate: imgData.interpolate,
         count: 1
       }];
-      operatorList.addImageOps(OPS.paintImageMaskXObject, args, optionalContent);
+      operatorList.addImageOps(fn, args, optionalContent);
       if (cacheKey) {
         const cacheData = {
           objId,
-          fn: OPS.paintImageMaskXObject,
+          fn,
           args,
           optionalContent
         };
@@ -31215,13 +31222,14 @@ class PartialEvaluator {
       }
     }
     operatorList.addDependency(objId);
+    fn = OPS.paintImageXObject;
     args = [objId, w, h];
-    operatorList.addImageOps(OPS.paintImageXObject, args, optionalContent, hasMask);
+    operatorList.addImageOps(fn, args, optionalContent, hasMask);
     if (cacheGlobally) {
       if (this.globalImageCache.hasDecodeFailed(imageRef)) {
         this.globalImageCache.setData(imageRef, {
           objId,
-          fn: OPS.paintImageXObject,
+          fn,
           args,
           optionalContent,
           hasMask,
@@ -31237,7 +31245,7 @@ class PartialEvaluator {
         if (localLength) {
           this.globalImageCache.setData(imageRef, {
             objId,
-            fn: OPS.paintImageXObject,
+            fn,
             args,
             optionalContent,
             hasMask,
@@ -31274,7 +31282,7 @@ class PartialEvaluator {
     if (cacheKey) {
       const cacheData = {
         objId,
-        fn: OPS.paintImageXObject,
+        fn,
         args,
         optionalContent,
         hasMask
@@ -31285,7 +31293,7 @@ class PartialEvaluator {
         if (cacheGlobally) {
           this.globalImageCache.setData(imageRef, {
             objId,
-            fn: OPS.paintImageXObject,
+            fn,
             args,
             optionalContent,
             hasMask,
@@ -56884,7 +56892,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.1.72";
+    const workerVersion = "5.1.91";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57409,8 +57417,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.1.72";
-const pdfjsBuild = "3da8901f2";
+const pdfjsVersion = "5.1.91";
+const pdfjsBuild = "45cbe8bb0";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

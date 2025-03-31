@@ -4,6 +4,7 @@
 
 
 import os
+import re
 
 import attr
 import yaml
@@ -139,6 +140,15 @@ def run(
             from_ = from_.format(**format_options)
             to = to.format(**format_options)
             files_to_change[path] = contents.replace(from_, to)
+
+        for path, from_, to in migration_config.get("regex-replacements", []):
+            if path in files_to_change:
+                contents = files_to_change[path]
+            else:
+                contents = read_file(path)
+            from_regex = from_.format(**format_options)
+            to = to.format(**format_options)
+            files_to_change[path] = re.sub(from_regex, to, contents)
 
     if limit_locales:
         files_to_change["browser/locales/l10n-changesets.json"] = read_file(

@@ -309,6 +309,12 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                         ReaderMode.available.record(NoExtras())
                     }
 
+                    if (active) {
+                        browserToolbarView.view.display.removeSecurityIndicator()
+                    } else {
+                        browserToolbarView.view.display.addSecurityIndicator()
+                    }
+
                     readerModeAvailable = available
                     readerModeAction.setSelected(active)
                     safeInvalidateBrowserToolbarView()

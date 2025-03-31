@@ -106,6 +106,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerRunnable.h"
+#include "mozilla/FlowMarkers.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
@@ -6631,6 +6632,8 @@ void nsContentUtils::AddScriptRunner(already_AddRefed<nsIRunnable> aRunnable) {
   }
 
   if (sScriptBlockerCount) {
+    PROFILER_MARKER("nsContentUtils::AddScriptRunner", OTHER, {},
+                    FlowMarker, Flow::FromPointer(runnable.get()));
     sBlockedScriptRunners->AppendElement(runnable.forget());
     return;
   }
@@ -7113,8 +7116,8 @@ nsresult nsContentUtils::GetWebExposedOriginSerialization(nsIURI* aURI,
 
     if (
         // Schemes in spec. https://url.spec.whatwg.org/#origin
-        !uri->SchemeIs("http") && !uri->SchemeIs("https") &&
-        !uri->SchemeIs("file") && !uri->SchemeIs("resource") &&
+        !net::SchemeIsHttpOrHttps(uri) && !uri->SchemeIs("file") &&
+        !uri->SchemeIs("resource") &&
         // Our own schemes.
         !uri->SchemeIs("moz-extension")) {
       aOrigin.AssignLiteral("null");

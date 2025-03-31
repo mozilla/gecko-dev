@@ -317,6 +317,24 @@ class DisplayToolbar internal constructor(
         }
 
     /**
+     * Adds the security indicator if the list does not contain it.
+     */
+    fun addSecurityIndicator() {
+        if (!indicators.contains(Indicators.SECURITY)) {
+            indicators += Indicators.SECURITY
+        }
+    }
+
+    /**
+     * Removes the security indicator if the list contains it.
+     */
+    fun removeSecurityIndicator() {
+        if (indicators.contains(Indicators.SECURITY)) {
+            indicators -= Indicators.SECURITY
+        }
+    }
+
+    /**
      * Sets the background that should be drawn behind the URL, page actions an indicators.
      */
     fun setUrlBackground(background: Drawable?) {

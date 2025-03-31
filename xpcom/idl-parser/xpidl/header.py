@@ -82,11 +82,10 @@ def attributeReturnType(a, getter, macro):
         if macro == "NS_IMETHOD":
             # This is the declaration.
             ret = "virtual %s" % ret
+    elif ret == "nsresult":
+        ret = macro
     else:
-        if ret == "nsresult":
-            ret = macro
-        else:
-            ret = "%s_(%s)" % (macro, ret)
+        ret = "%s_(%s)" % (macro, ret)
 
     return attributeAttributes(a, getter) + ret
 
@@ -146,11 +145,10 @@ def methodReturnType(m, macro):
         if macro == "NS_IMETHOD":
             # This is the declaration
             ret = "virtual %s" % ret
+    elif ret == "nsresult":
+        ret = macro
     else:
-        if ret == "nsresult":
-            ret = macro
-        else:
-            ret = "%s_(%s)" % (macro, ret)
+        ret = "%s_(%s)" % (macro, ret)
 
     return methodAttributes(m) + ret
 

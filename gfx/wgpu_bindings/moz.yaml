@@ -13,12 +13,14 @@ origin:
   license: ['MIT', 'Apache-2.0']
 
 updatebot:
-    maintainer-phab: jimb
+    maintainer-phab: "#webgpu-reviewers"
     maintainer-bz: jimb@mozilla.com
+    try-preset: webgpu
     tasks:
       - type: vendoring
         enabled: false
         frequency: 1 week
+        blocking: 1851881  # webgpu-update-wgpu
 
 vendoring:
   url: https://github.com/gfx-rs/wgpu

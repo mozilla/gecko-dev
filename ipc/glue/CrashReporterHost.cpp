@@ -8,7 +8,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/IpcMetrics.h"
 #include "nsServiceManagerUtils.h"
 #include "nsICrashService.h"
 #include "nsXULAppAPI.h"
@@ -122,7 +122,7 @@ void CrashReporterHost::RecordCrashWithTelemetry(GeckoProcessType aProcessType,
       MOZ_ASSERT_UNREACHABLE("unknown process type");
   }
 
-  Telemetry::Accumulate(Telemetry::SUBPROCESS_CRASHES_WITH_DUMP, key, 1);
+  glean::subprocess::crashes_with_dump.Get(key).Add(1);
 }
 
 /* static */

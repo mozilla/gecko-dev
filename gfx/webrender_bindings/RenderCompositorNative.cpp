@@ -15,6 +15,7 @@
 #include "mozilla/layers/CompositionRecorder.h"
 #include "mozilla/layers/GpuFence.h"
 #include "mozilla/layers/NativeLayer.h"
+#include "mozilla/layers/ProfilerScreenshots.h"
 #include "mozilla/layers/SurfacePool.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/webrender/RenderThread.h"
@@ -197,7 +198,8 @@ bool RenderCompositorNative::MaybeRecordFrame(
 
 bool RenderCompositorNative::MaybeGrabScreenshot(
     const gfx::IntSize& aWindowSize) {
-  if (!ShouldUseNativeCompositor()) {
+  if (!ShouldUseNativeCompositor() ||
+      !mozilla::layers::ProfilerScreenshots::IsEnabled()) {
     return false;
   }
 

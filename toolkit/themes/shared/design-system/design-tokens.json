@@ -961,24 +961,31 @@
   },
   "space": {
     "xxsmall": {
+      "comment": "2px",
       "value": "calc(0.5 * {space.xsmall})"
     },
     "xsmall": {
+      "comment": "4px",
       "value": "0.267rem"
     },
     "small": {
+      "comment": "8px",
       "value": "calc(2 * {space.xsmall})"
     },
     "medium": {
+      "comment": "12px",
       "value": "calc(3 * {space.xsmall})"
     },
     "large": {
+      "comment": "16px",
       "value": "calc(4 * {space.xsmall})"
     },
     "xlarge": {
+      "comment": "24px",
       "value": "calc(6 * {space.xsmall})"
     },
     "xxlarge": {
+      "comment": "32px",
       "value": "calc(8 * {space.xsmall})"
     }
   },

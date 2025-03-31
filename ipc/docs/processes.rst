@@ -281,7 +281,8 @@ Crash reporting
   write, but you might want to respect ordering in that file and put your new
   code at the appropriate place.
 - Add entry in `PROCESS_CRASH_SUBMIT_ATTEMPT
-  <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/toolkit/components/telemetry/Histograms.json#13403-13422>`_
+  <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/toolkit/components/telemetry/Histograms.json#13403-13422>`_ and
+  `submit_attempt` in `toolkit/components/crashes/metrics.yaml`.
 
 Memory reporting
 ################

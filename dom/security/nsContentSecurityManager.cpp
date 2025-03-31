@@ -98,8 +98,7 @@ bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, true);
-  bool isDataURI = uri->SchemeIs("data");
-  if (!isDataURI) {
+  if (!uri->SchemeIs("data")) {
     return true;
   }
 
@@ -175,11 +174,7 @@ bool nsContentSecurityManager::AllowInsecureRedirectToDataURI(
   }
   nsCOMPtr<nsIURI> newURI;
   nsresult rv = NS_GetFinalChannelURI(aNewChannel, getter_AddRefs(newURI));
-  if (NS_FAILED(rv) || !newURI) {
-    return true;
-  }
-  bool isDataURI = newURI->SchemeIs("data");
-  if (!isDataURI) {
+  if (NS_FAILED(rv) || !newURI || !newURI->SchemeIs("data")) {
     return true;
   }
 
@@ -1007,15 +1002,15 @@ nsresult nsContentSecurityManager::CheckAllowLoadInSystemPrivilegedContext(
 
   if (contentPolicyType == ExtContentPolicy::TYPE_SUBDOCUMENT) {
     if (StaticPrefs::security_disallow_privileged_https_subdocuments_loads() &&
-        (innerURI->SchemeIs("http") || innerURI->SchemeIs("https"))) {
+        net::SchemeIsHttpOrHttps(innerURI)) {
       MOZ_ASSERT(
           false,
           "Disallowing SystemPrincipal load of subdocuments on HTTP(S).");
       aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
       return NS_ERROR_CONTENT_BLOCKED;
     }
-    if ((StaticPrefs::security_disallow_privileged_data_subdocuments_loads()) &&
-        (innerURI->SchemeIs("data"))) {
+    if (StaticPrefs::security_disallow_privileged_data_subdocuments_loads() &&
+        innerURI->SchemeIs("data")) {
       MOZ_ASSERT(
           false,
           "Disallowing SystemPrincipal load of subdocuments on data URL.");
@@ -1024,8 +1019,8 @@ nsresult nsContentSecurityManager::CheckAllowLoadInSystemPrivilegedContext(
     }
   }
   if (contentPolicyType == ExtContentPolicy::TYPE_SCRIPT) {
-    if ((StaticPrefs::security_disallow_privileged_https_script_loads()) &&
-        (innerURI->SchemeIs("http") || innerURI->SchemeIs("https"))) {
+    if (StaticPrefs::security_disallow_privileged_https_script_loads() &&
+        net::SchemeIsHttpOrHttps(innerURI)) {
       MOZ_ASSERT(false,
                  "Disallowing SystemPrincipal load of scripts on HTTP(S).");
       aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
@@ -1034,7 +1029,7 @@ nsresult nsContentSecurityManager::CheckAllowLoadInSystemPrivilegedContext(
   }
   if (contentPolicyType == ExtContentPolicy::TYPE_STYLESHEET) {
     if (StaticPrefs::security_disallow_privileged_https_stylesheet_loads() &&
-        (innerURI->SchemeIs("http") || innerURI->SchemeIs("https"))) {
+        net::SchemeIsHttpOrHttps(innerURI)) {
       MOZ_ASSERT(false,
                  "Disallowing SystemPrincipal load of stylesheets on HTTP(S).");
       aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
@@ -1091,8 +1086,7 @@ nsresult nsContentSecurityManager::CheckAllowLoadInPrivilegedAboutContext(
                       &isLocal);
   // We allow URLs that are URI_IS_LOCAL (but that includes `data`
   // and `blob` which are also undesirable.
-  if ((isLocal) && (!innerURI->SchemeIs("data")) &&
-      (!innerURI->SchemeIs("blob"))) {
+  if (isLocal && !innerURI->SchemeIs("data") && !innerURI->SchemeIs("blob")) {
     return NS_OK;
   }
   MOZ_ASSERT(
@@ -1759,10 +1753,8 @@ nsresult nsContentSecurityManager::CheckForIncoherentResultPrincipal(
 
   if (nsScriptSecurityManager::IsHttpOrHttpsAndCrossOrigin(
           resultSiteOriginURI, channelSiteOriginURI) ||
-      (!net::SchemeIsHTTP(resultSiteOriginURI) &&
-       !net::SchemeIsHTTPS(resultSiteOriginURI) &&
-       (net::SchemeIsHTTP(channelSiteOriginURI) ||
-        net::SchemeIsHTTPS(channelSiteOriginURI)))) {
+      (!net::SchemeIsHttpOrHttps(resultSiteOriginURI) &&
+       net::SchemeIsHttpOrHttps(channelSiteOriginURI))) {
     return NS_ERROR_CONTENT_BLOCKED;
   }
 

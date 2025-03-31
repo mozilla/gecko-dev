@@ -68,6 +68,7 @@ dictionary MLSReceived {
 
 typedef MLSBytes MLSClientId;
 typedef MLSBytes MLSGroupId;
+typedef MLSBytes MLSGroupEpoch;
 typedef MLSBytes MLSCredential;
 typedef MLSBytes MLSKeyPackage;
 typedef MLSBytes MLSProposal;
@@ -98,6 +99,8 @@ interface MLS {
   // Utility functions
   [Throws]
   Promise<MLSGroupId> getGroupIdFromMessage(MLSBytesOrUint8Array message);
+  [Throws]
+  Promise<MLSGroupEpoch> getGroupEpochFromMessage(MLSBytesOrUint8Array message);
 };
 
 [Trial="MLS",
@@ -126,6 +129,14 @@ interface MLSGroupView {
   Promise<MLSBytes> send(MLSBytesOrUint8ArrayOrUTF8String message);
   [Throws]
   Promise<MLSReceived> receive(MLSBytesOrUint8Array message);
+  [Throws]
+  Promise<MLSReceived> hasPendingProposals();
+  [Throws]
+  Promise<MLSReceived> clearPendingProposals();
+  [Throws]
+  Promise<MLSReceived> hasPendingCommit();
+  [Throws]
+  Promise<MLSReceived> clearPendingCommit();
   [Throws]
   Promise<MLSReceived> applyPendingCommit();
   [Throws]

@@ -332,7 +332,6 @@
 
       lazy.BrowserSearchTelemetry.recordSearchSuggestionSelectionMethod(
         aEvent,
-        "searchbar",
         selectedIndex
       );
 

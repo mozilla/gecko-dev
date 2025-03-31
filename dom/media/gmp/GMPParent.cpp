@@ -28,6 +28,7 @@
 #include "mozilla/SSE.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/glean/IpcMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "nsComponentManagerUtils.h"
@@ -818,8 +819,7 @@ void GMPParent::ActorDestroy(ActorDestroyReason aWhy) {
                        uint32_t(GMPState(mState)));
 
   if (AbnormalShutdown == aWhy) {
-    Telemetry::Accumulate(Telemetry::SUBPROCESS_ABNORMAL_ABORT, "gmplugin"_ns,
-                          1);
+    glean::subprocess::abnormal_abort.Get("gmplugin"_ns).Add(1);
     nsString dumpID;
     GetCrashID(dumpID);
     if (dumpID.IsEmpty()) {

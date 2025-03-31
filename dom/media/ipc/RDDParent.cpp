@@ -27,6 +27,7 @@
 #include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/glean/GleanTestsTestMetrics.h"
+#include "mozilla/glean/IpcMetrics.h"
 #include "mozilla/ipc/CrashReporterClient.h"
 #include "mozilla/ipc/ProcessChild.h"
 
@@ -300,7 +301,7 @@ void RDDParent::ActorDestroy(ActorDestroyReason aWhy) {
 
   if (AbnormalShutdown == aWhy) {
     NS_WARNING("Shutting down RDD process early due to a crash!");
-    Telemetry::Accumulate(Telemetry::SUBPROCESS_ABNORMAL_ABORT, "rdd"_ns, 1);
+    glean::subprocess::abnormal_abort.Get("rdd"_ns).Add(1);
     ProcessChild::QuickExit();
   }
 

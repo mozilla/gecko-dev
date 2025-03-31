@@ -1962,7 +1962,7 @@ void IMEStateManager::SetIMEState(const IMEState& aState,
       //       other apps like IME know which one is touched by the user because
       //       malicious text services may like files which are explicitly used
       //       by the user better.
-      if (uri->SchemeIs("http") || uri->SchemeIs("https")) {
+      if (net::SchemeIsHttpOrHttps(uri)) {
         // Note that we don't need to expose UserPass, Query and Reference to
         // IME since they may contain sensitive data, but non-malicious text
         // services must not require these data.

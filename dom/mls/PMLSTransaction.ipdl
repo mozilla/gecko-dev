@@ -34,11 +34,16 @@ parent:
   async RequestGroupProposeRemove(uint8_t[] groupIdentifier, uint8_t[] identifier, uint8_t[] remIdentifier) returns (RawBytes? result);
   async RequestGroupClose(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkMlsCommitOutput? result);
   async RequestGroupDetails(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkGroupDetails? result);
-  async RequestReceive(uint8_t[] identifier, uint8_t[] message) returns (GkReceived result);
-  async RequestApplyPendingCommit(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkReceived result);
   async RequestSend(uint8_t[] groupIdentifier, uint8_t[] identifier, uint8_t[] message) returns (RawBytes? result);
+  async RequestReceive(uint8_t[] identifier, uint8_t[] message) returns (GkReceived result);
+  async RequestHasPendingProposals(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (bool result);
+  async RequestClearPendingProposals(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (bool result);
+  async RequestHasPendingCommit(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (bool result);
+  async RequestClearPendingCommit(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (bool result);
+  async RequestApplyPendingCommit(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkReceived result);
   async RequestExportSecret(uint8_t[] groupIdentifier, uint8_t[] identifier, uint8_t[] label, uint8_t[] content, uint64_t len) returns (GkExporterOutput? result);
   async RequestGetGroupIdentifier(uint8_t[] message) returns (RawBytes? result);
+  async RequestGetGroupEpoch(uint8_t[] message) returns (RawBytes? result);
 };
 
 } // namespace dom

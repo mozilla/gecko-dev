@@ -8,7 +8,6 @@
 #include "mozilla/dom/PrototypeDocumentContentSink.h"
 #include "nsIParser.h"
 #include "mozilla/dom/Document.h"
-#include "mozilla/dom/URL.h"
 #include "nsIContent.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
@@ -666,7 +665,7 @@ nsresult PrototypeDocumentContentSink::DoneWalking() {
 
   StartLayout();
 
-  if (IsChromeURI(mDocumentURI) &&
+  if (mDocumentURI->SchemeIs("chrome") &&
       nsXULPrototypeCache::GetInstance()->IsEnabled()) {
     bool isCachedOnDisk;
     nsXULPrototypeCache::GetInstance()->HasPrototype(mDocumentURI,
@@ -733,7 +732,7 @@ nsresult PrototypeDocumentContentSink::LoadScript(
   // Load a transcluded script
   nsresult rv;
 
-  bool isChromeDoc = IsChromeURI(mDocumentURI);
+  bool isChromeDoc = mDocumentURI->SchemeIs("chrome");
 
   if (isChromeDoc && aScriptProto->HasStencil()) {
     rv = ExecuteScript(aScriptProto);
@@ -938,7 +937,8 @@ PrototypeDocumentContentSink::OnScriptCompileComplete(JS::Stencil* aStencil,
     // the true crime story.)
     bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
 
-    if (useXULCache && IsChromeURI(mDocumentURI) && scriptProto->HasStencil()) {
+    if (useXULCache && mDocumentURI->SchemeIs("chrome") &&
+        scriptProto->HasStencil()) {
       nsXULPrototypeCache::GetInstance()->PutStencil(scriptProto->mSrcURI,
                                                      scriptProto->GetStencil());
     }

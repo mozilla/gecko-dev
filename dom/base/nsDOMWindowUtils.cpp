@@ -293,13 +293,14 @@ CompositorBridgeChild* nsDOMWindowUtils::GetCompositorBridge() {
 
 nsresult nsDOMWindowUtils::GetWidgetOpaqueRegion(
     nsTArray<RefPtr<DOMRect>>& aRects) {
+  const nsPresContext* pc = GetPresContext();
   nsIWidget* widget = GetWidget();
-  if (!widget) {
+  if (!widget || !pc) {
     return NS_ERROR_FAILURE;
   }
   auto AddRect = [&](const LayoutDeviceIntRect& aRect) {
     RefPtr rect = new DOMRect(mWindow);
-    CSSRect cssRect = aRect / widget->GetDefaultScale();
+    CSSRect cssRect = aRect / pc->CSSToDevPixelScale();
     rect->SetRect(cssRect.x, cssRect.y, cssRect.width, cssRect.height);
     aRects.AppendElement(std::move(rect));
   };

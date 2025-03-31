@@ -148,6 +148,10 @@ interface nsIContentSecurityPolicy : nsISerializable
 
   /*
    * Whether this policy allows inline script or style.
+   *
+   * Reports when the policy forbids aContentOfPseudoScript, including
+   * potentially asynchronously firing a "securitypolicyviolation" event.
+   *
    * @param aContentPolicyType Either SCRIPT_SRC_(ELEM|ATTR)_DIRECTIVE or
    *                           STYLE_SRC_(ELEM|ATTR)_DIRECTIVE.
    * @param aHasUnsafeHash Only hash this when the 'unsafe-hashes' directive is

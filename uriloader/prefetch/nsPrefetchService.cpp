@@ -284,7 +284,7 @@ nsPrefetchNode::AsyncOnChannelRedirect(
   nsresult rv = aNewChannel->GetURI(getter_AddRefs(newURI));
   if (NS_FAILED(rv)) return rv;
 
-  if (!newURI->SchemeIs("http") && !newURI->SchemeIs("https")) {
+  if (!net::SchemeIsHttpOrHttps(newURI)) {
     LOG(("rejected: URL is not of type http/https\n"));
     return NS_ERROR_ABORT;
   }
@@ -550,7 +550,7 @@ nsresult nsPrefetchService::CheckURIScheme(nsIURI* aURI,
   // for now, we'll only prefetch http and https links since we know that's
   // the most common case.
   //
-  if (!aURI->SchemeIs("http") && !aURI->SchemeIs("https")) {
+  if (!net::SchemeIsHttpOrHttps(aURI)) {
     LOG(("rejected: URL is not of type http/https\n"));
     return NS_ERROR_ABORT;
   }
@@ -563,7 +563,7 @@ nsresult nsPrefetchService::CheckURIScheme(nsIURI* aURI,
     return NS_ERROR_ABORT;
   }
 
-  if (!referrer->SchemeIs("http") && !referrer->SchemeIs("https")) {
+  if (!net::SchemeIsHttpOrHttps(referrer)) {
     LOG(("rejected: referrer URL is neither http nor https\n"));
     return NS_ERROR_ABORT;
   }

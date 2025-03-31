@@ -6283,7 +6283,8 @@ const PaintType = {
 };
 class TilingPattern {
   static MAX_PATTERN_SIZE = 3000;
-  constructor(IR, color, ctx, canvasGraphicsFactory, baseTransform) {
+  constructor(IR, ctx, canvasGraphicsFactory, baseTransform) {
+    this.color = IR[1];
     this.operatorList = IR[2];
     this.matrix = IR[3];
     this.bbox = IR[4];
@@ -6291,7 +6292,6 @@ class TilingPattern {
     this.ystep = IR[6];
     this.paintType = IR[7];
     this.tilingType = IR[8];
-    this.color = color;
     this.ctx = ctx;
     this.canvasGraphicsFactory = canvasGraphicsFactory;
     this.baseTransform = baseTransform;
@@ -6747,11 +6747,11 @@ function compileType3Glyph(imgData) {
   const POINT_TO_PROCESS_LIMIT = 1000;
   const POINT_TYPES = new Uint8Array([0, 2, 4, 0, 1, 0, 5, 4, 8, 10, 0, 8, 0, 2, 1, 0]);
   const width1 = width + 1;
-  let points = new Uint8Array(width1 * (height + 1));
+  const points = new Uint8Array(width1 * (height + 1));
   let i, j, j0;
   const lineSize = width + 7 & ~7;
-  let data = new Uint8Array(lineSize * height),
-    pos = 0;
+  const data = new Uint8Array(lineSize * height);
+  let pos = 0;
   for (const elem of imgData.data) {
     let mask = 128;
     while (mask > 0) {
@@ -6822,6 +6822,14 @@ function compileType3Glyph(imgData) {
   }
   const steps = new Int32Array([0, width1, -1, 0, -width1, 0, 0, 0, 1]);
   const path = new Path2D();
+  const {
+    a,
+    b,
+    c,
+    d,
+    e,
+    f
+  } = new DOMMatrix().scaleSelf(1 / width, -1 / height).translateSelf(0, -height);
   for (i = 0; count && i <= height; i++) {
     let p = i * width1;
     const end = p + width;
@@ -6831,7 +6839,9 @@ function compileType3Glyph(imgData) {
     if (p === end) {
       continue;
     }
-    path.moveTo(p % width1, i);
+    let x = p % width1;
+    let y = i;
+    path.moveTo(a * x + c * y + e, b * x + d * y + f);
     const p0 = p;
     let type = points[p];
     do {
@@ -6847,24 +6857,16 @@ function compileType3Glyph(imgData) {
         type = pp & 0x33 * type >> 4;
         points[p] &= type >> 2 | type << 2;
       }
-      path.lineTo(p % width1, p / width1 | 0);
+      x = p % width1;
+      y = p / width1 | 0;
+      path.lineTo(a * x + c * y + e, b * x + d * y + f);
       if (!points[p]) {
         --count;
       }
     } while (p0 !== p);
     --i;
   }
-  data = null;
-  points = null;
-  const drawOutline = function (c) {
-    c.save();
-    c.scale(1 / width, -1 / height);
-    c.translate(0, -height);
-    c.fill(path);
-    c.beginPath();
-    c.restore();
-  };
-  return drawOutline;
+  return path;
 }
 class CanvasExtraState {
   constructor(width, height) {
@@ -8083,9 +8085,7 @@ class CanvasGraphics {
       const operatorList = font.charProcOperatorList[glyph.operatorListId];
       if (!operatorList) {
         warn(`Type3 character "${glyph.operatorListId}" is not available.`);
-        continue;
-      }
-      if (this.contentVisible) {
+      } else if (this.contentVisible) {
         this.processingType3 = glyph;
         this.save();
         ctx.scale(fontSize, fontSize);
@@ -8110,7 +8110,6 @@ class CanvasGraphics {
   getColorN_Pattern(IR) {
     let pattern;
     if (IR[0] === "TilingPattern") {
-      const color = IR[1];
       const baseTransform = this.baseTransform || getCurrentTransform(this.ctx);
       const canvasGraphicsFactory = {
         createCanvasGraphics: ctx => new CanvasGraphics(ctx, this.commonObjs, this.objs, this.canvasFactory, this.filterFactory, {
@@ -8118,7 +8117,7 @@ class CanvasGraphics {
           markedContentStack: this.markedContentStack
         })
       };
-      pattern = new TilingPattern(IR, color, this.ctx, canvasGraphicsFactory, baseTransform);
+      pattern = new TilingPattern(IR, this.ctx, canvasGraphicsFactory, baseTransform);
     } else {
       pattern = this._getPattern(IR[1], IR[2]);
     }
@@ -8380,7 +8379,7 @@ class CanvasGraphics {
         glyph.compiled = compileType3Glyph(img);
       }
       if (glyph.compiled) {
-        glyph.compiled(ctx);
+        ctx.fill(glyph.compiled);
         return;
       }
     }
@@ -10206,7 +10205,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.1.72",
+    apiVersion: "5.1.91",
     data,
     password,
     disableAutoFetch,
@@ -11088,7 +11087,10 @@ class PDFWorker {
       if (this.#mainThreadWorkerMessageHandler) {
         return this.#mainThreadWorkerMessageHandler;
       }
-      const worker = await import(/*webpackIgnore: true*/this.workerSrc);
+      const worker = await import(
+      /*webpackIgnore: true*/
+      /*@vite-ignore*/
+      this.workerSrc);
       return worker.WorkerMessageHandler;
     };
     return shadow(this, "_setupFakeWorkerGlobal", loader());
@@ -11838,8 +11840,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.1.72";
-const build = "3da8901f2";
+const version = "5.1.91";
+const build = "45cbe8bb0";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -21219,8 +21221,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.1.72";
-const pdfjsBuild = "3da8901f2";
+const pdfjsVersion = "5.1.91";
+const pdfjsBuild = "45cbe8bb0";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

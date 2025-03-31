@@ -384,6 +384,10 @@ nsAppStartup::Quit(uint32_t aMode, int aExitCode, bool* aUserAllowedQuit) {
       }
     }
 
+    // We passed the last line of a shutdown to maybe not happen for legit
+    // reasons after checking CanClose() for all windows above. Now we are
+    // supposed to go away (or restart), for sure.
+
     PROFILER_MARKER_UNTYPED("Shutdown start", OTHER);
     mozilla::RecordShutdownStartTimeStamp();
 
@@ -432,15 +436,20 @@ nsAppStartup::Quit(uint32_t aMode, int aExitCode, bool* aUserAllowedQuit) {
                                     nullptr);
     }
 
-    /* Enumerate through each open window and close it. It's important to do
-       this before we forcequit because this can control whether we really quit
-       at all. e.g. if one of these windows has an unload handler that
-       opens a new window. Ugh. I know. */
+    // Enumerate through each open window and close it.
     CloseAllWindows();
 
     if (mediator) {
       if (ferocity == eAttemptQuit) {
         ferocity = eForceQuit;  // assume success
+
+        // TODO: The above CloseAllWindows() does a window->ForceClose() which
+        // seems to have no way of saying that we refuse to close. It dispatches
+        // events and sends notifications which might race with the below check.
+        // However the flag we check below with domWindow->Closed() should have
+        // always been set synchronously above. In other words: most likely this
+        // entire check can go away and maybe CloseAllWindows could be renamed
+        // to ForceCloseAllWindows.
 
         /* Were we able to immediately close all windows? if not, eAttemptQuit
            failed. This could happen for a variety of reasons; in fact it's
@@ -461,6 +470,8 @@ nsAppStartup::Quit(uint32_t aMode, int aExitCode, bool* aUserAllowedQuit) {
             nsCOMPtr<nsPIDOMWindowOuter> domWindow = do_QueryInterface(window);
             if (domWindow) {
               if (!domWindow->Closed()) {
+                MOZ_DIAGNOSTIC_ASSERT(false,
+                                      "CloseAllWindows() did not succeed.");
                 rv = NS_ERROR_FAILURE;
                 break;
               }

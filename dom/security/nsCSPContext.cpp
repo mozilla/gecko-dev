@@ -1005,10 +1005,9 @@ void StripURIForReporting(nsIURI* aSelfURI, nsIURI* aURI,
   // If the origin of aURI is a globally unique identifier (for example,
   // aURI has a scheme of data, blob, or filesystem), then
   // return the ASCII serialization of uri’s scheme.
-  bool isHttpOrWs = (aURI->SchemeIs("http") || aURI->SchemeIs("https") ||
-                     aURI->SchemeIs("ws") || aURI->SchemeIs("wss"));
+  bool isWsOrWss = aURI->SchemeIs("ws") || aURI->SchemeIs("wss");
 
-  if (!isHttpOrWs) {
+  if (!net::SchemeIsHttpOrHttps(aURI) && !isWsOrWss) {
     // not strictly spec compliant, but what we really care about is
     // http/https. If it's not http/https, then treat aURI
     // as if it's a globally unique identifier and just return the scheme.
@@ -1337,10 +1336,7 @@ nsresult nsCSPContext::SendReportsToURIs(
     }
 
     // log a warning to console if scheme is not http or https
-    bool isHttpScheme =
-        reportURI->SchemeIs("http") || reportURI->SchemeIs("https");
-
-    if (!isHttpScheme) {
+    if (!net::SchemeIsHttpOrHttps(reportURI)) {
       AutoTArray<nsString, 1> params = {reportURIs[r]};
       logToConsole("reportURInotHttpsOrHttp2", params,
                    NS_ConvertUTF16toUTF8(aViolationEventInit.mSourceFile),

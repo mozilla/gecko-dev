@@ -278,7 +278,7 @@ static void ForEachPing(nsIContent* aContent, ForEachPingCallback aCallback,
       continue;
     }
     // Explicitly not allow loading data: URIs
-    if (!net::SchemeIsData(uri)) {
+    if (!uri->SchemeIs("data")) {
       aCallback(aClosure, aContent, uri, ios);
     }
   }

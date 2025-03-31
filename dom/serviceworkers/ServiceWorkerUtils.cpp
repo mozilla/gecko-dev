@@ -236,7 +236,7 @@ void ServiceWorkerScopeAndScriptAreValid(const ClientInfo& aClientInfo,
   }
 
   auto hasHTTPScheme = [](nsIURI* aURI) -> bool {
-    return aURI->SchemeIs("http") || aURI->SchemeIs("https");
+    return net::SchemeIsHttpOrHttps(aURI);
   };
   auto hasMozExtScheme = [](nsIURI* aURI) -> bool {
     return aURI->SchemeIs("moz-extension");

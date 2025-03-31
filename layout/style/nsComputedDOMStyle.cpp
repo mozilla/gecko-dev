@@ -1803,16 +1803,35 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMaxWidth() {
  * getComputedStyle() result for the (default) "min-width: auto" and
  * "min-height: auto" CSS values.
  *
- * As of this writing, the CSS Sizing draft spec says this "auto" value
- * *always* computes to itself.  However, for now, we only make it compute to
- * itself for grid and flex items (the containers where "auto" has special
- * significance), because those are the only areas where the CSSWG has actually
- * resolved on this "computes-to-itself" behavior. For elements in other sorts
- * of containers, this function returns false, which will make us resolve
- * "auto" to 0.
+ * https://drafts.csswg.org/css-sizing-3/#valdef-width-auto says that
+ * "Unless otherwise defined by the relevant layout module ... it resolves to a
+ * used value of 0."
+ *
+ * Exceptions to this are explained in the various 'return true' early-returns
+ * here.
  */
 bool nsComputedDOMStyle::ShouldHonorMinSizeAutoInAxis(PhysicalAxis aAxis) {
-  return mOuterFrame && mOuterFrame->IsFlexOrGridItem();
+  if (!mOuterFrame) {
+    // Per https://drafts.csswg.org/css-sizing/#valdef-width-auto
+    // min-{width,height}:auto "resolves to zero when no box is generated".
+    return false;
+  }
+  if (mOuterFrame->IsFlexOrGridItem()) {
+    // Flex and grid items have special significance for min-width:auto and
+    // min-height:auto, so we faithfully report "auto" from getComputedStyle
+    // for those frames:
+    return true;
+  }
+  if (mOuterFrame->StylePosition()->mAspectRatio != StyleAspectRatio::Auto()) {
+    // Frames with non-default CSS 'aspect-ratio' have special significance
+    // for min-{width,height}:auto as well, so we faithfully report "auto"
+    // for them too, per https://github.com/w3c/csswg-drafts/issues/11716
+    return true;
+  }
+
+  // If we're not in one of the special cases above, then we return false
+  // which means that "auto" will get reported as "0" in getComputedStyle.
+  return false;
 }
 
 already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMinHeight() {

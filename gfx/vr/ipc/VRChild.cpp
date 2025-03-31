@@ -11,7 +11,7 @@
 
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/IpcMetrics.h"
 #include "mozilla/VsyncDispatcher.h"
 #include "mozilla/dom/MemoryReportRequest.h"
 
@@ -88,10 +88,10 @@ void VRChild::ActorDestroy(ActorDestroyReason aWhy) {
   if (aWhy == AbnormalShutdown) {
     GenerateCrashReport();
 
-    Telemetry::Accumulate(
-        Telemetry::SUBPROCESS_ABNORMAL_ABORT,
-        nsDependentCString(XRE_GeckoProcessTypeToString(GeckoProcessType_VR)),
-        1);
+    glean::subprocess::abnormal_abort
+        .Get(nsDependentCString(
+            XRE_GeckoProcessTypeToString(GeckoProcessType_VR)))
+        .Add(1);
   }
   gfxVars::RemoveReceiver(this);
   mHost->OnChannelClosed();

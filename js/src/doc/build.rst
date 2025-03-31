@@ -162,6 +162,9 @@ Building SpiderMonkey on Android
 
 - Then compile as usual with `mach build` with this `MOZCONFIG` file.
 
+The compiled shell can be installed to `/data/local/tmp` on the device
+using `./mach install`.
+
 Running jit-tests on Android
 ----------------------------
 

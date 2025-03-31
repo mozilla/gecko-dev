@@ -667,7 +667,7 @@ nsDocShell::SetCancelContentJSEpoch(int32_t aEpoch) {
 
 nsresult nsDocShell::CheckDisallowedJavascriptLoad(
     nsDocShellLoadState* aLoadState) {
-  if (!net::SchemeIsJavascript(aLoadState->URI())) {
+  if (!aLoadState->URI()->SchemeIs("javascript")) {
     return NS_OK;
   }
 
@@ -1616,8 +1616,8 @@ nsDocShell::ForceEncodingDetection() {
 
   mForcedAutodetection = true;
 
-  nsIURI* url = doc->GetOriginalURI();
-  bool isFileURL = url && SchemeIsFile(url);
+  nsIURI* uri = doc->GetOriginalURI();
+  bool isFileURL = uri && uri->SchemeIs("file");
 
   int32_t charsetSource = doc->GetDocumentCharacterSetSource();
   auto encoding = doc->GetDocumentCharacterSet();
@@ -3710,7 +3710,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
     if (aURI) {
       // displaying "file://" is aesthetically unpleasing and could even be
       // confusing to the user
-      if (SchemeIsFile(aURI)) {
+      if (aURI->SchemeIs("file")) {
         aURI->GetPathQueryRef(spec);
       } else {
         aURI->GetSpec(spec);
@@ -3740,7 +3740,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
   NS_ENSURE_FALSE(messageStr.IsEmpty(), NS_ERROR_FAILURE);
 
   if ((NS_ERROR_NET_INTERRUPT == aError || NS_ERROR_NET_RESET == aError) &&
-      SchemeIsHTTPS(aURI)) {
+      aURI->SchemeIs("https")) {
     // Maybe TLS intolerant. Treat this as an SSL error.
     error = "nssFailure2";
   }
@@ -5780,7 +5780,7 @@ already_AddRefed<nsIURI> nsDocShell::MaybeFixBadCertDomainErrorURI(
   }
 
   // Return if scheme is not HTTPS.
-  if (!SchemeIsHTTPS(aUrl)) {
+  if (!aUrl->SchemeIs("https")) {
     return nullptr;
   }
 
@@ -5949,10 +5949,8 @@ already_AddRefed<nsIURI> nsDocShell::AttemptURIFixup(
     // Someone needs to clean up keywords in general so we can
     // determine on a per url basis if we want keywords
     // enabled...this is just a bandaid...
-    nsAutoCString scheme;
-    Unused << url->GetScheme(scheme);
     if (Preferences::GetBool("keyword.enabled", false) &&
-        StringBeginsWith(scheme, "http"_ns)) {
+        net::SchemeIsHttpOrHttps(url)) {
       bool attemptFixup = false;
       nsAutoCString host;
       Unused << url->GetHost(host);
@@ -6050,7 +6048,7 @@ already_AddRefed<nsIURI> nsDocShell::AttemptURIFixup(
   } else if (aStatus == NS_ERROR_CONNECTION_REFUSED &&
              Preferences::GetBool("browser.fixup.fallback-to-https", false)) {
     // Try HTTPS, since http didn't work
-    if (SchemeIsHTTP(url)) {
+    if (url->SchemeIs("http")) {
       int32_t port = 0;
       url->GetPort(&port);
 
@@ -9309,7 +9307,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     MOZ_DIAGNOSTIC_ASSERT(aLoadState->LoadType() == LOAD_NORMAL);
 
     // Disallow external chrome: loads targetted at content windows
-    if (SchemeIsChrome(aLoadState->URI())) {
+    if (aLoadState->URI()->SchemeIs("chrome")) {
       NS_WARNING("blocked external chrome: url -- use '--chrome' option");
       return NS_ERROR_FAILURE;
     }
@@ -9353,7 +9351,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
 
   // XXXbz mTiming should know what channel it's for, so we don't
   // need this hackery.
-  const bool isJavaScript = SchemeIsJavascript(aLoadState->URI());
+  const bool isJavaScript = aLoadState->URI()->SchemeIs("javascript");
   const bool isExternalProtocol =
       nsContentUtils::IsExternalProtocol(aLoadState->URI());
   const bool isDownload = !aLoadState->FileName().IsVoid();
@@ -9733,7 +9731,7 @@ nsIPrincipal* nsDocShell::GetInheritedPrincipal(
         MOZ_ALWAYS_SUCCEEDS(vsc->SetBaseURI(aBaseURI));
       }
     }
-  } else if (SchemeIsViewSource(aURI)) {
+  } else if (aURI->SchemeIs("view-source")) {
     // Instantiate view source handler protocol, if it doesn't exist already.
     nsCOMPtr<nsIIOService> io(do_GetIOService());
     MOZ_ASSERT(io);
@@ -10239,7 +10237,7 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
     while (nestedURI) {
       // view-source should always be an nsINestedURI, loop and check the
       // scheme on this and all inner URIs that are also nested URIs.
-      if (SchemeIsViewSource(tempURI)) {
+      if (tempURI->SchemeIs("view-source")) {
         return NS_ERROR_UNKNOWN_PROTOCOL;
       }
       nestedURI->GetInnerURI(getter_AddRefs(tempURI));
@@ -10256,20 +10254,21 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
   //    configured as unique opaque origin.
   bool inheritPrincipal = false;
 
+  nsCOMPtr<nsIURI> uri = aLoadState->URI();
   if (aLoadState->PrincipalToInherit()) {
     bool isSrcdoc =
         aLoadState->HasInternalLoadFlags(INTERNAL_LOAD_FLAGS_IS_SRCDOC);
     bool inheritAttrs = nsContentUtils::ChannelShouldInheritPrincipal(
-        aLoadState->PrincipalToInherit(), aLoadState->URI(),
+        aLoadState->PrincipalToInherit(), uri,
         true,  // aInheritForAboutBlank
         isSrcdoc);
 
-    inheritPrincipal = inheritAttrs && !SchemeIsData(aLoadState->URI());
+    inheritPrincipal = inheritAttrs && !uri->SchemeIs("data");
   }
 
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=1736570
   const bool isAboutBlankLoadOntoInitialAboutBlank =
-      IsAboutBlankLoadOntoInitialAboutBlank(aLoadState->URI(), inheritPrincipal,
+      IsAboutBlankLoadOntoInitialAboutBlank(uri, inheritPrincipal,
                                             aLoadState->PrincipalToInherit());
 
   // FIXME We still have a ton of codepaths that don't pass through
@@ -10282,7 +10281,7 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
     // Materialize LoadingSessionHistoryInfo here, because DocumentChannel
     // loads have it, and later history behavior depends on it existing.
     UniquePtr<SessionHistoryInfo> entry = MakeUnique<SessionHistoryInfo>(
-        aLoadState->URI(), aLoadState->TriggeringPrincipal(),
+        uri, aLoadState->TriggeringPrincipal(),
         aLoadState->PrincipalToInherit(),
         aLoadState->PartitionedPrincipalToInherit(), aLoadState->Csp(),
         mContentTypeHint);
@@ -10394,8 +10393,7 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
       aLoadState->GetLoadIdentifier());
   RefPtr<LoadInfo> loadInfo =
       (contentPolicyType == nsIContentPolicy::TYPE_DOCUMENT)
-          ? new LoadInfo(loadingWindow, aLoadState->URI(),
-                         aLoadState->TriggeringPrincipal(),
+          ? new LoadInfo(loadingWindow, uri, aLoadState->TriggeringPrincipal(),
                          topLevelLoadingContext, securityFlags, sandboxFlags)
           : new LoadInfo(loadingPrincipal, aLoadState->TriggeringPrincipal(),
                          loadingNode, securityFlags, contentPolicyType,
@@ -10502,7 +10500,7 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
       mBrowsingContext, uriModified, Some(isEmbeddingBlockedError));
 
   nsCOMPtr<nsIChannel> channel;
-  if (DocumentChannel::CanUseDocumentChannel(aLoadState->URI()) &&
+  if (DocumentChannel::CanUseDocumentChannel(uri) &&
       !isAboutBlankLoadOntoInitialAboutBlank) {
     channel = DocumentChannel::CreateForDocument(
         aLoadState, loadInfo, loadFlags, this, cacheKey, uriModified,
@@ -12065,7 +12063,7 @@ nsresult nsDocShell::LoadHistoryEntry(nsDocShellLoadState* aLoadState,
   aLoadState->SetLoadType(aLoadType);
 
   nsresult rv;
-  if (SchemeIsJavascript(aLoadState->URI())) {
+  if (aLoadState->URI()->SchemeIs("javascript")) {
     // We're loading a URL that will execute script from inside asyncOpen.
     // Replace the current document with about:blank now to prevent
     // anything from the current document from leaking into any JavaScript
@@ -12908,7 +12906,7 @@ nsresult nsDocShell::OnLinkClick(
 bool nsDocShell::ShouldOpenInBlankTarget(const nsAString& aOriginalTarget,
                                          nsIURI* aLinkURI, nsIContent* aContent,
                                          bool aIsUserTriggered) {
-  if (net::SchemeIsJavascript(aLinkURI)) {
+  if (aLinkURI->SchemeIs("javascript")) {
     return false;
   }
 

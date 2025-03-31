@@ -13,7 +13,6 @@
 #include "nsCharsetSource.h"
 #include "nsParser.h"
 #include "mozilla/dom/Document.h"
-#include "mozilla/dom/URL.h"
 #include "mozilla/dom/PrototypeDocumentContentSink.h"
 
 using namespace mozilla::dom;
@@ -64,7 +63,7 @@ PrototypeDocumentParser::Parse(nsIURI* aURL) {
   // Look in the chrome cache: we've got this puppy loaded
   // already.
   nsXULPrototypeDocument* proto =
-      IsChromeURI(mDocumentURI)
+      mDocumentURI->SchemeIs("chrome")
           ? nsXULPrototypeCache::GetInstance()->GetPrototype(mDocumentURI)
           : nullptr;
 
@@ -183,7 +182,7 @@ nsresult PrototypeDocumentParser::PrepareToLoadPrototype(
 
   // Store the new prototype right away so if there are multiple requests
   // for the same document they all get the same prototype.
-  if (IsChromeURI(mDocumentURI) &&
+  if (mDocumentURI->SchemeIs("chrome") &&
       nsXULPrototypeCache::GetInstance()->IsEnabled()) {
     nsXULPrototypeCache::GetInstance()->PutPrototype(mCurrentPrototype);
   }

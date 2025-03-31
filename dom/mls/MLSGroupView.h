@@ -57,6 +57,15 @@ class MLSGroupView final : public nsISupports, public nsWrapperCache {
   already_AddRefed<mozilla::dom::Promise> Receive(
       const MLSBytesOrUint8Array& aJsMessage, ErrorResult& aRv);
 
+  already_AddRefed<mozilla::dom::Promise> HasPendingProposals(ErrorResult& aRv);
+
+  already_AddRefed<mozilla::dom::Promise> ClearPendingProposals(
+      ErrorResult& aRv);
+
+  already_AddRefed<mozilla::dom::Promise> HasPendingCommit(ErrorResult& aRv);
+
+  already_AddRefed<mozilla::dom::Promise> ClearPendingCommit(ErrorResult& aRv);
+
   already_AddRefed<mozilla::dom::Promise> ApplyPendingCommit(ErrorResult& aRv);
 
   already_AddRefed<mozilla::dom::Promise> ExportSecret(

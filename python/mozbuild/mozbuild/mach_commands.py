@@ -1287,7 +1287,7 @@ def setup_install_parser():
 @Command(
     "install",
     category="post-build",
-    conditions=[conditions.has_build],
+    conditions=[conditions.has_build_or_shell],
     parser=setup_install_parser,
     description="Install the package on the machine (or device in the case of Android).",
 )
@@ -1307,6 +1307,55 @@ def install(command_context, **kwargs):
             )
             == 0
         )
+    elif conditions.is_jsshell(command_context) and conditions.is_android_cpu(
+        command_context
+    ):
+        # Push a shell build to the phone.
+        # It would be nice to just use `ADBDevice``, but what's nice about the
+        # mozrunner android stuff is that it nicely will handle starting an emulator for you and
+        # doing the work there
+        from mozrunner.devices.android_device import get_android_device
+
+        [device, device_serial] = get_android_device(command_context)
+
+        if not device:
+            command_context.log(
+                logging.INFO, "install", {}, "No device found, aborting install"
+            )
+            return 1
+
+        command_context.log(
+            logging.INFO,
+            "install",
+            {},
+            "Installing shell binary and support libarary to /data/local/tmp",
+        )
+
+        # The path to the binary and libraries
+        distpath = command_context.topobjdir + "/dist/bin/"
+
+        # Don't need to push much.
+        paths_to_push = [distpath + "js", distpath + "libmozglue.so"]
+
+        # Push
+        for path in paths_to_push:
+            device.push(path, "/data/local/tmp")
+
+        command_context.log(
+            logging.INFO,
+            "install",
+            {},
+            "Install complete: find the binary in `/data/local/tmp` on the device",
+        )
+        command_context.log(
+            logging.INFO,
+            "install",
+            {},
+            " run with `LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/js` on the device (Bug 1957112)",
+        )
+
+        return 0
+
     else:
         ret = command_context._run_make(
             directory=".", target="install", ensure_exit_code=False

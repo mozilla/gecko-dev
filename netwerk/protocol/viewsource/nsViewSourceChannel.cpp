@@ -175,10 +175,8 @@ nsresult nsViewSourceChannel::UpdateLoadInfoResultPrincipalURI() {
     return NS_ERROR_UNEXPECTED;
   }
 
-  bool alreadyViewSource;
-  if (NS_SUCCEEDED(channelResultPrincipalURI->SchemeIs("view-source",
-                                                       &alreadyViewSource)) &&
-      alreadyViewSource) {
+  if (channelResultPrincipalURI->SchemeIs("view-source")) {
+    // already view-source
     return NS_OK;
   }
 

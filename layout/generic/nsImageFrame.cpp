@@ -107,6 +107,11 @@ using namespace mozilla::layers;
 
 using mozilla::layout::TextDrawTarget;
 
+#define WARN_CONTENT(msg)       \
+  if (XRE_IsContentProcess()) { \
+    NS_WARNING(msg);            \
+  }
+
 static constexpr wr::ImageKey kNoKey{{0}, 0};
 
 class nsDisplayGradient final : public nsPaintedDisplayItem {
@@ -373,6 +378,7 @@ static bool SizeDependsOnIntrinsicSize(const ReflowInput& aReflowInput) {
 }
 
 nsIFrame* NS_NewImageFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
+  WARN_CONTENT("****dholbert New image frame");
   return new (aPresShell) nsImageFrame(aStyle, aPresShell->GetPresContext(),
                                        nsImageFrame::Kind::ImageLoadingContent);
 }
@@ -843,9 +849,14 @@ static nscoord ListImageDefaultLength(const nsImageFrame& aFrame) {
 
 IntrinsicSize nsImageFrame::ComputeIntrinsicSize(
     bool aIgnoreContainment) const {
+  WARN_CONTENT("***dholbert Entering ComputeIntrinsicSize")
+
   const auto containAxes =
       aIgnoreContainment ? ContainSizeAxes(false, false) : GetContainSizeAxes();
   if (containAxes.IsBoth()) {
+    WARN_CONTENT(
+        "***dholbert Entering Taking early return from "
+        "ComputeIntrinsicSize due to containAxes.IsBoth!")
     return FinishIntrinsicSize(containAxes, IntrinsicSize(0, 0));
   }
 
@@ -937,6 +948,7 @@ bool nsImageFrame::ShouldUseMappedAspectRatio() const {
 }
 
 bool nsImageFrame::UpdateIntrinsicSize() {
+  WARN_CONTENT("****dholbert Entering UpdateIntrinsicSize")
   IntrinsicSize oldIntrinsicSize = mIntrinsicSize;
   mIntrinsicSize = ComputeIntrinsicSize();
   return mIntrinsicSize != oldIntrinsicSize;
@@ -1016,6 +1028,7 @@ AspectRatio nsImageFrame::ComputeIntrinsicRatioForImage(
 }
 
 bool nsImageFrame::UpdateIntrinsicRatio() {
+  WARN_CONTENT("****dholbert Entering UpdateIntrinsicRatio")
   AspectRatio oldIntrinsicRatio = mIntrinsicRatio;
   mIntrinsicRatio = ComputeIntrinsicRatioForImage(mImage);
   return mIntrinsicRatio != oldIntrinsicRatio;
@@ -1485,6 +1498,9 @@ bool nsImageFrame::IsForMarkerPseudo() const {
 void nsImageFrame::EnsureIntrinsicSizeAndRatio() {
   const auto containAxes = GetContainSizeAxes();
   if (containAxes.IsBoth()) {
+    WARN_CONTENT(
+        "***dholbert EnsureIntrinsicSizeAndRatio nerfing the "
+        "aspect ratio!!!!!")
     // If we have 'contain:size', then we have no intrinsic aspect ratio,
     // and the intrinsic size is determined by contain-intrinsic-size,
     // regardless of what our underlying image may think.
@@ -1492,11 +1508,17 @@ void nsImageFrame::EnsureIntrinsicSizeAndRatio() {
     mIntrinsicRatio = AspectRatio();
     return;
   }
+  WARN_CONTENT(
+      "***dholbert EnsureIntrinsicSizeAndRatio taking the "
+      "regular codepath.")
 
   // If mIntrinsicSize.width and height are 0, then we need to update from the
   // image container.  Note that we handle ::marker intrinsic size/ratio in
   // DidSetComputedStyle.
   if (mIntrinsicSize != IntrinsicSize(0, 0) && !IsForMarkerPseudo()) {
+    WARN_CONTENT(
+        "***dholbert EnsureIntrinsicSizeAndRatio taking early return "
+        "for nonzero mIntrinsicSize")
     return;
   }
 

@@ -2042,7 +2042,7 @@ nsHttpHandler::NewChannel(nsIURI* uri, nsILoadInfo* aLoadInfo,
   NS_ENSURE_ARG_POINTER(result);
 
   // Verify that we have been given a valid scheme
-  if (!uri->SchemeIs("http") && !uri->SchemeIs("https")) {
+  if (!net::SchemeIsHttpOrHttps(uri)) {
     NS_WARNING("Invalid URI scheme");
     return NS_ERROR_UNEXPECTED;
   }
@@ -2866,8 +2866,7 @@ void nsHttpHandler::MaybeAddAltSvcForTesting(
     return;
   }
 
-  bool isHttps = false;
-  if (NS_FAILED(aUri->SchemeIs("https", &isHttps)) || !isHttps) {
+  if (!aUri->SchemeIs("https")) {
     // Only set for HTTPS.
     return;
   }

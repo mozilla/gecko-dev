@@ -3789,10 +3789,13 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
     return false;
   }
 
+  // To understand why we chose '4', please see the discussion on Bug 1948959.
+  const uint8_t estimatedRestSize = 4;
+
   bool needsRestPropertyExcludedSet =
       pattern->count() > 1 && pattern->last()->isKind(ParseNodeKind::Spread);
   if (needsRestPropertyExcludedSet) {
-    if (!emitDestructuringObjRestExclusionSet(pattern)) {
+    if (!emitDestructuringObjRestExclusionSet(pattern, estimatedRestSize)) {
       //            [stack] ... RHS SET
       return false;
     }
@@ -3856,7 +3859,7 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
         return false;
       }
 
-      if (!emit2(JSOp::NewInit, 0)) {
+      if (!emit2(JSOp::NewInit, estimatedRestSize)) {
         //          [stack] ... SET? RHS LREF* RHS TARGET
         return false;
       }
@@ -4017,7 +4020,8 @@ static bool IsDestructuringRestExclusionSetObjLiteralCompatible(
   return true;
 }
 
-bool BytecodeEmitter::emitDestructuringObjRestExclusionSet(ListNode* pattern) {
+bool BytecodeEmitter::emitDestructuringObjRestExclusionSet(
+    ListNode* pattern, uint8_t estimatedRestSize) {
   MOZ_ASSERT(pattern->isKind(ParseNodeKind::ObjectExpr));
   MOZ_ASSERT(pattern->last()->isKind(ParseNodeKind::Spread));
 
@@ -4029,7 +4033,7 @@ bool BytecodeEmitter::emitDestructuringObjRestExclusionSet(ListNode* pattern) {
     }
   } else {
     // Take the slow but sure way and start off with a blank object.
-    if (!emit2(JSOp::NewInit, 0)) {
+    if (!emit2(JSOp::NewInit, estimatedRestSize)) {
       //            [stack] OBJ
       return false;
     }

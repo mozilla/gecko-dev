@@ -913,7 +913,15 @@ FxAccountsInternal.prototype = {
   _commands: null,
   get commands() {
     if (!this._commands) {
-      this._commands = new lazy.FxAccountsCommands(this);
+      // FxAccountsCommands registers a shutdown blocker and must not be
+      // instantiated if shutdown already started.
+      if (
+        !Services.startup.isInOrBeyondShutdownPhase(
+          Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+        )
+      ) {
+        this._commands = new lazy.FxAccountsCommands(this);
+      }
     }
     return this._commands;
   },

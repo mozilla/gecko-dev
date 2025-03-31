@@ -156,7 +156,7 @@ nsDocShell* DocumentChannel::GetDocShell() {
 }
 
 static bool URIUsesDocChannel(nsIURI* aURI) {
-  if (SchemeIsJavascript(aURI)) {
+  if (aURI->SchemeIs("javascript")) {
     return false;
   }
 

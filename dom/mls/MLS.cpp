@@ -632,4 +632,82 @@ already_AddRefed<Promise> MLS::GetGroupIdFromMessage(
   return promise.forget();
 }
 
+already_AddRefed<Promise> MLS::GetGroupEpochFromMessage(
+    const MLSBytesOrUint8Array& aJsMessage, ErrorResult& aRv) {
+  MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+          ("MLS::GetGroupEpochFromMessage()"));
+
+  // Handle the message parameter
+  nsTArray<uint8_t> message =
+      ExtractMLSBytesOrUint8ArrayWithUnknownType(aJsMessage, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  // Check if the message is empty
+  if (NS_WARN_IF(message.IsEmpty())) {
+    aRv.ThrowTypeError("The message must not be empty");
+    return nullptr;
+  }
+
+  // Create a new Promise object for the result
+  RefPtr<Promise> promise = Promise::Create(mGlobalObject, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  mTransactionChild->SendRequestGetGroupEpoch(message)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise, self = RefPtr{this},
+       message(std::move(message))](Maybe<RawBytes>&& result) {
+        // Check if the value is Nothing
+        if (result.isNothing()) {
+          promise->MaybeReject(NS_ERROR_FAILURE);
+          return;
+        }
+
+        // Get the context from the GlobalObject
+        AutoJSAPI jsapi;
+        if (NS_WARN_IF(!jsapi.Init(self->mGlobalObject))) {
+          MOZ_LOG(gMlsLog, mozilla::LogLevel::Error,
+                  ("Failed to initialize JSAPI"));
+          promise->MaybeReject(NS_ERROR_FAILURE);
+          return;
+        }
+        JSContext* cx = jsapi.cx();
+
+        // Construct the Uint8Array objects based on the tag
+        ErrorResult error;
+        JS::Rooted<JSObject*> jsGroupId(
+            cx, Uint8Array::Create(cx, result->data(), error));
+        error.WouldReportJSException();
+        if (error.Failed()) {
+          promise->MaybeReject(std::move(error));
+          return;
+        }
+
+        // Construct the MLSBytes object for the groupId
+        RootedDictionary<MLSBytes> rvalue(cx);
+        rvalue.mType = MLSObjectType::Group_epoch;
+        rvalue.mContent.Init(jsGroupId);
+
+        // Log if in debug mode
+        if (MOZ_LOG_TEST(gMlsLog, LogLevel::Debug)) {
+          MOZ_LOG(gMlsLog, mozilla::LogLevel::Debug,
+                  ("Successfully constructed MLSBytes"));
+        }
+
+        // Resolve the promise
+        promise->MaybeResolve(rvalue);
+      },
+      [promise](::mozilla::ipc::ResponseRejectReason aReason) {
+        MOZ_LOG(
+            gMlsLog, mozilla::LogLevel::Error,
+            ("IPC call rejected with reason: %d", static_cast<int>(aReason)));
+        promise->MaybeRejectWithUnknownError("getGroupEpochFromMessage failed");
+      });
+
+  return promise.forget();
+}
+
 }  // namespace mozilla::dom

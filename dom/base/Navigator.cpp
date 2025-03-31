@@ -1236,7 +1236,7 @@ bool Navigator::SendBeaconInternal(const nsAString& aUrl,
   }
 
   // Spec disallows any schemes save for HTTP/HTTPs
-  if (!uri->SchemeIs("http") && !uri->SchemeIs("https")) {
+  if (!net::SchemeIsHttpOrHttps(uri)) {
     aRv.ThrowTypeError<MSG_INVALID_URL_SCHEME>("Beacon",
                                                uri->GetSpecOrDefault());
     return false;

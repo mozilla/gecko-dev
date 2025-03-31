@@ -260,7 +260,7 @@ nsHyphenator::nsHyphenator(nsIURI* aURI, bool aHyphenateCapitalized)
   // We get file:// URIs when running an unpackaged build; they could also
   // occur if we support adding hyphenation dictionaries by putting files in
   // a directory of the profile, for example.
-  if (net::SchemeIsFile(aURI)) {
+  if (aURI->SchemeIs("file")) {
     // Ask the Rust lib to mmap the file. In this case our mDictSize field
     // remains zero; mDict is not a pointer to the raw data but an opaque
     // reference to a Rust object, and can only be freed by passing it to

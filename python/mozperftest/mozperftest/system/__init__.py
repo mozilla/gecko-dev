@@ -8,11 +8,19 @@ from mozperftest.system.macos import MacosDevice
 from mozperftest.system.pingserver import PingServer
 from mozperftest.system.profile import Profile
 from mozperftest.system.proxy import ProxyRunner
+from mozperftest.system.simpleperf import SimpleperfProfiler
 from mozperftest.system.versionproducer import VersionProducer
 
 
 def get_layers():
-    return PingServer, Profile, ProxyRunner, AndroidDevice, MacosDevice
+    return (
+        PingServer,
+        Profile,
+        ProxyRunner,
+        AndroidDevice,
+        MacosDevice,
+        SimpleperfProfiler,
+    )
 
 
 def pick_system(env, flavor, mach_cmd):
@@ -51,6 +59,7 @@ def pick_system(env, flavor, mach_cmd):
             AndroidDevice,
             MacosDevice,
             VersionProducer,
+            SimpleperfProfiler,
         ]
         return Layers(env, mach_cmd, layers)
     if flavor == "alert":

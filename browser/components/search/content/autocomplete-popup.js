@@ -193,7 +193,6 @@
       // Check for middle-click or modified clicks on the search bar
       BrowserSearchTelemetry.recordSearchSuggestionSelectionMethod(
         aEvent,
-        "searchbar",
         this.selectedIndex
       );
 

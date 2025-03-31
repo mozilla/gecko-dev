@@ -61,6 +61,9 @@ class MLS final : public nsISupports, public nsWrapperCache {
   already_AddRefed<mozilla::dom::Promise> GetGroupIdFromMessage(
       const MLSBytesOrUint8Array& aJsMessage, ErrorResult& aRv);
 
+  already_AddRefed<mozilla::dom::Promise> GetGroupEpochFromMessage(
+      const MLSBytesOrUint8Array& aJsMessage, ErrorResult& aRv);
+
  private:
   friend class MLSGroupView;
 

@@ -391,18 +391,20 @@ static CanonicalName CanonicalizeElement(const SanitizerElement& aElement) {
   const auto& elem = GetAsSanitizerElementNamespace(aElement);
   MOZ_ASSERT(!elem.mName.IsVoid());
 
-  // Step 4. Return «[
+  RefPtr<nsAtom> namespaceAtom;
+  // Step 4. Let namespace be name["namespace"] if it exists, otherwise defaultNamespace.
+  // Note: "namespace" always exists due to the WebIDL default value.
+  // Step 5. If namespace is the empty string, then set it to null.
+  if (!elem.mNamespace.IsEmpty()) {
+    namespaceAtom = NS_AtomizeMainThread(elem.mNamespace);
+  }
+
+  // Step 6. Return «[
   //  "name" → name["name"],
-  //  "namespace" → ( name["namespace"] if it exists, otherwise defaultNamespace
+  //  "namespace" → namespace
   //  )
   // ]».
   RefPtr<nsAtom> nameAtom = NS_AtomizeMainThread(elem.mName);
-  RefPtr<nsAtom> namespaceAtom;
-  if (!elem.mNamespace.IsVoid()) {
-    namespaceAtom = NS_AtomizeMainThread(elem.mNamespace);
-  } else {
-    namespaceAtom = nsGkAtoms::nsuri_xhtml;
-  }
   return CanonicalName(nameAtom, namespaceAtom);
 }
 
@@ -427,16 +429,19 @@ static CanonicalName CanonicalizeAttribute(
   const auto& attr = aAttribute.GetAsSanitizerAttributeNamespace();
   MOZ_ASSERT(!attr.mName.IsVoid());
 
-  // Step 4. Return «[
+  RefPtr<nsAtom> namespaceAtom;
+  // Step 4. Let namespace be name["namespace"] if it exists, otherwise defaultNamespace.
+  // Step 5. If namespace is the empty string, then set it to null.
+  if (!attr.mNamespace.IsEmpty()) {
+    namespaceAtom = NS_AtomizeMainThread(attr.mNamespace);
+  }
+
+  // Step 6. Return «[
   //  "name" → name["name"],
-  //  "namespace" → ( name["namespace"] if it exists, otherwise defaultNamespace
+  //  "namespace" → namespace,
   //  )
   // ]».
   RefPtr<nsAtom> nameAtom = NS_AtomizeMainThread(attr.mName);
-  RefPtr<nsAtom> namespaceAtom = nullptr;
-  if (!attr.mNamespace.IsVoid()) {
-    namespaceAtom = NS_AtomizeMainThread(attr.mNamespace);
-  }
   return CanonicalName(nameAtom, namespaceAtom);
 }
 
@@ -708,35 +713,33 @@ static bool IsUnsafeElement(nsAtom* aLocalName, int32_t aNamespaceID) {
 // https://wicg.github.io/sanitizer-api/#sanitize-core
 template <bool IsDefaultConfig>
 void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
-  // Step 1. Let current be node.
-
-  // Step 2. For each child in current’s children:
+  // Step 1. For each child in current’s children:
   nsCOMPtr<nsIContent> next = nullptr;
   for (nsCOMPtr<nsIContent> child = aNode->GetFirstChild(); child;
        child = next) {
     next = child->GetNextSibling();
 
-    // Step 2.1. Assert: child implements Text, Comment, or Element.
+    // Step 1.1. Assert: child implements Text, Comment, or Element.
     // TODO
 
-    // Step 2.2. If child implements Text, then continue.
+    // Step 1.2. If child implements Text, then continue.
     if (child->IsText()) {
       continue;
     }
 
-    // Step 2.3. If child implements Comment:
+    // Step 1.3. If child implements Comment:
     if (child->IsComment()) {
-      // Step 2.3.1 If configuration["comments"] is not true, then remove child.
+      // Step 1.3.1 If configuration["comments"] is not true, then remove child.
       if (!mComments) {
         child->RemoveFromParent();
       }
       continue;
     }
 
-    // Step 2.4. Otherwise:
+    // Step 1.4. Otherwise:
     MOZ_ASSERT(child->IsElement());
 
-    // Step 2.4.1. Let elementName be a SanitizerElementNamespace with child’s
+    // Step 1.4.1. Let elementName be a SanitizerElementNamespace with child’s
     // local name and namespace.
     nsAtom* nameAtom = child->NodeInfo()->NameAtom();
     int32_t namespaceID = child->NodeInfo()->NamespaceID();
@@ -749,6 +752,10 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     // Optimization: Remove unsafe elements before doing anything else.
     // https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration
     //
+    // We have to do this _before_ handling the "replaceWithChildrenElements"
+    // list, because by adding the unsafe elements to the "removeElements" list
+    // they would be implicitly deleted from the former.
+    //
     // The default config's "elements" allow list does not contain any unsafe
     // elements so we can skip this.
     if constexpr (!IsDefaultConfig) {
@@ -759,15 +766,44 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
       }
     }
 
-    // Step 2.4.2. If configuration["removeElements"] contains elementName, or
+    // Step 1.4.2. If configuration["replaceWithChildrenElements"] contains
+    // elementName:
+    if constexpr (!IsDefaultConfig) {
+      if (mReplaceWithChildrenElements.Contains(*elementName)) {
+        // Note: This follows nsTreeSanitizer by first inserting the
+        // child's children in place of the current child and then
+        // continueing the sanitization from the first inserted grandchild.
+        nsCOMPtr<nsIContent> parent = child->GetParent();
+        nsCOMPtr<nsIContent> firstChild = child->GetFirstChild();
+        nsCOMPtr<nsIContent> newChild = firstChild;
+        for (; newChild; newChild = child->GetFirstChild()) {
+          ErrorResult rv;
+          parent->InsertBefore(*newChild, child, rv);
+          if (rv.Failed()) {
+            // TODO: Abort?
+            break;
+          }
+        }
+
+        child->RemoveFromParent();
+        if (firstChild) {
+          next = firstChild;
+        }
+        continue;
+      }
+    }
+
+    // Step 1.4.3. If configuration["removeElements"] contains elementName, or
     // if configuration["elements"] is not empty and does not contain
-    // elementName, then remove child.
+    // elementName:
     [[maybe_unused]] StaticAtomSet* elementAttributes = nullptr;
     if constexpr (!IsDefaultConfig) {
       if (mRemoveElements.Contains(*elementName) ||
           (!mElements.IsEmpty() && !mElements.Contains(*elementName))) {
         // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
+        // Step 1.4.3.1. Remove child.
         child->RemoveFromParent();
+        // Step 1.4.3.2. Continue.
         continue;
       }
     } else {
@@ -789,54 +825,30 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
         }
       }
       if (!found) {
+        // Step 1.4.3.1. Remove child.
         child->RemoveFromParent();
+        // Step 1.4.3.2. Continue.
         continue;
       }
       MOZ_ASSERT(!IsUnsafeElement(nameAtom, namespaceID));
     }
 
-    // Step 2.4.3. If configuration["replaceWithChildrenElements"] contains
-    // elementName:
-    if constexpr (!IsDefaultConfig) {
-      if (mReplaceWithChildrenElements.Contains(*elementName)) {
-        // Note: This follows nsTreeSanitizer by first inserting the
-        // child's children in place of the current child and then
-        // continueing the sanitization from the first inserted grandchild.
-        nsCOMPtr<nsIContent> parent = child->GetParent();
-        nsCOMPtr<nsIContent> firstChild = child->GetFirstChild();
-        nsCOMPtr<nsIContent> newChild = firstChild;
-        for (; newChild; newChild = child->GetFirstChild()) {
-          ErrorResult rv;
-          parent->InsertBefore(*newChild, child, rv);
-          if (rv.Failed()) {
-            break;
-          }
-        }
-
-        child->RemoveFromParent();
-        if (firstChild) {
-          next = firstChild;
-        }
-        continue;
-      }
-    }
-
-    // Step 2.4.4. If elementName equals «[ "name" → "template", "namespace" →
+    // Step 1.4.4. If elementName equals «[ "name" → "template", "namespace" →
     // HTML namespace ]»
     if (auto* templateEl = HTMLTemplateElement::FromNode(child)) {
-      // Step 2.4.4.1. Then call sanitize core on child’s template contents with
+      // Step 1.4.4.1. Then call sanitize core on child’s template contents with
       // configuration and handleJavascriptNavigationUrls.
       RefPtr<DocumentFragment> frag = templateEl->Content();
       SanitizeChildren<IsDefaultConfig>(frag, aSafe);
     }
 
-    // Step 2.4.5. If child is a shadow host, then call sanitize core on child’s
+    // Step 1.4.5. If child is a shadow host, then call sanitize core on child’s
     // shadow root with configuration and handleJavascriptNavigationUrls.
     if (RefPtr<ShadowRoot> shadow = child->GetShadowRoot()) {
       SanitizeChildren<IsDefaultConfig>(shadow, aSafe);
     }
 
-    // Step 2.4.6.
+    // Step 1.4.6.
     if constexpr (!IsDefaultConfig) {
       SanitizeAttributes(child->AsElement(), *elementName, aSafe);
     } else {
@@ -844,7 +856,8 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
                                       aSafe);
     }
 
-    // XXX: Recursion missing from the spec ?!?
+    // Step 1.4.7. Call sanitize core on child with configuration and
+    // handleJavascriptNavigationUrls.
     // TODO: Optimization: Remove recusion similar to nsTreeSanitizer
     SanitizeChildren<IsDefaultConfig>(child, aSafe);
   }

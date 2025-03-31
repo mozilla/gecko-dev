@@ -180,10 +180,12 @@ class Editor extends EventEmitter {
   };
 
   #abortController;
-  // The id for the current source in the editor (selected source). This
-  // is used to cache the scroll snapshot for tracking scroll positions and the
-  // symbols.
+
+  // The id for the current source in the editor (selected source). This is used to:
+  // * cache the scroll snapshot for tracking scroll positions and the symbols,
+  // * know when an actual source is displayed (and not only a loading/error message)
   #currentDocumentId = null;
+
   #currentDocument = null;
   #CodeMirror6;
   #compartments;
@@ -1762,6 +1764,10 @@ class Editor extends EventEmitter {
     }
     const cm = editors.get(this);
     if (this.config.cm6) {
+      // Report no viewport until we show an actual source (and not a loading/error message)
+      if (!this.#currentDocumentId) {
+        return null;
+      }
       const { from, to } = cm.viewport;
       const lineFrom = cm.state.doc.lineAt(from);
       const lineTo = cm.state.doc.lineAt(to);
@@ -2519,8 +2525,10 @@ class Editor extends EventEmitter {
   /**
    * Replaces whatever is in the text area with the contents of
    * the 'value' argument.
+   *
    * @param {String} value: The text to replace the editor content
-   * @param {String} documentId: A unique id represeting the specific document which is source of the text.
+   * @param {String} documentId: Optional unique id represeting the specific document which is source of the text.
+   *                 Will be null for loading and error messages.
    */
   async setText(value, documentId) {
     const cm = editors.get(this);
@@ -2528,6 +2536,10 @@ class Editor extends EventEmitter {
 
     if (documentId) {
       this.#currentDocumentId = documentId;
+    } else {
+      // Reset this ID when showing loading and error messages,
+      // so that we keep track when an actual source is displayed
+      this.#currentDocumentId = null;
     }
 
     if (isWasm) {

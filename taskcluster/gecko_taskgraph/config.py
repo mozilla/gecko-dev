@@ -61,6 +61,7 @@ graph_config_schema = Schema(
                     ],
                     Required("replacements"): [[str]],
                     Required("merge-old-head"): bool,
+                    Optional("regex-replacements"): [[str]],
                     Optional("base-tag"): str,
                     Optional("end-tag"): str,
                     Optional("fetch-version-from"): str,

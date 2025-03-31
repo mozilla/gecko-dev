@@ -30,7 +30,6 @@ import mozilla.components.support.remotesettings.RemoteSettingsService
 class FxSuggestStorage(
     context: Context,
     remoteSettingsService: RemoteSettingsService,
-    remoteSettingsServer: RemoteSettingsServer = RemoteSettingsServer.Prod,
 ) {
     // Lazily initializes the store on first use. `cacheDir` and using the `File` constructor
     // does I/O, so `store.value` should only be accessed from the read or write scope.
@@ -39,8 +38,6 @@ class FxSuggestStorage(
         SuggestStoreBuilder()
             .dataPath(context.getDatabasePath(DATABASE_NAME).absolutePath)
             .remoteSettingsService(remoteSettingsService.remoteSettingsService)
-            // TODO(1950404): Remove this call once Suggest is using the new remote settings API
-            .remoteSettingsServer(remoteSettingsServer)
             .build()
     }
 

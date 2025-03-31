@@ -158,8 +158,6 @@ sidebar-menu-history-header =
   .heading = History
 sidebar-menu-syncedtabs-header =
   .heading = Tabs from other devices
-sidebar-menu-bookmarks-header =
-  .heading = Bookmarks
 sidebar-menu-cpm-header =
   .heading = Passwords
 

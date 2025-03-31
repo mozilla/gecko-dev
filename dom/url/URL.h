@@ -135,8 +135,6 @@ class URL final : public URLSearchParamsObserver, public nsWrapperCache {
   nsCOMPtr<nsIURI> mURI;
 };
 
-bool IsChromeURI(nsIURI* aURI);
-
 }  // namespace dom
 }  // namespace mozilla
 

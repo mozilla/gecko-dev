@@ -29,13 +29,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "extensions.manifestV3.enabled"
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "XPINSTALL_ENABLED",
-  "xpinstall.enabled",
-  true
-);
-
 const UPDATES_RECENT_TIMESPAN = 2 * 24 * 3600000; // 2 days (in milliseconds)
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -1039,6 +1032,12 @@ class AddonPageOptions extends HTMLElement {
         e.target.disabled = false;
       }
     } else if (e.type === "showing") {
+      this.installFromFile.setAttribute(
+        "data-l10n-id",
+        PREFER_UPDATE_OVER_INSTALL_FOR_EXISTING_ADDON
+          ? "addon-install-or-update-from-file"
+          : "addon-install-from-file"
+      );
       this.installFromFile.hidden = !XPINSTALL_ENABLED;
     }
   }

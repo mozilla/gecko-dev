@@ -625,6 +625,8 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
     }
     RefPtr<Device> device = new Device(
         this, request->mDeviceId, request->mQueueId, ffiDesc.required_limits);
+    device->SetLabel(aDesc.mLabel);
+
     for (const auto& feature : aDesc.mRequiredFeatures) {
       device->mFeatures->Add(feature, aRv);
     }

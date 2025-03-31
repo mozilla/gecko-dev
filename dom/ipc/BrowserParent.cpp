@@ -3746,8 +3746,7 @@ bool BrowserParent::CanCancelContentJS(
                     false);
 
   nsCOMPtr<nsIURI> currentURI = entry->GetURI();
-  if (!currentURI->SchemeIs("http") && !currentURI->SchemeIs("https") &&
-      !currentURI->SchemeIs("file")) {
+  if (!net::SchemeIsHttpOrHttps(currentURI) && !currentURI->SchemeIs("file")) {
     // Only cancel content JS for http(s) and file URIs. Other URIs are probably
     // internal and we should just let them run to completion.
     return false;

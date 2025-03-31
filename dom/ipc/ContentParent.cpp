@@ -84,6 +84,7 @@
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/TaskController.h"
 #include "mozilla/glean/DomMetrics.h"
+#include "mozilla/glean/IpcMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryIPC.h"
 #include "mozilla/ThreadSafety.h"
@@ -1942,8 +1943,7 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
   if (StringBeginsWith(mRemoteType, WEB_REMOTE_TYPE) ||
       mRemoteType == FILE_REMOTE_TYPE || mRemoteType == EXTENSION_REMOTE_TYPE) {
     TimeDuration runtime = TimeStamp::Now() - mActivateTS;
-    Telemetry::Accumulate(Telemetry::PROCESS_LIFETIME,
-                          uint64_t(runtime.ToSeconds()));
+    glean::process::lifetime.AccumulateRawDuration(runtime);
   }
 
   if (mSendShutdownTimer) {
@@ -2007,8 +2007,7 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
     props->SetPropertyAsUint64(u"childID"_ns, mChildID);
 
     if (AbnormalShutdown == why) {
-      Telemetry::Accumulate(Telemetry::SUBPROCESS_ABNORMAL_ABORT, "content"_ns,
-                            1);
+      glean::subprocess::abnormal_abort.Get("content"_ns).Add(1);
 
       props->SetPropertyAsBool(u"abnormal"_ns, true);
 
@@ -4349,7 +4348,7 @@ void ContentParent::KillHard(const char* aReason) {
   } else {
     reason = nsDependentCString("KillHard after IsNotifiedShutdownSuccess.");
   }
-  Telemetry::Accumulate(Telemetry::SUBPROCESS_KILL_HARD, reason, 1);
+  glean::subprocess::kill_hard.Get(reason).Add(1);
 
   ProcessHandle otherProcessHandle;
   if (!base::OpenProcessHandle(OtherPid(), &otherProcessHandle)) {

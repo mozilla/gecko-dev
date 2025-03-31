@@ -15,6 +15,8 @@ const CONTEXT_SIZE_MULTIPLIER = 0.69;
 const DEFAULT_INPUT_SENTENCES = 6;
 const MIN_SENTENCE_LENGTH = 14;
 const MIN_WORD_COUNT = 5;
+const DEFAULT_INPUT_PROMPT =
+  "Provide a concise, objective summary of the input text in up to three sentences, focusing on key actions and intentions without using second or third person pronouns.";
 
 // All tokens taken from the model's vocabulary at https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/raw/main/vocab.json
 // Token id for end of text
@@ -28,6 +30,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
+  BlockListManager: "chrome://global/content/ml/Utils.sys.mjs",
+  RemoteSettingsManager: "chrome://global/content/ml/Utils.sys.mjs",
 });
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -38,8 +42,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "inputSentences",
-  "browser.ml.linkPreview.inputSentences",
-  DEFAULT_INPUT_SENTENCES
+  "browser.ml.linkPreview.inputSentences"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -49,11 +52,22 @@ XPCOMUtils.defineLazyPreferenceGetter(
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "prompt",
-  "browser.ml.linkPreview.prompt",
-  "Provide a concise, objective summary of the input text in up to three sentences, focusing on key actions and intentions without using second or third person pronouns."
+  "browser.ml.linkPreview.prompt"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "blockListEnabled",
+  "browser.ml.linkPreview.blockListEnabled"
 );
 
 export const LinkPreviewModel = {
+  /**
+   * Manager for the block list. If null, no block list is applied.
+   *
+   * @type {BlockListManager}
+   */
+  blockListManager: null,
+
   /**
    * Blocked token list
    *
@@ -228,9 +242,13 @@ export const LinkPreviewModel = {
    * Clean up text for text generation AI.
    *
    * @param {string} text to process
+   * @param {number} maxNumSentences - Max number of sentences to return.
    * @returns {string} cleaned up text
    */
-  preprocessText(text) {
+  preprocessText(
+    text,
+    maxNumSentences = lazy.inputSentences ?? DEFAULT_INPUT_SENTENCES
+  ) {
     return (
       this.getSentences(text)
         .map(s =>
@@ -256,9 +274,20 @@ export const LinkPreviewModel = {
             s.split(" ").length >= MIN_WORD_COUNT &&
             /\p{P}$/u.test(s)
         )
-        .slice(0, lazy.inputSentences)
+        .slice(0, maxNumSentences)
         .join(" ")
     );
+  },
+
+  /**
+   * Creates a new ML engine instance with the provided options for link preview.
+   *
+   * @param {object} options - Configuration options for the ML engine.
+   * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback A function to call to indicate notifications.
+   * @returns {Promise<MLEngine>} - A promise that resolves to the ML engine instance.
+   */
+  async createEngine(options, notificationsCallback = null) {
+    return lazy.createEngine(options, notificationsCallback);
   },
 
   /**
@@ -271,10 +300,43 @@ export const LinkPreviewModel = {
    * @param {Function} callbacks.onError optional for error
    */
   async generateTextAI(inputText, { onDownload, onText, onError } = {}) {
-    const processedInput = this.preprocessText(inputText);
+    // Get updated options from remote settings. No failure if no record exists
+    const remoteRequestRecord = await lazy.RemoteSettingsManager.getRemoteData({
+      collectionName: "ml-inference-request-options",
+      filters: { featureId: "link-preview" },
+      majorVersion: 1,
+    }).catch(() => {
+      console.error(
+        "Error retrieving request options from remote settings, will use default options."
+      );
+      return { options: "{}" };
+    });
+
+    let remoteRequestOptions = {};
+
+    try {
+      remoteRequestOptions = remoteRequestRecord?.options
+        ? JSON.parse(remoteRequestRecord.options)
+        : {};
+    } catch (error) {
+      console.error(
+        "Error parsing the remote settings request options, will use default options.",
+        error
+      );
+    }
+
+    // TODO: Unit test that order of preference is correctly respected.
+    const processedInput = this.preprocessText(
+      inputText,
+      lazy.inputSentences ??
+        remoteRequestOptions?.inputSentences ??
+        DEFAULT_INPUT_SENTENCES
+    );
+
     // Asssume generated text is approximately the same length as the input.
     const nPredict = Math.ceil(processedInput.length / CHARACTERS_PER_TOKEN);
-    const systemPrompt = lazy.prompt;
+    const systemPrompt =
+      lazy.prompt ?? remoteRequestOptions?.systemPrompt ?? DEFAULT_INPUT_PROMPT;
     // Estimate an upper bound for the required number of tokens. This estimate
     // must be large enough to include prompt tokens, input tokens, and
     // generated tokens.
@@ -285,7 +347,7 @@ export const LinkPreviewModel = {
 
     let engine;
     try {
-      engine = await lazy.createEngine(
+      engine = await this.createEngine(
         {
           backend: "wllama",
           engineId: "wllamapreview",
@@ -315,7 +377,7 @@ export const LinkPreviewModel = {
         }
       );
 
-      const postProcessor = new SentencePostProcessor();
+      const postProcessor = await SentencePostProcessor.initialize();
       const blockedTokens = this.getBlockTokenList();
       for await (const val of engine.runWithGenerator({
         nPredict,
@@ -380,11 +442,56 @@ export class SentencePostProcessor {
   currentNumSentences = 0;
 
   /**
-   * @param {number} maxNumOutputSentences - The maximum number of sentences to
-   * output before truncating the buffer.
+   * Manager for the block list. If null, no block list is applied.
+   *
+   * @type {BlockListManager}
    */
-  constructor(maxNumOutputSentences = lazy.outputSentences) {
+  blockListManager = null;
+
+  /**
+   * Create an instance of the sentence postprocessor.
+   *
+   * @param {object} config - Configuration object.
+   * @param {number} config.maxNumOutputSentences - The maximum number of sentences to
+   * output before truncating the buffer.
+   * @param {BlockListManager | null} config.blockListManager - Manager for the block list
+   */
+  constructor({
+    maxNumOutputSentences = lazy.outputSentences,
+    blockListManager,
+  } = {}) {
     this.maxNumOutputSentences = maxNumOutputSentences;
+    this.blockListManager = blockListManager;
+  }
+
+  /**
+   * @param {object} config - Configuration object.
+   * @param {number} config.maxNumOutputSentences - The maximum number of sentences to
+   * output before truncating the buffer.
+   * @param {boolean} config.blockListEnabled - Wether to enable block list. If enabled, we
+   * don't return the sentence that has a blocked word along with any sentences coming after.
+   * @returns {SentencePostProcessor} - An instance of SentencePostProcessor
+   */
+  static async initialize({
+    maxNumOutputSentences = lazy.outputSentences,
+    blockListEnabled = lazy.blockListEnabled,
+  } = {}) {
+    if (!blockListEnabled) {
+      LinkPreviewModel.blockListManager = null;
+    } else if (!LinkPreviewModel.blockListManager) {
+      LinkPreviewModel.blockListManager =
+        await lazy.BlockListManager.initializeFromRemoteSettings({
+          blockListName: "link-preview-test-en",
+          language: "en",
+          fallbackToDefault: true,
+          majorVersion: 1,
+        });
+    }
+
+    return new SentencePostProcessor({
+      maxNumOutputSentences,
+      blockListManager: LinkPreviewModel.blockListManager,
+    });
   }
 
   /**
@@ -417,6 +524,16 @@ export class SentencePostProcessor {
         abort = true;
       }
       sentence = sentences[0];
+
+      // If the sentence contains a block word, abort
+      if (
+        this.blockListManager &&
+        this.blockListManager.matchAtWordBoundary({ text: sentence })
+      ) {
+        sentence = "";
+        abort = true;
+        this.currentNumSentences = this.maxNumOutputSentences;
+      }
     }
 
     return { sentence, abort };
