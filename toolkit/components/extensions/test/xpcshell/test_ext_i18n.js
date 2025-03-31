@@ -200,6 +200,22 @@ add_task(async function test_i18n() {
   await extension.unload();
 });
 
+add_task(async function test_extension_id_without_default_locale() {
+  let extension = ExtensionTestUtils.loadExtension({
+    background() {
+      browser.test.assertEq(
+        location.hostname,
+        browser.i18n.getMessage("@@extension_id"),
+        "builtin @@extension_id should be available despite no default_locale"
+      );
+      browser.test.sendMessage("done");
+    },
+  });
+  await extension.startup();
+  await extension.awaitMessage("done");
+  await extension.unload();
+});
+
 add_task(async function test_i18n_negotiation() {
   function runTests(expected) {
     let _ = browser.i18n.getMessage.bind(browser.i18n);
@@ -279,6 +295,118 @@ add_task(async function test_i18n_negotiation() {
     await extension.awaitMessage("content-ready");
 
     extension.sendMessage(msg);
+    await extension.awaitMessage("background-script-finished");
+    await extension.awaitMessage("content-script-finished");
+
+    await extension.unload();
+  }
+  Services.locale.requestedLocales = originalReqLocales;
+
+  await contentPage.close();
+});
+
+add_task(async function test_i18n_language_fallbacks() {
+  function runTests(expected) {
+    const _ = browser.i18n.getMessage.bind(browser.i18n);
+
+    const messagesToCompare = ["onlyInCa", "onlyInCaEs", "onlyInCaEsValencia"];
+
+    for (const [index, messageId] of messagesToCompare.entries()) {
+      const logMessage = `Got expected ${messageId} message`;
+      browser.test.assertEq(expected[index], _(messageId), logMessage);
+    }
+  }
+
+  let extensionData = {
+    manifest: {
+      default_locale: "en_US",
+
+      content_scripts: [
+        { matches: ["http://*/*/file_sample.html"], js: ["content.js"] },
+      ],
+    },
+
+    files: {
+      "_locales/ca-ES-valencia/messages.json": {
+        onlyInCaEsValencia: {
+          message: "ca-ES-valencia",
+        },
+      },
+
+      "_locales/ca_ES/messages.json": {
+        onlyInCaEs: {
+          message: "ca-ES",
+        },
+      },
+
+      "_locales/ca/messages.json": {
+        onlyInCa: {
+          message: "ca",
+        },
+      },
+
+      "_locales/en_US/messages.json": {
+        onlyInCaEsValencia: {
+          message: "en-US",
+        },
+        onlyInCaEs: {
+          message: "en-US",
+        },
+        onlyInCa: {
+          message: "en-US",
+        },
+      },
+
+      "content.js":
+        "new " +
+        function (runTestsFn) {
+          browser.test.onMessage.addListener(expected => {
+            runTestsFn(expected);
+
+            browser.test.sendMessage("content-script-finished");
+          });
+          browser.test.sendMessage("content-ready");
+        } +
+        `(${runTests})`,
+    },
+
+    background:
+      "new " +
+      function (runTestsFn) {
+        browser.test.onMessage.addListener(expected => {
+          runTestsFn(expected);
+
+          browser.test.sendMessage("background-script-finished");
+        });
+      } +
+      `(${runTests})`,
+  };
+
+  // At the moment extension language negotiation is tied to Firefox language
+  // negotiation result. That means that to test an extension in `fr`, we need
+  // to mock `fr` being available in Firefox and then request it.
+  //
+  // In the future, we should provide some way for tests to decouple their
+  // language selection from that of Firefox.
+  Services.locale.availableLocales = ["ca-ES-valencia", "ca-ES", "ca", "en-US"];
+
+  let contentPage = await ExtensionTestUtils.loadContentPage(
+    `${BASE_URL}/file_sample.html`
+  );
+
+  for (let [lang, firstResult, secondResult, thirdResult] of [
+    ["ca-ES-valencia", "ca", "ca-ES", "ca-ES-valencia"],
+    ["ca-ES", "ca", "ca-ES", "en-US"],
+    ["ca", "ca", "en-US", "en-US"],
+    ["en-US", "en-US", "en-US", "en-US"],
+  ]) {
+    Services.locale.requestedLocales = [lang];
+
+    let extension = ExtensionTestUtils.loadExtension(extensionData);
+    await extension.startup();
+    await extension.awaitMessage("content-ready");
+
+    extension.sendMessage([firstResult, secondResult, thirdResult]);
     await extension.awaitMessage("background-script-finished");
     await extension.awaitMessage("content-script-finished");
 

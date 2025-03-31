@@ -2063,6 +2063,18 @@ export function LocaleData(data) {
   }
 }
 
+LocaleData.listLocaleVariations = function LocaleData_listLocaleVariations(
+  locale
+) {
+  const subTags = locale.split("-");
+  const result = [];
+  while (subTags.length) {
+    result.push(subTags.join("-"));
+    subTags.pop();
+  }
+  return result;
+};
+
 LocaleData.prototype = {
   // Representation of the object to send to content processes. This
   // should include anything the content process might need.
@@ -2081,21 +2093,30 @@ LocaleData.prototype = {
     return this.messages.has(locale);
   },
 
+  getAvailableLocales(preferredLocale) {
+    const locales = [this.BUILTIN];
+
+    if (preferredLocale) {
+      locales.push(...LocaleData.listLocaleVariations(preferredLocale));
+    }
+
+    if (!locales.includes(this.defaultLocale)) {
+      locales.push(this.defaultLocale);
+    }
+
+    return locales.filter(locale => this.messages.has(locale));
+  },
+
   // https://developer.chrome.com/extensions/i18n
   localizeMessage(message, substitutions = [], options = {}) {
-    let defaultOptions = {
+    const defaultOptions = {
       defaultValue: "",
       cloneScope: null,
     };
 
-    let locales = this.availableLocales;
-    if (options.locale) {
-      locales = new Set(
-        [this.BUILTIN, options.locale, this.defaultLocale].filter(locale =>
-          this.messages.has(locale)
-        )
-      );
-    }
+    const locales = options.locale
+      ? this.getAvailableLocales(options.locale)
+      : this.availableLocales;
 
     options = Object.assign(defaultOptions, options);
 
@@ -2255,8 +2276,7 @@ LocaleData.prototype = {
   },
 
   get availableLocales() {
-    const locales = [this.BUILTIN, this.selectedLocale, this.defaultLocale];
-    const value = new Set(locales.filter(locale => this.messages.has(locale)));
+    let value = this.getAvailableLocales(this.selectedLocale);
     return redefineGetter(this, "availableLocales", value);
   },
 };

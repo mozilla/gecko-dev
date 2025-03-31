@@ -2457,24 +2457,30 @@ export class ExtensionData {
   //
   // Pre-loads the default locale for fallback message processing, regardless
   // of the locale specified.
-  //
-  // If no locales are unavailable, resolves to |null|.
   async initLocale(locale = this.defaultLocale) {
     if (locale == null) {
       return null;
     }
 
-    let promises = [this.readLocaleFile(locale)];
+    const availableMessageFileLocales = await this.promiseLocales();
 
-    let { defaultLocale } = this;
-    if (locale != defaultLocale && !this.localeData.has(defaultLocale)) {
-      promises.push(this.readLocaleFile(defaultLocale));
+    const localesToLoad = lazy.LocaleData.listLocaleVariations(locale).filter(
+      item => availableMessageFileLocales.has(item)
+    );
+
+    const { defaultLocale } = this;
+    if (!localesToLoad.includes(defaultLocale)) {
+      localesToLoad.push(defaultLocale);
     }
 
-    let results = await Promise.all(promises);
+    await Promise.all(
+      localesToLoad.map(item => {
+        // Avoid loading locales that we have already read before.
+        return !this.localeData.has(item) && this.readLocaleFile(item);
+      })
+    );
 
     this.localeData.selectedLocale = locale;
-    return results[0];
   }
 
   /**
