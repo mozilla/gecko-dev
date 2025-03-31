@@ -8,6 +8,58 @@ add_setup(async function setup() {
   registerCleanupFunction(cleanup);
 });
 
+/**
+ * Set up a listener for a SharedData update in the process corresponding to the
+ * specified browser.
+ *
+ * You must await the promise returned by this function *before* triggering a
+ * SharedData flush.
+ *
+ * After triggering the flush, you must await the promise inside the returned
+ * object.
+ *
+ * Example:
+ *
+ * ```js
+ * const childUpdated = await childSharedDataChanged(browser);
+ * // Do something to modify SharedData
+ * Services.ppmm.sharedData.flush();
+ * await childUpdated.promise;
+ * ```
+ *
+ * @returns {Promise<object>}
+ *          A promise that resolves to an object containing a promise. The outer
+ *          promise resolves when the event handler has been registered in the
+ *          child. The inner promise resolves when the event has fired in the
+ *          child.
+ */
+async function childSharedDataChanged(browser) {
+  const MESSAGE = "browser_experimentapi_child:shared-data-changed";
+
+  const deferred = Promise.withResolvers();
+  const listener = () => {
+    deferred.resolve();
+    Services.ppmm.removeMessageListener(MESSAGE, listener);
+  };
+
+  Services.ppmm.addMessageListener(MESSAGE, listener);
+
+  await SpecialPowers.spawn(browser, [MESSAGE], async MESSAGE => {
+    Services.cpmm.sharedData.addEventListener(
+      "change",
+      async () => {
+        await Services.cpmm.sendAsyncMessage(MESSAGE);
+      },
+      { once: true }
+    );
+  });
+
+  // We can't return promise here because JavaScript will collapse it and
+  // awaiting this function will await *that* promise, which we don't want to
+  // do.
+  return { promise: deferred.promise };
+}
+
 add_task(async function testGetExperimentFromChildNewEnrollment() {
   const browserWindow = Services.wm.getMostRecentWindow("navigator:browser");
 
@@ -15,6 +67,7 @@ add_task(async function testGetExperimentFromChildNewEnrollment() {
   const tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser: browserWindow.gBrowser,
     url: "https://example.com",
+    forceNewProcess: true,
   });
   const browser = tab.linkedBrowser;
 
@@ -45,6 +98,8 @@ add_task(async function testGetExperimentFromChildNewEnrollment() {
     );
   });
 
+  let childUpdated = await childSharedDataChanged(browser);
+
   // Enroll in an experiment in the parent process.
   await ExperimentAPI._manager.enroll(
     ExperimentFakes.recipe("foo", {
@@ -68,6 +123,16 @@ add_task(async function testGetExperimentFromChildNewEnrollment() {
       ],
     })
   );
+
+  // Immediately serialize sharedData and broadcast changes to the child processes.
+  //
+  // In normal operation, this will happen during idle dispatch [1], but we want
+  // to test that our IPC mechanisms work correctly, so we force it to happen so
+  // that we can act immediately in the child.
+  //
+  // [1]: https://searchfox.org/mozilla-central/rev/5bea6ede57be43d450ecc24af7a535288c9a9f7d/dom/ipc/SharedMap.cpp#416-422
+  Services.ppmm.sharedData.flush();
+  await childUpdated.promise;
 
   // Check that the new state is reflected in the content process.
   await SpecialPowers.spawn(browser, [], async () => {
@@ -114,8 +179,12 @@ add_task(async function testGetExperimentFromChildNewEnrollment() {
     }
   });
 
+  childUpdated = await childSharedDataChanged(browser);
   // Unenroll from the experiment in the parent process.
   ExperimentAPI._manager.unenroll("foo");
+  // Propagate the change to child processes.
+  Services.ppmm.sharedData.flush();
+  await childUpdated.promise;
 
   // Check that the new state is reflected in the content process.
   await SpecialPowers.spawn(browser, [], async () => {
@@ -152,11 +221,17 @@ add_task(async function testGetExperimentFromChildNewEnrollment() {
   ExperimentAPI._manager.store._deleteForTests("foo");
 
   BrowserTestUtils.removeTab(tab);
+
+  Services.ppmm.sharedData.flush();
 });
 
 add_task(async function testGetExperimentFromChildExistingEnrollment() {
   const browserWindow =
     Services.wm.getMostRecentBrowserWindow("navigator:browser");
+
+  // We only want to test the new process case, so make sure to shut down any
+  // existing processes.
+  Services.ppmm.releaseCachedProcesses();
 
   await ExperimentAPI._manager.enroll(
     ExperimentFakes.recipe("qux", {
@@ -181,10 +256,16 @@ add_task(async function testGetExperimentFromChildExistingEnrollment() {
     })
   );
 
+  // We don't have to wait for this to update in the client, but we *do* have to
+  // flush to make it re-serialize the contents to make it available to new
+  // processes.
+  Services.ppmm.sharedData.flush();
+
   // Open a tab so that we have a content process.
   const tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser: browserWindow.gBrowser,
     url: "https://example.com",
+    forceNewProcess: true,
   });
   const browser = tab.linkedBrowser;
 
@@ -233,4 +314,6 @@ add_task(async function testGetExperimentFromChildExistingEnrollment() {
   ExperimentAPI._manager.unenroll("qux");
   ExperimentAPI._manager.store._deleteForTests("qux");
   BrowserTestUtils.removeTab(tab);
+
+  Services.ppmm.sharedData.flush();
 });
