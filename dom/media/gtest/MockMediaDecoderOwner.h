@@ -19,7 +19,7 @@ class MockMediaDecoderOwner final : public MediaDecoderOwner {
                const PrincipalHandle& aNewPrincipalHandle),
               (override));
   MOCK_METHOD(void, DownloadProgressed, (), (override));
-  MOCK_METHOD(void, DispatchAsyncEvent, (const nsAString& aName), (override));
+  MOCK_METHOD(void, QueueEvent, (const nsAString& aName), (override));
   MOCK_METHOD(void, UpdateReadyState, (), (override));
   MOCK_METHOD(void, MaybeQueueTimeupdateEvent, (), (override));
   MOCK_METHOD(bool, GetPaused, (), (override));

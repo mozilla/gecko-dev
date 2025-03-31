@@ -67,6 +67,10 @@ class HTMLMediaElement;
 // receive events. If we neglect to remove the self-reference then the element
 // just lives longer than it needs to.
 
+// Runnable for media element tasks.
+// These tasks have special behavior if the load algorithm is triggered before
+// the task is popped from the task queue, which is usually to skip running
+// the task.  See nsResolveOrRejectPendingPlayPromisesRunner for the exception.
 class nsMediaEventRunner : public nsIRunnable, public nsINamed {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -119,6 +123,9 @@ class nsAsyncEventRunner : public nsMediaEventRunner {
  * element's mPendingPlayPromisesRunners member and once the the runner is run
  * (whether fulfilled or canceled), it removes itself from
  * mPendingPlayPromisesRunners.
+ *
+ * If the load algorithm is triggered before the task is run then the pending
+ * play promises passed will be settled at commencement of the load algorithm.
  */
 class nsResolveOrRejectPendingPlayPromisesRunner : public nsMediaEventRunner {
  public:

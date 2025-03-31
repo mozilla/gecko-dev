@@ -2016,14 +2016,14 @@ class HTMLMediaElement::ErrorSink {
     ReportErrorProbe(aErrorCode, aResult);
     mError = new MediaError(mOwner, aErrorCode,
                             aResult ? aResult->Message() : nsCString());
-    mOwner->DispatchAsyncEvent(u"error"_ns);
+    mOwner->QueueEvent(u"error"_ns);
     if (mOwner->ReadyState() == HAVE_NOTHING &&
         aErrorCode == MEDIA_ERR_ABORTED) {
       // https://html.spec.whatwg.org/multipage/embedded-content.html#media-data-processing-steps-list
       // "If the media data fetching process is aborted by the user"
-      mOwner->DispatchAsyncEvent(u"abort"_ns);
+      mOwner->QueueEvent(u"abort"_ns);
       mOwner->ChangeNetworkState(NETWORK_EMPTY);
-      mOwner->DispatchAsyncEvent(u"emptied"_ns);
+      mOwner->QueueEvent(u"emptied"_ns);
       if (mOwner->mDecoder) {
         mOwner->ShutdownDecoder();
       }
@@ -2459,7 +2459,7 @@ void HTMLMediaElement::AbortExistingLoads() {
   mMediaSource = nullptr;
 
   if (mNetworkState == NETWORK_LOADING || mNetworkState == NETWORK_IDLE) {
-    DispatchAsyncEvent(u"abort"_ns);
+    QueueEvent(u"abort"_ns);
   }
 
   bool hadVideo = HasVideo();
@@ -2488,7 +2488,7 @@ void HTMLMediaElement::AbortExistingLoads() {
     NS_ASSERTION(!mDecoder && !mSrcStream,
                  "How did someone setup a new stream/decoder already?");
 
-    DispatchAsyncEvent(u"emptied"_ns);
+    QueueEvent(u"emptied"_ns);
 
     // ChangeNetworkState() will call UpdateAudioChannelPlayingState()
     // indirectly which depends on mPaused. So we need to update mPaused first.
@@ -2743,7 +2743,7 @@ void HTMLMediaElement::SelectResource() {
   ChangeDelayLoadStatus(true);
 
   ChangeNetworkState(NETWORK_LOADING);
-  DispatchAsyncEvent(u"loadstart"_ns);
+  QueueEvent(u"loadstart"_ns);
 
   // Delay setting mIsRunningSeletResource until after UpdatePreloadAction
   // so that we don't lose our state change by bailing out of the preload
@@ -3312,7 +3312,7 @@ nsresult HTMLMediaElement::LoadWithChannel(nsIChannel* aChannel,
   }
 
   SetPlaybackRate(mDefaultPlaybackRate, IgnoreErrors());
-  DispatchAsyncEvent(u"loadstart"_ns);
+  QueueEvent(u"loadstart"_ns);
 
   return NS_OK;
 }
@@ -3595,7 +3595,7 @@ void HTMLMediaElement::PauseInternal() {
 
   if (!oldPaused) {
     FireTimeUpdate(TimeupdateType::eMandatory);
-    DispatchAsyncEvent(u"pause"_ns);
+    QueueEvent(u"pause"_ns);
     AsyncRejectPendingPlayPromises(NS_ERROR_DOM_MEDIA_ABORT_ERR);
   }
 }
@@ -3615,7 +3615,7 @@ void HTMLMediaElement::SetVolume(double aVolume, ErrorResult& aRv) {
   // Here we want just to update the volume.
   SetVolumeInternal();
 
-  DispatchAsyncEvent(u"volumechange"_ns);
+  QueueEvent(u"volumechange"_ns);
 
   // We allow inaudible autoplay. But changing our volume may make this
   // media audible. So pause if we are no longer supposed to be autoplaying.
@@ -3700,7 +3700,7 @@ void HTMLMediaElement::SetMuted(bool aMuted) {
     SetMutedInternal(mMuted & ~MUTED_BY_CONTENT);
   }
 
-  DispatchAsyncEvent(u"volumechange"_ns);
+  QueueEvent(u"volumechange"_ns);
 
   // We allow inaudible autoplay. But changing our mute status may make this
   // media audible. So pause if we are no longer supposed to be autoplaying.
@@ -4654,7 +4654,7 @@ already_AddRefed<Promise> HTMLMediaElement::Play(ErrorResult& aRv) {
 
 void HTMLMediaElement::DispatchEventsWhenPlayWasNotAllowed() {
   if (StaticPrefs::media_autoplay_block_event_enabled()) {
-    DispatchAsyncEvent(u"blocked"_ns);
+    QueueEvent(u"blocked"_ns);
   }
   DispatchBlockEventForVideoControl();
   if (!mHasEverBeenBlockedForAutoplay) {
@@ -4766,7 +4766,7 @@ void HTMLMediaElement::PlayInternal(bool aHandlingUserInput) {
     }
 
     // 6.3. Queue a task to fire a simple event named play at the element.
-    DispatchAsyncEvent(u"play"_ns);
+    QueueEvent(u"play"_ns);
 
     // 6.4. If the media element's readyState attribute has the value
     //      HAVE_NOTHING, HAVE_METADATA, or HAVE_CURRENT_DATA, queue a task to
@@ -4776,11 +4776,11 @@ void HTMLMediaElement::PlayInternal(bool aHandlingUserInput) {
     //      element.
     switch (mReadyState) {
       case HAVE_NOTHING:
-        DispatchAsyncEvent(u"waiting"_ns);
+        QueueEvent(u"waiting"_ns);
         break;
       case HAVE_METADATA:
       case HAVE_CURRENT_DATA:
-        DispatchAsyncEvent(u"waiting"_ns);
+        QueueEvent(u"waiting"_ns);
         break;
       case HAVE_FUTURE_DATA:
       case HAVE_ENOUGH_DATA:
@@ -5650,16 +5650,16 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
   // "loadedmetadata" event handlers.
   UpdateOutputTrackSources();
 
-  DispatchAsyncEvent(u"durationchange"_ns);
+  QueueEvent(u"durationchange"_ns);
   if (IsVideo() && HasVideo()) {
-    DispatchAsyncEvent(u"resize"_ns);
+    QueueEvent(u"resize"_ns);
     Invalidate(ImageSizeChanged::No, Some(mMediaInfo.mVideo.mDisplay),
                ForceInvalidate::No);
   }
   NS_ASSERTION(!HasVideo() || (mMediaInfo.mVideo.mDisplay.width > 0 &&
                                mMediaInfo.mVideo.mDisplay.height > 0),
                "Video resolution must be known on 'loadedmetadata'");
-  DispatchAsyncEvent(u"loadedmetadata"_ns);
+  QueueEvent(u"loadedmetadata"_ns);
 
   if (mDecoder && mDecoder->IsTransportSeekable() &&
       mDecoder->IsMediaSeekable()) {
@@ -5783,7 +5783,7 @@ void HTMLMediaElement::PlaybackEnded() {
     LOG(LogLevel::Debug,
         ("%p, got duration by reaching the end of the resource", this));
     mSrcStreamPlaybackEnded = true;
-    DispatchAsyncEvent(u"durationchange"_ns);
+    QueueEvent(u"durationchange"_ns);
   } else {
     // mediacapture-main:
     // Setting the loop attribute has no effect since a MediaStream has no
@@ -5809,14 +5809,14 @@ void HTMLMediaElement::PlaybackEnded() {
   if (StaticPrefs::media_mediacontrol_stopcontrol_aftermediaends()) {
     mMediaControlKeyListener->StopIfNeeded();
   }
-  DispatchAsyncEvent(u"ended"_ns);
+  QueueEvent(u"ended"_ns);
 }
 
 void HTMLMediaElement::UpdateSrcStreamReportPlaybackEnded() {
   mSrcStreamReportPlaybackEnded = mSrcStreamPlaybackEnded;
 }
 
-void HTMLMediaElement::SeekStarted() { DispatchAsyncEvent(u"seeking"_ns); }
+void HTMLMediaElement::SeekStarted() { QueueEvent(u"seeking"_ns); }
 
 void HTMLMediaElement::SeekCompleted() {
   mPlayingBeforeSeek = false;
@@ -5828,7 +5828,7 @@ void HTMLMediaElement::SeekCompleted() {
   // (Step 16)
   // TODO (bug 1688131): run these steps in a stable state.
   FireTimeUpdate(TimeupdateType::eMandatory);
-  DispatchAsyncEvent(u"seeked"_ns);
+  QueueEvent(u"seeked"_ns);
   // We changed whether we're seeking so we need to AddRemoveSelfReference
   AddRemoveSelfReference();
   if (mCurrentPlayRangeStart == -1.0) {
@@ -5862,7 +5862,7 @@ void HTMLMediaElement::NotifySuspendedByCache(bool aSuspendedByCache) {
 
 void HTMLMediaElement::DownloadSuspended() {
   if (mNetworkState == NETWORK_LOADING) {
-    DispatchAsyncEvent(u"progress"_ns);
+    QueueEvent(u"progress"_ns);
   }
   ChangeNetworkState(NETWORK_IDLE);
 }
@@ -5892,7 +5892,7 @@ void HTMLMediaElement::CheckProgress(bool aHaveNewProgress) {
           : (now - mProgressTime >=
                  TimeDuration::FromMilliseconds(PROGRESS_MS) &&
              mDataTime > mProgressTime)) {
-    DispatchAsyncEvent(u"progress"_ns);
+    QueueEvent(u"progress"_ns);
     // Resolution() ensures that future data will have now > mProgressTime,
     // and so will trigger another event.  mDataTime is not reset because it
     // is still required to detect stalled; it is similarly offset by
@@ -5917,7 +5917,7 @@ void HTMLMediaElement::CheckProgress(bool aHaveNewProgress) {
 
   if (now - mDataTime >= TimeDuration::FromMilliseconds(STALL_MS)) {
     if (!mMediaSource) {
-      DispatchAsyncEvent(u"stalled"_ns);
+      QueueEvent(u"stalled"_ns);
     } else {
       ChangeDelayLoadStatus(false);
     }
@@ -6077,7 +6077,7 @@ void HTMLMediaElement::UpdateReadyStateInternal() {
       // Note: Playback will already be stalled, as the next frame is
       // unavailable.
       mWaitingForKey = WAITING_FOR_KEY_DISPATCHED;
-      DispatchAsyncEvent(u"waitingforkey"_ns);
+      QueueEvent(u"waitingforkey"_ns);
     }
   } else {
     MOZ_ASSERT(mWaitingForKey == WAITING_FOR_KEY_DISPATCHED);
@@ -6227,21 +6227,21 @@ void HTMLMediaElement::ChangeReadyState(nsMediaReadyState aState) {
   // must queue a task to fire a simple event named timeupdate at the element,
   // and queue a task to fire a simple event named waiting at the element."
   if (mPlayingBeforeSeek && mReadyState < HAVE_FUTURE_DATA) {
-    DispatchAsyncEvent(u"waiting"_ns);
+    QueueEvent(u"waiting"_ns);
   } else if (oldState >= HAVE_FUTURE_DATA && mReadyState < HAVE_FUTURE_DATA &&
              !Paused() && !Ended() && !mErrorSink->mError) {
     FireTimeUpdate(TimeupdateType::eMandatory);
-    DispatchAsyncEvent(u"waiting"_ns);
+    QueueEvent(u"waiting"_ns);
   }
 
   if (oldState < HAVE_CURRENT_DATA && mReadyState >= HAVE_CURRENT_DATA &&
       !mLoadedDataFired) {
-    DispatchAsyncEvent(u"loadeddata"_ns);
+    QueueEvent(u"loadeddata"_ns);
     mLoadedDataFired = true;
   }
 
   if (oldState < HAVE_FUTURE_DATA && mReadyState >= HAVE_FUTURE_DATA) {
-    DispatchAsyncEvent(u"canplay"_ns);
+    QueueEvent(u"canplay"_ns);
     if (!mPaused) {
       if (mDecoder && !mSuspendedByInactiveDocOrDocshell) {
         MOZ_ASSERT(AllowedToPlay());
@@ -6254,7 +6254,7 @@ void HTMLMediaElement::ChangeReadyState(nsMediaReadyState aState) {
   CheckAutoplayDataReady();
 
   if (oldState < HAVE_ENOUGH_DATA && mReadyState >= HAVE_ENOUGH_DATA) {
-    DispatchAsyncEvent(u"canplaythrough"_ns);
+    QueueEvent(u"canplaythrough"_ns);
   }
 }
 
@@ -6283,7 +6283,7 @@ void HTMLMediaElement::ChangeNetworkState(nsMediaNetworkState aState) {
     StartProgress();
   } else if (mNetworkState == NETWORK_IDLE && !mErrorSink->mError) {
     // Fire 'suspend' event when entering NETWORK_IDLE and no error presented.
-    DispatchAsyncEvent(u"suspend"_ns);
+    QueueEvent(u"suspend"_ns);
   }
 
   // According to the resource selection (step2, step9-18), dedicated media
@@ -6382,9 +6382,9 @@ void HTMLMediaElement::RunAutoplay() {
   }
 
   // For blocked media, the event would be pending until it is resumed.
-  DispatchAsyncEvent(u"play"_ns);
+  QueueEvent(u"play"_ns);
 
-  DispatchAsyncEvent(u"playing"_ns);
+  QueueEvent(u"playing"_ns);
 
   MaybeMarkSHEntryAsUserInteracted();
 }
@@ -6518,12 +6518,12 @@ nsresult HTMLMediaElement::DispatchEvent(const nsAString& aName) {
                                               CanBubble::eNo, Cancelable::eNo);
 }
 
-void HTMLMediaElement::DispatchAsyncEvent(const nsAString& aName) {
+void HTMLMediaElement::QueueEvent(const nsAString& aName) {
   RefPtr<nsMediaEventRunner> runner = GetEventRunner(aName);
-  DispatchAsyncEvent(std::move(runner));
+  QueueTask(std::move(runner));
 }
 
-void HTMLMediaElement::DispatchAsyncEvent(RefPtr<nsMediaEventRunner> aRunner) {
+void HTMLMediaElement::QueueTask(RefPtr<nsMediaEventRunner> aRunner) {
   NS_ConvertUTF16toUTF8 eventName(aRunner->EventName());
   LOG_EVENT(LogLevel::Debug, ("%p Queuing event %s", this, eventName.get()));
   DDLOG(DDLogCategory::Event, "HTMLMediaElement", nsCString(eventName.get()));
@@ -6640,7 +6640,7 @@ void HTMLMediaElement::UpdateMediaSize(const nsIntSize& aSize) {
 
   if (IsVideo() && mReadyState != HAVE_NOTHING &&
       mMediaInfo.mVideo.mDisplay != aSize) {
-    DispatchAsyncEvent(u"resize"_ns);
+    QueueEvent(u"resize"_ns);
   }
 
   mMediaInfo.mVideo.mDisplay = aSize;
@@ -6964,7 +6964,7 @@ void HTMLMediaElement::FireTimeUpdate(TimeupdateType aType) {
         GetEventRunner(u"timeupdate"_ns, aType == TimeupdateType::eMandatory
                                              ? EventFlag::eMandatory
                                              : EventFlag::eNone);
-    DispatchAsyncEvent(std::move(runner));
+    QueueTask(std::move(runner));
     mQueueTimeUpdateRunnerTime = TimeStamp::Now();
     mLastCurrentTime = CurrentTime();
   }
@@ -7029,7 +7029,7 @@ void HTMLMediaElement::SetDefaultPlaybackRate(double aDefaultPlaybackRate,
   }
 
   mDefaultPlaybackRate = defaultPlaybackRate;
-  DispatchAsyncEvent(u"ratechange"_ns);
+  QueueEvent(u"ratechange"_ns);
 }
 
 void HTMLMediaElement::SetPlaybackRate(double aPlaybackRate, ErrorResult& aRv) {
@@ -7061,7 +7061,7 @@ void HTMLMediaElement::SetPlaybackRate(double aPlaybackRate, ErrorResult& aRv) {
   if (mDecoder) {
     mDecoder->SetPlaybackRate(ClampPlaybackRate(mPlaybackRate));
   }
-  DispatchAsyncEvent(u"ratechange"_ns);
+  QueueEvent(u"ratechange"_ns);
   mMediaControlKeyListener->NotifyMediaPositionState();
 }
 
@@ -7105,7 +7105,7 @@ void HTMLMediaElement::OnVisibilityChange(Visibility aNewVisibility) {
 
   mVisibilityState = aNewVisibility;
   if (StaticPrefs::media_test_video_suspend()) {
-    DispatchAsyncEvent(u"visibilitychanged"_ns);
+    QueueEvent(u"visibilitychanged"_ns);
   }
 
   if (!mDecoder) {
@@ -7552,7 +7552,7 @@ void HTMLMediaElement::DispatchAsyncTestingEvent(const nsAString& aName) {
   if (!StaticPrefs::media_testing_only_events()) {
     return;
   }
-  DispatchAsyncEvent(aName);
+  QueueEvent(aName);
 }
 
 void HTMLMediaElement::AudioCaptureTrackChange(bool aCapture) {
@@ -7632,9 +7632,9 @@ nsTArray<RefPtr<PlayPromise>> HTMLMediaElement::TakePendingPlayPromises() {
 }
 
 void HTMLMediaElement::NotifyAboutPlaying() {
-  // Stick to the DispatchAsyncEvent() call path for now because we want to
-  // trigger some telemetry-related codes in the DispatchAsyncEvent() method.
-  DispatchAsyncEvent(u"playing"_ns);
+  // Stick to the QueueEvent() call path for now because we want to
+  // trigger some telemetry-related codes in the QueueEvent() method.
+  QueueEvent(u"playing"_ns);
 }
 
 already_AddRefed<PlayPromise> HTMLMediaElement::CreatePlayPromise(
@@ -7678,7 +7678,7 @@ void HTMLMediaElement::AsyncResolvePendingPlayPromises() {
 void HTMLMediaElement::AsyncRejectPendingPlayPromises(nsresult aError) {
   if (!mPaused) {
     mPaused = true;
-    DispatchAsyncEvent(u"pause"_ns);
+    QueueEvent(u"pause"_ns);
   }
 
   if (mShuttingDown) {

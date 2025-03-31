@@ -310,9 +310,11 @@ class HTMLMediaElement : public nsGenericHTMLElement,
       VideoFrameContainer* aContainer,
       const PrincipalHandle& aNewPrincipalHandle) override;
 
-  // Dispatch events
-  void DispatchAsyncEvent(const nsAString& aName) final;
-  void DispatchAsyncEvent(RefPtr<nsMediaEventRunner> aRunner);
+  // Queue a media element task to fire an event targeted at the media element.
+  void QueueEvent(const nsAString& aName) final;
+  // Queue a media element task.
+  // The task is blocked while the document is in B/F cache.
+  void QueueTask(RefPtr<nsMediaEventRunner> aRunner);
 
   // Triggers a recomputation of readyState.
   void UpdateReadyState() override {

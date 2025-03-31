@@ -371,24 +371,24 @@ void MediaDecoder::OnPlaybackEvent(MediaPlaybackEvent&& aEvent) {
       Invalidate();
       break;
     case MediaPlaybackEvent::EnterVideoSuspend:
-      GetOwner()->DispatchAsyncEvent(u"mozentervideosuspend"_ns);
+      GetOwner()->QueueEvent(u"mozentervideosuspend"_ns);
       mIsVideoDecodingSuspended = true;
       break;
     case MediaPlaybackEvent::ExitVideoSuspend:
-      GetOwner()->DispatchAsyncEvent(u"mozexitvideosuspend"_ns);
+      GetOwner()->QueueEvent(u"mozexitvideosuspend"_ns);
       mIsVideoDecodingSuspended = false;
       break;
     case MediaPlaybackEvent::StartVideoSuspendTimer:
-      GetOwner()->DispatchAsyncEvent(u"mozstartvideosuspendtimer"_ns);
+      GetOwner()->QueueEvent(u"mozstartvideosuspendtimer"_ns);
       break;
     case MediaPlaybackEvent::CancelVideoSuspendTimer:
-      GetOwner()->DispatchAsyncEvent(u"mozcancelvideosuspendtimer"_ns);
+      GetOwner()->QueueEvent(u"mozcancelvideosuspendtimer"_ns);
       break;
     case MediaPlaybackEvent::VideoOnlySeekBegin:
-      GetOwner()->DispatchAsyncEvent(u"mozvideoonlyseekbegin"_ns);
+      GetOwner()->QueueEvent(u"mozvideoonlyseekbegin"_ns);
       break;
     case MediaPlaybackEvent::VideoOnlySeekCompleted:
-      GetOwner()->DispatchAsyncEvent(u"mozvideoonlyseekcompleted"_ns);
+      GetOwner()->QueueEvent(u"mozvideoonlyseekcompleted"_ns);
       break;
     default:
       break;
@@ -1147,7 +1147,7 @@ void MediaDecoder::DurationChanged() {
   if (mFiredMetadataLoaded &&
       (!std::isinf(mDuration.match(DurationToDouble())) ||
        mExplicitDuration.isSome())) {
-    GetOwner()->DispatchAsyncEvent(u"durationchange"_ns);
+    GetOwner()->QueueEvent(u"durationchange"_ns);
   }
 
   if (CurrentPosition().ToSeconds() > mDuration.match(DurationToDouble())) {

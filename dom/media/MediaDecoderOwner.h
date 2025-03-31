@@ -32,8 +32,8 @@ class MediaDecoderOwner {
   // Called by the media decoder to indicate that the download is progressing.
   virtual void DownloadProgressed() = 0;
 
-  // Dispatch an asynchronous event to the decoder owner
-  virtual void DispatchAsyncEvent(const nsAString& aName) = 0;
+  // Queue a task to fire an event targeted at the decoder owner
+  virtual void QueueEvent(const nsAString& aName) = 0;
 
   // Triggers a recomputation of readyState.
   virtual void UpdateReadyState() = 0;
