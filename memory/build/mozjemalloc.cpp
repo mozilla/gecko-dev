@@ -6145,14 +6145,14 @@ purge_result_t ArenaCollection::MayPurgeSteps(
   // arenas.
   MOZ_ASSERT(IsOnMainThreadWeak());
 
+  uint64_t now = GetTimestampNS();
+  uint64_t reuseGraceNS = (uint64_t)aReuseGraceMS * 1000 * 1000;
   arena_t* found = nullptr;
   {
     MutexAutoLock lock(mPurgeListLock);
     if (mOutstandingPurges.isEmpty()) {
       return purge_result_t::Done;
     }
-    uint64_t now = GetTimestampNS();
-    uint64_t reuseGraceNS = (uint64_t)aReuseGraceMS * 1000 * 1000;
     for (arena_t& arena : mOutstandingPurges) {
       if (now - arena.mLastSignificantReuseNS >= reuseGraceNS) {
         found = &arena;
@@ -6176,8 +6176,10 @@ purge_result_t ArenaCollection::MayPurgeSteps(
   arena_t::PurgeResult pr;
   do {
     pr = found->Purge(PurgeIfThreshold);
-  } while (pr == arena_t::PurgeResult::Continue && aKeepGoing &&
-           (*aKeepGoing)());
+    now = GetTimestampNS();
+  } while (pr == arena_t::PurgeResult::Continue &&
+           (now - found->mLastSignificantReuseNS >= reuseGraceNS) &&
+           aKeepGoing && (*aKeepGoing)());
 
   if (pr == arena_t::PurgeResult::Continue) {
     // If there's more work to do we re-insert the arena into the purge queue.
