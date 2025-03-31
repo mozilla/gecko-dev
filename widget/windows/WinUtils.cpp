@@ -60,7 +60,7 @@
 #include "WinWindowOcclusionTracker.h"
 
 #include <textstor.h>
-#include "TSFTextStore.h"
+#include "TSFUtils.h"
 
 #include <shellscalingapi.h>
 #include <shlobj.h>
@@ -396,8 +396,7 @@ a11y::LocalAccessible* WinUtils::GetRootAccessibleForHWND(HWND aHwnd) {
 /* static */
 bool WinUtils::PeekMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
                            UINT aLastMessage, UINT aOption) {
-  RefPtr<ITfMessagePump> msgPump = TSFTextStore::GetMessagePump();
-  if (msgPump) {
+  if (const RefPtr<ITfMessagePump> msgPump = TSFUtils::GetMessagePump()) {
     BOOL ret = FALSE;
     HRESULT hr = msgPump->PeekMessageW(aMsg, aWnd, aFirstMessage, aLastMessage,
                                        aOption, &ret);
@@ -410,8 +409,7 @@ bool WinUtils::PeekMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
 /* static */
 bool WinUtils::GetMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
                           UINT aLastMessage) {
-  RefPtr<ITfMessagePump> msgPump = TSFTextStore::GetMessagePump();
-  if (msgPump) {
+  if (const RefPtr<ITfMessagePump> msgPump = TSFUtils::GetMessagePump()) {
     BOOL ret = FALSE;
     HRESULT hr =
         msgPump->GetMessageW(aMsg, aWnd, aFirstMessage, aLastMessage, &ret);

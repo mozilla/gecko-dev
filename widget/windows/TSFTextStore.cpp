@@ -59,18 +59,7 @@ namespace mozilla::widget {
 /* TSFTextStore                                                   */
 /******************************************************************/
 
-StaticRefPtr<ITfThreadMgr> TSFTextStore::sThreadMgr;
-StaticRefPtr<ITfMessagePump> TSFTextStore::sMessagePump;
-StaticRefPtr<ITfKeystrokeMgr> TSFTextStore::sKeystrokeMgr;
-StaticRefPtr<ITfDisplayAttributeMgr> TSFTextStore::sDisplayAttrMgr;
-StaticRefPtr<ITfCategoryMgr> TSFTextStore::sCategoryMgr;
-StaticRefPtr<ITfCompartment> TSFTextStore::sCompartmentForOpenClose;
-StaticRefPtr<ITfDocumentMgr> TSFTextStore::sDisabledDocumentMgr;
-StaticRefPtr<ITfContext> TSFTextStore::sDisabledContext;
-StaticRefPtr<ITfInputProcessorProfiles> TSFTextStore::sInputProcessorProfiles;
-StaticRefPtr<TSFTextStore> TSFTextStore::sEnabledTextStore;
 const MSG* TSFTextStore::sHandlingKeyMsg = nullptr;
-DWORD TSFTextStore::sClientId = 0;
 bool TSFTextStore::sIsKeyboardEventDispatched = false;
 
 TSFTextStore::TSFTextStore() {
@@ -95,7 +84,7 @@ bool TSFTextStore::Init(nsWindow* aWidget, const InputContext& aContext) {
   }
 
   // Create document manager
-  RefPtr<ITfThreadMgr> threadMgr = sThreadMgr;
+  RefPtr<ITfThreadMgr> threadMgr = TSFUtils::GetThreadMgr();
   RefPtr<ITfDocumentMgr> documentMgr;
   HRESULT hr = threadMgr->CreateDocumentMgr(getter_AddRefs(documentMgr));
   if (NS_WARN_IF(FAILED(hr))) {
@@ -116,7 +105,7 @@ bool TSFTextStore::Init(nsWindow* aWidget, const InputContext& aContext) {
   }
   // Create context and add it to document manager
   RefPtr<ITfContext> context;
-  hr = documentMgr->CreateContext(sClientId, 0,
+  hr = documentMgr->CreateContext(TSFUtils::ClientId(), 0,
                                   static_cast<ITextStoreACP*>(this),
                                   getter_AddRefs(context), &mEditCookie);
   if (NS_WARN_IF(FAILED(hr))) {
@@ -1040,7 +1029,7 @@ HRESULT TSFTextStore::GetDisplayAttribute(ITfProperty* aAttrProperty,
     return E_FAIL;
   }
 
-  RefPtr<ITfCategoryMgr> categoryMgr = GetCategoryMgr();
+  RefPtr<ITfCategoryMgr> categoryMgr = TSFUtils::GetCategoryMgr();
   if (NS_WARN_IF(!categoryMgr)) {
     return E_FAIL;
   }
@@ -1055,7 +1044,8 @@ HRESULT TSFTextStore::GetDisplayAttribute(ITfProperty* aAttrProperty,
     return hr;
   }
 
-  RefPtr<ITfDisplayAttributeMgr> displayAttrMgr = GetDisplayAttributeMgr();
+  RefPtr<ITfDisplayAttributeMgr> displayAttrMgr =
+      TSFUtils::GetDisplayAttributeMgr();
   if (NS_WARN_IF(!displayAttrMgr)) {
     return E_FAIL;
   }
@@ -3182,203 +3172,118 @@ STDMETHODIMP TSFTextStore::UnadviseMouseSink(DWORD dwCookie) {
 }
 
 // static
-nsresult TSFTextStore::OnFocusChange(bool aGotFocus, nsWindow* aFocusedWidget,
-                                     const InputContext& aContext) {
-  MOZ_LOG(gIMELog, LogLevel::Debug,
-          ("  TSFTextStore::OnFocusChange(aGotFocus=%s, "
-           "aFocusedWidget=0x%p, aContext=%s), "
-           "sThreadMgr=0x%p, sEnabledTextStore=0x%p",
-           TSFUtils::BoolToChar(aGotFocus), aFocusedWidget,
-           mozilla::ToString(aContext).c_str(), sThreadMgr.get(),
-           sEnabledTextStore.get()));
-
-  if (NS_WARN_IF(!IsInTSFMode())) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  RefPtr<ITfDocumentMgr> prevFocusedDocumentMgr;
-  bool hasFocus = ThinksHavingFocus();
-  RefPtr<TSFTextStore> oldTextStore = sEnabledTextStore.forget();
-
-  // If currently oldTextStore still has focus, notifies TSF of losing focus.
-  if (hasFocus) {
-    RefPtr<ITfThreadMgr> threadMgr = sThreadMgr;
-    DebugOnly<HRESULT> hr = threadMgr->AssociateFocus(
-        oldTextStore->mWidget->GetWindowHandle(), nullptr,
-        getter_AddRefs(prevFocusedDocumentMgr));
-    NS_ASSERTION(SUCCEEDED(hr), "Disassociating focus failed");
-    NS_ASSERTION(prevFocusedDocumentMgr == oldTextStore->mDocumentMgr,
-                 "different documentMgr has been associated with the window");
-  }
-
-  // Even if there was a focused TextStore, we won't use it with new focused
-  // editor.  So, release it now.
-  if (oldTextStore) {
-    oldTextStore->Destroy();
-  }
-
-  if (NS_WARN_IF(!sThreadMgr)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::OnFocusChange() FAILED, due to "
-             "sThreadMgr being destroyed during calling "
-             "ITfThreadMgr::AssociateFocus()"));
-    return NS_ERROR_FAILURE;
-  }
-  if (NS_WARN_IF(sEnabledTextStore)) {
-    MOZ_LOG(
-        gIMELog, LogLevel::Error,
-        ("  TSFTextStore::OnFocusChange() FAILED, due to "
-         "nested event handling has created another focused TextStore during "
-         "calling ITfThreadMgr::AssociateFocus()"));
-    return NS_ERROR_FAILURE;
-  }
-
-  // If this is a notification of blur, move focus to the dummy document
-  // manager.
-  if (!aGotFocus || !aContext.mIMEState.IsEditable()) {
-    RefPtr<ITfThreadMgr> threadMgr = sThreadMgr;
-    RefPtr<ITfDocumentMgr> disabledDocumentMgr = sDisabledDocumentMgr;
-    HRESULT hr = threadMgr->SetFocus(disabledDocumentMgr);
-    if (NS_WARN_IF(FAILED(hr))) {
-      MOZ_LOG(gIMELog, LogLevel::Error,
-              ("  TSFTextStore::OnFocusChange() FAILED due to "
-               "ITfThreadMgr::SetFocus() failure"));
-      return NS_ERROR_FAILURE;
-    }
-    return NS_OK;
-  }
-
-  // If an editor is getting focus, create new TextStore and set focus.
-  if (NS_WARN_IF(!CreateAndSetFocus(aFocusedWidget, aContext))) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::OnFocusChange() FAILED due to "
-             "ITfThreadMgr::CreateAndSetFocus() failure"));
-    return NS_ERROR_FAILURE;
-  }
-  return NS_OK;
-}
-
-// static
-void TSFTextStore::EnsureToDestroyAndReleaseEnabledTextStoreIf(
-    RefPtr<TSFTextStore>& aTextStore) {
-  aTextStore->Destroy();
-  if (sEnabledTextStore == aTextStore) {
-    sEnabledTextStore = nullptr;
-  }
-  aTextStore = nullptr;
-}
-
-// static
-bool TSFTextStore::CreateAndSetFocus(nsWindow* aFocusedWidget,
-                                     const InputContext& aContext) {
-  // TSF might do something which causes that we need to access static methods
-  // of TSFTextStore.  At that time, sEnabledTextStore may be necessary.
-  // So, we should set sEnabledTextStore directly.
-  RefPtr<TSFTextStore> textStore = new TSFTextStore();
-  sEnabledTextStore = textStore;
-  if (NS_WARN_IF(!textStore->Init(aFocusedWidget, aContext))) {
+Result<RefPtr<TSFTextStore>, nsresult> TSFTextStore::CreateAndSetFocus(
+    nsWindow* aFocusedWindow, const InputContext& aContext) {
+  const RefPtr<TSFTextStore> textStore = new TSFTextStore();
+  if (NS_WARN_IF(!textStore->Init(aFocusedWindow, aContext))) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "TSFTextStore::Init() failure"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+    textStore->Destroy();
+    TSFUtils::ClearStoringTextStoresIf(textStore);
+    return Err(NS_ERROR_FAILURE);
   }
-  RefPtr<ITfDocumentMgr> newDocMgr = textStore->mDocumentMgr;
+  const RefPtr<ITfDocumentMgr> newDocMgr = textStore->mDocumentMgr;
   if (NS_WARN_IF(!newDocMgr)) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "invalid TSFTextStore::mDocumentMgr"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+    textStore->Destroy();
+    TSFUtils::ClearStoringTextStoresIf(textStore);
+    return Err(NS_ERROR_FAILURE);
   }
   if (aContext.mIMEState.mEnabled == IMEEnabled::Password) {
-    TSFUtils::MarkContextAsKeyboardDisabled(sClientId, textStore->mContext);
+    TSFUtils::MarkContextAsKeyboardDisabled(textStore->mContext);
     RefPtr<ITfContext> topContext;
     newDocMgr->GetTop(getter_AddRefs(topContext));
     if (topContext && topContext != textStore->mContext) {
-      TSFUtils::MarkContextAsKeyboardDisabled(sClientId, topContext);
+      TSFUtils::MarkContextAsKeyboardDisabled(topContext);
     }
   }
-
-  HRESULT hr;
-  RefPtr<ITfThreadMgr> threadMgr = sThreadMgr;
-  hr = threadMgr->SetFocus(newDocMgr);
-
-  if (NS_WARN_IF(FAILED(hr))) {
+  const RefPtr<ITfThreadMgr> threadMgr = TSFUtils::GetThreadMgr();
+  if (NS_WARN_IF(FAILED(threadMgr->SetFocus(newDocMgr)))) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "ITfTheadMgr::SetFocus() failure"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+    textStore->Destroy();
+    TSFUtils::ClearStoringTextStoresIf(textStore);
+    return Err(NS_ERROR_FAILURE);
   }
-  if (NS_WARN_IF(!sThreadMgr)) {
+  if (NS_WARN_IF(!TSFUtils::GetThreadMgr())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "sThreadMgr being destroyed during calling "
              "ITfTheadMgr::SetFocus()"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+    textStore->Destroy();
+    TSFUtils::ClearStoringTextStoresIf(textStore);
+    return Err(NS_ERROR_FAILURE);
   }
-  if (NS_WARN_IF(sEnabledTextStore != textStore)) {
+  if (NS_WARN_IF(TSFUtils::GetActiveTextStore())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "creating TextStore has lost focus during calling "
              "ITfThreadMgr::SetFocus()"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+    textStore->Destroy();
+    TSFUtils::ClearStoringTextStoresIf(textStore);
+    return Err(NS_ERROR_FAILURE);
   }
-
   // Use AssociateFocus() for ensuring that any native focus event
   // never steal focus from our documentMgr.
-  RefPtr<ITfDocumentMgr> prevFocusedDocumentMgr;
-  hr = threadMgr->AssociateFocus(aFocusedWidget->GetWindowHandle(), newDocMgr,
-                                 getter_AddRefs(prevFocusedDocumentMgr));
-  if (NS_WARN_IF(FAILED(hr))) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
-             "ITfTheadMgr::AssociateFocus() failure"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+  {
+    RefPtr<ITfDocumentMgr> prevFocusedDocumentMgr;
+    if (NS_WARN_IF(FAILED(threadMgr->AssociateFocus(
+            aFocusedWindow->GetWindowHandle(), newDocMgr,
+            getter_AddRefs(prevFocusedDocumentMgr))))) {
+      MOZ_LOG(gIMELog, LogLevel::Error,
+              ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
+               "ITfTheadMgr::AssociateFocus() failure"));
+      textStore->Destroy();
+      TSFUtils::ClearStoringTextStoresIf(textStore);
+      return Err(NS_ERROR_FAILURE);
+    }
   }
-  if (NS_WARN_IF(!sThreadMgr)) {
+  if (NS_WARN_IF(!TSFUtils::GetThreadMgr())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "sThreadMgr being destroyed during calling "
              "ITfTheadMgr::AssociateFocus()"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+    textStore->Destroy();
+    TSFUtils::ClearStoringTextStoresIf(textStore);
+    return Err(NS_ERROR_FAILURE);
   }
-  if (NS_WARN_IF(sEnabledTextStore != textStore)) {
+  if (NS_WARN_IF(TSFUtils::GetActiveTextStore())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
              "creating TextStore has lost focus during calling "
              "ITfTheadMgr::AssociateFocus()"));
-    EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-    return false;
+    textStore->Destroy();
+    TSFUtils::ClearStoringTextStoresIf(textStore);
+    return Err(NS_ERROR_FAILURE);
   }
-
   if (textStore->mSink) {
     MOZ_LOG(gIMELog, LogLevel::Info,
             ("  TSFTextStore::CreateAndSetFocus(), calling "
              "ITextStoreACPSink::OnLayoutChange(TS_LC_CREATE) for 0x%p...",
              textStore.get()));
-    RefPtr<ITextStoreACPSink> sink = textStore->mSink;
+    const RefPtr<ITextStoreACPSink> sink = textStore->mSink;
     sink->OnLayoutChange(TS_LC_CREATE, TSFUtils::sDefaultView);
-    if (NS_WARN_IF(sEnabledTextStore != textStore)) {
+    if (NS_WARN_IF(TSFUtils::GetActiveTextStore())) {
       MOZ_LOG(gIMELog, LogLevel::Error,
               ("  TSFTextStore::CreateAndSetFocus() FAILED due to "
                "creating TextStore has lost focus during calling "
                "ITextStoreACPSink::OnLayoutChange(TS_LC_CREATE)"));
-      EnsureToDestroyAndReleaseEnabledTextStoreIf(textStore);
-      return false;
+      textStore->Destroy();
+      TSFUtils::ClearStoringTextStoresIf(textStore);
+      return Err(NS_ERROR_FAILURE);
     }
   }
-  return true;
+  return textStore;
 }
 
 // static
 IMENotificationRequests TSFTextStore::GetIMENotificationRequests() {
-  if (!sEnabledTextStore || NS_WARN_IF(!sEnabledTextStore->mDocumentMgr)) {
+  if (!TSFUtils::GetActiveTextStore() ||
+      NS_WARN_IF(!TSFUtils::GetActiveTextStore()->mDocumentMgr)) {
     // If there is no active text store, we don't need any notifications
     // since there is no sink which needs notifications.
     return IMENotificationRequests();
@@ -4060,11 +3965,11 @@ void TSFTextStore::SetIMEOpenState(bool aState) {
           ("TSFTextStore::SetIMEOpenState(aState=%s)",
            TSFUtils::BoolToChar(aState)));
 
-  if (!sThreadMgr) {
+  if (!TSFUtils::GetThreadMgr()) {
     return;
   }
 
-  RefPtr<ITfCompartment> comp = GetCompartmentForOpenClose();
+  const RefPtr<ITfCompartment> comp = TSFUtils::GetCompartmentForOpenClose();
   if (NS_WARN_IF(!comp)) {
     MOZ_LOG(gIMELog, LogLevel::Debug,
             ("  TSFTextStore::SetIMEOpenState() FAILED due to"
@@ -4075,7 +3980,7 @@ void TSFTextStore::SetIMEOpenState(bool aState) {
   VARIANT variant;
   variant.vt = VT_I4;
   variant.lVal = aState;
-  HRESULT hr = comp->SetValue(sClientId, &variant);
+  HRESULT hr = comp->SetValue(TSFUtils::ClientId(), &variant);
   if (NS_WARN_IF(FAILED(hr))) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("  TSFTextStore::SetIMEOpenState() FAILED due to "
@@ -4091,11 +3996,11 @@ void TSFTextStore::SetIMEOpenState(bool aState) {
 
 // static
 bool TSFTextStore::GetIMEOpenState() {
-  if (!sThreadMgr) {
+  if (!TSFUtils::GetThreadMgr()) {
     return false;
   }
 
-  RefPtr<ITfCompartment> comp = GetCompartmentForOpenClose();
+  const RefPtr<ITfCompartment> comp = TSFUtils::GetCompartmentForOpenClose();
   if (NS_WARN_IF(!comp)) {
     return false;
   }
@@ -4133,12 +4038,16 @@ void TSFTextStore::SetInputContext(nsWindow* aWidget,
       gIMELog, LogLevel::Debug,
       ("TSFTextStore::SetInputContext(aWidget=%p, "
        "aContext=%s, aAction.mFocusChange=%s), "
-       "sEnabledTextStore(0x%p)={ mWidget=0x%p }, ThinksHavingFocus()=%s",
+       "EnabledTextStore(0x%p)={ mWidget=0x%p }, "
+       "TSFUtils::GetActiveTextStore()->MaybeHasFocus()=%s",
        aWidget, mozilla::ToString(aContext).c_str(),
-       mozilla::ToString(aAction.mFocusChange).c_str(), sEnabledTextStore.get(),
-       sEnabledTextStore ? sEnabledTextStore->mWidget.get() : nullptr,
-       TSFUtils::BoolToChar(ThinksHavingFocus())));
-
+       mozilla::ToString(aAction.mFocusChange).c_str(),
+       TSFUtils::GetActiveTextStore(),
+       TSFUtils::GetActiveTextStore()
+           ? TSFUtils::GetActiveTextStore()->mWidget.get()
+           : nullptr,
+       TSFUtils::BoolToChar(TSFUtils::GetActiveTextStore() &&
+                            TSFUtils::GetActiveTextStore()->MaybeHasFocus())));
   switch (aAction.mFocusChange) {
     case InputContextAction::WIDGET_CREATED:
       // If this is called when the widget is created, there is nothing to do.
@@ -4154,8 +4063,8 @@ void TSFTextStore::SetInputContext(nsWindow* aWidget,
     default:
       NS_WARNING_ASSERTION(IsInTSFMode(),
                            "Why is this called when TSF is disabled?");
-      if (sEnabledTextStore) {
-        RefPtr<TSFTextStore> textStore(sEnabledTextStore);
+      if (TSFUtils::GetActiveTextStore()) {
+        const RefPtr<TSFTextStore> textStore(TSFUtils::GetActiveTextStore());
         textStore->mInPrivateBrowsing = aContext.mInPrivateBrowsing;
         textStore->SetInputScope(aContext.mHTMLInputType,
                                  aContext.mHTMLInputMode);
@@ -4173,9 +4082,13 @@ void TSFTextStore::SetInputContext(nsWindow* aWidget,
       return;
   }
 
+  const bool activeTextStoreMaybeHasFocus =
+      TSFUtils::GetActiveTextStore() &&
+      TSFUtils::GetActiveTextStore()->MaybeHasFocus();
+
   // If focus isn't actually changed but the enabled state is changed,
   // emulate the focus move.
-  if (!ThinksHavingFocus() && aContext.mIMEState.IsEditable()) {
+  if (!activeTextStoreMaybeHasFocus && aContext.mIMEState.IsEditable()) {
     if (!IMEHandler::GetFocusedWindow()) {
       MOZ_LOG(gIMELog, LogLevel::Error,
               ("  TSFTextStore::SetInputContent() gets called to enable IME, "
@@ -4184,303 +4097,28 @@ void TSFTextStore::SetInputContext(nsWindow* aWidget,
       MOZ_LOG(gIMELog, LogLevel::Debug,
               ("  TSFTextStore::SetInputContent() emulates focus for IME "
                "state change"));
-      OnFocusChange(true, aWidget, aContext);
+      TSFUtils::OnFocusChange(TSFUtils::GotFocus::Yes, aWidget, aContext);
     }
-  } else if (ThinksHavingFocus() && !aContext.mIMEState.IsEditable()) {
+  } else if (activeTextStoreMaybeHasFocus && !aContext.mIMEState.IsEditable()) {
     MOZ_LOG(gIMELog, LogLevel::Debug,
             ("  TSFTextStore::SetInputContent() emulates blur for IME "
              "state change"));
-    OnFocusChange(false, aWidget, aContext);
-  }
-}
-
-// static
-void TSFTextStore::Initialize() {
-  MOZ_LOG(gIMELog, LogLevel::Info, ("TSFTextStore::Initialize() is called..."));
-
-  if (sThreadMgr) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::Initialize() FAILED due to already initialized"));
-    return;
-  }
-
-  const bool enableTsf = StaticPrefs::intl_tsf_enabled_AtStartup();
-  MOZ_LOG(gIMELog, LogLevel::Info,
-          ("  TSFTextStore::Initialize(), TSF is %s",
-           enableTsf ? "enabled" : "disabled"));
-  if (!enableTsf) {
-    return;
-  }
-
-  RefPtr<ITfThreadMgr> threadMgr;
-  HRESULT hr =
-      ::CoCreateInstance(CLSID_TF_ThreadMgr, nullptr, CLSCTX_INPROC_SERVER,
-                         IID_ITfThreadMgr, getter_AddRefs(threadMgr));
-  if (FAILED(hr) || !threadMgr) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::Initialize() FAILED to "
-             "create the thread manager, hr=0x%08lX",
-             hr));
-    return;
-  }
-
-  hr = threadMgr->Activate(&sClientId);
-  if (FAILED(hr)) {
-    MOZ_LOG(
-        gIMELog, LogLevel::Error,
-        ("  TSFTextStore::Initialize() FAILED to activate, hr=0x%08lX", hr));
-    return;
-  }
-
-  RefPtr<ITfDocumentMgr> disabledDocumentMgr;
-  hr = threadMgr->CreateDocumentMgr(getter_AddRefs(disabledDocumentMgr));
-  if (FAILED(hr) || !disabledDocumentMgr) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::Initialize() FAILED to create "
-             "a document manager for disabled mode, hr=0x%08lX",
-             hr));
-    return;
-  }
-
-  RefPtr<ITfContext> disabledContext;
-  DWORD editCookie = 0;
-  hr = disabledDocumentMgr->CreateContext(
-      sClientId, 0, nullptr, getter_AddRefs(disabledContext), &editCookie);
-  if (FAILED(hr) || !disabledContext) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::Initialize() FAILED to create "
-             "a context for disabled mode, hr=0x%08lX",
-             hr));
-    return;
-  }
-
-  TSFUtils::MarkContextAsKeyboardDisabled(sClientId, disabledContext);
-  TSFUtils::MarkContextAsEmpty(sClientId, disabledContext);
-  hr = disabledDocumentMgr->Push(disabledContext);
-  if (FAILED(hr)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::Initialize() FAILED to push disabled context, "
-             "hr=0x%08lX",
-             hr));
-    // Don't return, we should ignore the failure and release them later.
-  }
-
-  sThreadMgr = threadMgr;
-  sDisabledDocumentMgr = disabledDocumentMgr;
-  sDisabledContext = disabledContext;
-
-  MOZ_LOG(gIMELog, LogLevel::Info,
-          ("  TSFTextStore::Initialize(), sThreadMgr=0x%p, "
-           "sClientId=0x%08lX, sDisabledDocumentMgr=0x%p, sDisabledContext=%p",
-           sThreadMgr.get(), sClientId, sDisabledDocumentMgr.get(),
-           sDisabledContext.get()));
-}
-
-// static
-already_AddRefed<ITfThreadMgr> TSFTextStore::GetThreadMgr() {
-  RefPtr<ITfThreadMgr> threadMgr = sThreadMgr;
-  return threadMgr.forget();
-}
-
-// static
-already_AddRefed<ITfMessagePump> TSFTextStore::GetMessagePump() {
-  static bool sInitialized = false;
-  if (!sThreadMgr) {
-    return nullptr;
-  }
-  if (sMessagePump) {
-    RefPtr<ITfMessagePump> messagePump = sMessagePump;
-    return messagePump.forget();
-  }
-  // If it tried to retrieve ITfMessagePump from sThreadMgr but it failed,
-  // we shouldn't retry it at every message due to performance reason.
-  // Although this shouldn't occur actually.
-  if (sInitialized) {
-    return nullptr;
-  }
-  sInitialized = true;
-
-  RefPtr<ITfMessagePump> messagePump;
-  HRESULT hr = sThreadMgr->QueryInterface(IID_ITfMessagePump,
-                                          getter_AddRefs(messagePump));
-  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!messagePump)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFTextStore::GetMessagePump() FAILED to "
-             "QI message pump from the thread manager, hr=0x%08lX",
-             hr));
-    return nullptr;
-  }
-  sMessagePump = messagePump;
-  return messagePump.forget();
-}
-
-// static
-already_AddRefed<ITfDisplayAttributeMgr>
-TSFTextStore::GetDisplayAttributeMgr() {
-  RefPtr<ITfDisplayAttributeMgr> displayAttributeMgr;
-  if (sDisplayAttrMgr) {
-    displayAttributeMgr = sDisplayAttrMgr;
-    return displayAttributeMgr.forget();
-  }
-
-  HRESULT hr = ::CoCreateInstance(
-      CLSID_TF_DisplayAttributeMgr, nullptr, CLSCTX_INPROC_SERVER,
-      IID_ITfDisplayAttributeMgr, getter_AddRefs(displayAttributeMgr));
-  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!displayAttributeMgr)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFTextStore::GetDisplayAttributeMgr() FAILED to create "
-             "a display attribute manager instance, hr=0x%08lX",
-             hr));
-    return nullptr;
-  }
-  sDisplayAttrMgr = displayAttributeMgr;
-  return displayAttributeMgr.forget();
-}
-
-// static
-already_AddRefed<ITfCategoryMgr> TSFTextStore::GetCategoryMgr() {
-  RefPtr<ITfCategoryMgr> categoryMgr;
-  if (sCategoryMgr) {
-    categoryMgr = sCategoryMgr;
-    return categoryMgr.forget();
-  }
-  HRESULT hr =
-      ::CoCreateInstance(CLSID_TF_CategoryMgr, nullptr, CLSCTX_INPROC_SERVER,
-                         IID_ITfCategoryMgr, getter_AddRefs(categoryMgr));
-  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!categoryMgr)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFTextStore::GetCategoryMgr() FAILED to create "
-             "a category manager instance, hr=0x%08lX",
-             hr));
-    return nullptr;
-  }
-  sCategoryMgr = categoryMgr;
-  return categoryMgr.forget();
-}
-
-// static
-already_AddRefed<ITfCompartment> TSFTextStore::GetCompartmentForOpenClose() {
-  if (sCompartmentForOpenClose) {
-    RefPtr<ITfCompartment> compartment = sCompartmentForOpenClose;
-    return compartment.forget();
-  }
-
-  if (!sThreadMgr) {
-    return nullptr;
-  }
-
-  RefPtr<ITfCompartmentMgr> compartmentMgr;
-  HRESULT hr = sThreadMgr->QueryInterface(IID_ITfCompartmentMgr,
-                                          getter_AddRefs(compartmentMgr));
-  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!compartmentMgr)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFTextStore::GetCompartmentForOpenClose() FAILED due to"
-             "sThreadMgr not having ITfCompartmentMgr, hr=0x%08lX",
-             hr));
-    return nullptr;
-  }
-
-  RefPtr<ITfCompartment> compartment;
-  hr = compartmentMgr->GetCompartment(GUID_COMPARTMENT_KEYBOARD_OPENCLOSE,
-                                      getter_AddRefs(compartment));
-  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!compartment)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFTextStore::GetCompartmentForOpenClose() FAILED due to"
-             "ITfCompartmentMgr::GetCompartment() failuere, hr=0x%08lX",
-             hr));
-    return nullptr;
-  }
-
-  sCompartmentForOpenClose = compartment;
-  return compartment.forget();
-}
-
-// static
-already_AddRefed<ITfInputProcessorProfiles>
-TSFTextStore::GetInputProcessorProfiles() {
-  RefPtr<ITfInputProcessorProfiles> inputProcessorProfiles;
-  if (sInputProcessorProfiles) {
-    inputProcessorProfiles = sInputProcessorProfiles;
-    return inputProcessorProfiles.forget();
-  }
-  // XXX MSDN documents that ITfInputProcessorProfiles is available only on
-  //     desktop apps.  However, there is no known way to obtain
-  //     ITfInputProcessorProfileMgr instance without ITfInputProcessorProfiles
-  //     instance.
-  HRESULT hr = ::CoCreateInstance(
-      CLSID_TF_InputProcessorProfiles, nullptr, CLSCTX_INPROC_SERVER,
-      IID_ITfInputProcessorProfiles, getter_AddRefs(inputProcessorProfiles));
-  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!inputProcessorProfiles)) {
-    MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFTextStore::GetInputProcessorProfiles() FAILED to create input "
-             "processor profiles, hr=0x%08lX",
-             hr));
-    return nullptr;
-  }
-  sInputProcessorProfiles = inputProcessorProfiles;
-  return inputProcessorProfiles.forget();
-}
-
-// static
-void TSFTextStore::Terminate() {
-  MOZ_LOG(gIMELog, LogLevel::Info, ("TSFTextStore::Terminate()"));
-
-  TSFStaticSink::Shutdown();
-
-  sDisplayAttrMgr = nullptr;
-  sCategoryMgr = nullptr;
-  sEnabledTextStore = nullptr;
-  if (const RefPtr<ITfDocumentMgr> disabledDocumentMgr =
-          sDisabledDocumentMgr.forget()) {
-    MOZ_ASSERT(!sDisabledDocumentMgr);
-    disabledDocumentMgr->Pop(TF_POPF_ALL);
-    sDisabledContext = nullptr;
-  }
-  sCompartmentForOpenClose = nullptr;
-  sInputProcessorProfiles = nullptr;
-  sClientId = 0;
-  if (sThreadMgr) {
-    sThreadMgr->Deactivate();
-    sThreadMgr = nullptr;
-    sMessagePump = nullptr;
-    sKeystrokeMgr = nullptr;
+    TSFUtils::OnFocusChange(TSFUtils::GotFocus::No, aWidget, aContext);
   }
 }
 
 // static
 bool TSFTextStore::ProcessRawKeyMessage(const MSG& aMsg) {
-  if (!sThreadMgr) {
+  if (!TSFUtils::GetThreadMgr()) {
     return false;  // not in TSF mode
   }
-  static bool sInitialized = false;
-  if (!sKeystrokeMgr) {
-    // If it tried to retrieve ITfKeystrokeMgr from sThreadMgr but it failed,
-    // we shouldn't retry it at every keydown nor keyup due to performance
-    // reason.  Although this shouldn't occur actually.
-    if (sInitialized) {
-      return false;
-    }
-    sInitialized = true;
-    RefPtr<ITfKeystrokeMgr> keystrokeMgr;
-    HRESULT hr = sThreadMgr->QueryInterface(IID_ITfKeystrokeMgr,
-                                            getter_AddRefs(keystrokeMgr));
-    if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!keystrokeMgr)) {
-      MOZ_LOG(gIMELog, LogLevel::Error,
-              ("TSFTextStore::ProcessRawKeyMessage() FAILED to "
-               "QI keystroke manager from the thread manager, hr=0x%08lX",
-               hr));
-      return false;
-    }
-    sKeystrokeMgr = keystrokeMgr.forget();
-  }
-
   if (aMsg.message == WM_KEYDOWN) {
-    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
+    RefPtr<TSFTextStore> textStore(TSFUtils::GetActiveTextStore());
     if (textStore) {
       textStore->OnStartToHandleKeyMessage();
-      if (NS_WARN_IF(textStore != sEnabledTextStore)) {
+      if (NS_WARN_IF(textStore != TSFUtils::GetActiveTextStore())) {
         // Let's handle the key message with new focused TSFTextStore.
-        textStore = sEnabledTextStore;
+        textStore = TSFUtils::GetActiveTextStore();
       }
     }
     AutoRestore<const MSG*> savePreviousKeyMsg(sHandlingKeyMsg);
@@ -4488,25 +4126,25 @@ bool TSFTextStore::ProcessRawKeyMessage(const MSG& aMsg) {
     sHandlingKeyMsg = &aMsg;
     sIsKeyboardEventDispatched = false;
     BOOL eaten;
-    RefPtr<ITfKeystrokeMgr> keystrokeMgr = sKeystrokeMgr;
+    const RefPtr<ITfKeystrokeMgr> keystrokeMgr = TSFUtils::GetKeystrokeMgr();
     HRESULT hr = keystrokeMgr->TestKeyDown(aMsg.wParam, aMsg.lParam, &eaten);
-    if (FAILED(hr) || !sKeystrokeMgr || !eaten) {
+    if (FAILED(hr) || !TSFUtils::GetKeystrokeMgr() || !eaten) {
       return false;
     }
     hr = keystrokeMgr->KeyDown(aMsg.wParam, aMsg.lParam, &eaten);
     if (textStore) {
       textStore->OnEndHandlingKeyMessage(!!eaten);
     }
-    return SUCCEEDED(hr) &&
-           (eaten || !sKeystrokeMgr || sIsKeyboardEventDispatched);
+    return SUCCEEDED(hr) && (eaten || !TSFUtils::GetKeystrokeMgr() ||
+                             sIsKeyboardEventDispatched);
   }
   if (aMsg.message == WM_KEYUP) {
-    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
+    RefPtr<TSFTextStore> textStore(TSFUtils::GetActiveTextStore());
     if (textStore) {
       textStore->OnStartToHandleKeyMessage();
-      if (NS_WARN_IF(textStore != sEnabledTextStore)) {
+      if (NS_WARN_IF(textStore != TSFUtils::GetActiveTextStore())) {
         // Let's handle the key message with new focused TSFTextStore.
-        textStore = sEnabledTextStore;
+        textStore = TSFUtils::GetActiveTextStore();
       }
     }
     AutoRestore<const MSG*> savePreviousKeyMsg(sHandlingKeyMsg);
@@ -4514,17 +4152,17 @@ bool TSFTextStore::ProcessRawKeyMessage(const MSG& aMsg) {
     sHandlingKeyMsg = &aMsg;
     sIsKeyboardEventDispatched = false;
     BOOL eaten;
-    RefPtr<ITfKeystrokeMgr> keystrokeMgr = sKeystrokeMgr;
+    const RefPtr<ITfKeystrokeMgr> keystrokeMgr = TSFUtils::GetKeystrokeMgr();
     HRESULT hr = keystrokeMgr->TestKeyUp(aMsg.wParam, aMsg.lParam, &eaten);
-    if (FAILED(hr) || !sKeystrokeMgr || !eaten) {
+    if (FAILED(hr) || !TSFUtils::GetKeystrokeMgr() || !eaten) {
       return false;
     }
     hr = keystrokeMgr->KeyUp(aMsg.wParam, aMsg.lParam, &eaten);
     if (textStore) {
       textStore->OnEndHandlingKeyMessage(!!eaten);
     }
-    return SUCCEEDED(hr) &&
-           (eaten || !sKeystrokeMgr || sIsKeyboardEventDispatched);
+    return SUCCEEDED(hr) && (eaten || !TSFUtils::GetKeystrokeMgr() ||
+                             sIsKeyboardEventDispatched);
   }
   return false;
 }
@@ -4553,9 +4191,10 @@ void TSFTextStore::ProcessMessage(nsWindow* aWindow, UINT aMessage,
       CommitComposition(false);
       break;
     case MOZ_WM_NOTIFY_TSF_OF_LAYOUT_CHANGE: {
-      TSFTextStore* maybeTextStore = reinterpret_cast<TSFTextStore*>(aWParam);
-      if (maybeTextStore == sEnabledTextStore) {
-        RefPtr<TSFTextStore> textStore(maybeTextStore);
+      TSFTextStore* const maybeTextStore =
+          reinterpret_cast<TSFTextStore*>(aWParam);
+      if (maybeTextStore == TSFUtils::GetActiveTextStore()) {
+        const RefPtr<TSFTextStore> textStore(maybeTextStore);
         textStore->NotifyTSFOfLayoutChangeAgain();
       }
       break;
@@ -4876,8 +4515,8 @@ bool TSFTextStore::MouseTracker::OnMouseButtonEvent(ULONG aEdge,
 #ifdef DEBUG
 // static
 bool TSFTextStore::CurrentKeyboardLayoutHasIME() {
-  RefPtr<ITfInputProcessorProfiles> inputProcessorProfiles =
-      TSFTextStore::GetInputProcessorProfiles();
+  const RefPtr<ITfInputProcessorProfiles> inputProcessorProfiles =
+      TSFUtils::GetInputProcessorProfiles();
   if (!inputProcessorProfiles) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("TSFTextStore::CurrentKeyboardLayoutHasIME() FAILED due to "
@@ -4904,7 +4543,7 @@ bool TSFTextStore::CurrentKeyboardLayoutHasIME() {
   }
   if (FAILED(hr)) {
     MOZ_LOG(gIMELog, LogLevel::Error,
-            ("  TSFTextStore::CurrentKeyboardLayoutHasIME() FAILED to retreive "
+            ("  TSFTextStore::CurrentKeyboardLayoutHasIME() FAILED to retrieve "
              "active profile"));
     return false;
   }

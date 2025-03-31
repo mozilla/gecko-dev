@@ -14,8 +14,10 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/TextRange.h"
 #include "mozilla/ToString.h"
+#include "mozilla/widget/IMEData.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -33,12 +35,66 @@
 // TSF InputScope, for earlier SDK 8
 #define IS_SEARCH static_cast<InputScope>(50)
 
+class nsWindow;
+
 namespace mozilla::widget {
+class TSFTextStore;
 
 class TSFUtils final {
  public:
   TSFUtils() = delete;
   ~TSFUtils() = delete;
+
+  static void Initialize();
+  static void Shutdown();
+
+  /**
+   * Return true while TSF is available.
+   */
+  [[nodiscard]] static bool IsAvailable() { return sThreadMgr; }
+
+  enum class GotFocus : bool { No, Yes };
+  /**
+   * Called when focus changed in the DOM level and aContext has the details of
+   * the new focused element.
+   */
+  static nsresult OnFocusChange(GotFocus aGotFocus, nsWindow* aFocusedWindow,
+                                const InputContext& aContext);
+
+  /**
+   * Return active TextStore which is for handling inputs in editable content.
+   */
+  [[nodiscard]] static TSFTextStore* GetActiveTextStore() {
+    return sActiveTextStore.get();
+  }
+
+  template <typename TSFTextStoreClass>
+  static void ClearStoringTextStoresIf(
+      const RefPtr<TSFTextStoreClass>& aTextStore);
+
+  [[nodiscard]] static ITfThreadMgr* GetThreadMgr() { return sThreadMgr; }
+  [[nodiscard]] static ITfMessagePump* GetMessagePump() {
+    if (!sMessagePump) {
+      EnsureMessagePump();
+    }
+    return sMessagePump;
+  }
+  [[nodiscard]] static ITfKeystrokeMgr* GetKeystrokeMgr() {
+    if (!sKeystrokeMgr) {
+      EnsureKeystrokeMgr();
+    }
+    return sKeystrokeMgr;
+  }
+  [[nodiscard]] static ITfInputProcessorProfiles* GetInputProcessorProfiles();
+  [[nodiscard]] static ITfDisplayAttributeMgr* GetDisplayAttributeMgr();
+  [[nodiscard]] static ITfCategoryMgr* GetCategoryMgr();
+  [[nodiscard]] static ITfCompartment* GetCompartmentForOpenClose();
+
+  [[nodiscard]] static ITfDocumentMgr* GetDocumentMgrForDisabled() {
+    return sDisabledDocumentMgr;
+  }
+
+  [[nodiscard]] static DWORD ClientId() { return sClientId; }
 
   // TODO: GUID_PROP_URL has not been declared in the SDK yet.  We should drop
   // this after it's released by a new SDK and it becomes the minimum supported
@@ -130,15 +186,14 @@ class TSFUtils final {
    *
    * @return true if succeeded, otherwise, false.
    */
-  static bool MarkContextAsKeyboardDisabled(DWORD aClientId,
-                                            ITfContext* aContext);
+  static bool MarkContextAsKeyboardDisabled(ITfContext* aContext);
 
   /**
    * Mark aContext as empty.
    *
    * @return true if succeeded, otherwise, false.
    */
-  static bool MarkContextAsEmpty(DWORD aClientId, ITfContext* aContext);
+  static bool MarkContextAsEmpty(ITfContext* aContext);
 
   static const char* BoolToChar(bool aValue) {
     return aValue ? "true" : "false";
@@ -146,6 +201,39 @@ class TSFUtils final {
   static const char* MouseButtonToChar(int16_t aButton);
   static const char* CommonHRESULTToChar(HRESULT);
   static const char* HRESULTToChar(HRESULT);
+
+ private:
+  static void EnsureMessagePump();
+  static void EnsureKeystrokeMgr();
+
+  // TSF thread manager object for the current application
+  static StaticRefPtr<ITfThreadMgr> sThreadMgr;
+  // sMessagePump is QI'ed from sThreadMgr
+  static StaticRefPtr<ITfMessagePump> sMessagePump;
+  // sKeystrokeMgr is QI'ed from sThreadMgr
+  static StaticRefPtr<ITfKeystrokeMgr> sKeystrokeMgr;
+
+  // TSF display attribute manager
+  static StaticRefPtr<ITfDisplayAttributeMgr> sDisplayAttrMgr;
+  // TSF category manager
+  static StaticRefPtr<ITfCategoryMgr> sCategoryMgr;
+  // Compartment for (Get|Set)IMEOpenState()
+  static StaticRefPtr<ITfCompartment> sCompartmentForOpenClose;
+
+  static StaticRefPtr<ITfInputProcessorProfiles> sInputProcessorProfiles;
+
+  // For IME (keyboard) disabled state:
+  static StaticRefPtr<ITfDocumentMgr> sDisabledDocumentMgr;
+  static StaticRefPtr<ITfContext> sDisabledContext;
+
+  // Current text store which is managing a keyboard enabled editor (i.e.,
+  // editable editor).  Currently only ONE TSFTextStore instance is ever used,
+  // although Create is called when an editor is focused and Destroy called
+  // when the focused editor is blurred.
+  static StaticRefPtr<TSFTextStore> sActiveTextStore;
+
+  // TSF client ID for the current application
+  static DWORD sClientId;
 };
 
 class AutoFlagsCString : public nsAutoCString {

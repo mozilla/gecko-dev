@@ -3459,13 +3459,8 @@ void* nsWindow::GetNativeData(uint32_t aDataType) {
       if (pseudoIMEContext) {
         return pseudoIMEContext;
       }
-      [[fallthrough]];
-    }
-    case NS_NATIVE_TSF_THREAD_MGR:
-    case NS_NATIVE_TSF_CATEGORY_MGR:
-    case NS_NATIVE_TSF_DISPLAY_ATTR_MGR:
       return IMEHandler::GetNativeData(this, aDataType);
-
+    }
     default:
       break;
   }

@@ -42,7 +42,7 @@ class IMEHandler final {
   static void Terminate();
 
   /**
-   * Returns TSF related native data or native IME context.
+   * Returns raw native IME context.
    */
   static void* GetNativeData(nsWindow* aWindow, uint32_t aDataType);
 
@@ -204,12 +204,11 @@ class IMEHandler final {
                                     const nsAString& aHTMLInputType,
                                     const nsAString& aHTMLInputMode,
                                     bool aInPrivateBrowsing);
-  static bool sIsInTSFMode;
   // If sIMMEnabled is false, any IME messages are not handled in TSF mode.
   // Additionally, IME context is always disassociated from focused window.
   static bool sIsIMMEnabled;
 
-  static bool IsTSFAvailable() { return sIsInTSFMode; }
+  static bool IsTSFAvailable();
   static bool IsIMMActive();
 
   static bool IsOnScreenKeyboardSupported();

@@ -10,6 +10,7 @@
 #include "IMMHandler.h"
 #include "TSFStaticSink.h"
 #include "TSFTextInputProcessorList.h"
+#include "TSFTextStore.h"
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
@@ -520,6 +521,368 @@ AutoInputScopesCString::AutoInputScopesCString(
  * mozilla::widget::TSFUtils
  ******************************************************************************/
 
+StaticRefPtr<ITfThreadMgr> TSFUtils::sThreadMgr;
+StaticRefPtr<ITfMessagePump> TSFUtils::sMessagePump;
+StaticRefPtr<ITfKeystrokeMgr> TSFUtils::sKeystrokeMgr;
+StaticRefPtr<ITfDisplayAttributeMgr> TSFUtils::sDisplayAttrMgr;
+StaticRefPtr<ITfCategoryMgr> TSFUtils::sCategoryMgr;
+StaticRefPtr<ITfCompartment> TSFUtils::sCompartmentForOpenClose;
+StaticRefPtr<ITfDocumentMgr> TSFUtils::sDisabledDocumentMgr;
+StaticRefPtr<ITfContext> TSFUtils::sDisabledContext;
+StaticRefPtr<ITfInputProcessorProfiles> TSFUtils::sInputProcessorProfiles;
+StaticRefPtr<TSFTextStore> TSFUtils::sActiveTextStore;
+DWORD TSFUtils::sClientId = 0;
+
+template void TSFUtils::ClearStoringTextStoresIf(
+    const RefPtr<TSFTextStoreBase>& aTextStore);
+template void TSFUtils::ClearStoringTextStoresIf(
+    const RefPtr<TSFTextStore>& aTextStore);
+
+void TSFUtils::Initialize() {
+  MOZ_LOG(gIMELog, LogLevel::Info, ("TSFUtils::Initialize() is called..."));
+
+  if (sThreadMgr) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::Initialize() FAILED due to already initialized"));
+    return;
+  }
+
+  const bool enableTsf = StaticPrefs::intl_tsf_enabled_AtStartup();
+  MOZ_LOG(gIMELog, LogLevel::Info,
+          ("  TSFUtils::Initialize(), TSF is %s",
+           enableTsf ? "enabled" : "disabled"));
+  if (!enableTsf) {
+    return;
+  }
+
+  RefPtr<ITfThreadMgr> threadMgr;
+  HRESULT hr =
+      ::CoCreateInstance(CLSID_TF_ThreadMgr, nullptr, CLSCTX_INPROC_SERVER,
+                         IID_ITfThreadMgr, getter_AddRefs(threadMgr));
+  if (FAILED(hr) || !threadMgr) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::Initialize() FAILED to "
+             "create the thread manager, hr=0x%08lX",
+             hr));
+    return;
+  }
+
+  hr = threadMgr->Activate(&sClientId);
+  if (FAILED(hr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::Initialize() FAILED to activate, hr=0x%08lX", hr));
+    return;
+  }
+
+  RefPtr<ITfDocumentMgr> disabledDocumentMgr;
+  hr = threadMgr->CreateDocumentMgr(getter_AddRefs(disabledDocumentMgr));
+  if (FAILED(hr) || !disabledDocumentMgr) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::Initialize() FAILED to create "
+             "a document manager for disabled mode, hr=0x%08lX",
+             hr));
+    return;
+  }
+
+  RefPtr<ITfContext> disabledContext;
+  DWORD editCookie = 0;
+  hr = disabledDocumentMgr->CreateContext(
+      sClientId, 0, nullptr, getter_AddRefs(disabledContext), &editCookie);
+  if (FAILED(hr) || !disabledContext) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::Initialize() FAILED to create "
+             "a context for disabled mode, hr=0x%08lX",
+             hr));
+    return;
+  }
+
+  TSFUtils::MarkContextAsKeyboardDisabled(disabledContext);
+  TSFUtils::MarkContextAsEmpty(disabledContext);
+  hr = disabledDocumentMgr->Push(disabledContext);
+  if (FAILED(hr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::Initialize() FAILED to push disabled context, "
+             "hr=0x%08lX",
+             hr));
+    // Don't return, we should ignore the failure and release them later.
+  }
+
+  sThreadMgr = threadMgr;
+  sDisabledDocumentMgr = disabledDocumentMgr;
+  sDisabledContext = disabledContext;
+
+  MOZ_LOG(gIMELog, LogLevel::Info,
+          ("  TSFUtils::Initialize(), sThreadMgr=0x%p, "
+           "sClientId=0x%08lX, sDisabledDocumentMgr=0x%p, sDisabledContext=%p",
+           sThreadMgr.get(), sClientId, sDisabledDocumentMgr.get(),
+           sDisabledContext.get()));
+}
+
+// static
+void TSFUtils::Shutdown() {
+  MOZ_LOG(gIMELog, LogLevel::Info, ("TSFUtils::Shutdown()"));
+
+  TSFStaticSink::Shutdown();
+
+  sDisplayAttrMgr = nullptr;
+  sCategoryMgr = nullptr;
+  sActiveTextStore = nullptr;
+  if (const RefPtr<ITfDocumentMgr> disabledDocumentMgr =
+          sDisabledDocumentMgr.forget()) {
+    MOZ_ASSERT(!sDisabledDocumentMgr);
+    disabledDocumentMgr->Pop(TF_POPF_ALL);
+    sDisabledContext = nullptr;
+  }
+  sCompartmentForOpenClose = nullptr;
+  sInputProcessorProfiles = nullptr;
+  sClientId = 0;
+  if (sThreadMgr) {
+    sThreadMgr->Deactivate();
+    sThreadMgr = nullptr;
+    sMessagePump = nullptr;
+    sKeystrokeMgr = nullptr;
+  }
+}
+
+template <typename TSFTextStoreClass>
+void TSFUtils::ClearStoringTextStoresIf(
+    const RefPtr<TSFTextStoreClass>& aTextStore) {
+  if (static_cast<TSFTextStoreBase*>(sActiveTextStore.get()) ==
+      static_cast<TSFTextStoreBase*>(aTextStore.get())) {
+    sActiveTextStore = nullptr;
+    return;
+  }
+}
+
+inline std::ostream& operator<<(
+    std::ostream& aStream,
+    const mozilla::widget::TSFUtils::GotFocus& aGotFocus) {
+  return aStream << "GotFocus::"
+                 << (static_cast<bool>(aGotFocus) ? "Yes" : "No");
+}
+
+// static
+nsresult TSFUtils::OnFocusChange(GotFocus aGotFocus, nsWindow* aFocusedWindow,
+                                 const InputContext& aContext) {
+  MOZ_LOG(gIMELog, LogLevel::Debug,
+          ("  TSFUtils::OnFocusChange(aGotFocus=%s, aFocusedWindow=0x%p, "
+           "aContext=%s), ThreadMgr=0x%p, EnabledTextStore=0x%p",
+           mozilla::ToString(aGotFocus).c_str(), aFocusedWindow,
+           mozilla::ToString(aContext).c_str(), TSFUtils::GetThreadMgr(),
+           TSFUtils::GetActiveTextStore()));
+
+  if (NS_WARN_IF(!TSFUtils::IsAvailable())) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  const bool hasFocus = sActiveTextStore && sActiveTextStore->MaybeHasFocus();
+  const RefPtr<TSFTextStore> oldTextStore = sActiveTextStore.forget();
+
+  // If currently oldTextStore still has focus, notifies TSF of losing focus.
+  if (hasFocus) {
+    const RefPtr<ITfThreadMgr> threadMgr(sThreadMgr);
+    RefPtr<ITfDocumentMgr> prevFocusedDocumentMgr;
+    DebugOnly<HRESULT> hr = threadMgr->AssociateFocus(
+        oldTextStore->GetWindow()->GetWindowHandle(), nullptr,
+        getter_AddRefs(prevFocusedDocumentMgr));
+    NS_ASSERTION(SUCCEEDED(hr), "Disassociating focus failed");
+    NS_ASSERTION(prevFocusedDocumentMgr == oldTextStore->GetDocumentMgr(),
+                 "different documentMgr has been associated with the window");
+  }
+
+  // Even if there was a focused TextStore, we won't use it with new focused
+  // editor.  So, release it now.
+  if (oldTextStore) {
+    oldTextStore->Destroy();
+  }
+
+  if (NS_WARN_IF(!sThreadMgr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::OnFocusChange() FAILED, due to ThreadMgr being "
+             "destroyed during calling ITfThreadMgr::AssociateFocus()"));
+    return NS_ERROR_FAILURE;
+  }
+  if (NS_WARN_IF(sActiveTextStore)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::OnFocusChange() FAILED, due to nested event handling "
+             "has created another focused TextStore during calling "
+             "ITfThreadMgr::AssociateFocus()"));
+    return NS_ERROR_FAILURE;
+  }
+
+  // If this is a notification of blur, move focus to the dummy document
+  // manager.
+  if (aGotFocus == GotFocus::No || !aContext.mIMEState.IsEditable()) {
+    const RefPtr<ITfThreadMgr> threadMgr(sThreadMgr);
+    const RefPtr<ITfDocumentMgr> disabledDocumentMgr(sDisabledDocumentMgr);
+    HRESULT hr = threadMgr->SetFocus(disabledDocumentMgr);
+    if (NS_WARN_IF(FAILED(hr))) {
+      MOZ_LOG(gIMELog, LogLevel::Error,
+              ("  TSFUtils::OnFocusChange() FAILED due to "
+               "ITfThreadMgr::SetFocus() failure"));
+      return NS_ERROR_FAILURE;
+    }
+    return NS_OK;
+  }
+
+  // If an editor is getting focus, create new TextStore and set focus.
+  Result<RefPtr<TSFTextStore>, nsresult> ret =
+      TSFTextStore::CreateAndSetFocus(aFocusedWindow, aContext);
+  if (NS_WARN_IF(ret.isErr())) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("  TSFUtils::OnFocusChange() FAILED due to failing to create and "
+             "set focus to new TSFTextStore failed"));
+    return ret.unwrapErr();
+  }
+  sActiveTextStore = ret.unwrap().forget();
+  return NS_OK;
+}
+
+void TSFUtils::EnsureMessagePump() {
+  if (!sThreadMgr) {
+    return;
+  }
+  static bool sInitialized = false;
+  // If it tried to retrieve ITfMessagePump from sThreadMgr but it failed,
+  // we shouldn't retry it at every message due to performance reason.
+  // Although this shouldn't occur actually.
+  if (sInitialized) {
+    return;
+  }
+  sInitialized = true;
+
+  RefPtr<ITfMessagePump> messagePump;
+  HRESULT hr = sThreadMgr->QueryInterface(IID_ITfMessagePump,
+                                          getter_AddRefs(messagePump));
+  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!messagePump)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("TSFUtils::GetMessagePump() FAILED to "
+             "QI message pump from the thread manager, hr=0x%08lX",
+             hr));
+    return;
+  }
+  sMessagePump = messagePump.forget();
+}
+
+void TSFUtils::EnsureKeystrokeMgr() {
+  static bool sInitialized = false;
+  // If it tried to retrieve ITfKeystrokeMgr from sThreadMgr but it failed,
+  // we shouldn't retry it at every keydown nor keyup due to performance
+  // reason.  Although this shouldn't occur actually.
+  if (sInitialized) {
+    return;
+  }
+  RefPtr<ITfKeystrokeMgr> keystrokeMgr;
+  HRESULT hr = sThreadMgr->QueryInterface(IID_ITfKeystrokeMgr,
+                                          getter_AddRefs(keystrokeMgr));
+  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!keystrokeMgr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("TSFUtils::EnsureKeystrokeMgr() FAILED to "
+             "QI keystroke manager from the thread manager, hr=0x%08lX",
+             hr));
+    return;
+  }
+  sKeystrokeMgr = keystrokeMgr.forget();
+}
+
+ITfInputProcessorProfiles* TSFUtils::GetInputProcessorProfiles() {
+  if (sInputProcessorProfiles) {
+    return sInputProcessorProfiles;
+  }
+  // XXX MSDN documents that ITfInputProcessorProfiles is available only on
+  //     desktop apps.  However, there is no known way to obtain
+  //     ITfInputProcessorProfileMgr instance without ITfInputProcessorProfiles
+  //     instance.
+  RefPtr<ITfInputProcessorProfiles> inputProcessorProfiles;
+  HRESULT hr = ::CoCreateInstance(
+      CLSID_TF_InputProcessorProfiles, nullptr, CLSCTX_INPROC_SERVER,
+      IID_ITfInputProcessorProfiles, getter_AddRefs(inputProcessorProfiles));
+  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!inputProcessorProfiles)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("TSFUtils::GetInputProcessorProfiles() FAILED to create input "
+             "processor profiles, hr=0x%08lX",
+             hr));
+    return nullptr;
+  }
+  sInputProcessorProfiles = inputProcessorProfiles;
+  return sInputProcessorProfiles;
+}
+
+ITfDisplayAttributeMgr* TSFUtils::GetDisplayAttributeMgr() {
+  if (sDisplayAttrMgr) {
+    return sDisplayAttrMgr;
+  }
+
+  RefPtr<ITfDisplayAttributeMgr> displayAttributeMgr;
+  HRESULT hr = ::CoCreateInstance(
+      CLSID_TF_DisplayAttributeMgr, nullptr, CLSCTX_INPROC_SERVER,
+      IID_ITfDisplayAttributeMgr, getter_AddRefs(displayAttributeMgr));
+  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!displayAttributeMgr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("TSFUtils::GetDisplayAttributeMgr() FAILED to create "
+             "a display attribute manager instance, hr=0x%08lX",
+             hr));
+    return nullptr;
+  }
+  sDisplayAttrMgr = displayAttributeMgr.forget();
+  return sDisplayAttrMgr;
+}
+
+ITfCategoryMgr* TSFUtils::GetCategoryMgr() {
+  if (sCategoryMgr) {
+    return sCategoryMgr;
+  }
+  RefPtr<ITfCategoryMgr> categoryMgr;
+  HRESULT hr =
+      ::CoCreateInstance(CLSID_TF_CategoryMgr, nullptr, CLSCTX_INPROC_SERVER,
+                         IID_ITfCategoryMgr, getter_AddRefs(categoryMgr));
+  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!categoryMgr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("TSFUtils::GetCategoryMgr() FAILED to create "
+             "a category manager instance, hr=0x%08lX",
+             hr));
+    return nullptr;
+  }
+  sCategoryMgr = categoryMgr.forget();
+  return sCategoryMgr;
+}
+
+// static
+ITfCompartment* TSFUtils::GetCompartmentForOpenClose() {
+  if (sCompartmentForOpenClose) {
+    return sCompartmentForOpenClose;
+  }
+
+  if (!sThreadMgr) {
+    return nullptr;
+  }
+
+  RefPtr<ITfCompartmentMgr> compartmentMgr;
+  HRESULT hr = sThreadMgr->QueryInterface(IID_ITfCompartmentMgr,
+                                          getter_AddRefs(compartmentMgr));
+  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!compartmentMgr)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("TSFUtils::GetCompartmentForOpenClose() FAILED due to"
+             "sThreadMgr not having ITfCompartmentMgr, hr=0x%08lX",
+             hr));
+    return nullptr;
+  }
+
+  RefPtr<ITfCompartment> compartment;
+  hr = compartmentMgr->GetCompartment(GUID_COMPARTMENT_KEYBOARD_OPENCLOSE,
+                                      getter_AddRefs(compartment));
+  if (NS_WARN_IF(FAILED(hr)) || NS_WARN_IF(!compartment)) {
+    MOZ_LOG(gIMELog, LogLevel::Error,
+            ("TSFUtils::GetCompartmentForOpenClose() FAILED due to"
+             "ITfCompartmentMgr::GetCompartment() failuere, hr=0x%08lX",
+             hr));
+    return nullptr;
+  }
+
+  sCompartmentForOpenClose = compartment;
+  return sCompartmentForOpenClose;
+}
+
 bool TSFUtils::DoNotReturnErrorFromGetSelection() {
   // There is a crash bug of TSF if we return error from GetSelection().
   // That was introduced in Anniversary Update (build 14393, see bug 1312302)
@@ -673,8 +1036,7 @@ Result<RefPtr<ITfCompartment>, bool> TSFUtils::GetCompartment(IUnknown* pUnk,
   return std::move(compartment);
 }
 
-bool TSFUtils::MarkContextAsKeyboardDisabled(DWORD aClientId,
-                                             ITfContext* aContext) {
+bool TSFUtils::MarkContextAsKeyboardDisabled(ITfContext* aContext) {
   VARIANT variant_int4_value1;
   variant_int4_value1.vt = VT_I4;
   variant_int4_value1.lVal = 1;
@@ -683,21 +1045,20 @@ bool TSFUtils::MarkContextAsKeyboardDisabled(DWORD aClientId,
       TSFUtils::GetCompartment(aContext, GUID_COMPARTMENT_KEYBOARD_DISABLED);
   if (MOZ_UNLIKELY(compartmentOrError.isErr())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFUtils::MarkContextAsKeyboardDisabled(aClientId=%lu) failed"
-             "aContext=0x%p...",
-             aClientId, aContext));
+            ("TSFUtils::MarkContextAsKeyboardDisabled(aContext=0x%p) failed",
+             aContext));
     return false;
   }
 
   MOZ_LOG(gIMELog, LogLevel::Debug,
-          ("TSFUtils::MarkContextAsKeyboardDisabled(aClientId=%lu), setting "
+          ("TSFUtils::MarkContextAsKeyboardDisabled(), setting "
            "to disable context 0x%p...",
-           aClientId, aContext));
+           aContext));
   return SUCCEEDED(
-      compartmentOrError.unwrap()->SetValue(aClientId, &variant_int4_value1));
+      compartmentOrError.unwrap()->SetValue(sClientId, &variant_int4_value1));
 }
 
-bool TSFUtils::MarkContextAsEmpty(DWORD aClientId, ITfContext* aContext) {
+bool TSFUtils::MarkContextAsEmpty(ITfContext* aContext) {
   VARIANT variant_int4_value1;
   variant_int4_value1.vt = VT_I4;
   variant_int4_value1.lVal = 1;
@@ -706,17 +1067,16 @@ bool TSFUtils::MarkContextAsEmpty(DWORD aClientId, ITfContext* aContext) {
       TSFUtils::GetCompartment(aContext, GUID_COMPARTMENT_EMPTYCONTEXT);
   if (MOZ_UNLIKELY(compartmentOrError.isErr())) {
     MOZ_LOG(gIMELog, LogLevel::Error,
-            ("TSFUtils::MarkContextAsEmpty(aClientId=%lu, aContext=%p) failed",
-             aClientId, aContext));
+            ("TSFUtils::MarkContextAsEmpty(aContext=%p) failed", aContext));
     return false;
   }
 
   MOZ_LOG(gIMELog, LogLevel::Debug,
-          ("TSFUtils::MarkContextAsEmpty(aClientId=%lu, aContext=%p), setting "
-           "to mark as empty context",
-           aClientId, aContext));
+          ("TSFUtils::MarkContextAsEmpty(aContext=%p), setting to mark as "
+           "empty context",
+           aContext));
   return SUCCEEDED(
-      compartmentOrError.unwrap()->SetValue(aClientId, &variant_int4_value1));
+      compartmentOrError.unwrap()->SetValue(sClientId, &variant_int4_value1));
 }
 
 }  // namespace mozilla::widget

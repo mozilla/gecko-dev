@@ -26,7 +26,7 @@ StaticRefPtr<TSFStaticSink> TSFStaticSink::sInstance;
 // static
 TSFStaticSink* TSFStaticSink::GetInstance() {
   if (!sInstance) {
-    RefPtr<ITfThreadMgr> threadMgr = TSFTextStore::GetThreadMgr();
+    const RefPtr<ITfThreadMgr> threadMgr = TSFUtils::GetThreadMgr();
     if (NS_WARN_IF(!threadMgr)) {
       MOZ_LOG(
           gIMELog, LogLevel::Error,
@@ -34,8 +34,8 @@ TSFStaticSink* TSFStaticSink::GetInstance() {
            "instance due to no ThreadMgr instance"));
       return nullptr;
     }
-    RefPtr<ITfInputProcessorProfiles> inputProcessorProfiles =
-        TSFTextStore::GetInputProcessorProfiles();
+    const RefPtr<ITfInputProcessorProfiles> inputProcessorProfiles =
+        TSFUtils::GetInputProcessorProfiles();
     if (NS_WARN_IF(!inputProcessorProfiles)) {
       MOZ_LOG(
           gIMELog, LogLevel::Error,

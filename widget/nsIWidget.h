@@ -139,9 +139,6 @@ typedef void* nsNativeWidget;
 #define NS_RAW_NATIVE_IME_CONTEXT 14
 #define NS_NATIVE_WINDOW_WEBRTC_DEVICE_ID 15
 #ifdef XP_WIN
-#  define NS_NATIVE_TSF_THREAD_MGR 100
-#  define NS_NATIVE_TSF_CATEGORY_MGR 101
-#  define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #  define NS_NATIVE_ICOREWINDOW 103  // winrt specific
 #endif
 #if defined(MOZ_WIDGET_GTK)

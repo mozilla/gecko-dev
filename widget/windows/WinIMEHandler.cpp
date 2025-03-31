@@ -56,7 +56,6 @@ bool IMEHandler::sForceDisableCurrentIMM_IME = false;
 bool IMEHandler::sNativeCaretIsCreated = false;
 bool IMEHandler::sHasNativeCaretBeenRequested = false;
 
-bool IMEHandler::sIsInTSFMode = false;
 bool IMEHandler::sIsIMMEnabled = true;
 decltype(SetInputScopes)* IMEHandler::sSetInputScopes = nullptr;
 
@@ -65,11 +64,10 @@ static bool sDeterminedPowerPlatformRole = false;
 
 // static
 void IMEHandler::Initialize() {
-  TSFTextStore::Initialize();
-  sIsInTSFMode = TSFTextStore::IsInTSFMode();
+  TSFUtils::Initialize();
   sIsIMMEnabled =
-      !sIsInTSFMode || StaticPrefs::intl_tsf_support_imm_AtStartup();
-  if (!sIsInTSFMode) {
+      !TSFUtils::IsAvailable() || StaticPrefs::intl_tsf_support_imm_AtStartup();
+  if (!TSFUtils::IsAvailable()) {
     // When full TSFTextStore is not available, try to use SetInputScopes API
     // to enable at least InputScope. Use GET_MODULE_HANDLE_EX_FLAG_PIN to
     // ensure that msctf.dll will not be unloaded.
@@ -88,9 +86,8 @@ void IMEHandler::Initialize() {
 
 // static
 void IMEHandler::Terminate() {
-  if (sIsInTSFMode) {
-    TSFTextStore::Terminate();
-    sIsInTSFMode = false;
+  if (TSFUtils::IsAvailable()) {
+    TSFUtils::Shutdown();
   }
 
   IMMHandler::Terminate();
@@ -100,8 +97,8 @@ void IMEHandler::Terminate() {
 // static
 void* IMEHandler::GetNativeData(nsWindow* aWindow, uint32_t aDataType) {
   if (aDataType == NS_RAW_NATIVE_IME_CONTEXT) {
-    if (IsTSFAvailable()) {
-      return TSFTextStore::GetThreadManager();
+    if (TSFUtils::IsAvailable()) {
+      return TSFUtils::GetThreadMgr();
     }
     IMEContext context(aWindow);
     if (context.IsValid()) {
@@ -119,17 +116,7 @@ void* IMEHandler::GetNativeData(nsWindow* aWindow, uint32_t aDataType) {
     // but composition may occur with dead key sequence.
     return aWindow;
   }
-
-  void* result = TSFTextStore::GetNativeData(aDataType);
-  if (!result || !(*(static_cast<void**>(result)))) {
-    return nullptr;
-  }
-  // XXX During the TSF module test, sIsInTSFMode must be true.  After that,
-  //     the value should be restored but currently, there is no way for that.
-  //     When the TSF test is enabled again, we need to fix this.  Perhaps,
-  //     sending a message can fix this.
-  sIsInTSFMode = true;
-  return result;
+  return nullptr;
 }
 
 // static
@@ -219,6 +206,9 @@ bool IMEHandler::IsA11yHandlingNativeCaret() {
 }
 
 // static
+bool IMEHandler::IsTSFAvailable() { return TSFUtils::IsAvailable(); }
+
+// static
 bool IMEHandler::IsIMMActive() { return TSFTextStore::IsIMM_IMEActive(); }
 
 // static
@@ -272,8 +262,8 @@ nsresult IMEHandler::NotifyIME(nsWindow* aWindow,
       case NOTIFY_IME_OF_FOCUS: {
         sFocusedWindow = aWindow;
         IMMHandler::OnFocusChange(true, aWindow);
-        nsresult rv = TSFTextStore::OnFocusChange(true, aWindow,
-                                                  aWindow->GetInputContext());
+        nsresult rv = TSFUtils::OnFocusChange(TSFUtils::GotFocus::Yes, aWindow,
+                                              aWindow->GetInputContext());
         MaybeCreateNativeCaret(aWindow);
         IMEHandler::MaybeShowOnScreenKeyboard(aWindow,
                                               aWindow->GetInputContext());
@@ -283,8 +273,8 @@ nsresult IMEHandler::NotifyIME(nsWindow* aWindow,
         sFocusedWindow = nullptr;
         IMEHandler::MaybeDismissOnScreenKeyboard(aWindow);
         IMMHandler::OnFocusChange(false, aWindow);
-        return TSFTextStore::OnFocusChange(false, aWindow,
-                                           aWindow->GetInputContext());
+        return TSFUtils::OnFocusChange(TSFUtils::GotFocus::No, aWindow,
+                                       aWindow->GetInputContext());
       case NOTIFY_IME_OF_MOUSE_BUTTON_EVENT:
         // If IMM IME is active, we should send a mouse button event via IMM.
         if (IsIMMActive()) {
@@ -355,12 +345,6 @@ nsresult IMEHandler::NotifyIME(nsWindow* aWindow,
       sFocusedWindow = nullptr;
       IMEHandler::MaybeDismissOnScreenKeyboard(aWindow);
       IMMHandler::OnFocusChange(false, aWindow);
-      // If a plugin gets focus while TSF has focus, we need to notify TSF of
-      // the blur.
-      if (TSFTextStore::ThinksHavingFocus()) {
-        return TSFTextStore::OnFocusChange(false, aWindow,
-                                           aWindow->GetInputContext());
-      }
       return NS_OK;
     default:
       return NS_ERROR_NOT_IMPLEMENTED;
@@ -417,7 +401,7 @@ void IMEHandler::OnDestroyWindow(nsWindow* aWindow) {
 
   // We need to do nothing here for TSF. Just restore the default context
   // if it's been disassociated.
-  if (!sIsInTSFMode) {
+  if (!TSFUtils::IsAvailable()) {
     // MSDN says we need to set IS_DEFAULT to avoid memory leak when we use
     // SetInputScopes API. Use an empty string to do this.
     SetInputScopeForIMM32(aWindow, u""_ns, u""_ns, false);
@@ -448,7 +432,7 @@ void IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext,
       (adjustOpenState && aInputContext.mIMEState.mOpen == IMEState::OPEN);
 
   // Note that even while a plugin has focus, we need to notify TSF of that.
-  if (sIsInTSFMode) {
+  if (TSFUtils::IsAvailable()) {
     TSFTextStore::SetInputContext(aWindow, aInputContext, aAction);
     if (IsTSFAvailable()) {
       if (sIsIMMEnabled) {
@@ -511,7 +495,7 @@ void IMEHandler::InitInputContext(nsWindow* aWindow,
   // For a11y, the default enabled state should be 'enabled'.
   aInputContext.mIMEState.mEnabled = IMEEnabled::Enabled;
 
-  if (sIsInTSFMode) {
+  if (TSFUtils::IsAvailable()) {
     TSFTextStore::SetInputContext(
         aWindow, aInputContext,
         InputContextAction(InputContextAction::CAUSE_UNKNOWN,
@@ -533,7 +517,7 @@ void IMEHandler::InitInputContext(nsWindow* aWindow,
 #ifdef DEBUG
 // static
 bool IMEHandler::CurrentKeyboardLayoutHasIME() {
-  if (sIsInTSFMode) {
+  if (TSFUtils::IsAvailable()) {
     return TSFTextStore::CurrentKeyboardLayoutHasIME();
   }
 
@@ -558,7 +542,7 @@ void IMEHandler::SetInputScopeForIMM32(nsWindow* aWindow,
                                        const nsAString& aHTMLInputType,
                                        const nsAString& aHTMLInputMode,
                                        bool aInPrivateBrowsing) {
-  if (sIsInTSFMode || !sSetInputScopes || aWindow->Destroyed()) {
+  if (TSFUtils::IsAvailable() || !sSetInputScopes || aWindow->Destroyed()) {
     return;
   }
   AutoTArray<InputScope, 3> scopes;

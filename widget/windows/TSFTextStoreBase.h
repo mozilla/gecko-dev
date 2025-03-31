@@ -66,6 +66,15 @@ class TSFTextStoreBase : public ITextStoreACP {
   STDMETHODIMP InsertEmbeddedAtSelection(DWORD, IDataObject*, LONG*, LONG*,
                                          TS_TEXTCHANGE*);
 
+ public:
+  [[nodiscard]] bool MaybeHasFocus() const { return mContext; }
+
+  [[nodiscard]] ITfDocumentMgr* GetDocumentMgr() const { return mDocumentMgr; }
+  [[nodiscard]] ITfContext* GetContext() const { return mContext; }
+  [[nodiscard]] nsWindow* GetWindow() const { return mWidget; }
+
+  virtual void Destroy() = 0;
+
  protected:
   TSFTextStoreBase() = default;
   virtual ~TSFTextStoreBase() = default;
