@@ -25,6 +25,10 @@ Http3WebTransportSession::Http3WebTransportSession(nsAHttpTransaction* trans,
 
 Http3WebTransportSession::~Http3WebTransportSession() = default;
 
+uint64_t Http3WebTransportSession::StreamId() const {
+  return Http3StreamBase::StreamId();
+}
+
 nsresult Http3WebTransportSession::ReadSegments() {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   LOG(("Http3WebTransportSession::ReadSegments %p mSendState=%d mRecvState=%d",
@@ -371,20 +375,20 @@ void Http3WebTransportSession::TransactionIsDone(nsresult aResult) {
 }
 
 void Http3WebTransportSession::CreateOutgoingBidirectionalStream(
-    std::function<void(Result<RefPtr<Http3WebTransportStream>, nsresult>&&)>&&
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback) {
   return CreateStreamInternal(true, std::move(aCallback));
 }
 
 void Http3WebTransportSession::CreateOutgoingUnidirectionalStream(
-    std::function<void(Result<RefPtr<Http3WebTransportStream>, nsresult>&&)>&&
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback) {
   return CreateStreamInternal(false, std::move(aCallback));
 }
 
 void Http3WebTransportSession::CreateStreamInternal(
     bool aBidi,
-    std::function<void(Result<RefPtr<Http3WebTransportStream>, nsresult>&&)>&&
+    std::function<void(Result<RefPtr<WebTransportStreamBase>, nsresult>&&)>&&
         aCallback) {
   LOG(("Http3WebTransportSession::CreateStreamInternal this=%p aBidi=%d", this,
        aBidi));

@@ -48,7 +48,7 @@ nsresult ConnectionHandle::TakeTransport(nsISocketTransport** aTransport,
   return mConn->TakeTransport(aTransport, aInputStream, aOutputStream);
 }
 
-Http3WebTransportSession* ConnectionHandle::GetWebTransportSession(
+WebTransportSessionBase* ConnectionHandle::GetWebTransportSession(
     nsAHttpTransaction* aTransaction) {
   return mConn->GetWebTransportSession(aTransaction);
 }

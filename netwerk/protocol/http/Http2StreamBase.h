@@ -33,6 +33,7 @@ class Http2Session;
 class Http2Stream;
 class Http2PushedStream;
 class Http2Decompressor;
+class Http2WebTransportSession;
 
 class Http2StreamBase : public nsAHttpSegmentReader,
                         public nsAHttpSegmentWriter,
@@ -171,6 +172,9 @@ class Http2StreamBase : public nsAHttpSegmentReader,
   virtual uint32_t GetWireStreamId() { return mStreamID; }
   virtual Http2Stream* GetHttp2Stream() { return nullptr; }
   virtual Http2PushedStream* GetHttp2PushedStream() { return nullptr; }
+  virtual Http2WebTransportSession* GetHttp2WebTransportSession() {
+    return nullptr;
+  }
 
   [[nodiscard]] virtual nsresult OnWriteSegment(char*, uint32_t,
                                                 uint32_t*) override;

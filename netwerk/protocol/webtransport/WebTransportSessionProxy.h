@@ -166,12 +166,12 @@ class WebTransportSessionProxy final
   void CreateStreamInternal(nsIWebTransportStreamCallback* callback,
                             bool aBidi);
   void DoCreateStream(WebTransportStreamCallbackWrapper* aCallback,
-                      Http3WebTransportSession* aSession, bool aBidi);
-  void SendDatagramInternal(const RefPtr<Http3WebTransportSession>& aSession,
+                      WebTransportSessionBase* aSession, bool aBidi);
+  void SendDatagramInternal(const RefPtr<WebTransportSessionBase>& aSession,
                             nsTArray<uint8_t>&& aData, uint64_t aTrackingId);
   void NotifyDatagramReceived(nsTArray<uint8_t>&& aData);
   void GetMaxDatagramSizeInternal(
-      const RefPtr<Http3WebTransportSession>& aSession);
+      const RefPtr<WebTransportSessionBase>& aSession);
   void OnMaxDatagramSizeInternal(uint64_t aSize);
   void OnOutgoingDatagramOutComeInternal(
       uint64_t aId, WebTransportSessionEventListener::DatagramOutcome aOutCome);
@@ -179,7 +179,7 @@ class WebTransportSessionProxy final
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIChannel> mRedirectChannel;
   nsCOMPtr<WebTransportSessionEventListener> mListener MOZ_GUARDED_BY(mMutex);
-  RefPtr<Http3WebTransportSession> mWebTransportSession MOZ_GUARDED_BY(mMutex);
+  RefPtr<WebTransportSessionBase> mWebTransportSession MOZ_GUARDED_BY(mMutex);
   uint64_t mSessionId MOZ_GUARDED_BY(mMutex) = UINT64_MAX;
   uint32_t mCloseStatus MOZ_GUARDED_BY(mMutex) = 0;
   nsCString mReason MOZ_GUARDED_BY(mMutex);

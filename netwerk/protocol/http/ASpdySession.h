@@ -18,6 +18,7 @@ namespace mozilla {
 namespace net {
 
 class nsHttpConnection;
+class WebTransportSessionBase;
 
 class ASpdySession : public nsAHttpTransaction {
  public:
@@ -87,6 +88,9 @@ class ASpdySession : public nsAHttpTransaction {
   virtual already_AddRefed<mozilla::net::nsHttpConnection> CreateTunnelStream(
       nsAHttpTransaction* aHttpTransaction, nsIInterfaceRequestor* aCallbacks,
       PRIntervalTime aRtt, bool aIsExtendedCONNECT = false) = 0;
+
+  virtual WebTransportSessionBase* GetWebTransportSession(
+      nsAHttpTransaction* aTransaction) = 0;
 };
 
 using ALPNCallback = bool (*)(nsITLSSocketControl*);

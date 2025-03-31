@@ -1342,12 +1342,6 @@ void nsHttpTransaction::Close(nsresult reason) {
   LOG(("nsHttpTransaction::Close [this=%p reason=%" PRIx32 "]\n", this,
        static_cast<uint32_t>(reason)));
 
-  {
-    MutexAutoLock lock(mLock);
-    mEarlyHintObserver = nullptr;
-    mWebTransportSessionEventListener = nullptr;
-  }
-
   if (!mClosed) {
     gHttpHandler->ConnMgr()->RemoveActiveTransaction(this);
     mActivated = false;
@@ -1752,11 +1746,6 @@ void nsHttpTransaction::Close(nsresult reason) {
     }
   }
 
-  if (relConn && mConnection) {
-    MutexAutoLock lock(mLock);
-    mConnection = nullptr;
-  }
-
   if (isHttp2or3 &&
       reason == psm::GetXPCOMFromNSSError(SSL_ERROR_PROTOCOL_VERSION_ALERT)) {
     // Change reason to NS_ERROR_ABORT, so we avoid showing a missleading
@@ -1771,6 +1760,16 @@ void nsHttpTransaction::Close(nsresult reason) {
     mResolver->Close();
     mResolver = nullptr;
   }
+
+  {
+    MutexAutoLock lock(mLock);
+    mEarlyHintObserver = nullptr;
+    mWebTransportSessionEventListener = nullptr;
+    if (relConn && mConnection) {
+      mConnection = nullptr;
+    }
+  }
+
   ReleaseBlockingTransaction();
 
   // release some resources that we no longer need
@@ -2252,10 +2251,8 @@ bool nsHttpTransaction::HandleWebTransportResponse(uint16_t aStatus) {
   if (!(aStatus >= 200 && aStatus < 300)) {
     return false;
   }
-
-  // TODO: Add support for Http2WebTransportSession here.
-
-  RefPtr<Http3WebTransportSession> wtSession =
+  LOG(("HandleWebTransportResponse mConnection=%p", mConnection.get()));
+  RefPtr<WebTransportSessionBase> wtSession =
       mConnection->GetWebTransportSession(this);
   if (!wtSession) {
     return false;

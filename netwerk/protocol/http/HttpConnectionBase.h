@@ -31,7 +31,7 @@ namespace net {
 
 class nsHttpHandler;
 class ASpdySession;
-class Http3WebTransportSession;
+class WebTransportSessionBase;
 
 enum class ConnectionState : uint32_t {
   HALF_OPEN = 0,
@@ -97,7 +97,7 @@ class HttpConnectionBase : public nsSupportsWeakReference {
                                                nsIAsyncInputStream**,
                                                nsIAsyncOutputStream**) = 0;
 
-  Http3WebTransportSession* GetWebTransportSession(
+  virtual WebTransportSessionBase* GetWebTransportSession(
       nsAHttpTransaction* aTransaction) {
     return nullptr;
   }

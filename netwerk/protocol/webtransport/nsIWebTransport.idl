@@ -19,13 +19,13 @@ namespace mozilla::dom {
 class ClientInfo;
 }
 namespace mozilla::net {
-class Http3WebTransportSession;
-class Http3WebTransportStream;
+class WebTransportSessionBase;
+class WebTransportStreamBase;
 }
 %}
 
-[ptr] native Http3WebTransportSessionPtr(mozilla::net::Http3WebTransportSession);
-[ptr] native Http3WebTransportStreamPtr(mozilla::net::Http3WebTransportStream);
+[ptr] native WebTransportSessionPtr(mozilla::net::WebTransportSessionBase);
+[ptr] native WebTransportStreamPtr(mozilla::net::WebTransportStreamBase);
 native Datagram(nsTArray<uint8_t>&&);
 [ref] native const_MaybeClientInfoRef(const mozilla::Maybe<mozilla::dom::ClientInfo>);
 
@@ -120,11 +120,11 @@ interface WebTransportSessionEventListener : nsISupports {
 interface WebTransportSessionEventListenerInternal : nsISupports {
   // This is used internally to pass the reference of WebTransportSession
   // object to WebTransportSessionProxy.
-  void onSessionReadyInternal(in Http3WebTransportSessionPtr aSession);
+  void onSessionReadyInternal(in WebTransportSessionPtr aSession);
 
-  // This is used internally to pass the reference of Http3WebTransportStream
+  // This is used internally to pass the reference of WebTransportStream
   // object to WebTransportSessionProxy.
-  void onIncomingStreamAvailableInternal(in Http3WebTransportStreamPtr aStream);
+  void onIncomingStreamAvailableInternal(in WebTransportStreamPtr aStream);
 
   // This is used internally to pass the datagram to WebTransportSessionProxy.
   void onDatagramReceivedInternal(in Datagram aData);

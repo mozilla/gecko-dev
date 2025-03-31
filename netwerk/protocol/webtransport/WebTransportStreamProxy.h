@@ -10,10 +10,9 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIWebTransportStream.h"
 #include "nsCOMPtr.h"
+#include "WebTransportStreamBase.h"
 
 namespace mozilla::net {
-
-class Http3WebTransportStream;
 
 class WebTransportStreamProxy final
     : public nsIWebTransportReceiveStream,
@@ -22,7 +21,7 @@ class WebTransportStreamProxy final
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  explicit WebTransportStreamProxy(Http3WebTransportStream* aStream);
+  explicit WebTransportStreamProxy(WebTransportStreamBase* aStream);
 
   NS_IMETHOD SendStopSending(uint8_t aError) override;
   NS_IMETHOD SendFin() override;
@@ -50,14 +49,14 @@ class WebTransportStreamProxy final
     NS_DECL_NSIASYNCINPUTSTREAM
 
     AsyncInputStreamWrapper(nsIAsyncInputStream* aStream,
-                            Http3WebTransportStream* aWebTransportStream);
+                            WebTransportStreamBase* aWebTransportStream);
 
    private:
     virtual ~AsyncInputStreamWrapper();
     void MaybeCloseStream();
 
     nsCOMPtr<nsIAsyncInputStream> mStream;
-    RefPtr<Http3WebTransportStream> mWebTransportStream;
+    RefPtr<WebTransportStreamBase> mWebTransportStream;
   };
 
   class AsyncOutputStreamWrapper : public nsIAsyncOutputStream {
@@ -74,7 +73,7 @@ class WebTransportStreamProxy final
     nsCOMPtr<nsIAsyncOutputStream> mStream;
   };
 
-  RefPtr<Http3WebTransportStream> mWebTransportStream;
+  RefPtr<WebTransportStreamBase> mWebTransportStream;
   RefPtr<AsyncOutputStreamWrapper> mWriter;
   RefPtr<AsyncInputStreamWrapper> mReader;
 };

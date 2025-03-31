@@ -63,7 +63,7 @@ NS_INTERFACE_MAP_BEGIN(Http2StreamTunnel)
   NS_INTERFACE_MAP_ENTRY(nsITransport)
   NS_INTERFACE_MAP_ENTRY(nsISocketTransport)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
-NS_INTERFACE_MAP_END_INHERITING(Http2StreamTunnel)
+NS_INTERFACE_MAP_END
 
 Http2StreamTunnel::Http2StreamTunnel(Http2Session* session, int32_t priority,
                                      uint64_t bcId,
@@ -82,7 +82,7 @@ void Http2StreamTunnel::ClearTransactionsBlockedOnTunnel() {
   if (NS_FAILED(rv)) {
     LOG3(
         ("Http2StreamTunnel::ClearTransactionsBlockedOnTunnel %p\n"
-         "  ProcessPendingQ failed: %08x\n",
+         "  ProcessPendingQ failed: %" PRIX32,
          this, static_cast<uint32_t>(rv)));
   }
 }

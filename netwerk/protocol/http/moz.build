@@ -177,6 +177,8 @@ UNIFIED_SOURCES += [
     "TLSTransportLayer.cpp",
     "TRRServiceChannel.cpp",
     "WebTransportCertificateVerifier.cpp",
+    "WebTransportSessionBase.cpp",
+    "WebTransportStreamBase.cpp",
 ]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":

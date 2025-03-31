@@ -205,7 +205,7 @@ void Http2Session::Shutdown(nsresult aReason) {
     ShutdownStream(stream, aReason);
   }
 
-  for (auto& stream : mTunnelStreams) {
+  for (const auto& stream : mTunnelStreamTransactionHash.Values()) {
     ShutdownStream(stream, aReason);
   }
 }
@@ -625,7 +625,8 @@ already_AddRefed<nsHttpConnection> Http2Session::CreateTunnelStream(
   RefPtr<nsHttpConnection> newConn = refStream->CreateHttpConnection(
       aHttpTransaction, aCallbacks, aRtt, aIsExtendedCONNECT);
 
-  mTunnelStreams.AppendElement(std::move(refStream));
+  mTunnelStreamTransactionHash.InsertOrUpdate(aHttpTransaction,
+                                              std::move(refStream));
   return newConn.forget();
 }
 
@@ -1285,6 +1286,7 @@ Http2StreamTunnel* Http2Session::CreateTunnelStreamFromConnInfo(
   MOZ_ASSERT(session);
 
   if (aType == ExtendedCONNECTType::WebTransport) {
+    LOG(("Http2Session creating Http2WebTransportSession"));
     MOZ_ASSERT(session->GetExtendedCONNECTSupport() ==
                ExtendedCONNECTSupport::SUPPORTED);
     return new Http2WebTransportSession(
@@ -1382,8 +1384,9 @@ void Http2Session::CleanupStream(Http2StreamBase* aStream, nsresult aResult,
   // removing from the stream transaction hash will
   // delete the Http2StreamBase and drop the reference to
   // its transaction
-  mStreamTransactionHash.Remove(aStream->Transaction());
-  mTunnelStreams.RemoveElement(aStream);
+  nsAHttpTransaction* trans = aStream->Transaction();
+  mStreamTransactionHash.Remove(trans);
+  mTunnelStreamTransactionHash.Remove(trans);
 
   if (mShouldGoAway && !mStreamTransactionHash.Count()) Close(NS_OK);
 
@@ -3885,7 +3888,7 @@ void Http2Session::Close(nsresult aReason) {
 
   mStreamIDHash.Clear();
   mStreamTransactionHash.Clear();
-  mTunnelStreams.Clear();
+  mTunnelStreamTransactionHash.Clear();
 
   uint32_t goAwayReason;
   if (mGoAwayReason != NO_HTTP_ERROR) {
@@ -4356,10 +4359,17 @@ nsresult Http2Session::TakeTransport(nsISocketTransport**,
   return NS_ERROR_UNEXPECTED;
 }
 
-Http3WebTransportSession* Http2Session::GetWebTransportSession(
+WebTransportSessionBase* Http2Session::GetWebTransportSession(
     nsAHttpTransaction* aTransaction) {
-  MOZ_ASSERT(false, "GetWebTransportSession of Http2Session");
-  return nullptr;
+  RefPtr<Http2StreamBase> stream =
+      mTunnelStreamTransactionHash.Get(aTransaction);
+
+  if (!stream || !stream->GetHttp2WebTransportSession()) {
+    MOZ_ASSERT(false, "There must be a stream");
+    return nullptr;
+  }
+  RemoveStreamFromQueues(stream);
+  return stream->GetHttp2WebTransportSession();
 }
 
 already_AddRefed<HttpConnectionBase> Http2Session::TakeHttpConnection() {

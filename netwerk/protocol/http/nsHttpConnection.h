@@ -263,6 +263,9 @@ class nsHttpConnection final : public HttpConnectionBase,
 
   void MarkAsDontReuse();
 
+  virtual WebTransportSessionBase* GetWebTransportSession(
+      nsAHttpTransaction* aTransaction) override;
+
  private:
   // mTransaction only points to the HTTP Transaction callbacks if the
   // transaction is open, otherwise it is null.

@@ -2617,4 +2617,17 @@ nsresult nsHttpConnection::SendConnectRequest(void* closure,
                                            transactionBytes);
 }
 
+WebTransportSessionBase* nsHttpConnection::GetWebTransportSession(
+    nsAHttpTransaction* aTransaction) {
+  LOG(
+      ("nsHttpConnection::GetWebTransportSession %p mSpdySession=%p "
+       "mExtendedCONNECTHttp2Session=%p",
+       this, mSpdySession.get(), mExtendedCONNECTHttp2Session.get()));
+  if (!mExtendedCONNECTHttp2Session) {
+    return nullptr;
+  }
+
+  return mExtendedCONNECTHttp2Session->GetWebTransportSession(aTransaction);
+}
+
 }  // namespace mozilla::net

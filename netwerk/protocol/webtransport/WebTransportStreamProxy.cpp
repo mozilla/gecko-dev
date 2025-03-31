@@ -6,7 +6,6 @@
 #include "WebTransportStreamProxy.h"
 
 #include "WebTransportLog.h"
-#include "Http3WebTransportStream.h"
 #include "nsProxyRelease.h"
 #include "nsSocketTransportService2.h"
 
@@ -23,7 +22,7 @@ NS_INTERFACE_MAP_BEGIN(WebTransportStreamProxy)
 NS_INTERFACE_MAP_END
 
 WebTransportStreamProxy::WebTransportStreamProxy(
-    Http3WebTransportStream* aStream)
+    WebTransportStreamBase* aStream)
     : mWebTransportStream(aStream) {
   nsCOMPtr<nsIAsyncInputStream> inputStream;
   nsCOMPtr<nsIAsyncOutputStream> outputStream;
@@ -242,7 +241,7 @@ NS_IMPL_ISUPPORTS(WebTransportStreamProxy::AsyncInputStreamWrapper,
                   nsIInputStream, nsIAsyncInputStream)
 
 WebTransportStreamProxy::AsyncInputStreamWrapper::AsyncInputStreamWrapper(
-    nsIAsyncInputStream* aStream, Http3WebTransportStream* aWebTransportStream)
+    nsIAsyncInputStream* aStream, WebTransportStreamBase* aWebTransportStream)
     : mStream(aStream), mWebTransportStream(aWebTransportStream) {}
 
 WebTransportStreamProxy::AsyncInputStreamWrapper::~AsyncInputStreamWrapper() =

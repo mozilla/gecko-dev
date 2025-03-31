@@ -1988,7 +1988,7 @@ nsresult Http3Session::TakeTransport(nsISocketTransport**,
   return NS_ERROR_UNEXPECTED;
 }
 
-Http3WebTransportSession* Http3Session::GetWebTransportSession(
+WebTransportSessionBase* Http3Session::GetWebTransportSession(
     nsAHttpTransaction* aTransaction) {
   RefPtr<Http3StreamBase> stream = mStreamTransactionHash.Get(aTransaction);
 
