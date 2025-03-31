@@ -482,6 +482,63 @@ crash:
     send_in_pings:
       - crash
 
+  compressed_store_size:
+    type: memory_distribution
+    description: >
+      Size (in bytes) of the compressed crash store JSON file.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CRASH_STORE_COMPRESSED_BYTES.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - crash-reporting-wg@mozilla.org
+      - stability@mozilla.org
+    expires: never
+    telemetry_mirror: CRASH_STORE_COMPRESSED_BYTES
+
+  submit_attempt:
+    type: labeled_counter
+    description: >
+      An attempt to submit a crash. Keyed on the CrashManager Crash.type.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram PROCESS_CRASH_SUBMIT_ATTEMPT.
+    labels:
+      - main-crash
+      - main-hang
+      - content-crash
+      - content-hang
+      - plugin-crash
+      - plugin-hang
+      - gmplugin-crash
+      - gmplugin-hang
+      - gpu-crash
+      - gpu-hang
+      - vr-crash
+      - vr-hang
+      - rdd-crash
+      - rdd-hang
+      - socket-crash
+      - socket-hang
+      - utility-crash
+      - utility-hang
+      - sandboxbroker-crash
+      - sandboxbroker-hang
+      - forkserver-crash
+      - forkserver-hang
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - crash-reporting-wg@mozilla.org
+      - stability@mozilla.org
+    expires: never
+    telemetry_mirror: h#PROCESS_CRASH_SUBMIT_ATTEMPT
 
 crash.windows:
   error_reporting:

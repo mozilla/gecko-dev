@@ -177,7 +177,6 @@ export var getManager = function () {
       submittedDumpsDir: submittedD,
       eventsDirs: [eventsD1, eventsD2],
       storeDir: storeD,
-      telemetryStoreSizeKey: "CRASH_STORE_COMPRESSED_BYTES",
     });
 
     return m;

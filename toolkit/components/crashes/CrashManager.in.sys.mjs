@@ -175,9 +175,6 @@ function quotaManagerShutdownTimeoutLegacyToGlean(value) {
  *   storeDir (string)
  *     Directory we will use for our data store. This instance will write
  *     data files into the directory specified.
- *
- *   telemetryStoreSizeKey (string)
- *     Telemetry histogram to report store size under.
  */
 export var CrashManager = function (options) {
   for (let k in options) {
@@ -193,9 +190,6 @@ export var CrashManager = function (options) {
         Object.defineProperty(this, key, { value });
         break;
       }
-      case "telemetryStoreSizeKey":
-        this._telemetryStoreSizeKey = value;
-        break;
 
       default:
         throw new Error("Unknown property in options: " + k);
@@ -1145,10 +1139,7 @@ CrashManager.prototype = Object.freeze({
             permissions: 0o700,
           });
 
-          let store = new CrashStore(
-            this._storeDir,
-            this._telemetryStoreSizeKey
-          );
+          let store = new CrashStore(this._storeDir);
           await store.load();
 
           this._store = store;
@@ -1240,13 +1231,9 @@ var gCrashManager;
  *
  * @param storeDir (string)
  *        Directory the store should be located in.
- * @param telemetrySizeKey (string)
- *        The telemetry histogram that should be used to store the size
- *        of the data file.
  */
-export function CrashStore(storeDir, telemetrySizeKey) {
+export function CrashStore(storeDir) {
   this._storeDir = storeDir;
-  this._telemetrySizeKey = telemetrySizeKey;
 
   this._storePath = PathUtils.join(storeDir, "store.json.mozlz4");
 
@@ -1440,9 +1427,7 @@ CrashStore.prototype = Object.freeze({
           tmpPath: this._storePath + ".tmp",
           compress: true,
         });
-        if (this._telemetrySizeKey) {
-          Services.telemetry.getHistogramById(this._telemetrySizeKey).add(size);
-        }
+        Glean.crash.compressedStoreSize.accumulate(size);
       } catch (ex) {
         // This operation might fail during shutdown, tough luck.
         console.error(ex);
@@ -1722,9 +1707,7 @@ CrashStore.prototype = Object.freeze({
     }
 
     submission.requestDate = date;
-    Services.telemetry
-      .getKeyedHistogramById("PROCESS_CRASH_SUBMIT_ATTEMPT")
-      .add(crash.type, 1);
+    Glean.crash.submitAttempt[crash.type].add(1);
     return true;
   },
 
@@ -1743,6 +1726,8 @@ CrashStore.prototype = Object.freeze({
 
     submission.responseDate = date;
     submission.result = result;
+    // Needs bug 1657470 (New Metric Type: "Keyed Categorical") before
+    // this can be migrated to Glean.
     Services.telemetry
       .getKeyedHistogramById("PROCESS_CRASH_SUBMIT_SUCCESS")
       .add(crash.type, result == "ok");
@@ -1843,9 +1828,7 @@ ChromeUtils.defineLazyGetter(CrashManager, "Singleton", function () {
     return gCrashManager;
   }
 
-  gCrashManager = new CrashManager({
-    telemetryStoreSizeKey: "CRASH_STORE_COMPRESSED_BYTES",
-  });
+  gCrashManager = new CrashManager({});
 
   // Automatically aggregate event files shortly after startup. This
   // ensures it happens with some frequency.
