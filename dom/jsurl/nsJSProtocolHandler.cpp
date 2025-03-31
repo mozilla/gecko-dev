@@ -135,6 +135,9 @@ static nsIScriptGlobalObject* GetGlobalObject(nsIChannel* aChannel) {
   return global;
 }
 
+// https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+// specialized for type "navigation" requests with "javascript: URLs".
+// Excluding step 2.
 static bool AllowedByCSP(nsIContentSecurityPolicy* aCSP,
                          const nsACString& aJavaScriptURL,
                          const mozilla::JSCallingLocation& aJSCallingLocation) {
@@ -142,7 +145,6 @@ static bool AllowedByCSP(nsIContentSecurityPolicy* aCSP,
     return true;
   }
 
-  // https://w3c.github.io/webappsec-csp/#should-block-navigation-request
   // Step 3. If result is "Allowed", and if navigation request’s current URL’s
   // scheme is javascript:
   //
