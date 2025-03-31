@@ -510,7 +510,7 @@ inline T* NewBuiltinClassInstance(JSContext* cx, gc::AllocKind allocKind,
   return obj ? &obj->as<T>() : nullptr;
 }
 
-static inline gc::AllocKind GuessArrayGCKind(size_t numElements) {
+static constexpr gc::AllocKind GuessArrayGCKind(size_t numElements) {
   if (numElements) {
     return gc::GetGCArrayKind(numElements);
   }

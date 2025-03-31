@@ -265,19 +265,6 @@ using JS::SliceBudget;
 using JS::TimeBudget;
 using JS::WorkBudget;
 
-const AllocKind gc::slotsToThingKind[] = {
-    // clang-format off
-    /*  0 */ AllocKind::OBJECT0,  AllocKind::OBJECT2,  AllocKind::OBJECT2,  AllocKind::OBJECT4,
-    /*  4 */ AllocKind::OBJECT4,  AllocKind::OBJECT8,  AllocKind::OBJECT8,  AllocKind::OBJECT8,
-    /*  8 */ AllocKind::OBJECT8,  AllocKind::OBJECT12, AllocKind::OBJECT12, AllocKind::OBJECT12,
-    /* 12 */ AllocKind::OBJECT12, AllocKind::OBJECT16, AllocKind::OBJECT16, AllocKind::OBJECT16,
-    /* 16 */ AllocKind::OBJECT16
-    // clang-format on
-};
-
-static_assert(std::size(slotsToThingKind) == SLOTS_TO_THING_KIND_LIMIT,
-              "We have defined a slot count for each kind.");
-
 // A table converting an object size in "slots" (increments of
 // sizeof(js::Value)) to the total number of bytes in the corresponding
 // AllocKind. See gc::slotsToThingKind. This primarily allows wasm jit code to
@@ -286,7 +273,7 @@ static_assert(std::size(slotsToThingKind) == SLOTS_TO_THING_KIND_LIMIT,
 // To use this table, subtract sizeof(NativeObject) from your desired allocation
 // size, divide by sizeof(js::Value) to get the number of "slots", and then
 // index into this table. See gc::GetGCObjectKindForBytes.
-const constexpr uint32_t gc::slotsToAllocKindBytes[] = {
+constexpr uint32_t gc::slotsToAllocKindBytes[] = {
     // These entries correspond exactly to gc::slotsToThingKind. The numeric
     // comments therefore indicate the number of slots that the "bytes" would
     // correspond to.
@@ -299,7 +286,7 @@ const constexpr uint32_t gc::slotsToAllocKindBytes[] = {
     // clang-format on
 };
 
-static_assert(std::size(slotsToAllocKindBytes) == SLOTS_TO_THING_KIND_LIMIT);
+static_assert(std::size(slotsToAllocKindBytes) == std::size(slotsToThingKind));
 
 MOZ_THREAD_LOCAL(JS::GCContext*) js::TlsGCContext;
 

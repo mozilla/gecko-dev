@@ -15821,7 +15821,7 @@ void CodeGenerator::visitRest(LRest* lir) {
   // If the length is 0, NewArray guesses a good capacity for it. We don't want
   // a smaller capacity in Ion, because that can lead to bailout loops.
   constexpr uint32_t arrayCapacity = 6;
-  MOZ_ASSERT(GuessArrayGCKind(0) == GuessArrayGCKind(arrayCapacity));
+  static_assert(GuessArrayGCKind(0) == GuessArrayGCKind(arrayCapacity));
 
   if (Shape* shape = lir->mir()->shape()) {
     uint32_t arrayLength = 0;

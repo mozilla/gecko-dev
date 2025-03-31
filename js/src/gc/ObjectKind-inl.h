@@ -18,14 +18,21 @@
 namespace js {
 namespace gc {
 
-/* Capacity for slotsToThingKind */
-const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
-extern const AllocKind slotsToThingKind[];
+inline constexpr AllocKind slotsToThingKind[] = {
+    // clang-format off
+    /*  0 */ AllocKind::OBJECT0,  AllocKind::OBJECT2,  AllocKind::OBJECT2,  AllocKind::OBJECT4,
+    /*  4 */ AllocKind::OBJECT4,  AllocKind::OBJECT8,  AllocKind::OBJECT8,  AllocKind::OBJECT8,
+    /*  8 */ AllocKind::OBJECT8,  AllocKind::OBJECT12, AllocKind::OBJECT12, AllocKind::OBJECT12,
+    /* 12 */ AllocKind::OBJECT12, AllocKind::OBJECT16, AllocKind::OBJECT16, AllocKind::OBJECT16,
+    /* 16 */ AllocKind::OBJECT16
+    // clang-format on
+};
+
 extern const uint32_t slotsToAllocKindBytes[];
 
 /* Get the best kind to use when making an object with the given slot count. */
-static inline AllocKind GetGCObjectKind(size_t numSlots) {
-  if (numSlots >= SLOTS_TO_THING_KIND_LIMIT) {
+static constexpr AllocKind GetGCObjectKind(size_t numSlots) {
+  if (numSlots >= std::size(slotsToThingKind)) {
     return AllocKind::OBJECT16;
   }
   return slotsToThingKind[numSlots];
@@ -45,11 +52,11 @@ static constexpr bool CanUseFixedElementsForArray(size_t numElements) {
     return false;
   }
   size_t numSlots = numElements + ObjectElements::VALUES_PER_HEADER;
-  return numSlots < SLOTS_TO_THING_KIND_LIMIT;
+  return numSlots < std::size(slotsToThingKind);
 }
 
 /* As for GetGCObjectKind, but for dense array allocation. */
-static inline AllocKind GetGCArrayKind(size_t numElements) {
+static constexpr AllocKind GetGCArrayKind(size_t numElements) {
   /*
    * Dense arrays can use their fixed slots to hold their elements array
    * (less two Values worth of ObjectElements header), but if more than the
@@ -64,7 +71,7 @@ static inline AllocKind GetGCArrayKind(size_t numElements) {
 }
 
 static inline AllocKind GetGCObjectFixedSlotsKind(size_t numFixedSlots) {
-  MOZ_ASSERT(numFixedSlots < SLOTS_TO_THING_KIND_LIMIT);
+  MOZ_ASSERT(numFixedSlots < std::size(slotsToThingKind));
   return slotsToThingKind[numFixedSlots];
 }
 
@@ -84,7 +91,7 @@ static inline AllocKind GetGCObjectKindForBytes(size_t nbytes) {
 }
 
 /* Get the number of fixed slots and initial capacity associated with a kind. */
-static constexpr inline size_t GetGCKindSlots(AllocKind thingKind) {
+static constexpr size_t GetGCKindSlots(AllocKind thingKind) {
   // Using a switch in hopes that thingKind will usually be a compile-time
   // constant.
   switch (thingKind) {
