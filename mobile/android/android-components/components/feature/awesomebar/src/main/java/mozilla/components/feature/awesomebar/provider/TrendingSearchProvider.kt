@@ -163,6 +163,8 @@ class TrendingSearchProvider private constructor(
                     readTimeout = Pair(READ_TIMEOUT_IN_MS, TimeUnit.MILLISECONDS),
                     connectTimeout = Pair(CONNECT_TIMEOUT_IN_MS, TimeUnit.MILLISECONDS),
                     private = privateMode,
+                    cookiePolicy = Request.CookiePolicy.OMIT,
+                    useCaches = false,
                 )
 
                 val response = fetchClient.fetch(request)
