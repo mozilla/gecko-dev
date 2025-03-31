@@ -140,7 +140,7 @@ struct FuncImportInstanceData {
 };
 
 struct MemoryInstanceData {
-  // Pointer the memory object.
+  // Pointer to the memory object.
   GCPtr<WasmMemoryObject*> memory;
 
   // Pointer to the base of the memory.

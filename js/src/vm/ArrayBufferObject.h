@@ -861,7 +861,7 @@ class WasmArrayRawBuffer {
   wasm::AddressType addressType_;
   wasm::Pages clampedMaxPages_;
   mozilla::Maybe<wasm::Pages> sourceMaxPages_;
-  size_t mappedSize_;  // Not including the header page
+  size_t mappedSize_;  // See comment on mappedSize().
   size_t length_;
 
  protected:
@@ -874,6 +874,8 @@ class WasmArrayRawBuffer {
         sourceMaxPages_(sourceMaxPages),
         mappedSize_(mappedSize),
         length_(length) {
+    // Assert that this WasmArrayRawBuffer was allocated in the correct place
+    // relative to its data.
     MOZ_ASSERT(buffer == dataPointer());
   }
 
@@ -904,16 +906,51 @@ class WasmArrayRawBuffer {
 
   uint8_t* basePointer() { return dataPointer() - gc::SystemPageSize(); }
 
+  /*
+   * The actual mmapped size. Access in the range [0, mappedSize) will either
+   * succeed, or be handled by the wasm signal handlers. The mapped size will be
+   * aligned to the system allocation granularity such that we can
+   * optimistically map other regions following it, in order to reduce copies
+   * when growing memory.
+   *
+   * Note that this does NOT include the header page in which this buffer itself
+   * is allocated.
+   */
   size_t mappedSize() const { return mappedSize_; }
 
+  /*
+   * The wasm-visible current length of the buffer in bytes. Accesses in the
+   * range [0, byteLength) will succeed. May only increase.
+   *
+   * For more info see "WASM Linear Memory structure" in ArrayBufferObject.cpp.
+   */
   size_t byteLength() const { return length_; }
 
   wasm::Pages pages() const {
     return wasm::Pages::fromByteLengthExact(length_);
   }
 
+  /*
+   * The maximum size on how far the byteLength can grow in pages. This value
+   * respects implementation limits and is always representable as a byte
+   * length. Every memory has a clampedMaxSize, even if no maximum was specified
+   * in source. When a memory has no sourceMaxSize, the clampedMaxSize will be
+   * the maximum amount of memory that can be grown to while still respecting
+   * implementation limits.
+   *
+   * For more info see "WASM Linear Memory structure" in ArrayBufferObject.cpp.
+   */
   wasm::Pages clampedMaxPages() const { return clampedMaxPages_; }
 
+  /*
+   * The optional declared limit on how far byteLength can grow in pages. This
+   * is the unmodified maximum size from the source module or JS-API invocation.
+   * This may not be representable in byte lengths, nor feasible for a module to
+   * actually grow to due to implementation limits. It is used for correct
+   * linking checks and js-types reflection.
+   *
+   * For more info see "WASM Linear Memory structure" in ArrayBufferObject.cpp.
+   */
   mozilla::Maybe<wasm::Pages> sourceMaxPages() const { return sourceMaxPages_; }
 
   [[nodiscard]] bool growToPagesInPlace(wasm::Pages newPages);
