@@ -233,6 +233,7 @@ already_AddRefed<Texture> Device::CreateTexture(
   }
 
   RefPtr<Texture> texture = new Texture(this, id, aDesc);
+  texture->SetLabel(aDesc.mLabel);
   return texture.forget();
 }
 
@@ -267,6 +268,7 @@ already_AddRefed<Sampler> Device::CreateSampler(
   }
 
   RefPtr<Sampler> sampler = new Sampler(this, id);
+  sampler->SetLabel(aDesc.mLabel);
   return sampler.forget();
 }
 
@@ -285,6 +287,7 @@ already_AddRefed<CommandEncoder> Device::CreateCommandEncoder(
   }
 
   RefPtr<CommandEncoder> encoder = new CommandEncoder(this, mBridge, id);
+  encoder->SetLabel(aDesc.mLabel);
   return encoder.forget();
 }
 
@@ -292,6 +295,7 @@ already_AddRefed<RenderBundleEncoder> Device::CreateRenderBundleEncoder(
     const dom::GPURenderBundleEncoderDescriptor& aDesc) {
   RefPtr<RenderBundleEncoder> encoder =
       new RenderBundleEncoder(this, mBridge, aDesc);
+  encoder->SetLabel(aDesc.mLabel);
   return encoder.forget();
 }
 
@@ -327,6 +331,7 @@ already_AddRefed<QuerySet> Device::CreateQuerySet(
   }
 
   RefPtr<QuerySet> querySet = new QuerySet(this, aDesc, id);
+  querySet->SetLabel(aDesc.mLabel);
   return querySet.forget();
 }
 
@@ -448,6 +453,7 @@ already_AddRefed<BindGroupLayout> Device::CreateBindGroupLayout(
   }
 
   RefPtr<BindGroupLayout> object = new BindGroupLayout(this, id, true);
+  object->SetLabel(aDesc.mLabel);
   return object.forget();
 }
 
@@ -475,6 +481,7 @@ already_AddRefed<PipelineLayout> Device::CreatePipelineLayout(
   }
 
   RefPtr<PipelineLayout> object = new PipelineLayout(this, id);
+  object->SetLabel(aDesc.mLabel);
   return object.forget();
 }
 
@@ -523,6 +530,8 @@ already_AddRefed<BindGroup> Device::CreateBindGroup(
   }
 
   RefPtr<BindGroup> object = new BindGroup(this, id);
+  object->SetLabel(aDesc.mLabel);
+
   return object.forget();
 }
 
@@ -927,6 +936,7 @@ already_AddRefed<ComputePipeline> Device::CreateComputePipeline(
   RefPtr<ComputePipeline> object =
       new ComputePipeline(this, id, context.mImplicitPipelineLayoutId,
                           std::move(context.mImplicitBindGroupLayoutIds));
+  object->SetLabel(aDesc.mLabel);
   return object.forget();
 }
 
@@ -943,6 +953,8 @@ already_AddRefed<RenderPipeline> Device::CreateRenderPipeline(
   RefPtr<RenderPipeline> object =
       new RenderPipeline(this, id, context.mImplicitPipelineLayoutId,
                          std::move(context.mImplicitBindGroupLayoutIds));
+  object->SetLabel(aDesc.mLabel);
+
   return object.forget();
 }
 
@@ -962,14 +974,17 @@ already_AddRefed<dom::Promise> Device::CreateComputePipelineAsync(
       CreateComputePipelineImpl(context.get(), mBridge, aDesc, &bb);
 
   if (mBridge->CanSend()) {
+    auto label = aDesc.mLabel;
     mBridge->SendDeviceActionWithAck(mId, std::move(bb))
         ->Then(
             GetCurrentSerialEventTarget(), __func__,
-            [self = RefPtr{this}, context, pipelineId, promise](bool aDummy) {
+            [self = RefPtr{this}, context, pipelineId, promise,
+             label](bool aDummy) {
               Unused << aDummy;
               RefPtr<ComputePipeline> object = new ComputePipeline(
                   self, pipelineId, context->mImplicitPipelineLayoutId,
                   std::move(context->mImplicitBindGroupLayoutIds));
+              object->SetLabel(label);
               promise->MaybeResolve(object);
             },
             [promise](const ipc::ResponseRejectReason&) {
@@ -999,14 +1014,17 @@ already_AddRefed<dom::Promise> Device::CreateRenderPipelineAsync(
       CreateRenderPipelineImpl(context.get(), mBridge, aDesc, &bb);
 
   if (mBridge->CanSend()) {
+    auto label = aDesc.mLabel;
     mBridge->SendDeviceActionWithAck(mId, std::move(bb))
         ->Then(
             GetCurrentSerialEventTarget(), __func__,
-            [self = RefPtr{this}, context, promise, pipelineId](bool aDummy) {
+            [self = RefPtr{this}, context, promise, pipelineId,
+             label](bool aDummy) {
               Unused << aDummy;
               RefPtr<RenderPipeline> object = new RenderPipeline(
                   self, pipelineId, context->mImplicitPipelineLayoutId,
                   std::move(context->mImplicitBindGroupLayoutIds));
+              object->SetLabel(label);
               promise->MaybeResolve(object);
             },
             [promise](const ipc::ResponseRejectReason&) {

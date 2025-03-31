@@ -216,6 +216,7 @@ void CommandEncoder::InsertDebugMarker(const nsAString& aString) {
 already_AddRefed<ComputePassEncoder> CommandEncoder::BeginComputePass(
     const dom::GPUComputePassDescriptor& aDesc) {
   RefPtr<ComputePassEncoder> pass = new ComputePassEncoder(this, aDesc);
+  pass->SetLabel(aDesc.mLabel);
   return pass.forget();
 }
 
@@ -229,6 +230,7 @@ already_AddRefed<RenderPassEncoder> CommandEncoder::BeginRenderPass(
   }
 
   RefPtr<RenderPassEncoder> pass = new RenderPassEncoder(this, aDesc);
+  pass->SetLabel(aDesc.mLabel);
   return pass.forget();
 }
 
@@ -285,6 +287,7 @@ already_AddRefed<CommandBuffer> CommandEncoder::Finish(
   RefPtr<CommandEncoder> me(this);
   RefPtr<CommandBuffer> comb = new CommandBuffer(
       mParent, mId, std::move(mPresentationContexts), std::move(me));
+  comb->SetLabel(aDesc.mLabel);
   return comb.forget();
 }
 

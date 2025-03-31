@@ -65,6 +65,7 @@ already_AddRefed<Buffer> Buffer::Create(Device* aDevice, RawId aDeviceId,
     RefPtr<Buffer> buffer =
         new Buffer(aDevice, bufferId, aDesc.mSize, 0, nullptr);
     buffer->mValid = false;
+    buffer->SetLabel(aDesc.mLabel);
     return buffer.forget();
   }
 
