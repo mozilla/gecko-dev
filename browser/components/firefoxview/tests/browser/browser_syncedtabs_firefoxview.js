@@ -112,8 +112,13 @@ add_task(async function test_signed_in() {
     let connectAdditionalDevicesLink =
       emptyState?.shadowRoot.querySelector("a");
     connectAdditionalDevicesLink.scrollIntoView();
-    await TestUtils.waitForCondition(
-      () => BrowserTestUtils.isVisible(connectAdditionalDevicesLink),
+    await BrowserTestUtils.waitForMutationCondition(
+      emptyState.shadowRoot,
+      { subTree: true, childList: true },
+      () => BrowserTestUtils.isVisible(connectAdditionalDevicesLink)
+    );
+    ok(
+      BrowserTestUtils.isVisible(connectAdditionalDevicesLink),
       "Support url is visible"
     );
     is(
