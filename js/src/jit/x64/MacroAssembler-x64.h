@@ -147,15 +147,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   }
   template <typename T>
   void storeValue(JSValueType type, Register reg, const T& dest) {
-    // Value types with 32-bit payloads can be emitted as two 32-bit moves.
-    if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
-      movl(reg, Operand(dest));
-      movl(Imm32(Upper32Of(GetShiftedTag(type))), ToUpper32(Operand(dest)));
-    } else {
-      ScratchRegisterScope scratch(asMasm());
-      boxValue(type, reg, scratch);
-      movq(scratch, Operand(dest));
-    }
+    ScratchRegisterScope scratch(asMasm());
+    boxValue(type, reg, scratch);
+    movq(scratch, Operand(dest));
   }
   template <typename T>
   void storeValue(const Value& val, const T& dest) {
