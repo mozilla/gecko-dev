@@ -67,7 +67,7 @@ add_setup(async () => {
 
   await manager.onStartup();
   await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
-  manager.unenroll("foo", "some-reason");
+  manager.unenroll("foo");
   await manager.store.addEnrollment(
     ExperimentFakes.experiment("bar", { active: false })
   );
@@ -76,7 +76,7 @@ add_setup(async () => {
   );
 
   manager.store.addEnrollment(ExperimentFakes.rollout("rol1"));
-  manager.unenroll("rol1", "some-reason");
+  manager.unenroll("rol1");
   manager.store.addEnrollment(ExperimentFakes.rollout("rol2"));
 });
 

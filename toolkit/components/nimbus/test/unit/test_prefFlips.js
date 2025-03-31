@@ -1587,7 +1587,7 @@ add_task(async function test_prefFlips_unenrollment() {
     for (const { slug, isRollout = false } of expectedEnrollments) {
       const computedSlug = `${slug}-${isRollout ? "rollout" : "experiment"}`;
       info(`Unenrolling from ${computedSlug}\n`);
-      manager.unenroll(computedSlug, "cleanup");
+      manager.unenroll(computedSlug);
     }
     assertEmptyStore(manager.store);
     assertNoObservers(manager);
@@ -2041,7 +2041,7 @@ add_task(async function test_prefFlip_setPref_restore() {
     );
 
     info("Unenrolling...");
-    manager.unenroll(enrollmentOrder[1], "test-cleanup");
+    manager.unenroll(enrollmentOrder[1]);
 
     info("Checking expected prefs...");
     checkExpectedPrefBranches(expectedPrefs);
@@ -2120,7 +2120,7 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
     "originalValues cached on serialized enrollment"
   );
 
-  manager.unenroll(recipe.slug, "test");
+  manager.unenroll(recipe.slug);
   Assert.ok(
     !Services.prefs.prefHasUserValue("test.pref.please.ignore"),
     "pref unset after unenrollment"
@@ -2207,7 +2207,7 @@ add_task(async function test_prefFlips_restore_unenroll() {
     null
   );
 
-  manager.unenroll(recipe.slug, "test");
+  manager.unenroll(recipe.slug);
   Assert.ok(
     !Services.prefs.prefHasUserValue("test.pref.please.ignore"),
     "pref unset after unenrollment"
@@ -2506,10 +2506,10 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout() {
 
     info("Unenrolling...");
     if (expectedEnrollments.includes(ROLLOUT)) {
-      manager.unenroll(ROLLOUT, "test-cleanup");
+      manager.unenroll(ROLLOUT);
     }
     if (expectedEnrollments.includes(EXPERIMENT)) {
-      manager.unenroll(EXPERIMENT, "test-cleanup");
+      manager.unenroll(EXPERIMENT);
     }
 
     info("Cleaning up...");
