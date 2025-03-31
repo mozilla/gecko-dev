@@ -52,7 +52,7 @@
 #include "mozilla/StaticMutex.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/glean/DomMetrics.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/IpcMetrics.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/ipc/IOThread.h"
 #include "mozilla/ipc/EnvironmentMap.h"
@@ -806,10 +806,10 @@ bool GeckoChildProcessHost::AsyncLaunch(
                     << XRE_GeckoProcessTypeToString(mProcessType)
                     << " subprocess @" << aError.FunctionName()
                     << " (Error:" << aError.ErrorCode() << ")";
-                Telemetry::Accumulate(
-                    Telemetry::SUBPROCESS_LAUNCH_FAILURE,
-                    nsDependentCString(
-                        XRE_GeckoProcessTypeToString(mProcessType)));
+                glean::subprocess::launch_failure
+                    .Get(nsDependentCString(
+                        XRE_GeckoProcessTypeToString(mProcessType)))
+                    .Add(1);
                 nsCString telemetryKey = nsPrintfCString(
 #if defined(XP_WIN)
                     "%s,0x%lx,%s",
@@ -1730,8 +1730,8 @@ RefPtr<ProcessLaunchPromise> BaseProcessLauncher::FinishLaunch() {
 
   MOZ_DIAGNOSTIC_ASSERT(mResults.mHandle);
 
-  Telemetry::AccumulateTimeDelta(Telemetry::CHILD_PROCESS_LAUNCH_MS,
-                                 mStartTimeStamp);
+  glean::process::child_launch.AccumulateRawDuration(TimeStamp::Now() -
+                                                     mStartTimeStamp);
 
   return ProcessLaunchPromise::CreateAndResolve(std::move(mResults), __func__);
 }

@@ -1,0 +1,138 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: DOM: Content Processes'
+
+process:
+  child_launch:
+    type: timing_distribution
+    description: >
+      Time spent in the generic child process launching code, which is run
+      off-main-thread and used by all child process types
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram CHILD_PROCESS_LAUNCH_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1474991
+    notification_emails:
+      - jld@mozilla.com
+      - jimm@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: CHILD_PROCESS_LAUNCH_MS
+
+  lifetime:
+    type: timing_distribution
+    description: >
+      Average lifetime of a content process in seconds
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PROCESS_LIFETIME.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897060
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897060
+    notification_emails:
+      - pbone@mozilla.com
+    expires: 142
+    telemetry_mirror: PROCESS_LIFETIME
+
+ipc:
+  transaction_cancel:
+    type: labeled_counter
+    description: >
+      True when an IPC transaction is canceled
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram IPC_TRANSACTION_CANCEL.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - billm@mozilla.com
+    expires: never
+    telemetry_mirror: h#IPC_TRANSACTION_CANCEL
+
+subprocess:
+  abnormal_abort:
+    type: labeled_counter
+    description: >
+      Counts of plugin/content process abnormal shutdown, whether or not a crash
+      report was available.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SUBPROCESS_ABNORMAL_ABORT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - gsvelto@mozilla.com
+    expires: never
+    telemetry_mirror: h#SUBPROCESS_ABNORMAL_ABORT
+
+  crashes_with_dump:
+    type: labeled_counter
+    description: >
+      Counts of plugin and content process crashes which are reported with a
+      crash dump.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SUBPROCESS_CRASHES_WITH_DUMP.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - gsvelto@mozilla.com
+    expires: never
+    telemetry_mirror: h#SUBPROCESS_CRASHES_WITH_DUMP
+
+  launch_failure:
+    type: labeled_counter
+    description: >
+      Counts the number of times launching a subprocess fails. Counts are by
+      subprocess-type using the GeckoProcessType enum.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SUBPROCESS_LAUNCH_FAILURE.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1275430
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1275430
+    notification_emails:
+      - haftandilian@mozilla.com
+    expires: never
+    telemetry_mirror: h#SUBPROCESS_LAUNCH_FAILURE
+
+  kill_hard:
+    type: labeled_counter
+    description: >
+      Counts the number of times a subprocess was forcibly killed, and the
+      reason.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SUBPROCESS_KILL_HARD.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1269961
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1269961
+    notification_emails:
+      - wmccloskey@mozilla.com
+    expires: never
+    telemetry_mirror: h#SUBPROCESS_KILL_HARD

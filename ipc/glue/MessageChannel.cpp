@@ -26,7 +26,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticMutex.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/IpcMetrics.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -2393,8 +2393,9 @@ void CancelCPOWs() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (gParentProcessBlocker) {
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::IPC_TRANSACTION_CANCEL,
-                                   true);
+    mozilla::glean::ipc::transaction_cancel
+        .EnumGet(mozilla::glean::ipc::TransactionCancelLabel::eTrue)
+        .Add();
     gParentProcessBlocker->CancelCurrentTransaction();
   }
 }
