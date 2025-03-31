@@ -326,7 +326,7 @@ already_AddRefed<Promise> WebTaskScheduler::PostTask(
   } else if (signalValue && signalValue->IsTaskSignal()) {
     // 7. Otherwise if signal is not null and implements the TaskSignal
     // interface, then set state’s priority source to signal.
-    newState->SetPrioritySource(signalValue);
+    newState->SetPrioritySource(static_cast<TaskSignal*>(signalValue));
   }
 
   if (!newState->GetPrioritySource()) {
@@ -337,20 +337,23 @@ already_AddRefed<Promise> WebTaskScheduler::PostTask(
         new TaskSignal(GetParentObject(), TaskPriority::User_visible));
   }
 
+  MOZ_ASSERT(newState->GetPrioritySource());
+
+  // 9. Let handle be the result of creating a task handle given result and
+  // signal.
+  // 10. If signal is not null, then add handle’s abort steps to signal.
+  // 11. Let enqueueSteps be the following steps...
+  RefPtr<WebTask> task = CreateTask(signalValue, newState->GetPrioritySource(),
+                                    taskPriority, false /* aIsContinuation */,
+                                    SomeRef(aCallback), newState, promise);
+
+  const TaskSignal* finalPrioritySource = newState->GetPrioritySource();
+  // 12. Let delay be options["delay"].
   const uint64_t delay = aOptions.mDelay;
 
-  // Let queue be the result of selecting the scheduler task queue for
-  // scheduler given signal and priority.
-  RefPtr<WebTask> task =
-      CreateTask(taskSignal, taskPriority, false /* aIsContinuation */,
-                 SomeRef(aCallback), newState, promise);
-
-  MOZ_ASSERT(newState->GetPrioritySource() &&
-             newState->GetPrioritySource()->IsTaskSignal());
-
-  const TaskSignal* finalPrioritySource =
-      static_cast<TaskSignal*>(newState->GetPrioritySource());
-
+  // 13. If delay is greater than 0, then run steps after a timeout given
+  // scheduler’s relevant global object, "scheduler-postTask", delay, and the
+  // following steps...
   if (delay > 0) {
     nsresult rv = SetTimeoutForDelayedTask(
         task, delay,
@@ -363,6 +366,7 @@ already_AddRefed<Promise> WebTaskScheduler::PostTask(
     return promise.forget();
   }
 
+  // 14. Otherwise, run enqueueSteps.
   if (!DispatchTask(task, GetEventQueuePriority(finalPrioritySource->Priority(),
                                                 false /* aIsContinuation */))) {
     MOZ_ASSERT(task->isInList());
@@ -400,11 +404,7 @@ already_AddRefed<Promise> WebTaskScheduler::YieldImpl() {
     abortSource = schedulingState->GetAbortSource();
     // 5. Let prioritySource be inheritedState’s priority source if
     // inheritedState is not null, or otherwise null.
-    if (AbortSignal* inheritedPrioritySource =
-            schedulingState->GetPrioritySource()) {
-      MOZ_ASSERT(inheritedPrioritySource->IsTaskSignal());
-      prioritySource = static_cast<TaskSignal*>(inheritedPrioritySource);
-    }
+    prioritySource = schedulingState->GetPrioritySource();
   }
 
   if (abortSource) {
@@ -423,18 +423,17 @@ already_AddRefed<Promise> WebTaskScheduler::YieldImpl() {
         new TaskSignal(GetParentObject(), TaskPriority::User_visible);
   }
 
-  const OwningNonNull<AbortSignal> owningSignal(*prioritySource);
-
-  Optional<OwningNonNull<AbortSignal>> optionalSignal;
-  optionalSignal.Construct(*prioritySource);
-
+  // 7. Let handle be the result of creating a task handle given result and
+  // abortSource.
+  // 8. If abortSource is not null, then add handle’s abort steps to
+  // abortSource.
   // 9. Set handle’s queue to the result of selecting the scheduler task queue
   // for scheduler given prioritySource and true.
   // 10. Schedule a task to invoke an algorithm for scheduler given handle and
   // the following steps:
   RefPtr<WebTask> task =
-      CreateTask(optionalSignal, {}, true /* aIsContinuation */, Nothing(),
-                 nullptr, promise);
+      CreateTask(abortSource, prioritySource, {}, true /* aIsContinuation */,
+                 Nothing(), nullptr, promise);
 
   EventQueuePriority eventQueuePriority = GetEventQueuePriority(
       prioritySource->Priority(), true /* aIsContinuation */);
@@ -452,12 +451,12 @@ already_AddRefed<Promise> WebTaskScheduler::YieldImpl() {
 }
 
 already_AddRefed<WebTask> WebTaskScheduler::CreateTask(
-    const Optional<OwningNonNull<AbortSignal>>& aSignal,
+    AbortSignal* aAbortSignal, TaskSignal* aTaskSignal,
     const Optional<TaskPriority>& aPriority, bool aIsContinuation,
     const Maybe<SchedulerPostTaskCallback&>& aCallback,
     WebTaskSchedulingState* aSchedulingState, Promise* aPromise) {
   WebTaskScheduler::SelectedTaskQueueData selectedTaskQueueData =
-      SelectTaskQueue(aSignal, aPriority, aIsContinuation);
+      SelectTaskQueue(aTaskSignal, aPriority, aIsContinuation);
 
   gWebTaskEnqueueOrder += 1;
   RefPtr<WebTask> task =
@@ -466,9 +465,8 @@ already_AddRefed<WebTask> WebTaskScheduler::CreateTask(
 
   selectedTaskQueueData.mSelectedTaskQueue.AddTask(task);
 
-  if (aSignal.WasPassed()) {
-    AbortSignal& signalValue = aSignal.Value();
-    task->Follow(&signalValue);
+  if (aAbortSignal) {
+    task->Follow(aAbortSignal);
   }
 
   return task.forget();
@@ -588,19 +586,17 @@ void WebTaskScheduler::RunTaskSignalPriorityChange(TaskSignal* aTaskSignal) {
 }
 
 WebTaskScheduler::SelectedTaskQueueData WebTaskScheduler::SelectTaskQueue(
-    const Optional<OwningNonNull<AbortSignal>>& aSignal,
-    const Optional<TaskPriority>& aPriority, const bool aIsContinuation) {
-  bool useSignal = !aPriority.WasPassed() && aSignal.WasPassed() &&
-                   aSignal.Value().IsTaskSignal();
+    TaskSignal* aTaskSignal, const Optional<TaskPriority>& aPriority,
+    const bool aIsContinuation) {
+  bool useSignal = !aPriority.WasPassed() && aTaskSignal;
 
   if (useSignal) {
-    TaskSignal* taskSignal = static_cast<TaskSignal*>(&(aSignal.Value()));
-    WebTaskQueueHashKey signalHashKey(taskSignal, aIsContinuation);
+    WebTaskQueueHashKey signalHashKey(aTaskSignal, aIsContinuation);
     WebTaskQueue& taskQueue =
         mWebTaskQueues.LookupOrInsert(signalHashKey, this);
 
-    taskQueue.SetPriority(taskSignal->Priority());
-    taskSignal->SetWebTaskScheduler(this);
+    taskQueue.SetPriority(aTaskSignal->Priority());
+    aTaskSignal->SetWebTaskScheduler(this);
 
     return SelectedTaskQueueData{WebTaskQueueHashKey(signalHashKey), taskQueue};
   }

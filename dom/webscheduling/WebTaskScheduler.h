@@ -43,9 +43,9 @@ class WebTaskSchedulingState {
   }
 
   AbortSignal* GetAbortSource() { return mAbortSource; }
-  AbortSignal* GetPrioritySource() { return mPrioritySource; }
+  TaskSignal* GetPrioritySource() { return mPrioritySource; }
 
-  void SetPrioritySource(AbortSignal* aPrioritySource) {
+  void SetPrioritySource(TaskSignal* aPrioritySource) {
     MOZ_ASSERT(aPrioritySource->IsTaskSignal());
     mPrioritySource = aPrioritySource;
   }
@@ -54,7 +54,7 @@ class WebTaskSchedulingState {
   ~WebTaskSchedulingState() = default;
 
   RefPtr<AbortSignal> mAbortSource;
-  RefPtr<AbortSignal> mPrioritySource;
+  RefPtr<TaskSignal> mPrioritySource;
 };
 
 class WebTaskQueueHashKey : public PLDHashEntryHdr {
@@ -310,16 +310,16 @@ class WebTaskScheduler : public nsWrapperCache,
   };
 
   already_AddRefed<WebTask> CreateTask(
-      const Optional<OwningNonNull<AbortSignal>>& aSignal,
+      AbortSignal* aAbortSignal, TaskSignal* aTaskSignal,
       const Optional<TaskPriority>& aPriority, const bool aIsContinuation,
       const Maybe<SchedulerPostTaskCallback&>& aCallback,
       WebTaskSchedulingState* aSchedulingState, Promise* aPromise);
 
   bool DispatchTask(WebTask* aTask, EventQueuePriority aPriority);
 
-  SelectedTaskQueueData SelectTaskQueue(
-      const Optional<OwningNonNull<AbortSignal>>& aSignal,
-      const Optional<TaskPriority>& aPriority, const bool aIsContinuation);
+  SelectedTaskQueueData SelectTaskQueue(TaskSignal* aSignal,
+                                        const Optional<TaskPriority>& aPriority,
+                                        const bool aIsContinuation);
 
   virtual nsresult SetTimeoutForDelayedTask(WebTask* aTask, uint64_t aDelay,
                                             EventQueuePriority aPriority) = 0;
