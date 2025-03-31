@@ -68,8 +68,7 @@ CrashGenerationServer::CrashGenerationServer(
     dump_callback_(std::move(dump_callback)),
     dump_context_(dump_context),
     dump_dir_mutex_(PTHREAD_MUTEX_INITIALIZER),
-    started_(false),
-    reserved_fds_{-1, -1}
+    started_(false)
 {
   if (dump_path)
     dump_dir_ = *dump_path;
@@ -169,8 +168,6 @@ CrashGenerationServer::CreateReportChannel(int* server_fd, int* client_fd)
 void
 CrashGenerationServer::Run()
 {
-  ReserveFileDescriptors();
-
   struct pollfd pollfds[2];
   memset(&pollfds, 0, sizeof(pollfds));
 
@@ -276,11 +273,6 @@ CrashGenerationServer::ClientEvent(short revents)
   string minidump_filename;
   if (!MakeMinidumpFilename(minidump_filename))
     return true;
-
-  // We won't re-reserve the file descriptors past this point. If we crash more
-  // than once we'll just accept that we might run out of file descriptors, but
-  // we don't want to make the situation worse by trying  to grab them again.
-  ReleaseFileDescriptors();
 
 #if defined(MOZ_OXIDIZED_BREAKPAD)
   ExceptionHandler::CrashContext* breakpad_cc =
@@ -390,32 +382,6 @@ CrashGenerationServer::MakeMinidumpFilename(string& outFilename)
 
   outFilename = path;
   return true;
-}
-
-void
-CrashGenerationServer::ReserveFileDescriptors() {
-  for (size_t i = 0; i < CrashGenerationServer::RESERVED_FDS_NUM; i++) {
-    assert(reserved_fds_[i] < 0);
-
-    // This fd is just taking up space in the file table, so it can be
-    // anything that's self-contained and simple to create.
-    int fds[2];
-    int rv = pipe2(fds, O_CLOEXEC);
-    if (rv == 0) {
-      close(fds[0]);
-      reserved_fds_[i] = fds[1];
-    }
-  }
-}
-
-void
-CrashGenerationServer::ReleaseFileDescriptors() {
-  for (size_t i = 0; i < CrashGenerationServer::RESERVED_FDS_NUM; i++) {
-    if (reserved_fds_[i] > 0) {
-      close(reserved_fds_[i]);
-      reserved_fds_[i] = -1;
-    }
-  }
 }
 
 }  // namespace google_breakpad

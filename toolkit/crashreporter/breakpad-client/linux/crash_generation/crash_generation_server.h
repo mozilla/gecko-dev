@@ -103,11 +103,6 @@ private:
   // Return a unique filename at which a minidump can be written
   bool MakeMinidumpFilename(string& outFilename);
 
-  // Reserve a handful of file descriptors to make them available when we
-  // generate a minidump.
-  void ReserveFileDescriptors();
-  void ReleaseFileDescriptors();
-
   int server_fd_;
 
   std::function<OnClientDumpRequestCallback> dump_callback_;
@@ -121,9 +116,6 @@ private:
   pthread_t thread_;
   int control_pipe_in_;
   int control_pipe_out_;
-
-  static const size_t RESERVED_FDS_NUM = 2;
-  std::array<int, RESERVED_FDS_NUM> reserved_fds_;
 };
 
 } // namespace google_breakpad
