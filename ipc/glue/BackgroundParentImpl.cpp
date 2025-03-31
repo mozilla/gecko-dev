@@ -490,11 +490,11 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateNotificationParent(
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
-  auto actor = MakeRefPtr<dom::notification::NotificationParent>(
-      aPrincipal, aEffectiveStoragePrincipal, aIsSecureContext, aScope,
-      aNotification);
-  nsresult rv =
-      actor->BindToMainThread(std::move(aParentEndpoint), std::move(aResolver));
+  dom::notification::NotificationParentArgs args{
+      aPrincipal, aEffectiveStoragePrincipal, aIsSecureContext,
+      nsString(aScope), aNotification};
+  nsresult rv = dom::notification::NotificationParent::CreateOnMainThread(
+      std::move(args), std::move(aParentEndpoint), std::move(aResolver));
   if (NS_FAILED(rv)) {
     return IPC_FAIL(this, "Invalid NotificationParent constructor arguments");
   }
