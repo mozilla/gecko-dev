@@ -377,6 +377,8 @@ pref("browser.warnOnQuit", true);
 
 pref("browser.overlink-delay", 80);
 
+pref("browser.taskbarTabs.enabled", false);
+
 pref("browser.theme.colorway-closet", true);
 
 #if defined(MOZ_WIDGET_GTK)

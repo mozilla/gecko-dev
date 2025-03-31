@@ -869,6 +869,12 @@
   transform: scaleX(-1);
 }
 
+/* Taskbar Tabs icon */
+
+#taskbar-tabs-button > .urlbar-icon {
+  list-style-image: url(chrome://browser/skin/taskbar-tabs-create-new.svg);
+}
+
 /* Translations button */
 
 #translations-button-icon {

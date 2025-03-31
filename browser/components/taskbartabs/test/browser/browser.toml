@@ -1,6 +1,16 @@
 [DEFAULT]
 support-files = ["head.js"]
 
+prefs = [
+  "browser.taskbarTabs.enabled=true"
+]
+
+["browser_taskBarTabs_module.js"]
+support-files = [
+  "../../../tabbrowser/test/browser/tabs/dummy_page.html",
+]
+run-if = ["os == 'win'"]
+
 ["browser_taskbarTabs_chromeTest.js"]
 run-if = ["os == 'win'"]
 
