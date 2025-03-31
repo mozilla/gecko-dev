@@ -465,7 +465,8 @@ MovingTracer::MovingTracer(JSRuntime* rt)
 template <typename T>
 inline void MovingTracer::onEdge(T** thingp, const char* name) {
   T* thing = *thingp;
-  if (thing->runtimeFromAnyThread() == runtime() && IsForwarded(thing)) {
+  if (IsForwarded(thing)) {
+    MOZ_ASSERT(thing->runtimeFromAnyThread() == runtime());
     *thingp = Forwarded(thing);
   }
 }
