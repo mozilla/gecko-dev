@@ -22,6 +22,8 @@ support-files = [
 
 ["browser_canvas_randomization_worker.js"]
 
+["browser_dpr_media_queries.js"]
+
 ["browser_fingerprintingRemoteOverrides.js"]
 
 ["browser_fingerprintingWebCompat.js"]
