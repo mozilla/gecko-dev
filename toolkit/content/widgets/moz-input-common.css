@@ -104,11 +104,11 @@
   :host(:state(has-description)) .description {
     margin-inline-start: var(--input-space-offset);
     margin-block-start: var(--space-xxsmall);
+  }
 
-    a[is="moz-support-link"],
-    ::slotted([slot="support-link"]) {
-      margin-inline-start: var(--space-xsmall);
-    }
+  :host(:state(has-description):state(has-support-link)) .description-text,
+  :host(:state(has-description):state(has-support-link)) ::slotted([slot="description"]) {
+    margin-inline-end: var(--space-xsmall);
   }
 
   ::slotted([slot="description"]) {
