@@ -209,7 +209,7 @@ export const SyncDisconnectInternal = {
       abortController.abort();
       return promiseDisconnectFinished;
     };
-    lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+    lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
       "SyncDisconnect: removing requested data",
       shutdownBlocker
     );
@@ -220,7 +220,7 @@ export const SyncDisconnectInternal = {
 
     // sanitize worked so remove our blocker - it's a noop if the blocker
     // did call us.
-    lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(shutdownBlocker);
+    lazy.AsyncShutdown.appShutdownConfirmed.removeBlocker(shutdownBlocker);
   },
 };
 
