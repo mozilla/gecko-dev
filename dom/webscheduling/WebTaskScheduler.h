@@ -20,6 +20,36 @@
 #include "mozilla/dom/WebTaskSchedulingBinding.h"
 
 namespace mozilla::dom {
+// https://wicg.github.io/scheduling-apis/#scheduling-state
+class WebTaskSchedulingState {
+ public:
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebTaskSchedulingState)
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(WebTaskSchedulingState)
+
+  void Reset() {
+    mAbortSource = nullptr;
+    mPrioritySource = nullptr;
+  }
+
+  void SetAbortSource(AbortSignal* aAbortSource) {
+    mAbortSource = aAbortSource;
+  }
+
+  AbortSignal* GetAbortSource() { return mAbortSource; }
+  AbortSignal* GetPrioritySource() { return mPrioritySource; }
+
+  void SetPrioritySource(AbortSignal* aPrioritySource) {
+    MOZ_ASSERT(aPrioritySource->IsTaskSignal());
+    mPrioritySource = aPrioritySource;
+  }
+
+ private:
+  ~WebTaskSchedulingState() = default;
+
+  RefPtr<AbortSignal> mAbortSource;
+  RefPtr<AbortSignal> mPrioritySource;
+};
+
 class WebTaskQueue;
 class WebTask : public LinkedListElement<RefPtr<WebTask>>,
                 public AbortFollower,

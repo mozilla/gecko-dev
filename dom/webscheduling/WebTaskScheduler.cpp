@@ -22,6 +22,15 @@ inline void ImplCycleCollectionTraverse(
   ImplCycleCollectionTraverse(aCallback, aQueue.Tasks(), aName, aFlags);
 }
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(WebTaskSchedulingState)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WebTaskSchedulingState)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAbortSource, mPrioritySource);
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(WebTaskSchedulingState)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mAbortSource, mPrioritySource);
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_CLASS(WebTask)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WebTask)
