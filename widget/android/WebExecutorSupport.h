@@ -10,6 +10,10 @@
 #include "mozilla/java/GeckoResultWrappers.h"
 #include "mozilla/java/WebRequestWrappers.h"
 
+#if defined(ENABLE_TESTS)
+#  include "nsIOhttpClientTest.h"
+#endif  // defined(ENABLE_TESTS)
+
 class nsIChannel;
 
 namespace mozilla {
@@ -40,6 +44,15 @@ class WebExecutorSupport final
                                              int32_t aFlags,
                                              java::GeckoResult::Param aResult,
                                              bool bypassConfigCache = false);
+#if defined(ENABLE_TESTS)
+  // Used for testing OHTTP. Porting all of the OHTTP server code to Java would
+  // be quite a bit of work, so we're just going to test it in JS.
+  static void TestOhttp(const nsACString& url, const nsACString& method,
+                        const nsACString& body,
+                        const nsTArray<nsCString>& headerKeys,
+                        const nsTArray<nsCString>& headerValues,
+                        ohttpClientTestCallback* callback);
+#endif  // defined(ENABLE_TESTS)
 };
 
 }  // namespace widget

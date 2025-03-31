@@ -119,6 +119,7 @@ public class WebRequest extends WebMessage {
   }
 
   /** Builder offers a convenient way for constructing {@link WebRequest} instances. */
+  @WrapForJNI
   @AnyThread
   public static class Builder extends WebMessage.Builder {
     /* package */ String mMethod = "GET";
