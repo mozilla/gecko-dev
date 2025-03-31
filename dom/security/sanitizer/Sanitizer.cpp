@@ -708,35 +708,33 @@ static bool IsUnsafeElement(nsAtom* aLocalName, int32_t aNamespaceID) {
 // https://wicg.github.io/sanitizer-api/#sanitize-core
 template <bool IsDefaultConfig>
 void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
-  // Step 1. Let current be node.
-
-  // Step 2. For each child in current’s children:
+  // Step 1. For each child in current’s children:
   nsCOMPtr<nsIContent> next = nullptr;
   for (nsCOMPtr<nsIContent> child = aNode->GetFirstChild(); child;
        child = next) {
     next = child->GetNextSibling();
 
-    // Step 2.1. Assert: child implements Text, Comment, or Element.
+    // Step 1.1. Assert: child implements Text, Comment, or Element.
     // TODO
 
-    // Step 2.2. If child implements Text, then continue.
+    // Step 1.2. If child implements Text, then continue.
     if (child->IsText()) {
       continue;
     }
 
-    // Step 2.3. If child implements Comment:
+    // Step 1.3. If child implements Comment:
     if (child->IsComment()) {
-      // Step 2.3.1 If configuration["comments"] is not true, then remove child.
+      // Step 1.3.1 If configuration["comments"] is not true, then remove child.
       if (!mComments) {
         child->RemoveFromParent();
       }
       continue;
     }
 
-    // Step 2.4. Otherwise:
+    // Step 1.4. Otherwise:
     MOZ_ASSERT(child->IsElement());
 
-    // Step 2.4.1. Let elementName be a SanitizerElementNamespace with child’s
+    // Step 1.4.1. Let elementName be a SanitizerElementNamespace with child’s
     // local name and namespace.
     nsAtom* nameAtom = child->NodeInfo()->NameAtom();
     int32_t namespaceID = child->NodeInfo()->NamespaceID();
@@ -759,7 +757,7 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
       }
     }
 
-    // Step 2.4.2. If configuration["removeElements"] contains elementName, or
+    // Step 1.4.2. If configuration["removeElements"] contains elementName, or
     // if configuration["elements"] is not empty and does not contain
     // elementName, then remove child.
     [[maybe_unused]] StaticAtomSet* elementAttributes = nullptr;
@@ -795,7 +793,7 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
       MOZ_ASSERT(!IsUnsafeElement(nameAtom, namespaceID));
     }
 
-    // Step 2.4.3. If configuration["replaceWithChildrenElements"] contains
+    // Step 1.4.3. If configuration["replaceWithChildrenElements"] contains
     // elementName:
     if constexpr (!IsDefaultConfig) {
       if (mReplaceWithChildrenElements.Contains(*elementName)) {
@@ -821,22 +819,22 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
       }
     }
 
-    // Step 2.4.4. If elementName equals «[ "name" → "template", "namespace" →
+    // Step 1.4.4. If elementName equals «[ "name" → "template", "namespace" →
     // HTML namespace ]»
     if (auto* templateEl = HTMLTemplateElement::FromNode(child)) {
-      // Step 2.4.4.1. Then call sanitize core on child’s template contents with
+      // Step 1.4.4.1. Then call sanitize core on child’s template contents with
       // configuration and handleJavascriptNavigationUrls.
       RefPtr<DocumentFragment> frag = templateEl->Content();
       SanitizeChildren<IsDefaultConfig>(frag, aSafe);
     }
 
-    // Step 2.4.5. If child is a shadow host, then call sanitize core on child’s
+    // Step 1.4.5. If child is a shadow host, then call sanitize core on child’s
     // shadow root with configuration and handleJavascriptNavigationUrls.
     if (RefPtr<ShadowRoot> shadow = child->GetShadowRoot()) {
       SanitizeChildren<IsDefaultConfig>(shadow, aSafe);
     }
 
-    // Step 2.4.6.
+    // Step 1.4.6.
     if constexpr (!IsDefaultConfig) {
       SanitizeAttributes(child->AsElement(), *elementName, aSafe);
     } else {
@@ -844,7 +842,8 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
                                       aSafe);
     }
 
-    // XXX: Recursion missing from the spec ?!?
+    // Step 1.4.7. Call sanitize core on child with configuration and
+    // handleJavascriptNavigationUrls.
     // TODO: Optimization: Remove recusion similar to nsTreeSanitizer
     SanitizeChildren<IsDefaultConfig>(child, aSafe);
   }
