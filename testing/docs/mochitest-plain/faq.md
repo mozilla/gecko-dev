@@ -157,6 +157,13 @@ xhr.onload = function(e){ console.log("loaded!", this.responseText)}
 xhr.send();
 ```
 
+```{note}
+Note that the first directory in the path depends on the type of test being run:
+for example, `tests` for plain mochitests, `browser` for browser mochitests, `chrome` for
+chrome mochitests, etc. Since `<objdir>/_tests/testing/mochitest/` serves as the root
+directory for the server, you can check there to find the exact path.
+```
+
 The exact properties of the request and response parameters are defined in the
 `nsIHttpRequestMetadata` and `nsIHttpResponse` interfaces in
 `nsIHttpServer.idl`. However, here are a few useful ones:
