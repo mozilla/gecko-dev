@@ -81,6 +81,7 @@ class MPRISServiceHandler final : public dom::MediaControlKeySource {
 
   void SetPositionState(const Maybe<dom::PositionState>& aState) override;
   double GetPositionSeconds() const;
+  double GetPlaybackRate() const;
 
   bool IsMediaKeySupported(dom::MediaControlKey aKey) const;
 

@@ -128,6 +128,7 @@ enum class Property : uint8_t {
   eGetPlaybackStatus,
   eGetMetadata,
   eGetPosition,
+  eGetRate,
 };
 
 static inline Maybe<dom::MediaControlKey> GetPairedKey(Property aProperty) {
@@ -168,7 +169,8 @@ static inline Maybe<Property> GetProperty(const gchar* aPropertyName) {
       {"CanControl", Property::eCanControl},
       {"PlaybackStatus", Property::eGetPlaybackStatus},
       {"Metadata", Property::eGetMetadata},
-      {"Position", Property::eGetPosition}};
+      {"Position", Property::eGetPosition},
+      {"Rate", Property::eGetRate}};
 
   auto it = map.find(aPropertyName);
   return (it == map.end() ? Nothing() : Some(it->second));
@@ -206,6 +208,8 @@ static GVariant* HandleGetProperty(GDBusConnection* aConnection,
           CheckedInt64((int64_t)handler->GetPositionSeconds()) * 1000000;
       return g_variant_new_int64(position.isValid() ? position.value() : 0);
     }
+    case Property::eGetRate:
+      return g_variant_new_double(handler->GetPlaybackRate());
     case Property::eIdentity:
       return g_variant_new_string(handler->Identity());
     case Property::eDesktopEntry:
@@ -925,6 +929,13 @@ double MPRISServiceHandler::GetPositionSeconds() const {
     return mPositionState.value().CurrentPlaybackPosition();
   }
   return 0.0;
+}
+
+double MPRISServiceHandler::GetPlaybackRate() const {
+  if (mPositionState.isSome()) {
+    return mPositionState->mPlaybackRate;
+  }
+  return 1.0;
 }
 
 bool MPRISServiceHandler::IsMediaKeySupported(dom::MediaControlKey aKey) const {
