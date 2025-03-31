@@ -15,6 +15,8 @@ const CONTEXT_SIZE_MULTIPLIER = 0.69;
 const DEFAULT_INPUT_SENTENCES = 6;
 const MIN_SENTENCE_LENGTH = 14;
 const MIN_WORD_COUNT = 5;
+const DEFAULT_INPUT_PROMPT =
+  "Provide a concise, objective summary of the input text in up to three sentences, focusing on key actions and intentions without using second or third person pronouns.";
 
 // All tokens taken from the model's vocabulary at https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/raw/main/vocab.json
 // Token id for end of text
@@ -29,6 +31,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
   BlockListManager: "chrome://global/content/ml/Utils.sys.mjs",
+  RemoteSettingsManager: "chrome://global/content/ml/Utils.sys.mjs",
 });
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -39,8 +42,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "inputSentences",
-  "browser.ml.linkPreview.inputSentences",
-  DEFAULT_INPUT_SENTENCES
+  "browser.ml.linkPreview.inputSentences"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -50,8 +52,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "prompt",
-  "browser.ml.linkPreview.prompt",
-  "Provide a concise, objective summary of the input text in up to three sentences, focusing on key actions and intentions without using second or third person pronouns."
+  "browser.ml.linkPreview.prompt"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -241,9 +242,13 @@ export const LinkPreviewModel = {
    * Clean up text for text generation AI.
    *
    * @param {string} text to process
+   * @param {number} maxNumSentences - Max number of sentences to return.
    * @returns {string} cleaned up text
    */
-  preprocessText(text) {
+  preprocessText(
+    text,
+    maxNumSentences = lazy.inputSentences ?? DEFAULT_INPUT_SENTENCES
+  ) {
     return (
       this.getSentences(text)
         .map(s =>
@@ -269,7 +274,7 @@ export const LinkPreviewModel = {
             s.split(" ").length >= MIN_WORD_COUNT &&
             /\p{P}$/u.test(s)
         )
-        .slice(0, lazy.inputSentences)
+        .slice(0, maxNumSentences)
         .join(" ")
     );
   },
@@ -295,10 +300,43 @@ export const LinkPreviewModel = {
    * @param {Function} callbacks.onError optional for error
    */
   async generateTextAI(inputText, { onDownload, onText, onError } = {}) {
-    const processedInput = this.preprocessText(inputText);
+    // Get updated options from remote settings. No failure if no record exists
+    const remoteRequestRecord = await lazy.RemoteSettingsManager.getRemoteData({
+      collectionName: "ml-inference-request-options",
+      filters: { featureId: "link-preview" },
+      majorVersion: 1,
+    }).catch(() => {
+      console.error(
+        "Error retrieving request options from remote settings, will use default options."
+      );
+      return { options: "{}" };
+    });
+
+    let remoteRequestOptions = {};
+
+    try {
+      remoteRequestOptions = remoteRequestRecord?.options
+        ? JSON.parse(remoteRequestRecord.options)
+        : {};
+    } catch (error) {
+      console.error(
+        "Error parsing the remote settings request options, will use default options.",
+        error
+      );
+    }
+
+    // TODO: Unit test that order of preference is correctly respected.
+    const processedInput = this.preprocessText(
+      inputText,
+      lazy.inputSentences ??
+        remoteRequestOptions?.inputSentences ??
+        DEFAULT_INPUT_SENTENCES
+    );
+
     // Asssume generated text is approximately the same length as the input.
     const nPredict = Math.ceil(processedInput.length / CHARACTERS_PER_TOKEN);
-    const systemPrompt = lazy.prompt;
+    const systemPrompt =
+      lazy.prompt ?? remoteRequestOptions?.systemPrompt ?? DEFAULT_INPUT_PROMPT;
     // Estimate an upper bound for the required number of tokens. This estimate
     // must be large enough to include prompt tokens, input tokens, and
     // generated tokens.
