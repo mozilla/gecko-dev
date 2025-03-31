@@ -78,11 +78,11 @@ bool DXGIYCbCrTextureAllocationHelper::IsCompatible(
 
   DXGIYCbCrTextureData* dxgiData =
       aTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
-  if (!dxgiData || aTextureClient->GetSize() != mData.mPictureRect.Size() ||
-      dxgiData->GetYSize() != mData.YDataSize() ||
-      dxgiData->GetCbCrSize() != mData.CbCrDataSize() ||
-      dxgiData->GetColorDepth() != mData.mColorDepth ||
-      dxgiData->GetYUVColorSpace() != mData.mYUVColorSpace) {
+  if (!dxgiData || dxgiData->mSize != mData.mPictureRect.Size() ||
+      dxgiData->mSizeY != mData.YDataSize() ||
+      dxgiData->mSizeCbCr != mData.CbCrDataSize() ||
+      dxgiData->mColorDepth != mData.mColorDepth ||
+      dxgiData->mYUVColorSpace != mData.mYUVColorSpace) {
     return false;
   }
 

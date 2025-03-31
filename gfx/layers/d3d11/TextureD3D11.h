@@ -196,27 +196,28 @@ class DXGIYCbCrTextureData : public TextureData {
 
   DXGIYCbCrTextureData* AsDXGIYCbCrTextureData() override { return this; }
 
-  gfx::IntSize GetYSize() const { return mSizeY; }
-
-  gfx::IntSize GetCbCrSize() const { return mSizeCbCr; }
-
-  gfx::ColorDepth GetColorDepth() const { return mColorDepth; }
-  gfx::YUVColorSpace GetYUVColorSpace() const { return mYUVColorSpace; }
-  gfx::ColorRange GetColorRange() const { return mColorRange; }
-
   ID3D11Texture2D* GetD3D11Texture(size_t index) {
     return mD3D11Textures[index];
   }
 
+  const gfx::IntSize mSize;
+  const gfx::IntSize mSizeY;
+  const gfx::IntSize mSizeCbCr;
+  const gfx::ColorDepth mColorDepth;
+  const gfx::YUVColorSpace mYUVColorSpace;
+  const gfx::ColorRange mColorRange;
+
  protected:
+  DXGIYCbCrTextureData(RefPtr<ID3D11Texture2D> (&aD3D11Textures)[3],
+                       RefPtr<gfx::FileHandleWrapper>(aHandles)[3],
+                       const gfx::IntSize& aSize, const gfx::IntSize& aSizeY,
+                       const gfx::IntSize& aSizeCbCr,
+                       const gfx::ColorDepth aColorDepth,
+                       const gfx::YUVColorSpace aYUVColorSpace,
+                       const gfx::ColorRange aColorRange);
+
   RefPtr<ID3D11Texture2D> mD3D11Textures[3];
   RefPtr<gfx::FileHandleWrapper> mHandles[3];
-  gfx::IntSize mSize;
-  gfx::IntSize mSizeY;
-  gfx::IntSize mSizeCbCr;
-  gfx::ColorDepth mColorDepth;
-  gfx::YUVColorSpace mYUVColorSpace;
-  gfx::ColorRange mColorRange;
 };
 
 /**

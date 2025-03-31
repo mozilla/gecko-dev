@@ -740,22 +740,30 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
   const RefPtr<gfx::FileHandleWrapper> sharedHandleCr =
       new gfx::FileHandleWrapper(UniqueFileHandle(handleCr));
 
-  DXGIYCbCrTextureData* texture = new DXGIYCbCrTextureData();
-  texture->mHandles[0] = sharedHandleY;
-  texture->mHandles[1] = sharedHandleCb;
-  texture->mHandles[2] = sharedHandleCr;
-  texture->mD3D11Textures[0] = aTextureY;
-  texture->mD3D11Textures[1] = aTextureCb;
-  texture->mD3D11Textures[2] = aTextureCr;
-  texture->mSize = aSize;
-  texture->mSizeY = aSizeY;
-  texture->mSizeCbCr = aSizeCbCr;
-  texture->mColorDepth = aColorDepth;
-  texture->mYUVColorSpace = aYUVColorSpace;
-  texture->mColorRange = aColorRange;
+  RefPtr<ID3D11Texture2D> textures[3] = {aTextureY, aTextureCb, aTextureCr};
+  RefPtr<gfx::FileHandleWrapper> handles[3] = {sharedHandleY, sharedHandleCb,
+                                               sharedHandleCr};
 
+  DXGIYCbCrTextureData* texture =
+      new DXGIYCbCrTextureData(textures, handles, aSize, aSizeY, aSizeCbCr,
+                               aColorDepth, aYUVColorSpace, aColorRange);
   return texture;
 }
+
+DXGIYCbCrTextureData::DXGIYCbCrTextureData(
+    RefPtr<ID3D11Texture2D> (&aD3D11Textures)[3],
+    RefPtr<gfx::FileHandleWrapper>(aHandles)[3], const gfx::IntSize& aSize,
+    const gfx::IntSize& aSizeY, const gfx::IntSize& aSizeCbCr,
+    const gfx::ColorDepth aColorDepth, const gfx::YUVColorSpace aYUVColorSpace,
+    const gfx::ColorRange aColorRange)
+    : mSize(aSize),
+      mSizeY(aSizeY),
+      mSizeCbCr(aSizeCbCr),
+      mColorDepth(aColorDepth),
+      mYUVColorSpace(aYUVColorSpace),
+      mColorRange(aColorRange),
+      mD3D11Textures{aD3D11Textures[0], aD3D11Textures[1], aD3D11Textures[2]},
+      mHandles{aHandles[0], aHandles[1], aHandles[2]} {}
 
 void DXGIYCbCrTextureData::FillInfo(TextureData::Info& aInfo) const {
   aInfo.size = mSize;
