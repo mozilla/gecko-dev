@@ -7,12 +7,81 @@
 *|*:root {
   --menu-icon-opacity: 1;
   --menu-arrow-width: 1em;
+  --menuitem-border-radius: 3px;
+  --menuitem-margin: 0px;
+  --menuitem-padding: 0.5em 1em;
+
+  @media (-moz-platform: linux) {
+    --menuitem-padding: 4px 6px;
+  }
+  @media (-moz-platform: macos) {
+    --menuitem-padding: 3px 9px;
+  }
 
   @media (-moz-platform: windows) {
     --menu-arrow-width: max(1em, 16px);
 
     @media (prefers-color-scheme: light) {
       --menu-icon-opacity: 0.7;
+    }
+  }
+}
+
+menupopup {
+  font: menu;
+
+  /* Also apply the padding in the inline axis for menus */
+  --panel-padding: var(--panel-padding-block);
+
+  @media (-moz-windows-mica-popups) {
+    appearance: auto;
+    -moz-default-appearance: menupopup;
+    /* The mica backdrop takes care of our shadow, border, and border-radius */
+    --panel-border-color: transparent;
+    --panel-shadow-margin: 0px;
+    --panel-border-radius: 0px;
+  }
+
+  @media (-moz-platform: macos) {
+    /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
+    font: -moz-pull-down-menu;
+  }
+
+  > menu > menupopup {
+    /* Vertically align nested menupopups: the shadow plus the top padding plus top border */
+    margin-top: calc(-1 * (var(--panel-shadow-margin) + var(--panel-padding-block) + 1px));
+  }
+}
+
+/* Rules for popups associated with menulists */
+menulist > menupopup {
+  min-width: 0;
+  font: inherit;
+
+  @media (-moz-platform: macos) {
+    color: FieldText;
+
+    &:not([position]) {
+      margin-inline-start: -13px;
+      margin-top: -1px;
+    }
+  }
+
+  > menuitem,
+  > menucaption,
+  > menu {
+    max-width: none;
+
+    @media (-moz-platform: windows) or (-moz-platform: linux) {
+      > .menu-iconic-left {
+        display: none;
+      }
+    }
+
+    @media (-moz-platform: windows) {
+      > label {
+        padding-block: 0;
+      }
     }
   }
 }
@@ -29,13 +98,18 @@ menuseparator {
     padding-block: 5px;
     margin-inline: 9px;
   }
-}
 
-menuseparator::before {
-  border-top: 1px solid var(--panel-separator-color);
-  content: "";
-  display: block;
-  flex: 1;
+  @media (-moz-platform: windows) {
+    /* The side padding should align with the start of the menu item text. */
+    padding-inline: 1em;
+  }
+
+  &::before {
+    border-top: 1px solid var(--panel-separator-color);
+    content: "";
+    display: block;
+    flex: 1;
+  }
 }
 
 /* Accel text */
@@ -76,36 +150,66 @@ menuseparator::before {
   padding-bottom: 16px;
 }
 
-@media (-moz-platform: windows) or (-moz-platform: linux) {
-  menupopup,
-  menubar {
-    font: menu;
-  }
+menubar {
+  font: menu;
 }
 
-@media (-moz-platform: macos) {
-  menupopup {
-    /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
-    font: -moz-pull-down-menu;
+menubar  > menu {
+  @media (-moz-platform: linux) {
+    color: inherit;
+    background-color: transparent;
+    border-radius: 0;
+    padding-bottom: 1px;
+    border-bottom: 3px solid transparent;
+
+    &[open] {
+      border-bottom-color: AccentColor;
+    }
+  }
+
+  @media (-moz-platform: macos) {
+    padding-block: 2px;
+    padding-inline: 7px 5px;
+    margin: 1px 0;
+
+    &[_moz-menuactive] {
+      color: inherit;
+      background-color: transparent;
+    }
+
+    &[open] {
+      color: -moz-menuhovertext;
+      background-color: -moz-menuhover;
+    }
+  }
+  @media (-moz-platform: windows) {
+    &:not([disabled="true"]) {
+      color: inherit;
+    }
+    &[_moz-menuactive]:not([disabled="true"]) {
+      color: -moz-menubarhovertext;
+
+      *|*:root[lwtheme] & {
+        /* FIXME: This feels out of place, maybe we can just use the lwtheme
+         * rules everywhere? */
+        background-color: SelectedItem;
+        color: SelectedItemText;
+        text-shadow: none;
+      }
+    }
   }
 }
 
 menu,
 menuitem,
 menucaption {
-  border-radius: 3px;
+  border-radius: var(--menuitem-border-radius);
+  padding: var(--menuitem-padding);
+  margin: var(--menuitem-margin);
   align-items: center;
   flex-shrink: 0;
   list-style-image: none;
   max-width: 42em;
-
-  @media (-moz-platform: linux) {
-    padding: 4px 6px;
-  }
-
-  @media (-moz-platform: macos) {
-    padding: 3px 9px;
-  }
 }
 
 menu,
@@ -120,7 +224,7 @@ menuitem {
     background-color: -moz-menuhover;
   }
 
-  &:where([_moz-menuactive="true"][disabled="true"]) {
+  &:where([_moz-menuactive][disabled="true"]) {
     background-color: -moz-menuhoverdisabled;
   }
 }

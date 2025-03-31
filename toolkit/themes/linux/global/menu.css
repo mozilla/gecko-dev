@@ -10,36 +10,6 @@
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
-/* ::::: menu/menuitem ::::: */
-
-menubar > menu {
-  color: inherit;
-  background-color: transparent;
-  border-radius: 0;
-  padding-bottom: 1px;
-  border-bottom: 3px solid transparent;
-}
-
-menubar > menu[open] {
-  border-bottom-color: AccentColor;
-}
-
-menuitem[default="true"],
-menuitem.spell-suggestion,
-menucaption {
-  font-weight: bold;
-}
-
-/* ::::: menu/menuitems in menulist popups ::::: */
-
-menulist > menupopup {
-  font: inherit;
-}
-
-menulist > menupopup > :is(menuitem, menucaption, menu) {
-  max-width: none;
-}
-
 /* ..... internal content .... */
 
 .menu-text,
@@ -78,10 +48,6 @@ menulist > menupopup > :is(menuitem, menucaption, menu) {
 
 .menubar-text {
   margin: 0 1px;
-}
-
-menulist > menupopup > :is(menuitem, menucaption, menu) > .menu-iconic-left {
-  display: none;
 }
 
 menuitem:is([type="checkbox"], [checked="true"]) .menu-iconic-icon {

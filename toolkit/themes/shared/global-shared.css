@@ -27,6 +27,15 @@
   --arrowpanel-border-radius: 8px;
   --arrowpanel-padding: 16px;
   --arrowpanel-shadow-margin: 4px;
+
+  --arrowpanel-menuitem-border-radius: 4px;
+  --arrowpanel-menuitem-margin-block: 0px;
+  --arrowpanel-menuitem-margin-inline: 8px;
+  --arrowpanel-menuitem-margin: var(--arrowpanel-menuitem-margin-block) var(--arrowpanel-menuitem-margin-inline);
+  --arrowpanel-menuitem-padding-block: 8px;
+  --arrowpanel-menuitem-padding-inline: 8px;
+  --arrowpanel-menuitem-padding: var(--arrowpanel-menuitem-padding-block) var(--arrowpanel-menuitem-padding-inline);
+
   @media (-moz-platform: macos) {
     /* On macOS we use native shadows via -moz-window-shadow */
     --arrowpanel-shadow-margin: 0px;
@@ -136,6 +145,9 @@
   --panel-border-radius: var(--arrowpanel-border-radius);
   --panel-padding: var(--arrowpanel-padding);
   --panel-shadow-margin: var(--arrowpanel-shadow-margin);
+  --menuitem-border-radius: var(--arrowpanel-menuitem-border-radius);
+  --menuitem-padding: var(--arrowpanel-menuitem-padding);
+  --menuitem-margin: var(--arrowpanel-menuitem-margin);
 }
 
 /* Lightweight theme roots */

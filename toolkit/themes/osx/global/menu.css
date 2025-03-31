@@ -33,25 +33,6 @@ menuitem[image] > .menu-iconic-left > .menu-iconic-icon {
   width: 16px;
 }
 
-/* menu/menuitems in menubar */
-
-menubar > menu {
-  appearance: none;
-  padding-block: 2px;
-  padding-inline: 7px 5px;
-  margin: 1px 0;
-}
-
-menubar > menu[_moz-menuactive="true"] {
-  color: inherit;
-  background-color: transparent;
-}
-
-menubar > menu[_moz-menuactive="true"][open="true"] {
-  color: -moz-menuhovertext;
-  background-color: -moz-menuhover;
-}
-
 /* Internal content  */
 
 .menubar-left {
@@ -60,27 +41,6 @@ menubar > menu[_moz-menuactive="true"][open="true"] {
 
 .menubar-text {
   margin: 0 1px;
-}
-
-/* menu/menuitems in popups */
-
-menupopup > menu,
-menupopup > menuitem,
-menupopup > menucaption {
-  max-width: 42em;
-}
-
-/* menu/menuitems in menulist popups */
-
-menulist > menupopup {
-  font: inherit;
-  color: FieldText;
-}
-
-menulist > menupopup > menuitem,
-menulist > menupopup > menucaption,
-menulist > menupopup > menu {
-  max-width: none;
 }
 
 /* checked menuitems */

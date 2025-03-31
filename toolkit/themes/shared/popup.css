@@ -85,49 +85,6 @@ panel {
   }
 }
 
-menupopup {
-  /* Also apply the padding in the inline axis for menus */
-  --panel-padding: var(--panel-padding-block);
-
-  @media (-moz-windows-mica-popups) {
-    appearance: auto;
-    -moz-default-appearance: menupopup;
-    /* The mica backdrop takes care of our shadow, border, and border-radius */
-    --panel-border-color: transparent;
-    --panel-shadow-margin: 0px;
-    --panel-border-radius: 0px;
-  }
-
-  @media (-moz-platform: windows) {
-    > menu,
-    > menuitem {
-      padding-block: 0.5em;
-      padding-inline-start: 1em;
-    }
-  }
-
-  > menu > menupopup {
-    /* Vertically align nested menupopups: the shadow plus the top padding plus top border */
-    margin-top: calc(-1 * (var(--panel-shadow-margin) + var(--panel-padding-block) + 1px));
-  }
-}
-
-/* Rules for popups associated with menulists */
-menulist > menupopup {
-  min-width: 0;
-
-  @media (-moz-platform: windows) {
-    font: inherit;
-  }
-
-  @media (-moz-platform: macos) {
-    &:not([position]) {
-      margin-inline-start: -13px;
-      margin-top: -1px;
-    }
-  }
-}
-
 /* ::::: arrow panel ::::: */
 
 panel:where([type="arrow"]) {

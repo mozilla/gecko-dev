@@ -45,61 +45,12 @@ menuitem:is([type="checkbox"], [type="radio"]):not([checked="true"]) > .menu-ico
   display: none;
 }
 
-/* ::::: menu/menuitems in menubar ::::: */
-
-menubar > menu[_moz-menuactive="true"]:not([disabled="true"]) {
-  color: -moz-menubarhovertext;
-}
-
-*|*:root[lwtheme] {
-  menubar > menu {
-    appearance: none;
-    border-color: transparent;
-
-    &:not([disabled="true"]) {
-      color: inherit;
-    }
-    &[_moz-menuactive="true"]:not([disabled="true"]) {
-      background-color: SelectedItem;
-      color: SelectedItemText;
-      text-shadow: none;
-    }
-  }
-}
-
-
-/* ..... internal content .... */
 
 .menubar-text {
   margin: 1px 6px 2px;
 }
 
-/* ::::: menu/menuitems in menulist popups ::::: */
-
-menulist > menupopup > menuitem,
-menulist > menupopup > menucaption,
-menulist > menupopup > menu {
-  max-width: none;
-}
-
-menulist > menupopup > menuitem {
-  padding-inline-end: 1em;
-}
-
-
-menulist > menupopup > menuitem > .menu-iconic-left,
-menulist > menupopup > menucaption > .menu-iconic-left,
-menulist > menupopup > menu > .menu-iconic-left {
-  display: none;
-}
-
-menulist > menupopup > menuitem > label,
-menulist > menupopup > menucaption > label,
-menulist > menupopup > menu > label {
-  padding-block: 0;
-}
-
-menulist > menupopup > menuitem[_moz-menuactive="true"][disabled="true"] {
+menulist > menupopup > menuitem[_moz-menuactive][disabled="true"] {
   color: GrayText;
 }
 
@@ -134,11 +85,4 @@ menuitem[checked="true"] > .menu-iconic-left {
   list-style-image: url("chrome://global/skin/icons/menu-check.svg");
   width: 16px;
   margin-inline-end: 8px;
-}
-
-/* ::::: menuseparator ::::: */
-
-menuseparator {
-  /* The side padding should align with the start of the menu item text. */
-  padding-inline: 1em;
 }
