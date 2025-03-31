@@ -752,6 +752,10 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     // Optimization: Remove unsafe elements before doing anything else.
     // https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration
     //
+    // We have to do this _before_ handling the "replaceWithChildrenElements"
+    // list, because by adding the unsafe elements to the "removeElements" list
+    // they would be implicitly deleted from the former.
+    //
     // The default config's "elements" allow list does not contain any unsafe
     // elements so we can skip this.
     if constexpr (!IsDefaultConfig) {
@@ -762,47 +766,7 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
       }
     }
 
-    // Step 1.4.2. If configuration["removeElements"] contains elementName, or
-    // if configuration["elements"] is not empty and does not contain
-    // elementName:
-    [[maybe_unused]] StaticAtomSet* elementAttributes = nullptr;
-    if constexpr (!IsDefaultConfig) {
-      if (mRemoveElements.Contains(*elementName) ||
-          (!mElements.IsEmpty() && !mElements.Contains(*elementName))) {
-        // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
-        // Step 1.4.2.1. Remove child.
-        child->RemoveFromParent();
-        // Step 1.4.2.2. Continue.
-        continue;
-      }
-    } else {
-      bool found = false;
-      if (nameAtom->IsStatic()) {
-        ElementsWithAttributes* elements = nullptr;
-        if (namespaceID == kNameSpaceID_XHTML) {
-          elements = sDefaultHTMLElements;
-        } else if (namespaceID == kNameSpaceID_MathML) {
-          elements = sDefaultMathMLElements;
-        }
-        if (elements) {
-          if (auto lookup = elements->Lookup(nameAtom->AsStatic())) {
-            found = true;
-            // This is the nullptr for elements without specific allowed
-            // attributes.
-            elementAttributes = lookup->get();
-          }
-        }
-      }
-      if (!found) {
-        // Step 1.4.2.1. Remove child.
-        child->RemoveFromParent();
-        // Step 1.4.2.2. Continue.
-        continue;
-      }
-      MOZ_ASSERT(!IsUnsafeElement(nameAtom, namespaceID));
-    }
-
-    // Step 1.4.3. If configuration["replaceWithChildrenElements"] contains
+    // Step 1.4.2. If configuration["replaceWithChildrenElements"] contains
     // elementName:
     if constexpr (!IsDefaultConfig) {
       if (mReplaceWithChildrenElements.Contains(*elementName)) {
@@ -827,6 +791,46 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
         }
         continue;
       }
+    }
+
+    // Step 1.4.3. If configuration["removeElements"] contains elementName, or
+    // if configuration["elements"] is not empty and does not contain
+    // elementName:
+    [[maybe_unused]] StaticAtomSet* elementAttributes = nullptr;
+    if constexpr (!IsDefaultConfig) {
+      if (mRemoveElements.Contains(*elementName) ||
+          (!mElements.IsEmpty() && !mElements.Contains(*elementName))) {
+        // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
+        // Step 1.4.3.1. Remove child.
+        child->RemoveFromParent();
+        // Step 1.4.3.2. Continue.
+        continue;
+      }
+    } else {
+      bool found = false;
+      if (nameAtom->IsStatic()) {
+        ElementsWithAttributes* elements = nullptr;
+        if (namespaceID == kNameSpaceID_XHTML) {
+          elements = sDefaultHTMLElements;
+        } else if (namespaceID == kNameSpaceID_MathML) {
+          elements = sDefaultMathMLElements;
+        }
+        if (elements) {
+          if (auto lookup = elements->Lookup(nameAtom->AsStatic())) {
+            found = true;
+            // This is the nullptr for elements without specific allowed
+            // attributes.
+            elementAttributes = lookup->get();
+          }
+        }
+      }
+      if (!found) {
+        // Step 1.4.3.1. Remove child.
+        child->RemoveFromParent();
+        // Step 1.4.3.2. Continue.
+        continue;
+      }
+      MOZ_ASSERT(!IsUnsafeElement(nameAtom, namespaceID));
     }
 
     // Step 1.4.4. If elementName equals «[ "name" → "template", "namespace" →
