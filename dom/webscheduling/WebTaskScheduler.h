@@ -243,7 +243,9 @@ class WebTaskQueue {
 class WebTaskSchedulerMainThread;
 class WebTaskSchedulerWorker;
 
-class WebTaskScheduler : public nsWrapperCache, public SupportsWeakPtr {
+class WebTaskScheduler : public nsWrapperCache,
+                         public SupportsWeakPtr,
+                         public LinkedListElement<WebTaskScheduler> {
   friend class DelayedWebTaskHandler;
 
  public:
@@ -268,7 +270,7 @@ class WebTaskScheduler : public nsWrapperCache, public SupportsWeakPtr {
   virtual JSObject* WrapObject(JSContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  WebTask* GetNextTask();
+  WebTask* GetNextTask(bool aIsMainThread);
 
   virtual void Disconnect();
 
@@ -284,8 +286,6 @@ class WebTaskScheduler : public nsWrapperCache, public SupportsWeakPtr {
  protected:
   virtual ~WebTaskScheduler() = default;
   nsCOMPtr<nsIGlobalObject> mParent;
-
-  uint32_t mNextEnqueueOrder;
 
  private:
   struct SelectedTaskQueueData {
@@ -310,6 +310,10 @@ class WebTaskScheduler : public nsWrapperCache, public SupportsWeakPtr {
   virtual bool DispatchEventLoopRunnable(EventQueuePriority aPriority) = 0;
 
   EventQueuePriority GetEventQueuePriority(const TaskPriority& aPriority) const;
+
+  nsTHashMap<WebTaskQueueHashKey, WebTaskQueue>& GetWebTaskQueues() {
+    return mWebTaskQueues;
+  }
 
   nsTHashMap<WebTaskQueueHashKey, WebTaskQueue> mWebTaskQueues;
 };
