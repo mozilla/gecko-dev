@@ -12,7 +12,6 @@
 #include "FaviconHelpers.h"
 #include "imgITools.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/MozPromise.h"
 #include "mozilla/storage.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
@@ -77,22 +76,6 @@ class nsFaviconService final : public nsIFaviconService {
    */
   nsresult GetFaviconDataAsync(const nsCString& aFaviconSpec,
                                mozIStorageStatementCallback* aCallback);
-
-  /**
-   * Retrieves the favicon URI and data URL associated to the given page, if
-   * any. If the page icon is not available, it will try to return the root
-   * domain icon data, when it's known.
-   *
-   * @param aPageURI
-   *        URI of the page whose favicon URI and data we're looking up.
-   * @param [optional] aPreferredWidth
-   *        The preferred icon width, skip or pass 0 for the default value,
-   *        set through setDefaultIconURIPreferredSize.
-   *
-   * @return MozPromise<nsIFavicon, nsresult>
-   */
-  RefPtr<mozilla::places::FaviconPromise> AsyncGetFaviconForPage(
-      nsIURI* aPageURI, uint16_t aPreferredWidth = 0);
 
   /**
    * Clears the image cache for the given image spec.

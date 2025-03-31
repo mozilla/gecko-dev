@@ -216,38 +216,6 @@ class AsyncGetFaviconDataForPage final : public Runnable {
   nsCOMPtr<nsIURI> mPageURI;
 };
 
-using FaviconPromise =
-    mozilla::MozPromise<nsCOMPtr<nsIFavicon>, nsresult, true>;
-
-/**
- * Asynchronously tries to get the URL and data of a page's favicon, then
- * resolve given promise with the result.
- */
-class AsyncGetFaviconForPageRunnable final : public Runnable {
- public:
-  NS_DECL_NSIRUNNABLE
-
-  /**
-   * Constructor.
-   *
-   * @param aPageURI
-   *        URI of the page whose favicon's URL we're fetching
-   * @param aPreferredWidth
-   *        The preferred size of the icon.  We will try to return an icon close
-   *        to this size.
-   * @param aPromise
-   *        Promise that returns the result.
-   */
-  AsyncGetFaviconForPageRunnable(const nsCOMPtr<nsIURI>& aPageURI,
-                                 uint16_t aPreferredWidth,
-                                 FaviconPromise::Private* aPromise);
-
- private:
-  nsCOMPtr<nsIURI> mPageURI;
-  uint16_t mPreferredWidth;
-  nsMainThreadPtrHandle<FaviconPromise::Private> mPromise;
-};
-
 /**
  * Notifies the icon change to favicon observers.
  */

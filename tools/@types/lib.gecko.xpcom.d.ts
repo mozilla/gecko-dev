@@ -9677,7 +9677,6 @@ interface nsIFaviconService extends nsISupports {
   readonly defaultFavicon: nsIURI;
   readonly defaultFaviconMimeType: string;
   setFaviconForPage(aPageURI: nsIURI, aFaviconURI: nsIURI, aDataURL: nsIURI, aExpiration?: PRTime, isRichIcon?: boolean): Promise<any>;
-  getFaviconForPage(aPageURI: nsIURI, aPreferredWidth?: u16): Promise<any>;
   getFaviconURLForPage(aPageURI: nsIURI, aCallback: nsIFaviconDataCallback, aPreferredWidth?: u16): void;
   getFaviconDataForPage(aPageURI: nsIURI, aCallback: nsIFaviconDataCallback, aPreferredWidth?: u16): void;
   copyFavicons(aFromPageURI: nsIURI, aToPageURI: nsIURI, aFaviconLoadType: u32, aCallback?: nsIFaviconDataCallback): void;

@@ -54,8 +54,6 @@ support-files = [
 
 ["test_getFaviconDataForPage.js"]
 
-["test_getFaviconForPage.js"]
-
 ["test_getFaviconLinkForIcon.js"]
 
 ["test_getFaviconURLForPage.js"]
