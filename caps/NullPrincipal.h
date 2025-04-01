@@ -40,7 +40,6 @@ class NullPrincipal final : public BasePrincipal {
   static PrincipalKind Kind() { return eNullPrincipal; }
 
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
-  uint32_t GetHashValue() override;
   NS_IMETHOD GetURI(nsIURI** aURI) override;
   NS_IMETHOD GetIsOriginPotentiallyTrustworthy(bool* aResult) override;
   NS_IMETHOD GetDomain(nsIURI** aDomain) override;

@@ -65,8 +65,6 @@ nsresult SystemPrincipal::GetScriptLocation(nsACString& aStr) {
 // Methods implementing nsIPrincipal //
 ///////////////////////////////////////
 
-uint32_t SystemPrincipal::GetHashValue() { return NS_PTR_TO_INT32(this); }
-
 NS_IMETHODIMP
 SystemPrincipal::GetURI(nsIURI** aURI) {
   *aURI = nullptr;

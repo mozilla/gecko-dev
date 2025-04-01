@@ -308,17 +308,6 @@ bool ContentPrincipal::MayLoadInternal(nsIURI* aURI) {
   return false;
 }
 
-uint32_t ContentPrincipal::GetHashValue() {
-  MOZ_ASSERT(mURI, "Need a principal URI");
-
-  nsCOMPtr<nsIURI> uri;
-  GetDomain(getter_AddRefs(uri));
-  if (!uri) {
-    GetURI(getter_AddRefs(uri));
-  };
-  return NS_SecurityHashURI(uri);
-}
-
 NS_IMETHODIMP
 ContentPrincipal::GetDomain(nsIURI** aDomain) {
   if (!GetHasExplicitDomain()) {

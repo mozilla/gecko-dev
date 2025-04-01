@@ -20,12 +20,7 @@ gfxFontSrcPrincipal::gfxFontSrcPrincipal(nsIPrincipal* aNodePrincipal,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aNodePrincipal);
   MOZ_ASSERT(aStoragePrincipal);
-
-  nsAutoCString suffix;
-  mStoragePrincipal->GetOriginSuffix(suffix);
-
-  mHash = mozilla::AddToHash(mStoragePrincipal->GetHashValue(),
-                             mozilla::HashString(suffix));
+  mHash = mStoragePrincipal->GetHashValue();
 }
 
 gfxFontSrcPrincipal::~gfxFontSrcPrincipal() = default;

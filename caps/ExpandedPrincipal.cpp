@@ -106,10 +106,6 @@ bool ExpandedPrincipal::MayLoadInternal(nsIURI* uri) {
   return false;
 }
 
-uint32_t ExpandedPrincipal::GetHashValue() {
-  MOZ_CRASH("extended principal should never be used as key in a hash map");
-}
-
 NS_IMETHODIMP
 ExpandedPrincipal::GetURI(nsIURI** aURI) {
   *aURI = nullptr;

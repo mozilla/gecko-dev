@@ -9,6 +9,7 @@ UNIFIED_SOURCES += [
     "TestNullPrincipalPrecursor.cpp",
     "TestOriginAttributes.cpp",
     "TestPrincipalAttributes.cpp",
+    "TestPrincipalHash.cpp",
     "TestPrincipalSerialization.cpp",
     "TestRedirectChainURITruncation.cpp",
     "TestScriptSecurityManager.cpp",

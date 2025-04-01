@@ -1618,3 +1618,9 @@ void BasePrincipal::WriteJSONProperty(JSONWriter& aWriter,
 }
 
 }  // namespace mozilla
+
+uint32_t nsIPrincipal::GetHashValue() const {
+  auto* bp = mozilla::BasePrincipal::Cast(this);
+  return mozilla::HashGeneric(bp->GetOriginNoSuffixHash(),
+                              bp->GetOriginSuffixHash());
+}

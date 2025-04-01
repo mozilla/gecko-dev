@@ -95,11 +95,16 @@ interface nsIPrincipal : nsISupports
     boolean equalsURI(in nsIURI aOtherURI);
 
     /**
-     * Returns a hash value for the principal.
+     * Returns a hash value for the principal. Guaranteed to be equal
+     * for two principals which are Equals(...).
+     *
+     * Implemented in BasePrincipal.cpp.
      *
      * May be called from any thread.
      */
-    [notxpcom, nostdcall] readonly attribute unsigned long hashValue;
+    %{C++
+    uint32_t GetHashValue() const;
+    %}
 
     /**
      * The principal URI to which this principal pertains.  This is

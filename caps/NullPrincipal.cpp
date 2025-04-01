@@ -157,8 +157,6 @@ nsresult NullPrincipal::GetScriptLocation(nsACString& aStr) {
  * nsIPrincipal implementation
  */
 
-uint32_t NullPrincipal::GetHashValue() { return (NS_PTR_TO_INT32(this) >> 2); }
-
 NS_IMETHODIMP
 NullPrincipal::GetURI(nsIURI** aURI) {
   nsCOMPtr<nsIURI> uri = mURI;

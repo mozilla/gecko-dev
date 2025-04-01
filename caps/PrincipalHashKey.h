@@ -43,8 +43,7 @@ class PrincipalHashKey : public PLDHashEntryHdr {
     return aKey;
   }
   static PLDHashNumber HashKey(const nsIPrincipal* aKey) {
-    const auto* bp = BasePrincipal::Cast(aKey);
-    return HashGeneric(bp->GetOriginNoSuffixHash(), bp->GetOriginSuffixHash());
+    return aKey->GetHashValue();
   }
 
   enum { ALLOW_MEMMOVE = true };
