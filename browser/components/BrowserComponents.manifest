@@ -33,6 +33,7 @@ category browser-window-delayed-startup moz-src:///browser/components/search/Sea
 
 category browser-window-unload resource:///modules/BrowserDOMWindow.sys.mjs BrowserDOMWindow.teardownInWindow
 category browser-window-unload moz-src:///browser/components/tabbrowser/NewTabPagePreloading.sys.mjs NewTabPagePreloading.removePreloadedBrowser
+category browser-window-delayed-startup resource:///modules/taskbartabs/TaskbarTabs.sys.mjs TaskbarTabs.init
 
 # App startup consumers
 category browser-idle-startup resource:///modules/PlacesUIUtils.sys.mjs PlacesUIUtils.unblockToolbars
