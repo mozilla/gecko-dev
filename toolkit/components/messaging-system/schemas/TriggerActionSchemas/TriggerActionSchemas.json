@@ -237,11 +237,112 @@
             "id": {
               "type": "string",
               "enum": ["nthTabClosed"]
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "tabsClosedCount": {
+                  "type": "integer",
+                  "description": "The number of tabs closed this session"
+                },
+                "currentTabsOpen": {
+                  "type": "integer",
+                  "description": "The number of tabs open in the browser"
+                }
+              }
             }
           },
           "additionalProperties": false,
           "required": ["id"],
           "description": "Happens when the user closes n or more tabs in a session"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["nthTabOpened"]
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "tabsOpenedCount": {
+                  "type": "integer",
+                  "description": "The number of tabs opened this session"
+                },
+                "currentTabsOpen": {
+                  "type": "integer",
+                  "description": "The number of tabs open in the browser"
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when the user opens n or more tabs in a session"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["tabGroupCreated"]
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "tabGroupsCreatedCount": {
+                  "type": "integer",
+                  "description": "The number of tab groups created this session"
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when the user creates n or more tab groups in a session"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["tabGroupSaved"]
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "tabGroupsSavedCount": {
+                  "type": "integer",
+                  "description": "The number of tab groups saved this session"
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when the user saves n or more tab groups in a session"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["tabGroupCollapsed"]
+            },
+            "context": {
+              "type": "object",
+              "properties": {
+                "tabGroupsCollapsedCount": {
+                  "type": "integer",
+                  "description": "The number of tab groups collapsed this session"
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when the user collapses n or more tab groups in a session"
         },
         {
           "type": "object",
