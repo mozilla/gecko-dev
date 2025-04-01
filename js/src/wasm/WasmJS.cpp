@@ -4434,9 +4434,12 @@ static bool WebAssembly_compile(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   BytecodeSource source;
-  if (!GetBufferSource(cx, callArgs, "WebAssembly.compile", &source) ||
-      !BytecodeBuffer::fromSource(source, &task->bytecode)) {
+  if (!GetBufferSource(cx, callArgs, "WebAssembly.compile", &source)) {
     return RejectWithPendingException(cx, promise, callArgs);
+  }
+  if (!BytecodeBuffer::fromSource(source, &task->bytecode)) {
+    ReportOutOfMemory(cx);
+    return false;
   }
 
   FeatureOptions options;
@@ -4535,9 +4538,12 @@ static bool WebAssembly_instantiate(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     BytecodeSource source;
-    if (!GetBufferSource(cx, firstArg, JSMSG_WASM_BAD_BUF_MOD_ARG, &source) ||
-        !BytecodeBuffer::fromSource(source, &task->bytecode)) {
+    if (!GetBufferSource(cx, firstArg, JSMSG_WASM_BAD_BUF_MOD_ARG, &source)) {
       return RejectWithPendingException(cx, promise, callArgs);
+    }
+    if (!BytecodeBuffer::fromSource(source, &task->bytecode)) {
+      ReportOutOfMemory(cx);
+      return false;
     }
 
     if (!StartOffThreadPromiseHelperTask(cx, std::move(task))) {
