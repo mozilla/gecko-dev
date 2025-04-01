@@ -1079,8 +1079,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
    * state to NETWORK_NO_SOURCE, and sends error event with code
    * MEDIA_ERR_SRC_NOT_SUPPORTED.
    */
-  void NoSupportedMediaSourceError(
-      const nsACString& aErrorDetails = nsCString());
+  void NoSupportedMediaSourceError(const nsACString& aErrorDetails);
 
   /**
    * Per spec, Failed with elements: Queue a task, using the DOM manipulation
