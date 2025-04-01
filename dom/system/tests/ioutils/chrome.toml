@@ -17,7 +17,7 @@ support-files = [
 ["test_ioutils_getfile.html"]
 
 ["test_ioutils_mac_xattr.html"]
-skip-if = ["(os != 'mac')"]
+run-if = ["os == 'mac'"]
 
 ["test_ioutils_mkdir.html"]
 
@@ -34,6 +34,6 @@ skip-if = ["(os != 'mac')"]
 ["test_ioutils_stat_set_modification_time.html"]
 
 ["test_ioutils_windows_file_attributes.html"]
-skip-if = ["(os != 'win')"]
+run-if = ["os == 'win'"]
 
 ["test_ioutils_worker.xhtml"]

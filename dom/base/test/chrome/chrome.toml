@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "bug418986-1.js",
   "clonedoc/**",

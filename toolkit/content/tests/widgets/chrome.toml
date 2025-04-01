@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "tree_shared.js",
   "popup_shared.js",
@@ -20,7 +19,6 @@ prefs = ["app.support.baseURL='https://support.mozilla.org/'"]
 
 ["test_menubar.xhtml"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1933983
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1933983
 ]
 
@@ -87,9 +85,6 @@ skip-if = [
 ["test_panel_list_min_width_from_anchor.html"]
 
 ["test_popupanchor.xhtml"]
-skip-if = [
-  "verify && os == 'win'",
-]
 
 ["test_popupreflows.xhtml"]
 
@@ -99,9 +94,6 @@ skip-if = [
 support-files = [
   "head.js",
   "video.webm",
-]
-skip-if = [
-  "os == 'android'",
 ]
 
 ["test_videocontrols_onclickplay.html"]

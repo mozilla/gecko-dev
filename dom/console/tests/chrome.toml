@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "file_empty.html",
   "console.sys.mjs",

@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "crash-dump-diff1.json",
   "crash-dump-diff2.json",
@@ -22,14 +21,12 @@ support-files = [
 ["test_aboutmemory4.xhtml"]
 
 ["test_aboutmemory5.xhtml"]
-skip-if = ["asan"] # Bug 1116230
 
 ["test_aboutmemory6.xhtml"]
 
 ["test_aboutmemory7.xhtml"]
 
 ["test_dumpGCAndCCLogsToFile.xhtml"]
-skip-if = ["(verify && debug && (os == 'mac'))"]
 
 ["test_memoryReporters.xhtml"]
 

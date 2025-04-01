@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "bug536567_iframe.html",
   "bug536567_subframe.html",

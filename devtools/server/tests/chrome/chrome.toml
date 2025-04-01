@@ -1,6 +1,5 @@
 [DEFAULT]
 tags = "devtools"
-skip-if = ["os == 'android'"]
 support-files = [
   "doc_Debugger.Source.prototype.introductionType.xhtml",
   "Debugger.Source.prototype.element.js",

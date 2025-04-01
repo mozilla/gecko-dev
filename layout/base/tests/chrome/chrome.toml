@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "animated.gif",
   "blue-32x32.png",
@@ -104,7 +103,6 @@ support-files = ["file_bug465448.html"]
 ["test_bug514660.xhtml"]
 
 ["test_bug533845.xhtml"]
-skip-if = ["os == 'linux' && !debug"] # Bug 1208197
 
 ["test_bug551434.html"]
 
@@ -115,7 +113,6 @@ skip-if = ["os == 'linux' && !debug"] # Bug 1208197
 ["test_bug1018265.xhtml"]
 
 ["test_bug1041200.xhtml"]
-skip-if = ["os == 'win' && bits == 64"] # Bug 1272321
 support-files = [
   "bug1041200_frame.html",
   "bug1041200_window.html",
@@ -152,13 +149,10 @@ tags = "openwindow"
 ["test_printer_default_settings.html"]
 
 ["test_printpreview.xhtml"]
-skip-if = ["verify && os == 'win'"]
 
 ["test_printpreview_bug396024.xhtml"]
-skip-if = ["verify && os == 'win'"]
 
 ["test_printpreview_bug482976.xhtml"]
-skip-if = ["verify && os == 'win'"]
 
 ["test_scrolling_repaints.html"]
 

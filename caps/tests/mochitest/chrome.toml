@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "file_data.txt",
   "file_disableScript.html",
@@ -10,6 +9,5 @@ support-files = [
 ["test_addonMayLoad.html"]
 
 ["test_bug995943.xhtml"]
-skip-if = ["(verify && debug && (os == 'mac'))"]
 
 ["test_disableScript.xhtml"]

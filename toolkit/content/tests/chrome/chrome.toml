@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "../widgets/popup_shared.js",
   "../widgets/tree_shared.js",
@@ -57,12 +56,10 @@ prefs = [
 
 ["test_arrowpanel.xhtml"]
 skip-if = [
-  "os == 'win' && verify",
-  "win10_2009", # Bug 1727507
-  "win11_2009", # Bug 1797751
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug 1727507
   "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1797751
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1797751
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
 ["test_autocomplete2.xhtml"]
@@ -82,27 +79,27 @@ run-if = ["os == 'mac'"]
 
 ["test_autocomplete_with_composition_on_input.html"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1784825 # Bug 1929437
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
 ["test_browser_drop.xhtml"]
 
 ["test_bug263683.xhtml"]
-skip-if = [
-  "debug && os == 'win'",
-]
 
 ["test_bug304188.xhtml"]
-skip-if = ["true"]
 
 ["test_bug331215.xhtml"]
-skip-if = ["true"] # Bug 1339326 #Bug 1582327
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1339326 #Bug 1582327
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1339326 #Bug 1582327
+]
 
 ["test_bug360220.xhtml"]
 
 ["test_bug360437.xhtml"]
-skip-if = ["true"]  # Bug 1264604  # Bug 1784826
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1784826
+]
 
 ["test_bug365773.xhtml"]
 
@@ -133,19 +130,12 @@ support-files = ["bug451540_window.xhtml"]
 
 ["test_bug624329.xhtml"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1600194 # Bug 1929437 (secondary)
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1600194 # Bug 1929437 (secondary)
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1600194 # Bug 1929437 (secondary)
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1600194 # Bug 1929437
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1944476
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1600194
 ]
 
 ["test_bug792324.xhtml"]
 
 ["test_bug1048178.xhtml"]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
-]
 
 ["test_button.xhtml"]
 
@@ -181,8 +171,7 @@ support-files = [
 
 ["test_findbar.xhtml"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # macosx1014/15 due to 1550078 # Bug 1929437
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929437
 ]
 
 ["test_findbar_entireword.xhtml"]
@@ -255,13 +244,9 @@ support-files = [
 support-files = ["window_navigate_persist.html"]
 
 ["test_notificationbox.xhtml"]
-skip-if = [
-  "os == 'win'", # Bug 1429649
-]
 
 ["test_panel.xhtml"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # macosx1014 due to 1550078 # Bug 1929437
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
 ]
 
@@ -282,11 +267,6 @@ support-files = "window_panel_focus.xhtml"
 ["test_popup_anchor.xhtml"]
 
 ["test_popup_anchoratrect.xhtml"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # 1167694 # Bug 1929437 (secondary)
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # 1167694 # Bug 1929437 (secondary)
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # 1167694 # Bug 1929437 (secondary)
-]
 
 ["test_popup_attribute.xhtml"]
 
@@ -311,7 +291,6 @@ skip-if = [
 ["test_popuphidden.xhtml"]
 
 ["test_popupincontent.xhtml"]
-skip-if = ["verify && os == 'win'"]
 
 ["test_popupremoving.xhtml"]
 
@@ -347,9 +326,7 @@ support-files = ["window_preferences_onsyncfrompreference.xhtml"]
 
 ["test_tooltip.xhtml"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1141245, frequent timeouts on OSX 10.14, Windows # Bug 1929437
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929437
-  "os == 'win'", # Bug 1141245, frequent timeouts on OSX 10.14, Windows
 ]
 
 ["test_tooltip_noautohide.xhtml"]

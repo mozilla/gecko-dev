@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = ["process_error.xhtml"]
 
 ["test_process_error.xhtml"]

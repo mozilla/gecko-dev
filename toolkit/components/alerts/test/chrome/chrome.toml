@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"] # We don't use XUL alerts on Android
 support-files = [
   "empty.html",
   "image.gif",
@@ -16,7 +15,6 @@ tags = "os_integration"
 ["test_alerts_noobserve.html"]
 
 ["test_alerts_requireinteraction.html"]
-skip-if = ["verify && os == 'linux'"]
 
 ["test_image.html"]
 skip-if = ["verify"]

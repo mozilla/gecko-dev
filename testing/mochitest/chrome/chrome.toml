@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = "test-dir/test-file"
 
 ["test_chromeGetTestFile.xhtml"]

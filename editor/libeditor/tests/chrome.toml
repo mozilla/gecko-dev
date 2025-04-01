@@ -1,6 +1,5 @@
 [DEFAULT]
 prefs = ["test.ime_content_observer.assert_invalid_cache=true"]
-skip-if = ["os == 'android'"]
 
 ["test_bug489202.xhtml"]
 
@@ -27,6 +26,5 @@ support-files = ["green.png"]
 
 ["test_texteditor_keyevent_handling.html"]
 skip-if = [
-  "debug && os == 'win'", # Bug 1116205, leaks on windows debug
-  "os == 'linux'", # Fails delete key on linux
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Fails delete key on linux
 ]

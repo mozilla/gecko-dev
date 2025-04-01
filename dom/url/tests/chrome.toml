@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "file_url.sys.mjs",
   "file_worker_url.sys.mjs",

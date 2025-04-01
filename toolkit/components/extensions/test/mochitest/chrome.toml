@@ -25,17 +25,10 @@ tags = "webextensions in-process-webextensions"
 ["test_chrome_ext_downloads_open.html"]
 
 ["test_chrome_ext_downloads_saveAs.html"]
-skip-if = [
-  "verify && !debug && os == 'win'",
-  "os == 'android'",
-  "win10_2009", # Bug 1695612
-]
 
 ["test_chrome_ext_downloads_uniquify.html"]
-skip-if = ["win10_2009"] # Bug 1695612
 
 ["test_chrome_ext_permissions.html"]
-skip-if = ["os == 'android'"] # Bug 1350559
 
 ["test_chrome_ext_svg_context_fill.html"]
 
@@ -49,7 +42,7 @@ skip-if = ["os == 'android'"] # Bug 1350559
 skip-if = ["verify"]
 
 ["test_chrome_ext_webrequest_mozextension.html"]
-skip-if = ["true"] # Bug 1404172
+run-if = ["false"] # Bug 1404172
 
 ["test_chrome_native_messaging_paths.html"]
-skip-if = ["os != 'mac' && os != 'linux'"]
+run-if = ["os != 'win'"]

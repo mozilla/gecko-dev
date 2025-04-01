@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "662200a.html",
   "662200b.html",
@@ -83,10 +82,8 @@ skip-if = ["true"] # bug 1393441
 ["test_bug311007.xhtml"]
 
 ["test_bug321671.xhtml"]
-skip-if = ["os == 'mac' && !debug"] # Bug 1784831
 
 ["test_bug360511.xhtml"]
-skip-if = ["os == 'win' && processor == 'x86'"]
 
 ["test_bug364461.xhtml"]
 

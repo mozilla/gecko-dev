@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "allowlistAnnotatedFrame.html",
   "classifiedAnnotatedFrame.html",
@@ -51,7 +50,6 @@ tags = "trackingprotection"
 
 ["test_classified_annotations.html"]
 tags = "trackingprotection"
-skip-if = ["os == 'linux' && asan"] # Bug 1202548
 
 ["test_classifier_changetablepref.html"]
 skip-if = ["verify"]

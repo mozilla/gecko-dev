@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "WorkerDebugger.console_childWorker.js",
   "WorkerDebugger.console_debugger.js",

@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "bug415498-doc1.html",
   "bug415498-doc2.html",
@@ -13,7 +12,6 @@ support-files = [
 ]
 
 ["test_DataTransferItemList.html"]
-skip-if = ["!debug && (os == 'linux')"] #Bug 1421150
 
 ["test_bug336682_2.xhtml"]
 

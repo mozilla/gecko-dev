@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "bug503926.xhtml",
   "file_bug484459.html",
@@ -46,11 +45,6 @@ prefs = [
 ["test_bug448587.xhtml"]
 
 ["test_bug484459.xhtml"]
-skip-if = [
-  "os == 'win'",
-  "os == 'mac'",
-  "os == 'linux' && !debug",
-] # bug 1131110, 1255284
 
 ["test_bug500931.xhtml"]
 
@@ -220,8 +214,8 @@ support-files = [
 ["test_xrayLargeTypedArray.html"]
 skip-if = ["bits == 32"] # Large ArrayBuffers not supported on 32-bit.
 
+["test_xrayToExplicitResourceManagement.html"]
+
 ["test_xrayToJS.xhtml"]
 
 ["test_xrayic.xhtml"]
-
-["test_xrayToExplicitResourceManagement.html"]
