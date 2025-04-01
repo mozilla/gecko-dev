@@ -181,7 +181,7 @@ struct OptimizePromiseLookupFuse final : public RealmFuse {
 // - .exec (RegExp_prototype_Exec)
 // - [@@match] (RegExpMatch)
 // - [@@search] (RegExpSearch)
-struct OptimizeRegExpPrototypeFuse final : public RealmFuse {
+struct OptimizeRegExpPrototypeFuse final : public InvalidatingRealmFuse {
   virtual const char* name() override { return "OptimizeRegExpPrototypeFuse"; }
   virtual bool checkInvariant(JSContext* cx) override;
 };
