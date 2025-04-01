@@ -224,7 +224,9 @@ where
         D: serde::Deserializer<'de>,
     {
         let set = FastIndexSet::deserialize(deserializer)?;
-        let span_info = core::iter::repeat_n(Span::default(), set.len()).collect();
+        let span_info = core::iter::repeat(Span::default())
+            .take(set.len())
+            .collect();
 
         Ok(Self { set, span_info })
     }

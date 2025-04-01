@@ -366,13 +366,17 @@ pub struct Buffer {
     pub(crate) tracking_data: TrackingData,
     pub(crate) map_state: Mutex<BufferMapState>,
     pub(crate) bind_groups: Mutex<WeakVec<BindGroup>>,
-    pub(crate) indirect_validation_bind_groups: Snatchable<crate::indirect_validation::BindGroups>,
+    #[cfg(feature = "indirect-validation")]
+    pub(crate) raw_indirect_validation_bind_group: Snatchable<Box<dyn hal::DynBindGroup>>,
 }
 
 impl Drop for Buffer {
     fn drop(&mut self) {
-        if let Some(raw) = self.indirect_validation_bind_groups.take() {
-            raw.dispose(self.device.raw());
+        #[cfg(feature = "indirect-validation")]
+        if let Some(raw) = self.raw_indirect_validation_bind_group.take() {
+            unsafe {
+                self.device.raw().destroy_bind_group(raw);
+            }
         }
         if let Some(raw) = self.raw.take() {
             resource_log!("Destroy raw {}", self.error_ident());
@@ -435,8 +439,10 @@ impl Buffer {
     ) -> Result<SubmissionIndex, (BufferMapOperation, BufferAccessError)> {
         let range_size = if let Some(size) = size {
             size
+        } else if offset > self.size {
+            0
         } else {
-            self.size.saturating_sub(offset)
+            self.size - offset
         };
 
         if offset % wgt::MAP_ALIGNMENT != 0 {
@@ -708,8 +714,9 @@ impl Buffer {
                 }
             };
 
-            let indirect_validation_bind_groups = self
-                .indirect_validation_bind_groups
+            #[cfg(feature = "indirect-validation")]
+            let raw_indirect_validation_bind_group = self
+                .raw_indirect_validation_bind_group
                 .snatch(&mut snatch_guard);
 
             drop(snatch_guard);
@@ -724,7 +731,8 @@ impl Buffer {
                 device: Arc::clone(&self.device),
                 label: self.label().to_owned(),
                 bind_groups,
-                indirect_validation_bind_groups,
+                #[cfg(feature = "indirect-validation")]
+                raw_indirect_validation_bind_group,
             })
         };
 
@@ -779,7 +787,8 @@ pub struct DestroyedBuffer {
     device: Arc<Device>,
     label: String,
     bind_groups: WeakVec<BindGroup>,
-    indirect_validation_bind_groups: Option<crate::indirect_validation::BindGroups>,
+    #[cfg(feature = "indirect-validation")]
+    raw_indirect_validation_bind_group: Option<Box<dyn hal::DynBindGroup>>,
 }
 
 impl DestroyedBuffer {
@@ -796,8 +805,11 @@ impl Drop for DestroyedBuffer {
         )));
         drop(deferred);
 
-        if let Some(raw) = self.indirect_validation_bind_groups.take() {
-            raw.dispose(self.device.raw());
+        #[cfg(feature = "indirect-validation")]
+        if let Some(raw) = self.raw_indirect_validation_bind_group.take() {
+            unsafe {
+                self.device.raw().destroy_bind_group(raw);
+            }
         }
 
         resource_log!("Destroy raw Buffer (destroyed) {:?}", self.label());

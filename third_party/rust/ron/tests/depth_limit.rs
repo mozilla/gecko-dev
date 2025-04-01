@@ -53,7 +53,7 @@ fn depth_limit() {
         .depth_limit(1)
         .separate_tuple_members(true)
         .enumerate_arrays(true)
-        .new_line("\n");
+        .new_line("\n".to_string());
     let s = ron::ser::to_string_pretty(&data, pretty);
 
     assert_eq!(s, Ok(EXPECTED.to_string()));

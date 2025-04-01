@@ -462,7 +462,6 @@ enum WrappedType {
     Math(help::WrappedMath),
     UnaryOp(help::WrappedUnaryOp),
     BinaryOp(help::WrappedBinaryOp),
-    Cast(help::WrappedCast),
 }
 
 #[derive(Default)]

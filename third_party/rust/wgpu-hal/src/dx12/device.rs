@@ -2,14 +2,13 @@ use std::{
     borrow::Cow,
     ffi, mem,
     num::NonZeroU32,
-    ptr,
+    ptr, slice,
     string::{String, ToString as _},
     sync::Arc,
     time::{Duration, Instant},
     vec::Vec,
 };
 
-use bytemuck::TransparentWrapper;
 use parking_lot::Mutex;
 use windows::{
     core::Interface as _,
@@ -2363,9 +2362,13 @@ impl crate::Device for super::Device {
             _bitfield2: 0,
             AccelerationStructure: instance.blas_address,
         };
-
-        wgt::bytemuck_wrapper!(unsafe struct Desc(Direct3D12::D3D12_RAYTRACING_INSTANCE_DESC));
-
-        bytemuck::bytes_of(&Desc::wrap(temp)).to_vec()
+        let temp: *const _ = &temp;
+        unsafe {
+            slice::from_raw_parts(
+                temp.cast::<u8>(),
+                size_of::<Direct3D12::D3D12_RAYTRACING_INSTANCE_DESC>(),
+            )
+            .to_vec()
+        }
     }
 }

@@ -31,7 +31,7 @@ fn make_roundtrip(source: &str) -> String {
         .depth_limit(3)
         .separate_tuple_members(true)
         .enumerate_arrays(true)
-        .new_line("\n");
+        .new_line("\n".into());
     to_string_pretty(&config, pretty).expect("Serialization failed")
 }
 

@@ -1034,12 +1034,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
 delta = "3.11.1 -> 3.12.0"
 
-[[audits.bytemuck_derive]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
-criteria = "safe-to-deploy"
-delta = "1.9.2 -> 1.9.3"
-notes = "Just a Rust MSRV bump."
-
 [[audits.bytes]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -3683,7 +3677,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "24.0.0 -> 24.0.0@git:c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
+delta = "24.0.0 -> 24.0.0@git:c6286791febc64cf8ef054b5356c2669327ef51c"
 importable = false
 
 [[audits.net2]]
@@ -4487,11 +4481,6 @@ delta = "0.7.1 -> 0.8.0"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.8.0 -> 0.8.1"
-
-[[audits.ron]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
-criteria = "safe-to-deploy"
-delta = "0.8.1 -> 0.9.0"
 
 [[audits.rure]]
 who = "Nika Layzell <nika@thelayzells.com>"
@@ -5922,7 +5911,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "24.0.0 -> 24.0.0@git:c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
+delta = "24.0.0 -> 24.0.0@git:c6286791febc64cf8ef054b5356c2669327ef51c"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -6009,7 +5998,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "24.0.0 -> 24.0.0@git:c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
+delta = "24.0.0 -> 24.0.0@git:c6286791febc64cf8ef054b5356c2669327ef51c"
 importable = false
 
 [[audits.wgpu-types]]
@@ -6091,7 +6080,7 @@ who = [
     "Erich Gubler <erichdongubler@gmail.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "24.0.0 -> 24.0.0@git:c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
+delta = "24.0.0 -> 24.0.0@git:c6286791febc64cf8ef054b5356c2669327ef51c"
 importable = false
 
 [[audits.whatsys]]

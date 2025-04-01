@@ -1,5 +1,6 @@
 use std::{
     borrow::Cow,
+    slice,
     string::{String, ToString as _},
 };
 
@@ -47,12 +48,18 @@ unsafe extern "system" fn output_debug_string_handler(
         return Debug::EXCEPTION_CONTINUE_SEARCH;
     }
     let message = match record.ExceptionCode {
-        Foundation::DBG_PRINTEXCEPTION_C => {
-            String::from_utf8_lossy(bytemuck::cast_slice(&record.ExceptionInformation))
-        }
-        Foundation::DBG_PRINTEXCEPTION_WIDE_C => Cow::Owned(String::from_utf16_lossy(
-            bytemuck::cast_slice(&record.ExceptionInformation),
-        )),
+        Foundation::DBG_PRINTEXCEPTION_C => String::from_utf8_lossy(unsafe {
+            slice::from_raw_parts(
+                record.ExceptionInformation[1] as *const u8,
+                record.ExceptionInformation[0],
+            )
+        }),
+        Foundation::DBG_PRINTEXCEPTION_WIDE_C => Cow::Owned(String::from_utf16_lossy(unsafe {
+            slice::from_raw_parts(
+                record.ExceptionInformation[1] as *const u16,
+                record.ExceptionInformation[0],
+            )
+        })),
         _ => return Debug::EXCEPTION_CONTINUE_SEARCH,
     };
 

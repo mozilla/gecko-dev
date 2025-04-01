@@ -964,7 +964,9 @@ impl Global {
 
             #[cfg(feature = "trace")]
             if let Some(ref mut trace) = *device.trace.lock() {
-                let data = trace.make_binary("spv", bytemuck::cast_slice(&source));
+                let data = trace.make_binary("spv", unsafe {
+                    core::slice::from_raw_parts(source.as_ptr().cast::<u8>(), source.len() * 4)
+                });
                 trace.add(trace::Action::CreateShaderModule {
                     id: fid.id(),
                     desc: desc.clone(),
@@ -2188,8 +2190,10 @@ impl Global {
 
         let range_size = if let Some(size) = size {
             size
+        } else if offset > buffer.size {
+            0
         } else {
-            buffer.size.saturating_sub(offset)
+            buffer.size - offset
         };
 
         if offset % wgt::MAP_ALIGNMENT != 0 {

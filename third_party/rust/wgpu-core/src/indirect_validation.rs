@@ -1,10 +1,23 @@
-use super::CreateIndirectValidationPipelineError;
+use alloc::{boxed::Box, format, string::ToString as _};
+use core::num::NonZeroU64;
+
+use thiserror::Error;
+
 use crate::{
     device::DeviceError,
     pipeline::{CreateComputePipelineError, CreateShaderModuleError},
 };
-use alloc::{boxed::Box, format, string::ToString as _};
-use core::num::NonZeroU64;
+
+#[derive(Clone, Debug, Error)]
+#[non_exhaustive]
+pub enum CreateDispatchIndirectValidationPipelineError {
+    #[error(transparent)]
+    DeviceError(#[from] DeviceError),
+    #[error(transparent)]
+    ShaderModule(#[from] CreateShaderModuleError),
+    #[error(transparent)]
+    ComputePipeline(#[from] CreateComputePipelineError),
+}
 
 /// This machinery requires the following limits:
 ///
@@ -18,7 +31,7 @@ use core::num::NonZeroU64;
 /// These are all indirectly satisfied by `DownlevelFlags::INDIRECT_EXECUTION`, which is also
 /// required for this module's functionality to work.
 #[derive(Debug)]
-pub(crate) struct Dispatch {
+pub struct IndirectValidation {
     module: Box<dyn hal::DynShaderModule>,
     dst_bind_group_layout: Box<dyn hal::DynBindGroupLayout>,
     src_bind_group_layout: Box<dyn hal::DynBindGroupLayout>,
@@ -37,11 +50,11 @@ pub struct Params<'a> {
     pub offset_remainder: u64,
 }
 
-impl Dispatch {
-    pub(super) fn new(
+impl IndirectValidation {
+    pub fn new(
         device: &dyn hal::DynDevice,
         limits: &wgt::Limits,
-    ) -> Result<Self, CreateIndirectValidationPipelineError> {
+    ) -> Result<Self, CreateDispatchIndirectValidationPipelineError> {
         let max_compute_workgroups_per_dimension = limits.max_compute_workgroups_per_dimension;
 
         let src = format!(
@@ -83,7 +96,6 @@ impl Dispatch {
             )
         };
 
-        #[cfg(feature = "wgsl")]
         let module = naga::front::wgsl::parse_str(&src).map_err(|inner| {
             CreateShaderModuleError::Parsing(naga::error::ShaderError {
                 source: src.clone(),
@@ -91,10 +103,6 @@ impl Dispatch {
                 inner: Box::new(inner),
             })
         })?;
-        #[cfg(not(feature = "wgsl"))]
-        #[allow(clippy::diverging_sub_expression)]
-        let module = panic!("Indirect validation requires the wgsl feature flag to be enabled!");
-
         let info = crate::device::create_validator(
             wgt::Features::PUSH_CONSTANTS,
             wgt::DownlevelFlags::empty(),
@@ -259,7 +267,7 @@ impl Dispatch {
     }
 
     /// `Ok(None)` will only be returned if `buffer_size` is `0`.
-    pub(super) fn create_src_bind_group(
+    pub fn create_src_bind_group(
         &self,
         device: &dyn hal::DynDevice,
         limits: &wgt::Limits,
@@ -328,8 +336,8 @@ impl Dispatch {
         }
     }
 
-    pub(super) fn dispose(self, device: &dyn hal::DynDevice) {
-        let Dispatch {
+    pub fn dispose(self, device: &dyn hal::DynDevice) {
+        let IndirectValidation {
             module,
             dst_bind_group_layout,
             src_bind_group_layout,

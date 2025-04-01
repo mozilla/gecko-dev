@@ -23,7 +23,7 @@ fn test_ebkalderon_case() {
     flags: [
         "--enable-thing",
         "--enable-other-thing",
-        ("some-conditional", ["--enable-third-thing"]),
+        If("some-conditional", ["--enable-third-thing"]),
     ]
 )
 "#;
