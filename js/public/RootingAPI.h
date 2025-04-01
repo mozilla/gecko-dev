@@ -1163,22 +1163,11 @@ using RootedTraits =
 template <typename T>
 class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
                         public js::RootedOperations<T, Rooted<T>> {
-
-  // Intentionally store a pointer into the stack.
-#if defined(__clang__)
-  [[clang::suppress("dangling")]]
-#elif defined(__GNUC__) && __GNUC__ >= 12
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdangling-pointer"
-#endif
   inline void registerWithRootLists(RootedListHeads& roots) {
     this->stack = &roots[JS::MapTypeToRootKind<T>::kind];
     this->prev = *this->stack;
     *this->stack = this;
   }
-#if defined(__GNUC__) && __GNUC__ >= 12
-#pragma GCC diagnostic pop
-#endif
 
   inline RootedListHeads& rootLists(RootingContext* cx) {
     return cx->stackRoots_;
