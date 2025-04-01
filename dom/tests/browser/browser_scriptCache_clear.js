@@ -3,65 +3,62 @@ const SCRIPT_NAME = "counter_server.sjs";
 const TEST_SCRIPT_URL =
   "https://example.com/browser/dom/tests/browser/" + SCRIPT_NAME;
 
-function getCounter(tab, type) {
+function getCounter(tab) {
   const browser = tab.linkedBrowser;
-  return SpecialPowers.spawn(
-    browser,
-    [SCRIPT_NAME, type],
-    async (scriptName, type) => {
-      const { promise, resolve } = Promise.withResolvers();
+  return SpecialPowers.spawn(browser, [SCRIPT_NAME], async scriptName => {
+    const { promise, resolve } = Promise.withResolvers();
 
-      const script = content.document.createElement("script");
-      switch (type) {
-        case "script":
-          script.addEventListener("load", resolve);
-          script.src = scriptName;
-          break;
-        case "module-top-level":
-          script.addEventListener("load", resolve);
-          script.type = "module";
-          script.src = scriptName;
-          break;
-        case "module-static":
-          content.document.addEventListener("module-loaded", resolve);
-          script.type = "module";
-          script.textContent = `
-import "./${scriptName}";
-document.dispatchEvent(new CustomEvent("module-loaded"));
-`;
-          break;
-        case "module-dynamic":
-          content.document.addEventListener("module-loaded", resolve);
-          script.type = "module";
-          script.textContent = `
-await import("./${scriptName}");
-document.dispatchEvent(new CustomEvent("module-loaded"));
-`;
-          break;
-      }
-      content.document.body.appendChild(script);
+    const script = content.document.createElement("script");
+    script.src = scriptName;
+    script.addEventListener("load", resolve);
+    content.document.body.appendChild(script);
 
-      await promise;
+    await promise;
 
-      return parseInt(content.document.body.getAttribute("counter"));
-    }
-  );
+    return parseInt(content.document.body.getAttribute("counter"));
+  });
 }
 
-async function reloadAndGetCounter(tab, type) {
+async function reloadAndGetCounter(tab) {
   await BrowserTestUtils.reloadTab(tab);
 
-  return getCounter(tab, type);
+  return getCounter(tab);
 }
 
-async function doTest(useNavigationCache, type) {
+function clearAllCache() {
+  return new Promise(function (resolve) {
+    Services.clearData.deleteData(
+      Ci.nsIClearDataService.CLEAR_ALL_CACHES,
+      resolve
+    );
+  });
+}
+
+function clearJSCache() {
+  return new Promise(function (resolve) {
+    Services.clearData.deleteData(
+      Ci.nsIClearDataService.CLEAR_JS_CACHE,
+      resolve
+    );
+  });
+}
+
+function clearNetworkCache() {
+  return new Promise(function (resolve) {
+    Services.clearData.deleteData(
+      Ci.nsIClearDataService.CLEAR_NETWORK_CACHE,
+      resolve
+    );
+  });
+}
+
+add_task(async function test_withoutNavigationCache() {
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.script_loader.navigation_cache", useNavigationCache]],
+    set: [["dom.script_loader.navigation_cache", false]],
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  ChromeUtils.clearResourceCache();
-  Services.cache2.clear();
+  await clearAllCache();
 
   const resetResponse = await fetch(TEST_SCRIPT_URL + "?reset");
   is(await resetResponse.text(), "reset", "Server state should be reset");
@@ -71,92 +68,96 @@ async function doTest(useNavigationCache, type) {
     url: TEST_URL,
   });
 
-  is(await getCounter(tab, type), 0, "counter should be 0 for the first load.");
+  is(await getCounter(tab), 0, "counter should be 0 for the first load.");
 
   is(
-    await reloadAndGetCounter(tab, type),
+    await reloadAndGetCounter(tab),
     0,
     "cache should be used for subsequent load."
   );
 
-  ChromeUtils.clearResourceCache();
-  Services.cache2.clear();
+  await clearAllCache();
   is(
-    await reloadAndGetCounter(tab, type),
+    await reloadAndGetCounter(tab),
     1,
     "request should reach the server after removing all cache."
   );
   is(
-    await reloadAndGetCounter(tab, type),
+    await reloadAndGetCounter(tab),
     1,
     "cache should be used for subsequent load."
   );
 
-  ChromeUtils.clearResourceCache();
-  is(await reloadAndGetCounter(tab, type), 1, "network cache should be used.");
+  await clearJSCache();
+  is(await reloadAndGetCounter(tab), 1, "network cache should be used.");
 
-  Services.cache2.clear();
-  if (!useNavigationCache) {
-    is(
-      await reloadAndGetCounter(tab, type),
-      2,
-      "request should reach the server after network cache is cleared."
-    );
-  } else {
-    // The above reload loads from the network cache, and the JS cache is
-    // re-created.
+  await clearNetworkCache();
+  is(
+    await reloadAndGetCounter(tab),
+    2,
+    "request should reach the server after network cache is cleared."
+  );
 
-    is(await reloadAndGetCounter(tab, type), 1, "JS cache should be used.");
-  }
-
-  ChromeUtils.clearResourceCache();
-  if (!useNavigationCache) {
-    is(
-      await reloadAndGetCounter(tab, type),
-      2,
-      "network cache should be used."
-    );
-  } else {
-    // The above reload loads from the JS cache.
-    // Currently, network cache is not re-created from the JS cache.
-    is(
-      await reloadAndGetCounter(tab, type),
-      2,
-      "request should reach the server after both cache is cleared."
-    );
-  }
+  await clearJSCache();
+  is(await reloadAndGetCounter(tab), 2, "network cache should be used.");
 
   BrowserTestUtils.removeTab(tab);
-}
-
-add_task(async function test_scriptWithoutNavigationCache() {
-  await doTest(false, "script");
 });
 
-add_task(async function test_scriptWithNavigationCache() {
-  await doTest(true, "script");
-});
+add_task(async function test_withNavigationCache() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.script_loader.navigation_cache", true]],
+  });
+  registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-add_task(async function test_moduleTopLevelWithoutNavigationCache() {
-  await doTest(false, "module-top-level");
-});
+  await clearAllCache();
 
-add_task(async function test_moduleTopLevelWithNavigationCache() {
-  await doTest(true, "module-top-level");
-});
+  const resetResponse = await fetch(TEST_SCRIPT_URL + "?reset");
+  is(await resetResponse.text(), "reset", "Server state should be reset");
 
-add_task(async function test_moduleStaticWithoutNavigationCache() {
-  await doTest(false, "module-static");
-});
+  const tab = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    url: TEST_URL,
+  });
 
-add_task(async function test_moduleStaticWithNavigationCache() {
-  await doTest(true, "module-static");
-});
+  is(await getCounter(tab), 0, "counter should be 0 for the first load.");
 
-add_task(async function test_moduleDynamicWithoutNavigationCache() {
-  await doTest(false, "module-dynamic");
-});
+  is(
+    await reloadAndGetCounter(tab),
+    0,
+    "cache should be used for subsequent load."
+  );
 
-add_task(async function test_moduleDynamicWithNavigationCache() {
-  await doTest(true, "module-dynamic");
+  await clearAllCache();
+  is(
+    await reloadAndGetCounter(tab),
+    1,
+    "request should reach the server after removing all cache."
+  );
+  is(
+    await reloadAndGetCounter(tab),
+    1,
+    "cache should be used for subsequent load."
+  );
+
+  await clearJSCache();
+  is(await reloadAndGetCounter(tab), 1, "network cache should be used.");
+
+  // The above reload loads from the network cache, and the JS cache is
+  // re-created.
+
+  await clearNetworkCache();
+  is(await reloadAndGetCounter(tab), 1, "JS cache should be used.");
+
+  // The above reload loads from the JS cache.
+  // Currently, network cache is not re-created from the JS cache.
+
+  await clearJSCache();
+  is(
+    await reloadAndGetCounter(tab),
+    2,
+    "request should reach the server after both cache is cleared."
+  );
+
+  BrowserTestUtils.removeTab(tab);
 });
