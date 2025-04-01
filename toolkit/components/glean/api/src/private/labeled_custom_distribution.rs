@@ -7,7 +7,7 @@ use inherent::inherent;
 use glean::traits::CustomDistribution;
 
 use crate::ipc::with_ipc_payload;
-use crate::private::{CustomDistributionMetric, DistributionData, MetricId};
+use crate::private::{BaseMetricId, CustomDistributionMetric, DistributionData};
 use std::collections::HashMap;
 
 #[cfg(feature = "with_gecko")]
@@ -23,12 +23,12 @@ use super::profiler_utils::{
 #[derive(Clone)]
 pub enum LabeledCustomDistributionMetric {
     Parent(CustomDistributionMetric),
-    Child { id: MetricId, label: String },
+    Child { id: BaseMetricId, label: String },
 }
 
 impl LabeledCustomDistributionMetric {
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> crate::private::MetricGetter {
+    pub(crate) fn metric_id(&self) -> crate::private::MetricId {
         match self {
             LabeledCustomDistributionMetric::Parent(p) => p.metric_id(),
             LabeledCustomDistributionMetric::Child { id, .. } => (*id).into(),
@@ -166,8 +166,8 @@ mod test {
 
             let metric_id = child_metric
                 .metric_id()
-                .metric_id()
-                .expect("Cannot perform IPC calls without a MetricId");
+                .base_metric_id()
+                .expect("Cannot perform IPC calls without a BaseMetricId");
 
             child_metric.accumulate_single_sample_signed(42);
 

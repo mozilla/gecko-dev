@@ -7,7 +7,7 @@ use inherent::inherent;
 use glean::traits::MemoryDistribution;
 
 use crate::ipc::with_ipc_payload;
-use crate::private::{DistributionData, MemoryDistributionMetric, MetricId};
+use crate::private::{BaseMetricId, DistributionData, MemoryDistributionMetric};
 use std::collections::HashMap;
 
 #[cfg(feature = "with_gecko")]
@@ -23,12 +23,12 @@ use super::profiler_utils::{
 #[derive(Clone)]
 pub enum LabeledMemoryDistributionMetric {
     Parent(MemoryDistributionMetric),
-    Child { id: MetricId, label: String },
+    Child { id: BaseMetricId, label: String },
 }
 
 impl LabeledMemoryDistributionMetric {
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> crate::private::MetricGetter {
+    pub(crate) fn metric_id(&self) -> crate::private::MetricId {
         match self {
             LabeledMemoryDistributionMetric::Parent(p) => p.metric_id(),
             LabeledMemoryDistributionMetric::Child { id, .. } => (*id).into(),
@@ -180,8 +180,8 @@ mod test {
                         .get(
                             &child_metric
                                 .metric_id()
-                                .metric_id()
-                                .expect("Cannot perform IPC calls without a MetricId")
+                                .base_metric_id()
+                                .expect("Cannot perform IPC calls without a BaseMetricId")
                         )
                         .unwrap()
                         .get(label)

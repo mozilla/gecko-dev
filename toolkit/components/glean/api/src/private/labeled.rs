@@ -5,9 +5,9 @@
 use inherent::inherent;
 
 use super::{
-    ErrorType, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
-    LabeledMemoryDistributionMetric, LabeledMetricData, LabeledQuantityMetric, LabeledStringMetric,
-    LabeledTimingDistributionMetric, MetricId, SubMetricId,
+    BaseMetricId, ErrorType, LabeledBooleanMetric, LabeledCounterMetric,
+    LabeledCustomDistributionMetric, LabeledMemoryDistributionMetric, LabeledMetricData,
+    LabeledQuantityMetric, LabeledStringMetric, LabeledTimingDistributionMetric, SubMetricId,
 };
 use crate::ipc::need_ipc;
 use crate::metrics::__glean_metric_maps::submetric_maps;
@@ -20,9 +20,9 @@ use std::sync::Arc;
 /// We wrap it in a private module that is inaccessible outside of this module.
 mod private {
     use super::{
-        need_ipc, submetric_maps, LabeledBooleanMetric, LabeledCounterMetric,
+        need_ipc, submetric_maps, BaseMetricId, LabeledBooleanMetric, LabeledCounterMetric,
         LabeledCustomDistributionMetric, LabeledMemoryDistributionMetric, LabeledQuantityMetric,
-        LabeledStringMetric, LabeledTimingDistributionMetric, MetricId, SubMetricId,
+        LabeledStringMetric, LabeledTimingDistributionMetric, SubMetricId,
     };
     use crate::private::labeled_timing_distribution::LabeledTimingDistributionMetricKind;
     use crate::private::{
@@ -38,14 +38,14 @@ mod private {
     pub trait Sealed {
         type GleanMetric: glean::private::AllowLabeled + Clone;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             permit_unordered_ipc: bool,
         ) -> (Arc<Self>, SubMetricId);
     }
 
-    fn submetric_id_for(id: MetricId, label: &str) -> SubMetricId {
+    fn submetric_id_for(id: BaseMetricId, label: &str) -> SubMetricId {
         let label_owned = label.to_string();
         let tuple = (id, label_owned);
         let mut map = submetric_maps::LABELED_METRICS_TO_IDS
@@ -66,7 +66,7 @@ mod private {
     impl Sealed for LabeledBooleanMetric {
         type GleanMetric = glean::private::BooleanMetric;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             permit_unordered_ipc: bool,
@@ -104,7 +104,7 @@ mod private {
     impl Sealed for LabeledStringMetric {
         type GleanMetric = glean::private::StringMetric;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             _permit_unordered_ipc: bool,
@@ -135,7 +135,7 @@ mod private {
     impl Sealed for LabeledCounterMetric {
         type GleanMetric = glean::private::CounterMetric;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             _permit_unordered_ipc: bool,
@@ -168,7 +168,7 @@ mod private {
     impl Sealed for LabeledCustomDistributionMetric {
         type GleanMetric = glean::private::CustomDistributionMetric;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             _permit_unordered_ipc: bool,
@@ -201,7 +201,7 @@ mod private {
     impl Sealed for LabeledMemoryDistributionMetric {
         type GleanMetric = glean::private::MemoryDistributionMetric;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             _permit_unordered_ipc: bool,
@@ -234,7 +234,7 @@ mod private {
     impl Sealed for LabeledTimingDistributionMetric {
         type GleanMetric = glean::private::TimingDistributionMetric;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             _permit_unordered_ipc: bool,
@@ -278,7 +278,7 @@ mod private {
     impl Sealed for LabeledQuantityMetric {
         type GleanMetric = glean::private::QuantityMetric;
         fn from_glean_metric(
-            id: MetricId,
+            id: BaseMetricId,
             metric: &glean::private::LabeledMetric<Self::GleanMetric>,
             label: &str,
             _permit_unordered_ipc: bool,
@@ -343,7 +343,7 @@ impl<T> AllowLabeled for T where T: private::Sealed {}
 /// ```
 pub struct LabeledMetric<T: AllowLabeled, E> {
     /// The metric ID of the underlying metric.
-    id: MetricId,
+    id: BaseMetricId,
 
     /// Wrapping the underlying core metric.
     ///
@@ -365,7 +365,7 @@ where
     ///
     /// See [`get`](#method.get) for information on how static or dynamic labels are handled.
     pub fn new(
-        id: MetricId,
+        id: BaseMetricId,
         meta: LabeledMetricData,
         labels: Option<Vec<Cow<'static, str>>>,
     ) -> LabeledMetric<T, E> {
@@ -379,7 +379,7 @@ where
     }
 
     pub fn with_unordered_ipc(
-        id: MetricId,
+        id: BaseMetricId,
         meta: LabeledMetricData,
         labels: Option<Vec<Cow<'static, str>>>,
     ) -> LabeledMetric<T, E> {

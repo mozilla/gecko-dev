@@ -9,7 +9,7 @@ use glean::traits::Quantity;
 
 use super::CommonMetricData;
 
-use super::{MetricGetter, MetricId};
+use super::{BaseMetricId, MetricId};
 use crate::ipc::need_ipc;
 
 /// A quantity metric.
@@ -21,7 +21,7 @@ pub enum QuantityMetric {
         /// The metric's ID. Used for testing and profiler markers. Quantity
         /// metrics can be labeled, so we may have either a metric ID or
         /// sub-metric ID.
-        id: MetricGetter,
+        id: MetricId,
         inner: Arc<glean::private::QuantityMetric>,
     },
     Child(QuantityMetricIpc),
@@ -31,7 +31,7 @@ pub struct QuantityMetricIpc;
 
 impl QuantityMetric {
     /// Create a new quantity metric.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             QuantityMetric::Child(QuantityMetricIpc)
         } else {

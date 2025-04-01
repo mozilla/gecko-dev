@@ -5,7 +5,7 @@
 use inherent::inherent;
 use std::sync::Arc;
 
-use super::{CommonMetricData, MetricId};
+use super::{BaseMetricId, CommonMetricData};
 use crate::ipc::need_ipc;
 
 /// A text metric.
@@ -41,10 +41,10 @@ use crate::ipc::need_ipc;
 pub enum TextMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. Text
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: Arc<glean::private::TextMetric>,
     },
     Child(TextMetricIpc),
@@ -55,7 +55,7 @@ pub struct TextMetricIpc;
 
 impl TextMetric {
     /// Create a new text metric.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             TextMetric::Child(TextMetricIpc)
         } else {

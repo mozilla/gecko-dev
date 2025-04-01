@@ -4,7 +4,7 @@
 
 use inherent::inherent;
 
-use super::{CommonMetricData, MetricId};
+use super::{BaseMetricId, CommonMetricData};
 
 use glean::traits::StringList;
 
@@ -17,20 +17,20 @@ use crate::ipc::{need_ipc, with_ipc_payload};
 pub enum StringListMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. String
-        /// list metrics canot be labeled, so we only store a MetricId. If
-        /// this changes, this should be changed to a MetricGetter to
+        /// list metrics canot be labeled, so we only store a BaseMetricId. If
+        /// this changes, this should be changed to a MetricId to
         /// distinguish between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::StringListMetric,
     },
     Child(StringListMetricIpc),
 }
 #[derive(Clone, Debug)]
-pub struct StringListMetricIpc(MetricId);
+pub struct StringListMetricIpc(BaseMetricId);
 
 impl StringListMetric {
     /// Create a new string list metric.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             StringListMetric::Child(StringListMetricIpc(id))
         } else {

@@ -4,7 +4,7 @@
 
 use inherent::inherent;
 
-use super::{CommonMetricData, MetricId};
+use super::{BaseMetricId, CommonMetricData};
 
 use crate::ipc::need_ipc;
 
@@ -14,7 +14,7 @@ use super::profiler_utils::{truncate_string_for_marker, TelemetryProfilerCategor
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct UrlMetricMarker {
-    id: MetricId,
+    id: BaseMetricId,
     val: String,
 }
 
@@ -55,10 +55,10 @@ impl gecko_profiler::ProfilerMarker for UrlMetricMarker {
 pub enum UrlMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. URL
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::UrlMetric,
     },
     Child(UrlMetricIpc),
@@ -68,7 +68,7 @@ pub struct UrlMetricIpc;
 
 impl UrlMetric {
     /// Create a new Url metric.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             UrlMetric::Child(UrlMetricIpc)
         } else {

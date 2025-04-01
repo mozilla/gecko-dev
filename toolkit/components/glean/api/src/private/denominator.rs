@@ -9,7 +9,7 @@ use super::CommonMetricData;
 use glean::traits::Counter;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
-use crate::private::MetricId;
+use crate::private::BaseMetricId;
 
 /// Developer-facing API for recording counter metrics that are acting as
 /// external denominators for rate metrics.
@@ -22,19 +22,23 @@ pub enum DenominatorMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers.
         /// Denominator metrics canot be labeled, so we only store a
-        /// MetricId. If this changes, this should be changed to a
-        /// MetricGetter to distinguish between metrics and sub-metrics.
-        id: MetricId,
+        /// BaseMetricId. If this changes, this should be changed to a
+        /// MetricId to distinguish between metrics and sub-metrics.
+        id: BaseMetricId,
         inner: glean::private::DenominatorMetric,
     },
     Child(DenominatorMetricIpc),
 }
 #[derive(Clone, Debug)]
-pub struct DenominatorMetricIpc(MetricId);
+pub struct DenominatorMetricIpc(BaseMetricId);
 
 impl DenominatorMetric {
     /// The constructor used by automatically generated metrics.
-    pub fn new(id: MetricId, meta: CommonMetricData, numerators: Vec<CommonMetricData>) -> Self {
+    pub fn new(
+        id: BaseMetricId,
+        meta: CommonMetricData,
+        numerators: Vec<CommonMetricData>,
+    ) -> Self {
         if need_ipc() {
             DenominatorMetric::Child(DenominatorMetricIpc(id))
         } else {
@@ -44,7 +48,7 @@ impl DenominatorMetric {
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> BaseMetricId {
         match self {
             DenominatorMetric::Parent { id, .. } => *id,
             DenominatorMetric::Child(c) => c.0,

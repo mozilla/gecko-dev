@@ -10,10 +10,10 @@ use crate::ipc::with_ipc_payload;
 use crate::private::BooleanMetric;
 use std::collections::HashMap;
 
-use super::MetricId;
+use super::BaseMetricId;
 
 #[allow(unused)]
-use super::MetricGetter;
+use super::MetricId;
 
 /// A boolean metric that knows it's a labeled_boolean's submetric.
 ///
@@ -23,12 +23,12 @@ use super::MetricGetter;
 pub enum LabeledBooleanMetric {
     Parent(BooleanMetric),
     Child,
-    UnorderedChild { id: MetricId, label: String },
+    UnorderedChild { id: BaseMetricId, label: String },
 }
 
 impl LabeledBooleanMetric {
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricGetter {
+    pub(crate) fn metric_id(&self) -> MetricId {
         match self {
             LabeledBooleanMetric::Parent(p) => p.metric_id(),
             LabeledBooleanMetric::UnorderedChild { id, .. } => (*id).into(),
@@ -144,8 +144,8 @@ mod test {
 
             let metric_id = child_metric
                 .metric_id()
-                .metric_id()
-                .expect("Cannot perform IPC calls without a MetricId");
+                .base_metric_id()
+                .expect("Cannot perform IPC calls without a BaseMetricId");
 
             child_metric.set(false);
 

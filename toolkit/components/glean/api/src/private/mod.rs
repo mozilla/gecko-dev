@@ -52,7 +52,7 @@ pub use self::labeled_custom_distribution::LabeledCustomDistributionMetric;
 pub use self::labeled_memory_distribution::LabeledMemoryDistributionMetric;
 pub use self::labeled_timing_distribution::LabeledTimingDistributionMetric;
 pub use self::memory_distribution::{LocalMemoryDistribution, MemoryDistributionMetric};
-pub use self::metric_getter::{MetricGetter, MetricId, SubMetricId};
+pub use self::metric_getter::{BaseMetricId, MetricId, SubMetricId};
 pub use self::numerator::NumeratorMetric;
 pub use self::object::{ObjectMetric, RuntimeObject};
 pub use self::ping::Ping;
@@ -175,19 +175,19 @@ pub(crate) mod profiler_utils {
 
     #[derive(serde::Serialize, serde::Deserialize, Debug)]
     pub(crate) struct StringLikeMetricMarker {
-        id: super::MetricGetter,
+        id: super::MetricId,
         val: String,
     }
 
     impl StringLikeMetricMarker {
-        pub fn new(id: super::MetricGetter, val: &String) -> StringLikeMetricMarker {
+        pub fn new(id: super::MetricId, val: &String) -> StringLikeMetricMarker {
             StringLikeMetricMarker {
                 id: id,
                 val: truncate_string_for_marker(val.clone()),
             }
         }
 
-        pub fn new_owned(id: super::MetricGetter, val: String) -> StringLikeMetricMarker {
+        pub fn new_owned(id: super::MetricId, val: String) -> StringLikeMetricMarker {
             StringLikeMetricMarker {
                 id: id,
                 val: truncate_string_for_marker(val),
@@ -237,7 +237,7 @@ pub(crate) mod profiler_utils {
     where
         T: Into<i64>,
     {
-        id: super::MetricGetter,
+        id: super::MetricId,
         label: Option<String>,
         val: T,
     }
@@ -246,11 +246,7 @@ pub(crate) mod profiler_utils {
     where
         T: Into<i64>,
     {
-        pub fn new(
-            id: super::MetricGetter,
-            label: Option<String>,
-            val: T,
-        ) -> IntLikeMetricMarker<T> {
+        pub fn new(id: super::MetricId, label: Option<String>, val: T) -> IntLikeMetricMarker<T> {
             IntLikeMetricMarker { id, label, val }
         }
     }
@@ -312,14 +308,14 @@ pub(crate) mod profiler_utils {
 
     #[derive(serde::Serialize, serde::Deserialize, Debug)]
     pub(crate) struct DistributionMetricMarker<T> {
-        id: super::MetricGetter,
+        id: super::MetricId,
         label: Option<String>,
         value: DistributionValues<T>,
     }
 
     impl<T> DistributionMetricMarker<T> {
         pub fn new(
-            id: super::MetricGetter,
+            id: super::MetricId,
             label: Option<String>,
             value: DistributionValues<T>,
         ) -> DistributionMetricMarker<T> {
@@ -389,17 +385,13 @@ pub(crate) mod profiler_utils {
 
     #[derive(serde::Serialize, serde::Deserialize, Debug)]
     pub(crate) struct BooleanMetricMarker {
-        id: super::MetricGetter,
+        id: super::MetricId,
         label: Option<String>,
         val: bool,
     }
 
     impl BooleanMetricMarker {
-        pub fn new(
-            id: super::MetricGetter,
-            label: Option<String>,
-            val: bool,
-        ) -> BooleanMetricMarker {
+        pub fn new(id: super::MetricId, label: Option<String>, val: bool) -> BooleanMetricMarker {
             BooleanMetricMarker { id, label, val }
         }
     }

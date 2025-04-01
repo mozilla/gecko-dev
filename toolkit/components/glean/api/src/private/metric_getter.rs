@@ -7,16 +7,16 @@ use serde::{Deserialize, Serialize};
 /// Uniquely identify a metric so that we can look up names, labels (etc) and
 /// perform IPC
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, Deserialize, Serialize)]
-pub enum MetricGetter {
-    Id(MetricId),
+pub enum MetricId {
+    Id(BaseMetricId),
     SubId(SubMetricId),
 }
 
-impl MetricGetter {
+impl MetricId {
     /// Extract the underlying metric_id, if there is one.
-    pub fn metric_id(self) -> Option<MetricId> {
+    pub fn base_metric_id(self) -> Option<BaseMetricId> {
         match self {
-            MetricGetter::Id(metric_id) => Some(metric_id),
+            MetricId::Id(base_metric_id) => Some(base_metric_id),
             _ => None,
         }
     }
@@ -27,7 +27,7 @@ impl MetricGetter {
 }
 
 #[cfg(feature = "with_gecko")]
-impl MetricGetter {
+impl MetricId {
     /// Given a metric getter, retrieve the name and (optionally) label of the
     /// underlying metric. Note, this currently returns the name of the
     /// metric in the so-called "JavaScript conjugation", while labels are
@@ -36,8 +36,8 @@ impl MetricGetter {
     /// will allow us to get both in the yaml conjugation.
     pub fn get_identifiers(&self) -> (String, Option<String>) {
         match self {
-            MetricGetter::Id(id) => (id.get_name(), None),
-            MetricGetter::SubId(sid) => match sid.lookup_metric_id_and_label() {
+            MetricId::Id(id) => (id.get_name(), None),
+            MetricId::SubId(sid) => match sid.lookup_metric_id_and_label() {
                 Some((id, label)) => (id.get_name(), Some(label)),
                 None => (String::from("Could not find submetric in maps"), None),
             },
@@ -45,25 +45,25 @@ impl MetricGetter {
     }
 }
 
-impl From<MetricId> for MetricGetter {
-    fn from(metric_id: MetricId) -> MetricGetter {
-        MetricGetter::Id(metric_id)
+impl From<BaseMetricId> for MetricId {
+    fn from(base_metric_id: BaseMetricId) -> MetricId {
+        MetricId::Id(base_metric_id)
     }
 }
 
-impl From<SubMetricId> for MetricGetter {
-    fn from(submetric_id: SubMetricId) -> MetricGetter {
-        MetricGetter::SubId(submetric_id)
+impl From<SubMetricId> for MetricId {
+    fn from(submetric_id: SubMetricId) -> MetricId {
+        MetricId::SubId(submetric_id)
     }
 }
 
-impl std::ops::Deref for MetricGetter {
+impl std::ops::Deref for MetricId {
     type Target = u32;
 
     fn deref(&self) -> &Self::Target {
         match self {
-            MetricGetter::Id(MetricId(m)) => m,
-            MetricGetter::SubId(SubMetricId(m)) => m,
+            MetricId::Id(BaseMetricId(m)) => m,
+            MetricId::SubId(SubMetricId(m)) => m,
         }
     }
 }
@@ -71,9 +71,9 @@ impl std::ops::Deref for MetricGetter {
 /// Uniquely identifies a single metric across all metric types.
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, Deserialize, Serialize)]
 #[repr(transparent)]
-pub struct MetricId(pub(crate) u32);
+pub struct BaseMetricId(pub(crate) u32);
 
-impl MetricId {
+impl BaseMetricId {
     pub fn new(id: u32) -> Self {
         Self(id)
     }
@@ -84,7 +84,7 @@ impl MetricId {
 }
 
 #[cfg(feature = "with_gecko")]
-impl MetricId {
+impl BaseMetricId {
     // Wraps the result of `lookup_canonical_metric_name` so that it's
     // slightly easier for consumers to use. Also provides a slightly more
     // abstracted interface, so that in future we can use other ways to get
@@ -120,13 +120,13 @@ impl MetricId {
     }
 }
 
-impl From<u32> for MetricId {
+impl From<u32> for BaseMetricId {
     fn from(id: u32) -> Self {
         Self(id)
     }
 }
 
-impl std::ops::Deref for MetricId {
+impl std::ops::Deref for BaseMetricId {
     type Target = u32;
 
     fn deref(&self) -> &Self::Target {
@@ -154,7 +154,7 @@ impl SubMetricId {
     /// Given a submetric id, use the glean submetric maps to look up the
     /// underlying metric id, and label. Note that this essentially performs
     /// the reverse of `private::submetric_id_for`.
-    pub(crate) fn lookup_metric_id_and_label(&self) -> Option<(MetricId, String)> {
+    pub(crate) fn lookup_metric_id_and_label(&self) -> Option<(BaseMetricId, String)> {
         let map = crate::metrics::__glean_metric_maps::submetric_maps::LABELED_METRICS_TO_IDS
             .read()
             .expect("read lock of submetric ids was poisoned");

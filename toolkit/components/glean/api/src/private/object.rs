@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::{CommonMetricData, MetricId};
+use super::{BaseMetricId, CommonMetricData};
 
 use crate::ipc::need_ipc;
 
@@ -14,7 +14,7 @@ use super::profiler_utils::{truncate_string_for_marker, TelemetryProfilerCategor
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct ObjectMetricMarker {
-    id: MetricId,
+    id: BaseMetricId,
     value: String,
 }
 
@@ -70,10 +70,10 @@ impl ObjectSerialize for RuntimeObject {
 pub enum ObjectMetric<K> {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. Object
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::ObjectMetric<K>,
     },
     Child,
@@ -81,7 +81,7 @@ pub enum ObjectMetric<K> {
 
 impl<K: ObjectSerialize + Clone> ObjectMetric<K> {
     /// Create a new object metric.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             ObjectMetric::Child
         } else {

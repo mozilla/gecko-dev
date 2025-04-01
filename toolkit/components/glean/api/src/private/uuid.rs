@@ -6,7 +6,7 @@ use inherent::inherent;
 
 use uuid::Uuid;
 
-use super::{CommonMetricData, MetricId};
+use super::{BaseMetricId, CommonMetricData};
 
 use crate::ipc::need_ipc;
 
@@ -16,10 +16,10 @@ use crate::ipc::need_ipc;
 pub enum UuidMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. UUID
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::UuidMetric,
     },
     Child(UuidMetricIpc),
@@ -30,7 +30,7 @@ pub struct UuidMetricIpc;
 
 impl UuidMetric {
     /// Create a new UUID metric.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             UuidMetric::Child(UuidMetricIpc)
         } else {

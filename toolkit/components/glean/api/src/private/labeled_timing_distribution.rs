@@ -12,9 +12,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::private::{
-    DistributionData, ErrorType, MetricGetter, TimerId, TimingDistributionMetric,
-};
+use crate::private::{DistributionData, ErrorType, MetricId, TimerId, TimingDistributionMetric};
 
 use crate::ipc::with_ipc_payload;
 
@@ -27,7 +25,7 @@ use super::timing_distribution::{TDMPayload, TimingDistributionMetricMarker};
 #[derive(Clone)]
 pub struct LabeledTimingDistributionMetric {
     pub(crate) inner: Arc<TimingDistributionMetric>,
-    pub(crate) id: MetricGetter,
+    pub(crate) id: MetricId,
     pub(crate) label: String,
     pub(crate) kind: LabeledTimingDistributionMetricKind,
 }
@@ -39,7 +37,7 @@ pub enum LabeledTimingDistributionMetricKind {
 
 impl LabeledTimingDistributionMetric {
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricGetter {
+    pub(crate) fn metric_id(&self) -> MetricId {
         self.id
     }
 }
@@ -59,8 +57,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             }
             let id = &self
                 .id
-                .metric_id()
-                .expect("Cannot perform GIFFT calls without a MetricId");
+                .base_metric_id()
+                .expect("Cannot perform GIFFT calls without a BaseMetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionStart(
@@ -97,8 +95,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                 if let Some(sample) = self.inner.child_stop(timer_id) {
                     let id = &self
                         .id
-                        .metric_id()
-                        .expect("Cannot perform IPC calls without a MetricId");
+                        .base_metric_id()
+                        .expect("Cannot perform IPC calls without a BaseMetricId");
                     with_ipc_payload(move |payload| {
                         if let Some(map) = payload.labeled_timing_samples.get_mut(id) {
                             if let Some(v) = map.get_mut(&self.label) {
@@ -128,8 +126,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             }
             let id = &self
                 .id
-                .metric_id()
-                .expect("Cannot perform GIFFT calls without a MetricId");
+                .base_metric_id()
+                .expect("Cannot perform GIFFT calls without a BaseMetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionStopAndAccumulate(
@@ -169,8 +167,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             }
             let metric_id = &self
                 .id
-                .metric_id()
-                .expect("Cannot perform GIFFT calls without a MetricId");
+                .base_metric_id()
+                .expect("Cannot perform GIFFT calls without a BaseMetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionCancel(
@@ -321,8 +319,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
                 with_ipc_payload(move |payload| {
                     let id = &self
                         .id
-                        .metric_id()
-                        .expect("Cannot perform IPC calls without a MetricId");
+                        .base_metric_id()
+                        .expect("Cannot perform IPC calls without a BaseMetricId");
                     if let Some(map) = payload.labeled_timing_samples.get_mut(id) {
                         if let Some(v) = map.get_mut(&self.label) {
                             v.push(sample);
@@ -355,8 +353,8 @@ impl TimingDistribution for LabeledTimingDistributionMetric {
             }
             let id = &self
                 .id
-                .metric_id()
-                .expect("Cannot perform GIFFT calls without a MetricId");
+                .base_metric_id()
+                .expect("Cannot perform GIFFT calls without a BaseMetricId");
             // SAFETY: We're only loaning to C++ data we don't later use.
             unsafe {
                 GIFFT_LabeledTimingDistributionAccumulateRawMillis(
@@ -458,8 +456,8 @@ mod test {
                         .get(
                             &child_metric
                                 .metric_id()
-                                .metric_id()
-                                .expect("Cannot perform IPC calls without a MetricId")
+                                .base_metric_id()
+                                .expect("Cannot perform IPC calls without a BaseMetricId")
                         )
                         .unwrap()
                         .get(label)

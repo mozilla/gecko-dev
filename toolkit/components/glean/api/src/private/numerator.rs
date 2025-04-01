@@ -10,7 +10,7 @@ use glean::traits::Numerator;
 use glean::Rate;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
-use crate::private::MetricId;
+use crate::private::BaseMetricId;
 
 /// Developer-facing API for recording rate metrics with external denominators.
 ///
@@ -21,20 +21,20 @@ use crate::private::MetricId;
 pub enum NumeratorMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. Numerator
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::NumeratorMetric,
     },
     Child(NumeratorMetricIpc),
 }
 #[derive(Clone, Debug)]
-pub struct NumeratorMetricIpc(MetricId);
+pub struct NumeratorMetricIpc(BaseMetricId);
 
 impl NumeratorMetric {
     /// The public constructor used by automatically generated metrics.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             NumeratorMetric::Child(NumeratorMetricIpc(id))
         } else {
@@ -44,7 +44,7 @@ impl NumeratorMetric {
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> BaseMetricId {
         match self {
             NumeratorMetric::Parent { id, .. } => *id,
             NumeratorMetric::Child(c) => c.0,

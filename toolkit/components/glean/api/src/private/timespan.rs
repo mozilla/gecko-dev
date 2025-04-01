@@ -4,7 +4,7 @@
 
 use inherent::inherent;
 
-use super::{CommonMetricData, MetricId, TimeUnit};
+use super::{BaseMetricId, CommonMetricData, TimeUnit};
 use std::convert::TryInto;
 use std::time::Duration;
 
@@ -18,7 +18,7 @@ use super::profiler_utils::TelemetryProfilerCategory;
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct TimespanMetricMarker {
-    id: MetricId,
+    id: BaseMetricId,
     value: Option<u64>,
 }
 
@@ -76,10 +76,10 @@ impl gecko_profiler::ProfilerMarker for TimespanMetricMarker {
 pub enum TimespanMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. Time span
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::TimespanMetric,
         time_unit: TimeUnit,
     },
@@ -88,7 +88,7 @@ pub enum TimespanMetric {
 
 impl TimespanMetric {
     /// Create a new timespan metric.
-    pub fn new(id: MetricId, meta: CommonMetricData, time_unit: TimeUnit) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData, time_unit: TimeUnit) -> Self {
         if need_ipc() {
             TimespanMetric::Child
         } else {
@@ -298,7 +298,7 @@ impl Timespan for TimespanMetric {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::private::MetricId;
+    use crate::private::BaseMetricId;
     use crate::{common_test::*, ipc, metrics};
 
     #[test]
@@ -306,7 +306,7 @@ mod test {
         let _lock = lock_test();
 
         let metric = TimespanMetric::new(
-            MetricId(0),
+            BaseMetricId(0),
             CommonMetricData {
                 name: "timespan_metric".into(),
                 category: "telemetry".into(),

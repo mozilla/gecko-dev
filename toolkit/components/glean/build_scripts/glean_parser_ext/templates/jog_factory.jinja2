@@ -23,7 +23,7 @@ CommonMetricData {
 {%- endmacro -%}
 
 {% macro metric_ctor(metric_type_name, metric_type, ctor='new') %}
-{{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}{{ ctor }}{% endif %}(MetricId(metric_id), meta
+{{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}{{ ctor }}{% endif %}(BaseMetricId(metric_id), meta
 {%- for arg_name in metric_type.args if not metric_type_name.startswith('labeled_') and arg_name not in common_metric_data_args -%}
     , {{ arg_name }}.unwrap()
 {%- endfor -%}
@@ -43,7 +43,7 @@ use crate::private::{
     TimeUnit,
     Ping,
     LabeledMetric,
-    MetricId,
+    BaseMetricId,
 {% for metric_type_name in metric_types.keys() if not metric_type_name.startswith('labeled_') %}
     {{ metric_type_name|Camelize }}Metric,
 {% endfor %}};
@@ -74,7 +74,7 @@ pub fn id_and_map_reset() {
 
 pub(crate) mod __jog_metric_maps {
     use crate::metrics::DynamicLabel;
-    use crate::private::MetricId;
+    use crate::private::BaseMetricId;
     use crate::private::{
         Ping,
         LabeledMetric,
@@ -89,13 +89,13 @@ pub(crate) mod __jog_metric_maps {
     use std::sync::{Arc, RwLock};
 
 {% for metric_type_name in metric_types.keys() if metric_type_name != "event" and not metric_type_name.startswith('labeled_') and metric_type_name != "object" %}
-    pub static {{ metric_type_name.upper() }}_MAP: Lazy<Arc<RwLock<HashMap<MetricId, {{ metric_type_name|Camelize }}Metric>>>> =
+    pub static {{ metric_type_name.upper() }}_MAP: Lazy<Arc<RwLock<HashMap<BaseMetricId, {{ metric_type_name|Camelize }}Metric>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 {% endfor %}
 {# Labeled metrics are special because they're LabeledMetric<Labeled{Counter|Boolean|...}Metric> #}
 {% for metric_type_name in metric_types.keys() if metric_type_name.startswith('labeled_') %}
-    pub static {{ metric_type_name.upper() }}_MAP: Lazy<Arc<RwLock<HashMap<MetricId, LabeledMetric<{{ metric_type_name|Camelize }}Metric, DynamicLabel>>>>> =
+    pub static {{ metric_type_name.upper() }}_MAP: Lazy<Arc<RwLock<HashMap<BaseMetricId, LabeledMetric<{{ metric_type_name|Camelize }}Metric, DynamicLabel>>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 {% endfor %}
@@ -103,10 +103,11 @@ pub(crate) mod __jog_metric_maps {
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 {# Event metrics are special because they're EventMetric<K> #}
-    pub static EVENT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, EventMetric<NoExtraKeys>>>>> =
+    pub static EVENT_MAP: Lazy<Arc<RwLock<HashMap<BaseMetricId, EventMetric<NoExtraKeys>>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 {# Object metrics are special because they're ObjectMetric<K> #}
-    pub static OBJECT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, ObjectMetric<RuntimeObject>>>>> =
+    #[allow(dead_code)]
+    pub static OBJECT_MAP: Lazy<Arc<RwLock<HashMap<BaseMetricId, ObjectMetric<RuntimeObject>>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 }
 
@@ -187,7 +188,7 @@ map of argument name to argument type. I may regret this if I need it again. #}
             {% endif %}
             let metric32: u32 = ({{metric_type.id}} << {{ID_BITS}}) | metric_id;
             assert!(
-                __jog_metric_maps::{{metric_type_name.upper()}}_MAP.write()?.insert(MetricId(metric_id), metric).is_none(),
+                __jog_metric_maps::{{metric_type_name.upper()}}_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
             );
             metric32

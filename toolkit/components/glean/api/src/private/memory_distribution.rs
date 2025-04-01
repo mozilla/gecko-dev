@@ -6,7 +6,7 @@ use inherent::inherent;
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use super::{CommonMetricData, DistributionData, MemoryUnit, MetricGetter, MetricId};
+use super::{BaseMetricId, CommonMetricData, DistributionData, MemoryUnit, MetricId};
 
 use glean::traits::MemoryDistribution;
 
@@ -27,17 +27,17 @@ pub enum MemoryDistributionMetric {
         /// The metric's ID. Used for testing and profiler markers. Memory
         /// distribution metrics can be labeled, so we may have either a
         /// metric ID or sub-metric ID.
-        id: MetricGetter,
+        id: MetricId,
         inner: Arc<glean::private::MemoryDistributionMetric>,
     },
     Child(MemoryDistributionMetricIpc),
 }
 #[derive(Clone, Debug)]
-pub struct MemoryDistributionMetricIpc(pub MetricId);
+pub struct MemoryDistributionMetricIpc(pub BaseMetricId);
 
 impl MemoryDistributionMetric {
     /// Create a new memory distribution metric.
-    pub fn new(id: MetricId, meta: CommonMetricData, memory_unit: MemoryUnit) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData, memory_unit: MemoryUnit) -> Self {
         if need_ipc() {
             MemoryDistributionMetric::Child(MemoryDistributionMetricIpc(id))
         } else {
@@ -57,7 +57,7 @@ impl MemoryDistributionMetric {
                 // context of a test. If this code is used elsewhere, the
                 // `unwrap` should be replaced with proper error handling of
                 // the `None` case.
-                MemoryDistributionMetricIpc((*id).metric_id().unwrap()),
+                MemoryDistributionMetricIpc((*id).base_metric_id().unwrap()),
             ),
             MemoryDistributionMetric::Child(_) => {
                 panic!("Can't get a child metric from a child metric")
@@ -66,7 +66,7 @@ impl MemoryDistributionMetric {
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricGetter {
+    pub(crate) fn metric_id(&self) -> MetricId {
         match self {
             MemoryDistributionMetric::Parent { id, .. } => *id,
             MemoryDistributionMetric::Child(c) => c.0.into(),
@@ -91,7 +91,7 @@ impl MemoryDistributionMetric {
                         payload.memory_samples.insert(c.0, samples);
                     }
                 });
-                MetricGetter::Id(c.0)
+                MetricId::Id(c.0)
             }
         };
         #[cfg(feature = "with_gecko")]
@@ -171,7 +171,7 @@ impl MemoryDistribution for MemoryDistributionMetric {
                         payload.memory_samples.insert(c.0, vec![sample]);
                     }
                 });
-                MetricGetter::Id(c.0)
+                MetricId::Id(c.0)
             }
         };
         #[cfg(feature = "with_gecko")]
@@ -243,7 +243,7 @@ mod test {
         let _lock = lock_test();
 
         let metric = MemoryDistributionMetric::new(
-            MetricId(0),
+            BaseMetricId(0),
             CommonMetricData {
                 name: "memory_distribution_metric".into(),
                 category: "telemetry".into(),

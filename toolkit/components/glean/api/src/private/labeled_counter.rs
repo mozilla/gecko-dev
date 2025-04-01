@@ -10,8 +10,8 @@ use super::CommonMetricData;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 #[cfg(test)]
-use crate::private::MetricGetter;
-use crate::private::{CounterMetric, MetricId};
+use crate::private::MetricId;
+use crate::private::{BaseMetricId, CounterMetric};
 
 use std::collections::HashMap;
 
@@ -22,12 +22,12 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub enum LabeledCounterMetric {
     Parent(CounterMetric),
-    Child { id: MetricId, label: String },
+    Child { id: BaseMetricId, label: String },
 }
 
 impl LabeledCounterMetric {
     /// Create a new labeled counter submetric.
-    pub fn new(id: MetricId, meta: CommonMetricData, label: String) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData, label: String) -> Self {
         if need_ipc() {
             LabeledCounterMetric::Child { id, label }
         } else {
@@ -36,7 +36,7 @@ impl LabeledCounterMetric {
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricGetter {
+    pub(crate) fn metric_id(&self) -> MetricId {
         match self {
             LabeledCounterMetric::Parent(p) => p.metric_id(),
             LabeledCounterMetric::Child { id, .. } => (*id).into(),
@@ -177,8 +177,8 @@ mod test {
 
             let metric_id = child_metric
                 .metric_id()
-                .metric_id()
-                .expect("Cannot perform IPC calls without a MetricId");
+                .base_metric_id()
+                .expect("Cannot perform IPC calls without a BaseMetricId");
 
             child_metric.add(42);
 

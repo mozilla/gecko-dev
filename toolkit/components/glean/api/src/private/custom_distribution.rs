@@ -5,7 +5,7 @@
 use inherent::inherent;
 use std::sync::Arc;
 
-use super::{CommonMetricData, MetricGetter, MetricId};
+use super::{BaseMetricId, CommonMetricData, MetricId};
 use glean::{DistributionData, ErrorType, HistogramType};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
@@ -26,18 +26,18 @@ pub enum CustomDistributionMetric {
         /// The metric's ID. Used for testing and profiler markers. Custom
         /// distribution metrics can be labeled, so we may have either a
         /// metric ID or sub-metric ID.
-        id: MetricGetter,
+        id: MetricId,
         inner: Arc<glean::private::CustomDistributionMetric>,
     },
     Child(CustomDistributionMetricIpc),
 }
 #[derive(Debug, Clone)]
-pub struct CustomDistributionMetricIpc(pub MetricId);
+pub struct CustomDistributionMetricIpc(pub BaseMetricId);
 
 impl CustomDistributionMetric {
     /// Create a new custom distribution metric.
     pub fn new(
-        id: MetricId,
+        id: BaseMetricId,
         meta: CommonMetricData,
         range_min: i64,
         range_max: i64,
@@ -62,7 +62,7 @@ impl CustomDistributionMetric {
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricGetter {
+    pub(crate) fn metric_id(&self) -> MetricId {
         match self {
             CustomDistributionMetric::Parent { id, .. } => *id,
             CustomDistributionMetric::Child(c) => c.0.into(),
@@ -77,7 +77,7 @@ impl CustomDistributionMetric {
                 // context of a test. If this code is used elsewhere, the
                 // `unwrap` should be replaced with proper error handling of
                 // the `None` case.
-                CustomDistributionMetricIpc(id.metric_id().unwrap()),
+                CustomDistributionMetricIpc(id.base_metric_id().unwrap()),
             ),
             CustomDistributionMetric::Child(_) => {
                 panic!("Can't get a child metric from a child metric")
@@ -136,7 +136,7 @@ impl CustomDistribution for CustomDistributionMetric {
                         payload.custom_samples.insert(c.0, samples);
                     }
                 });
-                MetricGetter::Id(c.0)
+                MetricId::Id(c.0)
             }
         };
 
@@ -163,7 +163,7 @@ impl CustomDistribution for CustomDistributionMetric {
                         payload.custom_samples.insert(c.0, vec![sample]);
                     }
                 });
-                MetricGetter::Id(c.0)
+                MetricId::Id(c.0)
             }
         };
         #[cfg(feature = "with_gecko")]

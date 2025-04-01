@@ -9,7 +9,7 @@ use super::CommonMetricData;
 use glean::traits::Rate;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
-use crate::private::MetricId;
+use crate::private::BaseMetricId;
 
 /// Developer-facing API for recording rate metrics.
 ///
@@ -20,20 +20,20 @@ use crate::private::MetricId;
 pub enum RateMetric {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. Rate
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::RateMetric,
     },
     Child(RateMetricIpc),
 }
 #[derive(Clone, Debug)]
-pub struct RateMetricIpc(MetricId);
+pub struct RateMetricIpc(BaseMetricId);
 
 impl RateMetric {
     /// The public constructor used by automatically generated metrics.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             RateMetric::Child(RateMetricIpc(id))
         } else {
@@ -43,7 +43,7 @@ impl RateMetric {
     }
 
     #[cfg(test)]
-    pub(crate) fn metric_id(&self) -> MetricId {
+    pub(crate) fn metric_id(&self) -> BaseMetricId {
         match self {
             RateMetric::Parent { id, .. } => *id,
             RateMetric::Child(c) => c.0,

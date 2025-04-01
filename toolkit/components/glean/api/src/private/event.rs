@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use inherent::inherent;
 
-use super::{CommonMetricData, MetricId, RecordedEvent};
+use super::{BaseMetricId, CommonMetricData, RecordedEvent};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 
@@ -19,7 +19,7 @@ use super::profiler_utils::TelemetryProfilerCategory;
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct EventMetricMarker {
-    id: MetricId,
+    id: BaseMetricId,
     extra: HashMap<String, String>,
 }
 
@@ -72,21 +72,21 @@ impl gecko_profiler::ProfilerMarker for EventMetricMarker {
 pub enum EventMetric<K> {
     Parent {
         /// The metric's ID. Used for testing and profiler markers. Event
-        /// metrics canot be labeled, so we only store a MetricId. If this
-        /// changes, this should be changed to a MetricGetter to distinguish
+        /// metrics canot be labeled, so we only store a BaseMetricId. If this
+        /// changes, this should be changed to a MetricId to distinguish
         /// between metrics and sub-metrics.
-        id: MetricId,
+        id: BaseMetricId,
         inner: glean::private::EventMetric<K>,
     },
     Child(EventMetricIpc),
 }
 
 #[derive(Debug)]
-pub struct EventMetricIpc(MetricId);
+pub struct EventMetricIpc(BaseMetricId);
 
 impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
     /// Create a new event metric.
-    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             EventMetric::Child(EventMetricIpc(id))
         } else {
@@ -96,7 +96,7 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
     }
 
     pub fn with_runtime_extra_keys(
-        id: MetricId,
+        id: BaseMetricId,
         meta: CommonMetricData,
         allowed_extra_keys: Vec<String>,
     ) -> Self {
@@ -234,7 +234,7 @@ mod test {
         let _lock = lock_test();
 
         let metric = EventMetric::<NoExtraKeys>::new(
-            MetricId(0),
+            BaseMetricId(0),
             CommonMetricData {
                 name: "event_metric".into(),
                 category: "telemetry".into(),

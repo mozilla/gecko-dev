@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 #[cfg(feature = "with_gecko")]
 use thin_vec::ThinVec;
 
-use super::{CommonMetricData, MetricGetter, MetricId, TimeUnit};
+use super::{BaseMetricId, CommonMetricData, MetricId, TimeUnit};
 use glean::{DistributionData, ErrorType, TimerId};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
@@ -44,7 +44,7 @@ impl TDMPayload {
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub(crate) struct TimingDistributionMetricMarker {
-    id: MetricGetter,
+    id: MetricId,
     label: Option<String>,
     timer_id: Option<u64>,
     value: Option<TDMPayload>,
@@ -53,7 +53,7 @@ pub(crate) struct TimingDistributionMetricMarker {
 #[cfg(feature = "with_gecko")]
 impl TimingDistributionMetricMarker {
     pub fn new(
-        id: MetricGetter,
+        id: MetricId,
         label: Option<String>,
         timer_id: Option<u64>,
         value: Option<TDMPayload>,
@@ -168,7 +168,7 @@ pub enum TimingDistributionMetric {
         /// The metric's ID. Used for testing, GIFFT, and profiler markers.
         /// Timing distribution metrics can be labeled, so we may have either
         /// a metric ID or sub-metric ID.
-        id: MetricGetter,
+        id: MetricId,
         gifft_time_unit: TimeUnit,
         inner: Arc<glean::private::TimingDistributionMetric>,
     },
@@ -176,7 +176,7 @@ pub enum TimingDistributionMetric {
 }
 #[derive(Debug)]
 pub struct TimingDistributionMetricIpc {
-    metric_id: MetricId,
+    metric_id: BaseMetricId,
     #[allow(unused)]
     gifft_time_unit: TimeUnit,
     next_timer_id: AtomicUsize,
@@ -185,7 +185,7 @@ pub struct TimingDistributionMetricIpc {
 
 impl TimingDistributionMetric {
     /// Create a new timing distribution metric, _child process only_.
-    pub(crate) fn new_child(id: MetricId, time_unit: TimeUnit) -> Self {
+    pub(crate) fn new_child(id: BaseMetricId, time_unit: TimeUnit) -> Self {
         debug_assert!(need_ipc());
         TimingDistributionMetric::Child(TimingDistributionMetricIpc {
             metric_id: id,
@@ -196,7 +196,7 @@ impl TimingDistributionMetric {
     }
 
     /// Create a new timing distribution metric.
-    pub fn new(id: MetricId, meta: CommonMetricData, time_unit: TimeUnit) -> Self {
+    pub fn new(id: BaseMetricId, meta: CommonMetricData, time_unit: TimeUnit) -> Self {
         if need_ipc() {
             Self::new_child(id, time_unit)
         } else {
@@ -221,7 +221,7 @@ impl TimingDistributionMetric {
                 // the context of a test. If this code is used elsewhere,
                 // the `unwrap` should be replaced with proper error
                 // handling of the `None` case.
-                metric_id: (*id).metric_id().unwrap(),
+                metric_id: (*id).base_metric_id().unwrap(),
                 gifft_time_unit: *gifft_time_unit,
                 next_timer_id: AtomicUsize::new(0),
                 instants: RwLock::new(HashMap::new()),
@@ -358,7 +358,7 @@ impl TimingDistributionMetric {
         match self {
             #[allow(unused)]
             TimingDistributionMetric::Parent {
-                id: id @ MetricGetter::Id(_),
+                id: id @ MetricId::Id(_),
                 inner,
                 ..
             } => {
@@ -392,7 +392,7 @@ impl TimingDistributionMetric {
         match self {
             #[allow(unused)]
             TimingDistributionMetric::Parent {
-                id: id @ MetricGetter::Id(_),
+                id: id @ MetricId::Id(_),
                 inner,
                 ..
             } => {
@@ -438,9 +438,9 @@ impl TimingDistribution for TimingDistributionMetric {
         let timer_id = self.inner_start();
         #[cfg(feature = "with_gecko")]
         {
-            let metric_id: MetricId = match self {
+            let metric_id: BaseMetricId = match self {
                 TimingDistributionMetric::Parent { id, .. } => id
-                    .metric_id()
+                    .base_metric_id()
                     .expect("Cannot perform GIFFT calls without a metric id."),
                 TimingDistributionMetric::Child(c) => c.metric_id,
             };
@@ -499,7 +499,7 @@ impl TimingDistribution for TimingDistributionMetric {
                     gifft_time_unit,
                     ..
                 } => (
-                    id.metric_id()
+                    id.base_metric_id()
                         .expect("Cannot perform GIFFT calls without a metric id."),
                     gifft_time_unit,
                 ),
@@ -544,9 +544,9 @@ impl TimingDistribution for TimingDistributionMetric {
         self.inner_cancel(id);
         #[cfg(feature = "with_gecko")]
         {
-            let metric_id: MetricId = match self {
+            let metric_id: BaseMetricId = match self {
                 TimingDistributionMetric::Parent { id, .. } => id
-                    .metric_id()
+                    .base_metric_id()
                     .expect("Cannot perform GIFFT calls without a metric id."),
                 TimingDistributionMetric::Child(c) => c.metric_id,
             };
@@ -607,7 +607,7 @@ impl TimingDistribution for TimingDistributionMetric {
                 .collect();
             let metric_id = match self {
                 TimingDistributionMetric::Parent { id, .. } => id
-                    .metric_id()
+                    .base_metric_id()
                     .expect("Cannot perform GIFFT calls without a metric id."),
                 TimingDistributionMetric::Child(c) => c.metric_id,
             };
@@ -639,7 +639,7 @@ impl TimingDistribution for TimingDistributionMetric {
         match self {
             #[allow(unused)]
             TimingDistributionMetric::Parent {
-                id: id @ MetricGetter::Id(_),
+                id: id @ MetricId::Id(_),
                 inner,
                 ..
             } => {
@@ -674,7 +674,7 @@ impl TimingDistribution for TimingDistributionMetric {
         {
             let metric_id = match self {
                 TimingDistributionMetric::Parent { id, .. } => id
-                    .metric_id()
+                    .base_metric_id()
                     .expect("Cannot perform GIFFT calls without a metric id."),
                 TimingDistributionMetric::Child(c) => c.metric_id,
             };
@@ -716,7 +716,7 @@ impl TimingDistribution for TimingDistributionMetric {
                     gifft_time_unit,
                     ..
                 } => (
-                    id.metric_id()
+                    id.base_metric_id()
                         .expect("Cannot perform GIFFT calls without a metric id."),
                     gifft_time_unit,
                 ),
