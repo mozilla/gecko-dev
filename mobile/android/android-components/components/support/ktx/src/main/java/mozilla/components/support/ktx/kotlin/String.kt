@@ -399,7 +399,7 @@ inline fun <C, R> C?.ifNullOrEmpty(defaultValue: () -> R): C where C : CharSeque
     if (isNullOrEmpty()) defaultValue() else this
 
 /**
- * Get the representative part of the URL. Usually this is the eTLD part of the host.
+ * Get the representative part of the URL. Usually this is the host with common prefixes (like "www.") removed.
  *
  * For example this method will return "facebook.com" for "https://www.facebook.com/foobar".
  */
