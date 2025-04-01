@@ -14,6 +14,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SegmentedVector.h"
+#include "mozilla/Variant.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/TypeDecls.h"
@@ -462,7 +463,10 @@ class CycleCollectedJSRuntime {
   mozilla::TimeStamp mLatestNurseryCollectionStart;
 
   JSHolderMap mJSHolders;
-  Maybe<JSHolderMap::Iter> mHolderIter;
+
+  // Holds state for incremental tracing of gray roots between calls to
+  // TraceNativeGrayRoots.
+  Variant<Nothing, JSHolderMap::Iter> mTraceState;
 
   using DeferredFinalizerTable = nsTHashMap<DeferredFinalizeFunction, void*>;
   DeferredFinalizerTable mDeferredFinalizerTable;

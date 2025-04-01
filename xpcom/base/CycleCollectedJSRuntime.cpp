@@ -686,6 +686,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
       mJSRuntime(JS_GetRuntime(aCx)),
       mHasPendingIdleGCTask(false),
       mPrevGCSliceCallback(nullptr),
+      mTraceState(Nothing()),
       mOutOfMemoryState(OOMState::OK),
       mLargeAllocationFailureState(OOMState::OK)
 #ifdef DEBUG
@@ -780,6 +781,7 @@ CycleCollectedJSRuntime::~CycleCollectedJSRuntime() {
   MOZ_ASSERT(!mDeferredFinalizerTable.Count());
   MOZ_ASSERT(!mFinalizeRunnable);
   MOZ_ASSERT(mShutdownCalled);
+  MOZ_ASSERT(mTraceState.is<Nothing>());
 }
 
 void CycleCollectedJSRuntime::SetContext(CycleCollectedJSContext* aContext) {
@@ -1378,7 +1380,7 @@ static inline bool ShouldCheckSingleZoneHolders() {
 
 #ifdef NS_BUILD_REFCNT_LOGGING
 void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(JSTracer* aTracer) {
-  MOZ_RELEASE_ASSERT(mHolderIter.isNothing());
+  MOZ_RELEASE_ASSERT(mTraceState.is<Nothing>());
   JS::SliceBudget budget = JS::SliceBudget::unlimited();
   MOZ_ALWAYS_TRUE(
       TraceNativeGrayRoots(aTracer, JSHolderMap::AllHolders, budget));
@@ -1388,25 +1390,29 @@ void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(JSTracer* aTracer) {
 bool CycleCollectedJSRuntime::TraceNativeGrayRoots(
     JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
     JS::SliceBudget& aBudget) {
-  if (!mHolderIter) {
+  if (mTraceState.is<Nothing>()) {
     // NB: This is here just to preserve the existing XPConnect order. I doubt
     // it would hurt to do this after the JS holders.
     TraceAdditionalNativeGrayRoots(aTracer);
 
-    mHolderIter.emplace(mJSHolders, aWhich);
+    mTraceState.emplace<JSHolderMap::Iter>(mJSHolders, aWhich);
     aBudget.forceCheck();
-  } else {
+  } else if (mTraceState.is<JSHolderMap::Iter>()) {
     // Holders may have been removed between slices, so we may need to update
     // the iterator.
-    mHolderIter->UpdateForRemovals();
+    mTraceState.as<JSHolderMap::Iter>().UpdateForRemovals();
   }
 
-  bool finished = TraceJSHolders(aTracer, *mHolderIter, aBudget);
-  if (finished) {
-    mHolderIter.reset();
+  if (mTraceState.is<JSHolderMap::Iter>()) {
+    auto& iter = mTraceState.as<JSHolderMap::Iter>();
+    if (!TraceJSHolders(aTracer, iter, aBudget)) {
+      return false;
+    }
+
+    mTraceState.emplace<Nothing>();
   }
 
-  return finished;
+  return true;
 }
 
 class GetHolderAddressFunctor : public JS::TracingContext::Functor {
@@ -1828,12 +1834,12 @@ void CycleCollectedJSRuntime::OnGC(JSContext* aContext, JSGCStatus aStatus,
                                    JS::GCReason aReason) {
   switch (aStatus) {
     case JSGC_BEGIN:
-      MOZ_RELEASE_ASSERT(mHolderIter.isNothing());
+      MOZ_RELEASE_ASSERT(mTraceState.is<Nothing>());
       nsCycleCollector_prepareForGarbageCollection();
       PrepareWaitingZonesForGC();
       break;
     case JSGC_END: {
-      MOZ_RELEASE_ASSERT(mHolderIter.isNothing());
+      MOZ_RELEASE_ASSERT(mTraceState.is<Nothing>());
       if (mOutOfMemoryState == OOMState::Reported) {
         AnnotateAndSetOutOfMemory(&mOutOfMemoryState, OOMState::Recovered);
       }
