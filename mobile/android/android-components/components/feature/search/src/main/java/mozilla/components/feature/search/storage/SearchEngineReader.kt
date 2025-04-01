@@ -21,9 +21,11 @@ import mozilla.components.support.images.DesiredSize
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
 import org.xmlpull.v1.XmlPullParserFactory
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.net.URL
 import java.nio.charset.StandardCharsets
 
 internal const val URL_TYPE_SUGGEST_JSON = "application/x-suggestions+json"
@@ -32,8 +34,9 @@ internal const val URL_TYPE_SEARCH_HTML = "text/html"
 internal const val URL_REL_MOBILE = "mobile"
 internal const val IMAGE_URI_PREFIX = "data:image/png;base64,"
 internal const val GOOGLE_ID = "google"
-private const val TARGET_SIZE = 192
-private const val MAX_SIZE = 256
+private const val TARGET_SIZE = 16
+private const val MAX_SIZE = 32
+private const val URL_PREFIX = "https://firefox-settings-attachments.cdn.mozilla.net/"
 
 // List of general search engine ids, taken from
 // https://searchfox.org/mozilla-central/rev/ef0aa879e94534ffd067a3748d034540a9fc10b0/toolkit/components/search/SearchUtils.sys.mjs#200
@@ -118,28 +121,6 @@ internal class SearchEngineReader(
         return builder.toSearchEngine()
     }
 
-    /**
-     * Loads a <code>SearchEngine</code> from the given <code>stream</code> and assigns it the given
-     * <code>identifier</code>.
-     */
-    @Throws(IllegalArgumentException::class)
-    fun loadStreamAPI(
-        engineDefinition: SearchEngineDefinition,
-        attachmentModel: AttachmentModel,
-    ): SearchEngine {
-        require(engineDefinition.name.isNotBlank()) { "Search engine name cannot be empty" }
-        require(engineDefinition.charset.isNotBlank()) { "Search engine charset cannot be empty" }
-        require(attachmentModel.location.isNotBlank()) { "Search engine icon location cannot be empty" }
-        val builder = SearchEngineBuilder(type, engineDefinition.identifier)
-        builder.name = engineDefinition.name
-        builder.inputEncoding = engineDefinition.charset
-        builder.isGeneral = engineDefinition.classification == SearchEngineClassification.GENERAL
-        readUrlAPI(engineDefinition, builder)
-        readImageAPI(attachmentModel.location, attachmentModel.mimetype, builder)
-
-        return builder.toSearchEngine()
-    }
-
     @Throws(XmlPullParserException::class, IOException::class)
     @Suppress("ComplexMethod")
     private fun readSearchPlugin(parser: XmlPullParser, builder: SearchEngineBuilder) {
@@ -201,6 +182,105 @@ internal class SearchEngineReader(
             URL_TYPE_SUGGEST_JSON -> builder.suggestUrl = url
             URL_TYPE_TRENDING_JSON -> builder.trendingUrl = url
         }
+    }
+
+    @Throws(XmlPullParserException::class, IOException::class)
+    private fun readUri(parser: XmlPullParser, template: String): Uri {
+        var uri = template.toUri()
+
+        while (parser.next() != XmlPullParser.END_TAG) {
+            if (parser.eventType != XmlPullParser.START_TAG) {
+                continue
+            }
+
+            if (parser.name == "Param") {
+                val name = parser.getAttributeValue(null, "name")
+                val value = parser.getAttributeValue(null, "value")
+                uri = uri.buildUpon().appendQueryParameter(name, value).build()
+                parser.nextTag()
+            } else {
+                skip(parser)
+            }
+        }
+
+        return uri
+    }
+
+    @Throws(XmlPullParserException::class, IOException::class)
+    private fun skip(parser: XmlPullParser) {
+        if (parser.eventType != XmlPullParser.START_TAG) {
+            throw IllegalStateException()
+        }
+        var depth = 1
+        while (depth != 0) {
+            when (parser.next()) {
+                XmlPullParser.END_TAG -> depth--
+                XmlPullParser.START_TAG -> depth++
+                // else: Do nothing - we're skipping content
+            }
+        }
+    }
+
+    @Throws(IOException::class, XmlPullParserException::class)
+    private fun readShortName(parser: XmlPullParser, builder: SearchEngineBuilder) {
+        parser.require(XmlPullParser.START_TAG, null, "ShortName")
+        if (parser.next() == XmlPullParser.TEXT) {
+            builder.name = parser.text
+            parser.nextTag()
+        }
+    }
+
+    @Throws(IOException::class, XmlPullParserException::class)
+    private fun readImage(parser: XmlPullParser, builder: SearchEngineBuilder) {
+        parser.require(XmlPullParser.START_TAG, null, "Image")
+
+        if (parser.next() != XmlPullParser.TEXT) {
+            return
+        }
+
+        val uri = parser.text
+        if (!uri.startsWith(IMAGE_URI_PREFIX)) {
+            return
+        }
+
+        val raw = Base64.decode(uri.substring(IMAGE_URI_PREFIX.length), Base64.DEFAULT)
+
+        builder.icon = BitmapFactory.decodeByteArray(raw, 0, raw.size)
+
+        parser.nextTag()
+    }
+
+    @Throws(IOException::class, XmlPullParserException::class)
+    private fun readInputEncoding(parser: XmlPullParser, builder: SearchEngineBuilder) {
+        parser.require(XmlPullParser.START_TAG, null, "InputEncoding")
+        if (parser.next() == XmlPullParser.TEXT) {
+            builder.inputEncoding = parser.text
+            parser.nextTag()
+        }
+    }
+
+    /**
+     * Loads a <code>SearchEngine</code> from the given <code>stream</code> and assigns it the given
+     * <code>identifier</code>.
+     */
+    @Throws(IllegalArgumentException::class)
+    fun loadStreamAPI(
+        engineDefinition: SearchEngineDefinition,
+        attachmentModel: AttachmentModel,
+        iconsURLPrefix: String = URL_PREFIX,
+    ): SearchEngine {
+        require(engineDefinition.name.isNotBlank()) { "Search engine name cannot be empty" }
+        require(engineDefinition.charset.isNotBlank()) { "Search engine charset cannot be empty" }
+        require(attachmentModel.location.isNotBlank()) { "Search engine icon location cannot be empty" }
+        require(engineDefinition.identifier.isNotBlank()) { "Search engine identifier cannot be empty" }
+        val builder = SearchEngineBuilder(type, engineDefinition.identifier)
+        builder.name = engineDefinition.name
+        builder.inputEncoding = engineDefinition.charset
+        builder.isGeneral = engineDefinition.classification == SearchEngineClassification.GENERAL
+        readUrlAPI(engineDefinition, builder)
+        readImageAPI(iconsURLPrefix + attachmentModel.location, attachmentModel.mimetype, builder)
+
+        return builder.toSearchEngine()
     }
 
     @Throws(IllegalArgumentException::class)
@@ -266,28 +346,6 @@ internal class SearchEngineReader(
         }
     }
 
-    @Throws(XmlPullParserException::class, IOException::class)
-    private fun readUri(parser: XmlPullParser, template: String): Uri {
-        var uri = template.toUri()
-
-        while (parser.next() != XmlPullParser.END_TAG) {
-            if (parser.eventType != XmlPullParser.START_TAG) {
-                continue
-            }
-
-            if (parser.name == "Param") {
-                val name = parser.getAttributeValue(null, "name")
-                val value = parser.getAttributeValue(null, "value")
-                uri = uri.buildUpon().appendQueryParameter(name, value).build()
-                parser.nextTag()
-            } else {
-                skip(parser)
-            }
-        }
-
-        return uri
-    }
-
     @Throws(IllegalArgumentException::class)
     private fun readUriAPI(params: List<SearchUrlParam>, template: String, partnerCode: String?): Uri {
         require(template.isNotBlank()) { "URI cannot be blank" }
@@ -302,75 +360,29 @@ internal class SearchEngineReader(
         return uriBuilder.build()
     }
 
-    @Throws(XmlPullParserException::class, IOException::class)
-    private fun skip(parser: XmlPullParser) {
-        if (parser.eventType != XmlPullParser.START_TAG) {
-            throw IllegalStateException()
-        }
-        var depth = 1
-        while (depth != 0) {
-            when (parser.next()) {
-                XmlPullParser.END_TAG -> depth--
-                XmlPullParser.START_TAG -> depth++
-                // else: Do nothing - we're skipping content
-            }
-        }
-    }
-
-    @Throws(IOException::class, XmlPullParserException::class)
-    private fun readShortName(parser: XmlPullParser, builder: SearchEngineBuilder) {
-        parser.require(XmlPullParser.START_TAG, null, "ShortName")
-        if (parser.next() == XmlPullParser.TEXT) {
-            builder.name = parser.text
-            parser.nextTag()
-        }
-    }
-
-    @Throws(IOException::class, XmlPullParserException::class)
-    private fun readImage(parser: XmlPullParser, builder: SearchEngineBuilder) {
-        parser.require(XmlPullParser.START_TAG, null, "Image")
-
-        if (parser.next() != XmlPullParser.TEXT) {
-            return
-        }
-
-        val uri = parser.text
-        if (!uri.startsWith(IMAGE_URI_PREFIX)) {
-            return
-        }
-
-        val raw = Base64.decode(uri.substring(IMAGE_URI_PREFIX.length), Base64.DEFAULT)
-
-        builder.icon = BitmapFactory.decodeByteArray(raw, 0, raw.size)
-
-        parser.nextTag()
-    }
-
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     private fun readImageAPI(iconUri: String, mimetype: String, builder: SearchEngineBuilder) {
         val allowedTypes = setOf("image/jpeg", "image/png", "image/x-icon")
         require(mimetype in allowedTypes) { "Unsupported image type: $mimetype" }
-        val raw = Base64.decode(iconUri, Base64.DEFAULT)
+        val raw: ByteArray
+        try {
+            raw = URL(iconUri).openStream().use { it.readBytes() }
+        } catch (e: FileNotFoundException) {
+            throw IllegalArgumentException("Failed to read image from location: $iconUri")
+        }
         val bitmap = when (mimetype) {
             "image/x-icon" -> {
                 val decoder = ICOIconDecoder()
                 decoder.decode(raw, DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f))
-                    ?: throw IllegalStateException("Failed to decode ICO format")
             }
             else -> {
-                BitmapFactory.decodeByteArray(raw, 0, raw.size)
-                    ?: throw IllegalStateException("Failed to decode image for mimetype: $mimetype")
+                BitmapFactory.decodeByteArray(raw, 0, raw.size) ?: null
             }
         }
-        builder.icon = bitmap
-    }
-
-    @Throws(IOException::class, XmlPullParserException::class)
-    private fun readInputEncoding(parser: XmlPullParser, builder: SearchEngineBuilder) {
-        parser.require(XmlPullParser.START_TAG, null, "InputEncoding")
-        if (parser.next() == XmlPullParser.TEXT) {
-            builder.inputEncoding = parser.text
-            parser.nextTag()
+        if (bitmap == null) {
+            throw IllegalStateException("Failed to decode image for mimetype: $mimetype")
         }
+
+        builder.icon = bitmap
     }
 }
