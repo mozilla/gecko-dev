@@ -246,14 +246,31 @@ export class FormAutofillSection {
         // allows for fields that might commonly appear twice such as a verification
         // email field, an invisible field that appears next to the user-visible field,
         // and simple cases where a page error where a field name is reused twice.
-        let isDuplicate = candidateSection.fieldDetails.find(
+        let dupIndex = candidateSection.fieldDetails.findIndex(
           f => f.fieldName == cur.fieldName && f.isVisible && cur.isVisible
         );
+        let isDuplicate = dupIndex != -1;
 
         if (isDuplicate) {
           const [last] = candidateSection.fieldDetails.slice(-1);
           if (last.fieldName == cur.fieldName) {
             isDuplicate = false;
+          } else if (
+            lazy.FormAutofillUtils.getCategoryFromFieldName(cur.fieldName) ==
+            "name"
+          ) {
+            // If the duplicate field is in the "name" category (e.g., family-name, given-name),
+            // we check whether all fields starting from the first duplicate also belong to the
+            // name category. If they do, we don't consider the field a duplicate, since name
+            // fields often appear in groups like family-name + given-name.
+            isDuplicate = !candidateSection.fieldDetails
+              .slice(dupIndex)
+              .every(
+                f =>
+                  lazy.FormAutofillUtils.getCategoryFromFieldName(
+                    f.fieldName
+                  ) === "name"
+              );
           }
         }
 
