@@ -98,6 +98,11 @@ interface nsIAppWindow : nsISupports
   void showModal();
 
   /**
+   * Rounds the window dimensions for fingerprinting resistance.
+   */
+  void forceRoundedDimensions();
+
+  /**
    * Locks the aspect ratio for a window.
    * @param aShouldLock boolean
    */

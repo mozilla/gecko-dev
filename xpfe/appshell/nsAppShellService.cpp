@@ -166,6 +166,19 @@ nsAppShellService::CreateTopLevelWindow(nsIAppWindow* aParent, nsIURI* aUrl,
   if (NS_SUCCEEDED(rv)) {
     // the addref resulting from this is the owning addref for this window
     RegisterTopLevelWindow(*aResult);
+#ifdef XP_WIN
+    // On Windows, we sometimes use PreXULSkeletonUI to show a window early.
+    // However, it doesn't start with the right RFP'd size, so we rescale it.
+    if (nsContentUtils::ShouldResistFingerprinting(
+            "When RFP is enabled, we unconditionally round new window sizes. "
+            "The code paths that create new windows are complicated, and this "
+            "is a conservative behavior to avoid exempting something that "
+            "shouldn't be. It also presents a uniform behavior for something "
+            "that's very browser-related.",
+            RFPTarget::RoundWindowSize)) {
+      (*aResult)->ForceRoundedDimensions();
+    }
+#endif
   }
 
   return rv;
