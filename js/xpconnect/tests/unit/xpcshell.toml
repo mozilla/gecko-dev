@@ -216,6 +216,8 @@ skip-if = ["os == 'android' && processor == 'x86_64'"]
 
 ["test_getObjectPrincipal.js"]
 
+["test_import_data.js"]
+
 ["test_import_devtools_loader.js"]
 
 ["test_import_es6_modules.js"]
