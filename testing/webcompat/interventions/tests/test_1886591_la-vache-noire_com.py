@@ -19,12 +19,6 @@ async def is_cookie_banner_visible(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.with_interventions
-async def test_enabled(client):
-    assert await is_cookie_banner_visible(client)
-
-
-@pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
-    assert not await is_cookie_banner_visible(client)
+    assert await is_cookie_banner_visible(client)

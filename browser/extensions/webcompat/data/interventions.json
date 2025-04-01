@@ -1919,23 +1919,6 @@
       }
     ]
   },
-  "1886591": {
-    "label": "la-vache-noire.com",
-    "bugs": {
-      "1886591": {
-        "issue": "broken-cookie-banner",
-        "matches": ["*://la-vache-noire.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1886591-la-vache-noire.com-cookie-banner-fix.css"]
-        }
-      }
-    ]
-  },
   "1886616": {
     "label": "www.six-group.com",
     "bugs": {
