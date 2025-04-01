@@ -527,6 +527,12 @@ bool WarpCacheIRTranspiler::emitGuardFuse(RealmFuses::FuseIndex fuseIndex) {
                               CompilationDependency::Type::RegExpPrototype>;
       return mirGen().tracker.addDependency(Dependency());
     }
+    case RealmFuses::FuseIndex::OptimizeStringPrototypeSymbolsFuse: {
+      using Dependency = RealmFuseDependency<
+          &RealmFuses::optimizeStringPrototypeSymbolsFuse,
+          CompilationDependency::Type::StringPrototypeSymbols>;
+      return mirGen().tracker.addDependency(Dependency());
+    }
     default:
       MOZ_ASSERT(!RealmFuses::isInvalidatingFuse(fuseIndex));
       auto* ins = MGuardFuse::New(alloc(), fuseIndex);

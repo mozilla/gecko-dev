@@ -193,7 +193,7 @@ struct OptimizeRegExpPrototypeFuse final : public InvalidatingRealmFuse {
 //   as prototype.
 // - Both String.prototype and Object.prototype don't have any of the following
 //   properties: Symbol.match, Symbol.replace, Symbol.search, Symbol.split.
-struct OptimizeStringPrototypeSymbolsFuse final : public RealmFuse {
+struct OptimizeStringPrototypeSymbolsFuse final : public InvalidatingRealmFuse {
   virtual const char* name() override {
     return "OptimizeStringPrototypeSymbolsFuse";
   }

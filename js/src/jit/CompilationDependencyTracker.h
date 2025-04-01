@@ -22,6 +22,7 @@ struct CompilationDependency {
     GetIterator,
     ArraySpecies,
     RegExpPrototype,
+    StringPrototypeSymbols,
     EmulatesUndefined,
     Limit
   };
