@@ -561,6 +561,9 @@ const TEST_GLOBAL = {
   },
   Logger: FakeLogger,
   getFxAccountsSingleton() {},
+  AWEnsureAddonInstalled() {
+    return Promise.resolve({ value: "complete" });
+  },
   AboutNewTab: {},
   Glean: {
     newtab: {
