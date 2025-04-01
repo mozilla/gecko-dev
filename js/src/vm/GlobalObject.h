@@ -199,6 +199,9 @@ class GlobalObjectData {
   // Shape for BoundFunctionObject with %Function.prototype% as proto.
   GCPtr<SharedShape*> boundFunctionShapeWithDefaultProto;
 
+  // Shape for RegExpObject with %RegExp.prototype% as proto.
+  GCPtr<SharedShape*> regExpShapeWithDefaultProto;
+
   // Global state for regular expressions.
   RegExpRealm regExpRealm;
 
@@ -1110,6 +1113,13 @@ class GlobalObject : public NativeObject {
   }
   void setBoundFunctionShapeWithDefaultProto(SharedShape* shape) {
     data().boundFunctionShapeWithDefaultProto = shape;
+  }
+
+  SharedShape* maybeRegExpShapeWithDefaultProto() const {
+    return data().regExpShapeWithDefaultProto;
+  }
+  void setRegExpShapeWithDefaultProto(SharedShape* shape) {
+    data().regExpShapeWithDefaultProto = shape;
   }
 
   static PropertyIteratorObject* getOrCreateEmptyIterator(JSContext* cx);

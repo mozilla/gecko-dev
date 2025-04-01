@@ -285,7 +285,14 @@ SharedShape* RegExpObject::assignInitialShape(JSContext* cx,
     return nullptr;
   }
 
-  return self->sharedShape();
+  // Cache the initial RegExpObject shape that has RegExp.prototype as proto in
+  // the global object.
+  SharedShape* shape = self->sharedShape();
+  JSObject* proto = cx->global()->maybeGetPrototype(JSProto_RegExp);
+  if (proto && shape->proto() == TaggedProto(proto)) {
+    cx->global()->setRegExpShapeWithDefaultProto(shape);
+  }
+  return shape;
 }
 
 void RegExpObject::initIgnoringLastIndex(JSAtom* source, RegExpFlags flags) {

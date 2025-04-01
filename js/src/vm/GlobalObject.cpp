@@ -1063,6 +1063,7 @@ void GlobalObjectData::trace(JSTracer* trc, GlobalObject* global) {
 
   TraceNullableEdge(trc, &boundFunctionShapeWithDefaultProto,
                     "global-bound-function-shape");
+  TraceNullableEdge(trc, &regExpShapeWithDefaultProto, "global-regexp-shape");
 
   regExpRealm.trace(trc);
 
