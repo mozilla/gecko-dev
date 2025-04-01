@@ -1655,18 +1655,32 @@ with only_when("--enable-compile-environment"):
         if enable and enable != ("legacy",):
             return enable
 
+    option(
+        "--enable-packed-relative-relocs",
+        help="{Enable|Disable} packed relative relocations (RELR)",
+        when=target_has_linux_kernel,
+    )
+
     @depends(
+        "--enable-packed-relative-relocs",
         have_arc4random,
         android_version,
         when=target_has_linux_kernel,
     )
-    def may_use_pack_relative_relocs(have_arc4random, android_version):
+    def may_use_pack_relative_relocs(enable, have_arc4random, android_version):
         # Packed relative relocations are only supported on Android since
-        # version 11 (API 30), and in glibc since version 2.36.
+        # version 11 (API 30), in glibc since version 2.36, and in musl
+        # since version 1.2.4.
         # glibc 2.36 also added the arc4random function, which is our proxy
         # to detect this (or newer) version being used.
         # When targetting those newer versions, we allow ourselves to use
         # packed relative relocations rather than elfhack.
+        # However, on musl libc there's no such discovery option, so we add a
+        # separate flag to enable this feature regardless.
+        if enable:
+            return True
+        if not enable and enable.origin != "default":
+            return False
         if android_version:
             return android_version >= 30
         return have_arc4random
