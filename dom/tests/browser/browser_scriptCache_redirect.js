@@ -26,6 +26,15 @@ async function reloadAndGetCounter(tab, query) {
   return getCounter(tab, query);
 }
 
+function clearAllCache() {
+  return new Promise(function (resolve) {
+    Services.clearData.deleteData(
+      Ci.nsIClearDataService.CLEAR_ALL_CACHES,
+      resolve
+    );
+  });
+}
+
 add_task(async function test_redirectCache() {
   await SpecialPowers.pushPrefEnv({
     set: [["dom.script_loader.navigation_cache", true]],
@@ -71,8 +80,7 @@ add_task(async function test_redirectCache() {
   ];
 
   for (const { query, cachedCounter, log } of tests) {
-    ChromeUtils.clearResourceCache();
-    Services.cache2.clear();
+    await clearAllCache();
 
     const resetResponse = await fetch(TEST_SCRIPT_URL + "?reset");
     is(await resetResponse.text(), "reset", "Server state should be reset");

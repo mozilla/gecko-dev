@@ -1,9 +1,17 @@
 const TEST_URL =
   "https://example.com/browser/dom/tests/browser/page_scriptCache_load_events.html";
 
+function clearAllCache() {
+  return new Promise(function (resolve) {
+    Services.clearData.deleteData(
+      Ci.nsIClearDataService.CLEAR_ALL_CACHES,
+      resolve
+    );
+  });
+}
+
 async function testOrder() {
-  ChromeUtils.clearResourceCache();
-  Services.cache2.clear();
+  await clearAllCache();
 
   const tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,

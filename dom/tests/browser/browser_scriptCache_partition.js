@@ -1,23 +1,13 @@
-const TEST_SCRIPT_URL_0 =
+const TEST_URL_0 =
   "https://example.com/browser/dom/tests/browser/page_scriptCache_partition.html";
 
-const TEST_SCRIPT_URL_1 =
+const TEST_URL_1 =
   "https://example.org/browser/dom/tests/browser/page_scriptCache_partition.html";
 
-const TEST_MODULE_URL_0 =
-  "https://example.com/browser/dom/tests/browser/page_scriptCache_partition_module.html";
-
-const TEST_MODULE_URL_1 =
-  "https://example.org/browser/dom/tests/browser/page_scriptCache_partition_module.html";
-
-const TEST_SJS_URL =
+const TEST_SCRIPT_URL =
   "https://example.net/browser/dom/tests/browser/counter_server.sjs";
 
-async function testScriptCacheAndPartition({
-  enableCache,
-  enablePartition,
-  type,
-}) {
+async function testScriptCacheAndPartition({ enableCache, enablePartition }) {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["dom.script_loader.navigation_cache", enableCache],
@@ -26,7 +16,7 @@ async function testScriptCacheAndPartition({
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  const response1 = await fetch(TEST_SJS_URL + "?reset");
+  const response1 = await fetch(TEST_SCRIPT_URL + "?reset");
   is(await response1.text(), "reset", "Server state should be reset");
 
   ChromeUtils.clearResourceCache();
@@ -53,11 +43,11 @@ async function testScriptCacheAndPartition({
   // separate cache for each partition, if the partitioning is enabled.
   //
   // Each top-level document are loaded into separate processes, say,
-  // process A for url0 (example.com), and process B for url1
+  // process A for TEST_URL_0 (example.com), and process B for TEST_URL_1
   // (example.org).
   //
   // If Fission is enabled, the iframe (example.net) is loaded into yet another
-  // process C, both with the url0 load and the url1 load.
+  // process C, both with the TEST_URL_0 load and the TEST_URL_1 load.
   // In this case, they share single SharedScriptCache instance.
   // If partitioning is enabled, the cache for the script loaded by the iframe
   // should be separated for each.
@@ -69,88 +59,49 @@ async function testScriptCacheAndPartition({
   //
   // If navigation cache is not enabled, then the partitioning is done by
   // the Necko side, and the Necko cache should also be partitioned.
-  const url0 = type === "script" ? TEST_SCRIPT_URL_0 : TEST_MODULE_URL_0;
-  const url1 = type === "script" ? TEST_SCRIPT_URL_1 : TEST_MODULE_URL_1;
-
   const tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
-    url: url0,
+    url: TEST_URL_0,
   });
   is(await getCounter(), "0");
 
-  await load(url1);
+  await load(TEST_URL_1);
   is(await getCounter(), enablePartition ? "1" : "0");
 
   // Reloading the page should use the cached script, for each partition.
-  await load(url0);
+  await load(TEST_URL_0);
   is(await getCounter(), "0");
 
-  await load(url1);
+  await load(TEST_URL_1);
   is(await getCounter(), enablePartition ? "1" : "0");
 
   BrowserTestUtils.removeTab(tab);
 }
 
-add_task(async function testScriptNoCacheNoPartition() {
+add_task(async function testNoCacheNoPartition() {
   await testScriptCacheAndPartition({
     enableCache: false,
     enablePartition: false,
-    type: "script",
   });
 });
 
-add_task(async function testScriptNoCachePartition() {
+add_task(async function testNoCachePartition() {
   await testScriptCacheAndPartition({
     enableCache: false,
     enablePartition: true,
-    type: "script",
   });
 });
 
-add_task(async function testScriptCacheNoPartition() {
+add_task(async function testCacheNoPartition() {
   await testScriptCacheAndPartition({
     enableCache: true,
     enablePartition: false,
-    type: "script",
   });
 });
 
-add_task(async function testScriptCachePartition() {
+add_task(async function testCachePartition() {
   await testScriptCacheAndPartition({
     enableCache: true,
     enablePartition: true,
-    type: "script",
-  });
-});
-
-add_task(async function testModuleNoCacheNoPartition() {
-  await testScriptCacheAndPartition({
-    enableCache: false,
-    enablePartition: false,
-    type: "module",
-  });
-});
-
-add_task(async function testModuleNoCachePartition() {
-  await testScriptCacheAndPartition({
-    enableCache: false,
-    enablePartition: true,
-    type: "module",
-  });
-});
-
-add_task(async function testModuleCacheNoPartition() {
-  await testScriptCacheAndPartition({
-    enableCache: true,
-    enablePartition: false,
-    type: "module",
-  });
-});
-
-add_task(async function testModuleCachePartition() {
-  await testScriptCacheAndPartition({
-    enableCache: true,
-    enablePartition: true,
-    type: "module",
   });
 });

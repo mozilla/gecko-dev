@@ -153,7 +153,6 @@ support-files = [
 skip-if = ["!nightly_build"]
 support-files = [
   "page_scriptCache_container.html",
-  "page_scriptCache_container_module.html",
   "counter_server.sjs",
 ]
 
@@ -175,8 +174,6 @@ skip-if = ["!nightly_build"]
 support-files = [
   "page_scriptCache_partition.html",
   "page_scriptCache_partition_frame.html",
-  "page_scriptCache_partition_module.html",
-  "page_scriptCache_partition_module_frame.html",
   "counter_server.sjs",
 ]
 

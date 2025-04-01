@@ -171,43 +171,23 @@ void ScriptLoadRequest::CacheEntryFound(LoadedScript* aLoadedScript) {
   MOZ_ASSERT(IsCheckingCache());
   MOZ_ASSERT(mURI);
 
-  MOZ_ASSERT(mFetchOptions->IsCompatible(aLoadedScript->GetFetchOptions()));
+  mLoadedScript = aLoadedScript;
+
+  MOZ_ASSERT(mFetchOptions->IsCompatible(mLoadedScript->GetFetchOptions()));
 
   switch (mKind) {
     case ScriptKind::eClassic:
     case ScriptKind::eImportMap:
-      MOZ_ASSERT(aLoadedScript->IsClassicScript());
-
-      mLoadedScript = aLoadedScript;
-
-      // Classic scripts can be set ready once the script itself is ready.
-      mState = State::Ready;
+      MOZ_ASSERT(mLoadedScript->IsClassicScript());
       break;
     case ScriptKind::eModule:
-      // NOTE: The cache entry has "module" kind, but it's not ModuleScript
-      //       instance, given ModuleScript has GC pointers.
-      MOZ_ASSERT(aLoadedScript->IsModuleScript());
-
-      mLoadedScript = ModuleScript::FromCache(*aLoadedScript);
-
-#ifdef DEBUG
-      {
-        bool equals = false;
-        mURI->Equals(mLoadedScript->GetURI(), &equals);
-        MOZ_ASSERT(equals);
-      }
-#endif
-
-      mBaseURL = mLoadedScript->BaseURL();
-
-      // Modules need to wait for fetching dependencies before setting to
-      // Ready.  See also ModuleLoadRequest::DependenciesLoaded.
-      mState = State::Fetching;
+      MOZ_ASSERT(mLoadedScript->IsModuleScript());
       break;
     case ScriptKind::eEvent:
       MOZ_ASSERT_UNREACHABLE("EventScripts are not using ScriptLoadRequest");
       break;
   }
+  mState = State::Ready;
 }
 
 void ScriptLoadRequest::NoCacheEntryFound() {
