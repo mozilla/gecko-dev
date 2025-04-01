@@ -238,22 +238,6 @@ MOZ_NoReturn(int aLine) {
 #else
 
 /*
- * MOZ_CRASH_WRITE_ADDR is the address to be used when performing a forced
- * crash. NULL is preferred however if for some reason NULL cannot be used
- * this makes choosing another value possible.
- *
- * In the case of UBSan certain checks, bounds specifically, cause the compiler
- * to emit the 'ud2' instruction when storing to 0x0. This causes forced
- * crashes to manifest as ILL (at an arbitrary address) instead of the expected
- * SEGV at 0x0.
- */
-#  ifdef MOZ_UBSAN
-#    define MOZ_CRASH_WRITE_ADDR 0x1
-#  else
-#    define MOZ_CRASH_WRITE_ADDR NULL
-#  endif
-
-/*
  * MOZ_CrashSequence() executes a sequence that causes the process to crash by
  * writing the line number specified in the `aLine` parameter to the address
  * provide by `aAddress`. The store is implemented as volatile assembly code to
@@ -292,11 +276,27 @@ static inline void MOZ_CrashSequence(void* aAddress, intptr_t aLine) {
 #      warning \
           "Unsupported architecture, replace the code below with assembly suitable to crash the process"
   asm volatile("" ::: "memory");
-  *((volatile int*)MOZ_CRASH_WRITE_ADDR) = aLine; /* NOLINT */
+  *((volatile int*)aAddress) = aLine; /* NOLINT */
 #    endif
 }
 #  else
 #    define MOZ_CrashSequence(x, y) __builtin_trap()
+#  endif
+
+/*
+ * MOZ_CRASH_WRITE_ADDR is the address to be used when performing a forced
+ * crash. NULL is preferred however if for some reason NULL cannot be used
+ * this makes choosing another value possible.
+ *
+ * In the case of UBSan certain checks, bounds specifically, cause the compiler
+ * to emit the 'ud2' instruction when storing to 0x0. This causes forced
+ * crashes to manifest as ILL (at an arbitrary address) instead of the expected
+ * SEGV at 0x0.
+ */
+#  ifdef MOZ_UBSAN
+#    define MOZ_CRASH_WRITE_ADDR 0x1
+#  else
+#    define MOZ_CRASH_WRITE_ADDR NULL
 #  endif
 
 #  ifdef __cplusplus
