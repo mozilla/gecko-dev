@@ -4,12 +4,40 @@
 
 "use strict";
 
-/* global ExtensionAPI, Services */
+/* global ExtensionAPI, ExtensionCommon, Services */
 
 this.testUtils = class extends ExtensionAPI {
-  getAPI() {
+  getAPI(context) {
+    const { EventManager } = ExtensionCommon;
+    let messageListener;
     return {
       testUtils: {
+        onMessage: new EventManager({
+          context,
+          name: "testUtils.onMessage",
+          register: fire => {
+            if (!messageListener) {
+              const obs = {
+                receiveMessage({ data }) {
+                  fire
+                    .async(data)
+                    .then(retval => {
+                      Services.ppmm.broadcastAsyncMessage(
+                        `WebCompat:${data.name}:Done`,
+                        retval
+                      );
+                    })
+                    .catch(() => {}); // ignore Message Manager disconnects
+                },
+              };
+              Services.cpmm.addMessageListener("WebCompat", obs);
+              messageListener = () => {
+                Services.cpmm.removeMessageListener("WebCompat", obs);
+              };
+            }
+            return messageListener;
+          },
+        }).api(),
         async interventionsActive() {
           Services.ppmm.sharedData.set(
             "WebCompatTests:InterventionsStatus",

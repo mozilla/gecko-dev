@@ -37,6 +37,17 @@ class Interventions {
       this.checkInterventionPref();
     }, this.INTERVENTION_PREF);
     this.checkInterventionPref();
+
+    browser.testUtils.onMessage.addListener(async ({ name, data }) => {
+      switch (name) {
+        case "UpdateInterventions": {
+          await this.disableInterventions(data);
+          await this.enableInterventions(data);
+          return data;
+        }
+      }
+      return null;
+    });
   }
 
   checkInterventionPref() {
@@ -67,26 +78,31 @@ class Interventions {
     return this._availableInterventions;
   }
 
+  _getActiveInterventionById(whichId) {
+    return this._availableInterventions.find(({ id }) => id === whichId);
+  }
+
   isEnabled() {
     return this._interventionsEnabled;
   }
 
-  async enableInterventions() {
+  async enableInterventions(whichInterventions = this._availableInterventions) {
     await this._enablingOrDisablingOperationInProgress;
 
     this._enablingOrDisablingOperationInProgress = new Promise(done => {
-      this._enableInterventionsNow();
-      done();
+      this._enableInterventionsNow(whichInterventions).then(done);
     });
 
     return this._enablingOrDisablingOperationInProgress;
   }
 
-  async disableInterventions() {
+  async disableInterventions(
+    whichInterventions = this._availableInterventions
+  ) {
     await this._enablingOrDisablingOperationInProgress;
 
     this._enablingOrDisablingOperationInProgress = new Promise(done => {
-      for (const config of this._availableInterventions) {
+      for (const config of whichInterventions) {
         this._disableInterventionNow(config);
       }
 
@@ -102,7 +118,7 @@ class Interventions {
     return this._enablingOrDisablingOperationInProgress;
   }
 
-  async _enableInterventionsNow() {
+  async _enableInterventionsNow(whichInterventions) {
     await this._enablingOrDisablingOperationInProgress;
 
     const skipped = [];
@@ -114,7 +130,7 @@ class Interventions {
     const { os } = await browser.runtime.getPlatformInfo();
     this.currentPlatform = os;
 
-    for (const config of this._availableInterventions) {
+    for (const config of whichInterventions) {
       for (const intervention of config.interventions) {
         if (
           await InterventionHelpers.shouldSkip(
@@ -155,9 +171,8 @@ class Interventions {
 
     this._interventionsEnabled = true;
     this._aboutCompatBroker.portsToAboutCompatTabs.broadcast({
-      interventionsChanged: this._aboutCompatBroker.filterInterventions(
-        this._availableInterventions
-      ),
+      interventionsChanged:
+        this._aboutCompatBroker.filterInterventions(whichInterventions),
     });
 
     await browser.testUtils.interventionsActive();
@@ -202,15 +217,32 @@ class Interventions {
 
     for (const intervention of config.interventions) {
       await this._changeCustomFuncs("enable", label, intervention, config);
-      await this._enableContentScripts(label, intervention, matches);
+      await this._enableContentScripts(config.id, label, intervention, matches);
       await this._enableUAOverrides(label, intervention, matches);
       await this._enableRequestBlocks(label, intervention, blocks);
+    }
+
+    if (!this._getActiveInterventionById(config.id)) {
+      this._availableInterventions.push(config);
+      console.info("Added webcompat intervention", config.id, config);
+    } else {
+      for (const [index, oldConfig] of this._availableInterventions.entries()) {
+        if (oldConfig.id === config.id && oldConfig !== config) {
+          console.info("Replaced webcompat intervention", oldConfig.id, config);
+          this._availableInterventions[index] = config;
+        }
+      }
     }
 
     config.active = true;
   }
 
-  async _disableInterventionNow(config) {
+  async _disableInterventionNow(_config) {
+    const config = this._getActiveInterventionById(_config?.id ?? _config);
+    if (!config) {
+      return;
+    }
+
     const { active, label, interventions } = config;
 
     if (!active) {
@@ -330,12 +362,9 @@ class Interventions {
     console.info(`Blocking requests as specified for ${label}`);
   }
 
-  async _enableContentScripts(label, intervention, matches) {
-    if (!("content_scripts" in intervention)) {
-      return;
-    }
-
+  async _enableContentScripts(bug, label, intervention, matches) {
     const scriptsToReg = this._buildContentScriptRegistrations(
+      bug,
       label,
       intervention,
       matches
@@ -390,18 +419,14 @@ class Interventions {
     }
   }
 
-  _buildContentScriptRegistrations(label, intervention, matches) {
+  _buildContentScriptRegistrations(bug, label, intervention, matches) {
     const registration = {
       id: `webcompat intervention for ${label}`,
       matches,
       persistAcrossSessions: false,
     };
 
-    let { all_frames, css, js, run_at } = intervention.content_scripts;
-    if (!css && !js) {
-      console.error(`Missing js or css for content_script in ${label}`);
-      return [];
-    }
+    let { all_frames, css, js, run_at } = intervention.content_scripts ?? {};
     if (all_frames) {
       registration.allFrames = true;
     }
@@ -420,6 +445,17 @@ class Interventions {
         }
         return `injections/js/${item}`;
       });
+    } else {
+      // Ensure that we log a console message.
+      const info = [bug];
+      if (css) {
+        info.push("css");
+      }
+      if (intervention.ua_string) {
+        info.push("ua");
+      }
+      registration.js = [`injections/js/log_message.js#${info.join(":")}`];
+      registration.runAt = "document_idle";
     }
     if (run_at) {
       registration.runAt = run_at;

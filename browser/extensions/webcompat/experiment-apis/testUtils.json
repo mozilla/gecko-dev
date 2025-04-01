@@ -2,6 +2,19 @@
   {
     "namespace": "testUtils",
     "description": "experimental API extension to let tests know the addon's status",
+    "events": [
+      {
+        "name": "onMessage",
+        "type": "function",
+        "parameters": [
+          {
+            "name": "name",
+            "type": "object",
+            "description": "The preference which changed"
+          }
+        ]
+      }
+    ],
     "functions": [
       {
         "name": "interventionsActive",

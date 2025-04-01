@@ -14,6 +14,8 @@ support-files = [
 
 ["browser_aboutcompat.js"]
 
+["browser_console_messages.js"]
+
 ["browser_interventions.js"]
 
 ["browser_shims.js"]
