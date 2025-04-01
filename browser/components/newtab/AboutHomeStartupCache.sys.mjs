@@ -110,6 +110,15 @@ export var AboutHomeStartupCache = {
       throw new Error("AboutHomeStartupCache already initted.");
     }
 
+    if (
+      Services.startup.isInOrBeyondShutdownPhase(
+        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+      )
+    ) {
+      // Stay not initted, such that using us will reject or be a no-op.
+      return;
+    }
+
     this.setDeferredResult(this.CACHE_RESULT_SCALARS.UNSET);
 
     this._enabled = Services.prefs.getBoolPref(
@@ -181,7 +190,7 @@ export var AboutHomeStartupCache = {
       await this.onShutdown();
     };
 
-    lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+    lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
       "AboutHomeStartupCache: Writing cache",
       this._shutdownBlocker,
       () => this._cacheProgress
@@ -238,7 +247,7 @@ export var AboutHomeStartupCache = {
     this._finalized = false;
     this._firstPrivilegedProcessCreated = false;
 
-    lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+    lazy.AsyncShutdown.appShutdownConfirmed.removeBlocker(
       this._shutdownBlocker
     );
     this._shutdownBlocker = null;
@@ -260,7 +269,7 @@ export var AboutHomeStartupCache = {
   _cacheProgress: "Not yet begun",
 
   /**
-   * Called by the AsyncShutdown blocker on quit-application-granted
+   * Called by the AsyncShutdown blocker on quit-application
    * to potentially flush the most recent cache to disk. If one was
    * never written during the session, one is generated and written
    * before the async function resolves.
@@ -377,6 +386,12 @@ export var AboutHomeStartupCache = {
    */
   requestCache() {
     this.log.trace("Parent is requesting Activity Stream state object.");
+
+    if (!this._initted) {
+      this.log.error("requestCache called despite not initted!");
+      return { pageInputStream: null, scriptInputStream: null };
+    }
+
     if (!this._procManager) {
       this.log.error("requestCache called with no _procManager!");
       return { pageInputStream: null, scriptInputStream: null };

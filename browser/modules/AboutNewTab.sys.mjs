@@ -16,7 +16,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const ABOUT_URL = "about:newtab";
 const PREF_ACTIVITY_STREAM_DEBUG = "browser.newtabpage.activity-stream.debug";
-const TOPIC_APP_QUIT = "quit-application-granted";
+// AboutHomeStartupCache needs us in "quit-application", so stay alive longer.
+// TODO: We could better have a shared async shutdown blocker?
+const TOPIC_APP_QUIT = "profile-before-change";
 const BROWSER_READY_NOTIFICATION = "sessionstore-windows-restored";
 const BUILTIN_ADDON_ID = "newtab@mozilla.org";
 
@@ -256,10 +258,7 @@ export const AboutNewTab = {
   observe(subject, topic) {
     switch (topic) {
       case TOPIC_APP_QUIT: {
-        // We defer to this to the next tick of the event loop since the
-        // AboutHomeStartupCache might want to read from the ActivityStream
-        // store during TOPIC_APP_QUIT.
-        Services.tm.dispatchToMainThread(() => this.uninit());
+        this.uninit();
         break;
       }
       case BROWSER_READY_NOTIFICATION: {
