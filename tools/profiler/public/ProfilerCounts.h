@@ -185,7 +185,7 @@ class ProfilerCounter final : public AtomicProfilerCount {
     profiler_add_sampled_counter(this);
   }
 
-  virtual ~ProfilerCounter() { profiler_remove_sampled_counter(this); }
+  ~ProfilerCounter() { profiler_remove_sampled_counter(this); }
 
   BaseProfilerCount& operator++() {
     Add(1);
@@ -209,7 +209,7 @@ class ProfilerCounterTotal final : public AtomicProfilerCount {
     Register();
   }
 
-  virtual ~ProfilerCounterTotal() { Unregister(); }
+  ~ProfilerCounterTotal() { Unregister(); }
 
   void Register() {
     auto registered = mRegistered.Lock();

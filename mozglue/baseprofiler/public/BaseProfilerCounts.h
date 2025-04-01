@@ -148,7 +148,7 @@ class ProfilerCounter final : public BaseProfilerCount {
     profiler_add_sampled_counter(this);
   }
 
-  virtual ~ProfilerCounter() { profiler_remove_sampled_counter(this); }
+  ~ProfilerCounter() { profiler_remove_sampled_counter(this); }
 
   BaseProfilerCount& operator++() {
     Add(1);
@@ -171,7 +171,7 @@ class ProfilerCounterTotal final : public BaseProfilerCount {
     profiler_add_sampled_counter(this);
   }
 
-  virtual ~ProfilerCounterTotal() { profiler_remove_sampled_counter(this); }
+  ~ProfilerCounterTotal() { profiler_remove_sampled_counter(this); }
 
   BaseProfilerCount& operator++() {
     Add(1);
