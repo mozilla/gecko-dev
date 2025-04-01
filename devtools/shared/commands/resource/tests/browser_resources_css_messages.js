@@ -84,6 +84,9 @@ async function testWatchingCachedCssMessages() {
   // for CSS messages, we need to set the cssErrorReportingEnabled flag on the docShell.
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], function () {
     content.docShell.cssErrorReportingEnabled = true;
+    ChromeUtils.clearResourceCache({
+      types: ["stylesheet"],
+    });
   });
 
   // Setting the docShell flag only indicates to the Parser that from now on, it should
