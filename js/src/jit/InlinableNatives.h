@@ -157,9 +157,9 @@
   _(RegExpSearcherLastLimit)                       \
   _(RegExpHasCaptureGroups)                        \
   _(IsRegExpObject)                                \
+  _(IsOptimizableRegExpObject)                     \
   _(IsPossiblyWrappedRegExpObject)                 \
-  _(RegExpPrototypeOptimizable)                    \
-  _(RegExpInstanceOptimizable)                     \
+  _(IsRegExpPrototypeOptimizable)                  \
   _(GetFirstDollarIndex)                           \
                                                    \
   _(SetConstructor)                                \

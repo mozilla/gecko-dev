@@ -191,8 +191,6 @@ namespace jit {
   _(js::ObjectClassToString)                                          \
   _(js::powi)                                                         \
   _(js::ProxyGetProperty)                                             \
-  _(js::RegExpInstanceOptimizableRaw)                                 \
-  _(js::RegExpPrototypeOptimizableRaw)                                \
   _(js::RoundFloat16)                                                 \
   _(js::SetIteratorObject::next)                                      \
   _(js::StringToNumberPure)                                           \

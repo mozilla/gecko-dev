@@ -2345,21 +2345,6 @@
     input: WordSized
   mir_op: true
 
-- name: RegExpPrototypeOptimizable
-  result_type: WordSized
-  operands:
-    object: WordSized
-  num_temps: 1
-  mir_op: true
-
-- name: RegExpInstanceOptimizable
-  result_type: WordSized
-  operands:
-    object: WordSized
-    proto: WordSized
-  num_temps: 1
-  mir_op: true
-
 - name: GetFirstDollarIndex
   result_type: WordSized
   operands:

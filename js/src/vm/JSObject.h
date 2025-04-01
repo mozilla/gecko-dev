@@ -916,14 +916,6 @@ bool GetOwnPropertyPure(JSContext* cx, JSObject* obj, jsid id, Value* vp,
 
 bool GetGetterPure(JSContext* cx, JSObject* obj, jsid id, JSFunction** fp);
 
-bool GetOwnGetterPure(JSContext* cx, JSObject* obj, jsid id, JSFunction** fp);
-
-bool GetOwnNativeGetterPure(JSContext* cx, JSObject* obj, jsid id,
-                            JSNative* native);
-
-bool HasOwnDataPropertyPure(JSContext* cx, JSObject* obj, jsid id,
-                            bool* result);
-
 /*
  * Like JS::FromPropertyDescriptor, but ignore desc.object() and always set vp
  * to an object on success.

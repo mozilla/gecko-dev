@@ -1464,19 +1464,6 @@
   result_type: Boolean
   possibly_calls: true
 
-- name: RegExpPrototypeOptimizable
-  operands:
-    object: Object
-  result_type: Boolean
-  alias_set: none
-
-- name: RegExpInstanceOptimizable
-  operands:
-    object: Object
-    proto: Object
-  result_type: Boolean
-  alias_set: none
-
 - name: GetFirstDollarIndex
   gen_boilerplate: false
 

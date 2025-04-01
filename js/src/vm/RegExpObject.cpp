@@ -1007,9 +1007,7 @@ size_t RegExpShared::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
 
 /* RegExpRealm */
 
-RegExpRealm::RegExpRealm()
-    : optimizableRegExpPrototypeShape_(nullptr),
-      optimizableRegExpInstanceShape_(nullptr) {
+RegExpRealm::RegExpRealm() {
   for (auto& shape : matchResultShapes_) {
     shape = nullptr;
   }
@@ -1093,12 +1091,6 @@ void RegExpRealm::trace(JSTracer* trc) {
   for (auto& shape : matchResultShapes_) {
     TraceNullableEdge(trc, &shape, "RegExpRealm::matchResultShapes_");
   }
-
-  TraceNullableEdge(trc, &optimizableRegExpPrototypeShape_,
-                    "RegExpRealm::optimizableRegExpPrototypeShape_");
-
-  TraceNullableEdge(trc, &optimizableRegExpInstanceShape_,
-                    "RegExpRealm::optimizableRegExpInstanceShape_");
 }
 
 RegExpShared* RegExpZone::get(JSContext* cx, Handle<JSAtom*> source,

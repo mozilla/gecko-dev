@@ -4366,29 +4366,6 @@ bool WarpCacheIRTranspiler::emitStringSplitStringResult(
   return true;
 }
 
-bool WarpCacheIRTranspiler::emitRegExpPrototypeOptimizableResult(
-    ObjOperandId protoId) {
-  MDefinition* proto = getOperand(protoId);
-
-  auto* optimizable = MRegExpPrototypeOptimizable::New(alloc(), proto);
-  add(optimizable);
-
-  pushResult(optimizable);
-  return true;
-}
-
-bool WarpCacheIRTranspiler::emitRegExpInstanceOptimizableResult(
-    ObjOperandId regexpId, ObjOperandId protoId) {
-  MDefinition* regexp = getOperand(regexpId);
-  MDefinition* proto = getOperand(protoId);
-
-  auto* optimizable = MRegExpInstanceOptimizable::New(alloc(), regexp, proto);
-  add(optimizable);
-
-  pushResult(optimizable);
-  return true;
-}
-
 bool WarpCacheIRTranspiler::emitGetFirstDollarIndexResult(
     StringOperandId strId) {
   MDefinition* str = getOperand(strId);

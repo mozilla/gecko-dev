@@ -191,13 +191,13 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::IntlGuardToSegments:
     case InlinableNative::IntlGuardToSegmentIterator:
     case InlinableNative::IsRegExpObject:
+    case InlinableNative::IsOptimizableRegExpObject:
     case InlinableNative::IsPossiblyWrappedRegExpObject:
+    case InlinableNative::IsRegExpPrototypeOptimizable:
     case InlinableNative::RegExpMatcher:
     case InlinableNative::RegExpSearcher:
     case InlinableNative::RegExpSearcherLastLimit:
     case InlinableNative::RegExpHasCaptureGroups:
-    case InlinableNative::RegExpPrototypeOptimizable:
-    case InlinableNative::RegExpInstanceOptimizable:
     case InlinableNative::GetFirstDollarIndex:
     case InlinableNative::IntrinsicNewArrayIterator:
     case InlinableNative::IntrinsicNewStringIterator:

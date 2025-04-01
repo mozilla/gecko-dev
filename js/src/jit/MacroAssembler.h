@@ -1351,13 +1351,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void sameValueDouble(FloatRegister left, FloatRegister right,
                        FloatRegister temp, Register dest);
 
-  void branchIfNotRegExpPrototypeOptimizable(Register proto, Register temp,
-                                             const GlobalObject* maybeGlobal,
-                                             Label* label);
-  void branchIfNotRegExpInstanceOptimizable(Register regexp, Register temp,
-                                            const GlobalObject* maybeGlobal,
-                                            Label* label);
-
   void loadRegExpLastIndex(Register regexp, Register string, Register lastIndex,
                            Label* notFoundZeroLastIndex);
 

@@ -1843,68 +1843,6 @@ bool js::GetGetterPure(JSContext* cx, JSObject* obj, jsid id, JSFunction** fp) {
   return prop.isNativeProperty() && NativeGetGetterPureInline(pobj, prop, fp);
 }
 
-bool js::GetOwnGetterPure(JSContext* cx, JSObject* obj, jsid id,
-                          JSFunction** fp) {
-  JS::AutoCheckCannotGC nogc;
-  PropertyResult prop;
-  if (!LookupOwnPropertyPure(cx, obj, id, &prop)) {
-    return false;
-  }
-
-  if (prop.isNotFound()) {
-    *fp = nullptr;
-    return true;
-  }
-
-  return prop.isNativeProperty() &&
-         NativeGetGetterPureInline(&obj->as<NativeObject>(), prop, fp);
-}
-
-bool js::GetOwnNativeGetterPure(JSContext* cx, JSObject* obj, jsid id,
-                                JSNative* native) {
-  JS::AutoCheckCannotGC nogc;
-  *native = nullptr;
-  PropertyResult prop;
-  if (!LookupOwnPropertyPure(cx, obj, id, &prop)) {
-    return false;
-  }
-
-  if (!prop.isNativeProperty()) {
-    return true;
-  }
-
-  PropertyInfo propInfo = prop.propertyInfo();
-
-  NativeObject* nobj = &obj->as<NativeObject>();
-  if (!nobj->hasGetter(propInfo)) {
-    return true;
-  }
-
-  JSObject* getterObj = nobj->getGetter(propInfo);
-  if (!getterObj->is<JSFunction>()) {
-    return true;
-  }
-
-  JSFunction* getter = &getterObj->as<JSFunction>();
-  if (!getter->isNativeFun()) {
-    return true;
-  }
-
-  *native = getter->native();
-  return true;
-}
-
-bool js::HasOwnDataPropertyPure(JSContext* cx, JSObject* obj, jsid id,
-                                bool* result) {
-  PropertyResult prop;
-  if (!LookupOwnPropertyPure(cx, obj, id, &prop)) {
-    return false;
-  }
-
-  *result = prop.isNativeProperty() && prop.propertyInfo().isDataProperty();
-  return true;
-}
-
 bool js::GetPrototypeIfOrdinary(JSContext* cx, HandleObject obj,
                                 bool* isOrdinary, MutableHandleObject protop) {
   if (obj->is<js::ProxyObject>()) {

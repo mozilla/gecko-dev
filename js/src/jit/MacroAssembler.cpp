@@ -5310,36 +5310,6 @@ void MacroAssembler::minMaxArrayNumber(Register array, FloatRegister result,
   bind(&done);
 }
 
-void MacroAssembler::branchIfNotRegExpPrototypeOptimizable(
-    Register proto, Register temp, const GlobalObject* maybeGlobal,
-    Label* fail) {
-  if (maybeGlobal) {
-    movePtr(ImmGCPtr(maybeGlobal), temp);
-    loadPrivate(Address(temp, GlobalObject::offsetOfGlobalDataSlot()), temp);
-  } else {
-    loadGlobalObjectData(temp);
-  }
-  size_t offset = GlobalObjectData::offsetOfRegExpRealm() +
-                  RegExpRealm::offsetOfOptimizableRegExpPrototypeShape();
-  loadPtr(Address(temp, offset), temp);
-  branchTestObjShapeUnsafe(Assembler::NotEqual, proto, temp, fail);
-}
-
-void MacroAssembler::branchIfNotRegExpInstanceOptimizable(
-    Register regexp, Register temp, const GlobalObject* maybeGlobal,
-    Label* label) {
-  if (maybeGlobal) {
-    movePtr(ImmGCPtr(maybeGlobal), temp);
-    loadPrivate(Address(temp, GlobalObject::offsetOfGlobalDataSlot()), temp);
-  } else {
-    loadGlobalObjectData(temp);
-  }
-  size_t offset = GlobalObjectData::offsetOfRegExpRealm() +
-                  RegExpRealm::offsetOfOptimizableRegExpInstanceShape();
-  loadPtr(Address(temp, offset), temp);
-  branchTestObjShapeUnsafe(Assembler::NotEqual, regexp, temp, label);
-}
-
 void MacroAssembler::loadRegExpLastIndex(Register regexp, Register string,
                                          Register lastIndex,
                                          Label* notFoundZeroLastIndex) {

@@ -116,18 +116,12 @@ JSObject* InitRegExpClass(JSContext* cx, HandleObject obj);
                                        HandleValue flags,
                                        MutableHandleValue rval);
 
-[[nodiscard]] extern bool RegExpPrototypeOptimizable(JSContext* cx,
-                                                     unsigned argc, Value* vp);
+[[nodiscard]] extern bool IsRegExpPrototypeOptimizable(JSContext* cx,
+                                                       unsigned argc,
+                                                       Value* vp);
 
-[[nodiscard]] extern bool RegExpPrototypeOptimizableRaw(JSContext* cx,
-                                                        JSObject* proto);
-
-[[nodiscard]] extern bool RegExpInstanceOptimizable(JSContext* cx,
+[[nodiscard]] extern bool IsOptimizableRegExpObject(JSContext* cx,
                                                     unsigned argc, Value* vp);
-
-[[nodiscard]] extern bool RegExpInstanceOptimizableRaw(JSContext* cx,
-                                                       JSObject* obj,
-                                                       JSObject* proto);
 
 [[nodiscard]] extern bool RegExpBuiltinExec(JSContext* cx,
                                             Handle<RegExpObject*> regexp,

@@ -4868,34 +4868,12 @@ static bool BuildFlatMatchArray(JSContext* cx, HandleString str,
   return true;
 }
 
-#ifdef DEBUG
-static bool CallIsStringOptimizable(JSContext* cx, const char* name,
-                                    bool* result) {
-  FixedInvokeArgs<0> args(cx);
-
-  RootedValue rval(cx);
-  if (!CallSelfHostedFunction(cx, name, UndefinedHandleValue, args, &rval)) {
-    return false;
-  }
-
-  *result = rval.toBoolean();
-  return true;
-}
-#endif
-
 bool js::FlatStringMatch(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 2);
   MOZ_ASSERT(args[0].isString());
   MOZ_ASSERT(args[1].isString());
-#ifdef DEBUG
-  bool isOptimizable = false;
-  if (!CallIsStringOptimizable(cx, "IsStringMatchOptimizable",
-                               &isOptimizable)) {
-    return false;
-  }
-  MOZ_ASSERT(isOptimizable);
-#endif
+  MOZ_ASSERT(cx->realm()->realmFuses.optimizeRegExpPrototypeFuse.intact());
 
   RootedString str(cx, args[0].toString());
   RootedString pattern(cx, args[1].toString());
@@ -4919,14 +4897,7 @@ bool js::FlatStringSearch(JSContext* cx, unsigned argc, Value* vp) {
   MOZ_ASSERT(args.length() == 2);
   MOZ_ASSERT(args[0].isString());
   MOZ_ASSERT(args[1].isString());
-#ifdef DEBUG
-  bool isOptimizable = false;
-  if (!CallIsStringOptimizable(cx, "IsStringSearchOptimizable",
-                               &isOptimizable)) {
-    return false;
-  }
-  MOZ_ASSERT(isOptimizable);
-#endif
+  MOZ_ASSERT(cx->realm()->realmFuses.optimizeRegExpPrototypeFuse.intact());
 
   RootedString str(cx, args[0].toString());
   RootedString pattern(cx, args[1].toString());

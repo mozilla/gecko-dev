@@ -375,28 +375,6 @@ class RegExpRealm {
    */
   GCPtr<SharedShape*> matchResultShapes_[ResultShapeKind::NumKinds];
 
-  /*
-   * The shape of RegExp.prototype object that satisfies following:
-   *   * RegExp.prototype.flags getter is not modified
-   *   * RegExp.prototype.global getter is not modified
-   *   * RegExp.prototype.ignoreCase getter is not modified
-   *   * RegExp.prototype.multiline getter is not modified
-   *   * RegExp.prototype.dotAll getter is not modified
-   *   * RegExp.prototype.sticky getter is not modified
-   *   * RegExp.prototype.unicode getter is not modified
-   *   * RegExp.prototype.exec is an own data property
-   *   * RegExp.prototype[@@match] is an own data property
-   *   * RegExp.prototype[@@search] is an own data property
-   */
-  GCPtr<Shape*> optimizableRegExpPrototypeShape_;
-
-  /*
-   * The shape of RegExp instance that satisfies following:
-   *   * lastProperty is lastIndex
-   *   * prototype is RegExp.prototype
-   */
-  GCPtr<Shape*> optimizableRegExpInstanceShape_;
-
   SharedShape* createMatchResultShape(JSContext* cx, ResultShapeKind kind);
 
  public:
@@ -438,25 +416,6 @@ class RegExpRealm {
     return createMatchResultShape(cx, kind);
   }
 
-  Shape* getOptimizableRegExpPrototypeShape() {
-    return optimizableRegExpPrototypeShape_;
-  }
-  void setOptimizableRegExpPrototypeShape(Shape* shape) {
-    optimizableRegExpPrototypeShape_ = shape;
-  }
-  Shape* getOptimizableRegExpInstanceShape() {
-    return optimizableRegExpInstanceShape_;
-  }
-  void setOptimizableRegExpInstanceShape(Shape* shape) {
-    optimizableRegExpInstanceShape_ = shape;
-  }
-
-  static constexpr size_t offsetOfOptimizableRegExpPrototypeShape() {
-    return offsetof(RegExpRealm, optimizableRegExpPrototypeShape_);
-  }
-  static constexpr size_t offsetOfOptimizableRegExpInstanceShape() {
-    return offsetof(RegExpRealm, optimizableRegExpInstanceShape_);
-  }
   static constexpr size_t offsetOfRegExpStatics() {
     return offsetof(RegExpRealm, regExpStatics);
   }

@@ -11,17 +11,6 @@ function StringProtoHasNoMatch() {
   return !(GetBuiltinSymbol("match") in StringProto);
 }
 
-function IsStringMatchOptimizable() {
-  var RegExpProto = GetBuiltinPrototype("RegExp");
-  // If RegExpPrototypeOptimizable succeeds, `exec` and `@@match` are
-  // guaranteed to be data properties.
-  return (
-    RegExpPrototypeOptimizable(RegExpProto) &&
-    RegExpProto.exec === RegExp_prototype_Exec &&
-    RegExpProto[GetBuiltinSymbol("match")] === RegExpMatch
-  );
-}
-
 function ThrowIncompatibleMethod(name, thisv) {
   ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "String", name, ToString(thisv));
 }
@@ -51,7 +40,7 @@ function String_match(regexp) {
   // Step 3.
   var S = ToString(this);
 
-  if (isPatternString && IsStringMatchOptimizable()) {
+  if (isPatternString && IsRegExpPrototypeOptimizable()) {
     var flatResult = FlatStringMatch(S, regexp);
     if (flatResult !== undefined) {
       return flatResult;
@@ -62,7 +51,7 @@ function String_match(regexp) {
   var rx = RegExpCreate(regexp);
 
   // Step 5 (optimized case).
-  if (IsStringMatchOptimizable()) {
+  if (IsRegExpPrototypeOptimizable()) {
     return RegExpMatcher(rx, S, 0);
   }
 
@@ -418,17 +407,6 @@ function StringProtoHasNoSearch() {
   return !(GetBuiltinSymbol("search") in StringProto);
 }
 
-function IsStringSearchOptimizable() {
-  var RegExpProto = GetBuiltinPrototype("RegExp");
-  // If RegExpPrototypeOptimizable succeeds, `exec` and `@@search` are
-  // guaranteed to be data properties.
-  return (
-    RegExpPrototypeOptimizable(RegExpProto) &&
-    RegExpProto.exec === RegExp_prototype_Exec &&
-    RegExpProto[GetBuiltinSymbol("search")] === RegExpSearch
-  );
-}
-
 // ES 2016 draft Mar 25, 2016 21.1.3.15.
 function String_search(regexp) {
   // Step 1.
@@ -454,7 +432,7 @@ function String_search(regexp) {
   // Step 3.
   var string = ToString(this);
 
-  if (isPatternString && IsStringSearchOptimizable()) {
+  if (isPatternString && IsRegExpPrototypeOptimizable()) {
     var flatResult = FlatStringSearch(string, regexp);
     if (flatResult !== -2) {
       return flatResult;

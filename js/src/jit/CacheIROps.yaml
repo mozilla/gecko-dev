@@ -409,21 +409,6 @@
     str: StringId
     separator: StringId
 
-- name: RegExpPrototypeOptimizableResult
-  shared: true
-  transpile: true
-  cost_estimate: 4
-  args:
-    proto: ObjId
-
-- name: RegExpInstanceOptimizableResult
-  shared: true
-  transpile: true
-  cost_estimate: 4
-  args:
-    regexp: ObjId
-    proto: ObjId
-
 - name: GetFirstDollarIndexResult
   shared: true
   transpile: true

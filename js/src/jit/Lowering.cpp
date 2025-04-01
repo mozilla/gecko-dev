@@ -3912,25 +3912,6 @@ void LIRGenerator::visitRegExpHasCaptureGroups(MRegExpHasCaptureGroups* ins) {
   assignSafepoint(lir, ins);
 }
 
-void LIRGenerator::visitRegExpPrototypeOptimizable(
-    MRegExpPrototypeOptimizable* ins) {
-  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
-  MOZ_ASSERT(ins->type() == MIRType::Boolean);
-  LRegExpPrototypeOptimizable* lir = new (alloc())
-      LRegExpPrototypeOptimizable(useRegister(ins->object()), temp());
-  define(lir, ins);
-}
-
-void LIRGenerator::visitRegExpInstanceOptimizable(
-    MRegExpInstanceOptimizable* ins) {
-  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
-  MOZ_ASSERT(ins->proto()->type() == MIRType::Object);
-  MOZ_ASSERT(ins->type() == MIRType::Boolean);
-  LRegExpInstanceOptimizable* lir = new (alloc()) LRegExpInstanceOptimizable(
-      useRegister(ins->object()), useRegister(ins->proto()), temp());
-  define(lir, ins);
-}
-
 void LIRGenerator::visitGetFirstDollarIndex(MGetFirstDollarIndex* ins) {
   MOZ_ASSERT(ins->str()->type() == MIRType::String);
   MOZ_ASSERT(ins->type() == MIRType::Int32);
