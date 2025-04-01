@@ -351,6 +351,8 @@ class nsIGlobalObject : public nsISupports {
     return false;
   }
 
+  virtual void UpdateWebSocketCount(int32_t aDelta) {};
+
   /**
    * Report a localized error message to the error console.  Currently this
    * amounts to a wrapper around nsContentUtils::ReportToConsole for window

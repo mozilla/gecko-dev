@@ -340,6 +340,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   virtual bool HasOpenWebSockets() const override;
   virtual bool HasScheduledNormalOrHighPriorityWebTasks() const override;
   void SyncStateFromParentWindow();
+  virtual void UpdateWebSocketCount(int32_t aDelta) override;
 
   // Called on the current inner window of a browsing context when its
   // background state changes according to selected tab or visibility of the

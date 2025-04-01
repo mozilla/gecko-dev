@@ -2691,7 +2691,8 @@ void nsGlobalWindowInner::UpdateTopInnerWindow() {
     return;
   }
 
-  mTopInnerWindow->UpdateWebSocketCount(-(int32_t)mNumOfOpenWebSockets);
+  nsGlobalWindowInner::Cast(mTopInnerWindow)
+      ->UpdateWebSocketCount(-(int32_t)mNumOfOpenWebSockets);
 }
 
 bool nsGlobalWindowInner::IsInSyncOperation() {
@@ -2867,7 +2868,7 @@ bool nsGlobalWindowInner::HasActiveIndexedDBDatabases() {
                          : mNumOfIndexedDBDatabases > 0;
 }
 
-void nsPIDOMWindowInner::UpdateWebSocketCount(int32_t aDelta) {
+void nsGlobalWindowInner::UpdateWebSocketCount(int32_t aDelta) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aDelta == 0) {
@@ -2875,7 +2876,7 @@ void nsPIDOMWindowInner::UpdateWebSocketCount(int32_t aDelta) {
   }
 
   if (mTopInnerWindow && !IsTopInnerWindow()) {
-    mTopInnerWindow->UpdateWebSocketCount(aDelta);
+    nsGlobalWindowInner::Cast(mTopInnerWindow)->UpdateWebSocketCount(aDelta);
   }
 
   MOZ_DIAGNOSTIC_ASSERT(

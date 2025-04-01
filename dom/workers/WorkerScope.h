@@ -207,6 +207,19 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
     return mWorkerPrivate->IsFrozenForWorkerThread();
   }
 
+  void UpdateWebSocketCount(int32_t aDelta) override {
+    if (aDelta == 0) {
+      return;
+    }
+
+    MOZ_DIAGNOSTIC_ASSERT(
+        aDelta > 0 || ((aDelta + mNumOfOpenWebSockets) < mNumOfOpenWebSockets));
+
+    mNumOfOpenWebSockets += aDelta;
+  }
+
+  bool HasOpenWebSockets() const override { return mNumOfOpenWebSockets; }
+
   void TriggerUpdateCCFlag() override {
     mWorkerPrivate->UpdateCCFlag(WorkerPrivate::CCFlag::EligibleForTimeout);
   }
@@ -233,6 +246,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
   PRThread* mWorkerThreadUsedOnlyForAssert;
 #endif
   mozilla::UniquePtr<mozilla::dom::TimeoutManager> mTimeoutManager;
+  uint32_t mNumOfOpenWebSockets{};
 };
 
 namespace workerinternals {
