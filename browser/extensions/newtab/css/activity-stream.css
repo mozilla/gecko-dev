@@ -6728,6 +6728,7 @@ main section {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
 }
 .ds-image .placeholder-image {
   overflow: hidden;
