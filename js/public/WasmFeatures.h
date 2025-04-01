@@ -141,7 +141,7 @@
     /* compiler predicate */ IonPlatformSupport(),                      \
     /* flag predicate     */ true,                                      \
     /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ false,                                     \
+    /* flag fuzz enable   */ true,                                      \
     /* preference name    */ js_promise_integration)                    \
   FEATURE(                                                              \
     /* capitalized name   */ MozIntGemm,                                \
