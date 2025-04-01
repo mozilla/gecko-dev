@@ -469,6 +469,35 @@ bool js::OptimizeRegExpPrototypeFuse::checkInvariant(JSContext* cx) {
   return true;
 }
 
+bool js::OptimizeStringPrototypeSymbolsFuse::checkInvariant(JSContext* cx) {
+  auto* stringProto =
+      cx->global()->maybeGetPrototype<NativeObject>(JSProto_String);
+  if (!stringProto) {
+    // No proto, invariant still holds.
+    return true;
+  }
+
+  // String.prototype must have Object.prototype as proto.
+  auto* objectProto = &cx->global()->getObjectPrototype().as<NativeObject>();
+  if (stringProto->staticPrototype() != objectProto) {
+    return false;
+  }
+
+  // The objects must not have a @@match, @@replace, @@search, @@split property.
+  auto hasSymbolProp = [&](JS::Symbol* symbol) {
+    PropertyKey key = PropertyKey::Symbol(symbol);
+    return stringProto->containsPure(key) || objectProto->containsPure(key);
+  };
+  if (hasSymbolProp(cx->wellKnownSymbols().match) ||
+      hasSymbolProp(cx->wellKnownSymbols().replace) ||
+      hasSymbolProp(cx->wellKnownSymbols().search) ||
+      hasSymbolProp(cx->wellKnownSymbols().split)) {
+    return false;
+  }
+
+  return true;
+}
+
 bool js::OptimizeMapObjectIteratorFuse::checkInvariant(JSContext* cx) {
   // Ensure Map.prototype's @@iterator slot is unchanged.
   auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_Map);

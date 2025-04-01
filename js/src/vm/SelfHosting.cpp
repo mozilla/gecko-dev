@@ -308,6 +308,18 @@ static bool intrinsic_SubstringKernel(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static bool intrinsic_CanOptimizeStringProtoSymbolLookup(JSContext* cx,
+                                                         unsigned argc,
+                                                         Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 0);
+
+  bool optimizable =
+      cx->realm()->realmFuses.optimizeStringPrototypeSymbolsFuse.intact();
+  args.rval().setBoolean(optimizable);
+  return true;
+}
+
 static void ThrowErrorWithType(JSContext* cx, JSExnType type,
                                const CallArgs& args) {
   MOZ_RELEASE_ASSERT(args[0].isInt32());
@@ -2038,6 +2050,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("CanOptimizeArraySpecies",
                     intrinsic_CanOptimizeArraySpecies, 1, 0,
                     IntrinsicCanOptimizeArraySpecies),
+    JS_INLINABLE_FN("CanOptimizeStringProtoSymbolLookup",
+                    intrinsic_CanOptimizeStringProtoSymbolLookup, 0, 0,
+                    IntrinsicCanOptimizeStringProtoSymbolLookup),
     JS_FN("ConstructFunction", intrinsic_ConstructFunction, 2, 0),
     JS_FN("ConstructorForTypedArray", intrinsic_ConstructorForTypedArray, 1, 0),
     JS_FN("CopyDataPropertiesOrGetOwnKeys",

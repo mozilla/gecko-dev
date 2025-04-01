@@ -214,6 +214,7 @@
   _(IntrinsicIsObject)                             \
   _(IntrinsicIsCrossRealmArrayConstructor)         \
   _(IntrinsicCanOptimizeArraySpecies)              \
+  _(IntrinsicCanOptimizeStringProtoSymbolLookup)   \
   _(IntrinsicToInteger)                            \
   _(IntrinsicToLength)                             \
   _(IntrinsicIsConstructing)                       \

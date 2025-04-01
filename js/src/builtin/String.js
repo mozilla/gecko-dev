@@ -2,15 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-function StringProtoHasNoMatch() {
-  var ObjectProto = GetBuiltinPrototype("Object");
-  var StringProto = GetBuiltinPrototype("String");
-  if (!ObjectHasPrototype(StringProto, ObjectProto)) {
-    return false;
-  }
-  return !(GetBuiltinSymbol("match") in StringProto);
-}
-
 function ThrowIncompatibleMethod(name, thisv) {
   ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "String", name, ToString(thisv));
 }
@@ -25,7 +16,7 @@ function String_match(regexp) {
   // Step 2.
   var isPatternString = typeof regexp === "string";
   if (
-    !(isPatternString && StringProtoHasNoMatch()) &&
+    !(isPatternString && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(regexp)
   ) {
     // Step 2.a.
@@ -175,15 +166,6 @@ function String_pad_end(maxLength, fillString = " ") {
   return callFunction(String_pad, this, maxLength, fillString, true);
 }
 
-function StringProtoHasNoReplace() {
-  var ObjectProto = GetBuiltinPrototype("Object");
-  var StringProto = GetBuiltinPrototype("String");
-  if (!ObjectHasPrototype(StringProto, ObjectProto)) {
-    return false;
-  }
-  return !(GetBuiltinSymbol("replace") in StringProto);
-}
-
 // A thin wrapper to call SubstringKernel with int32-typed arguments.
 // Caller should check the range of |from| and |length|.
 function Substring(str, from, length) {
@@ -213,7 +195,7 @@ function String_replace(searchValue, replaceValue) {
 
   // Step 2.
   if (
-    !(typeof searchValue === "string" && StringProtoHasNoReplace()) &&
+    !(typeof searchValue === "string" && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(searchValue)
   ) {
     // Step 2.a.
@@ -398,15 +380,6 @@ function String_replaceAll(searchValue, replaceValue) {
   return result;
 }
 
-function StringProtoHasNoSearch() {
-  var ObjectProto = GetBuiltinPrototype("Object");
-  var StringProto = GetBuiltinPrototype("String");
-  if (!ObjectHasPrototype(StringProto, ObjectProto)) {
-    return false;
-  }
-  return !(GetBuiltinSymbol("search") in StringProto);
-}
-
 // ES 2016 draft Mar 25, 2016 21.1.3.15.
 function String_search(regexp) {
   // Step 1.
@@ -417,7 +390,7 @@ function String_search(regexp) {
   // Step 2.
   var isPatternString = typeof regexp === "string";
   if (
-    !(isPatternString && StringProtoHasNoSearch()) &&
+    !(isPatternString && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(regexp)
   ) {
     // Step 2.a.
@@ -450,15 +423,6 @@ function String_search(regexp) {
   );
 }
 
-function StringProtoHasNoSplit() {
-  var ObjectProto = GetBuiltinPrototype("Object");
-  var StringProto = GetBuiltinPrototype("String");
-  if (!ObjectHasPrototype(StringProto, ObjectProto)) {
-    return false;
-  }
-  return !(GetBuiltinSymbol("split") in StringProto);
-}
-
 // ES 2016 draft Mar 25, 2016 21.1.3.17.
 function String_split(separator, limit) {
   // Step 1.
@@ -470,7 +434,7 @@ function String_split(separator, limit) {
   // are constants.  Following sequence of if's cannot be put together in
   // order that IonMonkey sees the constant if present (bug 1246141).
   if (typeof this === "string") {
-    if (StringProtoHasNoSplit()) {
+    if (CanOptimizeStringProtoSymbolLookup()) {
       if (typeof separator === "string") {
         if (limit === undefined) {
           // inlineConstantStringSplitString needs both arguments to
@@ -483,7 +447,7 @@ function String_split(separator, limit) {
 
   // Step 2.
   if (
-    !(typeof separator === "string" && StringProtoHasNoSplit()) &&
+    !(typeof separator === "string" && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(separator)
   ) {
     // Step 2.a.
