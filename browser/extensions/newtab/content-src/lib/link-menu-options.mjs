@@ -79,7 +79,7 @@ export const LinkMenuOptions = {
           ? {
               section: site.section,
               section_position: site.section_position,
-              is_secton_followed: site.is_secton_followed,
+              is_section_followed: site.is_section_followed,
             }
           : {}),
       },
@@ -134,7 +134,7 @@ export const LinkMenuOptions = {
           ? {
               section: site.section,
               section_position: site.section_position,
-              is_secton_followed: site.is_secton_followed,
+              is_section_followed: site.is_section_followed,
             }
           : {}),
       })),

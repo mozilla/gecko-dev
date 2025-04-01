@@ -124,7 +124,7 @@ export class ImpressionStats extends React.PureComponent {
                 ? {
                     section: link.section,
                     section_position: link.section_position,
-                    is_secton_followed: link.is_secton_followed,
+                    is_section_followed: link.is_section_followed,
                   }
                 : {}),
             })),

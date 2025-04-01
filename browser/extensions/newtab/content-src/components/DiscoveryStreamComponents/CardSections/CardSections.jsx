@@ -132,7 +132,7 @@ function CardSection({
         data: {
           section: sectionKey,
           section_position: sectionPosition,
-          is_secton_followed: following,
+          is_section_followed: following,
         },
       })
     );

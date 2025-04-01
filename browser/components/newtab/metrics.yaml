@@ -691,7 +691,7 @@ newtab:
         description: >
           position of section on newtab
         type: string
-      is_secton_followed:
+      is_section_followed: &is_section_followed
         description: >
           If click belongs in a section, if that section is followed
         type: boolean
@@ -1407,10 +1407,7 @@ pocket:
         description: >
           If click belongs in a section, the numeric position of the section
         type: string
-      is_secton_followed:
-        description: >
-          If click belongs in a section, if that section is followed
-        type: boolean
+      is_section_followed: *is_section_followed
     send_in_pings:
       - newtab
 
@@ -1476,10 +1473,7 @@ pocket:
         description: >
           If click belongs in a section, the numeric position of the section
         type: string
-      is_secton_followed:
-        description: >
-          If click belongs in a section, if that section is followed
-        type: boolean
+      is_section_followed: *is_section_followed
     send_in_pings:
       - newtab
 
@@ -1521,10 +1515,7 @@ pocket:
         description: >
           If click belongs in a section, the numeric position of the section
         type: string
-      is_secton_followed:
-        description: >
-          If click belongs in a section, if that section is followed
-        type: boolean
+      is_section_followed: *is_section_followed
     send_in_pings:
       - newtab
 
@@ -1590,10 +1581,7 @@ pocket:
         description: >
           If click belongs in a section, the numeric position of the section
         type: string
-      is_secton_followed:
-        description: >
-          If click belongs in a section, if that section is followed
-        type: boolean
+      is_section_followed: *is_section_followed
     send_in_pings:
       - newtab
 
@@ -1736,10 +1724,7 @@ pocket:
         description: >
           If event belongs in a section, the numeric position of the section
         type: string
-      is_secton_followed:
-        description: >
-          If event belongs in a section, if that section is followed
-        type: boolean
+      is_section_followed: *is_section_followed
     send_in_pings:
       - newtab
 

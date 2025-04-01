@@ -575,7 +575,7 @@ export class TelemetryFeed {
           format,
           section,
           section_position,
-          is_secton_followed,
+          is_section_followed,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -599,7 +599,7 @@ export class TelemetryFeed {
               ? {
                   section,
                   section_position,
-                  is_secton_followed,
+                  is_section_followed,
                 }
               : {}),
             matches_selected_topic,
@@ -657,7 +657,7 @@ export class TelemetryFeed {
           topic,
           section,
           section_position,
-          is_secton_followed,
+          is_section_followed,
         } = action.data.value ?? {};
         Glean.pocket.thumbVotingInteraction.record({
           newtab_visit_id: session.session_id,
@@ -680,7 +680,7 @@ export class TelemetryFeed {
             ? {
                 section,
                 section_position,
-                is_secton_followed,
+                is_section_followed,
               }
             : {}),
         });
@@ -705,7 +705,7 @@ export class TelemetryFeed {
           format,
           section,
           section_position,
-          is_secton_followed,
+          is_section_followed,
         } = action.data.value ?? {};
         Glean.pocket.save.record({
           newtab_visit_id: session.session_id,
@@ -715,7 +715,7 @@ export class TelemetryFeed {
             ? {
                 section,
                 section_position,
-                is_secton_followed,
+                is_section_followed,
               }
             : {}),
           topic,
@@ -988,7 +988,7 @@ export class TelemetryFeed {
   handleCardSectionUserEvent(action) {
     const session = this.sessions.get(au.getPortIdOfSender(action));
     if (session) {
-      const { section, section_position, event_source, is_secton_followed } =
+      const { section, section_position, event_source, is_section_followed } =
         action.data;
       switch (action.type) {
         case "BLOCK_SECTION":
@@ -1012,7 +1012,7 @@ export class TelemetryFeed {
             newtab_visit_id: session.session_id,
             section,
             section_position,
-            is_secton_followed,
+            is_section_followed,
           });
           break;
         case "FOLLOW_SECTION":
@@ -1211,7 +1211,7 @@ export class TelemetryFeed {
             ? {
                 section: datum.section,
                 section_position: datum.section_position,
-                is_secton_followed: datum.is_secton_followed,
+                is_section_followed: datum.is_section_followed,
               }
             : {}),
           // We conditionally add in a few props.
@@ -1288,7 +1288,7 @@ export class TelemetryFeed {
             ? {
                 section: tile.section,
                 section_position: tile.section_position,
-                is_secton_followed: tile.is_secton_followed,
+                is_section_followed: tile.is_section_followed,
               }
             : {}),
           position: tile.pos,
