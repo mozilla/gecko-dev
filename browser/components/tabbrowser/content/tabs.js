@@ -2657,6 +2657,17 @@
         if (this.#rtlMode) {
           dropBefore = !dropBefore;
         }
+
+        // Constrain drop direction at the boundary between pinned and
+        // unpinned tabs so that they don't mix together.
+        let isOutOfBounds = isPinned
+          ? dropElement.elementIndex >= numPinned
+          : dropElement.elementIndex < numPinned;
+        if (isOutOfBounds) {
+          // Drop after last pinned tab
+          dropElement = this.ariaFocusableItems[numPinned - 1];
+          dropBefore = false;
+        }
       }
 
       if (gBrowser._tabGroupsEnabled && isTab(draggedTab) && !isPinned) {
