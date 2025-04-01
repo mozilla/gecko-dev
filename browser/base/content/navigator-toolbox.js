@@ -198,8 +198,7 @@ document.addEventListener(
         #tracking-protection-icon-container,
         #identity-icon-box,
         #identity-permission-box,
-        #translations-button,
-        #taskbar-tabs-button
+        #translations-button
         `);
       if (!element) {
         return;
