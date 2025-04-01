@@ -85,11 +85,12 @@ class JSZoneParticipant : public nsCycleCollectionParticipant {
 
 class IncrementalFinalizeRunnable;
 
+enum WhichJSHolders { AllJSHolders, JSHoldersRequiredForGrayMarking };
+
 // A map from JS holders to tracer objects, where the values are stored in
 // SegmentedVector to speed up iteration.
 class JSHolderMap {
  public:
-  enum WhichHolders { AllHolders, HoldersRequiredForGrayMarking };
 
   class Iter;
 
@@ -179,7 +180,7 @@ class JSHolderMap::EntryVectorIter {
 
 class JSHolderMap::Iter {
  public:
-  explicit Iter(JSHolderMap& aMap, WhichHolders aWhich = AllHolders);
+  explicit Iter(JSHolderMap& aMap, WhichJSHolders aWhich = AllJSHolders);
 
   ~Iter() {
     MOZ_RELEASE_ASSERT(mHolderMap.mHasIterator);
@@ -296,7 +297,7 @@ class CycleCollectedJSRuntime {
   void TraceAllNativeGrayRoots(JSTracer* aTracer);
 #endif
 
-  bool TraceNativeGrayRoots(JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
+  bool TraceNativeGrayRoots(JSTracer* aTracer, WhichJSHolders aWhich,
                             JS::SliceBudget& aBudget);
   bool TraceJSHolders(JSTracer* aTracer, JSHolderMap::Iter& aIter,
                       JS::SliceBudget& aBudget);

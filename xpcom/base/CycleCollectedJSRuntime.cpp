@@ -502,7 +502,7 @@ void JSHolderMap::EntryVectorIter::Settle() {
   }
 }
 
-JSHolderMap::Iter::Iter(JSHolderMap& aMap, WhichHolders aWhich)
+JSHolderMap::Iter::Iter(JSHolderMap& aMap, WhichJSHolders aWhich)
     : mHolderMap(aMap), mIter(aMap, aMap.mAnyZoneJSHolders) {
   MOZ_RELEASE_ASSERT(!mHolderMap.mHasIterator);
   mHolderMap.mHasIterator = true;
@@ -510,7 +510,7 @@ JSHolderMap::Iter::Iter(JSHolderMap& aMap, WhichHolders aWhich)
   // Populate vector of zones to iterate after the any-zone holders.
   for (auto i = aMap.mPerZoneJSHolders.iter(); !i.done(); i.next()) {
     JS::Zone* zone = i.get().key();
-    if (aWhich == AllHolders || JS::NeedGrayRootsForZone(i.get().key())) {
+    if (aWhich == AllJSHolders || JS::NeedGrayRootsForZone(i.get().key())) {
       MOZ_ALWAYS_TRUE(mZones.append(zone));
     }
   }
@@ -1014,13 +1014,13 @@ bool CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer,
 
   // Mark these roots as gray so the CC can walk them later.
 
-  JSHolderMap::WhichHolders which = JSHolderMap::AllHolders;
+  WhichJSHolders which = AllJSHolders;
 
   // Only trace holders in collecting zones when marking, except if we are
   // collecting the atoms zone since any holder may point into that zone.
   if (aTracer->isMarkingTracer() &&
       !JS::AtomsZoneIsCollecting(self->Runtime())) {
-    which = JSHolderMap::HoldersRequiredForGrayMarking;
+    which = JSHoldersRequiredForGrayMarking;
   }
 
   return self->TraceNativeGrayRoots(aTracer, which, budget);
@@ -1383,12 +1383,12 @@ void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(JSTracer* aTracer) {
   MOZ_RELEASE_ASSERT(mTraceState.is<Nothing>());
   JS::SliceBudget budget = JS::SliceBudget::unlimited();
   MOZ_ALWAYS_TRUE(
-      TraceNativeGrayRoots(aTracer, JSHolderMap::AllHolders, budget));
+      TraceNativeGrayRoots(aTracer, AllJSHolders, budget));
 }
 #endif
 
 bool CycleCollectedJSRuntime::TraceNativeGrayRoots(
-    JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
+    JSTracer* aTracer, WhichJSHolders aWhich,
     JS::SliceBudget& aBudget) {
   if (mTraceState.is<Nothing>()) {
     // NB: This is here just to preserve the existing XPConnect order. I doubt
