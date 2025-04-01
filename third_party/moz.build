@@ -92,7 +92,7 @@ with Files('libsrtp/**'):
     BUG_COMPONENT = ('Core', 'WebRTC: Networking')
 
 with Files("perfetto/**"):
-    BUG_COMPONENT = ("Core", "Performance")
+    BUG_COMPONENT = ("Core", "Performance Engineering")
 
 with Files("BUILD.gn"):
     BUG_COMPONENT = ("Core", "WebRTC")
