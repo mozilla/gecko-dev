@@ -1,3 +1,0 @@
-requires-python:>=3.8
-# Required by mach ide vscode
-pypi-optional:json5==0.10.0:extended json syntax support disabled
