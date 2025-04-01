@@ -1530,7 +1530,7 @@ win64-aarch64-shippable/opt:
 
 win64-aarch64-devedition/opt:
     description: "AArch64 Win64 Dev Edition (shippable)"
-    use-pgo: win64-shippable/opt
+    use-pgo: win64-aarch64-shippable/opt
     index:
         product: devedition
         job-name: win64-aarch64-opt
