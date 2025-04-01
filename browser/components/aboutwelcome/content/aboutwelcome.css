@@ -1836,29 +1836,6 @@ html {
 .onboardingContainer .screen[pos=split] .section-main .main-content .action-buttons .secondary-cta .arrow-icon:dir(rtl)::after {
   background-image: url("chrome://browser/skin/back.svg");
 }
-.onboardingContainer .screen[pos=split] .section-main .main-content .action-buttons .loader {
-  width: 1em;
-  height: 1em;
-  border: 3px solid var(--in-content-primary-button-text-color);
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  box-sizing: border-box;
-  animation: rotation 1s linear infinite;
-  justify-self: center;
-}
-@keyframes rotation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-.onboardingContainer .screen[pos=split] .section-main .main-content .action-buttons .loaderContainer {
-  display: flex;
-  padding: 1.5px 37.5px;
-  margin: auto;
-}
 .onboardingContainer .screen[pos=split] .section-main .main-content .logo-container {
   text-align: start;
 }

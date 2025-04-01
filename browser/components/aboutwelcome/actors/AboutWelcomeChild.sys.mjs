@@ -196,6 +196,14 @@ export class AboutWelcomeChild extends JSWindowActorChild {
   async getAWContent() {
     let attributionData = await this.sendQuery("AWPage:GET_ATTRIBUTION_DATA");
 
+    // Return to AMO gets returned early.
+    if (attributionData?.template) {
+      lazy.log.debug("Loading about:welcome with RTAMO attribution data");
+      return Cu.cloneInto(attributionData, this.contentWindow);
+    } else if (attributionData?.ua) {
+      lazy.log.debug("Loading about:welcome with UA attribution");
+    }
+
     let experimentMetadata =
       lazy.ExperimentAPI.getExperimentMetaData({
         featureId: "aboutwelcome",

@@ -39,53 +39,6 @@ const MR_ABOUT_WELCOME_DEFAULT = {
     "var(--mr-welcome-background-color) var(--mr-welcome-background-gradient)",
   screens: [
     {
-      id: "RETURN_TO_AMO",
-      targeting: "isRTAMO",
-      content: {
-        fullscreen: true,
-        position: "split",
-        title: { string_id: "mr1-return-to-amo-subtitle" },
-        isRtamo: true,
-        subtitle: {
-          string_id: "mr1-return-to-amo-addon-title",
-        },
-        backdrop:
-          "var(--mr-welcome-background-color) var(--mr-welcome-background-gradient)",
-        background:
-          "url('chrome://activity-stream/content/data/content/assets/mr-rtamo-background-image.svg') center center / cover no-repeat",
-        progress_bar: true,
-        primary_button: {
-          label: { string_id: "mr1-return-to-amo-add-extension-label" },
-          action: {
-            type: "INSTALL_ADDON_FROM_URL",
-            data: { url: null, telemetrySource: "rtamo" },
-          },
-        },
-        secondary_button: {
-          label: {
-            string_id: "mr2022-onboarding-secondary-skip-button-label",
-          },
-          action: {
-            navigate: true,
-          },
-          has_arrow_icon: true,
-        },
-        secondary_button_top: {
-          label: {
-            string_id: "mr1-onboarding-sign-in-button-label",
-          },
-          action: {
-            data: {
-              entrypoint: "activity-stream-firstrun",
-              where: "tab",
-            },
-            type: "SHOW_FIREFOX_ACCOUNTS",
-            addFlowParams: true,
-          },
-        },
-      },
-    },
-    {
       id: "AW_WELCOME_BACK",
       targeting: "isDeviceMigration",
       content: {
@@ -803,7 +756,6 @@ async function getAddonFromRepository(data) {
   }
 
   return {
-    addonId: addonInfo.id,
     name: addonInfo.name,
     url: addonInfo.sourceURI.spec,
     iconURL: addonInfo.icons["64"] || addonInfo.icons["32"],
@@ -850,7 +802,6 @@ async function getAttributionContent() {
     if (addonInfo) {
       return {
         ...addonInfo,
-        ua: decodeURIComponent(attribution.ua),
         template: "return_to_amo",
       };
     }

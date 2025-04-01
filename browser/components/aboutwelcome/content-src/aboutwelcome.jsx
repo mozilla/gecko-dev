@@ -6,6 +6,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { AboutWelcomeUtils } from "./lib/aboutwelcome-utils.mjs";
 import { MultiStageAboutWelcome } from "./components/MultiStageAboutWelcome";
+import { ReturnToAMO } from "./components/ReturnToAMO";
 
 class AboutWelcome extends React.PureComponent {
   constructor(props) {
@@ -56,14 +57,21 @@ class AboutWelcome extends React.PureComponent {
 
   render() {
     const { props } = this;
+    if (props.template === "return_to_amo") {
+      return (
+        <ReturnToAMO
+          message_id={props.messageId}
+          type={props.type}
+          name={props.name}
+          url={props.url}
+          iconURL={props.iconURL}
+          themeScreenshots={props.screenshots}
+          metricsFlowUri={this.state.metricsFlowUri}
+        />
+      );
+    }
     return (
       <MultiStageAboutWelcome
-        addonId={props.addonId}
-        addonType={props.type}
-        addonName={props.name}
-        addonURL={props.url}
-        addonIconURL={props.iconURL}
-        themeScreenshots={props.screenshots}
         message_id={props.messageId}
         defaultScreens={props.screens}
         updateHistory={!props.disableHistoryUpdates}

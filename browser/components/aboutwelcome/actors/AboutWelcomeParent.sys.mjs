@@ -181,10 +181,6 @@ export class AboutWelcomeParent extends JSWindowActorParent {
               lazy.AddonManager.removeInstallListener(listener);
               resolve("install cancelled");
             },
-            onDownloadCancelled() {
-              lazy.AddonManager.removeInstallListener(listener);
-              resolve("install cancelled");
-            },
             onInstallFailed() {
               lazy.AddonManager.removeInstallListener(listener);
               resolve("install failed");
@@ -201,7 +197,6 @@ export class AboutWelcomeParent extends JSWindowActorParent {
           await lazy.AboutWelcomeDefaults.getAddonFromRepository(data);
 
         return {
-          addonId: addonDetails.id,
           label: addonDetails.name,
           icon: addonDetails.iconURL,
           type: addonDetails.type,

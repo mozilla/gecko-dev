@@ -25,7 +25,8 @@ module.exports = ReactDOM;
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   AboutWelcomeUtils: () => (/* binding */ AboutWelcomeUtils)
+/* harmony export */   AboutWelcomeUtils: () => (/* binding */ AboutWelcomeUtils),
+/* harmony export */   DEFAULT_RTAMO_CONTENT: () => (/* binding */ DEFAULT_RTAMO_CONTENT)
 /* harmony export */ });
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -121,6 +122,55 @@ const AboutWelcomeUtils = {
   },
 };
 
+const DEFAULT_RTAMO_CONTENT = {
+  template: "return_to_amo",
+  utm_term: "rtamo",
+  content: {
+    position: "split",
+    title: { string_id: "mr1-return-to-amo-subtitle" },
+    has_noodles: false,
+    subtitle: {
+      string_id: "mr1-return-to-amo-addon-title",
+    },
+    backdrop:
+      "var(--mr-welcome-background-color) var(--mr-welcome-background-gradient)",
+    background:
+      "url('chrome://activity-stream/content/data/content/assets/mr-rtamo-background-image.svg') no-repeat center",
+    progress_bar: true,
+    primary_button: {
+      label: { string_id: "mr1-return-to-amo-add-extension-label" },
+      source_id: "ADD_EXTENSION_BUTTON",
+      action: {
+        type: "INSTALL_ADDON_FROM_URL",
+        data: { url: null, telemetrySource: "rtamo" },
+      },
+    },
+    secondary_button: {
+      label: {
+        string_id: "onboarding-not-now-button-label",
+      },
+      source_id: "RTAMO_START_BROWSING_BUTTON",
+      action: {
+        type: "OPEN_AWESOME_BAR",
+      },
+    },
+    secondary_button_top: {
+      label: {
+        string_id: "mr1-onboarding-sign-in-button-label",
+      },
+      source_id: "RTAMO_FXA_SIGNIN_BUTTON",
+      action: {
+        data: {
+          entrypoint: "activity-stream-firstrun",
+          where: "tab",
+        },
+        type: "SHOW_FIREFOX_ACCOUNTS",
+        addFlowParams: true,
+      },
+    },
+  },
+};
+
 
 /***/ }),
 /* 4 */
@@ -141,7 +191,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6);
 /* harmony import */ var _LanguageSwitcher__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(7);
 /* harmony import */ var _SubmenuButton__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(12);
-/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(23);
+/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(22);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -417,14 +467,7 @@ const MultiStageAboutWelcome = props => {
       ariaRole: props.ariaRole,
       aboveButtonStepsIndicator: currentScreen.above_button_steps_indicator,
       installedAddons: installedAddons,
-      setInstalledAddons: setInstalledAddons,
-      addonId: props.addonId,
-      addonType: props.addonType,
-      addonName: props.addonName,
-      addonURL: props.addonURL,
-      addonIconURL: props.addonIconURL,
-      themeScreenshots: props.themeScreenshots,
-      isRtamo: currentScreen.content.isRtamo
+      setInstalledAddons: setInstalledAddons
     }) : null;
   })));
 };
@@ -590,18 +633,6 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       if (action.type === "FXA_SIGNIN_FLOW") {
         _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, actionResult ? "sign_in" : "sign_in_cancel", "FXA_SIGNIN_FLOW");
       }
-      if (action.type === "INSTALL_ADDON_FROM_URL") {
-        const url = props.addonURL;
-        if (!action.data) {
-          return;
-        }
-        // Set add-on url in action.data.url property from JSON
-        action.data = {
-          ...action.data,
-          url
-        };
-        _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action);
-      }
       // Wait until migration closes to complete the action
       const hasMigrate = a => a.type === "SHOW_MIGRATION_WIZARD" || a.type === "MULTI_ACTION" && a.data?.actions?.some(hasMigrate);
       if (hasMigrate(action)) {
@@ -742,14 +773,7 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       autoAdvance: this.props.autoAdvance,
       forceHideStepsIndicator: this.props.forceHideStepsIndicator,
       ariaRole: this.props.ariaRole,
-      aboveButtonStepsIndicator: this.props.aboveButtonStepsIndicator,
-      addonId: this.props.addonId,
-      addonType: this.props.addonType,
-      addonName: this.props.addonName,
-      addonURL: this.props.addonURL,
-      addonIconURL: this.props.addonIconURL,
-      themeScreenshots: this.props.themeScreenshots,
-      isRtamo: this.props.content.isRtamo
+      aboveButtonStepsIndicator: this.props.aboveButtonStepsIndicator
     });
   }
 }
@@ -888,11 +912,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _AdditionalCTA__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(11);
 /* harmony import */ var _LinkParagraph__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(13);
 /* harmony import */ var _ContentTiles__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(14);
-/* harmony import */ var _InstallButton__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(16);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 
 
 
@@ -955,12 +977,9 @@ const MultiStageProtonScreen = props => {
     previousOrder: props.previousOrder,
     autoAdvance: props.autoAdvance,
     isRtamo: props.isRtamo,
-    addonId: props.addonId,
-    addonType: props.addonType,
     addonName: props.addonName,
-    addonURL: props.addonURL,
-    addonIconURL: props.addonIconURL,
-    themeScreenshots: props.themeScreenshots,
+    isTheme: props.isTheme,
+    iconURL: props.iconURL,
     messageId: props.messageId,
     negotiatedLanguage: props.negotiatedLanguage,
     langPackInstallPhase: props.langPackInstallPhase,
@@ -972,12 +991,8 @@ const MultiStageProtonScreen = props => {
 const ProtonScreenActionButtons = props => {
   const {
     content,
-    isRtamo,
-    addonId,
-    addonType,
     addonName,
-    activeMultiSelect,
-    installedAddons
+    activeMultiSelect
   } = props;
   const defaultValue = content.checkbox?.defaultValue;
   const [isChecked, setIsChecked] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(defaultValue || false);
@@ -990,9 +1005,6 @@ const ProtonScreenActionButtons = props => {
   }, [shouldFocusButton]);
   if (!content.primary_button && !content.secondary_button && !content.additional_button) {
     return null;
-  }
-  if (isRtamo) {
-    content.primary_button.label.string_id = addonType?.includes("theme") ? "return-to-amo-add-theme-label" : "mr1-return-to-amo-add-extension-label";
   }
 
   // If we have a multi-select screen, we want to disable the primary button
@@ -1017,17 +1029,7 @@ const ProtonScreenActionButtons = props => {
     className: `action-buttons ${content.additional_button ? "additional-cta-container" : ""}`,
     flow: content.additional_button?.flow,
     alignment: content.additional_button?.alignment
-  }, isRtamo ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_InstallButton__WEBPACK_IMPORTED_MODULE_11__.InstallButton, {
-    key: addonId,
-    addonId: addonId,
-    addonType: addonType,
-    addonName: addonName,
-    index: "primary_button",
-    handleAction: props.handleAction,
-    installedAddons: installedAddons,
-    install_label: content.primary_button.label,
-    install_complete_label: content.primary_button.install_complete_label
-  }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: content.primary_button?.label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     ref: buttonRef,
@@ -1284,7 +1286,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       autoAdvance,
       content,
       isRtamo,
-      addonType,
+      isTheme,
       isFirstScreen,
       isLastScreen,
       isSingleScreen,
@@ -1334,12 +1336,12 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
         paddingBlock: content.split_content_padding_block ? content.split_content_padding_block : null,
         paddingInline: content.split_content_padding_inline ? content.split_content_padding_inline : null
       }
-    }, content.logo && !content.fullscreen ? this.renderPicture(content.logo) : null, isRtamo && !content.fullscreen ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    }, content.logo && !content.fullscreen ? this.renderPicture(content.logo) : null, isRtamo ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: "rtamo-icon"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
-      className: `${addonType?.includes("theme") ? "rtamo-theme-icon" : "brand-logo"}`,
-      src: addonType?.includes("theme") ? this.props.themeScreenshots[0].url : this.props.addonIconURL,
-      loading: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getLoadingStrategyFor(this.props.addonIconURL),
+      className: `${isTheme ? "rtamo-theme-icon" : "brand-logo"}`,
+      src: this.props.iconURL,
+      loading: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getLoadingStrategyFor(this.props.iconURL),
       alt: "",
       role: "presentation"
     })) : null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -1347,15 +1349,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       style: {
         justifyContent: content.split_content_justify_content
       }
-    }, content.logo && content.fullscreen ? this.renderPicture(content.logo) : null, isRtamo && content.fullscreen ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      className: "rtamo-icon"
-    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
-      className: `${addonType?.includes("theme") ? "rtamo-theme-icon" : "brand-logo"}`,
-      src: addonType?.includes("theme") ? this.props.themeScreenshots[0].url : this.props.addonIconURL,
-      loading: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getLoadingStrategyFor(this.props.addonIconURL),
-      alt: "",
-      role: "presentation"
-    })) : null, content.title || content.subtitle ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    }, content.logo && content.fullscreen ? this.renderPicture(content.logo) : null, content.title || content.subtitle ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: `welcome-text ${content.title_style || ""}`
     }, content.title ? this.renderTitle(content) : null, content.subtitle ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: content.subtitle
@@ -1368,11 +1362,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       id: "mainContentSubheader"
     })) : null, content.action_buttons_above_content && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(ProtonScreenActionButtons, {
       content: content,
-      isRtamo: this.props.isRtamo,
-      installedAddons: this.props.installedAddons,
-      addonId: this.props.addonId,
       addonName: this.props.addonName,
-      addonType: this.props.addonType,
       handleAction: this.props.handleAction,
       activeMultiSelect: this.props.activeMultiSelect
     }), content.cta_paragraph ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CTAParagraph__WEBPACK_IMPORTED_MODULE_5__.CTAParagraph, {
@@ -1383,11 +1373,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       handleAction: this.props.handleAction
     }) : null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_ContentTiles__WEBPACK_IMPORTED_MODULE_10__.ContentTiles, this.props), this.renderLanguageSwitcher(), content.above_button_content ? this.renderOrderedContent(content.above_button_content) : null, !hideStepsIndicator && aboveButtonStepsIndicator ? this.renderStepsIndicator() : null, !content.action_buttons_above_content && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(ProtonScreenActionButtons, {
       content: content,
-      isRtamo: this.props.isRtamo,
-      installedAddons: this.props.installedAddons,
-      addonId: this.props.addonId,
       addonName: this.props.addonName,
-      addonType: this.props.addonType,
       handleAction: this.props.handleAction,
       activeMultiSelect: this.props.activeMultiSelect
     })), !hideStepsIndicator && !aboveButtonStepsIndicator ? this.renderStepsIndicator() : null)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
@@ -2054,12 +2040,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _MSLocalized__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5);
 /* harmony import */ var _AddonsPicker__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(15);
-/* harmony import */ var _SingleSelect__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(17);
-/* harmony import */ var _MobileDownloads__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(18);
-/* harmony import */ var _MultiSelect__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(19);
-/* harmony import */ var _EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(20);
-/* harmony import */ var _ActionChecklist__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(21);
-/* harmony import */ var _EmbeddedBrowser__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(22);
+/* harmony import */ var _SingleSelect__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(16);
+/* harmony import */ var _MobileDownloads__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(17);
+/* harmony import */ var _MultiSelect__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(18);
+/* harmony import */ var _EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(19);
+/* harmony import */ var _ActionChecklist__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(20);
+/* harmony import */ var _EmbeddedBrowser__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(21);
 /* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(3);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -2249,13 +2235,14 @@ const ContentTiles = props => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   AddonsPicker: () => (/* binding */ AddonsPicker)
+/* harmony export */   AddonsPicker: () => (/* binding */ AddonsPicker),
+/* harmony export */   InstallButton: () => (/* binding */ InstallButton),
+/* harmony export */   Loader: () => (/* binding */ Loader)
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3);
 /* harmony import */ var _MSLocalized__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5);
-/* harmony import */ var _InstallButton__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(16);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -2263,7 +2250,55 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-
+const Loader = () => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    className: "primary"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "loaderContainer"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+    className: "loader"
+  })));
+};
+const InstallButton = props => {
+  // determine if the addon is already installed so the state is
+  // consistent on refresh or navigation
+  const [installing, setInstalling] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [installComplete, setInstallComplete] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const defaultInstallLabel = {
+    string_id: "amo-picker-install-button-label"
+  };
+  const defaultInstallCompleteLabel = {
+    string_id: "amo-picker-install-complete-label"
+  };
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    setInstallComplete(props.installedAddons?.includes(props.addonId));
+  }, [props.addonId, props.installedAddons]);
+  let buttonLabel = installComplete ? props.install_complete_label || defaultInstallCompleteLabel : props.install_label || defaultInstallLabel;
+  function onClick(event) {
+    props.handleAction(event);
+    // Replace the label with the spinner
+    setInstalling(true);
+    window.AWEnsureAddonInstalled(props.addonId).then(value => {
+      if (value === "complete") {
+        // Set the label to "Installed"
+        setInstallComplete(true);
+      }
+      // Whether the addon installs or not, we want to remove the spinner
+      setInstalling(false);
+    });
+  }
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "install-button-wrapper"
+  }, installing ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(Loader, null) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {
+    text: buttonLabel
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    id: `install-button-${props.addonId}`,
+    value: props.index,
+    onClick: onClick,
+    disabled: installComplete,
+    className: "primary"
+  })));
+};
 const AddonsPicker = props => {
   const {
     content,
@@ -2349,7 +2384,7 @@ const AddonsPicker = props => {
       handleAuthorClick(e, author.id);
     },
     className: "author-link"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", null, author.name)))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_InstallButton__WEBPACK_IMPORTED_MODULE_3__.InstallButton, {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", null, author.name)))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(InstallButton, {
     key: id,
     addonId: id,
     handleAction: handleAction,
@@ -2373,7 +2408,7 @@ const AddonsPicker = props => {
     text: description
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "addon-description"
-  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_InstallButton__WEBPACK_IMPORTED_MODULE_3__.InstallButton, {
+  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(InstallButton, {
     key: id,
     addonId: id,
     handleAction: handleAction,
@@ -2386,91 +2421,6 @@ const AddonsPicker = props => {
 
 /***/ }),
 /* 16 */
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   InstallButton: () => (/* binding */ InstallButton),
-/* harmony export */   Loader: () => (/* binding */ Loader)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _MSLocalized__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5);
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-
-const Loader = () => {
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "primary"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "loaderContainer"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
-    className: "loader"
-  })));
-};
-const InstallButton = props => {
-  // determine if the addon is already installed so the state is
-  // consistent on refresh or navigation
-  const [installing, setInstalling] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
-  const [installComplete, setInstallComplete] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
-  const defaultInstallLabel = {
-    string_id: "amo-picker-install-button-label"
-  };
-  function getDefaultInstallCompleteLabel(addonType = "") {
-    let defaultInstallCompleteLabel;
-    if (addonType && addonType === "theme") {
-      defaultInstallCompleteLabel = {
-        string_id: "return-to-amo-theme-install-complete-label"
-      };
-    } else if (addonType && addonType === "extension") {
-      defaultInstallCompleteLabel = {
-        string_id: "return-to-amo-extension-install-complete-label"
-      };
-    } else {
-      defaultInstallCompleteLabel = {
-        string_id: "amo-picker-install-complete-label"
-      };
-    }
-    return defaultInstallCompleteLabel;
-  }
-  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    setInstallComplete(props.installedAddons?.includes(props.addonId));
-  }, [props.addonId, props.installedAddons]);
-  let buttonLabel = installComplete ? props.install_complete_label || getDefaultInstallCompleteLabel(props.addonType) : props.install_label || defaultInstallLabel;
-  function onClick(event) {
-    props.handleAction(event);
-    // Replace the label with the spinner
-    setInstalling(true);
-    window.AWEnsureAddonInstalled(props.addonId).then(value => {
-      if (value === "complete") {
-        // Set the label to "Installed"
-        setInstallComplete(true);
-      }
-      // Whether the addon installs or not, we want to remove the spinner
-      setInstalling(false);
-    });
-  }
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "install-button-wrapper"
-  }, installing ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(Loader, null) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
-    text: buttonLabel
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    id: `install-button-${props.addonId}`,
-    value: props.index,
-    onClick: onClick,
-    disabled: installComplete,
-    className: "primary",
-    "data-l10n-args": props.addonName ? JSON.stringify({
-      "addon-name": props.addonName
-    }) : ""
-  })));
-};
-
-/***/ }),
-/* 17 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -2612,7 +2562,7 @@ const SingleSelect = ({
 };
 
 /***/ }),
-/* 18 */
+/* 17 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -2674,7 +2624,7 @@ const MobileDownloads = props => {
 };
 
 /***/ }),
-/* 19 */
+/* 18 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -2806,7 +2756,7 @@ const MultiSelect = ({
 };
 
 /***/ }),
-/* 20 */
+/* 19 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -2877,7 +2827,7 @@ const EmbeddedMigrationWizard = ({
 };
 
 /***/ }),
-/* 21 */
+/* 20 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -3035,7 +2985,7 @@ const ActionChecklist = ({
 };
 
 /***/ }),
-/* 22 */
+/* 21 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -3103,7 +3053,7 @@ const EmbeddedBrowserInner = ({
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (EmbeddedBrowser);
 
 /***/ }),
-/* 23 */
+/* 22 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -3144,6 +3094,125 @@ function addUtmParams(url, utmTerm) {
   return returnUrl;
 }
 
+
+/***/ }),
+/* 23 */
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   ReturnToAMO: () => (/* binding */ ReturnToAMO)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3);
+/* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6);
+/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(22);
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+class ReturnToAMO extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureComponent) {
+  constructor(props) {
+    super(props);
+    this.fetchFlowParams = this.fetchFlowParams.bind(this);
+    this.handleAction = this.handleAction.bind(this);
+  }
+  async fetchFlowParams() {
+    if (this.props.metricsFlowUri) {
+      this.setState({
+        flowParams: await _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.AboutWelcomeUtils.fetchFlowParams(this.props.metricsFlowUri)
+      });
+    }
+  }
+  componentDidUpdate() {
+    this.fetchFlowParams();
+  }
+  handleAction(event) {
+    const {
+      content,
+      message_id,
+      url,
+      utm_term
+    } = this.props;
+    let {
+      action,
+      source_id
+    } = content[event.currentTarget.value];
+    let {
+      type,
+      data
+    } = action;
+    if (type === "INSTALL_ADDON_FROM_URL") {
+      if (!data) {
+        return;
+      }
+      // Set add-on url in action.data.url property from JSON
+      data = {
+        ...data,
+        url
+      };
+    } else if (type === "SHOW_FIREFOX_ACCOUNTS") {
+      let params = {
+        ..._lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_3__.BASE_PARAMS,
+        utm_term: `aboutwelcome-${utm_term}-screen`
+      };
+      if (action.addFlowParams && this.state.flowParams) {
+        params = {
+          ...params,
+          ...this.state.flowParams
+        };
+      }
+      data = {
+        ...data,
+        extraParams: params
+      };
+    }
+    _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.AboutWelcomeUtils.handleUserAction({
+      type,
+      data
+    });
+    _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.AboutWelcomeUtils.sendActionTelemetry(message_id, source_id);
+  }
+  render() {
+    const {
+      content,
+      type
+    } = this.props;
+    if (!content) {
+      return null;
+    }
+    if (content?.primary_button.label) {
+      content.primary_button.label.string_id = type.includes("theme") ? "return-to-amo-add-theme-label" : "mr1-return-to-amo-add-extension-label";
+    }
+
+    // For experiments, when needed below rendered UI allows settings hard coded strings
+    // directly inside JSON except for ReturnToAMOText which picks add-on name and icon from fluent string
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "outer-wrapper onboardingContainer proton",
+      style: content.backdrop ? {
+        background: content.backdrop
+      } : {}
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_2__.MultiStageProtonScreen, {
+      content: content,
+      isRtamo: true,
+      isTheme: type.includes("theme"),
+      id: this.props.message_id,
+      order: this.props.order || 0,
+      totalNumberOfScreens: 1,
+      isSingleScreen: true,
+      autoAdvance: this.props.auto_advance,
+      iconURL: type.includes("theme") ? this.props.themeScreenshots[0]?.url : this.props.iconURL,
+      addonName: this.props.name,
+      handleAction: this.handleAction
+    }));
+  }
+}
+ReturnToAMO.defaultProps = _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.DEFAULT_RTAMO_CONTENT;
 
 /***/ })
 /******/ 	]);
@@ -3224,10 +3293,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _components_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4);
+/* harmony import */ var _components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(23);
 function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -3285,13 +3356,18 @@ class AboutWelcome extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     const {
       props
     } = this;
+    if (props.template === "return_to_amo") {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__.ReturnToAMO, {
+        message_id: props.messageId,
+        type: props.type,
+        name: props.name,
+        url: props.url,
+        iconURL: props.iconURL,
+        themeScreenshots: props.screenshots,
+        metricsFlowUri: this.state.metricsFlowUri
+      });
+    }
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_components_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_3__.MultiStageAboutWelcome, {
-      addonId: props.addonId,
-      addonType: props.type,
-      addonName: props.name,
-      addonURL: props.url,
-      addonIconURL: props.iconURL,
-      themeScreenshots: props.screenshots,
       message_id: props.messageId,
       defaultScreens: props.screens,
       updateHistory: !props.disableHistoryUpdates,

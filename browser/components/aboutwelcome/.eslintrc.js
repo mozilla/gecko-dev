@@ -28,6 +28,7 @@ module.exports = {
         "content-src/components/MultiStageScreen.jsx",
         "content-src/components/MultiStageProtonScreen.jsx",
         "content-src/components/MultiSelect.jsx",
+        "content-src/components/ReturnToAMO.jsx",
       ],
       rules: {
         "jsx-a11y/anchor-has-content": "off",
