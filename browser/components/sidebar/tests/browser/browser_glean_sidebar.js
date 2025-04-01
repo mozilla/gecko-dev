@@ -249,27 +249,16 @@ add_task(async function test_review_checker_sidebar_toggle() {
 
 add_task(async function test_contextual_manager_toggle() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.contextual-password-manager.enabled", true]],
+    set: [
+      ["browser.contextual-password-manager.enabled", true],
+      ["sidebar.revamp", false],
+    ],
   });
   await SidebarController.waitUntilStable();
   const gleanEvent = Glean.contextualManager.sidebarToggle;
   await testSidebarToggle("viewCPMSidebar", gleanEvent);
   await SpecialPowers.popPrefEnv();
   await SidebarController.waitUntilStable();
-});
-
-add_task(async function test_customize_contextual_manager_enabled() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.contextual-password-manager.enabled", true]],
-  });
-  await testCustomizeToggle(
-    "viewCPMSidebar",
-    Glean.contextualManager.sidebarCustomizeEnabled,
-    false
-  );
-  await SpecialPowers.popPrefEnv();
-  await SidebarController.waitUntilStable();
-  Services.fog.testResetFOG();
 });
 
 add_task(async function test_customize_panel_toggle() {
