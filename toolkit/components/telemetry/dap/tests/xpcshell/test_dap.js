@@ -7,6 +7,9 @@
 const { HttpServer } = ChromeUtils.importESModule(
   "resource://testing-common/httpd.sys.mjs"
 );
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
 
 const lazy = {};
 
@@ -141,43 +144,50 @@ add_task(async function testTelemetryToggle() {
   Assert.equal(server_requests, tasks.length);
 });
 
-add_task(async function testVisitCounterNimbus() {
-  await lazy.ExperimentManager.onStartup();
-  await lazy.DAPVisitCounter.startup();
+add_task(
+  {
+    // Requires Normandy.
+    skip_if: () => !AppConstants.MOZ_NORMANDY,
+  },
+  async function testVisitCounterNimbus() {
+    await lazy.ExperimentManager.onStartup();
+    await lazy.DAPVisitCounter.startup();
 
-  Assert.ok(
-    lazy.DAPVisitCounter.timerId === null,
-    "Submission timer should not exist before enrollment"
-  );
+    Assert.ok(
+      lazy.DAPVisitCounter.timerId === null,
+      "Submission timer should not exist before enrollment"
+    );
 
-  // Enroll experiment
-  let doExperimentCleanup = await lazy.ExperimentFakes.enrollWithFeatureConfig({
-    featureId: "dapTelemetry",
-    value: {
-      enabled: true,
-      visitCountingEnabled: true,
-      visitCountingExperimentList: {
-        [tasks[1].id]: ["mozilla.org", "example.com"],
-      },
-    },
-  });
+    // Enroll experiment
+    let doExperimentCleanup =
+      await lazy.ExperimentFakes.enrollWithFeatureConfig({
+        featureId: "dapTelemetry",
+        value: {
+          enabled: true,
+          visitCountingEnabled: true,
+          visitCountingExperimentList: {
+            [tasks[1].id]: ["mozilla.org", "example.com"],
+          },
+        },
+      });
 
-  Assert.ok(
-    lazy.DAPVisitCounter.timerId !== null,
-    "Submission timer should be armed"
-  );
+    Assert.ok(
+      lazy.DAPVisitCounter.timerId !== null,
+      "Submission timer should be armed"
+    );
 
-  // Unenroll experiment
-  server_requests = 0;
-  doExperimentCleanup();
-  Services.tm.spinEventLoopUntil(
-    "Wait for DAPVisitCounter to flush",
-    () => lazy.DAPVisitCounter.counters === null
-  );
-  Assert.equal(server_requests, 1, "Unenrollment should flush reports");
+    // Unenroll experiment
+    server_requests = 0;
+    doExperimentCleanup();
+    Services.tm.spinEventLoopUntil(
+      "Wait for DAPVisitCounter to flush",
+      () => lazy.DAPVisitCounter.counters === null
+    );
+    Assert.equal(server_requests, 1, "Unenrollment should flush reports");
 
-  Assert.ok(
-    lazy.DAPVisitCounter.timerId === null,
-    "Submission timer should not exist after unenrollment"
-  );
-});
+    Assert.ok(
+      lazy.DAPVisitCounter.timerId === null,
+      "Submission timer should not exist after unenrollment"
+    );
+  }
+);
