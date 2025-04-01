@@ -513,19 +513,38 @@ Parameters:
     u
       .beginSubcases()
       .combine('stage', kShaderStages)
+      .combine('importExternalTexture', [false, true])
       .combine('width', [8, 16, 24] as const)
       .combine('height', [8, 16, 24] as const)
   )
   .fn(t => {
-    const { stage, width, height } = t.params;
+    const { stage, importExternalTexture, width, height } = t.params;
     const canvas = new OffscreenCanvas(width, height);
-    // We have to make a context for VideoFrame to accept the canvas.
+    const size = [width, height];
+
+    // We have to make a context so that VideoFrame and copyExternalImageToTexture accept the canvas.
     canvas.getContext('2d');
-    const videoFrame = new VideoFrame(canvas, { timestamp: 0 });
-    const texture = t.device.importExternalTexture({ source: videoFrame });
+    let texture: GPUExternalTexture | GPUTexture;
+    let videoFrame: VideoFrame | undefined;
+    if (importExternalTexture) {
+      t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported');
+
+      videoFrame = new VideoFrame(canvas, { timestamp: 0 });
+      texture = t.device.importExternalTexture({ source: videoFrame });
+    } else {
+      texture = t.createTextureTracked({
+        format: 'rgba8unorm',
+        size,
+        usage:
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.TEXTURE_BINDING,
+      });
+      t.queue.copyExternalImageToTexture({ source: canvas }, { texture }, size);
+    }
 
     run(t, stage, texture, undefined, 'texture_external', undefined, {
-      size: [width, height],
-      expected: [width, height],
+      size,
+      expected: size,
     });
   });

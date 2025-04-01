@@ -46,7 +46,7 @@ export function getPipelineTypeForBindingCombination(bindingCombination: Binding
   }
 }
 
-export function getStageVisibilityForBinidngCombination(bindingCombination: BindingCombination) {
+export function getStageVisibilityForBindingCombination(bindingCombination: BindingCombination) {
   switch (bindingCombination) {
     case 'vertex':
       return GPUConst.ShaderStage.VERTEX;

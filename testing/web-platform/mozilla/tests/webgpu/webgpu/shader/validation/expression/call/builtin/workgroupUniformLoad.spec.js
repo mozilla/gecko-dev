@@ -121,6 +121,24 @@ fn foo() {
   t.expectCompileResult(t.params.type === 'bool' || t.params.call === 'bar()', code);
 });
 
+g.test('param_constructible_only').
+desc(
+  `
+The type of the argument passed to workgroupUniformLoad must be constructible.
+`
+).
+params((u) => u.combine('stage', ['const', 'override'])).
+fn((t) => {
+  const code = `
+${t.params.stage} array_size = 10u;
+var<workgroup> wgvar : array<u32, array_size>;
+
+fn foo() {
+  _ = workgroupUniformLoad(&wgvar)[0];
+}`;
+  t.expectCompileResult(t.params.stage === 'const', code);
+});
+
 g.test('must_use').
 desc('Tests that the result must be used').
 params((u) => u.combine('use', [true, false])).

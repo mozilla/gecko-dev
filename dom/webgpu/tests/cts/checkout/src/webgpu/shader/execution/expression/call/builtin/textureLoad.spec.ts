@@ -47,7 +47,7 @@ import {
   generateTextureBuiltinInputs2D,
   generateTextureBuiltinInputs3D,
   Dimensionality,
-  createVideoFrameWithRandomDataAndGetTexels,
+  createCanvasWithRandomDataAndGetTexels,
   ShortShaderStage,
   isFillable,
 } from './texture_utils.js';
@@ -506,15 +506,13 @@ Parameters:
     u
       .combine('stage', kShortShaderStages)
       .beginSubcases()
+      .combine('importExternalTexture', [false, true])
       .combine('samplePoints', kSamplePointMethods)
       .combine('C', ['i32', 'u32'] as const)
       .combine('L', ['i32', 'u32'] as const)
   )
-  .beforeAllSubcases(t =>
-    t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported')
-  )
   .fn(async t => {
-    const { stage, samplePoints, C, L } = t.params;
+    const { stage, importExternalTexture, samplePoints, C, L } = t.params;
 
     const size = [8, 8, 1];
 
@@ -526,8 +524,29 @@ Parameters:
       usage: GPUTextureUsage.COPY_DST,
     };
 
-    const { texels, videoFrame } = createVideoFrameWithRandomDataAndGetTexels(descriptor.size);
-    const texture = t.device.importExternalTexture({ source: videoFrame });
+    const { texels, canvas } = createCanvasWithRandomDataAndGetTexels(descriptor.size);
+    let videoFrame: VideoFrame | undefined;
+    let texture: GPUExternalTexture | GPUTexture;
+    if (importExternalTexture) {
+      t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported');
+
+      videoFrame = new VideoFrame(canvas, { timestamp: 0 });
+      texture = t.device.importExternalTexture({ source: videoFrame });
+    } else {
+      texture = t.createTextureTracked({
+        format: descriptor.format,
+        size: descriptor.size,
+        usage:
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.TEXTURE_BINDING,
+      });
+      t.queue.copyExternalImageToTexture(
+        { source: canvas },
+        { texture, premultipliedAlpha: true },
+        size
+      );
+    }
 
     const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
       method: samplePoints,
@@ -563,7 +582,7 @@ Parameters:
       stage
     );
     t.expectOK(res);
-    videoFrame.close();
+    videoFrame?.close();
   });
 
 g.test('arrayed')

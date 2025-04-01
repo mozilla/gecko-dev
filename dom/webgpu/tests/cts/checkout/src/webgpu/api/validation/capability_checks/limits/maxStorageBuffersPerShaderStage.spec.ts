@@ -16,7 +16,7 @@ import {
   getPipelineTypeForBindingCombination,
   getPerStageWGSLForBindingCombination,
   LimitsRequest,
-  getStageVisibilityForBinidngCombination,
+  getStageVisibilityForBindingCombination,
   addMaximumLimitUpToDependentLimit,
   MaximumLimitValueTest,
 } from './limit_utils.js';
@@ -200,7 +200,7 @@ g.test('createPipeline,at_over')
           `can not test ${testValue} bindings in same group because maxBindingsPerBindGroup = ${device.limits.maxBindingsPerBindGroup}`
         );
 
-        const visibility = getStageVisibilityForBinidngCombination(bindingCombination);
+        const visibility = getStageVisibilityForBindingCombination(bindingCombination);
         t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
 
         const code = getPerStageWGSLForBindingCombination(

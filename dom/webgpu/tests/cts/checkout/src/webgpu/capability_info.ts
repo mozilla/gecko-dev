@@ -740,10 +740,10 @@ const [kLimitInfoKeys, kLimitInfoDefaults, kLimitInfoData] =
   'maxDynamicStorageBuffersPerPipelineLayout': [           ,         4,               4,                          ],
   'maxSampledTexturesPerShaderStage':          [           ,        16,              16,                          ],
   'maxSamplersPerShaderStage':                 [           ,        16,              16,                          ],
-  'maxStorageBuffersInFragmentStage':          [           ,         8,               0,                          ],
+  'maxStorageBuffersInFragmentStage':          [           ,         8,               4,                          ],
   'maxStorageBuffersInVertexStage':            [           ,         8,               0,                          ],
-  'maxStorageBuffersPerShaderStage':           [           ,         8,               4,                          ],
-  'maxStorageTexturesInFragmentStage':         [           ,         4,               0,                          ],
+  'maxStorageBuffersPerShaderStage':           [           ,         8,               8,                          ],
+  'maxStorageTexturesInFragmentStage':         [           ,         4,               4,                          ],
   'maxStorageTexturesInVertexStage':           [           ,         4,               0,                          ],
   'maxStorageTexturesPerShaderStage':          [           ,         4,               4,                          ],
   'maxUniformBuffersPerShaderStage':           [           ,        12,              12,                          ],
@@ -905,6 +905,8 @@ export const kFeatureNameInfo: {
   'float32-blendable':                  {},
   'clip-distances':                     {},
   'dual-source-blending':               {},
+  'subgroups':                          {},
+  'core-features-and-limits':           {},
 };
 /** List of all GPUFeatureName values. */
 export const kFeatureNames = keysOf(kFeatureNameInfo);

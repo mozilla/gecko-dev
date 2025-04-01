@@ -258,6 +258,7 @@ combine('hasBlend', [false, true])
 fn((t) => {
   const { isAsync, format, hasBlend } = t.params;
   t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
 
   const descriptor = t.getDescriptor({
     targets: [
@@ -379,6 +380,7 @@ p.format !== undefined && p.shaderOutput !== undefined ? [0, 0x1, 0x2, 0x4, 0x8]
 fn((t) => {
   const { isAsync, format, writeMask, shaderOutput } = t.params;
   t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
 
   const descriptor = t.getDescriptor({
     targets: format ? [{ format, writeMask }] : [],

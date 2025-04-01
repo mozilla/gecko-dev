@@ -414,7 +414,8 @@ web-platform-tests-webgpu-backlog-long:
     tier: 3
     chunks:
         by-test-platform:
-            windows.*-64.*: 5
+            macosx.*: 5
+            windows.*-64.*: 6
             default: 4
     max-run-time: 5400  # 90m
     variants: []  # We don't need sw or nofis testing.

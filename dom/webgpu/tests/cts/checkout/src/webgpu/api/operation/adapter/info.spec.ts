@@ -138,13 +138,6 @@ different orders to make sure that they are consistent regardless of the access 
     }
   });
 
-// This can be removed once 'subgroups' lands.
-// See https://github.com/gpuweb/gpuweb/pull/4963
-interface SubgroupProperties extends GPUAdapterInfo {
-  subgroupMinSize?: number;
-  subgroupMaxSize?: number;
-}
-
 const kSubgroupMinSizeBound = 4;
 const kSubgroupMaxSizeBound = 128;
 
@@ -161,7 +154,7 @@ If they exist, they must both exist and be powers of two, and
     const gpu = getGPU(t.rec);
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null);
-    const { subgroupMinSize, subgroupMaxSize } = adapter.info as SubgroupProperties;
+    const { subgroupMinSize, subgroupMaxSize } = adapter.info;
     // Once 'subgroups' lands, the properties should be defined with default values 4 and 128
     // when adapter does not support the feature.
     // https://github.com/gpuweb/gpuweb/pull/4963

@@ -258,6 +258,7 @@ g.test('targets_format_filterable')
   .fn(t => {
     const { isAsync, format, hasBlend } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
 
     const descriptor = t.getDescriptor({
       targets: [
@@ -379,6 +380,7 @@ g.test('pipeline_output_targets')
   .fn(t => {
     const { isAsync, format, writeMask, shaderOutput } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
 
     const descriptor = t.getDescriptor({
       targets: format ? [{ format, writeMask }] : [],

@@ -476,6 +476,40 @@ TODO(#2060): test with last_castable_pipeline_override.
     t.doCreateComputePipelineTest(isAsync, _success, descriptor);
   });
 
+g.test('overrides,entry_point,validation_error')
+  .desc(
+    `
+Tests that pipeline constant (override) errors only trigger on entry point usage.
+`
+  )
+  .params(u =>
+    u //
+      .combine('isAsync', [true, false])
+      .combine('pipeEntryPoint', ['main_success', 'main_pipe_error'])
+  )
+  .fn(t => {
+    const { isAsync, pipeEntryPoint } = t.params;
+    const descriptor = {
+      layout: 'auto' as const,
+      compute: {
+        module: t.device.createShaderModule({
+          code: `
+          override cu: u32 = 0u;
+          override cx: u32 = 1u/cu;
+          @compute @workgroup_size(1) fn main_success () {
+            _ = cu;
+          }
+          @compute @workgroup_size(1) fn main_pipe_error () {
+            _ = cx;
+          }`,
+        }),
+        entryPoint: pipeEntryPoint,
+      },
+    };
+
+    t.doCreateComputePipelineTest(isAsync, pipeEntryPoint === 'main_success', descriptor);
+  });
+
 g.test('overrides,value,validation_error,f16')
   .desc(
     `

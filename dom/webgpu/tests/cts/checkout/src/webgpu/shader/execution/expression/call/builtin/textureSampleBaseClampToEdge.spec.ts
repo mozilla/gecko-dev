@@ -9,7 +9,7 @@ import { TexelView } from '../../../../../util/texture/texel_view.js';
 import {
   checkCallResults,
   createTextureWithRandomDataAndGetTexels,
-  createVideoFrameWithRandomDataAndGetTexels,
+  createCanvasWithRandomDataAndGetTexels,
   doTextureCalls,
   generateTextureBuiltinInputs2D,
   kSamplePointMethods,
@@ -33,7 +33,9 @@ async function createTextureAndDataForTest(
   videoFrame?: VideoFrame;
 }> {
   if (isExternal) {
-    const { texels, videoFrame } = createVideoFrameWithRandomDataAndGetTexels(descriptor.size);
+    t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported');
+    const { texels, canvas } = createCanvasWithRandomDataAndGetTexels(descriptor.size);
+    const videoFrame = new VideoFrame(canvas, { timestamp: 0 });
     const texture = t.device.importExternalTexture({ source: videoFrame });
     return { texels, texture, videoFrame };
   } else {

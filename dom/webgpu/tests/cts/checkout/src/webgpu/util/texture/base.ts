@@ -207,7 +207,8 @@ export function defaultViewDimensionsForTexture(textureDescriptor: Readonly<GPUT
  */
 export function reifyTextureDescriptor(
   desc: Readonly<GPUTextureDescriptor>
-): Required<Omit<GPUTextureDescriptor, 'label' | 'viewFormats'>> {
+): GPUTextureDescriptor &
+  Required<Omit<GPUTextureDescriptor, 'label' | 'viewFormats' | 'textureBindingViewDimension'>> {
   return { dimension: '2d' as const, mipLevelCount: 1, sampleCount: 1, ...desc };
 }
 

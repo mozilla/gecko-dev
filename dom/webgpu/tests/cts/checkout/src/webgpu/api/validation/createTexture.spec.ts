@@ -336,6 +336,9 @@ g.test('sampleCount,valid_sampleCount_with_other_parameter_varies')
   .fn(t => {
     const { dimension, sampleCount, format, mipLevelCount, arrayLayerCount, usage } = t.params;
     t.skipIfTextureFormatNotSupported(format);
+    if ((usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0) {
+      t.skipIfTextureFormatNotUsableAsRenderAttachment(format);
+    }
     const { blockWidth, blockHeight } = getBlockInfoForTextureFormat(format);
 
     const size =

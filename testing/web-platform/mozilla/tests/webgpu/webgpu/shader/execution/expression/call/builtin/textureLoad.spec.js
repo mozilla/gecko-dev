@@ -47,7 +47,7 @@ import {
   generateTextureBuiltinInputs2D,
   generateTextureBuiltinInputs3D,
 
-  createVideoFrameWithRandomDataAndGetTexels,
+  createCanvasWithRandomDataAndGetTexels,
 
   isFillable } from
 './texture_utils.js';
@@ -506,15 +506,13 @@ params((u) =>
 u.
 combine('stage', kShortShaderStages).
 beginSubcases().
+combine('importExternalTexture', [false, true]).
 combine('samplePoints', kSamplePointMethods).
 combine('C', ['i32', 'u32']).
 combine('L', ['i32', 'u32'])
 ).
-beforeAllSubcases((t) =>
-t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported')
-).
 fn(async (t) => {
-  const { stage, samplePoints, C, L } = t.params;
+  const { stage, importExternalTexture, samplePoints, C, L } = t.params;
 
   const size = [8, 8, 1];
 
@@ -526,8 +524,29 @@ fn(async (t) => {
     usage: GPUTextureUsage.COPY_DST
   };
 
-  const { texels, videoFrame } = createVideoFrameWithRandomDataAndGetTexels(descriptor.size);
-  const texture = t.device.importExternalTexture({ source: videoFrame });
+  const { texels, canvas } = createCanvasWithRandomDataAndGetTexels(descriptor.size);
+  let videoFrame;
+  let texture;
+  if (importExternalTexture) {
+    t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported');
+
+    videoFrame = new VideoFrame(canvas, { timestamp: 0 });
+    texture = t.device.importExternalTexture({ source: videoFrame });
+  } else {
+    texture = t.createTextureTracked({
+      format: descriptor.format,
+      size: descriptor.size,
+      usage:
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.TEXTURE_BINDING
+    });
+    t.queue.copyExternalImageToTexture(
+      { source: canvas },
+      { texture, premultipliedAlpha: true },
+      size
+    );
+  }
 
   const calls = generateTextureBuiltinInputs2D(50, {
     method: samplePoints,
@@ -563,7 +582,7 @@ fn(async (t) => {
     stage
   );
   t.expectOK(res);
-  videoFrame.close();
+  videoFrame?.close();
 });
 
 g.test('arrayed').

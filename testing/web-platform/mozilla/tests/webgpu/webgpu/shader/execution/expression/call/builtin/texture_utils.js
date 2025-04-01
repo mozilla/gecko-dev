@@ -841,13 +841,14 @@ struct VOut {
     GPUShaderStage.VERTEX;
 
     const entries = [];
-    if (texture instanceof GPUExternalTexture) {
+    if (code.includes('texture_external')) {
       entries.push({
         binding: 0,
         visibility,
         externalTexture: {}
       });
     } else if (code.includes('texture_storage')) {
+      assert(texture instanceof GPUTexture);
       entries.push({
         binding: 0,
         visibility,
@@ -862,6 +863,7 @@ struct VOut {
         }
       });
     } else {
+      assert(texture instanceof GPUTexture);
       const sampleType =
       viewDescriptor?.aspect === 'stencil-only' ?
       'uint' :
@@ -2895,12 +2897,9 @@ function getEffectiveViewDimension(
 t,
 descriptor)
 {
-  const { textureBindingViewDimension } = descriptor;
-
-
   const size = reifyExtent3D(descriptor.size);
   return effectiveViewDimensionForDimension(
-    textureBindingViewDimension,
+    descriptor.textureBindingViewDimension,
     descriptor.dimension,
     size.depthOrArrayLayers
   );
@@ -3249,9 +3248,9 @@ componentOrder)
 }
 
 /**
- * Creates a VideoFrame with random data and a TexelView with the same data.
+ * Creates a Canvas with random data and a TexelView with the same data.
  */
-export function createVideoFrameWithRandomDataAndGetTexels(textureSize) {
+export function createCanvasWithRandomDataAndGetTexels(textureSize) {
   const size = reifyExtent3D(textureSize);
   assert(size.depthOrArrayLayers === 1);
 
@@ -3267,7 +3266,6 @@ export function createVideoFrameWithRandomDataAndGetTexels(textureSize) {
   const canvas = new OffscreenCanvas(size.width, size.height);
   const ctx = canvas.getContext('2d');
   ctx.putImageData(imageData, 0, 0);
-  const videoFrame = new VideoFrame(canvas, { timestamp: 0 });
 
   // Premultiply the ImageData
   for (let i = 0; i < data.length; i += 4) {
@@ -3287,7 +3285,7 @@ export function createVideoFrameWithRandomDataAndGetTexels(textureSize) {
   })];
 
 
-  return { videoFrame, texels };
+  return { canvas, texels };
 }
 
 const kFaceNames = ['+x', '-x', '+y', '-y', '+z', '-z'];
