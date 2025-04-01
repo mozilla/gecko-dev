@@ -133,7 +133,6 @@ public class GeckoServiceChildProcess extends Service {
 
               final GeckoThread.InitInfo info =
                   GeckoThread.InitInfo.builder()
-                      .child(true)
                       .args(args)
                       .extras(extras)
                       .flags(flags)

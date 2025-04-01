@@ -107,9 +107,7 @@ def generate(output):
 
     # Write out some useful strings from the buildconfig.
     output.write(generate_string("MOZ_MACBUNDLE_ID"))
-    output.write(generate_string("MOZ_APP_BASENAME"))
     output.write(generate_string("MOZ_APP_NAME"))
-    output.write(generate_string("MOZ_APP_VENDOR"))
 
     # Write out some useful booleans from the buildconfig.
     output.write(generate_bool("MOZ_FOLD_LIBS"))

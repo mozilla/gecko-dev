@@ -15,7 +15,6 @@ const XRE = Cc["@mozilla.org/xre/directory-provider;1"].getService(
 );
 const HASH = XRE.getInstallHash(false);
 const EXE = Services.dirsvc.get("XREExeF", Ci.nsIFile);
-const GREBIND = Services.dirsvc.get("GreBinD", Ci.nsIFile);
 const SCRIPT = do_get_file("show_hash.js", false);
 
 async function getHash(bin) {
@@ -23,10 +22,9 @@ async function getHash(bin) {
     // If this test is running through firefox.exe -xpcshell, we need
     // to make sure to execute the script through it as well.
     let args = [];
-    if (!bin.leafName.toLowerCase().startsWith("xpcshell")) {
+    if (!bin.leafName.startsWith("xpcshell")) {
       args.push("-xpcshell");
     }
-    args.push("-g", GREBIND.path);
     args.push(SCRIPT.path);
 
     let proc = await Subprocess.call({

@@ -7,11 +7,11 @@
 if CONFIG["COMPILE_ENVIRONMENT"]:
     # This tells mach to run cbindgen and that this header-file should be created
     CbindgenHeader(
-        "crash_helper_client_ffi_generated.h",
-        inputs=["/toolkit/crashreporter/crash_helper_client"],
+        "mozannotation_server_ffi_generated.h",
+        inputs=["/toolkit/crashreporter/mozannotation_server"],
     )
 
-    # This tells mach to copy that generated file to obj/dist/mozilla
-    EXPORTS.mozilla += [
-        "!crash_helper_client_ffi_generated.h",
+    # This tells mach to copy that generated file to obj/dist/include/mozilla/toolkit/crashreporter
+    EXPORTS.mozilla.toolkit.crashreporter += [
+        "!mozannotation_server_ffi_generated.h",
     ]

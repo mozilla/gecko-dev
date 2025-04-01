@@ -104,9 +104,6 @@ class CrashGenerationServer {
   // Stop the server.
   bool Stop();
 
-  // Adjust the path where minidumps are placed, this is thread-safe
-  void SetPath(const char* dump_path);
-
  private:
   // Return a unique filename at which a minidump can be written.
   bool MakeMinidumpFilename(std::string &outFilename);
@@ -130,7 +127,6 @@ class CrashGenerationServer {
 
   bool generate_dumps_;
 
-  pthread_mutex_t dump_dir_mutex_;
   std::string dump_dir_;
 
   bool started_;
