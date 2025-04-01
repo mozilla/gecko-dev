@@ -218,6 +218,18 @@ let AVAILABLE_PIP_OVERRIDES;
       },
     },
 
+    joyn: {
+      "https://www.joyn.de/play/*": {
+        videoWrapperScriptPath: "video-wrappers/joyn.js",
+      },
+      "https://www.joyn.at/play/*": {
+        videoWrapperScriptPath: "video-wrappers/joyn.js",
+      },
+      "https://www.joyn.ch/play/*": {
+        videoWrapperScriptPath: "video-wrappers/joyn.js",
+      },
+    },
+
     laracasts: {
       "https://*.laracasts.com/*": { policy: TOGGLE_POLICIES.ONE_QUARTER },
     },
