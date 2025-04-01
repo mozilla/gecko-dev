@@ -327,13 +327,6 @@ export const MultiStageAboutWelcome = props => {
               }
               installedAddons={installedAddons}
               setInstalledAddons={setInstalledAddons}
-              addonId={props.addonId}
-              addonType={props.addonType}
-              addonName={props.addonName}
-              addonURL={props.addonURL}
-              addonIconURL={props.addonIconURL}
-              themeScreenshots={props.themeScreenshots}
-              isRtamo={currentScreen.content.isRtamo}
             />
           ) : null;
         })}
@@ -533,17 +526,6 @@ export class WelcomeScreen extends React.PureComponent {
           "FXA_SIGNIN_FLOW"
         );
       }
-
-      if (action.type === "INSTALL_ADDON_FROM_URL") {
-        const url = props.addonURL;
-        if (!action.data) {
-          return;
-        }
-        // Set add-on url in action.data.url property from JSON
-        action.data = { ...action.data, url };
-
-        AboutWelcomeUtils.handleUserAction(action);
-      }
       // Wait until migration closes to complete the action
       const hasMigrate = a =>
         a.type === "SHOW_MIGRATION_WIZARD" ||
@@ -710,13 +692,6 @@ export class WelcomeScreen extends React.PureComponent {
         forceHideStepsIndicator={this.props.forceHideStepsIndicator}
         ariaRole={this.props.ariaRole}
         aboveButtonStepsIndicator={this.props.aboveButtonStepsIndicator}
-        addonId={this.props.addonId}
-        addonType={this.props.addonType}
-        addonName={this.props.addonName}
-        addonURL={this.props.addonURL}
-        addonIconURL={this.props.addonIconURL}
-        themeScreenshots={this.props.themeScreenshots}
-        isRtamo={this.props.content.isRtamo}
       />
     );
   }

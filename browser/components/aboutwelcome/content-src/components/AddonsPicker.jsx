@@ -2,10 +2,72 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { AboutWelcomeUtils } from "../lib/aboutwelcome-utils.mjs";
 import { Localized } from "./MSLocalized";
-import { InstallButton } from "./InstallButton";
+
+export const Loader = () => {
+  return (
+    <button className="primary">
+      <div className="loaderContainer">
+        <span className="loader" />
+      </div>
+    </button>
+  );
+};
+
+export const InstallButton = props => {
+  // determine if the addon is already installed so the state is
+  // consistent on refresh or navigation
+  const [installing, setInstalling] = useState(false);
+  const [installComplete, setInstallComplete] = useState(false);
+
+  const defaultInstallLabel = { string_id: "amo-picker-install-button-label" };
+  const defaultInstallCompleteLabel = {
+    string_id: "amo-picker-install-complete-label",
+  };
+
+  useEffect(() => {
+    setInstallComplete(props.installedAddons?.includes(props.addonId));
+  }, [props.addonId, props.installedAddons]);
+
+  let buttonLabel = installComplete
+    ? props.install_complete_label || defaultInstallCompleteLabel
+    : props.install_label || defaultInstallLabel;
+
+  function onClick(event) {
+    props.handleAction(event);
+    // Replace the label with the spinner
+    setInstalling(true);
+
+    window.AWEnsureAddonInstalled(props.addonId).then(value => {
+      if (value === "complete") {
+        // Set the label to "Installed"
+        setInstallComplete(true);
+      }
+      // Whether the addon installs or not, we want to remove the spinner
+      setInstalling(false);
+    });
+  }
+
+  return (
+    <div className="install-button-wrapper">
+      {installing ? (
+        <Loader />
+      ) : (
+        <Localized text={buttonLabel}>
+          <button
+            id={`install-button-${props.addonId}`}
+            value={props.index}
+            onClick={onClick}
+            disabled={installComplete}
+            className="primary"
+          />
+        </Localized>
+      )}
+    </div>
+  );
+};
 
 export const AddonsPicker = props => {
   const { content, installedAddons, layout } = props;

@@ -91,3 +91,52 @@ export const AboutWelcomeUtils = {
       }, {});
   },
 };
+
+export const DEFAULT_RTAMO_CONTENT = {
+  template: "return_to_amo",
+  utm_term: "rtamo",
+  content: {
+    position: "split",
+    title: { string_id: "mr1-return-to-amo-subtitle" },
+    has_noodles: false,
+    subtitle: {
+      string_id: "mr1-return-to-amo-addon-title",
+    },
+    backdrop:
+      "var(--mr-welcome-background-color) var(--mr-welcome-background-gradient)",
+    background:
+      "url('chrome://activity-stream/content/data/content/assets/mr-rtamo-background-image.svg') no-repeat center",
+    progress_bar: true,
+    primary_button: {
+      label: { string_id: "mr1-return-to-amo-add-extension-label" },
+      source_id: "ADD_EXTENSION_BUTTON",
+      action: {
+        type: "INSTALL_ADDON_FROM_URL",
+        data: { url: null, telemetrySource: "rtamo" },
+      },
+    },
+    secondary_button: {
+      label: {
+        string_id: "onboarding-not-now-button-label",
+      },
+      source_id: "RTAMO_START_BROWSING_BUTTON",
+      action: {
+        type: "OPEN_AWESOME_BAR",
+      },
+    },
+    secondary_button_top: {
+      label: {
+        string_id: "mr1-onboarding-sign-in-button-label",
+      },
+      source_id: "RTAMO_FXA_SIGNIN_BUTTON",
+      action: {
+        data: {
+          entrypoint: "activity-stream-firstrun",
+          where: "tab",
+        },
+        type: "SHOW_FIREFOX_ACCOUNTS",
+        addFlowParams: true,
+      },
+    },
+  },
+};
