@@ -418,7 +418,7 @@ static const char kFontNotoSansSymbols[] = "Noto Sans Symbols";
 static const char kFontNotoSansSymbols2[] = "Noto Sans Symbols2";
 
 void gfxPlatformGtk::GetCommonFallbackFonts(uint32_t aCh, Script aRunScript,
-                                            eFontPresentation aPresentation,
+                                            FontPresentation aPresentation,
                                             nsTArray<const char*>& aFontList) {
   if (PrefersColor(aPresentation)) {
     aFontList.AppendElement(kFontTwemojiMozilla);

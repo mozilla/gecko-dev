@@ -1105,7 +1105,7 @@ void gfxPlatformFontList::GetFontFamilyList(
 
 already_AddRefed<gfxFont> gfxPlatformFontList::SystemFindFontForChar(
     nsPresContext* aPresContext, uint32_t aCh, uint32_t aNextCh,
-    Script aRunScript, eFontPresentation aPresentation,
+    Script aRunScript, FontPresentation aPresentation,
     const gfxFontStyle* aStyle, FontVisibility* aVisibility) {
   AutoLock lock(mLock);
   FontVisibility level =
@@ -1149,7 +1149,7 @@ already_AddRefed<gfxFont> gfxPlatformFontList::SystemFindFontForChar(
                          aStyle, fallbackFamily);
   RefPtr<gfxFont> font;
   if (candidate) {
-    if (aPresentation == eFontPresentation::Any) {
+    if (aPresentation == FontPresentation::Any) {
       font = std::move(candidate);
     } else {
       bool hasColorGlyph = candidate->HasColorGlyphFor(aCh, aNextCh);
@@ -1168,7 +1168,7 @@ already_AddRefed<gfxFont> gfxPlatformFontList::SystemFindFontForChar(
                               aPresentation, aStyle, cmapCount, fallbackFamily);
     // If the font we found doesn't match the requested type, and we also found
     // a candidate above, prefer that one.
-    if (font && aPresentation != eFontPresentation::Any && candidate) {
+    if (font && aPresentation != FontPresentation::Any && candidate) {
       bool hasColorGlyph = font->HasColorGlyphFor(aCh, aNextCh);
       if (hasColorGlyph != PrefersColor(aPresentation)) {
         font = std::move(candidate);
@@ -1217,7 +1217,7 @@ already_AddRefed<gfxFont> gfxPlatformFontList::SystemFindFontForChar(
 
 already_AddRefed<gfxFont> gfxPlatformFontList::CommonFontFallback(
     nsPresContext* aPresContext, uint32_t aCh, uint32_t aNextCh,
-    Script aRunScript, eFontPresentation aPresentation,
+    Script aRunScript, FontPresentation aPresentation,
     const gfxFontStyle* aMatchStyle, FontFamily& aMatchedFamily) {
   AutoTArray<const char*, NUM_FALLBACK_FONTS> defaultFallbacks;
   gfxPlatform::GetPlatform()->GetCommonFallbackFonts(
@@ -1234,7 +1234,7 @@ already_AddRefed<gfxFont> gfxPlatformFontList::CommonFontFallback(
   auto check = [&](gfxFontEntry* aFontEntry,
                    FontFamily aFamily) -> already_AddRefed<gfxFont> {
     RefPtr<gfxFont> font = aFontEntry->FindOrMakeFont(aMatchStyle);
-    if (aPresentation < eFontPresentation::EmojiDefault ||
+    if (aPresentation < FontPresentation::EmojiDefault ||
         font->HasColorGlyphFor(aCh, aNextCh)) {
       aMatchedFamily = aFamily;
       return font.forget();
@@ -1295,7 +1295,7 @@ already_AddRefed<gfxFont> gfxPlatformFontList::CommonFontFallback(
 
 already_AddRefed<gfxFont> gfxPlatformFontList::GlobalFontFallback(
     nsPresContext* aPresContext, uint32_t aCh, uint32_t aNextCh,
-    Script aRunScript, eFontPresentation aPresentation,
+    Script aRunScript, FontPresentation aPresentation,
     const gfxFontStyle* aMatchStyle, uint32_t& aCmapCount,
     FontFamily& aMatchedFamily) {
   bool useCmaps = IsFontFamilyWhitelistActive() ||
@@ -1311,7 +1311,7 @@ already_AddRefed<gfxFont> gfxPlatformFontList::GlobalFontFallback(
         if (IsVisibleToCSS(*aMatchedFamily.mShared, level)) {
           RefPtr<gfxFont> font = fe->FindOrMakeFont(aMatchStyle);
           if (font) {
-            if (aPresentation == eFontPresentation::Any) {
+            if (aPresentation == FontPresentation::Any) {
               return font.forget();
             }
             bool hasColorGlyph = font->HasColorGlyphFor(aCh, aNextCh);
@@ -1324,7 +1324,7 @@ already_AddRefed<gfxFont> gfxPlatformFontList::GlobalFontFallback(
         if (IsVisibleToCSS(*aMatchedFamily.mUnshared, level)) {
           RefPtr<gfxFont> font = fe->FindOrMakeFont(aMatchStyle);
           if (font) {
-            if (aPresentation == eFontPresentation::Any) {
+            if (aPresentation == FontPresentation::Any) {
               return font.forget();
             }
             bool hasColorGlyph = font->HasColorGlyphFor(aCh, aNextCh);

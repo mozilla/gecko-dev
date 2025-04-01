@@ -627,7 +627,7 @@ already_AddRefed<gfxASurface> gfxWindowsPlatform::CreateOffscreenSurface(
 }
 
 void gfxWindowsPlatform::GetCommonFallbackFonts(
-    uint32_t aCh, Script aRunScript, eFontPresentation aPresentation,
+    uint32_t aCh, Script aRunScript, FontPresentation aPresentation,
     nsTArray<const char*>& aFontList) {
   if (PrefersColor(aPresentation)) {
     aFontList.AppendElement("Segoe UI Emoji");

@@ -46,7 +46,7 @@ class gfxUserFontData;
 class nsAtom;
 struct FontListSizes;
 struct gfxFontStyle;
-enum class eFontPresentation : uint8_t;
+enum class FontPresentation : uint8_t;
 
 namespace IPC {
 template <class P>
@@ -947,7 +947,7 @@ inline bool gfxFontEntry::MayUseSyntheticSlant() {
 // used when iterating over all fonts looking for a match for a given character
 struct GlobalFontMatch {
   GlobalFontMatch(uint32_t aCharacter, uint32_t aNextCh,
-                  const gfxFontStyle& aStyle, eFontPresentation aPresentation)
+                  const gfxFontStyle& aStyle, FontPresentation aPresentation)
       : mStyle(aStyle),
         mCh(aCharacter),
         mNextCh(aNextCh),
@@ -959,7 +959,7 @@ struct GlobalFontMatch {
   const gfxFontStyle& mStyle;  // style to match
   const uint32_t mCh;          // codepoint to be matched
   const uint32_t mNextCh;      // following codepoint (or zero)
-  eFontPresentation mPresentation;
+  FontPresentation mPresentation;
   uint32_t mCount = 0;               // number of fonts matched
   uint32_t mCmapsTested = 0;         // number of cmaps tested
   double mMatchDistance = INFINITY;  // metric indicating closest match

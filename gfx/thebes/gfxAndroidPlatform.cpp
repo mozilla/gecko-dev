@@ -213,7 +213,7 @@ static bool IsJapaneseLocale() {
 }
 
 void gfxAndroidPlatform::GetCommonFallbackFonts(
-    uint32_t aCh, Script aRunScript, eFontPresentation aPresentation,
+    uint32_t aCh, Script aRunScript, FontPresentation aPresentation,
     nsTArray<const char*>& aFontList) {
   static const char kDroidSansJapanese[] = "Droid Sans Japanese";
   static const char kMotoyaLMaru[] = "MotoyaLMaru";

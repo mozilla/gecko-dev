@@ -138,7 +138,7 @@ already_AddRefed<gfxASurface> gfxPlatformMac::CreateOffscreenSurface(
 }
 
 void gfxPlatformMac::GetCommonFallbackFonts(uint32_t aCh, Script aRunScript,
-                                            eFontPresentation aPresentation,
+                                            FontPresentation aPresentation,
                                             nsTArray<const char*>& aFontList) {
   if (PrefersColor(aPresentation)) {
     aFontList.AppendElement("Apple Color Emoji");
