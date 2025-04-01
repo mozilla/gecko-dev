@@ -792,10 +792,6 @@
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.aptsovation.com/*"]
       },
-      "1894682": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://*.arboretumapartments.com/*"]
-      },
       "1898964": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.breakpointeandcoronado.com/*"]
