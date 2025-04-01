@@ -360,7 +360,7 @@ bool js::OptimizeArraySpeciesFuse::checkInvariant(JSContext* cx) {
 
 void js::OptimizePromiseLookupFuse::popFuse(JSContext* cx,
                                             RealmFuses& realmFuses) {
-  InvalidatingRealmFuse::popFuse(cx, realmFuses);
+  RealmFuse::popFuse(cx, realmFuses);
   MOZ_ASSERT(cx->global());
   cx->runtime()->setUseCounter(cx->global(),
                                JSUseCounter::OPTIMIZE_PROMISE_LOOKUP_FUSE);
