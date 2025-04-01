@@ -35,7 +35,7 @@ linux64-node-18:
             - nodejs-18-source
         toolchain:
             - linux64-gcc-11
-            - linux64-toolchain-sysroot
+            - linux64-toolchain-sysroot-gcc10
 
 linux64-aarch64-node-18:
     treeherder:
