@@ -12,7 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/messagehandler/sessiondata/SessionData.sys.mjs",
   SessionDataMethod:
     "chrome://remote/content/shared/messagehandler/sessiondata/SessionData.sys.mjs",
-  TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
@@ -236,16 +235,12 @@ export class EventsDispatcher {
     if (
       contextDescriptor.type === lazy.ContextDescriptorType.TopBrowsingContext
     ) {
-      const eventBrowsingContext = lazy.TabManager.getBrowsingContextById(
-        contextInfo.contextId
-      );
+      const eventBrowsingContext = BrowsingContext.get(contextInfo.contextId);
       return eventBrowsingContext?.browserId === contextDescriptor.id;
     }
 
     if (contextDescriptor.type === lazy.ContextDescriptorType.UserContext) {
-      const eventBrowsingContext = lazy.TabManager.getBrowsingContextById(
-        contextInfo.contextId
-      );
+      const eventBrowsingContext = BrowsingContext.get(contextInfo.contextId);
       return (
         eventBrowsingContext?.originAttributes.userContextId ===
         contextDescriptor.id

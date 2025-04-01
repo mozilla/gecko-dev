@@ -1929,20 +1929,20 @@ class BrowsingContextModule extends RootBiDiModule {
   #onPromptClosed = async (eventName, data) => {
     if (this.#subscribedEvents.has("browsingContext.userPromptClosed")) {
       const { contentBrowser, detail } = data;
-      const contextId = lazy.TabManager.getIdForBrowser(contentBrowser);
+      const navigableId = lazy.TabManager.getIdForBrowser(contentBrowser);
 
-      if (contextId === null) {
+      if (navigableId === null) {
         return;
       }
 
       const params = {
-        context: contextId,
+        context: navigableId,
         accepted: detail.accepted,
         type: detail.promptType,
         userText: detail.userText,
       };
       this._emitEventForBrowsingContext(
-        contextId,
+        contentBrowser.browsingContext.id,
         "browsingContext.userPromptClosed",
         params
       );
@@ -1960,7 +1960,7 @@ class BrowsingContextModule extends RootBiDiModule {
         return;
       }
 
-      const contextId = lazy.TabManager.getIdForBrowser(contentBrowser);
+      const navigableId = lazy.TabManager.getIdForBrowser(contentBrowser);
 
       const session = lazy.getWebDriverSessionById(
         this.messageHandler.sessionId
@@ -1968,7 +1968,7 @@ class BrowsingContextModule extends RootBiDiModule {
       const handlerConfig = session.userPromptHandler.getPromptHandler(type);
 
       const eventPayload = {
-        context: contextId,
+        context: navigableId,
         handler: handlerConfig.handler,
         message: await prompt.getText(),
         type,
@@ -1979,7 +1979,7 @@ class BrowsingContextModule extends RootBiDiModule {
       }
 
       this._emitEventForBrowsingContext(
-        contextId,
+        contentBrowser.browsingContext.id,
         "browsingContext.userPromptOpened",
         eventPayload
       );
