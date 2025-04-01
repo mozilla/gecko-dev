@@ -4808,6 +4808,8 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.cryptomining.enabled": null,
         "privacy.trackingprotection.emailtracking.enabled": null,
         "privacy.trackingprotection.emailtracking.pbmode.enabled": null,
+        "privacy.trackingprotection.consentmanager.skip.enabled": null,
+        "privacy.trackingprotection.consentmanager.skip.pbmode.enabled": null,
         "privacy.annotate_channels.strict_list.enabled": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation":
@@ -4830,6 +4832,8 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.cryptomining.enabled": null,
         "privacy.trackingprotection.emailtracking.enabled": null,
         "privacy.trackingprotection.emailtracking.pbmode.enabled": null,
+        "privacy.trackingprotection.consentmanager.skip.enabled": null,
+        "privacy.trackingprotection.consentmanager.skip.pbmode.enabled": null,
         "privacy.annotate_channels.strict_list.enabled": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault.top_navigation":
@@ -4877,12 +4881,12 @@ var ContentBlockingCategoriesPrefs = {
             "privacy.trackingprotection.fingerprinting.enabled"
           ] = false;
           break;
-        case "cm":
+        case "cryptoTP":
           this.CATEGORY_PREFS[type][
             "privacy.trackingprotection.cryptomining.enabled"
           ] = true;
           break;
-        case "-cm":
+        case "-cryptoTP":
           this.CATEGORY_PREFS[type][
             "privacy.trackingprotection.cryptomining.enabled"
           ] = false;
@@ -4915,6 +4919,26 @@ var ContentBlockingCategoriesPrefs = {
         case "-emailTPPrivate":
           this.CATEGORY_PREFS[type][
             "privacy.trackingprotection.emailtracking.pbmode.enabled"
+          ] = false;
+          break;
+        case "consentmanagerSkip":
+          this.CATEGORY_PREFS[type][
+            "privacy.trackingprotection.consentmanager.skip.enabled"
+          ] = true;
+          break;
+        case "-consentmanagerSkip":
+          this.CATEGORY_PREFS[type][
+            "privacy.trackingprotection.consentmanager.skip.enabled"
+          ] = false;
+          break;
+        case "consentmanagerSkipPrivate":
+          this.CATEGORY_PREFS[type][
+            "privacy.trackingprotection.consentmanager.skip.pbmode.enabled"
+          ] = true;
+          break;
+        case "-consentmanagerSkipPrivate":
+          this.CATEGORY_PREFS[type][
+            "privacy.trackingprotection.consentmanager.skip.pbmode.enabled"
           ] = false;
           break;
         case "lvl2":

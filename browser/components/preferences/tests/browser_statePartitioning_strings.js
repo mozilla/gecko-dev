@@ -4,7 +4,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const CB_STRICT_FEATURES_PREF = "browser.contentblocking.features.strict";
-const CB_STRICT_FEATURES_VALUE = "tp,tpPrivate,cookieBehavior5,cm,fp,stp,lvl2";
+const CB_STRICT_FEATURES_VALUE =
+  "tp,tpPrivate,cookieBehavior5,cryptoTP,fp,stp,lvl2";
 const FPI_PREF = "privacy.firstparty.isolate";
 const COOKIE_BEHAVIOR_PREF = "network.cookie.cookieBehavior";
 const COOKIE_BEHAVIOR_VALUE = 5;

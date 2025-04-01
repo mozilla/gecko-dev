@@ -2327,9 +2327,9 @@ pref("browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled"
 //   Fingerprinting:
 //     "fp": fingerprinting blocking enabled
 //     "-fp": fingerprinting blocking disabled
-//   Cryptomining:
-//     "cm": cryptomining blocking enabled
-//     "-cm": cryptomining blocking disabled
+//   Cryptomining Tracking Protection:
+//     "cryptoTP": cryptomining blocking enabled
+//     "-cryptoTP": cryptomining blocking disabled
 //   Social Tracking Protection:
 //     "stp": social tracking protection enabled
 //     "-stp": social tracking protection disabled
@@ -2339,6 +2339,12 @@ pref("browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled"
 //   Email Tracking Protection in private windows:
 //     "emailTPPrivate": email tracking protection in private windows enabled
 //     "-emailTPPrivate": email tracking protection in private windows disabled
+//   Consent Manager Skipping:
+//     "consentmanagerSkip": consent manager skipping enabled
+//     "-consentmanagerSkip": consent manager skipping disabled
+//   Consent Manager Skipping in private windows:
+//     "consentmanagerSkipPrivate": consent manager skipping in private windows enabled
+//     "-consentmanagerSkipPrivate": consent manager skipping in private windows disabled
 //   Level 2 Tracking list in normal windows:
 //     "lvl2": Level 2 tracking list enabled
 //     "-lvl2": Level 2 tracking list disabled
@@ -2384,7 +2390,7 @@ pref("browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled"
 //     "btp": BTP enabled
 //     "-btp": BTP disabled
 // One value from each section must be included in the browser.contentblocking.features.strict pref.
-pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cm,fp,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,btp");
+pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cryptoTP,fp,stp,emailTP,emailTPPrivate,-consentmanagerSkip,-consentmanagerSkipPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,btp");
 
 // Hide the "Change Block List" link for trackers/tracking content in the custom
 // Content Blocking/ETP panel. By default, it will not be visible. There is also
