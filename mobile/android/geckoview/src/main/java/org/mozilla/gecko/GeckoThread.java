@@ -158,6 +158,7 @@ public class GeckoThread extends Thread {
     public final String userSerialNumber;
 
     public final boolean xpcshell;
+    public final boolean child;
     public final String outFilePath;
 
     public final int[] fds;
@@ -174,6 +175,8 @@ public class GeckoThread extends Thread {
         }
       }
       this.xpcshell = xpcshell;
+
+      this.child = builder.mChild;
 
       args = result.toArray(new String[0]);
 
@@ -192,6 +195,7 @@ public class GeckoThread extends Thread {
     }
 
     public static class Builder {
+      private boolean mChild;
       private String[] mArgs;
       private Bundle mExtras;
       private int mFlags;
@@ -207,6 +211,11 @@ public class GeckoThread extends Thread {
 
       public InitInfo build() {
         return new InitInfo(this);
+      }
+
+      public Builder child(final boolean child) {
+        mChild = child;
+        return this;
       }
 
       public Builder args(final String[] args) {
@@ -263,7 +272,7 @@ public class GeckoThread extends Thread {
   @WrapForJNI
   private static boolean isChildProcess() {
     final InitInfo info = INSTANCE.mInitInfo;
-    return info != null && info.fds != null;
+    return info != null && info.child;
   }
 
   public static boolean init(final InitInfo info) {
@@ -404,6 +413,17 @@ public class GeckoThread extends Thread {
     return result;
   }
 
+  // See GeckoLoader.java and APKOpen.cpp
+  private int processType() {
+    if (mInitInfo.xpcshell) {
+      return GeckoLoader.PROCESS_TYPE_XPCSHELL;
+    } else if (mInitInfo.child) {
+      return GeckoLoader.PROCESS_TYPE_CHILD;
+    } else {
+      return GeckoLoader.PROCESS_TYPE_MAIN;
+    }
+  }
+
   @Override
   public void run() {
     Log.i(LOGTAG, "preparing to run Gecko");
@@ -496,10 +516,7 @@ public class GeckoThread extends Thread {
 
     // And go.
     GeckoLoader.nativeRun(
-        args,
-        mInitInfo.fds,
-        !isChildProcess && mInitInfo.xpcshell,
-        isChildProcess ? null : mInitInfo.outFilePath);
+        args, mInitInfo.fds, processType(), isChildProcess ? null : mInitInfo.outFilePath);
 
     // And... we're done.
     final boolean restarting = isState(State.RESTARTING);

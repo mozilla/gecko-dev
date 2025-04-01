@@ -343,7 +343,6 @@ void ExceptionHandler::RestoreHandlersLocked() {
 // Runs on the crashing thread.
 // static
 void ExceptionHandler::SignalHandler(int sig, siginfo_t* info, void* uc) {
-
   // Give the first chance handler a chance to recover from this signal
   //
   // This is primarily used by V8. V8 uses guard regions to guarantee memory
