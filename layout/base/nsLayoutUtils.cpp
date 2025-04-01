@@ -4606,6 +4606,49 @@ static void AddStateBitToAncestors(nsIFrame* aFrame, nsFrameState aBit) {
   }
 }
 
+static nsSize MeasureIntrinsicContentSize(
+    gfxContext* aContext, nsIFrame* aFrame,
+    const Maybe<LogicalSize>& aPercentageBasis) {
+  nsPresContext* pc = aFrame->PresContext();
+  nsIFrame* parent = aFrame->GetParent();
+  const WritingMode parentWM = parent->GetWritingMode();
+  const WritingMode childWM = aFrame->GetWritingMode();
+
+  // We only expect to hit this codepath when the frame creates an
+  // orthogonal flow.
+  MOZ_ASSERT(childWM.IsOrthogonalTo(parentWM));
+
+  const ReflowInput dummyParentRI(
+      pc, parent, aContext,
+      LogicalSize(parentWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE),
+      ReflowInput::InitFlag::DummyParentReflowInput);
+  const ReflowInput reflowInput(
+      pc, dummyParentRI, aFrame,
+      LogicalSize(childWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE),
+      aPercentageBasis);
+
+  // We call Reflow and FinishReflowChild just to measure the (desired) size of
+  // the child frame. It can not actually be positioned properly at this stage,
+  // since we don't have a known containing block; that will be done by the
+  // main reflow that's in progress.
+  ReflowOutput reflowOutput(reflowInput);
+  nsReflowStatus status;
+  aFrame->Reflow(pc, reflowOutput, reflowInput, status);
+  MOZ_ASSERT(status.IsFullyComplete());
+
+  const nsIFrame::ReflowChildFlags flags =
+      nsIFrame::ReflowChildFlags::NoMoveFrame |
+      nsIFrame::ReflowChildFlags::NoSizeView |
+      nsIFrame::ReflowChildFlags::NoDeleteNextInFlowChild;
+  nsContainerFrame::FinishReflowChild(aFrame, pc, reflowOutput, &reflowInput,
+                                      childWM, LogicalPoint(parentWM), nsSize(),
+                                      flags);
+
+  // We're just returning the child's desired content size; IntrinsicForAxis
+  // accounts for border and padding later through AddIntrinsicSizeOffset.
+  return aFrame->ContentSize(childWM).GetPhysicalSize(childWM);
+}
+
 /* static */
 nscoord nsLayoutUtils::IntrinsicForAxis(
     PhysicalAxis aAxis, gfxContext* aRenderingContext, nsIFrame* aFrame,
@@ -4800,17 +4843,9 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         if (aFlags & BAIL_IF_REFLOW_NEEDED) {
           return NS_INTRINSIC_ISIZE_UNKNOWN;
         }
-        // XXX Unfortunately, we probably don't know this yet, so this is
-        // wrong... but it's not clear what we should do. If aFrame's inline
-        // size hasn't been determined yet, we can't necessarily figure out its
-        // block size either. For now, authors who put orthogonal elements into
-        // things like buttons or table cells may have to explicitly provide
-        // sizes rather than expecting intrinsic sizing to work "perfectly" in
-        // underspecified cases.
-        // We subtract border and padding amounts from BSize here, since those
-        // will be accounted for by AddIntrinsicSizeOffset below.
-        result = aFrame->BSize() - offsetInRequestedAxis.border -
-                 offsetInRequestedAxis.padding;
+        nsSize size = MeasureIntrinsicContentSize(aRenderingContext, aFrame,
+                                                  aPercentageBasis);
+        result = horizontalAxis ? size.Width() : size.Height();
       }
     } else {
       // To resolve aFrame's intrinsic inline size, we first check if we can

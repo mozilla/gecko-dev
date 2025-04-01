@@ -101,9 +101,15 @@ void nsPlaceholderFrame::Reflow(nsPresContext* aPresContext,
   // the placeholder, so they don't have this requirement (and this condition
   // doesn't hold anyways because the default popupgroup goes before than the
   // default tooltip, for example).
+  //
+  // We also have an exception if the out-of-flow created an orthogonal flow,
+  // because in this case we may have needed to do a measuring reflow during
+  // intrinsic size computation. That's OK because it does not depend on the
+  // placeholder being reflowed first.
   if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW) &&
       !mOutOfFlowFrame->IsMenuPopupFrame() &&
-      !mOutOfFlowFrame->HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
+      !mOutOfFlowFrame->HasAnyStateBits(NS_FRAME_FIRST_REFLOW) &&
+      !mOutOfFlowFrame->GetWritingMode().IsOrthogonalTo(GetWritingMode())) {
     // Unfortunately, this can currently happen when the placeholder is in a
     // later continuation or later IB-split sibling than its out-of-flow (as
     // is the case in some of our existing unit tests). So for now, in that
