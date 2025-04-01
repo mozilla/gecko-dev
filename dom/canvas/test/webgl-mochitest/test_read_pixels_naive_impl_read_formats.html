@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<script src='/tests/SimpleTest/SimpleTest.js'></script>
+</head>
+<body>
+<h2><pre id=e_results></pre></h2>
+<pre id=e_out></pre>
+<script>
+'use strict';
+
+const RESULTS = {
+    failures: 0,
+    tests: 0,
+};
+
+window.ok = window.ok || function(e, s) {
+  const failure = !e;
+  e_out.textContent += `\n${failure ? 'FAIL' : 'ok  '}: ${s}`;
+  RESULTS.failures += failure|0;
+  RESULTS.tests += 1;
+  e_results.textContent = `${RESULTS.failures} failures in ${RESULTS.tests} tests`;
+};
+
+// -
+
+function throwv(v) {
+  throw v;
+}
+
+function jsobj_strinify(obj) {
+    if (typeof(obj) == 'function') return `[function ${obj.name}]`;
+    if (typeof(obj) == 'string') return `'${obj}'`;
+    if (typeof(obj) != 'object') return ''+obj;
+    if (obj.constructor == Object) {
+        return '{' + Object.entries(obj).map(
+            ([k, v]) => `${k}: ${jsobj_strinify(v)}`
+        ).join(', ') + '}';
+    }
+    if (Array.isArray(obj)) {
+        obj = obj.map(jsobj_strinify);
+        return '[' + obj + ']';
+    }
+    if (ArrayBuffer.isView(obj)) {
+        if (obj instanceof DataView) throw 'todo';
+        const ctor = obj.constructor;
+        obj = [].map.call(obj, jsobj_strinify);
+        return `new ${ctor.name}([` + obj + `])`;
+    }
+    let ret = ''+obj;
+    if (obj.label) {
+        ret = ret.replace(']', ` "${obj.label}"]`);
+    }
+    return ret;
+}
+
+// -
+
+const GL = globalThis.WebGL2RenderingContext || WebGLRenderingContext;
+function GL_(enumName) {
+  const enumNameGl = enumName.toUpperCase().replaceAll('-', '_');
+  return GL[enumNameGl] || throwv({enumName, enumNameGl, GL});
+}
+
+const GL_NAMES_BY_VAL = new Map();
+function UNGL_(val, prettyNames=false) {
+  if (!val) return val; // E.g. 0 => 0
+  if (!GL_NAMES_BY_VAL.size) {
+    GL_NAMES_BY_VAL.set(0, ['NONE']);
+    for (const [k, v] of Object.entries(GL)) {
+      const existing = GL_NAMES_BY_VAL.get(v);
+      if (!existing) {
+        GL_NAMES_BY_VAL.set(v, [k]);
+      } else {
+        if (!existing.includes(k)) {
+          existing.push(v);
+        }
+      }
+    }
+  }
+  const enumNameGlList = GL_NAMES_BY_VAL.get(val) || [`0x${val.toString(16)}`];
+  const enumNameGl = enumNameGlList.join('/');
+  let enumName = enumNameGl;
+  if (prettyNames) {
+    enumName = enumName.replaceAll('_', '-').toLowerCase();
+  }
+  return enumName;
+}
+
+// -
+
+const gl = document.createElement('canvas').getContext('webgl2');
+
+const WEBGL_debug_renderer_info = gl.getExtension('WEBGL_debug_renderer_info');
+const context_info = {
+    vendor: gl.getParameter(GL_('vendor')),
+    renderer: gl.getParameter(GL_('renderer')),
+};
+if (WEBGL_debug_renderer_info) {
+  const unmasked_vendor = gl.getParameter(WEBGL_debug_renderer_info.UNMASKED_VENDOR_WEBGL);
+  if (!context_info.vendor.includes(unmasked_vendor)) {
+    context_info.vendor = `${context_info.vendor} (${unmasked_vendor})`;
+  }
+}
+ok(true, jsobj_strinify({context_info}));
+
+const fb = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+const pbo = gl.createBuffer();
+gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
+pbo.size = 1024
+gl.bufferData(gl.PIXEL_PACK_BUFFER, pbo.size, gl.DYNAMIC_READ);
+
+// -
+
+function test(desc) {
+  ok(true, '(end of section)\n\n---\n');
+  if (desc.readType.includes('FLOAT')) {
+    const EXT_color_buffer_float = gl.getExtension('EXT_color_buffer_float');
+    if (!gl.getExtension('EXT_color_buffer_float')) {
+      ok(true, {EXT_color_buffer_float, desc});
+      return;
+    }
+  }
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texStorage2D(gl.TEXTURE_2D, 1, GL_(desc.texFormat), 1, 1);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  try {
+    const setupErr = UNGL_(gl.getError());
+    ok(!setupErr, jsobj_strinify({setupErr, desc}));
+
+    const implFormat = UNGL_(gl.getParameter(GL.IMPLEMENTATION_COLOR_READ_FORMAT));
+    const implType = UNGL_(gl.getParameter(GL.IMPLEMENTATION_COLOR_READ_TYPE));
+    ok(implFormat == desc.readFormat && implType == desc.readType, jsobj_strinify({implFormat, implType, desc}));
+
+    gl.readPixels(0, 0, 1, 1, GL_(desc.readFormat), GL_(desc.readType), 0);
+    const readPixelsErr = UNGL_(gl.getError());
+    ok(!readPixelsErr, jsobj_strinify({readPixelsErr, desc}));
+  } finally {
+    gl.deleteTexture(tex);
+  }
+}
+
+// -
+
+[
+  ['R8', 'RED', 'UNSIGNED_BYTE'],
+  ['RG8', 'RG', 'UNSIGNED_BYTE'],
+  //['RGB8', 'RGB', 'UNSIGNED_BYTE'],
+  ['RGBA8', 'RGBA', 'UNSIGNED_BYTE'],
+  ['RGB10_A2', 'RGBA', 'UNSIGNED_INT_2_10_10_10_REV'],
+  ['RGB10_A2UI', 'RGBA_INTEGER', 'UNSIGNED_INT_2_10_10_10_REV'],
+  ['SRGB8_ALPHA8', 'RGBA', 'UNSIGNED_BYTE'],
+
+  ['R8I', 'RED_INTEGER', 'BYTE'],
+  ['RG8I', 'RG_INTEGER', 'BYTE'],
+  ['RGBA8I', 'RGBA_INTEGER', 'BYTE'],
+  ['R8UI', 'RED_INTEGER', 'UNSIGNED_BYTE'],
+  ['RG8UI', 'RG_INTEGER', 'UNSIGNED_BYTE'],
+  ['RGBA8UI', 'RGBA_INTEGER', 'UNSIGNED_BYTE'],
+  
+  ['R16I', 'RED_INTEGER', 'SHORT'],
+  ['RG16I', 'RG_INTEGER', 'SHORT'],
+  ['RGBA16I', 'RGBA_INTEGER', 'SHORT'],
+  ['R16UI', 'RED_INTEGER', 'UNSIGNED_SHORT'],
+  ['RG16UI', 'RG_INTEGER', 'UNSIGNED_SHORT'],
+  ['RGBA16UI', 'RGBA_INTEGER', 'UNSIGNED_SHORT'],
+  
+  ['R32I', 'RED_INTEGER', 'INT'],
+  ['RG32I', 'RG_INTEGER', 'INT'],
+  ['RGBA32I', 'RGBA_INTEGER', 'INT'],
+  ['R32UI', 'RED_INTEGER', 'UNSIGNED_INT'],
+  ['RG32UI', 'RG_INTEGER', 'UNSIGNED_INT'],
+  ['RGBA32UI', 'RGBA_INTEGER', 'UNSIGNED_INT'],
+  
+  ['R16F', 'RED', 'HALF_FLOAT'],
+  ['RG16F', 'RG', 'HALF_FLOAT'],
+  ['RGBA16F', 'RGBA', 'HALF_FLOAT'],
+  ['R32F', 'RED', 'FLOAT'],
+  ['RG32F', 'RG', 'FLOAT'],
+  ['RGBA32F', 'RGBA', 'FLOAT'],
+].map(
+  ([texFormat, readFormat, readType]) => {
+    test({texFormat, readFormat, readType});
+  }
+);
+const ignoredResults = gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, new Uint8Array(pbo.size));
+ok(true, 'done');
+</script>
+</body>
+</html>

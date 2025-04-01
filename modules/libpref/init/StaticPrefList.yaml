@@ -17780,7 +17780,7 @@
 
 - name: webgl.porting.strict_readpixels_formats.non_es
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 - name: webgl.dxgl.enabled
