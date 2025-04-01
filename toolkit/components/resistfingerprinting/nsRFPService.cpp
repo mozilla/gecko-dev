@@ -388,6 +388,9 @@ nsRFPService::Observe(nsISupports* aObject, const char* aTopic,
 
   if (bitsetForUserCharacteristics == 0b111) {
     nsUserCharacteristics::MaybeSubmitPing();
+    // Set 4th bit to 1 to make sure bitset is never 0b111 again.
+    // This is to ensure that we only submit the ping once.
+    bitsetForUserCharacteristics |= 1 << 3;
   }
 
   if (!strcmp(USER_CHARACTERISTICS_TEST_REQUEST, aTopic) &&
