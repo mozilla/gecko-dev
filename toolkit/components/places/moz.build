@@ -27,9 +27,11 @@ if CONFIG["MOZ_PLACES"]:
 
     EXPORTS.mozilla.places = [
         "Database.h",
+        "FaviconHelpers.h",
         "History.h",
         "INativePlacesEventCallback.h",
         "NotifyRankingChanged.h",
+        "nsFaviconService.h",
         "PageIconProtocolHandler.h",
         "Shutdown.h",
         "SyncedBookmarksMirror.h",

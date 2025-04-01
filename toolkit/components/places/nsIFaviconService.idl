@@ -173,6 +173,26 @@ interface nsIFaviconService : nsISupports
                              [optional] in unsigned short aPreferredWidth);
 
   /**
+   * Retrieves the favicon URI and data URL associated to the given page, if any.
+   * If the page icon is not available, it will try to return the root domain
+   * icon data, when it's known.
+   *
+   * @param aPageURI
+   *        URI of the page whose favicon URI and data we're looking up.
+   * @param [optional] aPreferredWidth
+   *        The preferred icon width, skip or pass 0 for the default value,
+   *        set through setDefaultIconURIPreferredSize.
+   *
+   * @return Promise that is resolved/rejected when finishing the process.
+   *         If succeeded, the promise resolved with nsIFavicon. If there is no
+   *         data in the database, this promise resolved with null. On the other
+   *         hand, rejected if the DB access fails, for example.
+   */
+  [implicit_jscontext, must_use]
+  Promise getFaviconForPage(in nsIURI aPageURI, [optional]
+                            in unsigned short aPreferredWidth);
+
+  /**
    * Copies cached favicons from a page to another one.
    *
    * @param aFromPageURI
@@ -233,6 +253,35 @@ interface nsIFaviconDataCallback : nsISupports
                   [const,array,size_is(aDataLen)] in octet aData,
                   in AUTF8String aMimeType,
                   in unsigned short aWidth);
+};
+
+[scriptable, uuid(c23c74d6-9c36-4223-a9c4-c8b95526f4d3)]
+interface nsIFavicon : nsISupports
+{
+  /**
+   * Favicon location.
+   */
+  readonly attribute nsIURI uri;
+
+  /**
+   * Favicon data as Data URL.
+   */
+  readonly attribute nsIURI dataURI;
+
+  /**
+   * Favicon raw data.
+   */
+  readonly attribute Array<octet> rawData;
+
+  /**
+   * Favicon mime type.
+   */
+  readonly attribute ACString mimeType;
+
+  /**
+   * Favicon width.
+   */
+  readonly attribute unsigned short width;
 };
 
 %{C++
