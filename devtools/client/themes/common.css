@@ -495,10 +495,7 @@ iframe {
   list-style-image: url("chrome://devtools/skin/images/settings.svg");
 }
 
-:is(
-  .devtools-button,
-  .devtools-tabbar-button
-).devtools-feature-callout::after {
+.devtools-button.devtools-feature-callout::after {
   content: url("chrome://global/skin/icons/badge-blue.svg");
   width: 14px;
   height: 14px;
