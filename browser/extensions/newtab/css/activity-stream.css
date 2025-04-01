@@ -6400,17 +6400,19 @@ main section {
   -webkit-line-clamp: 3;
   line-height: 20px;
 }
-.ds-card .meta .source {
-  -webkit-line-clamp: 1;
-  margin-bottom: 2px;
-  font-size: 13px;
-  color: var(--newtab-text-secondary-color);
+.ds-card .meta .source-wrapper {
   display: flex;
+  margin-block-end: var(--space-xxsmall);
   align-items: center;
 }
-.ds-card .meta .source img {
+.ds-card .meta .source-wrapper img {
   border-radius: var(--border-radius-small);
   margin-inline-end: var(--space-small);
+}
+.ds-card .meta .source {
+  -webkit-line-clamp: 1;
+  font-size: var(--font-size-small);
+  color: var(--newtab-text-secondary-color);
 }
 .ds-card .meta .source span {
   display: inline-block;
@@ -6592,6 +6594,7 @@ main section {
   line-height: normal;
 }
 .ds-card-grid .sections-card-ui .meta .source {
+  -webkit-line-clamp: 1;
   color: var(--newtab-text-secondary-text);
   font-size: var(--font-size-small);
 }

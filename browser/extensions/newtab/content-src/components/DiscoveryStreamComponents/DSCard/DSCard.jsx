@@ -71,10 +71,10 @@ export const DSSource = ({
 
   // Otherwise display a default source.
   return (
-    <p className="source clamp">
+    <div className="source-wrapper">
       {icon_src && <img src={icon_src} height="16" width="16" alt="" />}
-      {source}
-    </p>
+      <p className="source clamp">{source}</p>
+    </div>
   );
 };
 
