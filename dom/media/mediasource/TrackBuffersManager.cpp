@@ -96,7 +96,6 @@ TrackBuffersManager::TrackBuffersManager(MediaSourceDecoder* aParentDecoder,
           "TrackBuffersManager::mParentDecoder", aParentDecoder,
           false /* strict */)),
       mAbstractMainThread(aParentDecoder->AbstractMainThread()),
-      mEnded(false),
       mVideoEvictionThreshold(Preferences::GetUint(
           "media.mediasource.eviction_threshold.video", 150 * 1024 * 1024)),
       mAudioEvictionThreshold(Preferences::GetUint(
@@ -119,7 +118,7 @@ RefPtr<TrackBuffersManager::AppendPromise> TrackBuffersManager::AppendData(
   RefPtr<MediaByteBuffer> data(aData);
   MSE_DEBUG("Appending %zu bytes", data->Length());
 
-  mEnded = false;
+  Reopen();
 
   return InvokeAsync(static_cast<AbstractThread*>(GetTaskQueueSafe().get()),
                      this, __func__, &TrackBuffersManager::DoAppendData,
@@ -325,7 +324,7 @@ TrackBuffersManager::RangeRemoval(TimeUnit aStart, TimeUnit aEnd) {
   MOZ_ASSERT(NS_IsMainThread());
   MSE_DEBUG("From %.2f to %.2f", aStart.ToSeconds(), aEnd.ToSeconds());
 
-  mEnded = false;
+  Reopen();
 
   return InvokeAsync(static_cast<AbstractThread*>(GetTaskQueueSafe().get()),
                      this, __func__,
@@ -462,7 +461,25 @@ TimeIntervals TrackBuffersManager::Buffered() const {
 
 int64_t TrackBuffersManager::GetSize() const { return mSizeSourceBuffer; }
 
-void TrackBuffersManager::Ended() { mEnded = true; }
+void TrackBuffersManager::SetEnded(
+    const dom::Optional<dom::MediaSourceEndOfStreamError>& aError) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(mMutex);
+  if (!aError.WasPassed()) {
+    // error is not set.
+    // Notify the media element that it now has all of the media data.
+    // https://w3c.github.io/media-source/#dfn-end-of-stream
+    mHaveAllData = true;
+  }
+  mEnded = true;
+}
+
+void TrackBuffersManager::Reopen() {
+  MOZ_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(mMutex);
+  mHaveAllData = false;
+  mEnded = false;
+}
 
 void TrackBuffersManager::Detach() {
   MOZ_ASSERT(NS_IsMainThread());

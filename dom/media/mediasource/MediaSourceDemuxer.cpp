@@ -387,7 +387,7 @@ RefPtr<MediaSourceTrackDemuxer::SeekPromise> MediaSourceTrackDemuxer::DoSeek(
   buffered.SetFuzz(MediaSourceDemuxer::EOS_FUZZ / 2);
   TimeUnit seekTime = std::max(aTime - mPreRoll, TimeUnit::Zero());
 
-  if (mManager->IsEnded() && seekTime >= buffered.GetEnd()) {
+  if (mManager->HaveAllData() && seekTime >= buffered.GetEnd()) {
     // We're attempting to seek past the end time. Cap seekTime so that we seek
     // to the last sample instead.
     seekTime = std::max(mManager->HighestStartTime(mType) - mPreRoll,
@@ -453,7 +453,7 @@ MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples) {
     // If a reset was recently performed, we ensure that the data
     // we are about to retrieve is still available.
     TimeIntervals buffered = mManager->Buffered(mType);
-    if (buffered.IsEmpty() && mManager->IsEnded()) {
+    if (buffered.IsEmpty() && mManager->HaveAllData()) {
       return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_END_OF_STREAM,
                                              __func__);
     }
@@ -481,7 +481,8 @@ MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples) {
       if (result == NS_ERROR_DOM_MEDIA_END_OF_STREAM ||
           result == NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA) {
         return SamplesPromise::CreateAndReject(
-            (result == NS_ERROR_DOM_MEDIA_END_OF_STREAM && mManager->IsEnded())
+            (result == NS_ERROR_DOM_MEDIA_END_OF_STREAM &&
+             mManager->HaveAllData())
                 ? NS_ERROR_DOM_MEDIA_END_OF_STREAM
                 : NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA,
             __func__);
@@ -533,7 +534,7 @@ MediaSourceTrackDemuxer::DoSkipToNextRandomAccessPoint(
       return SkipAccessPointPromise::CreateAndResolve(parsed, __func__);
     }
   }
-  SkipFailureHolder holder(mManager->IsEnded()
+  SkipFailureHolder holder(mManager->HaveAllData()
                                ? NS_ERROR_DOM_MEDIA_END_OF_STREAM
                                : NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA,
                            parsed);

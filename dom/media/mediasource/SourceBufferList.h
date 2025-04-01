@@ -76,7 +76,7 @@ class SourceBufferList final : public DOMEventTargetHelper {
   void RangeRemoval(double aStart, double aEnd);
 
   // Mark all SourceBuffers input buffers as ended.
-  void Ended();
+  void SetEnded(const Optional<MediaSourceEndOfStreamError>& aError);
 
   // Returns the highest end time of any of the Sourcebuffers.
   media::TimeUnit GetHighestBufferedEndTime();

@@ -419,7 +419,7 @@ void MediaSource::EndOfStream(
   }
 
   SetReadyState(MediaSourceReadyState::Ended);
-  mSourceBuffers->Ended();
+  mSourceBuffers->SetEnded(aError);
   if (!aError.WasPassed()) {
     DurationChangeOnEndOfStream();
     // Notify reader that all data is now available.
@@ -446,7 +446,7 @@ void MediaSource::EndOfStream(const MediaResult& aError) {
   MSE_API("EndOfStream(aError=%s)", aError.ErrorName().get());
 
   SetReadyState(MediaSourceReadyState::Ended);
-  mSourceBuffers->Ended();
+  mSourceBuffers->SetEnded(Optional(MediaSourceEndOfStreamError::Decode));
   mDecoder->DecodeError(aError);
 }
 

@@ -110,10 +110,11 @@ void SourceBufferList::RangeRemoval(double aStart, double aEnd) {
   }
 }
 
-void SourceBufferList::Ended() {
+void SourceBufferList::SetEnded(
+    const Optional<MediaSourceEndOfStreamError>& aError) {
   MOZ_ASSERT(NS_IsMainThread());
   for (uint32_t i = 0; i < mSourceBuffers.Length(); ++i) {
-    mSourceBuffers[i]->Ended();
+    mSourceBuffers[i]->SetEnded(aError);
   }
 }
 

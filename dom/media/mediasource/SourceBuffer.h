@@ -118,7 +118,7 @@ class SourceBuffer final : public DOMEventTargetHelper,
   void Detach();
   bool IsAttached() const { return mMediaSource != nullptr; }
 
-  void Ended();
+  void SetEnded(const Optional<MediaSourceEndOfStreamError>& aError);
 
   media::TimeIntervals GetBufferedIntervals();
   media::TimeUnit GetBufferedEnd();

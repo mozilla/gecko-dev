@@ -458,11 +458,12 @@ void SourceBuffer::Detach() {
   mMediaSource = nullptr;
 }
 
-void SourceBuffer::Ended() {
+void SourceBuffer::SetEnded(
+    const Optional<MediaSourceEndOfStreamError>& aError) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(IsAttached());
   MSE_DEBUG("Ended");
-  mTrackBuffersManager->Ended();
+  mTrackBuffersManager->SetEnded(aError);
 }
 
 SourceBuffer::SourceBuffer(MediaSource* aMediaSource,
