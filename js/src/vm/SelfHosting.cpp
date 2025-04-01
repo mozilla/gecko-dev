@@ -607,21 +607,6 @@ static bool intrinsic_DefineProperty(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool intrinsic_ObjectHasPrototype(JSContext* cx, unsigned argc,
-                                         Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 2);
-
-  // Self-hosted code calls this intrinsic with builtin prototypes. These are
-  // always native objects.
-  auto* obj = &args[0].toObject().as<NativeObject>();
-  auto* proto = &args[1].toObject().as<NativeObject>();
-
-  JSObject* actualProto = obj->staticPrototype();
-  args.rval().setBoolean(actualProto == proto);
-  return true;
-}
-
 static bool intrinsic_UnsafeSetReservedSlot(JSContext* cx, unsigned argc,
                                             Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2201,8 +2186,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("NewWrapForValidIterator", intrinsic_NewWrapForValidIterator, 0, 0),
     JS_FN("NoPrivateGetter", intrinsic_NoPrivateGetter, 1, 0),
     JS_FN("NumberToBigInt", intrinsic_NumberToBigInt, 1, 0),
-    JS_INLINABLE_FN("ObjectHasPrototype", intrinsic_ObjectHasPrototype, 2, 0,
-                    IntrinsicObjectHasPrototype),
     JS_INLINABLE_FN(
         "PossiblyWrappedArrayBufferByteLength",
         intrinsic_PossiblyWrappedArrayBufferByteLength<ArrayBufferObject>, 1, 0,

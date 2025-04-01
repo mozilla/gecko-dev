@@ -232,7 +232,6 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
 #ifdef NIGHTLY_BUILD
     case InlinableNative::IntrinsicGuardToIteratorRange:
 #endif
-    case InlinableNative::IntrinsicObjectHasPrototype:
     case InlinableNative::IntrinsicIsPackedArray:
     case InlinableNative::IntrinsicGuardToMapObject:
     case InlinableNative::IntrinsicGetNextMapEntryForIterator:

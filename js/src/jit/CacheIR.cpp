@@ -7979,36 +7979,6 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSubstringKernel() {
   return AttachDecision::Attach;
 }
 
-AttachDecision InlinableNativeIRGenerator::tryAttachObjectHasPrototype() {
-  // Self-hosted code calls this with (object, object) arguments.
-  MOZ_ASSERT(args_.length() == 2);
-  MOZ_ASSERT(args_[0].isObject());
-  MOZ_ASSERT(args_[1].isObject());
-
-  auto* obj = &args_[0].toObject().as<NativeObject>();
-  auto* proto = &args_[1].toObject().as<NativeObject>();
-
-  // Only attach when obj.__proto__ is proto.
-  if (obj->staticPrototype() != proto) {
-    return AttachDecision::NoAction;
-  }
-
-  // Initialize the input operand.
-  initializeInputOperand();
-
-  // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
-
-  ValOperandId arg0Id = loadArgumentIntrinsic(ArgumentKind::Arg0);
-  ObjOperandId objId = writer.guardToObject(arg0Id);
-
-  writer.guardProto(objId, proto);
-  writer.loadBooleanResult(true);
-  writer.returnFromIC();
-
-  trackAttached("ObjectHasPrototype");
-  return AttachDecision::Attach;
-}
-
 static bool CanConvertToString(const Value& v) {
   return v.isString() || v.isNumber() || v.isBoolean() || v.isNullOrUndefined();
 }
@@ -12354,8 +12324,6 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachNewRegExpStringIterator();
     case InlinableNative::IntrinsicArrayIteratorPrototypeOptimizable:
       return tryAttachArrayIteratorPrototypeOptimizable();
-    case InlinableNative::IntrinsicObjectHasPrototype:
-      return tryAttachObjectHasPrototype();
 
     // RegExp natives.
     case InlinableNative::IsRegExpObject:

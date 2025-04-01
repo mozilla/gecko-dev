@@ -710,7 +710,6 @@ class MOZ_RAII InlinableNativeIRGenerator {
   AttachDecision tryAttachIntrinsicRegExpExec(InlinableNative native);
   AttachDecision tryAttachGetFirstDollarIndex();
   AttachDecision tryAttachSubstringKernel();
-  AttachDecision tryAttachObjectHasPrototype();
   AttachDecision tryAttachString();
   AttachDecision tryAttachStringConstructor();
   AttachDecision tryAttachStringToStringValueOf();
