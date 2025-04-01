@@ -8,6 +8,7 @@ ChromeUtils.defineESModuleGetters(this, {
   MenuMessage: "resource:///modules/asrouter/MenuMessage.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
+  updateZoomUI: "resource:///modules/ZoomUI.sys.mjs",
 });
 
 /**
@@ -661,6 +662,7 @@ const PanelUI = {
       let message = ASRouter.getMessageById(messageId);
       ASRouter.addImpression(message);
     }
+    updateZoomUI(gBrowser.selectedBrowser);
   },
 
   _onHelpViewShow() {
