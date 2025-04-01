@@ -249,12 +249,18 @@ export var ExtensionsUI = {
         });
       }
 
+      // We don't want to show the incognito checkbox in the update prompt or
+      // optional prompt (which shouldn't be possible in this case), but it's
+      // fine for installs (including sideload).
+      const shouldShowIncognitoCheckbox =
+        !info.type || info.type === "sideload";
+
       this.showPermissionsPrompt(
         browser,
         strings,
         icon,
         info.addon,
-        true /* shouldShowIncognitoCheckbox */
+        shouldShowIncognitoCheckbox
       ).then(answer => {
         if (answer) {
           info.resolve();

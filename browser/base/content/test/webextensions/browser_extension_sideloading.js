@@ -273,6 +273,10 @@ add_task(async function test_sideloading() {
     [["webext-perms-host-description-all-urls"]],
     kSideloaded
   );
+  ok(
+    panel.querySelector(".webext-perm-privatebrowsing checkbox"),
+    "Expect incognito checkbox in sideload prompt"
+  );
 
   // Accept the permissions
   panel.button.click();

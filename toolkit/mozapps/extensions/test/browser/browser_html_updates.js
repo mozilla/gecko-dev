@@ -699,10 +699,18 @@ add_task(async function testPromptOnBackgroundUpdateCheck() {
 
   let card = getAddonCard(win, id);
 
+  const popupPromise = promisePopupNotificationShown(
+    "addon-webext-permissions"
+  );
   const promisePromptInfo = promisePermissionPrompt(id);
   await installUpdate(card, "update-installed");
   const promptInfo = await promisePromptInfo;
   ok(promptInfo, "Got a permission prompt as expected");
+  let panel = await popupPromise;
+  ok(
+    !panel.querySelector(".webext-perm-privatebrowsing checkbox"),
+    "Expect no incognito checkbox in update prompt"
+  );
 
   AddonManager.autoUpdateDefault = true;
 
