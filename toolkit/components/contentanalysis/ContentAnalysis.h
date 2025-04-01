@@ -257,10 +257,6 @@ class ContentAnalysis final : public nsIContentAnalysis,
   // and shutdown cancellations, have fixed behavior.
   void CancelWithError(nsCString&& aUserActionId, nsresult aResult);
 
-  // Duration the cache holds requests for. This holds strong references
-  // to the elements of the request, such as the WindowGlobalParent,
-  // for that period.
-  static constexpr uint32_t kDefaultCachedDataTimeoutInMs = 5000;
   // These are the MIME types that Content Analysis can analyze.
   static constexpr const char* kKnownClipboardTypes[] = {
       kTextMime, kHTMLMime, kCustomTypesMime, kFileMime};
