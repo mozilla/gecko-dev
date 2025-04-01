@@ -1002,7 +1002,7 @@ export class TranslationsParent extends JSWindowActorParent {
 
   /**
    * The "Accept-Language" values that the localizer or user has indicated for
-   * the preferences for the web. https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language
+   * the preferences for the web. https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Language
    *
    * Note that this preference always has English in the fallback chain, even if the
    * user doesn't actually speak English, and to other languages they potentially do
