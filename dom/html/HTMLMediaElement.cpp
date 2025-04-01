@@ -2012,12 +2012,9 @@ class HTMLMediaElement::ErrorSink {
     }
 
     ReportErrorProbe(aErrorCode, aResult);
-    mError = new MediaError(mOwner, aErrorCode,
-                            aResult ? aResult->Message() : nsCString());
-    mOwner->QueueEvent(u"error"_ns);
     if (mOwner->ReadyState() == HAVE_NOTHING &&
         aErrorCode == MEDIA_ERR_ABORTED) {
-      // https://html.spec.whatwg.org/multipage/embedded-content.html#media-data-processing-steps-list
+      // https://html.spec.whatwg.org/multipage/media.html#media-data-processing-steps-list
       // "If the media data fetching process is aborted by the user"
       mOwner->QueueEvent(u"abort"_ns);
       mOwner->ChangeNetworkState(NETWORK_EMPTY);
@@ -2025,11 +2022,21 @@ class HTMLMediaElement::ErrorSink {
       if (mOwner->mDecoder) {
         mOwner->ShutdownDecoder();
       }
-    } else if (aErrorCode == MEDIA_ERR_SRC_NOT_SUPPORTED) {
+      return;
+    }
+
+    if (aErrorCode == MEDIA_ERR_SRC_NOT_SUPPORTED) {
+      // https://html.spec.whatwg.org/multipage/media.html#dedicated-media-source-failure-steps
       mOwner->ChangeNetworkState(NETWORK_NO_SOURCE);
     } else {
+      // https://html.spec.whatwg.org/multipage/media.html#media-data-processing-steps-list
+      // "If the connection is interrupted after some media data has been
+      // received" or "If the media data is corrupted"
       mOwner->ChangeNetworkState(NETWORK_IDLE);
     }
+    mError = new MediaError(mOwner, aErrorCode,
+                            aResult ? aResult->Message() : nsCString());
+    mOwner->QueueEvent(u"error"_ns);
   }
 
   void ResetError() { mError = nullptr; }
