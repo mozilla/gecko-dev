@@ -14,6 +14,8 @@
   <string name="content_description_private_browsing_button">Luba privaatne veebilehitsemine</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_disable_private_browsing_button">Keela privaatne veebilehitsemine</string>
+  <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+  <string name="content_description_private_browsing">Privaatne veebilehitsemine</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Otsi või sisesta aadress</string>
   <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -44,6 +46,16 @@
   <string name="tab_tray_collection_button_multiselect_content_description">Salvesta valitud kaardid kollektsiooni</string>
   <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
   <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Valitud</string>
+  <!--
+    Home - Bookmarks
+
+    Title for the home screen section with bookmarks.
+  -->
+  <string name="home_bookmarks_title">Järjehoidjad</string>
+  <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
+  <string name="home_bookmarks_show_all_content_description">Kuva kõik järjehoidjad</string>
+  <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
+  <string name="home_bookmarks_menu_item_remove">Eemalda</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s on Mozilla poolt toodetud.</string>
   <!--
@@ -100,6 +112,14 @@
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
   <string name="erase_action_cfr_message">Uue privaatseansi alustamiseks puuduta siit. Kustuta ajalugu, küpsised – kõik.</string>
+  <!--
+    Toolbar "contextual feature recommendation" (CFR)
+
+    Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
+  -->
+  <string name="navbar_cfr_title">Uue navigeerimisega saad kiiremini sirvida</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+  <string name="navbar_cfr_message_2">Veebisaidil allapoole kerides tõmbub see riba kõrvale, et saada sirvimiseks lisaruumi.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Vajalik on ligipääs kaamerale. Mine Androidi sätetesse, puuduta õigusi ja seejärel puuduta lubamise valikut.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->

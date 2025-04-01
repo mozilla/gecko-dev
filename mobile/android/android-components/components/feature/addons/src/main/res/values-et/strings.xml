@@ -246,6 +246,10 @@
   <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">Lisa %1$s eemaldamine ebaõnnestus</string>
   <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
   <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">See lisa migreeriti eelmisest %1$si versioonist</string>
+  <!-- Text shown in not yet supported add-ons section. -->
+  <string name="mozac_feature_addons_unsupported_caption_2">1 laiendus</string>
+  <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
+  <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s laiendust</string>
   <!-- Text link to a sumo page for learning more about unsupported add-ons. -->
   <string name="mozac_feature_addons_unsupported_learn_more">Rohkem teavet</string>
   <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated. -->
@@ -262,4 +266,22 @@
   <string name="mozac_feature_addons_updater_dialog_status">Olek:</string>
   <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_installed_dialog_title">%2$sile paigaldati lisa %1$s</string>
+  <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+  <string name="mozac_feature_addons_installed_dialog_description_2">Laiendusele  %1$s pääsed ligi %2$s menüüst.</string>
+  <!-- Confirmation button text for the dialog when add-on installation is completed. -->
+  <string name="mozac_feature_addons_installed_dialog_okay_button_2">Sobib</string>
+  <!-- "Learn more" link displayed below an add-on status message. -->
+  <string name="mozac_feature_addons_status_learn_more">Rohkem teavet</string>
+  <!-- "See details" link displayed below an add-on status message. -->
+  <string name="mozac_feature_addons_status_see_details">Vaata üksikasju</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_status_blocklisted_1">See laiendus on Mozilla eeskirjade rikkumise tõttu blokeeritud ja keelatud.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+  <string name="mozac_feature_addons_status_softblocked_1">See laiendus on Mozilla eeskirjade rikkumise tõttu piiratud ja seetõttu keelatud. Saad selle lubada, kuid see võib olla riskantne.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+  <string name="mozac_feature_addons_status_softblocked_re_enabled">See laiendus rikub Mozilla eeskirju. Selle kasutamine võib olla riskantne.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_status_unsigned">%1$s turvalisust ei saanud kinnitada ja see on keelatud.</string>
+  <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+  <string name="mozac_feature_addons_status_incompatible">%1$s ei ühildu sinu %2$s versiooniga (versioon %3$s).</string>
 </resources>

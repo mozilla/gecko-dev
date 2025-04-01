@@ -465,7 +465,7 @@
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">გსურთ ძიების შემოთავაზებები პირად ფანჯრებში?</string>
   <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
-  <string name="search_suggestions_onboarding_text">%s გაუზიარებს საძიებო სისტემას, მისამართების ველში აკრეფილ ტექსტს.</string>
+  <string name="search_suggestions_onboarding_text">%s გაუზიარებს საძიებო სისტემას მისამართების ველში აკრეფილ ტექსტს.</string>
   <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">საძიებოდ %s</string>
   <!-- Search engine suggestion description text -->
