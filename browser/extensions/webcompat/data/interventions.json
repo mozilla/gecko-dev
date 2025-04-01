@@ -882,21 +882,6 @@
       }
     ]
   },
-  "1786404": {
-    "label": "business.help.royalmail.com",
-    "bugs": {
-      "1786404": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://business.help.royalmail.com/app/webforms/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["change_Firefox_to_FireFox"]
-      }
-    ]
-  },
   "1799968": {
     "label": "www.samsung.com",
     "bugs": {
