@@ -124,7 +124,7 @@ class Shim {
     browser.aboutConfigPrefs.onPrefChange.addListener(async () => {
       const value = await browser.aboutConfigPrefs.getPref(pref);
       this._disabledPrefValue = value;
-      this._onEnabledStateChanged();
+      this._onEnabledStateChanged({ alsoClearResourceCache: true });
     }, pref);
 
     this.ready = Promise.all([
@@ -233,14 +233,14 @@ class Shim {
 
   set disabledBySmartblockEmbedPref(value) {
     this._disabledBySmartblockEmbedPref = value;
-    this._onEnabledStateChanged();
+    this._onEnabledStateChanged({ alsoClearResourceCache: true });
   }
 
   onAllShimsEnabled() {
     const wasEnabled = this.enabled;
     this._disabledGlobally = false;
     if (!wasEnabled) {
-      this._onEnabledStateChanged();
+      this._onEnabledStateChanged({ alsoClearResourceCache: true });
     }
   }
 
@@ -248,7 +248,7 @@ class Shim {
     const wasEnabled = this.enabled;
     this._disabledGlobally = true;
     if (wasEnabled) {
-      this._onEnabledStateChanged();
+      this._onEnabledStateChanged({ alsoClearResourceCache: true });
     }
   }
 
@@ -256,7 +256,7 @@ class Shim {
     const wasEnabled = this.enabled;
     this._disabledForSession = false;
     if (!wasEnabled) {
-      this._onEnabledStateChanged();
+      this._onEnabledStateChanged({ alsoClearResourceCache: true });
     }
   }
 
@@ -264,19 +264,19 @@ class Shim {
     const wasEnabled = this.enabled;
     this._disabledForSession = true;
     if (wasEnabled) {
-      this._onEnabledStateChanged();
+      this._onEnabledStateChanged({ alsoClearResourceCache: true });
     }
   }
 
-  async _onEnabledStateChanged() {
+  async _onEnabledStateChanged({ alsoClearResourceCache = false } = {}) {
     this.manager?.onShimStateChanged(this.id);
     if (!this.enabled) {
       await this._unregisterContentScripts();
-      await this._revokeRequestsInETP();
+      await this._revokeRequestsInETP(alsoClearResourceCache);
       return browser.testUtils.shimsInactive();
     }
     await this._registerContentScripts();
-    await this._allowRequestsInETP();
+    await this._allowRequestsInETP(alsoClearResourceCache);
     return browser.testUtils.shimsActive();
   }
 
@@ -350,11 +350,13 @@ class Shim {
     this._contentScriptRegistrations = [];
   }
 
-  async _allowRequestsInETP() {
+  async _allowRequestsInETP(alsoClearResourceCache) {
+    let modified = false;
     const matches = this.matches.map(m => m.patterns).flat();
     if (matches.length) {
       // ensure requests shimmed in both PB and non-PB modes
       await browser.trackingProtection.shim(this.id, matches);
+      modified = true;
     }
 
     if (this._hostOptIns.size) {
@@ -366,6 +368,7 @@ class Shim {
           false,
           Array.from(this._hostOptIns)
         );
+        modified = true;
       }
     }
 
@@ -378,12 +381,20 @@ class Shim {
           true,
           Array.from(this._pBModeHostOptIns)
         );
+        modified = true;
       }
+    }
+
+    if (this._haveCheckedEnabledPrefs && alsoClearResourceCache && modified) {
+      this.clearResourceCache();
     }
   }
 
-  _revokeRequestsInETP() {
-    return browser.trackingProtection.revoke(this.id);
+  async _revokeRequestsInETP(alsoClearResourceCache) {
+    await browser.trackingProtection.revoke(this.id);
+    if (this._haveCheckedEnabledPrefs && alsoClearResourceCache) {
+      this.clearResourceCache();
+    }
   }
 
   setActiveOnTab(tabId, active = true) {
@@ -486,6 +497,7 @@ class Shim {
         isPrivateMode,
         Array.from(activeHostOptIns)
       );
+      this.clearResourceCache();
     }
   }
 
@@ -525,6 +537,7 @@ class Shim {
         isPrivateMode,
         Array.from(activeHostOptIns)
       );
+      this.clearResourceCache();
     }
   }
 
@@ -541,7 +554,12 @@ class Shim {
         forPrivateMode,
         Array.from(activeHostOptIns)
       );
+      this.clearResourceCache();
     }
+  }
+
+  clearResourceCache() {
+    return browser.trackingProtection.clearResourceCache();
   }
 }
 
@@ -568,10 +586,20 @@ class Shims {
       this._checkSmartblockEmbedsEnabledPref();
     }, this.SMARTBLOCK_EMBEDS_ENABLED_PREF);
 
-    this._haveCheckedEnabledPrefs = Promise.all([
+    // NOTE: Methods that uses the prefs should await
+    //       _haveCheckedEnabledPrefsPromise, in order to make sure the
+    //       prefs are all read.
+    //       Methods that potentially clears the resource cache should check
+    //       _haveCheckedEnabledPrefs, in order to avoid clearing the
+    //       resource cache during the startup.
+    this._haveCheckedEnabledPrefs = false;
+    this._haveCheckedEnabledPrefsPromise = Promise.all([
       this._checkEnabledPref(),
       this._checkSmartblockEmbedsEnabledPref(),
     ]);
+    this._haveCheckedEnabledPrefsPromise.then(() => {
+      this._haveCheckedEnabledPrefs = true;
+    });
 
     // handles unblock message coming in from protections panel
     browser.trackingProtection.onSmartBlockEmbedUnblock.addListener(
@@ -1011,7 +1039,7 @@ class Shims {
   }
 
   async _redirectLogos(details) {
-    await this._haveCheckedEnabledPrefs;
+    await this._haveCheckedEnabledPrefsPromise;
 
     if (!this.enabled) {
       return { cancel: true };
@@ -1047,7 +1075,7 @@ class Shims {
   }
 
   async _onHeadersReceived(details) {
-    await this._haveCheckedEnabledPrefs;
+    await this._haveCheckedEnabledPrefsPromise;
 
     for (const shim of this.shims.values()) {
       await shim.ready;
@@ -1081,7 +1109,7 @@ class Shims {
   }
 
   async _onBeforeSendHeaders(details) {
-    await this._haveCheckedEnabledPrefs;
+    await this._haveCheckedEnabledPrefsPromise;
 
     const { frameId, requestHeaders, tabId } = details;
 
@@ -1138,7 +1166,7 @@ class Shims {
 
   // eslint-disable-next-line complexity
   async _ensureShimForRequestOnTab(details) {
-    await this._haveCheckedEnabledPrefs;
+    await this._haveCheckedEnabledPrefsPromise;
 
     if (!this.enabled) {
       return undefined;

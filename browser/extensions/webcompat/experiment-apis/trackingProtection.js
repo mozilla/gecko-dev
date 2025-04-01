@@ -262,6 +262,9 @@ this.trackingProtection = class extends ExtensionAPI {
         async revoke(allowListId) {
           manager.revoke(allowListId);
         },
+        async clearResourceCache() {
+          ChromeUtils.clearResourceCache({ target: "content" });
+        },
         async wasRequestUnblocked(requestId, isPrivate) {
           if (!manager) {
             return false;

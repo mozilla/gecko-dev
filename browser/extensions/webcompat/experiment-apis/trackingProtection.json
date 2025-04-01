@@ -142,6 +142,13 @@
         "async": true
       },
       {
+        "name": "clearResourceCache",
+        "type": "function",
+        "description": "Clear in-memory resource cache to reflect the changes to the allow-list for the subsequent requests",
+        "parameters": [],
+        "async": true
+      },
+      {
         "name": "wasRequestUnblocked",
         "type": "function",
         "description": "Whether the given requestId was unblocked by any allowList",
