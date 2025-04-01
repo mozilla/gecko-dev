@@ -138,6 +138,7 @@ class MFCDMParent final : public PMFCDMParent {
 
   static inline uint64_t sNextId = 1;
   const uint64_t mId;
+  bool mIsInited = false;
 
   static inline BSTR sWidevineL1Path;
 

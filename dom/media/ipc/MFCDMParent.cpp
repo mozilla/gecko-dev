@@ -1095,6 +1095,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvInit(
     MFCDM_PARENT_LOG("Set PMPHostWrapper on CDM!");
   }
 
+  mIsInited = true;
   aResolver(MFCDMInitIPDL{mId});
   return IPC_OK();
 }
@@ -1102,7 +1103,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvInit(
 mozilla::ipc::IPCResult MFCDMParent::RecvCreateSessionAndGenerateRequest(
     const MFCDMCreateSessionParamsIPDL& aParams,
     CreateSessionAndGenerateRequestResolver&& aResolver) {
-  MOZ_ASSERT(mCDM, "RecvInit() must be called and waited on before this call");
+  MOZ_ASSERT(mIsInited, "Must finish initialization first");
 
   static auto SessionTypeToStr = [](KeySystemConfig::SessionType aSessionType) {
     switch (aSessionType) {
@@ -1160,7 +1161,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvCreateSessionAndGenerateRequest(
 mozilla::ipc::IPCResult MFCDMParent::RecvLoadSession(
     const KeySystemConfig::SessionType& aSessionType,
     const nsString& aSessionId, LoadSessionResolver&& aResolver) {
-  MOZ_ASSERT(mCDM, "RecvInit() must be called and waited on before this call");
+  MOZ_ASSERT(mIsInited, "Must finish initialization first");
 
   nsresult rv = NS_OK;
   auto* session = GetSession(aSessionId);
@@ -1185,7 +1186,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvLoadSession(
 mozilla::ipc::IPCResult MFCDMParent::RecvUpdateSession(
     const nsString& aSessionId, const CopyableTArray<uint8_t>& aResponse,
     UpdateSessionResolver&& aResolver) {
-  MOZ_ASSERT(mCDM, "RecvInit() must be called and waited on before this call");
+  MOZ_ASSERT(mIsInited, "Must finish initialization first");
   nsresult rv = NS_OK;
   auto* session = GetSession(aSessionId);
   if (!session) {
@@ -1207,7 +1208,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvUpdateSession(
 
 mozilla::ipc::IPCResult MFCDMParent::RecvCloseSession(
     const nsString& aSessionId, UpdateSessionResolver&& aResolver) {
-  MOZ_ASSERT(mCDM, "RecvInit() must be called and waited on before this call");
+  MOZ_ASSERT(mIsInited, "Must finish initialization first");
   nsresult rv = NS_OK;
   auto* session = GetSession(aSessionId);
   if (!session) {
@@ -1229,7 +1230,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvCloseSession(
 
 mozilla::ipc::IPCResult MFCDMParent::RecvRemoveSession(
     const nsString& aSessionId, UpdateSessionResolver&& aResolver) {
-  MOZ_ASSERT(mCDM, "RecvInit() must be called and waited on before this call");
+  MOZ_ASSERT(mIsInited, "Must finish initialization first");
   nsresult rv = NS_OK;
   auto* session = GetSession(aSessionId);
   if (!session) {
@@ -1252,7 +1253,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvRemoveSession(
 mozilla::ipc::IPCResult MFCDMParent::RecvSetServerCertificate(
     const CopyableTArray<uint8_t>& aCertificate,
     UpdateSessionResolver&& aResolver) {
-  MOZ_ASSERT(mCDM, "RecvInit() must be called and waited on before this call");
+  MOZ_ASSERT(mIsInited, "Must finish initialization first");
   nsresult rv = NS_OK;
   MFCDM_PARENT_LOG("Set server certificate");
   PROFILER_MARKER_UNTYPED("MFCDMParent::RecvSetServerCertificate",
@@ -1268,11 +1269,11 @@ mozilla::ipc::IPCResult MFCDMParent::RecvSetServerCertificate(
 mozilla::ipc::IPCResult MFCDMParent::RecvGetStatusForPolicy(
     const dom::HDCPVersion& aMinHdcpVersion,
     GetStatusForPolicyResolver&& aResolver) {
-  MOZ_ASSERT(mCDM, "RecvInit() must be called and waited on before this call");
   auto rv = IsHDCPVersionSupported(mFactory, mKeySystem, aMinHdcpVersion);
   if (IsBeingProfiledOrLogEnabled()) {
     nsPrintfCString msg("HDCP version=%u, support=%s",
-                        static_cast<uint8_t>(aMinHdcpVersion), rv == NS_OK ? "true" : "false");
+                        static_cast<uint8_t>(aMinHdcpVersion),
+                        rv == NS_OK ? "true" : "false");
     MFCDM_PARENT_LOG("%s", msg.get());
     PROFILER_MARKER_TEXT("MFCDMParent::RecvGetStatusForPolicy", MEDIA_PLAYBACK,
                          {}, msg);
