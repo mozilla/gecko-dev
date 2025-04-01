@@ -4,15 +4,6 @@ const TEST_URL =
 const TEST_SCRIPT_URL =
   "https://example.com/browser/dom/tests/browser/cacheable_non_cacheable_server.sjs";
 
-function clearAllCache() {
-  return new Promise(function (resolve) {
-    Services.clearData.deleteData(
-      Ci.nsIClearDataService.CLEAR_ALL_CACHES,
-      resolve
-    );
-  });
-}
-
 add_task(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["dom.script_loader.navigation_cache", true]],
@@ -23,7 +14,8 @@ add_task(async function () {
   const response1 = await fetch(TEST_SCRIPT_URL + "?use-cacheable");
   is(await response1.text(), "ok", "Server state should be set");
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   const tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,

@@ -25,40 +25,14 @@ async function reloadAndGetCounter(tab) {
   return getCounter(tab);
 }
 
-function clearAllCache() {
-  return new Promise(function (resolve) {
-    Services.clearData.deleteData(
-      Ci.nsIClearDataService.CLEAR_ALL_CACHES,
-      resolve
-    );
-  });
-}
-
-function clearJSCache() {
-  return new Promise(function (resolve) {
-    Services.clearData.deleteData(
-      Ci.nsIClearDataService.CLEAR_JS_CACHE,
-      resolve
-    );
-  });
-}
-
-function clearNetworkCache() {
-  return new Promise(function (resolve) {
-    Services.clearData.deleteData(
-      Ci.nsIClearDataService.CLEAR_NETWORK_CACHE,
-      resolve
-    );
-  });
-}
-
 add_task(async function test_withoutNavigationCache() {
   await SpecialPowers.pushPrefEnv({
     set: [["dom.script_loader.navigation_cache", false]],
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   const resetResponse = await fetch(TEST_SCRIPT_URL + "?reset");
   is(await resetResponse.text(), "reset", "Server state should be reset");
@@ -76,7 +50,8 @@ add_task(async function test_withoutNavigationCache() {
     "cache should be used for subsequent load."
   );
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
   is(
     await reloadAndGetCounter(tab),
     1,
@@ -88,17 +63,17 @@ add_task(async function test_withoutNavigationCache() {
     "cache should be used for subsequent load."
   );
 
-  await clearJSCache();
+  ChromeUtils.clearResourceCache();
   is(await reloadAndGetCounter(tab), 1, "network cache should be used.");
 
-  await clearNetworkCache();
+  Services.cache2.clear();
   is(
     await reloadAndGetCounter(tab),
     2,
     "request should reach the server after network cache is cleared."
   );
 
-  await clearJSCache();
+  ChromeUtils.clearResourceCache();
   is(await reloadAndGetCounter(tab), 2, "network cache should be used.");
 
   BrowserTestUtils.removeTab(tab);
@@ -110,7 +85,8 @@ add_task(async function test_withNavigationCache() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   const resetResponse = await fetch(TEST_SCRIPT_URL + "?reset");
   is(await resetResponse.text(), "reset", "Server state should be reset");
@@ -128,7 +104,8 @@ add_task(async function test_withNavigationCache() {
     "cache should be used for subsequent load."
   );
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
   is(
     await reloadAndGetCounter(tab),
     1,
@@ -140,19 +117,19 @@ add_task(async function test_withNavigationCache() {
     "cache should be used for subsequent load."
   );
 
-  await clearJSCache();
+  ChromeUtils.clearResourceCache();
   is(await reloadAndGetCounter(tab), 1, "network cache should be used.");
 
   // The above reload loads from the network cache, and the JS cache is
   // re-created.
 
-  await clearNetworkCache();
+  Services.cache2.clear();
   is(await reloadAndGetCounter(tab), 1, "JS cache should be used.");
 
   // The above reload loads from the JS cache.
   // Currently, network cache is not re-created from the JS cache.
 
-  await clearJSCache();
+  ChromeUtils.clearResourceCache();
   is(
     await reloadAndGetCounter(tab),
     2,
