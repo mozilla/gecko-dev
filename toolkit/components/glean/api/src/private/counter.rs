@@ -25,6 +25,8 @@ pub enum CounterMetric {
     Child(ChildMetricMeta),
 }
 
+crate::define_metric_namer!(CounterMetric);
+
 impl CounterMetric {
     /// Create a new counter metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
@@ -154,7 +156,9 @@ impl Counter for CounterMetric {
                 "Counter::add",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id, None, amount),
+                super::profiler_utils::IntLikeMetricMarker::<CounterMetric, i32>::new(
+                    id, None, amount,
+                ),
             );
         }
     }

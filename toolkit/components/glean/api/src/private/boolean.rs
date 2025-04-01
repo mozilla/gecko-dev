@@ -5,9 +5,9 @@
 use inherent::inherent;
 use std::sync::Arc;
 
-use glean::traits::Boolean;
+use glean::{traits::Boolean, MetricIdentifier};
 
-use super::{BaseMetricId, ChildMetricMeta, CommonMetricData, MetricId};
+use super::{BaseMetricId, ChildMetricMeta, CommonMetricData, MetricId, MetricNamer};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 
@@ -91,7 +91,9 @@ impl Boolean for BooleanMetric {
                     "Boolean::set",
                     super::profiler_utils::TelemetryProfilerCategory,
                     Default::default(),
-                    super::profiler_utils::BooleanMetricMarker::new(*id, None, value),
+                    super::profiler_utils::BooleanMetricMarker::<BooleanMetric>::new(
+                        *id, None, value,
+                    ),
                 );
                 inner.set(value);
             }
@@ -108,7 +110,11 @@ impl Boolean for BooleanMetric {
                     "Boolean::set",
                     super::profiler_utils::TelemetryProfilerCategory,
                     Default::default(),
-                    super::profiler_utils::BooleanMetricMarker::new(meta.id.into(), None, value),
+                    super::profiler_utils::BooleanMetricMarker::<BooleanMetric>::new(
+                        meta.id.into(),
+                        None,
+                        value,
+                    ),
                 );
                 with_ipc_payload(move |payload| {
                     if let Some(v) = payload.booleans.get_mut(&meta.id) {
@@ -163,6 +169,16 @@ impl Boolean for BooleanMetric {
                 "Cannot get the number of recorded errors for boolean metric in non-main process!"
             ),
         }
+    }
+}
+
+impl MetricNamer for BooleanMetric {
+    fn get_metadata(&self) -> crate::private::MetricMetadata {
+        crate::private::MetricMetadata::from_triple(match self {
+            BooleanMetric::Parent { inner, .. } => inner.get_identifiers(),
+            BooleanMetric::Child(meta) => meta.get_identifiers(),
+            BooleanMetric::UnorderedChild(meta) => meta.get_identifiers(),
+        })
     }
 }
 

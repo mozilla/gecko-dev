@@ -253,7 +253,8 @@ mod private {
                             ChildMetricMeta::from_name_category_pair(id, name, category),
                             TimeUnit::Millisecond,
                         )),
-                        id: id.into(),
+                        parent_id: id,
+                        id: submetric_id,
                         label: label.to_string(),
                         kind: LabeledTimingDistributionMetricKind::Child,
                     }
@@ -264,7 +265,8 @@ mod private {
                             gifft_time_unit: TimeUnit::Millisecond,
                             inner: metric.get(label),
                         }),
-                        id: id.into(),
+                        parent_id: id,
+                        id: submetric_id,
                         label: label.to_string(),
                         kind: LabeledTimingDistributionMetricKind::Parent,
                     }

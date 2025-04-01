@@ -35,6 +35,8 @@ pub enum MemoryDistributionMetric {
     Child(ChildMetricMeta),
 }
 
+crate::define_metric_namer!(MemoryDistributionMetric);
+
 impl MemoryDistributionMetric {
     /// Create a new memory distribution metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData, memory_unit: MemoryUnit) -> Self {
@@ -101,7 +103,11 @@ impl MemoryDistributionMetric {
         gecko_profiler::lazy_add_marker!(
             "MemoryDistribution::accumulate",
             TelemetryProfilerCategory,
-            DistributionMetricMarker::new(id, None, DistributionValues::Samples(marker_samples))
+            DistributionMetricMarker::<MemoryDistributionMetric, u64>::new(
+                id,
+                None,
+                DistributionValues::Samples(marker_samples)
+            )
         );
     }
 
@@ -181,7 +187,11 @@ impl MemoryDistribution for MemoryDistributionMetric {
         gecko_profiler::lazy_add_marker!(
             "MemoryDistribution::accumulate",
             TelemetryProfilerCategory,
-            DistributionMetricMarker::new(id, None, DistributionValues::Sample(sample))
+            DistributionMetricMarker::<MemoryDistributionMetric, u64>::new(
+                id,
+                None,
+                DistributionValues::Sample(sample)
+            )
         );
     }
 

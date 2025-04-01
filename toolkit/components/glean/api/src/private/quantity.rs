@@ -29,6 +29,9 @@ pub enum QuantityMetric {
 #[derive(Clone, Debug)]
 pub struct QuantityMetricIpc;
 
+crate::define_metric_metadata_getter!(QuantityMetric, QUANTITY_MAP, LABELED_QUANTITY_MAP);
+crate::define_metric_namer!(QuantityMetric, PARENT_ONLY);
+
 impl QuantityMetric {
     /// Create a new quantity metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
@@ -72,7 +75,9 @@ impl Quantity for QuantityMetric {
                         "Quantity::set",
                         super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
-                        super::profiler_utils::IntLikeMetricMarker::new(*id, None, value),
+                        super::profiler_utils::IntLikeMetricMarker::<QuantityMetric, i64>::new(
+                            *id, None, value,
+                        ),
                     );
                 }
                 inner.set(value);

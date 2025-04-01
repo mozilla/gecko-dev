@@ -51,6 +51,9 @@ pub enum StringMetric {
 #[derive(Clone, Debug)]
 pub struct StringMetricIpc;
 
+crate::define_metric_metadata_getter!(StringMetric, STRING_MAP, LABELED_STRING_MAP);
+crate::define_metric_namer!(StringMetric, PARENT_ONLY);
+
 impl StringMetric {
     /// Create a new string metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
@@ -93,7 +96,7 @@ impl glean::traits::String for StringMetric {
                 gecko_profiler::lazy_add_marker!(
                     "String::set",
                     super::profiler_utils::TelemetryProfilerCategory,
-                    super::profiler_utils::StringLikeMetricMarker::new(*id, &value)
+                    super::profiler_utils::StringLikeMetricMarker::<StringMetric>::new(*id, &value)
                 );
                 inner.set(value);
             }

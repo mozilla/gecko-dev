@@ -72,6 +72,9 @@ async function runWithProfilerAndGetMarkers(type, func) {
   // in the test, and not use a numerical id (which may not be stable!)
   for (let marker of markers) {
     marker.id = stringTable[marker.id];
+    if (marker.cat != undefined) {
+      marker.cat = stringTable[marker.cat];
+    }
     if (marker.label != undefined) {
       marker.label = stringTable[marker.label];
     }
@@ -89,13 +92,24 @@ async function runWithProfilerAndGetMarkers(type, func) {
   //   clone/deserialise)
   // - Counter metrics ("javascriptGc"), which caused intermittents in Bug
   //   1943425
-  markers = markers.filter(
-    marker =>
-      // Metric markers all start with `testOnly`
+  markers = markers.filter(marker => {
+    // Metric markers with names coming from JS all start with `testOnly`,
+    // `test_only` or `jog_`
+    let name =
       marker.id.startsWith("testOnly") ||
-      // Ping markers are a little more varied, so we enumerate them
-      ["test-ping", "one-ping-only", "ride-along-ping"].includes(marker.id)
-  );
+      marker.id.startsWith("test_only") ||
+      marker.id.startsWith("jog_");
+    // Marker categories all start with test or jog
+    let cat = false;
+    if (marker.cat != undefined) {
+      cat = marker.cat.startsWith("test") || marker.cat.startsWith("jog_");
+    }
+    // Ping markers are a little more varied, so we enumerate them
+    let ping = ["test-ping", "one-ping-only", "ride-along-ping"].includes(
+      marker.id
+    );
+    return name || cat || ping;
+  });
 
   // Return selected markers
   return markers;
@@ -114,29 +128,47 @@ add_task(async function test_fog_counter_markers() {
   });
 
   Assert.deepEqual(markers, [
+    { type: "IntLikeMetric", cat: "test_only", id: "bad_code", val: 31 },
     {
       type: "IntLikeMetric",
-      id: "testOnly.badCode",
-      val: 31,
-    },
-    {
-      type: "IntLikeMetric",
-      id: "testOnly.mabelsKitchenCounters",
+      cat: "test_only",
+      id: "mabels_kitchen_counters",
       label: "near_the_sink",
       val: 1,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnly.mabelsKitchenCounters",
+      cat: "test_only",
+      id: "mabels_kitchen_counters",
       label: "with_junk_on_them",
       val: 2,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnly.mabelsKitchenCounters",
+      cat: "test_only",
+      id: "mabels_kitchen_counters",
       label: "1".repeat(72),
       val: 1,
     },
+  ]);
+});
+
+add_task(async function test_jog_counter_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "counter",
+    "jog_cat",
+    "jog_counter",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("IntLikeMetric", () => {
+    Glean.jogCat.jogCounter.add(53);
+  });
+
+  Assert.deepEqual(markers, [
+    { type: "IntLikeMetric", cat: "jog_cat", id: "jog_counter", val: 53 },
   ]);
 });
 
@@ -159,56 +191,148 @@ add_task(async function test_fog_static_labeled_counter_markers() {
   Assert.deepEqual(markers, [
     {
       type: "IntLikeMetric",
-      id: "testOnly.mabelsLabeledCounters",
+      cat: "test_only",
+      id: "mabels_labeled_counters",
       label: "next_to_the_fridge",
       val: 1,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnly.mabelsLabeledCounters",
+      cat: "test_only",
+      id: "mabels_labeled_counters",
       label: "clean",
       val: 2,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnly.mabelsLabeledCounters",
+      cat: "test_only",
+      id: "mabels_labeled_counters",
       label: "1st_counter",
       val: 2,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnlyIpc.aLabeledCounterForCategorical",
+      cat: "test_only.ipc",
+      id: "a_labeled_counter_for_categorical",
       label: "CommonLabel",
       val: 1,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnlyIpc.aLabeledCounterForCategorical",
+      cat: "test_only.ipc",
+      id: "a_labeled_counter_for_categorical",
       label: "Label4",
       val: 1,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnlyIpc.aLabeledCounterForCategorical",
+      cat: "test_only.ipc",
+      id: "a_labeled_counter_for_categorical",
       label: "Label5",
       val: 1,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnlyIpc.aLabeledCounterForCategorical",
+      cat: "test_only.ipc",
+      id: "a_labeled_counter_for_categorical",
       label: "Label6",
       val: 1,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnlyIpc.aLabeledCounterForHgram",
+      cat: "test_only.ipc",
+      id: "a_labeled_counter_for_hgram",
       label: "false",
       val: 1,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnlyIpc.aLabeledCounterForHgram",
+      cat: "test_only.ipc",
+      id: "a_labeled_counter_for_hgram",
       label: "true",
+      val: 1,
+    },
+  ]);
+});
+
+add_task(async function test_jog_labeled_counter_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_counter",
+    "jog_cat",
+    "jog_labeled_counter",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("IntLikeMetric", () => {
+    Glean.jogCat.jogLabeledCounter.label_1.add(1);
+    Glean.jogCat.jogLabeledCounter.label_2.add(2);
+    Glean.jogCat.jogLabeledCounter["1".repeat(72)].add(1);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_counter",
+      label: "label_1",
+      val: 1,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_counter",
+      label: "label_2",
+      val: 2,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_counter",
+      label: "1".repeat(72),
+      val: 1,
+    },
+  ]);
+});
+
+add_task(async function test_jog_labeled_counter_with_static_labels_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_counter",
+    "jog_cat",
+    "jog_labeled_counter_with_labels",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ ordered_labels: ["label_1", "label_2"] })
+  );
+  let markers = await runWithProfilerAndGetMarkers("IntLikeMetric", () => {
+    Glean.jogCat.jogLabeledCounterWithLabels.label_1.add(1);
+    Glean.jogCat.jogLabeledCounterWithLabels.label_2.add(2);
+
+    Glean.jogCat.jogLabeledCounterWithLabels["1".repeat(72)].add(1);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_counter_with_labels",
+      label: "label_1",
+      val: 1,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_counter_with_labels",
+      label: "label_2",
+      val: 2,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_counter_with_labels",
+      label: "__other__",
       val: 1,
     },
   ]);
@@ -237,47 +361,55 @@ add_task(async function test_fog_string_markers() {
   Assert.deepEqual(markers, [
     {
       type: "StringLikeMetric",
-      id: "testOnly.cheesyString",
-      val: value,
+      cat: "test_only",
+      id: "cheesy_string",
+      val: "a cheesy string!",
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.cheesyString",
+      cat: "test_only",
+      id: "cheesy_string",
       val: truncatedLongString,
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsLabelMaker",
+      cat: "test_only",
+      id: "mabels_label_maker",
       label: "singleword",
       val: "portmanteau",
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsLabelMaker",
+      cat: "test_only",
+      id: "mabels_label_maker",
       label: "snake_case",
       val: "snek",
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsLabelMaker",
+      cat: "test_only",
+      id: "mabels_label_maker",
       label: "dash-character",
       val: "Dash Rendar",
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsLabelMaker",
+      cat: "test_only",
+      id: "mabels_label_maker",
       label: "dot.separated",
       val: "dot product",
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsLabelMaker",
+      cat: "test_only",
+      id: "mabels_label_maker",
       label: "camelCase",
       val: "wednesday",
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsLabelMaker",
+      cat: "test_only",
+      id: "mabels_label_maker",
       label: "1".repeat(72),
       val: "seventy-two",
     },
@@ -296,15 +428,124 @@ add_task(async function test_fog_static_labeled_string_markers() {
   Assert.deepEqual(markers, [
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsBalloonLabels",
+      cat: "test_only",
+      id: "mabels_balloon_labels",
       label: "celebratory",
       val: "hooray",
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.mabelsBalloonLabels",
+      cat: "test_only",
+      id: "mabels_balloon_labels",
       label: "celebratory_and_snarky",
       val: "oh yay, hooray",
+    },
+  ]);
+});
+
+add_task(async function test_jog_string_markers() {
+  const value = "an active string!";
+  Services.fog.testRegisterRuntimeMetric(
+    "string",
+    "jog_cat",
+    "jog_string",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+  let markers = await runWithProfilerAndGetMarkers("StringLikeMetric", () => {
+    Glean.jogCat.jogString.set(value);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_string",
+      val: "an active string!",
+    },
+  ]);
+});
+
+add_task(async function test_jog_labeled_string_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_string",
+    "jog_cat",
+    "jog_labeled_string",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("StringLikeMetric", () => {
+    Glean.jogCat.jogLabeledString.label_1.set("crimson");
+    Glean.jogCat.jogLabeledString.label_2.set("various");
+    Glean.jogCat.jogLabeledString["1".repeat(72)].set("valid");
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_string",
+      label: "label_1",
+      val: "crimson",
+    },
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_string",
+      label: "label_2",
+      val: "various",
+    },
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_string",
+      label: "1".repeat(72),
+      val: "valid",
+    },
+  ]);
+});
+
+add_task(async function test_jog_labeled_string_with_labels() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_string",
+    "jog_cat",
+    "jog_labeled_string_with_labels",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ ordered_labels: ["label_1", "label_2"] })
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("StringLikeMetric", () => {
+    Glean.jogCat.jogLabeledStringWithLabels.label_1.set("crimson");
+    Glean.jogCat.jogLabeledStringWithLabels.label_2.set("various");
+    Glean.jogCat.jogLabeledStringWithLabels["1".repeat(72)].set("valid");
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_string_with_labels",
+      label: "label_1",
+      val: "crimson",
+    },
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_string_with_labels",
+      label: "label_2",
+      val: "various",
+    },
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_string_with_labels",
+      label: "__other__",
+      val: "valid",
     },
   ]);
 });
@@ -324,15 +565,54 @@ add_task(async function test_fog_string_list() {
   Assert.deepEqual(markers, [
     {
       type: "StringLikeMetric",
-      id: "testOnly.cheesyStringList",
+      cat: "test_only",
+      id: "cheesy_string_list",
       // Note: This is a little fragile and will need to be updated if we ever
       // rearrange the items in the string list.
       val: `[${value},${value2}]`,
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.cheesyStringList",
+      cat: "test_only",
+      id: "cheesy_string_list",
       val: value3,
+    },
+  ]);
+});
+
+add_task(async function test_jog_string_list_markers() {
+  const value = "an active string!";
+  const value2 = "a more active string!";
+  const value3 = "the most active of strings.";
+  Services.fog.testRegisterRuntimeMetric(
+    "string_list",
+    "jog_cat",
+    "jog_string_list",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  const jogList = [value, value2];
+
+  let markers = await runWithProfilerAndGetMarkers("StringLikeMetric", () => {
+    Glean.jogCat.jogStringList.set(jogList);
+
+    Glean.jogCat.jogStringList.add(value3);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_string_list",
+      val: "[an active string!,a more active string!]",
+    },
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_string_list",
+      val: "the most active of strings.",
     },
   ]);
 });
@@ -356,11 +636,49 @@ add_task(async function test_fog_timespan() {
   );
 
   Assert.deepEqual(markers, [
-    { type: "TimespanMetric", id: "testOnly.canWeTimeIt" },
-    { type: "TimespanMetric", id: "testOnly.canWeTimeIt" },
-    { type: "TimespanMetric", id: "testOnly.canWeTimeIt" },
-    { type: "TimespanMetric", id: "testOnly.canWeTimeIt" },
-    { type: "TimespanMetric", id: "testOnly.canWeTimeIt", val: 100 },
+    { type: "TimespanMetric", cat: "test_only", id: "can_we_time_it" },
+    { type: "TimespanMetric", cat: "test_only", id: "can_we_time_it" },
+    { type: "TimespanMetric", cat: "test_only", id: "can_we_time_it" },
+    { type: "TimespanMetric", cat: "test_only", id: "can_we_time_it" },
+    {
+      type: "TimespanMetric",
+      cat: "test_only",
+      id: "can_we_time_it",
+      val: 100,
+    },
+  ]);
+});
+
+add_task(async function test_jog_timespan_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "timespan",
+    "jog_cat",
+    "jog_timespan",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ time_unit: "millisecond" })
+  );
+
+  let markers = await runWithProfilerAndGetMarkers(
+    "TimespanMetric",
+    async () => {
+      Glean.jogCat.jogTimespan.start();
+      Glean.jogCat.jogTimespan.cancel();
+
+      // We start, briefly sleep and then stop.
+      // That guarantees some time to measure.
+      Glean.jogCat.jogTimespan.start();
+      await sleep(10);
+      Glean.jogCat.jogTimespan.stop();
+    }
+  );
+
+  Assert.deepEqual(markers, [
+    { type: "TimespanMetric", cat: "jog_cat", id: "jog_timespan" },
+    { type: "TimespanMetric", cat: "jog_cat", id: "jog_timespan" },
+    { type: "TimespanMetric", cat: "jog_cat", id: "jog_timespan" },
+    { type: "TimespanMetric", cat: "jog_cat", id: "jog_timespan" },
   ]);
 });
 
@@ -372,7 +690,7 @@ add_task(
     });
 
     Assert.deepEqual(markers, [
-      { type: "TimespanMetric", id: "testOnly.canWeTimeIt" },
+      { type: "TimespanMetric", cat: "test_only", id: "can_we_time_it" },
     ]);
   }
 );
@@ -394,12 +712,49 @@ add_task(async function test_fog_uuid() {
   Assert.deepEqual(markers, [
     {
       type: "StringLikeMetric",
-      id: "testOnly.whatIdIt",
+      cat: "test_only",
+      id: "what_id_it",
       val: kTestUuid,
     },
     {
       type: "StringLikeMetric",
-      id: "testOnly.whatIdIt",
+      cat: "test_only",
+      id: "what_id_it",
+      val: generatedUuid,
+    },
+  ]);
+});
+
+add_task(async function test_jog_uuid_markers() {
+  const kTestUuid = "decafdec-afde-cafd-ecaf-decafdecafde";
+  let generatedUuid;
+
+  Services.fog.testRegisterRuntimeMetric(
+    "uuid",
+    "jog_cat",
+    "jog_uuid",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("StringLikeMetric", () => {
+    Glean.jogCat.jogUuid.set(kTestUuid);
+    Glean.jogCat.jogUuid.generateAndSet();
+    generatedUuid = Glean.jogCat.jogUuid.testGetValue();
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_uuid",
+      val: kTestUuid,
+    },
+    {
+      type: "StringLikeMetric",
+      cat: "jog_cat",
+      id: "jog_uuid",
       val: generatedUuid,
     },
   ]);
@@ -415,7 +770,33 @@ add_task(async function test_fog_datetime() {
   Assert.deepEqual(markers, [
     {
       type: "DatetimeMetric",
-      id: "testOnly.whatADate",
+      cat: "test_only",
+      id: "what_a_date",
+      time: value.toISOString(),
+    },
+  ]);
+});
+
+add_task(async function test_jog_datetime_markers() {
+  const value = new Date("2020-06-11T12:00:00");
+  Services.fog.testRegisterRuntimeMetric(
+    "datetime",
+    "jog_cat",
+    "jog_datetime",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ time_unit: "nanosecond" })
+  );
+  let markers = await runWithProfilerAndGetMarkers("DatetimeMetric", () => {
+    Glean.jogCat.jogDatetime.set(value.getTime() * 1000);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "DatetimeMetric",
+      cat: "jog_cat",
+      id: "jog_datetime",
       time: value.toISOString(),
     },
   ]);
@@ -436,31 +817,60 @@ add_task(async function test_fog_boolean_markers() {
   Assert.deepEqual(markers, [
     {
       type: "BooleanMetric",
-      id: "testOnly.canWeFlagIt",
+      cat: "test_only",
+      id: "can_we_flag_it",
       val: false,
     },
     {
       type: "BooleanMetric",
-      id: "testOnly.canWeFlagIt",
+      cat: "test_only",
+      id: "can_we_flag_it",
       val: true,
     },
     {
       type: "BooleanMetric",
-      id: "testOnly.mabelsLikeBalloons",
+      cat: "test_only",
+      id: "mabels_like_balloons",
       label: "at_parties",
       val: true,
     },
     {
       type: "BooleanMetric",
-      id: "testOnly.mabelsLikeBalloons",
+      cat: "test_only",
+      id: "mabels_like_balloons",
       label: "at_funerals",
       val: false,
     },
     {
       type: "BooleanMetric",
-      id: "testOnly.mabelsLikeBalloons",
+      cat: "test_only",
+      id: "mabels_like_balloons",
       label: "1".repeat(72),
       val: true,
+    },
+  ]);
+});
+
+add_task(async function test_jog_boolean_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "boolean",
+    "jog_cat",
+    "jog_bool",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("BooleanMetric", () => {
+    Glean.jogCat.jogBool.set(false);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_bool",
+      val: false,
     },
   ]);
 });
@@ -475,15 +885,109 @@ add_task(async function test_fog_static_labeled_boolean_markers() {
   Assert.deepEqual(markers, [
     {
       type: "BooleanMetric",
-      id: "testOnly.mabelsLikeLabeledBalloons",
+      cat: "test_only",
+      id: "mabels_like_labeled_balloons",
       label: "water",
       val: true,
     },
     {
       type: "BooleanMetric",
-      id: "testOnly.mabelsLikeLabeledBalloons",
+      cat: "test_only",
+      id: "mabels_like_labeled_balloons",
       label: "birthday_party",
       val: false,
+    },
+  ]);
+});
+
+add_task(async function test_jog_labeled_boolean_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_boolean",
+    "jog_cat",
+    "jog_labeled_bool",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("BooleanMetric", () => {
+    Glean.jogCat.jogLabeledBool.label_1.set(true);
+    Glean.jogCat.jogLabeledBool.label_2.set(false);
+    Glean.jogCat.jogLabeledBool.NowValidLabel.set(true);
+    Glean.jogCat.jogLabeledBool["1".repeat(72)].set(true);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_bool",
+      label: "label_1",
+      val: true,
+    },
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_bool",
+      label: "label_2",
+      val: false,
+    },
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_bool",
+      label: "NowValidLabel",
+      val: true,
+    },
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_bool",
+      label: "1".repeat(72),
+      val: true,
+    },
+  ]);
+});
+
+add_task(async function test_jog_labeled_boolean_with_static_labels_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_boolean",
+    "jog_cat",
+    "jog_labeled_bool_with_labels",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ ordered_labels: ["label_1", "label_2"] })
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("BooleanMetric", () => {
+    Glean.jogCat.jogLabeledBoolWithLabels.label_1.set(true);
+    Glean.jogCat.jogLabeledBoolWithLabels.label_2.set(false);
+
+    Glean.jogCat.jogLabeledBoolWithLabels.label_3.set(true);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_bool_with_labels",
+      label: "label_1",
+      val: true,
+    },
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_bool_with_labels",
+      label: "label_2",
+      val: false,
+    },
+    {
+      type: "BooleanMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_bool_with_labels",
+      label: "__other__",
+      val: true,
     },
   ]);
 });
@@ -604,25 +1108,85 @@ add_task(async function test_fog_memory_distribution() {
   Assert.deepEqual(markers, [
     {
       type: "DistMetric",
-      id: "testOnly.doYouRemember",
-      sample: 7,
+      cat: "test_only",
+      id: "do_you_remember",
+      sample: "7",
     },
     {
       type: "DistMetric",
-      id: "testOnly.doYouRemember",
-      sample: 17,
+      cat: "test_only",
+      id: "do_you_remember",
+      sample: "17",
     },
     {
       type: "DistMetric",
-      id: "testOnly.whatDoYouRemember",
+      cat: "test_only",
+      id: "what_do_you_remember",
       label: "twenty_years_ago",
-      sample: 7,
+      sample: "7",
     },
     {
       type: "DistMetric",
-      id: "testOnly.whatDoYouRemember",
+      cat: "test_only",
+      id: "what_do_you_remember",
       label: "twenty_years_ago",
-      sample: 17,
+      sample: "17",
+    },
+  ]);
+});
+
+add_task(async function test_jog_memory_distribution_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "memory_distribution",
+    "jog_cat",
+    "jog_memory_dist",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ memory_unit: "megabyte" })
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("DistMetric", () => {
+    Glean.jogCat.jogMemoryDist.accumulate(7);
+    Glean.jogCat.jogMemoryDist.accumulate(17);
+  });
+
+  Assert.deepEqual(markers, [
+    { type: "DistMetric", cat: "jog_cat", id: "jog_memory_dist", sample: "7" },
+    { type: "DistMetric", cat: "jog_cat", id: "jog_memory_dist", sample: "17" },
+  ]);
+});
+
+add_task(async function test_jog_labeled_memory_distribution_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_memory_distribution",
+    "jog_cat",
+    "jog_labeled_memory_dist",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ memory_unit: "megabyte" })
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("DistMetric", () => {
+    Glean.jogCat.jogLabeledMemoryDist.short_term.accumulate(7);
+    Glean.jogCat.jogLabeledMemoryDist.short_term.accumulate(17);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "DistMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_memory_dist",
+      label: "short_term",
+      sample: "7",
+    },
+    {
+      type: "DistMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_memory_dist",
+      label: "short_term",
+      sample: "17",
     },
   ]);
 });
@@ -651,36 +1215,82 @@ add_task(async function test_fog_custom_distribution() {
   Assert.deepEqual(markers, [
     {
       type: "DistMetric",
-      id: "testOnlyIpc.aCustomDist",
-      sample: 120,
+      cat: "test_only.ipc",
+      id: "a_custom_dist",
+      sample: "120",
     },
     {
       type: "DistMetric",
-      id: "testOnlyIpc.aCustomDist",
+      cat: "test_only.ipc",
+      id: "a_custom_dist",
       samples: "[7,268435458]",
     },
     {
       type: "DistMetric",
-      id: "testOnlyIpc.aCustomDist",
+      cat: "test_only.ipc",
+      id: "a_custom_dist",
       samples: "[-7]",
     },
     {
       type: "DistMetric",
-      id: "testOnly.mabelsCustomLabelLengths",
+      cat: "test_only",
+      id: "mabels_custom_label_lengths",
       label: "monospace",
       samples: "[1,42]",
     },
     {
       type: "DistMetric",
-      id: "testOnly.mabelsCustomLabelLengths",
+      cat: "test_only",
+      id: "mabels_custom_label_lengths",
       label: "sanserif",
       sample: "13",
     },
     {
       type: "DistMetric",
-      id: "testOnly.mabelsCustomLabelLengths",
+      cat: "test_only",
+      id: "mabels_custom_label_lengths",
       label: "1".repeat(72),
       sample: "3",
+    },
+  ]);
+});
+
+add_task(async function test_jog_custom_distribution_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "custom_distribution",
+    "jog_cat",
+    "jog_custom_dist",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({
+      range_min: 1,
+      range_max: 2147483646,
+      bucket_count: 10,
+      histogram_type: "linear",
+    })
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("DistMetric", () => {
+    Glean.jogCat.jogCustomDist.accumulateSamples([7, 268435458]);
+
+    // Negative values will not be recorded, instead an error is recorded.
+    // We still record a marker.
+    Glean.jogCat.jogCustomDist.accumulateSamples([-7]);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "DistMetric",
+      cat: "jog_cat",
+      id: "jog_custom_dist",
+      samples: "[7,268435458]",
+    },
+    {
+      type: "DistMetric",
+      cat: "jog_cat",
+      id: "jog_custom_dist",
+      samples: "[-7]",
     },
   ]);
 });
@@ -722,61 +1332,228 @@ add_task(async function test_fog_timing_distribution() {
   });
 
   Assert.deepEqual(markers, [
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", timer_id: 1 },
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", timer_id: 2 },
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", timer_id: 3 },
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", timer_id: 1 },
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", timer_id: 2 },
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", timer_id: 3 },
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", sample: "5000" },
-    { type: "TimingDist", id: "testOnly.whatTimeIsIt", samples: "[2000,8000]" },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "what_time_is_it",
+      timer_id: 1,
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "what_time_is_it",
+      timer_id: 2,
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "what_time_is_it",
+      timer_id: 3,
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "what_time_is_it",
+      timer_id: 1,
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "what_time_is_it",
+      timer_id: 2,
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "what_time_is_it",
+      timer_id: 3,
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "what_time_is_it",
+      sample: "5000",
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "what_time_is_it",
+      samples: "[2000,8000]",
+    },
+    {
+      type: "TimingDist",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       timer_id: 1,
     },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       timer_id: 2,
     },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       timer_id: 3,
     },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       timer_id: 1,
     },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       timer_id: 2,
     },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       timer_id: 3,
     },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       sample: "5000",
     },
     {
       type: "TimingDist",
-      id: "testOnly.whereHasTheTimeGone",
+      cat: "test_only",
+      id: "where_has_the_time_gone",
       label: "west",
       samples: "[2000,8000]",
+    },
+  ]);
+});
+
+add_task(async function test_jog_timing_distribution() {
+  Services.fog.testRegisterRuntimeMetric(
+    "timing_distribution",
+    "jog_cat",
+    "jog_timing_dist",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ time_unit: "microsecond" })
+  );
+  let markers = await runWithProfilerAndGetMarkers("TimingDist", async () => {
+    let t1 = Glean.jogCat.jogTimingDist.start();
+    let t2 = Glean.jogCat.jogTimingDist.start();
+
+    await sleep(5);
+
+    let t3 = Glean.jogCat.jogTimingDist.start();
+    Glean.jogCat.jogTimingDist.cancel(t1);
+
+    await sleep(5);
+
+    Glean.jogCat.jogTimingDist.stopAndAccumulate(t2); // 10ms
+    Glean.jogCat.jogTimingDist.stopAndAccumulate(t3); // 5ms
+    // samples are measured in microseconds, since that's the unit listed in metrics.yaml
+    Glean.jogCat.jogTimingDist.accumulateSingleSample(5000); // 5ms
+    Glean.jogCat.jogTimingDist.accumulateSamples([2000, 8000]); // 10ms
+  });
+  Assert.deepEqual(markers, [
+    { type: "TimingDist", cat: "jog_cat", id: "jog_timing_dist", timer_id: 1 },
+    { type: "TimingDist", cat: "jog_cat", id: "jog_timing_dist", timer_id: 2 },
+    { type: "TimingDist", cat: "jog_cat", id: "jog_timing_dist", timer_id: 3 },
+    { type: "TimingDist", cat: "jog_cat", id: "jog_timing_dist", timer_id: 1 },
+    { type: "TimingDist", cat: "jog_cat", id: "jog_timing_dist", timer_id: 2 },
+    { type: "TimingDist", cat: "jog_cat", id: "jog_timing_dist", timer_id: 3 },
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_timing_dist",
+      sample: "5000",
+    },
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_timing_dist",
+      samples: "[2000,8000]",
+    },
+  ]);
+});
+
+add_task(async function test_jog_labeled_timing_distribution() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_timing_distribution",
+    "jog_cat",
+    "jog_labeled_timing_dist",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({ time_unit: "microsecond" })
+  );
+  let markers = await runWithProfilerAndGetMarkers("TimingDist", async () => {
+    let t1 = Glean.jogCat.jogLabeledTimingDist.label1.start();
+    let t2 = Glean.jogCat.jogLabeledTimingDist.label1.start();
+
+    await sleep(5);
+
+    let t3 = Glean.jogCat.jogLabeledTimingDist.label1.start();
+    Glean.jogCat.jogLabeledTimingDist.label1.cancel(t1);
+
+    await sleep(5);
+
+    Glean.jogCat.jogLabeledTimingDist.label1.stopAndAccumulate(t2); // 10ms
+    Glean.jogCat.jogLabeledTimingDist.label1.stopAndAccumulate(t3); // 5ms
+  });
+  Assert.deepEqual(markers, [
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_labeled_timing_dist",
+      label: "label1",
+      timer_id: 1,
+    },
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_labeled_timing_dist",
+      label: "label1",
+      timer_id: 2,
+    },
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_labeled_timing_dist",
+      label: "label1",
+      timer_id: 3,
+    },
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_labeled_timing_dist",
+      label: "label1",
+      timer_id: 1,
+    },
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_labeled_timing_dist",
+      label: "label1",
+      timer_id: 2,
+    },
+    {
+      type: "TimingDist",
+      cat: "jog_cat",
+      id: "jog_labeled_timing_dist",
+      label: "label1",
+      timer_id: 3,
     },
   ]);
 });
@@ -794,19 +1571,101 @@ add_task(async function test_fog_quantity() {
   });
 
   Assert.deepEqual(markers, [
-    { type: "IntLikeMetric", id: "testOnly.meaningOfLife", val: 42 },
-    { type: "IntLikeMetric", id: "testOnly.buttonJars", label: "up", val: 2 },
+    { type: "IntLikeMetric", cat: "test_only", id: "meaning_of_life", val: 42 },
     {
       type: "IntLikeMetric",
-      id: "testOnly.buttonJars",
+      cat: "test_only",
+      id: "button_jars",
+      label: "up",
+      val: 2,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "test_only",
+      id: "button_jars",
       label: "curling",
       val: 0,
     },
     {
       type: "IntLikeMetric",
-      id: "testOnly.buttonJars",
+      cat: "test_only",
+      id: "button_jars",
       label: "1".repeat(72),
       val: 0,
+    },
+  ]);
+});
+
+add_task(async function test_jog_quantity_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "quantity",
+    "jog_cat",
+    "jog_quantity",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("IntLikeMetric", () => {
+    Glean.jogCat.jogQuantity.set(42);
+  });
+
+  Assert.deepEqual(markers, [
+    { type: "IntLikeMetric", cat: "jog_cat", id: "jog_quantity", val: 42 },
+  ]);
+});
+
+add_task(async function test_jog_labeled_quantity_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_quantity",
+    "jog_cat",
+    "jog_labeled_quantity",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+  Assert.equal(
+    undefined,
+    Glean.jogCat.jogLabeledQuantity.label_1.testGetValue(),
+    "New labels with no values should return undefined"
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("IntLikeMetric", () => {
+    Glean.jogCat.jogLabeledQuantity.label_1.set(9000);
+    Glean.jogCat.jogLabeledQuantity.label_2.set(0);
+
+    Glean.jogCat.jogLabeledQuantity.NowValidLabel.set(100);
+    Glean.jogCat.jogLabeledQuantity["1".repeat(72)].set(true);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_quantity",
+      label: "label_1",
+      val: 9000,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_quantity",
+      label: "label_2",
+      val: 0,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_quantity",
+      label: "NowValidLabel",
+      val: 100,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "jog_cat",
+      id: "jog_labeled_quantity",
+      label: "1".repeat(72),
+      val: 1,
     },
   ]);
 });
@@ -823,14 +1682,75 @@ add_task(async function test_fog_rate() {
   });
 
   Assert.deepEqual(markers, [
-    { type: "IntLikeMetric", id: "testOnlyIpc.irate", val: 22 },
-    { type: "IntLikeMetric", id: "testOnlyIpc.irate", val: 7 },
-    { type: "IntLikeMetric", id: "testOnlyIpc.anExternalDenominator", val: 11 },
+    { type: "IntLikeMetric", cat: "test_only.ipc", id: "irate", val: 22 },
+    { type: "IntLikeMetric", cat: "test_only.ipc", id: "irate", val: 7 },
     {
       type: "IntLikeMetric",
-      id: "testOnlyIpc.rateWithExternalDenominator",
+      cat: "test_only.ipc",
+      id: "an_external_denominator",
+      val: 11,
+    },
+    {
+      type: "IntLikeMetric",
+      cat: "test_only.ipc",
+      id: "rate_with_external_denominator",
       val: 121,
     },
+  ]);
+});
+
+add_task(async function test_jog_rate_markers() {
+  Services.fog.testRegisterRuntimeMetric(
+    "rate",
+    "jog_cat",
+    "jog_rate",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  Services.fog.testRegisterRuntimeMetric(
+    "denominator",
+    "jog_cat",
+    "jog_denominator",
+    ["test-ping"],
+    `"ping"`,
+    false,
+    JSON.stringify({
+      numerators: [
+        {
+          name: "jog_rate_ext",
+          category: "jog_cat",
+          send_in_pings: ["test-ping"],
+          lifetime: "ping",
+          disabled: false,
+        },
+      ],
+    })
+  );
+  Services.fog.testRegisterRuntimeMetric(
+    "rate",
+    "jog_cat",
+    "jog_rate_ext",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("IntLikeMetric", () => {
+    // 1) Standard rate with internal denominator
+    Glean.jogCat.jogRate.addToNumerator(22);
+    Glean.jogCat.jogRate.addToDenominator(7);
+    // 2) Rate with external denominator
+    Glean.jogCat.jogDenominator.add(11);
+    Glean.jogCat.jogRateExt.addToNumerator(121);
+  });
+
+  Assert.deepEqual(markers, [
+    { type: "IntLikeMetric", cat: "jog_cat", id: "jog_rate", val: 22 },
+    { type: "IntLikeMetric", cat: "jog_cat", id: "jog_rate", val: 7 },
+    { type: "IntLikeMetric", cat: "jog_cat", id: "jog_denominator", val: 11 },
+    { type: "IntLikeMetric", cat: "jog_cat", id: "jog_rate_ext", val: 121 },
   ]);
 });
 
@@ -843,8 +1763,9 @@ add_task(async function test_fog_url() {
   Assert.deepEqual(markers, [
     {
       type: "UrlMetric",
-      id: "testOnlyIpc.aUrl",
-      val: value,
+      cat: "test_only.ipc",
+      id: "a_url",
+      val: "https://www.example.com/fog",
     },
   ]);
 });
@@ -857,7 +1778,38 @@ add_task(async function test_fog_text() {
   });
 
   Assert.deepEqual(markers, [
-    { type: "StringLikeMetric", id: "testOnlyIpc.aText", val: value },
+    {
+      type: "StringLikeMetric",
+      cat: "test_only.ipc",
+      id: "a_text",
+      val: value,
+    },
+  ]);
+});
+
+add_task(async function test_jog_text() {
+  const value =
+    "In the heart of the Opéra district in Paris, the Cédric Grolet Opéra bakery-pastry shop is a veritable temple of gourmet delights.";
+  Services.fog.testRegisterRuntimeMetric(
+    "text",
+    "test_only.jog",
+    "a_text",
+    ["test-ping"],
+    `"ping"`,
+    false
+  );
+
+  let markers = await runWithProfilerAndGetMarkers("StringLikeMetric", () => {
+    Glean.testOnlyJog.aText.set(value);
+  });
+
+  Assert.deepEqual(markers, [
+    {
+      type: "StringLikeMetric",
+      cat: "test_only.jog",
+      id: "a_text",
+      val: value,
+    },
   ]);
 });
 
@@ -869,7 +1821,12 @@ add_task(async function test_fog_text_unusual_character() {
   });
 
   Assert.deepEqual(markers, [
-    { type: "StringLikeMetric", id: "testOnlyIpc.aText", val: value },
+    {
+      type: "StringLikeMetric",
+      cat: "test_only.ipc",
+      id: "a_text",
+      val: value,
+    },
   ]);
 });
 

@@ -26,6 +26,9 @@ pub enum StringListMetric {
     Child(ChildMetricMeta),
 }
 
+crate::define_metric_metadata_getter!(StringListMetric, STRING_LIST_MAP);
+crate::define_metric_namer!(StringListMetric);
+
 impl StringListMetric {
     /// Create a new string list metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
@@ -69,7 +72,10 @@ impl StringList for StringListMetric {
                 gecko_profiler::lazy_add_marker!(
                     "StringList::add",
                     super::profiler_utils::TelemetryProfilerCategory,
-                    super::profiler_utils::StringLikeMetricMarker::new((*id).into(), &value)
+                    super::profiler_utils::StringLikeMetricMarker::<StringListMetric>::new(
+                        (*id).into(),
+                        &value
+                    )
                 );
                 inner.add(value);
             }
@@ -105,7 +111,7 @@ impl StringList for StringListMetric {
                 gecko_profiler::lazy_add_marker!(
                     "StringList::set",
                     super::profiler_utils::TelemetryProfilerCategory,
-                    super::profiler_utils::StringLikeMetricMarker::new_owned(
+                    super::profiler_utils::StringLikeMetricMarker::<StringListMetric>::new_owned(
                         (*id).into(),
                         format!("[{}]", value.clone().join(","))
                     )

@@ -30,6 +30,9 @@ pub enum NumeratorMetric {
     Child(ChildMetricMeta),
 }
 
+crate::define_metric_metadata_getter!(NumeratorMetric, NUMERATOR_MAP);
+crate::define_metric_namer!(NumeratorMetric);
+
 impl NumeratorMetric {
     /// The public constructor used by automatically generated metrics.
     pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
@@ -87,7 +90,11 @@ impl Numerator for NumeratorMetric {
                 "Rate::addToNumerator",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
+                super::profiler_utils::IntLikeMetricMarker::<NumeratorMetric, i32>::new(
+                    id.into(),
+                    None,
+                    amount,
+                ),
             );
         }
     }

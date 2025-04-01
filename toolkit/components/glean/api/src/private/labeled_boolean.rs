@@ -4,13 +4,12 @@
 
 use inherent::inherent;
 
-use glean::traits::Boolean;
-
 use crate::ipc::with_ipc_payload;
 use crate::private::BooleanMetric;
+use glean::traits::Boolean;
 use std::collections::HashMap;
 
-use super::BaseMetricId;
+use super::{BaseMetric, BaseMetricId, BaseMetricResult, MetricMetadataGetterImpl};
 
 #[allow(unused)]
 use super::MetricId;
@@ -25,6 +24,15 @@ pub enum LabeledBooleanMetric {
     Child,
     UnorderedChild { id: BaseMetricId, label: String },
 }
+
+crate::define_metric_metadata_getter!(
+    BooleanMetric,
+    LabeledBooleanMetric,
+    BOOLEAN_MAP,
+    LABELED_BOOLEAN_MAP
+);
+
+crate::define_metric_namer!(LabeledBooleanMetric, LABELED);
 
 impl LabeledBooleanMetric {
     #[cfg(test)]
@@ -55,7 +63,7 @@ impl Boolean for LabeledBooleanMetric {
                     "Boolean::set",
                     super::profiler_utils::TelemetryProfilerCategory,
                     Default::default(),
-                    super::profiler_utils::BooleanMetricMarker::new(
+                    super::profiler_utils::BooleanMetricMarker::<LabeledBooleanMetric>::new(
                         (*id).into(),
                         Some(label.clone()),
                         value,
@@ -93,6 +101,21 @@ impl Boolean for LabeledBooleanMetric {
             _ => panic!(
                 "Cannot get the number of recorded errors for a labeled_boolean in non-parent process!"
             ),
+        }
+    }
+}
+
+impl BaseMetric for LabeledBooleanMetric {
+    type BaseMetricT = BooleanMetric;
+    fn get_base_metric<'a>(&'a self) -> BaseMetricResult<'a, Self::BaseMetricT> {
+        match self {
+            LabeledBooleanMetric::Parent(boolean_metric) => {
+                BaseMetricResult::BaseMetric(&boolean_metric)
+            }
+            LabeledBooleanMetric::UnorderedChild { id, label } => {
+                BaseMetricResult::IndexLabelPair(*id, &label)
+            }
+            LabeledBooleanMetric::Child => BaseMetricResult::None,
         }
     }
 }

@@ -13,7 +13,8 @@ use glean::traits::Datetime;
 
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{
-    glean_to_chrono_datetime, local_now_with_offset, TelemetryProfilerCategory,
+    glean_to_chrono_datetime, local_now_with_offset, stream_identifiers_by_id,
+    TelemetryProfilerCategory,
 };
 
 #[cfg(feature = "with_gecko")]
@@ -32,8 +33,14 @@ impl gecko_profiler::ProfilerMarker for DatetimeMetricMarker {
     fn marker_type_display() -> gecko_profiler::MarkerSchema {
         use gecko_profiler::schema::*;
         let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
-        schema.set_tooltip_label("{marker.data.id} {marker.data.time}");
-        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.time}");
+        schema.set_tooltip_label("{marker.data.cat}.{marker.data.id} {marker.data.time}");
+        schema.set_table_label("{marker.data.cat}.{marker.data.id}: {marker.data.time}");
+        schema.add_key_label_format_searchable(
+            "cat",
+            "Category",
+            Format::UniqueString,
+            Searchable::Searchable,
+        );
         schema.add_key_label_format_searchable(
             "id",
             "Metric",
@@ -47,8 +54,7 @@ impl gecko_profiler::ProfilerMarker for DatetimeMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        let name = self.id.get_name();
-        json_writer.unique_string_property("id", &name);
+        stream_identifiers_by_id::<DatetimeMetric>(&self.id.into(), json_writer);
         // We need to be careful formatting our datestring so that we can match
         // it to an equivalently formatted string in JavaScript when we're
         // testing these markers. JavaScript's `toISOString` *always* converts
@@ -78,7 +84,7 @@ impl gecko_profiler::ProfilerMarker for DatetimeMetricMarker {
 #[derive(Clone)]
 pub enum DatetimeMetric {
     Parent {
-        /// The metric's ID. Date time metrics canot be labeled, so we only
+        /// The metric's ID. Date time metrics cannot be labeled, so we only
         /// store a BaseMetricId. If this changes, this should be changed to a
         /// MetricId to distinguish between metrics and sub-metrics.
         id: BaseMetricId,
@@ -86,6 +92,9 @@ pub enum DatetimeMetric {
     },
     Child(ChildMetricMeta),
 }
+
+crate::define_metric_metadata_getter!(DatetimeMetric, DATETIME_MAP);
+crate::define_metric_namer!(DatetimeMetric);
 
 impl DatetimeMetric {
     /// Create a new datetime metric.

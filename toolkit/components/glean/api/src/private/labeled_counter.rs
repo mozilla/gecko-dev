@@ -4,14 +4,15 @@
 
 use inherent::inherent;
 
-use glean::traits::Counter;
-
 use super::CommonMetricData;
+use glean::traits::Counter;
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 #[cfg(test)]
 use crate::private::MetricId;
-use crate::private::{BaseMetricId, CounterMetric};
+use crate::private::{
+    BaseMetric, BaseMetricId, BaseMetricResult, CounterMetric, MetricMetadataGetterImpl,
+};
 
 use std::collections::HashMap;
 
@@ -24,6 +25,15 @@ pub enum LabeledCounterMetric {
     Parent(CounterMetric),
     Child { id: BaseMetricId, label: String },
 }
+
+crate::define_metric_metadata_getter!(
+    CounterMetric,
+    LabeledCounterMetric,
+    COUNTER_MAP,
+    LABELED_COUNTER_MAP
+);
+
+crate::define_metric_namer!(LabeledCounterMetric, LABELED);
 
 impl LabeledCounterMetric {
     /// Create a new labeled counter submetric.
@@ -65,7 +75,7 @@ impl Counter for LabeledCounterMetric {
                         "LabeledCounter::add",
                         super::profiler_utils::TelemetryProfilerCategory,
                         Default::default(),
-                        super::profiler_utils::IntLikeMetricMarker::new(
+                        super::profiler_utils::IntLikeMetricMarker::<LabeledCounterMetric, i32>::new(
                             (*id).into(),
                             Some(label.clone()),
                             amount,
@@ -130,6 +140,20 @@ impl Counter for LabeledCounterMetric {
                 "Cannot get the number of recorded errors for {:?} in non-parent process!",
                 id
             ),
+        }
+    }
+}
+
+impl BaseMetric for LabeledCounterMetric {
+    type BaseMetricT = CounterMetric;
+    fn get_base_metric<'a>(&'a self) -> BaseMetricResult<'a, Self::BaseMetricT> {
+        match self {
+            LabeledCounterMetric::Parent(counter_metric) => {
+                BaseMetricResult::BaseMetric(&counter_metric)
+            }
+            LabeledCounterMetric::Child { id, label } => {
+                BaseMetricResult::IndexLabelPair(*id, &label)
+            }
         }
     }
 }

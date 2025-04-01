@@ -29,6 +29,9 @@ pub enum RateMetric {
     Child(ChildMetricMeta),
 }
 
+crate::define_metric_metadata_getter!(RateMetric, RATE_MAP);
+crate::define_metric_namer!(RateMetric);
+
 impl RateMetric {
     /// The public constructor used by automatically generated metrics.
     pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
@@ -86,7 +89,11 @@ impl Rate for RateMetric {
                 "Rate::addToNumerator",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
+                super::profiler_utils::IntLikeMetricMarker::<RateMetric, i32>::new(
+                    id.into(),
+                    None,
+                    amount,
+                ),
             );
         }
     }
@@ -116,7 +123,11 @@ impl Rate for RateMetric {
                 "Rate::addToDenominator",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
+                super::profiler_utils::IntLikeMetricMarker::<RateMetric, i32>::new(
+                    id.into(),
+                    None,
+                    amount,
+                ),
             );
         }
     }

@@ -32,6 +32,8 @@ pub enum CustomDistributionMetric {
     Child(ChildMetricMeta),
 }
 
+crate::define_metric_namer!(CustomDistributionMetric);
+
 impl CustomDistributionMetric {
     /// Create a new custom distribution metric.
     pub fn new(
@@ -145,7 +147,11 @@ impl CustomDistribution for CustomDistributionMetric {
         gecko_profiler::lazy_add_marker!(
             "CustomDistribution::accumulate",
             TelemetryProfilerCategory,
-            DistributionMetricMarker::new(id, None, DistributionValues::Samples(marker_samples),)
+            DistributionMetricMarker::<CustomDistributionMetric, i64>::new(
+                id,
+                None,
+                DistributionValues::Samples(marker_samples),
+            )
         );
     }
 
@@ -171,7 +177,11 @@ impl CustomDistribution for CustomDistributionMetric {
         gecko_profiler::lazy_add_marker!(
             "CustomDistribution::accumulate",
             TelemetryProfilerCategory,
-            DistributionMetricMarker::new(id, None, DistributionValues::Sample(sample))
+            DistributionMetricMarker::<CustomDistributionMetric, i64>::new(
+                id,
+                None,
+                DistributionValues::Sample(sample)
+            )
         );
     }
 

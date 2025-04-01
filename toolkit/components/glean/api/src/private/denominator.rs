@@ -30,6 +30,9 @@ pub enum DenominatorMetric {
     Child(ChildMetricMeta),
 }
 
+crate::define_metric_metadata_getter!(DenominatorMetric, DENOMINATOR_MAP);
+crate::define_metric_namer!(DenominatorMetric);
+
 impl DenominatorMetric {
     /// The constructor used by automatically generated metrics.
     pub fn new(
@@ -91,7 +94,11 @@ impl Counter for DenominatorMetric {
                 "Counter::add",
                 super::profiler_utils::TelemetryProfilerCategory,
                 Default::default(),
-                super::profiler_utils::IntLikeMetricMarker::new(id.into(), None, amount),
+                super::profiler_utils::IntLikeMetricMarker::<DenominatorMetric, i32>::new(
+                    id.into(),
+                    None,
+                    amount,
+                ),
             );
         }
     }

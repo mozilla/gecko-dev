@@ -13,14 +13,20 @@ use std::time::{Duration, Instant};
 #[cfg(feature = "with_gecko")]
 use thin_vec::ThinVec;
 
-use super::{BaseMetricId, ChildMetricMeta, CommonMetricData, MetricId, TimeUnit};
-use glean::{DistributionData, ErrorType, TimerId};
+use super::{BaseMetricId, ChildMetricMeta, CommonMetricData, MetricId, MetricNamer, TimeUnit};
+use glean::{DistributionData, ErrorType, MetricIdentifier, TimerId};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 use glean::traits::TimingDistribution;
 
 #[cfg(feature = "with_gecko")]
+use super::MetricMetadataGetter;
+
+#[cfg(feature = "with_gecko")]
 use super::profiler_utils::{truncate_vector_for_marker, TelemetryProfilerCategory};
+
+#[cfg(feature = "with_gecko")]
+use std::marker::PhantomData;
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -43,32 +49,36 @@ impl TDMPayload {
 
 #[cfg(feature = "with_gecko")]
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub(crate) struct TimingDistributionMetricMarker {
+pub(crate) struct TimingDistributionMetricMarker<MetricT> {
     id: MetricId,
     label: Option<String>,
     timer_id: Option<u64>,
     value: Option<TDMPayload>,
+    _phantom: PhantomData<MetricT>,
 }
 
 #[cfg(feature = "with_gecko")]
-impl TimingDistributionMetricMarker {
+impl<MetricT: 'static> TimingDistributionMetricMarker<MetricT> {
     pub fn new(
         id: MetricId,
         label: Option<String>,
         timer_id: Option<u64>,
         value: Option<TDMPayload>,
-    ) -> TimingDistributionMetricMarker {
+    ) -> TimingDistributionMetricMarker<MetricT> {
         TimingDistributionMetricMarker {
             id,
             label,
             timer_id,
             value,
+            _phantom: PhantomData,
         }
     }
 }
 
 #[cfg(feature = "with_gecko")]
-impl gecko_profiler::ProfilerMarker for TimingDistributionMetricMarker {
+impl<MetricT: MetricMetadataGetter + MetricNamer + 'static> gecko_profiler::ProfilerMarker
+    for TimingDistributionMetricMarker<MetricT>
+{
     fn marker_type_name() -> &'static str {
         "TimingDist"
     }
@@ -77,10 +87,16 @@ impl gecko_profiler::ProfilerMarker for TimingDistributionMetricMarker {
         use gecko_profiler::schema::*;
         let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
         schema.set_tooltip_label(
-            "{marker.data.id} {marker.data.label} {marker.data.duration}{marker.data.sample}",
+            "{marker.data.cat}.{marker.data.id} {marker.data.label} {marker.data.duration}{marker.data.sample}",
         );
-        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.duration}{marker.data.sample}{marker.data.samples}");
-        schema.set_chart_label("{marker.data.id}");
+        schema.set_table_label("{marker.name} - {marker.data.cat}.{marker.data.id} {marker.data.label}: {marker.data.duration}{marker.data.sample}{marker.data.samples}");
+        schema.set_chart_label("{marker.data.cat}.{marker.data.id} {marker.data.label}");
+        schema.add_key_label_format_searchable(
+            "cat",
+            "Category",
+            Format::UniqueString,
+            Searchable::Searchable,
+        );
         schema.add_key_label_format_searchable(
             "id",
             "Metric",
@@ -106,12 +122,10 @@ impl gecko_profiler::ProfilerMarker for TimingDistributionMetricMarker {
     }
 
     fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        let (name, label) = self.id.get_identifiers();
-        json_writer.unique_string_property("id", &name);
-
-        if let Some(l) = self.label.as_ref().or(label.as_ref()) {
-            json_writer.unique_string_property("label", &l);
-        };
+        crate::private::profiler_utils::stream_identifiers_by_id::<MetricT>(
+            &self.id.into(),
+            json_writer,
+        );
 
         if let Some(id) = &self.timer_id {
             // We don't care about exactly what the timer id is - so just
@@ -376,7 +390,7 @@ impl TimingDistributionMetric {
                 gecko_profiler::lazy_add_marker!(
                     "TimingDistribution::accumulate",
                     TelemetryProfilerCategory,
-                    TimingDistributionMetricMarker::new(
+                    TimingDistributionMetricMarker::<TimingDistributionMetric>::new(
                         *id,
                         None,
                         None,
@@ -408,7 +422,7 @@ impl TimingDistributionMetric {
                 gecko_profiler::lazy_add_marker!(
                     "TimingDistribution::accumulate",
                     TelemetryProfilerCategory,
-                    TimingDistributionMetricMarker::new(
+                    TimingDistributionMetricMarker::<TimingDistributionMetric>::new(
                         *id,
                         None,
                         None,
@@ -473,7 +487,7 @@ impl TimingDistribution for TimingDistributionMetric {
                 TelemetryProfilerCategory,
                 gecko_profiler::MarkerOptions::default()
                     .with_timing(gecko_profiler::MarkerTiming::instant_now()),
-                TimingDistributionMetricMarker::new(
+                TimingDistributionMetricMarker::<TimingDistributionMetric>::new(
                     metric_id.into(),
                     None,
                     Some(timer_id.id),
@@ -532,7 +546,12 @@ impl TimingDistribution for TimingDistributionMetric {
                 TelemetryProfilerCategory,
                 gecko_profiler::MarkerOptions::default()
                     .with_timing(gecko_profiler::MarkerTiming::instant_now()),
-                TimingDistributionMetricMarker::new(metric_id.into(), None, Some(id.id), None)
+                TimingDistributionMetricMarker::<TimingDistributionMetric>::new(
+                    metric_id.into(),
+                    None,
+                    Some(id.id),
+                    None
+                )
             );
         }
     }
@@ -569,7 +588,12 @@ impl TimingDistribution for TimingDistributionMetric {
                 TelemetryProfilerCategory,
                 gecko_profiler::MarkerOptions::default()
                     .with_timing(gecko_profiler::MarkerTiming::instant_now()),
-                TimingDistributionMetricMarker::new(metric_id.into(), None, Some(id.id), None)
+                TimingDistributionMetricMarker::<TimingDistributionMetric>::new(
+                    metric_id.into(),
+                    None,
+                    Some(id.id),
+                    None
+                )
             );
         }
     }
@@ -655,7 +679,7 @@ impl TimingDistribution for TimingDistributionMetric {
                 gecko_profiler::lazy_add_marker!(
                     "TimingDistribution::accumulate",
                     TelemetryProfilerCategory,
-                    TimingDistributionMetricMarker::new(
+                    TimingDistributionMetricMarker::<TimingDistributionMetric>::new(
                         *id,
                         None,
                         None,
@@ -747,7 +771,7 @@ impl TimingDistribution for TimingDistributionMetric {
             gecko_profiler::lazy_add_marker!(
                 "TimingDistribution::accumulate",
                 TelemetryProfilerCategory,
-                TimingDistributionMetricMarker::new(
+                TimingDistributionMetricMarker::<TimingDistributionMetric>::new(
                     metric_id.into(),
                     None,
                     None,
@@ -803,6 +827,15 @@ impl TimingDistribution for TimingDistributionMetric {
                 c
             ),
         }
+    }
+}
+
+impl MetricNamer for TimingDistributionMetric {
+    fn get_metadata(&self) -> super::MetricMetadata {
+        crate::private::MetricMetadata::from_triple(match self {
+            TimingDistributionMetric::Parent { inner, .. } => inner.get_identifiers(),
+            TimingDistributionMetric::Child(tdmi) => tdmi.meta.get_identifiers(),
+        })
     }
 }
 
