@@ -294,29 +294,25 @@ static bool ToTemporalYearMonth(JSContext* cx, Handle<Value> item,
     }
   }
 
-  // Steps 8-9. (Moved below)
-
-  // Steps 10-11.
+  // Steps 8-9.
   YearMonthOptions ignoredOptions;
   if (!ToTemporalYearMonthOptions(cx, options, &ignoredOptions)) {
     return false;
   }
 
-  // Step 8. (Reordered to throw exceptions in correct order)
-  //
-  // Call CreateTemporalYearMonth to reject too large dates early.
+  // Step 10-11.
   Rooted<PlainYearMonth> yearMonth(cx);
   if (!CreateTemporalYearMonth(cx, date, calendar, &yearMonth)) {
     return false;
   }
 
-  // Step 9.
+  // Step 12.
   Rooted<CalendarFields> fields(cx);
   if (!ISODateToFields(cx, yearMonth, &fields)) {
     return false;
   }
 
-  // Steps 12-13.
+  // Steps 13-14.
   return CalendarYearMonthFromFields(cx, calendar, fields,
                                      TemporalOverflow::Constrain, result);
 }
