@@ -166,7 +166,7 @@ static bool FinishRegExpClassInit(JSContext* cx, JS::HandleObject ctor,
   MOZ_ASSERT(prop->isDataProperty());
   MOZ_ASSERT(!nproto->isFixedSlot(prop->slot()));
 #endif
-  return true;
+  return JSObject::setHasFuseProperty(cx, proto);
 }
 
 static const ClassSpec RegExpObjectClassSpec = {

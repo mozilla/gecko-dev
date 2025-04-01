@@ -7,6 +7,7 @@
 
 #include "builtin/MapObject.h"
 #include "builtin/Promise.h"
+#include "builtin/RegExp.h"
 #include "builtin/WeakMapObject.h"
 #include "builtin/WeakSetObject.h"
 #include "vm/GlobalObject.h"
@@ -398,6 +399,70 @@ bool js::OptimizePromiseLookupFuse::checkInvariant(JSContext* cx) {
   // Ensure Promise's `resolve` slot is the original function.
   if (!ObjectHasDataPropertyFunction(ctor, NameToId(cx->names().resolve),
                                      js::Promise_static_resolve)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool js::OptimizeRegExpPrototypeFuse::checkInvariant(JSContext* cx) {
+  auto* proto = cx->global()->maybeGetPrototype<NativeObject>(JSProto_RegExp);
+  if (!proto) {
+    // No proto, invariant still holds.
+    return true;
+  }
+
+  // Check getters are unchanged.
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().flags),
+                               cx->names().dollar_RegExpFlagsGetter_)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().global),
+                               regexp_global)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().hasIndices),
+                               regexp_hasIndices)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().ignoreCase),
+                               regexp_ignoreCase)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().multiline),
+                               regexp_multiline)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().sticky),
+                               regexp_sticky)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().unicode),
+                               regexp_unicode)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().unicodeSets),
+                               regexp_unicodeSets)) {
+    return false;
+  }
+  if (!ObjectHasGetterFunction(proto, NameToId(cx->names().dotAll),
+                               regexp_dotAll)) {
+    return false;
+  }
+
+  // Check data properties are unchanged.
+  if (!ObjectHasDataPropertyFunction(proto, NameToId(cx->names().exec),
+                                     cx->names().RegExp_prototype_Exec)) {
+    return false;
+  }
+  if (!ObjectHasDataPropertyFunction(
+          proto, PropertyKey::Symbol(cx->wellKnownSymbols().match),
+          cx->names().RegExpMatch)) {
+    return false;
+  }
+  if (!ObjectHasDataPropertyFunction(
+          proto, PropertyKey::Symbol(cx->wellKnownSymbols().search),
+          cx->names().RegExpSearch)) {
     return false;
   }
 

@@ -502,6 +502,8 @@
   MACRO_(rawJSON, "rawJSON")                                                   \
   MACRO_(read, "read")                                                         \
   MACRO_(reason, "reason")                                                     \
+  MACRO_(RegExpMatch, "RegExpMatch")                                           \
+  MACRO_(RegExpSearch, "RegExpSearch")                                         \
   MACRO_(RegExp_String_Iterator_, "RegExp String Iterator")                    \
   MACRO_(RegExp_prototype_Exec, "RegExp_prototype_Exec")                       \
   MACRO_(region, "region")                                                     \

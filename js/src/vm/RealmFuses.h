@@ -163,6 +163,29 @@ struct OptimizePromiseLookupFuse final : public RealmFuse {
   virtual void popFuse(JSContext* cx, RealmFuses& realmFuses) override;
 };
 
+// Fuse used to guard against changes to various properties on RegExp.prototype.
+//
+// If this fuse is intact, RegExp.prototype must have the following original
+// getter properties:
+// - .flags ($RegExpFlagsGetter)
+// - .global (regexp_global)
+// - .hasIndices (regexp_hasIndices)
+// - .ignoreCase (regexp_ignoreCase)
+// - .multiline (regexp_multiline)
+// - .sticky (regexp_sticky)
+// - .unicode (regexp_unicode)
+// - .unicodeSets (regexp_unicodeSets)
+// - .dotAll (regexp_dotAll)
+//
+// And the following unchanged data properties:
+// - .exec (RegExp_prototype_Exec)
+// - [@@match] (RegExpMatch)
+// - [@@search] (RegExpSearch)
+struct OptimizeRegExpPrototypeFuse final : public RealmFuse {
+  virtual const char* name() override { return "OptimizeRegExpPrototypeFuse"; }
+  virtual bool checkInvariant(JSContext* cx) override;
+};
+
 // Guard used to optimize iterating over Map objects. If this fuse is intact,
 // the following invariants must hold:
 //
@@ -242,6 +265,7 @@ struct OptimizeWeakSetPrototypeAddFuse final : public RealmFuse {
   FUSE(ObjectPrototypeHasNoReturnProperty, objectPrototypeHasNoReturnProperty) \
   FUSE(OptimizeArraySpeciesFuse, optimizeArraySpeciesFuse)                     \
   FUSE(OptimizePromiseLookupFuse, optimizePromiseLookupFuse)                   \
+  FUSE(OptimizeRegExpPrototypeFuse, optimizeRegExpPrototypeFuse)               \
   FUSE(OptimizeMapObjectIteratorFuse, optimizeMapObjectIteratorFuse)           \
   FUSE(OptimizeSetObjectIteratorFuse, optimizeSetObjectIteratorFuse)           \
   FUSE(OptimizeMapPrototypeSetFuse, optimizeMapPrototypeSetFuse)               \
