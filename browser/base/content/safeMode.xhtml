@@ -4,12 +4,13 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome: resource:; style-src chrome: 'unsafe-inline'; ?>
+
 <window
   xmlns:html="http://www.w3.org/1999/xhtml"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   data-l10n-id="troubleshoot-mode-window"
   data-l10n-attrs="title,style"
-  onload="onLoad()"
 >
   <dialog
     id="safeModeDialog"

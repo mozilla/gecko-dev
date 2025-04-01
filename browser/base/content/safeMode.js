@@ -53,7 +53,7 @@ function onExtra1() {
   showResetDialog();
 }
 
-function onLoad() {
+window.addEventListener("load", () => {
   const dialog = document.getElementById("safeModeDialog");
   if (appStartup.automaticSafeModeNecessary) {
     document.getElementById("autoSafeMode").hidden = false;
@@ -72,4 +72,4 @@ function onLoad() {
   document.addEventListener("dialogaccept", onDefaultButton);
   document.addEventListener("dialogcancel", onCancel);
   document.addEventListener("dialogextra1", onExtra1);
-}
+});
