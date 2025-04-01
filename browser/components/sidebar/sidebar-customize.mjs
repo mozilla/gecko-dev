@@ -153,6 +153,11 @@ export class SidebarCustomize extends SidebarPage {
           checked: e.target.checked,
         });
         break;
+      case "viewCPMSidebar":
+        Glean.contextualManager.sidebarCustomizeEnabled.record({
+          checked: e.target.checked,
+        });
+        break;
     }
   }
 
