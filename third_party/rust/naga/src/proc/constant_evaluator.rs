@@ -474,7 +474,6 @@ impl ExpressionKindTracker {
                         fun,
                         Mf::Dot
                             | Mf::Outer
-                            | Mf::Cross
                             | Mf::Distance
                             | Mf::Length
                             | Mf::Normalize
@@ -565,6 +564,10 @@ pub enum ConstantEvaluatorError {
     InvalidRelationalArg(RelationalFunction),
     #[error("value of `low` is greater than `high` for clamp built-in function")]
     InvalidClamp,
+    #[error("Constructor expects {expected} components, found {actual}")]
+    InvalidVectorComposeLength { expected: usize, actual: usize },
+    #[error("Constructor must only contain vector or scalar arguments")]
+    InvalidVectorComposeComponent,
     #[error("Splat is defined only on scalar values")]
     SplatScalarOnly,
     #[error("Can only swizzle vector constants")]
@@ -586,8 +589,6 @@ pub enum ConstantEvaluatorError {
         value: String,
         to_type: &'static str,
     },
-    #[error("abstract floating-point values cannot be automatically converted to integers")]
-    AutomaticConversionFloatToInt { to_type: &'static str },
     #[error("Division by zero")]
     DivisionByZero,
     #[error("Remainder by zero")]
@@ -1345,10 +1346,114 @@ impl<'a> ConstantEvaluator<'a> {
                 component_wise_concrete_int(self, span, [arg], |ci| Ok(first_leading_bit(ci)))
             }
 
+            // vector
+            crate::MathFunction::Cross => self.cross_product(arg, arg1.unwrap(), span),
+
             fun => Err(ConstantEvaluatorError::NotImplemented(format!(
                 "{fun:?} built-in function"
             ))),
         }
+    }
+
+    /// Vector cross product.
+    fn cross_product(
+        &mut self,
+        a: Handle<Expression>,
+        b: Handle<Expression>,
+        span: Span,
+    ) -> Result<Handle<Expression>, ConstantEvaluatorError> {
+        use Literal as Li;
+
+        let (a, ty) = self.extract_vec::<3>(a)?;
+        let (b, _) = self.extract_vec::<3>(b)?;
+
+        let product = match (a, b) {
+            (
+                [Li::AbstractInt(a0), Li::AbstractInt(a1), Li::AbstractInt(a2)],
+                [Li::AbstractInt(b0), Li::AbstractInt(b1), Li::AbstractInt(b2)],
+            ) => {
+                // `cross` has no overload for AbstractInt, so AbstractInt
+                // arguments are automatically converted to AbstractFloat. Since
+                // `f64` has a much wider range than `i64`, there's no danger of
+                // overflow here.
+                let p = cross_product(
+                    [a0 as f64, a1 as f64, a2 as f64],
+                    [b0 as f64, b1 as f64, b2 as f64],
+                );
+                [
+                    Li::AbstractFloat(p[0]),
+                    Li::AbstractFloat(p[1]),
+                    Li::AbstractFloat(p[2]),
+                ]
+            }
+            (
+                [Li::AbstractFloat(a0), Li::AbstractFloat(a1), Li::AbstractFloat(a2)],
+                [Li::AbstractFloat(b0), Li::AbstractFloat(b1), Li::AbstractFloat(b2)],
+            ) => {
+                let p = cross_product([a0, a1, a2], [b0, b1, b2]);
+                [
+                    Li::AbstractFloat(p[0]),
+                    Li::AbstractFloat(p[1]),
+                    Li::AbstractFloat(p[2]),
+                ]
+            }
+            ([Li::F16(a0), Li::F16(a1), Li::F16(a2)], [Li::F16(b0), Li::F16(b1), Li::F16(b2)]) => {
+                let p = cross_product([a0, a1, a2], [b0, b1, b2]);
+                [Li::F16(p[0]), Li::F16(p[1]), Li::F16(p[2])]
+            }
+            ([Li::F32(a0), Li::F32(a1), Li::F32(a2)], [Li::F32(b0), Li::F32(b1), Li::F32(b2)]) => {
+                let p = cross_product([a0, a1, a2], [b0, b1, b2]);
+                [Li::F32(p[0]), Li::F32(p[1]), Li::F32(p[2])]
+            }
+            ([Li::F64(a0), Li::F64(a1), Li::F64(a2)], [Li::F64(b0), Li::F64(b1), Li::F64(b2)]) => {
+                let p = cross_product([a0, a1, a2], [b0, b1, b2]);
+                [Li::F64(p[0]), Li::F64(p[1]), Li::F64(p[2])]
+            }
+            _ => return Err(ConstantEvaluatorError::InvalidMathArg),
+        };
+
+        let p0 = self.register_evaluated_expr(Expression::Literal(product[0]), span)?;
+        let p1 = self.register_evaluated_expr(Expression::Literal(product[1]), span)?;
+        let p2 = self.register_evaluated_expr(Expression::Literal(product[2]), span)?;
+
+        self.register_evaluated_expr(
+            Expression::Compose {
+                ty,
+                components: vec![p0, p1, p2],
+            },
+            span,
+        )
+    }
+
+    /// Extract the values of a `vecN` from `expr`.
+    ///
+    /// Return the value of `expr`, whose type is `vecN<S>` for some
+    /// vector size `N` and scalar `S`, as an array of `N` [`Literal`]
+    /// values.
+    ///
+    /// Also return the type handle from the `Compose` expression.
+    fn extract_vec<const N: usize>(
+        &mut self,
+        expr: Handle<Expression>,
+    ) -> Result<([Literal; N], Handle<Type>), ConstantEvaluatorError> {
+        let span = self.expressions.get_span(expr);
+        let expr = self.eval_zero_value_and_splat(expr, span)?;
+        let Expression::Compose { ty, ref components } = self.expressions[expr] else {
+            return Err(ConstantEvaluatorError::InvalidMathArg);
+        };
+
+        let mut value = [Literal::Bool(false); N];
+        for (component, elt) in
+            crate::proc::flatten_compose(ty, components, self.expressions, self.types)
+                .zip(value.iter_mut())
+        {
+            let Expression::Literal(literal) = self.expressions[component] else {
+                return Err(ConstantEvaluatorError::InvalidMathArg);
+            };
+            *elt = literal;
+        }
+
+        Ok((value, ty))
     }
 
     fn array_length(
@@ -1592,13 +1697,15 @@ impl<'a> ConstantEvaluator<'a> {
             Err(ConstantEvaluatorError::InvalidCastArg { from, to })
         };
 
+        use crate::proc::type_methods::IntFloatLimits;
+
         let expr = match self.expressions[expr] {
             Expression::Literal(literal) => {
                 let literal = match target {
                     Sc::I32 => Literal::I32(match literal {
                         Literal::I32(v) => v,
                         Literal::U32(v) => v as i32,
-                        Literal::F32(v) => v as i32,
+                        Literal::F32(v) => v.clamp(i32::min_float(), i32::max_float()) as i32,
                         Literal::F16(v) => f16::to_i32(&v).unwrap(), //Only None on NaN or Inf
                         Literal::Bool(v) => v as i32,
                         Literal::F64(_) | Literal::I64(_) | Literal::U64(_) => {
@@ -1610,8 +1717,9 @@ impl<'a> ConstantEvaluator<'a> {
                     Sc::U32 => Literal::U32(match literal {
                         Literal::I32(v) => v as u32,
                         Literal::U32(v) => v,
-                        Literal::F32(v) => v as u32,
-                        Literal::F16(v) => f16::to_u32(&v).unwrap(), //Only None on NaN or Inf
+                        Literal::F32(v) => v.clamp(u32::min_float(), u32::max_float()) as u32,
+                        // max(0) avoids None due to negative, therefore only None on NaN or Inf
+                        Literal::F16(v) => f16::to_u32(&v.max(f16::ZERO)).unwrap(),
                         Literal::Bool(v) => v as u32,
                         Literal::F64(_) | Literal::I64(_) | Literal::U64(_) => {
                             return make_error();
@@ -1622,9 +1730,9 @@ impl<'a> ConstantEvaluator<'a> {
                     Sc::I64 => Literal::I64(match literal {
                         Literal::I32(v) => v as i64,
                         Literal::U32(v) => v as i64,
-                        Literal::F32(v) => v as i64,
+                        Literal::F32(v) => v.clamp(i64::min_float(), i64::max_float()) as i64,
                         Literal::Bool(v) => v as i64,
-                        Literal::F64(v) => v as i64,
+                        Literal::F64(v) => v.clamp(i64::min_float(), i64::max_float()) as i64,
                         Literal::I64(v) => v,
                         Literal::U64(v) => v as i64,
                         Literal::F16(v) => f16::to_i64(&v).unwrap(), //Only None on NaN or Inf
@@ -1634,12 +1742,13 @@ impl<'a> ConstantEvaluator<'a> {
                     Sc::U64 => Literal::U64(match literal {
                         Literal::I32(v) => v as u64,
                         Literal::U32(v) => v as u64,
-                        Literal::F32(v) => v as u64,
+                        Literal::F32(v) => v.clamp(u64::min_float(), u64::max_float()) as u64,
                         Literal::Bool(v) => v as u64,
-                        Literal::F64(v) => v as u64,
+                        Literal::F64(v) => v.clamp(u64::min_float(), u64::max_float()) as u64,
                         Literal::I64(v) => v as u64,
                         Literal::U64(v) => v,
-                        Literal::F16(v) => f16::to_u64(&v).unwrap(), //Only None on NaN or Inf
+                        // max(0) avoids None due to negative, therefore only None on NaN or Inf
+                        Literal::F16(v) => f16::to_u64(&v.max(f16::ZERO)).unwrap(),
                         Literal::AbstractInt(v) => u64::try_from_abstract(v)?,
                         Literal::AbstractFloat(v) => u64::try_from_abstract(v)?,
                     }),
@@ -1684,11 +1793,9 @@ impl<'a> ConstantEvaluator<'a> {
                         Literal::F32(v) => v != 0.0,
                         Literal::F16(v) => v != f16::zero(),
                         Literal::Bool(v) => v,
-                        Literal::F64(_)
-                        | Literal::I64(_)
-                        | Literal::U64(_)
-                        | Literal::AbstractInt(_)
-                        | Literal::AbstractFloat(_) => {
+                        Literal::AbstractInt(v) => v != 0,
+                        Literal::AbstractFloat(v) => v != 0.0,
+                        Literal::F64(_) | Literal::I64(_) | Literal::U64(_) => {
                             return make_error();
                         }
                     }),
@@ -1840,6 +1947,7 @@ impl<'a> ConstantEvaluator<'a> {
                     Literal::I64(v) => Literal::I64(v.wrapping_neg()),
                     Literal::F32(v) => Literal::F32(-v),
                     Literal::F16(v) => Literal::F16(-v),
+                    Literal::F64(v) => Literal::F64(-v),
                     Literal::AbstractInt(v) => Literal::AbstractInt(v.wrapping_neg()),
                     Literal::AbstractFloat(v) => Literal::AbstractFloat(-v),
                     _ => return Err(ConstantEvaluatorError::InvalidUnaryOpArg),
@@ -2244,16 +2352,53 @@ impl<'a> ConstantEvaluator<'a> {
         }
     }
 
+    /// Returns the total number of components, after flattening, of a vector compose expression.
+    fn vector_compose_flattened_size(
+        &self,
+        components: &[Handle<Expression>],
+    ) -> Result<usize, ConstantEvaluatorError> {
+        components
+            .iter()
+            .try_fold(0, |acc, c| -> Result<_, ConstantEvaluatorError> {
+                let size = match *self.resolve_type(*c)?.inner_with(self.types) {
+                    TypeInner::Scalar(_) => 1,
+                    // We trust that the vector size of `component` is correct,
+                    // as it will have already been validated when `component`
+                    // was registered.
+                    TypeInner::Vector { size, .. } => size as usize,
+                    _ => return Err(ConstantEvaluatorError::InvalidVectorComposeComponent),
+                };
+                Ok(acc + size)
+            })
+    }
+
     fn register_evaluated_expr(
         &mut self,
         expr: Expression,
         span: Span,
     ) -> Result<Handle<Expression>, ConstantEvaluatorError> {
-        // It suffices to only check literals, since we only register one
-        // expression at a time, `Compose` expressions can only refer to other
-        // expressions, and `ZeroValue` expressions are always okay.
+        // It suffices to only check_literal_value() for `Literal` expressions,
+        // since we only register one expression at a time, `Compose`
+        // expressions can only refer to other expressions, and `ZeroValue`
+        // expressions are always okay.
         if let Expression::Literal(literal) = expr {
             crate::valid::check_literal_value(literal)?;
+        }
+
+        // Ensure vector composes contain the correct number of components. We
+        // do so here when each compose is registered to avoid having to deal
+        // with the mess each time the compose is used in another expression.
+        if let Expression::Compose { ty, ref components } = expr {
+            if let TypeInner::Vector { size, scalar: _ } = self.types[ty].inner {
+                let expected = size as usize;
+                let actual = self.vector_compose_flattened_size(components)?;
+                if expected != actual {
+                    return Err(ConstantEvaluatorError::InvalidVectorComposeLength {
+                        expected,
+                        actual,
+                    });
+                }
+            }
         }
 
         Ok(self.append_expr(expr, span, ExpressionKind::Const))
@@ -2492,12 +2637,18 @@ trait TryFromAbstract<T>: Sized {
     /// WGSL, we follow WGSL's conversion rules here:
     ///
     /// - WGSL §6.1.2. Conversion Rank says that automatic conversions
-    ///   to integers are either lossless or an error.
+    ///   from `AbstractInt` to an integer type are either lossless or an
+    ///   error.
     ///
-    /// - WGSL §14.6.4 Floating Point Conversion says that conversions
+    /// - WGSL §15.7.6 Floating Point Conversion says that conversions
     ///   to floating point in constant expressions and override
     ///   expressions are errors if the value is out of range for the
     ///   destination type, but rounding is okay.
+    ///
+    /// - WGSL §17.1.2 i32()/u32() constructors treat AbstractFloat as any
+    ///   other floating point type, following the scalar floating point to
+    ///   integral conversion algorithm (§15.7.6). There is no automatic
+    ///   conversion from AbstractFloat to integer types.
     ///
     /// [`AbstractInt`]: crate::Literal::AbstractInt
     /// [`Float`]: crate::Literal::Float
@@ -2577,26 +2728,46 @@ impl TryFromAbstract<f64> for f64 {
 }
 
 impl TryFromAbstract<f64> for i32 {
-    fn try_from_abstract(_: f64) -> Result<Self, ConstantEvaluatorError> {
-        Err(ConstantEvaluatorError::AutomaticConversionFloatToInt { to_type: "i32" })
+    fn try_from_abstract(value: f64) -> Result<Self, ConstantEvaluatorError> {
+        // https://www.w3.org/TR/WGSL/#floating-point-conversion
+        // To convert a floating point scalar value X to an integer scalar type T:
+        // * If X is a NaN, the result is an indeterminate value in T.
+        // * If X is exactly representable in the target type T, then the
+        //   result is that value.
+        // * Otherwise, the result is the value in T closest to truncate(X) and
+        //   also exactly representable in the original floating point type.
+        //
+        // A rust cast satisfies these requirements apart from "the result
+        // is... exactly representable in the original floating point type".
+        // However, i32::MIN and i32::MAX are exactly representable by f64, so
+        // we're all good.
+        Ok(value as i32)
     }
 }
 
 impl TryFromAbstract<f64> for u32 {
-    fn try_from_abstract(_: f64) -> Result<Self, ConstantEvaluatorError> {
-        Err(ConstantEvaluatorError::AutomaticConversionFloatToInt { to_type: "u32" })
+    fn try_from_abstract(value: f64) -> Result<Self, ConstantEvaluatorError> {
+        // As above, u32::MIN and u32::MAX are exactly representable by f64,
+        // so a simple rust cast is sufficient.
+        Ok(value as u32)
     }
 }
 
 impl TryFromAbstract<f64> for i64 {
-    fn try_from_abstract(_: f64) -> Result<Self, ConstantEvaluatorError> {
-        Err(ConstantEvaluatorError::AutomaticConversionFloatToInt { to_type: "i64" })
+    fn try_from_abstract(value: f64) -> Result<Self, ConstantEvaluatorError> {
+        // As above, except we clamp to the minimum and maximum values
+        // representable by both f64 and i64.
+        use crate::proc::type_methods::IntFloatLimits;
+        Ok(value.clamp(i64::min_float(), i64::max_float()) as i64)
     }
 }
 
 impl TryFromAbstract<f64> for u64 {
-    fn try_from_abstract(_: f64) -> Result<Self, ConstantEvaluatorError> {
-        Err(ConstantEvaluatorError::AutomaticConversionFloatToInt { to_type: "u64" })
+    fn try_from_abstract(value: f64) -> Result<Self, ConstantEvaluatorError> {
+        // As above, this time clamping to the minimum and maximum values
+        // representable by both f64 and u64.
+        use crate::proc::type_methods::IntFloatLimits;
+        Ok(value.clamp(u64::min_float(), u64::max_float()) as u64)
     }
 }
 
@@ -2624,6 +2795,19 @@ impl TryFromAbstract<i64> for f16 {
         }
         Ok(f.unwrap())
     }
+}
+
+fn cross_product<T>(a: [T; 3], b: [T; 3]) -> [T; 3]
+where
+    T: Copy,
+    T: core::ops::Mul<T, Output = T>,
+    T: core::ops::Sub<T, Output = T>,
+{
+    [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
 }
 
 #[cfg(test)]

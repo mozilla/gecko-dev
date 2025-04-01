@@ -13,13 +13,19 @@
 edition = "2021"
 rust-version = "1.64.0"
 name = "ron"
-version = "0.8.1"
+version = "0.9.0"
 authors = [
     "Christopher Durham <cad97@cad97.com>",
     "Dzmitry Malyshau <kvarkus@gmail.com>",
     "Thomas Schaller <torkleyy@gmail.com>",
     "Juniper Tyree <juniper.tyree@helsinki.fi>",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Rusty Object Notation"
 homepage = "https://github.com/ron-rs/ron"
 documentation = "https://docs.rs/ron/"
@@ -33,37 +39,376 @@ categories = ["encoding"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ron-rs/ron"
 
-[dependencies.base64]
-version = "0.21"
-
-[dependencies.bitflags]
-version = "2.0"
-features = ["serde"]
-
-[dependencies.indexmap]
-version = "2.0"
-features = ["serde"]
-optional = true
-
-[dependencies.serde]
-version = "1.0.60"
-
-[dependencies.serde_derive]
-version = "1.0"
-
-[dev-dependencies.option_set]
-version = "0.2"
-
-[dev-dependencies.serde]
-version = "1.0"
-features = ["derive"]
-
-[dev-dependencies.serde_bytes]
-version = "0.11"
-
-[dev-dependencies.serde_json]
-version = "1.0"
+[package.metadata.docs.rs]
+features = [
+    "integer128",
+    "indexmap",
+]
+rustdoc-args = ["--generate-link-to-definition"]
 
 [features]
 default = []
 integer128 = []
+
+[lib]
+name = "ron"
+path = "src/lib.rs"
+
+[[example]]
+name = "base64"
+path = "examples/base64.rs"
+
+[[example]]
+name = "decode"
+path = "examples/decode.rs"
+
+[[example]]
+name = "decode_file"
+path = "examples/decode_file.rs"
+
+[[example]]
+name = "encode"
+path = "examples/encode.rs"
+
+[[example]]
+name = "transcode"
+path = "examples/transcode.rs"
+
+[[test]]
+name = "115_minimal_flattening"
+path = "tests/115_minimal_flattening.rs"
+
+[[test]]
+name = "117_untagged_tuple_variant"
+path = "tests/117_untagged_tuple_variant.rs"
+
+[[test]]
+name = "123_enum_representation"
+path = "tests/123_enum_representation.rs"
+
+[[test]]
+name = "129_indexmap"
+path = "tests/129_indexmap.rs"
+
+[[test]]
+name = "147_empty_sets_serialisation"
+path = "tests/147_empty_sets_serialisation.rs"
+
+[[test]]
+name = "152_bitflags"
+path = "tests/152_bitflags.rs"
+
+[[test]]
+name = "203_error_positions"
+path = "tests/203_error_positions.rs"
+
+[[test]]
+name = "207_adjacently_tagged_enum"
+path = "tests/207_adjacently_tagged_enum.rs"
+
+[[test]]
+name = "217_nested_untagged_enums"
+path = "tests/217_nested_untagged_enums.rs"
+
+[[test]]
+name = "238_array"
+path = "tests/238_array.rs"
+
+[[test]]
+name = "240_array_pretty"
+path = "tests/240_array_pretty.rs"
+
+[[test]]
+name = "250_variant_newtypes"
+path = "tests/250_variant_newtypes.rs"
+
+[[test]]
+name = "254_typetag"
+path = "tests/254_typetag.rs"
+
+[[test]]
+name = "256_comma_error"
+path = "tests/256_comma_error.rs"
+
+[[test]]
+name = "289_enumerate_arrays"
+path = "tests/289_enumerate_arrays.rs"
+
+[[test]]
+name = "301_struct_name_mismatch"
+path = "tests/301_struct_name_mismatch.rs"
+
+[[test]]
+name = "307_stack_overflow"
+path = "tests/307_stack_overflow.rs"
+
+[[test]]
+name = "321_unicode_ident"
+path = "tests/321_unicode_ident.rs"
+
+[[test]]
+name = "322_escape_idents"
+path = "tests/322_escape_idents.rs"
+
+[[test]]
+name = "337_value_float_roundtrip"
+path = "tests/337_value_float_roundtrip.rs"
+
+[[test]]
+name = "357_untagged_enum_roundtrip"
+path = "tests/357_untagged_enum_roundtrip.rs"
+
+[[test]]
+name = "359_deserialize_seed"
+path = "tests/359_deserialize_seed.rs"
+
+[[test]]
+name = "367_implicit_some"
+path = "tests/367_implicit_some.rs"
+
+[[test]]
+name = "370_float_parsing"
+path = "tests/370_float_parsing.rs"
+
+[[test]]
+name = "393_serde_errors"
+path = "tests/393_serde_errors.rs"
+
+[[test]]
+name = "401_raw_identifier"
+path = "tests/401_raw_identifier.rs"
+
+[[test]]
+name = "407_raw_value"
+path = "tests/407_raw_value.rs"
+
+[[test]]
+name = "410_trailing_comma"
+path = "tests/410_trailing_comma.rs"
+
+[[test]]
+name = "423_de_borrowed_identifier"
+path = "tests/423_de_borrowed_identifier.rs"
+
+[[test]]
+name = "425_escape_strings"
+path = "tests/425_escape_strings.rs"
+
+[[test]]
+name = "436_untagged_bytes"
+path = "tests/436_untagged_bytes.rs"
+
+[[test]]
+name = "438_rusty_byte_strings"
+path = "tests/438_rusty_byte_strings.rs"
+
+[[test]]
+name = "447_compact_maps_structs"
+path = "tests/447_compact_maps_structs.rs"
+
+[[test]]
+name = "449_tagged_enum"
+path = "tests/449_tagged_enum.rs"
+
+[[test]]
+name = "462_bytes"
+path = "tests/462_bytes.rs"
+
+[[test]]
+name = "465_implicit_some_stack"
+path = "tests/465_implicit_some_stack.rs"
+
+[[test]]
+name = "465_no_comment_char_value"
+path = "tests/465_no_comment_char_value.rs"
+
+[[test]]
+name = "465_r_name_value"
+path = "tests/465_r_name_value.rs"
+
+[[test]]
+name = "465_ser_backslash_string"
+path = "tests/465_ser_backslash_string.rs"
+
+[[test]]
+name = "465_unwrap_some_newtype_variant_value"
+path = "tests/465_unwrap_some_newtype_variant_value.rs"
+
+[[test]]
+name = "465_validate_ser_identifiers"
+path = "tests/465_validate_ser_identifiers.rs"
+
+[[test]]
+name = "481_number_underscores_suffixes"
+path = "tests/481_number_underscores_suffixes.rs"
+
+[[test]]
+name = "492_enum_in_untagged_enum"
+path = "tests/492_enum_in_untagged_enum.rs"
+
+[[test]]
+name = "502_known_bugs"
+path = "tests/502_known_bugs.rs"
+
+[[test]]
+name = "508_value_adjacently_tagged_bug"
+path = "tests/508_value_adjacently_tagged_bug.rs"
+
+[[test]]
+name = "511_deserialize_any_map_string_key"
+path = "tests/511_deserialize_any_map_string_key.rs"
+
+[[test]]
+name = "522_explicit_struct_names"
+path = "tests/522_explicit_struct_names.rs"
+
+[[test]]
+name = "526_flatten"
+path = "tests/526_flatten.rs"
+
+[[test]]
+name = "530_untagged_union"
+path = "tests/530_untagged_union.rs"
+
+[[test]]
+name = "544_path_meta"
+path = "tests/544_path_meta.rs"
+
+[[test]]
+name = "big_struct"
+path = "tests/big_struct.rs"
+
+[[test]]
+name = "borrowed_str"
+path = "tests/borrowed_str.rs"
+
+[[test]]
+name = "comments"
+path = "tests/comments.rs"
+
+[[test]]
+name = "depth_limit"
+path = "tests/depth_limit.rs"
+
+[[test]]
+name = "escape"
+path = "tests/escape.rs"
+
+[[test]]
+name = "extensions"
+path = "tests/extensions.rs"
+
+[[test]]
+name = "floats"
+path = "tests/floats.rs"
+
+[[test]]
+name = "large_number"
+path = "tests/large_number.rs"
+
+[[test]]
+name = "min_max"
+path = "tests/min_max.rs"
+
+[[test]]
+name = "non_identifier_identifier"
+path = "tests/non_identifier_identifier.rs"
+
+[[test]]
+name = "non_string_tag"
+path = "tests/non_string_tag.rs"
+
+[[test]]
+name = "numbers"
+path = "tests/numbers.rs"
+
+[[test]]
+name = "options"
+path = "tests/options.rs"
+
+[[test]]
+name = "preserve_sequence"
+path = "tests/preserve_sequence.rs"
+
+[[test]]
+name = "roundtrip"
+path = "tests/roundtrip.rs"
+
+[[test]]
+name = "struct_integers"
+path = "tests/struct_integers.rs"
+
+[[test]]
+name = "to_string_pretty"
+path = "tests/to_string_pretty.rs"
+
+[[test]]
+name = "unicode"
+path = "tests/unicode.rs"
+
+[[test]]
+name = "value"
+path = "tests/value.rs"
+
+[dependencies.base64]
+version = "0.22"
+features = ["std"]
+default-features = false
+
+[dependencies.bitflags]
+version = "2.1"
+features = ["serde"]
+default-features = false
+
+[dependencies.indexmap]
+version = "2.0"
+features = [
+    "std",
+    "serde",
+]
+optional = true
+default-features = false
+
+[dependencies.serde]
+version = "1.0.181"
+features = ["std"]
+default-features = false
+
+[dependencies.serde_derive]
+version = "1.0.181"
+default-features = false
+
+[dependencies.unicode-ident]
+version = "1.0"
+default-features = false
+
+[dev-dependencies.bytes]
+version = "1.3"
+features = ["serde"]
+default-features = false
+
+[dev-dependencies.option_set]
+version = "0.3"
+default-features = false
+
+[dev-dependencies.serde]
+version = "1.0.181"
+features = [
+    "std",
+    "derive",
+]
+default-features = false
+
+[dev-dependencies.serde_bytes]
+version = "0.11"
+features = ["std"]
+default-features = false
+
+[dev-dependencies.serde_json]
+version = "1.0.60"
+features = ["std"]
+default-features = false
+
+[dev-dependencies.typetag]
+version = "0.2"
+default-features = false

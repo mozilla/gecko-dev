@@ -23,6 +23,8 @@ use core::{
     ops::Range,
 };
 
+use bytemuck::{Pod, Zeroable};
+
 #[cfg(any(feature = "serde", test))]
 use {
     alloc::format,
@@ -30,6 +32,7 @@ use {
 };
 
 pub mod assertions;
+mod cast_utils;
 mod counters;
 mod env;
 mod features;
@@ -961,6 +964,8 @@ bitflags::bitflags! {
         /// Supports binding storage buffers and textures to fragment shaders.
         const FRAGMENT_WRITABLE_STORAGE = 1 << 1;
         /// Supports indirect drawing and dispatching.
+        ///
+        /// [`Self::COMPUTE_SHADERS`] must be present for this flag.
         ///
         /// WebGL2, GLES 3.0, and Metal on Apple1/Apple2 GPUs do not support indirect.
         const INDIRECT_EXECUTION = 1 << 2;
@@ -7214,7 +7219,7 @@ bitflags::bitflags! {
 
 /// Argument buffer layout for `draw_indirect` commands.
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Pod, Zeroable)]
 pub struct DrawIndirectArgs {
     /// The number of vertices to draw.
     pub vertex_count: u32,
@@ -7232,18 +7237,13 @@ impl DrawIndirectArgs {
     /// Returns the bytes representation of the struct, ready to be written in a buffer.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
-        unsafe {
-            core::mem::transmute(core::slice::from_raw_parts(
-                core::ptr::from_ref(self).cast::<u8>(),
-                size_of::<Self>(),
-            ))
-        }
+        bytemuck::bytes_of(self)
     }
 }
 
 /// Argument buffer layout for `draw_indexed_indirect` commands.
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Pod, Zeroable)]
 pub struct DrawIndexedIndirectArgs {
     /// The number of indices to draw.
     pub index_count: u32,
@@ -7263,18 +7263,13 @@ impl DrawIndexedIndirectArgs {
     /// Returns the bytes representation of the struct, ready to be written in a buffer.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
-        unsafe {
-            core::mem::transmute(core::slice::from_raw_parts(
-                core::ptr::from_ref(self).cast::<u8>(),
-                size_of::<Self>(),
-            ))
-        }
+        bytemuck::bytes_of(self)
     }
 }
 
 /// Argument buffer layout for `dispatch_indirect` commands.
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Pod, Zeroable)]
 pub struct DispatchIndirectArgs {
     /// The number of work groups in X dimension.
     pub x: u32,
@@ -7288,12 +7283,7 @@ impl DispatchIndirectArgs {
     /// Returns the bytes representation of the struct, ready to be written into a buffer.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
-        unsafe {
-            core::mem::transmute(core::slice::from_raw_parts(
-                core::ptr::from_ref(self).cast::<u8>(),
-                size_of::<Self>(),
-            ))
-        }
+        bytemuck::bytes_of(self)
     }
 }
 

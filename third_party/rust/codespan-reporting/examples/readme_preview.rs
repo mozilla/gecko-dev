@@ -9,28 +9,41 @@
 
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use codespan_reporting::files::SimpleFile;
-use codespan_reporting::term::termcolor::{Color, ColorSpec, StandardStream, WriteColor};
-use codespan_reporting::term::{self, ColorArg};
+use codespan_reporting::term::termcolor::{
+    Color, ColorChoice, ColorSpec, StandardStream, WriteColor,
+};
+use codespan_reporting::term::{self};
 use std::io::{self, Write};
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "emit")]
+#[derive(Debug)]
 pub enum Opts {
     /// Render SVG output
     Svg,
     /// Render Stderr output
     Stderr {
         /// Configure coloring of output
-        #[structopt(
-            long = "color",
-            parse(try_from_str),
-            default_value = "auto",
-            possible_values = ColorArg::VARIANTS,
-            case_insensitive = true
-        )]
-        color: ColorArg,
+        color: ColorChoice,
     },
+}
+
+fn parse_args() -> Result<Opts, pico_args::Error> {
+    let mut pargs = pico_args::Arguments::from_env();
+    match pargs.subcommand()? {
+        Some(value) => match value.as_str() {
+            "svg" => Ok(Opts::Svg),
+            "stderr" => {
+                let color = pargs
+                    .opt_value_from_str("--color")?
+                    .unwrap_or(ColorChoice::Auto);
+                Ok(Opts::Stderr { color })
+            }
+            _ => Err(pico_args::Error::Utf8ArgumentParsingFailed {
+                value,
+                cause: "not a valid subcommand".to_owned(),
+            }),
+        },
+        None => Err(pico_args::Error::MissingArgument),
+    }
 }
 
 fn main() -> anyhow::Result<()> {
@@ -76,18 +89,18 @@ fn main() -> anyhow::Result<()> {
             ",
         )])];
 
-    // let mut files = SimpleFiles::new();
-    match Opts::from_args() {
+    match parse_args()? {
         Opts::Svg => {
             let mut buffer = Vec::new();
             let mut writer = HtmlEscapeWriter::new(SvgWriter::new(&mut buffer));
             let config = codespan_reporting::term::Config {
+                #[cfg(feature = "termcolor")]
                 styles: codespan_reporting::term::Styles::with_blue(Color::Blue),
                 ..codespan_reporting::term::Config::default()
             };
 
             for diagnostic in &diagnostics {
-                term::emit(&mut writer, &config, &file, &diagnostic)?;
+                term::emit(&mut writer, &config, &file, diagnostic)?;
             }
 
             let num_lines = buffer.iter().filter(|byte| **byte == b'\n').count() + 1;
@@ -175,10 +188,10 @@ fn main() -> anyhow::Result<()> {
             )?;
         }
         Opts::Stderr { color } => {
-            let writer = StandardStream::stderr(color.into());
+            let writer = StandardStream::stderr(color);
             let config = codespan_reporting::term::Config::default();
             for diagnostic in &diagnostics {
-                term::emit(&mut writer.lock(), &config, &file, &diagnostic)?;
+                term::emit(&mut writer.lock(), &config, &file, diagnostic)?;
             }
         }
     }
@@ -294,7 +307,7 @@ impl<W: Write> WriteColor for SvgWriter<W> {
             }
 
             Ok(false)
-        };
+        }
 
         fn write_color<W: Write>(color: &Color, writer: &mut SvgWriter<W>) -> io::Result<()> {
             match color {
@@ -309,7 +322,7 @@ impl<W: Write> WriteColor for SvgWriter<W> {
                 // TODO: other colors
                 _ => Ok(()),
             }
-        };
+        }
 
         if let Some(fg) = spec.fg() {
             first = write_first(first, self)?;

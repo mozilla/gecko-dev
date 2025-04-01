@@ -20,6 +20,7 @@ pub use layouter::{Alignment, LayoutError, LayoutErrorInner, Layouter, TypeLayou
 pub use namer::{EntryPointIndex, NameKey, Namer};
 pub use terminator::ensure_block_returns;
 use thiserror::Error;
+pub use type_methods::min_max_float_representable_by;
 pub use typifier::{ResolveContext, ResolveError, TypeResolution};
 
 impl From<super::StorageFormat> for super::Scalar {
@@ -590,7 +591,7 @@ pub fn flatten_compose<'arenas>(
                 count = size as usize;
             }
         }
-        core::iter::repeat(expr).take(count)
+        core::iter::repeat_n(expr, count)
     }
 
     // Expressions like `vec4(vec3(vec2(6, 7), 8), 9)` require us to

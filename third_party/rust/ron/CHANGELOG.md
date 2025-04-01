@@ -6,7 +6,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.9.0] - 2025-03-18
+
+### API Changes
+
+- Add `ron::value::RawValue` helper type which can (de)serialize any valid RON ([#407](https://github.com/ron-rs/ron/pull/407))
+- Add `escape_strings` option to `PrettyConfig` to allow serialising with or without escaping ([#426](https://github.com/ron-rs/ron/pull/426))
+- Add `compact_maps` and `compact_structs` options to `PrettyConfig` to allow serialising maps and structs on a single line ([#448](https://github.com/ron-rs/ron/pull/448))
+- Add minimal support for `#[serde(flatten)]` with roundtripping through RON maps ([#455](https://github.com/ron-rs/ron/pull/455))
+- Add minimal roundtripping support for `#[serde(tag = "tag")]`, `#[serde(tag = "tag", content = "content")]`, and `#[serde(untagged)]` enums ([#451](https://github.com/ron-rs/ron/pull/451))
+- Breaking: Expand the `value::Number` enum to explicitly encode all possible number types ([#479](https://github.com/ron-rs/ron/pull/479))
+- Add `number_suffixes` option to `PrettyConfig` to allow serialising numbers with their explicit type suffix, e.g. `42i32` ([#481](https://github.com/ron-rs/ron/pull/481))
+- Allow `ron::value::RawValue` to capture any whitespace to the left and right of a ron value ([#487](https://github.com/ron-rs/ron/pull/487))
+- Breaking: Enforce that ron always writes valid UTF-8 ([#488](https://github.com/ron-rs/ron/pull/488))
+- Add convenient `Value::from` impls ([#498](https://github.com/ron-rs/ron/pull/498))
+- Add new extension `explicit_struct_names` which requires that struct names are included during deserialization ([#522](https://github.com/ron-rs/ron/pull/522))
+- Add new path-based field metadata serialization support via `PrettyConfig` ([#544](https://github.com/ron-rs/ron/pull/544))
+- Breaking: Change `PrettyConfig` so that `new_line`, `indentor` and `separator` are all `Cow<'static, str>` instead of `String` ([#546](https://github.com/ron-rs/ron/pull/546))
+
+### Format Changes
+
+- [Non-API] Breaking: Treat `Some` like a newtype variant with `unwrap_variant_newtypes` ([#465](https://github.com/ron-rs/ron/pull/465))
+- Allow parsing floating point literals with underscores ([#481](https://github.com/ron-rs/ron/pull/481))
+- **Format-Breaking:** Switch from base64-encoded to Rusty byte strings, still allow base64 deserialising for now ([#438](https://github.com/ron-rs/ron/pull/438))
+- Fix issue [#241](https://github.com/ron-rs/ron/issues/241) and allow parsing numbers with explicit type suffixes, e.g. `1u8` or `-1f32` ([#481](https://github.com/ron-rs/ron/pull/481))
+- Add support for byte literals as strongly typed unsigned 8-bit integers ([#438](https://github.com/ron-rs/ron/pull/438))
+- Fix issue [#321](https://github.com/ron-rs/ron/issues/321) and allow parsing UTF-8 identifiers ([#488](https://github.com/ron-rs/ron/pull/488))
+
+### Bug Fixes
+
+- Fix parsing `r` as a self-describing struct or variant name (and not the start of a raw string) ([#465](https://github.com/ron-rs/ron/pull/465))
+- Fix serialising raw strings containing a literal backslash ([#465](https://github.com/ron-rs/ron/pull/465))
+- Fix serialising `None` inside a stack of nested `Option`s with `#![enable(implicit_some)]` enabled ([#465](https://github.com/ron-rs/ron/pull/465))
+- Fix deserialising deserialising `A('/')` into a `ron::Value` ([#465](https://github.com/ron-rs/ron/pull/465))
+- Fix issue [#445](https://github.com/ron-rs/ron/issues/445) and allow parsing `+unsigned` as an unsigned int ([#479](https://github.com/ron-rs/ron/pull/479))
+- Fix serialising reserved identifiers `true`, `false`, `Some`, `None`, `inf`[`f32`|`f64`], and `Nan`[`f32`|`f64`] ([#487](https://github.com/ron-rs/ron/pull/487))
+- Disallow unclosed line comments at the end of `ron::value::RawValue` ([#489](https://github.com/ron-rs/ron/pull/489))
+- Fix parsing of struct/variant names starting in `None`, `Some`, `true`, or `false` ([#499](https://github.com/ron-rs/ron/pull/499))
+- Fix deserialising owned string field names in structs, allowing deserializing into `serde_json::Value`s ([#511](https://github.com/ron-rs/ron/pull/512))
+
+### Miscellaneous
+
+- Add CIFuzz GitHub action ([#429](https://github.com/ron-rs/ron/pull/429))
+- Update the arbitrary fuzzer to check arbitrary serde data types, values, and `ron::ser::PrettyConfig`s ([#465](https://github.com/ron-rs/ron/pull/465))
+- Add a benchmark for PRs that runs over the latest fuzzer corpus ([#465](https://github.com/ron-rs/ron/pull/465))
+- Fuzz serde enum representations and collect current limitations in ron and serde ([#502](https://github.com/ron-rs/ron/pull/502))
+- Update `base64` dependency to version 0.22 ([#529](https://github.com/ron-rs/ron/pull/529))
+- Fix issue [#556](https://github.com/ron-rs/ron/issues/556) and update minium dependency versions ([#557](https://github.com/ron-rs/ron/pull/557))
+
 ## [0.8.1] - 2023-08-17
+
 - Fix issues [#277](https://github.com/ron-rs/ron/issues/277) and [#405](https://github.com/ron-rs/ron/issues/405) with `Value::Map` `IntoIter` and extraneous item check for `Value::Seq` ([#406](https://github.com/ron-rs/ron/pull/406))
 - Fix issue [#401](https://github.com/ron-rs/ron/issues/401) with correct raw struct name identifier parsing ([#402](https://github.com/ron-rs/ron/pull/402))
 - Fix issue [#410](https://github.com/ron-rs/ron/issues/410) trailing comma parsing in tuples and `Some` ([#412](https://github.com/ron-rs/ron/pull/412))

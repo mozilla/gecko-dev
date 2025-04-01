@@ -7,26 +7,26 @@
 
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use codespan_reporting::files::SimpleFiles;
-use codespan_reporting::term::termcolor::StandardStream;
-use codespan_reporting::term::{self, ColorArg};
-use structopt::StructOpt;
+use codespan_reporting::term;
+use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "emit")]
+#[derive(Debug)]
 pub struct Opts {
     /// Configure coloring of output
-    #[structopt(
-        long = "color",
-        parse(try_from_str),
-        default_value = "auto",
-        possible_values = ColorArg::VARIANTS,
-        case_insensitive = true
-    )]
-    pub color: ColorArg,
+    pub color: ColorChoice,
+}
+
+fn parse_args() -> Result<Opts, pico_args::Error> {
+    let mut pargs = pico_args::Arguments::from_env();
+    let color = pargs
+        .opt_value_from_str("--color")?
+        .unwrap_or(ColorChoice::Auto);
+    Ok(Opts { color })
 }
 
 fn main() -> anyhow::Result<()> {
-    let opts = Opts::from_args();
+    let Opts { color } = parse_args()?;
+
     let mut files = SimpleFiles::new();
 
     let file_id1 = files.add(
@@ -165,10 +165,10 @@ fn main() -> anyhow::Result<()> {
             )]),
     ];
 
-    let writer = StandardStream::stderr(opts.color.into());
+    let writer = StandardStream::stderr(color);
     let config = codespan_reporting::term::Config::default();
     for diagnostic in &diagnostics {
-        term::emit(&mut writer.lock(), &config, &files, &diagnostic)?;
+        term::emit(&mut writer.lock(), &config, &files, diagnostic)?;
     }
 
     Ok(())
