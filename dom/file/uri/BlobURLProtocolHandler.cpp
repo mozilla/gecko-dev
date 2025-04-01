@@ -1084,11 +1084,6 @@ bool IsBlobURI(nsIURI* aUri) {
   return IsType(aUri, mozilla::dom::DataInfo::eBlobImpl);
 }
 
-bool BlobURLSchemeIsHTTPOrHTTPS(const nsACString& aUri) {
-  return (StringBeginsWith(aUri, "blob:http://"_ns) ||
-          StringBeginsWith(aUri, "blob:https://"_ns));
-}
-
 bool IsMediaSourceURI(nsIURI* aUri) {
   return IsType(aUri, mozilla::dom::DataInfo::eMediaSource);
 }

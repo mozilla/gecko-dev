@@ -390,7 +390,14 @@ void BlobURLInputStream::RetrieveBlobData(const MutexAutoLock& aProofOfLock) {
   nsAutoString partKey;
   cookieJarSettings->GetPartitionKey(partKey);
 
-  if (XRE_IsParentProcess() || !BlobURLSchemeIsHTTPOrHTTPS(mBlobURLSpec)) {
+  bool ok = XRE_IsParentProcess();
+  if (!ok) {
+    // check if inner scheme of blobURL is not http and https
+    ok = !StringBeginsWith(mBlobURLSpec, "blob:http://"_ns) &&
+         !StringBeginsWith(mBlobURLSpec, "blob:https://"_ns);
+  }
+
+  if (ok) {
     RefPtr<BlobImpl> blobImpl;
 
     // Since revoked blobs are also retrieved, it is possible that the blob no
