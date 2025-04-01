@@ -396,9 +396,9 @@ nsUserIdleService::nsUserIdleService()
   nsCOMPtr<nsIAsyncShutdownService> svc = services::GetAsyncShutdownService();
   MOZ_ASSERT(svc);
   nsCOMPtr<nsIAsyncShutdownClient> client;
-  auto rv = svc->GetQuitApplicationGranted(getter_AddRefs(client));
+  auto rv = svc->GetAppShutdownConfirmed(getter_AddRefs(client));
   if (NS_FAILED(rv)) {
-    // quitApplicationGranted can be undefined in some environments.
+    // appShutdownConfirmed can be undefined in some environments.
     rv = svc->GetXpcomWillShutdown(getter_AddRefs(client));
   }
   MOZ_ASSERT(NS_SUCCEEDED(rv));
