@@ -617,9 +617,9 @@ class BrowserFragment :
 
     private fun initialiseNormalBrowserUi(accessibilityEnabled: Boolean) {
         if (accessibilityEnabled) {
-            binding.browserToolbar.enableDynamicBehavior(requireContext(), binding.engineView)
-        } else {
             binding.browserToolbar.showAsFixed(requireContext(), binding.engineView)
+        } else {
+            binding.browserToolbar.enableDynamicBehavior(requireContext(), binding.engineView)
         }
     }
 
