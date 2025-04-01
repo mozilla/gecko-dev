@@ -104,6 +104,19 @@ class TSFTextStoreBase : public ITextStoreACP {
   // Note that mLock isn't cleared yet when this is called.
   virtual void DidLockGranted() {}
 
+  using AttrIndices = EnumSet<TSFUtils::AttrIndex>;
+  constexpr static auto NothingChanged = AttrIndices{};
+  constexpr static auto OnlyURLChanged =
+      AttrIndices{TSFUtils::AttrIndex::DocumentURL};
+  constexpr static auto OnlyInputScopeChanged =
+      AttrIndices{TSFUtils::AttrIndex::InputScope};
+  constexpr static auto URLAndInputScopeChanged = AttrIndices{
+      TSFUtils::AttrIndex::DocumentURL, TSFUtils::AttrIndex::InputScope};
+  /**
+   * Called when either the URL or the input scope is changed.
+   */
+  void NotifyTSFOfInputContextChange(AttrIndices aAttrIndices);
+
   [[nodiscard]] bool GetScreenExtInternal(RECT& aScreenExt);
 
   [[nodiscard]] virtual Maybe<WritingMode> GetWritingMode() {

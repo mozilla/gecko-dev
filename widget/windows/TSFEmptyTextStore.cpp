@@ -96,11 +96,24 @@ bool TSFEmptyTextStore::Init(nsWindow* aWidget, const InputContext& aContext) {
              this));
     return false;
   }
+
+  const auto EmptyContextIsSupported = [&]() -> bool {
+    // The empty TSF text store support was introduced with Windows 11.
+    // If it's supported, QI for GUID_COMPARTMENT_EMPTYCONTEXT will success.
+    // Then, we use an empty text store when there is no editable text to expose
+    // the content URL and InputScope properties.
+    RefPtr<IUnknown> emptyContextCompartment;
+    HRESULT hr = threadMgr->QueryInterface(
+        GUID_COMPARTMENT_EMPTYCONTEXT, getter_AddRefs(emptyContextCompartment));
+    return SUCCEEDED(hr);
+  };
+
   // Create context and add it to document manager
-  // TODO: Set ourselves to the 3rd param.
   RefPtr<ITfContext> context;
-  hr = documentMgr->CreateContext(TSFUtils::ClientId(), 0, nullptr,
-                                  getter_AddRefs(context), &mEditCookie);
+  hr = documentMgr->CreateContext(
+      TSFUtils::ClientId(), 0,
+      EmptyContextIsSupported() ? static_cast<ITextStoreACP*>(this) : nullptr,
+      getter_AddRefs(context), &mEditCookie);
   if (NS_WARN_IF(FAILED(hr))) {
     MOZ_LOG(gIMELog, LogLevel::Error,
             ("0x%p   TSFEmptyTextStore::Init() FAILED to create the context "

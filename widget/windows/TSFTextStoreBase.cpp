@@ -1202,6 +1202,8 @@ void TSFTextStoreBase::SetInputContext(nsWindow* aWindow,
       if (!textStore) {
         break;
       }
+      nsAutoString oldURL(textStore->mDocumentURL);
+      CopyableAutoTArray<InputScope, 5> oldInputScopes(textStore->mInputScopes);
       textStore->mInPrivateBrowsing = aContext.mInPrivateBrowsing;
       textStore->SetInputScope(aContext.mHTMLInputType,
                                aContext.mHTMLInputMode);
@@ -1215,6 +1217,22 @@ void TSFTextStoreBase::SetInputContext(nsWindow* aWindow,
       } else {
         textStore->mDocumentURL.Truncate();
       }
+      // Notify TSF of the URL and InputScope changes.
+      const auto& changedThings = [&]() -> AttrIndices {
+        const bool URLChanged = textStore->mDocumentURL != oldURL;
+        const bool inputScopeChanged =
+            textStore->mInputScopes != oldInputScopes;
+        if (URLChanged && inputScopeChanged) {
+          return URLAndInputScopeChanged;
+        }
+        if (URLChanged) {
+          return OnlyURLChanged;
+        }
+        return inputScopeChanged ? OnlyURLChanged : NothingChanged;
+      }();
+      if (changedThings != NothingChanged) {
+        textStore->NotifyTSFOfInputContextChange(changedThings);
+      }
       return;
     }
   }
@@ -1223,6 +1241,23 @@ void TSFTextStoreBase::SetInputContext(nsWindow* aWindow,
   TSFUtils::OnFocusChange(
       isEditable ? TSFUtils::GotFocus::Yes : TSFUtils::GotFocus::No, aWindow,
       aContext);
+}
+
+void TSFTextStoreBase::NotifyTSFOfInputContextChange(AttrIndices aAttrIndices) {
+  if (!mSink) {
+    return;
+  }
+
+  AutoTArray<TS_ATTRID, 2> attrIDs;
+  if (aAttrIndices.contains(TSFUtils::AttrIndex::DocumentURL)) {
+    attrIDs.AppendElement(
+        TSFUtils::GetAttrID(TSFUtils::AttrIndex::DocumentURL));
+  }
+  if (aAttrIndices.contains(TSFUtils::AttrIndex::InputScope)) {
+    attrIDs.AppendElement(TSFUtils::GetAttrID(TSFUtils::AttrIndex::InputScope));
+  }
+  RefPtr<ITextStoreACPSink> sink(mSink);
+  sink->OnAttrsChange(0, 0, attrIDs.Length(), attrIDs.Elements());
 }
 
 }  // namespace mozilla::widget
