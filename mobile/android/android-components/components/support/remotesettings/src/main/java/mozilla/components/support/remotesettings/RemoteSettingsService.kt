@@ -10,9 +10,6 @@ import mozilla.appservices.remotesettings.RemoteSettingsConfig2
 import mozilla.appservices.remotesettings.RemoteSettingsContext
 import mozilla.appservices.remotesettings.RemoteSettingsServer
 import mozilla.appservices.remotesettings.RemoteSettingsService
-import mozilla.components.support.ktx.android.content.appName
-import mozilla.components.support.utils.ext.getPackageInfoCompat
-import org.json.JSONObject
 import java.util.Locale
 import mozilla.components.Build as AcBuild
 
@@ -45,26 +42,13 @@ private fun generateAppContext(context: Context, channel: String, isLargeScreenS
     val locale = Locale.getDefault()
     val formFactor = if (isLargeScreenSize) "tablet" else "phone"
     return RemoteSettingsContext(
-        appName = context.appName,
-        appId = context.packageName,
-        appVersion = AcBuild.version,
         channel = channel,
-        deviceManufacturer = Build.MANUFACTURER,
-        deviceModel = Build.MODEL,
+        appVersion = AcBuild.version,
+        appId = context.packageName,
         locale = locale.toString(),
         os = "Android",
         osVersion = Build.VERSION.RELEASE,
-        androidSdkVersion = Build.VERSION.SDK_INT.toString(),
-        customTargetingAttributes = JSONObject().apply {
-            put("formFactor", formFactor)
-            put("country", locale.country)
-        },
-        appBuild = null,
-        architecture = Build.SUPPORTED_ABIS.get(0),
-        installationDate = context.packageManager
-            .getPackageInfoCompat(context.packageName, 0)
-            .firstInstallTime,
-        debugTag = null,
-        homeDirectory = null,
+        formFactor = formFactor,
+        country = locale.country,
     )
 }
