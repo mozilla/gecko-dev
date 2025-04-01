@@ -781,6 +781,29 @@ nsresult IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
                                      : GetNewIMEState(*aPresContext, aElement);
   bool setIMEState = true;
 
+  const auto CanSkipSettingContext = [&](const InputContext& aOldContext) {
+    const auto IsChangingBrowsingMode = [&]() {
+      const bool willBeInPrivateBrowsingMode =
+          aPresContext && aPresContext->Document() &&
+          aPresContext->Document()->IsInPrivateBrowsing();
+      return willBeInPrivateBrowsingMode != aOldContext.mInPrivateBrowsing;
+    };
+    const auto IsChangingURI = [&]() {
+      const nsCOMPtr<nsIURI> newURI =
+          IMEStateManager::GetExposableURL(aPresContext);
+      if (!newURI != !aOldContext.mURI) {
+        return true;  // One is not exposable URI.
+      }
+      if (!newURI) {
+        MOZ_ASSERT(!aOldContext.mURI);
+        return false;  // Moved in non-exposable URIs.
+      }
+      bool same = false;
+      return NS_FAILED(newURI->Equals(aOldContext.mURI, &same)) || !same;
+    };
+    return !IsChangingBrowsingMode() && !IsChangingURI();
+  };
+
   if (remoteHasFocus && XRE_IsParentProcess()) {
     if (aAction.mFocusChange == InputContextAction::MENU_GOT_PSEUDO_FOCUS) {
       // If menu keyboard listener is installed, we need to disable IME now.
@@ -800,7 +823,8 @@ nsresult IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
     } else if (focusActuallyChanging) {
       InputContext context = newWidget->GetInputContext();
       if (context.mIMEState.mEnabled == IMEEnabled::Disabled &&
-          context.mOrigin == InputContext::ORIGIN_CONTENT) {
+          context.mOrigin == InputContext::ORIGIN_CONTENT &&
+          CanSkipSettingContext(context)) {
         setIMEState = false;
         MOZ_LOG(sISMLog, LogLevel::Debug,
                 ("  OnChangeFocusInternal(), doesn't set IME state because "
@@ -816,7 +840,8 @@ nsresult IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
                  "focus actually"));
       }
     } else if (newWidget->GetInputContext().mOrigin !=
-               InputContext::ORIGIN_MAIN) {
+                   InputContext::ORIGIN_MAIN &&
+               CanSkipSettingContext(newWidget->GetInputContext())) {
       // When focus is NOT changed actually, we shouldn't set IME state if
       // current input context was set by a remote process since that means
       // that the window is being activated and the child process may have
@@ -839,7 +864,8 @@ nsresult IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
       // actual focus isn't changing, but if IME enabled state is changing,
       // we should do it.
       InputContext context = newWidget->GetInputContext();
-      if (context.mIMEState.mEnabled == newState.mEnabled) {
+      if (context.mIMEState.mEnabled == newState.mEnabled &&
+          CanSkipSettingContext(context)) {
         MOZ_LOG(sISMLog, LogLevel::Debug,
                 ("  OnChangeFocusInternal(), neither focus nor IME state is "
                  "changing"));
@@ -849,7 +875,7 @@ nsresult IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
 
       // Even if focus isn't changing actually, we should commit current
       // composition here since the IME state is changing.
-      if (sFocusedPresContext && oldWidget && !focusActuallyChanging) {
+      if (sFocusedPresContext && oldWidget) {
         NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, oldWidget,
                   sFocusedIMEBrowserParent);
       }
@@ -1930,6 +1956,48 @@ static bool GetAutocorrect(const IMEState& aState, const Element& aElement,
 }
 
 // static
+already_AddRefed<nsIURI> IMEStateManager::GetExposableURL(
+    const nsPresContext* aPresContext) {
+  if (!aPresContext) {
+    return nullptr;
+  }
+  nsIURI* uri = aPresContext->Document()->GetDocumentURI();
+  if (!uri) {
+    return nullptr;
+  }
+  // We don't need to and should not expose special URLs such as:
+  // about: Any apps like IME should work normally and constantly in any
+  //        default pages such as about:blank, about:home, etc in either
+  //        the main process or a content process.
+  // blob: This may contain big data.  If we copy it to the main process,
+  //       it may make the heap dirty which makes the process slower.
+  // chrome: Same as about, any apps should work normally and constantly in
+  //         any chrome documents.
+  // data: Any native apps in the environment shouldn't change the behavior
+  //       with the data URL's content and it may contain too big data.
+  // file: The file path may contain private things and we shouldn't let
+  //       other apps like IME know which one is touched by the user because
+  //       malicious text services may like files which are explicitly used
+  //       by the user better.
+  if (!net::SchemeIsHttpOrHttps(uri)) {
+    return nullptr;
+  }
+  // Note that we don't need to expose UserPass, Query and Reference to
+  // IME since they may contain sensitive data, but non-malicious text
+  // services must not require these data.
+  nsCOMPtr<nsIURI> exposableURL;
+  if (NS_FAILED(NS_MutateURI(uri)
+                    .SetQuery(""_ns)
+                    .SetRef(""_ns)
+                    .SetUserPass(""_ns)
+                    .Finalize(exposableURL))) {
+    return nullptr;
+  }
+
+  return exposableURL.forget();
+}
+
+// static
 void IMEStateManager::SetIMEState(const IMEState& aState,
                                   const nsPresContext* aPresContext,
                                   Element* aElement, nsIWidget& aWidget,
@@ -1946,37 +2014,7 @@ void IMEStateManager::SetIMEState(const IMEState& aState,
 
   InputContext context;
   context.mIMEState = aState;
-  if (aPresContext) {
-    if (nsIURI* uri = aPresContext->Document()->GetDocumentURI()) {
-      // We don't need to and should not expose special URLs such as:
-      // about: Any apps like IME should work normally and constantly in any
-      //        default pages such as about:blank, about:home, etc in either
-      //        the main process or a content process.
-      // blob: This may contain big data.  If we copy it to the main process,
-      //       it may make the heap dirty which makes the process slower.
-      // chrome: Same as about, any apps should work normally and constantly in
-      //         any chrome documents.
-      // data: Any native apps in the environment shouldn't change the behavior
-      //       with the data URL's content and it may contain too big data.
-      // file: The file path may contain private things and we shouldn't let
-      //       other apps like IME know which one is touched by the user because
-      //       malicious text services may like files which are explicitly used
-      //       by the user better.
-      if (net::SchemeIsHttpOrHttps(uri)) {
-        // Note that we don't need to expose UserPass, Query and Reference to
-        // IME since they may contain sensitive data, but non-malicious text
-        // services must not require these data.
-        nsCOMPtr<nsIURI> exposableURL;
-        if (NS_SUCCEEDED(NS_MutateURI(uri)
-                             .SetQuery(""_ns)
-                             .SetRef(""_ns)
-                             .SetUserPass(""_ns)
-                             .Finalize(exposableURL))) {
-          context.mURI = std::move(exposableURL);
-        }
-      }
-    }
-  }
+  context.mURI = IMEStateManager::GetExposableURL(aPresContext);
   context.mOrigin = aOrigin;
 
   context.mHasHandledUserInput =

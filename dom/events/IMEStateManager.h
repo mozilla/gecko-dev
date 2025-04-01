@@ -7,6 +7,7 @@
 #ifndef mozilla_IMEStateManager_h_
 #define mozilla_IMEStateManager_h_
 
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/StaticPtr.h"
@@ -15,6 +16,7 @@
 
 class nsIContent;
 class nsINode;
+class nsIURI;
 class nsPresContext;
 
 namespace mozilla {
@@ -356,6 +358,13 @@ class IMEStateManager {
                               const InputContextAction& aAction);
   static IMEState GetNewIMEState(const nsPresContext& aPresContext,
                                  dom::Element* aElement);
+
+  /**
+   * Return a URI which is exposable via the native IME API to the system or
+   * IME.
+   */
+  static already_AddRefed<nsIURI> GetExposableURL(
+      const nsPresContext* aPresContext);
 
   static void EnsureTextCompositionArray();
 
