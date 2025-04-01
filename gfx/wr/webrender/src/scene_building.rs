@@ -641,7 +641,6 @@ impl<'a> SceneBuilder<'a> {
             &builder.spatial_tree,
             &builder.prim_instances,
             &mut builder.clip_tree_builder,
-            &builder.interners,
         );
 
         // Add all the tile cache pictures as roots of the picture graph
