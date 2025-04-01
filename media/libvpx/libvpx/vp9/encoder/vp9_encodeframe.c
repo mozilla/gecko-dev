@@ -6179,8 +6179,10 @@ static void encode_frame_internal(VP9_COMP *cpi) {
   if (cpi->oxcf.aq_mode == PERCEPTUAL_AQ) build_kmeans_segmentation(cpi);
 
   {
+#if CONFIG_INTERNAL_STATS
     struct vpx_usec_timer emr_timer;
     vpx_usec_timer_start(&emr_timer);
+#endif
 
     if (!cpi->row_mt) {
       cpi->row_mt_sync_read_ptr = vp9_row_mt_sync_read_dummy;
@@ -6197,8 +6199,10 @@ static void encode_frame_internal(VP9_COMP *cpi) {
       vp9_encode_tiles_row_mt(cpi);
     }
 
+#if CONFIG_INTERNAL_STATS
     vpx_usec_timer_mark(&emr_timer);
     cpi->time_encode_sb_row += vpx_usec_timer_elapsed(&emr_timer);
+#endif
   }
 
   sf->skip_encode_frame =
