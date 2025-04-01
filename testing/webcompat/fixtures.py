@@ -117,12 +117,12 @@ class FirefoxWebDriver(WebDriver):
         # also delete those files afterward.
         prefs[DELETE_DOWNLOADS_PREF] = True
 
-        fx_options = {"prefs": prefs}
+        fx_options = {"args": ["--remote-allow-system-access"], "prefs": prefs}
 
         if self.browser_binary:
             fx_options["binary"] = self.browser_binary
             if self.headless:
-                fx_options["args"] = ["--headless"]
+                fx_options["args"].append("--headless")
 
         if self.device_serial:
             fx_options["androidDeviceSerial"] = self.device_serial

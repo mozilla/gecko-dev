@@ -1,6 +1,6 @@
 import pytest
 
-URL = "https://eternalslots.com/games/3"
+URL = "https://eternalslots.com/games/new-games"
 FIRST_GAME_CSS = ".gameGrid .AsyncImage-image[src]"
 PLAY_FOR_FUN_CSS = "#BtnUserPlayNow"
 IFRAME_CSS = "iframe[src*=gameLauncher]"
