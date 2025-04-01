@@ -87,6 +87,9 @@ const DEFAULT_CHUNK_SIZE = 50;
 // recalculation is high enough to deserve a recalculation rate increase.
 const ACCELERATION_EVENTS_THRESHOLD = 250;
 
+/**
+ * Recalculates and decays frecency scores in Places.
+ */
 export class PlacesFrecencyRecalculator {
   classID = Components.ID("1141fd31-4c1a-48eb-8f1a-2f05fad94085");
 
@@ -247,9 +250,10 @@ export class PlacesFrecencyRecalculator {
    * Updates a chunk of outdated frecency values. If there's more frecency
    * values to update at the end of the process, it may rearm the task.
    *
-   * @param {number} chunkSize maximum number of entries to update at a time,
+   * @param {object} [options]
+   * @param {number?} [options.chunkSize] maximum number of entries to update at a time,
    *   set to -1 to update any entry.
-   * @resolves {boolean} Whether any entry was recalculated.
+   * @returns {Promise<boolean>} Whether any entry was recalculated.
    */
   async recalculateSomeFrecencies({ chunkSize = DEFAULT_CHUNK_SIZE } = {}) {
     // In case of acceleration we don't bump up the chunkSize to avoid issues
@@ -388,7 +392,7 @@ export class PlacesFrecencyRecalculator {
   /**
    * Decays frecency and adaptive history.
    *
-   * @resolves once the process is complete. Never rejects.
+   * @returns {Promise<void>} once the process is complete. Never rejects.
    */
   async decay() {
     lazy.logger.trace("Decay frecency");
@@ -526,6 +530,9 @@ export class PlacesFrecencyRecalculator {
   }
 }
 
+/**
+ * Recalculates experimental alternative frecency scores.
+ */
 class AlternativeFrecencyHelper {
   initializedDeferred = Promise.withResolvers();
   #recalculator = null;
@@ -666,9 +673,10 @@ class AlternativeFrecencyHelper {
   /**
    * Updates a chunk of outdated frecency values.
    *
-   * @param {number} chunkSize maximum number of entries to update at a time,
+   * @param {object} [options]
+   * @param {number} [options.chunkSize] maximum number of entries to update at a time,
    *   set to -1 to update any entry.
-   * @resolves {number} Number of affected pages.
+   * @returns {Promise<number>} Number of affected pages.
    */
   async recalculateSomeAlternativeFrecencies({
     chunkSize = DEFAULT_CHUNK_SIZE,
