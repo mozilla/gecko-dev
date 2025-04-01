@@ -6,8 +6,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/settings_background"
     android:orientation="vertical">
+
+    <View
+        android:id="@+id/status_bar_background"
+        android:background="@drawable/background_gradient"
+        android:layout_width="match_parent"
+        android:layout_height="0dp" />
 
     <ViewStub
         android:id="@+id/toolbar"

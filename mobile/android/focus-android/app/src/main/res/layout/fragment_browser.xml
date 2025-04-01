@@ -14,12 +14,17 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <org.mozilla.focus.browser.BrowserCoordinatorLayout
+        <View
+            android:id="@+id/status_bar_background"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@drawable/background_gradient" />
+
+        <org.mozilla.focus.widget.ResizableKeyboardCoordinatorLayout
             android:layout_marginTop="0dp"
             android:id="@+id/main_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/background_gradient"
             android:orientation="vertical"
             android:clipChildren="false">
 
@@ -44,6 +49,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/browser_toolbar_height"
                 android:layout_gravity="top"
+                android:background="@drawable/background_gradient"
                 android:clickable="true"
                 android:elevation="4dp"
                 android:focusable="true"
@@ -62,7 +68,7 @@
                 app:findInPageResultCountTextColor="@color/primaryText"
                 android:visibility="gone" />
 
-        </org.mozilla.focus.browser.BrowserCoordinatorLayout>
+        </org.mozilla.focus.widget.ResizableKeyboardCoordinatorLayout>
     </LinearLayout>
 
     <FrameLayout

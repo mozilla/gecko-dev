@@ -13,7 +13,7 @@ import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import org.mozilla.focus.R
+import org.mozilla.focus.activity.MainActivity
 import org.mozilla.focus.ext.hideToolbar
 import org.mozilla.focus.ext.requireComponents
 import org.mozilla.focus.state.AppAction
@@ -88,11 +89,12 @@ abstract class BaseComposeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         hideToolbar()
+        (requireActivity() as? MainActivity)?.hideStatusBarBackground()
         val title = getTitle()
         composeView.setContent {
             FocusTheme {
                 Scaffold(
-                    modifier = Modifier.systemBarsPadding(),
+                    modifier = Modifier.statusBarsPadding(),
                 ) { paddingValues ->
                     Column(
                         modifier = Modifier

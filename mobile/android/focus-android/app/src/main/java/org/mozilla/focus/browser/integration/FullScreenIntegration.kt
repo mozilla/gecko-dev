@@ -6,7 +6,9 @@ package org.mozilla.focus.browser.integration
 
 import android.app.Activity
 import android.os.Build
+import android.view.View
 import androidx.annotation.VisibleForTesting
+import androidx.core.view.isVisible
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.EngineView
@@ -32,6 +34,7 @@ class FullScreenIntegration(
     tabId: String?,
     sessionUseCases: SessionUseCases,
     private val toolbarView: BrowserToolbar,
+    private val statusBar: View,
     private val engineView: EngineView,
     private val isAccessibilityEnabled: () -> Boolean,
 ) : LifecycleAwareFeature, UserInteractionHandler {
@@ -65,6 +68,7 @@ class FullScreenIntegration(
     ) {
         if (enabled) {
             enterBrowserFullscreen()
+            statusBar.isVisible = false
 
             fullScreenNotification.show()
 
@@ -75,6 +79,7 @@ class FullScreenIntegration(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInPictureInPictureMode) {
                 activity.moveTaskToBack(false)
             }
+            statusBar.isVisible = true
             exitBrowserFullscreen()
 
             exitImmersiveMode()

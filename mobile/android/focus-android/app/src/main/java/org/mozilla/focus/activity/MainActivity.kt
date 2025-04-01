@@ -7,21 +7,22 @@ package org.mozilla.focus.activity
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
+import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.concept.engine.EngineView
@@ -29,6 +30,12 @@ import mozilla.components.feature.search.widget.BaseVoiceSearchActivity
 import mozilla.components.lib.auth.canUseBiometricFeature
 import mozilla.components.lib.crash.Crash
 import mozilla.components.support.base.feature.UserInteractionHandler
+import mozilla.components.support.ktx.android.content.getStatusBarColor
+import mozilla.components.support.ktx.android.view.createWindowInsetsController
+import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
+import mozilla.components.support.ktx.android.view.setNavigationBarDividerColorCompat
+import mozilla.components.support.ktx.android.view.setStatusBarColorCompat
+import mozilla.components.support.locale.LocaleAwareAppCompatActivity
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.StatusBarUtils
 import mozilla.telemetry.glean.private.NoExtras
@@ -59,10 +66,7 @@ import org.mozilla.focus.utils.SupportUtils
 private const val REQUEST_TIME_OUT = 2000L
 
 @Suppress("TooManyFunctions", "LargeClass")
-/**
- * The main entry point for the app.
- */
-open class MainActivity : EdgeToEdgeActivity() {
+open class MainActivity : LocaleAwareAppCompatActivity() {
     private var isToolbarInflated = false
     private val intentProcessor by lazy {
         IntentProcessor(this, components.tabsUseCases, components.customTabsUseCases)
@@ -102,6 +106,21 @@ open class MainActivity : EdgeToEdgeActivity() {
             return
         }
 
+        @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/focus-android/issues/5016
+        window.decorView.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+
+        window.setStatusBarColorCompat(ContextCompat.getColor(this, android.R.color.transparent))
+        when (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+            Configuration.UI_MODE_NIGHT_UNDEFINED, // We assume light here per Android doc's recommendation
+            Configuration.UI_MODE_NIGHT_NO,
+            -> {
+                updateLightSystemBars()
+            }
+            Configuration.UI_MODE_NIGHT_YES -> {
+                clearLightSystemBars()
+            }
+        }
         setContentView(binding.root)
 
         startupPathProvider.attachOnActivityOnCreate(lifecycle, intent)
@@ -389,22 +408,62 @@ open class MainActivity : EdgeToEdgeActivity() {
         }
     }
 
+    private fun updateLightSystemBars() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            window.context.getStatusBarColor()?.let { window.setStatusBarColorCompat(it) }
+            window.createWindowInsetsController().isAppearanceLightStatusBars = true
+        } else {
+            window.setStatusBarColorCompat(Color.BLACK)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // API level can display handle light navigation bar color
+            window.createWindowInsetsController().isAppearanceLightNavigationBars = true
+            window.setNavigationBarColorCompat(ContextCompat.getColor(this, android.R.color.transparent))
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                window.setNavigationBarDividerColorCompat(
+                    ContextCompat.getColor(this, android.R.color.transparent),
+                )
+            }
+        }
+    }
+
+    private fun clearLightSystemBars() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            window.createWindowInsetsController().isAppearanceLightStatusBars = false
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // API level can display handle light navigation bar color
+            window.createWindowInsetsController().isAppearanceLightNavigationBars = false
+        }
+    }
+
     fun getToolbar(): ActionBar {
         if (!isToolbarInflated) {
             val toolbar = binding.toolbar.inflate() as Toolbar
-
-            StatusBarUtils.getStatusBarHeight(toolbar) { statusBarHeight ->
-                toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    height = height + statusBarHeight
-                }
-                toolbar.updatePadding(top = statusBarHeight)
-            }
-
             setSupportActionBar(toolbar)
             setNavigationIcon(R.drawable.ic_back_button)
             isToolbarInflated = true
         }
         return supportActionBar!!
+    }
+
+    fun customizeStatusBar(backgroundColorId: Int? = null) {
+        with(binding.statusBarBackground) {
+            binding.statusBarBackground.isVisible = true
+            StatusBarUtils.getStatusBarHeight(this) { statusBarHeight ->
+                layoutParams.height = statusBarHeight
+                backgroundColorId?.let { color ->
+                    setBackgroundColor(ContextCompat.getColor(context, color))
+                }
+            }
+        }
+    }
+
+    fun hideStatusBarBackground() {
+        binding.statusBarBackground.isVisible = false
     }
 
     override fun onDestroy() {

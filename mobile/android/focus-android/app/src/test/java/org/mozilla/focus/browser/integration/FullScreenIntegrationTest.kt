@@ -11,6 +11,7 @@ import android.view.Window
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import mozilla.components.browser.engine.gecko.GeckoEngineView
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.feature.prompts.dialog.FullScreenNotification
@@ -281,10 +282,12 @@ internal class FullScreenIntegrationTest {
         val engineView: GeckoEngineView = mock()
         doReturn(mock<View>()).`when`(engineView).asView()
         val activity = Robolectric.buildActivity(Activity::class.java).get()
+        val statusBar: View = mock()
         val integration = spy(
             createFullScreenIntegration(
                 activity = activity,
                 toolbar = toolbar,
+                statusBar = statusBar,
                 engineView = engineView,
                 isAccessibilityEnabled = { true },
             ),
@@ -294,6 +297,7 @@ internal class FullScreenIntegrationTest {
         integration.fullScreenChanged(true, fullScreenNotification)
 
         verify(integration).enterBrowserFullscreen()
+        verify(statusBar).isVisible = false
         verify(fullScreenNotification).show()
         verify(integration).switchToImmersiveMode()
         verify(toolbar).hide(engineView)
@@ -343,10 +347,12 @@ internal class FullScreenIntegrationTest {
         doReturn(windowAttributes).`when`(activityWindow).attributes
         doReturn(resources).`when`(activity).resources
         doReturn("").`when`(resources).getString(anyInt())
+        val statusBar: View = mock()
         val integration = spy(
             createFullScreenIntegration(
                 activity = activity,
                 toolbar = toolbar,
+                statusBar = statusBar,
                 engineView = engineView,
                 isAccessibilityEnabled = { false },
             ),
@@ -356,6 +362,7 @@ internal class FullScreenIntegrationTest {
 
         verify(integration).exitBrowserFullscreen()
         verify(integration).exitImmersiveMode()
+        verify(statusBar).isVisible = true
     }
 
     @Test
@@ -378,10 +385,12 @@ internal class FullScreenIntegrationTest {
         doReturn("").`when`(resources).getString(anyInt())
         doReturn(insetsController).`when`(activityWindow).insetsController
 
+        val statusBar: View = mock()
         val integration = spy(
             createFullScreenIntegration(
                 activity = activity,
                 toolbar = toolbar,
+                statusBar = statusBar,
                 engineView = engineView,
                 isAccessibilityEnabled = { false },
             ),
@@ -391,11 +400,13 @@ internal class FullScreenIntegrationTest {
 
         verify(integration).exitBrowserFullscreen()
         verify(integration).exitImmersiveMode()
+        verify(statusBar).isVisible = true
     }
 
     private fun createFullScreenIntegration(
         activity: Activity = mock(),
         toolbar: BrowserToolbar = mock(),
+        statusBar: View = mock(),
         engineView: GeckoEngineView = mock(),
         isAccessibilityEnabled: () -> Boolean = { false },
     ) = FullScreenIntegration(
@@ -404,6 +415,7 @@ internal class FullScreenIntegrationTest {
         tabId = null,
         sessionUseCases = mock(),
         toolbarView = toolbar,
+        statusBar = statusBar,
         engineView = engineView,
         isAccessibilityEnabled = isAccessibilityEnabled,
     )
