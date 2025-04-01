@@ -183,6 +183,17 @@ class AccAttributes {
   }
 
   template <typename T>
+  const T* GetAttributeWeakPtr(nsAtom* aAttrName) const {
+    if (auto value = mData.Lookup(aAttrName)) {
+      if (value->is<RefPtr<T>>()) {
+        const T* ref = value->as<RefPtr<T>>();
+        return ref;
+      }
+    }
+    return nullptr;
+  }
+
+  template <typename T>
   Maybe<T&> GetMutableAttribute(nsAtom* aAttrName) const {
     static_assert(std::is_same_v<nsTArray<int32_t>, T> ||
                       std::is_same_v<nsTArray<uint64_t>, T>,

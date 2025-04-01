@@ -1109,6 +1109,12 @@ class AccessibilityTest : BaseSessionTest() {
         loadTestPage("test-live-region")
         waitForInitialFocus()
 
+        val rootNode = createNodeInfo(View.NO_ID)
+        assertThat("Document has 1 child", rootNode.childCount, equalTo(1))
+
+        val liveRegion = createNodeInfo(rootNode.getChildId(0))
+        assertThat("First node is a label", liveRegion.viewIdResourceName.toString(), equalTo("to_change"))
+
         mainSession.evaluateJS("document.querySelector('#to_change').textContent = 'Hello';")
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
