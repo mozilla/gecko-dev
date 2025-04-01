@@ -18,7 +18,7 @@ updatebot:
     try-preset: webgpu
     tasks:
       - type: vendoring
-        enabled: false
+        enabled: true
         frequency: 1 week
         blocking: 1863146  # webgpu-update-cts
 
