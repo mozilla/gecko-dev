@@ -11,6 +11,9 @@ import android.view.MenuItem
 import android.view.View
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceFragmentCompat
 
@@ -20,6 +23,15 @@ abstract class BaseSettingsFragment : PreferenceFragmentCompat(), MenuProvider {
 
         val menuHost: MenuHost = requireHost() as MenuHost
         menuHost.addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+
+        val originalBottomPadding = view.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, windowInsets ->
+            val systemBarsInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(bottom = originalBottomPadding + systemBarsInsets.bottom)
+
+            windowInsets
+        }
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
