@@ -359,21 +359,6 @@ export var OSKeyStore = {
   },
 
   /**
-   * Resolve when the login dialogs are closed, immediately if none are open.
-   *
-   * An existing MP dialog will be focused and will request attention.
-   *
-   * @returns {Promise<boolean>}
-   *          Resolves with whether the user is logged in to MP.
-   */
-  async waitForExistingDialog() {
-    if (this.isUIBusy) {
-      return this._pendingUnlockPromise;
-    }
-    return this.isLoggedIn;
-  },
-
-  /**
    * Remove the store. For tests.
    */
   async cleanup() {
