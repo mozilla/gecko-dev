@@ -181,7 +181,6 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
   // https://learn.microsoft.com/en-us/windows/win32/gdi/the-wm-paint-message
   HDC hDC = ::BeginPaint(mWnd, &ps);
   LayoutDeviceIntRegion region = GetRegionToPaint(ps, hDC);
-  LayoutDeviceIntRegion regionToClear;
   // Clear the translucent region if needed.
   if (mTransparencyMode == TransparencyMode::Transparent) {
     auto translucentRegion = GetTranslucentRegion();
@@ -192,25 +191,22 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
     //   regionToClear = translucentRegion - (mClearedRegion - region)
     //   mClearedRegion = translucentRegion;
     //   And add translucentRegion to region afterwards.
-    regionToClear = translucentRegion;
+    LayoutDeviceIntRegion regionToClear = translucentRegion;
     if (!mClearedRegion.IsEmpty()) {
       mClearedRegion.SubOut(region);
       regionToClear.SubOut(mClearedRegion);
     }
     region.OrWith(translucentRegion);
     mClearedRegion = std::move(translucentRegion);
-  }
-  if (mNeedsNCAreaClear) {
-    regionToClear.OrWith(ComputeNonClientRegion());
-    mNeedsNCAreaClear = false;
-  }
-  if (!regionToClear.IsEmpty()) {
-    auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
-    // We could use RegionToHRGN, but at least for simple regions (and possibly
-    // for complex ones too?) FillRect is faster; see bug 1946365 comment 12.
-    for (auto it = regionToClear.RectIter(); !it.Done(); it.Next()) {
-      auto rect = WinUtils::ToWinRect(it.Get());
-      ::FillRect(hDC, &rect, black);
+
+    if (!regionToClear.IsEmpty()) {
+      auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
+      // We could use RegionToHRGN, but at least for simple regions (and possibly
+      // for complex ones too?) FillRect is faster; see bug 1946365 comment 12.
+      for (auto it = regionToClear.RectIter(); !it.Done(); it.Next()) {
+        auto rect = WinUtils::ToWinRect(it.Get());
+        ::FillRect(hDC, &rect, black);
+      }
     }
   }
 

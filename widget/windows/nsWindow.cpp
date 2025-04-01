@@ -945,9 +945,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
 
       // Skeleton ui is disabled when custom titlebar is off, see bug 1673092.
       SetCustomTitlebar(true);
-      // The skeleton UI already painted over the NC area, so there's no need
-      // to do that again; the effective non-client margins haven't changed.
-      mNeedsNCAreaClear = false;
 
       // Reset the WNDPROC for this window and its whole class, as we had
       // to use our own WNDPROC when creating the the skeleton UI window.
@@ -2685,19 +2682,6 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
     // frame sizes for left, right and bottom since Windows will automagically
     // position the edges "offscreen" for maximized windows.
     metrics.mOffset.top = metrics.mCaptionHeight;
-
-    if (StaticPrefs::widget_windows_hidden_taskbar_hack_size()) {
-      if (mozilla::Maybe<UINT> maybeEdge = GetHiddenTaskbarEdge()) {
-        auto edge = maybeEdge.value();
-        if (ABE_LEFT == edge) {
-          metrics.mOffset.left -= kHiddenTaskbarSize;
-        } else if (ABE_RIGHT == edge) {
-          metrics.mOffset.right -= kHiddenTaskbarSize;
-        } else if (ABE_BOTTOM == edge || ABE_TOP == edge) {
-          metrics.mOffset.bottom -= kHiddenTaskbarSize;
-        }
-      }
-    }
   } else if (mPIPWindow &&
              !StaticPrefs::widget_windows_pip_decorations_enabled()) {
     metrics.mOffset = metrics.DefaultMargins();
@@ -2706,12 +2690,6 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   }
 
   UpdateOpaqueRegionInternal();
-  if (StaticPrefs::widget_windows_hidden_taskbar_hack_paint()) {
-    // We probably shouldn't need to clear the NC-area, but we need to in
-    // order to work around bug 642851.
-    mNeedsNCAreaClear = true;
-  }
-
   if (aReflowWindow) {
     // Force a reflow of content based on the new client
     // dimensions.
@@ -2779,26 +2757,6 @@ void nsWindow::SetCustomTitlebar(bool aCustomTitlebar) {
 
 void nsWindow::SetResizeMargin(mozilla::LayoutDeviceIntCoord aResizeMargin) {
   mCustomResizeMargin = aResizeMargin;
-}
-
-LayoutDeviceIntRegion nsWindow::ComputeNonClientRegion() {
-  // +-+-----------------------+-+
-  // | | app non-client chrome | |
-  // | +-----------------------+ |
-  // | |   app client chrome   | | }
-  // | +-----------------------+ | }
-  // | |      app content      | | } area we don't want to invalidate
-  // | +-----------------------+ | }
-  // | |   app client chrome   | | }
-  // | +-----------------------+ |
-  // +---------------------------+ <
-  //  ^                         ^    windows non-client chrome
-  // client area = app *
-  auto winRect = LayoutDeviceIntRect(LayoutDeviceIntPoint(), GetSize());
-  LayoutDeviceIntRegion region{winRect};
-  winRect.Deflate(mCustomNonClientMetrics.DefaultMargins());
-  region.SubOut(winRect);
-  return region;
 }
 
 /**************************************************************
@@ -7213,9 +7171,9 @@ LayoutDeviceIntRegion nsWindow::GetTranslucentRegion() {
   if (mTransparencyMode != TransparencyMode::Transparent) {
     return {};
   }
-  const auto winRect = LayoutDeviceIntRect(LayoutDeviceIntPoint(), GetSize());
-  LayoutDeviceIntRegion translucentRegion{winRect};
-  translucentRegion.SubOut(mOpaqueRegion.MovedBy(GetClientOffset()));
+  const auto clientRect = LayoutDeviceIntRect(LayoutDeviceIntPoint(), GetClientSize());
+  LayoutDeviceIntRegion translucentRegion{clientRect};
+  translucentRegion.SubOut(mOpaqueRegion);
   return translucentRegion;
 }
 
