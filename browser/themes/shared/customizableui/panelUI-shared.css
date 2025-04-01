@@ -32,7 +32,7 @@
 
   &[uidensity=compact] {
     --arrowpanel-menuitem-margin-inline: 4px;
-    --arrowpanel-menuitem-padding-block: 0px;
+    --arrowpanel-menuitem-padding-block: 4px;
     --panel-separator-margin-horizontal: 4px;
     --panel-subview-body-padding-block: 4px;
     :is(panel, menupopup):not([touchmode]) {
