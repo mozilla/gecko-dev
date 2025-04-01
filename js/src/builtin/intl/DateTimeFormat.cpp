@@ -1179,9 +1179,6 @@ GetDateTimeFormat(const mozilla::intl::DateTimeFormat::ComponentsBag& options,
       formatOptions.second = numericOption;
     }
 
-    // FIXME: spec bug - don't override timeZoneName option if present
-    // https://github.com/tc39/proposal-temporal/issues/3064
-
     // Step 17.c.
     if (defaults == Defaults::ZonedDateTime && !formatOptions.timeZoneName) {
       formatOptions.timeZoneName =
