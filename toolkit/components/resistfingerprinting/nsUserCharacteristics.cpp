@@ -5,6 +5,7 @@
 
 #include "nsUserCharacteristics.h"
 
+#include "nsICryptoHash.h"
 #include "nsID.h"
 #include "nsIGfxInfo.h"
 #include "nsIUUIDGenerator.h"
@@ -53,7 +54,6 @@
 #include "nsIPropertyBag2.h"
 #include "nsITimer.h"
 #include "gfxConfig.h"
-#include "ScopedNSSTypes.h"
 
 #include "gfxPlatformFontList.h"
 #include "prsystem.h"
@@ -276,14 +276,22 @@ void PopulateMissingFonts() {
 nsresult ProcessFingerprintedFonts(const char* aFonts[],
                                    nsCString& aOutAllowlistedHex,
                                    nsCString& aOutNonAllowlistedHex) {
-  Digest allowlisted;
-  Digest nonallowlisted;
-
-  nsresult rv = allowlisted.Begin(SEC_OID_SHA256);
+  nsresult rv;
+  // Create hashes
+  nsCOMPtr<nsICryptoHash> allowlisted =
+      do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = nonallowlisted.Begin(SEC_OID_SHA256);
+  nsCOMPtr<nsICryptoHash> nonallowlisted =
+      do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  // Init hashes
+  rv = allowlisted->Init(nsICryptoHash::SHA256);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = nonallowlisted->Init(nsICryptoHash::SHA256);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Iterate over fonts and update hashes
   for (size_t i = 0; aFonts[i] != nullptr; ++i) {
     nsCString font(aFonts[i]);
     bool found = false;
@@ -295,31 +303,23 @@ nsresult ProcessFingerprintedFonts(const char* aFonts[],
 
     if (visibility == FontVisibility::Base ||
         visibility == FontVisibility::LangPack) {
-      allowlisted.Update(reinterpret_cast<const unsigned char*>(font.get()),
-                         font.Length());
+      allowlisted->Update(reinterpret_cast<const uint8_t*>(font.get()),
+                          font.Length());
     } else {
-      nonallowlisted.Update(reinterpret_cast<const unsigned char*>(font.get()),
-                            font.Length());
+      nonallowlisted->Update(reinterpret_cast<const uint8_t*>(font.get()),
+                             font.Length());
     }
   }
 
-  AutoTArray<uint8_t, SHA256_LENGTH> allowlistedDigest;
-  rv = allowlisted.End(allowlistedDigest);
-  NS_ENSURE_SUCCESS(rv, rv);
+  // Finish hashes
+  nsAutoCString allowlistedDigest;
+  nsAutoCString nonallowlistedDigest;
+  allowlisted->Finish(false, allowlistedDigest);
+  nonallowlisted->Finish(false, nonallowlistedDigest);
 
-  AutoTArray<uint8_t, SHA256_LENGTH> nonallowlistedDigest;
-  rv = nonallowlisted.End(nonallowlistedDigest);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  NS_ENSURE_TRUE(
-      aOutAllowlistedHex.SetCapacity(2 * allowlistedDigest.Length(), fallible),
-      NS_ERROR_OUT_OF_MEMORY);
-  NS_ENSURE_TRUE(aOutNonAllowlistedHex.SetCapacity(
-                     2 * nonallowlistedDigest.Length(), fallible),
-                 NS_ERROR_OUT_OF_MEMORY);
-
+  // Convert to hex
   const char HEX[] = "0123456789abcdef";
-  for (size_t i = 0; i < SHA256_LENGTH; ++i) {
+  for (size_t i = 0; i < 32; ++i) {
     uint8_t b = allowlistedDigest[i];
     aOutAllowlistedHex.Append(HEX[(b >> 4) & 0xF]);
     aOutAllowlistedHex.Append(HEX[b & 0xF]);
@@ -328,6 +328,7 @@ nsresult ProcessFingerprintedFonts(const char* aFonts[],
     aOutNonAllowlistedHex.Append(HEX[(b >> 4) & 0xF]);
     aOutNonAllowlistedHex.Append(HEX[b & 0xF]);
   }
+
   return NS_OK;
 }
 
@@ -796,7 +797,7 @@ const RefPtr<PopulatePromise>& TimoutPromise(
 // metric is set, this variable should be incremented. It'll be a lot. It's
 // okay. We're going to need it to know (including during development) what is
 // the source of the data we are looking at.
-const int kSubmissionSchema = 25;
+const int kSubmissionSchema = 26;
 
 const auto* const kUUIDPref =
     "toolkit.telemetry.user_characteristics_ping.uuid";
