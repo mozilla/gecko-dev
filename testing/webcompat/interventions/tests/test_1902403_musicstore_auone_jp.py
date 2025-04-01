@@ -1,4 +1,5 @@
 import pytest
+from webdriver.bidi.error import UnknownErrorException
 
 URL = "https://musicstore.auone.jp/"
 HERO_CSS = ".top-campaignbnr-list__item-link"
@@ -7,10 +8,16 @@ NEED_VPN_TEXT = "access from within Japan"
 
 
 async def is_unsupported(client):
-    await client.navigate(URL)
-    _, vpn = client.await_first_element_of(
-        [client.css(HERO_CSS), client.text(NEED_VPN_TEXT)], is_displayed=True
-    )
+    vpn = False
+    try:
+        await client.navigate(URL, no_skip=True)
+        _, vpn = client.await_first_element_of(
+            [client.css(HERO_CSS), client.text(NEED_VPN_TEXT)], is_displayed=True
+        )
+    except UnknownErrorException as e:
+        if "NS_ERROR_UNKNOWN_HOST" not in str(e):
+            raise e
+        vpn = True
     if vpn:
         pytest.skip("Region-locked, cannot test. Try using a VPN set to Japan.")
         return False

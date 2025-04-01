@@ -393,6 +393,12 @@ class Client:
                     % self.request.fspath.basename
                 )
                 return
+            elif "NS_ERROR_UNKNOWN_HOST" in s:
+                pytest.skip(
+                    "%s: Site appears to be down. Please try again later."
+                    % self.request.fspath.basename
+                )
+                return
             elif "NS_ERROR_REDIRECT_LOOP" in s:
                 pytest.skip(
                     "%s: Site is stuck in a redirect loop. Please try again later."

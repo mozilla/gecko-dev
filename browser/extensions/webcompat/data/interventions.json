@@ -2482,6 +2482,21 @@
       }
     ]
   },
+  "1902403": {
+    "label": "musicstore.auone.jp",
+    "bugs": {
+      "1385206": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://musicstore.auone.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
   "1902459": {
     "label": "coupangplay.com",
     "bugs": {
