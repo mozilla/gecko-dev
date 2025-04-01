@@ -944,6 +944,13 @@ async function StartCurrentURI(aURLTargetType) {
       );
     }
 
+    if (prefSettings.length) {
+      // Some prefs affect CSS parsing.
+      ChromeUtils.clearResourceCache({
+        types: ["stylesheet"],
+      });
+    }
+
     var type = g.urls[0].type;
     if (TYPE_SCRIPT == type) {
       SendLoadScriptTest(g.currentURL, g.loadTimeout);
