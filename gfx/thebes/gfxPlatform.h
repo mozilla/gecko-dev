@@ -106,15 +106,17 @@ enum class eFontPresentation : uint8_t {
   // Character does not have the emoji property, so no special heuristics
   // apply during font selection.
   Any = 0,
+  // Character is potentially emoji, but its default presentation is text.
+  TextDefault,
   // Character is potentially emoji, but Text-style presentation has been
   // explicitly requested using VS15.
-  Text = 1,
+  TextExplicit,
   // Character has Emoji-style presentation by default (but an author-
-  // provided webfont will be used even if it is not color).
-  EmojiDefault = 2,
+  // provided webfont may be used even if it is not color).
+  EmojiDefault,
   // Character explicitly requires Emoji-style presentation due to VS16 or
   // skin-tone codepoint.
-  EmojiExplicit = 3
+  EmojiExplicit,
 };
 
 inline bool PrefersColor(eFontPresentation aPresentation) {

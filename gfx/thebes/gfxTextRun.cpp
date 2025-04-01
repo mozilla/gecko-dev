@@ -1867,7 +1867,7 @@ gfxFontGroup::gfxFontGroup(nsPresContext* aPresContext,
     case StyleFontVariantEmoji::Unicode:
       break;
     case StyleFontVariantEmoji::Text:
-      mEmojiPresentation = eFontPresentation::Text;
+      mEmojiPresentation = eFontPresentation::TextExplicit;
       break;
     case StyleFontVariantEmoji::Emoji:
       mEmojiPresentation = eFontPresentation::EmojiExplicit;
@@ -3212,34 +3212,34 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
   // if there's a variation selector specifically asking for Text-style or
   // Emoji-style rendering and look for a suitable font.
   eFontPresentation presentation = eFontPresentation::Any;
-  EmojiPresentation emojiPresentation = GetEmojiPresentation(aCh);
-  if (emojiPresentation != TextOnly) {
+  if (EmojiPresentation emojiPresentation = GetEmojiPresentation(aCh);
+      emojiPresentation != TextOnly) {
     // Default presentation from the font-variant-emoji property.
     presentation = mEmojiPresentation;
+    // If there wasn't an explicit font-variant-emoji setting, default to
+    // what Unicode prefers for this character.
+    if (presentation == eFontPresentation::Any) {
+      if (emojiPresentation == EmojiPresentation::TextDefault) {
+        presentation = eFontPresentation::TextDefault;
+      } else {
+        presentation = eFontPresentation::EmojiDefault;
+      }
+    }
     // If the prefer-emoji selector is present, or if it's a default-emoji
     // char and the prefer-text selector is NOT present, or if there's a
     // skin-tone modifier, we specifically look for a font with a color
     // glyph.
     // If the prefer-text selector is present, we specifically look for a
     // font that will provide a monochrome glyph.
-    // Otherwise, we'll accept either color or monochrome font-family
-    // entries, so that a color font can be explicitly applied via font-
-    // family even to characters that are not inherently emoji-style.
     if (aNextCh == kVariationSelector16 ||
         (aNextCh >= kEmojiSkinToneFirst && aNextCh <= kEmojiSkinToneLast) ||
         gfxFontUtils::IsEmojiFlagAndTag(aCh, aNextCh)) {
       // Emoji presentation is explicitly requested by a variation selector
       // or the presence of a skin-tone codepoint.
       presentation = eFontPresentation::EmojiExplicit;
-    } else if (emojiPresentation == EmojiPresentation::EmojiDefault &&
-               aNextCh != kVariationSelector15) {
-      // Emoji presentation is the default for this Unicode character. but we
-      // will allow an explicitly-specified webfont to apply to it,
-      // regardless of its glyph type.
-      presentation = eFontPresentation::EmojiDefault;
     } else if (aNextCh == kVariationSelector15) {
       // Text presentation is explicitly requested.
-      presentation = eFontPresentation::Text;
+      presentation = eFontPresentation::TextExplicit;
     }
   }
 
@@ -3305,22 +3305,14 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
 
   // Used to remember the first "candidate" font that would provide a fallback
   // text-style rendering if no color glyph can be found.
-  // If we decide NOT to return this font, we must AddRef/Release it to ensure
-  // that it goes into the global font cache as a candidate for deletion.
-  // This is done for us by CheckCandidate, but any code path that returns
-  // WITHOUT calling CheckCandidate needs to handle it explicitly.
   RefPtr<gfxFont> candidateFont;
   FontMatchType candidateMatchType;
 
   // Handle a candidate font that could support the character, returning true
   // if we should go ahead and return |f|, false to continue searching.
-  // If there is already a saved candidate font, and the new candidate is
-  // accepted, we AddRef/Release the existing candidate so it won't leak.
   auto CheckCandidate = [&](gfxFont* f, FontMatchType t) -> bool {
     // If no preference, then just accept the font.
-    if (presentation == eFontPresentation::Any ||
-        (presentation == eFontPresentation::EmojiDefault &&
-         f->GetFontEntry()->IsUserFont())) {
+    if (presentation == eFontPresentation::Any) {
       *aMatchType = t;
       return true;
     }
@@ -3336,7 +3328,8 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
     // we'll assume it knows what it is doing (eg Twemoji Mozilla keycap
     // sequences).
     // TODO: reconsider all this as part of any fix for bug 543200.
-    if (aNextCh == kVariationSelector16 && emojiPresentation == TextDefault &&
+    if (aNextCh == kVariationSelector16 &&
+        presentation <= eFontPresentation::TextDefault &&
         f->HasCharacter(aNextCh) && f->GetFontEntry()->TryGetColorGlyphs()) {
       return true;
     }
@@ -3458,6 +3451,16 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
     }
   }
 
+  // If it's an emoji codepoint and we found a named-family candidate (not a
+  // generic) in the font list, we accept it even if it doesn't match the
+  // presentation (so authors can deliberately request that do not match the
+  // Unicode emoji default presentation style for a given character).
+  if (candidateFont &&
+      candidateMatchType.generic == StyleGenericFontFamily::None) {
+    *aMatchType = candidateMatchType;
+    return candidateFont.forget();
+  }
+
   if (fontListLength == 0) {
     RefPtr<gfxFont> defaultFont = GetDefaultFont();
     if (defaultFont->HasCharacter(aCh) ||
@@ -3510,7 +3513,7 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
   // emoji-style presentation is specifically required, so we map Any to
   // Text here.
   if (presentation == eFontPresentation::Any) {
-    presentation = eFontPresentation::Text;
+    presentation = eFontPresentation::TextDefault;
   }
 
   // 3. use fallback fonts
