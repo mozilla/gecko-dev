@@ -112,7 +112,6 @@ if (
 
 if CONFIG["OS_TARGET"] == "WINNT":
     UNIFIED_SOURCES += [
-        "TestAvailableMemoryWatcherWin.cpp",
         "TestFileNTFSSpecialPaths.cpp",
         "TestFilePreferencesWin.cpp",
         "TestHandleWatcher.cpp",
@@ -121,6 +120,13 @@ else:
     UNIFIED_SOURCES += [
         "TestFilePreferencesUnix.cpp",
     ]
+
+# Bug 1940978 - Fails 50% of the time when the address santizer is enabled
+if CONFIG["OS_TARGET"] == "WINNT" and not CONFIG["MOZ_ASAN"]:
+    UNIFIED_SOURCES += [
+        "TestAvailableMemoryWatcherWin.cpp",
+    ]
+
 
 if CONFIG["OS_TARGET"] == "Darwin":
     UNIFIED_SOURCES += [
