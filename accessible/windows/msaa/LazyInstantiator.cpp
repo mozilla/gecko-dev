@@ -351,11 +351,11 @@ void LazyInstantiator::TransplantRefCnt() {
 
 HRESULT
 LazyInstantiator::MaybeResolveRoot() {
-  if (mWeakAccessible) {
-    return S_OK;
+  if (!GetAccService() && !ShouldInstantiate()) {
+    return E_FAIL;
   }
 
-  if (GetAccService() || ShouldInstantiate()) {
+  if (!mWeakAccessible) {
     mWeakMsaaRoot = ResolveMsaaRoot();
     if (!mWeakMsaaRoot) {
       return E_POINTER;
@@ -372,7 +372,7 @@ LazyInstantiator::MaybeResolveRoot() {
     TransplantRefCnt();
 
     // Now obtain mWeakAccessible which we use to forward our incoming calls
-    // to the real accesssible.
+    // to the real accessible.
     HRESULT hr =
         mRealRootUnk->QueryInterface(IID_IAccessible, (void**)&mWeakAccessible);
     if (FAILED(hr)) {
@@ -380,23 +380,26 @@ LazyInstantiator::MaybeResolveRoot() {
     }
     // mWeakAccessible is weak, so don't hold a strong ref
     mWeakAccessible->Release();
-    if (Compatibility::IsUiaEnabled()) {
-      hr = mRealRootUnk->QueryInterface(IID_IRawElementProviderSimple,
-                                        (void**)&mWeakUia);
-      if (FAILED(hr)) {
-        return hr;
-      }
-      mWeakUia->Release();
-    }
 
     // Now that a11y is running, we don't need to remain registered with our
     // HWND anymore.
     ClearProp();
-
-    return S_OK;
   }
 
-  return E_FAIL;
+  // If the UIA pref is changed during the session, this method might be first
+  // called with UIA disabled and then called again later with UIA enabled.
+  // Thus, we handle mWeakUia separately from mWeakAccessible.
+  if (!mWeakUia && Compatibility::IsUiaEnabled()) {
+    MOZ_ASSERT(mWeakAccessible);
+    HRESULT hr = mRealRootUnk->QueryInterface(IID_IRawElementProviderSimple,
+                                              (void**)&mWeakUia);
+    if (FAILED(hr)) {
+      return hr;
+    }
+    mWeakUia->Release();
+  }
+
+  return S_OK;
 }
 
 #define RESOLVE_ROOT                 \
