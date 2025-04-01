@@ -32,6 +32,7 @@
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/SharedSubResourceCache.h"
 #include "mozilla/dom/CacheExpirationTime.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/FetchPriority.h"
@@ -1537,52 +1538,9 @@ nsresult imgLoader::RemoveEntriesInternal(
   for (const auto& entry : mCache) {
     const auto& key = entry.GetKey();
 
-    // TODO(emilio): Deduplicate this with SharedSubresourceCache.
-    const bool shouldRemove = [&] {
-      if (aURL) {
-        nsAutoCString spec;
-        nsresult rv = key.URI()->GetSpec(spec);
-        if (NS_FAILED(rv)) {
-          return false;
-        }
-        return spec == *aURL;
-      }
-
-      if (aPrincipal) {
-        return key.LoaderPrincipal()->Equals(aPrincipal.ref());
-      }
-
-      if (!aSchemelessSite) {
-        return false;
-      }
-      // Clear by site
-      nsIPrincipal* partitionPrincipal = key.PartitionPrincipal();
-      nsAutoCString principalBaseDomain;
-      nsresult rv = partitionPrincipal->GetBaseDomain(principalBaseDomain);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return false;
-      }
-
-      if (principalBaseDomain.Equals(aSchemelessSite.ref()) &&
-          aPattern.ref().Matches(partitionPrincipal->OriginAttributesRef())) {
-        return true;
-      }
-
-      // Clear entries partitioned under aSchemelessSite. We need to add the
-      // partition key filter to aPattern so that we include any OA filtering
-      // specified by the caller. For example the caller may pass aPattern = {
-      // privateBrowsingId: 1 } which means we may only clear partitioned
-      // private browsing data.
-      OriginAttributesPattern patternWithPartitionKey(aPattern.ref());
-      patternWithPartitionKey.mPartitionKeyPattern.Construct();
-      patternWithPartitionKey.mPartitionKeyPattern.Value()
-          .mBaseDomain.Construct(NS_ConvertUTF8toUTF16(aSchemelessSite.ref()));
-
-      return patternWithPartitionKey.Matches(
-          partitionPrincipal->OriginAttributesRef());
-    }();
-
-    if (shouldRemove) {
+    if (SharedSubResourceCacheUtils::ShouldClearEntry(
+            key.URI(), key.LoaderPrincipal(), key.PartitionPrincipal(),
+            Nothing(), aPrincipal, aSchemelessSite, aPattern, aURL)) {
       entriesToBeRemoved.AppendElement(entry.GetData());
     }
   }
