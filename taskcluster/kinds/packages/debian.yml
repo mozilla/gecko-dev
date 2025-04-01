@@ -81,6 +81,54 @@ deb8-gcc-8:
             echo OFFLOAD_BUILD_DEP= >> debian/rules.conf &&
             debian/rules control NT=
 
+deb8-gcc-10:
+    description: "gcc 10 for Debian jessie"
+    treeherder:
+        symbol: Deb8(gcc-10)
+    worker:
+        max-run-time: 3600
+        env:
+            DEB_BUILD_OPTIONS: nocheck
+            WITH_BOOTSTRAP: 'off'
+            WITHOUT_LANG: ada brig cilkrts fortran d go objc obj-c++ asan lsan tsan ubsan jit nvptx
+    run:
+        using: debian-package
+        dist: jessie
+        dsc:
+            url: https://snapshot.debian.org/archive/debian/20240328T144713Z/pool/main/g/gcc-10/gcc-10_10.5.0-4.dsc
+            sha256: 4fd04f9b3c06959f5f9ccf8f0f17ce1ea3e78f49eab4b2fb59ec823949ffa91f
+        # autoconf and quilt necessary to run the `debian/rules control` command to
+        # generate an updated debian/control.
+        # removing the libzstd-dev build dependency that doesn't exist in jessie.
+        # uncommenting `with_common_libs` makes the packaging create the libstdc++6 package.
+        # `BINUTILSBDV=2.25-3~` and `ISL_BUILD_DEP=libisl-dev,` override wrong versions
+        # in build dependencies for jessie.
+        # `OFFLOAD_BUILD_DEP=` overrides the dependency on nvptx, which is not available
+        # in jessie.
+        # autoconf2.69 is available in jessie, but as autoconf, not autoconf2.69.
+        # we relax the libc6 requirements to be compatible with jessie.
+        # the removal of debhelper/generated lines from debian/rules2 works around
+        # an issue that arises from triggers not being generated for the libgcc-s1 package
+        # for some reason, and it's simpler to just not care about the triggers than
+        # figuring out why, as we only really care about the package contents, and the
+        # triggers are irrelevant.
+        # `NT=` overrides the use of `:native` which is not supported by dpkg on jessie.
+        # biarchx32archs= removes x32 build dependencies that don't exist in jessie.
+        # the lib32gcc-s1 build dependency is removed as it's missing in jessie.
+        pre-build-command: >-
+            apt install autoconf quilt &&
+            sed -i 's/libzstd-dev,//' debian/control.m4 &&
+            sed -i 's/#with_common_libs/with_common_libs/' debian/rules.defs &&
+            echo BINUTILSBDV=2.25-3~ >> debian/rules.conf &&
+            echo ISL_BUILD_DEP=libisl-dev, >> debian/rules.conf &&
+            echo OFFLOAD_BUILD_DEP= >> debian/rules.conf &&
+            sed -i 's/autoconf_version = 2.69/autoconf_version =/' debian/rules.conf debian/rules.patch &&
+            sed -i 's/libc_ver := 2.23/libc_ver := 2.19/' debian/rules.conf &&
+            sed -i 's/libc_dev_ver := 2.30-1~/libc_dev_ver := 2.19/' debian/rules.conf &&
+            sed -i '/debhelper\/generated/d' debian/rules2 &&
+            debian/rules control NT= biarchx32archs= &&
+            sed -i 's/lib32gcc-s1 \[[^,]*, //' debian/control
+
 deb8-32-gcc-8:
     description: "gcc 8 for Debian jessie"
     treeherder:

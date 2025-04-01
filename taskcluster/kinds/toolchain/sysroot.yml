@@ -212,6 +212,33 @@ linux64-toolchain-sysroot:
             # For libdmg-hfsplus
             - liblzma-dev
 
+linux64-toolchain-sysroot-gcc10:
+    description: "Sysroot for linux64 toolchain builds"
+    worker:
+        env:
+            PACKAGES_TASKS: {task-reference: '<gcc-10>'}
+            GCC_VERSION: '10'
+    treeherder:
+        symbol: TL(sysroot-toolchain-gcc10)
+    dependencies:
+        gcc-10: packages-deb8-gcc-10
+    run:
+        arguments:
+            - amd64
+            # For clang
+            - binutils-dev
+            - gcc-multilib
+            - lib32stdc++-10-dev
+            - libxml2-dev
+            # For minidump-stackwalk
+            - libcurl4-openssl-dev
+            - libssl-dev
+            - libbz2-dev
+            # For msix-package
+            - libicu-dev
+            # For libdmg-hfsplus
+            - liblzma-dev
+
 linux64-aarch64-toolchain-sysroot:
     description: "Sysroot for aarch64 linux64 toolchain builds"
     treeherder:
