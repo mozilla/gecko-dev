@@ -12926,7 +12926,7 @@
 # but still checks for capacity overflow and reports telemetry
 - name: network.cookie.chips.partitionLimitDryRun
   type: bool
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: false
   mirror: always
 
 # The actual CHIPS parition limit in bytes
