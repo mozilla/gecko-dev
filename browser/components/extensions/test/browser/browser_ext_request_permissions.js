@@ -242,7 +242,9 @@ add_task(async function testOptionalPermissionsDialogShowsFullDomainsList() {
       domainsListLength: 1,
       verifyDialog(popupContentEl) {
         assertNoDomainsList(popupContentEl);
-        assertOneDomainPermission(popupContentEl.permsSingleEl);
+        // This will fail if there are other unexpected permission strings
+        // listed in the permissions list.
+        assertOneDomainPermission(popupContentEl.permsListEl);
       },
     },
     {
@@ -263,7 +265,7 @@ add_task(async function testOptionalPermissionsDialogShowsFullDomainsList() {
       optional_permissions: [],
       domainsListLength: 10,
       verifyDialog(popupContentEl) {
-        const domainsListEl = popupContentEl.permsSingleEl.querySelector(
+        const domainsListEl = popupContentEl.permsListEl.querySelector(
           ".webext-perm-domains-list"
         );
         Assert.ok(domainsListEl, "Expect domains list element to be found");

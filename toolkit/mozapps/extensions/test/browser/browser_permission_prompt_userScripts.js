@@ -183,7 +183,7 @@ add_task(async function test_userScripts_not_allowed_by_default() {
     let panel = await panelPromise;
     assertIsNotUserScriptPermissionPrompt(panel);
     is(
-      panel.permsSingleEl.textContent,
+      panel.permsListEl.textContent,
       PERMISSION_L10N.formatValueSync("webext-perms-description-webNavigation"),
       "Regular permission string can be displayed"
     );
@@ -268,11 +268,10 @@ add_task(async function test_userScripts_cannot_be_install_time_permission() {
     let panel = await panelPromise;
     assertIsNotUserScriptPermissionPrompt(panel);
     is(
-      panel.permsSingleEl.textContent,
+      panel.permsListEl.textContent,
       PERMISSION_L10N.formatValueSync("webext-perms-description-webNavigation"),
       "Install prompt displays the (only) recognized required permission"
     );
-    ok(BrowserTestUtils.isHidden(panel.permsListEl), "Perm list is hidden");
 
     let { messages } = await AddonTestUtils.promiseConsoleOutput(async () => {
       // Click button to "Add" extension.

@@ -22,26 +22,17 @@ html|*.addon-webext-perm-list {
     list-style: none;
 
     &.webext-perm-granted {
+      list-style-position: inside;
+      list-style-type: disc;
       /* NOTE: Insert line breaks on long permission strings (or domain name included
        * in the localized string that ends up be overflowing */
       overflow-wrap: break-word;
     }
 
-    /* style the permissions list items that are not editable to use the check.svg image */
-    &.webext-perm-granted::before {
-      content: "";
-      background-image: url("chrome://global/skin/icons/check.svg");
-      background-repeat: no-repeat;
-      -moz-context-properties: fill;
-      fill: currentColor;
-      /* style the permissions list items to match sizes and margins used by the
-       * checkbox xul element to make sure they are properly aligned with the
-       * private browsing checkbox at the end of the list. */
-      display: inline-flex;
-      width: var(--checkbox-size);
-      height: var(--checkbox-size);
-      margin-inline-end: var(--checkbox-margin-inline);
-      vertical-align: text-bottom;
+    /* Add some space between the list of permissions and the private browsing
+     * checkbox. */
+    & + &.webext-perm-privatebrowsing {
+      margin-top: var(--space-medium);
     }
   }
 }
@@ -74,15 +65,7 @@ html|ul.webext-perm-domains-list {
   }
 }
 
-.addon-webext-perm-single-entry {
-  margin-top: 11px;
-  /* NOTE: Insert line breaks on long permission strings (or domain name included
-   * in the localized string that ends up be overflowing */
-  overflow-wrap: break-word;
-}
-
-.addon-webext-perm-text,
-.addon-webext-perm-single-entry {
+.addon-webext-perm-text {
   margin-inline-start: 0;
 }
 

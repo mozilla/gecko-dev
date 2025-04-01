@@ -141,11 +141,14 @@ async function backgroundUpdateTest(url, id, checkIconFn) {
   // The original extension has 1 promptable permission and the new one
   // has 2 (history and <all_urls>) plus 1 non-promptable permission (cookies).
   // So we should only see the 1 new promptable permission in the notification.
-  let singlePermissionEl = document.getElementById(
-    "addon-webext-perm-single-entry"
+  let permissionsListEl = document.getElementById("addon-webext-perm-list");
+  ok(!permissionsListEl.hidden, "Permissions list is visible");
+  ok(permissionsListEl.textContent, "Permissions list contains text");
+  is(
+    permissionsListEl.childElementCount,
+    1,
+    "Expect only 1 permission entry in the Permissions list"
   );
-  ok(!singlePermissionEl.hidden, "Single permission entry is not hidden");
-  ok(singlePermissionEl.textContent, "Single permission entry text is set");
 
   // Cancel the update.
   panel.secondaryButton.click();

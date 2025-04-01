@@ -227,7 +227,6 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
   let icon = panel.getAttribute("icon");
   let learnMoreLink = panel.querySelector(".popup-notification-learnmore-link");
   let ul = document.getElementById("addon-webext-perm-list");
-  let singleDataEl = document.getElementById("addon-webext-perm-single-entry");
 
   if (checkIcon instanceof RegExp) {
     ok(
@@ -254,8 +253,8 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
   ok(description.startsWith(exp.at(0)), "Description is the expected one");
   ok(description.endsWith(exp.at(-1)), "Description is the expected one");
 
-  const hasPBCheckbox = !!(
-    singleDataEl.querySelector("checkbox") || ul.querySelector("checkbox")
+  const hasPBCheckbox = !!ul.querySelector(
+    "li.webext-perm-privatebrowsing > checkbox"
   );
 
   is(
@@ -266,21 +265,12 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
 
   if (!permissions.length && !hasPBCheckbox) {
     ok(ul.hidden, "Permissions list is hidden");
-    ok(singleDataEl.hidden, "Expect a single permission entry to be hidden");
   } else if (!permissions.length) {
-    ok(ul.hidden, "Permissions list is hidden");
-    ok(
-      !singleDataEl.hidden,
-      "Expect a single permission entry for the private browsing checkbox to not be hidden"
-    );
-    ok(
-      singleDataEl.querySelector("checkbox"),
-      "Expect a checkbox inside the single permission entry"
-    );
-    ok(singleDataEl.textContent, "Single entry text content should not empty");
-    is(ul.childElementCount, 0, "Permission list should have no entries");
+    ok(!ul.hidden, "Permissions list is visible");
+    ok(hasPBCheckbox, "Expect a checkbox inside the list of permissions");
+    is(ul.childElementCount, 1, "Permission list should have an entry");
   } else if (permissions.length === 1 && hasPBCheckbox) {
-    ok(!ul.hidden, "Permissions list to not be hidden");
+    ok(!ul.hidden, "Permissions list is visible");
     is(ul.childElementCount, 2, "Expect 2 entries in the permissions list");
     is(
       ul.children[0].textContent,
@@ -296,16 +286,8 @@ function checkNotification(panel, checkIcon, permissions, sideloaded) {
       lastEntry.querySelector("checkbox"),
       "Expect a checkbox inside the last permissions list entry"
     );
-  } else if (permissions.length === 1 && !hasPBCheckbox) {
-    ok(ul.hidden, "Permissions list to be hidden");
-    ok(!ul.childElementCount, "Permission list has no entries");
   } else {
-    ok(singleDataEl.hidden, "Single permission data entry is hidden");
-    ok(
-      !singleDataEl.textContent,
-      "Single permission data label has not been set"
-    );
-    ok(!ul.hidden, "Permissions list to not be hidden");
+    ok(!ul.hidden, "Permissions list is visible");
     for (let i in permissions) {
       let [key, param] = permissions[i];
       const expected = formatExtValue(key, param);

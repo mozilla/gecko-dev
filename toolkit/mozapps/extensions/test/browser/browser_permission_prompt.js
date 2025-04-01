@@ -209,25 +209,11 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
     .fill("x")
     .join("")}.com`;
 
-  const assertPermsElVisibility = (popupContentEl, noIncognitoCheckbox) => {
-    // We expect the host permissions entry to be the only entry to be shown
-    // if the incognito checkbox isn't expected to be visible for the test
-    // extension (because the test extension doesn't request any other
-    // permission and each test case is executed with and without opting-out
-    // of the private browsing access).
+  const assertPermsElVisibility = popupContentEl => {
     Assert.equal(
-      BrowserTestUtils.isHidden(popupContentEl.permsListEl),
-      noIncognitoCheckbox,
-      `Expect the permissions list element to be ${
-        noIncognitoCheckbox ? "hidden" : "visible"
-      }`
-    );
-    Assert.equal(
-      BrowserTestUtils.isVisible(popupContentEl.permsSingleEl),
-      noIncognitoCheckbox,
-      `Expect the single permission element to be ${
-        noIncognitoCheckbox ? "visible" : "hidden"
-      }`
+      BrowserTestUtils.isVisible(popupContentEl.permsListEl),
+      true,
+      "Expect the permissions list element to be visible"
     );
   };
 
@@ -245,12 +231,8 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
       domainsListLength: 0,
       verifyDialog(popupContentEl, noIncognitoCheckbox) {
         assertNoDomainsList(popupContentEl);
-        Assert.ok(
-          BrowserTestUtils.isHidden(popupContentEl.permsListEl),
-          `Expect the permissions list element to be hidden`
-        );
         Assert.equal(
-          BrowserTestUtils.isHidden(popupContentEl.permsSingleEl),
+          BrowserTestUtils.isHidden(popupContentEl.permsListEl),
           noIncognitoCheckbox,
           `Expect the permissions list element to be ${
             noIncognitoCheckbox ? "hidden" : "visible"
@@ -262,12 +244,12 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
       msg: "Test install extension with one domain listed in host permissions",
       id: "one-domain",
       domainsListLength: 1,
-      verifyDialog(popupContentEl, noIncognitoCheckbox) {
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
+      verifyDialog(popupContentEl) {
+        assertPermsElVisibility(popupContentEl);
         assertNoDomainsList(popupContentEl);
-        const hostPermStringEl = noIncognitoCheckbox
-          ? popupContentEl.permsSingleEl
-          : popupContentEl.permsListEl.querySelector("li.webext-perm-granted");
+        const hostPermStringEl = popupContentEl.permsListEl.querySelector(
+          "li.webext-perm-granted"
+        );
         Assert.ok(
           hostPermStringEl,
           "Expect one granted permission string element"
@@ -292,15 +274,11 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
       msg: "Test install extension with less than 6 domains listed in host permissions",
       id: "few-domains",
       domainsListLength: 5,
-      verifyDialog(popupContentEl, noIncognitoCheckbox) {
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
-        const domainsListEl = noIncognitoCheckbox
-          ? popupContentEl.permsSingleEl.querySelector(
-              ".webext-perm-domains-list"
-            )
-          : popupContentEl.permsListEl.querySelector(
-              ".webext-perm-domains-list"
-            );
+      verifyDialog(popupContentEl) {
+        assertPermsElVisibility(popupContentEl);
+        const domainsListEl = popupContentEl.permsListEl.querySelector(
+          ".webext-perm-domains-list"
+        );
 
         Assert.ok(
           domainsListEl,
@@ -341,15 +319,11 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
       msg: "Test install extension with many domains listed in host permissions",
       id: "many-domains",
       domainsListLength: 20,
-      verifyDialog(popupContentEl, noIncognitoCheckbox) {
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
-        const domainsListEl = noIncognitoCheckbox
-          ? popupContentEl.permsSingleEl.querySelector(
-              ".webext-perm-domains-list"
-            )
-          : popupContentEl.permsListEl.querySelector(
-              ".webext-perm-domains-list"
-            );
+      verifyDialog(popupContentEl) {
+        assertPermsElVisibility(popupContentEl);
+        const domainsListEl = popupContentEl.permsListEl.querySelector(
+          ".webext-perm-domains-list"
+        );
 
         Assert.ok(
           domainsListEl,
@@ -391,11 +365,11 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
       id: "one-long-domain",
       domainsListLength: 0,
       permissions: [`*://${LONG_DOMAIN_NAME}/*`],
-      verifyDialog(popupContentEl, noIncognitoCheckbox) {
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
-        const hostPermStringEl = noIncognitoCheckbox
-          ? popupContentEl.permsSingleEl
-          : popupContentEl.permsListEl.querySelector("li.webext-perm-granted");
+      verifyDialog(popupContentEl) {
+        assertPermsElVisibility(popupContentEl);
+        const hostPermStringEl = popupContentEl.permsListEl.querySelector(
+          "li.webext-perm-granted"
+        );
         Assert.equal(
           hostPermStringEl.childNodes[0].nodeType,
           hostPermStringEl.TEXT_NODE,
@@ -421,9 +395,8 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
           // been broken into has a width larger than the width of the parent
           // element.
           //
-          // NOTE: this assertion is expected to hit a failure if .webext-perm-granted
-          // or .addon-webext-perm-single-entry elements are missing the overflow-wrap
-          // CSS rule.
+          // NOTE: this assertion is expected to hit a failure if
+          // .webext-perm-granted is missing the overflow-wrap CSS rule.
           hostPermStringEl.childNodes[0]
             .getBoxQuads()
             .map(quad => quad.getBounds().width)
@@ -440,15 +413,11 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
       id: "one-long-domain-in-domains-list",
       domainsListLength: 10,
       permissions: [`*://${LONG_DOMAIN_NAME}/*`],
-      verifyDialog(popupContentEl, noIncognitoCheckbox) {
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
-        const domainsListEl = noIncognitoCheckbox
-          ? popupContentEl.permsSingleEl.querySelector(
-              ".webext-perm-domains-list"
-            )
-          : popupContentEl.permsListEl.querySelector(
-              ".webext-perm-domains-list"
-            );
+      verifyDialog(popupContentEl) {
+        assertPermsElVisibility(popupContentEl);
+        const domainsListEl = popupContentEl.permsListEl.querySelector(
+          ".webext-perm-domains-list"
+        );
         Assert.ok(
           domainsListEl,
           "Expect domains list element to be found inside the permission list element"
@@ -495,11 +464,11 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
       id: "with-wildcard-subdomains",
       domainsListLength: 0,
       permissions: ["*://*.example.com/*", "*://example.com/*"],
-      verifyDialog(popupContentEl, noIncognitoCheckbox) {
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
-        const hostPermStringEl = noIncognitoCheckbox
-          ? popupContentEl.permsSingleEl
-          : popupContentEl.permsListEl.querySelector("li.webext-perm-granted");
+      verifyDialog(popupContentEl) {
+        assertPermsElVisibility(popupContentEl);
+        const hostPermStringEl = popupContentEl.permsListEl.querySelector(
+          "li.webext-perm-granted"
+        );
         Assert.equal(
           hostPermStringEl.textContent,
           PERMISSION_L10N.formatValueSync(
@@ -522,16 +491,11 @@ add_task(async function testInstallDialogShowsFullDomainsList() {
         "*://*.example.org/*",
         "*://example.org/*",
       ],
-      verifyDialog(popupContentEl, noIncognitoCheckbox) {
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
-        assertPermsElVisibility(popupContentEl, noIncognitoCheckbox);
-        const domainsListEl = noIncognitoCheckbox
-          ? popupContentEl.permsSingleEl.querySelector(
-              ".webext-perm-domains-list"
-            )
-          : popupContentEl.permsListEl.querySelector(
-              ".webext-perm-domains-list"
-            );
+      verifyDialog(popupContentEl) {
+        assertPermsElVisibility(popupContentEl);
+        const domainsListEl = popupContentEl.permsListEl.querySelector(
+          ".webext-perm-domains-list"
+        );
         Assert.ok(
           domainsListEl,
           "Expect domains list element to be found inside the permission list element"
