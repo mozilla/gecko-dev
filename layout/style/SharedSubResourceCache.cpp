@@ -61,6 +61,84 @@ void AddPerformanceEntryForCache(
   storage->AddEntry(aEntryName, aInitiatorType, std::move(data));
 }
 
+bool ShouldClearEntry(nsIURI* aEntryURI, nsIPrincipal* aEntryLoaderPrincipal,
+                      nsIPrincipal* aEntryPartitionPrincipal,
+                      const Maybe<bool>& aChrome,
+                      const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
+                      const Maybe<nsCString>& aSchemelessSite,
+                      const Maybe<OriginAttributesPattern>& aPattern,
+                      const Maybe<nsCString>& aURL) {
+  if (aChrome.isSome()) {
+    RefPtr<nsIURI> uri = aEntryURI;
+    if (!uri) {
+      // If there's no uri (inline resource) try to use the principal URI.
+      uri = aEntryLoaderPrincipal->GetURI();
+    }
+    const bool isChrome = [&] {
+      if (uri && (uri->SchemeIs("chrome") || uri->SchemeIs("resource"))) {
+        return true;
+      }
+      if (!aEntryURI && aEntryLoaderPrincipal->IsSystemPrincipal()) {
+        return true;
+      }
+      return false;
+    }();
+
+    if (*aChrome != isChrome) {
+      return false;
+    }
+
+    if (!aPrincipal && !aSchemelessSite && !aURL) {
+      return true;
+    }
+  }
+
+  if (aURL) {
+    if (!aEntryURI) {
+      // Inline resources have no URL.
+      return false;
+    }
+    nsAutoCString spec;
+    nsresult rv = aEntryURI->GetSpec(spec);
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+    return spec == *aURL;
+  }
+
+  if (aPrincipal && aEntryLoaderPrincipal->Equals(aPrincipal.ref())) {
+    return true;
+  }
+  if (!aSchemelessSite) {
+    return false;
+  }
+  // Clear by site.
+  // Clear entries with site. This includes entries which are partitioned
+  // under other top level sites (= have a partitionKey set).
+  nsAutoCString principalBaseDomain;
+  nsresult rv = aEntryPartitionPrincipal->GetBaseDomain(principalBaseDomain);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+  if (principalBaseDomain.Equals(aSchemelessSite.ref()) &&
+      aPattern.ref().Matches(aEntryPartitionPrincipal->OriginAttributesRef())) {
+    return true;
+  }
+
+  // Clear entries partitioned under aSchemelessSite. We need to add the
+  // partition key filter to aPattern so that we include any OA filtering
+  // specified by the caller. For example the caller may pass aPattern = {
+  // privateBrowsingId: 1 } which means we may only clear partitioned
+  // private browsing data.
+  OriginAttributesPattern patternWithPartitionKey(aPattern.ref());
+  patternWithPartitionKey.mPartitionKeyPattern.Construct();
+  patternWithPartitionKey.mPartitionKeyPattern.Value().mBaseDomain.Construct(
+      NS_ConvertUTF8toUTF16(aSchemelessSite.ref()));
+
+  return patternWithPartitionKey.Matches(
+      aEntryPartitionPrincipal->OriginAttributesRef());
+}
+
 }  // namespace SharedSubResourceCacheUtils
 
 SubResourceNetworkMetadataHolder::SubResourceNetworkMetadataHolder(
