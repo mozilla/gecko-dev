@@ -4649,6 +4649,7 @@ dependencies = [
  "nserror",
  "nsstring",
  "qlog",
+ "static_assertions",
  "static_prefs",
  "thin-vec",
  "uuid",
