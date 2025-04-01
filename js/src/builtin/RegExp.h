@@ -120,6 +120,9 @@ JSObject* InitRegExpClass(JSContext* cx, HandleObject obj);
                                                        unsigned argc,
                                                        Value* vp);
 
+[[nodiscard]] extern bool IsOptimizableRegExpObject(JSObject* obj,
+                                                    JSContext* cx);
+
 [[nodiscard]] extern bool IsOptimizableRegExpObject(JSContext* cx,
                                                     unsigned argc, Value* vp);
 

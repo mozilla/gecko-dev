@@ -2159,6 +2159,19 @@ bool js::RegExpBuiltinExec(JSContext* cx, Handle<RegExpObject*> regexp,
                                           int32_t(lastIndex), nullptr, rval);
 }
 
+bool js::IsOptimizableRegExpObject(JSObject* obj, JSContext* cx) {
+  // Check the shape to ensure this is a plain RegExpObject with this realm's
+  // RegExp.prototype as prototype and without any extra own properties.
+  // The fuse check ensures RegExp.prototype is optimizable.
+  bool optimizable =
+      obj->shape() == cx->global()->maybeRegExpShapeWithDefaultProto() &&
+      cx->realm()->realmFuses.optimizeRegExpPrototypeFuse.intact();
+  MOZ_ASSERT_IF(optimizable,
+                obj->is<RegExpObject>() &&
+                    obj->as<RegExpObject>().realm() == cx->realm());
+  return optimizable;
+}
+
 // ES2024 draft rev d4927f9bc3706484c75dfef4bbcf5ba826d2632e
 //
 // 22.2.7.1 RegExpExec ( R, S )
@@ -2169,6 +2182,13 @@ bool js::RegExpBuiltinExec(JSContext* cx, Handle<RegExpObject*> regexp,
 bool js::RegExpExec(JSContext* cx, Handle<JSObject*> regexp,
                     Handle<JSString*> string, bool forTest,
                     MutableHandle<Value> rval) {
+  // Fast path for the case where `regexp` is a regular expression object with
+  // the builtin `RegExp.prototype.exec` function.
+  if (MOZ_LIKELY(IsOptimizableRegExpObject(regexp, cx))) {
+    return RegExpBuiltinExec(cx, regexp.as<RegExpObject>(), string, forTest,
+                             rval);
+  }
+
   // Step 1.
   Rooted<Value> exec(cx);
   Rooted<PropertyKey> execKey(cx, NameToId(cx->names().exec));
@@ -2180,8 +2200,7 @@ bool js::RegExpExec(JSContext* cx, Handle<JSObject*> regexp,
   // If exec is the original RegExp.prototype.exec, use the same, faster,
   // path as for the case where exec isn't callable.
   PropertyName* execName = cx->names().RegExp_prototype_Exec;
-  if (MOZ_LIKELY(IsSelfHostedFunctionWithName(exec, execName)) ||
-      !IsCallable(exec)) {
+  if (IsSelfHostedFunctionWithName(exec, execName) || !IsCallable(exec)) {
     // Steps 3-4.
     if (MOZ_LIKELY(regexp->is<RegExpObject>())) {
       return RegExpBuiltinExec(cx, regexp.as<RegExpObject>(), string, forTest,
@@ -2439,15 +2458,7 @@ bool js::IsOptimizableRegExpObject(JSContext* cx, unsigned argc, Value* vp) {
 
   JSObject* obj = &args[0].toObject();
 
-  // Check the shape to ensure this is a plain RegExpObject with this realm's
-  // RegExp.prototype as prototype and without any extra own properties.
-  // The fuse check ensures RegExp.prototype is optimizable.
-  bool optimizable =
-      obj->shape() == cx->global()->maybeRegExpShapeWithDefaultProto() &&
-      cx->realm()->realmFuses.optimizeRegExpPrototypeFuse.intact();
-  MOZ_ASSERT_IF(optimizable,
-                obj->is<RegExpObject>() &&
-                    obj->as<RegExpObject>().realm() == cx->realm());
+  bool optimizable = IsOptimizableRegExpObject(obj, cx);
   args.rval().setBoolean(optimizable);
   return true;
 }
