@@ -274,33 +274,30 @@ static bool ToTemporalMonthDay(JSContext* cx, Handle<Value> item,
   }
 
   // Step 10.
-  if (!hasYear) {
+  if (calendar.identifier() == CalendarId::ISO8601) {
     // Step 10.a.
-    MOZ_ASSERT(calendar.identifier() == CalendarId::ISO8601);
-
-    // Step 10.b.
     constexpr int32_t referenceISOYear = 1972;
 
+    // Step 10.b.
+    auto isoDate = ISODate{referenceISOYear, date.month, date.day};
+
     // Step 10.c.
-    return CreateTemporalMonthDay(cx, {referenceISOYear, date.month, date.day},
-                                  calendar, result);
+    return CreateTemporalMonthDay(cx, isoDate, calendar, result);
   }
 
-  // Steps 11.
-  //
-  // Call CreateTemporalMonthDay to reject too large dates early.
+  // Steps 11-12.
   Rooted<PlainMonthDay> monthDay(cx);
   if (!CreateTemporalMonthDay(cx, date, calendar, &monthDay)) {
     return false;
   }
 
-  // Step 12.
+  // Step 13.
   Rooted<CalendarFields> fields(cx);
   if (!ISODateToFields(cx, monthDay, &fields)) {
     return false;
   }
 
-  // Steps 13-14.
+  // Steps 14-15.
   return CalendarMonthDayFromFields(cx, calendar, fields,
                                     TemporalOverflow::Constrain, result);
 }

@@ -726,10 +726,6 @@ skip script test262/staging/sm/Iterator/prototype/some/check-fn-after-getting-it
 skip script test262/staging/sm/Iterator/prototype/reduce/check-fn-after-getting-iterator.js
 skip script test262/staging/sm/Iterator/prototype/find/check-fn-after-getting-iterator.js
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1950212
-skip script test262/built-ins/Temporal/PlainMonthDay/from/fields-string.js
-skip script test262/built-ins/Temporal/PlainMonthDay/prototype/equals/argument-string.js 
-
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #
