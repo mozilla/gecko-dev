@@ -3683,7 +3683,7 @@
 # Whether the interactionId will be computed and returned by performance observer*
 - name: dom.performance.event_timing.enable_interactionid
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Is support for Element.requestPointerLock enabled?
