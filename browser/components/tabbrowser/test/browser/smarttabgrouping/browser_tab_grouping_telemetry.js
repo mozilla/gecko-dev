@@ -316,3 +316,35 @@ add_task(async function test_optin_telemetry() {
   );
   cleanup();
 });
+
+add_task(async function test_saving_ml_suggested_empty_label_telemetry() {
+  let { tab, cleanup } = await setup();
+  let tabgroupEditor = document.getElementById("tab-group-editor");
+  let tabgroupPanel = tabgroupEditor.panel;
+  let nameField = tabgroupPanel.querySelector("#tab-group-name");
+
+  await openCreatePanel(tabgroupPanel, tab);
+  nameField.focus();
+  nameField.value = "Random ML Suggested Label"; // user label matching suggested label
+  tabgroupEditor.mlLabel = ""; // suggested label
+  tabgroupPanel.querySelector("#tab-group-editor-button-create").click();
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  await panelHidden;
+
+  const events = Glean.tabgroup.smartTabTopic.testGetValue();
+  Assert.equal(events.length, 1, "Should create a label event");
+  Assert.equal(events[0].extra.action, "save", "Save button was clicked");
+  Assert.equal(events[0].extra.tabs_in_group, "1", "Number of tabs in group");
+  Assert.equal(events[0].extra.ml_label_length, "0", "Suggested ML Label");
+  Assert.equal(
+    events[0].extra.user_label_length,
+    "25",
+    "User input was the same as ml suggested label"
+  );
+  Assert.equal(
+    events[0].extra.model_revision,
+    "v0.3.4",
+    "Model revision should be present"
+  );
+  cleanup();
+});

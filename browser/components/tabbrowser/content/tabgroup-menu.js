@@ -829,7 +829,7 @@
           );
           if (
             this.smartTabGroupsEnabled &&
-            (this.#suggestedMlLabel || this.#hasSuggestedMlTabs)
+            (this.#suggestedMlLabel !== null || this.#hasSuggestedMlTabs)
           ) {
             this.#handleMlTelemetry("save-popup-hidden");
           }
@@ -1010,7 +1010,7 @@
       if (!this.smartTabGroupsEnabled) {
         return;
       }
-      if (this.#suggestedMlLabel) {
+      if (this.#suggestedMlLabel !== null) {
         this.#smartTabGroupingManager.handleLabelTelemetry({
           action,
           numTabsInGroup: this.#activeGroup.tabs.length,
@@ -1018,7 +1018,7 @@
           userLabel: this.#nameField.value,
           id: this.#activeGroup.id,
         });
-        this.#suggestedMlLabel = "";
+        this.#suggestedMlLabel = null;
       }
       if (this.#hasSuggestedMlTabs) {
         this.#smartTabGroupingManager.handleSuggestTelemetry({
