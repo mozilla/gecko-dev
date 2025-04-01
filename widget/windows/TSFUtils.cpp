@@ -550,14 +550,6 @@ void TSFUtils::Initialize() {
     return;
   }
 
-  const bool enableTsf = StaticPrefs::intl_tsf_enabled_AtStartup();
-  MOZ_LOG(gIMELog, LogLevel::Info,
-          ("  TSFUtils::Initialize(), TSF is %s",
-           enableTsf ? "enabled" : "disabled"));
-  if (!enableTsf) {
-    return;
-  }
-
   RefPtr<ITfThreadMgr> threadMgr;
   HRESULT hr =
       ::CoCreateInstance(CLSID_TF_ThreadMgr, nullptr, CLSCTX_INPROC_SERVER,
