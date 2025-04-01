@@ -324,43 +324,8 @@ function openBrowserWindow(
   }
 
   if (isStartup) {
-    let win = Services.wm.getMostRecentWindow("navigator:blank");
+    let win = gBrowserContentHandler.replaceStartupWindow(args, forcePrivate);
     if (win) {
-      // Remove the windowtype of our blank window so that we don't close it
-      // later on when seeing cmdLine.preventDefault is true.
-      win.document.documentElement.removeAttribute("windowtype");
-
-      if (forcePrivate) {
-        win.docShell.QueryInterface(Ci.nsILoadContext).usePrivateBrowsing =
-          true;
-
-        if (
-          AppConstants.platform == "win" &&
-          Services.prefs.getBoolPref(
-            "browser.privateWindowSeparation.enabled",
-            true
-          )
-        ) {
-          lazy.WinTaskbar.setGroupIdForWindow(
-            win,
-            lazy.WinTaskbar.defaultPrivateGroupId
-          );
-          lazy.WindowsUIUtils.setWindowIconFromExe(
-            win,
-            Services.dirsvc.get("XREExeF", Ci.nsIFile).path,
-            // This corresponds to the definitions in
-            // nsNativeAppSupportWin.h
-            PRIVATE_BROWSING_ICON_INDEX
-          );
-        }
-      }
-
-      let openTime = win.openTime;
-      win.location = AppConstants.BROWSER_CHROME_URL;
-      win.arguments = args; // <-- needs to be a plain JS array here.
-
-      ChromeUtils.addProfilerMarker("earlyBlankWindowVisible", openTime);
-      lazy.BrowserWindowTracker.registerOpeningWindow(win, forcePrivate);
       return win;
     }
   }
@@ -1176,6 +1141,52 @@ nsBrowserContentHandler.prototype = {
       request.loadInfo.triggeringPrincipal
     );
     request.cancel(Cr.NS_BINDING_ABORTED);
+  },
+
+  /**
+   * Replace the startup UI window created in BrowserGlue with an actual window
+   */
+  replaceStartupWindow(args, forcePrivate) {
+    let win = Services.wm.getMostRecentWindow("navigator:blank");
+    if (win) {
+      // Remove the windowtype of our blank window so that we don't close it
+      // later on when seeing cmdLine.preventDefault is true.
+      win.document.documentElement.removeAttribute("windowtype");
+
+      if (forcePrivate) {
+        win.docShell.QueryInterface(Ci.nsILoadContext).usePrivateBrowsing =
+          true;
+
+        if (
+          AppConstants.platform == "win" &&
+          Services.prefs.getBoolPref(
+            "browser.privateWindowSeparation.enabled",
+            true
+          )
+        ) {
+          lazy.WinTaskbar.setGroupIdForWindow(
+            win,
+            lazy.WinTaskbar.defaultPrivateGroupId
+          );
+          lazy.WindowsUIUtils.setWindowIconFromExe(
+            win,
+            Services.dirsvc.get("XREExeF", Ci.nsIFile).path,
+            // This corresponds to the definitions in
+            // nsNativeAppSupportWin.h
+            PRIVATE_BROWSING_ICON_INDEX
+          );
+        }
+      }
+
+      let openTime = win.openTime;
+      win.location = AppConstants.BROWSER_CHROME_URL;
+      win.arguments = args; // <-- needs to be a plain JS array here.
+
+      ChromeUtils.addProfilerMarker("earlyBlankWindowVisible", openTime);
+      lazy.BrowserWindowTracker.registerOpeningWindow(win, forcePrivate);
+      return win;
+    }
+    return null;
   },
 
   /* nsICommandLineValidator */
