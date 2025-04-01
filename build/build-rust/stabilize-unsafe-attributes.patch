@@ -1,0 +1,855 @@
+commit de9b5c3ea28
+Author: carbotaniuman <41451839+carbotaniuman@users.noreply.github.com>
+Date:   2024-08-07T01:36:28-0500 (Wednesday)
+
+    Stabilize `unsafe_attributes`
+
+diff --git a/compiler/rustc_ast_passes/src/ast_validation.rs b/compiler/rustc_ast_passes/src/ast_validation.rs
+index a353c79f12d..837cb805700 100644
+--- a/compiler/rustc_ast_passes/src/ast_validation.rs
++++ b/compiler/rustc_ast_passes/src/ast_validation.rs
+@@ -887,7 +887,7 @@ fn validate_generic_param_order(dcx: DiagCtxtHandle<'_>, generics: &[GenericPara
+ 
+ impl<'a> Visitor<'a> for AstValidator<'a> {
+     fn visit_attribute(&mut self, attr: &Attribute) {
+-        validate_attr::check_attr(&self.features, &self.session.psess, attr);
++        validate_attr::check_attr(&self.session.psess, attr);
+     }
+ 
+     fn visit_ty(&mut self, ty: &'a Ty) {
+diff --git a/compiler/rustc_ast_passes/src/feature_gate.rs b/compiler/rustc_ast_passes/src/feature_gate.rs
+index 3ceb8e0711a..214a37bca03 100644
+--- a/compiler/rustc_ast_passes/src/feature_gate.rs
++++ b/compiler/rustc_ast_passes/src/feature_gate.rs
+@@ -559,7 +559,6 @@ macro_rules! gate_all {
+     gate_all!(mut_ref, "mutable by-reference bindings are experimental");
+     gate_all!(precise_capturing, "precise captures on `impl Trait` are experimental");
+     gate_all!(global_registration, "global registration is experimental");
+-    gate_all!(unsafe_attributes, "`#[unsafe()]` markers for attributes are experimental");
+     gate_all!(return_type_notation, "return type notation is experimental");
+ 
+     if !visitor.features.never_patterns {
+diff --git a/compiler/rustc_builtin_macros/src/cfg_accessible.rs b/compiler/rustc_builtin_macros/src/cfg_accessible.rs
+index 006b6aa823f..3d3bd3aea05 100644
+--- a/compiler/rustc_builtin_macros/src/cfg_accessible.rs
++++ b/compiler/rustc_builtin_macros/src/cfg_accessible.rs
+@@ -47,7 +47,6 @@ fn expand(
+     ) -> ExpandResult<Vec<Annotatable>, Annotatable> {
+         let template = AttributeTemplate { list: Some("path"), ..Default::default() };
+         validate_attr::check_builtin_meta_item(
+-            &ecx.ecfg.features,
+             &ecx.sess.psess,
+             meta_item,
+             ast::AttrStyle::Outer,
+diff --git a/compiler/rustc_builtin_macros/src/derive.rs b/compiler/rustc_builtin_macros/src/derive.rs
+index 57bddf0ab60..e8704bc2f63 100644
+--- a/compiler/rustc_builtin_macros/src/derive.rs
++++ b/compiler/rustc_builtin_macros/src/derive.rs
+@@ -38,7 +38,6 @@ fn expand(
+                 let template =
+                     AttributeTemplate { list: Some("Trait1, Trait2, ..."), ..Default::default() };
+                 validate_attr::check_builtin_meta_item(
+-                    features,
+                     &sess.psess,
+                     meta_item,
+                     ast::AttrStyle::Outer,
+diff --git a/compiler/rustc_builtin_macros/src/util.rs b/compiler/rustc_builtin_macros/src/util.rs
+index 73cc8ff547d..0bcd5aef28b 100644
+--- a/compiler/rustc_builtin_macros/src/util.rs
++++ b/compiler/rustc_builtin_macros/src/util.rs
+@@ -17,7 +17,6 @@ pub(crate) fn check_builtin_macro_attribute(ecx: &ExtCtxt<'_>, meta_item: &MetaI
+     // All the built-in macro attributes are "words" at the moment.
+     let template = AttributeTemplate { word: true, ..Default::default() };
+     validate_attr::check_builtin_meta_item(
+-        &ecx.ecfg.features,
+         &ecx.sess.psess,
+         meta_item,
+         AttrStyle::Outer,
+diff --git a/compiler/rustc_expand/src/config.rs b/compiler/rustc_expand/src/config.rs
+index f6bf9f5e89f..b0d3fecbb47 100644
+--- a/compiler/rustc_expand/src/config.rs
++++ b/compiler/rustc_expand/src/config.rs
+@@ -265,12 +265,7 @@ fn process_cfg_attr(&self, attr: &Attribute) -> Vec<Attribute> {
+     /// is in the original source file. Gives a compiler error if the syntax of
+     /// the attribute is incorrect.
+     pub(crate) fn expand_cfg_attr(&self, cfg_attr: &Attribute, recursive: bool) -> Vec<Attribute> {
+-        validate_attr::check_attribute_safety(
+-            self.features.unwrap_or(&Features::default()),
+-            &self.sess.psess,
+-            AttributeSafety::Normal,
+-            &cfg_attr,
+-        );
++        validate_attr::check_attribute_safety(&self.sess.psess, AttributeSafety::Normal, &cfg_attr);
+ 
+         let Some((cfg_predicate, expanded_attrs)) =
+             rustc_parse::parse_cfg_attr(cfg_attr, &self.sess.psess)
+@@ -395,11 +390,7 @@ pub(crate) fn cfg_true(&self, attr: &Attribute) -> (bool, Option<MetaItem>) {
+             }
+         };
+ 
+-        validate_attr::deny_builtin_meta_unsafety(
+-            self.features.unwrap_or(&Features::default()),
+-            &self.sess.psess,
+-            &meta_item,
+-        );
++        validate_attr::deny_builtin_meta_unsafety(&self.sess.psess, &meta_item);
+ 
+         (
+             parse_cfg(&meta_item, self.sess).map_or(true, |meta_item| {
+diff --git a/compiler/rustc_expand/src/expand.rs b/compiler/rustc_expand/src/expand.rs
+index d8cb367e3fa..61b36e15487 100644
+--- a/compiler/rustc_expand/src/expand.rs
++++ b/compiler/rustc_expand/src/expand.rs
+@@ -1883,7 +1883,7 @@ fn check_attributes(&self, attrs: &[ast::Attribute], call: &ast::MacCall) {
+         let mut span: Option<Span> = None;
+         while let Some(attr) = attrs.next() {
+             rustc_ast_passes::feature_gate::check_attribute(attr, self.cx.sess, features);
+-            validate_attr::check_attr(features, &self.cx.sess.psess, attr);
++            validate_attr::check_attr(&self.cx.sess.psess, attr);
+ 
+             let current_span = if let Some(sp) = span { sp.to(attr.span) } else { attr.span };
+             span = Some(current_span);
+diff --git a/compiler/rustc_feature/src/accepted.rs b/compiler/rustc_feature/src/accepted.rs
+index e42a655531b..689e2d2771e 100644
+--- a/compiler/rustc_feature/src/accepted.rs
++++ b/compiler/rustc_feature/src/accepted.rs
+@@ -388,6 +388,8 @@ macro_rules! declare_features {
+     (accepted, universal_impl_trait, "1.26.0", Some(34511)),
+     /// Allows arbitrary delimited token streams in non-macro attributes.
+     (accepted, unrestricted_attribute_tokens, "1.34.0", Some(55208)),
++    /// Allows unsafe attributes.
++    (accepted, unsafe_attributes, "CURRENT_RUSTC_VERSION", Some(123757)),
+     /// The `unsafe_op_in_unsafe_fn` lint (allowed by default): no longer treat an unsafe function as an unsafe block.
+     (accepted, unsafe_block_in_unsafe_fn, "1.52.0", Some(71668)),
+     /// Allows unsafe on extern declarations and safety qualifiers over internal items.
+diff --git a/compiler/rustc_feature/src/unstable.rs b/compiler/rustc_feature/src/unstable.rs
+index 88a4b5a8382..a9e9bdd6a41 100644
+--- a/compiler/rustc_feature/src/unstable.rs
++++ b/compiler/rustc_feature/src/unstable.rs
+@@ -627,8 +627,6 @@ pub fn internal(&self, feature: Symbol) -> bool {
+     (unstable, type_changing_struct_update, "1.58.0", Some(86555)),
+     /// Allows unnamed fields of struct and union type
+     (incomplete, unnamed_fields, "1.74.0", Some(49804)),
+-    /// Allows unsafe attributes.
+-    (unstable, unsafe_attributes, "1.80.0", Some(123757)),
+     /// Allows const generic parameters to be defined with types that
+     /// are not `Sized`, e.g. `fn foo<const N: [u8]>() {`.
+     (incomplete, unsized_const_params, "CURRENT_RUSTC_VERSION", Some(95174)),
+diff --git a/compiler/rustc_lint_defs/src/builtin.rs b/compiler/rustc_lint_defs/src/builtin.rs
+index ff0bdfcc9d2..aa281a6f67b 100644
+--- a/compiler/rustc_lint_defs/src/builtin.rs
++++ b/compiler/rustc_lint_defs/src/builtin.rs
+@@ -4937,7 +4937,6 @@
+     /// ### Example
+     ///
+     /// ```rust
+-    /// #![feature(unsafe_attributes)]
+     /// #![warn(unsafe_attr_outside_unsafe)]
+     ///
+     /// #[no_mangle]
+diff --git a/compiler/rustc_parse/src/parser/attr.rs b/compiler/rustc_parse/src/parser/attr.rs
+index 8fdfbcee385..4fea00edebc 100644
+--- a/compiler/rustc_parse/src/parser/attr.rs
++++ b/compiler/rustc_parse/src/parser/attr.rs
+@@ -4,7 +4,7 @@
+ use rustc_errors::codes::*;
+ use rustc_errors::{Diag, PResult};
+ use rustc_span::symbol::kw;
+-use rustc_span::{sym, BytePos, Span};
++use rustc_span::{BytePos, Span};
+ use thin_vec::ThinVec;
+ use tracing::debug;
+ 
+@@ -261,7 +261,6 @@ pub fn parse_attr_item(&mut self, force_collect: ForceCollect) -> PResult<'a, as
+             let is_unsafe = this.eat_keyword(kw::Unsafe);
+             let unsafety = if is_unsafe {
+                 let unsafe_span = this.prev_token.span;
+-                this.psess.gated_spans.gate(sym::unsafe_attributes, unsafe_span);
+                 this.expect(&token::OpenDelim(Delimiter::Parenthesis))?;
+                 ast::Safety::Unsafe(unsafe_span)
+             } else {
+@@ -400,7 +399,6 @@ pub fn parse_meta_item(
+         };
+         let unsafety = if is_unsafe {
+             let unsafe_span = self.prev_token.span;
+-            self.psess.gated_spans.gate(sym::unsafe_attributes, unsafe_span);
+             self.expect(&token::OpenDelim(Delimiter::Parenthesis))?;
+ 
+             ast::Safety::Unsafe(unsafe_span)
+diff --git a/compiler/rustc_parse/src/validate_attr.rs b/compiler/rustc_parse/src/validate_attr.rs
+index a64c00f3b6c..fce41bd90be 100644
+--- a/compiler/rustc_parse/src/validate_attr.rs
++++ b/compiler/rustc_parse/src/validate_attr.rs
+@@ -7,9 +7,7 @@
+     NestedMetaItem, Safety,
+ };
+ use rustc_errors::{Applicability, FatalError, PResult};
+-use rustc_feature::{
+-    AttributeSafety, AttributeTemplate, BuiltinAttribute, Features, BUILTIN_ATTRIBUTE_MAP,
+-};
++use rustc_feature::{AttributeSafety, AttributeTemplate, BuiltinAttribute, BUILTIN_ATTRIBUTE_MAP};
+ use rustc_session::errors::report_lit_error;
+ use rustc_session::lint::builtin::{ILL_FORMED_ATTRIBUTE_INPUT, UNSAFE_ATTR_OUTSIDE_UNSAFE};
+ use rustc_session::lint::BuiltinLintDiag;
+@@ -18,7 +16,7 @@
+ 
+ use crate::{errors, parse_in};
+ 
+-pub fn check_attr(features: &Features, psess: &ParseSess, attr: &Attribute) {
++pub fn check_attr(psess: &ParseSess, attr: &Attribute) {
+     if attr.is_doc_comment() {
+         return;
+     }
+@@ -28,7 +26,7 @@ pub fn check_attr(features: &Features, psess: &ParseSess, attr: &Attribute) {
+ 
+     // All non-builtin attributes are considered safe
+     let safety = attr_info.map(|x| x.safety).unwrap_or(AttributeSafety::Normal);
+-    check_attribute_safety(features, psess, safety, attr);
++    check_attribute_safety(psess, safety, attr);
+ 
+     // Check input tokens for built-in and key-value attributes.
+     match attr_info {
+@@ -36,9 +34,9 @@ pub fn check_attr(features: &Features, psess: &ParseSess, attr: &Attribute) {
+         Some(BuiltinAttribute { name, template, .. }) if *name != sym::rustc_dummy => {
+             match parse_meta(psess, attr) {
+                 // Don't check safety again, we just did that
+-                Ok(meta) => check_builtin_meta_item(
+-                    features, psess, &meta, attr.style, *name, *template, false,
+-                ),
++                Ok(meta) => {
++                    check_builtin_meta_item(psess, &meta, attr.style, *name, *template, false)
++                }
+                 Err(err) => {
+                     err.emit();
+                 }
+@@ -157,16 +155,7 @@ fn is_attr_template_compatible(template: &AttributeTemplate, meta: &ast::MetaIte
+     }
+ }
+ 
+-pub fn check_attribute_safety(
+-    features: &Features,
+-    psess: &ParseSess,
+-    safety: AttributeSafety,
+-    attr: &Attribute,
+-) {
+-    if !features.unsafe_attributes {
+-        return;
+-    }
+-
++pub fn check_attribute_safety(psess: &ParseSess, safety: AttributeSafety, attr: &Attribute) {
+     let attr_item = attr.get_normal_item();
+ 
+     if safety == AttributeSafety::Unsafe {
+@@ -215,21 +204,18 @@ pub fn check_attribute_safety(
+ 
+ // Called by `check_builtin_meta_item` and code that manually denies
+ // `unsafe(...)` in `cfg`
+-pub fn deny_builtin_meta_unsafety(features: &Features, psess: &ParseSess, meta: &MetaItem) {
++pub fn deny_builtin_meta_unsafety(psess: &ParseSess, meta: &MetaItem) {
+     // This only supports denying unsafety right now - making builtin attributes
+     // support unsafety will requite us to thread the actual `Attribute` through
+     // for the nice diagnostics.
+-    if features.unsafe_attributes {
+-        if let Safety::Unsafe(unsafe_span) = meta.unsafety {
+-            psess
+-                .dcx()
+-                .emit_err(errors::InvalidAttrUnsafe { span: unsafe_span, name: meta.path.clone() });
+-        }
++    if let Safety::Unsafe(unsafe_span) = meta.unsafety {
++        psess
++            .dcx()
++            .emit_err(errors::InvalidAttrUnsafe { span: unsafe_span, name: meta.path.clone() });
+     }
+ }
+ 
+ pub fn check_builtin_meta_item(
+-    features: &Features,
+     psess: &ParseSess,
+     meta: &MetaItem,
+     style: ast::AttrStyle,
+@@ -246,7 +232,7 @@ pub fn check_builtin_meta_item(
+     }
+ 
+     if deny_unsafety {
+-        deny_builtin_meta_unsafety(features, psess, meta);
++        deny_builtin_meta_unsafety(psess, meta);
+     }
+ }
+ 
+diff --git a/src/tools/rustfmt/tests/target/unsafe_attributes.rs b/src/tools/rustfmt/tests/target/unsafe_attributes.rs
+index a05bedc751a..d79c56f2147 100644
+--- a/src/tools/rustfmt/tests/target/unsafe_attributes.rs
++++ b/src/tools/rustfmt/tests/target/unsafe_attributes.rs
+@@ -1,4 +1,3 @@
+-#![feature(unsafe_attributes)]
+ // https://github.com/rust-lang/rust/issues/123757
+ //
+ #![simple_ident]
+diff --git a/tests/ui/attributes/unsafe/cfg-unsafe-attributes.rs b/tests/ui/attributes/unsafe/cfg-unsafe-attributes.rs
+index ce365d1a8b1..6a9853b2f6f 100644
+--- a/tests/ui/attributes/unsafe/cfg-unsafe-attributes.rs
++++ b/tests/ui/attributes/unsafe/cfg-unsafe-attributes.rs
+@@ -1,5 +1,4 @@
+ //@ build-pass
+-#![feature(unsafe_attributes)]
+ 
+ #[cfg_attr(all(), unsafe(no_mangle))]
+ fn a() {}
+diff --git a/tests/ui/attributes/unsafe/derive-unsafe-attributes.rs b/tests/ui/attributes/unsafe/derive-unsafe-attributes.rs
+index b8edb4aab90..95fc19f506b 100644
+--- a/tests/ui/attributes/unsafe/derive-unsafe-attributes.rs
++++ b/tests/ui/attributes/unsafe/derive-unsafe-attributes.rs
+@@ -1,5 +1,3 @@
+-#![feature(unsafe_attributes)]
+-
+ #[derive(unsafe(Debug))]
+ //~^ ERROR: expected identifier, found keyword `unsafe`
+ //~| ERROR: traits in `#[derive(...)]` don't accept arguments
+diff --git a/tests/ui/attributes/unsafe/derive-unsafe-attributes.stderr b/tests/ui/attributes/unsafe/derive-unsafe-attributes.stderr
+index c40a5512fd5..4002c930b63 100644
+--- a/tests/ui/attributes/unsafe/derive-unsafe-attributes.stderr
++++ b/tests/ui/attributes/unsafe/derive-unsafe-attributes.stderr
+@@ -1,5 +1,5 @@
+ error: expected identifier, found keyword `unsafe`
+-  --> $DIR/derive-unsafe-attributes.rs:3:10
++  --> $DIR/derive-unsafe-attributes.rs:1:10
+    |
+ LL | #[derive(unsafe(Debug))]
+    |          ^^^^^^ expected identifier, found keyword
+@@ -10,13 +10,13 @@ LL | #[derive(r#unsafe(Debug))]
+    |          ++
+ 
+ error: traits in `#[derive(...)]` don't accept arguments
+-  --> $DIR/derive-unsafe-attributes.rs:3:16
++  --> $DIR/derive-unsafe-attributes.rs:1:16
+    |
+ LL | #[derive(unsafe(Debug))]
+    |                ^^^^^^^ help: remove the arguments
+ 
+ error: `derive` is not an unsafe attribute
+-  --> $DIR/derive-unsafe-attributes.rs:12:3
++  --> $DIR/derive-unsafe-attributes.rs:10:3
+    |
+ LL | #[unsafe(derive(Debug))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -24,7 +24,7 @@ LL | #[unsafe(derive(Debug))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: expected identifier, found keyword `unsafe`
+-  --> $DIR/derive-unsafe-attributes.rs:3:10
++  --> $DIR/derive-unsafe-attributes.rs:1:10
+    |
+ LL | #[derive(unsafe(Debug))]
+    |          ^^^^^^ expected identifier, found keyword
+@@ -36,7 +36,7 @@ LL | #[derive(r#unsafe(Debug))]
+    |          ++
+ 
+ error: expected identifier, found keyword `unsafe`
+-  --> $DIR/derive-unsafe-attributes.rs:3:10
++  --> $DIR/derive-unsafe-attributes.rs:1:10
+    |
+ LL | #[derive(unsafe(Debug))]
+    |          ^^^^^^ expected identifier, found keyword
+@@ -48,13 +48,13 @@ LL | #[derive(r#unsafe(Debug))]
+    |          ++
+ 
+ error: cannot find derive macro `r#unsafe` in this scope
+-  --> $DIR/derive-unsafe-attributes.rs:3:10
++  --> $DIR/derive-unsafe-attributes.rs:1:10
+    |
+ LL | #[derive(unsafe(Debug))]
+    |          ^^^^^^
+ 
+ error: cannot find derive macro `r#unsafe` in this scope
+-  --> $DIR/derive-unsafe-attributes.rs:3:10
++  --> $DIR/derive-unsafe-attributes.rs:1:10
+    |
+ LL | #[derive(unsafe(Debug))]
+    |          ^^^^^^
+diff --git a/tests/ui/attributes/unsafe/double-unsafe-attributes.rs b/tests/ui/attributes/unsafe/double-unsafe-attributes.rs
+index a6c0ea578f2..894d1327da7 100644
+--- a/tests/ui/attributes/unsafe/double-unsafe-attributes.rs
++++ b/tests/ui/attributes/unsafe/double-unsafe-attributes.rs
+@@ -1,5 +1,3 @@
+-#![feature(unsafe_attributes)]
+-
+ #[unsafe(unsafe(no_mangle))]
+ //~^ ERROR expected identifier, found keyword `unsafe`
+ //~| ERROR cannot find attribute `r#unsafe` in this scope
+diff --git a/tests/ui/attributes/unsafe/double-unsafe-attributes.stderr b/tests/ui/attributes/unsafe/double-unsafe-attributes.stderr
+index 950b2636993..0825cf79408 100644
+--- a/tests/ui/attributes/unsafe/double-unsafe-attributes.stderr
++++ b/tests/ui/attributes/unsafe/double-unsafe-attributes.stderr
+@@ -1,5 +1,5 @@
+ error: expected identifier, found keyword `unsafe`
+-  --> $DIR/double-unsafe-attributes.rs:3:10
++  --> $DIR/double-unsafe-attributes.rs:1:10
+    |
+ LL | #[unsafe(unsafe(no_mangle))]
+    |          ^^^^^^ expected identifier, found keyword
+@@ -10,7 +10,7 @@ LL | #[unsafe(r#unsafe(no_mangle))]
+    |          ++
+ 
+ error: `r#unsafe` is not an unsafe attribute
+-  --> $DIR/double-unsafe-attributes.rs:3:3
++  --> $DIR/double-unsafe-attributes.rs:1:3
+    |
+ LL | #[unsafe(unsafe(no_mangle))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -18,7 +18,7 @@ LL | #[unsafe(unsafe(no_mangle))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: cannot find attribute `r#unsafe` in this scope
+-  --> $DIR/double-unsafe-attributes.rs:3:10
++  --> $DIR/double-unsafe-attributes.rs:1:10
+    |
+ LL | #[unsafe(unsafe(no_mangle))]
+    |          ^^^^^^
+diff --git a/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.rs b/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.rs
+index 0181add843b..b561550c198 100644
+--- a/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.rs
++++ b/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.rs
+@@ -1,6 +1,5 @@
+ //@ edition: 2024
+ //@ compile-flags: -Zunstable-options
+-#![feature(unsafe_attributes)]
+ 
+ #[unsafe(cfg(any()))] //~ ERROR: is not an unsafe attribute
+ fn a() {}
+diff --git a/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.stderr b/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.stderr
+index f39074b613d..9fb7f062b91 100644
+--- a/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.stderr
++++ b/tests/ui/attributes/unsafe/extraneous-unsafe-attributes.stderr
+@@ -1,5 +1,5 @@
+ error: `cfg` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:5:3
++  --> $DIR/extraneous-unsafe-attributes.rs:4:3
+    |
+ LL | #[unsafe(cfg(any()))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -7,7 +7,7 @@ LL | #[unsafe(cfg(any()))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `cfg_attr` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:8:3
++  --> $DIR/extraneous-unsafe-attributes.rs:7:3
+    |
+ LL | #[unsafe(cfg_attr(any(), allow(dead_code)))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -15,7 +15,7 @@ LL | #[unsafe(cfg_attr(any(), allow(dead_code)))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `test` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:11:3
++  --> $DIR/extraneous-unsafe-attributes.rs:10:3
+    |
+ LL | #[unsafe(test)]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -23,7 +23,7 @@ LL | #[unsafe(test)]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `ignore` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:14:3
++  --> $DIR/extraneous-unsafe-attributes.rs:13:3
+    |
+ LL | #[unsafe(ignore = "test")]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -31,7 +31,7 @@ LL | #[unsafe(ignore = "test")]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `should_panic` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:17:3
++  --> $DIR/extraneous-unsafe-attributes.rs:16:3
+    |
+ LL | #[unsafe(should_panic(expected = "test"))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -39,7 +39,7 @@ LL | #[unsafe(should_panic(expected = "test"))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `macro_use` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:20:3
++  --> $DIR/extraneous-unsafe-attributes.rs:19:3
+    |
+ LL | #[unsafe(macro_use)]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -47,7 +47,7 @@ LL | #[unsafe(macro_use)]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `macro_export` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:22:7
++  --> $DIR/extraneous-unsafe-attributes.rs:21:7
+    |
+ LL |     #[unsafe(macro_export)]
+    |       ^^^^^^ this is not an unsafe attribute
+@@ -55,7 +55,7 @@ LL |     #[unsafe(macro_export)]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `used` is not an unsafe attribute
+-  --> $DIR/extraneous-unsafe-attributes.rs:28:3
++  --> $DIR/extraneous-unsafe-attributes.rs:27:3
+    |
+ LL | #[unsafe(used)]
+    |   ^^^^^^ this is not an unsafe attribute
+diff --git a/tests/ui/attributes/unsafe/proc-unsafe-attributes.rs b/tests/ui/attributes/unsafe/proc-unsafe-attributes.rs
+index f29a5b3252b..eaf8706369a 100644
+--- a/tests/ui/attributes/unsafe/proc-unsafe-attributes.rs
++++ b/tests/ui/attributes/unsafe/proc-unsafe-attributes.rs
+@@ -1,5 +1,3 @@
+-#![feature(unsafe_attributes)]
+-
+ #[unsafe(proc_macro)]
+ //~^ ERROR: is not an unsafe attribute
+ //~| ERROR attribute is only usable with crates of the `proc-macro` crate type
+diff --git a/tests/ui/attributes/unsafe/proc-unsafe-attributes.stderr b/tests/ui/attributes/unsafe/proc-unsafe-attributes.stderr
+index 79d34d458bd..9c5751c82e4 100644
+--- a/tests/ui/attributes/unsafe/proc-unsafe-attributes.stderr
++++ b/tests/ui/attributes/unsafe/proc-unsafe-attributes.stderr
+@@ -1,11 +1,11 @@
+ error[E0452]: malformed lint attribute input
+-  --> $DIR/proc-unsafe-attributes.rs:28:16
++  --> $DIR/proc-unsafe-attributes.rs:26:16
+    |
+ LL | #[unsafe(allow(unsafe(dead_code)))]
+    |                ^^^^^^^^^^^^^^^^^ bad attribute argument
+ 
+ error[E0452]: malformed lint attribute input
+-  --> $DIR/proc-unsafe-attributes.rs:28:16
++  --> $DIR/proc-unsafe-attributes.rs:26:16
+    |
+ LL | #[unsafe(allow(unsafe(dead_code)))]
+    |                ^^^^^^^^^^^^^^^^^ bad attribute argument
+@@ -13,7 +13,7 @@ LL | #[unsafe(allow(unsafe(dead_code)))]
+    = note: duplicate diagnostic emitted due to `-Z deduplicate-diagnostics=no`
+ 
+ error: `proc_macro` is not an unsafe attribute
+-  --> $DIR/proc-unsafe-attributes.rs:3:3
++  --> $DIR/proc-unsafe-attributes.rs:1:3
+    |
+ LL | #[unsafe(proc_macro)]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -21,7 +21,7 @@ LL | #[unsafe(proc_macro)]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `proc_macro_derive` is not an unsafe attribute
+-  --> $DIR/proc-unsafe-attributes.rs:9:3
++  --> $DIR/proc-unsafe-attributes.rs:7:3
+    |
+ LL | #[unsafe(proc_macro_derive(Foo))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -29,7 +29,7 @@ LL | #[unsafe(proc_macro_derive(Foo))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: expected identifier, found keyword `unsafe`
+-  --> $DIR/proc-unsafe-attributes.rs:14:21
++  --> $DIR/proc-unsafe-attributes.rs:12:21
+    |
+ LL | #[proc_macro_derive(unsafe(Foo))]
+    |                     ^^^^^^ expected identifier, found keyword
+@@ -40,7 +40,7 @@ LL | #[proc_macro_derive(r#unsafe(Foo))]
+    |                     ++
+ 
+ error: `proc_macro_attribute` is not an unsafe attribute
+-  --> $DIR/proc-unsafe-attributes.rs:19:3
++  --> $DIR/proc-unsafe-attributes.rs:17:3
+    |
+ LL | #[unsafe(proc_macro_attribute)]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -48,7 +48,7 @@ LL | #[unsafe(proc_macro_attribute)]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `allow` is not an unsafe attribute
+-  --> $DIR/proc-unsafe-attributes.rs:24:3
++  --> $DIR/proc-unsafe-attributes.rs:22:3
+    |
+ LL | #[unsafe(allow(dead_code))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -56,7 +56,7 @@ LL | #[unsafe(allow(dead_code))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: `allow` is not an unsafe attribute
+-  --> $DIR/proc-unsafe-attributes.rs:28:3
++  --> $DIR/proc-unsafe-attributes.rs:26:3
+    |
+ LL | #[unsafe(allow(unsafe(dead_code)))]
+    |   ^^^^^^ this is not an unsafe attribute
+@@ -64,7 +64,7 @@ LL | #[unsafe(allow(unsafe(dead_code)))]
+    = note: extraneous unsafe is not allowed in attributes
+ 
+ error: expected identifier, found keyword `unsafe`
+-  --> $DIR/proc-unsafe-attributes.rs:28:16
++  --> $DIR/proc-unsafe-attributes.rs:26:16
+    |
+ LL | #[unsafe(allow(unsafe(dead_code)))]
+    |                ^^^^^^ expected identifier, found keyword
+@@ -75,31 +75,31 @@ LL | #[unsafe(allow(r#unsafe(dead_code)))]
+    |                ++
+ 
+ error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
+-  --> $DIR/proc-unsafe-attributes.rs:3:1
++  --> $DIR/proc-unsafe-attributes.rs:1:1
+    |
+ LL | #[unsafe(proc_macro)]
+    | ^^^^^^^^^^^^^^^^^^^^^
+ 
+ error: the `#[proc_macro_derive]` attribute is only usable with crates of the `proc-macro` crate type
+-  --> $DIR/proc-unsafe-attributes.rs:9:1
++  --> $DIR/proc-unsafe-attributes.rs:7:1
+    |
+ LL | #[unsafe(proc_macro_derive(Foo))]
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+ error: the `#[proc_macro_derive]` attribute is only usable with crates of the `proc-macro` crate type
+-  --> $DIR/proc-unsafe-attributes.rs:14:1
++  --> $DIR/proc-unsafe-attributes.rs:12:1
+    |
+ LL | #[proc_macro_derive(unsafe(Foo))]
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+ error: the `#[proc_macro_attribute]` attribute is only usable with crates of the `proc-macro` crate type
+-  --> $DIR/proc-unsafe-attributes.rs:19:1
++  --> $DIR/proc-unsafe-attributes.rs:17:1
+    |
+ LL | #[unsafe(proc_macro_attribute)]
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+ error[E0452]: malformed lint attribute input
+-  --> $DIR/proc-unsafe-attributes.rs:28:16
++  --> $DIR/proc-unsafe-attributes.rs:26:16
+    |
+ LL | #[unsafe(allow(unsafe(dead_code)))]
+    |                ^^^^^^^^^^^^^^^^^ bad attribute argument
+@@ -107,7 +107,7 @@ LL | #[unsafe(allow(unsafe(dead_code)))]
+    = note: duplicate diagnostic emitted due to `-Z deduplicate-diagnostics=no`
+ 
+ error[E0452]: malformed lint attribute input
+-  --> $DIR/proc-unsafe-attributes.rs:28:16
++  --> $DIR/proc-unsafe-attributes.rs:26:16
+    |
+ LL | #[unsafe(allow(unsafe(dead_code)))]
+    |                ^^^^^^^^^^^^^^^^^ bad attribute argument
+diff --git a/tests/ui/attributes/unsafe/unsafe-attributes.rs b/tests/ui/attributes/unsafe/unsafe-attributes.rs
+index 33a412add50..5c57767b3b9 100644
+--- a/tests/ui/attributes/unsafe/unsafe-attributes.rs
++++ b/tests/ui/attributes/unsafe/unsafe-attributes.rs
+@@ -1,5 +1,4 @@
+ //@ build-pass
+-#![feature(unsafe_attributes)]
+ 
+ #[unsafe(no_mangle)]
+ fn a() {}
+diff --git a/tests/ui/attributes/unsafe/unsafe-safe-attribute.rs b/tests/ui/attributes/unsafe/unsafe-safe-attribute.rs
+index 67db36afd2e..5af03a2b8d1 100644
+--- a/tests/ui/attributes/unsafe/unsafe-safe-attribute.rs
++++ b/tests/ui/attributes/unsafe/unsafe-safe-attribute.rs
+@@ -1,5 +1,3 @@
+-#![feature(unsafe_attributes)]
+-
+ #[unsafe(repr(C))] //~ ERROR: is not an unsafe attribute
+ struct Foo {}
+ 
+diff --git a/tests/ui/attributes/unsafe/unsafe-safe-attribute.stderr b/tests/ui/attributes/unsafe/unsafe-safe-attribute.stderr
+index 584b0ea797d..55172c91aae 100644
+--- a/tests/ui/attributes/unsafe/unsafe-safe-attribute.stderr
++++ b/tests/ui/attributes/unsafe/unsafe-safe-attribute.stderr
+@@ -1,5 +1,5 @@
+ error: `repr` is not an unsafe attribute
+-  --> $DIR/unsafe-safe-attribute.rs:3:3
++  --> $DIR/unsafe-safe-attribute.rs:1:3
+    |
+ LL | #[unsafe(repr(C))]
+    |   ^^^^^^ this is not an unsafe attribute
+diff --git a/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.rs b/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.rs
+index ff2eb61b405..0f241cc439f 100644
+--- a/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.rs
++++ b/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.rs
+@@ -1,5 +1,3 @@
+-#![feature(unsafe_attributes)]
+-
+ #[unsafe(diagnostic::on_unimplemented( //~ ERROR: is not an unsafe attribute
+     message = "testing",
+ ))]
+diff --git a/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.stderr b/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.stderr
+index 26b5e4e37b9..3bc291db5ac 100644
+--- a/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.stderr
++++ b/tests/ui/attributes/unsafe/unsafe-safe-attribute_diagnostic.stderr
+@@ -1,5 +1,5 @@
+ error: `diagnostic::on_unimplemented` is not an unsafe attribute
+-  --> $DIR/unsafe-safe-attribute_diagnostic.rs:3:3
++  --> $DIR/unsafe-safe-attribute_diagnostic.rs:1:3
+    |
+ LL | #[unsafe(diagnostic::on_unimplemented(
+    |   ^^^^^^ this is not an unsafe attribute
+diff --git a/tests/ui/feature-gates/feature-gate-unsafe-attributes.rs b/tests/ui/feature-gates/feature-gate-unsafe-attributes.rs
+deleted file mode 100644
+index 9eba415dda0..00000000000
+--- a/tests/ui/feature-gates/feature-gate-unsafe-attributes.rs
++++ /dev/null
+@@ -1,8 +0,0 @@
+-#[unsafe(no_mangle)] //~ ERROR [E0658]
+-extern "C" fn foo() {
+-
+-}
+-
+-fn main() {
+-    foo();
+-}
+diff --git a/tests/ui/feature-gates/feature-gate-unsafe-attributes.stderr b/tests/ui/feature-gates/feature-gate-unsafe-attributes.stderr
+deleted file mode 100644
+index dfcea756b02..00000000000
+--- a/tests/ui/feature-gates/feature-gate-unsafe-attributes.stderr
++++ /dev/null
+@@ -1,13 +0,0 @@
+-error[E0658]: `#[unsafe()]` markers for attributes are experimental
+-  --> $DIR/feature-gate-unsafe-attributes.rs:1:3
+-   |
+-LL | #[unsafe(no_mangle)]
+-   |   ^^^^^^
+-   |
+-   = note: see issue #123757 <https://github.com/rust-lang/rust/issues/123757> for more information
+-   = help: add `#![feature(unsafe_attributes)]` to the crate attributes to enable
+-   = note: this compiler was built on YYYY-MM-DD; consider upgrading it if it is out of date
+-
+-error: aborting due to 1 previous error
+-
+-For more information about this error, try `rustc --explain E0658`.
+diff --git a/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.rs b/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.rs
+index c6f9115cde7..f3b8645abaf 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.rs
++++ b/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.rs
+@@ -1,5 +1,4 @@
+ #![deny(rust_2024_compatibility)]
+-#![feature(unsafe_attributes)]
+ 
+ #[no_mangle]
+ //~^ ERROR: unsafe attribute used without unsafe
+diff --git a/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.stderr b/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.stderr
+index f0689d9883c..4629a154ac3 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.stderr
++++ b/tests/ui/rust-2024/unsafe-attributes/in_2024_compatibility.stderr
+@@ -1,5 +1,5 @@
+ error: unsafe attribute used without unsafe
+-  --> $DIR/in_2024_compatibility.rs:4:3
++  --> $DIR/in_2024_compatibility.rs:3:3
+    |
+ LL | #[no_mangle]
+    |   ^^^^^^^^^ usage of unsafe attribute
+diff --git a/tests/ui/rust-2024/unsafe-attributes/unsafe-attribute-marked.rs b/tests/ui/rust-2024/unsafe-attributes/unsafe-attribute-marked.rs
+index 279ced2525a..7c919fed976 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/unsafe-attribute-marked.rs
++++ b/tests/ui/rust-2024/unsafe-attributes/unsafe-attribute-marked.rs
+@@ -4,7 +4,6 @@
+ //@[edition2024] compile-flags: -Zunstable-options
+ //@ check-pass
+ 
+-#![feature(unsafe_attributes)]
+ 
+ #[unsafe(no_mangle)]
+ extern "C" fn foo() {}
+diff --git a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.fixed b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.fixed
+index 6ebdff0334c..586881d1807 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.fixed
++++ b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.fixed
+@@ -1,5 +1,4 @@
+ //@ run-rustfix
+-#![feature(unsafe_attributes)]
+ #![deny(unsafe_attr_outside_unsafe)]
+ 
+ macro_rules! tt {
+diff --git a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.rs b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.rs
+index c78ff45ea4c..03e122c7d57 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.rs
++++ b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.rs
+@@ -1,5 +1,4 @@
+ //@ run-rustfix
+-#![feature(unsafe_attributes)]
+ #![deny(unsafe_attr_outside_unsafe)]
+ 
+ macro_rules! tt {
+diff --git a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.stderr b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.stderr
+index c95984f58ec..64debc58905 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.stderr
++++ b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes-fix.stderr
+@@ -1,5 +1,5 @@
+ error: unsafe attribute used without unsafe
+-  --> $DIR/unsafe-attributes-fix.rs:44:6
++  --> $DIR/unsafe-attributes-fix.rs:43:6
+    |
+ LL | tt!([no_mangle]);
+    |      ^^^^^^^^^ usage of unsafe attribute
+@@ -7,7 +7,7 @@ LL | tt!([no_mangle]);
+    = warning: this is accepted in the current edition (Rust 2015) but is a hard error in Rust 2024!
+    = note: for more information, see issue #123757 <https://github.com/rust-lang/rust/issues/123757>
+ note: the lint level is defined here
+-  --> $DIR/unsafe-attributes-fix.rs:3:9
++  --> $DIR/unsafe-attributes-fix.rs:2:9
+    |
+ LL | #![deny(unsafe_attr_outside_unsafe)]
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+@@ -17,7 +17,7 @@ LL | tt!([unsafe(no_mangle)]);
+    |      +++++++         +
+ 
+ error: unsafe attribute used without unsafe
+-  --> $DIR/unsafe-attributes-fix.rs:14:11
++  --> $DIR/unsafe-attributes-fix.rs:13:11
+    |
+ LL |         #[$e]
+    |           ^^ usage of unsafe attribute
+@@ -34,7 +34,7 @@ LL |         #[unsafe($e)]
+    |           +++++++  +
+ 
+ error: unsafe attribute used without unsafe
+-  --> $DIR/unsafe-attributes-fix.rs:48:7
++  --> $DIR/unsafe-attributes-fix.rs:47:7
+    |
+ LL | meta!(no_mangle);
+    |       ^^^^^^^^^ usage of unsafe attribute
+@@ -47,7 +47,7 @@ LL | meta!(unsafe(no_mangle));
+    |       +++++++         +
+ 
+ error: unsafe attribute used without unsafe
+-  --> $DIR/unsafe-attributes-fix.rs:51:8
++  --> $DIR/unsafe-attributes-fix.rs:50:8
+    |
+ LL | meta2!(export_name = "baw");
+    |        ^^^^^^^^^^^ usage of unsafe attribute
+@@ -60,7 +60,7 @@ LL | meta2!(unsafe(export_name = "baw"));
+    |        +++++++                   +
+ 
+ error: unsafe attribute used without unsafe
+-  --> $DIR/unsafe-attributes-fix.rs:23:11
++  --> $DIR/unsafe-attributes-fix.rs:22:11
+    |
+ LL |         #[$e = $l]
+    |           ^^ usage of unsafe attribute
+@@ -77,7 +77,7 @@ LL |         #[unsafe($e = $l)]
+    |           +++++++       +
+ 
+ error: unsafe attribute used without unsafe
+-  --> $DIR/unsafe-attributes-fix.rs:56:3
++  --> $DIR/unsafe-attributes-fix.rs:55:3
+    |
+ LL | #[no_mangle]
+    |   ^^^^^^^^^ usage of unsafe attribute
+diff --git a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.edition2024.stderr b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.edition2024.stderr
+index 35475d66716..fb697e14ef1 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.edition2024.stderr
++++ b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.edition2024.stderr
+@@ -1,5 +1,5 @@
+ error: unsafe attribute used without unsafe
+-  --> $DIR/unsafe-attributes.rs:9:3
++  --> $DIR/unsafe-attributes.rs:8:3
+    |
+ LL | #[no_mangle]
+    |   ^^^^^^^^^ usage of unsafe attribute
+diff --git a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.rs b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.rs
+index 3a6af9dfb2b..f6f2994bb6d 100644
+--- a/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.rs
++++ b/tests/ui/rust-2024/unsafe-attributes/unsafe-attributes.rs
+@@ -4,7 +4,6 @@
+ //@[edition2024] edition:2024
+ //@[edition2024] compile-flags: -Zunstable-options
+ 
+-#![feature(unsafe_attributes)]
+ 
+ #[no_mangle] //[edition2024]~ ERROR: unsafe attribute used without unsafe
+ extern "C" fn foo() {}
