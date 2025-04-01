@@ -75,7 +75,6 @@
 #  include "mozilla/WindowsVersion.h"
 #  include "mozilla/gfx/DeviceManagerDx.h"
 #  include "mozilla/layers/GpuProcessD3D11TextureMap.h"
-#  include "mozilla/layers/GpuProcessD3D11QueryMap.h"
 #  include "mozilla/layers/TextureD3D11.h"
 #  include "mozilla/widget/WinCompositorWindowThread.h"
 #  include "MediaCodecsSupport.h"
@@ -216,7 +215,6 @@ bool GPUParent::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
   gfxWindowsPlatform::InitMemoryReportersForGPUProcess();
   DeviceManagerDx::Init();
   GpuProcessD3D11TextureMap::Init();
-  GpuProcessD3D11QueryMap::Init();
   auto rv = wmf::MediaFoundationInitializer::HasInitialized();
   if (!rv) {
     NS_WARNING("Failed to init Media Foundation in the GPU process");
@@ -805,7 +803,6 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
 #endif
 
 #if defined(XP_WIN)
-        GpuProcessD3D11QueryMap::Shutdown();
         GpuProcessD3D11TextureMap::Shutdown();
         DeviceManagerDx::Shutdown();
 #endif

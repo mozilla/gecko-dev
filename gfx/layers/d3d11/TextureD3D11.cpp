@@ -23,7 +23,6 @@
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
-#include "mozilla/layers/GpuProcessD3D11QueryMap.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/VideoProcessorD3D11.h"
@@ -355,15 +354,6 @@ D3D11TextureData::~D3D11TextureData() {
       gfxCriticalNoteOnce << "GpuProcessD3D11TextureMap does not exist";
     }
   }
-
-  if (mGpuProcessQueryId.isSome()) {
-    auto* queryMap = GpuProcessD3D11QueryMap::Get();
-    if (queryMap) {
-      queryMap->Unregister(mGpuProcessQueryId.ref());
-    } else {
-      gfxCriticalNoteOnce << "GpuProcessD3D11QueryMap does not exist";
-    }
-  }
 }
 
 bool D3D11TextureData::Lock(OpenMode aMode) {
@@ -433,7 +423,7 @@ bool D3D11TextureData::SerializeSpecific(
   *aOutDesc = SurfaceDescriptorD3D10(
       mSharedHandle, mGpuProcessTextureId, mArrayIndex, mFormat, mSize,
       mColorSpace, mColorRange, /* hasKeyedMutex */ mHasKeyedMutex,
-      /* fenceInfo */ Nothing(), mGpuProcessQueryId);
+      /* fenceInfo */ Nothing());
   return true;
 }
 
@@ -667,22 +657,6 @@ TextureFlags D3D11TextureData::GetTextureFlags() const {
   return TextureFlags::WAIT_HOST_USAGE_END;
 }
 
-void D3D11TextureData::RegisterQuery(RefPtr<ID3D11Query> aQuery,
-                                     bool aOnlyForOverlay) {
-  MOZ_ASSERT(XRE_IsGPUProcess());
-  MOZ_ASSERT(GpuProcessD3D11QueryMap::Get());
-
-  if (!GpuProcessD3D11QueryMap::Get()) {
-    return;
-  }
-
-  if (mGpuProcessQueryId.isNothing()) {
-    mGpuProcessQueryId = Some(GpuProcessQueryId::GetNext());
-  }
-  mGpuProcessQueryId.ref().mOnlyForOverlay = aOnlyForOverlay;
-  GpuProcessD3D11QueryMap::Get()->Register(mGpuProcessQueryId.ref(), aQuery);
-}
-
 DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
     ID3D11Texture2D* aTextureY, ID3D11Texture2D* aTextureCb,
     ID3D11Texture2D* aTextureCr, const gfx::IntSize& aSize,
@@ -909,7 +883,6 @@ DXGITextureHostD3D11::DXGITextureHostD3D11(
       mHandle(aDescriptor.handle()),
       mGpuProcessTextureId(aDescriptor.gpuProcessTextureId()),
       mArrayIndex(aDescriptor.arrayIndex()),
-      mGpuProcessQueryId(aDescriptor.gpuProcessQueryId()),
       mSize(aDescriptor.size()),
       mFormat(aDescriptor.format()),
       mHasKeyedMutex(aDescriptor.hasKeyedMutex()),
@@ -1059,22 +1032,6 @@ DXGITextureHostD3D11::GetAsSurfaceWithDevice(
   RefPtr<ID3D11DeviceContext> context;
   device->GetImmediateContext(getter_AddRefs(context));
 
-  auto* queryMap = GpuProcessD3D11QueryMap::Get();
-  if (queryMap && mGpuProcessQueryId.isSome()) {
-    auto query = queryMap->GetQuery(mGpuProcessQueryId.ref());
-    if (query) {
-      // Wait ID3D11Query of D3D11Texture2D copy complete just before blitting
-      // for video overlay with non Intel GPUs. See Bug 1817617.
-      BOOL result;
-      bool ret = layers::WaitForFrameGPUQuery(device, context, query, &result);
-      if (!ret) {
-        gfxCriticalNoteOnce << "WaitForFrameGPUQuery() failed";
-      }
-    } else {
-      gfxCriticalNoteOnce << "Failed to get ID3D11Query";
-    }
-  }
-
   CD3D11_TEXTURE2D_DESC desc;
   d3dTexture->GetDesc(&desc);
 
@@ -1190,8 +1147,7 @@ void DXGITextureHostD3D11::CreateRenderTexture(
 
   RefPtr<wr::RenderDXGITextureHost> texture = new wr::RenderDXGITextureHost(
       mHandle, mGpuProcessTextureId, mArrayIndex, mFormat, mColorSpace,
-      mColorRange, mSize, mHasKeyedMutex, mAcquireFenceInfo,
-      mGpuProcessQueryId);
+      mColorRange, mSize, mHasKeyedMutex, mAcquireFenceInfo);
   if (mFlags & TextureFlags::SOFTWARE_DECODED_VIDEO) {
     texture->SetIsSoftwareDecodedVideo();
   }

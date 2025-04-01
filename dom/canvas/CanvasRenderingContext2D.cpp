@@ -5547,10 +5547,6 @@ MaybeGetSurfaceDescriptorForRemoteCanvas(
             layers::RemoteDecoderVideoSubDescriptor::TSurfaceDescriptorD3D10 &&
         StaticPrefs::gfx_canvas_remote_use_draw_image_fast_path_d3d()) {
       auto& descD3D10 = subdesc.get_SurfaceDescriptorD3D10();
-      if (descD3D10.gpuProcessQueryId().isSome() &&
-          descD3D10.gpuProcessQueryId().ref().mOnlyForOverlay) {
-        return Nothing();
-      }
       // Clear FileHandleWrapper, since FileHandleWrapper::mHandle could not be
       // cross process delivered by using Shmem. Cross-process delivery of
       // FileHandleWrapper::mHandle is not possible simply by using shmen. When

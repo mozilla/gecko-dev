@@ -101,8 +101,7 @@ Maybe<layers::SurfaceDescriptor> ExternalTextureD3D11::ToSurfaceDescriptor(
       /* gpuProcessTextureId */ Nothing(),
       /* arrayIndex */ 0, format, gfx::IntSize(mWidth, mHeight),
       gfx::ColorSpace2::SRGB, gfx::ColorRange::FULL,
-      /* hasKeyedMutex */ false, aFenceInfo,
-      /* gpuProcessQueryId */ Nothing()));
+      /* hasKeyedMutex */ false, aFenceInfo));
 }
 
 void ExternalTextureD3D11::GetSnapshot(const ipc::Shmem& aDestShmem,
