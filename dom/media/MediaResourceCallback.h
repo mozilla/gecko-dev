@@ -47,8 +47,6 @@ class MediaResourceCallback
   virtual void NotifyDataArrived() {}
 
   // Notify download is ended.
-  // NOTE: this can be called with the media cache lock held, so don't
-  // block or do anything which might try to acquire a lock!
   virtual void NotifyDataEnded(nsresult aStatus) {}
 
   // Notify that the principal of MediaResource has changed.
