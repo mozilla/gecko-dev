@@ -645,6 +645,7 @@ export class FormAutofillCreditCardSection extends FormAutofillSection {
         result = decrypted ? "success" : "fail_user_canceled";
       } catch (ex) {
         result = "fail_error";
+        throw ex;
       } finally {
         Glean.formautofill.promptShownOsReauth.record({
           trigger: "autofill",
@@ -676,7 +677,6 @@ export class FormAutofillCreditCardSection extends FormAutofillSection {
     } catch (e) {
       errorResult = e.result;
       if (e.result != Cr.NS_ERROR_ABORT) {
-        this.log.warn(`Decryption failed with result: ${e.result}`);
         throw e;
       }
       this.log.warn("User canceled encryption login");
