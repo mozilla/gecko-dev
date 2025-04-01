@@ -485,8 +485,11 @@ class ModuleLoaderBase : public nsISupports {
   bool ModuleMapContainsURL(const ModuleMapKey& key) const;
   bool IsModuleFetching(const ModuleMapKey& key) const;
   void WaitForModuleFetch(ModuleLoadRequest* aRequest);
+
+ protected:
   void SetModuleFetchStarted(ModuleLoadRequest* aRequest);
 
+ private:
   ModuleScript* GetFetchedModule(const ModuleMapKey& moduleMapKey) const;
 
   JS::Value FindFirstParseError(ModuleLoadRequest* aRequest);

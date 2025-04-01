@@ -467,7 +467,16 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
   MOZ_ASSERT(aRequest->mLoader == this);
   MOZ_ASSERT(aRequest->IsFetching() || aRequest->IsPendingFetchingError());
 
-  aRequest->SetUnknownDataType();
+  // NOTE: The LoadedScript::mDataType field used by the IsStencil call can be
+  //       modified asynchronously after the StartFetch call.
+  //       In order to avoid the race condition, cache the value here.
+  bool isStencil = aRequest->IsStencil();
+
+  MOZ_ASSERT_IF(isStencil, aRestart == RestartRequest::No);
+
+  if (!isStencil) {
+    aRequest->SetUnknownDataType();
+  }
 
   // If we're restarting the request, the module should already be in the
   // "fetching" map.
@@ -493,6 +502,12 @@ nsresult ModuleLoaderBase::StartOrRestartModuleLoad(ModuleLoadRequest* aRequest,
 
   rv = StartFetch(aRequest);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (isStencil) {
+    MOZ_ASSERT(
+        IsModuleFetched(ModuleMapKey(aRequest->mURI, aRequest->mModuleType)));
+    return NS_OK;
+  }
 
   // We successfully started fetching a module so put its URL in the module
   // map and mark it as fetching.
@@ -716,10 +731,29 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
     }
 
     MOZ_ASSERT(aRequest->mLoadedScript->IsModuleScript());
-    MOZ_ASSERT(aRequest->mLoadedScript->GetFetchOptions() ==
-               aRequest->mFetchOptions);
-    MOZ_ASSERT(aRequest->mLoadedScript->GetURI() == aRequest->mURI);
-    aRequest->mLoadedScript->SetBaseURL(aRequest->mBaseURL);
+    MOZ_ASSERT(aRequest->mFetchOptions->IsCompatible(
+        aRequest->mLoadedScript->GetFetchOptions()));
+#ifdef DEBUG
+    {
+      bool equals = false;
+      aRequest->mURI->Equals(aRequest->mLoadedScript->GetURI(), &equals);
+      MOZ_ASSERT(equals);
+    }
+#endif
+
+    if (!aRequest->mLoadedScript->BaseURL()) {
+      // If this script is not cached, the BaseURL should be copied from
+      // request to script for later use.
+      aRequest->mLoadedScript->SetBaseURL(aRequest->mBaseURL);
+    } else {
+      // If this script is cached, the BaseURL should match, which is
+      // checked when looking for the cache.
+#ifdef DEBUG
+      bool equals = false;
+      aRequest->mBaseURL->Equals(aRequest->mLoadedScript->BaseURL(), &equals);
+      MOZ_ASSERT(equals);
+#endif
+    }
     RefPtr<ModuleScript> moduleScript =
         aRequest->mLoadedScript->AsModuleScript();
     aRequest->mModuleScript = moduleScript;

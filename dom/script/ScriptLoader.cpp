@@ -1123,7 +1123,9 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
 
   if (aKind == ScriptKind::eModule) {
     RefPtr<ModuleLoadRequest> request = mModuleLoader->CreateTopLevel(
-        aURI, aReferrerPolicy, fetchOptions, aIntegrity, referrer, context);
+        aURI, aElement, aReferrerPolicy, fetchOptions, aIntegrity, referrer,
+        context, aRequestType);
+
     return request.forget();
   }
 
