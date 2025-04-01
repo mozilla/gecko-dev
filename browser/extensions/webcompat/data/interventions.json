@@ -1587,57 +1587,6 @@
       }
     ]
   },
-  "1844503": {
-    "label": "nicochannel.jp",
-    "bugs": {
-      "1844503": {
-        "issue": "firefox-blocked-completely",
-        "matches": [
-          "*://*.ado-dokidokihimitsukichi-daigakuimo.com/*",
-          "*://*.ahnbohyun-fc.com/*",
-          "*://*.banbanzai-fc.com/*",
-          "*://*.canan8181.com/*",
-          "*://*.gs-ch.com/*",
-          "*://*.itomiku-fc.jp/*",
-          "*://*.kawahara-no.jp/*",
-          "*://*.keisuke-ueda.jp/*",
-          "*://*.kemomimirefle.net/*",
-          "*://*.kyoten-waku-officialfc.com/*",
-          "*://*.maziyabacity.com/*",
-          "*://*.nicochannel.jp/*",
-          "*://*.p-jinriki-fc.com/*",
-          "*://*.pizzaradio.jp/*",
-          "*://*.quizknock-schole.com/*",
-          "*://*.rnqq.jp/*",
-          "*://*.ryogomatsumaru.com/*",
-          "*://*.sae-okazaki.com/*",
-          "*://*.sakuraknights.com/*",
-          "*://*.salon-de-horizon.jp/*",
-          "*://*.serina-official.com/*",
-          "*://*.shibuya-abemas.com/*",
-          "*://*.styleparty-fc.jp/*",
-          "*://*.suzuka-ouji-officialfc.com/*",
-          "*://*.takahashifumiya.com/*",
-          "*://*.tokinosora-fc.com/*",
-          "*://*.tymstorage.jp/*",
-          "*://*.yamingfc.net/*"
-        ]
-      },
-      "1948817": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://*.qlover.jp/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "js": ["bug1849058-nicochannel.jp-picture-in-picture-shim.js"]
-        },
-        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
-      }
-    ]
-  },
   "1845299": {
     "label": "Google Slides",
     "bugs": {

@@ -1184,37 +1184,6 @@ class Client:
     async def ensure_InstallTrigger_undefined(self):
         return await self.make_preload_script("delete InstallTrigger")
 
-    async def test_nicochannel_like_site(self, url, shouldPass=True):
-        CONSENT = self.css(".MuiDialog-container button.MuiButton-containedPrimary")
-        PREMIUM = self.text(
-            "視聴するには、会員プランまたはレンタルプランを購入してください"
-        )
-        BLOCKED = self.text("このブラウザはサポートされていません。")
-        PLAY = self.css(".nfcp-overlay-play-lg")
-
-        await self.navigate(url)
-
-        while True:
-            consent, premium, blocked, play = self.await_first_element_of(
-                [
-                    CONSENT,
-                    PREMIUM,
-                    BLOCKED,
-                    PLAY,
-                ],
-                is_displayed=True,
-                timeout=30,
-            )
-            if not consent:
-                break
-            consent.click()
-            self.await_element_hidden(CONSENT)
-            continue
-        if shouldPass:
-            assert play or premium
-        else:
-            assert blocked
-
     async def test_entrata_banner_hidden(self, url, iframe_css=None):
         # some sites take a while to load, but they always have the browser
         # warning popup, it just isn't shown until the page finishes loading.
