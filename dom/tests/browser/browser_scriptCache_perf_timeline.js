@@ -1,12 +1,3 @@
-async function clearAllCache() {
-  await new Promise(function (resolve) {
-    Services.clearData.deleteData(
-      Ci.nsIClearDataService.CLEAR_ALL_CACHES,
-      resolve
-    );
-  });
-}
-
 const URL_BASE = "https://example.com/browser/dom/tests/browser/";
 const URL_BASE2 = "https://example.net/browser/dom/tests/browser/";
 
@@ -177,7 +168,8 @@ add_task(async function testCompleteCacheAfterReload() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -239,7 +231,8 @@ add_task(async function testCompleteCacheInSameDocument() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -331,7 +324,8 @@ add_task(async function testNoCacheReload() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -393,7 +387,8 @@ add_task(async function test_NoCORS() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -454,7 +449,8 @@ add_task(async function test_NoCORS_TAO() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -515,7 +511,8 @@ add_task(async function test_CORS() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -577,7 +574,8 @@ add_task(async function test_CORS_TAO() {
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
-  await clearAllCache();
+  ChromeUtils.clearResourceCache();
+  Services.cache2.clear();
 
   await BrowserTestUtils.withNewTab(
     {
