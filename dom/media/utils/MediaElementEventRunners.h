@@ -76,16 +76,15 @@ class nsMediaEventRunner : public nsIRunnable, public nsINamed {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsMediaEventRunner, nsIRunnable)
 
-  explicit nsMediaEventRunner(const nsAString& aName,
-                              HTMLMediaElement* aElement,
+  explicit nsMediaEventRunner(const char* aName, HTMLMediaElement* aElement,
                               const nsAString& aEventName = u"unknown"_ns);
 
   void Cancel() { mElement = nullptr; }
   NS_IMETHODIMP GetName(nsACString& aName) override {
-    aName = NS_ConvertUTF16toUTF8(mName).get();
+    aName.AssignASCII(mName);
     return NS_OK;
   }
-  nsString Name() const { return mName; }
+  const char* Name() const { return mName; }
   nsString EventName() const { return mEventName; }
 
  protected:
@@ -97,7 +96,7 @@ class nsMediaEventRunner : public nsIRunnable, public nsINamed {
   uint64_t GetElementDurationMs() const;
 
   RefPtr<HTMLMediaElement> mElement;
-  nsString mName;
+  const char* mName;
   nsString mEventName;
   uint32_t mLoadID;
 };
@@ -108,7 +107,7 @@ class nsMediaEventRunner : public nsIRunnable, public nsINamed {
 class nsAsyncEventRunner : public nsMediaEventRunner {
  public:
   nsAsyncEventRunner(const nsAString& aEventName, HTMLMediaElement* aElement)
-      : nsMediaEventRunner(u"nsAsyncEventRunner"_ns, aElement, aEventName) {}
+      : nsMediaEventRunner("nsAsyncEventRunner", aElement, aEventName) {}
   MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override;
 };
 
@@ -169,7 +168,7 @@ class nsSourceErrorEventRunner : public nsMediaEventRunner {
                                            nsMediaEventRunner)
   nsSourceErrorEventRunner(HTMLMediaElement* aElement, nsIContent* aSource,
                            const nsACString& aErrorDetails)
-      : nsMediaEventRunner(u"nsSourceErrorEventRunner"_ns, aElement),
+      : nsMediaEventRunner("nsSourceErrorEventRunner", aElement),
         mSource(aSource),
         mErrorDetails(NS_ConvertUTF8toUTF16(aErrorDetails)) {}
   NS_IMETHOD Run() override;
@@ -188,8 +187,7 @@ class nsSourceErrorEventRunner : public nsMediaEventRunner {
 class nsTimeupdateRunner : public nsMediaEventRunner {
  public:
   nsTimeupdateRunner(HTMLMediaElement* aElement, bool aIsMandatory)
-      : nsMediaEventRunner(u"nsTimeupdateRunner"_ns, aElement,
-                           u"timeupdate"_ns),
+      : nsMediaEventRunner("nsTimeupdateRunner", aElement, u"timeupdate"_ns),
         mIsMandatory(aIsMandatory) {}
   MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override;
 

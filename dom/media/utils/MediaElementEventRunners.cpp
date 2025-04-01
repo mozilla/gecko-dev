@@ -18,7 +18,7 @@ extern mozilla::LazyLogModule gMediaElementEventsLog;
 
 namespace mozilla::dom {
 
-nsMediaEventRunner::nsMediaEventRunner(const nsAString& aName,
+nsMediaEventRunner::nsMediaEventRunner(const char* aName,
                                        HTMLMediaElement* aElement,
                                        const nsAString& aEventName)
     : mElement(aElement),
@@ -119,7 +119,7 @@ nsResolveOrRejectPendingPlayPromisesRunner::
     nsResolveOrRejectPendingPlayPromisesRunner(
         HTMLMediaElement* aElement, nsTArray<RefPtr<PlayPromise>>&& aPromises,
         nsresult aError)
-    : nsMediaEventRunner(u"nsResolveOrRejectPendingPlayPromisesRunner"_ns,
+    : nsMediaEventRunner("nsResolveOrRejectPendingPlayPromisesRunner",
                          aElement),
       mPromises(std::move(aPromises)),
       mError(aError) {

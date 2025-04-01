@@ -247,8 +247,7 @@ class HTMLMediaElement::EventBlocker final : public nsISupports {
     MOZ_ASSERT(mShouldBlockEventDelivery);
     MOZ_ASSERT(mElement);
     LOG_EVENT(LogLevel::Debug,
-              ("%p postpone runner %s for %s", mElement.get(),
-               NS_ConvertUTF16toUTF8(aRunner->Name()).get(),
+              ("%p postpone runner %s for %s", mElement.get(), aRunner->Name(),
                NS_ConvertUTF16toUTF8(aRunner->EventName()).get()));
     mPendingEventRunners.AppendElement(aRunner);
   }
@@ -282,8 +281,7 @@ class HTMLMediaElement::EventBlocker final : public nsISupports {
     MOZ_ASSERT(mElement);
     for (auto& runner : mPendingEventRunners) {
       LOG_EVENT(LogLevel::Debug,
-                ("%p execute runner %s for %s", mElement.get(),
-                 NS_ConvertUTF16toUTF8(runner->Name()).get(),
+                ("%p execute runner %s for %s", mElement.get(), runner->Name(),
                  NS_ConvertUTF16toUTF8(runner->EventName()).get()));
       GetMainThreadSerialEventTarget()->Dispatch(runner.forget());
     }
