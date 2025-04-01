@@ -50,6 +50,14 @@ extensions = [
     "bzlink",
 ]
 
+myst_enable_extensions = [
+    "colon_fence",
+    "smartquotes",
+    "deflist",
+    "html_admonition",
+    "fieldlist",
+]
+
 # JSDoc must run successfully for dirs specified, so running
 # tree-wide (the default) will not work currently.
 # When adding more paths to this list, please ensure that they are not

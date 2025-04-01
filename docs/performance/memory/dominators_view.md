@@ -96,7 +96,7 @@ By default, this is set to \"Type\". However, you can set it instead to
 \"Call Stack\" to see exactly where in your code the objects are being
 allocated.
 
-::: {.note}
+::: {note}
 This option is called \"Allocation Stack\" in Firefox 46.
 :::
 
@@ -119,7 +119,7 @@ arrays, strings, or internal structures.
 
 ### Retaining Paths panel
 
-::: {.geckoVersionNote}
+::: {note}
 The Retaining Paths panel is new in Firefox 47.
 :::
 

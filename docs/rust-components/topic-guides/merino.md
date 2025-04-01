@@ -1,8 +1,3 @@
----
-myst:
-  enable_extensions: ["colon_fence"]
----
-
 # Curated Recommendations Client
 
 Fetches personalized content recommendations from the Merino Service. [Merino Curated Recommendations API Docs](https://merino.services.mozilla.com/docs#/default/curated_content_api_v1_curated_recommendations_post)

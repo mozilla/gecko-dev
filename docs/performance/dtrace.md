@@ -4,8 +4,8 @@
 be used to profile wakeups. This article provides a light introduction
 to it.
 
-:::
-**Note**: The [power profiling overview](power_profiling_overview.md) is
+:::{note}
+The [power profiling overview](power_profiling_overview.md) is
 worth reading at this point if you haven't already. It may make parts
 of this document easier to understand.
 :::

@@ -1,8 +1,3 @@
----
-myst:
-  enable_extensions: ["colon_fence"]
----
-
 # Relevancy
 
 The `relevancy` component tracks the user's interests locally, without sharing any data over the network. The component currently supports building an interest vector based on the URLs they visit.

@@ -65,7 +65,7 @@ the two snapshots:
 <iframe width="595" height="325" src="https://www.youtube.com/embed/3Ow-mdK6b2M" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
 
 
-::: {.note}
+::: {note}
 When you're looking at a comparison, you can't use the Dominators view
 or the Tree Map view.
 :::

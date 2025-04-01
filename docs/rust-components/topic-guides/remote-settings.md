@@ -1,8 +1,3 @@
----
-myst:
-  enable_extensions: ["colon_fence"]
----
-
 # Remote Settings Client
 
 The API for the Remote Settings can be found in the Mozilla Rust components [Kotlin API Reference](https://mozilla.github.io/application-services/kotlin/kotlin-components-docs/mozilla.appservices.remotesettings/index.html) and [Swift API Reference](https://mozilla.github.io/application-services/swift/Classes/RemoteSettings.html).
