@@ -2,6 +2,11 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+// Prevent intermittent TV job failure hit due to the entire test file
+// taking longer than the default per-testfile timeout on macOS builds
+// while running in chaos mode.
+requestLongerTimeout(2);
+
 async function runTests(options) {
   async function background(getTests) {
     let manifest = browser.runtime.getManifest();
