@@ -26,18 +26,31 @@ arr.map(Array.prototype.push, Array.prototype);
 
 // Other native function.
 [1, 2, 3].map(dateNow);
-
-// Self-hosted function called internally.
-"abc".match(/a./);
 `);
 assertEqArray(rv, [
   "map", "push", "push", "push",
   "create", "setPrototypeOf", "map", "get [Symbol.species]", "push", "push", "push",
   "map", "padStart", "padStart", "padStart",
   "map", "dateNow", "dateNow", "dateNow",
-  "match", "[Symbol.match]",
 ]);
+rv = [];
+gdbg.executeInGlobal(`
+  // Optimized 'match' (no callContentFunction).
+  var re = /a./;
+  "abc".match(re);
 
+  // Non-optimized 'match'. This calls RegExp.prototype[@@match] and getters on
+  // RegExp.prototype.
+  Object.setPrototypeOf(re, Object.create(RegExp.prototype));
+  "abc".match(re);
+`);
+assertEqArray(rv, [
+  "match",
+  "create", "setPrototypeOf",
+  "match", "[Symbol.match]",
+  "get flags", "get hasIndices", "get global", "get ignoreCase", "get multiline",
+  "get dotAll", "get unicode", "get unicodeSets", "get sticky",
+]);
 rv = [];
 gdbg.executeInGlobal(`
 // Nested getters called internally inside self-hosted.

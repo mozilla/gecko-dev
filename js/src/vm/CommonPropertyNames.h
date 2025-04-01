@@ -503,7 +503,10 @@
   MACRO_(read, "read")                                                         \
   MACRO_(reason, "reason")                                                     \
   MACRO_(RegExpMatch, "RegExpMatch")                                           \
+  MACRO_(RegExpMatchAll, "RegExpMatchAll")                                     \
+  MACRO_(RegExpReplace, "RegExpReplace")                                       \
   MACRO_(RegExpSearch, "RegExpSearch")                                         \
+  MACRO_(RegExpSplit, "RegExpSplit")                                           \
   MACRO_(RegExp_String_Iterator_, "RegExp String Iterator")                    \
   MACRO_(RegExp_prototype_Exec, "RegExp_prototype_Exec")                       \
   MACRO_(region, "region")                                                     \

@@ -443,7 +443,10 @@ static void MaybePopRegExpPrototypeFuses(JSContext* cx, NativeObject* obj,
       id.isAtom(cx->names().unicode) || id.isAtom(cx->names().unicodeSets) ||
       id.isAtom(cx->names().dotAll) || id.isAtom(cx->names().exec) ||
       id.isWellKnownSymbol(JS::SymbolCode::match) ||
-      id.isWellKnownSymbol(JS::SymbolCode::search)) {
+      id.isWellKnownSymbol(JS::SymbolCode::matchAll) ||
+      id.isWellKnownSymbol(JS::SymbolCode::replace) ||
+      id.isWellKnownSymbol(JS::SymbolCode::search) ||
+      id.isWellKnownSymbol(JS::SymbolCode::split)) {
     obj->realm()->realmFuses.optimizeRegExpPrototypeFuse.popFuse(
         cx, obj->realm()->realmFuses);
   }

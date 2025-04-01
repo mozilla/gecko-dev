@@ -180,7 +180,10 @@ struct OptimizePromiseLookupFuse final : public RealmFuse {
 // And the following unchanged data properties:
 // - .exec (RegExp_prototype_Exec)
 // - [@@match] (RegExpMatch)
+// - [@@matchAll] (RegExpMatchAll)
+// - [@@replace] (RegExpReplace)
 // - [@@search] (RegExpSearch)
+// - [@@split] (RegExpSplit)
 struct OptimizeRegExpPrototypeFuse final : public InvalidatingRealmFuse {
   virtual const char* name() override { return "OptimizeRegExpPrototypeFuse"; }
   virtual bool checkInvariant(JSContext* cx) override;

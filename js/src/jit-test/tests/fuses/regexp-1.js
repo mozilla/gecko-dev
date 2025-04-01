@@ -23,4 +23,7 @@ testProp(`"dotAll"`);
 // Data properties.
 testProp(`"exec"`);
 testProp(`Symbol.match`);
+testProp(`Symbol.matchAll`);
+testProp(`Symbol.replace`);
 testProp(`Symbol.search`);
+testProp(`Symbol.split`);

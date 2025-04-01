@@ -19,6 +19,12 @@ function String_match(regexp) {
     !(isPatternString && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(regexp)
   ) {
+    // Fast path for regular expressions with the original
+    // RegExp.prototype[@@match] function.
+    if (IsObject(regexp) && IsOptimizableRegExpObject(regexp)) {
+      return callFunction(RegExpMatch, regexp, this);
+    }
+
     // Step 2.a.
     var matcher = GetMethod(regexp, GetBuiltinSymbol("match"));
 
@@ -75,6 +81,12 @@ function String_matchAll(regexp) {
       if (!callFunction(std_String_includes, ToString(flags), "g")) {
         ThrowTypeError(JSMSG_REQUIRES_GLOBAL_REGEXP, "matchAll");
       }
+    }
+
+    // Fast path for regular expressions with the original
+    // RegExp.prototype[@@matchAll] function.
+    if (IsObject(regexp) && IsOptimizableRegExpObject(regexp)) {
+      return callFunction(RegExpMatchAll, regexp, this);
     }
 
     // Step 2.c.
@@ -198,6 +210,12 @@ function String_replace(searchValue, replaceValue) {
     !(typeof searchValue === "string" && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(searchValue)
   ) {
+    // Fast path for regular expressions with the original
+    // RegExp.prototype[@@replace] function.
+    if (IsObject(searchValue) && IsOptimizableRegExpObject(searchValue)) {
+      return callFunction(RegExpReplace, searchValue, this, replaceValue);
+    }
+
     // Step 2.a.
     var replacer = GetMethod(searchValue, GetBuiltinSymbol("replace"));
 
@@ -282,6 +300,12 @@ function String_replaceAll(searchValue, replaceValue) {
       if (!callFunction(std_String_includes, ToString(flags), "g")) {
         ThrowTypeError(JSMSG_REQUIRES_GLOBAL_REGEXP, "replaceAll");
       }
+    }
+
+    // Fast path for regular expressions with the original
+    // RegExp.prototype[@@replace] function.
+    if (IsObject(searchValue) && IsOptimizableRegExpObject(searchValue)) {
+      return callFunction(RegExpReplace, searchValue, this, replaceValue);
     }
 
     // Step 2.c.
@@ -393,6 +417,12 @@ function String_search(regexp) {
     !(isPatternString && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(regexp)
   ) {
+    // Fast path for regular expressions with the original
+    // RegExp.prototype[@@search] function.
+    if (IsObject(regexp) && IsOptimizableRegExpObject(regexp)) {
+      return callFunction(RegExpSearch, regexp, this);
+    }
+
     // Step 2.a.
     var searcher = GetMethod(regexp, GetBuiltinSymbol("search"));
 
@@ -450,6 +480,12 @@ function String_split(separator, limit) {
     !(typeof separator === "string" && CanOptimizeStringProtoSymbolLookup()) &&
     !IsNullOrUndefined(separator)
   ) {
+    // Fast path for regular expressions with the original
+    // RegExp.prototype[@@split] function.
+    if (IsObject(separator) && IsOptimizableRegExpObject(separator)) {
+      return callFunction(RegExpSplit, separator, this, limit);
+    }
+
     // Step 2.a.
     var splitter = GetMethod(separator, GetBuiltinSymbol("split"));
 

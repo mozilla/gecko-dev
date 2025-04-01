@@ -461,8 +461,23 @@ bool js::OptimizeRegExpPrototypeFuse::checkInvariant(JSContext* cx) {
     return false;
   }
   if (!ObjectHasDataPropertyFunction(
+          proto, PropertyKey::Symbol(cx->wellKnownSymbols().matchAll),
+          cx->names().RegExpMatchAll)) {
+    return false;
+  }
+  if (!ObjectHasDataPropertyFunction(
+          proto, PropertyKey::Symbol(cx->wellKnownSymbols().replace),
+          cx->names().RegExpReplace)) {
+    return false;
+  }
+  if (!ObjectHasDataPropertyFunction(
           proto, PropertyKey::Symbol(cx->wellKnownSymbols().search),
           cx->names().RegExpSearch)) {
+    return false;
+  }
+  if (!ObjectHasDataPropertyFunction(
+          proto, PropertyKey::Symbol(cx->wellKnownSymbols().split),
+          cx->names().RegExpSplit)) {
     return false;
   }
 
