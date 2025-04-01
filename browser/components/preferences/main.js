@@ -3837,9 +3837,10 @@ var gMainPane = {
     switch (aFolder) {
       case "Desktop":
         return Services.dirsvc.get("Desk", Ci.nsIFile);
-      case "Downloads":
+      case "Downloads": {
         let downloadsDir = await Downloads.getSystemDownloadsDirectory();
         return new FileUtils.File(downloadsDir);
+      }
     }
     throw new Error(
       "ASSERTION FAILED: folder type should be 'Desktop' or 'Downloads'"
@@ -4004,8 +4005,17 @@ class HandlerListItem {
       return;
     }
     const { id, args } = document.l10n.getAttributes(selectedItem);
+    const messageIDs = {
+      "applications-action-save": "applications-action-save-label",
+      "applications-always-ask": "applications-always-ask-label",
+      "applications-open-inapp": "applications-open-inapp-label",
+      "applications-use-app-default": "applications-use-app-default-label",
+      "applications-use-app": "applications-use-app-label",
+      "applications-use-os-default": "applications-use-os-default-label",
+      "applications-use-other": "applications-use-other-label",
+    };
     localizeElement(this.node.querySelector(".actionDescription"), {
-      id: id + "-label",
+      id: messageIDs[id],
       args,
     });
     localizeElement(this.node.querySelector(".actionsMenu"), { id, args });
@@ -4126,12 +4136,12 @@ class HandlerInfoWrapper {
       case Ci.nsIHandlerInfo.useSystemDefault:
         return this.iconURLForSystemDefault;
 
-      case Ci.nsIHandlerInfo.useHelperApp:
+      case Ci.nsIHandlerInfo.useHelperApp: {
         let preferredApp = this.preferredApplicationHandler;
         if (gMainPane.isValidHandlerApp(preferredApp)) {
           return gMainPane._getIconURLForHandlerApp(preferredApp);
         }
-
+      }
       // This should never happen, but if preferredAction is set to some weird
       // value, then fall back to the generic application icon.
       // Explicit fall-through

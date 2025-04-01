@@ -13,9 +13,6 @@ sidebar-menu-history =
 sidebar-menu-synced-tabs =
   .label = Synced Tabs
 
-sidebar-menu-megalist =
-  .label = Passwords
-
 sidebar-menu-close =
   .label = Close Sidebar
 

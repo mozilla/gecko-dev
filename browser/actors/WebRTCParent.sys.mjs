@@ -565,16 +565,18 @@ function prompt(aActor, aBrowser, aRequest) {
   }
   const reqAudioOutput = !!audioOutputDevices.length;
 
+  const isFile = principal.schemeIs("file");
   const stringId = getPromptMessageId(
     reqVideoInput,
     reqAudioInput,
     reqAudioOutput,
-    !!aRequest.secondOrigin
+    !!aRequest.secondOrigin,
+    isFile
   );
   let message;
   let originToShow;
-  if (principal.schemeIs("file")) {
-    message = localization.formatValueSync(stringId + "-with-file");
+  if (isFile) {
+    message = localization.formatValueSync(stringId);
     originToShow = null;
   } else {
     message = localization.formatValueSync(stringId, {
@@ -1333,63 +1335,101 @@ function prompt(aActor, aBrowser, aRequest) {
  * @param {"AudioCapture" | "Microphone" | null} reqAudioInput
  * @param {boolean} reqAudioOutput
  * @param {boolean} delegation - Is the access delegated to a third party?
+ * @param {boolean} isFile - Is the request coming from a file?
  * @returns {string} Localization message identifier
  */
 function getPromptMessageId(
   reqVideoInput,
   reqAudioInput,
   reqAudioOutput,
-  delegation
+  delegation,
+  isFile
 ) {
   switch (reqVideoInput) {
     case "Camera":
       switch (reqAudioInput) {
         case "Microphone":
-          return delegation
-            ? "webrtc-allow-share-camera-and-microphone-unsafe-delegation"
-            : "webrtc-allow-share-camera-and-microphone";
+          if (isFile) {
+            return "webrtc-allow-share-camera-and-microphone-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-camera-and-microphone-unsafe-delegation";
+          }
+          return "webrtc-allow-share-camera-and-microphone";
         case "AudioCapture":
-          return delegation
-            ? "webrtc-allow-share-camera-and-audio-capture-unsafe-delegation"
-            : "webrtc-allow-share-camera-and-audio-capture";
+          if (isFile) {
+            return "webrtc-allow-share-camera-and-audio-capture-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-camera-and-audio-capture-unsafe-delegation";
+          }
+          return "webrtc-allow-share-camera-and-audio-capture";
         default:
-          return delegation
-            ? "webrtc-allow-share-camera-unsafe-delegation"
-            : "webrtc-allow-share-camera";
+          if (isFile) {
+            return "webrtc-allow-share-camera-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-camera-unsafe-delegation";
+          }
+          return "webrtc-allow-share-camera";
       }
 
     case "Screen":
       switch (reqAudioInput) {
         case "Microphone":
-          return delegation
-            ? "webrtc-allow-share-screen-and-microphone-unsafe-delegation"
-            : "webrtc-allow-share-screen-and-microphone";
+          if (isFile) {
+            return "webrtc-allow-share-screen-and-microphone-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-screen-and-microphone-unsafe-delegation";
+          }
+          return "webrtc-allow-share-screen-and-microphone";
         case "AudioCapture":
-          return delegation
-            ? "webrtc-allow-share-screen-and-audio-capture-unsafe-delegation"
-            : "webrtc-allow-share-screen-and-audio-capture";
+          if (isFile) {
+            return "webrtc-allow-share-screen-and-audio-capture-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-screen-and-audio-capture-unsafe-delegation";
+          }
+          return "webrtc-allow-share-screen-and-audio-capture";
         default:
-          return delegation
-            ? "webrtc-allow-share-screen-unsafe-delegation"
-            : "webrtc-allow-share-screen";
+          if (isFile) {
+            return "webrtc-allow-share-screen-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-screen-unsafe-delegation";
+          }
+          return "webrtc-allow-share-screen";
       }
 
     default:
       switch (reqAudioInput) {
         case "Microphone":
-          return delegation
-            ? "webrtc-allow-share-microphone-unsafe-delegation"
-            : "webrtc-allow-share-microphone";
+          if (isFile) {
+            return "webrtc-allow-share-microphone-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-microphone-unsafe-delegation";
+          }
+          return "webrtc-allow-share-microphone";
         case "AudioCapture":
-          return delegation
-            ? "webrtc-allow-share-audio-capture-unsafe-delegation"
-            : "webrtc-allow-share-audio-capture";
+          if (isFile) {
+            return "webrtc-allow-share-audio-capture-with-file";
+          }
+          if (delegation) {
+            return "webrtc-allow-share-audio-capture-unsafe-delegation";
+          }
+          return "webrtc-allow-share-audio-capture";
         default:
           // This should be always true, if we've reached this far.
           if (reqAudioOutput) {
-            return delegation
-              ? "webrtc-allow-share-speaker-unsafe-delegation"
-              : "webrtc-allow-share-speaker";
+            if (isFile) {
+              return "webrtc-allow-share-speaker-with-file";
+            }
+            if (delegation) {
+              return "webrtc-allow-share-speaker-unsafe-delegation";
+            }
+            return "webrtc-allow-share-speaker";
           }
           return undefined;
       }
