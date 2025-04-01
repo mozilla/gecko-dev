@@ -1,0 +1,28 @@
+<html>
+<head>
+<!--
+    Importing the same module script multiple times within the same document
+    should not generate multiple fetch, regardless of whether the script cache
+    is used or not, and there should be only one request shown in the network
+    monitor.
+  -->
+<script type="module" src="sjs_test-module-script.sjs"></script>
+<script type="module" src="sjs_test-module-script.sjs"></script>
+<script type="module">
+import { f } from "./sjs_test-module-script.sjs";
+f();
+</script>
+<script type="module">
+import { f } from "./sjs_test-module-script.sjs";
+f();
+</script>
+<script type="module">
+const { f } = await import("./sjs_test-module-script.sjs");
+f();
+</script>
+<script type="module">
+const { f } = await import("./sjs_test-module-script.sjs");
+f();
+</script>
+</head>
+</html>
