@@ -26,8 +26,8 @@ mod private {
     };
     use crate::private::labeled_timing_distribution::LabeledTimingDistributionMetricKind;
     use crate::private::{
-        BooleanMetric, CounterMetric, CustomDistributionMetric, MemoryDistributionMetric, TimeUnit,
-        TimingDistributionMetric,
+        BooleanMetric, ChildMetricMeta, CounterMetric, CustomDistributionMetric,
+        MemoryDistributionMetric, TimeUnit, TimingDistributionMetric,
     };
     use std::sync::{atomic::Ordering, Arc};
 
@@ -245,9 +245,12 @@ mod private {
                 .expect("write lock of TIMING_DISTRIBUTION_MAP was poisoned");
             let submetric = map.entry(submetric_id).or_insert_with(|| {
                 let submetric = if need_ipc() {
+                    use glean::MetricIdentifier;
+                    let m = metric.get(label);
+                    let (name, category, _) = m.get_identifiers();
                     LabeledTimingDistributionMetric {
                         inner: Arc::new(TimingDistributionMetric::new_child(
-                            id,
+                            ChildMetricMeta::from_name_category_pair(id, name, category),
                             TimeUnit::Millisecond,
                         )),
                         id: id.into(),

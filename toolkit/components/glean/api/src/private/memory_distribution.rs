@@ -6,7 +6,9 @@ use inherent::inherent;
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use super::{BaseMetricId, CommonMetricData, DistributionData, MemoryUnit, MetricId};
+use super::{
+    BaseMetricId, ChildMetricMeta, CommonMetricData, DistributionData, MemoryUnit, MetricId,
+};
 
 use glean::traits::MemoryDistribution;
 
@@ -30,16 +32,14 @@ pub enum MemoryDistributionMetric {
         id: MetricId,
         inner: Arc<glean::private::MemoryDistributionMetric>,
     },
-    Child(MemoryDistributionMetricIpc),
+    Child(ChildMetricMeta),
 }
-#[derive(Clone, Debug)]
-pub struct MemoryDistributionMetricIpc(pub BaseMetricId);
 
 impl MemoryDistributionMetric {
     /// Create a new memory distribution metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData, memory_unit: MemoryUnit) -> Self {
         if need_ipc() {
-            MemoryDistributionMetric::Child(MemoryDistributionMetricIpc(id))
+            MemoryDistributionMetric::Child(ChildMetricMeta::from_common_metric_data(id, meta))
         } else {
             let inner = glean::private::MemoryDistributionMetric::new(meta, memory_unit);
             MemoryDistributionMetric::Parent {
@@ -52,12 +52,15 @@ impl MemoryDistributionMetric {
     #[cfg(test)]
     pub(crate) fn child_metric(&self) -> Self {
         match self {
-            MemoryDistributionMetric::Parent { id, .. } => MemoryDistributionMetric::Child(
+            MemoryDistributionMetric::Parent { id, inner } => MemoryDistributionMetric::Child(
                 // SAFETY: We can unwrap here, as this code is only run in the
                 // context of a test. If this code is used elsewhere, the
                 // `unwrap` should be replaced with proper error handling of
                 // the `None` case.
-                MemoryDistributionMetricIpc((*id).base_metric_id().unwrap()),
+                ChildMetricMeta::from_metric_identifier(
+                    (*id).base_metric_id().unwrap(),
+                    inner.as_ref(),
+                ),
             ),
             MemoryDistributionMetric::Child(_) => {
                 panic!("Can't get a child metric from a child metric")
@@ -69,7 +72,7 @@ impl MemoryDistributionMetric {
     pub(crate) fn metric_id(&self) -> MetricId {
         match self {
             MemoryDistributionMetric::Parent { id, .. } => *id,
-            MemoryDistributionMetric::Child(c) => c.0.into(),
+            MemoryDistributionMetric::Child(meta) => meta.id.into(),
         }
     }
 
@@ -83,15 +86,15 @@ impl MemoryDistributionMetric {
                 inner.accumulate_samples(samples.into_iter().map(|s| s as _).collect());
                 *id
             }
-            MemoryDistributionMetric::Child(c) => {
+            MemoryDistributionMetric::Child(meta) => {
                 with_ipc_payload(move |payload| {
-                    if let Some(v) = payload.memory_samples.get_mut(&c.0) {
+                    if let Some(v) = payload.memory_samples.get_mut(&meta.id) {
                         v.extend(samples);
                     } else {
-                        payload.memory_samples.insert(c.0, samples);
+                        payload.memory_samples.insert(meta.id, samples);
                     }
                 });
-                MetricId::Id(c.0)
+                MetricId::Id(meta.id)
             }
         };
         #[cfg(feature = "with_gecko")]
@@ -163,15 +166,15 @@ impl MemoryDistribution for MemoryDistributionMetric {
                 inner.accumulate(sample);
                 *id
             }
-            MemoryDistributionMetric::Child(c) => {
+            MemoryDistributionMetric::Child(meta) => {
                 with_ipc_payload(move |payload| {
-                    if let Some(v) = payload.memory_samples.get_mut(&c.0) {
+                    if let Some(v) = payload.memory_samples.get_mut(&meta.id) {
                         v.push(sample);
                     } else {
-                        payload.memory_samples.insert(c.0, vec![sample]);
+                        payload.memory_samples.insert(meta.id, vec![sample]);
                     }
                 });
-                MetricId::Id(c.0)
+                MetricId::Id(meta.id)
             }
         };
         #[cfg(feature = "with_gecko")]
@@ -201,8 +204,11 @@ impl MemoryDistribution for MemoryDistributionMetric {
         let ping_name = ping_name.into().map(|s| s.to_string());
         match self {
             MemoryDistributionMetric::Parent { inner, .. } => inner.test_get_value(ping_name),
-            MemoryDistributionMetric::Child(c) => {
-                panic!("Cannot get test value for {:?} in non-parent process!", c.0)
+            MemoryDistributionMetric::Child(meta) => {
+                panic!(
+                    "Cannot get test value for {:?} in non-parent process!",
+                    meta.id
+                )
             }
         }
     }
@@ -225,9 +231,9 @@ impl MemoryDistribution for MemoryDistributionMetric {
             MemoryDistributionMetric::Parent { inner, .. } => {
                 inner.test_get_num_recorded_errors(error)
             }
-            MemoryDistributionMetric::Child(c) => panic!(
+            MemoryDistributionMetric::Child(meta) => panic!(
                 "Cannot get the number of recorded errors for {:?} in non-parent process!",
-                c.0
+                meta.id
             ),
         }
     }

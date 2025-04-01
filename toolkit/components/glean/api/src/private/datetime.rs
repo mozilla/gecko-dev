@@ -4,7 +4,7 @@
 
 use inherent::inherent;
 
-use super::{BaseMetricId, CommonMetricData};
+use super::{BaseMetricId, ChildMetricMeta, CommonMetricData};
 
 use super::TimeUnit;
 use crate::ipc::need_ipc;
@@ -84,16 +84,14 @@ pub enum DatetimeMetric {
         id: BaseMetricId,
         inner: glean::private::DatetimeMetric,
     },
-    Child(DatetimeMetricIpc),
+    Child(ChildMetricMeta),
 }
-#[derive(Debug, Clone)]
-pub struct DatetimeMetricIpc;
 
 impl DatetimeMetric {
     /// Create a new datetime metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData, time_unit: TimeUnit) -> Self {
         if need_ipc() {
-            DatetimeMetric::Child(DatetimeMetricIpc)
+            DatetimeMetric::Child(ChildMetricMeta::from_common_metric_data(id, meta))
         } else {
             DatetimeMetric::Parent {
                 id,
@@ -105,7 +103,9 @@ impl DatetimeMetric {
     #[cfg(test)]
     pub(crate) fn child_metric(&self) -> Self {
         match self {
-            DatetimeMetric::Parent { .. } => DatetimeMetric::Child(DatetimeMetricIpc),
+            DatetimeMetric::Parent { id, inner } => {
+                DatetimeMetric::Child(ChildMetricMeta::from_metric_identifier(*id, inner))
+            }
             DatetimeMetric::Child(_) => panic!("Can't get a child metric from a child metric"),
         }
     }

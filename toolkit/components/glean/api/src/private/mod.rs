@@ -68,6 +68,51 @@ pub use self::timing_distribution::TimingDistributionMetric;
 pub use self::url::UrlMetric;
 pub use self::uuid::UuidMetric;
 
+/// A metadata structure common to all Child metrics. Storing this data is not
+/// necessary at all times, but many metrics require the ID for IPC
+/// operations, and storing the name + category is necessary so that profiler
+/// markers can be accurately recorded in child processes.
+#[derive(Debug, Clone)]
+pub struct ChildMetricMeta {
+    pub id: BaseMetricId,
+    pub name: String,
+    pub category: String,
+}
+
+impl ChildMetricMeta {
+    pub fn from_common_metric_data(id: BaseMetricId, meta: CommonMetricData) -> ChildMetricMeta {
+        ChildMetricMeta {
+            id,
+            name: meta.name,
+            category: meta.category,
+        }
+    }
+
+    pub fn from_metric_identifier<'a, T>(id: BaseMetricId, inner: &'a T) -> ChildMetricMeta
+    where
+        T: glean::MetricIdentifier<'a>,
+    {
+        let (name, category, _) = inner.get_identifiers();
+        ChildMetricMeta {
+            id,
+            name: name.into(),
+            category: category.into(),
+        }
+    }
+
+    pub fn from_name_category_pair<T, U>(id: BaseMetricId, name: T, category: U) -> ChildMetricMeta
+    where
+        T: Into<String>,
+        U: Into<String>,
+    {
+        ChildMetricMeta {
+            id,
+            name: name.into(),
+            category: category.into(),
+        }
+    }
+}
+
 // We only access the methods here when we're building with Gecko, as that's
 // when we have access to the profiler. We don't need alternative (i.e.
 // non-gecko) implementations, as any imports from this sub-module are also

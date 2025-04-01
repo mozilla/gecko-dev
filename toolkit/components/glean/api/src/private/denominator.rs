@@ -4,7 +4,7 @@
 
 use inherent::inherent;
 
-use super::CommonMetricData;
+use super::{ChildMetricMeta, CommonMetricData};
 
 use glean::traits::Counter;
 
@@ -27,10 +27,8 @@ pub enum DenominatorMetric {
         id: BaseMetricId,
         inner: glean::private::DenominatorMetric,
     },
-    Child(DenominatorMetricIpc),
+    Child(ChildMetricMeta),
 }
-#[derive(Clone, Debug)]
-pub struct DenominatorMetricIpc(BaseMetricId);
 
 impl DenominatorMetric {
     /// The constructor used by automatically generated metrics.
@@ -40,7 +38,7 @@ impl DenominatorMetric {
         numerators: Vec<CommonMetricData>,
     ) -> Self {
         if need_ipc() {
-            DenominatorMetric::Child(DenominatorMetricIpc(id))
+            DenominatorMetric::Child(ChildMetricMeta::from_common_metric_data(id, meta))
         } else {
             let inner = glean::private::DenominatorMetric::new(meta, numerators);
             DenominatorMetric::Parent { id, inner }
@@ -51,15 +49,15 @@ impl DenominatorMetric {
     pub(crate) fn metric_id(&self) -> BaseMetricId {
         match self {
             DenominatorMetric::Parent { id, .. } => *id,
-            DenominatorMetric::Child(c) => c.0,
+            DenominatorMetric::Child(meta) => meta.id,
         }
     }
 
     #[cfg(test)]
     pub(crate) fn child_metric(&self) -> Self {
         match self {
-            DenominatorMetric::Parent { id, .. } => {
-                DenominatorMetric::Child(DenominatorMetricIpc(*id))
+            DenominatorMetric::Parent { id, inner } => {
+                DenominatorMetric::Child(ChildMetricMeta::from_metric_identifier(*id, inner))
             }
             DenominatorMetric::Child(_) => panic!("Can't get a child metric from a child metric"),
         }
@@ -75,15 +73,15 @@ impl Counter for DenominatorMetric {
                 inner.add(amount);
                 *id
             }
-            DenominatorMetric::Child(c) => {
+            DenominatorMetric::Child(meta) => {
                 with_ipc_payload(move |payload| {
-                    if let Some(v) = payload.denominators.get_mut(&c.0) {
+                    if let Some(v) = payload.denominators.get_mut(&meta.id) {
                         *v += amount;
                     } else {
-                        payload.denominators.insert(c.0, amount);
+                        payload.denominators.insert(meta.id, amount);
                     }
                 });
-                c.0.into()
+                meta.id.into()
             }
         };
 
@@ -102,8 +100,11 @@ impl Counter for DenominatorMetric {
         let ping_name = ping_name.into().map(|s| s.to_string());
         match self {
             DenominatorMetric::Parent { inner, .. } => inner.test_get_value(ping_name),
-            DenominatorMetric::Child(c) => {
-                panic!("Cannot get test value for {:?} in non-parent process!", c.0);
+            DenominatorMetric::Child(meta) => {
+                panic!(
+                    "Cannot get test value for {:?} in non-parent process!",
+                    meta.id
+                );
             }
         }
     }
@@ -111,10 +112,10 @@ impl Counter for DenominatorMetric {
     pub fn test_get_num_recorded_errors(&self, error: glean::ErrorType) -> i32 {
         match self {
             DenominatorMetric::Parent { inner, .. } => inner.test_get_num_recorded_errors(error),
-            DenominatorMetric::Child(c) => {
+            DenominatorMetric::Child(meta) => {
                 panic!(
                     "Cannot get the number of recorded errors for {:?} in non-parent process!",
-                    c.0
+                    meta.id
                 );
             }
         }

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use inherent::inherent;
 
-use super::{BaseMetricId, CommonMetricData, RecordedEvent};
+use super::{BaseMetricId, ChildMetricMeta, CommonMetricData, RecordedEvent};
 
 use crate::ipc::{need_ipc, with_ipc_payload};
 
@@ -78,17 +78,14 @@ pub enum EventMetric<K> {
         id: BaseMetricId,
         inner: glean::private::EventMetric<K>,
     },
-    Child(EventMetricIpc),
+    Child(ChildMetricMeta),
 }
-
-#[derive(Debug)]
-pub struct EventMetricIpc(BaseMetricId);
 
 impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
     /// Create a new event metric.
     pub fn new(id: BaseMetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
-            EventMetric::Child(EventMetricIpc(id))
+            EventMetric::Child(ChildMetricMeta::from_common_metric_data(id, meta))
         } else {
             let inner = glean::private::EventMetric::new(meta);
             EventMetric::Parent { id, inner }
@@ -101,7 +98,7 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
         allowed_extra_keys: Vec<String>,
     ) -> Self {
         if need_ipc() {
-            EventMetric::Child(EventMetricIpc(id))
+            EventMetric::Child(ChildMetricMeta::from_common_metric_data(id, meta))
         } else {
             let inner =
                 glean::private::EventMetric::with_runtime_extra_keys(meta, allowed_extra_keys);
@@ -112,7 +109,9 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
     #[cfg(test)]
     pub(crate) fn child_metric(&self) -> Self {
         match self {
-            EventMetric::Parent { id, .. } => EventMetric::Child(EventMetricIpc(*id)),
+            EventMetric::Parent { id, inner } => {
+                EventMetric::Child(ChildMetricMeta::from_metric_identifier(*id, inner))
+            }
             EventMetric::Child(_) => panic!("Can't get a child metric from a child metric"),
         }
     }
@@ -143,22 +142,22 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> EventMetric<K> {
                 );
                 inner.record_with_time(timestamp, extra);
             }
-            EventMetric::Child(c) => {
+            EventMetric::Child(meta) => {
                 #[cfg(feature = "with_gecko")]
                 gecko_profiler::lazy_add_marker!(
                     "Event::record",
                     TelemetryProfilerCategory,
                     EventMetricMarker {
-                        id: c.0,
+                        id: meta.id,
                         extra: extra.clone(),
                     }
                 );
                 with_ipc_payload(move |payload| {
-                    if let Some(v) = payload.events.get_mut(&c.0) {
+                    if let Some(v) = payload.events.get_mut(&meta.id) {
                         v.push((timestamp, extra));
                     } else {
                         let v = vec![(timestamp, extra)];
-                        payload.events.insert(c.0, v);
+                        payload.events.insert(meta.id, v);
                     }
                 });
             }
@@ -216,9 +215,9 @@ impl<K: 'static + ExtraKeys + Send + Sync + Clone> Event for EventMetric<K> {
     pub fn test_get_num_recorded_errors(&self, error: glean::ErrorType) -> i32 {
         match self {
             EventMetric::Parent { inner, .. } => inner.test_get_num_recorded_errors(error),
-            EventMetric::Child(c) => panic!(
+            EventMetric::Child(meta) => panic!(
                 "Cannot get the number of recorded errors for {:?} in non-main process!",
-                c.0
+                meta.id
             ),
         }
     }
