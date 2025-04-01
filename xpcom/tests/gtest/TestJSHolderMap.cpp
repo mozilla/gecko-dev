@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/CycleCollectedJSRuntime.h"
-#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
@@ -20,7 +19,7 @@ using namespace mozilla;
 
 enum HolderKind { SingleZone, MultiZone };
 
-class MyHolder final : public nsScriptObjectTracer, public JSHolderBase {
+class MyHolder final : public nsScriptObjectTracer {
  public:
   explicit MyHolder(HolderKind kind = SingleZone, size_t value = 0)
       : nsScriptObjectTracer(FlagsForKind(kind)), value(value) {}
@@ -49,10 +48,9 @@ class MyHolder final : public nsScriptObjectTracer, public JSHolderBase {
   }
 };
 
-template <typename Container>
-static size_t CountEntries(Container& container) {
+static size_t CountEntries(JSHolderMap& map) {
   size_t count = 0;
-  for (typename Container::Iter i(container); !i.Done(); i.Next()) {
+  for (JSHolderMap::Iter i(map); !i.Done(); i.Next()) {
     MOZ_RELEASE_ASSERT(i->mHolder);
     MOZ_RELEASE_ASSERT(i->mTracer);
     count++;
@@ -66,114 +64,70 @@ JS::Zone* ZoneForKind(HolderKind kind) {
   return kind == MultiZone ? nullptr : DummyZone;
 }
 
-// Adapter functions to allow working with JSHolderMap and JSHolderList
-// interchangeably.
-
-static bool Has(JSHolderMap& map, MyHolder* holder) { return map.Has(holder); }
-static bool Has(JSHolderList& list, MyHolder* holder) {
-  JSHolderKey* key = &holder->mJSHolderKey;
-  return list.Has(key);
-}
-
-static void Put(JSHolderMap& map, MyHolder* holder, JS::Zone* zone) {
-  nsScriptObjectTracer* tracer = holder;
-  map.Put(holder, tracer, zone);
-}
-static void Put(JSHolderList& list, MyHolder* holder, JS::Zone* zone) {
-  MOZ_RELEASE_ASSERT(!zone);
-  nsScriptObjectTracer* tracer = holder;
-  JSHolderKey* key = &holder->mJSHolderKey;
-  list.Put(holder, tracer, key);
-}
-
-static nsScriptObjectTracer* Get(JSHolderMap& map, MyHolder* holder) {
-  return map.Get(holder);
-}
-static nsScriptObjectTracer* Get(JSHolderList& list, MyHolder* holder) {
-  JSHolderKey* key = &holder->mJSHolderKey;
-  return list.Get(holder, key);
-}
-
-static nsScriptObjectTracer* Extract(JSHolderMap& map, MyHolder* holder) {
-  return map.Extract(holder);
-}
-static nsScriptObjectTracer* Extract(JSHolderList& list, MyHolder* holder) {
-  JSHolderKey* key = &holder->mJSHolderKey;
-  return list.Extract(holder, key);
-}
-
 TEST(JSHolderMap, Empty)
 {
   JSHolderMap map;
   ASSERT_EQ(CountEntries(map), 0u);
 }
-TEST(JSHolderList, Empty)
-{
-  JSHolderList list;
-  ASSERT_EQ(CountEntries(list), 0u);
-}
 
-template <typename Container>
 static void TestAddAndRemove(HolderKind kind) {
-  Container container;
+  JSHolderMap map;
+
   MyHolder holder(kind);
   nsScriptObjectTracer* tracer = &holder;
 
-  ASSERT_FALSE(Has(container, &holder));
-  ASSERT_EQ(Extract(container, &holder), nullptr);
+  ASSERT_FALSE(map.Has(&holder));
+  ASSERT_EQ(map.Extract(&holder), nullptr);
 
-  Put(container, &holder, ZoneForKind(kind));
-  ASSERT_TRUE(Has(container, &holder));
-  ASSERT_EQ(CountEntries(container), 1u);
-  ASSERT_EQ(Get(container, &holder), tracer);
+  map.Put(&holder, tracer, ZoneForKind(kind));
+  ASSERT_TRUE(map.Has(&holder));
+  ASSERT_EQ(CountEntries(map), 1u);
+  ASSERT_EQ(map.Get(&holder), tracer);
 
-  ASSERT_EQ(Extract(container, &holder), tracer);
-  ASSERT_EQ(Extract(container, &holder), nullptr);
-  ASSERT_FALSE(Has(container, &holder));
-  ASSERT_EQ(CountEntries(container), 0u);
+  ASSERT_EQ(map.Extract(&holder), tracer);
+  ASSERT_EQ(map.Extract(&holder), nullptr);
+  ASSERT_FALSE(map.Has(&holder));
+  ASSERT_EQ(CountEntries(map), 0u);
 }
 
 TEST(JSHolderMap, AddAndRemove)
 {
-  TestAddAndRemove<JSHolderMap>(SingleZone);
-  TestAddAndRemove<JSHolderMap>(MultiZone);
-}
-TEST(JSHolderList, AddAndRemove)
-{
-  TestAddAndRemove<JSHolderList>(MultiZone);
+  TestAddAndRemove(SingleZone);
+  TestAddAndRemove(MultiZone);
 }
 
-template <typename Container>
 static void TestIterate(HolderKind kind) {
-  Container container;
+  JSHolderMap map;
+
   MyHolder holder(kind, 0);
+  nsScriptObjectTracer* tracer = &holder;
 
-  Maybe<typename Container::Iter> iter;
+  Maybe<JSHolderMap::Iter> iter;
 
-  // Iterate an empty container.
-  iter.emplace(container);
+  // Iterate an empty map.
+  iter.emplace(map);
   ASSERT_TRUE(iter->Done());
   iter.reset();
 
-  // Iterate a container with one entry.
-  Put(container, &holder, ZoneForKind(kind));
-  iter.emplace(container);
+  // Iterate a map with one entry.
+  map.Put(&holder, tracer, ZoneForKind(kind));
+  iter.emplace(map);
   ASSERT_FALSE(iter->Done());
   ASSERT_EQ(iter->Get().mHolder, &holder);
   iter->Next();
   ASSERT_TRUE(iter->Done());
   iter.reset();
 
-  // Iterate a container with 10 entries.
+  // Iterate a map with 10 entries.
   constexpr size_t count = 10;
   Vector<UniquePtr<MyHolder>, 0, InfallibleAllocPolicy> holders;
   bool seen[count] = {};
   for (size_t i = 1; i < count; i++) {
     MOZ_ALWAYS_TRUE(
         holders.emplaceBack(mozilla::MakeUnique<MyHolder>(kind, i)));
-    Put(container, holders.back().get(), ZoneForKind(kind));
+    map.Put(holders.back().get(), tracer, ZoneForKind(kind));
   }
-  for (iter.emplace(container); !iter->Done(); iter->Next()) {
+  for (iter.emplace(map); !iter->Done(); iter->Next()) {
     MyHolder* holder = static_cast<MyHolder*>(iter->Get().mHolder);
     size_t value = holder->value;
     ASSERT_TRUE(value < count);
@@ -187,17 +141,12 @@ static void TestIterate(HolderKind kind) {
 
 TEST(JSHolderMap, Iterate)
 {
-  TestIterate<JSHolderMap>(SingleZone);
-  TestIterate<JSHolderMap>(MultiZone);
-}
-TEST(JSHolderList, Iterate)
-{
-  TestIterate<JSHolderList>(MultiZone);
+  TestIterate(SingleZone);
+  TestIterate(MultiZone);
 }
 
-template <typename Container>
 static void TestAddRemoveMany(HolderKind kind, size_t count) {
-  Container container;
+  JSHolderMap map;
 
   Vector<UniquePtr<MyHolder>, 0, InfallibleAllocPolicy> holders;
   for (size_t i = 0; i < count; i++) {
@@ -206,45 +155,40 @@ static void TestAddRemoveMany(HolderKind kind, size_t count) {
 
   for (size_t i = 0; i < count; i++) {
     MyHolder* holder = holders[i].get();
-    Put(container, holder, ZoneForKind(kind));
+    map.Put(holder, holder, ZoneForKind(kind));
   }
 
-  ASSERT_EQ(CountEntries(container), count);
+  ASSERT_EQ(CountEntries(map), count);
 
   for (size_t i = 0; i < count; i++) {
     MyHolder* holder = holders[i].get();
-    ASSERT_EQ(Extract(container, holder), holder);
+    ASSERT_EQ(map.Extract(holder), holder);
   }
 
-  ASSERT_EQ(CountEntries(container), 0u);
+  ASSERT_EQ(CountEntries(map), 0u);
 }
 
 TEST(JSHolderMap, TestAddRemoveMany)
 {
-  TestAddRemoveMany<JSHolderMap>(SingleZone, 10000);
-  TestAddRemoveMany<JSHolderMap>(MultiZone, 10000);
-}
-TEST(JSHolderList, TestAddRemoveMany)
-{
-  TestAddRemoveMany<JSHolderList>(MultiZone, 10000);
+  TestAddRemoveMany(SingleZone, 10000);
+  TestAddRemoveMany(MultiZone, 10000);
 }
 
-template <typename Container>
 static void TestRemoveWhileIterating(HolderKind kind, size_t count) {
-  Container container;
+  JSHolderMap map;
   Vector<UniquePtr<MyHolder>, 0, InfallibleAllocPolicy> holders;
-  Maybe<typename Container::Iter> iter;
+  Maybe<JSHolderMap::Iter> iter;
 
   for (size_t i = 0; i < count; i++) {
     MOZ_ALWAYS_TRUE(holders.emplaceBack(MakeUnique<MyHolder>(kind)));
   }
 
-  // Iterate a container with one entry but remove it before we get to it.
+  // Iterate a map with one entry but remove it before we get to it.
   MyHolder* holder = holders[0].get();
-  Put(container, holder, ZoneForKind(kind));
-  iter.emplace(container);
+  map.Put(holder, holder, ZoneForKind(kind));
+  iter.emplace(map);
   ASSERT_FALSE(iter->Done());
-  ASSERT_EQ(Extract(container, holder), holder);
+  ASSERT_EQ(map.Extract(holder), holder);
   iter->UpdateForRemovals();
   ASSERT_TRUE(iter->Done());
 
@@ -257,10 +201,10 @@ static void TestRemoveWhileIterating(HolderKind kind, size_t count) {
 
   for (size_t i = 0; i < count; i++) {
     MyHolder* holder = holders[i].get();
-    Put(container, holder, ZoneForKind(kind));
+    map.Put(holder, holder, ZoneForKind(kind));
   }
 
-  iter.emplace(container);
+  iter.emplace(map);
   for (size_t i = 0; i < count / 2; i++) {
     iter->Next();
     ASSERT_FALSE(iter->Done());
@@ -268,7 +212,7 @@ static void TestRemoveWhileIterating(HolderKind kind, size_t count) {
 
   for (size_t i = 0; i < count; i++) {
     MyHolder* holder = holders[i].get();
-    ASSERT_EQ(Extract(container, holder), holder);
+    ASSERT_EQ(map.Extract(holder), holder);
   }
 
   iter->UpdateForRemovals();
@@ -276,21 +220,22 @@ static void TestRemoveWhileIterating(HolderKind kind, size_t count) {
   ASSERT_TRUE(iter->Done());
   iter.reset();
 
-  ASSERT_EQ(CountEntries(container), 0u);
+  ASSERT_EQ(CountEntries(map), 0u);
 }
 
 TEST(JSHolderMap, TestRemoveWhileIterating)
 {
-  TestRemoveWhileIterating<JSHolderMap>(SingleZone, 10000);
-  TestRemoveWhileIterating<JSHolderMap>(MultiZone, 10000);
-}
-TEST(JSHolderList, TestRemoveWhileIterating)
-{
-  TestRemoveWhileIterating<JSHolderList>(MultiZone, 10000);
+  TestRemoveWhileIterating(SingleZone, 10000);
+  TestRemoveWhileIterating(MultiZone, 10000);
 }
 
-class ObjectHolderBase {
+class ObjectHolder final {
  public:
+  ObjectHolder() { HoldJSObjects(this); }
+
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(ObjectHolder)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(ObjectHolder)
+
   void SetObject(JSObject* aObject) { mObject = aObject; }
 
   void ClearObject() { mObject = nullptr; }
@@ -304,18 +249,9 @@ class ObjectHolderBase {
     return JS::GCThingIsMarkedGray(JS::GCCellPtr(obj));
   }
 
- protected:
-  JS::Heap<JSObject*> mObject;
-};
-
-class ObjectHolder final : public ObjectHolderBase {
- public:
-  ObjectHolder() { HoldJSObjects(this); }
-
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(ObjectHolder)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(ObjectHolder)
-
  private:
+  JS::Heap<JSObject*> mObject;
+
   ~ObjectHolder() { DropJSObjects(this); }
 };
 
@@ -332,34 +268,9 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(ObjectHolder)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mObject)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-class ObjectHolderWithKey final : public ObjectHolderBase, public JSHolderBase {
- public:
-  ObjectHolderWithKey() { HoldJSObjectsWithKey(this); }
-
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(ObjectHolderWithKey)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(ObjectHolderWithKey)
-
- private:
-  ~ObjectHolderWithKey() { DropJSObjectsWithKey(this); }
-};
-
-NS_IMPL_CYCLE_COLLECTION_CLASS(ObjectHolderWithKey)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ObjectHolderWithKey)
-  tmp->ClearObject();
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ObjectHolderWithKey)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(ObjectHolderWithKey)
-  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mObject)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
 // Test GC things stored in JS holders are marked as gray roots by the GC.
-template <typename Holder>
 static void TestHoldersAreMarkedGray(JSContext* cx) {
-  RefPtr holder(new Holder);
+  RefPtr holder(new ObjectHolder);
 
   JSObject* obj = JS_NewPlainObject(cx);
   ASSERT_TRUE(obj);
@@ -372,7 +283,6 @@ static void TestHoldersAreMarkedGray(JSContext* cx) {
 }
 
 // Test GC things stored in JS holders are updated by compacting GC.
-template <typename Holder>
 static void TestHoldersAreMoved(JSContext* cx, bool singleZone) {
   JS::RootedObject obj(cx, JS_NewPlainObject(cx));
   ASSERT_TRUE(obj);
@@ -386,7 +296,7 @@ static void TestHoldersAreMoved(JSContext* cx, bool singleZone) {
   // Ensure the object is tenured.
   JS_GC(cx);
 
-  RefPtr<Holder> holder(new Holder);
+  RefPtr<ObjectHolder> holder(new ObjectHolder);
   holder->SetObject(obj);
 
   uintptr_t original = uintptr_t(obj.get());
@@ -411,47 +321,28 @@ static void TestHoldersAreMoved(JSContext* cx, bool singleZone) {
   ASSERT_EQ(value, JS::Int32Value(PropertyValue));
 }
 
-static const JSClass GlobalClass = {"global", JSCLASS_GLOBAL_FLAGS,
-                                    &JS::DefaultGlobalClassOps};
-
-static void GetJSContext(JSContext** aContextOut) {
+TEST(JSHolderMap, GCIntegration)
+{
   CycleCollectedJSContext* ccjscx = CycleCollectedJSContext::Get();
   ASSERT_NE(ccjscx, nullptr);
   JSContext* cx = ccjscx->Context();
   ASSERT_NE(cx, nullptr);
-  *aContextOut = cx;
-}
 
-static void CreateGlobal(JSContext* cx, JS::MutableHandleObject aGlobalOut) {
+  static const JSClass GlobalClass = {"global", JSCLASS_GLOBAL_FLAGS,
+                                      &JS::DefaultGlobalClassOps};
+
   JS::RealmOptions options;
   // dummy
   options.behaviors().setReduceTimerPrecisionCallerType(
       JS::RTPCallerTypeToken{0});
-  JSObject* global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
-                                        JS::FireOnNewGlobalHook, options);
+  JS::RootedObject global(cx);
+  global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
+                              JS::FireOnNewGlobalHook, options);
   ASSERT_NE(global, nullptr);
-  aGlobalOut.set(global);
-}
 
-TEST(JSHolderMap, GCIntegration)
-{
-  JSContext* cx;
-  GetJSContext(&cx);
-  JS::RootedObject global(cx);
-  CreateGlobal(cx, &global);
   JSAutoRealm ar(cx, global);
-  TestHoldersAreMarkedGray<ObjectHolder>(cx);
-  TestHoldersAreMoved<ObjectHolder>(cx, true);
-  TestHoldersAreMoved<ObjectHolder>(cx, false);
-}
-TEST(JSHolderList, GCIntegration)
-{
-  JSContext* cx;
-  GetJSContext(&cx);
-  JS::RootedObject global(cx);
-  CreateGlobal(cx, &global);
-  JSAutoRealm ar(cx, global);
-  TestHoldersAreMarkedGray<ObjectHolderWithKey>(cx);
-  TestHoldersAreMoved<ObjectHolderWithKey>(cx, true);
-  TestHoldersAreMoved<ObjectHolderWithKey>(cx, false);
+
+  TestHoldersAreMarkedGray(cx);
+  TestHoldersAreMoved(cx, true);
+  TestHoldersAreMoved(cx, false);
 }

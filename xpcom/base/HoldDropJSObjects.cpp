@@ -19,13 +19,6 @@ void HoldJSObjectsImpl(void* aHolder, nsScriptObjectTracer* aTracer,
   rt->AddJSHolder(aHolder, aTracer, aZone);
 }
 
-void HoldJSObjectsWithKeyImpl(void* aHolder, nsScriptObjectTracer* aTracer,
-                              JSHolderKey* aKey) {
-  CycleCollectedJSRuntime* rt = CycleCollectedJSRuntime::Get();
-  MOZ_ASSERT(rt, "Should have a CycleCollectedJSRuntime by now");
-  rt->AddJSHolderWithKey(aHolder, aTracer, aKey);
-}
-
 void HoldJSObjectsImpl(nsISupports* aHolder) {
   nsXPCOMCycleCollectionParticipant* participant = nullptr;
   CallQueryInterface(aHolder, &participant);
@@ -37,27 +30,10 @@ void HoldJSObjectsImpl(nsISupports* aHolder) {
   HoldJSObjectsImpl(aHolder, participant);
 }
 
-void HoldJSObjectsWithKeyImpl(nsISupports* aHolder, JSHolderKey* aKey) {
-  nsXPCOMCycleCollectionParticipant* participant = nullptr;
-  CallQueryInterface(aHolder, &participant);
-  MOZ_ASSERT(participant, "Failed to QI to nsXPCOMCycleCollectionParticipant!");
-  MOZ_ASSERT(
-      participant->CheckForRightISupports(aHolder),
-      "The result of QIing a JS holder should be the same as ToSupports");
-
-  HoldJSObjectsWithKeyImpl(aHolder, participant, aKey);
-}
-
 void DropJSObjectsImpl(void* aHolder) {
   CycleCollectedJSRuntime* rt = CycleCollectedJSRuntime::Get();
   MOZ_ASSERT(rt, "Should have a CycleCollectedJSRuntime by now");
   rt->RemoveJSHolder(aHolder);
-}
-
-void DropJSObjectsWithKeyImpl(void* aHolder, JSHolderKey* aKey) {
-  CycleCollectedJSRuntime* rt = CycleCollectedJSRuntime::Get();
-  MOZ_ASSERT(rt, "Should have a CycleCollectedJSRuntime by now");
-  rt->RemoveJSHolderWithKey(aHolder, aKey);
 }
 
 void DropJSObjectsImpl(nsISupports* aHolder) {
@@ -70,18 +46,6 @@ void DropJSObjectsImpl(nsISupports* aHolder) {
       "The result of QIing a JS holder should be the same as ToSupports");
 #endif
   DropJSObjectsImpl(static_cast<void*>(aHolder));
-}
-
-void DropJSObjectsWithKeyImpl(nsISupports* aHolder, JSHolderKey* aKey) {
-#ifdef DEBUG
-  nsXPCOMCycleCollectionParticipant* participant = nullptr;
-  CallQueryInterface(aHolder, &participant);
-  MOZ_ASSERT(participant, "Failed to QI to nsXPCOMCycleCollectionParticipant!");
-  MOZ_ASSERT(
-      participant->CheckForRightISupports(aHolder),
-      "The result of QIing a JS holder should be the same as ToSupports");
-#endif
-  DropJSObjectsWithKeyImpl(static_cast<void*>(aHolder), aKey);
 }
 
 }  // namespace cyclecollector

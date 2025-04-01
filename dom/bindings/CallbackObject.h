@@ -70,7 +70,7 @@ namespace dom {
     }                                                \
   }
 
-class CallbackObject : public nsISupports, public JSHolderBase {
+class CallbackObject : public nsISupports {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(DOM_CALLBACKOBJECT_IID)
 
@@ -256,7 +256,7 @@ class CallbackObject : public nsISupports, public JSHolderBase {
     // Set script objects before we hold, on the off chance that a GC could
     // somehow happen in there... (which would be pretty odd, granted).
     InitNoHold(aCallback, aCallbackGlobal, aCreationStack, aIncumbentGlobal);
-    mozilla::HoldJSObjectsWithKey(this);
+    mozilla::HoldJSObjects(this);
   }
 
   // Provide a way to clear this object's pointers to GC things after the
@@ -264,10 +264,7 @@ class CallbackObject : public nsISupports, public JSHolderBase {
   // this point. This should only be called if the object is known not to be
   // used again, and no handles (e.g. those returned by CallbackPreserveColor)
   // are in use.
-  void Reset() {
-    ClearJSReferences();
-    mozilla::DropJSObjectsWithKey(this);
-  }
+  void Reset() { ClearJSReferences(); }
   friend class mozilla::PromiseJobRunnable;
 
   inline void ClearJSReferences() {
