@@ -22,4 +22,4 @@ cp /etc/ssh/ssh_known_hosts "$HOME/ssh_known_hosts"
 
 # If poetry is not run as worker, then it won't work when run as user later.
 cd /builds/worker/updatebot
-poetry install --no-ansi
+/usr/local/bin/poetry install --no-ansi
