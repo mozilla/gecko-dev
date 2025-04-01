@@ -2464,18 +2464,6 @@ networking:
       setPref:
         branch: default
         pref: "network.http.speculative-parallel-limit"
-    chipsEnabled:
-      description: Whether CHIPS is enabled or not
-      type: boolean
-      setPref:
-        branch: default
-        pref: "network.cookie.CHIPS.enabled"
-    chipsMigrationTarget:
-      description: What CHIPS migration count target the browser should reach.
-      type: int
-      setPref:
-        branch: default
-        pref: "network.cookie.CHIPS.migrateDatabaseTarget"
     chipsPartitionLimitEnabled:
       description: Whether we enforce CHIPS partition limit
       type: boolean
@@ -4497,6 +4485,25 @@ storageAccessHeuristics:
       description: >-
         Do we grant cookie access to a tracker third party when it has been interacted with in the
         recent past and redirects itself to another top level site?
+
+partitioned-cookie-attribute:
+  description: Control the enablment and migration of cookies to the Partitioned attribute, rather than TCP
+  owner: bvandersloot@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: network.cookie.CHIPS.enabled
+      description: >-
+        Do we respect the Partitioned attribute?
+    chipsMigrationTarget:
+      description: What CHIPS migration count target the browser should reach.
+      type: int
+      setPref:
+        branch: default
+        pref: network.cookie.CHIPS.migrateDatabaseTarget
 
 auto-pip:
   description: "Automatic Picture-in-Picture"
