@@ -7,9 +7,6 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <!-- This is the default color for activated controls(buttons) -->
         <item name="colorAccent">@color/accentBright</item>
-        <!-- Temporarily opt out of edge to edge enforcement.
-         To be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1915087-->
-        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
 
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
         <item name="android:windowContentTransitions">true</item>
@@ -38,13 +35,9 @@
         <item name="windowSplashScreenBackground">@color/splash_screen_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_screen</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
-        <!-- Temporarily opt out of edge to edge enforcement.
-         To be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1915087-->
-        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
     </style>
 
     <style name="Theme.CrashActivityTheme" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
     </style>
 
     <!-- Fade animation for theme switching -->
