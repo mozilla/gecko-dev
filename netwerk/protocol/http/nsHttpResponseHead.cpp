@@ -585,8 +585,7 @@ nsresult nsHttpResponseHead::ComputeFreshnessLifetime(uint32_t* result) {
   }
 
   // These responses can be cached indefinitely.
-  if ((mStatus == 300) || (mStatus == 410) ||
-      nsHttp::IsPermanentRedirect(mStatus)) {
+  if (mStatus == 410) {
     LOG(
         ("nsHttpResponseHead::ComputeFreshnessLifetime [this = %p] "
          "Assign an infinite heuristic lifetime\n",
