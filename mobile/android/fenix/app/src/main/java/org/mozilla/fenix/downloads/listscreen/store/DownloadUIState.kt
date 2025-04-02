@@ -13,12 +13,16 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState.Mode
  * @property items List of [FileItem] to display.
  * @property mode Current [Mode] of the Download screen.
  * @property pendingDeletionIds Set of [FileItem] IDs that are waiting to be deleted.
+ * @property searchQuery The search query entered by the user.
+ * @param isSearchEnabled Feature flag for search functionality.
  * @param userSelectedContentTypeFilter The user selected [FileItem.ContentTypeFilter].
  */
 data class DownloadUIState(
     val items: List<FileItem>,
     val mode: Mode,
     val pendingDeletionIds: Set<String>,
+    val searchQuery: String = "",
+    private val isSearchEnabled: Boolean = true,
     private val userSelectedContentTypeFilter: FileItem.ContentTypeFilter = FileItem.ContentTypeFilter.All,
 ) : State {
 
@@ -44,11 +48,20 @@ data class DownloadUIState(
             }
         }
 
+    private val searchQueryPredicate: (FileItem) -> Boolean = {
+        if (isSearchEnabled) {
+            it.stringToMatchForSearchQuery.contains(searchQuery, ignoreCase = true)
+        } else {
+            true
+        }
+    }
+
     /**
      * The list of items to display grouped by the created time of the item.
      */
     val itemsToDisplay: List<DownloadListItem> = itemsNotPendingDeletion
-        .filter { download -> selectedContentTypeFilter.predicate(download.contentType) }
+        .filter { selectedContentTypeFilter.predicate(it.contentType) }
+        .filter(searchQueryPredicate)
         .groupBy { it.createdTime }
         .toSortedMap()
         .flatMap { (key, value) ->

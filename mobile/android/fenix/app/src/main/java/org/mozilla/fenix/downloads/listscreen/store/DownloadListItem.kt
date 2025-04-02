@@ -59,6 +59,12 @@ data class FileItem(
             .first { type -> type.predicate(contentType) }
 
     /**
+     * Text against which the search query is matched.
+     */
+    val stringToMatchForSearchQuery: String
+        get() = "$fileName $displayedShortUrl"
+
+    /**
      * Enum class representing the content type filter options
      *
      * @property stringRes The string resource id of the content type filter

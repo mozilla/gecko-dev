@@ -300,4 +300,190 @@ class DownloadUIStateTest {
 
         assertEquals(expected, downloadUIState.selectedContentTypeFilter)
     }
+
+    @Test
+    fun `WHEN search query is used THEN only the items matching query for url are displayed`() {
+        val fileItems = listOf(
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "2",
+                fileName = "anotherfile",
+                displayedShortUrl = "mozilla.org",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "3",
+                fileName = "yetanotherfile",
+                displayedShortUrl = "mozilla.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "4",
+                fileName = "name",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            searchQuery = "firefox",
+        )
+
+        val expected = listOf(
+            HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "4",
+                fileName = "name",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+        )
+
+        assertEquals(expected, downloadUIState.itemsToDisplay)
+    }
+
+    @Test
+    fun `WHEN search query is used THEN only the items matching query for name are displayed`() {
+        val fileItems = listOf(
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "2",
+                fileName = "anotherfile",
+                displayedShortUrl = "mozilla.org",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "3",
+                fileName = "yetanotherfile",
+                displayedShortUrl = "mozilla.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "4",
+                fileName = "name",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = true,
+            searchQuery = "file",
+        )
+
+        val expected2 = listOf(
+            HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "2",
+                fileName = "anotherfile",
+                displayedShortUrl = "mozilla.org",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "3",
+                fileName = "yetanotherfile",
+                displayedShortUrl = "mozilla.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+        )
+
+        assertEquals(expected2, downloadUIState.itemsToDisplay)
+    }
+
+    @Test
+    fun `WHEN search is disabled THEN all items are displayed`() {
+        val fileItems = listOf(
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "2",
+                fileName = "anotherfile",
+                displayedShortUrl = "mozilla.org",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "3",
+                fileName = "yetanotherfile",
+                displayedShortUrl = "mozilla.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "4",
+                fileName = "name",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchEnabled = false,
+            searchQuery = "firefox",
+        )
+
+        val expected = listOf(
+            HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "2",
+                fileName = "anotherfile",
+                displayedShortUrl = "mozilla.org",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "3",
+                fileName = "yetanotherfile",
+                displayedShortUrl = "mozilla.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "4",
+                fileName = "name",
+                displayedShortUrl = "firefox.com",
+                createdTime = CreatedTime.LAST_30_DAYS,
+            ),
+        )
+
+        assertEquals(expected, downloadUIState.itemsToDisplay)
+    }
 }

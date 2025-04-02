@@ -70,4 +70,9 @@ sealed interface DownloadUIAction : Action {
      * [DownloadUIAction] to share the file of a [FileItem].
      */
     data class ShareFileClicked(val filePath: String, val contentType: String?) : DownloadUIAction
+
+    /**
+     * [DownloadUIAction] when a search query is entered.
+     */
+    data class SearchQueryEntered(val searchQuery: String) : DownloadUIAction
 }

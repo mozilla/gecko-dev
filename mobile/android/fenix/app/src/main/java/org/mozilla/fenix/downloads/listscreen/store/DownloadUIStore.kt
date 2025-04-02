@@ -71,6 +71,8 @@ private fun downloadStateReducer(
 
         is DownloadUIAction.FileItemDeletedSuccessfully -> state
 
+        is DownloadUIAction.SearchQueryEntered -> state.copy(searchQuery = action.searchQuery)
+
         DownloadUIAction.Init -> state
         is DownloadUIAction.ShareUrlClicked -> state
         is DownloadUIAction.ShareFileClicked -> state
