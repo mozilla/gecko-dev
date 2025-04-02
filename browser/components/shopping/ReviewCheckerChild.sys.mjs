@@ -329,8 +329,11 @@ export class ReviewCheckerChild extends RemotePageChild {
       return;
     }
 
-    this.#product?.uninit();
-    this.#product = null;
+    let wasProduct = !!this.#product;
+    if (wasProduct) {
+      this.#product.uninit();
+      this.#product = null;
+    }
 
     if (!isSimulated) {
       lazy.ShoppingUtils.recordExposure();
@@ -339,7 +342,7 @@ export class ReviewCheckerChild extends RemotePageChild {
 
     this.#currentURI = uri;
 
-    await this.updateContent(uri);
+    await this.updateContent(uri, { isSimulated, wasProduct });
   }
 
   /**
@@ -378,10 +381,13 @@ export class ReviewCheckerChild extends RemotePageChild {
    * - Update recommendation for that product if enabled.
    *
    * @param {nsIURI} uri
+   * @param {object} options
+   * @param {boolean} [options.isSimulated]
+   * @param {boolean} [options.wasProduct]
    *
    * @returns {Promise<undefined>}
    */
-  async updateContent(uri) {
+  async updateContent(uri, { isSimulated, wasProduct } = {}) {
     if (this._destroyed || !uri) {
       return;
     }
@@ -404,7 +410,12 @@ export class ReviewCheckerChild extends RemotePageChild {
       // We want to update the location to clear out the content from
       // the previous URL immediately, without waiting for potentially
       // async operations like obtaining product information.
-      this.updateLocation({ isProductPage });
+      // However if this is a tab switch, most of the components will
+      // just be updated so no need to clear if the previous location
+      // was a product.
+      if (!isSimulated || !wasProduct) {
+        this.updateLocation({ isProductPage });
+      }
 
       await this.updateProductData(product);
 

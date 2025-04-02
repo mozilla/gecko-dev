@@ -1000,9 +1000,27 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
       // Render opt-in message
       AboutWelcomeShoppingChild.optedInSession = true;
       this.AWSetProductURL(productUrl, isProductPage, isSupportedSite);
+
+      // Don't re-render the same opt in screen if it is already
+      // showing.
+      if (
+        lazy.isIntegratedSidebar &&
+        this.showingOnboardingForProduct === isProductPage &&
+        this.showingOnboardingForSite === isSupportedSite
+      ) {
+        return;
+      }
+
       this.renderMessage();
+
+      this.showingOnboardingForProduct = !!isSupportedSite;
+      this.showingOnboardingForSite = !!isProductPage;
+
       return;
     }
+
+    this.showingOnboardingForProduct = null;
+    this.showingOnboardingForSite = null;
 
     //Store timestamp if user opts in
     if (

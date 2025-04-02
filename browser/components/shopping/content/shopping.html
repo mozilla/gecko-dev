@@ -29,6 +29,14 @@
       rel="stylesheet"
       href="chrome://browser/content/shopping/shopping-page.css"
     />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/aboutwelcome/aboutwelcome.css"
+    />
+    <link
+      rel="preload"
+      href="chrome://browser/content/aboutwelcome/aboutwelcome.bundle.js"
+    />
 
     <script
       type="module"
@@ -47,6 +55,8 @@
         class="onboardingContainer shopping"
         slot="multi-stage-message-slot"
       ></div>
+      <script src="chrome://global/content/vendor/react.js"></script>
+      <script src="chrome://global/content/vendor/react-dom.js"></script>
     </shopping-container>
   </body>
 </html>
