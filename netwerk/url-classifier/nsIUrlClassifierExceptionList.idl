@@ -1,0 +1,37 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+#include "nsIURI.idl"
+#include "nsIUrlClassifierExceptionListEntry.idl"
+
+/**
+ * Interface for managing URL classifier exception lists.
+ *
+ * @see nsIUrlClassifierExceptionListEntry
+ */
+[scriptable, uuid(807535BF-018E-4300-B8D3-4A6405FB9F65)]
+interface nsIUrlClassifierExceptionList : nsISupports
+{
+    /**
+     * Initialize the exception list for a specific feature.
+     * @param aFeature The feature to initialize the exception list for
+     */
+    void init(in ACString aFeature);
+
+    /**
+     * Add a new exception list entry to the list.
+     * @param aEntry The exception list entry to add
+     */
+    void addEntry(in nsIUrlClassifierExceptionListEntry aEntry);
+
+    /**
+     * Check if the exception list matches the given URI.
+     * @param aURI The URI to check
+     * @param aTopLevelURI The top-level URI to check
+     * @param aIsPrivateBrowsing Whether the load is in private browsing mode
+     * @return True if the exception list matches, false otherwise
+     */
+    boolean matches(in nsIURI aURI, in nsIURI aTopLevelURI, in boolean aIsPrivateBrowsing);
+};

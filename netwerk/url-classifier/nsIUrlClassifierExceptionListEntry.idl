@@ -1,0 +1,75 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+#include "nsIURI.idl"
+
+/**
+ * Represents a single exception list entry for the url classifier exception list.
+ * Needs to be initialized with init() before use.
+ *
+ * @see nsIUrlClassifierExceptionList
+ */
+[scriptable, uuid(8753A413-3ED6-4A61-A1DC-B31A7E69B796)]
+interface nsIUrlClassifierExceptionListEntry : nsISupports
+{
+    /**
+     * Initialize all fields of the exception list entry.
+     * @param aUrlPattern - The urlPattern for the url to be loaded. See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns for more info.
+     * @param aTopLevelUrlPattern - Optional top-level url pattern to filter for this exception. If not set the exception applies to all top level sites.
+     * @param aIsPrivateBrowsingOnly - Whether this applies only to private browsing
+     * @param aFilterContentBlockingCategories - The content blocking categories to filter for this exception.
+     * @param aClassifierFeatures - The list of url classifier features to apply this exception to.
+     */
+    void init(in ACString aUrlPattern,
+              in ACString aTopLevelUrlPattern,
+              in boolean aIsPrivateBrowsingOnly,
+              in Array<ACString> aFilterContentBlockingCategories,
+              in Array<ACString> aClassifierFeatures);
+
+    /**
+     * Check if the exception list entry matches the given load.
+     * @param aURI The URI to check
+     * @param aTopLevelURI The top-level URI to check
+     * @param aIsPrivateBrowsing Whether the load is in private browsing mode
+     * @return True if the exception list entry matches the given load and it
+     *         should be skipped from classification, false otherwise
+     */
+    boolean matches(in nsIURI aURI, in nsIURI aTopLevelURI, in boolean aIsPrivateBrowsing);
+
+    /**
+     * The urlPattern name for this exception entry.
+     */
+    readonly attribute ACString urlPattern;
+
+    /**
+     * Optional top-level url pattern to filter for this exception. If not set
+     * the exception applies to all top level sites.
+     */
+    readonly attribute ACString topLevelUrlPattern;
+
+    /**
+     * Whether this exception only applies in private browsing mode.
+     */
+    readonly attribute boolean isPrivateBrowsingOnly;
+
+    /**
+     * Optional array of content blocking categories to filter for this
+     * exception. If not set the exception applies to all content blocking
+     * categories.
+     */
+    readonly attribute Array<ACString> filterContentBlockingCategories;
+
+    /**
+     * The list of url classifier features to apply this exception to.
+     */
+    readonly attribute Array<ACString> classifierFeatures;
+
+    /**
+     * Returns a string containing all attributes of this exception list entry.
+     * This is intended for logging purposes only.
+     * @return A string containing all attributes
+     */
+    [noscript] ACString describe();
+};

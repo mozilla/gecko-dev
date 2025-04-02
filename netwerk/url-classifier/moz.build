@@ -10,6 +10,8 @@ with Files("**"):
 XPIDL_SOURCES += [
     "nsIChannelClassifierService.idl",
     "nsIURIClassifier.idl",
+    "nsIUrlClassifierExceptionList.idl",
+    "nsIUrlClassifierExceptionListEntry.idl",
     "nsIUrlClassifierExceptionListService.idl",
     "nsIUrlClassifierFeature.idl",
 ]
@@ -32,6 +34,8 @@ UNIFIED_SOURCES += [
     "ChannelClassifierService.cpp",
     "nsChannelClassifier.cpp",
     "UrlClassifierCommon.cpp",
+    "UrlClassifierExceptionList.cpp",
+    "UrlClassifierExceptionListEntry.cpp",
     "UrlClassifierFeatureBase.cpp",
     "UrlClassifierFeatureConsentManagerAnnotation.cpp",
     "UrlClassifierFeatureCryptominingAnnotation.cpp",
@@ -54,6 +58,8 @@ EXPORTS.mozilla.net += [
     "AsyncUrlChannelClassifier.h",
     "ChannelClassifierService.h",
     "UrlClassifierCommon.h",
+    "UrlClassifierExceptionList.h",
+    "UrlClassifierExceptionListEntry.h",
     "UrlClassifierFeatureFactory.h",
     "UrlClassifierFeatureResult.h",
 ]
