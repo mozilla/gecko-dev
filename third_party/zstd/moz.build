@@ -9,6 +9,7 @@ with Files('**'):
 
 EXPORTS.zstd += [
     'lib/zstd.h',
+    'lib/zstd_errors.h',
 ]
 
 UNIFIED_SOURCES += [
