@@ -7,6 +7,7 @@
 
 <%helpers:shorthand name="flex-flow"
                     engines="gecko servo",
+                    servo_pref="layout.flexbox.enabled",
                     sub_properties="flex-direction flex-wrap"
                     extra_prefixes="webkit"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
@@ -61,6 +62,7 @@
 
 <%helpers:shorthand name="flex"
                     engines="gecko servo",
+                    servo_pref="layout.flexbox.enabled",
                     sub_properties="flex-grow flex-shrink flex-basis"
                     extra_prefixes="webkit"
                     derive_serialize="True"
@@ -128,6 +130,7 @@
 <%helpers:shorthand
     name="gap"
     engines="gecko servo"
+    servo_pref="layout.flexbox.enabled",
     aliases="grid-gap"
     sub_properties="row-gap column-gap"
     spec="https://drafts.csswg.org/css-align-3/#gap-shorthand"
