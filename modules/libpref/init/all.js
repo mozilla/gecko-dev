@@ -843,6 +843,14 @@ pref("privacy.fingerprintingProtection.overrides", "");
 // or remove features on a domain granular level.
 pref("privacy.fingerprintingProtection.granularOverrides", "");
 
+// If privacy.baselineFingerprintingProtection is enabled, this pref can be used to add
+// or remove features from its effects
+pref("privacy.baselineFingerprintingProtection.overrides", "");
+
+// If privacy.baselineFingerprintingProtection is enabled, this pref can be used to add
+// or remove features on a domain granular level.
+pref("privacy.baselineFingerprintingProtection.granularOverrides", "");
+
 // Fix cookie blocking breakage by providing ephemeral Paritioned LocalStorage
 // for a list of hosts when detected as trackers.
 // (See nsICookieService::BEHAVIOR_REJECT_TRACKER cookie behavior)

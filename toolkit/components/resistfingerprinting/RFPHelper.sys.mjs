@@ -4,7 +4,7 @@
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-import * as constants from "resource://gre/modules/RFPTargetConstants.sys.mjs";
+import * as RFPTargetConstants from "resource://gre/modules/RFPTargetConstants.sys.mjs";
 
 const kPrefResistFingerprinting = "privacy.resistFingerprinting";
 const kPrefSpoofEnglish = "privacy.spoof_english";
@@ -704,13 +704,19 @@ class _RFPHelper {
   }
 
   getTargets() {
-    return constants.Targets;
+    return RFPTargetConstants.Targets;
+  }
+
+  getTargetDefaultsBaseline() {
+    const key =
+      Services.appinfo.OS === "Android" ? "ANDROID_DEFAULT" : "DESKTOP_DEFAULT";
+    return RFPTargetConstants.DefaultTargetsBaseline[key];
   }
 
   getTargetDefaults() {
     const key =
       Services.appinfo.OS === "Android" ? "ANDROID_DEFAULT" : "DESKTOP_DEFAULT";
-    return constants.DefaultTargets[key];
+    return RFPTargetConstants.DefaultTargets[key];
   }
 }
 

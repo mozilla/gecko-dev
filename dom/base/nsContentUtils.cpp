@@ -942,6 +942,8 @@ static constexpr nsLiteralCString kRfpPrefs[] = {
     "privacy.fingerprintingProtection"_ns,
     "privacy.fingerprintingProtection.pbmode"_ns,
     "privacy.fingerprintingProtection.overrides"_ns,
+    "privacy.baselineFingerprintingProtection"_ns,
+    "privacy.baselineFingerprintingProtection.overrides"_ns,
 };
 
 static void RecomputeResistFingerprintingAllDocs(const char*, void*) {
@@ -2437,23 +2439,8 @@ bool nsContentUtils::ETPSaysShouldNotResistFingerprinting(
   // A positive return from this function should always be obeyed.
   // A negative return means we should keep checking things.
 
-  // We do not want this check to apply to RFP, only to FPP
-  // There is one problematic combination of prefs; however:
-  // If RFP is enabled in PBMode only and FPP is enabled globally
-  // (so, in non-PBM mode) - we need to know if we're in PBMode or not.
-  // But that's kind of expensive and we'd like to avoid it if we
-  // don't have to, so special-case that scenario
-  if (StaticPrefs::privacy_fingerprintingProtection_DoNotUseDirectly() &&
-      !StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() &&
-      StaticPrefs::privacy_resistFingerprinting_pbmode_DoNotUseDirectly()) {
-    if (aIsPBM) {
-      // In PBM (where RFP is enabled) do not exempt based on the ETP toggle
-      return false;
-    }
-  } else if (StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() ||
-             (aIsPBM &&
-              StaticPrefs::
-                  privacy_resistFingerprinting_pbmode_DoNotUseDirectly())) {
+  // We do not want this check to apply to RFP, only to FPP.
+  if (nsRFPService::IsRFPPrefEnabled(aIsPBM)) {
     // In RFP, never use the ETP toggle to exempt.
     // We can safely return false here even if we are not in PBM mode
     // and RFP_pbmode is enabled because we will later see that and
@@ -2722,19 +2709,6 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
           ("Inside ShouldResistFingerprinting_dangerous(nsIURI*,"
            " OriginAttributes) and the URI is %s",
            aURI->GetSpecOrDefault().get()));
-
-  if (!StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() &&
-      !StaticPrefs::privacy_fingerprintingProtection_DoNotUseDirectly()) {
-    // If neither of the 'regular' RFP prefs are set, then one (or both)
-    // of the PBM-Only prefs are set (or we would have failed the
-    // Positive return check.)  Therefore, if we are not in PBM, return false
-    if (!aOriginAttributes.IsPrivateBrowsing()) {
-      MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Debug,
-              ("Inside ShouldResistFingerprinting_dangerous(nsIURI*,"
-               " OriginAttributes) OA PBM Check said false"));
-      return false;
-    }
-  }
 
   // Exclude internal schemes and web extensions
   if (SchemeSaysShouldNotResistFingerprinting(aURI)) {

@@ -15706,6 +15706,18 @@
   value: true
   mirror: always
 
+# Enable/Disable fingerprinting protections that are enabled in
+# Enhanced Tracking Protection Standard mode.
+# bFPP cannot be enabled in only PBM, it is either enabled
+# browser-wide or disabled browser-wide. If FPP is enabled
+# in the same context as bFPP, FPP takes precedence. If
+# RFP is enabled in the same context as FPP, then RFP takes precedence
+- name: privacy.baselineFingerprintingProtection
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+  do_not_use_directly: true
+
 # This pref can be used to disable mozAddonManager entirely for fingerprinting
 # reasons. Someone like Tor browser will use this pref.
 # NOTE: We'd like this to be a "hidden" pref once StaticPrefs supports it.
