@@ -21,6 +21,8 @@ task-defaults:
     worker:
         max-run-time: 1800
     use-python: default
+    attributes:
+        retrigger: true
     treeherder:
         symbol: fuzzing-python
         kind: test
