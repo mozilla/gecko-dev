@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Text for confirmation for a positive action in dialog -->
   <string name="mozac_feature_prompts_ok">OK</string>
   <!-- Text for confirmation for a negative action in dialog. -->
@@ -36,6 +36,8 @@
   <string name="mozac_feature_prompt_login_save_headline_2">Salvesta parool?</string>
   <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
   <string name="mozac_feature_prompt_login_update_headline_2">Uuenda parool?</string>
+  <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
+  <string name="mozac_feature_prompt_login_add_username_headline_2">Kas värskendada kasutajanime?</string>
   <!--
     Text for a label for the field when prompt requesting a text is shown.
 
@@ -48,6 +50,8 @@
   <string name="mozac_feature_prompts_allow">Luba</string>
   <!-- Text of a negative button in dialog requesting to open a new window. -->
   <string name="mozac_feature_prompts_deny">Keela</string>
+  <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+  <string name="mozac_feature_prompts_popup_dialog_title">Kas lubada sellel saidil avaneda?</string>
   <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
   <string name="mozac_feature_prompt_before_unload_dialog_title">Kas oled kindel?</string>
   <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
@@ -100,6 +104,8 @@
   <string name="mozac_feature_prompts_suggest_strong_password_message">Kasuta tugevat parooli %1$s</string>
   <!-- Title for using the suggest strong password confirmation dialog -->
   <string name="mozac_feature_prompts_suggest_strong_password_title">Kasuta tugevat parooli?</string>
+  <!-- Content description for the suggest strong password confirmation dialog -->
+  <string name="mozac_feature_prompts_suggest_strong_password_description_3">Kaitse oma kontot tugeva ja juhuslikult loodud parooliga. See salvestatakse edaspidiseks kasutamiseks sinu kontole.</string>
   <!-- Pressing this will use the suggested strong password -->
   <string name="mozac_feature_prompts_suggest_strong_password_use_password">Kasuta parooli</string>
   <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -108,6 +114,8 @@
   <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Parool salvestati</string>
   <!-- Title for showing the suggest strong password updated confirmation snackbar -->
   <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Parool uuendatud</string>
+  <!-- Title for showing the username updated confirmation snackbar -->
+  <string name="mozac_feature_prompt_login_snackbar_username_updated">Kasutajanimi uuendatud</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
   <string name="mozac_feature_prompt_repost_title">Kas saata andmed sellele saidile uuesti?</string>
   <string name="mozac_feature_prompt_repost_message">Selle lehe värskendamine võib dubleerida hiljutisi toiminguid, nagu makse saatmine või kommentaari postitamine.</string>
@@ -151,6 +159,14 @@
     Content description for the Account picture in the Select Account FedCM prompt
   -->
   <string name="mozac_feature_prompts_account_picture">Konto pilt</string>
+  <!-- Title of the Identity Credential provider dialog chooser. -->
+  <string name="mozac_feature_prompts_identity_credentials_choose_provider">Sisselogimise pakkuja valimine</string>
+  <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
+  <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">Sisse kogumine %1$s-i kontoga</string>
+  <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Sisselogimisteenuse pakkujana %1$s kasutamine</string>
+  <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Kontoga %2$s teenusesse %1$s sisse logimisel kehtivad nende &lt;a href="%3$s"&gt;privaatsus-&lt;/a&gt; ja &lt;a href="%4$s"&gt;teenusetingimused&lt;/a&gt;.</string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Jätka</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->
