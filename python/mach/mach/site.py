@@ -720,9 +720,9 @@ class CommandSiteManager:
         if require_hashes:
             args.append("--require-hashes")
 
-        install_result = self._virtualenv.pip_install(args)
-
-        if install_result.returncode:
+        try:
+            install_result = self._virtualenv.pip_install(args)
+        except subprocess.CalledProcessError:
             raise InstallPipRequirementsException(
                 f'Failed to install "{path}" into the "{self._site_name}" site.'
             )
@@ -1047,26 +1047,32 @@ class PythonVirtualenv:
                 ),
                 **kwargs,
             )
-            return install_result
         except subprocess.CalledProcessError as cpe:
             if not self._quiet:
+                # We print the stdout/stderr on a failed install here so that we don't
+                # need to do it for every code path. We still raise the CalledProcessError
+                # afterward so that the different paths can do their own handling.
                 if cpe.stdout:
                     print(cpe.stdout)
                 if cpe.stderr:
                     print(cpe.stderr, file=sys.stderr)
-            sys.exit(1)
+            raise cpe
+
+        # On one code path we do a 'pip check', and if that fails, having the stdout
+        # of the 'pip install' is helpful for debugging, so we pass it along here so
+        # that we can print later if we hit that scenario.
+        return install_result
 
     def install_optional_packages(self, optional_requirements):
         for requirement in optional_requirements:
             try:
                 self.pip_install_with_constraints([str(requirement.requirement)])
-            except subprocess.CalledProcessError as error:
-                print(
-                    f"{error.output if error.output else ''}"
-                    f"{error.stderr if error.stderr else ''}"
-                    f"Could not install {requirement.requirement.name}, so "
-                    f"{requirement.repercussion}. Continuing."
-                )
+            except subprocess.CalledProcessError:
+                if not self._quiet:
+                    print(
+                        f"Could not install {requirement.requirement.name}, so "
+                        f"{requirement.repercussion}. Continuing."
+                    )
 
     def _resolve_installed_packages(self):
         return _resolve_installed_packages(self.python_path)
