@@ -54,7 +54,7 @@ export default class MozInputText extends MozBaseInputElement {
         style=${ifDefined(styles)}
         name=${this.name}
         value=${inputValue || this.value}
-        ?disabled=${this.disabled}
+        ?disabled=${this.disabled || this.parentDisabled}
         ?readonly=${this.readonly}
         accesskey=${ifDefined(this.accessKey)}
         placeholder=${ifDefined(this.placeholder)}

@@ -95,7 +95,7 @@ export default class MozSelect extends MozBaseInputElement {
         accesskey=${this.accessKey}
         @input=${this.handleStateChange}
         @change=${this.redispatchEvent}
-        .disabled=${this.disabled}
+        ?disabled=${this.disabled || this.parentDisabled}
         aria-describedby="description"
       >
         ${this.options.map(

@@ -38,7 +38,7 @@ export default class MozInputSearch extends MozInputText {
         type="search"
         name=${this.name}
         value=${this.value}
-        ?disabled=${this.disabled}
+        ?disabled=${this.disabled || this.parentDisabled}
         accesskey=${ifDefined(this.accessKey)}
         placeholder=${ifDefined(this.placeholder)}
         aria-label=${ifDefined(this.ariaLabel ?? undefined)}

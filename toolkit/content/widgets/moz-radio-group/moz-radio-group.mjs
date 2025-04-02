@@ -61,6 +61,7 @@ export class MozRadioGroup extends MozLitElement {
     label: { type: String, fluent: true },
     name: { type: String },
     value: { type: String },
+    parentDisabled: { type: Boolean, state: true },
   };
 
   static queries = {
@@ -341,6 +342,11 @@ export class MozRadio extends MozBaseInputElement {
   }
 
   inputTemplate() {
+    let isDisabled =
+      this.disabled ||
+      this.#controller.disabled ||
+      this.parentDisabled ||
+      this.#controller.parentDisabled;
     return html`<input
       type="radio"
       id="input"
@@ -350,7 +356,7 @@ export class MozRadio extends MozBaseInputElement {
       aria-checked=${this.checked}
       aria-describedby="description"
       tabindex=${this.inputTabIndex}
-      ?disabled=${this.disabled || this.#controller.disabled}
+      ?disabled=${isDisabled}
       accesskey=${ifDefined(this.accessKey)}
       @click=${this.handleClick}
       @change=${this.handleChange}
