@@ -5109,12 +5109,9 @@ void nsFocusManager::SetFocusedBrowsingContext(BrowsingContext* aContext,
   }
   MOZ_ASSERT(!ActionIdComparableAndLower(
       aActionId, mActionIdForFocusedBrowsingContextInContent));
-
-  const bool shouldSendSetFocusedBrowsingContext =
-      aContext && mFocusedBrowsingContextInContent != aContext;
   mFocusedBrowsingContextInContent = aContext;
   mActionIdForFocusedBrowsingContextInContent = aActionId;
-  if (shouldSendSetFocusedBrowsingContext) {
+  if (aContext) {
     // We don't send the unset but instead expect the set from
     // elsewhere to take care of it. XXX Is that bad?
     MOZ_ASSERT(aContext->IsInProcess());
