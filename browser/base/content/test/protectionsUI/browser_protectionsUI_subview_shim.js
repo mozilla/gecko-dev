@@ -25,8 +25,8 @@ add_setup(async function () {
       ["privacy.trackingprotection.fingerprinting.enabled", true],
       ["privacy.socialtracking.block_cookies.enabled", true],
       // Allowlist trackertest.org loaded by default in trackingPage.html
-      ["urlclassifier.trackingSkipURLs", "trackertest.org"],
-      ["urlclassifier.trackingAnnotationSkipURLs", "trackertest.org"],
+      ["urlclassifier.trackingSkipURLs", "*://trackertest.org/*"],
+      ["urlclassifier.trackingAnnotationSkipURLs", "*://trackertest.org/*"],
       // Additional denylisted hosts.
       [
         "urlclassifier.trackingAnnotationTable.testEntries",

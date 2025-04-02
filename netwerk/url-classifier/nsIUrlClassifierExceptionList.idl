@@ -34,4 +34,10 @@ interface nsIUrlClassifierExceptionList : nsISupports
      * @return True if the exception list matches, false otherwise
      */
     boolean matches(in nsIURI aURI, in nsIURI aTopLevelURI, in boolean aIsPrivateBrowsing);
+
+    /**
+     * Test-only interface to get all entries in the exception list.
+     * @return The entries in the exception list
+     */
+    Array<nsIUrlClassifierExceptionListEntry> testGetEntries();
 };

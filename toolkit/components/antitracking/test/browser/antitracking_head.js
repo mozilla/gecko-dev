@@ -445,8 +445,12 @@ this.AntiTracking = {
             ].getService(Ci.nsIURIClassifier);
             let feature = classifier.getFeatureByName("tracking-annotation");
             await TestUtils.waitForCondition(() => {
-              for (let x of item[1].toLowerCase().split(",")) {
-                if (feature.exceptionHostList.split(",").includes(x)) {
+              for (let x of item[1].split(",")) {
+                if (
+                  feature.exceptionList
+                    .testGetEntries()
+                    .some(e => e.urlPattern == x)
+                ) {
                   return true;
                 }
               }

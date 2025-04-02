@@ -10,7 +10,7 @@ const { RemoteSettings } = ChromeUtils.importESModule(
   "resource://services-settings/remote-settings.sys.mjs"
 );
 
-const COLLECTION_NAME = "url-classifier-skip-urls";
+const COLLECTION_NAME = "url-classifier-exceptions";
 const FEATURE_TRACKING_NAME = "tracking-annotation-test";
 const FEATURE_TRACKING_PREF_NAME = "urlclassifier.tracking-annotation-test";
 const FEATURE_SOCIAL_NAME = "socialtracking-annotation-test";
@@ -47,8 +47,8 @@ add_task(async function test_list_changes() {
     {
       id: "1",
       last_modified: 1000000000000001,
-      feature: FEATURE_TRACKING_NAME,
-      pattern: "example.com",
+      classifierFeatures: [FEATURE_TRACKING_NAME],
+      urlPattern: "*://example.com/*",
     },
   ];
 
@@ -63,29 +63,40 @@ add_task(async function test_list_changes() {
     obs
   );
 
-  Assert.equal(await promise, "", "No items in the list");
+  let list = await promise;
+  Assert.equal(list.testGetEntries().length, 0, "No items in the list");
 
   // Second event is from the RemoteSettings record.
-  let list = await waitForEvent(updateEvent, "update");
-  Assert.equal(list, "example.com", "Has one item in the list");
+  list = await waitForEvent(updateEvent, "update");
 
+  Assert.equal(list.testGetEntries().length, 1, "Has one item in the list");
+  Assert.equal(
+    list.testGetEntries()[0].urlPattern,
+    "*://example.com/*",
+    "First item is example.com"
+  );
   records.push(
+    // An entry which populates all fields of
+    // nsIUrlClassifierExceptionListEntry.
     {
       id: "2",
       last_modified: 1000000000000002,
-      feature: FEATURE_TRACKING_NAME,
-      pattern: "MOZILLA.ORG",
+      classifierFeatures: [FEATURE_TRACKING_NAME],
+      urlPattern: "*://MOZILLA.ORG/*",
+      topLevelUrlPattern: "*://example.com/*",
+      isPrivateBrowsingOnly: true,
+      filterContentBlockingCategories: ["standard"],
     },
     {
       id: "3",
       last_modified: 1000000000000003,
-      feature: "some-other-feature",
-      pattern: "noinclude.com",
+      classifierFeatures: ["some-other-feature"],
+      urlPattern: "*://noinclude.com/*",
     },
     {
       last_modified: 1000000000000004,
-      feature: FEATURE_TRACKING_NAME,
-      pattern: "*.example.org",
+      classifierFeatures: [FEATURE_TRACKING_NAME],
+      urlPattern: "*://*.example.org/*",
     }
   );
 
@@ -97,37 +108,110 @@ add_task(async function test_list_changes() {
 
   list = await promise;
 
+  let entries = list.testGetEntries();
+  Assert.equal(entries.length, 3, "Has three items in the list");
   Assert.equal(
-    list,
-    "example.com,mozilla.org,*.example.org",
-    "Has several items in the list"
+    entries[0].urlPattern,
+    "*://example.com/*",
+    "First item is example.com"
+  );
+  Assert.equal(
+    entries[1].urlPattern,
+    "*://MOZILLA.ORG/*",
+    "Second item is mozilla.org"
+  );
+  Assert.equal(
+    entries[1].topLevelUrlPattern,
+    "*://example.com/*",
+    "Top level url pattern of second item is correctly set."
+  );
+  Assert.equal(
+    entries[1].isPrivateBrowsingOnly,
+    true,
+    "isPrivateBrowsingOnly flag of second item is correctly set."
+  );
+  Assert.deepEqual(
+    entries[1].filterContentBlockingCategories,
+    ["standard"],
+    "filterContentBlockingCategories of second item is correctly set."
+  );
+  Assert.equal(
+    entries[2].urlPattern,
+    "*://*.example.org/*",
+    "Third item is *.example.org"
   );
 
   promise = waitForEvent(updateEvent, "update");
 
-  Services.prefs.setStringPref(FEATURE_TRACKING_PREF_NAME, "test.com");
+  Services.prefs.setStringPref(FEATURE_TRACKING_PREF_NAME, "*://test.com/*");
 
   list = await promise;
 
+  entries = list.testGetEntries();
+
+  Assert.equal(entries.length, 4, "Has four items in the list");
+
   Assert.equal(
-    list,
-    "test.com,example.com,mozilla.org,*.example.org",
-    "Has several items in the list"
+    entries[1].urlPattern,
+    "*://example.com/*",
+    "First item is example.com"
+  );
+  Assert.equal(
+    entries[2].urlPattern,
+    "*://MOZILLA.ORG/*",
+    "Second item is mozilla.org"
+  );
+  Assert.equal(
+    entries[3].urlPattern,
+    "*://*.example.org/*",
+    "Third item is *.example.org"
+  );
+  Assert.equal(
+    entries[0].urlPattern,
+    "*://test.com/*",
+    "Fourth item is test.com"
   );
 
   promise = waitForEvent(updateEvent, "update");
 
   Services.prefs.setStringPref(
     FEATURE_TRACKING_PREF_NAME,
-    "test.com,whatever.com,*.abc.com"
+    "*://test.com/*,*://whatever.com/*,*://*.abc.com/*"
   );
 
   list = await promise;
 
+  entries = list.testGetEntries();
+  Assert.equal(entries.length, 6, "Has six items in the list");
   Assert.equal(
-    list,
-    "test.com,whatever.com,*.abc.com,example.com,mozilla.org,*.example.org",
-    "Has several items in the list"
+    entries[0].urlPattern,
+    "*://test.com/*",
+    "First item is test.com"
+  );
+  Assert.equal(
+    entries[1].urlPattern,
+    "*://whatever.com/*",
+    "Second item is whatever.com"
+  );
+  Assert.equal(
+    entries[2].urlPattern,
+    "*://*.abc.com/*",
+    "Third item is *.abc.com"
+  );
+  Assert.equal(
+    entries[3].urlPattern,
+    "*://example.com/*",
+    "Fourth item is example.com"
+  );
+  Assert.equal(
+    entries[4].urlPattern,
+    "*://MOZILLA.ORG/*",
+    "Fifth item is mozilla.org"
+  );
+  Assert.equal(
+    entries[5].urlPattern,
+    "*://*.example.org/*",
+    "Sixth item is *.example.org"
   );
 
   exceptionListService.unregisterExceptionListObserver(
@@ -158,26 +242,26 @@ add_task(async function test_list_init_data() {
     {
       id: "1",
       last_modified: 1000000000000001,
-      feature: FEATURE_TRACKING_NAME,
-      pattern: "tracking.example.com",
+      classifierFeatures: [FEATURE_TRACKING_NAME],
+      urlPattern: "*://tracking.example.com/*",
     },
     {
       id: "2",
       last_modified: 1000000000000002,
-      feature: FEATURE_SOCIAL_NAME,
-      pattern: "social.example.com",
+      classifierFeatures: [FEATURE_SOCIAL_NAME],
+      urlPattern: "*://social.example.com/*",
     },
     {
       id: "3",
       last_modified: 1000000000000003,
-      feature: FEATURE_TRACKING_NAME,
-      pattern: "*.tracking.org",
+      classifierFeatures: [FEATURE_TRACKING_NAME],
+      urlPattern: "*://*.tracking.org/*",
     },
     {
       id: "4",
       last_modified: 1000000000000004,
-      feature: FEATURE_SOCIAL_NAME,
-      pattern: "MOZILLA.ORG",
+      classifierFeatures: [FEATURE_SOCIAL_NAME],
+      urlPattern: "*://MOZILLA.ORG/*",
     },
   ];
 
@@ -200,12 +284,20 @@ add_task(async function test_list_init_data() {
   );
 
   let list = await promise;
-  Assert.equal(list, "", "Empty list initially");
+  Assert.equal(list.testGetEntries().length, 0, "Empty list initially");
 
+  list = await waitForEvent(updateEvent, "update");
+  let entries = list.testGetEntries();
+  Assert.equal(entries.length, 2, "Has two items in the list");
   Assert.equal(
-    await waitForEvent(updateEvent, "update"),
-    "tracking.example.com,*.tracking.org",
-    "Has several items in the list"
+    entries[0].urlPattern,
+    "*://tracking.example.com/*",
+    "First item is tracking.example.com"
+  );
+  Assert.equal(
+    entries[1].urlPattern,
+    "*://*.tracking.org/*",
+    "Second item is *.tracking.org"
   );
 
   // Register another feature after ExceptionListService got the initial data.
@@ -218,11 +310,17 @@ add_task(async function test_list_init_data() {
   );
 
   list = await promise;
-
+  entries = list.testGetEntries();
+  Assert.equal(entries.length, 2, "Has two items in the list");
   Assert.equal(
-    list,
-    "social.example.com,mozilla.org",
-    "Has several items in the list"
+    entries[0].urlPattern,
+    "*://social.example.com/*",
+    "First item is social.example.com"
+  );
+  Assert.equal(
+    entries[1].urlPattern,
+    "*://MOZILLA.ORG/*",
+    "Second item is mozilla.org"
   );
 
   // Test registering a feature after ExceptionListService recieved the synced data.
@@ -230,20 +328,20 @@ add_task(async function test_list_init_data() {
     {
       id: "5",
       last_modified: 1000000000000002,
-      feature: FEATURE_FINGERPRINTING_NAME,
-      pattern: "fingerprinting.example.com",
+      classifierFeatures: [FEATURE_FINGERPRINTING_NAME],
+      urlPattern: "*://fingerprinting.example.com/*",
     },
     {
       id: "6",
       last_modified: 1000000000000002,
-      feature: "other-fature",
-      pattern: "not-a-fingerprinting.example.com",
+      classifierFeatures: ["other-feature"],
+      urlPattern: "*://not-a-fingerprinting.example.com/*",
     },
     {
       id: "7",
       last_modified: 1000000000000002,
-      feature: FEATURE_FINGERPRINTING_NAME,
-      pattern: "*.fingerprinting.org",
+      classifierFeatures: [FEATURE_FINGERPRINTING_NAME],
+      urlPattern: "*://*.fingerprinting.org/*",
     }
   );
 
@@ -261,10 +359,17 @@ add_task(async function test_list_init_data() {
 
   list = await promise;
 
+  entries = list.testGetEntries();
+  Assert.equal(entries.length, 2, "Has two items in the list");
   Assert.equal(
-    list,
-    "fingerprinting.example.com,*.fingerprinting.org",
-    "Has several items in the list"
+    entries[0].urlPattern,
+    "*://fingerprinting.example.com/*",
+    "First item is fingerprinting.example.com"
+  );
+  Assert.equal(
+    entries[1].urlPattern,
+    "*://*.fingerprinting.org/*",
+    "Second item is *.fingerprinting.org"
   );
 
   exceptionListService.unregisterExceptionListObserver(

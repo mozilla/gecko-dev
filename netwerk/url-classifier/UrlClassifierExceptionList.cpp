@@ -22,9 +22,12 @@ UrlClassifierExceptionList::Init(const nsACString& aFeature) {
 NS_IMETHODIMP
 UrlClassifierExceptionList::AddEntry(
     nsIUrlClassifierExceptionListEntry* aEntry) {
-  if (!aEntry) {
-    return NS_ERROR_INVALID_ARG;
-  }
+  NS_ENSURE_ARG_POINTER(aEntry);
+
+  nsAutoCString entryString;
+  Unused << aEntry->Describe(entryString);
+  UC_LOG_DEBUG(("UrlClassifierExceptionList::%s - Adding entry: %s",
+                __FUNCTION__, entryString.get()));
 
   mEntries.AppendElement(aEntry);
   return NS_OK;
@@ -70,4 +73,10 @@ UrlClassifierExceptionList::Matches(nsIURI* aURI, nsIURI* aTopLevelURI,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+UrlClassifierExceptionList::TestGetEntries(
+    nsTArray<RefPtr<nsIUrlClassifierExceptionListEntry>>& aEntries) {
+  aEntries = mEntries.Clone();
+  return NS_OK;
+}
 }  // namespace mozilla::net
