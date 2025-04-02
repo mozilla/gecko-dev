@@ -55,7 +55,7 @@ add_task(async function test_experimentEnrollment() {
 
   Assert.ok(experiment.active, "Should be enrolled in the experiment");
 
-  ExperimentManager.unenroll(recipe.slug, "mochitest-cleanup");
+  ExperimentManager.unenroll(recipe.slug);
 
   experiment = ExperimentAPI.getExperiment({
     slug: recipe.slug,
