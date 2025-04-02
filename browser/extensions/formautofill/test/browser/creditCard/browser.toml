@@ -27,7 +27,6 @@ skip-if = [
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov",   # Bug 1655600
 ]
 
 ["browser_creditCard_capture_page_navigation.js"]
@@ -36,7 +35,6 @@ skip-if = [
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov",   # Bug 1655600
 ]
 
 ["browser_creditCard_doorhanger_display.js"]
@@ -44,42 +42,36 @@ skip-if = [
   "os == 'linux'", # Bug 1895422
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov", # Bug 1655600
 ]
 
 ["browser_creditCard_doorhanger_fields.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov",   # Bug 1655600
 ]
 
 ["browser_creditCard_doorhanger_iframe.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov",   # Bug 1655600
 ]
 
 ["browser_creditCard_doorhanger_logo.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov",   # Bug 1655600
 ]
 
 ["browser_creditCard_doorhanger_not_shown.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov",   # Bug 1655600
 ]
 
 ["browser_creditCard_doorhanger_sync.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # perma-fail see Bug 1655601
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # perma-fail see Bug 1655601
-  "win11_2009 && ccov",   # Bug 1655600
 ]
 
 ["browser_creditCard_dropdown_layout.js"]
