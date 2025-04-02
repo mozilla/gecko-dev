@@ -74,8 +74,9 @@ def test_shell_script(
 
         customscript = env.layers[TEST]
         metadata.binary = "a_binary"
-        with customscript as c:
-            c(metadata)
+        with mock.patch("mozperftest.test.shellscript.DEPENDENCIES", new=[]):
+            with customscript as c:
+                c(metadata)
 
         # Check that the output is handled properly
         if on_try_setting:
