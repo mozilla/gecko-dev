@@ -996,6 +996,30 @@ fn map_node(
     }
 }
 
+fn resolve_anchor_functions(
+    node: &CalcNode,
+    info: &CalcAnchorFunctionResolutionInfo,
+) -> Result<Option<CalcNode>, ()> {
+    let resolution = match node {
+        CalcNode::Anchor(f) => {
+            // Invalid use of `anchor()` (i.e. Outside of inset properties) should've been
+            // caught at parse time.
+            f.resolve(info.axis, info.position_property)
+        },
+        CalcNode::AnchorSize(f) => f.resolve(info.position_property),
+        _ => return Ok(None),
+    };
+
+    match resolution {
+        AnchorResolutionResult::Invalid => Err(()),
+        AnchorResolutionResult::Fallback(fb) => {
+            // TODO(dshin, bug 1923759): At least for now, fallbacks should not contain any anchor function.
+            Ok(Some(*fb.clone()))
+        },
+        AnchorResolutionResult::Resolved(v) => Ok(Some(*v.clone())),
+    }
+}
+
 /// Information required for resolving anchor functions.
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -1075,6 +1099,18 @@ impl CalcLengthPercentage {
                 }
             },
         }
+    }
+
+    /// Return a clone of this node with all anchor functions computed and replaced with
+    /// corresponding values, returning error if the resolution is invalid.
+    #[inline]
+    pub fn resolve_anchor(
+        &self,
+        anchor_resolution_info: CalcAnchorFunctionResolutionInfo,
+    ) -> Result<(CalcNode, AllowedNumericType), ()> {
+        let mut node = self.node.clone();
+        node.map_node(|node| resolve_anchor_functions(node, &anchor_resolution_info))?;
+        Ok((node, self.clamping_mode))
     }
 }
 

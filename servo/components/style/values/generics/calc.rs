@@ -1194,6 +1194,52 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
         }
     }
 
+    /// Mutate nodes within this calc node tree using given the mapping function.
+    pub fn map_node<F>(&mut self, mut mapping_fn: F) -> Result<(), ()>
+    where
+        F: FnMut(&CalcNode<L>) -> Result<Option<CalcNode<L>>, ()>,
+    {
+        self.map_node_internal(&mut mapping_fn)
+    }
+
+    fn map_node_internal<F>(&mut self, mapping_fn: &mut F) -> Result<(), ()>
+    where
+        F: FnMut(&CalcNode<L>) -> Result<Option<CalcNode<L>>, ()>,
+    {
+        if let Some(node) = mapping_fn(self)? {
+            *self = node;
+            // Assume that any sub-nodes don't need to be mutated.
+            return Ok(());
+        }
+        match self {
+            Self::Leaf(_) | Self::Anchor(_) | Self::AnchorSize(_) => (),
+            Self::Negate(child) | Self::Invert(child) | Self::Abs(child) | Self::Sign(child) => {
+                child.map_node_internal(mapping_fn)?;
+            },
+            Self::Sum(children) | Self::Product(children) | Self::Hypot(children) | Self::MinMax(children, _) => {
+                for child in children.iter_mut() {
+                    child.map_node_internal(mapping_fn)?;
+                }
+            },
+            Self::Clamp { min, center, max } => {
+                min.map_node_internal(mapping_fn)?;
+                center.map_node_internal(mapping_fn)?;
+                max.map_node_internal(mapping_fn)?;
+            },
+            Self::Round { value, step, .. } => {
+                value.map_node_internal(mapping_fn)?;
+                step.map_node_internal(mapping_fn)?;
+            },
+            Self::ModRem {
+                dividend, divisor, ..
+            } => {
+                dividend.map_node_internal(mapping_fn)?;
+                divisor.map_node_internal(mapping_fn)?;
+            },
+        };
+        Ok(())
+    }
+
     fn is_negative_leaf(&self) -> Result<bool, ()> {
         Ok(match *self {
             Self::Leaf(ref l) => l.is_negative()?,

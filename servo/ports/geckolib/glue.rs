@@ -8462,6 +8462,41 @@ pub extern "C" fn Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
     true
 }
 
+/// Result of resolving a math function node potentially containing
+/// anchor positioning function.
+#[repr(u8)]
+pub enum CalcAnchorPositioningFunctionResolution {
+    /// Anchor positioning function is used, but at least one of them
+    /// did not resolve to a valid reference - Property using this
+    /// expression is now invalid at computed time.
+    Invalid,
+    /// Anchor positioning function is used, and all of them resolved
+    /// to valid references, or specified a fallback.
+    Valid(computed::LengthPercentage),
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ResolveAnchorFunctionsInCalcPercentage(
+    calc: &computed::length_percentage::CalcLengthPercentage,
+    axis: PhysicalAxis,
+    position_property: PositionProperty,
+    out: &mut CalcAnchorPositioningFunctionResolution,
+) {
+    let resolved = calc.resolve_anchor(CalcAnchorFunctionResolutionInfo {
+        axis: axis,
+        position_property,
+    });
+
+    match resolved {
+        Err(()) => *out = CalcAnchorPositioningFunctionResolution::Invalid,
+        Ok((node, clamping_mode)) => {
+            *out = CalcAnchorPositioningFunctionResolution::Valid(
+                computed::LengthPercentage::new_calc(node, clamping_mode),
+            )
+        },
+    };
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_ConvertColorSpace(
     color: &AbsoluteColor,
