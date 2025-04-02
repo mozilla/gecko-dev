@@ -314,7 +314,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   DataMutex<nsTHashMap<nsCString, UserActionIdAndAutoAcknowledge>>
       mRequestTokenToUserActionIdMap;
   void IssueResponse(ContentAnalysisResponse* response,
-                     nsCString&& aUserActionId, bool aAutoAcknowledge,
+                     nsCString&& aUserActionId, bool aAcknowledge,
                      bool aIsTooLate);
   void NotifyResponseObservers(ContentAnalysisResponse* aResponse,
                                nsCString&& aUserActionId, bool aAutoAcknowledge,
