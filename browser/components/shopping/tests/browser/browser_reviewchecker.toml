@@ -29,7 +29,9 @@ prefs = [
 
 ["browser_reviewchecker_empty_states.js"]
 
-["browser_reviewchecker_manager.js"]
+["browser_reviewchecker_manager_auto_close.js"]
+
+["browser_reviewchecker_manager_auto_open.js"]
 
 ["browser_reviewchecker_messages.js"]
 
