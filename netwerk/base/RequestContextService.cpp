@@ -24,7 +24,6 @@
 
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/NeckoCommon.h"
-#include "mozilla/net/PSpdyPush.h"
 
 #include "../protocol/http/nsHttpHandler.h"
 
@@ -63,7 +62,6 @@ class RequestContext final : public nsIRequestContext,
 
   uint64_t mID;
   Atomic<uint32_t> mBlockingTransactionCount;
-  UniquePtr<SpdyPushCache> mSpdyCache;
 
   using PendingTailRequest = nsCOMPtr<nsIRequestTailUnblockCallback>;
   // Number of known opened non-tailed requets
@@ -180,12 +178,6 @@ RequestContext::RemoveBlockingTransaction(uint32_t* outval) {
        static_cast<uint32_t>(mBlockingTransactionCount)));
   *outval = mBlockingTransactionCount;
   return NS_OK;
-}
-
-SpdyPushCache* RequestContext::GetSpdyPushCache() { return mSpdyCache.get(); }
-
-void RequestContext::SetSpdyPushCache(SpdyPushCache* aSpdyPushCache) {
-  mSpdyCache = WrapUnique(aSpdyPushCache);
 }
 
 uint64_t RequestContext::GetID() { return mID; }

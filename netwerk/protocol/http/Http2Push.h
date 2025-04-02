@@ -18,7 +18,6 @@
 #include "nsHttpRequestHead.h"
 #include "nsIRequestContext.h"
 #include "nsString.h"
-#include "PSpdyPush.h"
 
 namespace mozilla {
 namespace net {

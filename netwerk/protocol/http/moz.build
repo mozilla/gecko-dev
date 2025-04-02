@@ -77,7 +77,6 @@ EXPORTS.mozilla.net += [
     "OpaqueResponseUtils.h",
     "ParentChannelListener.h",
     "PHttpChannelParams.h",
-    "PSpdyPush.h",
     "ReplacedHttpResponse.h",
     "SpeculativeTransaction.h",
     "TimingStruct.h",
