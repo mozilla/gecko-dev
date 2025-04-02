@@ -132,3 +132,50 @@ add_task(async function test_tabs_to_suggest_should_only_exclude_new_tab() {
     "about:newtab should be excluded"
   );
 });
+
+add_task(async function test_tabs_to_suggest_should_exclude_firefox_view() {
+  const smartTabGroupingManager = new SmartTabGroupingManager();
+  const allTabData = await prepareTabData("gen_set_2_labels.tsv");
+  let tabData = [...allTabData.slice(0, 5)];
+  let preppedData = await smartTabGroupingManager._prepareTabData(tabData);
+  let tabsToSuggest = smartTabGroupingManager.getTabsToSuggest(
+    preppedData,
+    [0, 1],
+    [3]
+  );
+  Assert.equal(
+    tabsToSuggest.length,
+    2,
+    "only two tabs can be suggested from window"
+  );
+  Assert.deepEqual(
+    tabsToSuggest,
+    [2, 4],
+    "only tabs at these indices can be suggested"
+  );
+
+  // about:firefoxview should be excluded, others like about:config should be included
+  tabData = [
+    ...allTabData.slice(0, 5),
+    generateTabWithInfo({ title: "New Tab", url: "about:newtab" }),
+    generateTabWithInfo({ title: "Config", url: "about:config" }),
+    generateTabWithInfo({ title: "New Tab", url: "about:home" }),
+    generateTabWithInfo({ title: "Firefox View", url: "about:firefoxview" }),
+  ];
+  preppedData = await smartTabGroupingManager._prepareTabData(tabData);
+  tabsToSuggest = smartTabGroupingManager.getTabsToSuggest(
+    preppedData,
+    [0, 1],
+    [3]
+  );
+  Assert.equal(
+    tabsToSuggest.length,
+    3,
+    "only three tabs can be suggested from window, with 'Firefox View' excluded"
+  );
+  Assert.deepEqual(
+    tabsToSuggest,
+    [2, 4, 6],
+    "about:firefoxview should be excluded"
+  );
+});
