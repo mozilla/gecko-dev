@@ -32,10 +32,6 @@ void gfxConfigManager::Init() {
   mWrForceEnabled = gfxPlatform::WebRenderPrefEnabled();
   mWrSoftwareForceEnabled = StaticPrefs::gfx_webrender_software_AtStartup();
   mWrCompositorForceEnabled =
-#if defined(MOZ_WAYLAND)
-      // HDR on Linux works with compositor only.
-      StaticPrefs::gfx_wayland_hdr_AtStartup() ||
-#endif
       StaticPrefs::gfx_webrender_compositor_force_enabled_AtStartup();
   mGPUProcessAllowSoftware =
       StaticPrefs::layers_gpu_process_allow_software_AtStartup();
