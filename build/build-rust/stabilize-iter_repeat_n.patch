@@ -1,0 +1,143 @@
+commit dad808353e3 (HEAD)
+Author: Scott McMurray <scottmcm@users.noreply.github.com>
+Date:   2024-08-19T22:39:04-0700 (Monday)
+
+    Stabilize `iter::repeat_n`
+
+diff --git a/library/alloc/src/lib.rs b/library/alloc/src/lib.rs
+index 28b08ef5611..6d23f9bb431 100644
+--- a/library/alloc/src/lib.rs
++++ b/library/alloc/src/lib.rs
+@@ -131,7 +131,6 @@
+ #![feature(inplace_iteration)]
+ #![feature(iter_advance_by)]
+ #![feature(iter_next_chunk)]
+-#![feature(iter_repeat_n)]
+ #![feature(layout_for_ptr)]
+ #![feature(local_waker)]
+ #![feature(maybe_uninit_slice)]
+diff --git a/library/core/src/iter/mod.rs b/library/core/src/iter/mod.rs
+index 1f2bf49d2b7..5dad9e1a75e 100644
+--- a/library/core/src/iter/mod.rs
++++ b/library/core/src/iter/mod.rs
+@@ -436,7 +436,7 @@ fn $fold<AAA, FFF>(mut self, init: AAA, fold: FFF) -> AAA
+ pub use self::sources::{once_with, OnceWith};
+ #[stable(feature = "rust1", since = "1.0.0")]
+ pub use self::sources::{repeat, Repeat};
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ pub use self::sources::{repeat_n, RepeatN};
+ #[stable(feature = "iterator_repeat_with", since = "1.28.0")]
+ pub use self::sources::{repeat_with, RepeatWith};
+diff --git a/library/core/src/iter/sources.rs b/library/core/src/iter/sources.rs
+index 6a94051b7c7..55901e1e50b 100644
+--- a/library/core/src/iter/sources.rs
++++ b/library/core/src/iter/sources.rs
+@@ -24,7 +24,7 @@
+ pub use self::once_with::{once_with, OnceWith};
+ #[stable(feature = "rust1", since = "1.0.0")]
+ pub use self::repeat::{repeat, Repeat};
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ pub use self::repeat_n::{repeat_n, RepeatN};
+ #[stable(feature = "iterator_repeat_with", since = "1.28.0")]
+ pub use self::repeat_with::{repeat_with, RepeatWith};
+diff --git a/library/core/src/iter/sources/repeat_n.rs b/library/core/src/iter/sources/repeat_n.rs
+index 4c4ae39f836..2e247a34075 100644
+--- a/library/core/src/iter/sources/repeat_n.rs
++++ b/library/core/src/iter/sources/repeat_n.rs
+@@ -18,7 +18,6 @@
+ /// Basic usage:
+ ///
+ /// ```
+-/// #![feature(iter_repeat_n)]
+ /// use std::iter;
+ ///
+ /// // four of the number four:
+@@ -36,7 +35,6 @@
+ /// For non-`Copy` types,
+ ///
+ /// ```
+-/// #![feature(iter_repeat_n)]
+ /// use std::iter;
+ ///
+ /// let v: Vec<i32> = Vec::with_capacity(123);
+@@ -58,7 +56,7 @@
+ /// assert_eq!(None, it.next());
+ /// ```
+ #[inline]
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ pub fn repeat_n<T: Clone>(element: T, count: usize) -> RepeatN<T> {
+     let mut element = ManuallyDrop::new(element);
+ 
+@@ -77,7 +75,7 @@ pub fn repeat_n<T: Clone>(element: T, count: usize) -> RepeatN<T> {
+ /// This `struct` is created by the [`repeat_n()`] function.
+ /// See its documentation for more.
+ #[derive(Clone, Debug)]
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ pub struct RepeatN<A> {
+     count: usize,
+     // Invariant: has been dropped iff count == 0.
+@@ -101,14 +99,14 @@ fn take_element(&mut self) -> Option<A> {
+     }
+ }
+ 
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ impl<A> Drop for RepeatN<A> {
+     fn drop(&mut self) {
+         self.take_element();
+     }
+ }
+ 
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ impl<A: Clone> Iterator for RepeatN<A> {
+     type Item = A;
+ 
+@@ -156,14 +154,14 @@ fn count(self) -> usize {
+     }
+ }
+ 
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ impl<A: Clone> ExactSizeIterator for RepeatN<A> {
+     fn len(&self) -> usize {
+         self.count
+     }
+ }
+ 
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ impl<A: Clone> DoubleEndedIterator for RepeatN<A> {
+     #[inline]
+     fn next_back(&mut self) -> Option<A> {
+@@ -181,12 +179,12 @@ fn nth_back(&mut self, n: usize) -> Option<A> {
+     }
+ }
+ 
+-#[unstable(feature = "iter_repeat_n", issue = "104434")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ impl<A: Clone> FusedIterator for RepeatN<A> {}
+ 
+ #[unstable(feature = "trusted_len", issue = "37572")]
+ unsafe impl<A: Clone> TrustedLen for RepeatN<A> {}
+-#[unstable(feature = "trusted_len_next_unchecked", issue = "37572")]
++#[stable(feature = "iter_repeat_n", since = "CURRENT_RUSTC_VERSION")]
+ impl<A: Clone> UncheckedIterator for RepeatN<A> {
+     #[inline]
+     unsafe fn next_unchecked(&mut self) -> Self::Item {
+diff --git a/library/core/tests/lib.rs b/library/core/tests/lib.rs
+index 1e336bf96b8..40d67f707e8 100644
+--- a/library/core/tests/lib.rs
++++ b/library/core/tests/lib.rs
+@@ -73,7 +73,6 @@
+ #![feature(iter_next_chunk)]
+ #![feature(iter_order_by)]
+ #![feature(iter_partition_in_place)]
+-#![feature(iter_repeat_n)]
+ #![feature(iterator_try_collect)]
+ #![feature(iterator_try_reduce)]
+ #![feature(layout_for_ptr)]
