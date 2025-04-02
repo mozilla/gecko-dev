@@ -1,6 +1,9 @@
 import React from "react";
 import { mount } from "enzyme";
-import { useIntersectionObserver } from "content-src/lib/utils.jsx";
+import {
+  useIntersectionObserver,
+  getActiveCardSize,
+} from "content-src/lib/utils.jsx";
 
 // Test component to use the useIntersectionObserver
 function TestComponent({ callback, threshold }) {
@@ -79,5 +82,72 @@ describe("useIntersectionObserver", () => {
 
     assert.notCalled(callback);
     assert.notCalled(observerInstance.unobserve);
+  });
+});
+
+describe("getActiveCardSize", () => {
+  it("returns 'large-card' for col-4-large and screen width 1920 and sections enabled", () => {
+    const result = getActiveCardSize(
+      1920,
+      "col-4-large col-3-medium col-2-small col-1-small",
+      true
+    );
+    assert.equal(result, "large-card");
+  });
+
+  it("returns 'medium-card' for col-3-medium and screen width 1200 and sections enabled", () => {
+    const result = getActiveCardSize(
+      1200,
+      "col-4-large col-3-medium col-2-small col-1-small",
+      true
+    );
+    assert.equal(result, "medium-card");
+  });
+
+  it("returns 'small-card' for col-2-small and screen width 800 and sections enabled", () => {
+    const result = getActiveCardSize(
+      800,
+      "col-4-large col-3-medium col-2-small col-1-medium",
+      true
+    );
+    assert.equal(result, "small-card");
+  });
+
+  it("returns 'medium-card' for col-1-medium at 500px", () => {
+    const result = getActiveCardSize(
+      500,
+      "col-1-medium col-1-position-0",
+      true
+    );
+    assert.equal(result, "medium-card");
+  });
+
+  it("returns 'medium-card' for col-1-small at 500px (edge case)", () => {
+    const result = getActiveCardSize(500, "col-1-small col-1-position-0", true);
+    assert.equal(result, "medium-card");
+  });
+
+  it("returns null when no matching card type is found (edge case)", () => {
+    const result = getActiveCardSize(
+      1200,
+      "col-4-position-0 col-3-position-0",
+      true
+    );
+    assert.isNull(result);
+  });
+
+  it("returns 'medium-card' when required arguments are missing and sections are disabled", () => {
+    const result = getActiveCardSize(null, null, false);
+    assert.equal(result, "medium-card");
+  });
+
+  it("returns null when required arguments are missing and sections are enabled", () => {
+    const result = getActiveCardSize(null, null, true);
+    assert.isNull(result);
+  });
+
+  it("returns 'spoc' when flightId has value", () => {
+    const result = getActiveCardSize(null, null, false, 123);
+    assert.equal(result, "spoc");
   });
 });

@@ -1350,7 +1350,7 @@ pocket:
         description: Whether the pocket tile was sponsored (has an ad callback).
         type: boolean
       format: &format
-        description: For sponsored content only, was it a standard spoc, or a new IAB rectangle spoc. Can be "spoc" or "rectangle"
+        description: The format of whatever item is displayed. It can differ if the content is an ad or organic. Possible responses are "spoc", "rectangle" (for ads) "billboard", "leaderboard", "small-card",  "medium-card",  "large-card" (for organic content).
         type: string
       position: &pocket_position
         description: The position (0-index) of the pocket tile.
@@ -1697,6 +1697,7 @@ pocket:
       newtab_visit_id: *newtab_visit_id
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
+      format: *format
       thumbs_up:
         description: >
           If the user clicked thumbs up.

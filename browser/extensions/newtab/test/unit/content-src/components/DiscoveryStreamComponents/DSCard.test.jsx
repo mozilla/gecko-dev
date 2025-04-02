@@ -317,6 +317,7 @@ describe("<DSCard>", () => {
             matches_selected_topic: undefined,
             selected_topics: undefined,
             is_list_card: undefined,
+            format: "medium-card",
           },
         })
       );
@@ -334,6 +335,7 @@ describe("<DSCard>", () => {
               topic: undefined,
               selected_topics: undefined,
               is_list_card: undefined,
+              format: "medium-card",
             },
           ],
           window_inner_width: 1000,
@@ -343,7 +345,13 @@ describe("<DSCard>", () => {
     });
 
     it("should set the right card_type on spocs", () => {
-      wrapper.setProps({ id: "fooidx", pos: 1, type: "foo", flightId: 12345 });
+      wrapper.setProps({
+        id: "fooidx",
+        pos: 1,
+        type: "foo",
+        flightId: 12345,
+        format: "spoc",
+      });
       sandbox
         .stub(wrapper.instance(), "doesLinkTopicMatchSelectedTopic")
         .returns(undefined);
@@ -370,6 +378,7 @@ describe("<DSCard>", () => {
             matches_selected_topic: undefined,
             selected_topics: undefined,
             is_list_card: undefined,
+            format: "spoc",
           },
         })
       );
@@ -387,6 +396,7 @@ describe("<DSCard>", () => {
               topic: undefined,
               selected_topics: undefined,
               is_list_card: undefined,
+              format: "spoc",
             },
           ],
           window_inner_width: 1000,
@@ -432,6 +442,7 @@ describe("<DSCard>", () => {
             matches_selected_topic: undefined,
             selected_topics: undefined,
             is_list_card: undefined,
+            format: "medium-card",
           },
         })
       );
@@ -450,6 +461,7 @@ describe("<DSCard>", () => {
               topic: undefined,
               selected_topics: undefined,
               is_list_card: undefined,
+              format: "medium-card",
             },
           ],
           window_inner_width: 1000,

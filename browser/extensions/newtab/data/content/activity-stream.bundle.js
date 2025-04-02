@@ -2467,6 +2467,122 @@ class _DSLinkMenu extends (external_React_default()).PureComponent {
 const DSLinkMenu = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Prefs: state.Prefs
 }))(_DSLinkMenu);
+;// CONCATENATED MODULE: ./content-src/lib/utils.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+
+/**
+ * A custom react hook that sets up an IntersectionObserver to observe a single
+ * or list of elements and triggers a callback when the element comes into the viewport
+ * Note: The refs used should be an array type
+ * @function useIntersectionObserver
+ * @param {function} callback - The function to call when an element comes into the viewport
+ * @param {Object} options - Options object passed to Intersection Observer:
+ * https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/IntersectionObserver#options
+ * @param {Boolean} [isSingle = false] Boolean if the elements are an array or single element
+ *
+ * @returns {React.MutableRefObject} a ref containing an array of elements or single element
+ *
+ *
+ *
+ */
+function useIntersectionObserver(callback, threshold = 0.3) {
+  const elementsRef = (0,external_React_namespaceObject.useRef)([]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          callback(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold
+    });
+    elementsRef.current.forEach(el => {
+      if (el) {
+        observer.observe(el);
+      }
+    });
+
+    // Cleanup function to disconnect observer on unmount
+    return () => observer.disconnect();
+  }, [callback, threshold]);
+  return elementsRef;
+}
+
+/**
+ * Determines the active card size ("small", "medium", or "large") based on the screen width
+ * and class names applied to the card element at the time of an event (example: click)
+ *
+ * @param {number} screenWidth - The current window width (in pixels).
+ * @param {string | string[]} classNames - A string or array of class names applied to the sections card.
+ * @param {boolean[]} sectionsEnabled - If sections is not enabled, all cards are `medium-card`
+ * @param {number} flightId - Error ege case: This function should not be called on spocs, which have flightId
+ * @returns {"small-card" | "medium-card" | "large-card" | null} The active card type, or null if none is matched.
+ */
+function getActiveCardSize(screenWidth, classNames, sectionsEnabled, flightId) {
+  // Only applies to sponsored content
+  if (flightId) {
+    return "spoc";
+  }
+
+  // Default layout only supports `medium-card`
+  if (!sectionsEnabled) {
+    // Missing arguments
+    return "medium-card";
+  }
+
+  // Return null if no values are available
+  if (!screenWidth || !classNames) {
+    // Missing arguments
+    return null;
+  }
+  const classList = classNames.split(" ");
+
+  // Each breakpoint corresponds to a minimum screen width and its associated column class
+  const breakpoints = [{
+    min: 1374,
+    column: "col-4"
+  },
+  // $break-point-sections-variant
+  {
+    min: 1122,
+    column: "col-3"
+  },
+  // $break-point-widest
+  {
+    min: 724,
+    column: "col-2"
+  },
+  // $break-point-layout-variant
+  {
+    min: 0,
+    column: "col-1"
+  } // (default layout)
+  ];
+  const cardTypes = ["small", "medium", "large"];
+
+  // Determine which column is active based on the current screen width
+  const currColumnCount = breakpoints.find(bp => screenWidth >= bp.min).column;
+
+  // Match the card type for that column count
+  for (let type of cardTypes) {
+    const className = `${currColumnCount}-${type}`;
+    if (classList.includes(className)) {
+      // Special case: below $break-point-medium (610px), report `col-1-small` as medium
+      if (screenWidth < 610 && currColumnCount === "col-1" && type === "small") {
+        return "medium-card";
+      }
+      // Will be either "small-card", "medium-card", or "large-card"
+      return `${type}-card`;
+    }
+  }
+  return null;
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/TopSites/TopSitesConstants.mjs
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -2512,6 +2628,7 @@ const MIN_SMALL_FAVICON_SIZE = 16;
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -2610,7 +2727,7 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
           tiles: cards.map(link => ({
             id: link.id,
             pos: link.pos,
-            type: this.props.flightId ? "spoc" : "organic",
+            type: props.flightId ? "spoc" : "organic",
             ...(link.shim ? {
               shim: link.shim
             } : {}),
@@ -2624,14 +2741,16 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             is_list_card: link.is_list_card,
             ...(link.format ? {
               format: link.format
-            } : {}),
+            } : {
+              format: getActiveCardSize(window.innerWidth, link.class_names, link.section, link.flightId)
+            }),
             ...(link.section ? {
               section: link.section,
               section_position: link.section_position,
               is_section_followed: link.is_section_followed
             } : {})
           })),
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp
+          firstVisibleTimestamp: props.firstVisibleTimestamp
         }));
         this.impressionCardGuids = cards.map(link => link.id);
       }
@@ -3200,6 +3319,7 @@ function DSThumbsUpDownButtons({
 
 
 
+
 const READING_WPM = 220;
 
 /**
@@ -3484,7 +3604,9 @@ class _DSCard extends (external_React_default()).PureComponent {
             is_list_card: this.props.isListCard,
             ...(this.props.format ? {
               format: this.props.format
-            } : {}),
+            } : {
+              format: getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, this.props.flightId)
+            }),
             ...(this.props.section ? {
               section: this.props.section,
               section_position: this.props.sectionPosition,
@@ -3510,7 +3632,9 @@ class _DSCard extends (external_React_default()).PureComponent {
             is_list_card: this.props.isListCard,
             ...(this.props.format ? {
               format: this.props.format
-            } : {}),
+            } : {
+              format: getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, this.props.flightId)
+            }),
             ...(this.props.section ? {
               section: this.props.section,
               section_position: this.props.sectionPosition,
@@ -3550,6 +3674,8 @@ class _DSCard extends (external_React_default()).PureComponent {
         thumbs_up: true,
         thumbs_down: false,
         topic: this.props.topic,
+        format: getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, false // (thumbs up/down only exist on organic content)
+        ),
         ...(this.props.section ? {
           section: this.props.section,
           section_position: this.props.sectionPosition,
@@ -3625,6 +3751,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           thumbs_up: false,
           thumbs_down: true,
           topic: this.props.topic,
+          format: getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, false // (thumbs up/down only exist on organic content)
+          ),
           ...(this.props.section ? {
             section: this.props.section,
             section_position: this.props.sectionPosition,
@@ -3840,6 +3968,11 @@ class _DSCard extends (external_React_default()).PureComponent {
           section: this.props.section,
           section_position: this.props.sectionPosition,
           is_section_followed: this.props.sectionFollowed
+        } : {}),
+        ...(!format && this.props.section ?
+        // Note: sectionsCardsClassName is passed to ImpressionStats.jsx in order to calculate format
+        {
+          class_names: sectionsCardsClassName
         } : {})
       }],
       dispatch: this.props.dispatch,
@@ -10309,52 +10442,6 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
 
   return { layoutRender };
 };
-
-;// CONCATENATED MODULE: ./content-src/lib/utils.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-
-/**
- * A custom react hook that sets up an IntersectionObserver to observe a single
- * or list of elements and triggers a callback when the element comes into the viewport
- * Note: The refs used should be an array type
- * @function useIntersectionObserver
- * @param {function} callback - The function to call when an element comes into the viewport
- * @param {Object} options - Options object passed to Intersection Observer:
- * https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/IntersectionObserver#options
- * @param {Boolean} [isSingle = false] Boolean if the elements are an array or single element
- *
- * @returns {React.MutableRefObject} a ref containing an array of elements or single element
- *
- *
- *
- */
-function useIntersectionObserver(callback, threshold = 0.3) {
-  const elementsRef = (0,external_React_namespaceObject.useRef)([]);
-  (0,external_React_namespaceObject.useEffect)(() => {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          callback(entry.target);
-          observer.unobserve(entry.target);
-        }
-      });
-    }, {
-      threshold
-    });
-    elementsRef.current.forEach(el => {
-      if (el) {
-        observer.observe(el);
-      }
-    });
-
-    // Cleanup function to disconnect observer on unmount
-    return () => observer.disconnect();
-  }, [callback, threshold]);
-  return elementsRef;
-}
 
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/SectionContextMenu/SectionContextMenu.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
