@@ -484,6 +484,7 @@ var gBrowserInit = {
     });
 
     window.addEventListener("mousemove", MousePosTracker);
+    window.addEventListener("mouseout", MousePosTracker);
     window.addEventListener("dragover", MousePosTracker);
 
     gNavToolbox.addEventListener("customizationstarting", CustomizationHandler);
