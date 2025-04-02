@@ -81,13 +81,6 @@ TRR::TRR(AHostResolver* aResolver, nsHostRecord* aRec, nsCString& aHost,
                         "TRR must be in parent or socket process");
 }
 
-// used on push
-TRR::TRR(AHostResolver* aResolver, bool aPB)
-    : mozilla::Runnable("TRR"), mHostResolver(aResolver), mPB(aPB) {
-  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess() || XRE_IsSocketProcess(),
-                        "TRR must be in parent or socket process");
-}
-
 // to verify a domain
 TRR::TRR(AHostResolver* aResolver, nsACString& aHost, enum TrrType aType,
          const nsACString& aOriginSuffix, bool aPB, bool aUseFreshConnection)
@@ -436,82 +429,6 @@ nsresult TRR::SetupTRRServiceChannelInternal(nsIHttpChannel* aChannel,
   if (NS_FAILED(httpChannel->SetContentType(aContentType))) {
     LOG(("TRR::SetupTRRServiceChannelInternal: couldn't set content-type!\n"));
   }
-
-  return NS_OK;
-}
-
-nsresult TRR::DohDecodeQuery(const nsCString& query, nsCString& host,
-                             enum TrrType& type) {
-  FallibleTArray<uint8_t> binary;
-  bool found_dns = false;
-  LOG(("TRR::DohDecodeQuery %s!\n", query.get()));
-
-  // extract "dns=" from the query string
-  nsAutoCString data;
-  for (const nsACString& token :
-       nsCCharSeparatedTokenizer(query, '&').ToRange()) {
-    nsDependentCSubstring dns = Substring(token, 0, 4);
-    nsAutoCString check(dns);
-    if (check.Equals("dns=")) {
-      nsDependentCSubstring q = Substring(token, 4, -1);
-      data = q;
-      found_dns = true;
-      break;
-    }
-  }
-  if (!found_dns) {
-    LOG(("TRR::DohDecodeQuery no dns= in pushed URI query string\n"));
-    return NS_ERROR_ILLEGAL_VALUE;
-  }
-
-  nsresult rv =
-      Base64URLDecode(data, Base64URLDecodePaddingPolicy::Ignore, binary);
-  NS_ENSURE_SUCCESS(rv, rv);
-  uint32_t avail = binary.Length();
-  if (avail < 12) {
-    return NS_ERROR_FAILURE;
-  }
-  // check the query bit and the opcode
-  if ((binary[2] & 0xf8) != 0) {
-    return NS_ERROR_FAILURE;
-  }
-  uint32_t qdcount = (binary[4] << 8) + binary[5];
-  if (!qdcount) {
-    return NS_ERROR_FAILURE;
-  }
-
-  uint32_t index = 12;
-  uint32_t length = 0;
-  host.Truncate();
-  do {
-    if (avail < (index + 1)) {
-      return NS_ERROR_UNEXPECTED;
-    }
-
-    length = binary[index];
-    if (length) {
-      if (host.Length()) {
-        host.Append(".");
-      }
-      if (avail < (index + 1 + length)) {
-        return NS_ERROR_UNEXPECTED;
-      }
-      host.Append((const char*)(&binary[0]) + index + 1, length);
-    }
-    index += 1 + length;  // skip length byte + label
-  } while (length);
-
-  LOG(("TRR::DohDecodeQuery host %s\n", host.get()));
-
-  if (avail < (index + 2)) {
-    return NS_ERROR_UNEXPECTED;
-  }
-  uint16_t i16 = 0;
-  i16 += binary[index] << 8;
-  i16 += binary[index + 1];
-  type = (enum TrrType)i16;
-
-  LOG(("TRR::DohDecodeQuery type %d\n", (int)type));
 
   return NS_OK;
 }

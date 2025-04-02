@@ -43,8 +43,6 @@ class TRR : public Runnable, public nsITimerCallback, public nsIStreamListener {
   // when following CNAMEs
   explicit TRR(AHostResolver* aResolver, nsHostRecord* aRec, nsCString& aHost,
                enum TrrType& aType, unsigned int aLoopCount, bool aPB);
-  // used on push
-  explicit TRR(AHostResolver* aResolver, bool aPB);
   // to verify a domain
   explicit TRR(AHostResolver* aResolver, nsACString& aHost, enum TrrType aType,
                const nsACString& aOriginSuffix, bool aPB,
@@ -93,8 +91,6 @@ class TRR : public Runnable, public nsITimerCallback, public nsIStreamListener {
   // other error codes must be used. This distinction is important for the
   // subsequent logic to separate the error reasons.
   nsresult FailData(nsresult error);
-  static nsresult DohDecodeQuery(const nsCString& query, nsCString& host,
-                                 enum TrrType& type);
   nsresult On200Response(nsIChannel* aChannel);
   nsresult FollowCname(nsIChannel* aChannel);
 

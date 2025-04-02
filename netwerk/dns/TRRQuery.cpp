@@ -115,14 +115,8 @@ nsresult TRRQuery::DispatchLookup(TRR* pushedTRR) {
   mTrrAUsed = INIT;
   mTrrAAAAUsed = INIT;
 
-  // Always issue both A and AAAA.
-  // When both are complete we filter out the unneeded results.
-  enum TrrType rectype = (mRecord->af == AF_INET6) ? TRRTYPE_AAAA : TRRTYPE_A;
-
   if (pushedTRR) {
-    MutexAutoLock trrlock(mTrrLock);
-    rectype = pushedTRR->Type();
-    MarkSendingTRR(pushedTRR, rectype, trrlock);
+    MOZ_ASSERT(false, "This should not happen. H2 push is disabled");
     return NS_OK;
   }
 
@@ -169,7 +163,12 @@ nsresult TRRQuery::DispatchByTypeLookup(TRR* pushedTRR) {
   LOG(("TRR Resolve %s type %d\n", typeRec->host.get(), (int)rectype));
   RefPtr<TRR> trr = pushedTRR ? pushedTRR : new TRR(this, mRecord, rectype);
 
-  if (pushedTRR || NS_SUCCEEDED(TRRService::Get()->DispatchTRRRequest(trr))) {
+  if (pushedTRR) {
+    MOZ_ASSERT(false, "This should not happen. H2 push is disabled");
+    return NS_OK;
+  }
+
+  if (NS_SUCCEEDED(TRRService::Get()->DispatchTRRRequest(trr))) {
     MutexAutoLock trrlock(mTrrLock);
     MOZ_ASSERT(!mTrrByType);
     mTrrByType = trr;
