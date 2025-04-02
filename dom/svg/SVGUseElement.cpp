@@ -491,13 +491,17 @@ Document* SVGUseElement::GetSourceDocument() const {
 }
 
 nsIURI* SVGUseElement::GetSourceDocURI() const {
-  auto* doc = GetSourceDocument();
-  return doc ? doc->GetDocumentURI() : nullptr;
+  if (auto* doc = GetSourceDocument()) {
+    return doc->GetDocumentURI();
+  }
+  return nullptr;
 }
 
 const Encoding* SVGUseElement::GetSourceDocCharacterSet() const {
-  auto* doc = GetSourceDocument();
-  return doc ? doc->GetDocumentCharacterSet() : nullptr;
+  if (auto* doc = GetSourceDocument()) {
+    return doc->GetDocumentCharacterSet();
+  }
+  return nullptr;
 }
 
 static nsINode* GetClonedChild(const SVGUseElement& aUseElement) {
