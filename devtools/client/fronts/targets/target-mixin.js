@@ -113,7 +113,7 @@ function TargetMixin(parentClass) {
     }
 
     get targetType() {
-      return this._targetType;
+      return this.targetForm.targetType;
     }
 
     get isTopLevel() {
@@ -125,10 +125,6 @@ function TargetMixin(parentClass) {
       }
 
       return this.targetForm.isTopLevelTarget;
-    }
-
-    setTargetType(type) {
-      this._targetType = type;
     }
 
     setIsTopLevel(isTopLevel) {

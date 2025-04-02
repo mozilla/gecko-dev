@@ -135,11 +135,14 @@ class RootActor extends Actor {
             "dom.worker.console.dispatch_events_to_main_thread"
           )
         : true,
-      // @backward-compat { version 137 } Process Descriptor's `getWatcher()`
+      // @backward-compat { version 143 } Process Descriptor's `getWatcher()`
       // supports a new 'enableWindowGlobalThreadActors' flag to enable
       // the WindowGlobal's thread actors when debugging the whole browser.
-      // Once 137 is released, we may keep this flag to help VS.Code know
-      // which backend supports this feature or not.
+      // This was actually changed in 137, but we support it for VSCode until
+      // ESR 140 is the only ESR available.
+      // This should happen when Firefox 143 gets released.
+      // Contact Holger Benl (hbenl) to make sure the VS Code extension is
+      // updated.
       supportsEnableWindowGlobalThreadActors: true,
     };
   }

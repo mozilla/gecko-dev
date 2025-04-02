@@ -249,10 +249,6 @@ class TargetCommand extends EventEmitter {
       }
     }
 
-    // Map the descriptor typeName to a target type.
-    const targetType = this.getTargetType(targetFront);
-    targetFront.setTargetType(targetType);
-
     this._targets.add(targetFront);
     try {
       await targetFront.attachAndInitThread(this);
@@ -273,7 +269,7 @@ class TargetCommand extends EventEmitter {
     this.store.dispatch(registerTarget(targetFront));
 
     // Then, once the target is attached, notify the target front creation listeners
-    await this._createListeners.emitAsync(targetType, {
+    await this._createListeners.emitAsync(targetFront.targetType, {
       targetFront,
       isTargetSwitching,
     });
@@ -446,8 +442,7 @@ class TargetCommand extends EventEmitter {
     }
 
     this.#selectedTargetFront = targetFront;
-    const targetType = this.getTargetType(targetFront);
-    await this._selectListeners.emitAsync(targetType, {
+    await this._selectListeners.emitAsync(targetFront.targetType, {
       targetFront,
     });
   }
@@ -576,7 +571,6 @@ class TargetCommand extends EventEmitter {
     // Note that this is a public attribute, used outside of this class
     // and helps knowing what is the current top level target we debug.
     this.targetFront = await this.descriptorFront.getTarget();
-    this.targetFront.setTargetType(this.getTargetType(this.targetFront));
     this.targetFront.setIsTopLevel(true);
     this._gotFirstTopLevelTarget = true;
 
@@ -722,46 +716,6 @@ class TargetCommand extends EventEmitter {
     } else {
       throw new Error(`Unsupported target type '${type}'`);
     }
-  }
-
-  getTargetType(target) {
-    const { targetType } = target.targetForm;
-    if (targetType) {
-      return targetType;
-    }
-
-    // @backward-compat { version 137 } This can be removed as target.targetForm.targetType
-    // will always be defined. We can then remove TargetCommand.getTargetType and TargetMixin.setTargetType
-    // and instead have a getter like this `TargetMixin.targetType() this.targetForm.targetType`.
-    const { typeName } = target;
-    if (typeName == "windowGlobalTarget") {
-      return TargetCommand.TYPES.FRAME;
-    }
-
-    if (
-      typeName == "contentProcessTarget" ||
-      typeName == "parentProcessTarget"
-    ) {
-      return TargetCommand.TYPES.PROCESS;
-    }
-
-    if (typeName == "contentScriptTarget") {
-      return TargetCommand.TYPES.CONTENT_SCRIPT;
-    }
-
-    if (typeName == "workerDescriptor" || typeName == "workerTarget") {
-      if (target.isSharedWorker) {
-        return TargetCommand.TYPES.SHARED_WORKER;
-      }
-
-      if (target.isServiceWorker) {
-        return TargetCommand.TYPES.SERVICE_WORKER;
-      }
-
-      return TargetCommand.TYPES.WORKER;
-    }
-
-    throw new Error("Unsupported target typeName: " + typeName);
   }
 
   _matchTargetType(type, target) {
