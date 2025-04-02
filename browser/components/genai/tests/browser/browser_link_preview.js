@@ -204,13 +204,36 @@ add_task(async function test_fetch_page_data() {
   ok(result.article, "article should be populated");
   is(result.article.byline, "by Jane Doe", "byline should be correct");
   is(result.article.title, "Article title", "title should be correct");
-  ok(result.metaInfo, "metaInfo should be populated");
+  ok(result.rawMetaInfo, "rawMetaInfo should be populated");
+  ok(result.meta.imageUrl, "imageUrl should be populated");
+  ok(result.meta, "meta should be populated");
+  ok(result.urlComponents, "urlComponents should be populated");
   is(
-    result.metaInfo.description,
+    result.meta.description,
     "This is the article description.",
     "description should be correct"
   );
-  is(result.metaInfo["html:title"], "Article title", "title should be correct");
+  is(
+    result.rawMetaInfo["html:title"],
+    "Article title",
+    "title from raw metainfo should be correct"
+  );
+  is(result.meta.title, "Article title", "title should be correct");
+  is(
+    result.meta.imageUrl,
+    "https://example.com/article-image.jpg",
+    "imageUrl should be correct"
+  );
+  is(
+    result.urlComponents.domain,
+    "example.com",
+    "url domain should be correct"
+  );
+  is(
+    result.urlComponents.filename,
+    "readableEn.html",
+    "url filename should be correct"
+  );
 });
 
 /**
