@@ -153,7 +153,7 @@ function testDataArgumentOnGeneratedCommand(data) {
 }
 
 function testDataEscapeOnGeneratedCommand(data) {
-  const paramsWin = `--data-raw "{""param1"":""value1"",""param2"":""value2""}"`;
+  const paramsWin = `--data-raw ^"{\\"param1\\":\\"value1\\",\\"param2\\":\\"value2\\"}^"`;
   const paramsPosix = `--data-raw '{"param1":"value1","param2":"value2"}'`;
 
   let curlCommand = Curl.generateCommand(data, "WINNT");
