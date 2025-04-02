@@ -29,6 +29,7 @@ class ModelOptin extends MozLitElement {
     confirm: "MlModelOptinConfirm",
     deny: "MlModelOptinDeny",
     cancelDownload: "MlModelOptinCancelDownload",
+    messageLinkClick: "MlModelOptinMessageLinkClick",
     footerLinkClick: "MlModelOptinFooterLinkClick",
   };
 
@@ -65,6 +66,14 @@ class ModelOptin extends MozLitElement {
     this.dispatch(ModelOptin.events.cancelDownload);
     this.isLoading = false;
     this.progressStatus = undefined;
+  }
+
+  handleMessageLinkClick(e) {
+    // ftl overrides the html, need to manually watch for event in parent.
+    if (e.target.id !== "optin-message-link") {
+      return;
+    }
+    this.dispatch(ModelOptin.events.messageLinkClick);
   }
 
   handleFooterLinkClick(e) {
@@ -107,7 +116,13 @@ class ModelOptin extends MozLitElement {
           </div>
         </div>
 
-        <p class="optin-message" data-l10n-id=${this.messageL10nId}></p>
+        <p
+          class="optin-message"
+          data-l10n-id=${this.messageL10nId}
+          @click=${this.handleMessageLinkClick}
+        >
+          <a id="optin-message-link" data-l10n-name="support" href="#"></a>
+        </p>
         <slot></slot>
 
         ${this.isLoading

@@ -514,6 +514,19 @@
         }
       );
 
+      // On Message link click
+      this.#suggestionsOptin.addEventListener(
+        "MlModelOptinMessageLinkClick",
+        () => {
+          this.#handleMLOptinTelemetry("step0-optin-link-click");
+          openTrustedLinkIn(
+            // this is a placeholder link, it should be replaced with the actual link
+            "https://support.mozilla.org",
+            "tab"
+          );
+        }
+      );
+
       // On Footer link click
       this.#suggestionsOptin.addEventListener(
         "MlModelOptinFooterLinkClick",

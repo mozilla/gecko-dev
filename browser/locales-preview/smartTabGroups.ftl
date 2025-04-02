@@ -30,11 +30,11 @@ tab-group-editor-no-tabs-found-message = Open similar tabs, and AI will suggest 
 # Message is shown to the user whenever there are smart tags suggest
 tab-group-editor-information-message = AI suggests names and tabs based on similar open tabs in this window.
 
-# Title appears when user is shown the optin flow to use smart tab grouping
+# Title appears when user is shown the opt-in flow to use smart tab grouping
 tab-group-suggestions-optin-title = Suggest more of my tabs
 
-# Message appears when user is shown the optin flow to use smart tab grouping
-tab-group-suggestions-optin-message = { -brand-short-name } uses AI to read your open tabs’ titles and descriptions to suggest more tabs and group names. This happens on your device.
+# Message appears when user is shown the opt-in flow to use smart tab grouping
+tab-group-suggestions-optin-message = { -brand-short-name } uses AI to read your open tabs’ titles and descriptions to <a data-l10n-name="support">suggest more tabs and group names</a>. This happens on your device.
 
 tab-group-suggestions-optin-title-download = Finding suggestions…
 
