@@ -136,8 +136,16 @@ public class WebAuthnCredentialManager {
       final WebAuthnUtils.WebAuthnPublicCredential[] excludeList,
       final GeckoBundle authenticatorSelection,
       final byte[] clientDataHash) {
-    // We only use Credential Manager for Passkeys. If residentKey isn't required, use GMS FIDO2.
-    if (!authenticatorSelection.getString("residentKey", "").equals("required")) {
+    final Boolean requireResidentKey =
+        authenticatorSelection.getBoolean("requireResidentKey", false);
+
+    final Boolean residentKeyDiscouraged =
+        authenticatorSelection
+            .getString("residentKey", requireResidentKey ? "required" : "discouraged")
+            .equals("discouraged");
+
+    // We only use Credential Manager for Passkeys. If residentKey is discouraged, use GMS FIDO2.
+    if (residentKeyDiscouraged) {
       return GeckoResult.fromException(new WebAuthnUtils.Exception("NOT_SUPPORTED_ERR"));
     }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
