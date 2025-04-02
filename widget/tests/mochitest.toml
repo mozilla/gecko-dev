@@ -39,7 +39,10 @@ skip-if = ["display == 'wayland'"] # Bug 1879835
 support-files = "file_test_clipboard_getDataSnapshotSync.js"
 
 ["test_clipboard_pngPreservesTransparency.html"]
-skip-if = ["os == 'android'"] # Android cannot copy image contents (bug 1299578)
+skip-if = [
+  "headless",   # Clipboard call to get PNG data fails (bug 1878643)
+  "os == 'android'",   # Android cannot copy image contents (bug 1299578)
+]
 support-files = "file_test_clipboard_pngPreservesTransparency.js"
 
 ["test_contextmenu_by_mouse_on_unix.html"]
