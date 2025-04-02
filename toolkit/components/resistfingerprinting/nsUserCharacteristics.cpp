@@ -814,6 +814,8 @@ const auto* const kCanvasRandomizationPrincipalCheckPref =
     "privacy.resistFingerprinting.randomization.canvas.disable_for_chrome";
 const auto* const kFingerprintingProtectionOverridesPref =
     "privacy.fingerprintingProtection.overrides";
+const auto* const kBaselineFPPOverridesPref =
+    "privacy.baselineFingerprintingProtection.overrides";
 
 namespace {
 
@@ -903,11 +905,18 @@ bool nsUserCharacteristics::ShouldSubmit() {
     return false;
   }
 
-  nsAutoString fppOverrides;
-  nsresult rv = Preferences::GetString(kFingerprintingProtectionOverridesPref,
-                                       fppOverrides);
-  if (NS_FAILED(rv) || !fppOverrides.IsEmpty()) {
+  nsAutoString overrides;
+  nsresult rv =
+      Preferences::GetString(kFingerprintingProtectionOverridesPref, overrides);
+  if (NS_FAILED(rv) || !overrides.IsEmpty()) {
     // If there are any overrides, we don't want to send the ping
+    // as it will mess up data.
+    return false;
+  }
+
+  rv = Preferences::GetString(kBaselineFPPOverridesPref, overrides);
+  if (NS_FAILED(rv) || !overrides.IsEmpty()) {
+    // If there are any baseline overrides, we don't want to send the ping
     // as it will mess up data.
     return false;
   }

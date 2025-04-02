@@ -158,6 +158,8 @@ const auto* const kResistFingerprintingPrefPBMode =
     "privacy.resistFingerprinting.pbmode";
 const auto* const kFingerprintingProtectionOverrides =
     "privacy.fingerprintingProtection.overrides";
+const auto* const kBaselineFPPOverridesPref =
+    "privacy.baselineFingerprintingProtection.overrides";
 
 TEST(ResistFingerprinting, UserCharacteristics_ShouldSubmit)
 {
@@ -206,4 +208,11 @@ TEST(ResistFingerprinting, UserCharacteristics_ShouldSubmit)
   Preferences::SetCString(kFingerprintingProtectionOverrides, "test");
   ASSERT_FALSE(nsUserCharacteristics::ShouldSubmit());
   Preferences::ClearUser(kFingerprintingProtectionOverrides);
+  ASSERT_TRUE(nsUserCharacteristics::ShouldSubmit());
+
+  // Verify non-empty baselineFPP overrides prevent submission
+  Preferences::SetCString(kBaselineFPPOverridesPref, "test");
+  ASSERT_FALSE(nsUserCharacteristics::ShouldSubmit());
+  Preferences::ClearUser(kBaselineFPPOverridesPref);
+  ASSERT_TRUE(nsUserCharacteristics::ShouldSubmit());
 }
