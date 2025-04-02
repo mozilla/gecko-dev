@@ -242,7 +242,8 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "font-variation-settings",
     "FontVariationSettings",
-    engines="gecko",
+    engines="gecko servo",
+    servo_pref="layout.unimplemented",
     gecko_pref="layout.css.font-variations.enabled",
     has_effect_on_gecko_scrollbars=False,
     initial_value="computed::FontVariationSettings::normal()",

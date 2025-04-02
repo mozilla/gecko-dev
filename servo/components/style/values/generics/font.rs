@@ -84,6 +84,7 @@ where
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct VariationValue<Number> {
     /// A four-character tag, packed into a u32 (one byte per character).
     #[animation(constant)]
@@ -102,6 +103,7 @@ impl<T> TaggedFontValue for VariationValue<T> {
 #[derive(
     Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToCss, ToResolvedValue, ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[css(comma)]
 pub struct FontSettings<T>(#[css(if_empty = "normal", iterable)] pub Box<[T]>);
 
@@ -154,6 +156,7 @@ impl<T: Parse> Parse for FontSettings<T> {
     ToResolvedValue,
     ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontTag(pub u32);
 
 impl ToCss for FontTag {
