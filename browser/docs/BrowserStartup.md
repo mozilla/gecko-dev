@@ -1,5 +1,41 @@
 # Browser Startup
 
+## Invoking your code on browser startup
+
+The first rule of running code during startup is: don't.
+
+We take performance very seriously and ideally your component/feature should
+initialize only when needed.
+
+If you have established that you really must run code during startup,
+available entrypoints are:
+
+- registering a `browser-idle-startup` category entry for your JS module (or
+  even a "best effort" user idle task, see `BrowserGlue.sys.mjs`)
+- registering a `browser-window-delayed-startup` category entry for your JS
+  module. **Note that this is invoked for each browser window.**
+- registering a `browser-before-ui-startup` category entry if you really really
+  need to. This will run code before the first browser window appears on the
+  screen and make Firefox seem slow, so please don't do it unless absolutely
+  necessary.
+
+See [the category manager indirection docs](./CategoryManagerIndirection.md) for
+more details on this.
+
+Other useful points in startup are:
+- `BrowserGlue`'s `_onFirstWindowLoaded` (which should be converted to use a
+  category manager call instead), which fires after the first browser window's
+  `browser-window-delayed-startup` call (see above).
+- `BrowserGlue`'s `_scheduleBestEffortUserIdleTasks` as mentioned above.
+  Note that in this case, your code **may not run at all** if the browser is
+  shut down quickly.
+- `BrowserGlue`'s `_onWindowsRestored`, and/or the observer service's
+  `sessionstore-windows-restored` topic, and/or a category manager call that
+  should replace the `BrowserGlue` list of direct calls. This fires after
+  session restore has completed restoring all windows (but before all pages
+  that may have been restored have necessarily loaded). Note that this is
+  guaranteed to fire even if automatic session restore is not enabled.
+
 ## How do first run/first startup experiments work?
 
 Why does synchronously reading Nimbus feature values work for

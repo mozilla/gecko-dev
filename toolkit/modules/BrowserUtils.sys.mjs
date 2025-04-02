@@ -103,6 +103,13 @@ function stringPrefToSet(prefVal) {
   );
 }
 
+/**
+ * @class BrowserUtils
+ *
+ * A motley collection of utilities (also known as a dumping ground).
+ *
+ * Please avoid expanding this if possible.
+ */
 export var BrowserUtils = {
   /**
    * Return or create a principal with the content of one, and the originAttributes
@@ -110,12 +117,12 @@ export var BrowserUtils = {
    * not to change, that is, we should keep the userContextId, privateBrowsingId,
    * etc. the same when changing the principal).
    *
-   * @param principal
+   * @param {nsIPrincipal} principal
    *        The principal whose content/null/system-ness we want.
-   * @param existingPrincipal
+   * @param {nsIPrincipal} existingPrincipal
    *        The principal whose originAttributes we want, usually the current
    *        principal of a docshell.
-   * @return an nsIPrincipal that matches the content/null/system-ness of the first
+   * @returns {nsIPrincipal} an nsIPrincipal that matches the content/null/system-ness of the first
    *         param, and the originAttributes of the second.
    */
   principalWithMatchingOA(principal, existingPrincipal) {
@@ -166,7 +173,7 @@ export var BrowserUtils = {
   /**
    * Returns true if |mimeType| is text-based, or false otherwise.
    *
-   * @param mimeType
+   * @param {string} mimeType
    *        The MIME type to check.
    */
   mimeTypeIsTextBased(mimeType) {
@@ -213,7 +220,7 @@ export var BrowserUtils = {
    *
    * @param {string} topic
    *        The topic to observe.
-   * @param {function(nsISupports, string)} [test]
+   * @param {(subject: nsISupports, data: string) => boolean} [test]
    *        An optional test function which, when called with the
    *        observer's subject and data, should return true if this is the
    *        expected notification, false otherwise.
@@ -221,7 +228,7 @@ export var BrowserUtils = {
    */
   promiseObserved(topic, test = () => true) {
     return new Promise(resolve => {
-      let observer = (subject, topic, data) => {
+      let observer = (subject, _topic, data) => {
         if (test(subject, data)) {
           Services.obs.removeObserver(observer, topic);
           resolve({ subject, data });
@@ -337,11 +344,11 @@ export var BrowserUtils = {
   /**
    * Extracts linkNode and href for a click event.
    *
-   * @param event
+   * @param {UIEvent} event
    *        The click event.
-   * @return [href, linkNode, linkPrincipal].
+   * @returns {Array<any>} [href, linkNode, linkPrincipal].
    *
-   * @note linkNode will be null if the click wasn't on an anchor
+   * Note that linkNode will be null if the click wasn't on an anchor
    *       element. This includes SVG links, because callers expect |node|
    *       to behave like an <a> element, which SVG links (XLink) don't.
    */
@@ -419,9 +426,10 @@ export var BrowserUtils = {
    * - Alt can't be used on the bookmarks toolbar because Alt is used for "treat this as something draggable".
    * - The button is ignored for the middle-click-paste-URL feature, since it's always a middle-click.
    *
-   * @param e {Event|Object} Event or JSON Object
-   * @param ignoreButton {Boolean}
-   * @param ignoreAlt {Boolean}
+   * @param {Event|object} e
+   *   Event or JSON Object
+   * @param {boolean} ignoreButton
+   * @param {boolean} ignoreAlt
    * @returns {"current" | "tabshifted" | "tab" | "save" | "window"}
    */
   whereToOpenLink(e, ignoreButton, ignoreAlt) {
@@ -493,32 +501,23 @@ export var BrowserUtils = {
 
   /**
    * Invoke all the category manager consumers of a given JS consumer.
-   * Similar to the (C++-only) NS_CreateServicesFromCategory in that it'll
+   * Similar to the (C++-only) ``NS_CreateServicesFromCategory`` in that it'll
    * abstract away the actual work of invoking the modules/services.
    * Different in that it's JS-only and will invoke methods in modules
    * instead of using XPCOM services.
    *
-   * The main benefits of using this over direct calls are:
-   * - error handling (one consumer throwing an exception doesn't stop the
-   *   others being called)
-   * - dependency injection (callsite doesn't have to [lazy] import half
-   *   the world to call all the methods)
-   * - performance/bootstrapping using build-time registration, when
-   *   compared to nsIObserver or events: with nsIObserver/handleEvent,
-   *   you'd have to call addObserver or addEventListener somewhere, which
-   *   means either loading your code early (bad for performance) or burdening
-   *   other code that already runs early with adding your handlers (not great
-   *   for code cleanliness).
+   * More context is available in
+   * https://firefox-source-docs.mozilla.org/browser/CategoryManagerIndirection.html
    *
-   * @param {Object} options
+   * @param {object} options
    * @param {string} options.categoryName
-   *        What category's consumers to call
+   *        What category's consumers to call.
    * @param {boolean} [options.idleDispatch=false]
    *        If set to true, call each consumer in an idle task.
    * @param {string} [options.profilerMarker=""]
    *        If specified, will create a profiler marker with the provided
    *        identifier for each consumer.
-   * @param {function} [options.failureHandler]
+   * @param {Function} [options.failureHandler]
    *        If specified, will be called for any exceptions raised, in
    *        order to do custom failure handling.
    * @param {...any} args
@@ -580,7 +579,7 @@ export var BrowserUtils = {
   /**
    * Returns whether the build is a China repack.
    *
-   * @return {boolean} True if the distribution ID is 'MozillaOnline',
+   * @returns {boolean} True if the distribution ID is 'MozillaOnline',
    *                   otherwise false.
    */
   isChinaRepack() {
@@ -616,7 +615,7 @@ export var BrowserUtils = {
    *
    * @param {BrowserUtils.PromoType} promoType - What promo are we checking on?
    *
-   * @return {boolean} - should we display this promo now or not?
+   * @returns {boolean} - should we display this promo now or not?
    */
   shouldShowPromo(promoType) {
     switch (promoType) {

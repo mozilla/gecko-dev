@@ -9,7 +9,7 @@ export var BinarySearch = Object.freeze({
    *
    * See search() for a description of this function's parameters.
    *
-   * @return The index of `target` in `array` or -1 if `target` is not found.
+   * @returns {integer} The index of `target` in `array` or -1 if `target` is not found.
    */
   indexOf(comparator, array, target) {
     let [found, idx] = this.search(comparator, array, target);
@@ -22,7 +22,7 @@ export var BinarySearch = Object.freeze({
    *
    * See search() for a description of this function's parameters.
    *
-   * @return The index in `array` where `target` may be inserted to keep `array`
+   * @returns {integer} The index in `array` where `target` may be inserted to keep `array`
    *         ordered.
    */
   insertionIndexOf(comparator, array, target) {
@@ -32,18 +32,18 @@ export var BinarySearch = Object.freeze({
   /**
    * Searches for the given target in the given array.
    *
-   * @param  comparator
+   * @param  {(a: any, b: any) => number} comparator
    *         A function that takes two arguments and compares them, returning a
    *         negative number if the first should be ordered before the second,
    *         zero if the first and second have the same ordering, or a positive
    *         number if the second should be ordered before the first.  The first
    *         argument is always `target`, and the second argument is a value
    *         from the array.
-   * @param  array
+   * @param  {Array} array
    *         An array whose elements are ordered by `comparator`.
-   * @param  target
+   * @param  {any} target
    *         The value to search for.
-   * @return An array with two elements.  If `target` is found, the first
+   * @returns {Array} An array with two elements.  If `target` is found, the first
    *         element is true, and the second element is its index in the array.
    *         If `target` is not found, the first element is false, and the
    *         second element is the index where it may be inserted to keep the

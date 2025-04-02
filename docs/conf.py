@@ -83,6 +83,7 @@ js_source_path = [
     "../toolkit/components/extensions",
     "../toolkit/components/extensions/parent",
     "../toolkit/components/ml/content/backends/ONNXPipeline.mjs",
+    "../toolkit/modules/BrowserUtils.sys.mjs",
     "../toolkit/mozapps/extensions",
     "../toolkit/components/prompts/src",
     "../toolkit/components/pictureinpicture",

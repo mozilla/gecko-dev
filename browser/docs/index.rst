@@ -12,6 +12,7 @@ This is the nascent documentation of the Firefox front-end code.
    FrontendCodeReviewBestPractices
    CommandLineParameters
    BrowserStartup
+   CategoryManagerIndirection
    components/customizableui/docs/index
    components/enterprisepolicies/docs/index
    extensions/formautofill/docs/index
