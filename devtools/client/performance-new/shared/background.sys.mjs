@@ -91,7 +91,9 @@ const lazy = createLazyLoaders({
   BrowserModule: () =>
     require("resource://devtools/client/performance-new/shared/browser.js"),
   RecordingUtils: () =>
-    require("resource://devtools/shared/performance-new/recording-utils.js"),
+    ChromeUtils.importESModule(
+      "resource://devtools/shared/performance-new/recording-utils.sys.mjs"
+    ),
   CustomizableUI: () =>
     ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs"),
   PerfSymbolication: () =>

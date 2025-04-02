@@ -6,10 +6,13 @@
 const { Actor } = require("resource://devtools/shared/protocol.js");
 const { perfSpec } = require("resource://devtools/shared/specs/perf.js");
 
-loader.lazyRequireGetter(
+ChromeUtils.defineESModuleGetters(
   this,
-  "RecordingUtils",
-  "resource://devtools/shared/performance-new/recording-utils.js"
+  {
+    RecordingUtils:
+      "resource://devtools/shared/performance-new/recording-utils.sys.mjs",
+  },
+  { global: "contextual" }
 );
 
 // Some platforms are built without the Gecko Profiler.

@@ -5,7 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DevToolsModules(
-    "recording-utils.js",
+    "recording-utils.sys.mjs",
 )
 
 with Files("**"):
