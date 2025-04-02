@@ -316,12 +316,6 @@ var allowlist = [
   // toolkit/xre/MacRunFromDmgUtils.mm
   { file: "resource://gre/localization/en-US/toolkit/global/run-from-dmg.ftl" },
 
-  // Referenced by screenshots extension
-  { file: "chrome://browser/content/screenshots/cancel.svg" },
-  { file: "chrome://browser/content/screenshots/copy.svg" },
-  { file: "chrome://browser/content/screenshots/download.svg" },
-  { file: "chrome://browser/content/screenshots/download-white.svg" },
-
   // Referenced programmatically
   { file: "chrome://browser/content/backup/BackupManifest.1.schema.json" },
   { file: "chrome://browser/content/backup/ArchiveJSONBlock.1.schema.json" },
