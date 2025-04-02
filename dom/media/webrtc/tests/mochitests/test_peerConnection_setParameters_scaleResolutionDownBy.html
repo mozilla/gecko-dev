@@ -11,6 +11,12 @@ createHTML({
   title: "Live-updating scaleResolutionDownBy"
 });
 
+async function checkForH264Support() {
+  const pc = new RTCPeerConnection();
+  const offer = await pc.createOffer({offerToReceiveVideo: true});
+  return offer.sdp.match(/a=rtpmap:[1-9][0-9]* H264/);
+}
+
 let sender, localElem, remoteElem;
 let originalWidth, originalHeight;
 let resolutionAlignment = 1;
@@ -36,15 +42,14 @@ async function checkScaleDownBy(scale) {
 
 runNetworkTest(async function (options) {
   await pushPrefs(['media.peerconnection.video.lock_scaling', true]);
+  // [TODO] re-enable HW decoder after bug 1526207 is fixed.
   if (navigator.userAgent.includes("Android")) {
-    await pushPrefs(
-        // [TODO] re-enable HW decoder after bug 1526207 is fixed.
-        ["media.navigator.mediadatadecoder_vpx_enabled", false],
-        // Use libwebrtc VP8 encoder to avoid unexpected resolution alignment on
-        // some devices.
-        ["media.webrtc.encoder_creation_strategy", 0],
-        ["media.webrtc.hw.h264.enabled", false],
-      );
+    if (await checkForH264Support()) {
+      // Android only has h264 in hw, so now we know it will use vp8 in hw too.
+      resolutionAlignment = 16;
+    }
+    await pushPrefs(["media.navigator.mediadatadecoder_vpx_enabled", false],
+                    ["media.webrtc.hw.h264.enabled", false]);
   }
 
   let test = new PeerConnectionTest(options);

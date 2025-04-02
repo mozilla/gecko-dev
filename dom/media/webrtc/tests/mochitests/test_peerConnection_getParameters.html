@@ -57,16 +57,6 @@
     }
   }
 
-  function getNumExpectedH264SendCodecs() {
-    if (!navigator.userAgent.includes("Android")) {
-      // Constrained Baseline and Baseline multiplied with packetization-mode 0 and 1.
-      return 4;
-    }
-    // packetization-mode=0 is not supported with MediaDataEncoder, which is
-    // the only encoder on Android.
-    return 2;
-  }
-
 // SDP with unusual values in fmtp, but in the same formatting that Firefox
 // typically uses. This lets us check that we're putting the right param values
 // in sdpFmtpLine, if not what appears in the SDP verbatim.
@@ -95,21 +85,17 @@ a=setup:passive
 
   let videoSdp;
   if (navigator.userAgent.includes("Android")) {
-    // Alternate form with no packetization-mode=0 h264
+    // Alternate form with no h264
     videoSdp  = `v=0
 o=- 1878890426675213188 2 IN IP4 127.0.0.1
 s=-
 t=0 0
 a=fingerprint:sha-256 EB:74:E9:5F:EB:FB:79:D4:36:3A:06:89:DD:49:D0:C7:A5:EA:2A:B2:38:74:C8:AF:E4:A0:5A:EF:A9:58:B5:1A
-m=video 9 UDP/TLS/RTP/SAVPF 121 125 120 124 126 127 105 106 123 122 119
+m=video 9 UDP/TLS/RTP/SAVPF 121 125 120 124 123 122 119
 c=IN IP4 0.0.0.0
 a=sendonly
-a=fmtp:126 profile-level-id=42e00b;level-asymmetry-allowed=1;packetization-mode=1
-a=fmtp:105 profile-level-id=420015;level-asymmetry-allowed=1;packetization-mode=1
 a=fmtp:121 max-fs=12277;max-fr=50
 a=fmtp:125 apt=121
-a=fmtp:127 apt=126
-a=fmtp:106 apt=105
 a=fmtp:120 max-fs=12266;max-fr=40
 a=fmtp:124 apt=120
 a=fmtp:119 apt=122
@@ -123,10 +109,6 @@ a=rtpmap:121 VP9/90000
 a=rtpmap:125 rtx/90000
 a=rtpmap:120 VP8/90000
 a=rtpmap:124 rtx/90000
-a=rtpmap:126 H264/90000
-a=rtpmap:127 rtx/90000
-a=rtpmap:105 H264/90000
-a=rtpmap:106 rtx/90000
 a=rtpmap:123 ulpfec/90000
 a=rtpmap:122 red/90000
 a=rtpmap:119 rtx/90000
@@ -138,21 +120,17 @@ o=- 1878890426675213188 2 IN IP4 127.0.0.1
 s=-
 t=0 0
 a=fingerprint:sha-256 EB:74:E9:5F:EB:FB:79:D4:36:3A:06:89:DD:49:D0:C7:A5:EA:2A:B2:38:74:C8:AF:E4:A0:5A:EF:A9:58:B5:1A
-m=video 9 UDP/TLS/RTP/SAVPF 121 125 120 124 126 127 97 98 105 106 103 104 123 122 119
+m=video 9 UDP/TLS/RTP/SAVPF 121 125 120 124 126 127 97 98 123 122 119
 c=IN IP4 0.0.0.0
 a=sendonly
 a=fmtp:126 profile-level-id=42e00b;level-asymmetry-allowed=1;packetization-mode=1
 a=fmtp:97 profile-level-id=42e00b;level-asymmetry-allowed=1
-a=fmtp:105 profile-level-id=420015;level-asymmetry-allowed=1;packetization-mode=1
-a=fmtp:103 profile-level-id=420015;level-asymmetry-allowed=1
 a=fmtp:121 max-fs=12277;max-fr=50
 a=fmtp:125 apt=121
 a=fmtp:120 max-fs=12266;max-fr=40
 a=fmtp:124 apt=120
 a=fmtp:127 apt=126
 a=fmtp:98 apt=97
-a=fmtp:106 apt=105
-a=fmtp:104 apt=103
 a=fmtp:100 apt=99
 a=fmtp:119 apt=122
 a=ice-pwd:60840251a559417c253d68478b0020fb
@@ -169,10 +147,6 @@ a=rtpmap:126 H264/90000
 a=rtpmap:127 rtx/90000
 a=rtpmap:97 H264/90000
 a=rtpmap:98 rtx/90000
-a=rtpmap:105 H264/90000
-a=rtpmap:106 rtx/90000
-a=rtpmap:103 H264/90000
-a=rtpmap:104 rtx/90000
 a=rtpmap:123 ulpfec/90000
 a=rtpmap:122 red/90000
 a=rtpmap:119 rtx/90000
@@ -262,119 +236,120 @@ a=setup:passive
           const {codecs} = pc.getSenders()[0].getParameters();
           // Control
           is(codecs.some(c => c.mimeType.toLowerCase() == 'video/vp8'), true);
-          // No VP9
+          // No rtx
           is(codecs.some(c => c.mimeType.toLowerCase() == 'video/vp9'), false);
         }
       );
     },
-
-    async function checkH264Sender() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
-      const pc1 = new RTCPeerConnection();
-      const pc2 = new RTCPeerConnection();
-      const {sender} = pc1.addTransceiver('video');
-      await pc1.setLocalDescription();
-      await pc2.setRemoteDescription(pc1.localDescription);
-      await pc2.setLocalDescription();
-      await pc1.setRemoteDescription(pc2.localDescription);
-      {
-        const {codecs} = pc1.getSenders()[0].getParameters();
-        info("pc1 codecs: " + JSON.stringify(codecs, null, 2));
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc1.remoteDescription.sdp);
-        info("pc1 msection: " + sections[1].replace(/\r\n/g, "\n"));
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-
-      {
-        const {codecs} = pc2.getSenders()[0].getParameters();
-        info("pc2 codecs: " + JSON.stringify(codecs, null, 2));
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc2.remoteDescription.sdp);
-        info("pc2 msection: " + sections[1].replace(/\r\n/g, "\n"));
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-    },
-
-    async function checkH264Receiver() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
-      const pc1 = new RTCPeerConnection();
-      const pc2 = new RTCPeerConnection();
-      pc1.addTransceiver('video');
-      await pc1.setLocalDescription();
-      await pc2.setRemoteDescription(pc1.localDescription);
-      await pc2.setLocalDescription();
-      await pc1.setRemoteDescription(pc2.localDescription);
-      {
-        const {codecs} = pc1.getReceivers()[0].getParameters();
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-
-      {
-        const {codecs} = pc2.getReceivers()[0].getParameters();
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-    },
-
-    async function checkH264NoLevelAsymmetryInOffer() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
-      const pc1 = new RTCPeerConnection();
-      const pc2 = new RTCPeerConnection();
-      pc1.addTransceiver('video');
-      await pc1.setLocalDescription();
-      const mungedOffer = {
-        sdp: pc1.localDescription.sdp.replace(/level-asymmetry-allowed=1/g, 'level-asymmetry-allowed=0'),
-        type: 'offer'
-      };
-      await pc2.setRemoteDescription(mungedOffer);
-      await pc2.setLocalDescription();
-      {
-        const {codecs} = pc2.getSenders()[0].getParameters();
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc2.remoteDescription.sdp);
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-
-      {
-        const {codecs} = pc2.getReceivers()[0].getParameters();
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-    },
-
-    async function checkH264NoLevelAsymmetryInAnswer() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
-      const pc1 = new RTCPeerConnection();
-      const pc2 = new RTCPeerConnection();
-      pc1.addTransceiver('video');
-      await pc1.setLocalDescription();
-      await pc2.setRemoteDescription(pc1.localDescription);
-      await pc2.setLocalDescription();
-      const mungedAnswer = {
-        sdp: pc2.localDescription.sdp.replace(/level-asymmetry-allowed=1/g, 'level-asymmetry-allowed=0'),
-        type: 'answer'
-      };
-      await pc1.setRemoteDescription(mungedAnswer);
-      {
-        const {codecs} = pc1.getSenders()[0].getParameters();
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc1.remoteDescription.sdp);
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-
-      {
-        const {codecs} = pc1.getReceivers()[0].getParameters();
-        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
-        const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
-        checkCodecsAgainstSDP(codecs, sections[1]);
-      }
-    },
   ];
+
+  if (!navigator.userAgent.includes("Android")) {
+    tests = tests.concat([
+      // h264 is currently not supported in wpt because the plugin is never
+      // installed, so we have some h264 tests here.
+      // TODO(https://bugzilla.mozilla.org/show_bug.cgi?id=1534688)
+      async function checkH264Sender() {
+        const pc1 = new RTCPeerConnection();
+        const pc2 = new RTCPeerConnection();
+        const {sender} = pc1.addTransceiver('video');
+        await pc1.setLocalDescription();
+        await pc2.setRemoteDescription(pc1.localDescription);
+        await pc2.setLocalDescription();
+        await pc1.setRemoteDescription(pc2.localDescription);
+        {
+          const {codecs} = pc1.getSenders()[0].getParameters();
+          info("pc1 codecs: " + JSON.stringify(codecs, null, 2));
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc1.remoteDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+
+        {
+          const {codecs} = pc2.getSenders()[0].getParameters();
+          info("pc2 codecs: " + JSON.stringify(codecs, null, 2));
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc2.remoteDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+      },
+
+      async function checkH264Receiver() {
+        const pc1 = new RTCPeerConnection();
+        const pc2 = new RTCPeerConnection();
+        pc1.addTransceiver('video');
+        await pc1.setLocalDescription();
+        await pc2.setRemoteDescription(pc1.localDescription);
+        await pc2.setLocalDescription();
+        await pc1.setRemoteDescription(pc2.localDescription);
+        {
+          const {codecs} = pc1.getReceivers()[0].getParameters();
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+
+        {
+          const {codecs} = pc2.getReceivers()[0].getParameters();
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+      },
+
+      async function checkH264NoLevelAsymmetryInOffer() {
+        const pc1 = new RTCPeerConnection();
+        const pc2 = new RTCPeerConnection();
+        pc1.addTransceiver('video');
+        await pc1.setLocalDescription();
+        const mungedOffer = {
+          sdp: pc1.localDescription.sdp.replace(/level-asymmetry-allowed=1/g, 'level-asymmetry-allowed=0'),
+          type: 'offer'
+        };
+        await pc2.setRemoteDescription(mungedOffer);
+        await pc2.setLocalDescription();
+        {
+          const {codecs} = pc2.getSenders()[0].getParameters();
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc2.remoteDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+
+        {
+          const {codecs} = pc2.getReceivers()[0].getParameters();
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+      },
+
+      async function checkH264NoLevelAsymmetryInAnswer() {
+        const pc1 = new RTCPeerConnection();
+        const pc2 = new RTCPeerConnection();
+        pc1.addTransceiver('video');
+        await pc1.setLocalDescription();
+        await pc2.setRemoteDescription(pc1.localDescription);
+        await pc2.setLocalDescription();
+        const mungedAnswer = {
+          sdp: pc2.localDescription.sdp.replace(/level-asymmetry-allowed=1/g, 'level-asymmetry-allowed=0'),
+          type: 'answer'
+        };
+        await pc1.setRemoteDescription(mungedAnswer);
+        {
+          const {codecs} = pc1.getSenders()[0].getParameters();
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc1.remoteDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+
+        {
+          const {codecs} = pc1.getReceivers()[0].getParameters();
+          is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+          const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
+          checkCodecsAgainstSDP(codecs, sections[1]);
+        }
+      },
+    ]);
+  }
 
   runNetworkTest(async () => {
     await SpecialPowers.pushPrefEnv({ set: [["media.navigator.video.disable_h264_baseline", false]] });
