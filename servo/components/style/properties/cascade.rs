@@ -1055,6 +1055,7 @@ impl<'b> Cascade<'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING);
         }
 
+        #[cfg(feature = "gecko")]
         if self
             .author_specified
             .contains(LonghandId::FontSynthesisWeight)
@@ -1062,6 +1063,7 @@ impl<'b> Cascade<'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_WEIGHT);
         }
 
+        #[cfg(feature = "gecko")]
         if self
             .author_specified
             .contains(LonghandId::FontSynthesisStyle)
@@ -1197,7 +1199,6 @@ impl<'b> Cascade<'b> {
     }
 
     /// Some keyword sizes depend on the font family and language.
-    #[cfg(feature = "gecko")]
     fn recompute_keyword_font_size_if_needed(&self, context: &mut computed::Context) {
         use crate::values::computed::ToComputedValue;
 
@@ -1216,6 +1217,7 @@ impl<'b> Cascade<'b> {
                 },
             };
 
+            #[cfg(feature = "gecko")]
             if font.mScriptUnconstrainedSize == new_size.computed_size {
                 return;
             }
