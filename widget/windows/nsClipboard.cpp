@@ -125,9 +125,10 @@ UINT nsClipboard::GetFormat(const char* aMimeStr, bool aMapHTMLMime) {
   } else if (strcmp(aMimeStr, kRTFMime) == 0) {
     format = ::RegisterClipboardFormat(L"Rich Text Format");
   } else if (strcmp(aMimeStr, kJPEGImageMime) == 0 ||
-             strcmp(aMimeStr, kJPGImageMime) == 0 ||
-             strcmp(aMimeStr, kPNGImageMime) == 0) {
+             strcmp(aMimeStr, kJPGImageMime) == 0) {
     format = CF_DIBV5;
+  } else if (strcmp(aMimeStr, kPNGImageMime) == 0) {
+    format = ::RegisterClipboardFormat(TEXT("PNG"));
   } else if (strcmp(aMimeStr, kFileMime) == 0 ||
              strcmp(aMimeStr, kFilePromiseMime) == 0) {
     format = CF_HDROP;
@@ -742,6 +743,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
   static CLIPFORMAT fileFlavor = ::RegisterClipboardFormat(CFSTR_FILECONTENTS);
   static CLIPFORMAT preferredDropEffect =
       ::RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
+  static CLIPFORMAT pngFlavor = ::RegisterClipboardFormat(TEXT("PNG"));
 
   // Historical note: when this code was first written (bug #9367, 1999-07-09),
   // it was believed we would need to handle other values of stm.tymed. As of
@@ -876,6 +878,34 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
     return NS_OK;
   }
 
+  if (fe.cfFormat == pngFlavor) {
+    MOZ_ASSERT(!strcmp(aMIMEImageFormat, kPNGImageMime));
+    uint32_t allocLen = 0;
+    const char* clipboardData = nullptr;
+    auto const _freeClipboardData =
+        mozilla::MakeScopeExit([&]() { free((void*)clipboardData); });
+
+    MOZ_TRY(GetGlobalData(stm.hGlobal, (void**)&clipboardData, &allocLen));
+    nsCOMPtr<imgIContainer> container;
+    nsCOMPtr<imgITools> imgTools =
+        do_CreateInstance("@mozilla.org/image/tools;1");
+    MOZ_TRY(imgTools->DecodeImageFromBuffer(clipboardData, allocLen,
+                                            nsLiteralCString(kPNGImageMime),
+                                            getter_AddRefs(container)));
+
+    nsCOMPtr<nsIInputStream> inputStream;
+    MOZ_TRY(imgTools->EncodeImage(container, nsLiteralCString(kPNGImageMime),
+                                  u""_ns, getter_AddRefs(inputStream)));
+
+    if (!inputStream) {
+      return NS_ERROR_FAILURE;
+    }
+
+    *aData = inputStream.forget().take();
+    *aLen = sizeof(nsIInputStream*);
+    return NS_OK;
+  }
+
   if (fe.cfFormat == fileFlavor) {
     NS_WARNING(
         "Mozilla doesn't yet understand how to read this type of "
@@ -981,6 +1011,10 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject* aDataObject,
           dataFound =
               FindURLFromLocalFile(aDataObject, anIndex, &data, &dataLen);
         }
+      } else if (flavorStr.EqualsLiteral(kPNGImageMime)) {
+        // Fall back to DIBV5 format
+        dataFound = NS_SUCCEEDED(GetNativeDataOffClipboard(
+            aDataObject, anIndex, CF_DIBV5, flavorStr.get(), &data, &dataLen));
       }
     }  // if we try one last ditch effort to find our data
 
