@@ -149,8 +149,8 @@ class TabsListBase {
   }
 
   _cleanupDOM() {
-    this.doc
-      .querySelectorAll(".all-tabs-group-button")
+    this.containerNode
+      .querySelectorAll(":scope .all-tabs-group-item")
       .forEach(node => node.remove());
 
     for (let item of this.rows) {

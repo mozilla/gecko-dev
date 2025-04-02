@@ -244,8 +244,8 @@ add_task(async function test_tabGroupsView() {
   group1 = gBrowser.getTabGroupById(savedGroupId);
   Assert.ok(group1, "Group 1 has been restored");
 
-  await gBrowser.removeTabGroup(group1);
-  await gBrowser.removeTabGroup(group2);
+  await removeTabGroup(group1);
+  await removeTabGroup(group2);
   forgetSavedTabGroups();
 });
 
@@ -454,6 +454,7 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
   );
   menu.querySelector("#open-tab-group-context-menu_moveToThisWindow").click();
   await waitForGroup;
+  await closeTabsMenu();
 
   Assert.equal(
     otherWindow.gBrowser.tabGroups.length,
@@ -476,6 +477,7 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
     groupId,
     "tab group in window should be the one that was moved"
   );
+  allTabsMenu = await openTabsMenu();
   Assert.ok(
     allTabsMenu.querySelector(
       `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
