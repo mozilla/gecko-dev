@@ -70,7 +70,7 @@ add_task(async function GetState() {
 
   checkMsg(msg, {
     type: "State",
-    data: await currentStateObj(false),
+    data: await currentStateObj(),
   });
 
   ok(arrayBufferIconTested, "ArrayBuffer path for the iconData was tested");
@@ -161,7 +161,7 @@ add_task(async function test_hideEngine() {
   let msg = await statePromise.donePromise;
   checkMsg(msg, {
     type: "CurrentState",
-    data: await currentStateObj(undefined, "Foo \u2661"),
+    data: await currentStateObj("Foo \u2661"),
   });
   statePromise = await waitForTestMsg(browser, "CurrentState");
   engine.hideOneOffButton = false;
@@ -461,7 +461,7 @@ async function addTab() {
   return { browser: tab.linkedBrowser };
 }
 
-var currentStateObj = async function (isPrivateWindowValue, hiddenEngine = "") {
+var currentStateObj = async function (hiddenEngine = "") {
   let state = {
     engines: [],
     currentEngine: await constructEngineObj(await Services.search.getDefault()),
@@ -477,10 +477,6 @@ var currentStateObj = async function (isPrivateWindowValue, hiddenEngine = "") {
       hidden: engine.name == hiddenEngine,
       isAppProvided: engine.isAppProvided,
     });
-  }
-  if (typeof isPrivateWindowValue == "boolean") {
-    state.isInPrivateBrowsingMode = isPrivateWindowValue;
-    state.isAboutPrivateBrowsing = isPrivateWindowValue;
   }
   return state;
 };
