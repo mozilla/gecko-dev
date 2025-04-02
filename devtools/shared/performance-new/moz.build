@@ -6,6 +6,7 @@
 
 DevToolsModules(
     "errors.sys.mjs",
+    "prefs-presets.sys.mjs",
     "recording-utils.sys.mjs",
 )
 

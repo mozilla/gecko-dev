@@ -7,17 +7,9 @@
  * Tests the initial state of the background script for the popup.
  */
 
-function setupBackgroundJsm() {
-  return ChromeUtils.importESModule(
-    "resource://devtools/client/performance-new/shared/background.sys.mjs"
-  );
-}
-
 add_task(function test() {
   info("Test that we get the default preference values from the browser.");
-  const { getRecordingSettings } = setupBackgroundJsm();
-
-  const preferences = getRecordingSettings(
+  const preferences = PrefsPresets.getRecordingSettings(
     "aboutprofiling",
     Services.profiler.GetFeatures()
   );
@@ -71,7 +63,7 @@ add_task(function test() {
       "Profiler interface to crash with invalid values."
   );
   const { getRecordingSettings, setRecordingSettings, changePreset } =
-    setupBackgroundJsm();
+    PrefsPresets;
 
   const supportedFeatures = Services.profiler.GetFeatures();
 

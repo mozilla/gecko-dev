@@ -7,8 +7,12 @@ const BackgroundJSM = ChromeUtils.importESModule(
   "resource://devtools/client/performance-new/shared/background.sys.mjs"
 );
 
+const PrefsPresets = ChromeUtils.importESModule(
+  "resource://devtools/shared/performance-new/prefs-presets.sys.mjs"
+);
+
 registerCleanupFunction(() => {
-  BackgroundJSM.revertRecordingSettings();
+  PrefsPresets.revertRecordingSettings();
 });
 
 /**

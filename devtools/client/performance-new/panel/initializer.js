@@ -72,13 +72,13 @@ const {
 const { createLocalSymbolicationService } = ChromeUtils.importESModule(
   "resource://devtools/client/performance-new/shared/symbolication.sys.mjs"
 );
-const {
-  presets,
-  getProfilerViewModeForCurrentPreset,
-  registerProfileCaptureForBrowser,
-} = ChromeUtils.importESModule(
+const { registerProfileCaptureForBrowser } = ChromeUtils.importESModule(
   "resource://devtools/client/performance-new/shared/background.sys.mjs"
 );
+const { presets, getProfilerViewModeForCurrentPreset } =
+  ChromeUtils.importESModule(
+    "resource://devtools/shared/performance-new/prefs-presets.sys.mjs"
+  );
 
 /**
  * This file initializes the DevTools Panel UI. It is in charge of initializing

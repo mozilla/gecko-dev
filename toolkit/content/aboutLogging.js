@@ -26,6 +26,12 @@ ChromeUtils.defineLazyGetter(this, "ProfilerPopupBackground", function () {
   );
 });
 
+ChromeUtils.defineLazyGetter(this, "ProfilerPrefsPresets", function () {
+  return ChromeUtils.importESModule(
+    "resource://devtools/shared/performance-new/prefs-presets.sys.mjs"
+  );
+});
+
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
 
@@ -337,7 +343,7 @@ function parseURL() {
           threadsOverriden = v;
           break;
         case "profiler-preset":
-          if (!Object.keys(ProfilerPopupBackground.presets).includes(v)) {
+          if (!Object.keys(ProfilerPrefsPresets.presets).includes(v)) {
             throw new Error(["about-logging-unknown-profiler-preset", k, v]);
           }
           profilerPresetOverriden = v;
@@ -713,21 +719,21 @@ function startLogging() {
       const profilerPreset =
         gLoggingSettings.profilerPreset ??
         gLoggingPresets[gLoggingSettings.loggingPreset].profilerPreset;
-      ProfilerPopupBackground.changePreset(
+      ProfilerPrefsPresets.changePreset(
         "aboutlogging",
         profilerPreset,
         supportedFeatures
       );
     } else {
       // a baseline set of threads, and possibly others, overriden by the URL
-      ProfilerPopupBackground.changePreset(
+      ProfilerPrefsPresets.changePreset(
         "aboutlogging",
         "firefox-platform",
         supportedFeatures
       );
     }
     let { entries, interval, features, threads, duration } =
-      ProfilerPopupBackground.getRecordingSettings(
+      ProfilerPrefsPresets.getRecordingSettings(
         pageContext,
         Services.profiler.GetFeatures()
       );

@@ -13,7 +13,7 @@ add_task(async function test() {
 
   // This test assumes that the Web Developer preset is set by default, which is
   // not the case on Nightly and custom builds.
-  BackgroundJSM.changePreset(
+  PrefsPresets.changePreset(
     "aboutprofiling",
     "web-developer",
     Services.profiler.GetFeatures()

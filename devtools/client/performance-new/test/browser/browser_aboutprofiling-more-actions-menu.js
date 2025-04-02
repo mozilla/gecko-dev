@@ -12,7 +12,7 @@ async function waitForClipboard() {
 // Graphics preset.
 const supportedFeatures = Services.profiler.GetFeatures();
 const { presets } = ChromeUtils.importESModule(
-  "resource://devtools/client/performance-new/shared/background.sys.mjs"
+  "resource://devtools/shared/performance-new/prefs-presets.sys.mjs"
 );
 // Depending on the environment, not all features are present. So that the test
 // works for all environments, we need to compute this value instead of

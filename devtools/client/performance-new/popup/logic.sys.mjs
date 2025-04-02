@@ -27,6 +27,10 @@ const lazy = createLazyLoaders({
     ChromeUtils.importESModule(
       "resource://devtools/client/performance-new/shared/background.sys.mjs"
     ),
+  PrefsPresets: () =>
+    ChromeUtils.importESModule(
+      "resource://devtools/shared/performance-new/prefs-presets.sys.mjs"
+    ),
 });
 
 /**
@@ -114,7 +118,7 @@ function createViewControllers(state, elements) {
     },
 
     updatePresets() {
-      const { presets, getRecordingSettings } = lazy.Background();
+      const { presets, getRecordingSettings } = lazy.PrefsPresets();
       const { presetName } = getRecordingSettings(
         "aboutprofiling",
         Services.profiler.GetFeatures()
@@ -158,7 +162,7 @@ function createViewControllers(state, elements) {
         return;
       }
 
-      const { presets } = lazy.Background();
+      const { presets } = lazy.PrefsPresets();
       const currentPreset = Services.prefs.getCharPref(
         "devtools.performance.recording.preset"
       );
@@ -233,8 +237,7 @@ function initializeView(state, elements, view) {
  * @param {ViewController} view
  */
 function addPopupEventHandlers(state, elements, view) {
-  const { changePreset, startProfiler, stopProfiler, captureProfile } =
-    lazy.Background();
+  const { startProfiler, stopProfiler, captureProfile } = lazy.Background();
 
   /**
    * Adds a handler that automatically is removed once the panel is hidden.
@@ -278,11 +281,13 @@ function addPopupEventHandlers(state, elements, view) {
   });
 
   addHandler(elements.presetsMenuList, "command", () => {
-    changePreset(
-      "aboutprofiling",
-      elements.presetsMenuList.value,
-      Services.profiler.GetFeatures()
-    );
+    lazy
+      .PrefsPresets()
+      .changePreset(
+        "aboutprofiling",
+        elements.presetsMenuList.value,
+        Services.profiler.GetFeatures()
+      );
     view.updatePresets();
   });
 
