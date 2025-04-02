@@ -32,8 +32,6 @@
   <string name="tab_tray_close_multiselect_content_description">multiselect mode ကိုပိတ်ပါ</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">စုဆောင်းမှု သို့ တက်ဗ်များ သိမ်းရန်</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ရွေးချယ်ပြီး</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s ကို Mozilla မှ ထုတ်လုပ်သည်။</string>
   <!--
@@ -335,10 +333,6 @@
   <string name="exceptions_empty_message_description">ရွေးချယ်ထားသောဆိုက်များအတွက် ခြေရာခံကာကွယ်ခြင်းကို ခြွင်းချက်များက ပိတ်ဆို့လိမ့်မည်။</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ပိုမိုလေ့လာရန်</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">သုံးဆွဲပုံ၊  စက်ပစ္စည်းအသေးစိတ် အချက်အလက် နှင့် ပြင်ဆင်ထားပုံများအား Mozilla နှင့် မျှဝေပြီး %1$s ကို ကောင်းအောင်လုပ်ရာတွင် ကူညီပါ</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">စျေးကွက်ရှာဖွေရေးအချက်အလက်</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">လေ့လာရေး</string>
   <!-- Summary for studies preferences -->
@@ -463,14 +457,6 @@
   <string name="studies_active">လုပ်ဆောင်နေသည်</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ပိုမို လေ့လာရန်</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">သီးသန့် တဗ် များ</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ချိန်သားကိုက်ပြီးသော တပ်ဗ်များ</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">တက်ဗ် ထည့်ပါ</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

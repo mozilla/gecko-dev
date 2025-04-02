@@ -32,8 +32,6 @@
   <string name="tab_tray_close_multiselect_content_description">பன்முறை தேர் பயன்முறையிலிருந்து வெளியேறுக</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">தேர்ந்த கீற்றுகளைத் திரட்டில் சேமிக்கவும்</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">தேர்ந்தது</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s மொசில்லாவால் தயாரிக்கப்படுகிறது.</string>
   <!--
@@ -282,10 +280,6 @@
   <string name="exceptions_empty_message_description">தேர்ந்த தளங்களுக்கான தடமறி பாதுகாப்பை முடக்க விதிவிலக்குகள் உங்களை அனுமதிக்கின்றன.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">மேலும் அறிய</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s உலாவியைச் சிறந்ததாக்க உங்களுடைய உலாவிப் பற்றிய செயல்திறன், பயனளவு, வன்பொருள் மற்றும் தனிப்பயனாக்க தரவுகளை மொசில்லாவுடன் பகிர்கிறது</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">சந்தைப்படுத்தல் தரவு</string>
   <!-- Preference for reconnecting to FxA sync -->
   <string name="preferences_sync_sign_in_to_reconnect">மறுஇணைக்க புகுபதியுங்கள்</string>
   <!-- Preference for removing FxA account -->
@@ -372,12 +366,6 @@
   <string name="close_tabs_after_one_week">ஒரு கிழமைக்கு பிறகு</string>
   <!-- Option for auto closing tabs that will auto close tabs after one month -->
   <string name="close_tabs_after_one_month">ஒரு மாதத்திற்குப் பிறகு</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">கமுக்கக் கீற்றுகள்</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">கீற்றைச் சேர்</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

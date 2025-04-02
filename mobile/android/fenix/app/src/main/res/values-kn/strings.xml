@@ -246,10 +246,6 @@
   <string name="exceptions_empty_message_description">ಆಯ್ದ ಸೈಟ್‌ಗಳಿಗೆ ಟ್ರ್ಯಾಕಿಂಗ್ ರಕ್ಷಣೆಯನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲು ವಿನಾಯಿತಿಗಳು ನಿಮಗೆ ಅವಕಾಶ ಮಾಡಿಕೊಡುತ್ತವೆ.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ಅನ್ನು ಉತ್ತಮಗೊಳಿಸಲು ನಮಗೆ ಸಹಾಯ ಮಾಡಲು ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನ ಕಾರ್ಯಕ್ಷಮತೆ, ಬಳಕೆ, ಯಂತ್ರಾಂಶ ಮತ್ತು ಗ್ರಾಹಕೀಕರಣ ಡೇಟಾವನ್ನು ಮೊಜಿಲ್ಲಾದೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳುತ್ತದೆ</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ಮಾರುಕಟ್ಟೆ ದತ್ತಾಂಶ</string>
   <!-- Preference for reconnecting to FxA sync -->
   <string name="preferences_sync_sign_in_to_reconnect">ಮರುಸಂಪರ್ಕಿಸಲು ಸೈನ್ ಇನ್ ಮಾಡಿ</string>
   <!-- Preference for removing FxA account -->
@@ -302,12 +298,6 @@
   <string name="settings_title">ಸಿದ್ಧತೆಗಳು</string>
   <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
   <string name="content_description_close_button">ಮುಚ್ಚು</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ಖಾಸಗಿ ಟ್ಯಾಬ್‌</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">ಟ್ಯಾಬ್ ಸೇರಿಸು</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
