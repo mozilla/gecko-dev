@@ -311,13 +311,6 @@ body {
   color: var(--lwt-sidebar-highlight-text-color);
 }
 
-/* Apply crisp rendering for favicons at exactly 2dppx resolution */
-@media (resolution: 2dppx) {
-  .tabs-container .item-tabs-list .item-icon-container {
-    image-rendering: -moz-crisp-edges;
-  }
-}
-
 /* Platform specific styling */
 @media (-moz-platform: macos) {
   :root {

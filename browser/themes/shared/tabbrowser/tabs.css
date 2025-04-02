@@ -459,11 +459,6 @@
   -moz-context-properties: fill, stroke;
   fill: currentColor;
 
-  /* Apply crisp rendering for favicons at exactly 2dppx resolution */
-  @media (resolution: 2dppx) {
-    image-rendering: -moz-crisp-edges;
-  }
-
   /* stylelint-disable-next-line media-query-no-invalid */
   @media -moz-pref("browser.tabs.fadeOutUnloadedTabs") {
     &[pending] {

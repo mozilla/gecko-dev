@@ -31,15 +31,6 @@ tree[is="places-tree"] > treechildren::-moz-tree-cell {
   border: 0;
 }
 
-/* Apply crisp rendering for favicons at exactly 2dppx resolution */
-@media (resolution: 2dppx) {
-  #bookmarksChildren,
-  .sidebar-placesTreechildren,
-  .placesTree > treechildren {
-    image-rendering: -moz-crisp-edges;
-  }
-}
-
 #searchFilter {
   max-width: 23em;
 }
