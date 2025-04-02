@@ -10,16 +10,15 @@
   - Fix messages from SurfacePoolWayland() mPendingEntries num xxx
     mPoolSizeLimit 25 Are we leaking pending entries?
   - Implemented screenshotter
-  - Presentation feedback / synced rendering
+  - Presentation feedback
   - Fullscreen - handle differently
   - Attach dmabuf feedback to dmabuf surfaces to get formats for direct scanout
+  - Don't use for tooltips/small menus etc.
 
   Testing:
     Mochitest test speeds
     Fractional Scale
-    Titlebar on/off
     SW/HW rendering + VSync
-    D&D (tabs)
 */
 
 #include "mozilla/layers/NativeLayerWayland.h"
@@ -408,13 +407,6 @@ bool NativeLayerRootWayland::CommitToScreenLocked(
     const MutexAutoLock& aProofOfLock) {
   mFrameInProcess = false;
 
-  // We don't have anything to paint
-  if (IsEmptyLocked(aProofOfLock)) {
-    return true;
-  }
-
-  LOG("NativeLayerRootWayland::CommitToScreen()");
-
   // Lock root surface to make sure it stays mapped while we're processing
   // child surfaces.
   WaylandSurfaceLock surfaceLock(mSurface, /* force commit */ true);
@@ -423,6 +415,8 @@ bool NativeLayerRootWayland::CommitToScreenLocked(
     LOG("NativeLayerRootWayland::CommitToScreen() root surface is not mapped");
     return false;
   }
+
+  LOG("NativeLayerRootWayland::CommitToScreen()");
 
   // Attach empty tmp buffer to root layer (nsWindow).
   // We need to have any content to attach child layers to it.
