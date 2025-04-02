@@ -6,7 +6,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "an": {
         "pin": false,
@@ -15,7 +15,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ar": {
         "pin": false,
@@ -24,7 +24,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ast": {
         "pin": false,
@@ -33,7 +33,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "az": {
         "pin": false,
@@ -42,7 +42,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "be": {
         "pin": false,
@@ -51,7 +51,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "bg": {
         "pin": false,
@@ -60,7 +60,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "bn": {
         "pin": false,
@@ -69,7 +69,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "br": {
         "pin": false,
@@ -78,7 +78,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "bs": {
         "pin": false,
@@ -87,7 +87,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ca": {
         "pin": false,
@@ -96,7 +96,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "cak": {
         "pin": false,
@@ -105,7 +105,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "cs": {
         "pin": false,
@@ -114,7 +114,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "cy": {
         "pin": false,
@@ -123,7 +123,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "da": {
         "pin": false,
@@ -132,7 +132,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "de": {
         "pin": false,
@@ -141,7 +141,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "dsb": {
         "pin": false,
@@ -150,7 +150,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "el": {
         "pin": false,
@@ -159,7 +159,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "en-CA": {
         "pin": false,
@@ -168,7 +168,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "en-GB": {
         "pin": false,
@@ -177,7 +177,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "eo": {
         "pin": false,
@@ -186,7 +186,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "es-AR": {
         "pin": false,
@@ -195,7 +195,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "es-CL": {
         "pin": false,
@@ -204,7 +204,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "es-ES": {
         "pin": false,
@@ -213,7 +213,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "es-MX": {
         "pin": false,
@@ -222,7 +222,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "et": {
         "pin": false,
@@ -231,7 +231,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "eu": {
         "pin": false,
@@ -240,7 +240,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "fa": {
         "pin": false,
@@ -249,7 +249,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ff": {
         "pin": false,
@@ -258,7 +258,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "fi": {
         "pin": false,
@@ -267,7 +267,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "fr": {
         "pin": false,
@@ -276,7 +276,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "fy-NL": {
         "pin": false,
@@ -285,7 +285,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ga-IE": {
         "pin": false,
@@ -294,7 +294,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "gd": {
         "pin": false,
@@ -303,7 +303,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "gl": {
         "pin": false,
@@ -312,7 +312,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "gn": {
         "pin": false,
@@ -321,7 +321,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "gu-IN": {
         "pin": false,
@@ -330,7 +330,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "he": {
         "pin": false,
@@ -339,7 +339,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "hi-IN": {
         "pin": false,
@@ -348,7 +348,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "hr": {
         "pin": false,
@@ -357,7 +357,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "hsb": {
         "pin": false,
@@ -366,7 +366,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "hu": {
         "pin": false,
@@ -375,7 +375,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "hy-AM": {
         "pin": false,
@@ -384,7 +384,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ia": {
         "pin": false,
@@ -393,7 +393,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "id": {
         "pin": false,
@@ -402,7 +402,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "is": {
         "pin": false,
@@ -411,7 +411,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "it": {
         "pin": false,
@@ -420,7 +420,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ja": {
         "pin": false,
@@ -429,7 +429,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ka": {
         "pin": false,
@@ -438,7 +438,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "kab": {
         "pin": false,
@@ -447,7 +447,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "kk": {
         "pin": false,
@@ -456,7 +456,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "km": {
         "pin": false,
@@ -465,7 +465,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "kn": {
         "pin": false,
@@ -474,7 +474,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ko": {
         "pin": false,
@@ -483,7 +483,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "lij": {
         "pin": false,
@@ -492,7 +492,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "lo": {
         "pin": false,
@@ -501,7 +501,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "lt": {
         "pin": false,
@@ -510,7 +510,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ltg": {
         "pin": false,
@@ -519,7 +519,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "lv": {
         "pin": false,
@@ -528,7 +528,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "meh": {
         "pin": false,
@@ -537,7 +537,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "mix": {
         "pin": false,
@@ -546,7 +546,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ml": {
         "pin": false,
@@ -555,7 +555,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "mr": {
         "pin": false,
@@ -564,7 +564,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ms": {
         "pin": false,
@@ -573,7 +573,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "my": {
         "pin": false,
@@ -582,7 +582,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "nb-NO": {
         "pin": false,
@@ -591,7 +591,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ne-NP": {
         "pin": false,
@@ -600,7 +600,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "nl": {
         "pin": false,
@@ -609,7 +609,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "nn-NO": {
         "pin": false,
@@ -618,7 +618,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "oc": {
         "pin": false,
@@ -627,7 +627,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "pa-IN": {
         "pin": false,
@@ -636,7 +636,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "pl": {
         "pin": false,
@@ -645,7 +645,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "pt-BR": {
         "pin": false,
@@ -654,7 +654,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "pt-PT": {
         "pin": false,
@@ -663,7 +663,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "rm": {
         "pin": false,
@@ -672,7 +672,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ro": {
         "pin": false,
@@ -681,7 +681,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ru": {
         "pin": false,
@@ -690,7 +690,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "sk": {
         "pin": false,
@@ -699,7 +699,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "sl": {
         "pin": false,
@@ -708,7 +708,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "son": {
         "pin": false,
@@ -717,7 +717,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "sq": {
         "pin": false,
@@ -726,7 +726,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "sr": {
         "pin": false,
@@ -735,7 +735,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "sv-SE": {
         "pin": false,
@@ -744,7 +744,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ta": {
         "pin": false,
@@ -753,7 +753,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "te": {
         "pin": false,
@@ -762,7 +762,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "th": {
         "pin": false,
@@ -771,7 +771,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "tl": {
         "pin": false,
@@ -780,7 +780,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "tr": {
         "pin": false,
@@ -789,7 +789,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "trs": {
         "pin": false,
@@ -798,7 +798,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "uk": {
         "pin": false,
@@ -807,7 +807,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "ur": {
         "pin": false,
@@ -816,7 +816,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "uz": {
         "pin": false,
@@ -825,7 +825,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "vi": {
         "pin": false,
@@ -834,7 +834,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "wo": {
         "pin": false,
@@ -843,7 +843,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "xh": {
         "pin": false,
@@ -852,7 +852,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "zam": {
         "pin": false,
@@ -861,7 +861,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "zh-CN": {
         "pin": false,
@@ -870,7 +870,7 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     },
     "zh-TW": {
         "pin": false,
@@ -879,6 +879,6 @@
             "android-arm",
             "android-multilocale"
         ],
-        "revision": "f28e26568c39ab07ca8017baa9ddbf468c3240e4"
+        "revision": "f47b44afa7ffbd0e2aafe144418f9b50b8fe7646"
     }
 }
