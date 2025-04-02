@@ -489,6 +489,9 @@ class JS_PUBLIC_API GCCellPtr {
     return asCell();
   }
 
+  bool operator==(const GCCellPtr other) const { return ptr == other.ptr; }
+  bool operator!=(const GCCellPtr other) const { return ptr != other.ptr; }
+
   // Simplify checks to the kind.
   template <typename T, typename = std::enable_if_t<JS::IsBaseTraceType_v<T>>>
   bool is() const {
@@ -578,17 +581,6 @@ void ApplyGCThingTyped(GCCellPtr thing, F&& f) {
 }
 
 } /* namespace JS */
-
-// These are defined in the toplevel namespace instead of within JS so that
-// they won't shadow other operator== overloads (see bug 1456512.)
-
-inline bool operator==(JS::GCCellPtr ptr1, JS::GCCellPtr ptr2) {
-  return ptr1.asCell() == ptr2.asCell();
-}
-
-inline bool operator!=(JS::GCCellPtr ptr1, JS::GCCellPtr ptr2) {
-  return !(ptr1 == ptr2);
-}
 
 namespace js {
 namespace gc {
