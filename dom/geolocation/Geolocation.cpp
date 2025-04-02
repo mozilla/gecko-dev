@@ -240,7 +240,6 @@ NS_IMPL_CYCLE_COLLECTION_WEAK_PTR_INHERITED(nsGeolocationRequest,
 
 void nsGeolocationRequest::Notify() {
   MOZ_LOG(gGeolocationLog, LogLevel::Debug, ("nsGeolocationRequest::Notify"));
-  SetTimeoutTimer();
   NotifyErrorAndShutdown(GeolocationPositionError_Binding::TIMEOUT);
 }
 
@@ -548,7 +547,17 @@ void nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition) {
     return;
   }
 
-  if (!mIsWatchPositionRequest) {
+  if (mIsWatchPositionRequest) {
+    // The initial signal for watch request is observed, after this we do not
+    // set a timer as the geolocation device is free to not send extra position
+    // if the device is simply not moving.
+    //
+    // See also https://w3c.github.io/geolocation/#dfn-request-a-position
+    // Step 7.5.1: "Wait for a significant change of geographic position. What
+    // constitutes a significant change of geographic position is left to the
+    // implementation."
+    StopTimeoutTimer();
+  } else {
     // Cancel timer and position updates in case the position
     // callback spins the event loop
     Shutdown();
@@ -570,9 +579,6 @@ void nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition) {
     callback->HandleEvent(aPosition);
   }
 
-  if (mIsWatchPositionRequest && !mShutdown) {
-    SetTimeoutTimer();
-  }
   MOZ_ASSERT(mShutdown || mIsWatchPositionRequest,
              "non-shutdown getCurrentPosition request after callback!");
 }

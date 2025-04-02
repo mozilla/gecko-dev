@@ -93,8 +93,6 @@ support-files = ["popup.html"]
 
 ["test_timeoutCurrent.html"]
 
-["test_timerRestartWatch.html"]
-
 ["test_windowClose.html"]
 
 ["test_worseAccuracyDoesNotBlockCallback.html"]
