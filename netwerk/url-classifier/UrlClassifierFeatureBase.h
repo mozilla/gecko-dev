@@ -9,6 +9,8 @@
 
 #include "nsIUrlClassifierFeature.h"
 #include "nsIUrlClassifierExceptionListService.h"
+#include "nsIUrlClassifierExceptionList.h"
+#include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsString.h"
 
@@ -37,10 +39,10 @@ class UrlClassifierFeatureBase : public nsIUrlClassifierFeature,
                        nsACString& aPrefTableName, bool* aResult) override;
 
   NS_IMETHOD
-  GetExceptionHostList(nsACString& aList) override;
+  GetExceptionList(nsIUrlClassifierExceptionList** aList) override;
 
   NS_IMETHOD
-  OnExceptionListUpdate(const nsACString& aList) override;
+  OnExceptionListUpdate(nsIUrlClassifierExceptionList* aList) override;
 
  protected:
   UrlClassifierFeatureBase(const nsACString& aName,
@@ -70,14 +72,14 @@ class UrlClassifierFeatureBase : public nsIUrlClassifierFeature,
   nsCString mPrefTableNames[2];
   nsTArray<nsCString> mHosts[2];
 
-  nsCString mExceptionHosts;
+  nsCOMPtr<nsIUrlClassifierExceptionList> mExceptionList;
 };
 
 class UrlClassifierFeatureAntiTrackingBase : public UrlClassifierFeatureBase {
   using UrlClassifierFeatureBase::UrlClassifierFeatureBase;
 
   NS_IMETHOD
-  GetExceptionHostList(nsACString& aList) override;
+  GetExceptionList(nsIUrlClassifierExceptionList** aList) override;
 };
 
 }  // namespace net

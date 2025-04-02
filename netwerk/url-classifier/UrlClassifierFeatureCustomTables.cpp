@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "UrlClassifierFeatureCustomTables.h"
+#include "nsIUrlClassifierExceptionList.h"
 
 namespace mozilla {
 
@@ -76,7 +77,10 @@ UrlClassifierFeatureCustomTables::HasHostInPreferences(
 }
 
 NS_IMETHODIMP
-UrlClassifierFeatureCustomTables::GetExceptionHostList(nsACString& aList) {
+UrlClassifierFeatureCustomTables::GetExceptionList(
+    nsIUrlClassifierExceptionList** aList) {
+  NS_ENSURE_ARG_POINTER(aList);
+  *aList = nullptr;
   return NS_OK;
 }
 

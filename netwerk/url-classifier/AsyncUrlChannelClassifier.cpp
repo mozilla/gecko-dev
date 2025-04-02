@@ -8,12 +8,15 @@
 #include "mozilla/Components.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/net/AsyncUrlChannelClassifier.h"
+#include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/net/UrlClassifierCommon.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "mozilla/net/UrlClassifierFeatureResult.h"
 #include "nsContentUtils.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
+#include "nsIUrlClassifierExceptionList.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
 #include "nsPrintfCString.h"
@@ -21,6 +24,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsUrlClassifierDBService.h"
 #include "nsUrlClassifierUtils.h"
+#include "mozilla/net/UrlClassifierCommon.h"
 
 namespace mozilla {
 namespace net {
@@ -453,26 +457,40 @@ bool FeatureData::MaybeCompleteClassification(nsIChannel* aChannel) {
   MOZ_ASSERT(mState == eMatchBlocklist);
 
   // Maybe we have to ignore this host
-  nsAutoCString exceptionList;
-  nsresult rv = mFeature->GetExceptionHostList(exceptionList);
+  nsCOMPtr<nsIUrlClassifierExceptionList> exceptionList;
+  nsresult rv = mFeature->GetExceptionList(getter_AddRefs(exceptionList));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     UC_LOG_WARN(
-        ("AsyncChannelClassifier::FeatureData::MayebeCompleteClassification - "
-         "error. Let's move on [this=%p channel=%p]",
-         this, aChannel));
+        ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
+         "error while getting exception list. Let's move on [exceptionList=%p "
+         "this=%p channel=%p]",
+         exceptionList.get(), this, aChannel));
     return true;
   }
 
-  if (!mBlocklistTables.IsEmpty() &&
-      nsContentUtils::IsURIInList(mBlocklistTables[0]->URI(), exceptionList)) {
-    nsCString spec = mBlocklistTables[0]->URI()->GetSpecOrDefault();
-    spec.Truncate(std::min(spec.Length(), UrlClassifierCommon::sMaxSpecLength));
-    UC_LOG(
-        ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
-         "uri %s found in "
-         "exceptionlist of feature %s [this=%p channel=%p]",
-         spec.get(), name.get(), this, aChannel));
-    return true;
+  // Check if current load is allow-listed by the exception list.
+  if (!mBlocklistTables.IsEmpty() && exceptionList) {
+    // Get top level URI from channel.
+    nsCOMPtr<nsIURI> topLevelURI;
+    rv = UrlClassifierCommon::GetTopWindowURI(aChannel,
+                                              getter_AddRefs(topLevelURI));
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to get top level URI");
+
+    bool isPrivateBrowsing = NS_UsePrivateBrowsing(aChannel);
+    bool isAllowListed = false;
+    rv = exceptionList->Matches(mBlocklistTables[0]->URI(), topLevelURI,
+                                isPrivateBrowsing, &isAllowListed);
+    if (NS_SUCCEEDED(rv) && isAllowListed) {
+      nsCString spec = mBlocklistTables[0]->URI()->GetSpecOrDefault();
+      spec.Truncate(
+          std::min(spec.Length(), UrlClassifierCommon::sMaxSpecLength));
+      UC_LOG(
+          ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
+           "uri %s found in "
+           "exceptionlist of feature %s [this=%p channel=%p]",
+           spec.get(), name.get(), this, aChannel));
+      return true;
+    }
   }
 
   nsTArray<nsCString> list;
