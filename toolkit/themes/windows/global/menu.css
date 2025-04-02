@@ -10,12 +10,6 @@
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
-/* ::::: menu/menuitem ::::: */
-
-menubar > menu:-moz-window-inactive {
-  color: ThreeDShadow;
-}
-
 /* ..... Internal content .... */
 
 .menu-accel,

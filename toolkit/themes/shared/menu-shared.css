@@ -183,6 +183,12 @@ menubar  > menu {
     }
   }
   @media (-moz-platform: windows) {
+    padding: 0;
+
+    &:-moz-window-inactive {
+      color: ThreeDShadow;
+    }
+
     &:not([disabled="true"]) {
       color: inherit;
     }
