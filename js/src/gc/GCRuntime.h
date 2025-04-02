@@ -916,9 +916,6 @@ class GCRuntime {
                                       JS::SliceBudget& budget);
   IncrementalProgress finalizeAllocKind(JS::GCContext* gcx,
                                         JS::SliceBudget& budget);
-  bool foregroundFinalize(JS::GCContext* gcx, Zone* zone, AllocKind thingKind,
-                          JS::SliceBudget& sliceBudget,
-                          SortedArenaList& sweepList);
   IncrementalProgress sweepPropMapTree(JS::GCContext* gcx,
                                        JS::SliceBudget& budget);
   void endSweepPhase(bool destroyingRuntime);
@@ -927,8 +924,6 @@ class GCRuntime {
   void startBackgroundFree();
   void freeFromBackgroundThread(AutoLockHelperThreadState& lock);
   void sweepBackgroundThings(ZoneList& zones);
-  void backgroundFinalize(JS::GCContext* gcx, Zone* zone, AllocKind kind,
-                          Arena** empty);
   void prepareForSweepSlice(JS::GCReason reason);
   void assertBackgroundSweepingFinished();
 #ifdef DEBUG
