@@ -312,6 +312,16 @@ class MOZ_RAII AutoProfilerTextMarker {
   AutoProfilerTextMarker(const char* aMarkerName,
                          const mozilla::MarkerCategory& aCategory,
                          mozilla::MarkerOptions&& aOptions,
+                         const nsAString& aText)
+      : AutoProfilerTextMarker(
+            aMarkerName, aCategory, std::move(aOptions),
+            // only do the conversion to nsCString if the profiler is running
+            profiler_is_active_and_unpaused() ? NS_ConvertUTF16toUTF8(aText)
+                                              : nsCString()) {}
+
+  AutoProfilerTextMarker(const char* aMarkerName,
+                         const mozilla::MarkerCategory& aCategory,
+                         mozilla::MarkerOptions&& aOptions,
                          const nsACString& aText)
       : mMarkerName(aMarkerName),
         mCategory(aCategory),
