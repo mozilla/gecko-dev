@@ -50,7 +50,7 @@ gecko_debug = []
 gecko_refcount_logging = []
 
 [dependencies]
-app_units = "0.7"
+app_units = "0.7.8"
 arrayvec = "0.7"
 atomic_refcell = "0.1"
 bitflags = "2"

@@ -8,4 +8,4 @@
 
 mod app_unit;
 
-pub use app_unit::{Au, MIN_AU, MAX_AU, AU_PER_PX};
+pub use app_unit::{Au, AU_PER_PX, MAX_AU, MIN_AU};

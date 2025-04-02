@@ -2,22 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "malloc_size_of")]
+use malloc_size_of::malloc_size_of_is_0;
 #[cfg(feature = "num_traits")]
 use num_traits::Zero;
 #[cfg(feature = "serde_serialization")]
-use serde::{Serialize, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
-use std::{fmt, i32, default::Default, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign}};
+use std::iter::Sum;
+use std::{
+    default::Default,
+    fmt,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
+};
 
 /// The number of app units in a pixel.
 pub const AU_PER_PX: i32 = 60;
 /// The minimum number of app units, same as in Gecko.
-pub const MIN_AU: Au = Au(- ((1 << 30) - 1));
+pub const MIN_AU: Au = Au(-((1 << 30) - 1));
 /// The maximum number of app units, same as in Gecko.
-/// 
+///
 /// (1 << 30) - 1 lets us add/subtract two Au and check for overflow after the operation.
 pub const MAX_AU: Au = Au((1 << 30) - 1);
-
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord, Default)]
@@ -35,6 +41,9 @@ impl fmt::Debug for Au {
         write!(f, "{}px", self.to_f64_px())
     }
 }
+
+#[cfg(feature = "malloc_size_of")]
+malloc_size_of_is_0!(Au);
 
 #[cfg(feature = "serde_serialization")]
 impl<'de> Deserialize<'de> for Au {
@@ -72,7 +81,6 @@ impl Sub for Au {
     fn sub(self, other: Au) -> Au {
         Au(self.0 - other.0).clamp()
     }
-
 }
 
 impl Mul<Au> for i32 {
@@ -178,6 +186,18 @@ impl DivAssign<i32> for Au {
     }
 }
 
+impl<'a> Sum<&'a Self> for Au {
+    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::zero(), |a, b| a + *b)
+    }
+}
+
+impl Sum<Self> for Au {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::zero(), |a, b| a + b)
+    }
+}
+
 impl Au {
     /// FIXME(pcwalton): Workaround for lack of cross crate inlining of newtype structs!
     #[inline]
@@ -259,8 +279,30 @@ impl Au {
     }
 
     #[inline]
+    pub fn from_f32_px_trunc(px: f32) -> Au {
+        let float = (px * AU_PER_PX as f32).trunc();
+        Au::from_f64_au(float as f64)
+    }
+
+    #[inline]
+    pub fn from_f64_px_trunc(px: f64) -> Au {
+        let float = (px * AU_PER_PX as f64).trunc();
+        Au::from_f64_au(float)
+    }
+
+    #[inline]
     pub fn abs(self) -> Self {
         Au(self.0.abs())
+    }
+
+    #[inline]
+    pub fn max_assign(&mut self, other: Self) {
+        *self = (*self).max(other);
+    }
+
+    #[inline]
+    pub fn min_assign(&mut self, other: Self) {
+        *self = (*self).min(other);
     }
 }
 
@@ -382,9 +424,63 @@ fn convert() {
     assert_eq!(Au::from_f64_px(6.), Au(360));
     assert_eq!(Au::from_f64_px(6.12), Au(367));
     assert_eq!(Au::from_f64_px(6.13), Au(368));
+
+    assert_eq!(Au::from_f32_px_trunc(5.0), Au(300));
+    assert_eq!(Au::from_f32_px_trunc(5.2), Au(312));
+    assert_eq!(Au::from_f32_px_trunc(5.5), Au(330));
+    assert_eq!(Au::from_f32_px_trunc(5.8), Au(348));
+    assert_eq!(Au::from_f32_px_trunc(6.), Au(360));
+    assert_eq!(Au::from_f32_px_trunc(6.12), Au(367));
+    assert_eq!(Au::from_f32_px_trunc(6.13), Au(367));
+
+    assert_eq!(Au::from_f64_px_trunc(5.), Au(300));
+    assert_eq!(Au::from_f64_px_trunc(5.2), Au(312));
+    assert_eq!(Au::from_f64_px_trunc(5.5), Au(330));
+    assert_eq!(Au::from_f64_px_trunc(5.8), Au(348));
+    assert_eq!(Au::from_f64_px_trunc(6.), Au(360));
+    assert_eq!(Au::from_f64_px_trunc(6.12), Au(367));
+    assert_eq!(Au::from_f64_px_trunc(6.13), Au(367));
 }
 
-#[cfg(feature ="serde_serialization")]
+#[test]
+fn max_assign() {
+    let mut au = Au(5);
+    au.max_assign(Au(10));
+    assert_eq!(au, Au(10));
+
+    let mut au = Au(5);
+    au.max_assign(Au(-10));
+    assert_eq!(au, Au(5));
+
+    let mut au = Au(100);
+    au.max_assign(MAX_AU);
+    assert_eq!(au, MAX_AU);
+
+    let mut au = Au(-100);
+    au.max_assign(MAX_AU);
+    assert_eq!(au, MAX_AU);
+}
+
+#[test]
+fn min_assign() {
+    let mut au = Au(5);
+    au.min_assign(Au(10));
+    assert_eq!(au, Au(5));
+
+    let mut au = Au(5);
+    au.min_assign(Au(-10));
+    assert_eq!(au, Au(-10));
+
+    let mut au = Au(100);
+    au.min_assign(MAX_AU);
+    assert_eq!(au, Au(100));
+
+    let mut au = Au(-100);
+    au.min_assign(MAX_AU);
+    assert_eq!(au, Au(-100));
+}
+
+#[cfg(feature = "serde_serialization")]
 #[test]
 fn serialize() {
     let serialized = ron::to_string(&Au(42)).unwrap();

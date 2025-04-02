@@ -737,6 +737,12 @@ criteria = "safe-to-deploy"
 delta = "0.7.1 -> 0.7.2"
 notes = "Adding repr(transparent) plus a couple minor clean-ups, no functional changes from 0.7.1."
 
+[[audits.app_units]]
+who = "Emilio Cobos Álvarez <emilio@crisal.io>"
+criteria = "safe-to-deploy"
+delta = "0.7.3 -> 0.7.8"
+notes = "Relatively minor changes, no unsafety, only minor rounding API additions, malloc-size-of integration, tests, and formatting."
+
 [[audits.arbitrary]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
