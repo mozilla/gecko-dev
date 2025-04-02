@@ -1241,6 +1241,7 @@ impl Parse for LineClamp {
     Copy,
     Debug,
     Eq,
+    FromPrimitive,
     MallocSizeOf,
     Parse,
     PartialEq,

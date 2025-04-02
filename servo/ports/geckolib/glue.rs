@@ -153,7 +153,7 @@ use style::values::computed::font::{
 use style::values::computed::length::AnchorSizeFunction;
 use style::values::computed::length_percentage::CalcAnchorFunctionResolutionInfo;
 use style::values::computed::position::AnchorFunction;
-use style::values::computed::{self, Context, PositionProperty, ToComputedValue};
+use style::values::computed::{self, ContentVisibility, Context, PositionProperty, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style::values::generics::color::ColorMixFlags;
 use style::values::generics::easing::BeforeFlag;
@@ -5458,6 +5458,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
             TextTransform::NONE
         },
         WritingMode => get_from_computed::<longhands::writing_mode::SpecifiedValue>(value),
+        ContentVisibility => get_from_computed::<ContentVisibility>(value),
         TextOrientation => get_from_computed::<longhands::text_orientation::SpecifiedValue>(value),
         MixBlendMode => get_from_computed::<longhands::mix_blend_mode::SpecifiedValue>(value),
     };
