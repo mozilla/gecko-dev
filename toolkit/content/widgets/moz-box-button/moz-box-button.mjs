@@ -15,6 +15,7 @@ import { MozBoxBase } from "../lit-utils.mjs";
  * @property {string} iconSrc - The src for an optional icon shown next to the label.
  * @property {boolean} disabled - Whether or not the button is disabled.
  * @property {string} accesskey - Key used for keyboard access.
+ * @property {boolean} parentDisabled - Disabled by the parent's state, see MozBaseInputElement.
  */
 export default class MozBoxButton extends MozBoxBase {
   static shadowRootOptions = {
@@ -25,6 +26,7 @@ export default class MozBoxButton extends MozBoxBase {
   static properties = {
     disabled: { type: Boolean },
     accessKey: { type: String, mapped: true, fluent: true },
+    parentDisabled: { type: Boolean, state: true },
   };
 
   static queries = {
@@ -63,7 +65,7 @@ export default class MozBoxButton extends MozBoxBase {
       />
       <button
         class="button"
-        ?disabled=${this.disabled}
+        ?disabled=${this.disabled || this.parentDisabled}
         accesskey=${ifDefined(this.accessKey)}
       >
         ${super.textTemplate()}

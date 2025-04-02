@@ -232,6 +232,9 @@ export class MozLitElement extends LitElement {
  * @property {string} iconSrc - The src for an optional icon
  * @property {string} description - The text for the description element that helps describe the input control
  * @property {string} supportPage - Name of the SUMO support page to link to.
+ * @property {boolean} parentDisabled - When this element is nested under another input and that
+ *     input is disabled or unchecked/unpressed the parent will set this property to true so this
+ *     element can be disabled.
  */
 export class MozBaseInputElement extends MozLitElement {
   #internals;
@@ -246,6 +249,7 @@ export class MozBaseInputElement extends MozLitElement {
     description: { type: String, fluent: true },
     supportPage: { type: String, attribute: "support-page" },
     accessKey: { type: String, mapped: true, fluent: true },
+    parentDisabled: { type: Boolean, state: true },
   };
   static inputLayout = "inline";
 
@@ -269,7 +273,8 @@ export class MozBaseInputElement extends MozLitElement {
     let activatedProperty = this.constructor.activatedProperty;
     if (
       (activatedProperty && changedProperties.has(activatedProperty)) ||
-      changedProperties.has("disabled")
+      changedProperties.has("disabled") ||
+      changedProperties.has("parentDisabled")
     ) {
       this.updateNestedElements();
     }
@@ -292,9 +297,11 @@ export class MozBaseInputElement extends MozLitElement {
 
   updateNestedElements() {
     for (let el of this.nestedEls) {
-      if ("disabled" in el) {
-        el.disabled =
-          !this[this.constructor.activatedProperty] || this.disabled;
+      if ("parentDisabled" in el) {
+        el.parentDisabled =
+          this.parentDisabled ||
+          !this[this.constructor.activatedProperty] ||
+          this.disabled;
       }
     }
   }
