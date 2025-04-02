@@ -3212,6 +3212,14 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
   }
 
   if (target) {
+    // 3.5 Run the ancestor hidden-until-found revealing algorithm on target.
+    // https://html.spec.whatwg.org/#ancestor-hidden-until-found-revealing-algorithm
+    ErrorResult rv;
+    target->RevealAncestorHiddenUntilFoundAndFireBeforematchEvent(rv);
+    if(MOZ_UNLIKELY(rv.Failed())) {
+      return rv.StealNSResult();
+    }
+
     if (aScroll) {
       // https://wicg.github.io/scroll-to-text-fragment/#invoking-text-directives
       // From "Monkeypatching HTML § 7.4.6.3 Scrolling to a fragment:"
@@ -3220,7 +3228,6 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
       // Implementation note: Use `ScrollSelectionIntoView` for text fragment,
       // since the text fragment is stored as a `eTargetText` selection.
       //
-      // 3.3. TODO: Run the ancestor details revealing algorithm on target.
       // 3.4. Scroll target into view, with behavior set to "auto", block set to
       //      "start", and inline set to "nearest".
       // FIXME(emilio): Not all callers pass ScrollSmoothAuto (but we use auto
