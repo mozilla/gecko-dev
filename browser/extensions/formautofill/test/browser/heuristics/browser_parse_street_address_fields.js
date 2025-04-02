@@ -153,7 +153,7 @@ add_heuristic_tests([
           <input id="first-name">
           <label for="last-name">Last Name</label>
           <input id="last-name">
-          <label for="a1">Straße / nummer</label>
+          <label for="a1">Saisir une adresse numero de maison inclus</label>
           <input id="a1">
         </form></body></html>`,
     expectedResult: [
