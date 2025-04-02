@@ -3927,6 +3927,37 @@ ShadowRoot* nsINode::GetShadowRootForSelection() const {
   return shadowRoot;
 }
 
+// https://html.spec.whatwg.org/#ancestor-hidden-until-found-revealing-algorithm
+void nsINode::RevealAncestorHiddenUntilFoundAndFireBeforematchEvent(
+    ErrorResult& aRv) {
+  if (!StaticPrefs::dom_hidden_until_found_enabled()) {
+    return;
+  }
+  // 1. While currentNode has a parent node within the flat tree:
+  auto* currentNode = this;
+  while (RefPtr parentNode = currentNode->GetFlattenedTreeParentNode()) {
+    // 1.1. If currentNode has the hidden attribute in the hidden until found
+    //      state, then:
+    if (RefPtr currentAsElement = Element::FromNode(currentNode);
+        currentAsElement &&
+        currentAsElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::hidden,
+                                      nsGkAtoms::untilFound, eIgnoreCase)) {
+      // 1.1.1 Fire an event named beforematch at currentNode.
+      currentAsElement->FireBeforematchEvent(aRv);
+      if (MOZ_UNLIKELY(aRv.Failed())) {
+        return;
+      }
+
+      // 1.1.2 Remove the hidden attribute from currentNode.
+      currentAsElement->UnsetAttr(kNameSpaceID_None, nsGkAtoms::hidden,
+                                  /*aNotify=*/true);
+    }
+    // 1.2 Set currentNode to the parent node of currentNode within the flat
+    //     tree.
+    currentNode = parentNode;
+  }
+}
+
 NS_IMPL_ISUPPORTS(nsNodeWeakReference, nsIWeakReference)
 
 nsNodeWeakReference::nsNodeWeakReference(nsINode* aNode)

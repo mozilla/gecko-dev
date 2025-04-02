@@ -5464,6 +5464,17 @@ void Element::SetHTMLUnsafe(const TrustedHTMLOrString& aHTML,
                                 aError);
 }
 
+// https://html.spec.whatwg.org/#event-beforematch
+void Element::FireBeforematchEvent(ErrorResult& aRv) {
+  RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
+  event->InitEvent(u"beforematch"_ns,
+                   /*aCanBubble=*/true,
+                   /*aCancelable=*/false);
+
+  event->SetTrusted(true);
+  DispatchEvent(*event, aRv);
+}
+
 bool Element::BlockingContainsRender() const {
   const nsAttrValue* attrValue = GetParsedAttr(nsGkAtoms::blocking);
   if (!attrValue || !StaticPrefs::dom_element_blocking_enabled()) {

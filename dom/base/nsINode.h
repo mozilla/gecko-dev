@@ -2457,6 +2457,9 @@ class nsINode : public mozilla::dom::EventTarget {
     return HasSlots() ? GetExistingSlots()->mWeakReference : nullptr;
   }
 
+  MOZ_CAN_RUN_SCRIPT
+  void RevealAncestorHiddenUntilFoundAndFireBeforematchEvent(ErrorResult& aRv);
+
  protected:
   // Override this function to create a custom slots class.
   // Must not return null.

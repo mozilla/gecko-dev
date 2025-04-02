@@ -117,6 +117,7 @@ NS_EVENT_MESSAGE(eContextMenu)
 NS_EVENT_MESSAGE(eCueChange)
 
 NS_EVENT_MESSAGE(eBeforeToggle)
+NS_EVENT_MESSAGE(eBeforematch)
 
 NS_EVENT_MESSAGE(eLoad)
 NS_EVENT_MESSAGE(eUnload)

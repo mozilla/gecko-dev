@@ -32,6 +32,9 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler oncancel;
            attribute EventHandler onauxclick;
            attribute EventHandler onbeforeinput;
+           // https://html.spec.whatwg.org/#event-beforematch
+           [Pref="dom.hidden_until_found.enabled"]
+           attribute EventHandler onbeforematch;
            attribute EventHandler onbeforetoggle;
            attribute EventHandler oncanplay;
            attribute EventHandler oncanplaythrough;

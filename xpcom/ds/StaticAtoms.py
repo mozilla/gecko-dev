@@ -771,6 +771,7 @@ STATIC_ATOMS = [
     Atom("onbeforecopy", "onbeforecopy"),
     Atom("onbeforecut", "onbeforecut"),
     Atom("onbeforeinput", "onbeforeinput"),
+    Atom("onbeforematch", "onbeforematch"),
     Atom("onbeforepaste", "onbeforepaste"),
     Atom("onbeforeprint", "onbeforeprint"),
     Atom("onbeforescriptexecute", "onbeforescriptexecute"),

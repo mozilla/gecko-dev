@@ -150,6 +150,8 @@
 
 EVENT(abort, eImageAbort, EventNameType_All, eBasicEventClass)
 EVENT(beforetoggle, eBeforeToggle, EventNameType_HTMLXUL, eBasicEventClass)
+// https://html.spec.whatwg.org/#event-beforematch
+EVENT(beforematch, eBeforematch, EventNameType_All, eBasicEventClass)
 EVENT(cancel, eCancel, EventNameType_HTMLXUL, eBasicEventClass)
 EVENT(canplay, eCanPlay, EventNameType_HTML, eBasicEventClass)
 EVENT(canplaythrough, eCanPlayThrough, EventNameType_HTML, eBasicEventClass)
