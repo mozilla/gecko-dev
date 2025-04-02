@@ -751,9 +751,9 @@ class ConfigureCodec {
           // Might disable it, but we set up other params anyway
           videoCodec.mEnabled = mH264Enabled;
 
-          if (videoCodec.mPacketizationMode == 0 && !mSoftwareH264Enabled) {
-            // We're assuming packetization mode 0 is unsupported by
-            // hardware.
+          if (videoCodec.mPacketizationMode == 0 &&
+              !PeerConnectionCtx::GetInstance()->gmpHasH264()) {
+            // Packetization mode 0 is unsupported by MediaDataEncoder.
             videoCodec.mEnabled = false;
           }
         } else if (videoCodec.mName == "red") {
