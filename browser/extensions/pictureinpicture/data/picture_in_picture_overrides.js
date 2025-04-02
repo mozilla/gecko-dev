@@ -212,6 +212,12 @@ let AVAILABLE_PIP_OVERRIDES;
       },
     },
 
+    iq: {
+      "https://*.iq.com/play/*": {
+        videoWrapperScriptPath: "video-wrappers/iq.js",
+      },
+    },
+
     kick: {
       "https://*.kick.com/*": {
         visibilityThreshold: 0.7,
