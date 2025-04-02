@@ -15,16 +15,14 @@ enum AlphaOption {
 // [Serializable, Transferable] are implemented without adding attributes here.
 [Exposed=(Window,DedicatedWorker), Func="mozilla::dom::VideoFrame::PrefEnabled"]
 interface VideoFrame {
-  // The constructors should be shorten to:
+  // The constructors should be shortened to:
   //   ```
-  //   constructor([AllowShared] BufferSource data, VideoFrameBufferInit init);
   //   constructor(CanvasImageSource image, optional VideoFrameInit init = {});
+  //   constructor(AllowSharedBufferSource data, VideoFrameBufferInit init);
   //   ```
-  // However, `[AllowShared] BufferSource` doesn't work for now (bug 1696216), and
-  // `No support for unions as distinguishing arguments yet` error occurs when using
-  //   `constructor(CanvasImageSource image, optional VideoFrameInit init = {})` and
-  //   `constructor(([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) data, VideoFrameBufferInit init)`
-  // at the same time (bug 1786410).
+  // but a `No support for unions as distinguishing arguments yet` error occurs
+  // when using the CanvasImageSource and AllowSharedBufferSource unions
+  // (bug 1786410).
   [Throws]
   constructor(HTMLImageElement imageElement, optional VideoFrameInit init = {});
   [Throws]
@@ -61,8 +59,7 @@ interface VideoFrame {
       optional VideoFrameCopyToOptions options = {});
   [Throws]
   Promise<sequence<PlaneLayout>> copyTo(
-      // bug 1696216: Should be `copyTo([AllowShared] BufferSource destination, ...)`
-      ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) destination,
+      AllowSharedBufferSource destination,
       optional VideoFrameCopyToOptions options = {});
   [Throws]
   VideoFrame clone();

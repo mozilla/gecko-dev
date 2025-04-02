@@ -37,9 +37,7 @@ class HTMLCanvasElement;
 class HTMLImageElement;
 class HTMLVideoElement;
 class ImageBitmap;
-class MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer;
 class OffscreenCanvas;
-class OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer;
 class Promise;
 class SVGImageElement;
 class StructuredCloneHolder;
@@ -159,9 +157,9 @@ class VideoFrame final : public nsISupports,
   uint32_t AllocationSize(const VideoFrameCopyToOptions& aOptions,
                           ErrorResult& aRv);
 
-  already_AddRefed<Promise> CopyTo(
-      const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDestination,
-      const VideoFrameCopyToOptions& aOptions, ErrorResult& aRv);
+  already_AddRefed<Promise> CopyTo(const AllowSharedBufferSource& aDestination,
+                                   const VideoFrameCopyToOptions& aOptions,
+                                   ErrorResult& aRv);
 
   already_AddRefed<VideoFrame> Clone(ErrorResult& aRv) const;
 

@@ -139,8 +139,8 @@ interface TestFunctions {
   undefined testAllowShared([AllowShared] ArrayBufferView buffer);
   undefined testAllowShared([AllowShared] ArrayBuffer buffer);
   undefined testDictWithAllowShared(optional DictWithAllowSharedBufferSource buffer = {});
-  undefined testUnionOfBuffferSource((ArrayBuffer or ArrayBufferView or DOMString) foo);
-  undefined testUnionOfAllowSharedBuffferSource(([AllowShared] ArrayBuffer or [AllowShared] ArrayBufferView) foo);
+  undefined testUnionOfBufferSource((ArrayBuffer or ArrayBufferView or DOMString) foo);
+  undefined testUnionOfAllowSharedBufferSource(AllowSharedBufferSource foo);
 
   boolean staticAndNonStaticOverload();
   static boolean staticAndNonStaticOverload(optional unsigned long foo);

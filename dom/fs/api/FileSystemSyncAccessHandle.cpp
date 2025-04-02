@@ -13,6 +13,7 @@
 #include "mozilla/FixedBufferOutputStream.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/TaskQueue.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/FileSystemAccessHandleChild.h"
 #include "mozilla/dom/FileSystemAccessHandleControlChild.h"
 #include "mozilla/dom/FileSystemHandleBinding.h"
@@ -308,13 +309,13 @@ JSObject* FileSystemSyncAccessHandle::WrapObject(
 // WebIDL Interface
 
 uint64_t FileSystemSyncAccessHandle::Read(
-    const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer,
+    const AllowSharedBufferSource& aBuffer,
     const FileSystemReadWriteOptions& aOptions, ErrorResult& aRv) {
   return ReadOrWrite(aBuffer, aOptions, /* aRead */ true, aRv);
 }
 
 uint64_t FileSystemSyncAccessHandle::Write(
-    const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer,
+    const AllowSharedBufferSource& aBuffer,
     const FileSystemReadWriteOptions& aOptions, ErrorResult& aRv) {
   return ReadOrWrite(aBuffer, aOptions, /* aRead */ false, aRv);
 }
@@ -521,7 +522,7 @@ void FileSystemSyncAccessHandle::Close() {
 }
 
 uint64_t FileSystemSyncAccessHandle::ReadOrWrite(
-    const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer,
+    const AllowSharedBufferSource& aBuffer,
     const FileSystemReadWriteOptions& aOptions, const bool aRead,
     ErrorResult& aRv) {
   if (!IsOpen()) {

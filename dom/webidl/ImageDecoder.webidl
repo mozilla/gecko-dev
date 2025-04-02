@@ -7,8 +7,7 @@
  * https://w3c.github.io/webcodecs/#image-decoding
  */
 
-// Bug 1696216: Should be AllowSharedBufferSource or ReadableStream
-typedef ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer or ReadableStream) ImageBufferSource;
+typedef (AllowSharedBufferSource or ReadableStream) ImageBufferSource;
 dictionary ImageDecoderInit {
   required DOMString type;
   required ImageBufferSource data;
