@@ -870,46 +870,26 @@
     "color": {
       "@base": {
         "value": {
-          "prefersContrast": "LinkText",
-          "brand": {
-            "default": "{color.accent.primary.@base}"
-          },
-          "platform": {
-            "default": "LinkText"
-          }
+          "default": "{color.accent.primary.@base}",
+          "forcedColors": "LinkText"
         }
       },
       "hover": {
         "value": {
-          "prefersContrast": "LinkText",
-          "brand": {
-            "default": "{color.accent.primary.hover}"
-          },
-          "platform": {
-            "default": "LinkText"
-          }
+          "default": "{color.accent.primary.hover}",
+          "forcedColors": "LinkText"
         }
       },
       "active": {
         "value": {
-          "prefersContrast": "ActiveText",
-          "brand": {
-            "default": "{color.accent.primary.active}"
-          },
-          "platform": {
-            "default": "ActiveText"
-          }
+          "default": "{color.accent.primary.active}",
+          "forcedColors": "ActiveText"
         }
       },
       "visited": {
         "value": {
-          "prefersContrast": "{link.color.@base}",
-          "brand": {
-            "default": "{link.color.@base}"
-          },
-          "platform": {
-            "default": "{link.color.@base}"
-          }
+          "default": "{link.color.@base}",
+          "forcedColors": "{link.color.@base}"
         }
       }
     },

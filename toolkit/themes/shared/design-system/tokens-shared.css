@@ -170,6 +170,10 @@
     --input-space-block: var(--space-xsmall);
 
     /** Link **/
+    --link-color: var(--color-accent-primary);
+    --link-color-hover: var(--color-accent-primary-hover);
+    --link-color-active: var(--color-accent-primary-active);
+    --link-color-visited: var(--link-color);
     /**
      * Not using --force-outline-offset for links because that's intended for
      * elements with a background, and we only want a slight offset here while
@@ -239,12 +243,6 @@
       --icon-color-success: var(--icon-color);
       --icon-color-warning: var(--icon-color);
 
-      /** Link **/
-      --link-color: LinkText;
-      --link-color-hover: LinkText;
-      --link-color-active: ActiveText;
-      --link-color-visited: var(--link-color);
-
       /** Outline Color **/
       --outline-color-error: var(--border-color);
 
@@ -312,6 +310,12 @@
 
       /** Focus Outline **/
       --focus-outline-color: var(--text-color);
+
+      /** Link **/
+      --link-color: LinkText;
+      --link-color-hover: LinkText;
+      --link-color-active: ActiveText;
+      --link-color-visited: var(--link-color);
 
       /** Table Row **/
       --table-row-background-color-alternate: var(--background-color-canvas); /* TODO Bug 1821203 - Gray use needs to be consolidated */

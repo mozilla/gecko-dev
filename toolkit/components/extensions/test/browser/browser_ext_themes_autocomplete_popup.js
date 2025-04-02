@@ -15,7 +15,7 @@ const POPUP_TEXT_COLOR_BRIGHT = "#ffffff";
 const POPUP_SELECTED_COLOR = "#9400ff";
 const POPUP_SELECTED_TEXT_COLOR = "#09b9a6";
 
-const POPUP_URL_COLOR_DARK = "#0061e0";
+const POPUP_URL_COLOR_DARK = "#0060df";
 const POPUP_ACTION_COLOR_DARK = scotchBonnet
   ? POPUP_TEXT_COLOR_DARK
   : "#5b5b66";
