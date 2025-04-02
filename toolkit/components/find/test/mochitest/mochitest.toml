@@ -1,4 +1,7 @@
 [DEFAULT]
+prefs = [
+  "dom.hidden_until_found.enabled=true",
+]
 ["test_bug499115.html"]
 
 ["test_nsFind.html"]

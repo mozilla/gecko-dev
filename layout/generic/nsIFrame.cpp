@@ -7417,6 +7417,21 @@ nsIFrame* nsIFrame::GetClosestContentVisibilityAncestor(
   return nullptr;
 }
 
+bool nsIFrame::IsHiddenUntilFound() const {
+  bool isHiddenUntilFound = false;
+  for (const auto* f = this; f; f = f->GetInFlowParent()) {
+    if (f->HidesContent(nsIFrame::IncludeContentVisibility::Hidden)) {
+      if (const auto* element = Element::FromNode(f->GetContent());
+          element &&
+          !element->AttrValueIs(kNameSpaceID_None, nsGkAtoms::hidden,
+                                nsGkAtoms::untilFound, eIgnoreCase)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 bool nsIFrame::IsHiddenByContentVisibilityOnAnyAncestor(
     const EnumSet<IncludeContentVisibility>& aInclude) const {
   return !!GetClosestContentVisibilityAncestor(aInclude);
