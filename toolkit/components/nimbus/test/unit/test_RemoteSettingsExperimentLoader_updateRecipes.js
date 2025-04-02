@@ -2332,6 +2332,136 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
   cleanupFeatures();
 });
 
+add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  await manager.onStartup();
+  await loader.enable();
+
+  const features = [
+    new ExperimentFeature("test-feature-0", { variables: {} }),
+    new ExperimentFeature("test-feature-1", { variables: {} }),
+    new ExperimentFeature("test-feature-2", { variables: {} }),
+    new ExperimentFeature("test-feature-3", { variables: {} }),
+    new ExperimentFeature("test-feature-4", { variables: {} }),
+    new ExperimentFeature("test-feature-5", { variables: {} }),
+    new ExperimentFeature("test-feature-6", { variables: {} }),
+    new ExperimentFeature("test-feature-7", { variables: {} }),
+    new ExperimentFeature("test-feature-8", { variables: {} }),
+  ];
+
+  const cleanupFeatures = ExperimentTestUtils.addTestFeatures(...features);
+
+  function recipe(slug, featureId) {
+    return ExperimentFakes.recipe(slug, {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+      branches: [
+        {
+          ratio: 1,
+          slug: "control",
+          features: [
+            {
+              featureId,
+              value: {},
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  const recipes = [
+    {
+      ...recipe("enrollment-paused", "test-feature-0"),
+      isEnrollmentPaused: true,
+    },
+    {
+      ...recipe("no-match", "test-feature-1"),
+      targeting: "false",
+    },
+    {
+      ...recipe("targeting-only", "test-feature-2"),
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 0,
+      },
+    },
+    {
+      ...recipe("already-enrolled-rollout", "test-feature-3"),
+      isRollout: true,
+    },
+    recipe("already-enrolled-experiment", "test-feature-3"),
+  ];
+
+  await manager.enroll(
+    { ...recipe("enrolled-rollout", "test-feature-3"), isRollout: true },
+    "force-enrollment"
+  );
+  await manager.enroll(
+    recipe("enrolled-experiment", "test-feature-3"),
+    "force-enrollment"
+  );
+
+  sinon.stub(loader.remoteSettingsClients.experiments, "get").resolves(recipes);
+
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
+
+  await loader.updateRecipes("timer");
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.enrollmentStatus
+      .testGetValue("events")
+      ?.map(ev => ev.extra),
+    [
+      {
+        slug: "enrollment-paused",
+        status: "NotEnrolled",
+        reason: "EnrollmentsPaused",
+      },
+      {
+        slug: "no-match",
+        status: "NotEnrolled",
+        reason: "NotTargeted",
+      },
+      {
+        slug: "targeting-only",
+        status: "NotEnrolled",
+        reason: "NotSelected",
+      },
+      {
+        slug: "already-enrolled-rollout",
+        status: "NotEnrolled",
+        reason: "FeatureConflict",
+        conflict_slug: "enrolled-rollout",
+      },
+      {
+        slug: "already-enrolled-experiment",
+        status: "NotEnrolled",
+        reason: "FeatureConflict",
+        conflict_slug: "enrolled-experiment",
+      },
+    ]
+  );
+
+  manager.unenroll("enrolled-experiment");
+  manager.unenroll("enrolled-rollout");
+
+  assertEmptyStore(manager.store);
+  Services.fog.testResetFOG();
+
+  cleanupFeatures();
+});
+
 add_task(async function test_updateRecipesWithPausedEnrollment() {
   const loader = ExperimentFakes.rsLoader();
   const manager = loader.manager;
@@ -2352,19 +2482,19 @@ add_task(async function test_updateRecipesWithPausedEnrollment() {
     .resolves([recipe]);
 
   sinon.spy(manager, "onRecipe");
-  sinon.spy(manager, "enroll");
+  sinon.spy(manager, "_enroll");
 
   await loader.updateRecipes("test");
 
   Assert.ok(
     manager.onRecipe.calledOnceWith(recipe, "rs-loader", {
       ok: true,
-      status: MatchStatus.TARGETING_ONLY,
+      status: MatchStatus.ENROLLMENT_PAUSED,
     }),
-    "Should call onRecipe with targeting match"
+    "Should call onRecipe with enrollments paused"
   );
   Assert.ok(
-    manager.enroll.notCalled,
+    manager._enroll.notCalled,
     "Should not call enroll for paused recipe"
   );
 
