@@ -219,14 +219,12 @@ add_task(async function test_cleanup() {
   info(
     "5. Altering closedAt to an old date, making sure that stuff gets collected, eventually"
   );
-  // TODO this should also test that the closed tab group is cleaned up, but
-  // can't be done until restoring tab groups (and thus setBrowserState)
-  // supports tab groups. See bug1927527.
   await promiseCleanup();
 
   let state = getClosedState();
   state._closedWindows[0].closedAt = LONG_TIME_AGO;
   state.windows[0]._closedTabs[0].closedAt = LONG_TIME_AGO;
+  state.windows[0].closedGroups[0].closedAt = LONG_TIME_AGO;
   state.windows[0]._closedTabs[1].closedAt = Date.now();
   let url = state.windows[0]._closedTabs[1].state.entries[0].url;
 
@@ -238,6 +236,7 @@ add_task(async function test_cleanup() {
 
   state = JSON.parse(ss.getBrowserState());
   is(state._closedWindows[0], undefined, "5. Second window was forgotten");
+  is(state.windows[0].closedGroups[0], undefined, "5. Tab group was forgotten");
 
   is(state.windows[0]._closedTabs.length, 1, "5. Only one closed tab left");
   is(
