@@ -109,9 +109,10 @@ export const NimbusTelemetry = {
       slug: enrollment.slug,
       branch: enrollment.branch.slug,
       status: EnrollmentStatus.ENROLLED,
-      reason: enrollment.force
-        ? EnrollmentStatusReason.OPT_IN
-        : EnrollmentStatusReason.QUALIFIED,
+      reason:
+        enrollment.force || enrollment.isFirefoxLabsOptIn
+          ? EnrollmentStatusReason.OPT_IN
+          : EnrollmentStatusReason.QUALIFIED,
     });
   },
 
