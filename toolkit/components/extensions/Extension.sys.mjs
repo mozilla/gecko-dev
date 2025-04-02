@@ -25,6 +25,7 @@
  * reloaded by the user, we have to  ensure that the new extension pages are going
  * to run in the same process of the existing addon debugging browser element).
  */
+/* eslint-disable mozilla/valid-lazy */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
@@ -33,10 +34,7 @@ import { ExtensionParent } from "resource://gre/modules/ExtensionParent.sys.mjs"
 import { ExtensionUtils } from "resource://gre/modules/ExtensionUtils.sys.mjs";
 import { Log } from "resource://gre/modules/Log.sys.mjs";
 
-/** @type {Lazy} */
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
+const lazy = XPCOMUtils.declareLazy({
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
   AddonSettings: "resource://gre/modules/addons/AddonSettings.sys.mjs",
@@ -68,118 +66,99 @@ ChromeUtils.defineESModuleGetters(lazy, {
   permissionToL10nId:
     "resource://gre/modules/ExtensionPermissionMessages.sys.mjs",
   QuarantinedDomains: "resource://gre/modules/ExtensionPermissions.sys.mjs",
-});
 
-ChromeUtils.defineLazyGetter(lazy, "resourceProtocol", () =>
-  Services.io
-    .getProtocolHandler("resource")
-    .QueryInterface(Ci.nsIResProtocolHandler)
-);
+  resourceProtocol: () =>
+    Services.io
+      .getProtocolHandler("resource")
+      .QueryInterface(Ci.nsIResProtocolHandler),
 
-XPCOMUtils.defineLazyServiceGetters(lazy, {
-  aomStartup: [
-    "@mozilla.org/addons/addon-manager-startup;1",
-    "amIAddonManagerStartup",
-  ],
-  spellCheck: ["@mozilla.org/spellchecker/engine;1", "mozISpellCheckingEngine"],
-});
+  aomStartup: {
+    service: "@mozilla.org/addons/addon-manager-startup;1",
+    iid: Ci.amIAddonManagerStartup,
+  },
+  spellCheck: {
+    service: "@mozilla.org/spellchecker/engine;1",
+    iid: Ci.mozISpellCheckingEngine,
+  },
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "processCount",
-  "dom.ipc.processCount.extension"
-);
+  processCount: { pref: "dom.ipc.processCount.extension", default: 1 },
 
-// Temporary pref to be turned on when ready.
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "userContextIsolation",
-  "extensions.userContextIsolation.enabled",
-  false
-);
+  userContextIsolation: {
+    pref: "extensions.userContextIsolation.enabled",
+    default: false,
+  },
+  userContextIsolationDefaultRestricted: {
+    pref: "extensions.userContextIsolation.defaults.restricted",
+    default: "[]",
+  },
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "userContextIsolationDefaultRestricted",
-  "extensions.userContextIsolation.defaults.restricted",
-  "[]"
-);
+  dnrEnabled: { pref: "extensions.dnr.enabled", default: true },
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "dnrEnabled",
-  "extensions.dnr.enabled",
-  true
-);
+  // All functionality is gated by the "userScripts" permission, and forgetting
+  // about its existence is enough to hide all userScripts functionality.
+  // MV3 userScripts API in development (bug 1875475), off by default.
+  // Not to be confused with MV2 and extensions.webextensions.userScripts.enabled!
+  userScriptsMV3Enabled: {
+    pref: "extensions.userScripts.mv3.enabled",
+    default: false,
+  },
 
-// All functionality is gated by the "userScripts" permission, and forgetting
-// about its existence is enough to hide all userScripts functionality.
-// MV3 userScripts API in development (bug 1875475), off by default.
-// Not to be confused with MV2 and extensions.webextensions.userScripts.enabled!
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "userScriptsMV3Enabled",
-  "extensions.userScripts.mv3.enabled",
-  false
-);
+  // This pref modifies behavior for MV2.  MV3 is enabled regardless.
+  eventPagesEnabled: { pref: "extensions.eventPages.enabled", default: true },
 
-// This pref modifies behavior for MV2.  MV3 is enabled regardless.
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "eventPagesEnabled",
-  "extensions.eventPages.enabled"
-);
+  // This pref is used to check if storage.sync is still the Kinto-based backend
+  // (GeckoView should be the only one still using it).
+  storageSyncOldKintoBackend: {
+    pref: "webextensions.storage.sync.kinto",
+    default: true,
+  },
 
-// This pref is used to check if storage.sync is still the Kinto-based backend
-// (GeckoView should be the only one still using it).
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "storageSyncOldKintoBackend",
-  "webextensions.storage.sync.kinto",
-  false
-);
+  // Deprecation of browser_style, through .supported & .same_as_mv2 prefs:
+  // - true true  = warn only: deprecation message only (no behavioral changes).
+  // - true false = deprecate: default to false, even if default was true in MV2.
+  // - false      = remove: always use false, even when true is specified.
+  //                (if .same_as_mv2 is set, also warn if the default changed)
+  // Deprecation plan: https://bugzilla.mozilla.org/show_bug.cgi?id=1827910#c1
+  browserStyleMV3supported: {
+    pref: "extensions.browser_style_mv3.supported",
+    default: false,
+  },
+  browserStyleMV3sameAsMV2: {
+    pref: "extensions.browser_style_mv3.same_as_mv2",
+    default: false,
+  },
 
-// Deprecation of browser_style, through .supported & .same_as_mv2 prefs:
-// - true true  = warn only: deprecation message only (no behavioral changes).
-// - true false = deprecate: default to false, even if default was true in MV2.
-// - false      = remove: always use false, even when true is specified.
-//                (if .same_as_mv2 is set, also warn if the default changed)
-// Deprecation plan: https://bugzilla.mozilla.org/show_bug.cgi?id=1827910#c1
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "browserStyleMV3supported",
-  "extensions.browser_style_mv3.supported",
-  false
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "browserStyleMV3sameAsMV2",
-  "extensions.browser_style_mv3.same_as_mv2",
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "processCrashThreshold",
-  "extensions.webextensions.crash.threshold",
   // The default number of times an extension process is allowed to crash
   // within a timeframe.
-  5
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "processCrashTimeframe",
-  "extensions.webextensions.crash.timeframe",
+  processCrashThreshold: {
+    pref: "extensions.webextensions.crash.threshold",
+    default: 5,
+  },
   // The default timeframe used to count crashes, in milliseconds.
-  30 * 1000
-);
+  processCrashTimeframe: {
+    pref: "extensions.webextensions.crash.timeframe",
+    default: 30 * 1000,
+  },
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "installIncludesOrigins",
-  "extensions.originControls.grantByDefault",
-  false
-);
+  installIncludesOrigins: {
+    pref: "extensions.originControls.grantByDefault",
+    default: false,
+  },
+
+  LocaleData: () => ExtensionCommon.LocaleData,
+
+  async NO_PROMPT_PERMISSIONS() {
+    // Wait until all extension API schemas have been loaded and parsed.
+    await Management.lazyInit();
+    return new Set(
+      lazy.Schemas.getPermissionNames([
+        "PermissionNoPrompt",
+        "OptionalPermissionNoPrompt",
+        "PermissionPrivileged",
+      ])
+    );
+  },
+});
 
 var {
   GlobalManager,
@@ -192,27 +171,7 @@ var {
 export { Management };
 
 const { getUniqueId, promiseTimeout } = ExtensionUtils;
-
 const { EventEmitter, redefineGetter, updateAllowedOrigins } = ExtensionCommon;
-
-ChromeUtils.defineLazyGetter(
-  lazy,
-  "LocaleData",
-  () => ExtensionCommon.LocaleData
-);
-
-ChromeUtils.defineLazyGetter(lazy, "NO_PROMPT_PERMISSIONS", async () => {
-  // Wait until all extension API schemas have been loaded and parsed.
-  await Management.lazyInit();
-  return new Set(
-    lazy.Schemas.getPermissionNames([
-      "PermissionNoPrompt",
-      "OptionalPermissionNoPrompt",
-      "PermissionPrivileged",
-    ])
-  );
-});
-
 const { sharedData } = Services.ppmm;
 
 const PRIVATE_ALLOWED_PERMISSION = "internal:privateBrowsingAllowed";

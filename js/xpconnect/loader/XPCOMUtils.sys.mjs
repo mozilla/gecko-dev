@@ -119,13 +119,16 @@ export var XPCOMUtils = {
    *        The name of the getter to define on aObject for the service.
    * @param {string} aContract
    *        The contract used to obtain the service.
-   * @param {string} aInterfaceName
-   *        The name of the interface to query the service to.
+   * @param {nsID|string} aInterface
+   *        The interface or name of interface to query the service to.
    */
-  defineLazyServiceGetter(aObject, aName, aContract, aInterfaceName) {
+  defineLazyServiceGetter(aObject, aName, aContract, aInterface) {
     ChromeUtils.defineLazyGetter(aObject, aName, () => {
-      if (aInterfaceName) {
-        return Cc[aContract].getService(Ci[aInterfaceName]);
+      if (aInterface) {
+        if (typeof aInterface === "string") {
+          aInterface = Ci[aInterface];
+        }
+        return Cc[aContract].getService(aInterface);
       }
       return Cc[aContract].getService().wrappedJSObject;
     });
@@ -281,6 +284,121 @@ export var XPCOMUtils = {
       defineGetter(lazyGetter);
       return lazyGetter();
     });
+  },
+
+  /**
+   * Defines properties on the given object which lazily import
+   * an ES module or run another utility getter when accessed.
+   *
+   * Use this version when you need to define getters on the
+   * global `this`, or any other object you can't assign to:
+   *
+   *    @example
+   *    XPCOMUtils.defineLazy(this, {
+   *      AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+   *      verticalTabs: { pref: "sidebar.verticalTabs", default: false },
+   *      MIME: { service: "@mozilla.org/mime;1", iid: Ci.nsInsIMIMEService },
+   *      expensiveThing: () => fetch_or_compute(),
+   *    });
+   *
+   * Additionally, the given object is also returned, which enables
+   * type-friendly composition:
+   *
+   *    @example
+   *    const existing = {
+   *      someProps: new Widget(),
+   *    };
+   *    const combined = XPCOMUtils.defineLazy(existing, {
+   *      expensiveThing: () => fetch_or_compute(),
+   *    });
+   *
+   * The `combined` variable is the same object reference as `existing`,
+   * but TypeScript also knows about lazy getters defined on it.
+   *
+   * Since you probably don't want aliases, you can use it like this to,
+   * for example, define (static) lazy getters on a class:
+   *
+   *    @example
+   *    const Widget = XPCOMUtils.defineLazy(
+   *      class Widget {
+   *        static normalProp = 3;
+   *      },
+   *      {
+   *        verticalTabs: { pref: "sidebar.verticalTabs", default: false },
+   *      }
+   *    );
+   *
+   * @template {LazyDefinition} const L, T
+   *
+   * @param {T} lazy
+   * The object to define the getters on.
+   *
+   * @param {L} definition
+   * Each key:value property defines type and parameters for getters.
+   *
+   *  - "resource://module" string
+   *    @see {ChromeUtils.defineESModuleGetters}
+   *
+   *  - () => value
+   *    @see {ChromeUtils.defineLazyGetter}
+   *
+   *  - { service: "contract", iid?: nsIID }
+   *    @see {XPCOMUtils.defineLazyServiceGetter}
+   *
+   *  - { pref: "name", default?, onUpdate?, transform? }
+   *    @see {XPCOMUtils.defineLazyPreferenceGetter}
+   *
+   * @param {ImportESModuleOptionsDictionary} [options]
+   * When importing ESModules in devtools and worker contexts,
+   * the third parameter is required.
+   */
+  defineLazy(lazy, definition, options) {
+    let modules = {};
+
+    for (let [key, val] of Object.entries(definition)) {
+      if (typeof val === "string") {
+        modules[key] = val;
+      } else if (typeof val === "function") {
+        ChromeUtils.defineLazyGetter(lazy, key, val);
+      } else if ("service" in val) {
+        XPCOMUtils.defineLazyServiceGetter(lazy, key, val.service, val.iid);
+      } else if ("pref" in val) {
+        XPCOMUtils.defineLazyPreferenceGetter(
+          lazy,
+          key,
+          val.pref,
+          val.default,
+          val.onUpdate,
+          val.transform
+        );
+      } else {
+        throw new Error(`Unkown LazyDefinition for ${key}`);
+      }
+    }
+
+    ChromeUtils.defineESModuleGetters(lazy, modules, options);
+    return /** @type {T & DeclaredLazy<L>} */ (lazy);
+  },
+
+  /**
+   * @see {XPCOMUtils.defineLazy}
+   * A shorthand for above which always returns a new lazy object.
+   * Use this version if you have a global `lazy` const with all the getters:
+   *
+   *    @example
+   *    const lazy = XPCOMUtils.declareLazy({
+   *      AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+   *      verticalTabs: { pref: "sidebar.verticalTabs", default: false },
+   *      MIME: { service: "@mozilla.org/mime;1", iid: Ci.nsInsIMIMEService },
+   *      expensiveThing: () => fetch_or_compute(),
+   *    });
+   *
+   * @template {LazyDefinition} const L
+   * @param {L} declaration
+   * @param {ImportESModuleOptionsDictionary} [options]
+   */
+  declareLazy(declaration, options) {
+    return XPCOMUtils.defineLazy({}, declaration, options);
   },
 
   /**
