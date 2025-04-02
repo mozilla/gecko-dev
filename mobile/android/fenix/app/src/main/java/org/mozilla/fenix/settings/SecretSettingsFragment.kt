@@ -14,6 +14,8 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import mozilla.appservices.remotesettings.RemoteSettingsConfig2
+import mozilla.appservices.remotesettings.RemoteSettingsServer
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
@@ -209,7 +211,23 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         requirePreference<SwitchPreference>(R.string.pref_key_remote_server_prod).apply {
             isVisible = true
             isChecked = context.settings().useProductionRemoteSettingsServer
-            onPreferenceChangeListener = SharedPreferenceUpdater()
+            onPreferenceChangeListener = object : SharedPreferenceUpdater() {
+                override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                    val service =
+                        context.components.remoteSettingsService.value.remoteSettingsService
+                    service.updateConfig(
+                        RemoteSettingsConfig2(
+                            server = if (newValue as? Boolean == true) {
+                                RemoteSettingsServer.Prod
+                            } else {
+                                RemoteSettingsServer.Stage
+                            },
+                        ),
+                    )
+                    service.sync()
+                    return super.onPreferenceChange(preference, newValue)
+                }
+            }
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_microsurvey_feature_enabled).apply {
