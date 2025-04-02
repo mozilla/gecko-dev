@@ -33,14 +33,14 @@ newtab-unit-tests:
             - target.tar.xz
         toolchain:
             - linux64-node
+            - node-modules
+            - newtab-node-modules
     run:
         command: >
             cd /builds/worker/checkouts/gecko &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/extensions/newtab &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/newtab/node_modules node_modules &&
             FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox node bin/try-runner.js
     when:
         files-changed:
@@ -66,14 +66,14 @@ newtab-unit-tests-ccov:
             - target.tar.xz
         toolchain:
             - linux64-node
+            - node-modules
+            - newtab-node-modules
     run:
         command: >
             cd /builds/worker/checkouts/gecko &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/extensions/newtab &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/newtab/node_modules node_modules &&
             FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox node bin/try-runner.js
     # This should only run on mozilla-central, as the bot will only parse mozilla-central
     # coverage anyways.
@@ -94,17 +94,19 @@ messagingsystem-unit-tests:
                 linux1804-64/opt: build-linux64/opt
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
+    fetches:
+        toolchain:
+            - node-modules
+            - aboutwelcome-node-modules
+            - asrouter-node-modules
     run:
         command: >
             cd /builds/worker/checkouts/gecko &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/components/aboutwelcome &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/aboutwelcome/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/components/asrouter &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/asrouter/node_modules node_modules &&
             node bin/try-runner.js
     when:
         files-changed:
@@ -126,17 +128,19 @@ messagingsystem-unit-tests-ccov:
                 linux1804-64/opt: build-linux64/opt
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
+    fetches:
+        toolchain:
+            - node-modules
+            - aboutwelcome-node-modules
+            - asrouter-node-modules
     run:
         command: >
             cd /builds/worker/checkouts/gecko &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/components/aboutwelcome &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/aboutwelcome/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/components/asrouter &&
-            rm -rf node_modules &&
-            npm ci &&
+            cp -r $MOZ_FETCHES_DIR/asrouter/node_modules node_modules &&
             node bin/try-runner.js
     # This should only run on mozilla-central, as the bot will only parse mozilla-central
     # coverage anyways.

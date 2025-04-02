@@ -37,6 +37,14 @@ path:package.json
 path:package-lock.json
 path:tools/lint/
 
+# for other node toolchain packaging
+path:browser/extensions/newtab/package.json
+path:browser/extensions/newtab/package-lock.json
+path:browser/components/aboutwelcome/package.json
+path:browser/components/aboutwelcome/package-lock.json
+path:browser/components/asrouter/package.json
+path:browser/components/asrouter/package-lock.json
+
 # for new-style try pushes
 path:try_task_config.json
 

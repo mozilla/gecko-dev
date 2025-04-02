@@ -407,6 +407,38 @@ browsertime:
         toolchain:
             - linux64-node
 
+aboutwelcome-node-modules:
+    description: "npm install aboutwelcome node_modules"
+    treeherder:
+        symbol: TL(aboutwelcome-node)
+    run:
+        script: generic-node-modules.sh
+        arguments: ['aboutwelcome', 'browser/components/aboutwelcome/']
+        sparse-profile: null
+        resources:
+            - 'browser/components/aboutwelcome/package.json'
+            - 'browser/components/aboutwelcome/package-lock.json'
+        toolchain-artifact: public/build/aboutwelcome-node-modules.tar.zst
+    fetches:
+        toolchain:
+            - linux64-node
+
+asrouter-node-modules:
+    description: "npm install asrouter node_modules"
+    treeherder:
+        symbol: TL(asrouter-node)
+    run:
+        script: generic-node-modules.sh
+        arguments: ['asrouter', 'browser/components/asrouter/']
+        sparse-profile: null
+        resources:
+            - 'browser/components/asrouter/package.json'
+            - 'browser/components/asrouter/package-lock.json'
+        toolchain-artifact: public/build/asrouter-node-modules.tar.zst
+    fetches:
+        toolchain:
+            - linux64-node
+
 eslint-plugin-mozilla:
     description: "npm install eslint-plugin-mozilla node_modules"
     treeherder:
@@ -418,6 +450,23 @@ eslint-plugin-mozilla:
             - 'tools/lint/eslint/eslint-plugin-mozilla/package.json'
             - 'tools/lint/eslint/eslint-plugin-mozilla/package-lock.json'
         toolchain-artifact: public/build/eslint-plugin-mozilla.tar.zst
+    fetches:
+        toolchain:
+            - linux64-node
+
+
+newtab-node-modules:
+    description: "npm install newtab node_modules"
+    treeherder:
+        symbol: TL(newtab-node)
+    run:
+        script: generic-node-modules.sh
+        arguments: ['newtab', 'browser/extensions/newtab/']
+        sparse-profile: null
+        resources:
+            - 'browser/extensions/newtab/package.json'
+            - 'browser/extensions/newtab/package-lock.json'
+        toolchain-artifact: public/build/newtab-node-modules.tar.zst
     fetches:
         toolchain:
             - linux64-node
