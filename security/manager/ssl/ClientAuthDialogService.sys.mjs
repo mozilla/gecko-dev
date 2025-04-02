@@ -68,7 +68,13 @@ ClientAuthDialogService.prototype = {
               console.error("couldn't get certificate from alias", e);
             }
           }
-          callback.certificateChosen(certificate, false);
+          // The UI provided by the OS has no option to choose how long to
+          // remember the decision. The most broadly useful default is to
+          // remember the decision for the session.
+          callback.certificateChosen(
+            certificate,
+            Ci.nsIClientAuthRememberService.Session
+          );
         }
       );
 
@@ -76,7 +82,10 @@ ClientAuthDialogService.prototype = {
     }
 
     const clientAuthAskURI = "chrome://pippki/content/clientauthask.xhtml";
-    let retVals = { cert: null, rememberDecision: false };
+    let retVals = {
+      cert: null,
+      rememberDuration: Ci.nsIClientAuthRememberService.Session,
+    };
     let args = lazy.PromptUtils.objectToPropBag({
       hostname,
       certArray,
@@ -89,7 +98,7 @@ ClientAuthDialogService.prototype = {
     let tabDialogBox = getTabDialogBoxForLoadContext(loadContext);
     if (tabDialogBox) {
       tabDialogBox.open(clientAuthAskURI, {}, args).closedPromise.then(() => {
-        callback.certificateChosen(retVals.cert, retVals.rememberDecision);
+        callback.certificateChosen(retVals.cert, retVals.rememberDuration);
       });
       return;
     }
@@ -103,7 +112,7 @@ ClientAuthDialogService.prototype = {
 
     if (browserWindow?.gDialogBox) {
       browserWindow.gDialogBox.open(clientAuthAskURI, args).then(() => {
-        callback.certificateChosen(retVals.cert, retVals.rememberDecision);
+        callback.certificateChosen(retVals.cert, retVals.rememberDuration);
       });
       return;
     }
@@ -116,6 +125,6 @@ ClientAuthDialogService.prototype = {
       "centerscreen,chrome,modal,titlebar",
       args
     );
-    callback.certificateChosen(retVals.cert, retVals.rememberDecision);
+    callback.certificateChosen(retVals.cert, retVals.rememberDuration);
   },
 };

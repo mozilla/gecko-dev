@@ -22,7 +22,6 @@
 pref("security.tls.insecure_fallback_hosts", "");
 
 pref("security.default_personal_cert",   "Ask Every Time");
-pref("security.remember_cert_checkbox_default_setting", true);
 
 // This preference controls what signature algorithms are accepted for signed
 // apps (i.e. add-ons). The number is interpreted as a bit mask with the

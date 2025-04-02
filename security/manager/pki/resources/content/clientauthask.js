@@ -29,9 +29,12 @@ const { parse, pemToDER } = ChromeUtils.importESModule(
  * @type {object}
  * @property {nsIX509Cert} cert
  *           The certificate, if chosen. null otherwise.
- * @property {boolean} rememberDecision
- *           Set to true if the user wanted their cert selection to be
- *           remembered, false otherwise.
+ * @property {number} rememberDuration
+ *           Set to Ci.nsIClientAuthRememberService.Once if the decision should
+ *           be remembered once, Ci.nsIClientAuthRememberService.Session if the
+ *           decision should be remembered for this session, or
+ *           Ci.nsIClientAuthRememberService.Permanent if the decision should
+ *           be remembered permanently.
  */
 
 /**
@@ -46,14 +49,14 @@ var certArray;
  *
  * @type {HTMLInputElement} Element checkbox, has to have |checked| property.
  */
-var rememberBox, args;
+var args;
 
 async function onLoad() {
-  let rememberSetting = Services.prefs.getBoolPref(
-    "security.remember_cert_checkbox_default_setting"
+  let rememberSetting = Services.prefs.getIntPref(
+    "security.client_auth_certificate_default_remember_setting"
   );
-  rememberBox = document.getElementById("rememberBox");
-  rememberBox.checked = rememberSetting;
+  document.getElementById("rememberSetting").value =
+    rememberSetting >= 0 && rememberSetting <= 2 ? rememberSetting : 2;
 
   let propBag = window.arguments[0]
     .QueryInterface(Ci.nsIWritablePropertyBag2)
@@ -159,18 +162,22 @@ async function onCertSelected() {
   await setDetails();
 }
 
+function getRememberSetting() {
+  return parseInt(document.getElementById("rememberSetting").value);
+}
+
 function doOK() {
   let { retVals } = args;
   let index = parseInt(document.getElementById("nicknames").value);
   let cert = certArray[index];
   retVals.cert = cert;
-  retVals.rememberDecision = rememberBox.checked;
+  retVals.rememberDuration = getRememberSetting();
 }
 
 function doCancel() {
   let { retVals } = args;
   retVals.cert = null;
-  retVals.rememberDecision = rememberBox.checked;
+  retVals.rememberDuration = getRememberSetting();
 }
 
 window.addEventListener("load", () => onLoad());
