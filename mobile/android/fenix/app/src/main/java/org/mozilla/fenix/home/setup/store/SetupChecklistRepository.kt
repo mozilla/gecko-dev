@@ -23,9 +23,9 @@ interface SetupChecklistRepository {
      * Updates a specific preference.
      *
      * @param type The type of preference to modify.
-     * @param enabled The new state of the preference.
+     * @param hasCompleted The new 'completed' state of the preference.
      */
-    fun setPreference(type: PreferenceType, enabled: Boolean)
+    fun setPreference(type: PreferenceType, hasCompleted: Boolean)
 }
 
 /**
@@ -42,9 +42,7 @@ enum class PreferenceType {
  *
  * @param settings The [Settings] instance for accessing and modifying setup checklist settings.
  */
-class DefaultSetupChecklistRepository(
-    private val settings: Settings,
-) : SetupChecklistRepository {
+class DefaultSetupChecklistRepository(private val settings: Settings) : SetupChecklistRepository {
 
     override fun getPreference(type: PreferenceType): Boolean {
         return when (type) {
@@ -54,14 +52,12 @@ class DefaultSetupChecklistRepository(
         }
     }
 
-    override fun setPreference(
-        type: PreferenceType,
-        enabled: Boolean,
-    ) {
+    override fun setPreference(type: PreferenceType, hasCompleted: Boolean) {
         when (type) {
-            PreferenceType.ToolbarComplete -> settings.hasCompletedSetupStepToolbar = enabled
-            PreferenceType.ThemeComplete -> settings.hasCompletedSetupStepTheme = enabled
-            PreferenceType.ExtensionsComplete -> settings.hasCompletedSetupStepExtensions = enabled
+            PreferenceType.ToolbarComplete -> settings.hasCompletedSetupStepToolbar = hasCompleted
+            PreferenceType.ThemeComplete -> settings.hasCompletedSetupStepTheme = hasCompleted
+            PreferenceType.ExtensionsComplete ->
+                settings.hasCompletedSetupStepExtensions = hasCompleted
         }
     }
 }
