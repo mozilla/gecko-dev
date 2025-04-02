@@ -72,10 +72,13 @@ interface nsIDataStorage : nsISupports {
    * Data that is Persistent is saved on disk. Data that is Private is not
    * saved. Private is meant to only be set and accessed from private contexts.
    * It will be cleared upon observing the event "last-pb-context-exited".
+   * Data that is temporary is also not saved, but may be accessed from
+   * non-private contexts. Temporary data is dropped at shutdown.
    */
   cenum DataType : 8 {
     Persistent,
     Private,
+    Temporary,
   };
 
   // Given a key and a type of data, returns a value. Returns
