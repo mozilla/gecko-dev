@@ -30,6 +30,14 @@ vendoring:
     - .gitattributes
     - .gitignore  # Avoids re-formatting of generated files.
   update-actions:
+    # Use the version from `mach vendor`, instead of a script that consults Git. This is wrong,
+    # because (1) it would use a Git checkout of _Gecko_ rather than CTS, and (2) we might not even
+    # have a Git checkout if we're using Mercurial.
+    - action: replace-in-file
+      file: '{yaml_dir}/checkout/tools/gen_version'
+      pattern: "const { version } = require('../src/common/tools/version.ts');"
+      with: "const version = '{revision}';"
+
     - action: run-command
       cwd: '{yaml_dir}/vendor/'
       command: cargo
@@ -40,11 +48,6 @@ vendoring:
 
     - action: delete-path
       path: '../../../../../testing/web-platform/mozilla/tests/webgpu/'
-    # Work around an issue where Gecko's Git version is used, instead of a vendor checkou-out.
-    - action: replace-in-file-regex
-      file: '{yaml_dir}/checkout/out-wpt/common/internal/version.js'
-      pattern: "export const version = '[a-fA-F0-9]+(-dirty)?';"
-      with: "export const version = '{revision}';"
     - action: move-dir
       from: '{yaml_dir}/checkout/out-wpt/'
       to: '../../../../../testing/web-platform/mozilla/tests/webgpu/'
