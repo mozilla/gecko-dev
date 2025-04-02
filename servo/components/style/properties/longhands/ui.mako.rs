@@ -189,7 +189,6 @@ ${helpers.predefined_type(
     need_index=True,
     animation_type="none",
     gecko_pref="layout.css.transition-behavior.enabled",
-    servo_pref="layout.css.transition-behavior.enabled",
     spec="https://drafts.csswg.org/css-transitions-2/#transition-behavior-property",
     affects="",
 )}
