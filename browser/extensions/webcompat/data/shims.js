@@ -707,6 +707,23 @@ const AVAILABLE_SHIMS = [
     onlyIfDFPIActive: true,
   },
   {
+    id: "MicrosoftIcon",
+    name: "Microsoft Account Icon",
+    bug: "1728111",
+    contentScripts: [
+      {
+        js: "microsoftAccountIcon.js",
+        matches: [
+          "*://*.microsoft.com/*",
+          "*://*.bing.com/*",
+          "*://m365.cloud.microsoft/*",
+        ],
+        runAt: "document_start",
+      },
+    ],
+    onlyIfDFPIActive: true,
+  },
+  {
     id: "MicrosoftLogin",
     platform: "desktop",
     name: "Microsoft Login",
