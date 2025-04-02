@@ -69,7 +69,7 @@
                                                scaleResolutionDownBy: 2 }] });
 
     let offer = await pc1.createOffer();
-    if (codec == "VP8") {
+    if (codec == "H264") {
       offer.sdp = sdputils.removeAllButPayloadType(offer.sdp, 126);
     }
     await pc1.setLocalDescription(offer);
