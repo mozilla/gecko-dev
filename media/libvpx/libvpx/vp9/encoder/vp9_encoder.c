@@ -3500,15 +3500,11 @@ static void loopfilter_frame(VP9_COMP *cpi, VP9_COMMON *cm) {
     lf->filter_level = 0;
     lf->last_filt_level = 0;
   } else {
-#if CONFIG_INTERNAL_STATS
     struct vpx_usec_timer timer;
-#endif
 
     vpx_clear_system_state();
 
-#if CONFIG_INTERNAL_STATS
     vpx_usec_timer_start(&timer);
-#endif
 
     if (!cpi->rc.is_src_frame_alt_ref) {
       if ((cpi->common.frame_type == KEY_FRAME) &&
@@ -3521,10 +3517,8 @@ static void loopfilter_frame(VP9_COMP *cpi, VP9_COMMON *cm) {
       lf->filter_level = 0;
     }
 
-#if CONFIG_INTERNAL_STATS
     vpx_usec_timer_mark(&timer);
     cpi->time_pick_lpf += vpx_usec_timer_elapsed(&timer);
-#endif
   }
 
   if (lf->filter_level > 0 && is_reference_frame) {
@@ -6035,9 +6029,7 @@ int vp9_receive_raw_frame(VP9_COMP *cpi, vpx_enc_frame_flags_t frame_flags,
                           YV12_BUFFER_CONFIG *sd, int64_t time_stamp,
                           int64_t end_time) {
   VP9_COMMON *const cm = &cpi->common;
-#if CONFIG_INTERNAL_STATS
   struct vpx_usec_timer timer;
-#endif
   int res = 0;
   const int subsampling_x = sd->subsampling_x;
   const int subsampling_y = sd->subsampling_y;
@@ -6054,17 +6046,13 @@ int vp9_receive_raw_frame(VP9_COMP *cpi, vpx_enc_frame_flags_t frame_flags,
 
   alloc_raw_frame_buffers(cpi);
 
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_start(&timer);
-#endif
 
   if (vp9_lookahead_push(cpi->lookahead, sd, time_stamp, end_time,
                          use_highbitdepth, frame_flags))
     res = -1;
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_mark(&timer);
   cpi->time_receive_data += vpx_usec_timer_elapsed(&timer);
-#endif
 
   if ((cm->profile == PROFILE_0 || cm->profile == PROFILE_2) &&
       (subsampling_x != 1 || subsampling_y != 1)) {
@@ -6472,9 +6460,7 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
   VP9_COMMON *const cm = &cpi->common;
   BufferPool *const pool = cm->buffer_pool;
   RATE_CONTROL *const rc = &cpi->rc;
-#if CONFIG_INTERNAL_STATS
   struct vpx_usec_timer cmptimer;
-#endif
   YV12_BUFFER_CONFIG *force_src_buffer = NULL;
   struct lookahead_entry *last_source = NULL;
   struct lookahead_entry *source = NULL;
@@ -6490,9 +6476,7 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
     vp9_one_pass_svc_start_layer(cpi);
   }
 
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_start(&cmptimer);
-#endif
 
   vp9_set_high_precision_mv(cpi, ALTREF_HIGH_PRECISION_MV);
 
@@ -6833,10 +6817,8 @@ int vp9_get_compressed_data(VP9_COMP *cpi, unsigned int *frame_flags,
   if (cpi->svc.spatial_layer_id == cpi->svc.number_spatial_layers - 1)
     cpi->fixed_qp_onepass = 0;
 
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_mark(&cmptimer);
   cpi->time_compress_data += vpx_usec_timer_elapsed(&cmptimer);
-#endif
 
   if (cpi->keep_level_stats && oxcf->pass != 1)
     update_level_info(cpi, size, arf_src_index);

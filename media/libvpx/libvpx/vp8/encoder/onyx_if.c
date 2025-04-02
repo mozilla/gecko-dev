@@ -3140,15 +3140,11 @@ void vp8_loopfilter_frame(VP8_COMP *cpi, VP8_COMMON *cm) {
   if (cm->no_lpf) {
     cm->filter_level = 0;
   } else {
-#if CONFIG_INTERNAL_STATS
     struct vpx_usec_timer timer;
-#endif
 
     vpx_clear_system_state();
 
-#if CONFIG_INTERNAL_STATS
     vpx_usec_timer_start(&timer);
-#endif
     if (cpi->sf.auto_filter == 0) {
 #if CONFIG_TEMPORAL_DENOISING
       if (cpi->oxcf.noise_sensitivity && cm->frame_type != KEY_FRAME) {
@@ -3183,10 +3179,8 @@ void vp8_loopfilter_frame(VP8_COMP *cpi, VP8_COMMON *cm) {
       vp8cx_set_alt_lf_level(cpi, cm->filter_level);
     }
 
-#if CONFIG_INTERNAL_STATS
     vpx_usec_timer_mark(&timer);
     cpi->time_pick_lpf += vpx_usec_timer_elapsed(&timer);
-#endif
   }
 
 #if CONFIG_MULTITHREAD
@@ -4790,14 +4784,10 @@ static void Pass2Encode(VP8_COMP *cpi, size_t *size, unsigned char *dest,
 int vp8_receive_raw_frame(VP8_COMP *cpi, unsigned int frame_flags,
                           YV12_BUFFER_CONFIG *sd, int64_t time_stamp,
                           int64_t end_time) {
-#if CONFIG_INTERNAL_STATS
   struct vpx_usec_timer timer;
-#endif
   int res = 0;
 
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_start(&timer);
-#endif
 
   /* Reinit the lookahead buffer if the frame size changes */
   if (sd->y_width != cpi->oxcf.Width || sd->y_height != cpi->oxcf.Height) {
@@ -4810,10 +4800,8 @@ int vp8_receive_raw_frame(VP8_COMP *cpi, unsigned int frame_flags,
                          cpi->active_map_enabled ? cpi->active_map : NULL)) {
     res = -1;
   }
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_mark(&timer);
   cpi->time_receive_data += vpx_usec_timer_elapsed(&timer);
-#endif
 
   return res;
 }
@@ -4836,18 +4824,14 @@ int vp8_get_compressed_data(VP8_COMP *cpi, unsigned int *frame_flags,
   VP8_COMMON *cm;
   struct vpx_usec_timer tsctimer;
   struct vpx_usec_timer ticktimer;
-#if CONFIG_INTERNAL_STATS
   struct vpx_usec_timer cmptimer;
-#endif
   YV12_BUFFER_CONFIG *force_src_buffer = NULL;
 
   if (!cpi) return -1;
 
   cm = &cpi->common;
 
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_start(&cmptimer);
-#endif
 
   cpi->source = NULL;
 
@@ -5149,10 +5133,8 @@ int vp8_get_compressed_data(VP8_COMP *cpi, unsigned int *frame_flags,
   /* Save layer specific state */
   if (cpi->oxcf.number_of_layers > 1) vp8_save_layer_context(cpi);
 
-#if CONFIG_INTERNAL_STATS
   vpx_usec_timer_mark(&cmptimer);
   cpi->time_compress_data += vpx_usec_timer_elapsed(&cmptimer);
-#endif
 
 #if CONFIG_MULTITHREAD
   /* wait for the lpf thread done */

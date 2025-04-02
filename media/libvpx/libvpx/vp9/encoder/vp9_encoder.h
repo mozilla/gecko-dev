@@ -867,12 +867,10 @@ typedef struct VP9_COMP {
   struct scale_factors me_sf;
   vp9_diamond_search_fn_t diamond_search_sad;
   vp9_variance_fn_ptr_t fn_ptr[BLOCK_SIZES];
-#if CONFIG_INTERNAL_STATS
   uint64_t time_receive_data;
   uint64_t time_compress_data;
   uint64_t time_pick_lpf;
   uint64_t time_encode_sb_row;
-#endif
 
   TWO_PASS twopass;
 
