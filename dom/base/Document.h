@@ -4240,7 +4240,7 @@ class Document : public nsINode,
 
   // Recompute the current resist fingerprinting state. Returns true when
   // the state was changed.
-  bool RecomputeResistFingerprinting();
+  bool RecomputeResistFingerprinting(bool aForceRefreshRTPCallerType = false);
 
   // Recompute the partitionKey for this document if needed. This is for
   // handling the case where the principal of the document is changed during the
