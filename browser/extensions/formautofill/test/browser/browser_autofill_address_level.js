@@ -168,4 +168,111 @@ add_autofill_heuristic_tests([
       },
     ],
   },
+  {
+    description: "Test autofill with label for neighbourhood and house number",
+    fixtureData: `<form>
+      <label>Nome <input id="field1"/></label>
+      <label>Endereço <input id="field2"/></label>
+      <label>Número<input id="field3"/></label>
+      <label>Apartamento<input id="field4"></label>
+      <label>CEP <input id="field5"></label>
+      <label>Estado <input id="field6"></label>
+      <label>Cidade <input id="field7"></label>
+      <label>Bairro <input id="field8"></label>
+    </form>`,
+    profile: TEST_PROFILE_BR,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          {
+            fieldName: "name",
+            autofill:
+              TEST_PROFILE_BR["given-name"] +
+              " " +
+              TEST_PROFILE_BR["family-name"],
+          },
+          { fieldName: "address-line1", autofill: "Rua Acores" },
+          {
+            fieldName: "address-housenumber",
+            autofill: "160",
+            reason: "update-heuristic-alternate",
+          },
+          { fieldName: "address-line2", autofill: "Apartment 300" },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_BR["postal-code"],
+          },
+          {
+            fieldName: "address-level1",
+            autofill: TEST_PROFILE_BR["address-level1"],
+          },
+          {
+            fieldName: "address-level2",
+            autofill: TEST_PROFILE_BR["address-level2"],
+          },
+          {
+            fieldName: "address-level3",
+            autofill: TEST_PROFILE_BR["address-level3"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Test autofill with alternative label text (complentary and numero)",
+    fixtureData: `<form>
+      <label>Nome <input id="field1"/></label>
+      <label>Endereço <input id="field2"/></label>
+      <label>Numero<input id="field3"/></label>
+      <label>Complemento<input id="field4"></label>
+      <label>CEP <input id="field5"></label>
+      <label>Estado <input id="field6"></label>
+      <label>Cidade <input id="field7"></label>
+      <label>Bairro <input id="field8"></label>
+    </form>`,
+    profile: TEST_PROFILE_BR,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          {
+            fieldName: "name",
+            autofill:
+              TEST_PROFILE_BR["given-name"] +
+              " " +
+              TEST_PROFILE_BR["family-name"],
+          },
+          { fieldName: "address-line1", autofill: "Rua Acores" },
+          {
+            fieldName: "address-housenumber",
+            autofill: "160",
+            reason: "update-heuristic-alternate",
+          },
+          { fieldName: "address-line2", autofill: "Apartment 300" },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_BR["postal-code"],
+          },
+          {
+            fieldName: "address-level1",
+            autofill: TEST_PROFILE_BR["address-level1"],
+          },
+          {
+            fieldName: "address-level2",
+            autofill: TEST_PROFILE_BR["address-level2"],
+          },
+          {
+            fieldName: "address-level3",
+            autofill: TEST_PROFILE_BR["address-level3"],
+          },
+        ],
+      },
+    ],
+  },
 ]);
