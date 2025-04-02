@@ -305,10 +305,6 @@ release-binary-transparency
 Binary transparency creates a publicly verifiable log of binary shas for downstream
 release auditing. https://wiki.mozilla.org/Security/Binary_Transparency
 
-release-flatpak-repackage
--------------------------
-Generate an installer using Flathub's Flatpak format.
-
 release-flatpak-push
 --------------------
 Pushes Flatpak repackage on Flathub
