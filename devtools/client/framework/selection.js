@@ -372,6 +372,10 @@ class Selection extends EventEmitter {
   isShadowRootNode() {
     return this.isNode() && this.nodeFront.isShadowRoot;
   }
+
+  supportsScrollIntoView() {
+    return this.isElementNode();
+  }
 }
 
 module.exports = Selection;

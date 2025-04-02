@@ -875,7 +875,7 @@ class MarkupContextMenu {
         accesskey: INSPECTOR_L10N.getStr(
           "inspectorScrollNodeIntoView.accesskey"
         ),
-        disabled: !isElement,
+        disabled: !this.inspector.selection.supportsScrollIntoView(),
         click: () => this.markup.scrollNodeIntoView(),
       })
     );

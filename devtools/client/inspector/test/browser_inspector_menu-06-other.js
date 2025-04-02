@@ -153,8 +153,76 @@ add_task(async function () {
     await toolbox.toggleSplitConsole();
   }
 
-  function testScrollIntoView() {
-    // Follow up bug to add this test - https://bugzilla.mozilla.org/show_bug.cgi?id=1154107
-    todo(false, "Verify that node is scrolled into the viewport.");
+  async function testScrollIntoView() {
+    info("Testing 'Scroll Into View' menu item for normal elements.");
+
+    await selectNode("#scroll-view", inspector);
+
+    let showScrollIntoViewNode = openContextMenuAndGetAllItems(inspector).find(
+      item => item.id === "node-menu-scrollnodeintoview"
+    );
+    ok(showScrollIntoViewNode, "the popup menu has a scroll into view item");
+
+    const isElementInViewport = () =>
+      SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+        const rect = content.document
+          .querySelector("#scroll-view")
+          .getBoundingClientRect();
+
+        return (
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= content.innerHeight &&
+          rect.right <= content.innerWidth
+        );
+      });
+
+    is(
+      await isElementInViewport(),
+      false,
+      "Sanity check: Element is not in viewport"
+    );
+
+    let onNodeScrolledIntoView = inspector.markup.once(
+      "node-scrolled-into-view"
+    );
+    showScrollIntoViewNode.click();
+    await onNodeScrolledIntoView;
+
+    is(
+      await isElementInViewport(),
+      true,
+      "Element is in the viewport after using Scroll into view context menu item"
+    );
+
+    info("Scroll back up");
+    await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+      content.document.querySelector("h1").scrollIntoView();
+    });
+
+    is(
+      await isElementInViewport(),
+      false,
+      "Element is not in viewport anymore after scrolling up"
+    );
+
+    info("Check that we can scroll to pseudo elements");
+    const pseudo = await getNodeFront("#scroll-view", inspector);
+    const children = await inspector.walker.children(pseudo);
+    const before = children.nodes[0];
+    await selectNode(before, inspector);
+
+    showScrollIntoViewNode = openContextMenuAndGetAllItems(inspector).find(
+      item => item.id === "node-menu-scrollnodeintoview"
+    );
+    onNodeScrolledIntoView = inspector.markup.once("node-scrolled-into-view");
+    showScrollIntoViewNode.click();
+    await onNodeScrolledIntoView;
+
+    is(
+      await isElementInViewport(),
+      true,
+      "Element is in the viewport after using Scroll into view context menu item on pseudo element"
+    );
   }
 });

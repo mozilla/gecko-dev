@@ -589,6 +589,11 @@ class NodeActor extends Actor {
    * Scroll the selected node into view.
    */
   scrollIntoView() {
+    // this.rawNode can be an element without `scrollIntoView` (e.g. a `Text` or a `Comment`)
+    // In such case, bail out.
+    if (typeof this.rawNode.scrollIntoView !== "function") {
+      return;
+    }
     this.rawNode.scrollIntoView(true);
   }
 

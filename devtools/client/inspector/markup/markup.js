@@ -1421,11 +1421,13 @@ MarkupView.prototype = {
    * Scroll the node into view.
    */
   scrollNodeIntoView() {
-    if (!this.inspector.selection.isNode()) {
+    if (!this.inspector.selection.supportsScrollIntoView()) {
       return;
     }
 
-    this.inspector.selection.nodeFront.scrollIntoView();
+    this.inspector.selection.nodeFront
+      .scrollIntoView()
+      .then(() => this.emitForTests("node-scrolled-into-view"));
   },
 
   async toggleMutationBreakpoint(name) {
