@@ -4004,6 +4004,8 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
         }
       }
 
+      atomMarking.mergePendingFreeArenaIndexes(this);
+
       assertBackgroundSweepingFinished();
 
       // Ensure freeing of nursery owned sized allocations from the initial

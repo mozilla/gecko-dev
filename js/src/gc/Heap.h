@@ -230,8 +230,7 @@ class alignas(ArenaSize) Arena {
   uint8_t data[ArenaSize - ArenaHeaderSize];
 
   // Create a free arena in uninitialized committed memory.
-  void init(GCRuntime* gc, JS::Zone* zoneArg, AllocKind kind,
-            const AutoLockGC& lock);
+  void init(GCRuntime* gc, JS::Zone* zone, AllocKind kind);
 
   JS::Zone* zone() const { return zone_; }
 
@@ -245,6 +244,8 @@ class alignas(ArenaSize) Arena {
     last->initAsEmpty();
   }
 
+  // Unregister the associated atom marking bitmap index for an arena in the
+  // atoms zone.
   inline void freeAtomMarkingBitmapIndex(GCRuntime* gc, const AutoLockGC& lock);
 
   // Return an allocated arena to its unallocated (free) state.

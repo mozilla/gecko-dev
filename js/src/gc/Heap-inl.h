@@ -14,15 +14,14 @@
 #include "util/Poison.h"
 #include "vm/Runtime.h"
 
-inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
-                                AllocKind kind, const AutoLockGC& lock) {
-  MOZ_ASSERT(zoneArg);
+inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zone, AllocKind kind) {
+  MOZ_ASSERT(zone);
   MOZ_ASSERT(IsValidAllocKind(kind));
 
   MOZ_MAKE_MEM_UNDEFINED(this, ArenaSize);
 
   allocKind = kind;
-  zone_ = zoneArg;
+  zone_ = zone;
   next = nullptr;
   isNewlyCreated_ = 1;
   onDelayedMarkingList_ = 0;
@@ -30,7 +29,7 @@ inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
   hasDelayedGrayMarking_ = 0;
   nextDelayedMarkingArena_ = 0;
   if (zone_->isAtomsZone()) {
-    atomBitmapStart() = gc->atomMarking.allocateIndex(lock);
+    atomBitmapStart() = gc->atomMarking.allocateIndex(gc);
   } else {
     bufferedCells() = &ArenaCellSet::Empty;
   }
