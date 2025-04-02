@@ -497,7 +497,7 @@ Arena* ArenaChunk::allocateArena(GCRuntime* gc, Zone* zone, AllocKind thingKind,
   Arena* arena = fetchNextFreeArena(gc);
 
   arena->init(gc, zone, thingKind, lock);
-  updateChunkListAfterAlloc(gc, lock);
+  updateFreeCountsAfterAlloc(gc, 1, lock);
 
   verify();
 
@@ -534,11 +534,9 @@ Arena* ArenaChunk::fetchNextFreeArena(GCRuntime* gc) {
 
   size_t index = freeCommittedArenas.FindFirst();
   MOZ_ASSERT(index < ArenasPerChunk);
-  MOZ_ASSERT(freeCommittedArenas[index]);
 
+  MOZ_ASSERT(freeCommittedArenas[index]);
   freeCommittedArenas[index] = false;
-  --info.numArenasFreeCommitted;
-  --info.numArenasFree;
 
   return &arenas[index];
 }
@@ -565,7 +563,7 @@ ArenaChunk* GCRuntime::getOrAllocChunk(StallAndRetry stallAndRetry,
     // committed.
     SetMemCheckKind(chunk, sizeof(ChunkBase), MemCheckKind::MakeUndefined);
     chunk->initBaseForArenaChunk(rt);
-    MOZ_ASSERT(chunk->unused());
+    MOZ_ASSERT(chunk->isEmpty());
   } else {
     void* ptr = ArenaChunk::allocate(this, stallAndRetry);
     if (!ptr) {
@@ -573,7 +571,7 @@ ArenaChunk* GCRuntime::getOrAllocChunk(StallAndRetry stallAndRetry,
     }
 
     chunk = ArenaChunk::emplace(ptr, this, /* allMemoryCommitted = */ true);
-    MOZ_ASSERT(chunk->unused());
+    MOZ_ASSERT(chunk->isEmpty());
     emptyChunks(lock).push(chunk);
   }
 
@@ -586,7 +584,7 @@ ArenaChunk* GCRuntime::getOrAllocChunk(StallAndRetry stallAndRetry,
 
 void GCRuntime::recycleChunk(ArenaChunk* chunk, const AutoLockGC& lock) {
 #ifdef DEBUG
-  MOZ_ASSERT(chunk->unused());
+  MOZ_ASSERT(chunk->isEmpty());
   chunk->verify();
 #endif
 
@@ -610,7 +608,7 @@ ArenaChunk* GCRuntime::pickChunk(StallAndRetry stallAndRetry,
 
 #ifdef DEBUG
   chunk->verify();
-  MOZ_ASSERT(chunk->unused());
+  MOZ_ASSERT(chunk->isEmpty());
   MOZ_ASSERT(emptyChunks(lock).contains(chunk));
 #endif
 
@@ -683,14 +681,14 @@ ArenaChunk* ArenaChunk::emplace(void* ptr, GCRuntime* gc,
     chunk->initAsCommitted();
   }
 
-  MOZ_ASSERT(chunk->unused());
+  MOZ_ASSERT(chunk->isEmpty());
   chunk->verify();
 
   return chunk;
 }
 
 void ArenaChunk::decommitAllArenas() {
-  MOZ_ASSERT(unused());
+  MOZ_ASSERT(isEmpty());
   MarkPagesUnusedSoft(&arenas[0], ArenasPerChunk * ArenaSize);
   initAsDecommitted();
 }

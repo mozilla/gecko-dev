@@ -516,9 +516,10 @@ class ArenaChunk : public ArenaChunkBase {
     return addr;
   }
 
-  bool unused() const { return info.numArenasFree == ArenasPerChunk; }
+  bool isEmpty() const { return info.numArenasFree == ArenasPerChunk; }
 
-  bool hasAvailableArenas() const { return info.numArenasFree != 0; }
+  bool hasAvailableArenas() const { return !isFull(); }
+  bool isFull() const { return info.numArenasFree == 0; }
 
   bool isNurseryChunk() const { return storeBuffer; }
 
@@ -551,9 +552,10 @@ class ArenaChunk : public ArenaChunkBase {
  private:
   void commitOnePage(GCRuntime* gc);
 
-  void updateChunkListAfterAlloc(GCRuntime* gc, const AutoLockGC& lock);
-  void updateChunkListAfterFree(GCRuntime* gc, size_t numArenasFree,
-                                const AutoLockGC& lock);
+  void updateFreeCountsAfterAlloc(GCRuntime* gc, size_t numArenasAlloced,
+                                  const AutoLockGC& lock);
+  void updateFreeCountsAfterFree(GCRuntime* gc, size_t numArenasFreed,
+                                 bool wasCommitted, const AutoLockGC& lock);
 
   // Check if all arenas in a page are free.
   bool canDecommitPage(size_t pageIndex) const;

@@ -337,12 +337,9 @@ void ArenaChunk::releaseArena(GCRuntime* gc, Arena* arena,
   MOZ_ASSERT(!freeCommittedArenas[arenaIndex(arena)]);
 
   freeCommittedArenas[arenaIndex(arena)] = true;
-  ++info.numArenasFreeCommitted;
-  ++info.numArenasFree;
+  updateFreeCountsAfterFree(gc, 1, true, lock);
 
   verify();
-
-  updateChunkListAfterFree(gc, 1, lock);
 }
 
 bool ArenaChunk::decommitOneFreePage(GCRuntime* gc, size_t pageIndex,
@@ -357,9 +354,7 @@ bool ArenaChunk::decommitOneFreePage(GCRuntime* gc, size_t pageIndex,
     MOZ_ASSERT(freeCommittedArenas[arenaIndex]);
     freeCommittedArenas[arenaIndex] = false;
   }
-  info.numArenasFreeCommitted -= ArenasPerPage;
-  info.numArenasFree -= ArenasPerPage;
-  updateChunkListAfterAlloc(gc, lock);
+  updateFreeCountsAfterAlloc(gc, ArenasPerPage, lock);
 
   verify();
 
@@ -383,8 +378,7 @@ bool ArenaChunk::decommitOneFreePage(GCRuntime* gc, size_t pageIndex,
     info.numArenasFreeCommitted += ArenasPerPage;
   }
 
-  info.numArenasFree += ArenasPerPage;
-  updateChunkListAfterFree(gc, ArenasPerPage, lock);
+  updateFreeCountsAfterFree(gc, ArenasPerPage, false, lock);
 
   verify();
 
@@ -419,32 +413,60 @@ void ArenaChunk::decommitFreeArenasWithoutUnlocking(const AutoLockGC& lock) {
   verify();
 }
 
-void ArenaChunk::updateChunkListAfterAlloc(GCRuntime* gc,
-                                           const AutoLockGC& lock) {
-  if (MOZ_UNLIKELY(info.numArenasFree == ArenasPerChunk - 1)) {
+void ArenaChunk::updateFreeCountsAfterAlloc(GCRuntime* gc,
+                                            size_t numArenasAlloced,
+                                            const AutoLockGC& lock) {
+  MOZ_ASSERT(numArenasAlloced > 0);
+  MOZ_ASSERT(info.numArenasFree >= numArenasAlloced);
+  MOZ_ASSERT(info.numArenasFreeCommitted >= numArenasAlloced);
+
+  bool wasEmpty = isEmpty();
+
+  info.numArenasFreeCommitted -= numArenasAlloced;
+  info.numArenasFree -= numArenasAlloced;
+
+  if (MOZ_UNLIKELY(wasEmpty)) {
     gc->emptyChunks(lock).remove(this);
     gc->availableChunks(lock).push(this);
     return;
   }
 
-  if (MOZ_UNLIKELY(!hasAvailableArenas())) {
+  if (MOZ_UNLIKELY(isFull())) {
     gc->availableChunks(lock).remove(this);
     gc->fullChunks(lock).push(this);
+    return;
   }
+
+  MOZ_ASSERT(gc->availableChunks(lock).contains(this));
 }
 
-void ArenaChunk::updateChunkListAfterFree(GCRuntime* gc, size_t numArenasFree,
-                                          const AutoLockGC& lock) {
-  if (info.numArenasFree == numArenasFree) {
+void ArenaChunk::updateFreeCountsAfterFree(GCRuntime* gc, size_t numArenasFreed,
+                                           bool wasCommitted,
+                                           const AutoLockGC& lock) {
+  MOZ_ASSERT(numArenasFreed > 0);
+  MOZ_ASSERT(info.numArenasFree + numArenasFreed <= ArenasPerChunk);
+  MOZ_ASSERT(info.numArenasFreeCommitted + numArenasFreed <= ArenasPerChunk);
+
+  bool wasFull = isFull();
+
+  info.numArenasFree += numArenasFreed;
+  if (wasCommitted) {
+    info.numArenasFreeCommitted += numArenasFreed;
+  }
+
+  if (MOZ_UNLIKELY(wasFull)) {
     gc->fullChunks(lock).remove(this);
     gc->availableChunks(lock).push(this);
-  } else if (!unused()) {
-    MOZ_ASSERT(gc->availableChunks(lock).contains(this));
-  } else {
-    MOZ_ASSERT(unused());
+    return;
+  }
+
+  if (MOZ_UNLIKELY(isEmpty())) {
     gc->availableChunks(lock).remove(this);
     gc->recycleChunk(this, lock);
+    return;
   }
+
+  MOZ_ASSERT(gc->availableChunks(lock).contains(this));
 }
 
 ArenaChunk* ChunkPool::pop() {
