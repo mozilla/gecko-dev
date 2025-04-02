@@ -394,7 +394,7 @@ async function perfSetup({ disabled = false, prefs = [], backend } = {}) {
     set: finalPrefs,
   });
 
-  const artifactDirectory = normalizePathForOS(
+  let artifactDirectory = normalizePathForOS(
     `${Services.env.get("MOZ_FETCHES_DIR")}`
   );
 
@@ -408,17 +408,23 @@ async function perfSetup({ disabled = false, prefs = [], backend } = {}) {
 
   // Stop immediately if this fails.
   if (!artifactDirectory) {
+    artifactDirectory = normalizePathForOS(
+      `${Services.env.get("MOZ_ML_LOCAL_DIR")}`
+    );
+  }
+
+  if (!artifactDirectory) {
     throw new Error(
       `The wasm artifact directory is not set. This usually happens when running locally. " +
       "Please download all the files from taskcluster/kinds/fetch/onnxruntime-web-fetch.yml. " +
-      "Place them in a directory and rerun the test with the environment variable 'MOZ_FETCHES_DIR' " +
-      "set such that all the files are directly inside 'MOZ_FETCHES_DIR'`
+      "Place them in a directory and rerun the test with the environment variable 'MOZ_ML_LOCAL_DIR' " +
+      "set such that all the files are directly inside 'MOZ_ML_LOCAL_DIR'`
     );
   }
 
   if (!PathUtils.isAbsolute(artifactDirectory)) {
     throw new Error(
-      "Please provide an absolute path for 'MOZ_FETCHES_DIR and not a relative path"
+      "Please provide an absolute path for 'MOZ_ML_LOCAL_DIR and not a relative path"
     );
   }
 

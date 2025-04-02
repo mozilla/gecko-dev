@@ -205,7 +205,7 @@ def main():
         description="Download ort.jsep.wasm and optionally clone specified models."
     )
 
-    default_dir = os.getenv("MOZ_FETCHES_DIR", None)
+    default_dir = os.getenv("MOZ_ML_LOCAL_DIR", None)
 
     parser.add_argument(
         "--fetches-dir",
@@ -235,7 +235,7 @@ def main():
 
     if args.fetches_dir is None:
         raise ValueError(
-            "Missing --fetches-dir argument or MOZ_FETCHES_DIR env var. Please specify a directory to store the downloaded files"
+            "Missing --fetches-dir argument or MOZ_ML_LOCAL_DIR env var. Please specify a directory to store the downloaded files"
         )
 
     fetches_dir = Path(args.fetches_dir).resolve()

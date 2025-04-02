@@ -85,7 +85,7 @@ We provide a script to automate this.
   (Use `--model <key>` to clone one of these repositories.)
 
 You can then use `--model` to download locally models, by specifying the local
-`MOZ_FETCHES_DIR` directory, via the env var or command line argument :
+`MOZ_ML_LOCAL_DIR` directory, via the env var or command line argument :
 
 .. code-block:: bash
 
@@ -102,9 +102,9 @@ Once done, you should then be able to run it locally with :
 
 .. code-block:: bash
 
-   $ MOZ_FETCHES_DIR=~/ml-fetches ./mach perftest toolkit/components/ml/tests/browser/browser_ml_engine_perf.js --mochitest-extra-args=headless
+   $ MOZ_ML_LOCAL_DIR=~/ml-fetches ./mach perftest toolkit/components/ml/tests/browser/browser_ml_engine_perf.js --mochitest-extra-args=headless
 
-Notice that `MOZ_FETCHES_DIR` is an absolute path to the `root` directory.
+Notice that `MOZ_ML_LOCAL_DIR` is an absolute path to the `root` directory.
 
 Add in the CI
 -------------

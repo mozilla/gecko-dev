@@ -91,7 +91,7 @@ requestLongerTimeout(120);
 
 // To run locally
 // pip install huggingface-hub
-// huggingface-cli download {model_id} --local-dir MOZ_FETCHES_DIR/onnx-models/{model_id}/{revision}
+// huggingface-cli download {model_id} --local-dir MOZ_ML_LOCAL_DIR/onnx-models/{model_id}/{revision}
 
 // Update your test in
 // Then run:  ./mach lint -l perfdocs --fix .

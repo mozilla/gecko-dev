@@ -8,7 +8,7 @@ import socketserver
 import threading
 from pathlib import Path
 
-_THREAD = None
+THREADS = []
 
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -70,23 +70,26 @@ def start_hub(root_directory):
 def before_runs(env):
     """Runs before all performance tests.
 
-    We grab MOZ_FETCHES_DIR. If set we serve MOZ_FETCHES_DIR/onnx-models as our local hub.
+    We grab MOZ_ML_LOCAL_DIR. If set we serve MOZ_ML_LOCAL_DIR/onnx-models as our local hub.
+
+    MOZ_FETCHES_DIR is used in the CI as an alternate localtion.
     """
-    global _THREAD
-    fetches_dir = os.environ.get("MOZ_FETCHES_DIR")
+    fetches_dir = os.environ.get("MOZ_ML_LOCAL_DIR")
+    if fetches_dir is None:
+        fetches_dir = os.environ.get("MOZ_FETCHES_DIR")
     if fetches_dir is None:
         return
+
     hub_dir = Path(fetches_dir) / "onnx-models"
     if not hub_dir.is_dir():
         return
     port, server_thread = start_hub(hub_dir)
     os.environ["MOZ_MODELS_HUB"] = f"http://localhost:{port}"
-    _THREAD = server_thread
+    THREADS.append(server_thread)
 
 
 def after_runs(env):
-    global _THREAD
-    if _THREAD is not None:
+    if len(THREADS) > 0:
         print("Shutting down")
-        _THREAD.join(timeout=0)
-        _THREAD = None
+        THREADS[0].join(timeout=0)
+        THREADS.clear()
