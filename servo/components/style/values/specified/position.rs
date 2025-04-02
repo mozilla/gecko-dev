@@ -560,8 +560,12 @@ impl Parse for PositionTryFallbacksTryTactic {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let first = input.try_parse(PositionTryFallbacksTryTacticKeyword::parse)?;
-        let second = input.try_parse(PositionTryFallbacksTryTacticKeyword::parse).unwrap_or_default();
-        let third = input.try_parse(PositionTryFallbacksTryTacticKeyword::parse).unwrap_or_default();
+        let second = input
+            .try_parse(PositionTryFallbacksTryTacticKeyword::parse)
+            .unwrap_or_default();
+        let third = input
+            .try_parse(PositionTryFallbacksTryTacticKeyword::parse)
+            .unwrap_or_default();
         if first == second || first == third || (!second.is_none() && second == third) {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
@@ -1754,20 +1758,26 @@ impl Inset {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(l) =
-            input.try_parse(|i| LengthPercentage::parse_quirky_with_anchor_functions(context, i, allow_quirks))
+        if let Ok(l) = input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
         {
             return Ok(Self::LengthPercentage(l));
         }
-        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(Self::Auto);
-        }
+        match input.try_parse(|i| i.expect_ident_matching("auto")) {
+            Ok(_) => return Ok(Self::Auto),
+            Err(e) if !static_prefs::pref!("layout.css.anchor-positioning.enabled") => {
+                return Err(e.into())
+            },
+            Err(_) => (),
+        };
         if let Ok(inner) = input.try_parse(|i| AnchorFunction::parse(context, i)) {
             return Ok(Self::AnchorFunction(Box::new(inner)));
         }
-        Ok(Self::AnchorSizeFunction(Box::new(
-            specified::AnchorSizeFunction::parse(context, input)?,
-        )))
+        if let Ok(inner) = input.try_parse(|i| specified::AnchorSizeFunction::parse(context, i)) {
+            return Ok(Self::AnchorSizeFunction(Box::new(inner)));
+        }
+        Ok(Self::AnchorContainingCalcFunction(input.try_parse(
+            |i| LengthPercentage::parse_quirky_with_anchor_functions(context, i, allow_quirks),
+        )?))
     }
 }
 

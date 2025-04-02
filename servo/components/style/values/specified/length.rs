@@ -1723,7 +1723,13 @@ impl LengthPercentage {
             },
             Token::Function(ref name) => {
                 let function = CalcNode::math_function(context, name, location)?;
-                let calc = CalcNode::parse_length_or_percentage(context, input, num_context, function, allow_anchor)?;
+                let calc = CalcNode::parse_length_or_percentage(
+                    context,
+                    input,
+                    num_context,
+                    function,
+                    allow_anchor,
+                )?;
                 Ok(LengthPercentage::Calc(Box::new(calc)))
             },
             _ => return Err(location.new_unexpected_token_error(token.clone())),
@@ -1976,9 +1982,9 @@ impl NonNegativeLengthPercentage {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        LengthPercentage::parse_non_negative_with_anchor_size(context, input, allow_quirks).map(NonNegative)
+        LengthPercentage::parse_non_negative_with_anchor_size(context, input, allow_quirks)
+            .map(NonNegative)
     }
-
 }
 
 /// Either a `<length>` or the `auto` keyword.
@@ -2079,10 +2085,23 @@ impl Size {
         parse_size_non_length!(Size, input, "auto" => Auto);
         parse_fit_content_function!(Size, input, context, allow_quirks);
 
-        if let Ok(length) =
-            input.try_parse(|i| NonNegativeLengthPercentage::parse_non_negative_with_anchor_size(context, i, allow_quirks))
+        match input
+            .try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks))
         {
-            return Ok(GenericSize::LengthPercentage(length));
+            Ok(length) => return Ok(GenericSize::LengthPercentage(length)),
+            Err(e) if !static_prefs::pref!("layout.css.anchor-positioning.enabled") => {
+                return Err(e.into())
+            },
+            Err(_) => (),
+        };
+        if let Ok(length) = input.try_parse(|i| {
+            NonNegativeLengthPercentage::parse_non_negative_with_anchor_size(
+                context,
+                i,
+                allow_quirks,
+            )
+        }) {
+            return Ok(GenericSize::AnchorContainingCalcFunction(length));
         }
         Ok(Self::AnchorSizeFunction(Box::new(
             GenericAnchorSizeFunction::parse(context, input)?,
@@ -2118,10 +2137,23 @@ impl MaxSize {
         parse_size_non_length!(MaxSize, input, "none" => None);
         parse_fit_content_function!(MaxSize, input, context, allow_quirks);
 
-        if let Ok(length) =
-            input.try_parse(|i| NonNegativeLengthPercentage::parse_non_negative_with_anchor_size(context, i, allow_quirks))
+        match input
+            .try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks))
         {
-            return Ok(GenericMaxSize::LengthPercentage(length));
+            Ok(length) => return Ok(GenericMaxSize::LengthPercentage(length)),
+            Err(e) if !static_prefs::pref!("layout.css.anchor-positioning.enabled") => {
+                return Err(e.into())
+            },
+            Err(_) => (),
+        };
+        if let Ok(length) = input.try_parse(|i| {
+            NonNegativeLengthPercentage::parse_non_negative_with_anchor_size(
+                context,
+                i,
+                allow_quirks,
+            )
+        }) {
+            return Ok(GenericMaxSize::AnchorContainingCalcFunction(length));
         }
         Ok(Self::AnchorSizeFunction(Box::new(
             GenericAnchorSizeFunction::parse(context, input)?,
@@ -2139,7 +2171,7 @@ pub type AnchorSizeFunction = GenericAnchorSizeFunction<LengthPercentage>;
 pub type Margin = GenericMargin<LengthPercentage>;
 
 impl Margin {
-    /// Parses an inset type, allowing the unitless length quirk.
+    /// Parses a margin type, allowing the unitless length quirk.
     /// <https://quirks.spec.whatwg.org/#the-unitless-length-quirk>
     #[inline]
     pub fn parse_quirky<'i, 't>(
@@ -2147,13 +2179,21 @@ impl Margin {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
+        if let Ok(l) = input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+        {
+            return Ok(Self::LengthPercentage(l));
+        }
+        match input.try_parse(|i| i.expect_ident_matching("auto")) {
+            Ok(_) => return Ok(Self::Auto),
+            Err(e) if !static_prefs::pref!("layout.css.anchor-positioning.enabled") => {
+                return Err(e.into())
+            },
+            Err(_) => (),
+        };
         if let Ok(l) = input.try_parse(|i| {
             LengthPercentage::parse_quirky_with_anchor_size_function(context, i, allow_quirks)
         }) {
-            return Ok(Self::LengthPercentage(l));
-        }
-        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(Self::Auto);
+            return Ok(Self::AnchorContainingCalcFunction(l));
         }
         let inner = AnchorSizeFunction::parse(context, input)?;
         Ok(Self::AnchorSizeFunction(Box::new(inner)))

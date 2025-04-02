@@ -295,6 +295,9 @@ pub enum GenericInset<P, LP> {
         #[distance(field_bound)]
         Box<GenericAnchorSizeFunction<LP>>,
     ),
+    /// A `<length-percentage>` value, guaranteed to contain `calc()`,
+    /// which then is guaranteed to contain `anchor()` or `anchor-size()`.
+    AnchorContainingCalcFunction(LP),
 }
 
 impl<P, LP> SpecifiedValueInfo for GenericInset<P, LP>

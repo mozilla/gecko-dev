@@ -864,8 +864,24 @@ IMPL_LENGTHPERCENTAGE_FORWARDS(StyleInset)
 IMPL_LENGTHPERCENTAGE_FORWARDS(StyleMargin)
 
 template <>
-inline bool StyleInset::IsAnchorPositioningFunction() const {
-  return IsAnchorFunction() || IsAnchorSizeFunction();
+inline bool StyleInset::HasAnchorPositioningFunction() const {
+  return IsAnchorFunction() || IsAnchorSizeFunction() ||
+         IsAnchorContainingCalcFunction();
+}
+
+template <>
+inline bool StyleMargin::HasAnchorPositioningFunction() const {
+  return IsAnchorSizeFunction() || IsAnchorContainingCalcFunction();
+}
+
+template <>
+inline bool StyleSize::HasAnchorPositioningFunction() const {
+  return IsAnchorSizeFunction() || IsAnchorContainingCalcFunction();
+}
+
+template <>
+inline bool StyleMaxSize::HasAnchorPositioningFunction() const {
+  return IsAnchorSizeFunction() || IsAnchorContainingCalcFunction();
 }
 
 #undef IMPL_LENGTHPERCENTAGE_FORWARDS

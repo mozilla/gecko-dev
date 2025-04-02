@@ -409,7 +409,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
   static const mozilla::StyleMargin kZeroMargin;
   const mozilla::StyleMargin& GetMargin(mozilla::Side aSide) const {
     const auto& result = mMargin.Get(aSide);
-    if (MOZ_UNLIKELY(result.IsAnchorSizeFunction())) {
+    if (MOZ_UNLIKELY(result.HasAnchorPositioningFunction())) {
       return kZeroMargin;
     }
     return result;
@@ -914,42 +914,42 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   static const StyleMaxSize kNoneMaxSize;
 
   const StyleSize& GetWidth() const {
-    if (MOZ_UNLIKELY(mWidth.IsAnchorSizeFunction())) {
+    if (MOZ_UNLIKELY(mWidth.HasAnchorPositioningFunction())) {
       return kAutoSize;
     }
     return mWidth;
   }
 
   const StyleSize& GetHeight() const {
-    if (MOZ_UNLIKELY(mHeight.IsAnchorSizeFunction())) {
+    if (MOZ_UNLIKELY(mHeight.HasAnchorPositioningFunction())) {
       return kAutoSize;
     }
     return mHeight;
   }
 
   const StyleSize& GetMinWidth() const {
-    if (MOZ_UNLIKELY(mMinWidth.IsAnchorSizeFunction())) {
+    if (MOZ_UNLIKELY(mMinWidth.HasAnchorPositioningFunction())) {
       return kAutoSize;
     }
     return mMinWidth;
   }
 
   const StyleSize& GetMinHeight() const {
-    if (MOZ_UNLIKELY(mMinHeight.IsAnchorSizeFunction())) {
+    if (MOZ_UNLIKELY(mMinHeight.HasAnchorPositioningFunction())) {
       return kAutoSize;
     }
     return mMinHeight;
   }
 
   const StyleMaxSize& GetMaxWidth() const {
-    if (MOZ_UNLIKELY(mMaxWidth.IsAnchorSizeFunction())) {
+    if (MOZ_UNLIKELY(mMaxWidth.HasAnchorPositioningFunction())) {
       return kNoneMaxSize;
     }
     return mMaxWidth;
   }
 
   const StyleMaxSize& GetMaxHeight() const {
-    if (MOZ_UNLIKELY(mMaxHeight.IsAnchorSizeFunction())) {
+    if (MOZ_UNLIKELY(mMaxHeight.HasAnchorPositioningFunction())) {
       return kNoneMaxSize;
     }
     return mMaxHeight;
