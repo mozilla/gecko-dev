@@ -11,9 +11,6 @@ const { MatchStatus } = ChromeUtils.importESModule(
 const { NimbusTelemetry } = ChromeUtils.importESModule(
   "resource://nimbus/lib/Telemetry.sys.mjs"
 );
-const { UnenrollmentCause } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/ExperimentManager.sys.mjs"
-);
 
 async function cleanupStore(store) {
   Assert.deepEqual(
@@ -122,17 +119,16 @@ add_task(async function test_startup_unenroll() {
   store.addEnrollment(recipe);
 
   const manager = ExperimentFakes.manager(store);
-  sandbox.spy(manager, "_unenroll");
+  const unenrollSpy = sandbox.spy(manager, "unenroll");
 
   await manager.onStartup();
 
   Assert.ok(
-    manager._unenroll.calledOnceWith(
-      sinon.match({ slug: "startup_unenroll" }),
-      {
-        reason: "studies-opt-out",
-      }
-    ),
+    unenrollSpy.calledOnce,
+    "Unenrolled from active experiment if user opt out is true"
+  );
+  Assert.ok(
+    unenrollSpy.calledWith("startup_unenroll", "studies-opt-out"),
     "Called unenroll for expected recipe"
   );
 
@@ -174,7 +170,7 @@ add_task(async function test_onRecipe_enroll() {
     "should add recipe to the store"
   );
 
-  manager.unenroll(fooRecipe.slug);
+  manager.unenroll(fooRecipe.slug, "test-cleanup");
 
   await cleanupStore(manager.store);
 });
@@ -208,7 +204,7 @@ add_task(async function test_onRecipe_update() {
     "should call .updateEnrollment() if the recipe has already been enrolled"
   );
 
-  manager.unenroll(fooRecipe.slug);
+  manager.unenroll(fooRecipe.slug, "test-cleanup");
 
   await cleanupStore(manager.store);
 });
@@ -427,12 +423,7 @@ add_task(async function test_experimentStore_updateEvent() {
   );
   stub.resetHistory();
 
-  manager.unenroll(
-    "experiment",
-    UnenrollmentCause.fromReason(
-      NimbusTelemetry.UnenrollReason.INDIVIDUAL_OPT_OUT
-    )
-  );
+  manager.unenroll("experiment", "individual-opt-out");
   Assert.ok(
     stub.calledOnceWith("update", {
       slug: "experiment",
