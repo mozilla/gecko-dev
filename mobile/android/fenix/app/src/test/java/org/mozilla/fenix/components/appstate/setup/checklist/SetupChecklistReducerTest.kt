@@ -18,7 +18,7 @@ class SetupChecklistReducerTest {
     fun `GIVEN no setup checklist state WHEN checklist item clicked action THEN the reduced state remains the same`() {
         val task = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
-            title = "task",
+            title = R.string.setup_checklist_task_explore_extensions,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )
@@ -45,11 +45,11 @@ class SetupChecklistReducerTest {
     @Test
     fun `WHEN a group item is clicked THEN the reduced state has the group expanded and other groups collapsed`() {
         val expandedGroup = ChecklistItem.Group(
-            title = "group1",
+            title = R.string.setup_checklist_group_essentials,
             tasks = listOf(
                 ChecklistItem.Task(
                     type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
-                    title = "task1",
+                    title = R.string.setup_checklist_task_default_browser,
                     icon = R.drawable.ic_addons_extensions,
                     isCompleted = false,
                 ),
@@ -57,11 +57,11 @@ class SetupChecklistReducerTest {
             isExpanded = true,
         )
         val collapsedGroup = ChecklistItem.Group(
-            title = "group2",
+            title = R.string.setup_checklist_group_helpful_tools,
             tasks = listOf(
                 ChecklistItem.Task(
                     type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
-                    title = "task2",
+                    title = R.string.setup_checklist_task_explore_extensions,
                     icon = R.drawable.ic_addons_extensions,
                     isCompleted = false,
                 ),
@@ -96,7 +96,7 @@ class SetupChecklistReducerTest {
     fun `WHEN a task item is clicked THEN the reduced state has the task marked completed`() {
         val task = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
-            title = "task",
+            title = R.string.setup_checklist_task_explore_extensions,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )
@@ -115,18 +115,18 @@ class SetupChecklistReducerTest {
     fun `WHEN a task item within a group is clicked THEN the reduced state has only the clicked task marked completed`() {
         val taskToClick = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
-            title = "task1",
+            title = R.string.setup_checklist_task_default_browser,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )
         val taskNoClick = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
-            title = "task2",
+            title = R.string.setup_checklist_task_default_browser,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )
         val group = ChecklistItem.Group(
-            title = "group",
+            title = R.string.setup_checklist_group_customize,
             tasks = listOf(taskToClick, taskNoClick),
             isExpanded = true,
         )

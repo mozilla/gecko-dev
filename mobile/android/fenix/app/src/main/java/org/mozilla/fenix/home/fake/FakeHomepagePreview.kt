@@ -27,6 +27,7 @@ import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryShim
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
 import org.mozilla.fenix.compose.MessageCardColors
 import org.mozilla.fenix.compose.MessageCardState
 import org.mozilla.fenix.compose.SelectableChipColors
@@ -109,6 +110,10 @@ internal object FakeHomepagePreview {
             override fun showWallpapersOnboardingDialog(state: WallpaperState): Boolean {
                 return false
             }
+
+            override fun onChecklistItemClicked(item: ChecklistItem) { /* no op */ }
+
+            override fun onRemoveChecklistButtonClicked() { /* no op */ }
         }
 
     internal val privateBrowsingInteractor

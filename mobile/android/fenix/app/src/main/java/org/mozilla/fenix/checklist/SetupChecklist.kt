@@ -34,6 +34,7 @@ import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
 import org.mozilla.fenix.components.appstate.setup.checklist.Progress
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.home.sessioncontrol.SetupChecklistInteractor
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val elevation = AcornLayout.AcornElevation.xLarge
@@ -43,22 +44,21 @@ private val shapeChecklist = RoundedCornerShape(size = AcornLayout.AcornCorner.l
  * The Setup checklist displayed on homepage that contains onboarding tasks.
  *
  * @param setupChecklistState The [SetupChecklistState] used to manage the state of feature.
+ * @param interactor The [SetupChecklistInteractor] used to handle user interactions.
  * @param title The checklist's title.
  * @param subtitle The checklist's subtitle.
  * @param labelRemoveChecklistButton The label of the checklist's button to remove it.
- * @param onChecklistItemClicked Gets invoked when the user clicks a check list item.
- * @param onRemoveChecklistButtonClicked Invoked when the remove button is clicked.
  */
 @Composable
 fun SetupChecklist(
     setupChecklistState: SetupChecklistState,
+    interactor: SetupChecklistInteractor,
     title: String,
     subtitle: String,
     labelRemoveChecklistButton: String,
-    onChecklistItemClicked: (ChecklistItem) -> Unit,
-    onRemoveChecklistButtonClicked: () -> Unit,
 ) {
     Card(
+        modifier = Modifier.padding(16.dp),
         shape = shapeChecklist,
         backgroundColor = FirefoxTheme.colors.layer1,
         elevation = elevation,
@@ -67,14 +67,20 @@ fun SetupChecklist(
             verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.Start,
         ) {
-            Header(title, subtitle, setupChecklistState.progress)
+            Header(title = title, subtitle = subtitle, progress = setupChecklistState.progress)
 
-            CheckListView(setupChecklistState.checklistItems, onChecklistItemClicked)
+            CheckListView(
+                interactor = interactor,
+                checkListItems = setupChecklistState.checklistItems,
+            )
 
             if (setupChecklistState.progress.allTasksCompleted()) {
                 Divider()
 
-                RemoveChecklistButton(labelRemoveChecklistButton, onRemoveChecklistButtonClicked)
+                RemoveChecklistButton(
+                    interactor = interactor,
+                    labelRemoveChecklistButton = labelRemoveChecklistButton,
+                )
             }
         }
     }
@@ -90,14 +96,8 @@ private fun Header(
     progress: Progress,
 ) {
     Column(
-        modifier = Modifier.padding(
-            horizontal = 16.dp,
-            vertical = 12.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(
-            12.dp,
-            Alignment.Top,
-        ),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
         horizontalAlignment = Alignment.Start,
     ) {
         Text(
@@ -121,9 +121,9 @@ private fun Header(
  * The button that will remove the setup checklist from homepage.
  */
 @Composable
-fun RemoveChecklistButton(
+private fun RemoveChecklistButton(
+    interactor: SetupChecklistInteractor,
     labelRemoveChecklistButton: String,
-    onRemoveChecklistButtonClicked: () -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(24.dp),
@@ -136,9 +136,8 @@ fun RemoveChecklistButton(
         ) {
             PrimaryButton(
                 text = labelRemoveChecklistButton,
-                modifier = Modifier
-                    .width(width = FirefoxTheme.layout.size.maxWidth.small),
-                onClick = onRemoveChecklistButtonClicked,
+                modifier = Modifier.width(width = FirefoxTheme.layout.size.maxWidth.small),
+                onClick = { interactor.onRemoveChecklistButtonClicked() },
             )
         }
     }
@@ -154,57 +153,50 @@ private class SetupChecklistPreviewParameterProvider :
 }
 
 private fun createPreviewTasks() = listOf(
-    ChecklistItem.Task(
-        type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
-        title = "Set as default browser",
-        icon = R.drawable.mozac_ic_web_extension_default_icon,
-        isCompleted = false,
-    ),
-    ChecklistItem.Task(
-        type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
-        title = "Explore extensions",
-        icon = R.drawable.mozac_ic_web_extension_default_icon,
-        isCompleted = false,
-    ),
-    ChecklistItem.Task(
-        type = ChecklistItem.Task.Type.SIGN_IN,
-        title = "Sign in to your account",
-        icon = R.drawable.mozac_ic_web_extension_default_icon,
-        isCompleted = true,
-    ),
+    setAsDefaultTaskPreview(),
+    webExtensionTaskPreview(),
+    signInTaskPreview(),
+)
+
+private fun setAsDefaultTaskPreview() = ChecklistItem.Task(
+    type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
+    title = R.string.setup_checklist_task_default_browser,
+    icon = R.drawable.mozac_ic_web_extension_default_icon,
+    isCompleted = false,
+)
+
+private fun webExtensionTaskPreview() = ChecklistItem.Task(
+    type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
+    title = R.string.setup_checklist_task_explore_extensions,
+    icon = R.drawable.mozac_ic_web_extension_default_icon,
+    isCompleted = false,
+)
+
+private fun signInTaskPreview() = ChecklistItem.Task(
+    type = ChecklistItem.Task.Type.SIGN_IN,
+    title = R.string.setup_checklist_task_account_sync,
+    icon = R.drawable.mozac_ic_web_extension_default_icon,
+    isCompleted = true,
 )
 
 private fun createPreviewGroups() = listOf(
     ChecklistItem.Group(
-        title = "First group",
-        tasks = listOf(
-            ChecklistItem.Task(
-                type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
-                title = "Set as default browser",
-                icon = R.drawable.mozac_ic_web_extension_default_icon,
-                isCompleted = false,
-            ),
-            ChecklistItem.Task(
-                type = ChecklistItem.Task.Type.SIGN_IN,
-                title = "Sign in to your account",
-                icon = R.drawable.mozac_ic_web_extension_default_icon,
-                isCompleted = true,
-            ),
-        ),
+        title = R.string.setup_checklist_group_essentials,
+        tasks = listOf(setAsDefaultTaskPreview(), signInTaskPreview()),
         isExpanded = true,
     ),
     ChecklistItem.Group(
-        title = "Second group",
+        title = R.string.setup_checklist_group_customize,
         tasks = listOf(
             ChecklistItem.Task(
                 type = ChecklistItem.Task.Type.SELECT_THEME,
-                title = "Select a theme",
+                title = R.string.setup_checklist_task_toolbar_selection,
                 icon = R.drawable.mozac_ic_web_extension_default_icon,
                 isCompleted = false,
             ),
             ChecklistItem.Task(
                 type = ChecklistItem.Task.Type.CHANGE_TOOLBAR_PLACEMENT,
-                title = "Choose toolbar placement",
+                title = R.string.setup_checklist_task_theme_selection,
                 icon = R.drawable.mozac_ic_web_extension_default_icon,
                 isCompleted = false,
             ),
@@ -212,17 +204,17 @@ private fun createPreviewGroups() = listOf(
         isExpanded = false,
     ),
     ChecklistItem.Group(
-        title = "Second group",
+        title = R.string.setup_checklist_group_helpful_tools,
         tasks = listOf(
             ChecklistItem.Task(
                 type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
-                title = "Install search widget",
+                title = R.string.setup_checklist_task_search_widget,
                 icon = R.drawable.mozac_ic_web_extension_default_icon,
                 isCompleted = false,
             ),
             ChecklistItem.Task(
                 type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
-                title = "Explore extensions",
+                title = R.string.setup_checklist_task_explore_extensions,
                 icon = R.drawable.mozac_ic_web_extension_default_icon,
                 isCompleted = false,
             ),
@@ -247,11 +239,13 @@ private fun SetupChecklistPreview(
         ) {
             SetupChecklist(
                 setupChecklistState = initialState,
+                interactor = object : SetupChecklistInteractor {
+                    override fun onChecklistItemClicked(item: ChecklistItem) { /* no op */ }
+                    override fun onRemoveChecklistButtonClicked() { /* no op */ }
+                },
                 title = "Finish setting up Firefox",
                 subtitle = "Complete all 6 steps to set up Firefox for the best browsing experience.",
                 labelRemoveChecklistButton = "Remove checklist",
-                onChecklistItemClicked = {},
-                onRemoveChecklistButtonClicked = {},
             )
         }
     }

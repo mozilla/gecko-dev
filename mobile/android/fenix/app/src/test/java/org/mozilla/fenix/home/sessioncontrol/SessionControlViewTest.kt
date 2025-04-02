@@ -37,6 +37,7 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns true
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
+        every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
             settings,
@@ -74,6 +75,7 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns true
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
+        every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
             settings,
@@ -107,6 +109,7 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns true
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
+        every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
             settings,
@@ -143,6 +146,7 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns true
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
+        every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
             settings,
@@ -180,6 +184,7 @@ class SessionControlViewTest {
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
         every { settings.showContentRecommendations } returns false
+        every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
             settings,
@@ -238,6 +243,7 @@ class SessionControlViewTest {
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
         every { settings.showContentRecommendations } returns true
+        every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
             settings = settings,
@@ -276,6 +282,7 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns true
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
+        every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
             settings,
@@ -292,6 +299,47 @@ class SessionControlViewTest {
         )
         assertEquals(results.size, 2)
         assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
+    }
+
+    @Test
+    fun `GIVEN setup checklist is enabled THEN it is added to the adapter items`() {
+        val settings: Settings = mockk()
+        val topSites = emptyList<TopSite>()
+        val collections = emptyList<TabCollection>()
+        val expandedCollections = emptySet<Long>()
+        val bookmarks = emptyList<Bookmark>()
+        val historyMetadata = emptyList<RecentHistoryGroup>()
+        val pocketStories = emptyList<PocketStory>()
+
+        every { settings.showTopSitesFeature } returns false
+        every { settings.showRecentTabsFeature } returns false
+        every { settings.showBookmarksHomeFeature } returns false
+        every { settings.historyMetadataUIFeature } returns false
+        every { settings.showPocketRecommendationsFeature } returns false
+        every { settings.enableComposeTopSites } returns false
+        every { settings.showSetupChecklist } returns true
+
+        val results = normalModeAdapterItems(
+            settings = settings,
+            topSites = topSites,
+            collections = collections,
+            expandedCollections = expandedCollections,
+            bookmarks = bookmarks,
+            showCollectionsPlaceholder = false,
+            nimbusMessageCard = null,
+            showRecentTab = false,
+            showRecentSyncedTab = true,
+            recentVisits = historyMetadata,
+            pocketStories = pocketStories,
+        )
+
+        val expected = listOf(
+            AdapterItem.TopPlaceholderItem,
+            AdapterItem.SetupChecklist,
+            AdapterItem.BottomSpacer,
+        )
+        assertEquals(expected, results)
+        assertTrue(results[1] is AdapterItem.SetupChecklist)
     }
 
     @Test
@@ -313,6 +361,7 @@ class SessionControlViewTest {
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
         every { settings.enableComposeTopSites } returns false
+        every { settings.showSetupChecklist } returns true
 
         val results = normalModeAdapterItems(
             settings,

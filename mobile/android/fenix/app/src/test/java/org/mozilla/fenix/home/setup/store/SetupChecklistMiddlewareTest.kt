@@ -117,7 +117,7 @@ class SetupChecklistMiddlewareTest {
         type: ChecklistItem.Task.Type,
     ) = ChecklistItem.Task(
         type = type,
-        title = "A cool task",
+        title = R.string.setup_checklist_task_default_browser,
         icon = R.drawable.ic_addons_extensions,
         isCompleted = true,
     )

@@ -138,7 +138,7 @@ class SetupChecklistTelemetryMiddlewareTest {
     ) {
         val task = ChecklistItem.Task(
             type = type,
-            title = "task",
+            title = R.string.setup_checklist_task_default_browser,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )

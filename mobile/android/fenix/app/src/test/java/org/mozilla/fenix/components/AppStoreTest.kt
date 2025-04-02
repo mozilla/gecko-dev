@@ -876,7 +876,7 @@ class AppStoreTest {
     @Test
     fun `WHEN a group item is clicked action is dispatched THEN the group's expanded state is updated`() {
         val group = ChecklistItem.Group(
-            title = "group",
+            title = R.string.setup_checklist_group_essentials,
             tasks = listOf(),
             isExpanded = false,
         )
@@ -893,7 +893,7 @@ class AppStoreTest {
     fun `WHEN a task item is clicked action is dispatched THEN the task's completed state is updated`() {
         val task = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
-            title = "task",
+            title = R.string.setup_checklist_task_default_browser,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )
@@ -910,18 +910,18 @@ class AppStoreTest {
     fun `GIVEN tasks in a group WHEN a task is clicked THEN only the clicked task's completed state is updated`() {
         val clickedTask = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
-            title = "task1",
+            title = R.string.setup_checklist_task_default_browser,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )
         val notClickedTask = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
-            title = "task2",
+            title = R.string.setup_checklist_task_search_widget,
             icon = R.drawable.ic_addons_extensions,
             isCompleted = false,
         )
         val group = ChecklistItem.Group(
-            title = "group",
+            title = R.string.setup_checklist_group_essentials,
             tasks = listOf(clickedTask, notClickedTask),
             isExpanded = true,
         )
@@ -938,11 +938,11 @@ class AppStoreTest {
     @Test
     fun `GIVEN a group is expanded WHEN a different group is clicked THEN the clicked group becomes expanded and the previously expanded group collapses`() {
         val expandedGroup = ChecklistItem.Group(
-            title = "group1",
+            title = R.string.setup_checklist_group_essentials,
             tasks = listOf(
                 ChecklistItem.Task(
                     type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
-                    title = "task1",
+                    title = R.string.setup_checklist_task_default_browser,
                     icon = R.drawable.ic_addons_extensions,
                     isCompleted = false,
                 ),
@@ -950,11 +950,11 @@ class AppStoreTest {
             isExpanded = true,
         )
         val collapsedGroup = ChecklistItem.Group(
-            title = "group2",
+            title = R.string.setup_checklist_group_essentials,
             tasks = listOf(
                 ChecklistItem.Task(
                     type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
-                    title = "task2",
+                    title = R.string.setup_checklist_task_search_widget,
                     icon = R.drawable.ic_addons_extensions,
                     isCompleted = false,
                 ),
@@ -962,15 +962,14 @@ class AppStoreTest {
             isExpanded = false,
         )
 
-        val appState =
-            AppState(
-                setupChecklistState = SetupChecklistState(
-                    checklistItems = listOf(
-                        expandedGroup,
-                        collapsedGroup,
-                    ),
+        val appState = AppState(
+            setupChecklistState = SetupChecklistState(
+                checklistItems = listOf(
+                    expandedGroup,
+                    collapsedGroup,
                 ),
-            )
+            ),
+        )
         val store = AppStore(appState)
 
         // Verify that the expanded group is expanded, and the other one is not
