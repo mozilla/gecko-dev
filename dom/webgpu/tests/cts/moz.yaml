@@ -26,6 +26,8 @@ vendoring:
   url: https://github.com/gpuweb/cts
   source-hosting: github
   vendor-directory: dom/webgpu/tests/cts/checkout/
+  skip-vendoring-steps:
+    - update-moz-build
   include:
     - .gitattributes
     - .gitignore  # Avoids re-formatting of generated files.
