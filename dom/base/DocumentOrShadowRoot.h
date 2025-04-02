@@ -190,7 +190,7 @@ class DocumentOrShadowRoot {
    * @param aId the ID associated the element we want to lookup
    * @return the element associated with |aId|
    */
-  Element* LookupImageElement(const nsAString& aElementId);
+  Element* LookupImageElement(nsAtom* aId);
 
   /**
    * Check that aId is not empty and log a message to the console

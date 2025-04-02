@@ -21,16 +21,15 @@
 
 namespace mozilla::dom {
 
-static Element* LookupElement(DocumentOrShadowRoot& aDocOrShadow,
-                              const nsAString& aRef, bool aReferenceImage) {
+static Element* LookupElement(DocumentOrShadowRoot& aDocOrShadow, nsAtom* aRef,
+                              bool aReferenceImage) {
   if (aReferenceImage) {
     return aDocOrShadow.LookupImageElement(aRef);
   }
   return aDocOrShadow.GetElementById(aRef);
 }
 
-static DocumentOrShadowRoot* FindTreeToWatch(nsIContent& aContent,
-                                             const nsAString& aID,
+static DocumentOrShadowRoot* FindTreeToWatch(nsIContent& aContent, nsAtom* aID,
                                              bool aReferenceImage) {
   ShadowRoot* shadow = aContent.GetContainingShadow();
 
@@ -97,18 +96,17 @@ void IDTracker::ResetToURIWithFragmentID(Element& aFrom, nsIURI* aURI,
 
   bool isEqualExceptRef;
   rv = aURI->EqualsExceptRef(doc->GetDocumentURI(), &isEqualExceptRef);
+  RefPtr<nsAtom> refAtom = NS_Atomize(ref);
   if (NS_FAILED(rv) || !isEqualExceptRef) {
-    return ResetToExternalResource(aURI, aReferrerInfo, ref, aFrom,
+    return ResetToExternalResource(aURI, aReferrerInfo, refAtom, aFrom,
                                    aReferenceImage);
   }
-
-  RefPtr<nsAtom> id = NS_Atomize(ref);
-  ResetToID(aFrom, id, aReferenceImage);
+  ResetToID(aFrom, refAtom, aReferenceImage);
 }
 
 void IDTracker::ResetToExternalResource(nsIURI* aURI,
                                         nsIReferrerInfo* aReferrerInfo,
-                                        const nsAString& aRef, Element& aFrom,
+                                        nsAtom* aRef, Element& aFrom,
                                         bool aReferenceImage) {
   Unlink();
 
@@ -125,9 +123,9 @@ void IDTracker::ResetToExternalResource(nsIURI* aURI,
     load->AddObserver(observer);
   }
 
-  mWatchID = NS_Atomize(aRef);
+  mWatchID = aRef;
   mReferencingImage = aReferenceImage;
-  HaveNewDocumentOrShadowRoot(resourceDoc, /* aWatch = */ true, aRef);
+  HaveNewDocumentOrShadowRoot(resourceDoc, /* aWatch = */ true, mWatchID);
 }
 
 static nsIURI* GetExternalResourceURIIfNeeded(nsIURI* aBaseURI,
@@ -191,14 +189,12 @@ void IDTracker::ResetToLocalFragmentID(Element& aFrom,
     return;
   }
 
+  RefPtr<nsAtom> refAtom = NS_Atomize(unescaped);
   if (nsIURI* resourceUri = GetExternalResourceURIIfNeeded(aBaseURI, aFrom)) {
-    NS_ConvertUTF8toUTF16 utf16ref(unescaped);
-    return ResetToExternalResource(resourceUri, aReferrerInfo, utf16ref, aFrom,
+    return ResetToExternalResource(resourceUri, aReferrerInfo, refAtom, aFrom,
                                    aReferenceImage);
   }
-
-  RefPtr<nsAtom> idAtom = NS_Atomize(unescaped);
-  ResetToID(aFrom, idAtom, aReferenceImage);
+  ResetToID(aFrom, refAtom, aReferenceImage);
 }
 
 void IDTracker::ResetToID(Element& aFrom, nsAtom* aID, bool aReferenceImage) {
@@ -213,15 +209,13 @@ void IDTracker::ResetToID(Element& aFrom, nsAtom* aID, bool aReferenceImage) {
   mWatchID = aID;
   mReferencingImage = aReferenceImage;
 
-  nsDependentAtomString str(aID);
   DocumentOrShadowRoot* docOrShadow =
-      FindTreeToWatch(aFrom, str, aReferenceImage);
-  HaveNewDocumentOrShadowRoot(docOrShadow, /*aWatch*/ true, str);
+      FindTreeToWatch(aFrom, aID, aReferenceImage);
+  HaveNewDocumentOrShadowRoot(docOrShadow, /*aWatch*/ true, aID);
 }
 
 void IDTracker::HaveNewDocumentOrShadowRoot(DocumentOrShadowRoot* aDocOrShadow,
-                                            bool aWatch,
-                                            const nsAString& aRef) {
+                                            bool aWatch, nsAtom* aID) {
   if (aWatch) {
     mWatchDocumentOrShadowRoot = nullptr;
     if (aDocOrShadow) {
@@ -236,7 +230,7 @@ void IDTracker::HaveNewDocumentOrShadowRoot(DocumentOrShadowRoot* aDocOrShadow,
     return;
   }
 
-  if (Element* e = LookupElement(*aDocOrShadow, aRef, mReferencingImage)) {
+  if (Element* e = LookupElement(*aDocOrShadow, aID, mReferencingImage)) {
     mElement = e;
   }
 }

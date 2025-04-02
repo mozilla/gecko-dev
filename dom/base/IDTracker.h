@@ -117,7 +117,7 @@ class IDTracker {
  protected:
   /** Requests and maybe watches an external resource doc. */
   void ResetToExternalResource(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
-                               const nsAString& aRef, Element& aFrom,
+                               nsAtom* aRef, Element& aFrom,
                                bool aReferenceImage);
 
   /**
@@ -138,7 +138,7 @@ class IDTracker {
    * null.  Either aWatch must be false or aRef must be empty.
    */
   void HaveNewDocumentOrShadowRoot(DocumentOrShadowRoot*, bool aWatch,
-                                   const nsAString& aRef);
+                                   nsAtom* aID);
 
  private:
   static bool Observe(Element* aOldElement, Element* aNewElement, void* aData);
@@ -183,7 +183,7 @@ class IDTracker {
 
   class DocumentLoadNotification : public Notification, public nsIObserver {
    public:
-    DocumentLoadNotification(IDTracker* aTarget, const nsAString& aRef)
+    DocumentLoadNotification(IDTracker* aTarget, nsAtom* aRef)
         : Notification(aTarget) {
       if (!mTarget->IsPersistent()) {
         mRef = aRef;
@@ -197,7 +197,7 @@ class IDTracker {
 
     virtual void SetTo(Element* aTo) override {}
 
-    nsString mRef;
+    RefPtr<nsAtom> mRef;
   };
   friend class DocumentLoadNotification;
 
