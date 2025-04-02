@@ -4,7 +4,8 @@
 // @ts-check
 
 /**
- * @typedef {import("../../client/performance-new/@types/perf").GetActiveBrowserID} GetActiveBrowserID
+ * @typedef {import("perf").GetActiveBrowserID} GetActiveBrowserID
+ * @typedef {import("perf").ProfileCaptureResult} ProfileCaptureResult
  */
 
 /**
@@ -28,8 +29,61 @@ export function getActiveBrowserID() {
   return 0;
 }
 
+/**
+ * @typedef {Object} ProfileCaptureResultAndAdditionalInformation
+ * @property {ProfileCaptureResult} profileCaptureResult
+ * @property {MockedExports.ProfileGenerationAdditionalInformation} [additionalInformation]
+ */
+/**
+ * Fetch the profile data from Firefox, then stop the profiler.
+ *
+ * @returns {Promise<ProfileCaptureResultAndAdditionalInformation>}
+ */
+export async function getProfileDataAsGzippedArrayBufferThenStop() {
+  if (!Services.profiler.IsActive()) {
+    // The profiler is not active, ignore.
+    return {
+      profileCaptureResult: {
+        type: "ERROR",
+        error: new Error("The profiler is not active."),
+      },
+    };
+  }
+  if (Services.profiler.IsPaused()) {
+    // The profiler is already paused for capture, ignore.
+    return {
+      profileCaptureResult: {
+        type: "ERROR",
+        error: new Error("The profiler is already paused."),
+      },
+    };
+  }
+
+  // Pause profiler before we collect the profile, so that we don't capture
+  // more samples while the parent process waits for subprocess profiles.
+  Services.profiler.Pause();
+
+  try {
+    const { profile, additionalInformation } =
+      await Services.profiler.getProfileDataAsGzippedArrayBuffer();
+
+    return {
+      profileCaptureResult: { type: "SUCCESS", profile },
+      additionalInformation,
+    };
+  } catch (unknownError) {
+    const error = /** @type {Error} */ (unknownError);
+    return { profileCaptureResult: { type: "ERROR", error } };
+  } finally {
+    // We're purposefully not using `await`, to minimize the time the user has
+    // to wait until the result is returned.
+    Services.profiler.StopProfiler();
+  }
+}
+
 // This file also exports a named object containing other exports to play well
 // with defineESModuleGetters.
 export const RecordingUtils = {
   getActiveBrowserID,
+  getProfileDataAsGzippedArrayBufferThenStop,
 };

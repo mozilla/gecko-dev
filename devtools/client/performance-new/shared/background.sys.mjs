@@ -103,35 +103,14 @@ export async function captureProfile(pageContext) {
     return;
   }
 
-  // Pause profiler before we collect the profile, so that we don't capture
-  // more samples while the parent process waits for subprocess profiles.
-  Services.profiler.Pause();
-
-  /**
-   * @type {MockedExports.ProfileGenerationAdditionalInformation | undefined}
-   */
-  let additionalInfo;
-  /**
-   * @type {ProfileCaptureResult}
-   */
-  const profileCaptureResult = await Services.profiler
-    .getProfileDataAsGzippedArrayBuffer()
-    .then(
-      ({ profile, additionalInformation }) => {
-        additionalInfo = additionalInformation;
-        return { type: "SUCCESS", profile };
-      },
-      error => {
-        console.error(error);
-        return { type: "ERROR", error };
-      }
-    );
-
+  const { profileCaptureResult, additionalInformation } = await lazy
+    .RecordingUtils()
+    .getProfileDataAsGzippedArrayBufferThenStop();
   const profilerViewMode = lazy
     .PrefsPresets()
     .getProfilerViewModeForCurrentPreset(pageContext);
-  const sharedLibraries = additionalInfo?.sharedLibraries
-    ? additionalInfo.sharedLibraries
+  const sharedLibraries = additionalInformation?.sharedLibraries
+    ? additionalInformation.sharedLibraries
     : Services.profiler.sharedLibraries;
   const objdirs = lazy.PrefsPresets().getObjdirPrefValue();
 
@@ -148,8 +127,6 @@ export async function captureProfile(pageContext) {
     profileCaptureResult,
     symbolicationService
   );
-
-  Services.profiler.StopProfiler();
 }
 
 /**
