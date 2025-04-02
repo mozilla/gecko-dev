@@ -25,6 +25,17 @@ export const DAPVisitCounter = new (class {
   timerId = null;
 
   async startup() {
+    if (
+      Services.startup.isInOrBeyondShutdownPhase(
+        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+      )
+    ) {
+      lazy.logConsole.warn(
+        "DAPVisitCounter startup not possible due to shutdown."
+      );
+      return;
+    }
+
     const asyncShutdownBlocker = async () => {
       lazy.logConsole.debug(`Sending on shutdown.`);
       await this.send(2 * 1000, "shutdown");
