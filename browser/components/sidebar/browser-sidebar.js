@@ -1963,29 +1963,9 @@ var SidebarController = {
     );
   },
 
-  handleEvent(e) {
-    switch (e.type) {
-      case "mouseout":
-        if (
-          (this._positionStart && e.x < 0) ||
-          (!this._positionStart && e.x > window.outerWidth)
-        ) {
-          this.mouseEnterTask?.disarm();
-          // Only collapse sidebar if not moused over the window
-          if (this.getUIState().launcherExpanded) {
-            if (this._animationEnabled && !window.gReduceMotion) {
-              this._animateSidebarMain();
-            }
-            this._state.launcherExpanded = false;
-          }
-        }
-        break;
-    }
-  },
-
   getMouseTargetRect() {
     let launcherRect = window.windowUtils.getBoundsWithoutFlushing(
-      SidebarController.sidebarContainer
+      SidebarController.sidebarMain
     );
     return {
       top: launcherRect.top,
@@ -2013,13 +1993,11 @@ var SidebarController = {
       }
       await this.waitUntilStable();
       MousePosTracker.addListener(this);
-      window.addEventListener("mouseout", this);
       if (!isDragEnded) {
         await this.setLauncherCollapsedWidth();
       }
     } else {
       MousePosTracker.removeListener(this);
-      window.removeEventListener("mouseout", this);
       if (!this.mouseOverTask?.isFinalized) {
         this.mouseOverTask?.finalize();
       }

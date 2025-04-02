@@ -5064,6 +5064,10 @@ var MousePosTracker = {
   },
 
   handleEvent(event) {
+    if (event.type === "mouseout" && event.currentTarget !== window) {
+      return;
+    }
+
     this._x = event.screenX - window.mozInnerScreenX;
     this._y = event.screenY - window.mozInnerScreenY;
 
