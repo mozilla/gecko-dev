@@ -510,15 +510,16 @@
   vertical-align: middle;
 }
 
-.cm-editor .cm-matchingBracket {
+/* Repeat .cm-matchingBracket to get a higher specificity than the default codemirror rule */
+.cm-editor .cm-matchingBracket.cm-matchingBracket {
   /* Removing the default background color */
-  background-color: unset !important;
+  background-color: unset;
   /* Applying the same color that was set in cm5. Set the color on the parent so the
      underline set on the parent has the correct color */
   color: #0b0;
 
   :root[forced-colors-active] & {
-    background: Mark;
+    background-color: Mark;
     color: MarkText;
   }
 
