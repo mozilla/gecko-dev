@@ -845,7 +845,7 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
     // monotonic because the underlying system apis produce non-monontonic
     // results. (bug 1306896)
 #if !defined(_WIN32)
-    // MOZ_ASSERT(aVsyncTimestamp <= tickStart);
+    MOZ_ASSERT(aVsyncTimestamp <= tickStart);
 #endif
 
     bool shouldGiveNonVSyncTasksMoreTime = ShouldGiveNonVsyncTasksMoreTime();
