@@ -14591,11 +14591,6 @@
   value: 0
   mirror: always
 
-- name: network.http.http2.allow-push
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # When true, Firefox will send a SETTINGS_MAX_CONCURRENT_STREAMS
 # parameter when push is disabled. Chrome doesn't send this,
 # so some servers misbehave when we do. See Bug 1919750.

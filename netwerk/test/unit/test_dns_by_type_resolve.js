@@ -26,11 +26,9 @@ add_setup(async function setup() {
   }
 
   Services.prefs.setIntPref("network.trr.mode", Ci.nsIDNSService.MODE_TRRFIRST);
-  Services.prefs.setBoolPref("network.http.http2.allow-push", true);
 });
 
 let test_answer = "bXkgdm9pY2UgaXMgbXkgcGFzc3dvcmQ=";
-let test_answer_addr = "127.0.0.1";
 
 add_task(async function testTXTResolve() {
   // use the h2 server as DOH provider
@@ -48,37 +46,3 @@ add_task(async function testTXTResolve() {
     .getRecordsAsOneString();
   Assert.equal(answer, test_answer, "got correct answer");
 });
-
-// verify TXT record pushed on a A record request
-add_task(async function testTXTRecordPushPart1() {
-  Services.prefs.setCharPref(
-    "network.trr.uri",
-    "https://foo.example.com:" + h2Port + "/txt-dns-push"
-  );
-  let { inRecord } = await new TRRDNSListener("_esni_push.example.com", {
-    type: Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
-    expectedAnswer: "127.0.0.1",
-  });
-
-  inRecord.QueryInterface(Ci.nsIDNSAddrRecord);
-  let answer = inRecord.getNextAddrAsString();
-  Assert.equal(answer, test_answer_addr, "got correct answer");
-}).skip("H2 push is disabled");
-
-// verify the TXT pushed record
-add_task(async function testTXTRecordPushPart2() {
-  // At this point the second host name should've been pushed and we can resolve it using
-  // cache only. Set back the URI to a path that fails.
-  Services.prefs.setCharPref(
-    "network.trr.uri",
-    "https://foo.example.com:" + h2Port + "/404"
-  );
-  let { inRecord } = await new TRRDNSListener("_esni_push.example.com", {
-    type: Ci.nsIDNSService.RESOLVE_TYPE_TXT,
-  });
-
-  let answer = inRecord
-    .QueryInterface(Ci.nsIDNSTXTRecord)
-    .getRecordsAsOneString();
-  Assert.equal(answer, test_answer, "got correct answer");
-}).skip("H2 push is disabled");

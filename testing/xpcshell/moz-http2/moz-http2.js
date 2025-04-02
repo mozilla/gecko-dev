@@ -523,7 +523,7 @@ function handleRequest(req, res) {
         arg => {
           writeResponse(arg[0], arg[1]);
         },
-        delay,
+        delay + 1,
         [response, buf]
       );
       return;

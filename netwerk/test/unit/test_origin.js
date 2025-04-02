@@ -3,7 +3,6 @@
 var h2Port;
 var prefs;
 var http2pref;
-var loadGroup;
 
 function run_test() {
   h2Port = Services.env.get("MOZHTTP2_PORT");
@@ -15,7 +14,6 @@ function run_test() {
   prefs = Services.prefs;
 
   http2pref = prefs.getBoolPref("network.http.http2.enabled");
-  Services.prefs.setBoolPref("network.http.http2.allow-push", true);
 
   prefs.setBoolPref("network.http.http2.enabled", true);
   prefs.setCharPref(
@@ -221,100 +219,9 @@ function doTest10() {
   // but the cert is not valid for bar. so expect a failure
   dump("doTest10()\n");
   origin = "https://bar.example.com:" + h2Port + "/origin-10";
-  nextTest = doTest11;
+  nextTest = testsDone;
   nextPortExpectedToBeSame = false;
   forceFailListener = true;
   do_test_pending();
   doTest();
-}
-
-var Http2PushApiListener = function () {};
-
-Http2PushApiListener.prototype = {
-  fooOK: false,
-  alt1OK: false,
-
-  getInterface(aIID) {
-    return this.QueryInterface(aIID);
-  },
-
-  QueryInterface: ChromeUtils.generateQI([
-    "nsIHttpPushListener",
-    "nsIStreamListener",
-  ]),
-
-  // nsIHttpPushListener
-  onPush: function onPush(associatedChannel, pushChannel) {
-    dump(
-      "push api onpush " +
-        pushChannel.originalURI.spec +
-        " associated to " +
-        associatedChannel.originalURI.spec +
-        "\n"
-    );
-
-    Assert.equal(
-      associatedChannel.originalURI.spec,
-      "https://foo.example.com:" + h2Port + "/origin-11-a"
-    );
-    Assert.equal(pushChannel.getRequestHeader("x-pushed-request"), "true");
-
-    if (
-      pushChannel.originalURI.spec ===
-      "https://foo.example.com:" + h2Port + "/origin-11-b"
-    ) {
-      this.fooOK = true;
-    } else if (
-      pushChannel.originalURI.spec ===
-      "https://alt1.example.com:" + h2Port + "/origin-11-e"
-    ) {
-      this.alt1OK = true;
-    } else {
-      // any push of bar or madeup should not end up in onPush()
-      Assert.equal(true, false);
-    }
-    pushChannel.cancel(Cr.NS_ERROR_ABORT);
-  },
-
-  // normal Channel listeners
-  onStartRequest: function pushAPIOnStart(request) {
-    dump("push api onstart " + request.originalURI.spec + "\n");
-  },
-
-  onDataAvailable: function pushAPIOnDataAvailable(
-    request,
-    stream,
-    offset,
-    cnt
-  ) {
-    read_stream(stream, cnt);
-  },
-
-  onStopRequest: function test_onStopR(request) {
-    dump("push api onstop " + request.originalURI.spec + "\n");
-    Assert.ok(this.fooOK);
-    Assert.ok(this.alt1OK);
-    nextTest();
-    do_test_finished();
-  },
-};
-
-function doTest11() {
-  // we are connected with an SNI of foo from test6
-  // but the origin set is alt1, alt2, bar - foo is implied
-  // and bar is not actually covered by the cert
-  //
-  // the server will push foo (b-OK), bar (c-NOT OK), madeup (d-NOT OK), alt1 (e-OK),
-
-  dump("doTest11()\n");
-  do_test_pending();
-  loadGroup = Cc["@mozilla.org/network/load-group;1"].createInstance(
-    Ci.nsILoadGroup
-  );
-  var chan = makeChan("https://foo.example.com:" + h2Port + "/origin-11-a");
-  chan.loadGroup = loadGroup;
-  var listener = new Http2PushApiListener();
-  nextTest = testsDone;
-  chan.notificationCallbacks = listener;
-  chan.asyncOpen(listener);
 }

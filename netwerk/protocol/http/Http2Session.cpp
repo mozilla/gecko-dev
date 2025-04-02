@@ -999,25 +999,23 @@ void Http2Session::SendHello() {
       maxHpackBufferSize);
   numberOfEntries++;
 
-  if (!StaticPrefs::network_http_http2_allow_push()) {
-    // If we don't support push then set MAX_CONCURRENT to 0 and also
-    // set ENABLE_PUSH to 0
+  // We don't support HTTP/2 Push. Set SETTINGS_TYPE_ENABLE_PUSH to 0
+  NetworkEndian::writeUint16(packet + kFrameHeaderBytes + (6 * numberOfEntries),
+                             SETTINGS_TYPE_ENABLE_PUSH);
+  // The value portion of the setting pair is already initialized to 0
+  numberOfEntries++;
+
+  // We might also want to set the SETTINGS_TYPE_MAX_CONCURRENT to 0
+  // to indicate that we don't support any incoming push streams,
+  // but some websites panic when we do that, so we don't by default.
+  if (StaticPrefs::network_http_http2_send_push_max_concurrent_frame()) {
     NetworkEndian::writeUint16(
         packet + kFrameHeaderBytes + (6 * numberOfEntries),
-        SETTINGS_TYPE_ENABLE_PUSH);
+        SETTINGS_TYPE_MAX_CONCURRENT);
     // The value portion of the setting pair is already initialized to 0
     numberOfEntries++;
-
-    if (StaticPrefs::network_http_http2_send_push_max_concurrent_frame()) {
-      NetworkEndian::writeUint16(
-          packet + kFrameHeaderBytes + (6 * numberOfEntries),
-          SETTINGS_TYPE_MAX_CONCURRENT);
-      // The value portion of the setting pair is already initialized to 0
-      numberOfEntries++;
-    }
-
-    mWaitingForSettingsAck = true;
   }
+  mWaitingForSettingsAck = true;
 
   // Advertise the Push RWIN for the session, and on each new pull stream
   // send a window update
