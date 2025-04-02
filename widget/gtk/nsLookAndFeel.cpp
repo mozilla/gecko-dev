@@ -146,15 +146,22 @@ static void settings_changed_signal_cb(GDBusProxy* proxy, gchar* sender_name,
 
   auto* lnf = static_cast<nsLookAndFeel*>(user_data);
   auto nsStr = GVariantGetString(ns);
-  if (!nsStr.Equals("org.freedesktop.appearance"_ns)) {
-    return;
+  if (nsStr.Equals("org.freedesktop.appearance"_ns)) {
+    UnboxVariant(value);
+    auto keyStr = GVariantGetString(key);
+    if (lnf->RecomputeDBusAppearanceSetting(keyStr, value)) {
+      OnSettingsChange(lnf, NativeChangeKind::OtherSettings);
+    }
   }
 
-  UnboxVariant(value);
-
-  auto keyStr = GVariantGetString(key);
-  if (lnf->RecomputeDBusAppearanceSetting(keyStr, value)) {
-    OnSettingsChange();
+  if (nsStr.Equals("org.gnome.desktop.interface")) {
+    UnboxVariant(value);
+    auto keyStr = GVariantGetString(key);
+    if (keyStr.Equals("gtk-theme")) {
+      auto v = GVariantGetString(value);
+      g_object_set(gtk_settings_get_default(), "gtk-theme-name", v.get(),
+                   nullptr);
+    }
   }
 }
 
