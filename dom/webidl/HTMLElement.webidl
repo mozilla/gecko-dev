@@ -33,7 +33,7 @@ interface HTMLElement : Element {
 
   // user interaction
   [CEReactions, SetterThrows, Pure]
-           attribute boolean hidden;
+           attribute (boolean or unrestricted double or DOMString)? hidden;
   [CEReactions, SetterThrows, Pure]
            attribute boolean inert;
   [NeedsCallerType]

@@ -269,6 +269,76 @@ void nsGenericHTMLElement::GetAccessKeyLabel(nsString& aLabel) {
   }
 }
 
+// https://html.spec.whatwg.org/#dom-hidden
+void nsGenericHTMLElement::GetHidden(
+    Nullable<OwningBooleanOrUnrestrictedDoubleOrString>& aHidden) const {
+      OwningBooleanOrUnrestrictedDoubleOrString value;
+      // 1. If the hidden attribute is in the hidden until found state, then
+      //    return "until-found".
+  nsAutoString result;
+  if (GetAttr(kNameSpaceID_None, nsGkAtoms::hidden, result)) {
+    if (StaticPrefs::dom_hidden_until_found_enabled() &&
+        result.LowerCaseEqualsLiteral("until-found")) {
+      value.SetStringLiteral(u"until-found");
+    } else {
+      // 2. If the hidden attribute is set, then return true.
+      value.SetAsBoolean() = true;
+    }
+  } else {
+    // 3. Return false.
+    value.SetAsBoolean() = false;
+  }
+
+  aHidden.SetValue(value);
+}
+
+// https://html.spec.whatwg.org/#dom-hidden
+void nsGenericHTMLElement::SetHidden(
+    const Nullable<BooleanOrUnrestrictedDoubleOrString>& aHidden,
+    ErrorResult& aRv) {
+  // 4. Otherwise, if the given value is null, then remove the hidden attribute.
+  if (aHidden.IsNull()) {
+    return UnsetAttr(nsGkAtoms::hidden, aRv);
+  }
+  bool isHidden = true;
+  const auto& value = aHidden.Value();
+  // 1. If the given value is a string that is an ASCII case-insensitive match
+  //    for "until-found", then set the hidden attribute to "until-found".
+  if (value.IsString()) {
+    const nsAString& stringValue = value.GetAsString();
+    // 3. Otherwise, if the given value is the empty string, then remove the
+    //    hidden attribute.
+    if (stringValue.IsEmpty()) {
+      isHidden = false;
+    } else if (StaticPrefs::dom_hidden_until_found_enabled() &&
+               stringValue.LowerCaseEqualsLiteral("until-found")) {
+      return SetAttr(nsGkAtoms::hidden, u"until-found"_ns, aRv);
+    }
+  }
+  // 2. Otherwise, if the given value is false, then remove the hidden
+  //    attribute.
+  else if (value.IsBoolean()) {
+    if (!value.GetAsBoolean()) {
+      isHidden = false;
+    }
+  }
+  // 5. Otherwise, if the given value is 0, then remove the hidden attribute.
+  // 6. Otherwise, if the given value is NaN, then remove the hidden attribute.
+  else if (value.IsUnrestrictedDouble()) {
+    double d = value.GetAsUnrestrictedDouble();
+    if (d == 0.0 || std::isnan(d)) {
+      isHidden = false;
+    }
+  }
+
+  // 7. Otherwise, set the hidden attribute to the empty string.
+  if (isHidden) {
+    aRv = SetAttr(kNameSpaceID_None, nsGkAtoms::hidden, u""_ns, true);
+  } else {
+    aRv = UnsetAttr(kNameSpaceID_None, nsGkAtoms::hidden, true);
+  }
+}
+
 static bool IsOffsetParent(nsIFrame* aFrame) {
   LayoutFrameType frameType = aFrame->Type();
 

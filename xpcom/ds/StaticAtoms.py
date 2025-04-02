@@ -1302,6 +1302,7 @@ STATIC_ATOMS = [
     Atom("u", "u"),
     Atom("ul", "ul"),
     Atom("unparsedEntityUri", "unparsed-entity-uri"),
+    Atom("untilFound", "until-found"),
     Atom("up", "up"),
     Atom("update", "update"),
     Atom("upperFirst", "upper-first"),
