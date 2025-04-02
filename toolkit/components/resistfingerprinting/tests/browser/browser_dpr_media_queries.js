@@ -72,8 +72,21 @@ add_task(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [["privacy.resistFingerprinting", true]],
   });
+
   for (let auPerPx = 120; auPerPx > 0; auPerPx--) {
     await runForZoomLevel(60 / auPerPx);
   }
+
+  // Run the test again with a different textScaleFactor.
+  // This is to make sure that the devicePixelRatio is not affected by
+  // the textScaleFactor.
+  await SpecialPowers.pushPrefEnv({
+    set: [["ui.textScaleFactor", 200]],
+  });
+
+  for (let auPerPx = 120; auPerPx > 0; auPerPx--) {
+    await runForZoomLevel(60 / auPerPx);
+  }
+
   BrowserTestUtils.removeTab(tab);
 });
