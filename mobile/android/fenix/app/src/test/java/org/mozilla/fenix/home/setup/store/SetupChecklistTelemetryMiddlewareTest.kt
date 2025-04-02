@@ -19,8 +19,8 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.Onboarding
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
-import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
 @RunWith(FenixRobolectricTestRunner::class)
@@ -143,7 +143,7 @@ class SetupChecklistTelemetryMiddlewareTest {
             isCompleted = false,
         )
 
-        val context = mock<MiddlewareContext<SetupChecklistState, AppAction.SetupChecklistAction>>()
+        val context = mock<MiddlewareContext<AppState, AppAction>>()
         middleware.invoke(
             context = context,
             next = {},

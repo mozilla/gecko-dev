@@ -7,8 +7,8 @@ package org.mozilla.fenix.home.setup.store
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
-import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 
 /**
  * [Middleware] for handling side effects of the setup checklist feature.
@@ -19,11 +19,11 @@ class SetupChecklistMiddleware(
     private val navigateToCustomize: () -> Unit,
     private val navigateToExtensions: () -> Unit,
     private val installSearchWidget: () -> Unit,
-) : Middleware<SetupChecklistState, AppAction.SetupChecklistAction> {
+) : Middleware<AppState, AppAction> {
     override fun invoke(
-        context: MiddlewareContext<SetupChecklistState, AppAction.SetupChecklistAction>,
-        next: (AppAction.SetupChecklistAction) -> Unit,
-        action: AppAction.SetupChecklistAction,
+        context: MiddlewareContext<AppState, AppAction>,
+        next: (AppAction) -> Unit,
+        action: AppAction,
     ) {
         next(action)
 
@@ -41,6 +41,10 @@ class SetupChecklistMiddleware(
                         ChecklistItem.Task.Type.EXPLORE_EXTENSION -> navigateToExtensions()
                     }
                 }
+            }
+
+            else -> {
+                // no-op
             }
         }
     }

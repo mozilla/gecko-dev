@@ -50,6 +50,8 @@ import org.mozilla.fenix.home.PocketUpdatesMiddleware
 import org.mozilla.fenix.home.blocklist.BlocklistHandler
 import org.mozilla.fenix.home.blocklist.BlocklistMiddleware
 import org.mozilla.fenix.home.middleware.HomeTelemetryMiddleware
+import org.mozilla.fenix.home.setup.store.SetupChecklistMiddleware
+import org.mozilla.fenix.home.setup.store.SetupChecklistTelemetryMiddleware
 import org.mozilla.fenix.messaging.state.MessagingMiddleware
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.FenixOnboarding
@@ -248,6 +250,8 @@ class Components(private val context: Context) {
                     ),
                 ),
                 HomeTelemetryMiddleware(),
+                SetupChecklistMiddleware({}, {}, {}, {}, {}),
+                SetupChecklistTelemetryMiddleware(),
             ),
         ).also {
             it.dispatch(AppAction.CrashActionWrapper(CrashAction.Initialize))
