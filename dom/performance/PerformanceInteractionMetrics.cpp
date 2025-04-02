@@ -135,9 +135,12 @@ uint64_t PerformanceInteractionMetrics::ComputeInteractionId(
 
   // Step 11. Otherwise (type is pointercancel, pointerup, or click):
 
-  const auto* pointerEvent = aEvent->AsPointerEvent();
+  MOZ_ASSERT(eventType == ePointerCancel || eventType == ePointerUp ||
+                 eventType == ePointerClick,
+             "Unexpected event type");
+  const auto* mouseEvent = aEvent->AsMouseEvent();
   // Step 11.1. Let pointerId be event’s pointerId attribute value.
-  auto pointerId = pointerEvent->pointerId;
+  auto pointerId = mouseEvent->pointerId;
 
   // Step 11.2. If type is click:
   if (eventType == ePointerClick) {
