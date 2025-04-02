@@ -2,117 +2,47 @@
 
 use std::{
     char::from_u32 as char_from_u32,
-    str::{from_utf8, from_utf8_unchecked, FromStr},
+    str::{self, from_utf8, FromStr, Utf8Error},
 };
 
-use base64::engine::general_purpose::{GeneralPurpose, STANDARD};
+use unicode_ident::{is_xid_continue, is_xid_start};
 
 use crate::{
     error::{Error, Position, Result, SpannedError, SpannedResult},
     extensions::Extensions,
+    value::Number,
 };
 
-pub const BASE64_ENGINE: GeneralPurpose = STANDARD;
-
-// We have the following char categories.
-const INT_CHAR: u8 = 1 << 0; // [0-9A-Fa-f_]
-const FLOAT_CHAR: u8 = 1 << 1; // [0-9\.Ee+-_]
-const IDENT_FIRST_CHAR: u8 = 1 << 2; // [A-Za-z_]
-const IDENT_OTHER_CHAR: u8 = 1 << 3; // [A-Za-z_0-9]
-const IDENT_RAW_CHAR: u8 = 1 << 4; // [A-Za-z_0-9\.+-]
-const WHITESPACE_CHAR: u8 = 1 << 5; // [\n\t\r ]
-
-// We encode each char as belonging to some number of these categories.
-const DIGIT: u8 = INT_CHAR | FLOAT_CHAR | IDENT_OTHER_CHAR | IDENT_RAW_CHAR; // [0-9]
-const ABCDF: u8 = INT_CHAR | IDENT_FIRST_CHAR | IDENT_OTHER_CHAR | IDENT_RAW_CHAR; // [ABCDFabcdf]
-const UNDER: u8 = INT_CHAR | FLOAT_CHAR | IDENT_FIRST_CHAR | IDENT_OTHER_CHAR | IDENT_RAW_CHAR; // [_]
-const E____: u8 = INT_CHAR | FLOAT_CHAR | IDENT_FIRST_CHAR | IDENT_OTHER_CHAR | IDENT_RAW_CHAR; // [Ee]
-const G2Z__: u8 = IDENT_FIRST_CHAR | IDENT_OTHER_CHAR | IDENT_RAW_CHAR; // [G-Zg-z]
-const PUNCT: u8 = FLOAT_CHAR | IDENT_RAW_CHAR; // [\.+-]
-const WS___: u8 = WHITESPACE_CHAR; // [\t\n\r ]
-const _____: u8 = 0; // everything else
-
-// Table of encodings, for fast predicates. (Non-ASCII and special chars are
-// shown with '·' in the comment.)
-#[rustfmt::skip]
-const ENCODINGS: [u8; 256] = [
-/*                     0      1      2      3      4      5      6      7      8      9    */
-/*   0+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, WS___,
-/*  10+: ·········· */ WS___, _____, _____, WS___, _____, _____, _____, _____, _____, _____,
-/*  20+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/*  30+: ·· !"#$%&' */ _____, _____, WS___, _____, _____, _____, _____, _____, _____, _____,
-/*  40+: ()*+,-./01 */ _____, _____, _____, PUNCT, _____, PUNCT, PUNCT, _____, DIGIT, DIGIT,
-/*  50+: 23456789:; */ DIGIT, DIGIT, DIGIT, DIGIT, DIGIT, DIGIT, DIGIT, DIGIT, _____, _____,
-/*  60+: <=>?@ABCDE */ _____, _____, _____, _____, _____, ABCDF, ABCDF, ABCDF, ABCDF, E____,
-/*  70+: FGHIJKLMNO */ ABCDF, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__,
-/*  80+: PQRSTUVWZY */ G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__,
-/*  90+: Z[\]^_`abc */ G2Z__, _____, _____, _____, _____, UNDER, _____, ABCDF, ABCDF, ABCDF,
-/* 100+: defghijklm */ ABCDF, E____, ABCDF, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__,
-/* 110+: nopqrstuvw */ G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__, G2Z__,
-/* 120+: xyz{|}~··· */ G2Z__, G2Z__, G2Z__, _____, _____, _____, _____, _____, _____, _____,
-/* 130+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 140+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 150+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 160+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 170+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 180+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 190+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 200+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 210+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 220+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 230+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 240+: ·········· */ _____, _____, _____, _____, _____, _____, _____, _____, _____, _____,
-/* 250+: ·········· */ _____, _____, _____, _____, _____, _____
-];
-
-const fn is_int_char(c: u8) -> bool {
-    ENCODINGS[c as usize] & INT_CHAR != 0
+const fn is_int_char(c: char) -> bool {
+    c.is_ascii_hexdigit() || c == '_'
 }
 
-const fn is_float_char(c: u8) -> bool {
-    ENCODINGS[c as usize] & FLOAT_CHAR != 0
+const fn is_float_char(c: char) -> bool {
+    c.is_ascii_digit() || matches!(c, 'e' | 'E' | '.' | '+' | '-' | '_')
 }
 
-pub const fn is_ident_first_char(c: u8) -> bool {
-    ENCODINGS[c as usize] & IDENT_FIRST_CHAR != 0
+pub fn is_ident_first_char(c: char) -> bool {
+    c == '_' || is_xid_start(c)
 }
 
-pub const fn is_ident_other_char(c: u8) -> bool {
-    ENCODINGS[c as usize] & IDENT_OTHER_CHAR != 0
+pub fn is_ident_raw_char(c: char) -> bool {
+    matches!(c, '.' | '+' | '-') | is_xid_continue(c)
 }
 
-pub const fn is_ident_raw_char(c: u8) -> bool {
-    ENCODINGS[c as usize] & IDENT_RAW_CHAR != 0
-}
-
-const fn is_whitespace_char(c: u8) -> bool {
-    ENCODINGS[c as usize] & WHITESPACE_CHAR != 0
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum AnyNum {
-    F32(f32),
-    F64(f64),
-    I8(i8),
-    U8(u8),
-    I16(i16),
-    U16(u16),
-    I32(i32),
-    U32(u32),
-    I64(i64),
-    U64(u64),
-    #[cfg(feature = "integer128")]
-    I128(i128),
-    #[cfg(feature = "integer128")]
-    U128(u128),
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Bytes<'a> {
-    /// Bits set according to the [`Extensions`] enum.
-    pub exts: Extensions,
-    bytes: &'a [u8],
-    cursor: Position,
+pub const fn is_whitespace_char(c: char) -> bool {
+    matches!(
+        c,
+        ' ' | '\t'
+            | '\n'
+            | '\r'
+            | '\x0B'
+            | '\x0C'
+            | '\u{85}'
+            | '\u{200E}'
+            | '\u{200F}'
+            | '\u{2028}'
+            | '\u{2029}'
+    )
 }
 
 #[cfg(feature = "integer128")]
@@ -124,281 +54,452 @@ pub(crate) type LargeSInt = i128;
 #[cfg(not(feature = "integer128"))]
 pub(crate) type LargeSInt = i64;
 
-impl<'a> Bytes<'a> {
-    pub fn new(bytes: &'a [u8]) -> SpannedResult<Self> {
-        let mut b = Bytes {
+pub struct Parser<'a> {
+    /// Bits set according to the [`Extensions`] enum.
+    pub exts: Extensions,
+    src: &'a str,
+    cursor: ParserCursor,
+}
+
+#[derive(Copy, Clone)] // GRCOV_EXCL_LINE
+pub struct ParserCursor {
+    cursor: usize,
+    pre_ws_cursor: usize,
+    last_ws_len: usize,
+}
+
+const WS_CURSOR_UNCLOSED_LINE: usize = usize::MAX;
+
+impl PartialEq for ParserCursor {
+    fn eq(&self, other: &Self) -> bool {
+        self.cursor == other.cursor
+    }
+}
+
+impl PartialOrd for ParserCursor {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.cursor.partial_cmp(&other.cursor)
+    }
+}
+
+/// constructor and parsing utilities
+impl<'a> Parser<'a> {
+    pub fn new(src: &'a str) -> SpannedResult<Self> {
+        let mut parser = Parser {
             exts: Extensions::empty(),
-            bytes,
-            cursor: Position { line: 1, col: 1 },
+            src,
+            cursor: ParserCursor {
+                cursor: 0,
+                pre_ws_cursor: 0,
+                last_ws_len: 0,
+            },
         };
 
-        b.skip_ws().map_err(|e| b.span_error(e))?;
+        parser.skip_ws().map_err(|e| parser.span_error(e))?;
 
         // Loop over all extensions attributes
         loop {
-            let attribute = b.extensions().map_err(|e| b.span_error(e))?;
+            let attribute = parser.extensions().map_err(|e| parser.span_error(e))?;
 
             if attribute.is_empty() {
                 break;
             }
 
-            b.exts |= attribute;
-            b.skip_ws().map_err(|e| b.span_error(e))?;
+            parser.exts |= attribute;
+            parser.skip_ws().map_err(|e| parser.span_error(e))?;
         }
 
-        Ok(b)
+        Ok(parser)
+    }
+
+    fn set_cursor(&mut self, cursor: ParserCursor) {
+        self.cursor = cursor;
     }
 
     pub fn span_error(&self, code: Error) -> SpannedError {
         SpannedError {
             code,
-            position: self.cursor,
+            position: Position::from_src_end(&self.src[..self.cursor.cursor]),
         }
     }
 
-    pub fn advance(&mut self, bytes: usize) -> Result<()> {
-        for _ in 0..bytes {
-            self.advance_single()?;
-        }
-
-        Ok(())
+    pub fn advance_bytes(&mut self, bytes: usize) {
+        self.cursor.cursor += bytes;
     }
 
-    pub fn advance_single(&mut self) -> Result<()> {
-        if self.peek_or_eof()? == b'\n' {
-            self.cursor.line += 1;
-            self.cursor.col = 1;
+    pub fn next_char(&mut self) -> Result<char> {
+        let c = self.peek_char_or_eof()?;
+        self.cursor.cursor += c.len_utf8();
+        Ok(c)
+    }
+
+    pub fn skip_next_char(&mut self) {
+        std::mem::drop(self.next_char());
+    }
+
+    pub fn peek_char(&self) -> Option<char> {
+        self.src().chars().next()
+    }
+
+    pub fn peek_char_or_eof(&self) -> Result<char> {
+        self.peek_char().ok_or(Error::Eof)
+    }
+
+    pub fn check_char(&self, c: char) -> bool {
+        self.src().starts_with(c)
+    }
+
+    pub fn check_str(&self, s: &str) -> bool {
+        self.src().starts_with(s)
+    }
+
+    pub fn src(&self) -> &'a str {
+        &self.src[self.cursor.cursor..]
+    }
+
+    pub fn pre_ws_src(&self) -> &'a str {
+        &self.src[self.cursor.pre_ws_cursor..]
+    }
+
+    pub fn consume_str(&mut self, s: &str) -> bool {
+        if self.check_str(s) {
+            self.advance_bytes(s.len());
+
+            true
         } else {
-            self.cursor.col += 1;
+            false
         }
-
-        self.bytes = &self.bytes[1..];
-
-        Ok(())
     }
 
-    fn any_integer<T: Num>(&mut self, sign: i8) -> Result<T> {
-        let base = if self.peek() == Some(b'0') {
-            match self.bytes.get(1).copied() {
-                Some(b'x') => 16,
-                Some(b'b') => 2,
-                Some(b'o') => 8,
-                _ => 10,
+    pub fn consume_char(&mut self, c: char) -> bool {
+        if self.check_char(c) {
+            self.advance_bytes(c.len_utf8());
+
+            true
+        } else {
+            false
+        }
+    }
+
+    fn consume_all(&mut self, all: &[&str]) -> Result<bool> {
+        all.iter()
+            .map(|elem| {
+                if self.consume_str(elem) {
+                    self.skip_ws()?;
+
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            })
+            .try_fold(true, |acc, x| x.map(|x| x && acc))
+    }
+
+    pub fn expect_char(&mut self, expected: char, error: Error) -> Result<()> {
+        if self.consume_char(expected) {
+            Ok(())
+        } else {
+            Err(error)
+        }
+    }
+
+    #[must_use]
+    pub fn next_chars_while_len(&self, condition: fn(char) -> bool) -> usize {
+        self.next_chars_while_from_len(0, condition)
+    }
+
+    #[must_use]
+    pub fn next_chars_while_from_len(&self, from: usize, condition: fn(char) -> bool) -> usize {
+        self.src()[from..]
+            .find(|c| !condition(c))
+            .unwrap_or(self.src().len() - from)
+    }
+}
+
+/// actual parsing of ron tokens
+impl<'a> Parser<'a> {
+    fn parse_integer_digits<T: Num>(
+        &mut self,
+        s: &str,
+        base: u8,
+        f: fn(&mut T, u8) -> bool,
+    ) -> Result<T> {
+        let mut num_acc = T::from_u8(0);
+
+        for (i, c) in s.char_indices() {
+            if c == '_' {
+                continue;
             }
-        } else {
-            10
+
+            if num_acc.checked_mul_ext(base) {
+                self.advance_bytes(s.len());
+                return Err(Error::IntegerOutOfBounds);
+            }
+
+            let digit = Self::decode_hex(c)?;
+
+            if digit >= base {
+                self.advance_bytes(i);
+                return Err(Error::InvalidIntegerDigit { digit: c, base });
+            }
+
+            if f(&mut num_acc, digit) {
+                self.advance_bytes(s.len());
+                return Err(Error::IntegerOutOfBounds);
+            }
+        }
+
+        self.advance_bytes(s.len());
+
+        Ok(num_acc)
+    }
+
+    fn parse_integer<T: Num>(&mut self, sign: i8) -> Result<T> {
+        let base = match () {
+            () if self.consume_str("0b") => 2,
+            () if self.consume_str("0o") => 8,
+            () if self.consume_str("0x") => 16,
+            () => 10,
         };
 
-        if base != 10 {
-            // If we have `0x45A` for example,
-            // cut it to `45A`.
-            let _ = self.advance(2);
-        }
-
-        let num_bytes = self.next_bytes_contained_in(is_int_char);
+        let num_bytes = self.next_chars_while_len(is_int_char);
 
         if num_bytes == 0 {
             return Err(Error::ExpectedInteger);
         }
 
-        let s = unsafe { from_utf8_unchecked(&self.bytes[0..num_bytes]) };
-
-        if s.as_bytes()[0] == b'_' {
+        if self.check_char('_') {
             return Err(Error::UnderscoreAtBeginning);
         }
 
-        fn calc_num<T: Num>(
-            bytes: &Bytes,
-            s: &str,
-            base: u8,
-            mut f: impl FnMut(&mut T, u8) -> bool,
-        ) -> Result<T> {
-            let mut num_acc = T::from_u8(0);
+        let s = &self.src()[..num_bytes];
 
-            for &byte in s.as_bytes() {
-                if byte == b'_' {
-                    continue;
-                }
-
-                if num_acc.checked_mul_ext(base) {
-                    return Err(Error::IntegerOutOfBounds);
-                }
-
-                let digit = bytes.decode_hex(byte)?;
-
-                if digit >= base {
-                    return Err(Error::ExpectedInteger);
-                }
-
-                if f(&mut num_acc, digit) {
-                    return Err(Error::IntegerOutOfBounds);
-                }
-            }
-
-            Ok(num_acc)
-        }
-
-        let res = if sign > 0 {
-            calc_num(self, s, base, T::checked_add_ext)
+        if sign > 0 {
+            self.parse_integer_digits(s, base, T::checked_add_ext)
         } else {
-            calc_num(self, s, base, T::checked_sub_ext)
-        };
-
-        let _ = self.advance(num_bytes);
-
-        res
+            self.parse_integer_digits(s, base, T::checked_sub_ext)
+        }
     }
 
-    pub fn any_num(&mut self) -> Result<AnyNum> {
-        // We are not doing float comparisons here in the traditional sense.
-        // Instead, this code checks if a f64 fits inside an f32.
-        #[allow(clippy::float_cmp)]
-        fn any_float(f: f64) -> Result<AnyNum> {
-            if f == f64::from(f as f32) {
-                Ok(AnyNum::F32(f as f32))
-            } else {
-                Ok(AnyNum::F64(f))
+    #[allow(clippy::too_many_lines)]
+    pub fn integer<T: Integer>(&mut self) -> Result<T> {
+        let src_backup = self.src();
+
+        let is_negative = match self.peek_char_or_eof()? {
+            '+' => {
+                self.skip_next_char();
+                false
             }
+            '-' => {
+                self.skip_next_char();
+                true
+            }
+            'b' if self.consume_str("b'") => {
+                // Parse a byte literal
+                let byte = match self.next_char()? {
+                    '\\' => match self.parse_escape(EscapeEncoding::Binary, true)? {
+                        // we know that this byte is an ASCII character
+                        EscapeCharacter::Ascii(b) => b,
+                        EscapeCharacter::Utf8(_) => {
+                            return Err(Error::InvalidEscape(
+                                "Unexpected Unicode escape in byte literal",
+                            ))
+                        }
+                    },
+                    b if b.is_ascii() => b as u8,
+                    _ => return Err(Error::ExpectedByteLiteral),
+                };
+
+                if !self.consume_char('\'') {
+                    return Err(Error::ExpectedByteLiteral);
+                }
+
+                let bytes_ron = &src_backup[..src_backup.len() - self.src().len()];
+
+                return T::try_from_parsed_integer(ParsedInteger::U8(byte), bytes_ron);
+            }
+            _ => false,
+        };
+        let sign = if is_negative { -1 } else { 1 };
+
+        let num_bytes = self.next_chars_while_len(is_int_char);
+
+        if self.src()[num_bytes..].starts_with(['i', 'u']) {
+            let int_cursor = self.cursor;
+            self.advance_bytes(num_bytes);
+
+            #[allow(clippy::never_loop)]
+            loop {
+                let (res, suffix_bytes) = if self.consume_ident("i8") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<i8>(sign).map(ParsedInteger::I8),
+                        suffix_bytes,
+                    )
+                } else if self.consume_ident("i16") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<i16>(sign).map(ParsedInteger::I16),
+                        suffix_bytes,
+                    )
+                } else if self.consume_ident("i32") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<i32>(sign).map(ParsedInteger::I32),
+                        suffix_bytes,
+                    )
+                } else if self.consume_ident("i64") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<i64>(sign).map(ParsedInteger::I64),
+                        suffix_bytes,
+                    )
+                } else if self.consume_ident("u8") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<u8>(sign).map(ParsedInteger::U8),
+                        suffix_bytes,
+                    )
+                } else if self.consume_ident("u16") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<u16>(sign).map(ParsedInteger::U16),
+                        suffix_bytes,
+                    )
+                } else if self.consume_ident("u32") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<u32>(sign).map(ParsedInteger::U32),
+                        suffix_bytes,
+                    )
+                } else if self.consume_ident("u64") {
+                    let suffix_bytes = self.src();
+                    self.set_cursor(int_cursor);
+                    (
+                        self.parse_integer::<u64>(sign).map(ParsedInteger::U64),
+                        suffix_bytes,
+                    )
+                } else {
+                    #[cfg(feature = "integer128")]
+                    if self.consume_ident("i128") {
+                        let suffix_bytes = self.src();
+                        self.set_cursor(int_cursor);
+                        (
+                            self.parse_integer::<i128>(sign).map(ParsedInteger::I128),
+                            suffix_bytes,
+                        )
+                    } else if self.consume_ident("u128") {
+                        let suffix_bytes = self.src();
+                        self.set_cursor(int_cursor);
+                        (
+                            self.parse_integer::<u128>(sign).map(ParsedInteger::U128),
+                            suffix_bytes,
+                        )
+                    } else {
+                        break;
+                    }
+                    #[cfg(not(feature = "integer128"))]
+                    {
+                        break;
+                    }
+                };
+
+                if !matches!(
+                    &res,
+                    Err(Error::UnderscoreAtBeginning | Error::InvalidIntegerDigit { .. })
+                ) {
+                    // Advance past the number suffix
+                    self.skip_identifier();
+                }
+
+                let integer_ron = &src_backup[..src_backup.len() - suffix_bytes.len()];
+
+                return res.and_then(|parsed| T::try_from_parsed_integer(parsed, integer_ron));
+            }
+
+            self.set_cursor(int_cursor);
         }
 
-        let bytes_backup = self.bytes;
+        T::parse(self, sign)
+    }
 
-        let first_byte = self.peek_or_eof()?;
-        let is_signed = first_byte == b'-' || first_byte == b'+';
-        let is_float = self.next_bytes_is_float();
+    pub fn any_number(&mut self) -> Result<Number> {
+        if self.next_bytes_is_float() {
+            return match self.float::<ParsedFloat>()? {
+                ParsedFloat::F32(v) => Ok(Number::F32(v.into())),
+                ParsedFloat::F64(v) => Ok(Number::F64(v.into())),
+            };
+        }
 
-        if is_float {
-            let f = self.float::<f64>()?;
+        let backup_cursor = self.cursor;
 
-            any_float(f)
-        } else {
-            let max_u8 = LargeUInt::from(std::u8::MAX);
-            let max_u16 = LargeUInt::from(std::u16::MAX);
-            let max_u32 = LargeUInt::from(std::u32::MAX);
-            #[cfg_attr(not(feature = "integer128"), allow(clippy::useless_conversion))]
-            let max_u64 = LargeUInt::from(std::u64::MAX);
-
-            let min_i8 = LargeSInt::from(std::i8::MIN);
-            let max_i8 = LargeSInt::from(std::i8::MAX);
-            let min_i16 = LargeSInt::from(std::i16::MIN);
-            let max_i16 = LargeSInt::from(std::i16::MAX);
-            let min_i32 = LargeSInt::from(std::i32::MIN);
-            let max_i32 = LargeSInt::from(std::i32::MAX);
-            #[cfg_attr(not(feature = "integer128"), allow(clippy::useless_conversion))]
-            let min_i64 = LargeSInt::from(std::i64::MIN);
-            #[cfg_attr(not(feature = "integer128"), allow(clippy::useless_conversion))]
-            let max_i64 = LargeSInt::from(std::i64::MAX);
-
-            if is_signed {
-                match self.signed_integer::<LargeSInt>() {
-                    Ok(x) => {
-                        if x >= min_i8 && x <= max_i8 {
-                            Ok(AnyNum::I8(x as i8))
-                        } else if x >= min_i16 && x <= max_i16 {
-                            Ok(AnyNum::I16(x as i16))
-                        } else if x >= min_i32 && x <= max_i32 {
-                            Ok(AnyNum::I32(x as i32))
-                        } else if x >= min_i64 && x <= max_i64 {
-                            Ok(AnyNum::I64(x as i64))
-                        } else {
-                            #[cfg(feature = "integer128")]
-                            {
-                                Ok(AnyNum::I128(x))
-                            }
-                            #[cfg(not(feature = "integer128"))]
-                            {
-                                Ok(AnyNum::I64(x))
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        self.bytes = bytes_backup;
-
-                        any_float(self.float::<f64>()?)
-                    }
+        let (integer_err, integer_cursor) = match self.integer::<ParsedInteger>() {
+            Ok(integer) => {
+                return match integer {
+                    ParsedInteger::I8(v) => Ok(Number::I8(v)),
+                    ParsedInteger::I16(v) => Ok(Number::I16(v)),
+                    ParsedInteger::I32(v) => Ok(Number::I32(v)),
+                    ParsedInteger::I64(v) => Ok(Number::I64(v)),
+                    #[cfg(feature = "integer128")]
+                    ParsedInteger::I128(v) => Ok(Number::I128(v)),
+                    ParsedInteger::U8(v) => Ok(Number::U8(v)),
+                    ParsedInteger::U16(v) => Ok(Number::U16(v)),
+                    ParsedInteger::U32(v) => Ok(Number::U32(v)),
+                    ParsedInteger::U64(v) => Ok(Number::U64(v)),
+                    #[cfg(feature = "integer128")]
+                    ParsedInteger::U128(v) => Ok(Number::U128(v)),
                 }
-            } else {
-                match self.unsigned_integer::<LargeUInt>() {
-                    Ok(x) => {
-                        if x <= max_u8 {
-                            Ok(AnyNum::U8(x as u8))
-                        } else if x <= max_u16 {
-                            Ok(AnyNum::U16(x as u16))
-                        } else if x <= max_u32 {
-                            Ok(AnyNum::U32(x as u32))
-                        } else if x <= max_u64 {
-                            Ok(AnyNum::U64(x as u64))
-                        } else {
-                            #[cfg(feature = "integer128")]
-                            {
-                                Ok(AnyNum::U128(x))
-                            }
-                            #[cfg(not(feature = "integer128"))]
-                            {
-                                Ok(AnyNum::U64(x))
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        self.bytes = bytes_backup;
+            }
+            Err(err) => (err, self.cursor),
+        };
 
-                        any_float(self.float::<f64>()?)
-                    }
-                }
+        self.set_cursor(backup_cursor);
+
+        // Fall-back to parse an out-of-range integer as a float
+        match self.float::<ParsedFloat>() {
+            Ok(ParsedFloat::F32(v)) if self.cursor >= integer_cursor => Ok(Number::F32(v.into())),
+            Ok(ParsedFloat::F64(v)) if self.cursor >= integer_cursor => Ok(Number::F64(v.into())),
+            _ => {
+                // Return the more precise integer error
+                self.set_cursor(integer_cursor);
+                Err(integer_err)
             }
         }
     }
 
     pub fn bool(&mut self) -> Result<bool> {
-        if self.consume("true") {
+        if self.consume_ident("true") {
             Ok(true)
-        } else if self.consume("false") {
+        } else if self.consume_ident("false") {
             Ok(false)
         } else {
             Err(Error::ExpectedBoolean)
         }
     }
 
-    pub fn bytes(&self) -> &[u8] {
-        self.bytes
-    }
-
     pub fn char(&mut self) -> Result<char> {
-        if !self.consume("'") {
-            return Err(Error::ExpectedChar);
-        }
+        self.expect_char('\'', Error::ExpectedChar)?;
 
-        let c = self.peek_or_eof()?;
+        let c = self.next_char()?;
 
-        let c = if c == b'\\' {
-            let _ = self.advance(1);
-
-            self.parse_escape()?
-        } else {
-            // Check where the end of the char (') is and try to
-            // interpret the rest as UTF-8
-
-            let max = self.bytes.len().min(5);
-            let pos: usize = self.bytes[..max]
-                .iter()
-                .position(|&x| x == b'\'')
-                .ok_or(Error::ExpectedChar)?;
-            let s = from_utf8(&self.bytes[0..pos]).map_err(Error::from)?;
-            let mut chars = s.chars();
-
-            let first = chars.next().ok_or(Error::ExpectedChar)?;
-            if chars.next().is_some() {
-                return Err(Error::ExpectedChar);
+        let c = if c == '\\' {
+            match self.parse_escape(EscapeEncoding::Utf8, true)? {
+                // we know that this byte is an ASCII character
+                EscapeCharacter::Ascii(b) => char::from(b),
+                EscapeCharacter::Utf8(c) => c,
             }
-
-            let _ = self.advance(pos);
-
-            first
+        } else {
+            c
         };
 
-        if !self.consume("'") {
-            return Err(Error::ExpectedChar);
-        }
+        self.expect_char('\'', Error::ExpectedChar)?;
 
         Ok(c)
     }
@@ -406,7 +507,7 @@ impl<'a> Bytes<'a> {
     pub fn comma(&mut self) -> Result<bool> {
         self.skip_ws()?;
 
-        if self.consume(",") {
+        if self.consume_char(',') {
             self.skip_ws()?;
 
             Ok(true)
@@ -418,33 +519,146 @@ impl<'a> Bytes<'a> {
     /// Only returns true if the char after `ident` cannot belong
     /// to an identifier.
     pub fn check_ident(&mut self, ident: &str) -> bool {
-        self.test_for(ident) && !self.check_ident_other_char(ident.len())
+        self.check_str(ident) && !self.check_ident_other_char(ident.len())
     }
 
     fn check_ident_other_char(&self, index: usize) -> bool {
-        self.bytes
-            .get(index)
-            .map_or(false, |&b| is_ident_other_char(b))
+        self.src()[index..]
+            .chars()
+            .next()
+            .map_or(false, is_xid_continue)
     }
 
-    /// Should only be used on a working copy
-    pub fn check_tuple_struct(mut self) -> Result<bool> {
-        if self.identifier().is_err() {
-            // if there's no field ident, this is a tuple struct
-            return Ok(true);
+    /// Check which type of struct we are currently parsing. The parsing state
+    ///  is only changed in case of an error, to provide a better position.
+    ///
+    /// [`NewtypeMode::NoParensMeanUnit`] detects (tuple) structs by a leading
+    ///  opening bracket and reports a unit struct otherwise.
+    /// [`NewtypeMode::InsideNewtype`] skips an initial check for unit structs,
+    ///  and means that any leading opening bracket is not considered to open
+    ///  a (tuple) struct but to be part of the structs inner contents.
+    ///
+    /// [`TupleMode::ImpreciseTupleOrNewtype`] only performs a cheap, O(1),
+    ///  single-identifier lookahead check to distinguish tuple structs from
+    ///  non-tuple structs.
+    /// [`TupleMode::DifferentiateNewtype`] performs an expensive, O(N), look-
+    ///  ahead over the entire next value tree, which can span the entirety of
+    ///  the remaining document in the worst case.
+    pub fn check_struct_type(
+        &mut self,
+        newtype: NewtypeMode,
+        tuple: TupleMode,
+    ) -> Result<StructType> {
+        fn check_struct_type_inner(
+            parser: &mut Parser,
+            newtype: NewtypeMode,
+            tuple: TupleMode,
+        ) -> Result<StructType> {
+            if matches!(newtype, NewtypeMode::NoParensMeanUnit) && !parser.consume_char('(') {
+                return Ok(StructType::Unit);
+            }
+
+            parser.skip_ws()?;
+
+            // Check for `Ident()`, which could be
+            // - a zero-field struct or tuple (variant)
+            // - an unwrapped newtype around a unit
+            if matches!(newtype, NewtypeMode::NoParensMeanUnit) && parser.check_char(')') {
+                return Ok(StructType::EmptyTuple);
+            }
+
+            if parser.skip_identifier().is_some() {
+                parser.skip_ws()?;
+
+                match parser.peek_char() {
+                    // Definitely a struct with named fields
+                    Some(':') => return Ok(StructType::Named),
+                    // Definitely a tuple-like struct with fields
+                    Some(',') => {
+                        parser.skip_next_char();
+                        parser.skip_ws()?;
+                        if parser.check_char(')') {
+                            // A one-element tuple could be a newtype
+                            return Ok(StructType::NewtypeTuple);
+                        }
+                        // Definitely a tuple struct with more than one field
+                        return Ok(StructType::NonNewtypeTuple);
+                    }
+                    // Either a newtype or a tuple struct
+                    Some(')') => return Ok(StructType::NewtypeTuple),
+                    // Something else, let's investigate further
+                    Some(_) | None => (),
+                };
+            }
+
+            if matches!(tuple, TupleMode::ImpreciseTupleOrNewtype) {
+                return Ok(StructType::AnyTuple);
+            }
+
+            let mut braces = 1_usize;
+            let mut more_than_one = false;
+
+            // Skip ahead to see if the value is followed by another value
+            while braces > 0 {
+                // Skip spurious braces in comments, strings, and characters
+                parser.skip_ws()?;
+                let cursor_backup = parser.cursor;
+                if parser.char().is_err() {
+                    parser.set_cursor(cursor_backup);
+                }
+                let cursor_backup = parser.cursor;
+                match parser.string() {
+                    Ok(_) => (),
+                    // prevent quadratic complexity backtracking for unterminated string
+                    Err(err @ (Error::ExpectedStringEnd | Error::Eof)) => return Err(err),
+                    Err(_) => parser.set_cursor(cursor_backup),
+                }
+                let cursor_backup = parser.cursor;
+                // we have already checked for strings, which subsume base64 byte strings
+                match parser.byte_string_no_base64() {
+                    Ok(_) => (),
+                    // prevent quadratic complexity backtracking for unterminated byte string
+                    Err(err @ (Error::ExpectedStringEnd | Error::Eof)) => return Err(err),
+                    Err(_) => parser.set_cursor(cursor_backup),
+                }
+
+                let c = parser.next_char()?;
+                if matches!(c, '(' | '[' | '{') {
+                    braces += 1;
+                } else if matches!(c, ')' | ']' | '}') {
+                    braces -= 1;
+                } else if c == ',' && braces == 1 {
+                    parser.skip_ws()?;
+                    more_than_one = !parser.check_char(')');
+                    break;
+                }
+            }
+
+            if more_than_one {
+                Ok(StructType::NonNewtypeTuple)
+            } else {
+                Ok(StructType::NewtypeTuple)
+            }
         }
 
-        self.skip_ws()?;
+        // Create a temporary working copy
+        let backup_cursor = self.cursor;
 
-        // if there is no colon after the ident, this can only be a unit struct
-        self.eat_byte().map(|c| c != b':')
+        let result = check_struct_type_inner(self, newtype, tuple);
+
+        if result.is_ok() {
+            // Revert the parser to before the struct type check
+            self.set_cursor(backup_cursor);
+        }
+
+        result
     }
 
     /// Only returns true if the char after `ident` cannot belong
     /// to an identifier.
     pub fn consume_ident(&mut self, ident: &str) -> bool {
         if self.check_ident(ident) {
-            let _ = self.advance(ident.len());
+            self.advance_bytes(ident.len());
 
             true
         } else {
@@ -454,16 +668,24 @@ impl<'a> Bytes<'a> {
 
     pub fn consume_struct_name(&mut self, ident: &'static str) -> Result<bool> {
         if self.check_ident("") {
+            if self.exts.contains(Extensions::EXPLICIT_STRUCT_NAMES) {
+                return Err(Error::ExpectedStructName(ident.to_string()));
+            }
+
             return Ok(false);
         }
 
         let found_ident = match self.identifier() {
-            Ok(maybe_ident) => std::str::from_utf8(maybe_ident)?,
+            Ok(maybe_ident) => maybe_ident,
             Err(Error::SuggestRawIdentifier(found_ident)) if found_ident == ident => {
                 return Err(Error::SuggestRawIdentifier(found_ident))
             }
             Err(_) => return Err(Error::ExpectedNamedStructLike(ident)),
         };
+
+        if ident.is_empty() {
+            return Err(Error::ExpectedNamedStructLike(ident));
+        }
 
         if found_ident != ident {
             return Err(Error::ExpectedDifferentStructName {
@@ -475,45 +697,9 @@ impl<'a> Bytes<'a> {
         Ok(true)
     }
 
-    pub fn consume(&mut self, s: &str) -> bool {
-        if self.test_for(s) {
-            let _ = self.advance(s.len());
-
-            true
-        } else {
-            false
-        }
-    }
-
-    fn consume_all(&mut self, all: &[&str]) -> Result<bool> {
-        all.iter()
-            .map(|elem| {
-                if self.consume(elem) {
-                    self.skip_ws()?;
-
-                    Ok(true)
-                } else {
-                    Ok(false)
-                }
-            })
-            .fold(Ok(true), |acc, x| acc.and_then(|val| x.map(|x| x && val)))
-    }
-
-    pub fn eat_byte(&mut self) -> Result<u8> {
-        let peek = self.peek_or_eof()?;
-        let _ = self.advance_single();
-
-        Ok(peek)
-    }
-
-    pub fn expect_byte(&mut self, byte: u8, error: Error) -> Result<()> {
-        self.eat_byte()
-            .and_then(|b| if b == byte { Ok(()) } else { Err(error) })
-    }
-
     /// Returns the extensions bit mask.
     fn extensions(&mut self) -> Result<Extensions> {
-        if self.peek() != Some(b'#') {
+        if !self.check_char('#') {
             return Ok(Extensions::empty());
         }
 
@@ -526,9 +712,8 @@ impl<'a> Bytes<'a> {
 
         loop {
             let ident = self.identifier()?;
-            let extension = Extensions::from_ident(ident).ok_or_else(|| {
-                Error::NoSuchExtension(String::from_utf8_lossy(ident).into_owned())
-            })?;
+            let extension = Extensions::from_ident(ident)
+                .ok_or_else(|| Error::NoSuchExtension(ident.into()))?;
 
             extensions |= extension;
 
@@ -556,166 +741,359 @@ impl<'a> Bytes<'a> {
         }
     }
 
-    pub fn float<T>(&mut self) -> Result<T>
-    where
-        T: FromStr,
-    {
-        for literal in &["inf", "+inf", "-inf", "NaN", "+NaN", "-NaN"] {
+    pub fn float<T: Float>(&mut self) -> Result<T> {
+        const F32_SUFFIX: &str = "f32";
+        const F64_SUFFIX: &str = "f64";
+
+        for (literal, value_f32, value_f64) in &[
+            ("inf", f32::INFINITY, f64::INFINITY),
+            ("+inf", f32::INFINITY, f64::INFINITY),
+            ("-inf", f32::NEG_INFINITY, f64::NEG_INFINITY),
+            ("NaN", f32::NAN, f64::NAN),
+            ("+NaN", f32::NAN, f64::NAN),
+            ("-NaN", -f32::NAN, -f64::NAN),
+        ] {
             if self.consume_ident(literal) {
-                return FromStr::from_str(literal).map_err(|_| unreachable!()); // must not fail
+                return T::parse(literal);
+            }
+
+            if let Some(suffix) = self.src().strip_prefix(literal) {
+                if let Some(post_suffix) = suffix.strip_prefix(F32_SUFFIX) {
+                    if !post_suffix.chars().next().map_or(false, is_xid_continue) {
+                        let float_ron = &self.src()[..literal.len() + F32_SUFFIX.len()];
+                        self.advance_bytes(literal.len() + F32_SUFFIX.len());
+                        return T::try_from_parsed_float(ParsedFloat::F32(*value_f32), float_ron);
+                    }
+                }
+
+                if let Some(post_suffix) = suffix.strip_prefix(F64_SUFFIX) {
+                    if !post_suffix.chars().next().map_or(false, is_xid_continue) {
+                        let float_ron = &self.src()[..literal.len() + F64_SUFFIX.len()];
+                        self.advance_bytes(literal.len() + F64_SUFFIX.len());
+                        return T::try_from_parsed_float(ParsedFloat::F64(*value_f64), float_ron);
+                    }
+                }
             }
         }
 
-        let num_bytes = self.next_bytes_contained_in(is_float_char);
+        let num_bytes = self.next_chars_while_len(is_float_char);
 
-        // Since `rustc` allows `1_0.0_1`, lint against underscores in floats
-        if let Some(err_bytes) = self.bytes[0..num_bytes].iter().position(|b| *b == b'_') {
-            let _ = self.advance(err_bytes);
-
-            return Err(Error::FloatUnderscore);
+        if num_bytes == 0 {
+            return Err(Error::ExpectedFloat);
         }
 
-        let s = unsafe { from_utf8_unchecked(&self.bytes[0..num_bytes]) };
-        let res = FromStr::from_str(s).map_err(|_| Error::ExpectedFloat);
+        if self.check_char('_') {
+            return Err(Error::UnderscoreAtBeginning);
+        }
 
-        let _ = self.advance(num_bytes);
+        let mut f = String::with_capacity(num_bytes);
+        let mut allow_underscore = false;
 
-        res
+        for (i, c) in self.src()[..num_bytes].char_indices() {
+            match c {
+                '_' if allow_underscore => continue,
+                '_' => {
+                    self.advance_bytes(i);
+                    return Err(Error::FloatUnderscore);
+                }
+                '0'..='9' | 'e' | 'E' => allow_underscore = true,
+                '.' => allow_underscore = false,
+                _ => (),
+            }
+
+            // we know that the byte is an ASCII character here
+            f.push(c);
+        }
+
+        if self.src()[num_bytes..].starts_with('f') {
+            let backup_cursor = self.cursor;
+            self.advance_bytes(num_bytes);
+
+            #[allow(clippy::never_loop)]
+            loop {
+                let res = if self.consume_ident(F32_SUFFIX) {
+                    f32::from_str(&f).map(ParsedFloat::F32)
+                } else if self.consume_ident(F64_SUFFIX) {
+                    f64::from_str(&f).map(ParsedFloat::F64)
+                } else {
+                    break;
+                };
+
+                let parsed = if let Ok(parsed) = res {
+                    parsed
+                } else {
+                    self.set_cursor(backup_cursor);
+                    return Err(Error::ExpectedFloat);
+                };
+
+                let float_ron = &self.src[backup_cursor.cursor..self.cursor.cursor];
+
+                return T::try_from_parsed_float(parsed, float_ron);
+            }
+
+            self.set_cursor(backup_cursor);
+        }
+
+        let value = T::parse(&f)?;
+
+        self.advance_bytes(num_bytes);
+
+        Ok(value)
     }
 
-    pub fn identifier(&mut self) -> Result<&'a [u8]> {
-        let next = self.peek_or_eof()?;
-        if !is_ident_first_char(next) {
-            if is_ident_raw_char(next) {
-                let ident_bytes = &self.bytes[..self.next_bytes_contained_in(is_ident_raw_char)];
+    pub fn skip_identifier(&mut self) -> Option<&'a str> {
+        #[allow(clippy::nonminimal_bool)]
+        if self.check_str("b\"") // byte string
+            || self.check_str("b'") // byte literal
+            || self.check_str("br#") // raw byte string
+            || self.check_str("br\"") // raw byte string
+            || self.check_str("r\"") // raw string
+            || self.check_str("r#\"") // raw string
+            || self.check_str("r##") // raw string
+            || false
+        {
+            return None;
+        }
 
-                if let Ok(ident) = std::str::from_utf8(ident_bytes) {
-                    return Err(Error::SuggestRawIdentifier(String::from(ident)));
-                }
+        if self.check_str("r#") {
+            // maybe a raw identifier
+            let len = self.next_chars_while_from_len(2, is_ident_raw_char);
+            if len > 0 {
+                let ident = &self.src()[2..2 + len];
+                self.advance_bytes(2 + len);
+                return Some(ident);
+            }
+            return None;
+        }
+
+        if let Some(c) = self.peek_char() {
+            // maybe a normal identifier
+            if is_ident_first_char(c) {
+                let len =
+                    c.len_utf8() + self.next_chars_while_from_len(c.len_utf8(), is_xid_continue);
+                let ident = &self.src()[..len];
+                self.advance_bytes(len);
+                return Some(ident);
+            }
+        }
+
+        None
+    }
+
+    pub fn identifier(&mut self) -> Result<&'a str> {
+        let first = self.peek_char_or_eof()?;
+        if !is_ident_first_char(first) {
+            if is_ident_raw_char(first) {
+                let ident_bytes = self.next_chars_while_len(is_ident_raw_char);
+                return Err(Error::SuggestRawIdentifier(
+                    self.src()[..ident_bytes].into(),
+                ));
             }
 
             return Err(Error::ExpectedIdentifier);
         }
 
-        // If the next two bytes signify the start of a raw string literal,
-        // return an error.
-        let length = if next == b'r' {
-            match self.bytes.get(1).ok_or(Error::Eof)? {
-                b'"' => return Err(Error::ExpectedIdentifier),
-                b'#' => {
-                    let after_next = self.bytes.get(2).copied().unwrap_or_default();
-                    // Note: it's important to check this before advancing forward, so that
-                    // the value-type deserializer can fall back to parsing it differently.
-                    if !is_ident_raw_char(after_next) {
-                        return Err(Error::ExpectedIdentifier);
-                    }
-                    // skip "r#"
-                    let _ = self.advance(2);
-                    self.next_bytes_contained_in(is_ident_raw_char)
-                }
-                _ => {
-                    let std_ident_length = self.next_bytes_contained_in(is_ident_other_char);
-                    let raw_ident_length = self.next_bytes_contained_in(is_ident_raw_char);
+        // If the next 2-3 bytes signify the start of a (raw) (byte) string
+        //  literal, return an error.
+        #[allow(clippy::nonminimal_bool)]
+        if self.check_str("b\"") // byte string
+            || self.check_str("b'") // byte literal
+            || self.check_str("br#") // raw byte string
+            || self.check_str("br\"") // raw byte string
+            || self.check_str("r\"") // raw string
+            || self.check_str("r#\"") // raw string
+            || self.check_str("r##") // raw string
+            || false
+        {
+            return Err(Error::ExpectedIdentifier);
+        }
 
-                    if raw_ident_length > std_ident_length {
-                        if let Ok(ident) = std::str::from_utf8(&self.bytes[..raw_ident_length]) {
-                            return Err(Error::SuggestRawIdentifier(String::from(ident)));
-                        }
-                    }
+        let length = if self.check_str("r#") {
+            let cursor_backup = self.cursor;
 
-                    std_ident_length
-                }
+            self.advance_bytes(2);
+
+            // Note: it's important to check this before advancing forward, so that
+            // the value-type deserializer can fall back to parsing it differently.
+            if !matches!(self.peek_char(), Some(c) if is_ident_raw_char(c)) {
+                self.set_cursor(cursor_backup);
+                return Err(Error::ExpectedIdentifier);
             }
-        } else {
-            let std_ident_length = self.next_bytes_contained_in(is_ident_other_char);
-            let raw_ident_length = self.next_bytes_contained_in(is_ident_raw_char);
+
+            self.next_chars_while_len(is_ident_raw_char)
+        } else if first == 'r' {
+            let std_ident_length = self.next_chars_while_len(is_xid_continue);
+            let raw_ident_length = self.next_chars_while_len(is_ident_raw_char);
 
             if raw_ident_length > std_ident_length {
-                if let Ok(ident) = std::str::from_utf8(&self.bytes[..raw_ident_length]) {
-                    return Err(Error::SuggestRawIdentifier(String::from(ident)));
-                }
+                return Err(Error::SuggestRawIdentifier(
+                    self.src()[..raw_ident_length].into(),
+                ));
+            }
+
+            std_ident_length
+        } else {
+            let std_ident_length = first.len_utf8()
+                + self.next_chars_while_from_len(first.len_utf8(), is_xid_continue);
+            let raw_ident_length = self.next_chars_while_len(is_ident_raw_char);
+
+            if raw_ident_length > std_ident_length {
+                return Err(Error::SuggestRawIdentifier(
+                    self.src()[..raw_ident_length].into(),
+                ));
             }
 
             std_ident_length
         };
 
-        let ident = &self.bytes[..length];
-        let _ = self.advance(length);
+        let ident = &self.src()[..length];
+        self.advance_bytes(length);
 
         Ok(ident)
     }
 
-    pub fn next_bytes_contained_in(&self, allowed: fn(u8) -> bool) -> usize {
-        self.bytes.iter().take_while(|&&b| allowed(b)).count()
-    }
-
-    pub fn next_bytes_is_float(&self) -> bool {
-        if let Some(byte) = self.peek() {
-            let skip = match byte {
-                b'+' | b'-' => 1,
+    pub fn next_bytes_is_float(&mut self) -> bool {
+        if let Some(c) = self.peek_char() {
+            let skip = match c {
+                '+' | '-' => 1,
                 _ => 0,
             };
-            let flen = self
-                .bytes
-                .iter()
-                .skip(skip)
-                .take_while(|&&b| is_float_char(b))
-                .count();
-            let ilen = self
-                .bytes
-                .iter()
-                .skip(skip)
-                .take_while(|&&b| is_int_char(b))
-                .count();
-            flen > ilen
+            let valid_float_len = self.next_chars_while_from_len(skip, is_float_char);
+            let valid_int_len = self.next_chars_while_from_len(skip, is_int_char);
+            valid_float_len > valid_int_len
         } else {
             false
         }
     }
 
     pub fn skip_ws(&mut self) -> Result<()> {
-        loop {
-            while self.peek().map_or(false, is_whitespace_char) {
-                let _ = self.advance_single();
-            }
+        if (self.cursor.last_ws_len != WS_CURSOR_UNCLOSED_LINE)
+            && ((self.cursor.pre_ws_cursor + self.cursor.last_ws_len) < self.cursor.cursor)
+        {
+            // the last whitespace is disjoint from this one, we need to track a new one
+            self.cursor.pre_ws_cursor = self.cursor.cursor;
+        }
 
-            if !self.skip_comment()? {
-                return Ok(());
+        if self.src().is_empty() {
+            return Ok(());
+        }
+
+        loop {
+            self.advance_bytes(self.next_chars_while_len(is_whitespace_char));
+
+            match self.skip_comment()? {
+                None => break,
+                Some(Comment::UnclosedLine) => {
+                    self.cursor.last_ws_len = WS_CURSOR_UNCLOSED_LINE;
+                    return Ok(());
+                }
+                Some(Comment::ClosedLine | Comment::Block) => continue,
             }
+        }
+
+        self.cursor.last_ws_len = self.cursor.cursor - self.cursor.pre_ws_cursor;
+
+        Ok(())
+    }
+
+    pub fn has_unclosed_line_comment(&self) -> bool {
+        self.src().is_empty() && self.cursor.last_ws_len == WS_CURSOR_UNCLOSED_LINE
+    }
+
+    pub fn byte_string(&mut self) -> Result<ParsedByteStr<'a>> {
+        fn expected_byte_string_found_base64(
+            base64_str: &ParsedStr,
+            byte_str: &ParsedByteStr,
+        ) -> Error {
+            let byte_str = match &byte_str {
+                ParsedByteStr::Allocated(b) => b.as_slice(),
+                ParsedByteStr::Slice(b) => b,
+            }
+            .iter()
+            .flat_map(|c| std::ascii::escape_default(*c))
+            .map(char::from)
+            .collect::<String>();
+            let base64_str = match &base64_str {
+                ParsedStr::Allocated(s) => s.as_str(),
+                ParsedStr::Slice(s) => s,
+            };
+
+            Error::InvalidValueForType {
+                expected: format!("the Rusty byte string b\"{}\"", byte_str),
+                found: format!("the ambiguous base64 string {:?}", base64_str),
+            }
+        }
+
+        if self.consume_char('"') {
+            let base64_str = self.escaped_string()?;
+            let base64_result = ParsedByteStr::try_from_base64(&base64_str);
+
+            if cfg!(not(test)) {
+                // FIXME @juntyr: remove in v0.10
+                #[allow(deprecated)]
+                base64_result.map_err(Error::Base64Error)
+            } else {
+                match base64_result {
+                    // FIXME @juntyr: enable in v0.10
+                    Ok(byte_str) => Err(expected_byte_string_found_base64(&base64_str, &byte_str)),
+                    Err(_) => Err(Error::ExpectedByteString),
+                }
+            }
+        } else if self.consume_char('r') {
+            let base64_str = self.raw_string()?;
+            let base64_result = ParsedByteStr::try_from_base64(&base64_str);
+
+            if cfg!(not(test)) {
+                // FIXME @juntyr: remove in v0.10
+                #[allow(deprecated)]
+                base64_result.map_err(Error::Base64Error)
+            } else {
+                match base64_result {
+                    // FIXME @juntyr: enable in v0.10
+                    Ok(byte_str) => Err(expected_byte_string_found_base64(&base64_str, &byte_str)),
+                    Err(_) => Err(Error::ExpectedByteString),
+                }
+            }
+        } else {
+            self.byte_string_no_base64()
         }
     }
 
-    pub fn peek(&self) -> Option<u8> {
-        self.bytes.first().copied()
+    pub fn byte_string_no_base64(&mut self) -> Result<ParsedByteStr<'a>> {
+        if self.consume_str("b\"") {
+            self.escaped_byte_string()
+        } else if self.consume_str("br") {
+            self.raw_byte_string()
+        } else {
+            Err(Error::ExpectedByteString)
+        }
     }
 
-    pub fn peek_or_eof(&self) -> Result<u8> {
-        self.bytes.first().copied().ok_or(Error::Eof)
+    fn escaped_byte_string(&mut self) -> Result<ParsedByteStr<'a>> {
+        match self.escaped_byte_buf(EscapeEncoding::Binary) {
+            Ok((bytes, advance)) => {
+                self.advance_bytes(advance);
+                Ok(bytes)
+            }
+            Err(err) => Err(err),
+        }
     }
 
-    pub fn signed_integer<T>(&mut self) -> Result<T>
-    where
-        T: Num,
-    {
-        match self.peek_or_eof()? {
-            b'+' => {
-                let _ = self.advance_single();
-
-                self.any_integer(1)
+    fn raw_byte_string(&mut self) -> Result<ParsedByteStr<'a>> {
+        match self.raw_byte_buf() {
+            Ok((bytes, advance)) => {
+                self.advance_bytes(advance);
+                Ok(bytes)
             }
-            b'-' => {
-                let _ = self.advance_single();
-
-                self.any_integer(-1)
-            }
-            _ => self.any_integer(1),
+            Err(Error::ExpectedString) => Err(Error::ExpectedByteString),
+            Err(err) => Err(err),
         }
     }
 
     pub fn string(&mut self) -> Result<ParsedStr<'a>> {
-        if self.consume("\"") {
+        if self.consume_char('"') {
             self.escaped_string()
-        } else if self.consume("r") {
+        } else if self.consume_char('r') {
             self.raw_string()
         } else {
             Err(Error::ExpectedString)
@@ -723,100 +1101,96 @@ impl<'a> Bytes<'a> {
     }
 
     fn escaped_string(&mut self) -> Result<ParsedStr<'a>> {
-        use std::iter::repeat;
-
-        let (i, end_or_escape) = self
-            .bytes
-            .iter()
-            .enumerate()
-            .find(|&(_, &b)| b == b'\\' || b == b'"')
-            .ok_or(Error::ExpectedStringEnd)?;
-
-        if *end_or_escape == b'"' {
-            let s = from_utf8(&self.bytes[..i]).map_err(Error::from)?;
-
-            // Advance by the number of bytes of the string
-            // + 1 for the `"`.
-            let _ = self.advance(i + 1);
-
-            Ok(ParsedStr::Slice(s))
-        } else {
-            let mut i = i;
-            let mut s: Vec<_> = self.bytes[..i].to_vec();
-
-            loop {
-                let _ = self.advance(i + 1);
-                let character = self.parse_escape()?;
-                match character.len_utf8() {
-                    1 => s.push(character as u8),
-                    len => {
-                        let start = s.len();
-                        s.extend(repeat(0).take(len));
-                        character.encode_utf8(&mut s[start..]);
-                    }
-                }
-
-                let (new_i, end_or_escape) = self
-                    .bytes
-                    .iter()
-                    .enumerate()
-                    .find(|&(_, &b)| b == b'\\' || b == b'"')
-                    .ok_or(Error::ExpectedStringEnd)?;
-
-                i = new_i;
-                s.extend_from_slice(&self.bytes[..i]);
-
-                if *end_or_escape == b'"' {
-                    let _ = self.advance(i + 1);
-
-                    let s = String::from_utf8(s).map_err(Error::from)?;
-                    break Ok(ParsedStr::Allocated(s));
-                }
+        match self.escaped_byte_buf(EscapeEncoding::Utf8) {
+            Ok((bytes, advance)) => {
+                let string = ParsedStr::try_from_bytes(bytes).map_err(Error::from)?;
+                self.advance_bytes(advance);
+                Ok(string)
             }
+            Err(err) => Err(err),
         }
     }
 
     fn raw_string(&mut self) -> Result<ParsedStr<'a>> {
-        let num_hashes = self.bytes.iter().take_while(|&&b| b == b'#').count();
-        let hashes = &self.bytes[..num_hashes];
-        let _ = self.advance(num_hashes);
-
-        if !self.consume("\"") {
-            return Err(Error::ExpectedString);
+        match self.raw_byte_buf() {
+            Ok((bytes, advance)) => {
+                let string = ParsedStr::try_from_bytes(bytes).map_err(Error::from)?;
+                self.advance_bytes(advance);
+                Ok(string)
+            }
+            Err(err) => Err(err),
         }
+    }
 
-        let ending = [&[b'"'], hashes].concat();
-        let i = self
-            .bytes
-            .windows(num_hashes + 1)
-            .position(|window| window == ending.as_slice())
-            .ok_or(Error::ExpectedStringEnd)?;
+    fn escaped_byte_buf(&mut self, encoding: EscapeEncoding) -> Result<(ParsedByteStr<'a>, usize)> {
+        // Checking for '"' and '\\' separately is faster than searching for both at the same time
+        let str_end = self.src().find('"').ok_or(Error::ExpectedStringEnd)?;
+        let escape = self.src()[..str_end].find('\\');
 
-        let s = from_utf8(&self.bytes[..i]).map_err(Error::from)?;
+        if let Some(escape) = escape {
+            // Now check if escaping is used inside the string
+            let mut i = escape;
+            let mut s = self.src().as_bytes()[..i].to_vec();
 
-        // Advance by the number of bytes of the string
+            loop {
+                self.advance_bytes(i + 1);
+
+                match self.parse_escape(encoding, false)? {
+                    EscapeCharacter::Ascii(c) => s.push(c),
+                    EscapeCharacter::Utf8(c) => match c.len_utf8() {
+                        1 => s.push(c as u8),
+                        len => {
+                            let start = s.len();
+                            s.extend(std::iter::repeat(0).take(len));
+                            c.encode_utf8(&mut s[start..]);
+                        }
+                    },
+                }
+
+                // Checking for '"' and '\\' separately is faster than searching for both at the same time
+                let new_str_end = self.src().find('"').ok_or(Error::ExpectedStringEnd)?;
+                let new_escape = self.src()[..new_str_end].find('\\');
+
+                if let Some(new_escape) = new_escape {
+                    s.extend_from_slice(&self.src().as_bytes()[..new_escape]);
+                    i = new_escape;
+                } else {
+                    s.extend_from_slice(&self.src().as_bytes()[..new_str_end]);
+                    // Advance to the end of the string + 1 for the `"`.
+                    break Ok((ParsedByteStr::Allocated(s), new_str_end + 1));
+                }
+            }
+        } else {
+            let s = &self.src().as_bytes()[..str_end];
+
+            // Advance by the number of bytes of the string + 1 for the `"`.
+            Ok((ParsedByteStr::Slice(s), str_end + 1))
+        }
+    }
+
+    fn raw_byte_buf(&mut self) -> Result<(ParsedByteStr<'a>, usize)> {
+        let num_hashes = self.next_chars_while_len(|c| c == '#');
+        let hashes = &self.src()[..num_hashes];
+        self.advance_bytes(num_hashes);
+
+        self.expect_char('"', Error::ExpectedString)?;
+
+        let ending = ["\"", hashes].concat();
+        let i = self.src().find(&ending).ok_or(Error::ExpectedStringEnd)?;
+
+        let s = &self.src().as_bytes()[..i];
+
+        // Advance by the number of bytes of the byte string
         // + `num_hashes` + 1 for the `"`.
-        let _ = self.advance(i + num_hashes + 1);
-
-        Ok(ParsedStr::Slice(s))
-    }
-
-    fn test_for(&self, s: &str) -> bool {
-        s.bytes()
-            .enumerate()
-            .all(|(i, b)| self.bytes.get(i).map_or(false, |t| *t == b))
-    }
-
-    pub fn unsigned_integer<T: Num>(&mut self) -> Result<T> {
-        self.any_integer(1)
+        Ok((ParsedByteStr::Slice(s), i + num_hashes + 1))
     }
 
     fn decode_ascii_escape(&mut self) -> Result<u8> {
         let mut n = 0;
         for _ in 0..2 {
             n <<= 4;
-            let byte = self.eat_byte()?;
-            let decoded = self.decode_hex(byte)?;
+            let byte = self.next_char()?;
+            let decoded = Self::decode_hex(byte)?;
             n |= decoded;
         }
 
@@ -824,8 +1198,13 @@ impl<'a> Bytes<'a> {
     }
 
     #[inline]
-    fn decode_hex(&self, c: u8) -> Result<u8> {
-        match c {
+    fn decode_hex(c: char) -> Result<u8> {
+        if !c.is_ascii() {
+            return Err(Error::InvalidEscape("Non-hex digit found"));
+        }
+
+        // c is an ASCII character that can be losslessly cast to u8
+        match c as u8 {
             c @ b'0'..=b'9' => Ok(c - b'0'),
             c @ b'a'..=b'f' => Ok(10 + c - b'a'),
             c @ b'A'..=b'F' => Ok(10 + c - b'A'),
@@ -833,36 +1212,76 @@ impl<'a> Bytes<'a> {
         }
     }
 
-    fn parse_escape(&mut self) -> Result<char> {
-        let c = match self.eat_byte()? {
-            b'\'' => '\'',
-            b'"' => '"',
-            b'\\' => '\\',
-            b'n' => '\n',
-            b'r' => '\r',
-            b't' => '\t',
-            b'0' => '\0',
-            b'x' => self.decode_ascii_escape()? as char,
-            b'u' => {
-                self.expect_byte(b'{', Error::InvalidEscape("Missing { in Unicode escape"))?;
+    fn parse_escape(&mut self, encoding: EscapeEncoding, is_char: bool) -> Result<EscapeCharacter> {
+        let c = match self.next_char()? {
+            '\'' => EscapeCharacter::Ascii(b'\''),
+            '"' => EscapeCharacter::Ascii(b'"'),
+            '\\' => EscapeCharacter::Ascii(b'\\'),
+            'n' => EscapeCharacter::Ascii(b'\n'),
+            'r' => EscapeCharacter::Ascii(b'\r'),
+            't' => EscapeCharacter::Ascii(b'\t'),
+            '0' => EscapeCharacter::Ascii(b'\0'),
+            'x' => {
+                // Fast exit for ascii escape in byte string
+                let b: u8 = self.decode_ascii_escape()?;
+                if let EscapeEncoding::Binary = encoding {
+                    return Ok(EscapeCharacter::Ascii(b));
+                }
+
+                // Fast exit for ascii character in UTF-8 string
+                let mut bytes = [b, 0, 0, 0];
+                if let Ok(Some(c)) = from_utf8(&bytes[..=0]).map(|s| s.chars().next()) {
+                    return Ok(EscapeCharacter::Utf8(c));
+                }
+
+                if is_char {
+                    // Character literals are not allowed to use multiple byte
+                    //  escapes to build a unicode character
+                    return Err(Error::InvalidEscape(
+                        "Not a valid byte-escaped Unicode character",
+                    ));
+                }
+
+                // UTF-8 character needs up to four bytes and we have already
+                //  consumed one, so at most three to go
+                for i in 1..4 {
+                    if !self.consume_str(r"\x") {
+                        return Err(Error::InvalidEscape(
+                            "Not a valid byte-escaped Unicode character",
+                        ));
+                    }
+
+                    bytes[i] = self.decode_ascii_escape()?;
+
+                    // Check if we now have a valid UTF-8 character
+                    if let Ok(Some(c)) = from_utf8(&bytes[..=i]).map(|s| s.chars().next()) {
+                        return Ok(EscapeCharacter::Utf8(c));
+                    }
+                }
+
+                return Err(Error::InvalidEscape(
+                    "Not a valid byte-escaped Unicode character",
+                ));
+            }
+            'u' => {
+                self.expect_char('{', Error::InvalidEscape("Missing { in Unicode escape"))?;
 
                 let mut bytes: u32 = 0;
                 let mut num_digits = 0;
 
                 while num_digits < 6 {
-                    let byte = self.peek_or_eof()?;
+                    let byte = self.peek_char_or_eof()?;
 
-                    if byte == b'}' {
+                    if byte == '}' {
                         break;
-                    } else {
-                        self.advance_single()?;
                     }
 
-                    let byte = self.decode_hex(byte)?;
+                    self.skip_next_char();
+                    num_digits += 1;
+
+                    let byte = Self::decode_hex(byte)?;
                     bytes <<= 4;
                     bytes |= u32::from(byte);
-
-                    num_digits += 1;
                 }
 
                 if num_digits == 0 {
@@ -871,62 +1290,72 @@ impl<'a> Bytes<'a> {
                     ));
                 }
 
-                self.expect_byte(
-                    b'}',
+                self.expect_char(
+                    '}',
                     Error::InvalidEscape("No } at the end of Unicode escape"),
                 )?;
-                char_from_u32(bytes).ok_or(Error::InvalidEscape("Not a valid char"))?
+                let c = char_from_u32(bytes).ok_or(Error::InvalidEscape(
+                    "Not a valid Unicode-escaped character",
+                ))?;
+
+                EscapeCharacter::Utf8(c)
             }
-            _ => {
-                return Err(Error::InvalidEscape("Unknown escape character"));
-            }
+            _ => return Err(Error::InvalidEscape("Unknown escape character")),
         };
 
         Ok(c)
     }
 
-    fn skip_comment(&mut self) -> Result<bool> {
-        if self.consume("/") {
-            match self.eat_byte()? {
-                b'/' => {
-                    let bytes = self.bytes.iter().take_while(|&&b| b != b'\n').count();
+    fn skip_comment(&mut self) -> Result<Option<Comment>> {
+        if self.consume_char('/') {
+            match self.next_char()? {
+                '/' => {
+                    let bytes = self.next_chars_while_len(|c| c != '\n');
 
-                    let _ = self.advance(bytes);
+                    self.advance_bytes(bytes);
+
+                    if self.src().is_empty() {
+                        Ok(Some(Comment::UnclosedLine))
+                    } else {
+                        Ok(Some(Comment::ClosedLine))
+                    }
                 }
-                b'*' => {
+                '*' => {
                     let mut level = 1;
 
                     while level > 0 {
-                        let bytes = self
-                            .bytes
-                            .iter()
-                            .take_while(|&&b| b != b'/' && b != b'*')
-                            .count();
+                        let bytes = self.next_chars_while_len(|c| !matches!(c, '/' | '*'));
 
-                        if self.bytes.is_empty() {
+                        if self.src().is_empty() {
                             return Err(Error::UnclosedBlockComment);
                         }
 
-                        let _ = self.advance(bytes);
+                        self.advance_bytes(bytes);
 
                         // check whether / or * and take action
-                        if self.consume("/*") {
+                        if self.consume_str("/*") {
                             level += 1;
-                        } else if self.consume("*/") {
+                        } else if self.consume_str("*/") {
                             level -= 1;
                         } else {
-                            self.eat_byte().map_err(|_| Error::UnclosedBlockComment)?;
+                            self.next_char().map_err(|_| Error::UnclosedBlockComment)?;
                         }
                     }
-                }
-                b => return Err(Error::UnexpectedByte(b as char)),
-            }
 
-            Ok(true)
+                    Ok(Some(Comment::Block))
+                }
+                c => Err(Error::UnexpectedChar(c)),
+            }
         } else {
-            Ok(false)
+            Ok(None)
         }
     }
+}
+
+enum Comment {
+    ClosedLine,
+    UnclosedLine,
+    Block,
 }
 
 pub trait Num {
@@ -943,7 +1372,7 @@ pub trait Num {
 }
 
 macro_rules! impl_num {
-    ($ty:ident) => {
+    ($ty:ty) => {
         impl Num for $ty {
             fn from_u8(x: u8) -> Self {
                 x as $ty
@@ -980,20 +1409,243 @@ macro_rules! impl_num {
             }
         }
     };
-    ($($tys:ident)*) => {
+    ($($tys:ty)*) => {
         $( impl_num!($tys); )*
     };
 }
 
-#[cfg(feature = "integer128")]
-impl_num!(u8 u16 u32 u64 u128 i8 i16 i32 i64 i128);
-#[cfg(not(feature = "integer128"))]
-impl_num!(u8 u16 u32 u64 i8 i16 i32 i64);
+impl_num! { i8 i16 i32 i64 u8 u16 u32 u64 }
 
-#[derive(Clone, Debug)]
+#[cfg(feature = "integer128")]
+impl_num! { i128 u128 }
+
+pub trait Integer: Sized {
+    fn parse(parser: &mut Parser, sign: i8) -> Result<Self>;
+
+    fn try_from_parsed_integer(parsed: ParsedInteger, ron: &str) -> Result<Self>;
+}
+
+macro_rules! impl_integer {
+    ($wrap:ident($ty:ty)) => {
+        impl Integer for $ty {
+            fn parse(parser: &mut Parser, sign: i8) -> Result<Self> {
+                parser.parse_integer(sign)
+            }
+
+            fn try_from_parsed_integer(parsed: ParsedInteger, ron: &str) -> Result<Self> {
+                match parsed {
+                    ParsedInteger::$wrap(v) => Ok(v),
+                    _ => Err(Error::InvalidValueForType {
+                        expected: format!(
+                            "a{} {}-bit {}signed integer",
+                            if <$ty>::BITS == 8 { "n" } else { "n" },
+                            <$ty>::BITS,
+                            if <$ty>::MIN == 0 { "un" } else { "" },
+                        ),
+                        found: String::from(ron),
+                    }),
+                }
+            }
+        }
+    };
+    ($($wraps:ident($tys:ty))*) => {
+        $( impl_integer!($wraps($tys)); )*
+    };
+}
+
+impl_integer! {
+    I8(i8) I16(i16) I32(i32) I64(i64)
+    U8(u8) U16(u16) U32(u32) U64(u64)
+}
+
+#[cfg(feature = "integer128")]
+impl_integer! { I128(i128) U128(u128) }
+
+pub enum ParsedInteger {
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
+    #[cfg(feature = "integer128")]
+    I128(i128),
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    U64(u64),
+    #[cfg(feature = "integer128")]
+    U128(u128),
+}
+
+impl Integer for ParsedInteger {
+    fn parse(parser: &mut Parser, sign: i8) -> Result<Self> {
+        if sign < 0 {
+            let signed = parser.parse_integer::<LargeSInt>(-1)?;
+
+            return if let Ok(x) = i8::try_from(signed) {
+                Ok(ParsedInteger::I8(x))
+            } else if let Ok(x) = i16::try_from(signed) {
+                Ok(ParsedInteger::I16(x))
+            } else if let Ok(x) = i32::try_from(signed) {
+                Ok(ParsedInteger::I32(x))
+            } else {
+                #[cfg(not(feature = "integer128"))]
+                {
+                    Ok(ParsedInteger::I64(signed))
+                }
+                #[cfg(feature = "integer128")]
+                if let Ok(x) = i64::try_from(signed) {
+                    Ok(ParsedInteger::I64(x))
+                } else {
+                    Ok(ParsedInteger::I128(signed))
+                }
+            };
+        }
+
+        let unsigned = parser.parse_integer::<LargeUInt>(1)?;
+
+        if let Ok(x) = u8::try_from(unsigned) {
+            Ok(ParsedInteger::U8(x))
+        } else if let Ok(x) = u16::try_from(unsigned) {
+            Ok(ParsedInteger::U16(x))
+        } else if let Ok(x) = u32::try_from(unsigned) {
+            Ok(ParsedInteger::U32(x))
+        } else {
+            #[cfg(not(feature = "integer128"))]
+            {
+                Ok(ParsedInteger::U64(unsigned))
+            }
+            #[cfg(feature = "integer128")]
+            if let Ok(x) = u64::try_from(unsigned) {
+                Ok(ParsedInteger::U64(x))
+            } else {
+                Ok(ParsedInteger::U128(unsigned))
+            }
+        }
+    }
+
+    fn try_from_parsed_integer(parsed: ParsedInteger, _ron: &str) -> Result<Self> {
+        Ok(parsed)
+    }
+}
+
+pub trait Float: Sized {
+    fn parse(float: &str) -> Result<Self>;
+
+    fn try_from_parsed_float(parsed: ParsedFloat, ron: &str) -> Result<Self>;
+}
+
+macro_rules! impl_float {
+    ($wrap:ident($ty:ty: $bits:expr)) => {
+        impl Float for $ty {
+            fn parse(float: &str) -> Result<Self> {
+                <$ty>::from_str(float).map_err(|_| Error::ExpectedFloat)
+            }
+
+            fn try_from_parsed_float(parsed: ParsedFloat, ron: &str) -> Result<Self> {
+                match parsed {
+                    ParsedFloat::$wrap(v) => Ok(v),
+                    _ => Err(Error::InvalidValueForType {
+                        expected: format!(
+                            "a {}-bit floating point number", $bits,
+                        ),
+                        found: String::from(ron),
+                    }),
+                }
+            }
+        }
+    };
+    ($($wraps:ident($tys:ty: $bits:expr))*) => {
+        $( impl_float!($wraps($tys: $bits)); )*
+    };
+}
+
+impl_float! { F32(f32: 32) F64(f64: 64) }
+
+pub enum ParsedFloat {
+    F32(f32),
+    F64(f64),
+}
+
+impl Float for ParsedFloat {
+    fn parse(float: &str) -> Result<Self> {
+        let value = f64::from_str(float).map_err(|_| Error::ExpectedFloat)?;
+
+        #[allow(clippy::cast_possible_truncation)]
+        if value.total_cmp(&f64::from(value as f32)).is_eq() {
+            Ok(ParsedFloat::F32(value as f32))
+        } else {
+            Ok(ParsedFloat::F64(value))
+        }
+    }
+
+    fn try_from_parsed_float(parsed: ParsedFloat, _ron: &str) -> Result<Self> {
+        Ok(parsed)
+    }
+}
+
+pub enum StructType {
+    AnyTuple,
+    EmptyTuple,
+    NewtypeTuple,
+    NonNewtypeTuple,
+    Named,
+    Unit,
+}
+
+#[derive(Copy, Clone)] // GRCOV_EXCL_LINE
+pub enum NewtypeMode {
+    NoParensMeanUnit,
+    InsideNewtype,
+}
+
+#[derive(Copy, Clone)] // GRCOV_EXCL_LINE
+pub enum TupleMode {
+    ImpreciseTupleOrNewtype,
+    DifferentiateNewtype,
+}
+
 pub enum ParsedStr<'a> {
     Allocated(String),
     Slice(&'a str),
+}
+
+pub enum ParsedByteStr<'a> {
+    Allocated(Vec<u8>),
+    Slice(&'a [u8]),
+}
+
+impl<'a> ParsedStr<'a> {
+    pub fn try_from_bytes(bytes: ParsedByteStr<'a>) -> Result<Self, Utf8Error> {
+        match bytes {
+            ParsedByteStr::Allocated(byte_buf) => Ok(ParsedStr::Allocated(
+                String::from_utf8(byte_buf).map_err(|e| e.utf8_error())?,
+            )),
+            ParsedByteStr::Slice(bytes) => Ok(ParsedStr::Slice(from_utf8(bytes)?)),
+        }
+    }
+}
+
+impl<'a> ParsedByteStr<'a> {
+    pub fn try_from_base64(str: &ParsedStr<'a>) -> Result<Self, base64::DecodeError> {
+        let base64_str = match str {
+            ParsedStr::Allocated(string) => string.as_str(),
+            ParsedStr::Slice(str) => str,
+        };
+
+        base64::engine::Engine::decode(&base64::engine::general_purpose::STANDARD, base64_str)
+            .map(ParsedByteStr::Allocated)
+    }
+}
+
+#[derive(Copy, Clone)] // GRCOV_EXCL_LINE
+enum EscapeEncoding {
+    Binary,
+    Utf8,
+}
+
+enum EscapeCharacter {
+    Ascii(u8),
+    Utf8(char),
 }
 
 #[cfg(test)]
@@ -1002,7 +1654,155 @@ mod tests {
 
     #[test]
     fn decode_x10() {
-        let mut bytes = Bytes::new(b"10").unwrap();
-        assert_eq!(bytes.decode_ascii_escape(), Ok(0x10));
+        let mut bytes = Parser::new("10").unwrap();
+        assert_eq!(bytes.decode_ascii_escape(), Ok(b'\x10'));
+    }
+
+    #[test]
+    fn track_prior_ws() {
+        const SOURCE: &str = "   /*hey*/ 42       /*bye*/ 24  ";
+        let mut bytes = Parser::new(SOURCE).unwrap();
+
+        assert_eq!(bytes.src(), "42       /*bye*/ 24  ");
+        assert_eq!(bytes.pre_ws_src(), SOURCE);
+
+        bytes.skip_ws().unwrap();
+
+        assert_eq!(bytes.src(), "42       /*bye*/ 24  ");
+        assert_eq!(bytes.pre_ws_src(), SOURCE);
+
+        assert_eq!(bytes.integer::<u8>().unwrap(), 42);
+
+        assert_eq!(bytes.src(), "       /*bye*/ 24  ");
+        assert_eq!(bytes.pre_ws_src(), SOURCE);
+
+        bytes.skip_ws().unwrap();
+        bytes.skip_ws().unwrap();
+
+        assert_eq!(bytes.src(), "24  ");
+        assert_eq!(bytes.pre_ws_src(), "       /*bye*/ 24  ");
+
+        let mut bytes = Parser::new("42").unwrap();
+        bytes.skip_ws().unwrap();
+        bytes.skip_ws().unwrap();
+        assert_eq!(bytes.src(), "42");
+        assert_eq!(bytes.pre_ws_src(), "42");
+        assert_eq!(bytes.integer::<u8>().unwrap(), 42);
+        bytes.skip_ws().unwrap();
+        bytes.skip_ws().unwrap();
+        assert_eq!(bytes.src(), "");
+        assert_eq!(bytes.pre_ws_src(), "");
+
+        let mut bytes = Parser::new("  42  ").unwrap();
+        bytes.skip_ws().unwrap();
+        bytes.skip_ws().unwrap();
+        assert_eq!(bytes.src(), "42  ");
+        assert_eq!(bytes.pre_ws_src(), "  42  ");
+        assert_eq!(bytes.integer::<u8>().unwrap(), 42);
+        bytes.skip_ws().unwrap();
+        bytes.skip_ws().unwrap();
+        assert_eq!(bytes.src(), "");
+        assert_eq!(bytes.pre_ws_src(), "  ");
+
+        let mut bytes = Parser::new("  42  //").unwrap();
+        bytes.skip_ws().unwrap();
+        bytes.skip_ws().unwrap();
+        assert_eq!(bytes.src(), "42  //");
+        assert_eq!(bytes.pre_ws_src(), "  42  //");
+        assert_eq!(bytes.integer::<u8>().unwrap(), 42);
+        bytes.skip_ws().unwrap();
+        bytes.skip_ws().unwrap();
+        assert_eq!(bytes.src(), "");
+        assert_eq!(bytes.pre_ws_src(), "  //");
+    }
+
+    #[test]
+    fn parser_cursor_eq_cmp() {
+        assert!(
+            ParserCursor {
+                cursor: 42,
+                pre_ws_cursor: 42,
+                last_ws_len: 42
+            } == ParserCursor {
+                cursor: 42,
+                pre_ws_cursor: 24,
+                last_ws_len: 24
+            }
+        );
+        assert!(
+            ParserCursor {
+                cursor: 42,
+                pre_ws_cursor: 42,
+                last_ws_len: 42
+            } != ParserCursor {
+                cursor: 24,
+                pre_ws_cursor: 42,
+                last_ws_len: 42
+            }
+        );
+
+        assert!(
+            ParserCursor {
+                cursor: 42,
+                pre_ws_cursor: 42,
+                last_ws_len: 42
+            } < ParserCursor {
+                cursor: 43,
+                pre_ws_cursor: 24,
+                last_ws_len: 24
+            }
+        );
+        assert!(
+            ParserCursor {
+                cursor: 42,
+                pre_ws_cursor: 42,
+                last_ws_len: 42
+            } > ParserCursor {
+                cursor: 41,
+                pre_ws_cursor: 24,
+                last_ws_len: 24
+            }
+        );
+    }
+
+    #[test]
+    fn empty_src_is_not_a_float() {
+        assert!(!Parser::new("").unwrap().next_bytes_is_float());
+    }
+
+    #[test]
+    fn v0_10_base64_deprecation_error() {
+        let err = crate::from_str::<bytes::Bytes>("\"SGVsbG8gcm9uIQ==\"").unwrap_err();
+
+        assert_eq!(
+            err,
+            SpannedError {
+                code: Error::InvalidValueForType {
+                    expected: String::from("the Rusty byte string b\"Hello ron!\""),
+                    found: String::from("the ambiguous base64 string \"SGVsbG8gcm9uIQ==\"")
+                },
+                position: Position { line: 1, col: 19 },
+            }
+        );
+
+        let err = crate::from_str::<bytes::Bytes>("r\"SGVsbG8gcm9uIQ==\"").unwrap_err();
+
+        assert_eq!(format!("{}", err.code), "Expected the Rusty byte string b\"Hello ron!\" but found the ambiguous base64 string \"SGVsbG8gcm9uIQ==\" instead");
+
+        assert_eq!(
+            crate::from_str::<bytes::Bytes>("\"invalid=\"").unwrap_err(),
+            SpannedError {
+                code: Error::ExpectedByteString,
+                position: Position { line: 1, col: 11 },
+            }
+        );
+
+        assert_eq!(
+            crate::from_str::<bytes::Bytes>("r\"invalid=\"").unwrap_err(),
+            SpannedError {
+                code: Error::ExpectedByteString,
+                position: Position { line: 1, col: 12 },
+            }
+        );
     }
 }

@@ -643,6 +643,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ff69b9dd49fd426c69a0db9fc04dd934cdb6645ff000864d98f7e2af8830eaa"
 
 [[package]]
+name = "bytemuck"
+version = "1.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6b1fc10dbac614ebc03540c9dbd60e83887fda27794998c6528f1782047d540"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ecc273b49b3205b83d648f0690daa588925572cc5063745bfe547fe7ec8e1a1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -929,12 +949,13 @@ dependencies = [
 
 [[package]]
 name = "codespan-reporting"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
+checksum = "fe6d2e5af09e8c8ad56c969f2157a3d4238cebc7c55f0a517728c38f7b200f81"
 dependencies = [
+ "serde",
  "termcolor",
- "unicode-width 0.1.999",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]
@@ -4507,7 +4528,7 @@ checksum = "a2983372caf4480544083767bf2d27defafe32af49ab4df3a0b7fc90793a3664"
 [[package]]
 name = "naga"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c6286791febc64cf8ef054b5356c2669327ef51c#c6286791febc64cf8ef054b5356c2669327ef51c"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c7c79a0dc9356081a884b5518d1c08ce7a09c7c5#c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -4524,7 +4545,6 @@ dependencies = [
  "serde",
  "spirv",
  "strum",
- "termcolor",
  "thiserror 2.0.9",
  "unicode-ident",
 ]
@@ -5563,14 +5583,15 @@ dependencies = [
 
 [[package]]
 name = "ron"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
+checksum = "63f3aa105dea217ef30d89581b65a4d527a19afc95ef5750be3890e8d3c5b837"
 dependencies = [
- "base64 0.21.999",
+ "base64 0.22.1",
  "bitflags 2.9.0",
  "serde",
  "serde_derive",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -7387,11 +7408,13 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c6286791febc64cf8ef054b5356c2669327ef51c#c6286791febc64cf8ef054b5356c2669327ef51c"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c7c79a0dc9356081a884b5518d1c08ce7a09c7c5#c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
 dependencies = [
  "arrayvec",
+ "bit-set",
  "bit-vec",
  "bitflags 2.9.0",
+ "bytemuck",
  "cfg_aliases",
  "document-features",
  "hashbrown 0.14.5",
@@ -7415,7 +7438,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-apple"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c6286791febc64cf8ef054b5356c2669327ef51c#c6286791febc64cf8ef054b5356c2669327ef51c"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c7c79a0dc9356081a884b5518d1c08ce7a09c7c5#c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7423,7 +7446,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c6286791febc64cf8ef054b5356c2669327ef51c#c6286791febc64cf8ef054b5356c2669327ef51c"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c7c79a0dc9356081a884b5518d1c08ce7a09c7c5#c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7431,7 +7454,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c6286791febc64cf8ef054b5356c2669327ef51c#c6286791febc64cf8ef054b5356c2669327ef51c"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c7c79a0dc9356081a884b5518d1c08ce7a09c7c5#c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7439,6 +7462,7 @@ dependencies = [
  "bit-set",
  "bitflags 2.9.0",
  "block",
+ "bytemuck",
  "cfg_aliases",
  "core-graphics-types 0.1.999",
  "gpu-alloc",
@@ -7466,9 +7490,10 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c6286791febc64cf8ef054b5356c2669327ef51c#c6286791febc64cf8ef054b5356c2669327ef51c"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c7c79a0dc9356081a884b5518d1c08ce7a09c7c5#c7c79a0dc9356081a884b5518d1c08ce7a09c7c5"
 dependencies = [
  "bitflags 2.9.0",
+ "bytemuck",
  "js-sys",
  "log",
  "serde",

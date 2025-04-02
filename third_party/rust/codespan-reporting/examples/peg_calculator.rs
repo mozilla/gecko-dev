@@ -14,6 +14,7 @@ use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+#[allow(clippy::redundant_closure_call)]
 peg::parser! {
     grammar arithmetic() for str {
         rule number() -> i64

@@ -1,28 +1,41 @@
 use serde::de::{self, Visitor};
 
-use super::{Deserializer, Error, Result};
+use super::{Error, Result};
 
-pub struct IdDeserializer<'a, 'b: 'a> {
-    d: &'a mut Deserializer<'b>,
+pub struct Deserializer<'a, 'b: 'a> {
+    de: &'a mut super::Deserializer<'b>,
+    map_as_struct: bool,
 }
 
-impl<'a, 'b: 'a> IdDeserializer<'a, 'b> {
-    pub fn new(d: &'a mut Deserializer<'b>) -> Self {
-        IdDeserializer { d }
+impl<'a, 'b: 'a> Deserializer<'a, 'b> {
+    pub fn new(de: &'a mut super::Deserializer<'b>, map_as_struct: bool) -> Self {
+        Deserializer { de, map_as_struct }
     }
 }
 
-impl<'a, 'b: 'a, 'c> de::Deserializer<'b> for &'c mut IdDeserializer<'a, 'b> {
+impl<'a, 'b: 'a, 'c> de::Deserializer<'b> for &'c mut Deserializer<'a, 'b> {
     type Error = Error;
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'b>,
     {
-        self.d.deserialize_identifier(visitor)
+        if self.map_as_struct {
+            // We only allow string keys in flattened structs and maps
+            self.de.deserialize_str(visitor)
+        } else {
+            self.de.deserialize_identifier(visitor)
+        }
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'b>,
+    {
+        self.deserialize_identifier(visitor)
+    }
+
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'b>,
     {
@@ -130,13 +143,6 @@ impl<'a, 'b: 'a, 'c> de::Deserializer<'b> for &'c mut IdDeserializer<'a, 'b> {
     }
 
     fn deserialize_char<V>(self, _: V) -> Result<V::Value>
-    where
-        V: Visitor<'b>,
-    {
-        Err(Error::ExpectedIdentifier)
-    }
-
-    fn deserialize_string<V>(self, _: V) -> Result<V::Value>
     where
         V: Visitor<'b>,
     {

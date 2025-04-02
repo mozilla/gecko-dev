@@ -1,6 +1,10 @@
-use termcolor::{Color, ColorSpec};
+use alloc::string::String;
 
-use crate::diagnostic::{LabelStyle, Severity};
+#[cfg(feature = "termcolor")]
+use {
+    crate::diagnostic::{LabelStyle, Severity},
+    termcolor::{Color, ColorSpec},
+};
 
 /// Configures how a diagnostic is rendered.
 #[derive(Clone, Debug)]
@@ -14,6 +18,7 @@ pub struct Config {
     /// Defaults to: `4`.
     pub tab_width: usize,
     /// Styles to use when rendering the diagnostic.
+    #[cfg(feature = "termcolor")]
     pub styles: Styles,
     /// Characters to use when rendering the diagnostic.
     pub chars: Chars,
@@ -29,6 +34,14 @@ pub struct Config {
     ///
     /// [`Label`]: crate::diagnostic::Label
     pub end_context_lines: usize,
+    /// The minimum number of lines before a label that should be included for context.
+    ///
+    /// Defaults to: `0`.
+    pub before_label_lines: usize,
+    /// The minimum number of lines after a label that should be included for context.
+    ///
+    /// Defaults to: `0`.
+    pub after_label_lines: usize,
 }
 
 impl Default for Config {
@@ -36,10 +49,13 @@ impl Default for Config {
         Config {
             display_style: DisplayStyle::Rich,
             tab_width: 4,
+            #[cfg(feature = "termcolor")]
             styles: Styles::default(),
             chars: Chars::default(),
             start_context_lines: 3,
             end_context_lines: 1,
+            before_label_lines: 0,
+            after_label_lines: 0,
         }
     }
 }
@@ -83,6 +99,7 @@ pub enum DisplayStyle {
 }
 
 /// Styles to use when rendering the diagnostic.
+#[cfg(feature = "termcolor")]
 #[derive(Clone, Debug)]
 pub struct Styles {
     /// The style to use when rendering bug headers.
@@ -134,6 +151,7 @@ pub struct Styles {
     pub note_bullet: ColorSpec,
 }
 
+#[cfg(feature = "termcolor")]
 impl Styles {
     /// The style used to mark a header at a given severity.
     pub fn header(&self, severity: Severity) -> &ColorSpec {
@@ -184,6 +202,7 @@ impl Styles {
     }
 }
 
+#[cfg(feature = "termcolor")]
 impl Default for Styles {
     fn default() -> Styles {
         // Blue is really difficult to see on the standard windows command line

@@ -893,11 +893,11 @@ mod unicode_spans {
 
     lazy_static::lazy_static! {
         static ref TEST_DATA: TestData<'static, SimpleFile<&'static str, String>> = {
-            let moon_phases = format!("{}", r#"🐄🌑🐄🌒🐄🌓🐄🌔🐄🌕🐄🌖🐄🌗🐄🌘🐄"#);
+            let moon_phases = r#"🐄🌑🐄🌒🐄🌓🐄🌔🐄🌕🐄🌖🐄🌗🐄🌘🐄"#.to_string();
             let invalid_start = 1;
             let invalid_end = "🐄".len() - 1;
-            assert_eq!(moon_phases.is_char_boundary(invalid_start), false);
-            assert_eq!(moon_phases.is_char_boundary(invalid_end), false);
+            assert!(!moon_phases.is_char_boundary(invalid_start));
+            assert!(!moon_phases.is_char_boundary(invalid_end));
             assert_eq!("🐄".len(), 4);
             let file = SimpleFile::new(
                 "moon_jump.rs",
@@ -1042,6 +1042,61 @@ mod multiline_omit {
                     ])
                     .with_notes(vec![
                         "note:\texpected type `()`\n\tfound type `{integer}`".to_owned()
+                    ]),
+            ];
+
+            TestData { files, diagnostics }
+        };
+    }
+
+    test_emit!(rich_no_color);
+}
+
+mod surrounding_lines {
+    use super::*;
+
+    lazy_static::lazy_static! {
+        static ref TEST_CONFIG: Config = Config {
+            styles: Styles::with_blue(Color::Blue),
+            before_label_lines: 2,
+            after_label_lines: 1,
+            ..Config::default()
+        };
+        static ref TEST_DATA: TestData<'static, SimpleFiles<&'static str, String>> = {
+            let mut files = SimpleFiles::new();
+
+            let file_id = files.add(
+                "surroundingLines.fun",
+                unindent::unindent(
+                    r#"
+                    #[foo]
+                    fn main() {
+                        println!(
+                            "{}",
+                            Foo
+                        );
+                    }
+
+                    struct Foo"#,
+                ),
+            );
+
+            let diagnostics = vec![
+                Diagnostic::error()
+                    .with_message("Unknown attribute macro")
+                    .with_labels(vec![
+                        Label::primary(file_id, 2..5).with_message("No attribute macro `foo` known"),
+                    ]),
+                Diagnostic::error()
+                    .with_message("Missing argument for format")
+                    .with_labels(vec![
+                        Label::primary(file_id, 55..58).with_message("No instance of std::fmt::Display exists for type Foo"),
+                        Label::secondary(file_id, 42..44).with_message("Unable to use `{}`-directive to display `Foo`"),
+                    ]),
+                Diagnostic::error()
+                    .with_message("Syntax error")
+                    .with_labels(vec![
+                        Label::primary(file_id, 79..79).with_message("Missing a semicolon"),
                     ]),
             ];
 

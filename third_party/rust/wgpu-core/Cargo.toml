@@ -56,7 +56,6 @@ gles = [
     "wgpu-core-deps-emscripten/gles",
 ]
 glsl = ["naga/glsl-in"]
-indirect-validation = ["naga/wgsl-in"]
 metal = ["wgpu-core-deps-apple/metal"]
 noop = []
 observe_locks = [
@@ -94,6 +93,7 @@ trace = [
     "dep:ron",
     "naga/serialize",
     "wgpu-types/trace",
+    "dep:bytemuck",
 ]
 vulkan = ["wgpu-core-deps-windows-linux-android/vulkan"]
 vulkan-portability = ["wgpu-core-deps-apple/vulkan-portability"]
@@ -108,6 +108,10 @@ path = "src/lib.rs"
 version = "0.7.6"
 default-features = false
 
+[dependencies.bit-set]
+version = "0.8"
+default-features = false
+
 [dependencies.bit-vec]
 version = "0.8"
 default-features = false
@@ -118,7 +122,6 @@ version = "2.9"
 [dependencies.bytemuck]
 version = "1.22"
 features = [
-    "derive",
     "extern_crate_alloc",
     "min_const_generics",
 ]
@@ -164,7 +167,7 @@ optional = true
 default-features = false
 
 [dependencies.ron]
-version = "0.8"
+version = "0.9"
 optional = true
 
 [dependencies.rustc-hash]

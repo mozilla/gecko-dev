@@ -55,6 +55,7 @@ dx12 = [
     "naga/hlsl-out",
     "dep:arrayvec",
     "dep:bit-set",
+    "dep:bytemuck",
     "dep:hashbrown",
     "dep:libloading",
     "dep:log",
@@ -125,6 +126,7 @@ vulkan = [
     "dep:android_system_properties",
     "dep:arrayvec",
     "dep:ash",
+    "dep:bytemuck",
     "dep:gpu-alloc",
     "dep:gpu-descriptor",
     "dep:hashbrown",
@@ -166,9 +168,9 @@ version = "2.9"
 [dependencies.bytemuck]
 version = "1.22"
 features = [
-    "derive",
     "extern_crate_alloc",
     "min_const_generics",
+    "derive",
 ]
 optional = true
 

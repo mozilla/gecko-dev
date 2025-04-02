@@ -65,6 +65,14 @@ path = "src/lib.rs"
 version = "2.9"
 features = ["serde"]
 
+[dependencies.bytemuck]
+version = "1.22"
+features = [
+    "extern_crate_alloc",
+    "min_const_generics",
+    "derive",
+]
+
 [dependencies.log]
 version = "0.4"
 
