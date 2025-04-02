@@ -6446,14 +6446,7 @@ mozilla::ipc::IPCResult ContentParent::RecvPURLClassifierLocalByNameConstructor(
       continue;
     }
 
-    nsAutoCString exceptionHostList;
-    rv = feature->GetExceptionHostList(exceptionHostList);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
-
-    ipcFeatures.AppendElement(
-        IPCURLClassifierFeature(name, tables, exceptionHostList));
+    ipcFeatures.AppendElement(IPCURLClassifierFeature(name, tables));
   }
 
   auto* actor = static_cast<URLClassifierLocalByNameParent*>(aActor);

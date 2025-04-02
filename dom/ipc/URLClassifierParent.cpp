@@ -14,6 +14,8 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
+class nsIUrlClassifierExceptionList;
+
 /////////////////////////////////////////////////////////////////////
 // URLClassifierParent.
 
@@ -88,8 +90,7 @@ class IPCFeature final : public nsIUrlClassifierFeature {
   }
 
   NS_IMETHOD
-  GetExceptionHostList(nsACString& aList) override {
-    aList = mIPCFeature.exceptionHostList();
+  GetExceptionList(nsIUrlClassifierExceptionList** aList) override {
     return NS_OK;
   }
 

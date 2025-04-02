@@ -407,7 +407,6 @@ struct IPCURLClassifierFeature
 {
     nsCString featureName;
     nsCString[] tables;
-    nsCString exceptionHostList;
 };
 
 struct PostMessageData

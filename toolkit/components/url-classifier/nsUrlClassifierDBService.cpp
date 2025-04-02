@@ -2487,16 +2487,7 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
         continue;
       }
 
-      nsAutoCString exceptionHostList;
-      if (aListType == nsIUrlClassifierFeature::blocklist) {
-        rv = feature->GetExceptionHostList(exceptionHostList);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          continue;
-        }
-      }
-
-      ipcFeatures.AppendElement(
-          IPCURLClassifierFeature(name, tables, exceptionHostList));
+      ipcFeatures.AppendElement(IPCURLClassifierFeature(name, tables));
     }
 
     if (!content->SendPURLClassifierLocalConstructor(actor, aURI,
