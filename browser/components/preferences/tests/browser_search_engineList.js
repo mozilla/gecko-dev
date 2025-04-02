@@ -149,6 +149,7 @@ engine_list_test(async function test_change_keyword(tree) {
     keywordBefore,
     "Did not modify keywords."
   );
+  alertSpy.restore();
 });
 
 engine_list_test(async function test_rename_engines(tree) {
