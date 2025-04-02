@@ -42,6 +42,38 @@ using namespace mozilla::dom;
 
 namespace mozilla {
 
+/*
+ * This class contains URL and referrer information (referrer and referrer
+ * policy).
+ * We use it to pass to svg system instead of nsIURI. The object brings referrer
+ * and referrer policy so we can send correct Referer headers.
+ */
+class URLAndReferrerInfo {
+ public:
+  URLAndReferrerInfo(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo)
+      : mURI(aURI), mReferrerInfo(aReferrerInfo) {
+    MOZ_ASSERT(aURI);
+  }
+
+  URLAndReferrerInfo(nsIURI* aURI, const URLExtraData& aExtraData)
+      : mURI(aURI), mReferrerInfo(aExtraData.ReferrerInfo()) {
+    MOZ_ASSERT(aURI);
+  }
+
+  NS_INLINE_DECL_REFCOUNTING(URLAndReferrerInfo)
+
+  nsIURI* GetURI() const { return mURI; }
+  nsIReferrerInfo* GetReferrerInfo() const { return mReferrerInfo; }
+
+  bool operator==(const URLAndReferrerInfo& aRHS) const;
+
+ private:
+  ~URLAndReferrerInfo() = default;
+
+  nsCOMPtr<nsIURI> mURI;
+  nsCOMPtr<nsIReferrerInfo> mReferrerInfo;
+};
+
 bool URLAndReferrerInfo::operator==(const URLAndReferrerInfo& aRHS) const {
   bool uriEqual = false, referrerEqual = false;
   this->mURI->Equals(aRHS.mURI, &uriEqual);
