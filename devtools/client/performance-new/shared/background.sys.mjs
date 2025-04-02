@@ -86,10 +86,12 @@ function require(path) {
 // global state of the profiler, and only are used during specific funcationality like
 // symbolication or capturing a profile.
 const lazy = createLazyLoaders({
-  Utils: () =>
-    require("resource://devtools/client/performance-new/shared/utils.js"),
   BrowserModule: () =>
     require("resource://devtools/client/performance-new/shared/browser.js"),
+  Errors: () =>
+    ChromeUtils.importESModule(
+      "resource://devtools/shared/performance-new/errors.sys.mjs"
+    ),
   RecordingUtils: () =>
     ChromeUtils.importESModule(
       "resource://devtools/shared/performance-new/recording-utils.sys.mjs"
@@ -524,7 +526,7 @@ function getPrefPostfix(pageContext) {
     case "aboutprofiling-remote":
       return ".remote";
     default: {
-      const { UnhandledCaseError } = lazy.Utils();
+      const { UnhandledCaseError } = lazy.Errors();
       throw new UnhandledCaseError(pageContext, "Page Context");
     }
   }
@@ -832,7 +834,7 @@ async function getResponseForMessage(request, browser) {
         case "ERROR":
           throw profileCaptureResult.error;
         default: {
-          const { UnhandledCaseError } = lazy.Utils();
+          const { UnhandledCaseError } = lazy.Errors();
           throw new UnhandledCaseError(
             profileCaptureResult,
             "profileCaptureResult"
@@ -894,7 +896,7 @@ async function getResponseForMessage(request, browser) {
         "An unknown message type was received by the profiler's WebChannel handler.",
         request
       );
-      const { UnhandledCaseError } = lazy.Utils();
+      const { UnhandledCaseError } = lazy.Errors();
       throw new UnhandledCaseError(request, "WebChannel request");
     }
   }
