@@ -8,7 +8,6 @@
 
 #include <type_traits>
 
-#include "gc/GCLock.h"
 #include "gc/PublicIterators.h"
 
 #include "gc/GC-inl.h"
@@ -48,61 +47,29 @@ namespace gc {
 // bits for space between things being unused when things are larger than a
 // single Cell.
 
-size_t AtomMarkingRuntime::allocateIndex(GCRuntime* gc) {
+void AtomMarkingRuntime::registerArena(Arena* arena, const AutoLockGC& lock) {
+  MOZ_ASSERT(arena->getThingSize() != 0);
+  MOZ_ASSERT(arena->getThingSize() % CellAlignBytes == 0);
+  MOZ_ASSERT(arena->zone()->isAtomsZone());
+
   // We need to find a range of bits from the atoms bitmap for this arena.
 
-  // Try to merge background swept free indexes if necessary.
-  if (freeArenaIndexes.ref().empty()) {
-    mergePendingFreeArenaIndexes(gc);
-  }
-
   // Look for a free range of bits compatible with this arena.
-  if (!freeArenaIndexes.ref().empty()) {
-    return freeArenaIndexes.ref().popCopy();
+  if (freeArenaIndexes.ref().length()) {
+    arena->atomBitmapStart() = freeArenaIndexes.ref().popCopy();
+    return;
   }
 
   // Allocate a range of bits from the end for this arena.
-  size_t index = allocatedWords;
+  arena->atomBitmapStart() = allocatedWords;
   allocatedWords += ArenaBitmapWords;
-  return index;
 }
 
-void AtomMarkingRuntime::freeIndex(size_t index, const AutoLockGC& lock) {
-  MOZ_ASSERT((index % ArenaBitmapWords) == 0);
-  MOZ_ASSERT(index < allocatedWords);
-
-  bool wasEmpty = pendingFreeArenaIndexes.ref().empty();
-  MOZ_ASSERT_IF(wasEmpty, !hasPendingFreeArenaIndexes);
-
-  if (!pendingFreeArenaIndexes.ref().append(index)) {
-    // Leak these atom bits if we run out of memory.
-    return;
-  }
-
-  if (wasEmpty) {
-    hasPendingFreeArenaIndexes = true;
-  }
-}
-
-void AtomMarkingRuntime::mergePendingFreeArenaIndexes(GCRuntime* gc) {
-  MOZ_ASSERT(CurrentThreadCanAccessRuntime(gc->rt));
-  if (!hasPendingFreeArenaIndexes) {
-    return;
-  }
-
-  AutoLockGC lock(gc);
-  MOZ_ASSERT(!pendingFreeArenaIndexes.ref().empty());
-
-  hasPendingFreeArenaIndexes = false;
-
-  if (freeArenaIndexes.ref().empty()) {
-    std::swap(freeArenaIndexes.ref(), pendingFreeArenaIndexes.ref());
-    return;
-  }
+void AtomMarkingRuntime::unregisterArena(Arena* arena, const AutoLockGC& lock) {
+  MOZ_ASSERT(arena->zone()->isAtomsZone());
 
   // Leak these atom bits if we run out of memory.
-  (void)freeArenaIndexes.ref().appendAll(pendingFreeArenaIndexes.ref());
-  pendingFreeArenaIndexes.ref().clear();
+  (void)freeArenaIndexes.ref().emplaceBack(arena->atomBitmapStart());
 }
 
 void AtomMarkingRuntime::refineZoneBitmapsForCollectedZones(

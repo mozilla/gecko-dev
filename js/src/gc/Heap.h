@@ -230,7 +230,8 @@ class alignas(ArenaSize) Arena {
   uint8_t data[ArenaSize - ArenaHeaderSize];
 
   // Create a free arena in uninitialized committed memory.
-  void init(GCRuntime* gc, JS::Zone* zone, AllocKind kind);
+  void init(GCRuntime* gc, JS::Zone* zoneArg, AllocKind kind,
+            const AutoLockGC& lock);
 
   JS::Zone* zone() const { return zone_; }
 
@@ -244,14 +245,9 @@ class alignas(ArenaSize) Arena {
     last->initAsEmpty();
   }
 
-  // Unregister the associated atom marking bitmap index for an arena in the
-  // atoms zone.
-  inline void freeAtomMarkingBitmapIndex(GCRuntime* gc, const AutoLockGC& lock);
-
   // Return an allocated arena to its unallocated (free) state.
-  // For arenas in the atoms zone, freeAtomMarkingBitmapIndex() must be called
-  // first.
-  inline void release();
+  // The lock is required for arenas in an atoms zone.
+  inline void release(GCRuntime* gc, const AutoLockGC* maybeLock);
 
   uintptr_t address() const {
     checkAddress();
@@ -527,13 +523,14 @@ class ArenaChunk : public ArenaChunkBase {
 
   bool isNurseryChunk() const { return storeBuffer; }
 
-  Arena* allocateArena(GCRuntime* gc, JS::Zone* zone, AllocKind kind);
+  Arena* allocateArena(GCRuntime* gc, JS::Zone* zone, AllocKind kind,
+                       const AutoLockGC& lock);
 
   void releaseArena(GCRuntime* gc, Arena* arena, const AutoLockGC& lock);
 
   void decommitFreeArenas(GCRuntime* gc, const bool& cancel, AutoLockGC& lock);
   [[nodiscard]] bool decommitOneFreePage(GCRuntime* gc, size_t pageIndex,
-                                         const AutoLockGC& lock);
+                                         AutoLockGC& lock);
   void decommitAllArenas();
 
   // This will decommit each unused not-already decommitted arena. It performs a
@@ -545,9 +542,6 @@ class ArenaChunk : public ArenaChunkBase {
 
   /* Unlink and return the freeArenasHead. */
   Arena* fetchNextFreeArena(GCRuntime* gc);
-
-  // Merge arenas freed by background sweeping into the main free arenas bitmap.
-  void mergePendingFreeArenas(const AutoLockGC& lock);
 
 #ifdef DEBUG
   void verify() const;
@@ -562,11 +556,6 @@ class ArenaChunk : public ArenaChunkBase {
                                   const AutoLockGC& lock);
   void updateFreeCountsAfterFree(GCRuntime* gc, size_t numArenasFreed,
                                  bool wasCommitted, const AutoLockGC& lock);
-
-  // Like updateFreeCountsAfterFree, but operates on the GCRuntime's current
-  // chunk. Does not take the lock unless the chunk is full or if we need to
-  // move the chunk between pools.
-  void updateCurrentChunkAfterAlloc(GCRuntime* gc);
 
   // Check if all arenas in a page are free.
   bool canDecommitPage(size_t pageIndex) const;

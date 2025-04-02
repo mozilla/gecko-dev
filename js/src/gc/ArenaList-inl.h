@@ -266,7 +266,7 @@ bool js::gc::ArenaLists::arenaListsAreEmpty() const {
 }
 
 bool js::gc::ArenaLists::doneBackgroundFinalize(AllocKind kind) const {
-  return concurrentUse(kind) == ConcurrentUse::None;
+  return concurrentUse(kind) != ConcurrentUse::BackgroundFinalize;
 }
 
 bool js::gc::ArenaLists::needBackgroundFinalizeWait(AllocKind kind) const {

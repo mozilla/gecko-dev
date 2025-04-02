@@ -14,14 +14,15 @@
 #include "util/Poison.h"
 #include "vm/Runtime.h"
 
-inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zone, AllocKind kind) {
-  MOZ_ASSERT(zone);
+inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
+                                AllocKind kind, const AutoLockGC& lock) {
+  MOZ_ASSERT(zoneArg);
   MOZ_ASSERT(IsValidAllocKind(kind));
 
   MOZ_MAKE_MEM_UNDEFINED(this, ArenaSize);
 
   allocKind = kind;
-  zone_ = zone;
+  zone_ = zoneArg;
   next = nullptr;
   isNewlyCreated_ = 1;
   onDelayedMarkingList_ = 0;
@@ -29,7 +30,7 @@ inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zone, AllocKind kind) {
   hasDelayedGrayMarking_ = 0;
   nextDelayedMarkingArena_ = 0;
   if (zone_->isAtomsZone()) {
-    atomBitmapStart() = gc->atomMarking.allocateIndex(gc);
+    gc->atomMarking.registerArena(this, lock);
   } else {
     bufferedCells() = &ArenaCellSet::Empty;
   }
@@ -41,20 +42,13 @@ inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zone, AllocKind kind) {
 #endif
 }
 
-inline void js::gc::Arena::freeAtomMarkingBitmapIndex(GCRuntime* gc,
-                                                      const AutoLockGC& lock) {
-  MOZ_ASSERT(zone_->isAtomsZone());
-  gc->atomMarking.freeIndex(atomBitmapStart(), lock);
-#ifdef DEBUG
-  atomBitmapStart() = 0;  // Also zeroed by write to bufferedCells_ in release.
-#endif
-}
-
-inline void js::gc::Arena::release() {
+inline void js::gc::Arena::release(GCRuntime* gc, const AutoLockGC* maybeLock) {
   MOZ_ASSERT(allocated());
 
-  // Clients should call freeAtomMarkingBitmapIndex() if necessary.
-  MOZ_ASSERT_IF(zone_->isAtomsZone(), atomBitmapStart_ == 0);
+  if (zone_->isAtomsZone()) {
+    MOZ_ASSERT(maybeLock);
+    gc->atomMarking.unregisterArena(this, *maybeLock);
+  }
 
   // Poison zone pointer to highlight UAF on released arenas in crash data.
   AlwaysPoison(&zone_, JS_FREED_ARENA_PATTERN, sizeof(zone_),

@@ -912,11 +912,8 @@ void GCRuntime::clearRelocatedArenasWithoutUnlocking(Arena* arenaList,
       zone->gcHeapSize.removeBytes(ArenaSize, updateRetainedSize, heapSize);
     }
 
-    // There is no atom marking bitmap index to free.
-    MOZ_ASSERT(!zone->isAtomsZone());
-
     // Release the arena but don't return it to the chunk yet.
-    arena->release();
+    arena->release(this, &lock);
   }
 }
 

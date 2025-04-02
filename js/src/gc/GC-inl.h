@@ -153,11 +153,9 @@ class ZoneAllCellIter<TenuredCell> {
     // against other threads iterating or allocating. However, we do have
     // background finalization; we may have to wait for this to finish if
     // it's currently active.
-    if (IsBackgroundFinalized(kind)) {
-      ArenaLists& arenas = zone->arenas;
-      if (zone->isGCFinished() && arenas.needBackgroundFinalizeWait(kind)) {
-        rt->gc.waitBackgroundSweepEnd();
-      }
+    if (IsBackgroundFinalized(kind) &&
+        zone->arenas.needBackgroundFinalizeWait(kind)) {
+      rt->gc.waitBackgroundSweepEnd();
     }
     iter.emplace(zone, kind);
   }
