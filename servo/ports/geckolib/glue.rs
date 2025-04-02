@@ -8428,38 +8428,7 @@ pub extern "C" fn Servo_ResolveCalcLengthPercentage(
     calc: &computed::length_percentage::CalcLengthPercentage,
     basis: f32,
 ) -> f32 {
-    calc.resolve(computed::Length::new(basis), None)
-        .unwrap()
-        .result
-        .px()
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
-    calc: &computed::length_percentage::CalcLengthPercentage,
-    basis: f32,
-    axis: PhysicalAxis,
-    position_property: PositionProperty,
-    result: &mut f32,
-    percentage_used: &mut bool,
-) -> bool {
-    let resolved = calc.resolve(
-        computed::Length::new(basis),
-        Some(CalcAnchorFunctionResolutionInfo {
-            axis,
-            position_property,
-        }),
-    );
-
-    let resolved = match resolved {
-        None => return false,
-        Some(v) => v,
-    };
-
-    *result = resolved.result.px();
-    *percentage_used = resolved.percentage_used;
-
-    true
+    calc.resolve(computed::Length::new(basis)).px()
 }
 
 /// Result of resolving a math function node potentially containing

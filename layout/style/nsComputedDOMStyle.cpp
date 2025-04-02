@@ -1945,9 +1945,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
     return PixelsToCSSValue(0.0f);
   }
 
-  nscoord result = lp.ResolveWithAnchor(
-      percentageBase, GetStylePhysicalAxis(aSide), positionProperty);
-  return AppUnitsToCSSValue(sign * result);
+  return AppUnitsToCSSValue(sign * lp.Resolve(percentageBase));
 }
 
 already_AddRefed<CSSValue> nsComputedDOMStyle::GetAbsoluteOffset(

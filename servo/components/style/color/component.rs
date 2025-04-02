@@ -109,7 +109,6 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
 
     /// Resolve a [ColorComponent] into a float.  None is "none".
     pub fn resolve(&self, origin_color: Option<&AbsoluteColor>) -> Result<Option<ValueType>, ()> {
-        struct EmptyContext;
         Ok(match self {
             ColorComponent::None => None,
             ColorComponent::Value(value) => Some(value.clone()),
@@ -121,23 +120,19 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                 None => return Err(()),
             },
             ColorComponent::Calc(node) => {
-                let Ok(resolved_leaf) = node.resolve_map(
-                    |leaf, _| {
-                        Ok(match leaf {
-                            Leaf::ColorComponent(channel_keyword) => match origin_color {
-                                Some(origin_color) => {
-                                    let value = origin_color
-                                        .get_component_by_channel_keyword(*channel_keyword)?;
-                                    Leaf::Number(value.unwrap_or(0.0))
-                                },
-                                None => return Err(()),
+                let Ok(resolved_leaf) = node.resolve_map(|leaf| {
+                    Ok(match leaf {
+                        Leaf::ColorComponent(channel_keyword) => match origin_color {
+                            Some(origin_color) => {
+                                let value = origin_color
+                                    .get_component_by_channel_keyword(*channel_keyword)?;
+                                Leaf::Number(value.unwrap_or(0.0))
                             },
-                            l => l.clone(),
-                        })
-                    },
-                    |_, _| Ok(None),
-                    &mut EmptyContext,
-                ) else {
+                            None => return Err(()),
+                        },
+                        l => l.clone(),
+                    })
+                }) else {
                     return Err(());
                 };
 

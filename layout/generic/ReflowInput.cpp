@@ -924,13 +924,10 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
       offsets.IStart(aWM) = offsets.IEnd(aWM) = 0;
     } else {
       // 'inlineEnd' isn't being treated as 'auto' so compute its value
-      offsets.IEnd(aWM) =
-          inlineEnd->IsAuto()
-              ? 0
-              : nsLayoutUtils::ComputeCBDependentValue(
-                    aCBSize.ISize(aWM),
-                    ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Inline)),
-                    positionProperty, inlineEnd);
+      offsets.IEnd(aWM) = inlineEnd->IsAuto()
+                              ? 0
+                              : nsLayoutUtils::ComputeCBDependentValue(
+                                    aCBSize.ISize(aWM), inlineEnd);
 
       // Computed value for 'inlineStart' is minus the value of 'inlineEnd'
       offsets.IStart(aWM) = -offsets.IEnd(aWM);
@@ -940,10 +937,8 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
     NS_ASSERTION(inlineEndIsAuto, "unexpected specified constraint");
 
     // 'InlineStart' isn't 'auto' so compute its value
-    offsets.IStart(aWM) = nsLayoutUtils::ComputeCBDependentValue(
-        aCBSize.ISize(aWM),
-        ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Inline)),
-        positionProperty, inlineStart);
+    offsets.IStart(aWM) =
+        nsLayoutUtils::ComputeCBDependentValue(aCBSize.ISize(aWM), inlineStart);
 
     // Computed value for 'inlineEnd' is minus the value of 'inlineStart'
     offsets.IEnd(aWM) = -offsets.IStart(aWM);
@@ -982,13 +977,10 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
       offsets.BStart(aWM) = offsets.BEnd(aWM) = 0;
     } else {
       // 'blockEnd' isn't being treated as 'auto' so compute its value
-      offsets.BEnd(aWM) =
-          blockEnd->IsAuto()
-              ? 0
-              : nsLayoutUtils::ComputeCBDependentValue(
-                    aCBSize.BSize(aWM),
-                    ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Block)),
-                    positionProperty, blockEnd);
+      offsets.BEnd(aWM) = blockEnd->IsAuto()
+                              ? 0
+                              : nsLayoutUtils::ComputeCBDependentValue(
+                                    aCBSize.BSize(aWM), blockEnd);
 
       // Computed value for 'blockStart' is minus the value of 'blockEnd'
       offsets.BStart(aWM) = -offsets.BEnd(aWM);
@@ -998,10 +990,8 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
     NS_ASSERTION(blockEndIsAuto, "unexpected specified constraint");
 
     // 'blockStart' isn't 'auto' so compute its value
-    offsets.BStart(aWM) = nsLayoutUtils::ComputeCBDependentValue(
-        aCBSize.BSize(aWM),
-        ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Block)),
-        positionProperty, blockStart);
+    offsets.BStart(aWM) =
+        nsLayoutUtils::ComputeCBDependentValue(aCBSize.BSize(aWM), blockStart);
 
     // Computed value for 'blockEnd' is minus the value of 'blockStart'
     offsets.BEnd(aWM) = -offsets.BStart(aWM);
@@ -1722,17 +1712,13 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     offsets.IStart(cbwm) = 0;
   } else {
     offsets.IStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.ISize(cbwm),
-        ToStylePhysicalAxis(cbwm.PhysicalAxis(LogicalAxis::Inline)),
-        StylePositionProperty::Absolute, iStartOffset);
+        cbSize.ISize(cbwm), iStartOffset);
   }
   if (iEndIsAuto) {
     offsets.IEnd(cbwm) = 0;
   } else {
-    offsets.IEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.ISize(cbwm),
-        ToStylePhysicalAxis(cbwm.PhysicalAxis(LogicalAxis::Inline)),
-        StylePositionProperty::Absolute, iEndOffset);
+    offsets.IEnd(cbwm) =
+        nsLayoutUtils::ComputeCBDependentValue(cbSize.ISize(cbwm), iEndOffset);
   }
 
   if (iStartIsAuto && iEndIsAuto) {
@@ -1750,17 +1736,13 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     offsets.BStart(cbwm) = 0;
   } else {
     offsets.BStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.BSize(cbwm),
-        ToStylePhysicalAxis(cbwm.PhysicalAxis(LogicalAxis::Block)),
-        StylePositionProperty::Absolute, bStartOffset);
+        cbSize.BSize(cbwm), bStartOffset);
   }
   if (bEndIsAuto) {
     offsets.BEnd(cbwm) = 0;
   } else {
-    offsets.BEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.BSize(cbwm),
-        ToStylePhysicalAxis(cbwm.PhysicalAxis(LogicalAxis::Block)),
-        StylePositionProperty::Absolute, bEndOffset);
+    offsets.BEnd(cbwm) =
+        nsLayoutUtils::ComputeCBDependentValue(cbSize.BSize(cbwm), bEndOffset);
   }
 
   if (bStartIsAuto && bEndIsAuto) {

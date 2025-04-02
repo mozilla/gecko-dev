@@ -414,7 +414,6 @@ renaming_overrides_prefixing = true
   inline CSSCoord ResolveToCSSPixels(CSSCoord aBasis) const;
   template<typename Rounder>
   inline nscoord Resolve(nscoord aBasis, Rounder) const;
-  inline nscoord ResolveWithAnchor(nscoord aBasis, mozilla::StylePhysicalAxis aAxis, mozilla::StylePositionProperty aProp) const;
 """
 
 "GenericCalcNode" = """
@@ -481,7 +480,6 @@ renaming_overrides_prefixing = true
   inline nscoord Resolve(nscoord aPercentageBasis, Rounder) const;
   template<typename T> inline nscoord Resolve(T aPercentageGetter) const;
   inline nscoord Resolve(nscoord aPercentageBasis) const;
-  inline nscoord ResolveWithAnchor(nscoord aPercentageBasis, mozilla::StylePhysicalAxis aAxis, mozilla::StylePositionProperty aProp) const;
 """
 
 "GenericLengthPercentageOrAuto" = """

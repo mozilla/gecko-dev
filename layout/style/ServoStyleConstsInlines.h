@@ -731,21 +731,6 @@ nscoord StyleCalcLengthPercentage::Resolve(nscoord aBasis,
   return aRounder(result * AppUnitsPerCSSPixel());
 }
 
-nscoord StyleCalcLengthPercentage::ResolveWithAnchor(
-    nscoord aBasis, mozilla::StylePhysicalAxis aAxis,
-    mozilla::StylePositionProperty aProp) const {
-  float value{};
-  bool unused{};
-  bool result = Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
-      this, CSSPixel::FromAppUnits(aBasis), aAxis, aProp, &value, &unused);
-  if (!result) {
-    MOZ_ASSERT_UNREACHABLE(
-        "Was expecting initial anchor resolution to determine validity");
-    return 0;
-  }
-  return detail::DefaultPercentLengthToAppUnits(value * AppUnitsPerCSSPixel());
-}
-
 template <>
 void StyleCalcNode::ScaleLengthsBy(float);
 
@@ -799,23 +784,6 @@ template <typename Rounder>
 nscoord LengthPercentage::Resolve(nscoord aPercentageBasis,
                                   Rounder aRounder) const {
   return Resolve([aPercentageBasis] { return aPercentageBasis; }, aRounder);
-}
-
-nscoord LengthPercentage::ResolveWithAnchor(
-    nscoord aPercentageBasis, mozilla::StylePhysicalAxis aAxis,
-    mozilla::StylePositionProperty aProp) const {
-  if (ConvertsToLength()) {
-    return ToLength();
-  }
-  if (IsPercentage()) {
-    const auto percent = AsPercentage()._0;
-    if (percent == 0.0f) {
-      return 0;
-    }
-    return detail::DefaultPercentLengthToAppUnits(
-        static_cast<float>(aPercentageBasis) * percent);
-  }
-  return AsCalc().ResolveWithAnchor(aPercentageBasis, aAxis, aProp);
 }
 
 void LengthPercentage::ScaleLengthsBy(float aScale) {
