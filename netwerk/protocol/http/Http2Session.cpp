@@ -19,7 +19,6 @@
 
 #include "AltServiceChild.h"
 #include "CacheControlParser.h"
-#include "CachePushChecker.h"
 #include "Http2Push.h"
 #include "Http2Session.h"
 #include "Http2Stream.h"
@@ -2186,27 +2185,9 @@ nsresult Http2Session::RecvPushPromise(Http2Session* self) {
     if (NS_SUCCEEDED(MakeOriginURL(spec, pushedURL))) {
       LOG3(("Http2Session::RecvPushPromise %p check disk cache for entry",
             self));
-      mozilla::OriginAttributes oa;
-      pushedWeak->GetOriginAttributes(&oa);
-      RefPtr<Http2Session> session = self;
-      auto cachePushCheckCallback = [session, promisedID](bool aAccepted) {
-        MOZ_ASSERT(OnSocketThread());
 
-        if (!aAccepted) {
-          session->CleanupStream(promisedID, NS_ERROR_FAILURE,
-                                 Http2Session::REFUSED_STREAM_ERROR);
-        }
-      };
-      RefPtr<CachePushChecker> checker = new CachePushChecker(
-          pushedURL, oa,
-          static_cast<Http2PushedStream*>(pushedWeak.get())->GetRequestString(),
-          std::move(cachePushCheckCallback));
-      if (NS_FAILED(checker->DoCheck())) {
-        LOG3(
-            ("Http2Session::RecvPushPromise %p failed to open cache entry for "
-             "push check",
-             self));
-      }
+      // XXX(valentin): remove all push code
+      return NS_ERROR_NOT_IMPLEMENTED;
     }
   }
 

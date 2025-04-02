@@ -124,10 +124,6 @@ parent:
   async InitSocketBackground(Endpoint<PSocketProcessBackgroundParent> aEndpoint);
   async PAltService();
   async PProxyConfigLookup(nullable nsIURI aUri, uint32_t aFlags);
-  async CachePushCheck(nullable nsIURI aPushedURL,
-                       OriginAttributes aOriginAttributes,
-                       nsCString aRequestString)
-    returns (bool aAccepted);
 
   async ExcludeHttp2OrHttp3(HttpConnectionInfoCloneArgs aArgs);
 

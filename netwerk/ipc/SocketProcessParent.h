@@ -88,10 +88,6 @@ class SocketProcessParent final
       PProxyConfigLookupParent* aActor, nsIURI* aURI,
       const uint32_t& aProxyResolveFlags) override;
 
-  mozilla::ipc::IPCResult RecvCachePushCheck(
-      nsIURI* aPushedURL, OriginAttributes&& aOriginAttributes,
-      nsCString&& aRequestString, CachePushCheckResolver&& aResolver);
-
   mozilla::ipc::IPCResult RecvExcludeHttp2OrHttp3(
       const HttpConnectionInfoCloneArgs& aArgs);
   mozilla::ipc::IPCResult RecvOnConsoleMessage(const nsString& aMessage);

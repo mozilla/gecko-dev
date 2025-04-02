@@ -101,7 +101,6 @@ UNIFIED_SOURCES += [
     "BackgroundDataBridgeParent.cpp",
     "BinaryHttpRequest.cpp",
     "CacheControlParser.cpp",
-    "CachePushChecker.cpp",
     "Capsule.cpp",
     "CapsuleDecoder.cpp",
     "CapsuleEncoder.cpp",
