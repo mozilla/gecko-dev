@@ -1052,6 +1052,19 @@ const AVAILABLE_SHIMS = [
       "*://abs-0.twimg.com/*",
     ],
   },
+  {
+    id: "AliExpressInternationalization",
+    name: "AliExpress Internationalization",
+    bug: "1912228",
+    contentScripts: [
+      {
+        js: "aliexpress-language.js",
+        matches: ["*://*.aliexpress.us/*"],
+        runAt: "document_start",
+      },
+    ],
+    onlyIfDFPIActive: true,
+  },
 ];
 
 if (typeof module !== "undefined") {
