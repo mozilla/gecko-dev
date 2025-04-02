@@ -130,45 +130,47 @@ export const ContentAnalysis = {
   async observe(aSubj, aTopic, _aData) {
     switch (aTopic) {
       case "quit-application-requested": {
-        let quitCancelled = false;
-        let pendingRequests = this._getAllSlowCARequests();
-        if (pendingRequests.length) {
-          let messageBody = this.l10n.formatValueSync(
-            "contentanalysis-inprogress-quit-message"
-          );
-          messageBody = messageBody + "\n\n";
-          for (const pendingRequest of pendingRequests) {
-            let name = this._getResourceNameFromNameOrOperationType(
-              this._getResourceNameOrOperationTypeFromRequest(
-                pendingRequest,
-                true
-              )
-            );
-            messageBody = messageBody + name + "\n";
-          }
-          let buttonSelected = Services.prompt.confirmEx(
-            null,
-            this.l10n.formatValueSync("contentanalysis-inprogress-quit-title"),
-            messageBody,
-            Ci.nsIPromptService.BUTTON_POS_0 *
-              Ci.nsIPromptService.BUTTON_TITLE_IS_STRING +
-              Ci.nsIPromptService.BUTTON_POS_1 *
-                Ci.nsIPromptService.BUTTON_TITLE_CANCEL +
-              Ci.nsIPromptService.BUTTON_POS_0_DEFAULT,
-            this.l10n.formatValueSync(
-              "contentanalysis-inprogress-quit-yesbutton"
-            ),
-            null,
-            null,
-            null,
-            { value: 0 }
-          );
-          if (buttonSelected === 1) {
-            aSubj.data = true;
-            quitCancelled = true;
-          }
+        let pendingRequestInfos = this._getAllSlowCARequestInfos();
+        let requestDescriptions = Array.from(
+          pendingRequestInfos.flatMap(info =>
+            info
+              ? [
+                  this._getResourceNameFromNameOrOperationType(
+                    info.resourceNameOrOperationType
+                  ),
+                ]
+              : []
+          )
+        );
+        if (!requestDescriptions.length) {
+          return;
         }
-        if (!quitCancelled) {
+        let messageBody = this.l10n.formatValueSync(
+          "contentanalysis-inprogress-quit-message"
+        );
+        messageBody = messageBody + "\n\n";
+        messageBody += requestDescriptions.join("\n");
+        let buttonSelected = Services.prompt.confirmEx(
+          null,
+          this.l10n.formatValueSync("contentanalysis-inprogress-quit-title"),
+          messageBody,
+          Ci.nsIPromptService.BUTTON_POS_0 *
+            Ci.nsIPromptService.BUTTON_TITLE_IS_STRING +
+            Ci.nsIPromptService.BUTTON_POS_1 *
+              Ci.nsIPromptService.BUTTON_TITLE_CANCEL +
+            Ci.nsIPromptService.BUTTON_POS_0_DEFAULT,
+          this.l10n.formatValueSync(
+            "contentanalysis-inprogress-quit-yesbutton"
+          ),
+          null,
+          null,
+          null,
+          { value: 0 }
+        );
+        if (buttonSelected === 1) {
+          // Cancel the quit operation
+          aSubj.data = true;
+        } else {
           // Ideally we would wait until "quit-application" to cancel outstanding
           // DLP requests, but the "DLP busy" or "DLP blocked" dialog can block the
           // main thread, thus preventing the "quit-application" from being sent,
@@ -453,10 +455,15 @@ export const ContentAnalysis = {
     this._disconnectFromView(entry);
   },
 
-  _getAllSlowCARequests() {
+  /**
+   *
+   * @returns {Iterable<{browsingContext: BrowsingContext, resourceNameOrOperationType: object}>} Information about the requests that are still in progress
+   */
+  _getAllSlowCARequestInfos() {
     return this.userActionToBusyDialogMap
       .values()
-      .flatMap(val => val.requestTokenSet);
+      .flatMap(val => val.requestTokenSet)
+      .map(requestToken => this.requestTokenToRequestInfo.get(requestToken));
   },
 
   /**
