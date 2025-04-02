@@ -9,6 +9,13 @@ interface nsIInputStream;
 
 /**
  * nsIStreamListener
+ *
+ * Extends nsIRequestObserver to asynchronously receive and process data from a network request.
+ * After successfully calling nsIRequest.asyncOpen the nsIRequestObserver.onStartRequest
+ * must be called exactly once. That can be followed by 0 or more calls to onDataAvailable.
+ * After all onDataAvailable calls have been made, nsIRequestObserver.onStopRequest must
+ * be called exactly once to signal the request is complete.
+ *
  */
 [scriptable, uuid(3b4c8a77-76ba-4610-b316-678c73a3b88c)]
 interface nsIStreamListener : nsIRequestObserver
