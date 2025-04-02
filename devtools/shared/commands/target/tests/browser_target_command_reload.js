@@ -86,7 +86,7 @@ add_task(async function () {
   await targetCommand.startListening();
 
   // Observe the new document being reported while reloading
-  let reloadedTargets = [];
+  const reloadedTargets = [];
   await commands.resourceCommand.watchResources(
     [commands.resourceCommand.TYPES.DOCUMENT_EVENT],
     {

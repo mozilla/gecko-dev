@@ -415,7 +415,7 @@ async function testIframeNavigations() {
   info(" # Test IFRAME navigations");
   // Create a TargetCommand for a given test tab
   const tab = await addTab(
-    `http://example.org/document-builder.sjs?html=<iframe src="${TEST_COM_URL}"></iframe>`
+    `https://example.org/document-builder.sjs?html=<iframe src="${TEST_COM_URL}"></iframe>`
   );
   const commands = await CommandsFactory.forTab(tab);
   const targetCommand = commands.targetCommand;

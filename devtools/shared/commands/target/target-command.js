@@ -194,6 +194,7 @@ class TargetCommand extends EventEmitter {
   // Called whenever a new Target front is available.
   // Either because a target was already available as we started calling startListening
   // or if it has just been created
+  // eslint-disable-next-line complexity
   async _onTargetAvailable(targetFront) {
     // We put the `commands` on the targetFront so it can be retrieved from any front easily.
     // Without this, protocol.js fronts won't have any easy access to it.
@@ -1154,12 +1155,12 @@ class TargetCommand extends EventEmitter {
    * @param {WindowGlobalTargetFront} targetFront
    *        The target front we want the toolbox to focus on.
    */
-  selectTarget(targetFront) {
+  async selectTarget(targetFront) {
     // Ignore any target which we may try to select, but is already being destroyed
     if (targetFront.isDestroyedOrBeingDestroyed()) {
       return;
     }
-    return this._onTargetSelected(targetFront);
+    await this._onTargetSelected(targetFront);
   }
 
   /**

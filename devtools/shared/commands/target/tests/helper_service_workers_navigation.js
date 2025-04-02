@@ -5,12 +5,14 @@
 
 /* import-globals-from head.js */
 
+/* exported setupServiceWorkerNavigationTest */
 async function setupServiceWorkerNavigationTest() {
   // Disable the preloaded process as it creates processes intermittently
   // which forces the emission of RDP requests we aren't correctly waiting for.
   await pushPref("dom.ipc.processPrelaunch.enabled", false);
 }
 
+/* exported watchServiceWorkerTargets */
 async function watchServiceWorkerTargets(tab) {
   info("Create a target list for a tab target");
   const commands = await CommandsFactory.forTab(tab);
@@ -52,6 +54,7 @@ async function watchServiceWorkerTargets(tab) {
 /**
  * Wait until the expected URL is loaded and win.registration has resolved.
  */
+/* exported waitForRegistrationReady */
 async function waitForRegistrationReady(tab, expectedPageUrl, workerUrl) {
   await asyncWaitUntil(() =>
     SpecialPowers.spawn(tab.linkedBrowser, [expectedPageUrl], function (_url) {
@@ -92,6 +95,7 @@ async function waitForRegistrationReady(tab, expectedPageUrl, workerUrl) {
  * onDestroyed callbacks. Assert that the callbacks have been called the
  * expected number of times, with the expected targets.
  */
+/* exported checkHooks */
 async function checkHooks(hooks, { available, destroyed, targets }) {
   await waitUntil(
     () => hooks.availableCount == available && hooks.destroyedCount == destroyed
