@@ -6,7 +6,6 @@ license = "MPL-2.0"
 repository = "https://github.com/servo/stylo"
 edition = "2021"
 description = "The Stylo CSS engine"
-publish = false
 
 build = "build.rs"
 
