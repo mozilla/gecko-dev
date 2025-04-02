@@ -90,28 +90,6 @@ bool StyleCssUrlData::operator==(const StyleCssUrlData& aOther) const {
 
 StyleLoadData::~StyleLoadData() { Gecko_LoadData_Drop(this); }
 
-already_AddRefed<nsIURI> StyleComputedUrl::ResolveLocalRef(
-    nsIURI* aBase) const {
-  nsCOMPtr<nsIURI> result = GetURI();
-  if (result && IsLocalRef()) {
-    nsCString ref;
-    result->GetRef(ref);
-
-    nsresult rv = NS_MutateURI(aBase).SetRef(ref).Finalize(result);
-
-    if (NS_FAILED(rv)) {
-      // If setting the ref failed, just return the original URI.
-      result = aBase;
-    }
-  }
-  return result.forget();
-}
-
-already_AddRefed<nsIURI> StyleComputedUrl::ResolveLocalRef(
-    const nsIContent* aContent) const {
-  return ResolveLocalRef(aContent->GetBaseURI());
-}
-
 void StyleComputedUrl::ResolveImage(Document& aDocument,
                                     const StyleComputedUrl* aOldImage) {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());

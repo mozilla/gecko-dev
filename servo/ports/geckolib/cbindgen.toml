@@ -890,8 +890,6 @@ renaming_overrides_prefixing = true
   inline bool IsLocalRef() const;
   inline bool HasRef() const;
   inline StyleCorsMode CorsMode() const;
-  already_AddRefed<nsIURI> ResolveLocalRef(nsIURI* aBase) const;
-  already_AddRefed<nsIURI> ResolveLocalRef(const nsIContent* aContent) const;
 
   // Only relevant for images.
   inline bool IsImageResolved() const;

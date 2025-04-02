@@ -584,7 +584,7 @@ void SVGUseElement::LookupHref() {
 
   nsIReferrerInfo* referrer =
       OwnerDoc()->ReferrerInfoForInternalCSSAndSVGResources();
-  mReferencedElementTracker.ResetToURIWithFragmentID(treeToWatch, targetURI,
+  mReferencedElementTracker.ResetToURIWithFragmentID(*treeToWatch, targetURI,
                                                      referrer);
 }
 
