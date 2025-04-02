@@ -456,7 +456,7 @@ nsWindowsShellService::SetDefaultBrowser(bool aForAllUsers) {
 }
 
 /*
- * Asynchronious function to Write an ico file to the disk / in a nsIFile.
+ * Asynchronous function to Write an ico file to the disk / in a nsIFile.
  * Limitation: Only square images are supported as of now.
  */
 NS_IMETHODIMP
@@ -677,21 +677,18 @@ nsWindowsShellService::SetDesktopBackground(dom::Element* aElement,
   rv = request->GetImage(getter_AddRefs(container));
   if (!container) return NS_ERROR_FAILURE;
 
-  // get the file name from localized strings
-  nsCOMPtr<nsIStringBundleService> bundleService(
-      do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIStringBundle> shellBundle;
-  rv = bundleService->CreateBundle(SHELLSERVICE_PROPERTIES,
-                                   getter_AddRefs(shellBundle));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // e.g. "Desktop Background.bmp"
-  nsAutoString fileLeafName;
-  rv = shellBundle->GetStringFromName("desktopBackgroundLeafNameWin",
-                                      fileLeafName);
-  NS_ENSURE_SUCCESS(rv, rv);
+  // get the file name from localized strings, e.g. "Desktop Background", then
+  // append the extension (".bmp").
+  nsTArray<nsCString> resIds = {
+      "browser/browser/setDesktopBackground.ftl"_ns,
+  };
+  RefPtr<Localization> l10n = Localization::Create(resIds, true);
+  nsAutoCString fileLeafNameUtf8;
+  IgnoredErrorResult locRv;
+  l10n->FormatValueSync("set-desktop-background-filename"_ns, {},
+                        fileLeafNameUtf8, locRv);
+  nsAutoString fileLeafName = NS_ConvertUTF8toUTF16(fileLeafNameUtf8);
+  fileLeafName.AppendLiteral(".bmp");
 
   // get the profile root directory
   nsCOMPtr<nsIFile> file;
@@ -708,7 +705,7 @@ nsWindowsShellService::SetDesktopBackground(dom::Element* aElement,
   NS_ENSURE_SUCCESS(rv, rv);
 
   // write the bitmap to a file in the profile directory.
-  // We have to write old bitmap format for Windows 7 wallpapar support.
+  // We have to write old bitmap format for Windows 7 wallpaper support.
   rv = WriteBitmap(file, container);
 
   // if the file was written successfully, set it as the system wallpaper

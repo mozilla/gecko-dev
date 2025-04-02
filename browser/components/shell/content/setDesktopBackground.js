@@ -109,8 +109,10 @@ var gSetBackground = {
         "setDesktopBackground"
       );
       setDesktopBackground.hidden = false;
-      var bundle = document.getElementById("backgroundBundle");
-      setDesktopBackground.label = bundle.getString("DesktopBackgroundSet");
+      document.l10n.setAttributes(
+        setDesktopBackground,
+        "set-desktop-background-accept"
+      );
       setDesktopBackground.disabled = false;
 
       document.getElementById("showDesktopPreferences").hidden = true;
@@ -130,13 +132,13 @@ var gSetBackground = {
     } else {
       Services.obs.addObserver(this, "shell:desktop-background-changed");
 
-      var bundle = document.getElementById("backgroundBundle");
       var setDesktopBackground = document.getElementById(
         "setDesktopBackground"
       );
       setDesktopBackground.disabled = true;
-      setDesktopBackground.label = bundle.getString(
-        "DesktopBackgroundDownloading"
+      document.l10n.setAttributes(
+        setDesktopBackground,
+        "set-desktop-background-downloading"
       );
     }
     this._shell.setDesktopBackground(
