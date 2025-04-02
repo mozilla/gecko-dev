@@ -161,11 +161,16 @@
   color: #e7ebee;
 }
 
-/* At the moment, preview-token doesn't get a distinct style on hover (will be fixed in Bug 1953964 ).
-   This rule only make sure the text remains readable when hovering a token on the paused line. */
+/* Use a color other than yellow to highlight the hovered token on the paused line
+   as the paused line is already yellow */
+.paused-line .preview-token {
+  background-color: light-dark(rgba(202, 227, 255, 0.5), rgba(202, 227, 255, 0.3));
+}
+
+/* This rule only make sure the text remains readable when hovering a token on the paused line. */
 :root[forced-colors-active] .paused-line :is(.preview-token, .debug-expression.preview-token) {
-    color: inherit;
-    background-color: inherit;
+  color: inherit;
+  background-color: inherit;
 }
 
 .theme-dark .popover .preview-popup {
