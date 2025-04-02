@@ -82,18 +82,27 @@ static LazyLogModule gLnfLog("LookAndFeel");
 
 static bool sIgnoreChangedSettings = false;
 
-static void OnSettingsChange() {
+static void OnSettingsChange(nsLookAndFeel* aLnf, NativeChangeKind aKind) {
+  // TODO: We could be more granular here, but for now assume everything
+  // changed.
   if (sIgnoreChangedSettings) {
     return;
   }
-  // TODO: We could be more granular here, but for now assume everything
-  // changed.
+  aLnf->RecordChange(aKind);
   LookAndFeel::NotifyChangedAllWindows(widget::ThemeChangeKind::StyleAndLayout);
   widget::IMContextWrapper::OnThemeChanged();
 }
 
-static void settings_changed_cb(GtkSettings*, GParamSpec*, void*) {
-  OnSettingsChange();
+static void settings_changed_cb(GtkSettings*, GParamSpec* aSpec, void*) {
+  const char* name = g_param_spec_get_name(aSpec);
+  LOGLNF("settings_changed_cb(%s)", name);
+
+  const bool isTheme = !strcmp(name, "gtk-theme-name") ||
+                       !strcmp(name, "gtk-application-prefer-dark-theme");
+  auto* lnf = static_cast<nsLookAndFeel*>(nsLookAndFeel::GetInstance());
+  auto changeKind =
+      isTheme ? NativeChangeKind::GtkTheme : NativeChangeKind::OtherSettings;
+  OnSettingsChange(lnf, changeKind);
 }
 
 static bool sCSDAvailable;
@@ -282,7 +291,7 @@ void nsLookAndFeel::WatchDBus() {
   // DBus interface was started after L&F init so we need to load our settings
   // from DBus explicitly.
   if (RecomputeDBusSettings()) {
-    OnSettingsChange();
+    OnSettingsChange(this, NativeChangeKind::OtherSettings);
   }
 }
 
@@ -635,13 +644,6 @@ void nsLookAndFeel::PerThemeData::InitCellHighlightColors() {
 }
 
 void nsLookAndFeel::NativeInit() { EnsureInit(); }
-
-void nsLookAndFeel::RefreshImpl() {
-  mInitialized = false;
-  moz_gtk_refresh();
-
-  nsXPLookAndFeel::RefreshImpl();
-}
 
 nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
                                        nscolor& aColor) {
@@ -1626,12 +1628,11 @@ Maybe<ColorScheme> nsLookAndFeel::ComputeColorSchemeSetting() {
 }
 
 void nsLookAndFeel::Initialize() {
-  LOGLNF("nsLookAndFeel::Initialize");
-  MOZ_DIAGNOSTIC_ASSERT(!mInitialized);
+  MOZ_DIAGNOSTIC_ASSERT(mPendingChanges != NativeChangeKind::None);
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread(),
                         "LookAndFeel init should be done on the main thread");
 
-  mInitialized = true;
+  auto pendingChanges = std::exchange(mPendingChanges, NativeChangeKind::None);
 
   GtkSettings* settings = gtk_settings_get_default();
   if (MOZ_UNLIKELY(!settings)) {
@@ -1642,23 +1643,26 @@ void nsLookAndFeel::Initialize() {
   AutoRestore<bool> restoreIgnoreSettings(sIgnoreChangedSettings);
   sIgnoreChangedSettings = true;
 
-  // Our current theme may be different from the system theme if we're matching
-  // the Firefox theme or using the alt theme intentionally due to the
-  // color-scheme preference. Make sure to restore the original system theme.
-  RestoreSystemTheme();
-
   // First initialize global settings.
   InitializeGlobalSettings();
 
-  // Record our system theme settings now.
-  mSystemTheme.Init();
+  if (pendingChanges & NativeChangeKind::GtkTheme) {
+    // Our current theme may be different from the system theme if we're
+    // matching the Firefox theme or using the alt theme intentionally due to
+    // the color-scheme preference. Make sure to restore the original system
+    // theme.
+    RestoreSystemTheme();
 
-  // Find the alternative-scheme theme (light if the system theme is dark, or
-  // vice versa), configure it and initialize it.
-  ConfigureAndInitializeAltTheme();
+    // Record our system theme settings now.
+    mSystemTheme.Init();
 
-  LOGLNF("System Theme: %s. Alt Theme: %s\n", mSystemTheme.mName.get(),
-         mAltTheme.mName.get());
+    // Find the alternative-scheme theme (light if the system theme is dark, or
+    // vice versa), configure it and initialize it.
+    ConfigureAndInitializeAltTheme();
+
+    LOGLNF("System Theme: %s. Alt Theme: %s\n", mSystemTheme.mName.get(),
+           mAltTheme.mName.get());
+  }
 
   // Go back to the system theme or keep the alt theme configured, depending on
   // Firefox theme or user color-scheme preference.
