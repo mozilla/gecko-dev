@@ -47,29 +47,26 @@ namespace gc {
 // bits for space between things being unused when things are larger than a
 // single Cell.
 
-void AtomMarkingRuntime::registerArena(Arena* arena, const AutoLockGC& lock) {
-  MOZ_ASSERT(arena->getThingSize() != 0);
-  MOZ_ASSERT(arena->getThingSize() % CellAlignBytes == 0);
-  MOZ_ASSERT(arena->zone()->isAtomsZone());
-
+size_t AtomMarkingRuntime::allocateIndex(const AutoLockGC& lock) {
   // We need to find a range of bits from the atoms bitmap for this arena.
 
   // Look for a free range of bits compatible with this arena.
   if (freeArenaIndexes.ref().length()) {
-    arena->atomBitmapStart() = freeArenaIndexes.ref().popCopy();
-    return;
+    return freeArenaIndexes.ref().popCopy();
   }
 
   // Allocate a range of bits from the end for this arena.
-  arena->atomBitmapStart() = allocatedWords;
+  size_t index = allocatedWords;
   allocatedWords += ArenaBitmapWords;
+  return index;
 }
 
-void AtomMarkingRuntime::unregisterArena(Arena* arena, const AutoLockGC& lock) {
-  MOZ_ASSERT(arena->zone()->isAtomsZone());
+void AtomMarkingRuntime::freeIndex(size_t index, const AutoLockGC& lock) {
+  MOZ_ASSERT((index % ArenaBitmapWords) == 0);
+  MOZ_ASSERT(index < allocatedWords);
 
   // Leak these atom bits if we run out of memory.
-  (void)freeArenaIndexes.ref().emplaceBack(arena->atomBitmapStart());
+  (void)freeArenaIndexes.ref().emplaceBack(index);
 }
 
 void AtomMarkingRuntime::refineZoneBitmapsForCollectedZones(
