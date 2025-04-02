@@ -15,9 +15,12 @@ const SIDEBAR_TOOLS = "sidebar.main.tools";
 const DEFAULT_LAUNCHER_TOOLS = "aichat,syncedtabs,history,bookmarks";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
+  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
+  SidebarState: "resource:///modules/SidebarState.sys.mjs",
 });
 XPCOMUtils.defineLazyPreferenceGetter(lazy, "sidebarNimbus", "sidebar.nimbus");
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -101,6 +104,8 @@ export const SidebarManager = {
       );
     });
 
+    lazy.CustomizableUI.addListener(this);
+
     Services.prefs.addObserver(
       "sidebar.newTool.migration.",
       this.updateDefaultTools.bind(this)
@@ -115,6 +120,41 @@ export const SidebarManager = {
       lazy.verticalTabsEnabled,
       shouldResetVisibility
     );
+  },
+
+  /**
+   * Called when any widget is removed. We're only interested in the sidebar
+   * button. Note that this is also invoked if the button is merely moved
+   * to another area.
+   *
+   * @param {string} aWidgetId
+   *   The widget being removed.
+   */
+  async onWidgetRemoved(aWidgetId) {
+    if (aWidgetId == "sidebar-button") {
+      // Wait for JS to run to completion. Once that has happened, we'll
+      // know if we were _really_ removed or just moved elsewhere.
+      await Promise.resolve();
+      if (!lazy.CustomizableUI.getPlacementOfWidget(aWidgetId)) {
+        Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "hide-sidebar");
+        this.closeAllSidebars();
+      }
+    }
+  },
+
+  /**
+   * Convenience method to tell all sidebars to close when the toolbar button
+   * is removed.
+   */
+  closeAllSidebars() {
+    for (let w of lazy.BrowserWindowTracker.getOrderedWindows()) {
+      if (w.SidebarController.isOpen) {
+        w.SidebarController.hide();
+      }
+      w.SidebarController._state.loadInitialState({
+        ...lazy.SidebarState.defaultProperties,
+      });
+    }
   },
 
   /**

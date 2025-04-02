@@ -384,8 +384,6 @@ var SidebarController = {
       this._handleLauncherResize(entry)
     );
 
-    CustomizableUI.addListener(this);
-
     if (this.sidebarRevampEnabled) {
       if (!customElements.get("sidebar-main")) {
         ChromeUtils.importESModule(
@@ -1870,16 +1868,6 @@ var SidebarController = {
           updateToggleControlLabel(triggerbutton);
         }
       }
-    }
-  },
-
-  onWidgetRemoved(aWidgetId) {
-    if (aWidgetId == "sidebar-button") {
-      if (this.isOpen) {
-        this.hide();
-      }
-      this._state.loadInitialState({ ...this.SidebarState.defaultProperties });
-      Services.prefs.setStringPref("sidebar.visibility", "hide-sidebar");
     }
   },
 
