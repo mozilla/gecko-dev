@@ -102,6 +102,10 @@ static constexpr FinalizePhase BackgroundFinalizePhases[] = {
       AllocKind::COMPACT_PROP_MAP, AllocKind::NORMAL_PROP_MAP,
       AllocKind::DICT_PROP_MAP}}};
 
+static_assert(std::size(BackgroundFinalizePhases) == 2);
+static constexpr AllocKinds AllBackgroundSweptKinds =
+    BackgroundFinalizePhases[0].kinds + BackgroundFinalizePhases[1].kinds;
+
 template <typename T>
 inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
                               size_t thingSize) {
@@ -265,41 +269,51 @@ void ArenaLists::backgroundFinalize(JS::GCContext* gcx, AllocKind kind,
 
   finalizedSorted.extractEmptyTo(empty);
 
-  // When marking begins, all arenas are moved from arenaLists to
-  // collectingArenaLists. When the mutator runs, new arenas are allocated in
-  // arenaLists. Now that finalization is complete, we want to merge these lists
-  // back together.
+  // Set the collectingArenaList to the possibly empty list of swept arenas
+  // while holding the GC lock. Set concurrentUse to indicate to the main thread
+  // whether there are arenas to merge.
+  ArenaList sweptArenas = finalizedSorted.convertToArenaList();
+  bool wasEmpty = sweptArenas.isEmpty();
 
-  // We must take the GC lock to be able to safely modify the ArenaList;
-  // however, this does not by itself make the changes visible to all threads,
-  // as not all threads take the GC lock to read the ArenaLists.
-  // That safety is provided by the ReleaseAcquire memory ordering of the
-  // background finalize state, which we explicitly set as the final step.
-  {
-    AutoLockGC lock(gcx->runtimeFromAnyThread());
-    mergeFinalizedArenas(kind, finalizedSorted);
-  }
-
-  concurrentUse(kind) = ConcurrentUse::None;
+  AutoLockGC lock(gcx->runtimeFromAnyThread());
+  collectingArenaList(kind) = std::move(sweptArenas);
+  concurrentUse(kind) = wasEmpty ? ConcurrentUse::None
+                                 : ConcurrentUse::BackgroundFinalizeFinished;
 }
 
-// After finalizing arenas, merge the following to get the final state of an
-// arena list:
+void ArenaLists::mergeBackgroundSweptArenas() {
+  // Merge swept arenas into main arena lists on the main thread.
+  MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime()));
+
+  for (AllocKind kind : AllBackgroundSweptKinds) {
+    maybeMergeSweptArenas(kind);
+  }
+}
+
+void ArenaLists::maybeMergeSweptArenas(AllocKind kind) {
+  MOZ_ASSERT(zone_->isGCFinished());
+  MOZ_ASSERT(concurrentUse(kind) != ConcurrentUse::BackgroundFinalize);
+
+  if (concurrentUse(kind) == ConcurrentUse::BackgroundFinalizeFinished) {
+    mergeSweptArenas(kind, collectingArenaList(kind));
+    concurrentUse(kind) = ConcurrentUse::None;
+  }
+
+  MOZ_ASSERT(collectingArenaList(kind).isEmpty());
+}
+
+// This methods merges the following to get the final state of an arena
+// list:
+//  - swept arenas
 //  - arenas allocated during marking
 //  - arenas allocated during sweeping
-//  - finalized arenas
-void ArenaLists::mergeFinalizedArenas(AllocKind kind,
-                                      SortedArenaList& finalizedArenas) {
-#ifdef DEBUG
-  // Updating arena lists off-thread requires taking the GC lock because the
-  // main thread uses these when allocating.
-  if (IsBackgroundFinalized(kind)) {
-    runtimeFromAnyThread()->gc.assertCurrentThreadHasLockedGC();
-  }
-  MOZ_ASSERT(collectingArenaList(kind).isEmpty());
-#endif
+void ArenaLists::mergeSweptArenas(AllocKind kind, ArenaList& sweptArenas) {
+  MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime()));
+  MOZ_ASSERT_IF(
+      IsBackgroundFinalized(kind),
+      concurrentUse(kind) == ConcurrentUse::BackgroundFinalizeFinished);
 
-  arenaList(kind).prepend(finalizedArenas.convertToArenaList());
+  arenaList(kind).prepend(std::move(sweptArenas));
 }
 
 void ArenaLists::queueForegroundThingsForSweep() {
@@ -414,7 +428,7 @@ void GCRuntime::assertBackgroundSweepingFinished() {
 
   for (ZonesIter zone(this, WithAtoms); !zone.done(); zone.next()) {
     for (auto kind : AllAllocKinds()) {
-      MOZ_ASSERT_IF(!(state() >= State::Prepare && state() <= State::Sweep),
+      MOZ_ASSERT_IF(!(state() >= State::Prepare && state() < State::Sweep),
                     zone->arenas.collectingArenaList(kind).isEmpty());
       MOZ_ASSERT(zone->arenas.doneBackgroundFinalize(kind));
     }
@@ -462,6 +476,11 @@ void GCRuntime::sweepFromBackgroundThread(AutoLockHelperThreadState& lock) {
 
 void GCRuntime::waitBackgroundSweepEnd() {
   sweepTask.join();
+  for (AllZonesIter zone(this); !zone.done(); zone.next()) {
+    if (zone->isGCFinished()) {
+      zone->arenas.mergeBackgroundSweptArenas();
+    }
+  }
   if (state() != State::Sweep) {
     assertBackgroundSweepingFinished();
   }
@@ -1831,7 +1850,8 @@ bool ArenaLists::foregroundFinalize(JS::GCContext* gcx, AllocKind thingKind,
   }
 
   sweepList.extractEmptyTo(&savedEmptyArenas.ref());
-  mergeFinalizedArenas(thingKind, sweepList);
+  ArenaList sweptArenas = sweepList.convertToArenaList();
+  mergeSweptArenas(thingKind, sweptArenas);
   return true;
 }
 
@@ -2519,15 +2539,6 @@ void GCRuntime::endSweepPhase(bool destroyingRuntime) {
 
 #ifdef JS_GC_ZEAL
   finishMarkingValidation();
-#endif
-
-#ifdef DEBUG
-  for (ZonesIter zone(this, WithAtoms); !zone.done(); zone.next()) {
-    for (auto i : AllAllocKinds()) {
-      MOZ_ASSERT_IF(!IsBackgroundFinalized(i) || !useBackgroundThreads,
-                    zone->arenas.collectingArenaList(i).isEmpty());
-    }
-  }
 #endif
 
   AssertNoWrappersInGrayList(rt);
