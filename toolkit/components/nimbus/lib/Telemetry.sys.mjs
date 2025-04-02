@@ -29,6 +29,7 @@ const EnrollmentStatus = Object.freeze({
 });
 
 const EnrollmentStatusReason = Object.freeze({
+  CHANGED_PREF: "ChangedPref",
   QUALIFIED: "Qualified",
   OPT_IN: "OptIn",
   OPT_OUT: "OptOut",
@@ -36,7 +37,9 @@ const EnrollmentStatusReason = Object.freeze({
   NOT_TARGETED: "NotTargeted",
   ENROLLMENTS_PAUSED: "EnrollmentsPaused",
   FEATURE_CONFLICT: "FeatureConflict",
+  FORCE_ENROLLMENT: "ForceEnrollment",
   NAME_CONFLICT: "NameConflict",
+  PREF_FLIPS_CONFLICT: "PrefFlipsConflict",
   ERROR: "Error",
 });
 
@@ -239,8 +242,25 @@ export const NimbusTelemetry = {
 
       case UnenrollReason.INDIVIDUAL_OPT_OUT:
       case UnenrollReason.LABS_OPT_OUT:
+      case UnenrollReason.STUDIES_OPT_OUT:
         enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
         enrollmentStatus.reason = EnrollmentStatusReason.OPT_OUT;
+        break;
+
+      case UnenrollReason.CHANGED_PREF:
+        enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
+        enrollmentStatus.reason = EnrollmentStatusReason.CHANGED_PREF;
+        break;
+
+      case UnenrollReason.FORCE_ENROLLMENT:
+        enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
+        enrollmentStatus.reason = EnrollmentStatusReason.FORCE_ENROLLMENT;
+        break;
+
+      case UnenrollReason.PREF_FLIPS_CONFLICT:
+        enrollmentStatus.status = EnrollmentStatus.DISQUALIFIED;
+        enrollmentStatus.reason = EnrollmentStatusReason.PREF_FLIPS_CONFLICT;
+        enrollmentStatus.conflict_slug = cause.conflictingSlug;
         break;
 
       default:
