@@ -111,6 +111,12 @@ support-files = [
 
 ["browser_onModifyRequestNotificationForTrackingResources.js"]
 
+["browser_partitionKey_XSLT.js"]
+support-files= [
+  "file_xslt.xml",
+  "file_xslt.xsl",
+]
+
 ["browser_partitionedABA.js"]
 
 ["browser_partitionedABnavigatestToAA.js"]
@@ -160,12 +166,6 @@ support-files = [
 
 ["browser_partitionkey_bloburl.js"]
 
-["browser_partitionKey_XSLT.js"]
-support-files= [
-  "file_xslt.xml",
-  "file_xslt.xsl",
-]
-
 ["browser_permissionInNormalWindows.js"]
 
 ["browser_permissionInPrivateWindows.js"]
@@ -184,6 +184,8 @@ support-files = ["tracker.js"]
 ["browser_serviceWorkersWithStorageAccessGranted.js"]
 
 ["browser_siteSpecificWorkArounds.js"]
+
+["browser_siteSpecificWorkAroundsComplex.js"]
 
 ["browser_socialtracking.js"]
 
