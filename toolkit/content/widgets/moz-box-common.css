@@ -4,14 +4,21 @@
 
 @layer box-common {
   :host {
-    --box-border: var(--border-width) solid var(--border-color-interactive);
+    --box-border-width: var(--border-width);
+    --box-border-color: var(--border-color-interactive);
+    --box-border: var(--box-border-width) solid var(--box-border-color);
+    --box-border-width-end: var(--box-border-width);
     --box-border-radius: var(--border-radius-medium);
     --box-border-radius-inner: calc(var(--box-border-radius) - var(--border-width));
     --box-padding: var(--space-large);
     --box-icon-size: var(--icon-size-default);
 
     border: var(--box-border);
-    border-radius: var(--box-border-radius);
+    border-block-end: var(--box-border-width-end) solid var(--box-border-color);
+    border-start-start-radius: var(--box-border-radius-start, var(--box-border-radius));
+    border-start-end-radius: var(--box-border-radius-start, var(--box-border-radius));
+    border-end-start-radius: var(--box-border-radius-end, var(--box-border-radius));
+    border-end-end-radius: var(--box-border-radius-end, var(--box-border-radius));
     display: block;
   }
 
@@ -64,12 +71,15 @@
   font-size: inherit;
   appearance: none;
   background-color: var(--button-background-color-ghost);
-  border: none;
-  border-radius: var(--box-border-radius-inner);
   color: var(--button-text-color-ghost);
   display: flex;
   padding: var(--box-padding);
   text-align: start;
+  border: none;
+  border-start-start-radius: var(--box-border-radius-start, var(--box-border-radius-inner));
+  border-start-end-radius: var(--box-border-radius-start, var(--box-border-radius-inner));
+  border-end-start-radius: var(--box-border-radius-end, var(--box-border-radius-inner));
+  border-end-end-radius: var(--box-border-radius-end, var(--box-border-radius-inner));
 
 
   &:focus-visible {

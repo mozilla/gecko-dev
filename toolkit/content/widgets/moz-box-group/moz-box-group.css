@@ -1,0 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+::slotted(*:first-child) {
+  --box-border-radius-end: 0;
+  --box-border-width-end: 0;
+}
+
+::slotted(*:not(:first-child, :last-child)) {
+  --box-border-radius: 0;
+  --box-border-width-end: 0;
+}
+
+::slotted(*:last-child) {
+  --box-border-radius-start: 0;
+}
