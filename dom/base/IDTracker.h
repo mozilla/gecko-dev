@@ -51,7 +51,7 @@ class IDTracker {
   /**
    * Find which element, if any, is referenced.
    */
-  Element* get() { return mElement; }
+  Element* get() const { return mElement; }
 
   /**
    * Set up a reference to another element, identified by the fragment

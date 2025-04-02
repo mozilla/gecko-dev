@@ -485,22 +485,19 @@ void SVGUseElement::UpdateShadowTree() {
   targetElement->AddMutationObserver(this);
 }
 
-nsIURI* SVGUseElement::GetSourceDocURI() {
+Document* SVGUseElement::GetSourceDocument() const {
   nsIContent* targetElement = mReferencedElementTracker.get();
-  if (!targetElement) {
-    return nullptr;
-  }
-
-  return targetElement->OwnerDoc()->GetDocumentURI();
+  return targetElement ? targetElement->OwnerDoc() : nullptr;
 }
 
-const Encoding* SVGUseElement::GetSourceDocCharacterSet() {
-  nsIContent* targetElement = mReferencedElementTracker.get();
-  if (!targetElement) {
-    return nullptr;
-  }
+nsIURI* SVGUseElement::GetSourceDocURI() const {
+  auto* doc = GetSourceDocument();
+  return doc ? doc->GetDocumentURI() : nullptr;
+}
 
-  return targetElement->OwnerDoc()->GetDocumentCharacterSet();
+const Encoding* SVGUseElement::GetSourceDocCharacterSet() const {
+  auto* doc = GetSourceDocument();
+  return doc ? doc->GetDocumentCharacterSet() : nullptr;
 }
 
 static nsINode* GetClonedChild(const SVGUseElement& aUseElement) {

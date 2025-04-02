@@ -80,8 +80,9 @@ class SVGUseElement final : public SVGUseElementBase,
   already_AddRefed<DOMSVGAnimatedLength> Width();
   already_AddRefed<DOMSVGAnimatedLength> Height();
 
-  nsIURI* GetSourceDocURI();
-  const Encoding* GetSourceDocCharacterSet();
+  Document* GetSourceDocument() const;
+  nsIURI* GetSourceDocURI() const;
+  const Encoding* GetSourceDocCharacterSet() const;
   URLExtraData* GetContentURLData() const { return mContentURLData; }
 
   // Updates the internal shadow tree to be an up-to-date clone of the

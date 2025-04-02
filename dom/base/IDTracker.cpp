@@ -140,7 +140,11 @@ static nsIURI* GetExternalResourceURIIfNeeded(nsIURI* aBaseURI,
   if (!use) {
     return nullptr;
   }
-  nsIURI* originalURI = use->GetSourceDocURI();
+  Document* doc = use->GetSourceDocument();
+  if (!doc || doc == aFrom.OwnerDoc()) {
+    return nullptr;
+  }
+  nsIURI* originalURI = doc->GetDocumentURI();
   if (!originalURI) {
     return nullptr;
   }
