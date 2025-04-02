@@ -3576,14 +3576,6 @@ void nsIFrame::BuildDisplayListForStackingContext(
     createdContainer = true;
   }
 
-  // FIXME: Ensure this is the right place to do this.
-  if (HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
-      StaticPrefs::dom_viewTransitions_live_capture()) {
-    resultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
-        aBuilder, this, &resultList, containerItemASR, /* aIsRoot = */ false);
-    createdContainer = true;
-  }
-
   // If there are any SVG effects, wrap the list up in an SVG effects item
   // (which also handles CSS group opacity). Note that we create an SVG effects
   // item even if resultList is empty, since a filter can produce graphical
@@ -3643,6 +3635,14 @@ void nsIFrame::BuildDisplayListForStackingContext(
     resultList.AppendNewToTop<nsDisplayOpacity>(
         aBuilder, this, &resultList, containerItemASR, opacityItemForEventsOnly,
         needsActiveOpacityLayer, usingBackdropFilter);
+    createdContainer = true;
+  }
+
+  // FIXME: Ensure this is the right place to do this.
+  if (HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
+      StaticPrefs::dom_viewTransitions_live_capture()) {
+    resultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
+        aBuilder, this, &resultList, containerItemASR, /* aIsRoot = */ false);
     createdContainer = true;
   }
 
