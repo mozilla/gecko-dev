@@ -1351,7 +1351,7 @@ def install(command_context, **kwargs):
             logging.INFO,
             "install",
             {},
-            " run with `LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/js` on the device (Bug 1957112)",
+            "Run with /data/local/tmp/js on the device",
         )
 
         return 0
