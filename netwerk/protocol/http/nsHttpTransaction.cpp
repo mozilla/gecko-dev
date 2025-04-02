@@ -145,11 +145,6 @@ void nsHttpTransaction::SetClassOfService(ClassOfService cos) {
 nsHttpTransaction::~nsHttpTransaction() {
   LOG(("Destroying nsHttpTransaction @%p\n", this));
 
-  if (mPushedStream) {
-    mPushedStream->OnPushFailed();
-    mPushedStream = nullptr;
-  }
-
   if (mTokenBucketCancel) {
     mTokenBucketCancel->Cancel(NS_ERROR_ABORT);
     mTokenBucketCancel = nullptr;
@@ -197,7 +192,6 @@ nsresult nsHttpTransaction::Init(
 
   mChannelId = channelId;
   mTransactionObserver = std::move(transactionObserver);
-  mOnPushCallback = std::move(aOnPushCallback);
   mBrowserId = browserId;
 
   mTrafficCategory = trafficCategory;
@@ -323,13 +317,6 @@ nsresult nsHttpTransaction::Init(
   NS_NewPipe2(getter_AddRefs(mPipeIn), getter_AddRefs(mPipeOut), true, true,
               nsIOService::gDefaultSegmentSize,
               nsIOService::gDefaultSegmentCount);
-
-  if (transWithPushedStream && aPushedStreamId) {
-    RefPtr<nsHttpTransaction> trans =
-        transWithPushedStream->AsHttpTransaction();
-    MOZ_ASSERT(trans);
-    mPushedStream = trans->TakePushedStreamById(aPushedStreamId);
-  }
 
   bool forceUseHTTPSRR = StaticPrefs::network_dns_force_use_https_rr();
   if ((StaticPrefs::network_dns_use_https_rr_as_altsvc() &&
@@ -995,51 +982,6 @@ bool nsHttpTransaction::Http3Disabled() const {
 already_AddRefed<nsHttpConnectionInfo> nsHttpTransaction::GetConnInfo() const {
   RefPtr<nsHttpConnectionInfo> connInfo = mConnInfo->Clone();
   return connInfo.forget();
-}
-
-already_AddRefed<Http2PushedStreamWrapper>
-nsHttpTransaction::TakePushedStreamById(uint32_t aStreamId) {
-  MOZ_ASSERT(mConsumerTarget->IsOnCurrentThread());
-  MOZ_ASSERT(aStreamId);
-
-  auto entry = mIDToStreamMap.Lookup(aStreamId);
-  if (entry) {
-    RefPtr<Http2PushedStreamWrapper> stream = entry.Data();
-    entry.Remove();
-    return stream.forget();
-  }
-
-  return nullptr;
-}
-
-void nsHttpTransaction::OnPush(Http2PushedStreamWrapper* aStream) {
-  LOG(("nsHttpTransaction::OnPush %p aStream=%p", this, aStream));
-  MOZ_ASSERT(aStream);
-  MOZ_ASSERT(mOnPushCallback);
-  MOZ_ASSERT(mConsumerTarget);
-
-  RefPtr<Http2PushedStreamWrapper> stream = aStream;
-  if (!mConsumerTarget->IsOnCurrentThread()) {
-    RefPtr<nsHttpTransaction> self = this;
-    if (NS_FAILED(mConsumerTarget->Dispatch(
-            NS_NewRunnableFunction("nsHttpTransaction::OnPush",
-                                   [self, stream]() { self->OnPush(stream); }),
-            NS_DISPATCH_NORMAL))) {
-      stream->OnPushFailed();
-    }
-    return;
-  }
-
-  mIDToStreamMap.WithEntryHandle(stream->StreamID(), [&](auto&& entry) {
-    MOZ_ASSERT(!entry);
-    entry.OrInsert(stream);
-  });
-
-  if (NS_FAILED(mOnPushCallback(stream->StreamID(), stream->GetResourceUrl(),
-                                stream->GetRequestString(), this))) {
-    stream->OnPushFailed();
-    mIDToStreamMap.Remove(stream->StreamID());
-  }
 }
 
 nsHttpTransaction* nsHttpTransaction::AsHttpTransaction() { return this; }

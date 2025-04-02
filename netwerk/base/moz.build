@@ -43,7 +43,6 @@ XPIDL_SOURCES += [
     "nsIForcePendingChannel.idl",
     "nsIFormPOSTActionChannel.idl",
     "nsIHttpAuthenticatorCallback.idl",
-    "nsIHttpPushListener.idl",
     "nsIIncrementalDownload.idl",
     "nsIIncrementalStreamLoader.idl",
     "nsIInputStreamChannel.idl",

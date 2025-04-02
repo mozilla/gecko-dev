@@ -19,6 +19,7 @@
 #include "nsQueryObject.h"
 #include "nsProxyRelease.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
+#include "Http2Session.h"
 
 namespace mozilla::net {
 

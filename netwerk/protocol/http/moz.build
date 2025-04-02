@@ -113,7 +113,6 @@ UNIFIED_SOURCES += [
     "EarlyHintRegistrar.cpp",
     "EarlyHintsService.cpp",
     "Http2Compression.cpp",
-    "Http2Push.cpp",
     "Http2Session.cpp",
     "Http2Stream.cpp",
     "Http2StreamBase.cpp",

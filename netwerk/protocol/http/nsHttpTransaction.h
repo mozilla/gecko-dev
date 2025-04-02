@@ -8,7 +8,6 @@
 
 #include "ARefBase.h"
 #include "EventTokenBucket.h"
-#include "Http2Push.h"
 #include "HttpTransactionShell.h"
 #include "TimingStruct.h"
 #include "mozilla/StaticPrefs_security.h"
@@ -144,13 +143,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   nsHttpTransaction* QueryHttpTransaction() override { return this; }
 
-  already_AddRefed<Http2PushedStreamWrapper> GetPushedStream() {
-    return do_AddRef(mPushedStream);
-  }
-  already_AddRefed<Http2PushedStreamWrapper> TakePushedStream() {
-    return mPushedStream.forget();
-  }
-
   uint32_t InitialRwin() const { return mInitialRwin; };
   bool ChannelPipeFull() { return mWaitingOnPipeOut; }
 
@@ -178,11 +170,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void OnProxyConnectComplete(int32_t aResponseCode) override;
   void SetFlat407Headers(const nsACString& aHeaders);
-
-  // This is only called by Http2PushedStream::TryOnPush when a new pushed
-  // stream is available. The newly added stream will be taken by another
-  // transaction.
-  void OnPush(Http2PushedStreamWrapper* aStream);
 
   void UpdateConnectionInfo(nsHttpConnectionInfo* aConnInfo);
 
@@ -264,9 +251,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void MaybeReportFailedSVCDomain(nsresult aReason,
                                   nsHttpConnectionInfo* aFailedConnInfo);
-
-  already_AddRefed<Http2PushedStreamWrapper> TakePushedStreamById(
-      uint32_t aStreamId);
 
   void FinalizeConnInfo();
 
@@ -393,7 +377,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   // so far been skipped.
   uint32_t mInvalidResponseBytesRead{0};
 
-  RefPtr<Http2PushedStreamWrapper> mPushedStream;
   uint32_t mInitialRwin{0};
 
   nsHttpChunkedDecoder* mChunkedDecoder{nullptr};
@@ -565,9 +548,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   HttpTrafficCategory mTrafficCategory{HttpTrafficCategory::eInvalid};
   Atomic<int32_t> mProxyConnectResponseCode{0};
-
-  OnPushCallback mOnPushCallback;
-  nsTHashMap<uint32_t, RefPtr<Http2PushedStreamWrapper>> mIDToStreamMap;
 
   nsCOMPtr<nsICancelable> mDNSRequest;
   Atomic<uint32_t, Relaxed> mHTTPSSVCReceivedStage{HTTPSSVC_NOT_USED};

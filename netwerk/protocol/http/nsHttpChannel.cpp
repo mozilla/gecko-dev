@@ -102,7 +102,6 @@
 #include "mozilla/Telemetry.h"
 #include "AlternateServices.h"
 #include "NetworkMarker.h"
-#include "nsIHttpPushListener.h"
 #include "nsIDNSRecord.h"
 #include "mozilla/dom/Document.h"
 #include "nsICompressConvStats.h"
@@ -1839,27 +1838,6 @@ nsresult nsHttpChannel::InitTransaction() {
   // nsIHttpActivityObserver.
   gHttpHandler->AddHttpChannel(mChannelId, ToSupports(this));
 
-  nsCOMPtr<nsIHttpPushListener> pushListener;
-  NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
-                                NS_GET_IID(nsIHttpPushListener),
-                                getter_AddRefs(pushListener));
-  HttpTransactionShell::OnPushCallback pushCallback = nullptr;
-  if (pushListener) {
-    mCaps |= NS_HTTP_ONPUSH_LISTENER;
-    nsWeakPtr weakPtrThis(
-        do_GetWeakReference(static_cast<nsIHttpChannel*>(this)));
-    pushCallback = [weakPtrThis](uint32_t aPushedStreamId,
-                                 const nsACString& aUrl,
-                                 const nsACString& aRequestString,
-                                 HttpTransactionShell* aTransaction) {
-      if (nsCOMPtr<nsIHttpChannel> channel = do_QueryReferent(weakPtrThis)) {
-        return static_cast<nsHttpChannel*>(channel.get())
-            ->OnPush(aPushedStreamId, aUrl, aRequestString, aTransaction);
-      }
-      return NS_ERROR_NOT_AVAILABLE;
-    };
-  }
-
   EnsureBrowserId();
   EnsureRequestContext();
 
@@ -1878,8 +1856,7 @@ nsresult nsHttpChannel::InitTransaction() {
       LoadUploadStreamHasHeaders(), GetCurrentSerialEventTarget(), callbacks,
       this, mBrowserId, category, mRequestContext, mClassOfService,
       mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
-      std::move(observer), std::move(pushCallback), mTransWithPushedStream,
-      mPushedStreamId);
+      std::move(observer), nullptr, nullptr, 0);
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
     return rv;
@@ -10183,84 +10160,6 @@ nsHttpChannel::SetNotificationCallbacks(nsIInterfaceRequestor* aCallbacks) {
 
 bool nsHttpChannel::AwaitingCacheCallbacks() {
   return LoadWaitForCacheEntry() != 0;
-}
-
-void nsHttpChannel::SetPushedStreamTransactionAndId(
-    HttpTransactionShell* aTransWithPushedStream, uint32_t aPushedStreamId) {
-  MOZ_ASSERT(!mTransWithPushedStream);
-  LOG(("nsHttpChannel::SetPushedStreamTransaction [this=%p] trans=%p", this,
-       aTransWithPushedStream));
-
-  mTransWithPushedStream = aTransWithPushedStream;
-  mPushedStreamId = aPushedStreamId;
-}
-
-nsresult nsHttpChannel::OnPush(uint32_t aPushedStreamId, const nsACString& aUrl,
-                               const nsACString& aRequestString,
-                               HttpTransactionShell* aTransaction) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aTransaction);
-  LOG(("nsHttpChannel::OnPush [this=%p, trans=%p]\n", this, aTransaction));
-
-  MOZ_ASSERT(mCaps & NS_HTTP_ONPUSH_LISTENER);
-  nsCOMPtr<nsIHttpPushListener> pushListener;
-  NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
-                                NS_GET_IID(nsIHttpPushListener),
-                                getter_AddRefs(pushListener));
-
-  if (!pushListener) {
-    LOG(
-        ("nsHttpChannel::OnPush [this=%p] notification callbacks do not "
-         "implement nsIHttpPushListener\n",
-         this));
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  nsCOMPtr<nsIURI> pushResource;
-  nsresult rv;
-
-  // Create a Channel for the Push Resource
-  rv = NS_NewURI(getter_AddRefs(pushResource), aUrl);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIIOService> ioService;
-  rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIChannel> pushChannel;
-  rv = NS_NewChannelInternal(getter_AddRefs(pushChannel), pushResource,
-                             mLoadInfo,
-                             nullptr,  // PerformanceStorage
-                             nullptr,  // aLoadGroup
-                             nullptr,  // aCallbacks
-                             nsIRequest::LOAD_NORMAL, ioService);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIHttpChannel> pushHttpChannel = do_QueryInterface(pushChannel);
-  MOZ_ASSERT(pushHttpChannel);
-  if (!pushHttpChannel) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  RefPtr<nsHttpChannel> channel;
-  CallQueryInterface(pushHttpChannel, channel.StartAssignment());
-  MOZ_ASSERT(channel);
-  if (!channel) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  // new channel needs mrqeuesthead and headers from pushedStream
-  channel->mRequestHead.ParseHeaderSet(aRequestString.BeginReading());
-  channel->mLoadGroup = mLoadGroup;
-  channel->mLoadInfo = mLoadInfo;
-  channel->mCallbacks = mCallbacks;
-
-  // Link the trans with pushed stream and the new channel and call listener
-  channel->SetPushedStreamTransactionAndId(aTransaction, aPushedStreamId);
-  rv = pushListener->OnPush(this, pushHttpChannel);
-  return rv;
 }
 
 // static

@@ -22,6 +22,7 @@
 #include "nsSerializationHelper.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
+#include "nsIRequestContext.h"
 
 namespace mozilla::net {
 

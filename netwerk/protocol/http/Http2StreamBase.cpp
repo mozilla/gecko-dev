@@ -353,12 +353,6 @@ nsresult Http2StreamBase::ParseHttpRequestHeaders(const char* buf,
   mFlatHttpRequestHeaders.SetLength(endHeader + 2);
   *countUsed = avail - (oldLen - endHeader) + 4;
   mRequestHeadersDone = 1;
-
-  Http2Stream* selfRegularStream = this->GetHttp2Stream();
-  if (selfRegularStream) {
-    return selfRegularStream->CheckPushCache();
-  }
-
   return NS_OK;
 }
 
@@ -1260,8 +1254,7 @@ nsresult Http2StreamBase::OnReadSegment(const char* buf, uint32_t count,
       break;
 
     case UPSTREAM_COMPLETE: {
-      MOZ_ASSERT(this->GetHttp2Stream() &&
-                 this->GetHttp2Stream()->IsReadingFromPushStream());
+      MOZ_ASSERT(this->GetHttp2Stream());
       rv = TransmitFrame(nullptr, nullptr, true);
       break;
     }

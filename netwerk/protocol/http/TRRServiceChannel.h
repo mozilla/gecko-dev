@@ -104,13 +104,6 @@ class TRRServiceChannel : public HttpBaseChannel,
     return NS_OK;
   }
 
-  [[nodiscard]] nsresult OnPush(uint32_t aPushedStreamId,
-                                const nsACString& aUrl,
-                                const nsACString& aRequestString,
-                                HttpTransactionShell* aTransaction);
-  void SetPushedStreamTransactionAndId(
-      HttpTransactionShell* aTransWithPushedStream, uint32_t aPushedStreamId);
-
   // nsITimedChannel
   NS_IMETHOD GetDomainLookupStart(
       mozilla::TimeStamp* aDomainLookupStart) override;
@@ -167,8 +160,6 @@ class TRRServiceChannel : public HttpBaseChannel,
 
   nsCOMPtr<nsIRequest> mTransactionPump;
   RefPtr<HttpTransactionShell> mTransaction;
-  uint32_t mPushedStreamId{0};
-  RefPtr<HttpTransactionShell> mTransWithPushedStream;
   DataMutex<nsCOMPtr<nsICancelable>> mProxyRequest;
   nsCOMPtr<nsIEventTarget> mCurrentEventTarget;
 

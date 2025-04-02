@@ -15,7 +15,6 @@
 #include "nsHttpHandler.h"
 
 #include "ASpdySession.h"
-#include "Http2Push.h"
 #include "Http2Session.h"
 
 #include "mozilla/StaticPrefs_network.h"

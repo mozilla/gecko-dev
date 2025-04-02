@@ -19,7 +19,6 @@
 
 #include "AltServiceChild.h"
 #include "CacheControlParser.h"
-#include "Http2Push.h"
 #include "Http2Session.h"
 #include "Http2Stream.h"
 #include "Http2StreamBase.h"
@@ -119,7 +118,6 @@ Http2Session::Http2Session(nsISocketTransport* aSocketTransport,
       mSegmentWriter(nullptr),
       mNextStreamID(3)  // 1 is reserved for Updgrade handshakes
       ,
-      mLastPushedID(0),
       mConcurrentHighWater(0),
       mDownstreamState(BUFFERING_OPENING_SETTINGS),
       mInputFrameBufferSize(kDefaultBufferSize),
@@ -136,7 +134,6 @@ Http2Session::Http2Session(nsISocketTransport* aSocketTransport,
       mDownstreamRstReason(NO_HTTP_ERROR),
       mExpectedHeaderID(0),
       mExpectedPushPromiseID(0),
-      mContinuedPromiseStream(0),
       mFlatHTTPResponseHeadersOut(0),
       mShouldGoAway(false),
       mClosed(false),
@@ -440,33 +437,6 @@ uint32_t Http2Session::ReadTimeoutTick(PRIntervalTime now) {
   GeneratePing(false);
   Unused << ResumeRecv();  // read the ping reply
 
-  // Check for orphaned push streams. This looks expensive, but generally the
-  // list is empty.
-  Http2PushedStream* deleteMe;
-  TimeStamp timestampNow;
-  do {
-    deleteMe = nullptr;
-
-    for (uint32_t index = mPushedStreams.Length(); index > 0; --index) {
-      Http2PushedStream* pushedStream = mPushedStreams[index - 1];
-
-      if (timestampNow.IsNull()) {
-        timestampNow = TimeStamp::Now();  // lazy initializer
-      }
-
-      // if stream finished, but is not connected, and its been like that for
-      // long then cleanup the stream.
-      if (pushedStream->IsOrphaned(timestampNow)) {
-        LOG3(("Http2Session Timeout Pushed Stream %p 0x%X\n", this,
-              pushedStream->StreamID()));
-        deleteMe = pushedStream;
-        break;  // don't CleanupStream() while iterating this vector
-      }
-    }
-    if (deleteMe) CleanupStream(deleteMe, NS_ERROR_ABORT, CANCEL_ERROR);
-
-  } while (deleteMe);
-
   return 1;  // run the tick aggressively while ping is outstanding
 }
 
@@ -540,25 +510,20 @@ bool Http2Session::AddStream(nsAHttpTransaction* aHttpTransaction,
   if (mClosed || mShouldGoAway) {
     nsHttpTransaction* trans = aHttpTransaction->QueryHttpTransaction();
     if (trans) {
-      RefPtr<Http2PushedStreamWrapper> pushedStreamWrapper;
-      pushedStreamWrapper = trans->GetPushedStream();
-      if (!pushedStreamWrapper || !pushedStreamWrapper->GetStream()) {
+      LOG3(
+          ("Http2Session::AddStream %p atrans=%p trans=%p session unusable - "
+           "resched.\n",
+           this, aHttpTransaction, trans));
+      aHttpTransaction->SetConnection(nullptr);
+      nsresult rv = gHttpHandler->InitiateTransaction(trans, trans->Priority());
+      if (NS_FAILED(rv)) {
         LOG3(
-            ("Http2Session::AddStream %p atrans=%p trans=%p session unusable - "
-             "resched.\n",
-             this, aHttpTransaction, trans));
-        aHttpTransaction->SetConnection(nullptr);
-        nsresult rv =
-            gHttpHandler->InitiateTransaction(trans, trans->Priority());
-        if (NS_FAILED(rv)) {
-          LOG3(
-              ("Http2Session::AddStream %p atrans=%p trans=%p failed to "
-               "initiate "
-               "transaction (%08x).\n",
-               this, aHttpTransaction, trans, static_cast<uint32_t>(rv)));
-        }
-        return true;
+            ("Http2Session::AddStream %p atrans=%p trans=%p failed to "
+             "initiate "
+             "transaction (%08x).\n",
+             this, aHttpTransaction, trans, static_cast<uint32_t>(rv)));
       }
+      return true;
     }
   }
 
@@ -1316,19 +1281,6 @@ void Http2Session::CleanupStream(Http2StreamBase* aStream, nsresult aResult,
     return;
   }
 
-  Http2PushedStream* pushSource = nullptr;
-  Http2Stream* h2Stream = aStream->GetHttp2Stream();
-  if (h2Stream) {
-    pushSource = h2Stream->PushSource();
-    if (pushSource) {
-      // aStream is a synthetic  attached to an even push
-      MOZ_ASSERT(pushSource->GetConsumerStream() == aStream);
-      MOZ_ASSERT(!aStream->StreamID());
-      MOZ_ASSERT(!(pushSource->StreamID() & 0x1));
-      h2Stream->ClearPushSource();
-    }
-  }
-
   if (aStream->DeferCleanup(aResult)) {
     LOG3(("Http2Session::CleanupStream 0x%X deferred\n", aStream->StreamID()));
     return;
@@ -1355,16 +1307,6 @@ void Http2Session::CleanupStream(Http2StreamBase* aStream, nsresult aResult,
   uint32_t id = aStream->StreamID();
   if (id > 0) {
     mStreamIDHash.Remove(id);
-    if (!(id & 1)) {
-      mPushedStreams.RemoveElement(aStream);
-      Http2PushedStream* pushStream = static_cast<Http2PushedStream*>(aStream);
-      nsAutoCString hashKey;
-      DebugOnly<bool> rv = pushStream->GetHashKey(hashKey);
-      MOZ_ASSERT(rv);
-      nsIRequestContext* requestContext = aStream->RequestContext();
-      if (requestContext) {
-      }
-    }
   }
 
   RemoveStreamFromQueues(aStream);
@@ -1377,11 +1319,6 @@ void Http2Session::CleanupStream(Http2StreamBase* aStream, nsresult aResult,
   mTunnelStreamTransactionHash.Remove(trans);
 
   if (mShouldGoAway && !mStreamTransactionHash.Count()) Close(NS_OK);
-
-  if (pushSource) {
-    pushSource->SetDeferCleanupOnSuccess(false);
-    CleanupStream(pushSource, aResult, aResetCode);
-  }
 }
 
 void Http2Session::CleanupStream(uint32_t aID, nsresult aResult,
@@ -3157,32 +3094,9 @@ nsresult Http2Session::WriteSegmentsAgain(nsAHttpSegmentWriter* writer,
         streamToCleanup = mInputFrameDataStream;
       }
 
-      bool discardedPadding =
-          (mDownstreamState == DISCARDING_DATA_FRAME_PADDING);
       ResetDownstreamState();
 
       if (streamToCleanup) {
-        Http2PushedStream* pushed = streamToCleanup->GetHttp2PushedStream();
-        if (discardedPadding && pushed) {
-          // Pushed streams are special on padding-only final data frames.
-          // See bug 1409570 comments 6-8 for details.
-          pushed->SetPushComplete();
-          Http2StreamBase* pushSink = pushed->GetConsumerStream();
-          if (pushSink) {
-            bool enqueueSink = true;
-            for (const auto& s : mPushesReadyForRead) {
-              if (s == pushSink) {
-                enqueueSink = false;
-                break;
-              }
-            }
-            if (enqueueSink) {
-              AddStreamToQueue(pushSink, mPushesReadyForRead);
-              // No use trying to clean up, it won't do anything, anyway
-              streamToCleanup = nullptr;
-            }
-          }
-        }
         CleanupStream(streamToCleanup, NS_OK, CANCEL_ERROR);
       }
     }
@@ -3302,43 +3216,7 @@ nsresult Http2Session::Finish0RTT(bool aRestart, bool aAlpnChanged) {
 nsresult Http2Session::ProcessConnectedPush(
     Http2StreamBase* pushConnectedStream, nsAHttpSegmentWriter* writer,
     uint32_t count, uint32_t* countWritten) {
-  LOG3(("Http2Session::ProcessConnectedPush %p 0x%X\n", this,
-        pushConnectedStream->StreamID()));
-  mSegmentWriter = writer;
-  nsresult rv = pushConnectedStream->WriteSegments(this, count, countWritten);
-  mSegmentWriter = nullptr;
-
-  if (mNeedsCleanup) {
-    LOG3(
-        ("Http2Session::ProcessConnectedPush session=%p stream=%p 0x%X "
-         "cleanup stream based on mNeedsCleanup.\n",
-         this, mNeedsCleanup, mNeedsCleanup ? mNeedsCleanup->StreamID() : 0));
-    CleanupStream(mNeedsCleanup, NS_OK, CANCEL_ERROR);
-    mNeedsCleanup = nullptr;
-  }
-
-  // The pipe in nsHttpTransaction rewrites CLOSED error codes into OK
-  // so we need this check to determine the truth.
-  Http2Stream* h2Stream = pushConnectedStream->GetHttp2Stream();
-  MOZ_ASSERT(h2Stream);
-  if (NS_SUCCEEDED(rv) && !*countWritten && h2Stream &&
-      h2Stream->PushSource() && h2Stream->PushSource()->GetPushComplete()) {
-    rv = NS_BASE_STREAM_CLOSED;
-  }
-
-  if (rv == NS_BASE_STREAM_CLOSED) {
-    CleanupStream(pushConnectedStream, NS_OK, CANCEL_ERROR);
-    rv = NS_OK;
-  }
-
-  // if we return OK to nsHttpConnection it will use mSocketInCondition
-  // to determine whether to schedule more reads, incorrectly
-  // assuming that nsHttpConnection::OnSocketWrite() was called.
-  if (NS_SUCCEEDED(rv) || rv == NS_BASE_STREAM_WOULD_BLOCK) {
-    rv = NS_BASE_STREAM_WOULD_BLOCK;
-    Unused << ResumeRecv();
-  }
-  return rv;
+  return nsresult::NS_ERROR_NOT_IMPLEMENTED;
 }
 
 nsresult Http2Session::ProcessSlowConsumer(Http2StreamBase* slowConsumer,

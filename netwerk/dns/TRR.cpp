@@ -51,9 +51,7 @@
 namespace mozilla {
 namespace net {
 
-NS_IMPL_ISUPPORTS_INHERITED(TRR, Runnable, nsIHttpPushListener,
-                            nsIInterfaceRequestor, nsIStreamListener,
-                            nsITimerCallback)
+NS_IMPL_ISUPPORTS_INHERITED(TRR, Runnable, nsIStreamListener, nsITimerCallback)
 
 // when firing off a normal A or AAAA query
 TRR::TRR(AHostResolver* aResolver, nsHostRecord* aRec, enum TrrType aType)
@@ -306,9 +304,6 @@ nsresult TRR::SendHTTPRequest() {
   channel->SetLoadFlags(loadFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = channel->SetNotificationCallbacks(this);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(channel);
   if (!httpChannel) {
     return NS_ERROR_UNEXPECTED;
@@ -445,17 +440,6 @@ nsresult TRR::SetupTRRServiceChannelInternal(nsIHttpChannel* aChannel,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-TRR::GetInterface(const nsIID& iid, void** result) {
-  if (!iid.Equals(NS_GET_IID(nsIHttpPushListener))) {
-    return NS_ERROR_NO_INTERFACE;
-  }
-
-  nsCOMPtr<nsIHttpPushListener> copy(this);
-  *result = copy.forget().take();
-  return NS_OK;
-}
-
 nsresult TRR::DohDecodeQuery(const nsCString& query, nsCString& host,
                              enum TrrType& type) {
   FallibleTArray<uint8_t> binary;
@@ -530,92 +514,6 @@ nsresult TRR::DohDecodeQuery(const nsCString& query, nsCString& host,
   LOG(("TRR::DohDecodeQuery type %d\n", (int)type));
 
   return NS_OK;
-}
-
-nsresult TRR::ReceivePush(nsIHttpChannel* pushed, nsHostRecord* pushedRec) {
-  if (!mHostResolver) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  LOG(("TRR::ReceivePush: PUSH incoming!\n"));
-
-  nsCOMPtr<nsIURI> uri;
-  pushed->GetURI(getter_AddRefs(uri));
-  nsAutoCString query;
-  if (uri) {
-    uri->GetQuery(query);
-  }
-
-  if (NS_FAILED(DohDecodeQuery(query, mHost, mType)) ||
-      HostIsIPLiteral(mHost)) {  // literal
-    LOG(("TRR::ReceivePush failed to decode %s\n", mHost.get()));
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  if ((mType != TRRTYPE_A) && (mType != TRRTYPE_AAAA) &&
-      (mType != TRRTYPE_TXT) && (mType != TRRTYPE_HTTPSSVC)) {
-    LOG(("TRR::ReceivePush unknown type %d\n", mType));
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  if (TRRService::Get()->IsExcludedFromTRR(mHost)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  uint32_t type = nsIDNSService::RESOLVE_TYPE_DEFAULT;
-  if (mType == TRRTYPE_TXT) {
-    type = nsIDNSService::RESOLVE_TYPE_TXT;
-  } else if (mType == TRRTYPE_HTTPSSVC) {
-    type = nsIDNSService::RESOLVE_TYPE_HTTPSSVC;
-  }
-
-  RefPtr<nsHostRecord> hostRecord;
-  nsresult rv;
-  rv = mHostResolver->GetHostRecord(
-      mHost, ""_ns, type, pushedRec->flags, pushedRec->af, pushedRec->pb,
-      pushedRec->originSuffix, getter_AddRefs(hostRecord));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  // Since we don't ever call nsHostResolver::NameLookup for this record,
-  // we need to copy the trr mode from the previous record
-  if (hostRecord->mEffectiveTRRMode == nsIRequest::TRR_DEFAULT_MODE) {
-    hostRecord->mEffectiveTRRMode =
-        static_cast<nsIRequest::TRRMode>(pushedRec->mEffectiveTRRMode);
-  }
-
-  rv = mHostResolver->TrrLookup_unlocked(hostRecord, this);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  rv = pushed->AsyncOpen(this);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  // OK!
-  mChannel = pushed;
-  mRec.swap(hostRecord);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TRR::OnPush(nsIHttpChannel* associated, nsIHttpChannel* pushed) {
-  LOG(("TRR::OnPush entry\n"));
-  MOZ_ASSERT(associated == mChannel);
-  if (!mRec) {
-    return NS_ERROR_FAILURE;
-  }
-  if (!UseDefaultServer()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  RefPtr<TRR> trr = new TRR(mHostResolver, mPB);
-  trr->SetPurpose(mPurpose);
-  return trr->ReceivePush(pushed, mRec);
 }
 
 NS_IMETHODIMP

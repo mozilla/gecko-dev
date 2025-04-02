@@ -1800,20 +1800,6 @@ nsresult nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction* trans) {
                   MarkerThreadId::MainThread(), UrlMarker, trans->GetUrl(),
                   TimeDuration::Zero(), trans->ChannelId());
 
-  RefPtr<Http2PushedStreamWrapper> pushedStreamWrapper =
-      trans->GetPushedStream();
-  if (pushedStreamWrapper) {
-    Http2PushedStream* pushedStream = pushedStreamWrapper->GetStream();
-    if (pushedStream) {
-      RefPtr<Http2Session> session = pushedStream->Session();
-      LOG(("  ProcessNewTransaction %p tied to h2 session push %p\n", trans,
-           session.get()));
-      return session->AddStream(trans, trans->Priority(), nullptr)
-                 ? NS_OK
-                 : NS_ERROR_UNEXPECTED;
-    }
-  }
-
   nsresult rv = NS_OK;
   nsHttpConnectionInfo* ci = trans->ConnectionInfo();
   MOZ_ASSERT(ci);

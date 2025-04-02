@@ -25,6 +25,7 @@
 #include "nsQueryObject.h"
 #include "nsSerializationHelper.h"
 #include "OpaqueResponseUtils.h"
+#include "nsIRequestContext.h"
 
 namespace mozilla::net {
 

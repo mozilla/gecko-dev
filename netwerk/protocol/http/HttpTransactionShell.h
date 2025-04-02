@@ -15,6 +15,8 @@
 #include "nsISupports.h"
 #include "nsITransportSecurityInfo.h"
 #include "nsInputStreamPump.h"
+#include "nsHttpRequestHead.h"
+#include "nsITRRSkipReason.h"
 
 class nsIEventTraget;
 class nsIInputStream;
@@ -26,7 +28,6 @@ class nsITransportEventSink;
 namespace mozilla::net {
 
 enum HttpTrafficCategory : uint8_t;
-class Http2PushedStreamWrapper;
 class HttpTransactionParent;
 class nsHttpConnectionInfo;
 class nsHttpHeaderArray;

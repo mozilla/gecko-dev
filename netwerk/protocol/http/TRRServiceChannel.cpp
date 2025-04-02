@@ -19,7 +19,6 @@
 #include "nsHttpTransaction.h"
 #include "nsICancelable.h"
 #include "nsICachingChannel.h"
-#include "nsIHttpPushListener.h"
 #include "nsIProtocolProxyService2.h"
 #include "nsIOService.h"
 #include "nsISeekableStream.h"
@@ -652,27 +651,6 @@ nsresult TRRServiceChannel::SetupTransaction() {
   // See bug #466080. Transfer LOAD_ANONYMOUS flag to socket-layer.
   if (mLoadFlags & LOAD_ANONYMOUS) mCaps |= NS_HTTP_LOAD_ANONYMOUS;
 
-  nsCOMPtr<nsIHttpPushListener> pushListener;
-  NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
-                                NS_GET_IID(nsIHttpPushListener),
-                                getter_AddRefs(pushListener));
-  HttpTransactionShell::OnPushCallback pushCallback = nullptr;
-  if (pushListener) {
-    mCaps |= NS_HTTP_ONPUSH_LISTENER;
-    nsWeakPtr weakPtrThis(
-        do_GetWeakReference(static_cast<nsIHttpChannel*>(this)));
-    pushCallback = [weakPtrThis](uint32_t aPushedStreamId,
-                                 const nsACString& aUrl,
-                                 const nsACString& aRequestString,
-                                 HttpTransactionShell* aTransaction) {
-      if (nsCOMPtr<nsIHttpChannel> channel = do_QueryReferent(weakPtrThis)) {
-        return static_cast<TRRServiceChannel*>(channel.get())
-            ->OnPush(aPushedStreamId, aUrl, aRequestString, aTransaction);
-      }
-      return NS_ERROR_NOT_AVAILABLE;
-    };
-  }
-
   EnsureRequestContext();
 
   rv = mTransaction->Init(
@@ -680,85 +658,13 @@ nsresult TRRServiceChannel::SetupTransaction() {
       LoadUploadStreamHasHeaders(), mCurrentEventTarget, callbacks, this,
       mBrowserId, HttpTrafficCategory::eInvalid, mRequestContext,
       mClassOfService, mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
-      nullptr, std::move(pushCallback), mTransWithPushedStream,
-      mPushedStreamId);
-
-  mTransWithPushedStream = nullptr;
+      nullptr, nullptr, nullptr, 0);
 
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
     return rv;
   }
 
-  return rv;
-}
-
-void TRRServiceChannel::SetPushedStreamTransactionAndId(
-    HttpTransactionShell* aTransWithPushedStream, uint32_t aPushedStreamId) {
-  MOZ_ASSERT(!mTransWithPushedStream);
-  LOG(("TRRServiceChannel::SetPushedStreamTransaction [this=%p] trans=%p", this,
-       aTransWithPushedStream));
-
-  mTransWithPushedStream = aTransWithPushedStream;
-  mPushedStreamId = aPushedStreamId;
-}
-
-nsresult TRRServiceChannel::OnPush(uint32_t aPushedStreamId,
-                                   const nsACString& aUrl,
-                                   const nsACString& aRequestString,
-                                   HttpTransactionShell* aTransaction) {
-  MOZ_ASSERT(aTransaction);
-  LOG(("TRRServiceChannel::OnPush [this=%p, trans=%p]\n", this, aTransaction));
-
-  MOZ_ASSERT(mCaps & NS_HTTP_ONPUSH_LISTENER);
-  nsCOMPtr<nsIHttpPushListener> pushListener;
-  NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
-                                NS_GET_IID(nsIHttpPushListener),
-                                getter_AddRefs(pushListener));
-
-  if (!pushListener) {
-    LOG(
-        ("TRRServiceChannel::OnPush [this=%p] notification callbacks do not "
-         "implement nsIHttpPushListener\n",
-         this));
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  nsCOMPtr<nsIURI> pushResource;
-  nsresult rv;
-
-  // Create a Channel for the Push Resource
-  rv = NS_NewURI(getter_AddRefs(pushResource), aUrl);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsILoadInfo> loadInfo =
-      static_cast<TRRLoadInfo*>(mLoadInfo.get())->Clone();
-  nsCOMPtr<nsIChannel> pushHttpChannel;
-  rv = gHttpHandler->CreateTRRServiceChannel(pushResource, nullptr, 0, nullptr,
-                                             loadInfo,
-                                             getter_AddRefs(pushHttpChannel));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = pushHttpChannel->SetLoadFlags(mLoadFlags);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  RefPtr<TRRServiceChannel> channel;
-  CallQueryInterface(pushHttpChannel, channel.StartAssignment());
-  MOZ_ASSERT(channel);
-  if (!channel) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  // new channel needs mrqeuesthead and headers from pushedStream
-  channel->mRequestHead.ParseHeaderSet(aRequestString.BeginReading());
-  channel->mLoadGroup = mLoadGroup;
-  channel->mCallbacks = mCallbacks;
-
-  // Link the pushed stream with the new channel and call listener
-  channel->SetPushedStreamTransactionAndId(aTransaction, aPushedStreamId);
-  rv = pushListener->OnPush(this, channel);
   return rv;
 }
 

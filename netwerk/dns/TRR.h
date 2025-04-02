@@ -11,7 +11,6 @@
 #include "mozilla/Assertions.h"
 #include "nsClassHashtable.h"
 #include "nsIChannel.h"
-#include "nsIHttpPushListener.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIStreamListener.h"
 #include "nsThreadUtils.h"
@@ -28,15 +27,9 @@ namespace net {
 class TRRService;
 class TRRServiceChannel;
 
-class TRR : public Runnable,
-            public nsITimerCallback,
-            public nsIHttpPushListener,
-            public nsIInterfaceRequestor,
-            public nsIStreamListener {
+class TRR : public Runnable, public nsITimerCallback, public nsIStreamListener {
  public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIHTTPPUSHLISTENER
-  NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSITIMERCALLBACK
@@ -102,7 +95,6 @@ class TRR : public Runnable,
   nsresult FailData(nsresult error);
   static nsresult DohDecodeQuery(const nsCString& query, nsCString& host,
                                  enum TrrType& type);
-  nsresult ReceivePush(nsIHttpChannel* pushed, nsHostRecord* pushedRec);
   nsresult On200Response(nsIChannel* aChannel);
   nsresult FollowCname(nsIChannel* aChannel);
 

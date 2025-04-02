@@ -25,11 +25,6 @@ class Http2Stream : public Http2StreamBase {
   nsresult OnWriteSegment(char* buf, uint32_t count,
                           uint32_t* countWritten) override;
 
-  nsresult CheckPushCache();
-  Http2PushedStream* PushSource() { return mPushSource; }
-  bool IsReadingFromPushStream();
-  void ClearPushSource();
-
   nsAHttpTransaction* Transaction() override { return mTransaction; }
   nsIRequestContext* RequestContext() override {
     return mTransaction ? mTransaction->RequestContext() : nullptr;
@@ -43,10 +38,6 @@ class Http2Stream : public Http2StreamBase {
                            uint8_t& firstFrameFlags) override;
 
  private:
-  // For Http2Push
-  void AdjustPushedPriority();
-  Http2PushedStream* mPushSource{nullptr};
-
   // The underlying HTTP transaction. This pointer is used as the key
   // in the Http2Session mStreamTransactionHash so it is important to
   // keep a reference to it as long as this stream is a member of that hash.
