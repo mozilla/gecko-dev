@@ -46,19 +46,18 @@ class nsImageMap final : public nsStubMutationObserver,
    */
   mozilla::dom::HTMLAreaElement* GetArea(const mozilla::CSSIntPoint& aPt) const;
 
-  /**
-   * Return area elements count associated with the image map.
-   */
+  // Return area elements count associated with the image map.
   uint32_t AreaCount() const { return mAreas.Length(); }
 
-  /**
-   * Return area element at the given index.
-   */
+  // Returns whether any of our area elements have focus, currently.
+  bool HasFocus() const { return mHasFocus; }
+
+  // Return area element at the given index.
   mozilla::dom::HTMLAreaElement* GetAreaAt(uint32_t aIndex) const;
 
-  void Draw(nsIFrame* aFrame, DrawTarget& aDrawTarget,
-            const ColorPattern& aColor,
-            const StrokeOptions& aStrokeOptions = StrokeOptions());
+  void DrawFocus(nsIFrame* aFrame, DrawTarget& aDrawTarget,
+                 const ColorPattern& aColor,
+                 const StrokeOptions& aStrokeOptions = StrokeOptions());
 
   /**
    * Called just before the nsImageFrame releases us.
@@ -97,7 +96,7 @@ class nsImageMap final : public nsStubMutationObserver,
 
   void MaybeUpdateAreas(nsIContent* aContent);
 
-  nsImageFrame* mImageFrame;  // the frame that owns us
+  nsImageFrame* mImageFrame = nullptr;  // the frame that owns us
   nsCOMPtr<nsIContent> mMap;
 
   // almost always has some entries
@@ -106,7 +105,10 @@ class nsImageMap final : public nsStubMutationObserver,
   // This is set when we search for all area children and tells us whether we
   // should consider the whole subtree or just direct children when we get
   // content notifications about changes inside the map subtree.
-  bool mConsiderWholeSubtree;
+  bool mConsiderWholeSubtree = false;
+
+  // Whether any of our areas has focus.
+  bool mHasFocus = false;
 };
 
 #endif /* nsImageMap_h */

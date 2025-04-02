@@ -2392,8 +2392,10 @@ bool nsDisplayImage::CreateWebRenderCommands(
         aBuilder, aResources, aSc, aManager, aDisplayListBuilder);
     return true;
   }
-  if (frame->HasImageMap()) {
-    // Image layer doesn't support draw focus ring for image map.
+
+  if (nsImageMap* map = frame->GetImageMap(); map && map->HasFocus()) {
+    // We can't draw some of the focus areas (in particular, PolyArea would be
+    // somewhat hard to do).
     return false;
   }
 
@@ -2517,7 +2519,7 @@ ImgDrawResult nsImageFrame::PaintImage(gfxContext& aRenderingContext,
       nsLayoutUtils::GetSamplingFilterForFrame(this), dest, aDirtyRect,
       svgContext, aFlags, &anchorPoint);
 
-  if (nsImageMap* map = GetImageMap()) {
+  if (nsImageMap* map = GetImageMap(); map && map->HasFocus()) {
     gfxPoint devPixelOffset = nsLayoutUtils::PointToGfxPoint(
         dest.TopLeft(), PresContext()->AppUnitsPerDevPixel());
     AutoRestoreTransform autoRestoreTransform(drawTarget);
@@ -2526,13 +2528,13 @@ ImgDrawResult nsImageFrame::PaintImage(gfxContext& aRenderingContext,
 
     // solid white stroke:
     ColorPattern white(ToDeviceColor(sRGBColor::OpaqueWhite()));
-    map->Draw(this, *drawTarget, white);
+    map->DrawFocus(this, *drawTarget, white);
 
     // then dashed black stroke over the top:
     ColorPattern black(ToDeviceColor(sRGBColor::OpaqueBlack()));
     StrokeOptions strokeOptions;
     nsLayoutUtils::InitDashPattern(strokeOptions, StyleBorderStyle::Dotted);
-    map->Draw(this, *drawTarget, black, strokeOptions);
+    map->DrawFocus(this, *drawTarget, black, strokeOptions);
   }
 
   if (result == ImgDrawResult::SUCCESS) {
