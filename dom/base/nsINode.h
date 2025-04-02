@@ -2460,6 +2460,8 @@ class nsINode : public mozilla::dom::EventTarget {
   MOZ_CAN_RUN_SCRIPT
   void RevealAncestorHiddenUntilFoundAndFireBeforematchEvent(ErrorResult& aRv);
 
+  void RevealAncestorClosedDetails();
+
  protected:
   // Override this function to create a custom slots class.
   // Must not return null.

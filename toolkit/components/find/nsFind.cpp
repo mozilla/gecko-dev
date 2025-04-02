@@ -160,7 +160,7 @@ static bool IsFindableNode(const nsINode* aNode) {
       frame->IsHiddenByContentVisibilityOnAnyAncestor(
           nsIFrame::IncludeContentVisibility::Hidden);
   if (isContentVisibilityHidden) {
-    return frame->IsHiddenUntilFound();
+    return frame->IsHiddenUntilFoundOrClosedDetails();
   }
 
   return true;
@@ -1015,6 +1015,7 @@ already_AddRefed<nsRange> nsFind::FindFromRangeBoundaries(
               "RevealHiddenUntilFound",
               [node = RefPtr(startParent)]()
                   MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+                    node->RevealAncestorClosedDetails();
                     node->RevealAncestorHiddenUntilFoundAndFireBeforematchEvent(
                         IgnoreErrors());
                   }));

@@ -43,6 +43,7 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/Link.h"
+#include "mozilla/dom/HTMLDetailsElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLTemplateElement.h"
@@ -3955,6 +3956,34 @@ void nsINode::RevealAncestorHiddenUntilFoundAndFireBeforematchEvent(
     // 1.2 Set currentNode to the parent node of currentNode within the flat
     //     tree.
     currentNode = parentNode;
+  }
+}
+
+// https://html.spec.whatwg.org/#ancestor-details-revealing-algorithm
+void nsINode::RevealAncestorClosedDetails() {
+  AutoTArray<RefPtr<HTMLDetailsElement>, 16> detailsElements;
+  // 1. While currentNode has a parent node within the flat tree:
+  for (auto* currentNode : InclusiveFlatTreeAncestors(*this)) {
+    // 1.1 If currentNode is slotted into the second slot of a details element:
+    auto* slot = HTMLSlotElement::FromNode(currentNode);
+    if (!slot) {
+      continue;
+    }
+    // Note: There are two slots in the details element. Gecko names the
+    //       summary, and leaves the content slot unnamed.
+    if (auto* details =
+            HTMLDetailsElement::FromNodeOrNull(slot->GetContainingShadowHost());
+        details && !details->Open() && !slot->HasName()) {
+      detailsElements.AppendElement(details);
+      // 1.1.1 Set currentNode to the details element which currentNode is
+      //       slotted into.
+      // Note: This step is omitted because we use the custom iterator.
+    }
+  }
+  // 1.1.2 If the open attribute is not set on currentNode, then set the
+  //       open attribute on currentNode to the empty string.
+  for (auto& details : detailsElements) {
+    details->SetOpen(true, IgnoreErrors());
   }
 }
 

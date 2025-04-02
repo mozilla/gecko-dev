@@ -3466,13 +3466,17 @@ class nsIFrame : public nsQueryFrame {
           IncludeAllContentVisibility()) const;
 
   /**
-   * @brief Returns true if the frame is hidden=until-found.
+   * @brief Returns true if the frame is hidden=until-found or in a closed
+   *        <details> element.
    *
    * The frame is considered hidden=until-found, if all parent frames are either
    * visible or hidden=until-found. If a hidden=until-found element is inside a
    * content-visibility:hidden element (or vice versa), this returns false.
+   *
+   * Similarly, if the frame is inside a closed details element, and it is not
+   * hidden, this also returns true.
    */
-  bool IsHiddenUntilFound() const;
+  bool IsHiddenUntilFoundOrClosedDetails() const;
 
   /**
    * Returns true is this frame is hidden by its first unskipped in flow

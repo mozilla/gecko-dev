@@ -27,6 +27,7 @@
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/ElementInlines.h"
+#include "mozilla/dom/HTMLDetailsElement.h"
 #include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/gfx/2D.h"
@@ -7417,14 +7418,24 @@ nsIFrame* nsIFrame::GetClosestContentVisibilityAncestor(
   return nullptr;
 }
 
-bool nsIFrame::IsHiddenUntilFound() const {
-  bool isHiddenUntilFound = false;
+static bool IsClosedDetailsSlot(const Element* aElement) {
+  const auto* slot = HTMLSlotElement::FromNodeOrNull(aElement);
+  if (!slot || slot->HasName()) {
+    return false;
+  }
+  const auto* details =
+      HTMLDetailsElement::FromNodeOrNull(slot->GetContainingShadowHost());
+  return details && !details->GetBoolAttr(nsGkAtoms::open);
+}
+
+bool nsIFrame::IsHiddenUntilFoundOrClosedDetails() const {
   for (const auto* f = this; f; f = f->GetInFlowParent()) {
     if (f->HidesContent(nsIFrame::IncludeContentVisibility::Hidden)) {
       if (const auto* element = Element::FromNode(f->GetContent());
           element &&
           !element->AttrValueIs(kNameSpaceID_None, nsGkAtoms::hidden,
-                                nsGkAtoms::untilFound, eIgnoreCase)) {
+                                nsGkAtoms::untilFound, eIgnoreCase) &&
+          !IsClosedDetailsSlot(element)) {
         return false;
       }
     }

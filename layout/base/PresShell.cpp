@@ -3212,6 +3212,8 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName,
   }
 
   if (target) {
+    // 3.4 Run the ancestor details revealing algorithm on target.
+    target->RevealAncestorClosedDetails();
     // 3.5 Run the ancestor hidden-until-found revealing algorithm on target.
     // https://html.spec.whatwg.org/#ancestor-hidden-until-found-revealing-algorithm
     ErrorResult rv;
