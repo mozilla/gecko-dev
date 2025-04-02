@@ -92,7 +92,6 @@ class Components(private val context: Context) {
     val services by lazyMonitored { Services(context, core.store, backgroundServices.accountManager) }
     val core by lazyMonitored { Core(context, analytics.crashReporter, strictMode) }
 
-    @Suppress("Deprecation")
     val useCases by lazyMonitored {
         UseCases(
             context,
@@ -139,8 +138,8 @@ class Components(private val context: Context) {
             )
         }
         // Use build config otherwise
-        else if (!BuildConfig.AMO_COLLECTION_USER.isNullOrEmpty() &&
-            !BuildConfig.AMO_COLLECTION_NAME.isNullOrEmpty()
+        else if (BuildConfig.AMO_COLLECTION_USER.isNotEmpty() &&
+            BuildConfig.AMO_COLLECTION_NAME.isNotEmpty()
         ) {
             AMOAddonsProvider(
                 context,
