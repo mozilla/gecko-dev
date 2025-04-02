@@ -8,6 +8,7 @@
 #include "nsIUrlClassifierExceptionListEntry.h"
 #include "nsIURI.h"
 #include "mozilla/net/UrlClassifierCommon.h"
+#include "mozilla/ProfilerMarkers.h"
 
 namespace mozilla::net {
 
@@ -38,6 +39,10 @@ UrlClassifierExceptionList::Matches(nsIURI* aURI, nsIURI* aTopLevelURI,
                                     bool aIsPrivateBrowsing, bool* aResult) {
   NS_ENSURE_ARG_POINTER(aURI);
   NS_ENSURE_ARG_POINTER(aResult);
+
+  // Record how long it takes to perform the exception list lookup.
+  AUTO_PROFILER_MARKER_UNTYPED("UrlClassifierExceptionList::Matches", OTHER,
+                               MarkerTiming::IntervalStart());
 
   *aResult = false;
 
@@ -70,6 +75,7 @@ UrlClassifierExceptionList::Matches(nsIURI* aURI, nsIURI* aTopLevelURI,
 
   // No match found, return false.
   UC_LOG_DEBUG(("%s - No match found", __FUNCTION__));
+
   return NS_OK;
 }
 
