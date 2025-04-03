@@ -1,4 +1,5 @@
 [DEFAULT]
 tags = "local"
 
+["test_default_launcher_visible.py"]
 ["test_initialize_vertical_tabs.py"]
