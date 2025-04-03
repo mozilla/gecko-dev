@@ -32,8 +32,8 @@ add_task(async function test_user_namespaces() {
             const expectedBackgroundColor = content.window.matchMedia(
               "(prefers-color-scheme: dark)"
             ).matches
-              ? "oklch(0.34 0.14 15)"
-              : "oklch(0.97 0.05 15)";
+              ? "rgb(105, 15, 34)"
+              : "rgb(255, 232, 232)";
 
             return !![...tr]
               .filter(

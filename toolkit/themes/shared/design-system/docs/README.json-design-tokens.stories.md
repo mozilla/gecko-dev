@@ -20,61 +20,37 @@ At the end, we're capable of transforming JSON notation into CSS:
 ```json
 {
  "color": {
-  "blue": {
-    "0": {
-      "value": "oklch(97% 0.05 260)"
+    "blue": {
+      "05": {
+        "value": "#deeafc"
+      },
+      "30": {
+        "value": "#73a7f3"
+      },
+      "50": {
+        "value": "#0060df"
+      },
+      "60": {
+        "value": "#0250bb"
+      },
+      "70": {
+        "value": "#054096"
+      },
+      "80": {
+        "value": "#003070"
+      }
     },
-    "10": {
-      "value": "oklch(90% 0.13 260)"
-    },
-    "20": {
-      "value": "oklch(83% 0.17 260)"
-    },
-    "30": {
-      "value": "oklch(76% 0.2 260)"
-    },
-    "40": {
-      "value": "oklch(69% 0.22 260)"
-    },
-    "50": {
-      "value": "oklch(62% 0.24 260)"
-    },
-    "60": {
-      "value": "oklch(55% 0.24 260)"
-    },
-    "70": {
-      "value": "oklch(48% 0.2 260)"
-    },
-    "80": {
-      "value": "oklch(41% 0.17 260)"
-    },
-    "90": {
-      "value": "oklch(34% 0.14 260)"
-    },
-    "100": {
-      "value": "oklch(27% 0.1 260)"
-    },
-    "110": {
-      "value": "oklch(20% 0.05 260)"
-    }
   },
- }
 }
 ```
 
 ```css
---color-blue-0: oklch(97% 0.05 260);
---color-blue-10: oklch(90% 0.13 260);
---color-blue-20: oklch(83% 0.17 260);
---color-blue-30: oklch(76% 0.2 260);
---color-blue-40: oklch(69% 0.22 260);
---color-blue-50: oklch(62% 0.24 260);
---color-blue-60: oklch(55% 0.24 260);
---color-blue-70: oklch(48% 0.2 260);
---color-blue-80: oklch(41% 0.17 260);
---color-blue-90: oklch(34% 0.14 260);
---color-blue-100: oklch(27% 0.1 260);
---color-blue-110: oklch(20% 0.05 260);
+--color-blue-05: #deeafc;
+--color-blue-30: #73a7f3;
+--color-blue-50: #0060df;
+--color-blue-60: #0250bb;
+--color-blue-70: #054096;
+--color-blue-80: #003070;
 ```
 
 Neat!

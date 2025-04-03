@@ -7,21 +7,6 @@
 const StyleDictionary = require("style-dictionary");
 const Color = require("tinycolor2");
 
-/**
- * Checks if the given color is valid.
- * We're using this function here instead of `Color.isValid` because we want
- * to allow colors oklch colors, which are not supported by `tinycolor2` yet.
- *
- * @param {string} color - The color to validate.
- * @returns {boolean} - Returns true if the color is valid, otherwise false.
- */
-function isValidColor(color) {
-  if (typeof color === "string" && color.startsWith("oklch")) {
-    return true;
-  }
-  return Color(color).isValid();
-}
-
 function transformIfValid(color) {
   const c = Color(color);
   return c.isValid() ? c.toHex8String() : color;
@@ -29,10 +14,6 @@ function transformIfValid(color) {
 
 function hex8Transform(token) {
   if (typeof token.value === "string") {
-    if (token.value.startsWith("oklch")) {
-      return token.value;
-    }
-
     return Color(token.value).toHex8String();
   }
 
@@ -49,7 +30,7 @@ StyleDictionary.registerTransform({
   transitive: true,
   name: "color/hex8figma",
   matcher: token =>
-    isValidColor(token.value) ||
+    Color(token.value).isValid() ||
     (typeof token.value === "object" &&
       (token.value.light || token.value.dark || token.value.forcedColors)),
   transformer: hex8Transform,
@@ -155,7 +136,7 @@ function filterFigmaTokens(token) {
   // Test 1: the token.value has to be an object or a valid color string
   if (
     typeof token.value === "number" ||
-    (typeof token.value === "string" && !isValidColor(token.value))
+    (typeof token.value === "string" && !Color(token.value).isValid())
   ) {
     return false;
   }
@@ -166,7 +147,7 @@ function filterFigmaTokens(token) {
       if (
         typeof value !== "string" ||
         (value !== "inherit" &&
-          !isValidColor(value) &&
+          !Color(value).isValid() &&
           !value.startsWith("color-mix") &&
           !HCM_VALUES.includes(value))
       ) {

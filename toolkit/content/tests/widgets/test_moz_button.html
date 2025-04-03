@@ -92,8 +92,7 @@
           if (
             propertyVal.startsWith("rgb") ||
             propertyVal.startsWith("#") ||
-            propertyVal.startsWith("color") ||
-            propertyVal.startsWith("oklch")
+            propertyVal.startsWith("color")
           ) {
             propertyVal = normalizeColor(propertyVal, elStyles);
             cssVarVal = normalizeColor(cssVarVal, elStyles);
