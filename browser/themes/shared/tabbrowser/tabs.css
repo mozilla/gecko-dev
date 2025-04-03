@@ -757,13 +757,13 @@
   }
 
   &[textoverflow] {
-    &[labeldirection=ltr]:not([pinned]),
+    &[labeldirection=ltr],
     &:not([labeldirection], [pinned]):-moz-locale-dir(ltr) {
       direction: ltr;
       mask-image: linear-gradient(to left, transparent, black var(--tab-label-mask-size));
     }
 
-    &[labeldirection=rtl]:not([pinned]),
+    &[labeldirection=rtl],
     &:not([labeldirection], [pinned]):-moz-locale-dir(rtl) {
       direction: rtl;
       mask-image: linear-gradient(to right, transparent, black var(--tab-label-mask-size));
@@ -1416,27 +1416,58 @@ tab-group {
 }
 
 #vertical-pinned-tabs-container {
+  /* Fit slightly more than 5 tabs + padding before overflowing */
+  max-height: calc(5 * var(--tabstrip-min-height) + var(--space-large));
+
+  &:empty {
+    display: none;
+  }
+
+  &::part(scrollbutton-up),
+  &::part(scrollbutton-down) {
+    display: none;
+  }
+
+  &::part(scrollbox) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--vertical-tabs-scrollbar-color);
+    overflow-y: auto;
+  }
+
+  &:not([scrolledtostart])::part(overflow-start-indicator),
+  &:not([scrolledtoend])::part(overflow-end-indicator) {
+    background-image: linear-gradient(
+      to top,
+      transparent 0%,
+      light-dark(rgba(0, 0, 0, .05), rgba(255, 255))
+    );
+    background-repeat: no-repeat;
+    pointer-events: none;
+    position: relative;
+    height: 16px;
+    z-index: 1;
+  }
+
+  &::part(overflow-start-indicator) {
+    margin-block: 0 -16px;
+  }
+
+  &::part(overflow-end-indicator) {
+    transform: scaleY(-1);
+    margin-block: -16px 0;
+  }
+
+  .tab-background {
+    border-radius: var(--border-radius-medium);
+
+    .tabbrowser-tab:not(:hover) > .tab-stack > &:not([selected], [multiselected]) {
+      background-color: color-mix(in srgb, currentColor 7%, transparent);
+    }
+  }
+
   :root:not([sidebar-expand-on-hover]) & {
-    /* Fit slightly more than 5 tabs + padding before overflowing */
-    max-height: calc(5 * var(--tabstrip-min-height) + var(--space-large));
     --tab-inline-padding: calc((var(--tab-collapsed-background-width) + 2 *
-    var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2);
-
-    &:empty {
-      display: none;
-    }
-
-    &::part(scrollbutton-up),
-    &::part(scrollbutton-down) {
-      display: none;
-    }
-
-    &::part(scrollbox) {
-      scrollbar-width: thin;
-      scrollbar-color: var(--vertical-tabs-scrollbar-color);
-      overflow-y: auto;
-    }
-
+      var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2);
     /* stylelint-disable-next-line media-query-no-invalid */
     @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
       /* We need these rules to apply at all times when the sidebar.visibility
@@ -1456,43 +1487,12 @@ tab-group {
       }
     }
 
-    &:not([scrolledtostart])::part(overflow-start-indicator),
-    &:not([scrolledtoend])::part(overflow-end-indicator) {
-      background-image: linear-gradient(
-        to top,
-        transparent 0%,
-        light-dark(rgba(0, 0, 0, .05), rgba(255, 255, 255, .05))
-      );
-      background-repeat: no-repeat;
-      pointer-events: none;
-      position: relative;
-      height: 16px;
-      z-index: 1;
-    }
-
-    &::part(overflow-start-indicator) {
-      margin-block: 0 -16px;
-    }
-
-    &::part(overflow-end-indicator) {
-      transform: scaleY(-1);
-      margin-block: -16px 0;
-    }
-
     .tab-content {
       justify-content: center;
     }
 
-    #tabbrowser-tabs[orient="vertical"] > &:not(:empty) {
+    #tabbrowser-tabs {
       display: grid;
-    }
-
-    .tab-background {
-      border-radius: var(--border-radius-medium);
-
-      .tabbrowser-tab:not(:hover) > .tab-stack > &:not([selected], [multiselected]) {
-        background-color: color-mix(in srgb, currentColor 7%, transparent);
-      }
     }
 
     #tabbrowser-tabs[expanded] > & {
