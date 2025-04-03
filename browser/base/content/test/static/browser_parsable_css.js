@@ -177,6 +177,10 @@ let propNameAllowlist = [
 
   // Bug 1908535 to refactor form components to use this token
   { propName: "--input-space-block", isFromDevTools: false },
+
+  // Ignore token properties that follow the pattern --color-[name]-[number]
+  // This enables us to provide our full color palette for developers.
+  { propName: /--color-[a-z]+-\d+/, isFromDevTools: false },
 ];
 
 // Add suffix to stylesheets' URI so that we always load them here and
@@ -442,6 +446,13 @@ function shouldIgnorePropSource(item, prop) {
     .some(f => item.sourceName.test(f));
 }
 
+function shouldIgnorePropPattern(item, prop) {
+  if (!item.propName || !(item.propName instanceof RegExp)) {
+    return false;
+  }
+  return item.propName.test(prop);
+}
+
 add_task(async function checkAllTheCSS() {
   // Since we later in this test use Services.console.getMessageArray(),
   // better to not have some messages from previous tests in the array.
@@ -567,7 +578,9 @@ add_task(async function checkAllTheCSS() {
       for (let item of propNameAllowlist) {
         if (
           isDevtools == item.isFromDevTools &&
-          (item.propName == prop || shouldIgnorePropSource(item, prop))
+          (item.propName == prop ||
+            shouldIgnorePropPattern(item, prop) ||
+            shouldIgnorePropSource(item, prop))
         ) {
           item.used = true;
           if (
