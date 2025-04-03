@@ -304,6 +304,11 @@ class ArenaLists {
   void queueForegroundObjectsForSweep(JS::GCContext* gcx);
   void queueForegroundThingsForSweep();
 
+  bool foregroundFinalize(JS::GCContext* gcx, AllocKind thingKind,
+                          JS::SliceBudget& sliceBudget,
+                          SortedArenaList& sweepList);
+  void backgroundFinalize(JS::GCContext* gcx, AllocKind kind, Arena** empty);
+
   Arena* takeSweptEmptyArenas();
 
   void mergeFinalizedArenas(AllocKind thingKind,
