@@ -49,7 +49,7 @@ class NotificationObserver final : public nsIObserver {
       return OpenSettings(mPrincipal);
     }
 
-    RefPtr<NotificationParent> actor = mActor.get();
+    RefPtr<NotificationParent> actor(mActor);
 
     if (actor && actor->CanSend()) {
       // The actor is alive, call it to ping the content process and/or to make
@@ -201,7 +201,7 @@ nsresult NotificationParent::HandleAlertTopic(AlertTopic aTopic) {
 }
 
 nsresult NotificationParent::FireClickEvent() {
-  if (!mScope.IsEmpty()) {
+  if (!mArgs.mScope.IsEmpty()) {
     return NS_OK;
   }
   if (SendNotifyClick()) {
@@ -221,8 +221,8 @@ mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
   // not "granted", then queue a task to fire an event named error on this, and
   // abort these steps.
   NotificationPermission permission = GetNotificationPermission(
-      mPrincipal, mEffectiveStoragePrincipal, mIsSecureContext,
-      PermissionCheckPurpose::NotificationShow);
+      mArgs.mPrincipal, mArgs.mEffectiveStoragePrincipal,
+      mArgs.mIsSecureContext, PermissionCheckPurpose::NotificationShow);
   if (permission != NotificationPermission::Granted) {
     CopyableErrorResult rv;
     rv.ThrowTypeError("Permission to show Notification denied.");
@@ -259,7 +259,9 @@ nsresult NotificationParent::Show() {
   // make nsIAlertsService parent process only.
   nsString obsoleteCookie = u"notification:"_ns;
 
-  bool requireInteraction = mOptions.requireInteraction();
+  const IPCNotificationOptions& options = mArgs.mNotification.options();
+
+  bool requireInteraction = options.requireInteraction();
   if (!StaticPrefs::dom_webnotifications_requireinteraction_enabled()) {
     requireInteraction = false;
   }
@@ -269,16 +271,18 @@ nsresult NotificationParent::Show() {
   if (!alert) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  MOZ_TRY(alert->Init(mOptions.tag(), mOptions.icon(), mOptions.title(),
-                      mOptions.body(), true, obsoleteCookie,
-                      NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())),
-                      mOptions.lang(), mOptions.dataSerialized(), mPrincipal,
-                      mPrincipal->GetIsInPrivateBrowsing(), requireInteraction,
-                      mOptions.silent(), mOptions.vibrate()));
+
+  nsCOMPtr<nsIPrincipal> principal = mArgs.mPrincipal;
+  MOZ_TRY(alert->Init(options.tag(), options.icon(), options.title(),
+                      options.body(), true, obsoleteCookie,
+                      NS_ConvertASCIItoUTF16(GetEnumString(options.dir())),
+                      options.lang(), options.dataSerialized(), principal,
+                      principal->GetIsInPrivateBrowsing(), requireInteraction,
+                      options.silent(), options.vibrate()));
 
   nsTArray<RefPtr<nsIAlertAction>> actions;
-  MOZ_ASSERT(mOptions.actions().Length() <= kMaxActions);
-  for (const auto& action : mOptions.actions()) {
+  MOZ_ASSERT(options.actions().Length() <= kMaxActions);
+  for (const auto& action : options.actions()) {
     actions.AppendElement(new AlertAction(action.name(), action.title()));
   }
 
@@ -288,7 +292,7 @@ nsresult NotificationParent::Show() {
 
   nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
   RefPtr<NotificationObserver> observer = new NotificationObserver(
-      mScope, mPrincipal, IPCNotification(mId, mOptions), *this);
+      mArgs.mScope, principal, IPCNotification(mId, options), *this);
   MOZ_TRY(alertService->ShowAlert(alert, observer));
 
 #ifdef ANDROID
@@ -315,13 +319,14 @@ void NotificationParent::Unregister() {
   }
 
   mDangling = true;
-  UnregisterNotification(mPrincipal, mId);
+  UnregisterNotification(mArgs.mPrincipal, mId);
 }
 
-nsresult NotificationParent::BindToMainThread(
+nsresult NotificationParent::CreateOnMainThread(
+    NotificationParentArgs&& mArgs,
     Endpoint<PNotificationParent>&& aParentEndpoint,
     PBackgroundParent::CreateNotificationParentResolver&& aResolver) {
-  if (mOptions.actions().Length() > kMaxActions) {
+  if (mArgs.mNotification.options().actions().Length() > kMaxActions) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -329,9 +334,11 @@ nsresult NotificationParent::BindToMainThread(
 
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       "NotificationParent::BindToMainThread",
-      [self = RefPtr(this), endpoint = std::move(aParentEndpoint),
+      [args = std::move(mArgs), endpoint = std::move(aParentEndpoint),
        resolver = std::move(aResolver), thread]() mutable {
-        bool result = endpoint.Bind(self);
+        RefPtr<NotificationParent> actor =
+            new NotificationParent(std::move(args));
+        bool result = endpoint.Bind(actor);
         thread->Dispatch(NS_NewRunnableFunction(
             "NotificationParent::BindToMainThreadResult",
             [result, resolver = std::move(resolver)]() { resolver(result); }));
