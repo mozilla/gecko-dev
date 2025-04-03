@@ -3,6 +3,7 @@ support-files = [
   "canvas-fingerprinter.html",
   "empty.html",
   "font-fingerprinter.html",
+  "head-fpp-matrix.js",
   "head.js",
   "scriptExecPage.html",
   "serviceWorker.js",
@@ -33,6 +34,14 @@ support-files = [
 ["browser_font_fingerprinter_telemetry.js"]
 
 ["browser_fpiServiceWorkers_fingerprinting.js"]
+
+["browser_fpp_protections_matrix_1.js"]
+
+["browser_fpp_protections_matrix_2.js"]
+
+["browser_fpp_protections_matrix_3.js"]
+
+["browser_fpp_protections_matrix_4.js"]
 
 ["browser_rfp_canvasplaceholder_pdfjs.js"]
 support-files = ["file_pdf.pdf"]
