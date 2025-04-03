@@ -387,9 +387,6 @@ nsresult TRRServiceChannel::BeginConnect() {
   mRequestHead.SetHTTPS(isHttps);
   mRequestHead.SetOrigin(scheme, host, port);
 
-  gHttpHandler->MaybeAddAltSvcForTesting(mURI, mUsername, mPrivateBrowsing,
-                                         mCallbacks, OriginAttributes());
-
   RefPtr<nsHttpConnectionInfo> connInfo = new nsHttpConnectionInfo(
       host, port, ""_ns, mUsername, proxyInfo, OriginAttributes(), isHttps);
   // TODO: Bug 1622778 for using AltService in socket process.
