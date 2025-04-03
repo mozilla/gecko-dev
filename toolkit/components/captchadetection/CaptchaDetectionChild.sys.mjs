@@ -436,7 +436,7 @@ class ArkoseLabsHandler extends CaptchaHandler {
 
   constructor(actor) {
     super(actor);
-    this.actor.sendAsyncMessage("CaptchaDetection:Init", {
+    this.actor.sendQuery("CaptchaDetection:Init", {
       type: ArkoseLabsHandler.type,
     });
   }
