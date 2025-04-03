@@ -10,12 +10,13 @@
 #include <unordered_map>
 
 #include "mozilla/gfx/FileHandleWrapper.h"
-#include "mozilla/layers/Fence.h"
+#include "nsISupportsImpl.h"
 
 struct ID3D11Device;
 struct ID3D11Fence;
 
 namespace mozilla {
+
 namespace layers {
 
 //
@@ -35,19 +36,16 @@ namespace layers {
 // For waiting fence, Update() is used to update the target value of the
 // waiting. Wait() is then used to wait for the fence.
 //
-class FenceD3D11 final : public Fence {
+class FenceD3D11 final {
  public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FenceD3D11);
 
   static RefPtr<FenceD3D11> Create(ID3D11Device* aDevice);
   static RefPtr<FenceD3D11> CreateFromHandle(
       RefPtr<gfx::FileHandleWrapper> aHandle);
 
-  FenceD3D11* AsFenceD3D11() override { return this; }
-
   // Check if ID3D11Device suppors ID3D11Fence creation.
   static bool IsSupported(ID3D11Device* aDevice);
-
-  RefPtr<FenceD3D11> CloneFromHandle();
 
   // Updates mSignalFence to incremented value after all previous work has
   // completed. Used only when FenceD3D11 is created by FenceD3D11::Create().
@@ -68,7 +66,7 @@ class FenceD3D11 final : public Fence {
 
  protected:
   explicit FenceD3D11(RefPtr<gfx::FileHandleWrapper>& aHandle);
-  virtual ~FenceD3D11();
+  ~FenceD3D11();
 
   // Device that is used for creating mSignalFence.
   RefPtr<ID3D11Device> mDevice;

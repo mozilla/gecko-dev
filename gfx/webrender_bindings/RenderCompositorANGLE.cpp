@@ -13,7 +13,6 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/StackArray.h"
-#include "mozilla/layers/FenceD3D11.h"
 #include "mozilla/layers/TextureD3D11.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/SyncObject.h"
@@ -463,8 +462,6 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
   RenderedFrameId frameId = GetNextRenderFrameId();
   InsertGraphicsCommandsFinishedWaitQuery(frameId);
 
-  mFence = layers::FenceD3D11::Create(mDevice);
-
   if (!UseCompositor()) {
     auto start = TimeStamp::Now();
     if (auto* fxrHandler = mWidget->AsWindows()->GetFxrOutputHandler()) {
@@ -565,10 +562,6 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
   }
 
   return frameId;
-}
-
-RefPtr<layers::Fence> RenderCompositorANGLE::GetAndResetReleaseFence() {
-  return mFence.forget();
 }
 
 bool RenderCompositorANGLE::WaitForGPU() {

@@ -32,7 +32,6 @@ namespace layers {
 
 class CompositableHost;
 class CompositorVsyncScheduler;
-class Fence;
 class WebRenderImageHost;
 class WebRenderTextureHost;
 
@@ -72,7 +71,7 @@ class AsyncImagePipelineManager final {
   void NotifyPipelinesUpdated(RefPtr<const wr::WebRenderPipelineInfo> aInfo,
                               wr::RenderedFrameId aLatestFrameId,
                               wr::RenderedFrameId aLastCompletedFrameId,
-                              RefPtr<Fence>&& aFence);
+                              UniqueFileHandle&& aFenceFd);
 
   // This is run on the compositor thread to process mRenderSubmittedUpdates. We
   // make this public because we need to invoke it from other places.
@@ -278,11 +277,11 @@ class AsyncImagePipelineManager final {
 
   struct WebRenderPipelineInfoHolder {
     WebRenderPipelineInfoHolder(RefPtr<const wr::WebRenderPipelineInfo>&& aInfo,
-                                RefPtr<Fence>&& aFence);
+                                UniqueFileHandle&& aFenceFd);
     ~WebRenderPipelineInfoHolder();
     WebRenderPipelineInfoHolder(WebRenderPipelineInfoHolder&&) = default;
     RefPtr<const wr::WebRenderPipelineInfo> mInfo;
-    RefPtr<Fence> mFence;
+    UniqueFileHandle mFenceFd;
   };
 
   std::vector<std::pair<wr::RenderedFrameId, WebRenderPipelineInfoHolder>>
@@ -293,7 +292,7 @@ class AsyncImagePipelineManager final {
   std::vector<std::pair<wr::RenderedFrameId,
                         std::vector<UniquePtr<ForwardingTextureHost>>>>
       mTexturesInUseByGPU;
-  RefPtr<Fence> mReleaseFence;
+  UniqueFileHandle mReleaseFenceFd;
 };
 
 }  // namespace layers

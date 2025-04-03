@@ -223,13 +223,6 @@ DXGITextureHostD3D11* GPUVideoTextureHost::AsDXGITextureHostD3D11() {
   return nullptr;
 }
 
-DXGIYCbCrTextureHostD3D11* GPUVideoTextureHost::AsDXGIYCbCrTextureHostD3D11() {
-  if (EnsureWrappedTextureHost()) {
-    return mWrappedTextureHost->AsDXGIYCbCrTextureHostD3D11();
-  }
-  return nullptr;
-}
-
 bool GPUVideoTextureHost::IsWrappingSurfaceTextureHost() {
   if (EnsureWrappedTextureHost()) {
     return EnsureWrappedTextureHost()->IsWrappingSurfaceTextureHost();

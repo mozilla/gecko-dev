@@ -72,10 +72,6 @@ class WebRenderTextureHost : public TextureHost {
     return mWrappedTextureHost->AsDXGITextureHostD3D11();
   }
 
-  DXGIYCbCrTextureHostD3D11* AsDXGIYCbCrTextureHostD3D11() override {
-    return mWrappedTextureHost->AsDXGIYCbCrTextureHostD3D11();
-  }
-
   bool IsWrappingSurfaceTextureHost() override;
 
   virtual void PrepareForUse() override;

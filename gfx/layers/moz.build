@@ -38,7 +38,6 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         "d3d11/CompositorD3D11.h",
         "d3d11/DeviceAttachmentsD3D11.h",
         "d3d11/FenceD3D11.h",
-        "d3d11/GpuProcessD3D11FencesHolderMap.h",
         "d3d11/GpuProcessD3D11TextureMap.h",
         "d3d11/HelpersD3D11.h",
         "d3d11/ShaderDefinitionsD3D11.h",
@@ -48,7 +47,6 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     ]
     UNIFIED_SOURCES += [
         "d3d11/FenceD3D11.cpp",
-        "d3d11/GpuProcessD3D11FencesHolderMap.cpp",
         "d3d11/GpuProcessD3D11TextureMap.cpp",
         "d3d11/TextureD3D11.cpp",
         "d3d11/TextureHostWrapperD3D11.cpp",
@@ -145,7 +143,6 @@ EXPORTS.mozilla.layers += [
     "D3D11ZeroCopyTextureImage.h",
     "DirectionUtils.h",
     "Effects.h",
-    "Fence.h",
     "GpuFence.h",
     "ImageDataSerializer.h",
     "ipc/ActiveResource.h",
@@ -371,7 +368,6 @@ UNIFIED_SOURCES += [
     "CompositorAnimationStorage.cpp",
     "CompositorTypes.cpp",
     "Effects.cpp",
-    "Fence.cpp",
     "FrameMetrics.cpp",
     "GLImages.cpp",
     "ImageDataSerializer.cpp",

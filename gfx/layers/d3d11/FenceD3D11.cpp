@@ -84,10 +84,6 @@ FenceD3D11::FenceD3D11(RefPtr<gfx::FileHandleWrapper>& aHandle)
 
 FenceD3D11::~FenceD3D11() {}
 
-RefPtr<FenceD3D11> FenceD3D11::CloneFromHandle() {
-  return FenceD3D11::CreateFromHandle(mHandle);
-}
-
 gfx::FenceInfo FenceD3D11::GetFenceInfo() const {
   return gfx::FenceInfo(mHandle, mFenceValue);
 }
