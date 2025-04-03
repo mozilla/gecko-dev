@@ -31,6 +31,7 @@
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/StaticPrefs_webgl.h"
 #include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/glean/SecuritySandboxMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/Utf8.h"
@@ -5858,8 +5859,10 @@ nsresult XREMain::XRE_mainRun() {
     // If we're on Linux, we now have information about the OS capabilities
     // available to us.
     SandboxInfo sandboxInfo = SandboxInfo::Get();
-    Telemetry::Accumulate(Telemetry::SANDBOX_HAS_USER_NAMESPACES,
-                          sandboxInfo.Test(SandboxInfo::kHasUserNamespaces));
+    glean::sandbox::has_user_namespaces
+        .EnumGet(static_cast<glean::sandbox::HasUserNamespacesLabel>(
+            sandboxInfo.Test(SandboxInfo::kHasUserNamespaces)))
+        .Add();
 
     CrashReporter::RecordAnnotationU32(
         CrashReporter::Annotation::ContentSandboxCapabilities,

@@ -19,7 +19,7 @@
 #include "mozilla/StaticMutex.h"
 #include "mozilla/PodOperations.h"
 #include "nsThreadUtils.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/SecuritySandboxMetrics.h"
 #include "sandbox/linux/system_headers/linux_syscalls.h"
 
 // Distinguish architectures for the telemetry key.
@@ -222,7 +222,7 @@ static void SubmitToTelemetry(const SandboxReport& aReport) {
       key.AppendInt(aReport.mSyscall);
   }
 
-  Telemetry::Accumulate(Telemetry::SANDBOX_REJECTED_SYSCALLS, key);
+  glean::sandbox::rejected_syscalls.Get(key).Add(1);
 }
 
 void SandboxReporter::AddOne(const SandboxReport& aReport) {

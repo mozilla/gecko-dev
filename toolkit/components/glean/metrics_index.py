@@ -64,6 +64,7 @@ gecko_metrics = [
     "security/certverifier/metrics.yaml",
     "security/ct/metrics.yaml",
     "security/manager/ssl/metrics.yaml",
+    "security/sandbox/metrics.yaml",
     "services/common/metrics.yaml",
     "services/sync/modules/metrics.yaml",
     "startupcache/metrics.yaml",

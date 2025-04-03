@@ -27,7 +27,7 @@
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/SecuritySandboxMetrics.h"
 #include "mozilla/WinDllServices.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/ipc/LaunchError.h"
@@ -419,14 +419,14 @@ Result<Ok, mozilla::ipc::LaunchError> SandboxBroker::LaunchApp(
     // Only accumulate for each combination once per session.
     if (sLaunchErrors) {
       if (!sLaunchErrors->Contains(key)) {
-        Telemetry::Accumulate(Telemetry::SANDBOX_FAILED_LAUNCH_KEYED, key,
-                              result);
+        glean::sandbox::failed_launch_keyed.Get(key).AccumulateSingleSample(
+            result);
         sLaunchErrors->PutEntry(key);
       }
     } else {
       // If sLaunchErrors not created yet then always accumulate.
-      Telemetry::Accumulate(Telemetry::SANDBOX_FAILED_LAUNCH_KEYED, key,
-                            result);
+      glean::sandbox::failed_launch_keyed.Get(key).AccumulateSingleSample(
+          result);
     }
 
     LOG_E(

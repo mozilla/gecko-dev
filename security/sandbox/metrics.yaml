@@ -1,0 +1,80 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Security: Process Sandboxing'
+
+sandbox:
+  rejected_syscalls:
+    type: labeled_counter
+    description: >
+      System calls blocked by a seccomp-bpf sandbox policy; limited to syscalls
+      where we would crash on Nightly.  The key is generally the architecture
+      and syscall ID but in some cases we include non-personally-identifying
+      information from the syscall arguments; see the function SubmitToTelemetry
+      in security/sandbox/linux/reporter/SandboxReporter.cpp for details.
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SANDBOX_REJECTED_SYSCALLS.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1286865
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1286865
+    notification_emails:
+      - jld@mozilla.com
+      - gcp@mozilla.com
+    expires: never
+    telemetry_mirror: h#SANDBOX_REJECTED_SYSCALLS
+
+  failed_launch_keyed:
+    type: labeled_custom_distribution
+    description: |
+      Error code when a Windows sandboxed process fails to launch, keyed by process type and Windows error code. See https://searchfox.org/mozilla-central/search?q=ResultCode++path%3Asandbox_types.h&redirect=true for definitions of the error codes.
+      This metric was generated to correspond to the Legacy Telemetry enumerated histogram SANDBOX_FAILED_LAUNCH_KEYED.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1368600
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1368600
+    notification_emails:
+      - bowen@mozilla.com
+    expires: never
+    telemetry_mirror: SANDBOX_FAILED_LAUNCH_KEYED
+
+  has_user_namespaces:
+    type: labeled_counter
+    description: >
+      Whether our process succedeed in creating a user namespace
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram SANDBOX_HAS_USER_NAMESPACES.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1098428
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1370578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1461546
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1464220
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1885704
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1098428
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1370578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1461546
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1464220
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1885704
+    notification_emails:
+      - gcp@mozilla.com
+      - jld@mozilla.com
+      - alissy@mozilla.com
+    expires: 145
+    telemetry_mirror: h#SANDBOX_HAS_USER_NAMESPACES
