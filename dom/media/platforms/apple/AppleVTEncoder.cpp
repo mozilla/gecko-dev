@@ -172,6 +172,33 @@ static bool SetProfileLevel(VTCompressionSessionRef& aSession,
                       : false;
 }
 
+static Result<OSType, MediaResult> MapPixelFormat(
+    dom::ImageBitmapFormat aFormat) {
+  switch (aFormat) {
+    case dom::ImageBitmapFormat::RGBA32:
+      return kCVPixelFormatType_32RGBA;
+    case dom::ImageBitmapFormat::BGRA32:
+      return kCVPixelFormatType_32BGRA;
+    case dom::ImageBitmapFormat::RGB24:
+      return kCVPixelFormatType_24RGB;
+    case dom::ImageBitmapFormat::BGR24:
+      return kCVPixelFormatType_24BGR;
+    case dom::ImageBitmapFormat::GRAY8:
+      return kCVPixelFormatType_OneComponent8;
+    case dom::ImageBitmapFormat::YUV444P:
+      return kCVPixelFormatType_444YpCbCr8;
+    case dom::ImageBitmapFormat::YUV420P:
+      return kCVPixelFormatType_420YpCbCr8PlanarFullRange;
+    case dom::ImageBitmapFormat::YUV420SP_NV12:
+      return kCVPixelFormatType_420YpCbCr8BiPlanarFullRange;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unsupported image format");
+  }
+  return Err(MediaResult(NS_ERROR_NOT_IMPLEMENTED,
+                         nsPrintfCString("format %s is not supported",
+                                         dom::GetEnumString(aFormat).get())));
+}
+
 RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
   MOZ_ASSERT(!mSession,
              "Cannot initialize encoder again without shutting down");
@@ -184,29 +211,6 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
 
   mError = NS_OK;
   return InitPromise::CreateAndResolve(true, __func__);
-}
-
-static Maybe<OSType> MapPixelFormat(dom::ImageBitmapFormat aFormat) {
-  switch (aFormat) {
-    case dom::ImageBitmapFormat::RGBA32:
-      return Some(kCVPixelFormatType_32RGBA);
-    case dom::ImageBitmapFormat::BGRA32:
-      return Some(kCVPixelFormatType_32BGRA);
-    case dom::ImageBitmapFormat::RGB24:
-      return Some(kCVPixelFormatType_24RGB);
-    case dom::ImageBitmapFormat::BGR24:
-      return Some(kCVPixelFormatType_24BGR);
-    case dom::ImageBitmapFormat::GRAY8:
-      return Some(kCVPixelFormatType_OneComponent8);
-    case dom::ImageBitmapFormat::YUV444P:
-      return Some(kCVPixelFormatType_444YpCbCr8);
-    case dom::ImageBitmapFormat::YUV420P:
-      return Some(kCVPixelFormatType_420YpCbCr8PlanarFullRange);
-    case dom::ImageBitmapFormat::YUV420SP_NV12:
-      return Some(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
-    default:
-      return Nothing();
-  }
 }
 
 MediaResult AppleVTEncoder::InitSession() {
@@ -224,12 +228,9 @@ MediaResult AppleVTEncoder::InitSession() {
                        "SVC only supported on macOS 11.3 and more recent");
   }
 
-  Maybe<OSType> fmt = MapPixelFormat(mConfig.mSourcePixelFormat);
-  if (fmt.isNothing()) {
-    return MediaResult(
-        NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
-        nsPrintfCString("%s is unsupported format",
-                        dom::GetEnumString(mConfig.mSourcePixelFormat).get()));
+  auto r = MapPixelFormat(mConfig.mSourcePixelFormat);
+  if (r.isErr()) {
+    return r.unwrapErr();
   }
 
   bool lowLatencyRateControl =
@@ -241,7 +242,7 @@ MediaResult AppleVTEncoder::InitSession() {
   AutoCFRelease<CFDictionaryRef> spec(
       BuildEncoderSpec(mHardwareNotAllowed, lowLatencyRateControl));
   AutoCFRelease<CFDictionaryRef> srcBufferAttr(
-      BuildSourceImageBufferAttributes(fmt.value()));
+      BuildSourceImageBufferAttributes(r.unwrap()));
   if (!srcBufferAttr) {
     return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
                        "fail to create source buffer attributes");
@@ -835,7 +836,7 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
       return nullptr;
     }
 
-    OSType format = MapPixelFormat(mConfig.mSourcePixelFormat).ref();
+    OSType format = MapPixelFormat(mConfig.mSourcePixelFormat).unwrap();
     size_t numPlanes = NumberOfPlanes(format);
     const PlanarYCbCrImage::Data* yuv = image->GetData();
 
@@ -919,9 +920,10 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
          dom::GetEnumString(mConfig.mSourcePixelFormat).get());
   }
 
-  Maybe<OSType> imgFormat = MapPixelFormat(format.ref());
-  if (imgFormat.isNothing()) {
-    LOGE("Failed to get kCVPixelFormatType");
+  auto r = MapPixelFormat(format.ref());
+  if (r.isErr()) {
+    MediaResult err = r.unwrapErr();
+    LOGE("%s", err.Description().get());
     return nullptr;
   }
 
@@ -929,8 +931,8 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   gfx::DataSourceSurface* dss = dataSurface.forget().take();
   CVReturn rv = CVPixelBufferCreateWithBytes(
       kCFAllocatorDefault, dss->GetSize().Width(), dss->GetSize().Height(),
-      imgFormat.value(), map.GetData(), map.GetStride(), ReleaseSurface, dss,
-      nullptr, &buffer);
+      r.unwrap(), map.GetData(), map.GetStride(), ReleaseSurface, dss, nullptr,
+      &buffer);
   if (rv == kCVReturnSuccess) {
     return buffer;
     // |dss| will be released in |ReleaseSurface()|.
