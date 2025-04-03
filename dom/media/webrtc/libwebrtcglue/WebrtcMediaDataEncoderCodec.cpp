@@ -295,11 +295,10 @@ already_AddRefed<MediaDataEncoder> WebrtcMediaDataEncoder::CreateEncoder(
   }
   EncoderConfig config(
       type, {aCodecSettings->width, aCodecSettings->height}, Usage::Realtime,
-      dom::ImageBitmapFormat::YUV420P, dom::ImageBitmapFormat::YUV420P,
-      aCodecSettings->maxFramerate, keyframeInterval,
-      mBitrateAdjuster.GetTargetBitrateBps(), mMinBitrateBps, mMaxBitrateBps,
-      BitrateMode::Variable, HardwarePreference::None, ScalabilityMode::None,
-      specific);
+      dom::ImageBitmapFormat::YUV420P, aCodecSettings->maxFramerate,
+      keyframeInterval, mBitrateAdjuster.GetTargetBitrateBps(), mMinBitrateBps,
+      mMaxBitrateBps, BitrateMode::Variable, HardwarePreference::None,
+      ScalabilityMode::None, specific);
   return mFactory->CreateEncoder(config, mTaskQueue);
 }
 

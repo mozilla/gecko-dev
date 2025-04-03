@@ -125,11 +125,10 @@ class EncoderConfig final {
 
   // This constructor is used for video encoders
   EncoderConfig(const CodecType aCodecType, gfx::IntSize aSize,
-                const Usage aUsage, const PixelFormat aPixelFormat,
-                const PixelFormat aSourcePixelFormat, const uint32_t aFramerate,
-                const size_t aKeyframeInterval, const uint32_t aBitrate,
-                const uint32_t aMinBitrate, const uint32_t aMaxBitrate,
-                const BitrateMode aBitrateMode,
+                const Usage aUsage, const PixelFormat aSourcePixelFormat,
+                const uint32_t aFramerate, const size_t aKeyframeInterval,
+                const uint32_t aBitrate, const uint32_t aMinBitrate,
+                const uint32_t aMaxBitrate, const BitrateMode aBitrateMode,
                 const HardwarePreference aHardwarePreference,
                 const ScalabilityMode aScalabilityMode,
                 const Maybe<CodecSpecific>& aCodecSpecific)
@@ -141,7 +140,6 @@ class EncoderConfig final {
         mMaxBitrate(aMaxBitrate),
         mUsage(aUsage),
         mHardwarePreference(aHardwarePreference),
-        mPixelFormat(aPixelFormat),
         mSourcePixelFormat(aSourcePixelFormat),
         mScalabilityMode(aScalabilityMode),
         mFramerate(aFramerate),
@@ -184,7 +182,6 @@ class EncoderConfig final {
   Usage mUsage{};
   // Video-only
   HardwarePreference mHardwarePreference{};
-  PixelFormat mPixelFormat{};
   PixelFormat mSourcePixelFormat{};
   ScalabilityMode mScalabilityMode{};
   uint32_t mFramerate{};
