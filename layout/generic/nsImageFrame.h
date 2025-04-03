@@ -299,11 +299,6 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
    */
   void MaybeDecodeForPredictedSize();
 
-  /**
-   * Is this frame part of a ::marker pseudo?
-   */
-  bool IsForMarkerPseudo() const;
-
  protected:
   friend class nsImageListener;
   friend class nsImageLoadingContent;

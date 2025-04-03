@@ -558,9 +558,9 @@ void nsImageFrame::DeinitOwnedRequest() {
 void nsImageFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
   nsAtomicContainerFrame::DidSetComputedStyle(aOldStyle);
 
-  // A ::marker's default size is calculated from the font's em-size.
-  if (IsForMarkerPseudo()) {
-    mIntrinsicSize = IntrinsicSize(0, 0);
+  // A list-style-image ::marker default size is calculated from the font's
+  // em-size, which might have changed here.
+  if (mKind == Kind::ListStyleImage) {
     UpdateIntrinsicSize();
   }
 
@@ -1474,14 +1474,6 @@ nsRect nsImageFrame::GetDestRect(const nsRect& aFrameContentBox,
                                               aAnchorPoint);
 }
 
-bool nsImageFrame::IsForMarkerPseudo() const {
-  if (mKind == Kind::ImageLoadingContent) {
-    return false;
-  }
-  auto* subtreeRoot = GetContent()->GetClosestNativeAnonymousSubtreeRoot();
-  return subtreeRoot && subtreeRoot->IsGeneratedContentContainerForMarker();
-}
-
 void nsImageFrame::EnsureIntrinsicSizeAndRatio(bool aConsiderIntrinsicsDirty) {
   const auto containAxes = GetContainSizeAxes();
   if (containAxes.IsBoth()) {
@@ -1493,19 +1485,17 @@ void nsImageFrame::EnsureIntrinsicSizeAndRatio(bool aConsiderIntrinsicsDirty) {
     return;
   }
 
-  // If mIntrinsicSize is set (i.e. anything besides (0,0)), then we assume
-  // that our intrinsic size/ratio have been already computed and don't need
+  // If mIntrinsicSize is set (i.e. anything besides (0,0)), then we assume that
+  // our intrinsic size/ratio have been already computed and don't need
   // recomputing, *unless* the aConsiderIntrinsicsDirty param is set to true
   // (in which case our intrinsic size/ratio might be invalid).
   //
-  // Note also that we handle ::marker intrinsic size/ratio in
-  // DidSetComputedStyle.
-  // XXXdholbert (This^ sentence seems to be saying "...so we don't have to
-  // handle ::marker intrinsic size/ratio here"; but in fact we *do* handle
-  // them here because we bypass this early-return when IsForMarkerPseudo()
-  // returns true!  Hopefully we can clarify this in bug 1958172...)
+  // The fallback list-style-image marker size might have been set in
+  // DidSetComputedStyle, and it might have changed since then.
+  // TODO(emilio): We should remove that special case and add missing
+  // invalidation if/where needed.
   if (!aConsiderIntrinsicsDirty && mIntrinsicSize != IntrinsicSize(0, 0) &&
-      !IsForMarkerPseudo()) {
+      mKind != Kind::ListStyleImage) {
     return;
   }
 
