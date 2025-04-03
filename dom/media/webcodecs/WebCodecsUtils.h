@@ -150,16 +150,18 @@ Nullable<T> MaybeToNullable(const Maybe<T>& aOptional) {
  * Below are helpers to operate ArrayBuffer or ArrayBufferView.
  */
 
-Result<Ok, nsresult> CloneBuffer(JSContext* aCx,
-                                 OwningAllowSharedBufferSource& aDest,
-                                 const OwningAllowSharedBufferSource& aSrc,
-                                 ErrorResult& aRv);
+Result<Ok, nsresult> CloneBuffer(
+    JSContext* aCx,
+    OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDest,
+    const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aSrc,
+    ErrorResult& aRv);
 
 Result<RefPtr<MediaByteBuffer>, nsresult> GetExtraDataFromArrayBuffer(
-    const OwningAllowSharedBufferSource& aBuffer);
+    const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer);
 
-bool CopyExtradataToDescription(JSContext* aCx, Span<const uint8_t>& aSrc,
-                                OwningAllowSharedBufferSource& aDest);
+bool CopyExtradataToDescription(
+    JSContext* aCx, Span<const uint8_t>& aSrc,
+    OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDest);
 
 /*
  * The following are utilities to convert between VideoColorSpace values to

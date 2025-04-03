@@ -45,7 +45,8 @@ dictionary VideoDecoderSupport {
 
 dictionary VideoDecoderConfig {
   required DOMString codec;
-  AllowSharedBufferSource description;
+  // Bug 1696216: Should be [AllowShared] BufferSource description;
+  ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) description;
   [EnforceRange] unsigned long codedWidth;
   [EnforceRange] unsigned long codedHeight;
   [EnforceRange] unsigned long displayAspectWidth;
