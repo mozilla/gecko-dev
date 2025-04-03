@@ -337,16 +337,16 @@ export var XPCOMUtils = {
    * Each key:value property defines type and parameters for getters.
    *
    *  - "resource://module" string
-   *    @see {ChromeUtils.defineESModuleGetters}
+   *    @see ChromeUtils.defineESModuleGetters
    *
    *  - () => value
-   *    @see {ChromeUtils.defineLazyGetter}
+   *    @see ChromeUtils.defineLazyGetter
    *
    *  - { service: "contract", iid?: nsIID }
-   *    @see {XPCOMUtils.defineLazyServiceGetter}
+   *    @see XPCOMUtils.defineLazyServiceGetter
    *
    *  - { pref: "name", default?, onUpdate?, transform? }
-   *    @see {XPCOMUtils.defineLazyPreferenceGetter}
+   *    @see XPCOMUtils.defineLazyPreferenceGetter
    *
    * @param {ImportESModuleOptionsDictionary} [options]
    * When importing ESModules in devtools and worker contexts,
@@ -381,7 +381,7 @@ export var XPCOMUtils = {
   },
 
   /**
-   * @see {XPCOMUtils.defineLazy}
+   * @see XPCOMUtils.defineLazy
    * A shorthand for above which always returns a new lazy object.
    * Use this version if you have a global `lazy` const with all the getters:
    *
