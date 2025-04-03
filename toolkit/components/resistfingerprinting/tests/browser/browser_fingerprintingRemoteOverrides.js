@@ -309,7 +309,7 @@ add_task(async function test_remote_settings() {
       // Get the addition and subtraction flags for the domain.
       try {
         let overrides = extractLow32Bits(
-          Services.rfp.getFingerprintingOverrides(expect.domain).low
+          Services.rfp.getFingerprintingOverrides(expect.domain + ",0").low
         );
 
         // Verify if the flags are matching to expected values.
@@ -354,7 +354,7 @@ add_task(async function test_remote_settings_pref() {
     for (let expect of test.expects) {
       try {
         // Check for the existance of RFP overrides
-        Services.rfp.getFingerprintingOverrides(expect.domain).low;
+        Services.rfp.getFingerprintingOverrides(expect.domain + ",0").low;
         ok(
           false,
           "This line should never run as the override should not exist and the previous line would throw an exception"
@@ -392,7 +392,7 @@ add_task(async function test_pref() {
       try {
         // Get the addition and subtraction flags for the domain.
         let overrides = extractLow32Bits(
-          Services.rfp.getFingerprintingOverrides(expect.domain).low
+          Services.rfp.getFingerprintingOverrides(expect.domain + ",0").low
         );
 
         // Verify if the flags are matching to expected values.
@@ -447,7 +447,7 @@ add_task(async function test_pref_override_remote_settings() {
 
   // Get the addition and subtraction flags for the domain.
   let overrides = extractLow32Bits(
-    Services.rfp.getFingerprintingOverrides("example.org").low
+    Services.rfp.getFingerprintingOverrides("example.org,0").low
   );
 
   // Verify if the flags are matching to the pref settings.
