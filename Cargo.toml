@@ -179,8 +179,11 @@ getrandom = { path = "build/rust/getrandom" }
 # Patch memoffset from 0.8.0 to 0.9.0 since it's compatible and it avoids duplication
 memoffset = { path = "build/rust/memoffset" }
 
-# Patch `hashbrown` 0.12.* to depend on 0.14.*
-hashbrown = { path = "build/rust/hashbrown" }
+# Patch `hashbrown` 0.13.* to depend on 0.15.*
+hashbrown_0_13 = { package = "hashbrown", path = "build/rust/hashbrown-0.13" }
+
+# Patch `hashbrown` 0.14.* to depend on 0.15.*
+hashbrown_0_14 = { package = "hashbrown", path = "build/rust/hashbrown" }
 
 # Patch `socket2` 0.4 to 0.5
 socket2 = { path = "build/rust/socket2" }

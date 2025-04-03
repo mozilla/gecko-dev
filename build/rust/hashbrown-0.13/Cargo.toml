@@ -1,6 +1,6 @@
 [package]
 name = "hashbrown"
-version = "0.14.999"
+version = "0.13.999"
 edition = "2021"
 
 [lib]
@@ -8,11 +8,9 @@ path = "lib.rs"
 
 [features]
 default = ["hashbrown/default"]
-allocator-api2 = ["hashbrown/allocator-api2"]
-ahash = [] # No direct equivalent in 0.15.*.
+ahash = ["hashbrown/ahash"]
 inline-more = ["hashbrown/inline-more"]
-raw = ["hashbrown/raw-entry"]
-serde = ["hashbrown/serde"]
+raw = ["hashbrown/raw"]
 
 [dependencies.hashbrown]
 version = "0.15.2"
