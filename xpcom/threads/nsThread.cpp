@@ -39,7 +39,7 @@
 #include "mozilla/TaskController.h"
 #include "nsXPCOMPrivate.h"
 #include "mozilla/ChaosMode.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/XpcomMetrics.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/DocGroup.h"
@@ -1493,8 +1493,7 @@ void PerformanceCounterState::MaybeReportAccumulatedTime(const nsCString& aName,
   TimeDuration duration = aNow - mCurrentTimeSliceStart;
 #ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
   if (mIsMainThread && duration.ToMilliseconds() > LONGTASK_TELEMETRY_MS) {
-    Telemetry::Accumulate(Telemetry::EVENT_LONGTASK, aName,
-                          duration.ToMilliseconds());
+    glean::event::longtask.Get(aName).AccumulateRawDuration(duration);
   }
 #endif
 

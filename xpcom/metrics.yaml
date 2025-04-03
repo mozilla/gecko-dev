@@ -470,6 +470,23 @@ cycle_collector:
     expires: never
     telemetry_mirror: DEFERRED_FINALIZE_ASYNC
 
+  forget_skippable_max:
+    type: timing_distribution
+    description: >
+      Max time spent on one forget skippable (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FORGET_SKIPPABLE_MAX.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: FORGET_SKIPPABLE_MAX
+
 memory:
   resident_fast:
     type: memory_distribution
@@ -901,3 +918,23 @@ memory:
       - memshrink-telemetry-alerts@mozilla.com
     expires: never
     telemetry_mirror: MEMORY_UNIQUE_CONTENT_STARTUP
+
+event:
+  longtask:
+    type: labeled_timing_distribution
+    description: >
+      LongTask events for parent process (keys: event name): time the event ran
+      in ms
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram EVENT_LONGTASK.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=12345678
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=12345678
+    notification_emails:
+      - rjesup@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: EVENT_LONGTASK

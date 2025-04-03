@@ -15,7 +15,6 @@
 #include "mozilla/BaseProfilerMarkersPrerequisites.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/glean/XpcomMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 
 using namespace mozilla;
@@ -196,6 +195,6 @@ void mozilla::CycleCollectorStats::SendTelemetry(TimeDuration aCCNowDuration,
     glean::cycle_collector::time_between.AccumulateRawDuration(timeBetween);
   }
 
-  Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_MAX,
-                        mMaxForgetSkippableTime.ToMilliseconds());
+  glean::cycle_collector::forget_skippable_max.AccumulateRawDuration(
+      mMaxForgetSkippableTime);
 }
