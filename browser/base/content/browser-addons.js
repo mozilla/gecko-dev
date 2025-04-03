@@ -702,11 +702,9 @@ var gXPInstallObserver = {
       }
       installInfo = null;
 
-      Services.telemetry
-        .getHistogramById("SECURITY_UI")
-        .add(
-          Ci.nsISecurityUITelemetry.WARNING_CONFIRM_ADDON_INSTALL_CLICK_THROUGH
-        );
+      Glean.securityUi.events.accumulateSingleSample(
+        Ci.nsISecurityUITelemetry.WARNING_CONFIRM_ADDON_INSTALL_CLICK_THROUGH
+      );
     };
 
     let cancelInstallation = () => {
@@ -829,9 +827,9 @@ var gXPInstallObserver = {
 
     removeNotificationOnEnd(popup, installInfo.installs);
 
-    Services.telemetry
-      .getHistogramById("SECURITY_UI")
-      .add(Ci.nsISecurityUITelemetry.WARNING_CONFIRM_ADDON_INSTALL);
+    Glean.securityUi.events.accumulateSingleSample(
+      Ci.nsISecurityUITelemetry.WARNING_CONFIRM_ADDON_INSTALL
+    );
   },
 
   // IDs of addon install related notifications
@@ -958,9 +956,9 @@ var gXPInstallObserver = {
 
         options.removeOnDismissal = true;
         options.persistent = false;
-        Services.telemetry
-          .getHistogramById("SECURITY_UI")
-          .add(Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED);
+        Glean.securityUi.events.accumulateSingleSample(
+          Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED
+        );
         let popup = PopupNotifications.show(
           browser,
           aTopic,
@@ -1051,9 +1049,9 @@ var gXPInstallObserver = {
           let learnMore = doc.getElementById("addon-install-blocked-info");
           learnMore.setAttribute("support-page", article);
         };
-        Services.telemetry
-          .getHistogramById("SECURITY_UI")
-          .add(Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED);
+        Glean.securityUi.events.accumulateSingleSample(
+          Ci.nsISecurityUITelemetry.WARNING_ADDON_ASKING_PREVENTED
+        );
 
         const [
           installMsg,
@@ -1068,12 +1066,10 @@ var gXPInstallObserver = {
         ]);
 
         const action = buildNotificationAction(installMsg, () => {
-          Services.telemetry
-            .getHistogramById("SECURITY_UI")
-            .add(
-              Ci.nsISecurityUITelemetry
-                .WARNING_ADDON_ASKING_PREVENTED_CLICK_THROUGH
-            );
+          Glean.securityUi.events.accumulateSingleSample(
+            Ci.nsISecurityUITelemetry
+              .WARNING_ADDON_ASKING_PREVENTED_CLICK_THROUGH
+          );
           installInfo.install();
         });
 

@@ -590,3 +590,27 @@ mixed_content:
       - seceng-telemetry@mozilla.com
     expires: never
     telemetry_mirror: h#MIXED_CONTENT_AUDIO
+
+security.ui:
+  events:
+    type: custom_distribution
+    description: >
+      Security-related UI events (addons, form submission, TLS certs, Safe
+      Browsing, updates and geolocation). See
+      /security/manager/ssl/nsISecurityUITelemetry.idl for the specific values.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SECURITY_UI.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=767676
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=767676
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - fxprivacyandsecurity@mozilla.com
+    expires: never
+    telemetry_mirror: SECURITY_UI
