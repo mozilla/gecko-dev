@@ -1749,14 +1749,6 @@
     "n_buckets": 20,
     "description": "System font fallback, first call (ms)"
   },
-  "SYSTEM_FONT_FALLBACK_SCRIPT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 110,
-    "description": "System font fallback script"
-  },
   "FONT_CACHE_HIT": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
