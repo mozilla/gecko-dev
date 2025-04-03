@@ -1,7 +1,7 @@
 [
   {
     "id": "dwOJ8M9ERSmk6oI2KXg6hg",
-    "label": "test-windows11-64-2009-qr/opt-mochitest-browser-chrome-3",
+    "label": "test-windows11-64-24h2-qr/opt-mochitest-browser-chrome-3",
     "duration": 1653761,
     "result": "failed",
     "state": "completed",
@@ -10,7 +10,7 @@
     "tags": {
       "createdForUser": "ci@mozilla.org",
       "kind": "test",
-      "label": "test-windows11-64-2009-qr/opt-mochitest-browser-chrome-3",
+      "label": "test-windows11-64-24h2-qr/opt-mochitest-browser-chrome-3",
       "os": "windows",
       "retrigger": "true",
       "test-type": "mochitest",

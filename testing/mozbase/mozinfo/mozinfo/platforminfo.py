@@ -92,7 +92,10 @@ class PlatformInfo:
 
         build = self.build
         if build is not None and cleaned_name == "win":
-            version += "." + build
+            if build == "24h2":
+                version += ".26100"
+            else:
+                version += "." + build
         return version
 
     def _clean_arch(self) -> str:
@@ -156,7 +159,7 @@ class PlatformInfo:
         # This is a hack as we have no-fission and fission variants
         # sharing a common mozinfo variable.
         # TODO: what other hacks like this exist?
-        if test_variant in ["no-fission"]:
+        if test_variant in ["no-fission", "1proc"]:
             mozinfo = "!" + mozinfo
         return mozinfo
 

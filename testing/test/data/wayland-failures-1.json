@@ -2,7 +2,7 @@
   "browser/base/content/test/performance/browser.toml": {
     "kind": "toml",
     "label": {
-      "test-windows11-64-2009-qr/opt-mochitest-browser-chrome-3": {
+      "test-windows11-64-24h2-qr/opt-mochitest-browser-chrome-3": {
         "duration_median": 63094,
         "duration_total": 63094,
         "durations": {

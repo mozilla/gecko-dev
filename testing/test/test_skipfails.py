@@ -236,7 +236,7 @@ def test_task_to_skip_if():
                 "build": {"type": "debug"},
                 "platform": {
                     "arch": "32",
-                    "os": {"build": "2009", "name": "windows", "version": "11"},
+                    "os": {"build": "24h2", "name": "windows", "version": "11"},
                 },
                 "runtime": {},
             },
@@ -246,7 +246,7 @@ def test_task_to_skip_if():
     sf.platform_permutations = {
         "test-manifest": {
             "win": {
-                "11.2009": {
+                "11.26100": {
                     "x86": {"debug": {"no_variant": {}}, "opt": {"no_variant": {}}}
                 }
             }
@@ -254,7 +254,10 @@ def test_task_to_skip_if():
     }
     # function under test
     skip_if = sf.task_to_skip_if("test-manifest", task_id, Kind.TOML, "test-path")
-    assert skip_if == "win11_2009 && processor == 'x86' && debug"
+    assert (
+        skip_if
+        == "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug"
+    )
 
     # Failed task on specific runtime on x86_64
     sf = Skipfails()
@@ -784,7 +787,7 @@ def test_task_to_skip_if_reftest3():
                 "build": {"type": "debug"},
                 "platform": {
                     "arch": "32",
-                    "os": {"build": "2009", "name": "windows", "version": "11"},
+                    "os": {"build": "24h2", "name": "windows", "version": "11"},
                 },
                 "runtime": {},
             },
@@ -879,7 +882,7 @@ expected: [FAIL, PASS]
     assert manifest_str == manifest_expected4
     manifest_before5 = """[myfile.html]
   disabled:
-    if win11_2009 && processor == '32' && debug: Bug 456
+    if os == 'win' && os_version == '11.26100' && processor == '32' && debug: Bug 456
 """
     anyjs[filename] = False
     manifest_str, additional_comment_ = sf.wpt_add_skip_if(
@@ -1340,7 +1343,7 @@ def test_reftest_skip_failure_win_32(capsys):
     pixels = [21668]
     lineno = 419
     status = "FAIL"
-    label = "test-windows11-32-2009-qr/debug-reftest-1"
+    label = "test-windows11-32-24h2-qr/debug-reftest-1"
     classification = "disable_recommended"
     task_id = "BpoP8I2CRZekXUKoSIZjUQ"
     try_url = "https://treeherder.mozilla.org/jobs?repo=try&tier=1%2C2%2C3&revision=3e54b0b81de7d6a3e6a2c3408892ffd6430bc137&selectedTaskRun=BpoP8I2CRZekXUKoSIZjUQ.0"
@@ -1355,7 +1358,7 @@ def test_reftest_skip_failure_win_32(capsys):
                 "build": {"type": "debug"},
                 "platform": {
                     "arch": "32",
-                    "os": {"build": "2009", "name": "windows", "version": "11"},
+                    "os": {"build": "24h2", "name": "windows", "version": "11"},
                 },
                 "runtime": {},
             },

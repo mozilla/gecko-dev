@@ -141,6 +141,8 @@ class FailedPlatform:
         """
         if test_variant == "no-fission":
             return "!fission"
+        if test_variant == "1proc":
+            return "!e10s"
         return test_variant
 
     def get_skip_string(self, and_str: str, build_type: str, test_variant: str) -> str:

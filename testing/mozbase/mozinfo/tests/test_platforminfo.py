@@ -87,6 +87,12 @@ def test_os_version():
     platform_info = PlatformInfo(test_settings)
     assert platform_info.os_version == "11.2009"
 
+    test_settings["platform"]["os"]["name"] = "windows"
+    test_settings["platform"]["os"]["version"] = "11"
+    test_settings["platform"]["os"]["build"] = "24h2"
+    platform_info = PlatformInfo(test_settings)
+    assert platform_info.os_version == "11.26100"
+
 
 def test_os_arch():
     test_settings = deepcopy(BASE_TEST_SETTINGS)
@@ -221,7 +227,7 @@ def test_runtimes():
     # converts variants using mowinfo
     test_settings["runtime"] = {"1proc": True}
     platform_info = PlatformInfo(test_settings)
-    assert platform_info.test_variant == "e10s"
+    assert platform_info.test_variant == "!e10s"
 
     # specific logic for no-fission
     test_settings["runtime"] = {"no-fission": True}
@@ -231,7 +237,7 @@ def test_runtimes():
     # combines multiple runtimes
     test_settings["runtime"] = {"xorigin": True, "1proc": True}
     platform_info = PlatformInfo(test_settings)
-    assert platform_info.test_variant == "xorigin+e10s"
+    assert platform_info.test_variant == "xorigin+!e10s"
 
 
 if __name__ == "__main__":

@@ -76,7 +76,9 @@ class CleanSkipfails:
         parser = ManifestParser(use_toml=True, document=True)
         for manifest_path in manifest_path_set:
             parser.read(manifest_path)
-            manifest: TOMLDocument = parser.source_documents[manifest_path]
+            manifest: TOMLDocument = parser.source_documents[
+                os.path.abspath(manifest_path)
+            ]
             has_removed_items = remove_skip_if(
                 manifest, self.os_name, self.os_version, self.processor
             )
@@ -107,5 +109,11 @@ class CleanSkipfails:
             tests = list(resolver.resolve_tests(paths=[self.manifest_search_path]))
             manifest_paths = set(t["manifest"] for t in tests)
         else:
-            manifest_paths = set(self.manifest_search_path)
+            myPath = Path(".").parent
+            manifest_paths = set(
+                [
+                    str(x).replace("\\", "/")
+                    for x in myPath.glob(self.manifest_search_path)
+                ]
+            )
         return manifest_paths

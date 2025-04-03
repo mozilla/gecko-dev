@@ -794,7 +794,11 @@ class Skipfails(object):
                 "summary",
                 "blocks",
             ]
-            bugs = self._bzapi.query(query)
+            try:
+                bugs = self._bzapi.query(query)
+            except requests.exceptions.HTTPError:
+                if not self.dry_run:
+                    raise
         return bugs
 
     def create_bug(
@@ -1316,8 +1320,6 @@ class Skipfails(object):
         if os is not None:
             if kind == Kind.LIST:
                 skip_if = self._get_list_skip_if(extra)
-            elif os_version == "11.2009":
-                skip_if = "win11_2009"  # mozinfo.py:137
             elif os_version is not None:
                 skip_if = "os" + eq + qq + os + qq
                 skip_if += aa + "os_version" + eq + qq + os_version + qq
@@ -1553,7 +1555,10 @@ class Skipfails(object):
             if self.failure_types is not None and task.id in self.failure_types:
                 failure_types = self.failure_types[task.id]  # use cache
             else:
-                failure_types = task.failure_types
+                try:
+                    failure_types = task.failure_types
+                except requests.exceptions.HTTPError:
+                    continue
             for k in failure_types:
                 jft[k] = [[f[0], f[1].value] for f in task.failure_types[k]]
             jtask["failure_types"] = jft
