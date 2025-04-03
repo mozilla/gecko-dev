@@ -174,6 +174,7 @@ pub enum AuthenticatorTransport {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthenticatorParameters {
     pub protocol: WebAuthnProtocol,
     pub transport: AuthenticatorTransport,
@@ -184,6 +185,7 @@ pub struct AuthenticatorParameters {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CredentialParameters {
     pub credential_id: String,
     pub is_resident_credential: bool,
@@ -194,6 +196,7 @@ pub struct CredentialParameters {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct UserVerificationParameters {
     pub is_user_verified: bool,
 }
