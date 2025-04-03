@@ -22,7 +22,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsICryptoHash.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 
 #include <windows.h>
 
@@ -256,10 +256,10 @@ nsAuthSSPI::Init(const nsACString& aServiceName, uint32_t aServiceFlags,
 
   static bool sTelemetrySent = false;
   if (!sTelemetrySent) {
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::NTLM_MODULE_USED_2,
-                                   aServiceFlags & nsIAuthModule::REQ_PROXY_AUTH
-                                       ? NTLM_MODULE_WIN_API_PROXY
-                                       : NTLM_MODULE_WIN_API_DIRECT);
+    mozilla::glean::security::ntlm_module_used.AccumulateSingleSample(
+        aServiceFlags & nsIAuthModule::REQ_PROXY_AUTH
+            ? NTLM_MODULE_WIN_API_PROXY
+            : NTLM_MODULE_WIN_API_DIRECT);
     sTelemetrySent = true;
   }
 

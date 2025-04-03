@@ -15,6 +15,7 @@
 #include "mozilla/Base64.h"
 #include "mozilla/Logging.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "nsCOMPtr.h"
 #include "nsPromiseFlatString.h"
 #include "nsSecurityHeaderParser.h"
@@ -125,7 +126,8 @@ nsresult VerifyContentSignatureTask::CalculateResult() {
     if (certFingerprint.Length() > 0) {
       Telemetry::AccumulateCategoricalKeyed(certFingerprint, errorLabel);
     }
-    Accumulate(Telemetry::CONTENT_SIGNATURE_VERIFICATION_STATUS, errorValue);
+    glean::security::content_signature_verification_status
+        .AccumulateSingleSample(errorValue);
     if (rv == NS_ERROR_INVALID_SIGNATURE) {
       return NS_OK;
     }
@@ -133,7 +135,8 @@ nsresult VerifyContentSignatureTask::CalculateResult() {
   }
 
   mSignatureVerified = true;
-  Accumulate(Telemetry::CONTENT_SIGNATURE_VERIFICATION_STATUS, 0);
+  glean::security::content_signature_verification_status.AccumulateSingleSample(
+      0);
 
   return NS_OK;
 }

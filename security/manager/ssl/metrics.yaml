@@ -380,6 +380,75 @@ security:
     expires: never
     telemetry_mirror: SECURITY_CLIENT_AUTH_CERT_USAGE
 
+  addon_signature_verification_status:
+    type: custom_distribution
+    description: >
+      Records the result of App Signature Verification. See the comments in
+      OpenSignedAppFile.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram ADDON_SIGNATURE_VERIFICATION_STATUS.
+    range_min: 0
+    range_max: 32
+    bucket_count: 33
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771523
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1771523
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: ADDON_SIGNATURE_VERIFICATION_STATUS
+
+  content_signature_verification_status:
+    type: custom_distribution
+    description: >
+      What was the result of the content signature verification? 0=valid,
+      1=invalid, 2=noCertChain, 3=createContextFailedWithOtherError,
+      4=expiredCert, 5=certNotValidYet, 6=buildCertChainFailed,
+      7=eeCertForWrongHost, 8=extractKeyError, 9=vfyContextError
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram CONTENT_SIGNATURE_VERIFICATION_STATUS.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1258647
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1258647
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: CONTENT_SIGNATURE_VERIFICATION_STATUS
+
+  ntlm_module_used:
+    type: custom_distribution
+    description: >
+      The module used for the NTLM protocol (Windows_API, Kerberos, Samba_auth
+      or Generic) and whether or not the authentication was used to connect to a
+      proxy server. This data is collected only once per session (at first NTLM
+      authentification) ; fixed version.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram NTLM_MODULE_USED_2.
+    range_min: 0
+    range_max: 8
+    bucket_count: 9
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: NTLM_MODULE_USED_2
+
 cert:
   ev_status:
     type: custom_distribution

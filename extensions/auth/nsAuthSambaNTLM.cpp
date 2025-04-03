@@ -10,7 +10,7 @@
 #include "prenv.h"
 #include "plbase64.h"
 #include "prerror.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -190,10 +190,10 @@ nsAuthSambaNTLM::Init(const nsACString& serviceName, uint32_t serviceFlags,
 
   static bool sTelemetrySent = false;
   if (!sTelemetrySent) {
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::NTLM_MODULE_USED_2,
-                                   serviceFlags & nsIAuthModule::REQ_PROXY_AUTH
-                                       ? NTLM_MODULE_SAMBA_AUTH_PROXY
-                                       : NTLM_MODULE_SAMBA_AUTH_DIRECT);
+    mozilla::glean::security::ntlm_module_used.AccumulateSingleSample(
+        serviceFlags & nsIAuthModule::REQ_PROXY_AUTH
+            ? NTLM_MODULE_SAMBA_AUTH_PROXY
+            : NTLM_MODULE_SAMBA_AUTH_DIRECT);
     sTelemetrySent = true;
   }
 

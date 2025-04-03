@@ -21,7 +21,7 @@
 #include "nsNativeCharsetUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/SharedLibrary.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/SecurityManagerSslMetrics.h"
 
 #include "nsAuthGSSAPI.h"
 
@@ -343,10 +343,10 @@ nsAuthGSSAPI::Init(const nsACString& serviceName, uint32_t serviceFlags,
 
   static bool sTelemetrySent = false;
   if (!sTelemetrySent) {
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::NTLM_MODULE_USED_2,
-                                   serviceFlags & nsIAuthModule::REQ_PROXY_AUTH
-                                       ? NTLM_MODULE_KERBEROS_PROXY
-                                       : NTLM_MODULE_KERBEROS_DIRECT);
+    mozilla::glean::security::ntlm_module_used.AccumulateSingleSample(
+        serviceFlags & nsIAuthModule::REQ_PROXY_AUTH
+            ? NTLM_MODULE_KERBEROS_PROXY
+            : NTLM_MODULE_KERBEROS_DIRECT);
     sTelemetrySent = true;
   }
 
