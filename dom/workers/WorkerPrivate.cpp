@@ -4531,6 +4531,15 @@ bool WorkerPrivate::ChangeBackgroundStateInternal(bool aIsBackground) {
   AssertIsOnWorkerThread();
   mIsInBackground = aIsBackground;
   auto data = mWorkerThreadAccessible.Access();
+  if (StaticPrefs::dom_workers_timeoutmanager_AtStartup() &&
+      StaticPrefs::dom_workers_throttling_enabled_AtStartup()) {
+    auto* timeoutManager =
+        data->mScope ? data->mScope->GetTimeoutManager() : nullptr;
+    if (timeoutManager) {
+      timeoutManager->UpdateBackgroundState();
+    }
+  }
+
   for (uint32_t index = 0; index < data->mChildWorkers.Length(); index++) {
     if (aIsBackground) {
       data->mChildWorkers[index]->SetIsRunningInBackground();
