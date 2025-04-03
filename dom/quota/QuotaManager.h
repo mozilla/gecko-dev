@@ -503,6 +503,8 @@ class QuotaManager final : public BackgroundThreadObject {
   }
 
  private:
+  nsresult InitializeTemporaryStorageInternal();
+
   nsresult EnsureTemporaryStorageIsInitializedInternal();
 
  public:

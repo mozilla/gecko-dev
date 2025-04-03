@@ -6426,6 +6426,42 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage(
       });
 }
 
+nsresult QuotaManager::InitializeTemporaryStorageInternal() {
+  AssertIsOnIOThread();
+  MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
+  MOZ_DIAGNOSTIC_ASSERT(!mTemporaryStorageInitializedInternal);
+
+  nsCOMPtr<nsIFile> storageDir;
+  QM_TRY(MOZ_TO_RESULT(
+      NS_NewLocalFile(GetStoragePath(), getter_AddRefs(storageDir))));
+
+  // The storage directory must exist before calling GetTemporaryStorageLimit.
+  QM_TRY_INSPECT(const bool& created, EnsureDirectory(*storageDir));
+
+  Unused << created;
+
+  QM_TRY_UNWRAP(mTemporaryStorageLimit, GetTemporaryStorageLimit(*storageDir));
+
+  QM_TRY(MOZ_TO_RESULT(LoadQuota()));
+
+  mTemporaryStorageInitializedInternal = true;
+
+  // If origin initialization is done lazily, then there's either no quota
+  // information at this point (if the cache couldn't be used) or only
+  // partial quota information (origins accessed in a previous session
+  // require full initialization). Given that, the cleanup can't be done
+  // at this point yet.
+  if (!QuotaPrefs::LazyOriginInitializationEnabled()) {
+    CleanupTemporaryStorage();
+  }
+
+  if (mCacheUsable) {
+    QM_TRY(InvalidateCache(*mStorageConnection));
+  }
+
+  return NS_OK;
+}
+
 nsresult QuotaManager::EnsureTemporaryStorageIsInitializedInternal() {
   AssertIsOnIOThread();
   MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
@@ -6437,34 +6473,7 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitializedInternal() {
       return NS_OK;
     }
 
-    nsCOMPtr<nsIFile> storageDir;
-    QM_TRY(MOZ_TO_RESULT(
-        NS_NewLocalFile(GetStoragePath(), getter_AddRefs(storageDir))));
-
-    // The storage directory must exist before calling GetTemporaryStorageLimit.
-    QM_TRY_INSPECT(const bool& created, EnsureDirectory(*storageDir));
-
-    Unused << created;
-
-    QM_TRY_UNWRAP(mTemporaryStorageLimit,
-                  GetTemporaryStorageLimit(*storageDir));
-
-    QM_TRY(MOZ_TO_RESULT(LoadQuota()));
-
-    mTemporaryStorageInitializedInternal = true;
-
-    // If origin initialization is done lazily, then there's either no quota
-    // information at this point (if the cache couldn't be used) or only
-    // partial quota information (origins accessed in a previous session
-    // require full initialization). Given that, the cleanup can't be done
-    // at this point yet.
-    if (!QuotaPrefs::LazyOriginInitializationEnabled()) {
-      CleanupTemporaryStorage();
-    }
-
-    if (mCacheUsable) {
-      QM_TRY(InvalidateCache(*mStorageConnection));
-    }
+    QM_TRY(MOZ_TO_RESULT(InitializeTemporaryStorageInternal()));
 
     return NS_OK;
   };
