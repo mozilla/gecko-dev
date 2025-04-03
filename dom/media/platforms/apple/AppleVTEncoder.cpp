@@ -173,7 +173,10 @@ static bool SetProfileLevel(VTCompressionSessionRef& aSession,
 }
 
 RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
-  MOZ_ASSERT(!mInited, "Cannot initialize encoder again without shutting down");
+  MOZ_ASSERT(!mSession,
+             "Cannot initialize encoder again without shutting down");
+
+  auto errorExit = MakeScopeExit([&] { InvalidateSessionIfNeeded(); });
 
   if (mConfig.mSize.width == 0 || mConfig.mSize.height == 0) {
     LOGE("width or height 0 in encoder init");
@@ -333,7 +336,7 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
   mIsHardwareAccelerated = status == noErr && isUsingHW == kCFBooleanTrue;
   LOGD("Using hw acceleration: %s", mIsHardwareAccelerated ? "yes" : "no");
 
-  mInited = true;
+  errorExit.release();
   mError = NS_OK;
   return InitPromise::CreateAndResolve(true, __func__);
 }
@@ -700,7 +703,6 @@ void AppleVTEncoder::ProcessEncode(const RefPtr<const VideoData>& aSample) {
   LOGV("::ProcessEncode");
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
-  MOZ_ASSERT(mInited);
 
   if (NS_FAILED(mError)) {
     LOGE("Pending error: %s", mError.Description().get());
@@ -760,7 +762,6 @@ AppleVTEncoder::ProcessReconfigure(
     const RefPtr<const EncoderConfigurationChangeList>& aConfigurationChanges) {
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
-  MOZ_ASSERT(mInited);
 
   bool ok = false;
   for (const auto& confChange : aConfigurationChanges->mChanges) {
@@ -964,7 +965,6 @@ RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessDrain() {
   LOGV("::ProcessDrain");
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
-  MOZ_ASSERT(mInited);
 
   OSStatus status =
       VTCompressionSessionCompleteFrames(mSession, kCMTimeIndefinite);
@@ -999,7 +999,6 @@ RefPtr<ShutdownPromise> AppleVTEncoder::ProcessShutdown() {
   LOGD("::ProcessShutdown");
   AssertOnTaskQueue();
   InvalidateSessionIfNeeded();
-  mInited = false;
 
   mError = MediaResult(NS_ERROR_DOM_MEDIA_CANCELED, "Canceled in shutdown");
   MaybeResolveOrRejectEncodePromise();

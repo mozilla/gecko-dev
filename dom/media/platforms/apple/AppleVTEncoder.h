@@ -88,8 +88,6 @@ class AppleVTEncoder final : public MediaDataEncoder {
   VTCompressionSessionRef mSession;
   // Can be accessed on any thread, but only written on during init.
   Atomic<bool> mIsHardwareAccelerated;
-  // Written during init and shutdown.
-  Atomic<bool> mInited;
   // Accessed only in mTaskQueue. Used for for OS versions < 11.
   nsCOMPtr<nsITimer> mTimer;
 };
