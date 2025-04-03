@@ -5,7 +5,7 @@
 package org.mozilla.fenix.home.toolbar
 
 import android.content.Context
-import android.graphics.drawable.BitmapDrawable
+import androidx.core.graphics.drawable.toDrawable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -65,7 +65,7 @@ class SearchSelectorBinding(
                 val icon = searchEngine?.let {
                     val iconSize =
                         context.resources.getDimensionPixelSize(R.dimen.preference_icon_drawable_size)
-                    BitmapDrawable(context.resources, searchEngine.icon).apply {
+                    searchEngine.icon.toDrawable(context.resources).apply {
                         setBounds(0, 0, iconSize, iconSize)
                         // Setting tint manually for icons that were converted from Drawable
                         // to Bitmap. Search Engine icons are stored as Bitmaps, hence

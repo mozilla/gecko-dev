@@ -9,6 +9,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.VisibleForTesting
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -124,5 +125,5 @@ internal fun SearchEngine.getScaledIcon(context: Context): BitmapDrawable {
         context.resources.getDimensionPixelSize(R.dimen.preference_icon_drawable_size)
     val scaledIcon = icon.scale(iconSize, iconSize, filter = true)
 
-    return BitmapDrawable(context.resources, scaledIcon)
+    return scaledIcon.toDrawable(context.resources)
 }

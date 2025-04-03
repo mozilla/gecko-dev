@@ -1918,39 +1918,6 @@
     </issue>
 
     <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="        val engineIcon = BitmapDrawable(res, engine.icon)"
-        errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/settings/search/RadioSearchEngineListPreference.kt"
-            line="137"
-            column="26"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="                    BitmapDrawable(context.resources, searchEngine.icon).apply {"
-        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/home/toolbar/SearchSelectorBinding.kt"
-            line="68"
-            column="21"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Bitmap.toDrawable` instead?"
-        errorLine1="    return BitmapDrawable(context.resources, scaledIcon)"
-        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/search/toolbar/SearchSelectorToolbarAction.kt"
-            line="127"
-            column="12"/>
-    </issue>
-
-    <issue
         id="ClickableViewAccessibility"
         message="Custom view ``SearchDialogFragmentConstraintLayout`` has `setOnTouchListener` called on it but does not override `performClick`"
         errorLine1="                binding.searchWrapper.setOnTouchListener { _, _ ->"
