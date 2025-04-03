@@ -3322,8 +3322,10 @@ void HTMLInputElement::LegacyPreActivationBehavior(
     aVisitor.mItemFlags |= NS_ORIGINAL_CHECKED_VALUE;
   }
 
-  // out-of-spec legacy pre-activation behavior needed because of bug 1803805
-  if (mForm) {
+  // out-of-spec legacy pre-activation behavior needed because of bug 1803805.
+  // XXXedgar: We exclude the radio type because `mItemData` is already used to
+  // store the originally selected radio button above.
+  if (mForm && mType != FormControlType::InputRadio) {
     aVisitor.mItemFlags |= NS_IN_SUBMIT_CLICK;
     aVisitor.mItemData = static_cast<Element*>(mForm);
     // tell the form that we are about to enter a click handler.
