@@ -7,7 +7,6 @@ package mozilla.components.feature.downloads.ui
 import android.app.Dialog
 import android.content.DialogInterface
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Parcelable
@@ -22,6 +21,7 @@ import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import kotlinx.parcelize.Parcelize
 import mozilla.components.feature.downloads.R
 import mozilla.components.feature.downloads.databinding.MozacDownloadCancelBinding
@@ -58,7 +58,7 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
                 setGravity(promptStyling.gravity)
 
                 if (promptStyling.shouldWidthMatchParent) {
-                    setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                    setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                     // This must be called after addContentView, or it won't fully fill to the edge.
                     setLayout(
                         ViewGroup.LayoutParams.MATCH_PARENT,

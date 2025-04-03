@@ -9,7 +9,7 @@ import android.app.Dialog
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.res.Configuration
-import android.graphics.drawable.ColorDrawable
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -128,9 +129,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 window?.setNavigationBarColorCompat(navigationBarColor)
 
                 if (browsingModeManager.mode.isPrivate && args.accesspoint == MenuAccessPoint.Home) {
-                    val backgroundColorDrawable = ColorDrawable(android.graphics.Color.BLACK).mutate()
-                    backgroundColorDrawable.alpha = PRIVATE_HOME_MENU_BACKGROUND_ALPHA
-                    window?.setBackgroundDrawable(backgroundColorDrawable)
+                    window?.setBackgroundDrawable(
+                        Color.BLACK.toDrawable().mutate().apply {
+                            alpha = PRIVATE_HOME_MENU_BACKGROUND_ALPHA
+                        },
+                    )
                 }
 
                 val bottomSheet = findViewById<View?>(R.id.design_bottom_sheet)

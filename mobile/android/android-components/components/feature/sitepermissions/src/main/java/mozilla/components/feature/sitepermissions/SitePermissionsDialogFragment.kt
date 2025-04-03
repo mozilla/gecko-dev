@@ -8,7 +8,6 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.DialogInterface
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -23,6 +22,7 @@ import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.util.PromptAbuserDetector
 
@@ -108,7 +108,7 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
             }
 
             if (dialogShouldWidthMatchParent) {
-                setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                 // This must be called after addContentView, or it won't fully fill to the edge.
                 setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }

@@ -6,7 +6,6 @@ package mozilla.components.feature.downloads.ui
 import android.annotation.SuppressLint
 import android.app.Dialog
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +14,7 @@ import android.view.Window
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.appcompat.widget.AppCompatImageButton
+import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.downloads.R
 import mozilla.components.support.utils.ext.getParcelableArrayListCompat
@@ -55,7 +55,7 @@ internal class DownloadAppChooserDialog : AppCompatDialogFragment() {
             }
 
             if (dialogShouldWidthMatchParent) {
-                setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                 // This must be called after addContentView, or it won't fully fill to the edge.
                 setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }

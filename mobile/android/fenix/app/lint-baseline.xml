@@ -1919,61 +1919,6 @@
 
     <issue
         id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="                            ?: ColorDrawable(Color.TRANSPARENT)"
-        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/browser/BrowserAnimator.kt"
-            line="79"
-            column="32"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="                            ?: ColorDrawable(Color.TRANSPARENT)"
-        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/browser/BrowserAnimator.kt"
-            line="79"
-            column="32"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
-        errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/android/FenixDialogFragment.kt"
-            line="69"
-            column="35"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="                ColorDrawable(getColor(requireContext(), R.color.fx_mobile_private_layer_color_1)),"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/home/HomeFragment.kt"
-            line="1470"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="                    val backgroundColorDrawable = ColorDrawable(android.graphics.Color.BLACK).mutate()"
-        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/components/menu/MenuDialogFragment.kt"
-            line="131"
-            column="51"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
         message="Use the KTX extension function `Bitmap.toDrawable` instead?"
         errorLine1="        val engineIcon = BitmapDrawable(res, engine.icon)"
         errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -1981,28 +1926,6 @@
             file="src/main/java/org/mozilla/fenix/settings/search/RadioSearchEngineListPreference.kt"
             line="137"
             column="26"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="                binding.searchWrapper.background = ColorDrawable(Color.TRANSPARENT)"
-        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="315"
-            column="52"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="                binding.searchWrapper.background = ColorDrawable(Color.TRANSPARENT)"
-        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="315"
-            column="52"/>
     </issue>
 
     <issue
@@ -2025,28 +1948,6 @@
             file="src/main/java/org/mozilla/fenix/search/toolbar/SearchSelectorToolbarAction.kt"
             line="127"
             column="12"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="        popupWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
-        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/utils/ToolbarPopupWindow.kt"
-            line="77"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `Int.toDrawable` instead?"
-        errorLine1="            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
-        errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/trackingprotection/TrackingProtectionPanelDialogFragment.kt"
-            line="204"
-            column="35"/>
     </issue>
 
     <issue

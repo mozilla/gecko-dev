@@ -5,7 +5,6 @@
 package mozilla.components.browser.menu
 
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -17,6 +16,7 @@ import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
 import androidx.cardview.widget.CardView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.widget.PopupWindowCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -114,7 +114,7 @@ open class BrowserMenu internal constructor(
 
         view = configureExpandableMenu(view, endOfMenuAlwaysVisible)
         return getNewPopupWindow(view).apply {
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
             isFocusable = true
             elevation = view.resources.getDimension(R.dimen.mozac_browser_menu_elevation)
 

@@ -6,7 +6,6 @@ package org.mozilla.fenix.utils
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -15,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.selector.selectedTab
@@ -74,7 +74,7 @@ object ToolbarPopupWindow {
 
         // This is a workaround for SDK<23 to allow popup dismissal on outside or back button press
         // See: https://github.com/mozilla-mobile/fenix/issues/10027
-        popupWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popupWindow.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
 
         binding.copy.isVisible = copyVisible
         binding.paste.isVisible = containsText && !isCustomTabSession

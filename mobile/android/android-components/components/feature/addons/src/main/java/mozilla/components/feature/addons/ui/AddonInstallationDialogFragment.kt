@@ -8,7 +8,6 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.DialogInterface
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
@@ -21,6 +20,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.fragment.app.FragmentManager
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
@@ -101,7 +101,7 @@ class AddonInstallationDialogFragment : AddonDialogFragment() {
             }
 
             if (dialogShouldWidthMatchParent) {
-                setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                 // This must be called after addContentView, or it won't fully fill to the edge.
                 setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }

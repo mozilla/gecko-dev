@@ -13,7 +13,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -312,7 +311,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         when (getPreviousDestination()?.destination?.id) {
             R.id.homeFragment -> {
                 // When displayed above home, dispatches the touch events to scrim area to the HomeFragment
-                binding.searchWrapper.background = ColorDrawable(Color.TRANSPARENT)
+                binding.searchWrapper.background = Color.TRANSPARENT.toDrawable()
                 dialog?.window?.decorView?.setOnTouchListener { _, event ->
                     when (event?.action) {
                         MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
