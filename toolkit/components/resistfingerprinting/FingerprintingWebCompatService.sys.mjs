@@ -49,6 +49,8 @@ const SCHEMA = `{
 const COLLECTION_NAME = "fingerprinting-protection-overrides";
 const PREF_GRANULAR_OVERRIDES =
   "privacy.fingerprintingProtection.granularOverrides";
+const PREF_GRANULAR_OVERRIDES_BASELINE =
+  "privacy.baselineFingerprintingProtection.granularOverrides";
 const PREF_REMOTE_OVERRIDES_ENABLED =
   "privacy.fingerprintingProtection.remoteOverrides.enabled";
 
@@ -56,6 +58,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "granularOverridesPref",
   PREF_GRANULAR_OVERRIDES
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "baselineGranularOverridesPref",
+  PREF_GRANULAR_OVERRIDES_BASELINE
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -71,10 +79,11 @@ export class FingerprintingOverride {
   classID = Components.ID("{07f45442-1806-44be-9230-12eb79de9bac}");
   QueryInterface = ChromeUtils.generateQI(["nsIFingerprintingOverride"]);
 
-  constructor(firstPartyDomain, thirdPartyDomain, overrides) {
+  constructor(firstPartyDomain, thirdPartyDomain, overrides, isBaseline) {
     this.firstPartyDomain = firstPartyDomain;
     this.thirdPartyDomain = thirdPartyDomain;
     this.overrides = overrides;
+    this.isBaseline = isBaseline;
   }
 }
 
@@ -125,6 +134,7 @@ export class FingerprintingWebCompatService {
 
     // Register listener to import overrides when the overrides pref changes.
     Services.prefs.addObserver(PREF_GRANULAR_OVERRIDES, this);
+    Services.prefs.addObserver(PREF_GRANULAR_OVERRIDES_BASELINE, this);
 
     // Register the sync event for the remote settings updates.
     this.#rs.on("sync", event => {
@@ -155,37 +165,42 @@ export class FingerprintingWebCompatService {
     // Clear overrides before we update.
     this.#granularOverrides.clear();
 
-    let overrides;
-    try {
-      overrides = JSON.parse(lazy.granularOverridesPref || "[]");
-    } catch (error) {
-      lazy.logConsole.error(
-        `Failed to parse granular override JSON string: Not a valid JSON.`,
-        error
-      );
-      return;
-    }
-
-    // Ensure we have an array we can iterate over and not an object.
-    if (!Array.isArray(overrides)) {
-      lazy.logConsole.error(
-        "Failed to parse granular overrides JSON String: Not an array."
-      );
-      return;
-    }
-
-    for (let override of overrides) {
-      // Validate the override.
-      let { valid, errors } = this.#validator.validate(override);
-
-      if (!valid) {
-        lazy.logConsole.debug("Override validation error", override, errors);
-        continue;
+    for (const [pref, isBaseline] of [
+      [lazy.baselineGranularOverridesPref, true],
+      [lazy.granularOverridesPref, false],
+    ]) {
+      let overrides;
+      try {
+        overrides = JSON.parse(pref || "[]");
+      } catch (error) {
+        lazy.logConsole.error(
+          `Failed to parse granular override JSON string: Not a valid JSON.`,
+          error
+        );
+        return;
       }
 
-      this.#granularOverrides.add(
-        this.#createFingerprintingOverrideFrom(override)
-      );
+      // Ensure we have an array we can iterate over and not an object.
+      if (!Array.isArray(overrides)) {
+        lazy.logConsole.error(
+          "Failed to parse granular overrides JSON String: Not an array."
+        );
+        return;
+      }
+
+      for (let override of overrides) {
+        // Validate the override.
+        let { valid, errors } = this.#validator.validate(override);
+
+        if (!valid) {
+          lazy.logConsole.debug("Override validation error", override, errors);
+          continue;
+        }
+
+        this.#granularOverrides.add(
+          this.#createFingerprintingOverrideFrom(override, isBaseline)
+        );
+      }
     }
   }
 
@@ -217,11 +232,18 @@ export class FingerprintingWebCompatService {
     }
   }
 
-  #createFingerprintingOverrideFrom(entry) {
+  #createFingerprintingOverrideFrom(entry, isBaselineOverride = null) {
+    // If the isBaselineOverride is not provided, we will use the value from the
+    // entry. If the entry doesn't have the isBaseline field, we will default to
+    // false.
+    // We default to false because we didn't have the baseline mode in the past,
+    // and the existing entries don't have the isBaseline field.
+    const isBaseline = isBaselineOverride ?? entry.isBaseline ?? false;
     return new FingerprintingOverride(
       entry.firstPartyDomain,
       entry.thirdPartyDomain,
-      entry.overrides
+      entry.overrides,
+      isBaseline
     );
   }
 
@@ -240,7 +262,10 @@ export class FingerprintingWebCompatService {
   }
 
   observe(subject, topic, prefName) {
-    if (prefName != PREF_GRANULAR_OVERRIDES) {
+    if (
+      prefName != PREF_GRANULAR_OVERRIDES &&
+      prefName != PREF_GRANULAR_OVERRIDES_BASELINE
+    ) {
       return;
     }
 
@@ -252,5 +277,6 @@ export class FingerprintingWebCompatService {
     lazy.logConsole.debug("shutdown");
 
     Services.prefs.removeObserver(PREF_GRANULAR_OVERRIDES, this);
+    Services.prefs.removeObserver(PREF_GRANULAR_OVERRIDES_BASELINE, this);
   }
 }
