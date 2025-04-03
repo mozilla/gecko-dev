@@ -5290,7 +5290,7 @@
 # Mimic Chrome's window.getSelection().toString() behaviour
 - name: dom.selection.mimic_chrome_tostring.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # When this pref is enabled:
