@@ -35,8 +35,6 @@ class GLBlitHelper;
 
 namespace layers {
 
-class FenceD3D11;
-
 gfx::DeviceResetReason DXGIErrorToDeviceResetReason(HRESULT aError);
 
 already_AddRefed<TextureHost> CreateTextureHostD3D11(
@@ -166,15 +164,12 @@ class DXGIYCbCrTextureData : public TextureData {
   friend class gl::GLBlitHelper;
 
  public:
-  static DXGIYCbCrTextureData* Create(ID3D11Texture2D* aTextureCb,
-                                      ID3D11Texture2D* aTextureY,
-                                      ID3D11Texture2D* aTextureCr,
-                                      const gfx::IntSize& aSize,
-                                      const gfx::IntSize& aSizeY,
-                                      const gfx::IntSize& aSizeCbCr,
-                                      const gfx::ColorDepth aColorDepth,
-                                      const gfx::YUVColorSpace aYUVColorSpace,
-                                      const gfx::ColorRange aColorRange);
+  static DXGIYCbCrTextureData* Create(
+      ID3D11Texture2D* aTextureCb, ID3D11Texture2D* aTextureY,
+      ID3D11Texture2D* aTextureCr, const gfx::IntSize& aSize,
+      const gfx::IntSize& aSizeY, const gfx::IntSize& aSizeCbCr,
+      gfx::ColorDepth aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+      gfx::ColorRange aColorRange);
 
   bool Lock(OpenMode) override { return true; }
 
@@ -208,8 +203,6 @@ class DXGIYCbCrTextureData : public TextureData {
   const gfx::ColorDepth mColorDepth;
   const gfx::YUVColorSpace mYUVColorSpace;
   const gfx::ColorRange mColorRange;
-  const GpuProcessFencesHolderId mFencesHolderId;
-  const RefPtr<FenceD3D11> mWriteFence;
 
  protected:
   DXGIYCbCrTextureData(RefPtr<ID3D11Texture2D> (&aD3D11Textures)[3],
@@ -218,10 +211,7 @@ class DXGIYCbCrTextureData : public TextureData {
                        const gfx::IntSize& aSizeCbCr,
                        const gfx::ColorDepth aColorDepth,
                        const gfx::YUVColorSpace aYUVColorSpace,
-                       const gfx::ColorRange aColorRange,
-                       const GpuProcessFencesHolderId aFencesHolderId,
-                       const RefPtr<FenceD3D11> aWriteFence);
-  virtual ~DXGIYCbCrTextureData();
+                       const gfx::ColorRange aColorRange);
 
   RefPtr<ID3D11Texture2D> mD3D11Textures[3];
   RefPtr<gfx::FileHandleWrapper> mHandles[3];
@@ -445,28 +435,19 @@ class DXGIYCbCrTextureHostD3D11 : public TextureHost {
 
   bool SupportsExternalCompositing(WebRenderBackend aBackend) override;
 
-  void NotifyNotUsed() override;
-
-  DXGIYCbCrTextureHostD3D11* AsDXGIYCbCrTextureHostD3D11() override {
-    return this;
-  }
-
-  void SetReadFence(RefPtr<FenceD3D11> aReadFence);
-
-  const gfx::IntSize mSize;
-  const gfx::IntSize mSizeY;
-  const gfx::IntSize mSizeCbCr;
-  const gfx::ColorDepth mColorDepth;
-  const gfx::YUVColorSpace mYUVColorSpace;
-  const gfx::ColorRange mColorRange;
-  const GpuProcessFencesHolderId mFencesHolderId;
-
  protected:
+  RefPtr<ID3D11Texture2D> mTextures[3];
+
+  gfx::IntSize mSize;
+  gfx::IntSize mSizeY;
+  gfx::IntSize mSizeCbCr;
   // Handles will be closed automatically when `UniqueFileHandle` gets
   // destroyed.
   RefPtr<gfx::FileHandleWrapper> mHandles[3];
-  bool mIsLocked = false;
-  RefPtr<FenceD3D11> mReadFence;
+  bool mIsLocked;
+  gfx::ColorDepth mColorDepth;
+  gfx::YUVColorSpace mYUVColorSpace;
+  gfx::ColorRange mColorRange;
 };
 
 class CompositingRenderTargetD3D11 : public CompositingRenderTarget,

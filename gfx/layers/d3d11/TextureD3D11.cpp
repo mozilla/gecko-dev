@@ -23,8 +23,6 @@
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
-#include "mozilla/layers/FenceD3D11.h"
-#include "mozilla/layers/GpuProcessD3D11FencesHolderMap.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/VideoProcessorD3D11.h"
@@ -663,8 +661,8 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
     ID3D11Texture2D* aTextureY, ID3D11Texture2D* aTextureCb,
     ID3D11Texture2D* aTextureCr, const gfx::IntSize& aSize,
     const gfx::IntSize& aSizeY, const gfx::IntSize& aSizeCbCr,
-    const gfx::ColorDepth aColorDepth, const YUVColorSpace aYUVColorSpace,
-    const gfx::ColorRange aColorRange) {
+    gfx::ColorDepth aColorDepth, YUVColorSpace aYUVColorSpace,
+    gfx::ColorRange aColorRange) {
   if (!aTextureY || !aTextureCb || !aTextureCr) {
     return nullptr;
   }
@@ -716,33 +714,13 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
   const RefPtr<gfx::FileHandleWrapper> sharedHandleCr =
       new gfx::FileHandleWrapper(UniqueFileHandle(handleCr));
 
-  auto* fenceHolderMap = GpuProcessD3D11FencesHolderMap::Get();
-  if (!fenceHolderMap) {
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    return nullptr;
-  }
-
-  RefPtr<ID3D11Device> device;
-  aTextureY->GetDevice(getter_AddRefs(device));
-  if (!device) {
-    return nullptr;
-  }
-
-  RefPtr<FenceD3D11> fence = FenceD3D11::Create(device);
-  if (!fence) {
-    return nullptr;
-  }
-
-  auto fencesHolderId = GpuProcessFencesHolderId::GetNext();
-  fenceHolderMap->Register(fencesHolderId);
-
   RefPtr<ID3D11Texture2D> textures[3] = {aTextureY, aTextureCb, aTextureCr};
   RefPtr<gfx::FileHandleWrapper> handles[3] = {sharedHandleY, sharedHandleCb,
                                                sharedHandleCr};
 
-  DXGIYCbCrTextureData* texture = new DXGIYCbCrTextureData(
-      textures, handles, aSize, aSizeY, aSizeCbCr, aColorDepth, aYUVColorSpace,
-      aColorRange, fencesHolderId, fence);
+  DXGIYCbCrTextureData* texture =
+      new DXGIYCbCrTextureData(textures, handles, aSize, aSizeY, aSizeCbCr,
+                               aColorDepth, aYUVColorSpace, aColorRange);
   return texture;
 }
 
@@ -751,28 +729,15 @@ DXGIYCbCrTextureData::DXGIYCbCrTextureData(
     RefPtr<gfx::FileHandleWrapper>(aHandles)[3], const gfx::IntSize& aSize,
     const gfx::IntSize& aSizeY, const gfx::IntSize& aSizeCbCr,
     const gfx::ColorDepth aColorDepth, const gfx::YUVColorSpace aYUVColorSpace,
-    const gfx::ColorRange aColorRange,
-    const GpuProcessFencesHolderId aFencesHolderId,
-    const RefPtr<FenceD3D11> aWriteFence)
+    const gfx::ColorRange aColorRange)
     : mSize(aSize),
       mSizeY(aSizeY),
       mSizeCbCr(aSizeCbCr),
       mColorDepth(aColorDepth),
       mYUVColorSpace(aYUVColorSpace),
       mColorRange(aColorRange),
-      mFencesHolderId(aFencesHolderId),
-      mWriteFence(aWriteFence),
       mD3D11Textures{aD3D11Textures[0], aD3D11Textures[1], aD3D11Textures[2]},
       mHandles{aHandles[0], aHandles[1], aHandles[2]} {}
-
-DXGIYCbCrTextureData::~DXGIYCbCrTextureData() {
-  auto* fenceHolderMap = GpuProcessD3D11FencesHolderMap::Get();
-  if (!fenceHolderMap) {
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    return;
-  }
-  fenceHolderMap->Unregister(mFencesHolderId);
-}
 
 void DXGIYCbCrTextureData::FillInfo(TextureData::Info& aInfo) const {
   aInfo.size = mSize;
@@ -783,9 +748,9 @@ void DXGIYCbCrTextureData::FillInfo(TextureData::Info& aInfo) const {
 
 void DXGIYCbCrTextureData::SerializeSpecific(
     SurfaceDescriptorDXGIYCbCr* const aOutDesc) {
-  *aOutDesc = SurfaceDescriptorDXGIYCbCr(
-      mHandles[0], mHandles[1], mHandles[2], mSize, mSizeY, mSizeCbCr,
-      mColorDepth, mYUVColorSpace, mColorRange, mFencesHolderId);
+  *aOutDesc = SurfaceDescriptorDXGIYCbCr(mHandles[0], mHandles[1], mHandles[2],
+                                         mSize, mSizeY, mSizeCbCr, mColorDepth,
+                                         mYUVColorSpace, mColorRange);
 }
 
 bool DXGIYCbCrTextureData::Serialize(SurfaceDescriptor& aOutDescriptor) {
@@ -1360,10 +1325,10 @@ DXGIYCbCrTextureHostD3D11::DXGIYCbCrTextureHostD3D11(
       mSize(aDescriptor.size()),
       mSizeY(aDescriptor.sizeY()),
       mSizeCbCr(aDescriptor.sizeCbCr()),
+      mIsLocked(false),
       mColorDepth(aDescriptor.colorDepth()),
       mYUVColorSpace(aDescriptor.yUVColorSpace()),
-      mColorRange(aDescriptor.colorRange()),
-      mFencesHolderId(aDescriptor.fencesHolderId()) {
+      mColorRange(aDescriptor.colorRange()) {
   mHandles[0] = aDescriptor.handleY();
   mHandles[1] = aDescriptor.handleCb();
   mHandles[2] = aDescriptor.handleCr();
@@ -1374,8 +1339,7 @@ void DXGIYCbCrTextureHostD3D11::CreateRenderTexture(
   MOZ_ASSERT(mExternalImageId.isSome());
 
   RefPtr<wr::RenderTextureHost> texture = new wr::RenderDXGIYCbCrTextureHost(
-      mHandles, mYUVColorSpace, mColorDepth, mColorRange, mSizeY, mSizeCbCr,
-      mFencesHolderId);
+      mHandles, mYUVColorSpace, mColorDepth, mColorRange, mSizeY, mSizeCbCr);
 
   wr::RenderThread::Get()->RegisterExternalImage(aExternalImageId,
                                                  texture.forget());
@@ -1452,30 +1416,6 @@ void DXGIYCbCrTextureHostD3D11::PushDisplayItems(
 bool DXGIYCbCrTextureHostD3D11::SupportsExternalCompositing(
     WebRenderBackend aBackend) {
   return aBackend == WebRenderBackend::SOFTWARE;
-}
-
-void DXGIYCbCrTextureHostD3D11::NotifyNotUsed() {
-  if (!mReadFence) {
-    return;
-  }
-
-  auto* fenceHolderMap = GpuProcessD3D11FencesHolderMap::Get();
-  if (!fenceHolderMap) {
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    return;
-  }
-  fenceHolderMap->SetReadFence(mFencesHolderId, mReadFence);
-  mReadFence = nullptr;
-}
-
-void DXGIYCbCrTextureHostD3D11::SetReadFence(RefPtr<FenceD3D11> aReadFence) {
-  MOZ_ASSERT(aReadFence);
-
-  if (!aReadFence) {
-    return;
-  }
-
-  mReadFence = aReadFence;
 }
 
 bool DataTextureSourceD3D11::Update(DataSourceSurface* aSurface,

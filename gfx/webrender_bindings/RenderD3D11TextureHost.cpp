@@ -18,7 +18,6 @@
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/FenceD3D11.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
-#include "mozilla/layers/GpuProcessD3D11FencesHolderMap.h"
 #include "mozilla/layers/TextureD3D11.h"
 
 namespace mozilla {
@@ -473,10 +472,8 @@ bool RenderDXGITextureHost::SyncObjectNeeded() {
 
 RenderDXGIYCbCrTextureHost::RenderDXGIYCbCrTextureHost(
     RefPtr<gfx::FileHandleWrapper> (&aHandles)[3],
-    const gfx::YUVColorSpace aYUVColorSpace, const gfx::ColorDepth aColorDepth,
-    const gfx::ColorRange aColorRange, const gfx::IntSize aSizeY,
-    const gfx::IntSize aSizeCbCr,
-    const layers::GpuProcessFencesHolderId aFencesHolderId)
+    gfx::YUVColorSpace aYUVColorSpace, gfx::ColorDepth aColorDepth,
+    gfx::ColorRange aColorRange, gfx::IntSize aSizeY, gfx::IntSize aSizeCbCr)
     : mHandles{aHandles[0], aHandles[1], aHandles[2]},
       mSurfaces{0},
       mStreams{0},
@@ -486,7 +483,7 @@ RenderDXGIYCbCrTextureHost::RenderDXGIYCbCrTextureHost(
       mColorRange(aColorRange),
       mSizeY(aSizeY),
       mSizeCbCr(aSizeCbCr),
-      mFencesHolderId(aFencesHolderId) {
+      mLocked(false) {
   MOZ_COUNT_CTOR_INHERITED(RenderDXGIYCbCrTextureHost, RenderTextureHost);
   // Assume the chroma planes are rounded up if the luma plane is odd sized.
   MOZ_ASSERT((mSizeCbCr.width == mSizeY.width ||
@@ -634,20 +631,25 @@ bool RenderDXGIYCbCrTextureHost::EnsureD3D11Texture2D(ID3D11Device* aDevice) {
     }
   }
 
-  mDevice = aDevice;
-
+  for (int i = 0; i < 3; ++i) {
+    mTextures[i]->QueryInterface(
+        (IDXGIKeyedMutex**)getter_AddRefs(mKeyedMutexs[i]));
+  }
   return true;
 }
 
 bool RenderDXGIYCbCrTextureHost::LockInternal() {
   if (!mLocked) {
-    auto* fenceHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
-    if (!fenceHolderMap) {
-      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-      return false;
-    }
-    if (!fenceHolderMap->WaitWriteFence(mFencesHolderId, mDevice)) {
-      return false;
+    if (mKeyedMutexs[0]) {
+      for (const auto& mutex : mKeyedMutexs) {
+        HRESULT hr = mutex->AcquireSync(0, 10000);
+        if (hr != S_OK) {
+          gfxCriticalError()
+              << "RenderDXGIYCbCrTextureHost AcquireSync timeout, hr="
+              << gfx::hexa(hr);
+          return false;
+        }
+      }
     }
     mLocked = true;
   }
@@ -686,6 +688,11 @@ wr::WrExternalImage RenderDXGIYCbCrTextureHost::Lock(uint8_t aChannelIndex,
 
 void RenderDXGIYCbCrTextureHost::Unlock() {
   if (mLocked) {
+    if (mKeyedMutexs[0]) {
+      for (const auto& mutex : mKeyedMutexs) {
+        mutex->ReleaseSync(0);
+      }
+    }
     mLocked = false;
   }
 }
@@ -729,6 +736,7 @@ void RenderDXGIYCbCrTextureHost::DeleteTextureHandle() {
     for (int i = 0; i < 3; ++i) {
       mTextureHandles[i] = 0;
       mTextures[i] = nullptr;
+      mKeyedMutexs[i] = nullptr;
 
       if (mSurfaces[i]) {
         egl->fDestroySurface(mSurfaces[i]);
@@ -740,7 +748,6 @@ void RenderDXGIYCbCrTextureHost::DeleteTextureHandle() {
       }
     }
   }
-  mDevice = nullptr;
 }
 
 }  // namespace wr

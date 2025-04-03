@@ -46,7 +46,7 @@ class RenderCompositorEGL : public RenderCompositor {
   void SetBufferDamageRegion(const wr::DeviceIntRect* aRects,
                              size_t aNumRects) override;
 
-  RefPtr<layers::Fence> GetAndResetReleaseFence() override;
+  UniqueFileHandle GetAndResetReleaseFence() override;
 
  protected:
   EGLSurface CreateEGLSurface();
@@ -66,7 +66,7 @@ class RenderCompositorEGL : public RenderCompositor {
   // Release fence is a fence that is used for waiting until usage/composite of
   // AHardwareBuffer is ended. The fence is delivered to client side via
   // ImageBridge. It is used only on android.
-  RefPtr<layers::Fence> mReleaseFence;
+  UniqueFileHandle mReleaseFenceFd;
 };
 
 }  // namespace wr
