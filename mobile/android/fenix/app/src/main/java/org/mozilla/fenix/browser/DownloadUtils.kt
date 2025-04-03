@@ -26,7 +26,9 @@ internal fun BaseBrowserFragment.handleOnDownloadFinished(
         if (downloadState.openInApp && downloadJobStatus == Status.COMPLETED) {
             val fileWasOpened = AbstractFetchDownloadService.openFile(
                 applicationContext = safeContext.applicationContext,
-                download = downloadState,
+                downloadFileName = downloadState.fileName,
+                downloadFilePath = downloadState.filePath,
+                downloadContentType = downloadState.contentType,
             )
             if (!fileWasOpened) {
                 onCannotOpenFile(downloadState)

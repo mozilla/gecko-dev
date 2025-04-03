@@ -254,7 +254,12 @@ internal object DownloadNotification {
         PendingIntent.getActivity(
             context,
             0,
-            AbstractFetchDownloadService.createOpenFileIntent(context, downloadState),
+            AbstractFetchDownloadService.createOpenFileIntent(
+                context = context,
+                downloadFileName = downloadState.fileName,
+                downloadFilePath = downloadState.filePath,
+                downloadContentType = downloadState.contentType,
+            ),
             PendingIntentUtils.defaultFlags,
         )
 

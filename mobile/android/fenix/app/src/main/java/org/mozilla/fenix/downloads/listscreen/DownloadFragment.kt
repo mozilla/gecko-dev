@@ -207,7 +207,9 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
 
             val canOpenFile = AbstractFetchDownloadService.openFile(
                 applicationContext = it.applicationContext,
-                download = downloadState,
+                downloadFileName = downloadState.fileName,
+                downloadFilePath = downloadState.filePath,
+                downloadContentType = downloadState.contentType,
             )
 
             val rootView = view

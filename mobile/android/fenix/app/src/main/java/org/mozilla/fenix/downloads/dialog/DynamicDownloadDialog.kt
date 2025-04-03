@@ -76,7 +76,9 @@ class DynamicDownloadDialog(
                 setOnClickListener {
                     val fileWasOpened = AbstractFetchDownloadService.openFile(
                         applicationContext = context.applicationContext,
-                        download = downloadState,
+                        downloadFileName = downloadState.fileName,
+                        downloadFilePath = downloadState.filePath,
+                        downloadContentType = downloadState.contentType,
                     )
 
                     if (!fileWasOpened) {
