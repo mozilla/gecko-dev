@@ -68,16 +68,17 @@ moz-card {
 }
 
 .theme-name {
-  display: flex;
-  align-items: center;
-  padding-inline-start: var(--space-medium);
-  padding-block: var(--space-small);
+  display: block;
+  padding: var(--space-small) var(--space-medium);
 
   border-inline-width: var(--theme-card-border-width);
   border-block-end-width: var(--theme-card-border-width);
   border-block-start: var(--card-border);
 
   font-size: var(--font-size-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   @media (forced-colors) {
     color: ButtonText;
