@@ -30,14 +30,13 @@ class LinkPreviewCard extends MozLitElement {
     generating: { type: Number }, // 0 = off, 1-4 = generating & dots state
     keyPoints: { type: Array },
     pageData: { type: Object },
-    showWait: { type: Boolean },
-    progressPercentage: { type: Number },
+    progress: { type: Number }, // -1 = off, 0-100 = download progress
   };
 
   constructor() {
     super();
     this.keyPoints = [];
-    this.progress = 0;
+    this.progress = -1;
   }
 
   addKeyPoint(text) {
@@ -66,7 +65,11 @@ class LinkPreviewCard extends MozLitElement {
     const where = lazy.BrowserUtils.whereToOpenLink(event, false, true);
     win.openLinkIn(url, where, params);
 
-    this.dispatchEvent(new CustomEvent("LinkPreviewCard:dismiss"));
+    this.dispatchEvent(
+      new CustomEvent("LinkPreviewCard:dismiss", {
+        detail: event.target.dataset.source ?? "error",
+      })
+    );
   }
 
   updated(properties) {
@@ -98,12 +101,6 @@ class LinkPreviewCard extends MozLitElement {
 
     const readingTimeMinsFast = articleData.readingTimeMinsFast || "";
     const readingTimeMinsSlow = articleData.readingTimeMinsSlow || "";
-
-    let displayProgressPercentage = this.progressPercentage;
-    // Handle non-finite values (NaN, Infinity) by defaulting to 100%
-    if (!Number.isFinite(displayProgressPercentage)) {
-      displayProgressPercentage = 100;
-    }
 
     // Check if both metadata and article text content are missing
     const isMissingAllContent = !description && !articleData.textContent;
@@ -145,7 +142,7 @@ class LinkPreviewCard extends MozLitElement {
               `
             : ""}
           <h2 class="og-card-title">
-            <a @click=${this.handleLink} href=${pageUrl}
+            <a @click=${this.handleLink} data-source="title" href=${pageUrl}
               >${title || filename}</a
             >
           </h2>
@@ -171,29 +168,31 @@ class LinkPreviewCard extends MozLitElement {
                 <ul>
                   ${this.keyPoints.map(item => html`<li>${item}</li>`)}
                 </ul>
-                <hr />
-                ${this.showWait
+                ${this.progress >= 0
                   ? html`
                       <p>
-                        ${this.progressPercentage > 0
-                          ? html`Preparing Firefox •
-                              <strong>${displayProgressPercentage}%</strong>`
-                          : ""}
+                        First-time setup • <strong>${this.progress}%</strong>
                       </p>
-                      <p>
-                        This may take a moment the first time you preview a
-                        link. Key points should appear more quickly next time.
-                      </p>
+                      <p>You'll see key points more quickly next time.</p>
                     `
                   : ""}
+                <hr />
                 <p>
                   Key points are AI-generated and may have mistakes.
-                  <a @click=${this.handleLink} href=${FEEDBACK_LINK}>
+                  <a
+                    @click=${this.handleLink}
+                    data-source="feedback"
+                    href=${FEEDBACK_LINK}
+                  >
                     Share feedback
                   </a>
                 </p>
                 <p>
-                  <a @click=${this.handleLink} href=${pageUrl}>
+                  <a
+                    @click=${this.handleLink}
+                    data-source="visit"
+                    href=${pageUrl}
+                  >
                     Visit original page
                   </a>
                 </p>

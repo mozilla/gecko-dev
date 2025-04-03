@@ -57,8 +57,6 @@ add_task(async function test_skip_generate_if_non_eng() {
   const card = panel.querySelector("link-preview-card");
   ok(card, "card created for link preview");
   ok(!card.generating, "card should not be in generating state");
-  ok(!card.showWait, "card should not be in waiting state");
-  ok(!LinkPreview.downloadingModel, "downloading model flag should not be set");
 
   // Test again with pref allowing French
   panel.remove();
@@ -278,6 +276,7 @@ add_task(async function test_fetch_errors() {
  * Test that link preview panel is shown.
  */
 add_task(async function test_link_preview_panel_shown() {
+  Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
     set: [["browser.ml.linkPreview.enabled", true]],
   });
@@ -294,46 +293,67 @@ add_task(async function test_link_preview_panel_shown() {
   const READABLE_PAGE_URL =
     "https://example.com/browser/browser/components/genai/tests/browser/data/readableEn.html";
 
-  window.dispatchEvent(
-    new KeyboardEvent("keydown", {
-      bubbles: true,
-      cancelable: true,
-      altKey: true,
-      shiftKey: true,
-    })
-  );
+  LinkPreview.keyboardComboActive = true;
   XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
 
   const panel = await TestUtils.waitForCondition(() =>
     document.getElementById("link-preview-panel")
   );
   ok(panel, "Panel created for link preview");
+  let events = Glean.genaiLinkpreview.start.testGetValue();
+  is(events[0].extra.cached, "false", "not cached");
+  is(events[0].extra.source, "shortcut", "source is shortcut");
 
   await BrowserTestUtils.waitForEvent(panel, "popupshown");
 
   is(stub.callCount, 1, "would have generated key points");
+  events = Glean.genaiLinkpreview.fetch.testGetValue();
+  is(events[0].extra.description, "true", "got description");
+  is(events[0].extra.image, "true", "no image");
+  is(events[0].extra.length, "7200", "got length");
+  is(events[0].extra.outcome, "success", "got outcome");
+  is(events[0].extra.sitename, "false", "no site name");
+  is(events[0].extra.skipped, "false", "not skipped");
+  ok(events[0].extra.time, "got time");
+  is(events[0].extra.title, "true", "got title");
 
   const card = panel.querySelector("link-preview-card");
   ok(card, "card created for link preview");
   ok(card.generating, "initially marked as generating");
-  ok(!card.showWait, "initially assume not waiting");
-  ok(!LinkPreview.downloadingModel, "initially assume not downloading");
+  is(card.progress, -1, "initially assume not waiting");
+  is(LinkPreview.progress, -1, "initially assume not downloading");
 
   onDownload(true);
 
-  ok(card.showWait, "switched to waiting when download initiates");
-  ok(LinkPreview.downloadingModel, "shared waiting for download");
+  is(card.progress, 0, "switched to waiting when download initiates");
+  is(LinkPreview.progress, 0, "shared waiting for download");
+
+  onDownload(true, 42);
+
+  is(card.progress, 42, "percentage reflected in card");
+  is(LinkPreview.progress, 42, "shared progress updated");
 
   onDownload(false);
 
-  ok(!card.showWait, "no longer waiting after download complete");
-  ok(!LinkPreview.downloadingModel, "downloading updated");
+  is(card.progress, -1, "no longer waiting after download complete");
+  is(LinkPreview.progress, -1, "downloading updated");
   ok(card.generating, "still generating");
 
   toResolve.resolve();
   await LinkPreview.lastRequest;
 
   ok(!card.generating, "done generating");
+  events = Glean.genaiLinkpreview.generate.testGetValue();
+  ok(events[0].extra.delay, "got delay");
+  ok(events[0].extra.download, "got download");
+  is(events[0].extra.outcome, "success", "got outcome");
+  is(events[0].extra.sentences, "0", "got sentences");
+  ok(events[0].extra.time, "got time");
+
+  panel.hidePopup();
+
+  events = Glean.genaiLinkpreview.cardClose.testGetValue();
+  ok(events[0].extra.duration, "got duration");
 
   panel.remove();
   stub.restore();
@@ -376,8 +396,8 @@ add_task(async function test_skip_keypoints_generation_if_url_not_readable() {
   const card = panel.querySelector("link-preview-card");
   ok(card, "card created for link preview");
   ok(!card.generating, "card should not be in generating state");
-  ok(!card.showWait, "card should not be in waiting state");
-  ok(!LinkPreview.downloadingModel, "downloading model flag should not be set");
+  is(card.progress, -1, "card should not be in downloading state");
+  is(LinkPreview.progress, -1, "not downloading model");
 
   panel.remove();
   generateStub.restore();
