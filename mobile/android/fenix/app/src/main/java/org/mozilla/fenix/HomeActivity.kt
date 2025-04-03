@@ -15,7 +15,6 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
-import android.text.TextUtils
 import android.text.format.DateUtils
 import android.util.AttributeSet
 import android.view.ActionMode
@@ -36,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.text.layoutDirection
 import androidx.core.view.doOnAttach
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -343,7 +343,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
 
         // Changing a language on the Language screen restarts the activity, but the activity keeps
         // the old layout direction. We have to update the direction manually.
-        window.decorView.layoutDirection = TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())
+        window.decorView.layoutDirection = Locale.getDefault().layoutDirection
         window.setupPersistentInsets()
 
         binding = ActivityHomeBinding.inflate(layoutInflater)

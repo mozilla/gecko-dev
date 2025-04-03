@@ -1952,28 +1952,6 @@
 
     <issue
         id="UseKtx"
-        message="Use the KTX extension property `Locale.layoutDirection` instead?"
-        errorLine1="        window.decorView.layoutDirection = TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())"
-        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/HomeActivity.kt"
-            line="346"
-            column="44"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension property `Locale.layoutDirection` instead?"
-        errorLine1="        window.decorView.layoutDirection = TextUtils.getLayoutDirectionFromLocale(Locale.getDefault())"
-        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/HomeActivity.kt"
-            line="346"
-            column="44"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
         message="Use the KTX extension function `Int.toDrawable` instead?"
         errorLine1="                ColorDrawable(getColor(requireContext(), R.color.fx_mobile_private_layer_color_1)),"
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
