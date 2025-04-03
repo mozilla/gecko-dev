@@ -25,7 +25,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_permissions.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/ExtensionsPermissionsMetrics.h"
 
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
@@ -932,7 +932,7 @@ nsresult PermissionManager::TryInitDB(bool aRemoveFile,
     LogToConsole(u"permissions.sqlite is corrupted! Try again!"_ns);
 
     // Add telemetry probe
-    Telemetry::Accumulate(Telemetry::PERMISSIONS_SQL_CORRUPTED, 1);
+    glean::permissions::sql_corrupted.Add(1);
 
     // delete corrupted permissions.sqlite and try again
     rv = mPermissionsFile->Remove(false);
@@ -960,7 +960,7 @@ nsresult PermissionManager::TryInitDB(bool aRemoveFile,
     LogToConsole(u"Defective permissions.sqlite has been removed."_ns);
 
     // Add telemetry probe
-    Telemetry::Accumulate(Telemetry::DEFECTIVE_PERMISSIONS_SQL_REMOVED, 1);
+    glean::permissions::defective_sql_removed.Add(1);
 
     rv = OpenDatabase(mPermissionsFile);
     NS_ENSURE_SUCCESS(rv, rv);

@@ -1,0 +1,44 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Permission Manager'
+
+permissions:
+  sql_corrupted:
+    type: counter
+    description: >
+      Record the permissions.sqlite init failure
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram PERMISSIONS_SQL_CORRUPTED.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    telemetry_mirror: h#PERMISSIONS_SQL_CORRUPTED
+
+  defective_sql_removed:
+    type: counter
+    description: >
+      Record the removal of defective permissions.sqlite
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram DEFECTIVE_PERMISSIONS_SQL_REMOVED.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    telemetry_mirror: h#DEFECTIVE_PERMISSIONS_SQL_REMOVED
