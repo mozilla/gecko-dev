@@ -20,7 +20,6 @@ NON_CHROME = set(
         "defaultagent_localized.ini",
         "defaults/profile",
         "defaults/pref*/*-l10n.js",
-        "locale.ini",
         "default.locale",
         "updater.ini",
         "extensions/langpack-*@*",
