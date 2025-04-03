@@ -9477,6 +9477,9 @@ class Parser(Tokenizer):
     # Builtin IDL defined by WebIDL
     _builtins = """
         typedef (ArrayBufferView or ArrayBuffer) BufferSource;
+
+        // Should be replaced with `ArrayBuffer or SharedArrayBuffer`. See bug 1838639.
+        typedef ([AllowShared] ArrayBuffer or [AllowShared] ArrayBufferView) AllowSharedBufferSource;
     """
 
 
