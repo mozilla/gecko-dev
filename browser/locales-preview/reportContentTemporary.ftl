@@ -6,10 +6,14 @@
 
 newtab-report-ads-why-reporting =
   .label = Why are you reporting this ad?
+newtab-report-content-why-reporting =
+  .label = Why are you reporting this story?
 newtab-report-ads-reason-unsafe =
   .label = It’s unsafe
 newtab-report-ads-reason-inappropriate =
   .label = It’s inappropriate
 newtab-report-ads-reason-seen-it-too-many-times =
   .label = I’ve seen it too many times
+newtab-report-ads-reason-not-interested =
+  .label = Not interested
 newtab-report-submit = Submit

@@ -93,7 +93,7 @@ export const LinkMenuOptions = {
   BlockUrl: (site, index, eventSource) => {
     return LinkMenuOptions.BlockUrls([site], index, eventSource);
   },
-  // Same as BlockUrl, cept can work on an array of sites.
+  // Same as BlockUrl, except can work on an array of sites.
   BlockUrls: (tiles, pos, eventSource) => ({
     id: "newtab-menu-dismiss",
     icon: "dismiss",
@@ -525,12 +525,40 @@ export const LinkMenuOptions = {
       },
     }),
   }),
-  ReportAd: () => ({
-    id: "newtab-menu-report-this-ad",
-    action: ac.BroadcastToContent({ type: at.REPORT_OPEN }),
-  }),
-  ReportContent: () => ({
-    id: "newtab-menu-report-content",
-    action: ac.BroadcastToContent({ type: at.REPORT_OPEN }),
-  }),
+  ReportAd: site => {
+    return {
+      id: "newtab-menu-report-this-ad",
+      action: ac.AlsoToMain({
+        type: at.REPORT_AD_OPEN,
+        data: {
+          card_type: site.card_type,
+          position: site.position,
+          reporting_url: site.shim.report,
+          url: site.url,
+        },
+      }),
+    };
+  },
+
+  ReportContent: site => {
+    return {
+      id: "newtab-menu-report-content",
+      action: ac.AlsoToMain({
+        type: at.REPORT_CONTENT_OPEN,
+        data: {
+          card_type: site.card_type,
+          corpus_item_id: site.corpus_item_id,
+          is_section_followed: site.is_section_followed,
+          received_rank: site.received_rank,
+          recommended_at: site.recommended_at,
+          scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+          section_position: site.section_position,
+          section: site.section,
+          title: site.title,
+          topic: site.topic,
+          url: site.url,
+        },
+      }),
+    };
+  },
 };

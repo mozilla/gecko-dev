@@ -210,8 +210,11 @@ for (const type of [
   "PREVIEW_REQUEST_CANCEL",
   "PREVIEW_RESPONSE",
   "REMOVE_DOWNLOAD_FILE",
+  "REPORT_AD_OPEN",
+  "REPORT_AD_SUBMIT",
   "REPORT_CLOSE",
-  "REPORT_OPEN",
+  "REPORT_CONTENT_OPEN",
+  "REPORT_CONTENT_SUBMIT",
   "RICH_ICON_MISSING",
   "SAVE_SESSION_PERF_DATA",
   "SAVE_TO_POCKET",
@@ -1777,7 +1780,7 @@ const LinkMenuOptions = {
   BlockUrl: (site, index, eventSource) => {
     return LinkMenuOptions.BlockUrls([site], index, eventSource);
   },
-  // Same as BlockUrl, cept can work on an array of sites.
+  // Same as BlockUrl, except can work on an array of sites.
   BlockUrls: (tiles, pos, eventSource) => ({
     id: "newtab-menu-dismiss",
     icon: "dismiss",
@@ -2209,14 +2212,42 @@ const LinkMenuOptions = {
       },
     }),
   }),
-  ReportAd: () => ({
-    id: "newtab-menu-report-this-ad",
-    action: actionCreators.BroadcastToContent({ type: actionTypes.REPORT_OPEN }),
-  }),
-  ReportContent: () => ({
-    id: "newtab-menu-report-content",
-    action: actionCreators.BroadcastToContent({ type: actionTypes.REPORT_OPEN }),
-  }),
+  ReportAd: site => {
+    return {
+      id: "newtab-menu-report-this-ad",
+      action: actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_AD_OPEN,
+        data: {
+          card_type: site.card_type,
+          position: site.position,
+          reporting_url: site.shim.report,
+          url: site.url,
+        },
+      }),
+    };
+  },
+
+  ReportContent: site => {
+    return {
+      id: "newtab-menu-report-content",
+      action: actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_CONTENT_OPEN,
+        data: {
+          card_type: site.card_type,
+          corpus_item_id: site.corpus_item_id,
+          is_section_followed: site.is_section_followed,
+          received_rank: site.received_rank,
+          recommended_at: site.recommended_at,
+          scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+          section_position: site.section_position,
+          section: site.section,
+          title: site.title,
+          topic: site.topic,
+          url: site.url,
+        },
+      }),
+    };
+  },
 };
 
 ;// CONCATENATED MODULE: ./content-src/components/LinkMenu/LinkMenu.jsx
@@ -2414,8 +2445,11 @@ class _DSLinkMenu extends (external_React_default()).PureComponent {
       TOP_STORIES_CONTEXT_MENU_OPTIONS = ["BlockUrl", ...(showReporting ? ["ReportAd"] : []), "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
     } else {
       const saveToPocketOptions = this.props.pocket_button_enabled ? ["CheckArchiveFromPocket", "CheckSavedToPocket"] : [];
-      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", ...(showReporting ? ["ReportContent"] : []), ...saveToPocketOptions, "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
+      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", ...(showReporting && this.props.section ? ["ReportContent"] : []), ...saveToPocketOptions, "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
     }
+
+    // eslint-disable-next-line no-console
+    console.log("dslinkmenu prop", this.props);
     const type = this.props.type || "DISCOVERY_STREAM";
     const title = this.props.title || this.props.source;
     return /*#__PURE__*/external_React_default().createElement("div", {
@@ -2451,7 +2485,9 @@ class _DSLinkMenu extends (external_React_default()).PureComponent {
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
+        topic: this.props.topic,
         is_list_card: this.props.is_list_card,
+        position: index,
         ...(this.props.format ? {
           format: this.props.format
         } : {}),
@@ -4047,7 +4083,9 @@ class _DSCard extends (external_React_default()).PureComponent {
       section_position: this.props.sectionPosition,
       is_section_followed: this.props.sectionFollowed,
       format: format,
-      isSectionsCard: this.props.mayHaveSectionsCards
+      isSectionsCard: this.props.mayHaveSectionsCards,
+      topic: this.props.topic,
+      selected_topics: this.props.selected_topics
     }))));
   }
 }
@@ -5770,23 +5808,90 @@ class DSPrivacyModal extends (external_React_default()).PureComponent {
 
 
 
-const ReportContent = () => {
+const ReportContent = spocs => {
   const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
   const modal = (0,external_React_namespaceObject.useRef)(null);
   const radioGroupRef = (0,external_React_namespaceObject.useRef)(null);
   const submitButtonRef = (0,external_React_namespaceObject.useRef)(null);
   const report = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream.report);
   const [valueSelected, setValueSelected] = (0,external_React_namespaceObject.useState)(false);
+  const [selectedReason, setSelectedReason] = (0,external_React_namespaceObject.useState)(null);
+  const spocData = spocs.spocs.data;
 
   // Sends a dispatch to update the redux store when modal is cancelled
-  const handleCancel = (0,external_React_namespaceObject.useCallback)(() => {
-    dispatch(actionCreators.BroadcastToContent({
+  const handleCancel = () => {
+    dispatch(actionCreators.AlsoToMain({
       type: actionTypes.REPORT_CLOSE
     }));
-  }, [dispatch]);
-  const handleSubmit = (0,external_React_namespaceObject.useCallback)(e => {
-    e.preventDefault();
-  }, []);
+  };
+  const handleSubmit = (0,external_React_namespaceObject.useCallback)(() => {
+    const {
+      card_type,
+      corpus_item_id,
+      is_section_followed,
+      position,
+      received_rank,
+      recommended_at,
+      reporting_url,
+      scheduled_corpus_item_id,
+      section_position,
+      section,
+      title,
+      topic,
+      url
+    } = report;
+    if (card_type === "organic") {
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_CONTENT_SUBMIT,
+        data: {
+          card_type,
+          corpus_item_id,
+          is_section_followed,
+          received_rank,
+          recommended_at,
+          report_reason: selectedReason,
+          scheduled_corpus_item_id,
+          section_position,
+          section,
+          title,
+          topic,
+          url
+        }
+      }));
+    } else if (card_type === "spoc") {
+      // Retrieve placement_id by comparing spocData with the ad that was reported
+      const getPlacementId = () => {
+        if (!spocData || !report.url) {
+          return null;
+        }
+        for (const [placementId, spocList] of Object.entries(spocData)) {
+          for (const spoc of Object.values(spocList)) {
+            if (spoc?.url === report.url) {
+              return placementId;
+            }
+          }
+        }
+        return null;
+      };
+      const placement_id = getPlacementId();
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_AD_SUBMIT,
+        data: {
+          report_reason: selectedReason,
+          placement_id,
+          position,
+          reporting_url,
+          url
+        }
+      }));
+    }
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.BLOCK_URL,
+      data: [{
+        ...report
+      }]
+    }));
+  }, [dispatch, selectedReason, report, spocData]);
 
   // Opens and closes the modal based on user interaction
   (0,external_React_namespaceObject.useEffect)(() => {
@@ -5801,7 +5906,13 @@ const ReportContent = () => {
   (0,external_React_namespaceObject.useEffect)(() => {
     const radioGroup = radioGroupRef.current;
     const submitButton = submitButtonRef.current;
-    const handleRadioChange = () => setValueSelected(true);
+    const handleRadioChange = e => {
+      const reasonValue = e?.target?.value;
+      if (reasonValue) {
+        setValueSelected(true);
+        setSelectedReason(reasonValue);
+      }
+    };
     if (radioGroup) {
       radioGroup.addEventListener("change", handleRadioChange);
     }
@@ -5820,7 +5931,7 @@ const ReportContent = () => {
         radioGroup.removeEventListener("change", handleRadioChange);
       }
     };
-  }, [valueSelected]);
+  }, [valueSelected, selectedReason]);
   return /*#__PURE__*/external_React_default().createElement("dialog", {
     className: "report-content-form",
     id: "dialog-report",
@@ -5830,21 +5941,35 @@ const ReportContent = () => {
     })
   }, /*#__PURE__*/external_React_default().createElement("form", {
     action: ""
-  }, /*#__PURE__*/external_React_default().createElement("moz-radio-group", {
+  }, report.card_type === "spoc" ? /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("moz-radio-group", {
     name: "report",
     ref: radioGroupRef,
     id: "report-group",
     "data-l10n-id": "newtab-report-ads-why-reporting"
   }, /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    value: "unsafe",
-    "data-l10n-id": "newtab-report-ads-reason-unsafe"
+    "data-l10n-id": "newtab-report-ads-reason-not-interested",
+    value: "not_interested"
   }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
     "data-l10n-id": "newtab-report-ads-reason-inappropriate",
     value: "inappropriate"
   }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
     "data-l10n-id": "newtab-report-ads-reason-seen-it-too-many-times",
-    value: "too-many"
-  })), /*#__PURE__*/external_React_default().createElement("moz-button-group", null, /*#__PURE__*/external_React_default().createElement("moz-button", {
+    value: "seen_too_many_times"
+  }))) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("moz-radio-group", {
+    name: "report",
+    ref: radioGroupRef,
+    id: "report-group",
+    "data-l10n-id": "newtab-report-content-why-reporting"
+  }, /*#__PURE__*/external_React_default().createElement("moz-radio", {
+    value: "Unsafe content",
+    "data-l10n-id": "newtab-report-ads-reason-unsafe"
+  }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
+    "data-l10n-id": "newtab-report-ads-reason-inappropriate",
+    value: "Inappropriate content"
+  }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
+    "data-l10n-id": "newtab-report-ads-reason-seen-it-too-many-times",
+    value: "Seen too many times"
+  }))), /*#__PURE__*/external_React_default().createElement("moz-button-group", null, /*#__PURE__*/external_React_default().createElement("moz-button", {
     "data-l10n-id": "newtab-topic-selection-cancel-button",
     onClick: handleCancel
   }), /*#__PURE__*/external_React_default().createElement("moz-button", {
@@ -7941,15 +8066,41 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         showBlockSectionConfirmation: true,
         sectionData: action.data,
       };
-    case actionTypes.REPORT_OPEN:
+    case actionTypes.REPORT_AD_OPEN:
       return {
         ...prevState,
         report: {
           ...prevState.report,
+          card_type: action.data?.card_type,
+          position: action.data?.position,
+          placement_id: action.data?.placement_id,
+          reporting_url: action.data?.reporting_url,
+          url: action.data?.url,
+          visible: true,
+        },
+      };
+    case actionTypes.REPORT_CONTENT_OPEN:
+      return {
+        ...prevState,
+        report: {
+          ...prevState.report,
+          card_type: action.data?.card_type,
+          corpus_item_id: action.data?.corpus_item_id,
+          is_section_followed: action.data?.is_section_followed,
+          received_rank: action.data?.received_rank,
+          recommended_at: action.data?.recommended_at,
+          scheduled_corpus_item_id: action.data?.scheduled_corpus_item_id,
+          section_position: action.data?.section_position,
+          section: action.data?.section,
+          title: action.data?.title,
+          topic: action.data?.topic,
+          url: action.data?.url,
           visible: true,
         },
       };
     case actionTypes.REPORT_CLOSE:
+    case actionTypes.REPORT_AD_SUBMIT:
+    case actionTypes.REPORT_CONTENT_SUBMIT:
       return {
         ...prevState,
         report: {
@@ -11325,9 +11476,14 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
     }
 
     // Render a DS-style TopSites then the rest if any in a collapsible section
+    const {
+      DiscoveryStream
+    } = this.props;
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, this.props.DiscoveryStream.isPrivacyInfoModalVisible && /*#__PURE__*/external_React_default().createElement(DSPrivacyModal, {
       dispatch: this.props.dispatch
-    }), reportContentEnabled && /*#__PURE__*/external_React_default().createElement(ReportContent, null), topSites && this.renderLayout([{
+    }), reportContentEnabled && /*#__PURE__*/external_React_default().createElement(ReportContent, {
+      spocs: DiscoveryStream.spocs
+    }), topSites && this.renderLayout([{
       width: 12,
       components: [topSites],
       sectionType: "topsites"

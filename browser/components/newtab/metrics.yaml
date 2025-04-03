@@ -906,6 +906,102 @@ newtab:
     expires: never
     telemetry_mirror: FX_ABOUTHOME_CACHE_CONSTRUCTION
 
+  report_content_open:
+    type: event
+    description: >
+      Recorded when content reporting is opened from context menu
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954656
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954656
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - rhamoui@mozilla.com
+    expires: never
+    extra_keys:
+      newtab_visit_id: *newtab_visit_id
+    send_in_pings:
+      - newtab
+
+  report_content_submit:
+    type: event
+    description: >
+      Recorded when content reporting has been submitted
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954656
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1954656
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - rhamoui@mozilla.com
+    expires: never
+    extra_keys:
+      card_type:
+        description: >
+          The type of the content card (e.g., "spoc", "organic")
+        type: string
+      corpus_item_id:
+        description: >
+          A content identifier.
+          For organic Newtab recommendations it is an opaque id produced by
+          Newtab's recommendation systems that corresponds uniquely to the URL.
+          This is the replacement for tile_id and scheduled_corpus_item_id.
+        type: string
+      is_section_followed:
+        description: >
+          If click belongs in a section, if that section is followed
+        type: boolean
+      newtab_visit_id:
+        description: >
+          The id of this newtab visit.
+          Allows you to separate multiple simultaneous newtabs and
+          build an event timeline of actions taken from this newtab.
+        type: string
+      received_rank:
+        description: >
+          The rank or order of the recommendation at the time it was sent to the client.
+        type: quantity
+      recommended_at:
+        description: >
+          The time in milliseconds the recommendation was recommended at.
+        type: quantity
+      report_reason:
+        description: >
+          The reason selected by the user when reporting the content
+        type: string
+      scheduled_corpus_item_id:
+        description: >
+          A content identifier.
+          For organic Newtab recommendations it is an opaque id produced by
+          Newtab's recommendation systems that corresponds uniquely to
+          a piece of content scheduled for a specific day on a specific surface.
+          This is the replacement for tile_id.
+        type: string
+      section:
+        description: >
+          If click belongs in a section, the name of the section
+        type: string
+      section_position:
+        description: >
+          If click belongs in a section, the numeric position of the section
+        type: string
+      title:
+        description: >
+          Title of the recommendation.
+        type: string
+      topic:
+        description: >
+          The topic of the recommendation. Like "entertainment".
+        type: string
+      url:
+        description: >
+          URL of the recommendation.
+        type: string
+    send_in_pings:
+      - newtab
+
 newtab.search:
   enabled:
     lifetime: application

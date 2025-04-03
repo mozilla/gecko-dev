@@ -31,7 +31,7 @@ export class _DSLinkMenu extends React.PureComponent {
 
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "CheckBookmark",
-        ...(showReporting ? ["ReportContent"] : []),
+        ...(showReporting && this.props.section ? ["ReportContent"] : []),
         ...saveToPocketOptions,
         "Separator",
         "OpenInNewWindow",
@@ -40,6 +40,9 @@ export class _DSLinkMenu extends React.PureComponent {
         "BlockUrl",
       ];
     }
+
+    // eslint-disable-next-line no-console
+    console.log("dslinkmenu prop", this.props);
 
     const type = this.props.type || "DISCOVERY_STREAM";
     const title = this.props.title || this.props.source;
@@ -76,7 +79,9 @@ export class _DSLinkMenu extends React.PureComponent {
               scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
               recommended_at: this.props.recommended_at,
               received_rank: this.props.received_rank,
+              topic: this.props.topic,
               is_list_card: this.props.is_list_card,
+              position: index,
               ...(this.props.format ? { format: this.props.format } : {}),
               ...(this.props.section
                 ? {

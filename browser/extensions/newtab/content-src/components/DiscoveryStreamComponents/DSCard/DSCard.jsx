@@ -923,6 +923,8 @@ export class _DSCard extends React.PureComponent {
                 is_section_followed={this.props.sectionFollowed}
                 format={format}
                 isSectionsCard={this.props.mayHaveSectionsCards}
+                topic={this.props.topic}
+                selected_topics={this.props.selected_topics}
               />
             )}
           </div>

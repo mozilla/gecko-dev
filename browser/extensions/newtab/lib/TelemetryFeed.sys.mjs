@@ -1,3 +1,6 @@
+// We're using console.error() to debug, so we'll be keeping this rule handy
+/* eslint no-console: ["error", { allow: ["error"] }] */
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -553,7 +556,6 @@ export class TelemetryFeed {
       },
     });
     const session = this.sessions.get(au.getPortIdOfSender(action));
-
     switch (action.data?.event) {
       case "CLICK": {
         const {
@@ -984,6 +986,89 @@ export class TelemetryFeed {
       case at.INLINE_SELECTION_IMPRESSION:
         this.handleInlineSelectionUserEvent(action);
         break;
+      case at.REPORT_AD_OPEN:
+      case at.REPORT_AD_SUBMIT:
+        this.handleReportAdUserEvent(action);
+        break;
+      case at.REPORT_CONTENT_OPEN:
+      case at.REPORT_CONTENT_SUBMIT:
+        this.handleReportContentUserEvent(action);
+        break;
+    }
+  }
+
+  async handleReportAdUserEvent(action) {
+    const { placement_id, position, report_reason, reporting_url } =
+      action.data || {};
+
+    const url = new URL(reporting_url);
+    url.searchParams.append("placement_id", placement_id);
+    url.searchParams.append("reason", report_reason);
+    url.searchParams.append("position", position);
+    const adResponse = url.toString();
+
+    const allowed =
+      this._prefs
+        .get(PREF_ENDPOINTS)
+        .split(",")
+        .map(item => item.trim())
+        .filter(item => item) || [];
+
+    if (!allowed.some(prefix => adResponse.startsWith(prefix))) {
+      throw new Error(
+        `[Unified ads callback] Not one of allowed prefixes (${allowed})`
+      );
+    }
+
+    try {
+      await fetch(adResponse);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  handleReportContentUserEvent(action) {
+    const session = this.sessions.get(au.getPortIdOfSender(action));
+    const {
+      card_type,
+      corpus_item_id,
+      is_section_followed,
+      received_rank,
+      recommended_at,
+      report_reason,
+      scheduled_corpus_item_id,
+      section_position,
+      section,
+      title,
+      topic,
+      url,
+    } = action.data || {};
+
+    if (session) {
+      switch (action.type) {
+        case "REPORT_CONTENT_OPEN":
+          Glean.newtab.reportContentOpen.record({
+            newtab_visit_id: session.session_id,
+          });
+          break;
+        case "REPORT_CONTENT_SUBMIT":
+          Glean.newtab.reportContentSubmit.record({
+            card_type,
+            corpus_item_id,
+            is_section_followed,
+            newtab_visit_id: session.session_id,
+            received_rank,
+            recommended_at,
+            report_reason,
+            scheduled_corpus_item_id,
+            section_position,
+            section,
+            title,
+            topic,
+            url,
+          });
+          break;
+      }
     }
   }
 
