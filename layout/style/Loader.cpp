@@ -765,9 +765,10 @@ nsresult SheetLoadData::VerifySheetReadyToParse(nsresult aStatus,
     NS_ConvertUTF8toUTF16 sheetUri(mSheet->GetSheetURI()->GetSpecOrDefault());
     NS_ConvertUTF8toUTF16 contentType16(contentType);
 
-    nsCOMPtr<nsIURI> referrer = ReferrerInfo()->GetOriginalReferrer();
     nsAutoCString referrerSpec;
-    referrer->GetSpec(referrerSpec);
+    if (nsCOMPtr<nsIURI> referrer = ReferrerInfo()->GetOriginalReferrer()) {
+      referrer->GetSpec(referrerSpec);
+    }
     mLoader->mReporter->AddConsoleReport(
         flag, "CSS Loader"_ns, nsContentUtils::eCSS_PROPERTIES, referrerSpec, 0,
         0, errorMessage, {sheetUri, contentType16});
