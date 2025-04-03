@@ -833,6 +833,7 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   if (aSource->GetFormat() == ImageFormat::PLANAR_YCBCR) {
     PlanarYCbCrImage* image = aSource->AsPlanarYCbCrImage();
     if (!image || !image->GetData()) {
+      LOGE("Failed to get PlanarYCbCrImage or its data");
       return nullptr;
     }
 
