@@ -5929,8 +5929,9 @@ nsresult nsHttpChannel::AsyncProcessRedirection(uint32_t redirectType) {
                                     &isThirdPartyRedirectURI);
     if (isThirdPartyRedirectURI && mLoadInfo->GetExternalContentPolicyType() ==
                                        ExtContentPolicy::TYPE_DOCUMENT) {
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_QUERY_STRIPPING_COUNT::Redirect);
+      glean::contentblocking::query_stripping_count
+          .EnumGet(glean::contentblocking::QueryStrippingCountLabel::eRedirect)
+          .Add();
 
       nsCOMPtr<nsIPrincipal> prin;
       ContentBlockingAllowList::RecomputePrincipal(
@@ -5961,8 +5962,10 @@ nsresult nsHttpChannel::AsyncProcessRedirection(uint32_t redirectType) {
           mRedirectURI = strippedURI;
 
           // Record telemetry, but only if we stripped any query params.
-          Telemetry::AccumulateCategorical(
-              Telemetry::LABELS_QUERY_STRIPPING_COUNT::StripForRedirect);
+          glean::contentblocking::query_stripping_count
+              .EnumGet(glean::contentblocking::QueryStrippingCountLabel::
+                           eStripforredirect)
+              .Add();
           glean::contentblocking::query_stripping_param_count
               .AccumulateSingleSample(numStripped);
         }
