@@ -173,30 +173,72 @@ static bool SetProfileLevel(VTCompressionSessionRef& aSession,
 }
 
 static Result<OSType, MediaResult> MapPixelFormat(
-    dom::ImageBitmapFormat aFormat) {
+    dom::ImageBitmapFormat aFormat, gfx::ColorRange aColorRange) {
+  const bool isFullRange = aColorRange == gfx::ColorRange::FULL;
+
+  Maybe<OSType> fmt;
   switch (aFormat) {
-    case dom::ImageBitmapFormat::RGBA32:
-      return kCVPixelFormatType_32RGBA;
-    case dom::ImageBitmapFormat::BGRA32:
-      return kCVPixelFormatType_32BGRA;
-    case dom::ImageBitmapFormat::RGB24:
-      return kCVPixelFormatType_24RGB;
-    case dom::ImageBitmapFormat::BGR24:
-      return kCVPixelFormatType_24BGR;
-    case dom::ImageBitmapFormat::GRAY8:
-      return kCVPixelFormatType_OneComponent8;
     case dom::ImageBitmapFormat::YUV444P:
       return kCVPixelFormatType_444YpCbCr8;
     case dom::ImageBitmapFormat::YUV420P:
-      return kCVPixelFormatType_420YpCbCr8PlanarFullRange;
+      return isFullRange ? kCVPixelFormatType_420YpCbCr8PlanarFullRange
+                         : kCVPixelFormatType_420YpCbCr8Planar;
     case dom::ImageBitmapFormat::YUV420SP_NV12:
-      return kCVPixelFormatType_420YpCbCr8BiPlanarFullRange;
+      return isFullRange ? kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+                         : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
+    case dom::ImageBitmapFormat::RGBA32:
+      fmt.emplace(kCVPixelFormatType_32RGBA);
+      break;
+    case dom::ImageBitmapFormat::BGRA32:
+      fmt.emplace(kCVPixelFormatType_32BGRA);
+      break;
+    case dom::ImageBitmapFormat::RGB24:
+      fmt.emplace(kCVPixelFormatType_24RGB);
+      break;
+    case dom::ImageBitmapFormat::BGR24:
+      fmt.emplace(kCVPixelFormatType_24BGR);
+      break;
+    case dom::ImageBitmapFormat::GRAY8:
+      fmt.emplace(kCVPixelFormatType_OneComponent8);
+      break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unsupported image format");
   }
+
+  // Limited RGB formats are not supported on MacOS (Bug 1957758).
+  if (fmt) {
+    if (!isFullRange) {
+      return Err(MediaResult(
+          NS_ERROR_NOT_IMPLEMENTED,
+          nsPrintfCString("format %s with limited colorspace is not supported",
+                          dom::GetEnumString(aFormat).get())));
+    }
+    return fmt.value();
+  }
+
   return Err(MediaResult(NS_ERROR_NOT_IMPLEMENTED,
                          nsPrintfCString("format %s is not supported",
                                          dom::GetEnumString(aFormat).get())));
+}
+
+static Result<OSType, MediaResult> GetPixelFormat(Image* aImage) {
+  const dom::ImageUtils imageUtils(aImage);
+  Maybe<dom::ImageBitmapFormat> format = imageUtils.GetFormat();
+  if (format.isNothing()) {
+    return Err(
+        MediaResult(NS_ERROR_NOT_IMPLEMENTED, "unsupported image format"));
+  }
+
+  if (PlanarYCbCrImage* image = aImage->AsPlanarYCbCrImage()) {
+    if (const PlanarYCbCrImage::Data* yuv = image->GetData()) {
+      return MapPixelFormat(format.ref(), yuv->mColorRange);
+    }
+    return Err(MediaResult(NS_ERROR_UNEXPECTED,
+                           "failed to get YUV data for YUV image"));
+  }
+
+  // Mac only supports full-range RGB formats.
+  return MapPixelFormat(format.ref(), gfx::ColorRange::FULL);
 }
 
 RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
@@ -228,7 +270,8 @@ MediaResult AppleVTEncoder::InitSession() {
                        "SVC only supported on macOS 11.3 and more recent");
   }
 
-  auto r = MapPixelFormat(mConfig.mSourcePixelFormat);
+  // TODO: Set color range correctly.
+  auto r = MapPixelFormat(mConfig.mSourcePixelFormat, gfx::ColorRange::FULL);
   if (r.isErr()) {
     return r.unwrapErr();
   }
@@ -829,20 +872,7 @@ static void ReleaseImage(void* aImageGrip, const void* aDataPtr,
 CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   AssertOnTaskQueue();
 
-  const dom::ImageUtils imageUtils(aSource);
-  Maybe<dom::ImageBitmapFormat> format = imageUtils.GetFormat();
-  if (format.isNothing()) {
-    LOGE("Unsupported image format");
-    return nullptr;
-  }
-
-  if (format.ref() != mConfig.mSourcePixelFormat) {
-    LOGV("Input image in format %s, but encoder applied with format %s",
-         dom::GetEnumString(format.ref()).get(),
-         dom::GetEnumString(mConfig.mSourcePixelFormat).get());
-  }
-
-  auto r = MapPixelFormat(format.ref());
+  auto r = GetPixelFormat(aSource);
   if (r.isErr()) {
     MediaResult err = r.unwrapErr();
     LOGE("%s", err.Description().get());
@@ -850,6 +880,19 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   }
 
   OSType pixelFormat = r.unwrap();
+
+  OSType presetFormat =
+      MapPixelFormat(mConfig.mSourcePixelFormat, gfx::ColorRange::FULL)
+          .unwrap();
+  if (pixelFormat != presetFormat) {
+    LOGV(
+        "Input image in format %d but encoder configured with format %d. "
+        "Fingers crossed",
+        pixelFormat, presetFormat);
+    // If the encoder cannot encode the image in pixelFormat to presetFormat,
+    // a kVTPixelTransferNotSupportedErr error will be thrown. In such cases,
+    // the encoder should be re-initialized (see bug 1955153).
+  }
 
   if (aSource->GetFormat() == ImageFormat::PLANAR_YCBCR) {
     PlanarYCbCrImage* image = aSource->AsPlanarYCbCrImage();
