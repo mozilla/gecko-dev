@@ -1517,29 +1517,12 @@ void nsRefreshDriver::PostScrollEvent(mozilla::Runnable* aScrollEvent,
   }
 }
 
-void nsRefreshDriver::PostScrollEndEvent(mozilla::Runnable* aScrollEndEvent,
-                                         bool aDelayed) {
-  if (aDelayed) {
-    mDelayedScrollEndEvents.AppendElement(aScrollEndEvent);
-  } else {
-    mScrollEndEvents.AppendElement(aScrollEndEvent);
-    EnsureTimerStarted();
-  }
-}
-
 void nsRefreshDriver::DispatchScrollEvents() {
   // Scroll events are one-shot, so after running them we can drop them.
   // However, dispatching a scroll event can potentially cause more scroll
   // events to be posted, so we move the initial set into a temporary array
   // first. (Newly posted scroll events will be dispatched on the next tick.)
   ScrollEventArray events = std::move(mScrollEvents);
-  for (auto& event : events) {
-    event->Run();
-  }
-}
-
-void nsRefreshDriver::DispatchScrollEndEvents() {
-  ScrollEventArray events = std::move(mScrollEndEvents);
   for (auto& event : events) {
     event->Run();
   }
@@ -1663,9 +1646,6 @@ void nsRefreshDriver::RunDelayedEventsSoon() {
 
   mScrollEvents.AppendElements(mDelayedScrollEvents);
   mDelayedScrollEvents.Clear();
-
-  mScrollEndEvents.AppendElements(mDelayedScrollEvents);
-  mDelayedScrollEndEvents.Clear();
 
   mResizeEventFlushObservers.AppendElements(mDelayedResizeEventFlushObservers);
   mDelayedResizeEventFlushObservers.Clear();
@@ -1991,7 +1971,7 @@ auto nsRefreshDriver::GetReasonsToTick() const -> TickReasons {
   if (!mVisualViewportResizeEvents.IsEmpty()) {
     reasons |= TickReasons::eHasVisualViewportResizeEvents;
   }
-  if (!mScrollEvents.IsEmpty() || !mScrollEndEvents.IsEmpty()) {
+  if (!mScrollEvents.IsEmpty()) {
     reasons |= TickReasons::eHasScrollEvents;
   }
   if (!mVisualViewportScrollEvents.IsEmpty()) {
@@ -2746,7 +2726,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   // Step 9. For each doc of docs, run the scroll steps for doc.
   DispatchScrollEvents();
   DispatchVisualViewportScrollEvents();
-  DispatchScrollEndEvents();
 
   // Step 10. For each doc of docs, evaluate media queries and report changes
   // for doc.
