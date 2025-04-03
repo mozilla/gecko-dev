@@ -711,9 +711,7 @@ def generate_beetmover_artifact_map(config, job, **kwargs):
                 "build_number": config.params["build_number"],
                 "year": upload_date.year,
                 "month": upload_date.strftime("%m"),  # zero-pad the month
-                "day": upload_date.strftime("%d"),
                 "upload_date": upload_date.strftime("%Y-%m-%d-%H-%M-%S"),
-                "head_rev": config.params["head_rev"],
             }
         )
         kwargs.update(**platforms)

@@ -216,13 +216,6 @@ Beetmover, takes specific artifacts, "Beets", and pushes them to a location outs
 of Taskcluster's task artifacts, (archive.mozilla.org as one place) and in the
 process determines the final location and a "pretty" name (versioned product name)
 
-beetmover-integration
----------------------
-Beetmover, takes specific artifacts, "Beets", and pushes them to a location outside
-of Taskcluster's task artifacts, (archive.mozilla.org as one place) and in the
-process determines the final location and a "pretty" name (versioned product name)
-This separate kind archives builds from the autoland branch.
-
 beetmover-l10n
 --------------
 
