@@ -24,6 +24,8 @@ EOF
 export MOZCONFIG=$mozconfig
 GRADLE=$MOZ_FETCHES_DIR/android-gradle-dependencies/gradle-dist/bin/gradle
 
+export MOZ_OBJDIR=/builds/worker/workspace/obj-build
+
 ./mach configure
 
 eval $PRE_GRADLEW
