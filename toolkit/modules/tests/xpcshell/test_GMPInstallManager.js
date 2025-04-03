@@ -20,9 +20,6 @@ const { HttpServer } = ChromeUtils.importESModule(
 const { Preferences } = ChromeUtils.importESModule(
   "resource://gre/modules/Preferences.sys.mjs"
 );
-const { TelemetryTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TelemetryTestUtils.sys.mjs"
-);
 const { UpdateUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/UpdateUtils.sys.mjs"
 );
@@ -564,7 +561,7 @@ add_task(async function test_checkForAddons_updatesWithAddons() {
 add_task(async function test_checkForAddons_contentSignatureSuccess() {
   const previousUrlOverride = setupContentSigTestPrefs();
 
-  const xmlFetchResultHistogram = resetGmpTelemetryAndGetHistogram();
+  Services.fog.testResetFOG();
 
   const testServerInfo = getTestServerForContentSignatureTests();
   Preferences.set(GMPPrefs.KEY_URL_OVERRIDE, testServerInfo.validUpdateUri);
@@ -609,8 +606,6 @@ add_task(async function test_checkForAddons_contentSignatureSuccess() {
     Assert.ok(false, "checkForAddons should succeed");
   }
 
-  // # Ok content sig fetches should be 1, all others should be 0.
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 2, 1);
   // Test that glean has 1 success for content sig and no other metrics.
   const expectedGleanValues = {
     cert_pin_success: 0,
@@ -642,7 +637,7 @@ add_task(async function test_checkForAddons_contentSignatureSuccess() {
 add_task(async function test_checkForAddons_contentSignatureFailure() {
   const previousUrlOverride = setupContentSigTestPrefs();
 
-  const xmlFetchResultHistogram = resetGmpTelemetryAndGetHistogram();
+  Services.fog.testResetFOG();
 
   const testServerInfo = getTestServerForContentSignatureTests();
   Preferences.set(
@@ -697,8 +692,6 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
     Assert.ok(false, "checkForAddons should succeed");
   }
 
-  // # Failed content sig fetches should be 1, all others should be 0.
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 1);
   // Glean values should reflect the content sig algo failed.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_missing_data.testGetValue(),
@@ -711,10 +704,8 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
   // Fail due to bad content signature.
   Preferences.set(GMPPrefs.KEY_URL_OVERRIDE, testServerInfo.badContentSigUri);
   await installManager.checkForAddons();
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 2);
-  // ... and it should be due to the signature being bad, which causes
-  // verification to fail.
+  // Should have another failure and it should be due to the signature being bad,
+  // which causes verification to fail.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_failed.testGetValue(),
     1
@@ -726,9 +717,7 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
     testServerInfo.invalidContentSigUri
   );
   await installManager.checkForAddons();
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 3);
-  // ... and it should be due to the signature being invalid.
+  // Should have another failure and it should be due to the signature being invalid.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_invalid.testGetValue(),
     1
@@ -740,9 +729,7 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
     "https://this.url.doesnt/go/anywhere"
   );
   await installManager.checkForAddons();
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 4);
-  // ... and it should be due to a bad request.
+  // Should have another failure and it should be due to a bad request.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_net_request_error.testGetValue(),
     1
@@ -759,8 +746,7 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
     overriddenServiceRequest,
     () => installManager.checkForAddons()
   );
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 5);
-  // ... and it should be due to a timeout.
+  // Should have another failure and it should be due to a timeout.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_net_timeout.testGetValue(),
     1
@@ -780,9 +766,7 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
     overriddenServiceRequest.abort();
   }, 100);
   await promise;
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 6);
-  // ... and it should be due to an abort.
+  // Should have another failure and it should be due to an abort.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_abort.testGetValue(),
     1
@@ -790,9 +774,8 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
 
   Preferences.set(GMPPrefs.KEY_URL_OVERRIDE, testServerInfo.badXmlUri);
   await installManager.checkForAddons();
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 7);
-  // ... and it should be due to the xml response being unrecognized.
+  // Should have another failure and it should be due to the xml response being
+  // unrecognized.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_xml_parse_error.testGetValue(),
     1
@@ -801,9 +784,7 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
   // Fail via bad request during the x5u look up.
   Preferences.set(GMPPrefs.KEY_URL_OVERRIDE, testServerInfo.badX5uRequestUri);
   await installManager.checkForAddons();
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 8);
-  // ... and it should be due to a bad request.
+  // Should have another failure and it should be due to a bad request.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_net_request_error.testGetValue(),
     2
@@ -820,9 +801,7 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
   await testServerInfo.promiseHolder.serverPromise;
   delete testServerInfo.promiseHolder.installPromise;
   delete testServerInfo.promiseHolder.serverPromise;
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 9);
-  // ... and it should be due to a timeout.
+  // Should have another failure and it should be due to a timeout.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_net_timeout.testGetValue(),
     2
@@ -839,9 +818,7 @@ add_task(async function test_checkForAddons_contentSignatureFailure() {
   await testServerInfo.promiseHolder.serverPromise;
   delete testServerInfo.promiseHolder.installPromise;
   delete testServerInfo.promiseHolder.serverPromise;
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 3, 10);
-  // ... and it should be due to an abort.
+  // Should have another failure and it should be due to an abort.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.content_sig_abort.testGetValue(),
     2
@@ -938,7 +915,7 @@ add_task(async function test_checkForAddons_telemetry_certPinning() {
   // Grab state so we can restore it at the end of the test.
   const previousUrlOverride = Preferences.get(GMPPrefs.KEY_URL_OVERRIDE, "");
 
-  let xmlFetchResultHistogram = resetGmpTelemetryAndGetHistogram();
+  Services.fog.testResetFOG();
 
   // Re-use the content-sig test server config. We're not going to need any of
   // the content signature specific config but this gives us a server to get
@@ -959,27 +936,19 @@ add_task(async function test_checkForAddons_telemetry_certPinning() {
     Assert.ok(false, "checkForAddons should succeed");
   }
 
-  // # Ok cert pin fetches should be 1, all others should be 0.
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 0, 1);
-  // Glean values should reflect the same.
+  // Glean values should reflect 1 successful pin fetch.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.cert_pin_success.testGetValue(),
     1
   );
 
-  // Reset the histogram because we want to check a different index.
-  xmlFetchResultHistogram = TelemetryTestUtils.getAndClearHistogram(
-    "MEDIA_GMP_UPDATE_XML_FETCH_RESULT"
-  );
   // Fail by pointing to a bad URL.
   Preferences.set(
     GMPPrefs.KEY_URL_OVERRIDE,
     "https://this.url.doesnt/go/anywhere"
   );
   await installManager.checkForAddons();
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 1, 1);
-  // ... and it should be due to a bad request.
+  // Should have another failure and it should be due to a bad request.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.cert_pin_net_request_error.testGetValue(),
     1
@@ -996,8 +965,7 @@ add_task(async function test_checkForAddons_telemetry_certPinning() {
     overriddenServiceRequest,
     () => installManager.checkForAddons()
   );
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 1, 2);
-  // ... and it should be due to a timeout.
+  // Should have another failure and it should be due to a timeout.
   Assert.equal(
     Glean.gmp.updateXmlFetchResult.cert_pin_net_timeout.testGetValue(),
     1
@@ -1017,9 +985,7 @@ add_task(async function test_checkForAddons_telemetry_certPinning() {
     overriddenServiceRequest.abort();
   }, 100);
   await promise;
-  // Should have another failure...
-  TelemetryTestUtils.assertHistogram(xmlFetchResultHistogram, 1, 3);
-  // ... and it should be due to an abort.
+  // Should have another failure and it should be due to an abort.
   Assert.equal(Glean.gmp.updateXmlFetchResult.cert_pin_abort.testGetValue(), 1);
 
   // Check all glean metrics have expected values at test end.
@@ -1950,19 +1916,6 @@ function revertContentSigTestPrefs(previousUrlOverride) {
     Preferences.reset(GMPPrefs.KEY_URL_OVERRIDE);
   }
   Preferences.set("media.gmp-manager.checkContentSignature", false);
-}
-
-/***
- * Reset telemetry data related to gmp updates, and get the histogram
- * associated with MEDIA_GMP_UPDATE_XML_FETCH_RESULT.
- *
- * @returns The freshly cleared MEDIA_GMP_UPDATE_XML_FETCH_RESULT histogram.
- */
-function resetGmpTelemetryAndGetHistogram() {
-  Services.fog.testResetFOG();
-  return TelemetryTestUtils.getAndClearHistogram(
-    "MEDIA_GMP_UPDATE_XML_FETCH_RESULT"
-  );
 }
 
 /***
