@@ -572,6 +572,9 @@ var SidebarController = {
     await this._state.loadInitialState(state);
     await this.waitUntilStable(); // Finish newly scheduled tasks.
     this.updateToolbarButton();
+    if (this.sidebarRevampVisibility === "expand-on-hover") {
+      await this.toggleExpandOnHover(true);
+    }
     this.uiStateInitialized = true;
   },
 
@@ -1951,6 +1954,10 @@ var SidebarController = {
 
   async setLauncherCollapsedWidth() {
     let browserEl = document.getElementById("browser");
+    if (this.getUIState().launcherExpanded) {
+      this._state.launcherExpanded = false;
+    }
+    await this.waitUntilStable();
     let collapsedWidth = await new Promise(resolve => {
       requestAnimationFrame(() => {
         resolve(this._getRects([this.sidebarMain])[0][1].width);
@@ -2007,9 +2014,6 @@ var SidebarController = {
     if (isEnabled) {
       if (!this._state) {
         this._state = new this.SidebarState(this);
-      }
-      if (this.getUIState().launcherExpanded && !isDragEnded) {
-        this._state.launcherExpanded = false;
       }
       await this.waitUntilStable();
       MousePosTracker.addListener(this);

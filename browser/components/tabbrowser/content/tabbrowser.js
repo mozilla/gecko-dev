@@ -2218,20 +2218,6 @@
       browserSidebarContainer.className = "browserSidebarContainer";
       browserSidebarContainer.appendChild(browserContainer);
 
-      if (!isPreloadBrowser) {
-        let visibility = Services.prefs.getStringPref(
-          "sidebar.visibility",
-          "always-show"
-        );
-        let expandOnHover = Services.prefs.getBoolPref(
-          "sidebar.expandOnHover",
-          false
-        );
-        if (visibility === "expand-on-hover" && expandOnHover) {
-          SidebarController.toggleExpandOnHover(true);
-        }
-      }
-
       // Prevent the superfluous initial load of a blank document
       // if we're going to load something other than about:blank.
       if (!uriIsAboutBlank || skipLoad) {
