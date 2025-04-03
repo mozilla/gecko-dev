@@ -100,6 +100,8 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
       Visibility aNewVisibility,
       const Maybe<OnNonvisible>& aNonvisibleAction = Nothing()) final;
 
+  void MarkIntrinsicISizesDirty() override;
+
   void ResponsiveContentDensityChanged();
   void ElementStateChanged(mozilla::dom::ElementState) override;
   void SetupOwnedRequest();
@@ -236,7 +238,16 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   ~nsImageFrame() override;
 
-  void EnsureIntrinsicSizeAndRatio();
+  /**
+   * Populate/update mIntrinsicSize and mIntrinsicSize if necessary.
+   *
+   * @param aConsiderIntrinsicsDirty if true, then this function will update
+   *   mIntrinsicSize and mIntrinsicRatio *regardless* of what their current
+   *   value is. (We'll still reason about whether the value changed or not
+   *   when deciding whether additional notifications are needed.)  This param
+   *   defaults to false, but it's used in MarkIntrinsicISizesDirty.
+   */
+  void EnsureIntrinsicSizeAndRatio(bool aConsiderIntrinsicsDirty = false);
 
   bool GotInitialReflow() const {
     return !HasAnyStateBits(NS_FRAME_FIRST_REFLOW);
