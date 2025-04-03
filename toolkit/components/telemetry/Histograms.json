@@ -11929,28 +11929,6 @@
     "n_buckets": 50,
     "description": "The time, in percentage of a vsync interval, spent from beginning a paint in the content process until that frame is presented in the compositor by WebRender, excluding time spent uploading any content"
   },
-  "CONTENT_FRAME_TIME_REASON": {
-    "record_in_processes": ["main", "gpu"],
-    "products": ["firefox"],
-    "alert_emails": [
-      "gfx-telemetry-alerts@mozilla.com",
-      "mwoodrow@mozilla.com"
-    ],
-    "bug_numbers": [1510853, 1584109],
-    "expires_in_version": "never",
-    "kind": "categorical",
-    "description": "The reason that CONTENT_FRAME_TIME recorded a slow (>200) result, if any.",
-    "labels": [
-      "OnTime",
-      "NoVsync",
-      "MissedComposite",
-      "SlowComposite",
-      "MissedCompositeMid",
-      "MissedCompositeLong",
-      "MissedCompositeLow",
-      "NoVsyncNoId"
-    ]
-  },
   "CONTENT_SMALL_PAINT_PHASE_WEIGHT_PARTIAL": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
