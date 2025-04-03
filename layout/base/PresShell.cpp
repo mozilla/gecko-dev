@@ -111,6 +111,7 @@
 #include "mozilla/SVGFragmentIdentifier.h"
 #include "mozilla/SVGObserverUtils.h"
 #include "mozilla/glean/GfxMetrics.h"
+#include "mozilla/glean/LayoutMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
@@ -9156,14 +9157,14 @@ void PresShell::EventHandler::RecordEventPreparationPerformance(
         GetPresContext()->RecordInteractionTime(
             nsPresContext::InteractionType::KeyInteraction, aEvent->mTimeStamp);
       }
-      Telemetry::AccumulateTimeDelta(Telemetry::INPUT_EVENT_QUEUED_KEYBOARD_MS,
-                                     aEvent->mTimeStamp);
+      glean::layout::input_event_queued_keyboard.AccumulateRawDuration(
+          TimeStamp::Now() - aEvent->mTimeStamp);
       return;
 
     case eMouseDown:
     case eMouseUp:
-      Telemetry::AccumulateTimeDelta(Telemetry::INPUT_EVENT_QUEUED_CLICK_MS,
-                                     aEvent->mTimeStamp);
+      glean::layout::input_event_queued_click.AccumulateRawDuration(
+          TimeStamp::Now() - aEvent->mTimeStamp);
       [[fallthrough]];
     case ePointerDown:
     case ePointerUp:
@@ -9191,21 +9192,19 @@ void PresShell::EventHandler::RecordEventHandlingResponsePerformance(
   }
 
   TimeStamp now = TimeStamp::Now();
-  double millis = (now - aEvent->mTimeStamp).ToMilliseconds();
-  Telemetry::Accumulate(Telemetry::INPUT_EVENT_RESPONSE_MS, millis);
+  TimeDuration duration = now - aEvent->mTimeStamp;
+  glean::layout::input_event_response.AccumulateRawDuration(duration);
   if (GetDocument() &&
       GetDocument()->GetReadyStateEnum() != Document::READYSTATE_COMPLETE) {
-    Telemetry::Accumulate(Telemetry::LOAD_INPUT_EVENT_RESPONSE_MS, millis);
+    glean::layout::load_input_event_response.AccumulateRawDuration(duration);
   }
 
   if (!sLastInputProcessed || sLastInputProcessed < aEvent->mTimeStamp) {
     if (sLastInputProcessed) {
       // This input event was created after we handled the last one.
       // Accumulate the previous events' coalesced duration.
-      double lastMillis =
-          (sLastInputProcessed - sLastInputCreated).ToMilliseconds();
-      Telemetry::Accumulate(Telemetry::INPUT_EVENT_RESPONSE_COALESCED_MS,
-                            lastMillis);
+      glean::layout::input_event_response_coalesced.AccumulateRawDuration(
+          sLastInputProcessed - sLastInputCreated);
 
       if (MOZ_UNLIKELY(!PresShell::sProcessInteractable)) {
         // For content process, we use the ready state of
@@ -10467,8 +10466,11 @@ bool PresShell::ProcessReflowCommands(bool aInterruptible) {
     TimeDuration elapsed = TimeStamp::Now() - timerStart;
     int32_t intElapsed = int32_t(elapsed.ToMilliseconds());
     if (intElapsed > NS_LONG_REFLOW_TIME_MS) {
-      Telemetry::Accumulate(Telemetry::LONG_REFLOW_INTERRUPTIBLE,
-                            aInterruptible ? 1 : 0);
+      glean::layout::long_reflow_interruptible
+          .EnumGet(aInterruptible
+                       ? glean::layout::LongReflowInterruptibleLabel::eTrue
+                       : glean::layout::LongReflowInterruptibleLabel::eFalse)
+          .Add();
     }
   }
 

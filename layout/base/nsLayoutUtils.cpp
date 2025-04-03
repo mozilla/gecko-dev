@@ -102,7 +102,7 @@
 #include "mozilla/SVGIntegrationUtils.h"
 #include "mozilla/SVGTextFrame.h"
 #include "mozilla/SVGUtils.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/LayoutMetrics.h"
 #include "mozilla/ToString.h"
 #include "mozilla/Unused.h"
 #include "mozilla/ViewportFrame.h"
@@ -3273,7 +3273,8 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
 
   TimeStamp paintStart = TimeStamp::Now();
   list->PaintRoot(builder, aRenderingContext, flags, Some(geckoDLBuildTime));
-  Telemetry::AccumulateTimeDelta(Telemetry::PAINT_RASTERIZE_TIME, paintStart);
+  glean::layout::paint_rasterize_time.AccumulateRawDuration(TimeStamp::Now() -
+                                                            paintStart);
 
   if (builder->IsPaintingToWindow()) {
     presShell->EndPaint();

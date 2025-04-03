@@ -53,3 +53,217 @@ glam_experiment:
       - tlong@mozilla.com
       - efilho@mozilla.com
     expires: 141
+
+layout:
+  refresh_driver_tick:
+    type: timing_distribution
+    description: >
+      Total time spent ticking the refresh driver in milliseconds
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram REFRESH_DRIVER_TICK.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - rhunt@mozilla.com
+    expires: never
+    telemetry_mirror: REFRESH_DRIVER_TICK
+
+  paint_rasterize_time:
+    type: timing_distribution
+    description: >
+      Time spent rasterizing each frame in milliseconds
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PAINT_RASTERIZE_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - rhunt@mozilla.com
+    expires: never
+    telemetry_mirror: PAINT_RASTERIZE_TIME
+
+  refresh_driver_chrome_frame_delay:
+    type: timing_distribution
+    description: >
+      Delay in ms between the target and the actual handling time of the frame
+      at refresh driver in the chrome process.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_REFRESH_DRIVER_CHROME_FRAME_DELAY_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1220699
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1220699
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - gfx-telemetry-alerts@mozilla.com
+      - rhunt@mozilla.com
+    expires: never
+    telemetry_mirror: FX_REFRESH_DRIVER_CHROME_FRAME_DELAY_MS
+
+  refresh_driver_content_frame_delay:
+    type: timing_distribution
+    description: >
+      Delay in ms between the target and the actual handling time of the frame
+      at refresh driver in the content process.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_REFRESH_DRIVER_CONTENT_FRAME_DELAY_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1221674
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1221674
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - gfx-telemetry-alerts@mozilla.com
+      - rhunt@mozilla.com
+    expires: never
+    telemetry_mirror: FX_REFRESH_DRIVER_CONTENT_FRAME_DELAY_MS
+
+  input_event_response:
+    type: timing_distribution
+    description: >
+      Time (ms) from the Input event being created to the end of it being
+      handled
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram INPUT_EVENT_RESPONSE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1235908
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1511919
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1235908
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1511919
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - chutten@mozilla.com
+    expires: never
+    telemetry_mirror: INPUT_EVENT_RESPONSE_MS
+
+  input_event_response_coalesced:
+    type: timing_distribution
+    description: >
+      Time (ms) from the Input event being created to the end of it being
+      handled, but with overlapping events coalesced.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram INPUT_EVENT_RESPONSE_COALESCED_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1357457
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1357457
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - chutten@mozilla.com
+      - gfritzsche@mozilla.com
+    expires: never
+    telemetry_mirror: INPUT_EVENT_RESPONSE_COALESCED_MS
+
+  load_input_event_response:
+    type: timing_distribution
+    description: >
+      Time (ms) from the Input event being created to the end of it being
+      handled for events handling during page load only
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram LOAD_INPUT_EVENT_RESPONSE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1298101
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1298101
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: LOAD_INPUT_EVENT_RESPONSE_MS
+
+  long_reflow_interruptible:
+    type: labeled_counter
+    description: >
+      Long running reflow, interruptible or not
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram LONG_REFLOW_INTERRUPTIBLE.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#LONG_REFLOW_INTERRUPTIBLE
+
+  time_to_first_interaction:
+    type: timing_distribution
+    description: >
+      Time in milliseconds from the first non-blank paint to the creation time
+      of the next click, key, mouse or scroll event per top-level content
+      browsing context.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TIME_TO_FIRST_INTERACTION_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1332511
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1332511
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: TIME_TO_FIRST_INTERACTION_MS
+
+  input_event_queued_click:
+    type: timing_distribution
+    description: >
+      Time (ms) for the mouse up/down event to dispatch, but before handlers
+      executing.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram INPUT_EVENT_QUEUED_CLICK_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341531
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341531
+    notification_emails:
+      - bschouten@mozilla.com
+    expires: never
+    telemetry_mirror: INPUT_EVENT_QUEUED_CLICK_MS
+
+  input_event_queued_keyboard:
+    type: timing_distribution
+    description: >
+      Time (ms) for the keyboard event to dispatch, but before handlers
+      executing.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram INPUT_EVENT_QUEUED_KEYBOARD_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341531
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1341531
+    notification_emails:
+      - bschouten@mozilla.com
+    expires: never
+    telemetry_mirror: INPUT_EVENT_QUEUED_KEYBOARD_MS

@@ -84,7 +84,7 @@
 #include "nsISimpleEnumerator.h"
 #include "nsJSEnvironment.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/LayoutMetrics.h"
 
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -764,9 +764,8 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
 #ifndef ANDROID /* bug 1142079 */
     if (XRE_IsParentProcess()) {
       TimeDuration vsyncLatency = TimeStamp::Now() - aVsyncTimestamp;
-      uint32_t sample = (uint32_t)vsyncLatency.ToMilliseconds();
-      Telemetry::Accumulate(Telemetry::FX_REFRESH_DRIVER_CHROME_FRAME_DELAY_MS,
-                            sample);
+      glean::layout::refresh_driver_chrome_frame_delay.AccumulateRawDuration(
+          vsyncLatency);
     } else if (mVsyncRate != TimeDuration::Forever()) {
       TimeDuration contentDelay =
           (TimeStamp::Now() - mLastTickStart) - mVsyncRate;
@@ -776,9 +775,8 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
         // delay.
         contentDelay = TimeDuration::FromMilliseconds(0);
       }
-      uint32_t sample = (uint32_t)contentDelay.ToMilliseconds();
-      Telemetry::Accumulate(Telemetry::FX_REFRESH_DRIVER_CONTENT_FRAME_DELAY_MS,
-                            sample);
+      glean::layout::refresh_driver_content_frame_delay.AccumulateRawDuration(
+          contentDelay);
     } else {
       // Request the vsync rate which VsyncChild stored the last time it got a
       // vsync notification.
@@ -2852,9 +2850,8 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   UpdateRemoteFrameEffects();
 
 #ifndef ANDROID /* bug 1142079 */
-  double totalMs = (TimeStamp::Now() - mTickStart).ToMilliseconds();
-  mozilla::Telemetry::Accumulate(mozilla::Telemetry::REFRESH_DRIVER_TICK,
-                                 static_cast<uint32_t>(totalMs));
+  mozilla::glean::layout::refresh_driver_tick.AccumulateRawDuration(
+      TimeStamp::Now() - mTickStart);
 #endif
 
   for (nsAPostRefreshObserver* observer :

@@ -87,6 +87,7 @@
 #include "mozilla/StaticPrefs_zoom.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
+#include "mozilla/glean/LayoutMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimelineManager.h"
 #include "mozilla/dom/Performance.h"
@@ -1818,12 +1819,9 @@ void nsPresContext::RecordInteractionTime(InteractionType aType,
   // Only the top level content pres context reports first interaction
   // time to telemetry (if it hasn't already done so).
   if (this == inProcessRootPresContext) {
-    if (Telemetry::CanRecordExtended()) {
-      double millis =
-          (interactionTime - mFirstNonBlankPaintTime).ToMilliseconds();
-      if (isFirstInteraction) {
-        Telemetry::Accumulate(Telemetry::TIME_TO_FIRST_INTERACTION_MS, millis);
-      }
+    if (Telemetry::CanRecordExtended() && isFirstInteraction) {
+      glean::layout::time_to_first_interaction.AccumulateRawDuration(
+          interactionTime - mFirstNonBlankPaintTime);
     }
   } else {
     inProcessRootPresContext->RecordInteractionTime(aType, aTimeStamp);
