@@ -69,7 +69,7 @@ class AppleVTEncoder final : public MediaDataEncoder {
 
   void InvalidateSessionIfNeeded();
   MediaResult InitSession();
-  CFDictionaryRef BuildSourceImageBufferAttributes();
+  CFDictionaryRef BuildSourceImageBufferAttributes(OSType aPixelFormat);
   CVPixelBufferRef CreateCVPixelBuffer(layers::Image* aSource);
   bool WriteExtraData(MediaRawData* aDst, CMSampleBufferRef aSrc,
                       const bool aAsAnnexB);

@@ -224,6 +224,14 @@ MediaResult AppleVTEncoder::InitSession() {
                        "SVC only supported on macOS 11.3 and more recent");
   }
 
+  Maybe<OSType> fmt = MapPixelFormat(mConfig.mSourcePixelFormat);
+  if (fmt.isNothing()) {
+    return MediaResult(
+        NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+        nsPrintfCString("%s is unsupported format",
+                        dom::GetEnumString(mConfig.mSourcePixelFormat).get()));
+  }
+
   bool lowLatencyRateControl =
       mConfig.mUsage == Usage::Realtime ||
       mConfig.mScalabilityMode != ScalabilityMode::None;
@@ -233,7 +241,7 @@ MediaResult AppleVTEncoder::InitSession() {
   AutoCFRelease<CFDictionaryRef> spec(
       BuildEncoderSpec(mHardwareNotAllowed, lowLatencyRateControl));
   AutoCFRelease<CFDictionaryRef> srcBufferAttr(
-      BuildSourceImageBufferAttributes());
+      BuildSourceImageBufferAttributes(fmt.value()));
   if (!srcBufferAttr) {
     return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
                        "fail to create source buffer attributes");
@@ -350,13 +358,8 @@ void AppleVTEncoder::InvalidateSessionIfNeeded() {
   }
 }
 
-CFDictionaryRef AppleVTEncoder::BuildSourceImageBufferAttributes() {
-  Maybe<OSType> fmt = MapPixelFormat(mConfig.mSourcePixelFormat);
-  if (fmt.isNothing()) {
-    LOGE("unsupported source pixel format");
-    return nullptr;
-  }
-
+CFDictionaryRef AppleVTEncoder::BuildSourceImageBufferAttributes(
+    OSType aPixelFormat) {
   // Source image buffer attributes
   const void* keys[] = {kCVPixelBufferOpenGLCompatibilityKey,  // TODO
                         kCVPixelBufferIOSurfacePropertiesKey,  // TODO
@@ -366,7 +369,7 @@ CFDictionaryRef AppleVTEncoder::BuildSourceImageBufferAttributes() {
       kCFAllocatorDefault, nullptr, nullptr, 0, &kCFTypeDictionaryKeyCallBacks,
       &kCFTypeDictionaryValueCallBacks));
   AutoCFRelease<CFNumberRef> pixelFormat(
-      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &fmt));
+      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &aPixelFormat));
   const void* values[] = {kCFBooleanTrue, ioSurfaceProps, pixelFormat};
 
   MOZ_ASSERT(std::size(keys) == std::size(values),
