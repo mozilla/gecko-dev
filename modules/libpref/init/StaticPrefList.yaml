@@ -13331,6 +13331,13 @@
   value: false
   mirror: always
 
+# The timeout used when calling DhcpRequestParams. The call may sometimes hang
+# after resuming from suspend.
+- name: network.proxy.dhcp_wpad_timeout_sec
+  type: AtomicFloat
+  value: 5.0
+  mirror: always
+
 # Allow CookieJarSettings to be unblocked for channels without a document.
 # This is for testing only.
 - name: network.cookieJarSettings.unblocked_for_testing

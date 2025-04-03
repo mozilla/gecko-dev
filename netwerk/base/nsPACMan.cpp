@@ -579,6 +579,7 @@ nsresult nsPACMan::LoadPACFromURI(const nsACString& aSpec,
 }
 
 nsresult nsPACMan::GetPACFromDHCP(nsACString& aSpec) {
+  nsresult rv;
   MOZ_ASSERT(!NS_IsMainThread(), "wrong thread");
   if (!mDHCPClient) {
     LOG(
@@ -587,19 +588,44 @@ nsresult nsPACMan::GetPACFromDHCP(nsACString& aSpec) {
          MOZ_DHCP_WPAD_OPTION));
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  nsresult rv;
-  rv = mDHCPClient->GetOption(MOZ_DHCP_WPAD_OPTION, aSpec);
+
+  MonitorAutoLock lock(mMonitor);
+  mPACStringFromDHCP.Truncate();
+
+  RefPtr<nsPACMan> self = this;
+  rv = NS_DispatchBackgroundTask(NS_NewRunnableFunction(
+      "nsPACMan::GetPACFromDHCP", [dhcpClient = nsCOMPtr{mDHCPClient}, self] {
+        nsAutoCString spec;
+        nsresult rv;
+        rv = dhcpClient->GetOption(MOZ_DHCP_WPAD_OPTION, spec);
+        if (NS_FAILED(rv)) {
+          LOG(
+              ("nsPACMan::GetPACFromDHCP DHCP option %d "
+               "query failed with result %d\n",
+               MOZ_DHCP_WPAD_OPTION, (uint32_t)rv));
+        } else {
+          LOG(
+              ("nsPACMan::GetPACFromDHCP DHCP option %d query succeeded,"
+               "finding PAC URL %s\n",
+               MOZ_DHCP_WPAD_OPTION, spec.BeginReading()));
+        }
+        MonitorAutoLock lock(self->mMonitor);
+        self->mPACStringFromDHCP = spec;
+        self->mMonitor.NotifyAll();
+      }));
+
   if (NS_FAILED(rv)) {
-    LOG((
-        "nsPACMan::GetPACFromDHCP DHCP option %d query failed with result %d\n",
-        MOZ_DHCP_WPAD_OPTION, (uint32_t)rv));
-  } else {
-    LOG(
-        ("nsPACMan::GetPACFromDHCP DHCP option %d query succeeded, finding PAC "
-         "URL %s\n",
-         MOZ_DHCP_WPAD_OPTION, aSpec.BeginReading()));
+    return rv;
   }
-  return rv;
+
+  // If the call to GetOption does not complete in a reasonable amount of time,
+  // we should continue to avoid blocking all network traffic.
+  mMonitor.Wait(TimeDuration::FromSeconds(
+      StaticPrefs::network_proxy_dhcp_wpad_timeout_sec()));
+  aSpec = mPACStringFromDHCP;
+  mPACStringFromDHCP.Truncate();
+
+  return NS_OK;
 }
 
 nsresult nsPACMan::ConfigureWPAD(nsACString& aSpec) {
