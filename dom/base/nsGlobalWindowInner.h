@@ -1302,7 +1302,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // Represents whether the inner window's page has had a slow script notice.
   // Only used by inner windows; will always be false for outer windows.
   // This is used to implement Telemetry measures such as
-  // SLOW_SCRIPT_PAGE_COUNT.
+  // SLOW_SCRIPT_PAGE_COUNT (glean::dom::slow_script_page_count).
   bool mHasHadSlowScript : 1;
 
   // Fast way to tell if this is a chrome window (without having to QI).

@@ -69,7 +69,7 @@ RefPtr<GenericPromise> FlushAndUseFOGData();
  *                  the target process.
  */
 void TestTriggerMetrics(uint32_t processType,
-                        const RefPtr<dom::Promise>& promise);
+                        const RefPtr<mozilla::dom::Promise>& promise);
 
 #ifdef NIGHTLY_BUILD
 /**

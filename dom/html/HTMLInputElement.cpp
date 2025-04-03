@@ -45,7 +45,7 @@
 
 #include "HTMLDataListElement.h"
 #include "HTMLFormSubmissionConstants.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "nsBaseCommandController.h"
 #include "nsIStringBundle.h"
 #include "nsFocusManager.h"
@@ -1246,7 +1246,9 @@ void HTMLInputElement::BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
     }
 
     if (aName == nsGkAtoms::webkitdirectory) {
-      Telemetry::Accumulate(Telemetry::WEBKIT_DIRECTORY_USED, true);
+      glean::dom::webkit_directory_used
+          .EnumGet(glean::dom::WebkitDirectoryUsedLabel::eTrue)
+          .Add();
     }
   }
 
@@ -7504,7 +7506,9 @@ void HTMLInputElement::GetWebkitEntries(
     return;
   }
 
-  Telemetry::Accumulate(Telemetry::BLINK_FILESYSTEM_USED, true);
+  glean::dom::blink_filesystem_used
+      .EnumGet(glean::dom::BlinkFilesystemUsedLabel::eTrue)
+      .Add();
   aSequence.AppendElements(mFileData->mEntries);
 }
 

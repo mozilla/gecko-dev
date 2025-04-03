@@ -141,6 +141,134 @@ perf:
     send_in_pings:
       - pageload
 
+  http3_page_load_time:
+    type: labeled_timing_distribution
+    description: >
+      Time in milliseconds from navigationStart to loadEventStart for the
+      foreground http or https root content document. This is collected only on
+      page load where the main document uses or suppports HTTP3
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP3_PERF_PAGE_LOAD_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675503
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675503
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP3_PERF_PAGE_LOAD_TIME_MS
+
+  http3_first_contentful_paint:
+    type: labeled_timing_distribution
+    description: >
+      The time between navigationStart and the first contentful paint of a
+      foreground http or https root content document, in milliseconds. The
+      contentful paint timestamp is taken during display list building and does
+      not include rasterization or compositing of that paint. This is collected
+      only on page load where the main document uses or suppports HTTP3
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HTTP3_PERF_FIRST_CONTENTFUL_PAINT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675503
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675503
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP3_PERF_FIRST_CONTENTFUL_PAINT_MS
+
+  h3p_page_load_time:
+    type: labeled_timing_distribution
+    description: >
+      Time in milliseconds from navigationStart to loadEventStart for the
+      foreground http or https root content document. This is collected only on
+      page load where the main document uses HTTP3. It is keyed based on whether
+      a "priority" header has been received.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram H3P_PERF_PAGE_LOAD_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1743965
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1796398
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1743965
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1796398
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: H3P_PERF_PAGE_LOAD_TIME_MS
+
+  h3p_first_contentful_paint:
+    type: labeled_timing_distribution
+    description: >
+      The time between navigationStart and the first contentful paint of a
+      foreground http or https root content document, in milliseconds. The
+      contentful paint timestamp is taken during display list building and does
+      not include rasterization or compositing of that paint. This is collected
+      only on page load where the main document uses HTTP3. It is keyed based on
+      whether a "priority" header has been received.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram H3P_PERF_FIRST_CONTENTFUL_PAINT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1743965
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1796398
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1743965
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1796398
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: H3P_PERF_FIRST_CONTENTFUL_PAINT_MS
+
+  dns_first_contentful_paint:
+    type: labeled_timing_distribution
+    description: >
+      The time between navigationStart and the first contentful paint of a
+      foreground http or https root content document, in milliseconds. The
+      contentful paint timestamp is taken during display list building and does
+      not include rasterization or compositing of that paint. Keyed by TRR
+      domain for DoH or 'Native' otherwise
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DNS_PERF_FIRST_CONTENTFUL_PAINT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1796639
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1796639
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_PERF_FIRST_CONTENTFUL_PAINT_MS
+
+  dns_first_byte:
+    type: labeled_timing_distribution
+    description: >
+      The time from a top-level document's HTTP channel open to the first byte
+      of the reply is received (ms). Keyed by TRR domain for DoH or 'Native'
+      otherwise
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DNS_PERF_FIRST_BYTE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1803671
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1803671
+    notification_emails:
+      - necko@mozilla.com
+      - acreskey@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_PERF_FIRST_BYTE_MS
+
 performance.pageload:
   load_time:
     type: timing_distribution
@@ -398,6 +526,47 @@ performance.time:
       - perf-telemetry-alerts@mozilla.com
     expires: never
 
+  to_first_contentful_paint:
+    type: timing_distribution
+    description: >
+      The time between navigation start and the first contentful paint of a
+      foreground root content document, in milliseconds. This only records
+      documents that were in an active docshell throughout the whole time
+      between navigation start and contentful paint. The contentful paint
+      timestamp is taken during display list building and does not include
+      rasterization or compositing of that paint.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TIME_TO_FIRST_CONTENTFUL_PAINT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1515132
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1515132
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: TIME_TO_FIRST_CONTENTFUL_PAINT_MS
+
+  to_dom_loading:
+    type: timing_distribution
+    description: >
+      Time in milliseconds from navigationStart to domLoading.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TIME_TO_DOM_LOADING_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1344893
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1344893
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - vgosu@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: TIME_TO_DOM_LOADING_MS
 
 performance.page:
   non_blank_paint:
@@ -891,3 +1060,268 @@ glam_experiment:
       - tlong@mozilla.com
       - efilho@mozilla.com
     expires: 146
+
+dom:
+  forget_skippable_during_idle:
+    type: custom_distribution
+    description: >
+      Percent of the cycle collector's forget skippable done during idle time
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram FORGET_SKIPPABLE_DURING_IDLE.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1372042
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1372042
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: FORGET_SKIPPABLE_DURING_IDLE
+
+  forget_skippable_frequency:
+    type: custom_distribution
+    description: >
+      Number of forget skippables occurred during a minute
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram FORGET_SKIPPABLE_FREQUENCY.
+    range_min: 1
+    range_max: 500
+    bucket_count: 100
+    histogram_type: linear
+    unit: forget skippables per minute
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1487271
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1487271
+    notification_emails:
+      - smaug@mozilla.com
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: FORGET_SKIPPABLE_FREQUENCY
+
+  fullscreen_transition_black:
+    type: timing_distribution
+    description: >
+      The time spent in the fully-black screen in fullscreen transition
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FULLSCREEN_TRANSITION_BLACK_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1271160
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1271160
+    notification_emails:
+      - mozilla-telemetry@upsuper.org
+    expires: never
+    telemetry_mirror: FULLSCREEN_TRANSITION_BLACK_MS
+
+  gc_in_progress:
+    type: timing_distribution
+    description: >
+      Time from the beginning of the first slice to the end of the last slice
+      (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram GC_IN_PROGRESS_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1545093
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1545093
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - smaug@mozilla.com
+    expires: never
+    telemetry_mirror: GC_IN_PROGRESS_MS
+
+  gc_slice_during_idle:
+    type: custom_distribution
+    description: >
+      Percent of GC slice done during idle time
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram GC_SLICE_DURING_IDLE.
+    range_min: 1
+    range_max: 100
+    bucket_count: 50
+    histogram_type: linear
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1372042
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1372042
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+    expires: never
+    telemetry_mirror: GC_SLICE_DURING_IDLE
+
+  innerwindows_with_mutation_listeners:
+    type: labeled_counter
+    description: >
+      Deleted or to-be-reused innerwindow which has had mutation event
+      listeners.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram INNERWINDOWS_WITH_MUTATION_LISTENERS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - dom-core@mozilla.com
+    expires: never
+    telemetry_mirror: h#INNERWINDOWS_WITH_MUTATION_LISTENERS
+
+  xmlhttprequest_async_or_sync:
+    type: labeled_counter
+    description: >
+      Type of XMLHttpRequest, async or sync
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram XMLHTTPREQUEST_ASYNC_OR_SYNC.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - dom-core@mozilla.com
+    expires: never
+    telemetry_mirror: h#XMLHTTPREQUEST_ASYNC_OR_SYNC
+
+  storage_access_api_ui:
+    type: labeled_counter
+    description: >
+      Storage Access API UI events.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram STORAGE_ACCESS_API_UI.
+    labels:
+      - Request
+      - AllowAutomatically
+      - Deny
+      - Allow
+      - AllowOnAnySite
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1513309
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1588844
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643432
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689262
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730043
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1832670
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1513309
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1588844
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643432
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689262
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730043
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1832670
+    notification_emails:
+      - emz@mozilla.com
+      - tihuang@mozilla.com
+    expires: never
+    telemetry_mirror: h#STORAGE_ACCESS_API_UI
+
+  slow_script_notice_count:
+    type: counter
+    description: >
+      Count slow script notices
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SLOW_SCRIPT_NOTICE_COUNT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#SLOW_SCRIPT_NOTICE_COUNT
+
+  slow_script_page_count:
+    type: counter
+    description: >
+      The number of pages that trigger slow script notices
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram SLOW_SCRIPT_PAGE_COUNT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1251667
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1251667
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#SLOW_SCRIPT_PAGE_COUNT
+
+  script_loading_source:
+    type: labeled_counter
+    description: >
+      Record the input from which the bytes are coming from, for each script in
+      a document.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram DOM_SCRIPT_LOADING_SOURCE.
+    labels:
+      - Inline
+      - SourceFallback
+      - Source
+      - AltData
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1362114
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1362114
+    notification_emails:
+      - nicolas.b.pierron@mozilla.com
+    expires: never
+    telemetry_mirror: h#DOM_SCRIPT_LOADING_SOURCE
+
+  blink_filesystem_used:
+    type: labeled_counter
+    description: >
+      Webkit/Blink filesystem used
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram BLINK_FILESYSTEM_USED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1272501
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1272501
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    telemetry_mirror: h#BLINK_FILESYSTEM_USED
+
+  webkit_directory_used:
+    type: labeled_counter
+    description: >
+      HTMLInputElement.webkitdirectory attribute used
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram WEBKIT_DIRECTORY_USED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1272501
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1272501
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBKIT_DIRECTORY_USED

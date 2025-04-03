@@ -359,12 +359,12 @@ void ScriptLoader::RegisterShadowRealmModuleLoader(ModuleLoader* aLoader) {
 // Collect telemtry data about the cache information, and the kind of source
 // which are being loaded, and where it is being loaded from.
 static void CollectScriptTelemetry(ScriptLoadRequest* aRequest) {
-  using namespace mozilla::Telemetry;
+  using namespace mozilla::glean::dom;
 
   MOZ_ASSERT(aRequest->IsFetching());
 
   // Skip this function if we are not running telemetry.
-  if (!CanRecordExtended()) {
+  if (!mozilla::Telemetry::CanRecordExtended()) {
     return;
   }
 
@@ -373,15 +373,16 @@ static void CollectScriptTelemetry(ScriptLoadRequest* aRequest) {
   // source-fallback and alternate-data being roughtly equal to source loads.
   if (aRequest->mFetchSourceOnly) {
     if (aRequest->GetScriptLoadContext()->mIsInline) {
-      AccumulateCategorical(LABELS_DOM_SCRIPT_LOADING_SOURCE::Inline);
+      script_loading_source.EnumGet(ScriptLoadingSourceLabel::eInline).Add();
     } else if (aRequest->IsTextSource()) {
-      AccumulateCategorical(LABELS_DOM_SCRIPT_LOADING_SOURCE::SourceFallback);
+      script_loading_source.EnumGet(ScriptLoadingSourceLabel::eSourcefallback)
+          .Add();
     }
   } else {
     if (aRequest->IsTextSource()) {
-      AccumulateCategorical(LABELS_DOM_SCRIPT_LOADING_SOURCE::Source);
+      script_loading_source.EnumGet(ScriptLoadingSourceLabel::eSource).Add();
     } else if (aRequest->IsBytecode()) {
-      AccumulateCategorical(LABELS_DOM_SCRIPT_LOADING_SOURCE::AltData);
+      script_loading_source.EnumGet(ScriptLoadingSourceLabel::eAltdata).Add();
     }
   }
 }
@@ -2762,7 +2763,6 @@ static void ExecuteCompiledScript(JSContext* aCx, ClassicScript* aLoaderScript,
 }
 
 nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
-  using namespace mozilla::Telemetry;
   MOZ_ASSERT(aRequest->IsFinished());
 
   // We need a document to evaluate scripts.

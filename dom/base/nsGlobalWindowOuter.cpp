@@ -221,7 +221,7 @@
 
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Services.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "mozilla/dom/Location.h"
 #include "nsHTMLDocument.h"
 #include "nsWrapperCacheInlines.h"
@@ -4103,8 +4103,8 @@ FullscreenTransitionTask::Run() {
     NS_NewTimerWithObserver(getter_AddRefs(mTimer), observer, timeout,
                             nsITimer::TYPE_ONE_SHOT);
   } else if (stage == eAfterToggle) {
-    Telemetry::AccumulateTimeDelta(Telemetry::FULLSCREEN_TRANSITION_BLACK_MS,
-                                   mFullscreenChangeStartTime);
+    glean::dom::fullscreen_transition_black.AccumulateRawDuration(
+        TimeStamp::Now() - mFullscreenChangeStartTime);
     mWidget->PerformFullscreenTransition(nsIWidget::eAfterFullscreenToggle,
                                          mDuration.mFadeOut, mTransitionData,
                                          this);

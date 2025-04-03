@@ -324,9 +324,9 @@ void RecordPowerMetrics() {
   nsAutoCString type(XRE_GetProcessTypeString());
   nsAutoCString trackerType;
   if (XRE_IsContentProcess()) {
-    auto* cc = dom::ContentChild::GetSingleton();
+    auto* cc = mozilla::dom::ContentChild::GetSingleton();
     if (cc) {
-      type.Assign(dom::RemoteTypePrefix(cc->GetRemoteType()));
+      type.Assign(mozilla::dom::RemoteTypePrefix(cc->GetRemoteType()));
       if (StringBeginsWith(type, WEB_REMOTE_TYPE)) {
         type.AssignLiteral("web");
         switch (cc->GetProcessPriority()) {
@@ -602,7 +602,7 @@ RefPtr<GenericPromise> FlushAndUseFOGData() {
 }
 
 void TestTriggerMetrics(uint32_t aProcessType,
-                        const RefPtr<dom::Promise>& promise) {
+                        const RefPtr<mozilla::dom::Promise>& promise) {
   switch (aProcessType) {
     case nsIXULRuntime::PROCESS_TYPE_GMPLUGIN: {
       RefPtr<mozilla::gmp::GeckoMediaPluginServiceParent> gmps(

@@ -78,7 +78,7 @@
 #include "prthread.h"
 
 #include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/CanvasRenderingContext2DBinding.h"
@@ -980,7 +980,7 @@ static void FireForgetSkippable(bool aRemoveChildless, TimeStamp aDeadline) {
 
     uint32_t percent =
         uint32_t(idleDuration.ToSeconds() / duration.ToSeconds() * 100);
-    Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_DURING_IDLE, percent);
+    glean::dom::forget_skippable_during_idle.AccumulateSingleSample(percent);
   }
 }
 
@@ -1544,9 +1544,8 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
       }
 
       MOZ_ASSERT(sCurrentGCStartTime);
-      Telemetry::Accumulate(
-          Telemetry::GC_IN_PROGRESS_MS,
-          (TimeStamp::Now() - sCurrentGCStartTime).ToMilliseconds());
+      glean::dom::gc_in_progress.AccumulateRawDuration(TimeStamp::Now() -
+                                                       sCurrentGCStartTime);
 
 #if defined(MOZ_MEMORY)
       if (freeDirty &&

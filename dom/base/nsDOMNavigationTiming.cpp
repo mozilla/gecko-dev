@@ -8,7 +8,6 @@
 
 #include "GeckoProfiler.h"
 #include "mozilla/ProfilerMarkers.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/glean/DomMetrics.h"
 #include "mozilla/dom/Document.h"
@@ -437,8 +436,8 @@ void nsDOMNavigationTiming::NotifyContentfulCompositeForRootContentDocument(
                                        "nsDOMNavigationTiming::TTITimeout");
 
   if (mDocShellHasBeenActiveSinceNavigationStart) {
-    Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_FIRST_CONTENTFUL_PAINT_MS,
-                                   mNavigationStart, mContentfulComposite);
+    glean::performance_time::to_first_contentful_paint.AccumulateRawDuration(
+        mContentfulComposite - mNavigationStart);
   }
 }
 

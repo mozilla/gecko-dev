@@ -998,7 +998,7 @@ export var PushService = {
 
     if (aPushRecord.quotaApplies()) {
       // Don't record telemetry for chrome push messages.
-      Services.telemetry.getHistogramById("PUSH_API_NOTIFY").add();
+      Glean.webPush.apiNotify.add(1);
     }
 
     if (payload) {

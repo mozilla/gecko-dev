@@ -130,7 +130,6 @@
 #include "mozilla/StorageAccess.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/StyleSheet.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryScalarEnums.h"
 #include "mozilla/TextControlElement.h"
 #include "mozilla/TextEditor.h"
@@ -2277,8 +2276,8 @@ void Document::AccumulatePageLoadTelemetry(
   TimeStamp asyncOpen;
   timedChannel->GetAsyncOpen(&asyncOpen);
   if (asyncOpen) {
-    Telemetry::AccumulateTimeDelta(Telemetry::DNS_PERF_FIRST_BYTE_MS, dnsKey,
-                                   asyncOpen, responseStart);
+    glean::perf::dns_first_byte.Get(dnsKey).AccumulateRawDuration(
+        responseStart - asyncOpen);
   }
 
   // First Contentful Composite
@@ -2288,9 +2287,8 @@ void Document::AccumulatePageLoadTelemetry(
         firstContentfulComposite - navigationStart);
 
     if (!http3Key.IsEmpty()) {
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::HTTP3_PERF_FIRST_CONTENTFUL_PAINT_MS, http3Key,
-          navigationStart, firstContentfulComposite);
+      glean::perf::http3_first_contentful_paint.Get(http3Key)
+          .AccumulateRawDuration(firstContentfulComposite - navigationStart);
 #ifndef ANDROID
       AccumulateHttp3FcpGleanPref(http3Key,
                                   firstContentfulComposite - navigationStart);
@@ -2298,18 +2296,16 @@ void Document::AccumulatePageLoadTelemetry(
     }
 
     if (!http3WithPriorityKey.IsEmpty()) {
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::H3P_PERF_FIRST_CONTENTFUL_PAINT_MS, http3WithPriorityKey,
-          navigationStart, firstContentfulComposite);
+      glean::perf::h3p_first_contentful_paint.Get(http3WithPriorityKey)
+          .AccumulateRawDuration(firstContentfulComposite - navigationStart);
 #ifndef ANDROID
       AccumulatePriorityFcpGleanPref(
           http3WithPriorityKey, firstContentfulComposite - navigationStart);
 #endif
     }
 
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::DNS_PERF_FIRST_CONTENTFUL_PAINT_MS, dnsKey, navigationStart,
-        firstContentfulComposite);
+    glean::perf::dns_first_contentful_paint.Get(dnsKey).AccumulateRawDuration(
+        firstContentfulComposite - navigationStart);
 
     glean::performance_pageload::fcp_responsestart.AccumulateRawDuration(
         firstContentfulComposite - responseStart);
@@ -2335,14 +2331,13 @@ void Document::AccumulatePageLoadTelemetry(
     glean::performance_pageload::load_time.AccumulateRawDuration(
         loadEventStart - navigationStart);
     if (!http3Key.IsEmpty()) {
-      Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_PERF_PAGE_LOAD_TIME_MS,
-                                     http3Key, navigationStart, loadEventStart);
+      glean::perf::http3_page_load_time.Get(http3Key).AccumulateRawDuration(
+          loadEventStart - navigationStart);
     }
 
     if (!http3WithPriorityKey.IsEmpty()) {
-      Telemetry::AccumulateTimeDelta(Telemetry::H3P_PERF_PAGE_LOAD_TIME_MS,
-                                     http3WithPriorityKey, navigationStart,
-                                     loadEventStart);
+      glean::perf::h3p_page_load_time.Get(http3WithPriorityKey)
+          .AccumulateRawDuration(loadEventStart - navigationStart);
     }
 
     glean::performance_pageload::load_time_responsestart.AccumulateRawDuration(
@@ -18448,14 +18443,16 @@ Document::CreatePermissionGrantPromise(
                   inner, principal, aTopLevelBaseDomain, aFrameOnly,
                   // Allow
                   [p] {
-                    Telemetry::AccumulateCategorical(
-                        Telemetry::LABELS_STORAGE_ACCESS_API_UI::Allow);
+                    glean::dom::storage_access_api_ui
+                        .EnumGet(glean::dom::StorageAccessApiUiLabel::eAllow)
+                        .Add();
                     p->Resolve(StorageAccessAPIHelper::eAllow, __func__);
                   },
                   // Block
                   [p] {
-                    Telemetry::AccumulateCategorical(
-                        Telemetry::LABELS_STORAGE_ACCESS_API_UI::Deny);
+                    glean::dom::storage_access_api_ui
+                        .EnumGet(glean::dom::StorageAccessApiUiLabel::eDeny)
+                        .Add();
                     p->Reject(false, __func__);
                   });
 
@@ -18464,8 +18461,9 @@ Document::CreatePermissionGrantPromise(
 
           if (pr == PromptResult::Pending) {
             // We're about to show a prompt, record the request attempt
-            Telemetry::AccumulateCategorical(
-                Telemetry::LABELS_STORAGE_ACCESS_API_UI::Request);
+            glean::dom::storage_access_api_ui
+                .EnumGet(glean::dom::StorageAccessApiUiLabel::eRequest)
+                .Add();
           }
 
           bool isThirdPartyTracker =
@@ -18496,9 +18494,10 @@ Document::CreatePermissionGrantPromise(
                       pr2 = PromptResult::Granted;
                       autoGrant = true;
 
-                      Telemetry::AccumulateCategorical(
-                          Telemetry::LABELS_STORAGE_ACCESS_API_UI::
-                              AllowAutomatically);
+                      glean::dom::storage_access_api_ui
+                          .EnumGet(glean::dom::StorageAccessApiUiLabel::
+                                       eAllowautomatically)
+                          .Add();
                     }
 
                     // If we can complete the permission request, do so.
@@ -19369,8 +19368,8 @@ void Document::RecordNavigationTiming(ReadyState aReadyState) {
   switch (aReadyState) {
     case READYSTATE_LOADING:
       if (!mDOMLoadingSet) {
-        Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_DOM_LOADING_MS,
-                                       startTime);
+        glean::performance_time::to_dom_loading.AccumulateRawDuration(
+            TimeStamp::Now() - startTime);
         mDOMLoadingSet = true;
       }
       break;

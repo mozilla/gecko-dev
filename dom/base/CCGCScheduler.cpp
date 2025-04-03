@@ -9,6 +9,7 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/glean/DomMetrics.h"
 #include "mozilla/PerfStats.h"
 #include "nsRefreshDriver.h"
 
@@ -227,7 +228,7 @@ void CCGCScheduler::NoteGCSliceEnd(TimeStamp aStart, TimeStamp aEnd) {
   TimeDuration idleDuration = sliceDuration - nonIdleDuration;
   uint32_t percent =
       uint32_t(idleDuration.ToSeconds() / sliceDuration.ToSeconds() * 100);
-  Telemetry::Accumulate(Telemetry::GC_SLICE_DURING_IDLE, percent);
+  glean::dom::gc_slice_during_idle.AccumulateSingleSample(percent);
 
   mTriggeredGCDeadline.reset();
 }
@@ -1024,8 +1025,8 @@ JS::SliceBudget CCGCScheduler::ComputeForgetSkippableBudget(
     double duration =
         (endPoint - mForgetSkippableFrequencyStartTime).ToSeconds() / 60;
     uint32_t frequencyPerMinute = uint32_t(mForgetSkippableCounter / duration);
-    Telemetry::Accumulate(Telemetry::FORGET_SKIPPABLE_FREQUENCY,
-                          frequencyPerMinute);
+    glean::dom::forget_skippable_frequency.AccumulateSingleSample(
+        frequencyPerMinute);
     mForgetSkippableCounter = 0;
     mForgetSkippableFrequencyStartTime = aStartTimeStamp;
   }
