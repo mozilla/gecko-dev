@@ -139,8 +139,10 @@ class RenderDXGIYCbCrTextureHost final : public RenderTextureHostSWGL {
  public:
   explicit RenderDXGIYCbCrTextureHost(
       RefPtr<gfx::FileHandleWrapper> (&aHandles)[3],
-      gfx::YUVColorSpace aYUVColorSpace, gfx::ColorDepth aColorDepth,
-      gfx::ColorRange aColorRange, gfx::IntSize aSizeY, gfx::IntSize aSizeCbCr);
+      const gfx::YUVColorSpace aYUVColorSpace,
+      const gfx::ColorDepth aColorDepth, const gfx::ColorRange aColorRange,
+      const gfx::IntSize aSizeY, const gfx::IntSize aSizeCbCr,
+      const layers::GpuProcessFencesHolderId aFencesHolderId);
 
   RenderDXGIYCbCrTextureHost* AsRenderDXGIYCbCrTextureHost() override {
     return this;
@@ -200,7 +202,7 @@ class RenderDXGIYCbCrTextureHost final : public RenderTextureHostSWGL {
 
   RefPtr<gfx::FileHandleWrapper> mHandles[3];
   RefPtr<ID3D11Texture2D> mTextures[3];
-  RefPtr<IDXGIKeyedMutex> mKeyedMutexs[3];
+  RefPtr<ID3D11Device> mDevice;
 
   EGLSurface mSurfaces[3];
   EGLStreamKHR mStreams[3];
@@ -212,13 +214,14 @@ class RenderDXGIYCbCrTextureHost final : public RenderTextureHostSWGL {
   RefPtr<ID3D11DeviceContext> mDeviceContext;
   RefPtr<ID3D11Texture2D> mCpuTexture[3];
 
-  gfx::YUVColorSpace mYUVColorSpace;
-  gfx::ColorDepth mColorDepth;
-  gfx::ColorRange mColorRange;
-  gfx::IntSize mSizeY;
-  gfx::IntSize mSizeCbCr;
+  const gfx::YUVColorSpace mYUVColorSpace;
+  const gfx::ColorDepth mColorDepth;
+  const gfx::ColorRange mColorRange;
+  const gfx::IntSize mSizeY;
+  const gfx::IntSize mSizeCbCr;
+  const layers::GpuProcessFencesHolderId mFencesHolderId;
 
-  bool mLocked;
+  bool mLocked = false;
 };
 
 }  // namespace wr

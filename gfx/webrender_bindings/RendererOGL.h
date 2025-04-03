@@ -27,6 +27,7 @@ class GLContext;
 
 namespace layers {
 class CompositorBridgeParent;
+class Fence;
 class SyncObjectHost;
 }  // namespace layers
 
@@ -70,7 +71,7 @@ class RendererOGL {
   void WaitForGPU();
 
   /// This can be called on the render thread only.
-  UniqueFileHandle GetAndResetReleaseFence();
+  RefPtr<layers::Fence> GetAndResetReleaseFence();
 
   /// This can be called on the render thread only.
   RenderedFrameId GetLastCompletedFrameId();

@@ -123,7 +123,7 @@ RenderedFrameId RenderCompositorEGL::EndFrame(
   if (sync) {
     int fenceFd = egl->fDupNativeFenceFDANDROID(sync);
     if (fenceFd >= 0) {
-      mReleaseFenceFd = UniqueFileHandle(fenceFd);
+      mReleaseFence = new layers::FenceFileHandle(UniqueFileHandle(fenceFd));
     }
     egl->fDestroySync(sync);
     sync = nullptr;
@@ -259,12 +259,12 @@ void RenderCompositorEGL::DestroyEGLSurface() {
   }
 }
 
-UniqueFileHandle RenderCompositorEGL::GetAndResetReleaseFence() {
+RefPtr<layers::Fence> RenderCompositorEGL::GetAndResetReleaseFence() {
 #ifdef MOZ_WIDGET_ANDROID
-  MOZ_ASSERT(!layers::AndroidHardwareBufferApi::Get() || mReleaseFenceFd);
-  return std::move(mReleaseFenceFd);
+  MOZ_ASSERT(!layers::AndroidHardwareBufferApi::Get() || mReleaseFence);
+  return mReleaseFence.forget();
 #else
-  return UniqueFileHandle();
+  return nullptr;
 #endif
 }
 

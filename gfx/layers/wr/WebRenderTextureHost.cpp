@@ -16,6 +16,10 @@
 #  include "mozilla/layers/TextureHostOGL.h"
 #endif
 
+#ifdef XP_WIN
+#  include "mozilla/layers/TextureD3D11.h"
+#endif
+
 namespace mozilla::layers {
 
 class ScheduleHandleRenderTextureOps : public wr::NotificationHandler {
@@ -119,6 +123,11 @@ void WebRenderTextureHost::NotifyNotUsed() {
       mWrappedTextureHost->AsTextureHostWrapperD3D11()) {
     mWrappedTextureHost->NotifyNotUsed();
   }
+#ifdef XP_WIN
+  if (auto* host = AsDXGIYCbCrTextureHostD3D11()) {
+    host->NotifyNotUsed();
+  }
+#endif
   TextureHost::NotifyNotUsed();
 }
 

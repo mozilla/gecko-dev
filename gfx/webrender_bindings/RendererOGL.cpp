@@ -13,6 +13,7 @@
 #include "mozilla/gfx/Types.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorThread.h"
+#include "mozilla/layers/Fence.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/ProfilerScreenshots.h"
 #include "mozilla/webrender/RenderCompositor.h"
@@ -280,7 +281,7 @@ void RendererOGL::WaitForGPU() {
   }
 }
 
-UniqueFileHandle RendererOGL::GetAndResetReleaseFence() {
+RefPtr<layers::Fence> RendererOGL::GetAndResetReleaseFence() {
   return mCompositor->GetAndResetReleaseFence();
 }
 

@@ -10,6 +10,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
+#include "mozilla/layers/Fence.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "Units.h"
 
@@ -202,13 +203,7 @@ class RenderCompositor {
   }
   virtual bool MaybeProcessScreenshotQueue() { return false; }
 
-  // Returns FileDescriptor of release fence.
-  // Release fence is a fence that is used for waiting until usage/composite of
-  // AHardwareBuffer is ended. The fence is delivered to client side via
-  // ImageBridge. It is used only on android.
-  virtual UniqueFileHandle GetAndResetReleaseFence() {
-    return UniqueFileHandle();
-  }
+  virtual RefPtr<layers::Fence> GetAndResetReleaseFence() { return nullptr; }
 
   virtual bool IsPaused() { return false; }
 
