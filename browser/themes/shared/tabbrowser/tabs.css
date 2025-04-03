@@ -1574,10 +1574,6 @@ tab-group {
     margin-inline: var(--tab-inner-inline-margin);
   }
 
-  .tab-close-button {
-    margin-inline-end: calc(-1 * var(--tab-close-button-padding));
-  }
-
   &:not([expanded]) {
     .tabbrowser-tab[pinned] {
       width: var(--tab-collapsed-width);
@@ -1669,7 +1665,7 @@ tab-group {
       max-width: none;
 
       .tab-close-button {
-        margin-inline-end: calc(-1 * var(--tab-close-button-padding));
+        margin-inline-end: calc(var(--tab-close-button-padding) / -2);
       }
 
       &:not(:hover) .tab-close-button:not([selected]) {
