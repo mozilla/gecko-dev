@@ -48,7 +48,7 @@
 #include "mozilla/Omnijar.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProfilerLabels.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/ToolkitXreMetrics.h"
 #include "mozilla/Try.h"
 #include "mozilla/XREAppData.h"
 #include "nsPrintfCString.h"
@@ -667,7 +667,7 @@ nsXREDirProvider::DoStartup() {
       else
         mode = 2;
     }
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::SAFE_MODE_USAGE, mode);
+    mozilla::glean::gecko::safe_mode_usage.AccumulateSingleSample(mode);
 
     obsSvc->NotifyObservers(nullptr, "profile-initial-state", nullptr);
   }

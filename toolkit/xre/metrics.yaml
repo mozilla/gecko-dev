@@ -49,6 +49,26 @@ gecko:
       - gfx-telemetry-alerts@mozilla.com
     expires: never
 
+  safe_mode_usage:
+    type: custom_distribution
+    description: >
+      Whether the user is in safe mode (No, Yes, Forced)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram SAFE_MODE_USAGE.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: SAFE_MODE_USAGE
+
 os.environment:
   is_admin_without_uac:
     type: boolean
