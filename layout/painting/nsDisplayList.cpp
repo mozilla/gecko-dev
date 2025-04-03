@@ -2346,7 +2346,6 @@ struct FramesWithDepth {
     // We want to sort so that the shallowest item (highest depth value) is
     // first. Round to have some error tolerance (multiply with 8 translates
     // effectively to <<3).
-    // TODO: We might not want/need any tolerance here, see bug 1957561.
     double lDepth = round(mDepth * 8.);
     double rDepth = round(aOther.mDepth * 8.);
     return lDepth > rDepth;
