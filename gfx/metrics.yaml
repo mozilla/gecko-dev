@@ -1745,3 +1745,151 @@ apz_zoom:
       - botond@mozilla.com
     expires: never
     telemetry_mirror: APZ_ZOOM_PINCHSOURCE
+
+webfont:
+  download_time:
+    type: timing_distribution
+    description: >
+      Time to download a webfont (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBFONT_DOWNLOAD_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: WEBFONT_DOWNLOAD_TIME
+
+  fonttype:
+    type: custom_distribution
+    description: >
+      Font format type (woff/woff2/ttf/...)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBFONT_FONTTYPE.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: WEBFONT_FONTTYPE
+
+  srctype:
+    type: custom_distribution
+    description: >
+      Font src type loaded (1 = local, 2 = url, 3 = data)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBFONT_SRCTYPE.
+    range_min: 0
+    range_max: 5
+    bucket_count: 6
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: WEBFONT_SRCTYPE
+
+  per_page:
+    type: counter
+    description: >
+      Number of fonts loaded at page load
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram WEBFONT_PER_PAGE.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: h#WEBFONT_PER_PAGE
+
+  size_per_page:
+    type: memory_distribution
+    description: >
+      Size of all fonts loaded at page load (kb)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBFONT_SIZE_PER_PAGE.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: WEBFONT_SIZE_PER_PAGE
+
+  size:
+    type: memory_distribution
+    description: >
+      Size of font loaded (kb)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram WEBFONT_SIZE.
+    memory_unit: kilobyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: WEBFONT_SIZE
+
+  compression_woff:
+    type: custom_distribution
+    description: >
+      Compression ratio of WOFF data (%)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBFONT_COMPRESSION_WOFF.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: WEBFONT_COMPRESSION_WOFF
+
+  compression_woff2:
+    type: custom_distribution
+    description: >
+      Compression ratio of WOFF2 data (%)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBFONT_COMPRESSION_WOFF2.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950710
+    notification_emails:
+      - jkew@mozilla.com
+    expires: never
+    telemetry_mirror: WEBFONT_COMPRESSION_WOFF2

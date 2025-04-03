@@ -37,7 +37,7 @@
 #include "mozilla/ServoUtils.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_layout.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/LoadInfo.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
@@ -903,7 +903,7 @@ void FontFaceSetImpl::RecordFontLoadDone(uint32_t aFontSize,
                                          TimeStamp aDoneTime) {
   mDownloadCount++;
   mDownloadSize += aFontSize;
-  Telemetry::Accumulate(Telemetry::WEBFONT_SIZE, aFontSize / 1024);
+  glean::webfont::size.Accumulate(aFontSize / 1024);
 
   TimeStamp navStart = GetNavigationStartTimeStamp();
   TimeStamp zero;

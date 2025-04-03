@@ -1210,12 +1210,11 @@ void PresShell::Destroy() {
       uint32_t fontCount;
       uint64_t fontSize;
       fs->GetLoadStatistics(fontCount, fontSize);
-      Telemetry::Accumulate(Telemetry::WEBFONT_PER_PAGE, fontCount);
-      Telemetry::Accumulate(Telemetry::WEBFONT_SIZE_PER_PAGE,
-                            uint32_t(fontSize / 1024));
+      glean::webfont::per_page.Add(fontCount);
+      glean::webfont::size_per_page.Accumulate(uint32_t(fontSize / 1024));
     } else {
-      Telemetry::Accumulate(Telemetry::WEBFONT_PER_PAGE, 0);
-      Telemetry::Accumulate(Telemetry::WEBFONT_SIZE_PER_PAGE, 0);
+      glean::webfont::per_page.Add(0);
+      glean::webfont::size_per_page.Accumulate(0);
     }
   }
 

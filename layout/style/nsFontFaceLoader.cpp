@@ -16,7 +16,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/Unused.h"
 #include "FontFaceSet.h"
 #include "nsPresContext.h"
@@ -235,9 +235,9 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
 
   TimeStamp doneTime = TimeStamp::Now();
   TimeDuration downloadTime = doneTime - mStartTime;
-  uint32_t downloadTimeMS = uint32_t(downloadTime.ToMilliseconds());
-  Telemetry::Accumulate(Telemetry::WEBFONT_DOWNLOAD_TIME, downloadTimeMS);
+  glean::webfont::download_time.AccumulateRawDuration(downloadTime);
 
+  uint32_t downloadTimeMS = uint32_t(downloadTime.ToMilliseconds());
   if (GetFontDisplay() == StyleFontDisplay::Fallback) {
     uint32_t loadTimeout = GetFallbackDelay();
     if (downloadTimeMS > loadTimeout &&

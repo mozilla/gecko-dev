@@ -12,6 +12,7 @@
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_gfx.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/gfx/2D.h"
 #include "gfxPlatformFontList.h"
@@ -197,7 +198,7 @@ const uint8_t* gfxUserFontEntry::SanitizeOpenTypeData(
     const uint8_t* aData, uint32_t aLength, uint32_t& aSanitaryLength,
     gfxUserFontType& aFontType, nsTArray<OTSMessage>& aMessages) {
   aFontType = gfxFontUtils::DetermineFontDataType(aData, aLength);
-  Telemetry::Accumulate(Telemetry::WEBFONT_FONTTYPE, uint32_t(aFontType));
+  glean::webfont::fonttype.AccumulateSingleSample(uint32_t(aFontType));
 
   size_t lengthHint = gfxOTSContext::GuessSanitizedFontSize(aLength, aFontType);
   if (!lengthHint) {
@@ -492,8 +493,7 @@ void gfxUserFontEntry::DoLoadNextSrc(bool aIsContinue) {
                           gfxUserFontData::kUnknownCompression);
         mPlatformFontEntry = fe;
         SetLoadState(STATUS_LOADED);
-        Telemetry::Accumulate(Telemetry::WEBFONT_SRCTYPE,
-                              currSrc.mSourceType + 1);
+        glean::webfont::srctype.AccumulateSingleSample(currSrc.mSourceType + 1);
         return;
       }
       LOG(("userfonts (%p) [src %d] failed local: (%s) for (%s)\n",
@@ -573,8 +573,8 @@ void gfxUserFontEntry::DoLoadNextSrc(bool aIsContinue) {
           if (NS_SUCCEEDED(rv) &&
               LoadPlatformFontSync(mCurrentSrcIndex, buffer, bufferLength)) {
             SetLoadState(STATUS_LOADED);
-            Telemetry::Accumulate(Telemetry::WEBFONT_SRCTYPE,
-                                  currSrc.mSourceType + 1);
+            glean::webfont::srctype.AccumulateSingleSample(currSrc.mSourceType +
+                                                           1);
             return;
           }
           fontSet->LogMessage(this, mCurrentSrcIndex, "font load failed",
@@ -629,8 +629,7 @@ void gfxUserFontEntry::DoLoadNextSrc(bool aIsContinue) {
         // LoadPlatformFontSync takes ownership of the buffer, so no need
         // to free it here.
         SetLoadState(STATUS_LOADED);
-        Telemetry::Accumulate(Telemetry::WEBFONT_SRCTYPE,
-                              currSrc.mSourceType + 1);
+        glean::webfont::srctype.AccumulateSingleSample(currSrc.mSourceType + 1);
         return;
       }
       fontSet->LogMessage(this, mCurrentSrcIndex, "font load failed",
@@ -752,11 +751,12 @@ bool gfxUserFontEntry::LoadPlatformFont(uint32_t aSrcIndex,
     if (aSanitizedLength) {
       fontCompressionRatio =
           uint32_t(100.0 * aOriginalLength / aSanitizedLength + 0.5);
-      if (aFontType == GFX_USERFONT_WOFF || aFontType == GFX_USERFONT_WOFF2) {
-        Telemetry::Accumulate(aFontType == GFX_USERFONT_WOFF
-                                  ? Telemetry::WEBFONT_COMPRESSION_WOFF
-                                  : Telemetry::WEBFONT_COMPRESSION_WOFF2,
-                              fontCompressionRatio);
+      if (aFontType == GFX_USERFONT_WOFF) {
+        glean::webfont::compression_woff.AccumulateSingleSample(
+            fontCompressionRatio);
+      } else if (aFontType == GFX_USERFONT_WOFF2) {
+        glean::webfont::compression_woff2.AccumulateSingleSample(
+            fontCompressionRatio);
       }
     }
 
