@@ -3316,15 +3316,6 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
                gdkWindowBounds;
       }
     }
-    if (mSizeMode == nsSizeMode_Normal && !mIsTiled &&
-        mCsdMargin == kCsdMarginUnknown) {
-      // Try to estimate the margin using our decoration size.
-      auto decorationRect = GetTopLevelCSDDecorationSize();
-      if (!mDrawInTitlebar) {
-        decorationRect.top += moz_gtk_get_titlebar_preferred_height();
-      }
-      return GtkBorderToDevicePixels(decorationRect);
-    }
     // Don't change it. It might have not changed at all, or if it has, we'll
     // get a better margin once we get relevant size-allocate callbacks.
     return mCsdMargin;
@@ -3335,10 +3326,7 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
       return LayoutDeviceIntMargin{};
     }
     const auto systemMargin = mBounds - toplevelBounds;
-    if (mCsdMargin != kCsdMarginUnknown) {
-      return systemMargin + mCsdMargin;
-    }
-    return systemMargin;
+    return systemMargin + mCsdMargin;
   }();
   mClientMargin.EnsureAtLeast(LayoutDeviceIntMargin());
 
