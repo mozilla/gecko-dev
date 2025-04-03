@@ -769,6 +769,10 @@
   <string name="preferences_add_private_browsing_shortcut">ເພີ່ມທາງລັດການທ່ອງເວັບແບບສ່ວນຕົວ</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">ໂໝດ HTTPS ເທົ່ານັ້ນ</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">ໃຊ້ການລັອກໜ້າຈໍເພື່ອເຊື່ອງແຖບໃນຜົນການຄົ້ນຫາສ່ວນຕົວ</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">ເບິ່ງແຖບທີ່ມີລາຍນິ້ວມື, ການປົດລັອກດ້ວຍໜ້າ ຫຼື PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">ໂຕປິດກັ້ນ Cookie banner</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1048,6 +1052,8 @@
     Preference for managing your account via accounts.firefox.com
   -->
   <string name="preferences_manage_account">ຈັດການບັນຊີ</string>
+  <!-- Summary of the preference for managing your account via accounts.firefox.com. -->
+  <string name="preferences_manage_account_summary">ປ່ຽນລະຫັດຜ່ານຂອງທ່ານ, ຈັດການການເກັບກໍາຂໍ້ມູນ, ຫຼື ລຶບບັນຊີຂອງທ່ານ</string>
   <!-- Preference for triggering sync -->
   <string name="preferences_sync_now">Sync ຕອນນີ້</string>
   <!-- Preference category for sync -->
@@ -1122,8 +1128,14 @@
   <string name="exceptions_empty_message_learn_more_link">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">ຂໍ້ມູນດ້ານວິຊາການ ແລະ ການໂຕ້ຕອບ</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_2">ສົ່ງຂໍ້ມູນດ້ານເຕັກນິກ ແລະ ການໂຕ້ຕອບ</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">ຂໍ້​ມູນ​ກ່ຽວ​ກັບ​ອຸ​ປະ​ກອນ​ຂອງ​ທ່ານ, ການ​ຕັ້ງ​ຄ່າ​ຮາດ​ແວ, ແລະ​ ການ​ນໍາ​ໃຊ້​ຊ່ວຍ​ໃຫ້​ພວກ​ເຮົາ​ປັບ​ປຸງ​ຄຸນ​ສົມ​ບັດ Firefox, ປະ​ສິດ​ທິ​ພາບ, ແລະ ​ຄວາມ​ຫມັ້ນ​ຄົງ.</string>
+  <!-- Preference switch for campaign measurement data (marketing data) collection -->
+  <string name="preferences_marketing_data_2">ຂໍ້ມູນການວັດແທກແຄມເປນ</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບຂໍ້ມູນການຕະຫຼາດ</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1132,6 +1144,8 @@
   <string name="preferences_daily_usage_ping_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການໃຊ້ ping ປະຈໍາວັນ</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">ນີ້ຈະຊ່ວຍໃຫ້ພວກເຮົາວິນິດໄສ ແລະ ແກ້ໄຂບັນຫາກັບຕົວທ່ອງເວັບ. ບົດລາຍງານອາດຈະປະກອບມີຂໍ້ມູນສ່ວນຕົວ ຫຼື ຂໍ້ມູນທີ່ລະອຽດອ່ອນ.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
   <!-- Title for studies preferences -->

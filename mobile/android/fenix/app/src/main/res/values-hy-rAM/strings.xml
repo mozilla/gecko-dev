@@ -89,7 +89,7 @@
 
     Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
   -->
-  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Թողարկեք հաջորդ անձնական ներդիրը մեկ հպումով:</string>
+  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Գործարկեք Ձեր հաջորդ գաղտնի ներդիրը մեկ հպումով:</string>
   <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
   <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Ավելացնել Տուն էկրանին</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
@@ -207,7 +207,7 @@
   -->
   <string name="browser_menu_back">Վերադառնալ</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
-  <string name="browser_menu_forward">Փոխանցել</string>
+  <string name="browser_menu_forward">Առաջ</string>
   <!-- Content description (not visible, for screen readers etc.): Refresh current website -->
   <string name="browser_menu_refresh">Թարմացնել</string>
   <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
@@ -218,7 +218,7 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">Դարձրե՛ք %s-ը ձեր սեփականը</string>
+  <string name="browser_menu_extensions_banner_onboarding_header">Դարձրե՛ք %s-ը Ձերը</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Դուք ունեք ընդլայնումներ տեղադրված, բայց չմիացված</string>
   <!--
@@ -263,11 +263,11 @@
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_regular_tab">Բացել կանոնավոր ներդիրում</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen">Ավելացնել Տնային էկրանին</string>
+  <string name="browser_menu_add_to_homescreen">Ավելացնել տնային էկրանին</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">Հավելել հավելվածը տնային էկրանին</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Ավելացնել Տուն էկրանին…</string>
+  <string name="browser_menu_add_to_homescreen_2">Ավելացնել տնային էկրանին…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen_2">Հավելել հավելվածը տնային էկրանին…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
@@ -384,11 +384,11 @@
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
   <string name="browser_menu_turn_off_reader_view">Անջատել Ընթերցելու տեսքը</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">Տեղափոխել ոչ մասնավոր ներդիր</string>
+  <string name="browser_menu_open_in_normal_tab">Տեղափոխել ոչ գաղտնի ներդիր</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page">Թարգմանել էջը…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-  <string name="browser_menu_webcompat_reporter">Զեկուցել խոտանված կայքի մասին…</string>
+  <string name="browser_menu_webcompat_reporter">Զեկուցել կայքի խոտանումը…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -685,7 +685,7 @@
   <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_light_option">Լուսավոր</string>
   <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_system_option">Համակարգի տեղեկություն</string>
+  <string name="onboarding_customize_theme_system_option">Համակարգն ինքնաբերաբար</string>
   <!-- Onboarding theme selection card content description for the main image. -->
   <string name="onboarding_customize_theme_main_image_content_description">Թեմայի ընտրության դիտման մեծ վերնագրի պատկերը, որը ցույց է տալիս նկարազարդ նկարիչների և շինարարական գործիքները:</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
@@ -769,6 +769,10 @@
   <string name="preferences_add_private_browsing_shortcut">Ավելացնել գաղտնի դիտարկման դյուրանցում</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Միայն HTTPS կերպ</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Օգտագործեք էկրանի կողպումը մասնավոր դիտարկման ժամանակ ներդիրները թաքցնելու համար</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Դիտեք ներդիրները մատնահետքով, դեմքի ապակողպումով կամ PIN-ով։</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Թխուկների ազդերիզի արգելափակիչ</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -808,9 +812,9 @@
   <!-- Summary of https only preference if https only is set to off -->
   <string name="preferences_https_only_off">Անջ.</string>
   <!-- Summary of https only preference if https only is set to on in all tabs -->
-  <string name="preferences_https_only_on_all">Բոլոր ներդիրներում</string>
+  <string name="preferences_https_only_on_all">Միացված է բոլոր ներդիրներում</string>
   <!-- Summary of https only preference if https only is set to on in private tabs only -->
-  <string name="preferences_https_only_on_private">Միացված գաղտնի ներդիրներում</string>
+  <string name="preferences_https_only_on_private">Միացված է գաղտնի ներդիրներում</string>
   <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
   <string name="preferences_http_only_learn_more">Իմանալ ավելին</string>
   <!-- Option for the https only setting -->
@@ -834,7 +838,7 @@
   <!-- Preference category for account information -->
   <string name="preferences_category_account">Հաշիվ</string>
   <!-- Preference for changing where the AddressBar is positioned -->
-  <string name="preferences_toolbar_2">Հասցեի գոտու տեղադրություն</string>
+  <string name="preferences_toolbar_2">Հասցեագոտու տեղադրություն</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">Ոճ</string>
   <!-- Preference for customizing the home screen -->
@@ -912,7 +916,7 @@
   <!-- Preference for open links in third party apps always open in apps option -->
   <string name="preferences_open_links_in_apps_always">Միշտ</string>
   <!-- Preference for open links in third party apps ask before opening option -->
-  <string name="preferences_open_links_in_apps_ask">Հարցրեք բացելուց առաջ</string>
+  <string name="preferences_open_links_in_apps_ask">Հարցել բացելուց առաջ</string>
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Երբեք</string>
   <!-- Preference for open download with an external download manager app -->
@@ -989,7 +993,7 @@
 
     Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
-  <string name="wallpapers_item_name_content_description">Պաստառի միույթ՝ %1$s</string>
+  <string name="wallpapers_item_name_content_description">Պաստառի տարր՝ %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
   <string name="wallpaper_updated_snackbar_message">Պաստառն արդիացվեց:</string>
   <!-- Snackbar label for action to view selected wallpaper -->
@@ -1075,7 +1079,7 @@
   <!-- Label summary showing never synced -->
   <string name="sync_failed_never_synced_summary">Համաժամեցումը ձախողվեց: Վերջին համաժամեցումը՝ երբեք</string>
   <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
-  <string name="sync_last_synced_summary">Վերջին համաժամեցումը. %s</string>
+  <string name="sync_last_synced_summary">Վերջին համաժամեցումը՝ %s</string>
   <!-- Label summary showing never synced -->
   <string name="sync_never_synced_summary">Վերջին համաժամեցումը՝ երբեք</string>
   <!--
@@ -1298,11 +1302,11 @@
   -->
   <string name="preferences_opening_screen">Ողջույնի էկրան</string>
   <!-- Option for always opening the homepage when re-opening the app -->
-  <string name="opening_screen_homepage">Տնային էջ</string>
+  <string name="opening_screen_homepage">Տնէջ</string>
   <!-- Option for always opening the user's last-open tab when re-opening the app -->
   <string name="opening_screen_last_tab">Վերջին ներդիրը</string>
   <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
-  <string name="opening_screen_after_four_hours_of_inactivity">Տնային էջը չորս ժամ անգործությունից հետո</string>
+  <string name="opening_screen_after_four_hours_of_inactivity">Տնէջը չորս ժամ անգործությունից հետո</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to manual close -->
   <string name="close_tabs_manually_summary">Փակել ձեռքով</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day -->
@@ -1416,7 +1420,7 @@
   <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
   <string name="history_delete_multiple_items_snackbar">Պատմությունը ջնջվեց</string>
   <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. %1$s is the shortened URL of the deleted history item. -->
-  <string name="history_delete_single_item_snackbar">%1$s-ը ջնջվել է</string>
+  <string name="history_delete_single_item_snackbar">%1$s-ը ջնջվեց</string>
   <!-- Context description text for the button to delete a single history item -->
   <string name="history_delete_item">Ջնջել</string>
   <!--
@@ -1450,7 +1454,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s-ը հեռացված է</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">“%1$s”-ը ջնջվել է</string>
+  <string name="download_delete_single_item_snackbar_2">«%1$s»-ը ջնջվեց</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Ներբեռնվում է…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1546,7 +1550,7 @@
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
   -->
-  <string name="webcompat_reporter_screen_title">Զեկուցել խոտանված կայքի մասին</string>
+  <string name="webcompat_reporter_screen_title">Զեկուցել կայքի խոտանումը</string>
   <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
   <string name="webcompat_reporter_description">Օգնեք %1$s-ն ավելի լավը դարձնել բոլորի համար: Mozilla-ի աշխատակիցներն օգտագործում են ձեր ուղարկած տեղեկությունները կայքի խնդիրները շտկելու համար:</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
@@ -2523,13 +2527,13 @@
   <!-- The header for the card number of a credit card -->
   <string name="credit_cards_card_number">Քարտի համարը</string>
   <!-- The header for the expiration date of a credit card -->
-  <string name="credit_cards_expiration_date">Քարտի ժամկետը</string>
+  <string name="credit_cards_expiration_date">Ավարտի ամսաթիվը</string>
   <!-- The label for the expiration date month of a credit card to be used by a11y services -->
-  <string name="credit_cards_expiration_date_month">Ժամկետի ամսաթվի ամիսը</string>
+  <string name="credit_cards_expiration_date_month">Ավարտման ամիսը</string>
   <!-- The label for the expiration date year of a credit card to be used by a11y services -->
-  <string name="credit_cards_expiration_date_year">Ժամկետի ամսաթվի տարին</string>
+  <string name="credit_cards_expiration_date_year">Ավարտման տարին</string>
   <!-- The header for the name on the credit card -->
-  <string name="credit_cards_name_on_card">Քարտի վրա ձեր անունը</string>
+  <string name="credit_cards_name_on_card">Քարտի վրայի անունը</string>
   <!-- The text for the "Delete card" menu item for deleting a credit card -->
   <string name="credit_cards_menu_delete_card">Ջնջել քարտը</string>
   <!-- The text for the "Delete card" button for deleting a credit card -->
@@ -2577,7 +2581,7 @@
   <!-- The header for the city of an address -->
   <string name="addresses_city">Քաղաք</string>
   <!-- The header for the subregion of an address when "state" should be used -->
-  <string name="addresses_state">Վիճակը</string>
+  <string name="addresses_state">Նահանգ</string>
   <!-- The header for the subregion of an address when "province" should be used -->
   <string name="addresses_province">Շրջան</string>
   <!-- The header for the zip code of an address -->
@@ -2623,15 +2627,15 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">Որոնման համար օգտագործվող URL-ն</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Հարցումը փոխարինել “%s”-ով: Օրինակ՝ \nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Փոխարինել հարցումը «%s»-ով։ Օրինակ՝\n https://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Հարմարեցված որոնիչի մանրամասներ</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
-  <string name="search_add_custom_engine_suggest_url_label">Որոնման առաջարկի API (ըստ ցանկության)</string>
+  <string name="search_add_custom_engine_suggest_url_label">Որոնման առաջարկի API (ցանկալի)</string>
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
-  <string name="search_add_custom_engine_suggest_string_hint">Որոնել առաջարկություն API URL</string>
+  <string name="search_add_custom_engine_suggest_string_hint">Որոնել առաջարկի API-ի URL</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Փոխել հարցումը “%s”-ով: Օրինակ՝ \nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Փոխարինել հարցումը «%s»-ով։ Օրինակ՝\n https://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Պահել</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -3110,7 +3114,7 @@
     The dialog will be presented when the user requests deletion of a language.
     %1$s is the name of the language, for example, "Spanish" and %2$s is the size in kilobytes or megabytes of the language file.
   -->
-  <string name="delete_language_file_dialog_title">Ջնջե/լ %1$s (%2$s)-ը;</string>
+  <string name="delete_language_file_dialog_title">Ջնջե՞լ %1$s-ը (%2$s)։</string>
   <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_file_dialog_message">Եթե ջնջեք բոլոր լեզուները, %1$s-ը, ըստ թարգմանության, շտեմում կներբեռնի մասնակի լեզուներ:</string>
   <!--
@@ -3381,7 +3385,7 @@
 
     Localisation note: this text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_back_button_short">Քաշեք վերևից և սեղմեք հետ՝ դուրս գալու համար</string>
+  <string name="exit_fullscreen_with_back_button_short">Քաշեք վերևից և սեղմեք ետ՝ դուրս գալու համար</string>
   <!--
     Beta Label Component !
 
@@ -3438,4 +3442,14 @@
   <string name="a11y_completed_task_description">Կատարված առաջադրանքներ</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Առաջադրանքի պատկերակ</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Թողնել գաղտնի ներդիրները</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Ապակողպել</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Ապակողպել գաղտնի ներդիրները</string>
 </resources>

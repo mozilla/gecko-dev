@@ -149,7 +149,7 @@
   <!-- Text that will show up on the button at the bottom of the error page -->
   <string name="mozac_browser_errorpages_no_internet_refresh_button">Կրկին բեռնել</string>
   <!-- The document title and heading of an error page. -->
-  <string name="mozac_browser_errorpages_malformed_uri_title">Անվավեր Հասցե</string>
+  <string name="mozac_browser_errorpages_malformed_uri_title">Անվավեր հասցե</string>
   <string name="mozac_browser_errorpages_malformed_uri_message">&lt;p&gt;Ներկայացված հասցեն ճանաչված ձևաչափով չէ: Խնդրում ենք ստուգել տեղադրության գոտին՝ արդյոք սխալ կա, և կրկին փորձել:&lt;/p&gt;</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_malformed_uri_title_alternative">Հասցեն վավեր չէ</string>
