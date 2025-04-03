@@ -32,8 +32,6 @@
   <string name="tab_tray_close_multiselect_content_description">لە دۆخی دیاریکردنی چەندیی دەربچۆ</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">بازدەرە دیاریکراوەکان هەڵبگرە لە کۆمەڵەکە</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">دیاریکرا</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s بەرهەم هێنراوە لە لایەن مۆزیلاوە.</string>
   <string name="private_browsing_common_myths">
@@ -299,10 +297,6 @@
   <string name="exceptions_empty_message_description">هەڵاوێردی ڕێگەتپێدەدات کە پارێزگاریکردن لە چاودێری ناکارا بکەیت بۆ چەند ماڵپەڕێکی دیاریکراو.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">زیاتر بزانە</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">چوستی وێبگەڕ، بەکارهێنانی و زانیاری خوازراوی وێبگەڕەکەت بڵاوەپێدەکات لەگەڵ مۆزیلا بۆ ئەوەی یارمەتیمان بدات %1$s باشتر بکەین</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">زانیاری بازاڕیکردن</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">توێژینەوە</string>
   <!-- Summary for studies preferences -->
@@ -417,14 +411,6 @@
   <string name="close_tabs_after_one_week_summary">داخستن دووای یەک هەفتە</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month -->
   <string name="close_tabs_after_one_month_summary">داخستن دووای یەک مانگ</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">بازدەرە تایبەتەکان</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">بازدەرە هاوکاتپێکراوەکان</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">بازدەر زیادبکە</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

@@ -34,8 +34,6 @@
   <string name="tab_tray_close_multiselect_content_description">Kúrò ní móòdù aláṣàyàn púpọ̀</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">Ṣe ìfipamọ́ àwọn táàbù tí o yàn sí inú àkójọpọ̀</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Yàn</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s Jẹ́ ṣíṣẹ̀dá látọwọ́ọ Mozilla.</string>
   <!--
@@ -445,10 +443,6 @@
   <string name="exceptions_empty_message_description">Àwọn ìyọkúrò jẹ́ kí o pa ààbò ìtọpaṣẹ̀ fún àwọn sáìtì tí o yàn.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Kọ́ si</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Pín àwọn iṣẹ́ ṣíṣe, lílò, hádíwiẹ̀ àti dátà ìsọdi tẹni nípa bíráwúsà rẹ pẹ̀lú Mozilla láti ṣe ìrànlọ́wọ́ fún wa láti jẹ́ kí ó %1$s dára</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Pípolówó dátà</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Àwọn àyẹ̀wò</string>
   <!-- Summary for studies preferences -->
@@ -599,18 +593,8 @@
   <string name="studies_remove">Yọ kúrò</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Tí ó ń ṣiṣẹ́</string>
-  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s lè fi sórí ẹ̀rọ kí o sì ṣe àwọn àyẹ̀wò láti ìgbàdégbà.  </string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Kọ́ si</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Àwọn táàbù ìkọ̀kọ̀</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Àwọn táàbù tọ́ ti ṣepọ̀</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Ṣàfikún táàbù</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

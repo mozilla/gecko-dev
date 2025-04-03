@@ -44,8 +44,6 @@
   <string name="tab_tray_close_multiselect_content_description">ᱢᱟᱹᱞᱴᱤᱥᱤᱞᱮᱠᱼᱴ ᱢᱳᱰ ᱵᱟᱹᱰ</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">ᱵᱟᱪᱷᱟᱣᱠᱟᱱ ᱴᱮᱵᱽ ᱠᱚ ᱛᱩᱢᱟᱹᱞ ᱥᱟᱺᱪᱟᱣ ᱢᱮ</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱟᱪᱷᱟᱣᱮᱱᱟ</string>
   <!--
     Home - Bookmarks
 
@@ -605,14 +603,8 @@
   <string name="onboarding_preferences_dialog_crash_reporting_description">ᱠᱨᱟᱥ ᱨᱤᱯᱚᱨᱴ ᱟᱞᱮ ᱵᱽᱨᱟᱣᱩᱡᱟᱨ ᱨᱮᱭᱟᱜ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱠᱚ ᱵᱤᱰᱟᱹᱣ ᱟᱨ ᱥᱟᱹᱛ ᱨᱮᱭᱟᱜ ᱫᱟᱣ ᱮ ᱮᱢᱟ ᱞᱮᱭᱟ ᱾ ᱠᱷᱚᱵᱚᱨ ᱨᱮ ᱯᱚᱨᱥᱚᱱᱟᱞ ᱵᱟᱝᱠᱷᱟᱱ ᱥᱮᱱᱥᱮᱴᱤᱵᱷ ᱰᱟᱴᱟ ᱥᱮᱞᱮᱫ ᱛᱟᱦᱮᱸ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_usage_data_title">Mozilla ᱨᱮ ᱴᱮᱠᱱᱤᱠᱟᱞ ᱟᱨ ᱤᱱᱴᱟᱨᱮᱠᱥᱚᱱ ᱰᱟᱴᱟ ᱵᱷᱮᱡᱟᱭ ᱢᱮ</string>
-  <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
-  <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">ᱟᱢᱟᱜ ᱥᱟᱫᱷᱚᱱ, ᱦᱟᱨᱰᱣᱮᱭᱟᱨ ᱠᱚᱱᱯᱷᱤᱜᱟᱨᱮᱥᱚᱱ, ᱟᱨ ᱟᱢ ᱪᱮᱫ ᱞᱮᱠᱟ ᱯᱷᱟᱭᱟᱨᱯᱷᱚᱠᱥ ᱵᱮᱵᱷᱟᱨ ᱮᱫᱟᱢ ᱚᱱᱟ ᱵᱟᱵᱚᱛ ᱰᱟᱴᱟ ᱥᱟᱱᱟᱢ ᱡᱟᱭᱜᱟ ᱨᱮ ᱵᱮᱵᱷᱟᱨᱤᱭᱟᱹ ᱠᱚ ᱞᱟᱹᱜᱤᱫ ᱯᱷᱤᱪᱟᱨ, ᱠᱟᱹᱢᱤᱦᱚᱨᱟ ᱟᱨ ᱥᱴᱮᱵᱤᱞᱤᱴᱤ ᱥᱩᱫᱷᱟᱹᱨ ᱨᱮ ᱜᱚᱲᱚ ᱮᱢᱟᱭᱟ ᱾</string>
-  <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱮᱵᱷᱟᱨ ᱰᱟᱴᱟ ᱵᱟᱵᱚᱛ ᱵᱟᱹᱲᱛᱤ ᱵᱟᱲᱟᱭ ᱢᱮ</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">ᱦᱩᱭᱮᱱᱟ</string>
-  <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">ᱵᱟᱹᱰᱨᱟᱹ</string>
   <!--
     Search Widget
 
@@ -1026,12 +1018,6 @@
   <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">ᱴᱮᱠᱱᱤᱠᱟᱞ ᱟᱨ ᱤᱱᱴᱟᱨᱮᱠᱥᱚᱱ ᱰᱟᱴᱟ</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ᱟᱢᱟᱜ ᱵᱨᱟᱣᱡᱟᱚᱨ ᱨᱮᱭᱟᱜ ᱠᱟᱹᱢᱤ, ᱭᱩᱥᱮᱡ, ᱦᱟᱰᱣᱮᱨ ᱟᱨ ᱠᱟᱹᱥᱴᱚᱢᱟᱭᱡᱮᱥᱚᱱ ᱰᱟᱴᱟ ᱠᱚ Mozilla ᱥᱟᱞᱟᱜ ᱦᱟᱹᱴᱤᱧᱚᱜ ᱠᱟᱱᱟ ᱚᱠᱟ ᱫᱚ %1$s ᱵᱮᱥ ᱛᱮᱭᱟᱜ ᱨᱮ ᱜᱚᱲᱚ ᱮᱢᱟᱭ</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ᱢᱟᱨᱠᱮᱴᱤᱝ ᱰᱟᱴᱟ</string>
-  <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱡ ᱛᱮ ᱠᱨᱟᱥ ᱠᱷᱚᱵᱚᱨ ᱡᱚᱢᱟᱭ ᱢᱮ</string>
-  <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">ᱰᱤᱜᱟᱹᱣ ᱦᱩᱭᱮᱱ ᱛᱟᱭᱚᱢ Mozilla ᱫᱚ ᱮᱛᱦᱚᱵ ᱡᱷᱚᱜ ᱟᱡ ᱛᱮᱜᱮ ᱰᱤᱜᱟᱹᱣ ᱰᱟᱴᱟ ᱦᱟᱹᱴᱤᱧ ᱟ</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ᱠᱨᱟᱥ ᱨᱤᱯᱚᱨᱴ ᱵᱟᱵᱚᱛ ᱵᱟᱹᱲᱛᱤ ᱵᱟᱲᱟᱭ ᱢᱮ</string>
   <!-- Title for studies preferences -->
@@ -1219,18 +1205,8 @@
   <string name="studies_remove">ᱚᱪᱚᱜ ᱢᱮ</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">ᱩᱥᱨᱟᱹᱣ</string>
-  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ᱵᱚᱦᱟᱞ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱟᱨ ᱥᱚᱢᱚᱭ ᱠᱷᱚᱱ ᱥᱚᱢᱚᱨ ᱯᱟᱲᱦᱟᱣ ᱠᱚ ᱪᱟᱹᱞᱩᱜᱼᱟ ᱾</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱠᱚ</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱥᱭᱝᱠᱼᱰ ᱴᱮᱵᱽ ᱠᱚ</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">ᱴᱮᱵᱽ ᱥᱮᱞᱮᱫᱽ ᱢᱮ</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1345,8 +1321,6 @@
   <string name="webcompat_reporter_label_url">URL</string>
   <!-- The error message of the URL text field when an invalid URL has been entered. -->
   <string name="webcompat_reporter_url_error_invalid">ᱫᱟᱭᱟ ᱠᱟᱛᱮ ᱢᱤᱫ ᱢᱟᱱᱭᱟ URL ᱮᱢ ᱢᱮ</string>
-  <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
-  <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">ᱪᱮᱫ ᱨᱟᱹᱯᱩᱫ ᱮᱱᱟ ? (ᱟᱯᱱᱟᱨ ᱢᱚᱱᱮ ᱛᱮᱭᱟᱜ)</string>
   <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
   <string name="webcompat_reporter_choose_reason">ᱠᱟᱨᱚᱬ ᱵᱟᱛᱟᱣ ᱢᱮ</string>
   <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
@@ -2544,153 +2518,13 @@
   <!--
     Review quality check feature
 
-    Name for the review quality check feature used as title for the panel.
+    Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_feature_name_2" moz:removedIn="136" tools:ignore="UnusedResources">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ</string>
-  <!-- Summary for grades A and B for review quality check adjusted grading. -->
-  <string name="review_quality_check_grade_a_b_description" moz:removedIn="136" tools:ignore="UnusedResources">ᱴᱷᱤᱠ ᱵᱟᱛᱟᱣᱟᱜᱠᱚ</string>
-  <!-- Summary for grade C for review quality check adjusted grading. -->
-  <string name="review_quality_check_grade_c_description" moz:removedIn="136" tools:ignore="UnusedResources">ᱴᱷᱤᱠ ᱵᱟᱛᱟᱣᱟᱜ ᱟᱨ ᱵᱤᱱᱥᱨᱚᱛ ᱢᱮᱥᱟᱢᱤᱥᱤ ᱧᱮᱞᱵᱤᱲᱟᱹᱣᱟᱜᱠᱚ</string>
-  <!-- Summary for grades D and F for review quality check adjusted grading. -->
-  <string name="review_quality_check_grade_d_f_description" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱤᱱᱥᱨᱚᱛ ᱧᱮᱞᱵᱤᱲᱟᱹᱣ</string>
-  <!-- Text for title presenting the reliability of a product's reviews. -->
-  <string name="review_quality_check_grade_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱚᱶᱟ ᱧᱮᱞᱵᱤᱲᱟᱹᱣᱠᱚ ᱛᱤᱱᱟᱹᱜ ᱵᱷᱚᱨᱥᱟ ᱫᱮᱲᱮᱭᱟᱜᱼᱟᱢ ?</string>
-  <!-- Title for when the rating has been updated by the review checker -->
-  <string name="review_quality_check_adjusted_rating_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱨᱮᱴᱤᱝ ᱥᱚᱢᱚᱡᱚᱥ ᱮᱱᱟ</string>
-  <!-- Description for a product's adjusted star rating. The text presents that the product's reviews which were evaluated as unreliable were removed from the adjusted rating. -->
-  <string name="review_quality_check_adjusted_rating_description_2" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱷᱚᱨᱥᱟᱡᱚᱱᱚᱠ ᱧᱮᱞᱵᱤᱲᱟᱹᱣ ᱪᱮᱛᱟᱱ ᱨᱮ</string>
-  <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
-  <string name="review_quality_check_highlights_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱤᱛᱚᱜᱟᱜ ᱧᱮᱞᱵᱤᱲᱟᱹᱣ ᱠᱷᱚᱱ ᱛᱤᱱᱟᱹᱜ ᱜᱟᱱ ᱪᱤᱱᱦᱟᱹᱦᱟᱜ</string>
-  <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
-  <string name="review_quality_check_explanation_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱞᱮ ᱫᱚ ᱧᱮᱞᱵᱤᱲᱟᱹᱣᱟᱜ ᱜᱩᱱ ᱫᱚ ᱪᱮᱫ ᱞᱮᱠᱷᱟ ᱞᱮ ᱵᱟᱲᱟᱭ ᱮᱫᱟ</string>
-  <!-- Paragraph explaining how we analyze the reliability of a product's reviews. %s is "Fakespot". In the phrase "Fakespot by Mozilla", "by" can be localized. -->
-  <string name="review_quality_check_explanation_body_reliability" moz:removedIn="136" tools:ignore="UnusedResources">Mozilla  ᱯᱟᱦᱴᱟ ᱠᱷᱚᱱ %s ᱠᱷᱚᱱ AI ᱴᱮᱠᱱᱚᱞᱚᱡᱤ ᱵᱮᱵᱷᱟᱨ ᱠᱟᱛᱮᱜ ᱟᱞᱮ ᱯᱨᱚᱰᱚᱠᱴ ᱨᱤᱵᱷᱤᱭᱩ ᱨᱮᱱᱟᱜ ᱥᱟᱹᱨᱤᱜᱟᱱᱤ ᱧᱮᱞ ᱵᱤᱰᱟᱹᱣᱜ ᱮᱫᱟ ᱞᱮ ᱾ ᱱᱚᱶᱟ ᱫᱚ ᱧᱮᱞ ᱵᱤᱰᱟᱣᱜ ᱜᱩᱱ ᱵᱟᱲᱟᱭ ᱪᱷᱚ ᱨ ᱜᱚᱲᱚ ᱮᱢ ᱫᱟᱲᱮᱭᱟᱢᱟ, ᱯᱨᱚᱰᱚᱠᱴ ᱨᱮᱭᱟᱜ ᱢᱩᱞ ᱜᱩᱱ ᱵᱟᱵᱚᱛ ᱫᱚ ᱵᱟᱝᱟ ᱾</string>
-  <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
   <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱞᱮ ᱫᱚ ᱯᱨᱚᱰᱚᱠᱴ ᱨᱮᱭᱟᱜ ᱧᱮᱞ ᱵᱤᱰᱟᱣᱜ ᱫᱚ &lt;b&gt;ᱪᱤᱠᱤ ᱜᱽᱨᱮᱰ&lt;/b&gt; A ᱠᱷᱚᱱ F ᱫᱷᱟᱹᱵᱤᱡ ᱞᱮ ᱮᱢ ᱮᱫᱟ ᱾</string>
-  <!-- Description explaining grades A and B for review quality check adjusted grading. -->
-  <string name="review_quality_check_info_grade_info_AB" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱷᱚᱨᱥᱟ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚ ᱾ ᱟᱞᱮ ᱵᱩᱡᱷᱟᱹᱣ ᱨᱮ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱫᱚ ᱥᱟᱹᱨᱤ ᱦᱚᱲᱴᱷᱮᱱᱠᱷᱚᱱ ᱦᱟᱹᱡᱩᱜ ᱠᱟᱱᱟ, ᱟᱨ ᱱᱤᱥᱪᱟᱞ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚ ᱠᱟᱱᱟ ᱾</string>
-  <!-- Description explaining grade C for review quality check adjusted grading. -->
-  <string name="review_quality_check_info_grade_info_C" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱞᱮ ᱵᱩᱡᱷᱟᱹᱣ ᱨᱮ ᱢᱮᱥᱟ ᱟᱨ ᱵᱟᱝ ᱴᱷᱤᱠ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱢᱮᱱᱟᱜ ᱠᱟᱫᱟ ᱾</string>
-  <!-- Description explaining grades D and F for review quality check adjusted grading. -->
-  <string name="review_quality_check_info_grade_info_DF" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱤᱥᱪᱷᱚᱞ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚ ᱾ ᱟᱞᱮ ᱵᱩᱡᱷᱟᱹᱣ ᱨᱮ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚᱫᱚ ᱪᱷᱚᱞ ᱥᱮ ᱠᱤᱨᱤᱧ ᱧᱮᱞᱯᱚᱨᱚᱠᱷᱤᱭᱟᱹ ᱠᱟᱱᱟᱠᱚ ᱾</string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
   <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;ᱨᱮᱴᱤᱝ&lt;/b&gt; ᱫᱚ ᱪᱷᱚᱞ ᱜᱮᱭᱟ ᱡᱟᱦᱟᱸᱫᱚ ᱟᱞᱮ ᱵᱩᱡᱷᱟᱹᱣ ᱨᱮ ᱴᱷᱤᱠ ᱜᱮᱭᱟ ᱾</string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
   <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;ᱪᱤᱱᱦᱟᱹᱠᱚ&lt;/b&gt;ᱫᱚ %s ᱧᱮᱞᱯᱚᱨᱚᱠᱷ ᱠᱷᱚᱱ ᱢᱩᱪᱟᱹᱫ 80 ᱢᱟᱦᱟᱸ ᱨᱮᱭᱟᱜ ᱠᱟᱱᱟ ᱡᱟᱦᱟᱸᱭ ᱫᱚ ᱟᱞᱮ ᱦᱤᱥᱟᱹᱵᱽ ᱛᱮ ᱵᱷᱚᱨᱥᱟ ᱜᱮᱭᱟ ᱾</string>
-  <!-- Text for learn more caption presenting a link with information about review quality. %s is a link using review_quality_check_info_learn_more_link as text. -->
-  <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">%s ᱵᱟᱵᱚᱛ ᱰᱷᱮᱨ ᱵᱟᱰᱟᱭ ᱢᱮ ᱾</string>
-  <!-- Clickable text that links to review quality check SuMo page. %s is "Fakespot". -->
-  <string name="review_quality_check_info_learn_more_link_2" moz:removedIn="136" tools:ignore="UnusedResources">%s ᱫᱚ ᱧᱮᱞᱵᱤᱲᱟᱹᱣᱟᱜ ᱜᱩᱱ ᱫᱚ ᱪᱮᱫ ᱞᱮᱠᱷᱟ ᱵᱟᱲᱟᱭ ᱮᱫᱟ</string>
-  <!-- Text for title of settings section. -->
-  <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱥᱟᱡᱟᱣᱠᱚ</string>
-  <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
-  <string name="review_quality_check_settings_recommended_products" moz:removedIn="136" tools:ignore="UnusedResources">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ ᱨᱮ ᱫᱷᱟᱶᱨᱟ ᱫᱮᱠᱷᱟᱣ ᱢᱮ</string>
-  <!-- Description for switch preference to show recommended products from review quality check settings section. %s is a link using review_quality_check_settings_recommended_products_learn_more as text. -->
-  <string name="review_quality_check_settings_recommended_products_description_2" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱢ ᱫᱚ ᱛᱤᱱᱛᱤᱱᱡᱷᱚᱜ ᱠᱚᱨᱮ ᱵᱟᱪᱷᱟᱣ ᱡᱤᱱᱤᱥᱠᱚᱢ ᱧᱮᱞ ᱜᱮᱭᱟ ᱾ ᱟᱞᱮ ᱫᱚ ᱚᱱᱟ ᱡᱤᱱᱤᱥᱠᱚᱜᱮ ᱰᱷᱟᱶᱨᱟᱜᱼᱟ ᱞᱮ ᱡᱟᱦᱟᱸ ᱫᱚ ᱡᱟᱹᱥᱛᱤ ᱵᱷᱚᱨᱥᱟ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱛᱟᱦᱮᱸᱱᱟ ᱾%s
-</string>
-  <!-- Clickable text that links to review quality check recommended products support article. -->
-  <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
-  <!-- Text for turning sidebar off button from review quality check settings section. -->
-  <string name="review_quality_check_settings_turn_off" moz:removedIn="136" tools:ignore="UnusedResources">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
-  <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
-  <string name="review_quality_check_ad_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱰᱷᱮᱨ ᱮᱢ ᱧᱮᱞᱟ</string>
-  <!-- Caption for recommended product section indicating this is an ad by Fakespot. %s is "Fakespot". -->
-  <string name="review_quality_check_ad_caption" moz:removedIn="136" tools:ignore="UnusedResources">ᱰᱷᱟᱶᱨᱟᱤᱭᱟᱹ ᱫᱚ %s</string>
-  <!-- Caption for review quality check panel. %s is a link using review_quality_check_powered_by_link as text. -->
-  <string name="review_quality_check_powered_by_2" moz:removedIn="136" tools:ignore="UnusedResources">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ ᱫᱚ %s ᱜᱚᱲᱚ ᱥᱟᱦᱚᱫ ᱮᱢ ᱠᱟᱜᱼᱟᱭ</string>
-  <!-- Clickable text that links to Fakespot.com. %s is "Fakespot". In the phrase "Fakespot by Mozilla", "by" can be localized. -->
-  <string name="review_quality_check_powered_by_link" moz:removedIn="136" tools:ignore="UnusedResources">%s Mozilla ᱛᱮ</string>
-  <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
-  <string name="review_quality_check_outdated_analysis_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱧᱮᱞ ᱞᱟᱹᱜᱤᱫ ᱱᱚᱶᱟ ᱵᱤᱵᱨᱚᱬ</string>
-  <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
-  <string name="review_quality_check_outdated_analysis_warning_action" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱤᱛᱚᱜ ᱧᱮᱞ ᱢᱮ</string>
-  <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-  <string name="review_quality_check_no_reviews_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱩᱱᱟᱹᱜ ᱧᱮᱞᱵᱤᱲᱟᱹᱣ ᱵᱟᱹᱱᱩᱜ ᱠᱟᱫᱟ</string>
-  <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
-  <string name="review_quality_check_no_reviews_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱛᱤᱧ ᱡᱷᱚᱜ ᱡᱤᱱᱤᱥ ᱨᱮ ᱡᱟᱹᱥᱛᱤ ᱧᱮᱞᱵᱤᱲᱟᱹᱣ ᱛᱟᱦᱮᱸᱱᱟ, ᱟᱞᱮ ᱫᱚ ᱚᱱᱟ ᱨᱮᱭᱟᱜ ᱜᱩᱱ ᱵᱚᱵᱚᱛ ᱞᱮ ᱢᱮᱱ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾</string>
-  <!-- Title for warning card informing the user that the current product is currently not available. -->
-  <string name="review_quality_check_product_availability_warning_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱡᱤᱱᱤᱥ ᱫᱚ ᱵᱟᱹᱱᱩᱜ ᱠᱟᱫᱟ</string>
-  <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
-  <string name="review_quality_check_product_availability_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱡᱩᱫᱤ ᱥᱴᱚᱠ ᱛᱮ ᱡᱤᱱᱤᱥ ᱦᱮᱡ ᱞᱮᱠᱷᱟᱢ ᱵᱩᱡᱷᱟᱹᱣ ᱠᱮᱫ ᱠᱷᱟᱱ, ᱟᱞᱮ ᱴᱷᱮᱱ ᱠᱷᱚᱵᱚᱨ ᱮᱢ ᱠᱟᱜ ᱢᱮ ᱟᱞᱮ ᱫᱚ ᱧᱮᱞᱵᱤᱲᱟᱹᱣᱠᱚᱞᱮ ᱧᱮᱞ ᱟ ᱾</string>
-  <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
-  <string name="review_quality_check_product_availability_warning_action_2" moz:removedIn="136" tools:ignore="UnusedResources">ᱠᱷᱚᱵᱚᱨ ᱢᱮ ᱡᱮ ᱡᱤᱱᱤᱥ ᱫᱚ ᱥᱴᱚᱠ ᱨᱮ ᱦᱮᱡ ᱦᱩᱭ ᱮᱱᱟ</string>
-  <!-- Title for warning card informing the user that the current product's analysis is still processing. %s is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
-  <string name="review_quality_check_analysis_in_progress_warning_title_2" moz:removedIn="136" tools:ignore="UnusedResources">ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣ ᱜᱩᱱ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣ ᱮᱫᱟ (%s)</string>
-  <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
-  <string name="review_quality_check_analysis_in_progress_warning_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱚᱶᱟ ᱫᱚ 60 ᱴᱤᱡ ᱜᱟᱱ ᱚᱠᱛᱚ ᱤᱫᱤᱭᱟᱭ ᱾</string>
-  <!-- Title for info card displayed after the user reports a product is back in stock. -->
-  <string name="review_quality_check_analysis_requested_info_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱠᱷᱚᱵᱚᱨ ᱮᱢ ᱞᱟᱹᱜᱤᱫ ᱟᱹᱰᱤ ᱥᱟᱯᱲᱟᱣ!</string>
-  <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
-  <string name="review_quality_check_analysis_requested_info_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱞᱮ ᱴᱷᱮᱱ ᱫᱚ ᱱᱚᱶᱟ ᱡᱤᱱᱤᱥ ᱵᱚᱵᱛ ᱧᱮᱞ ᱵᱤᱰᱟᱣᱜ 24 ᱴᱟᱲᱟᱝ ᱜᱟᱱ ᱞᱟᱣᱟ ᱞᱮᱭᱟ ᱾ ᱫᱟᱭᱟᱠᱟᱛᱮ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣ ᱢᱮ ᱾</string>
-  <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-  <string name="review_quality_check_not_analyzable_info_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱞᱮ ᱫᱚ ᱱᱚᱶᱟ ᱵᱟᱞᱮ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ </string>
-  <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
-  <string name="review_quality_check_not_analyzable_info_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱫᱩᱨᱵᱷᱟᱜᱽ ᱛᱮ, ᱟᱞᱮ ᱫᱚ ᱡᱷᱚᱛᱚ ᱡᱤᱱᱤᱥ ᱠᱚᱨᱮᱭᱟᱜ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱵᱟᱞᱮ ᱫᱟᱲᱮᱭᱟᱫᱼᱟ ᱾ ᱡᱮᱢᱚᱱ, ᱜᱤᱯᱷᱴ ᱠᱟᱨᱰ ᱟᱨ ᱥᱴᱨᱤᱢᱤᱝ ᱣᱤᱰᱤᱭᱳ, ᱥᱮᱨᱮᱧ, ᱟᱨ ᱠᱷᱮᱞᱠᱚ ᱾</string>
-  <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
-  <string name="review_quality_check_analysis_requested_other_user_info_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱤᱵᱨᱚᱬ ᱞᱚᱜᱚᱱ ᱜᱮ ᱦᱟᱹᱡᱩᱜ ᱠᱟᱱᱟ</string>
-  <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
-  <string name="review_quality_check_analysis_requested_other_user_info_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱞᱮ ᱴᱷᱮᱱ ᱫᱚ ᱱᱚᱶᱟ ᱡᱤᱱᱤᱥ ᱵᱚᱵᱛ ᱧᱮᱞ ᱵᱤᱰᱟᱣᱜ 24 ᱴᱟᱲᱟᱝ ᱜᱟᱱ ᱞᱟᱣᱟ ᱞᱮᱭᱟ ᱾ ᱫᱟᱭᱟᱠᱟᱛᱮ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣ ᱢᱮ ᱾</string>
-  <!-- Title for info card displayed to the user when analysis finished updating. -->
-  <string name="review_quality_check_analysis_updated_confirmation_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱯᱚᱨᱚᱠ ᱨᱮᱭᱟᱜ ᱦᱟᱹᱞᱤᱭᱟᱹᱠ ᱴᱷᱤᱠ ᱜᱭᱟ</string>
-  <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
-  <string name="review_quality_check_analysis_updated_confirmation_action" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱩᱡᱷᱟᱹᱣ ᱠᱮᱫᱟ</string>
-  <!-- Title for error card displayed to the user when an error occurred. -->
-  <string name="review_quality_check_generic_error_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱤᱛᱚᱜ ᱪᱮᱫ ᱦᱚᱸ ᱵᱤᱵᱨᱚᱬ ᱵᱟᱹᱱᱩᱜ ᱠᱟᱫᱼᱟ</string>
-  <!-- Text for body of error card displayed to the user when an error occurred. -->
-  <string name="review_quality_check_generic_error_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱚᱶᱟ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱥᱩᱫᱷᱟᱨ ᱞᱟᱹᱜᱤᱫ ᱠᱟᱹᱢᱤ ᱪᱟᱹᱞᱩ ᱠᱟᱱᱟ ᱾ ᱫᱟᱭᱟᱠᱟᱛᱮ ᱛᱟᱭᱚᱢ ᱛᱮ ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱦᱟᱹᱡᱩᱜ ᱢᱮ ᱾</string>
-  <!-- Title for error card displayed to the user when the device is disconnected from the network. -->
-  <string name="review_quality_check_no_connection_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱮᱴᱣᱟᱨᱠ ᱡᱩᱲᱟᱹᱣ ᱫᱚ ᱵᱟᱹᱱᱩᱜᱼᱟ</string>
-  <!-- Text for body of error card displayed to the user when the device is disconnected from the network. -->
-  <string name="review_quality_check_no_connection_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱢᱟᱜ ᱱᱮᱴᱣᱟᱨᱠ ᱡᱩᱲᱟᱹᱣ ᱧᱮᱞ ᱛᱟᱢ ᱟᱨ ᱥᱟᱦᱴᱟ ᱫᱩᱦᱲᱟᱹ ᱞᱟᱫᱮ ᱞᱟᱹᱜᱤᱫ ᱪᱮᱥᱴᱟᱭ ᱢᱮ ᱾</string>
-  <!-- Title for card displayed to the user for products whose reviews were not analyzed yet. -->
-  <string name="review_quality_check_no_analysis_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱚᱶᱟ ᱧᱮᱞᱯᱚᱨᱚᱠᱷ ᱞᱟᱹᱜᱤᱫ ᱪᱮᱫ ᱵᱤᱵᱨᱚᱬ ᱵᱟᱹᱱᱩᱜᱼᱟ</string>
-  <!-- Text for the body of card displayed to the user for products whose reviews were not analyzed yet. -->
-  <string name="review_quality_check_no_analysis_body" moz:removedIn="136" tools:ignore="UnusedResources">ᱡᱩᱫᱤ ᱟᱢ ᱵᱟᱲᱟᱭ ᱥᱮᱱ ᱢᱮ ᱠᱟᱱᱟ ᱱᱚᱶᱟ ᱡᱤᱱᱤᱥ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚ ᱵᱟᱵᱚᱛ, ᱢᱮᱱᱠᱷᱟᱱ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱜᱩᱱ ᱧᱮᱞ ᱢᱮ ᱾ ᱱᱚᱶᱟ ᱫᱚ 60 ᱴᱤᱡ ᱤᱫᱤᱭᱟᱭ ᱾</string>
-  <!-- Text for button from body of card displayed to the user for products whose reviews were not analyzed yet. Clicking this should trigger a product analysis. -->
-  <string name="review_quality_check_no_analysis_link" moz:removedIn="136" tools:ignore="UnusedResources">ᱧᱮᱞᱯᱚᱨᱚᱠ ᱜᱩᱱ ᱧᱮᱞ ᱢᱮ</string>
-  <!-- Headline for review quality check contextual onboarding card. -->
-  <string name="review_quality_check_contextual_onboarding_title" moz:removedIn="136" tools:ignore="UnusedResources">ᱡᱤᱱᱤᱥ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚ ᱨᱮ ᱟᱞᱮᱭᱟᱜ ᱵᱷᱚᱨᱥᱟ ᱜᱚᱲᱚᱠᱚ ᱪᱮᱥᱴᱟ ᱰᱤᱲᱟᱹᱣ ᱢᱮ
-</string>
-  <!-- Description for review quality check contextual onboarding card. %1$s, %3$s and %4$s are for retailer names (e.g. Amazon, Walmart). %2$s% is for the name of the application (for example "Firefox"). -->
-  <string name="review_quality_check_contextual_onboarding_description" moz:removedIn="136" tools:ignore="UnusedResources">%1$s ᱨᱮ ᱠᱤᱨᱤᱧ ᱢᱟᱲᱟᱝ ᱨᱮ ᱧᱮᱞᱢᱮ ᱡᱤᱱᱤᱥ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚᱫᱚ ᱪᱮᱫ ᱞᱮᱠᱷᱟ ᱢᱮᱱᱟᱜ ᱠᱟᱫᱟ ᱾ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱧᱮᱧᱮᱞᱤᱭᱟᱹ, %2$s ᱠᱷᱚᱱ ᱢᱤᱫᱴᱟᱹᱝ ᱮᱠᱥᱯᱮᱨᱤᱢᱮᱱᱴᱟᱞ ᱯᱷᱤᱪᱚᱨ, ᱱᱚᱶᱟ ᱫᱚ ᱵᱽᱨᱟᱣᱡᱚᱨ ᱪᱮᱛᱟᱱ ᱨᱮ ᱛᱮᱭᱟᱨ ᱠᱟᱱᱟ ᱾ ᱱᱚᱶᱟ ᱫᱚ %3$s ᱟᱨ %4$s ᱨᱮ ᱦᱚᱸ ᱠᱟᱹᱢᱤᱭᱟᱭ ᱾</string>
-  <!-- Description for review quality check contextual onboarding card. %1$s is for retailer name (e.g. Amazon). %2$s is for the name of the application (for example "Firefox"). -->
-  <string name="review_quality_check_contextual_onboarding_description_one_vendor" moz:removedIn="136" tools:ignore="UnusedResources">%1$s ᱨᱮ ᱠᱤᱨᱤᱧ ᱢᱟᱲᱟᱝ ᱨᱮ ᱧᱮᱞᱢᱮ ᱡᱤᱱᱤᱥ ᱧᱮᱞᱯᱚᱨᱚᱠᱠᱚᱫᱚ ᱪᱮᱫ ᱞᱮᱠᱷᱟ ᱢᱮᱱᱟᱜ ᱠᱟᱫᱟ ᱾ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱧᱮᱧᱮᱞᱤᱭᱟᱹ, %2$s ᱠᱷᱚᱱ ᱢᱤᱫᱴᱟᱹᱝ ᱮᱠᱥᱯᱮᱨᱤᱢᱮᱱᱴᱟᱞ ᱯᱷᱤᱪᱚᱨ, ᱱᱚᱶᱟ ᱫᱚ ᱵᱽᱨᱟᱣᱡᱚᱨ ᱪᱮᱛᱟᱱ ᱨᱮ ᱛᱮᱭᱟᱨ ᱠᱟᱱᱟ ᱾</string>
-  <!-- Paragraph presenting review quality check feature. %1$s is "Fakespot". %2$s is a link using review_quality_check_contextual_onboarding_learn_more_link as text. In the phrase "Fakespot by Mozilla", "by" can be localized. -->
-  <string name="review_quality_check_contextual_onboarding_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Mozilla ᱛᱮ %1$s ᱨᱮᱭᱟᱜ ᱯᱟᱣᱟᱨ ᱵᱮᱵᱷᱟᱨ,‌ ᱟᱞᱮ ᱫᱚ ᱠᱤᱨᱤᱧ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱟᱨ ᱵᱟᱝ ᱴᱷᱟᱹᱣᱠᱟᱹ ᱧᱮᱞᱯᱚᱨᱚᱠ ᱵᱟᱲᱟᱭ ᱨᱮ ᱜᱚᱲᱚ ᱮᱢᱚᱜᱟᱭ ᱾ ᱟᱞᱮᱭᱟᱜ AI ᱢᱳᱰᱮᱞ ᱫᱚ ᱟᱢ ᱡᱟᱦᱟᱱᱟᱜ ᱠᱤᱨᱤᱧ ᱥᱩᱫᱷᱨᱟᱹᱣ ᱨᱮ ᱜᱚᱲᱚ ᱮᱢ ᱮᱫᱟᱭ ᱾%2$s</string>
-  <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
-  <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
-  <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. %1$s is the name of the app (for example "Firefox"), %3$s is "Fakespot". %2$s and %4$s are links using review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use as text. -->
-  <string name="review_quality_check_contextual_onboarding_caption_4" moz:removedIn="136" tools:ignore="UnusedResources">ᱟᱢ ᱫᱚ “ᱦᱚᱭ, ᱪᱮᱥᱴᱟᱭ ᱢᱮ” ᱨᱮ ᱚᱛᱟ ᱠᱟᱛᱮ %1$s ᱦᱟᱜ %2$s ᱟᱨ %3$s ᱦᱟᱜ %4$s ᱥᱟᱞᱟᱜ ᱦᱮᱥᱮᱨᱤᱭᱟᱹ ᱮᱫᱟᱢ ᱾</string>
-  <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
-  <string name="review_quality_check_contextual_onboarding_privacy_policy_3" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱤᱥᱚᱱ ᱨᱮᱭᱟᱜ ᱱᱚᱴᱤᱥ</string>
-  <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
-  <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱮᱵᱷᱟᱨ ᱨᱮᱭᱟᱜ ᱥᱚᱨᱛᱚ</string>
-  <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
-  <string name="review_quality_check_contextual_onboarding_primary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ᱦᱚᱭ, ᱪᱮᱥᱴᱟᱭ ᱢᱮ</string>
-  <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
-  <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ᱱᱤᱛᱚᱜ ᱫᱚ ᱵᱟᱝᱟ</string>
-  <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
-  <string name="review_quality_check_open_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ ᱠᱷᱩᱞᱟᱹᱭ ᱢᱮ</string>
-  <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
-  <string name="review_quality_check_close_handle_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ᱫᱩᱦᱲᱟᱹ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣᱤᱭᱟᱹ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
-  <!-- Content description (not visible, for screen readers etc.) for review quality check star rating. %1$s is the number of stars (1-5) representing the rating. -->
-  <string name="review_quality_check_star_rating_content_description" moz:removedIn="136" tools:ignore="UnusedResources">5 ᱠᱷᱚᱱ %1$s ᱤᱯᱤᱞᱠᱚ</string>
-  <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
-  <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">ᱠᱚᱢ ᱫᱮᱠᱷᱟᱣ ᱢᱮ</string>
-  <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
-  <string name="review_quality_check_highlights_show_more" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱚᱲᱛᱤ ᱫᱮᱠᱷᱟᱣ ᱢᱮ</string>
-  <!-- Text for highlights card quality category header. Reviews shown under this header should refer the product's quality. -->
-  <string name="review_quality_check_highlights_type_quality" moz:removedIn="136" tools:ignore="UnusedResources">ᱜᱩᱱ</string>
-  <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
-  <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">ᱜᱚᱱᱚᱝ</string>
-  <!-- Text for highlights card shipping category header. Reviews shown under this header should refer the product's shipping. -->
-  <string name="review_quality_check_highlights_type_shipping" moz:removedIn="136" tools:ignore="UnusedResources">ᱵᱷᱮᱡᱟ</string>
-  <!-- Text for highlights card packaging and appearance category header. Reviews shown under this header should refer the product's packaging and appearance. -->
-  <string name="review_quality_check_highlights_type_packaging_appearance" moz:removedIn="136" tools:ignore="UnusedResources">ᱯᱚᱠᱮᱡᱽ ᱟᱨ ᱧᱮᱞᱠᱚ</string>
-  <!-- Text for highlights card competitiveness category header. Reviews shown under this header should refer the product's competitiveness. -->
-  <string name="review_quality_check_highlights_type_competitiveness" moz:removedIn="136" tools:ignore="UnusedResources">ᱠᱚᱢᱯᱮᱴᱤᱴᱤᱵᱷ</string>
-  <!-- Text that is surrounded by quotes. %s is the actual text that is in quotes. An example of that text could be: Excellent craftsmanship, and that is displayed as “Excellent craftsmanship”. The text comes from a buyer's review that the feature is highlighting" -->
-  <string name="surrounded_with_quotes" moz:removedIn="136" tools:ignore="UnusedResources">“%s”</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 

@@ -129,7 +129,7 @@
   <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the disabled section. -->
   <string name="mozac_feature_addons_disabled_section">Nonaktif</string>
   <!-- Displays a page with all the details of an add-on. -->
-  <string name="mozac_feature_addons_details">Detail</string>
+  <string name="mozac_feature_addons_details">Rincian</string>
   <!-- Displays a page with all the permissions of an add-on. -->
   <string name="mozac_feature_addons_permissions">Hak Akses</string>
   <!-- This is a button to remove (i.e. uninstall) an add-on. -->

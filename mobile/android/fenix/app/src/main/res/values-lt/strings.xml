@@ -40,8 +40,6 @@
   <string name="tab_tray_close_multiselect_content_description">Išeiti iš daugelio pasirinkimų veiksenos</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">Įtraukti pažymėtas korteles į rinkinį</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Pažymėta</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">„%1$s“ kūrėjai yra „Mozilla“.</string>
   <!--
@@ -415,10 +413,6 @@
   <string name="exceptions_empty_message_description">Išimtys leidžia išjungti apsaugą nuo stebėjimo pasirinktose svetainėse.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Sužinoti daugiau</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">„%1$s“ tobulinimo tikslais siunčia „Mozillai“ duomenis apie naršyklės našumą, naudojimą, tinkinimą ir aparatinę įrangą</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Rinkodaros duomenys</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Tyrimai</string>
   <!-- Summary for studies preferences -->
@@ -565,14 +559,6 @@
   <string name="studies_active">Aktyvūs</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Sužinoti daugiau</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Privačios kortelės</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Sinchronizuotos kortelės</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Pridėti kortelę</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

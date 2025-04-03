@@ -32,8 +32,6 @@
   <string name="tab_tray_close_multiselect_content_description">Gawas sa multiselect mode</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">i-Save ang napiling tabs padulong sa collection</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Napili</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s hinimo sa Mozilla.</string>
   <!--

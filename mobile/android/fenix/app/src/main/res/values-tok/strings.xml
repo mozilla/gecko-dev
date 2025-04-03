@@ -16,8 +16,6 @@
   <string name="tab_tray_add_new_collection_name">nimi</string>
   <!-- Label of button in save to collection dialog for selecting a current collection -->
   <string name="tab_tray_select_collection">o wile e kulupu</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ijo lawa</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s li tan kulupu Mozilla.</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->

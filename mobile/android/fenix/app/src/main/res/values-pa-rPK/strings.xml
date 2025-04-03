@@ -42,8 +42,6 @@
   <string name="tab_tray_close_multiselect_content_description">بہو چوݨ ڈھنگ وچھوں باہر جاؤ</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">چݨیاں ٹیباں نوں مجموعے چ سمبھالو</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">چݨی</string>
   <!--
     Home - Bookmarks
 
@@ -898,10 +896,6 @@
   <string name="exceptions_empty_message_description">چھوٹاں چݨیاں سائیٹاں لئی تہانوں ٹریکنگ سرکھیا نوں اسمرتھ کرن دندیاں ہن۔</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ہور جاݨو</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">سانوں %1$s ودھیا بݨاوݨ لئی آپݨے براؤزر دی کارگزاری، ورتوں، ہارڈویئر تے پسند بدلݨ دا ڈیٹا سانجھا کرو</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">مارکیٹنگ ڈیٹا</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">گھوکھاں</string>
   <!-- Summary for studies preferences -->
@@ -1089,18 +1083,8 @@
   <string name="studies_remove">ہٹاؤ</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">فعال</string>
-  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s وقتاً فوقتاً مطالعہ انسٹال کر تے چلا سکدا اے۔</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ہور جاݨو</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">نجی ٹیباں</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ہم وقت کیتیاں ٹیباں</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">نویں ٹیب کھولھو</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

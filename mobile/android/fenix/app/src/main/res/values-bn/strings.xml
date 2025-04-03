@@ -30,8 +30,6 @@
   <string name="tab_tray_select_collection">সংগ্রহ নির্বাচন করুন</string>
   <!-- Content description for close button while in multiselect mode in tab tray -->
   <string name="tab_tray_close_multiselect_content_description">মাল্টিলেক্ট মোড থেকে প্রস্থান করুন</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">নির্বাচিত</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s হচ্ছে Mozilla দ্বারা তৈরি।</string>
   <string name="private_browsing_common_myths">
@@ -277,10 +275,6 @@
   <string name="preferences_tracking_protection_exceptions_turn_on_for_all">সমস্ত সাইটের জন্য চালু করুন</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">আরও জানুন</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">আমাদের %1$s আরও উন্নত করতে সহায়তা করতে Mozilla -র সাথে আপনার ব্রাউজার সম্পর্কিত কর্মক্ষমতা, ব্যবহার, হার্ডওয়্যার এবং কাস্টমাইজেশন তথ্য শেয়ার করুন</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">বিপণন তথ্য</string>
   <!-- Preference for reconnecting to FxA sync -->
   <string name="preferences_sync_sign_in_to_reconnect">পুনরায় সংযোগ করতে সাইন ইন করুন</string>
   <!-- Preference for removing FxA account -->
@@ -365,12 +359,6 @@
   <string name="close_tabs_after_one_week_summary">এক সপ্তাহ পর বন্ধ</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month -->
   <string name="close_tabs_after_one_month_summary">এক মাস পর বন্ধ</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ব্যক্তিগত ট্যাব</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">ট্যাব যোগ করুন</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->

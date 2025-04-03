@@ -32,8 +32,6 @@
   <string name="tab_tray_close_multiselect_content_description">బహుళఎంపిక రీతి నుండి వైదొలగు</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">ఎంచుకున్న ట్యాబులను సేకరణకు భద్రపరుచు</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ఎంచుకున్నారు</string>
   <!--
     Home - Bookmarks
 
@@ -232,8 +230,6 @@
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ఇప్పుడు కాదు</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">పూర్తయింది</string>
-  <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">రద్దుచేయి</string>
   <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
   <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Firefoxకి స్వాగతం</string>
   <!-- Terms of service onboarding page continue button label. -->
@@ -454,10 +450,6 @@
   <string name="exceptions_empty_message_learn_more_link">ఇంకా తెలుసుకోండి</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">ఇంకా తెలుసుకోండి</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s‌ను మెరుగుపరచడంలో తోడ్పడటానికి మీ విహారిణి గురించిన పనితనం, వాడుక, హార్డ్‌వేరు, అభిమతీకరణల డేటాను మొజిల్లాతో పంచుకుంటుంది</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">మార్కెటింగ్ డేటా</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">అధ్యయనాలు</string>
   <!-- Summary for studies preferences -->
@@ -601,14 +593,6 @@
   <string name="studies_remove">తీసివేయి</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ఇంకా తెలుసుకోండి</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">అంతరంగిక ట్యాబులు</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">సింకైన ట్యాబులు</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">ట్యాబును చేర్చు</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1493,22 +1477,6 @@
   <string name="pocket_stories_feature_learn_more">ఇంకా తెలుసుకోండి</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">అమరికలకు వెళ్ళు</string>
-  <!-- Text for title of settings section. -->
-  <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">అమరికలు</string>
-  <!-- Clickable text that links to review quality check recommended products support article. -->
-  <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ఇంకా తెలుసుకోండి</string>
-  <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
-  <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">ఇంకా తెలుసుకోండి</string>
-  <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
-  <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ఇప్పుడు కాదు</string>
-  <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
-  <string name="review_quality_check_highlights_show_less" moz:removedIn="136" tools:ignore="UnusedResources">కొన్నే చూపించు</string>
-  <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
-  <string name="review_quality_check_highlights_show_more" moz:removedIn="136" tools:ignore="UnusedResources">ఇంకా చూపించు</string>
-  <!-- Text for highlights card quality category header. Reviews shown under this header should refer the product's quality. -->
-  <string name="review_quality_check_highlights_type_quality" moz:removedIn="136" tools:ignore="UnusedResources">నాణ్యత</string>
-  <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
-  <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">ధర</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
   <string name="a11y_links_title">లంకెలు</string>
   <!-- Translations feature -->

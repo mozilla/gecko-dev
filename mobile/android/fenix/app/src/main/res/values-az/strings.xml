@@ -257,12 +257,6 @@
   <string name="settings_title">Tənzimləmələr</string>
   <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
   <string name="content_description_close_button">Qapat</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Məxfi vərəqlər</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Vərəq əlavə et</string>
   <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->

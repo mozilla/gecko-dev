@@ -42,8 +42,6 @@
   <string name="tab_tray_close_multiselect_content_description">Umalis sa multiselect mode</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">I-save ang mga napiling tab sa collection</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">Napili</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">Ang %1$s ay gawa ng Mozilla.</string>
   <!--
@@ -433,10 +431,6 @@
   <string name="exceptions_empty_message_description">Nakakapag-disable ka ng tracking protection sa mga piling site gamit ang mga exception.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Alamin</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Ibinabahagi sa Mozilla ang datos patungkol sa performance, paggamit, hardware at customization sa browser mo para mapaganda lalo ang %1$s</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketing data</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Mga pag-aaral</string>
   <!-- Summary for studies preferences -->
@@ -592,18 +586,8 @@
   <string name="studies_remove">Tanggalin</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Aktibo</string>
-  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">Paminsan-minsan, maaaring mag-install at magpatakbo ang %1$s ng mga pag-aaral.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Matuto ng higit pa</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Mga pribadong tab</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Synced tabs</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Magdagdag ng Tab</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

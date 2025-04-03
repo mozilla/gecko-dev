@@ -166,12 +166,6 @@
   <string name="close_tabs_after_one_week_summary">Mdel seld yan umalass</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month -->
   <string name="close_tabs_after_one_month_summary">Mdel seld yan n wayyur</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">iseksal usligen</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Rnu aseksel</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->

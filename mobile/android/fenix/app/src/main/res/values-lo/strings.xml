@@ -44,8 +44,6 @@
   <string name="tab_tray_close_multiselect_content_description">ອອກຈາກໂຫມດ multiselect</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">ບັນທຶກແທັບທີ່ເລືອກແລ້ວໄປໄວ້ທີ່ການເກັບສະສົມ</string>
-  <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
-  <string name="tab_tray_multiselect_selected_content_description" moz:removedIn="136" tools:ignore="UnusedResources">ເລືອກແລ້ວ</string>
   <!--
     Home - Bookmarks
 
@@ -621,34 +619,20 @@
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">ຮຽນຮູ້ເພີ່ມຕື່ມ</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_usage_data_title">ສົ່ງຂໍ້ມູນດ້ານເຕັກນິກ ແລະ ການໂຕ້ຕອບກັບ Mozilla</string>
-  <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
-  <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">ຂໍ້​ມູນ​ກ່ຽວ​ກັບ​ອຸ​ປະ​ກອນ​ຂອງ​ທ່ານ, ການ​ຕັ້ງ​ຄ່າ​ຮາດ​ແວ, ແລະ ​ວິ​ທີ​ທີ່​ທ່ານ​ນໍາ​ໃຊ້ Firefox ຊ່ວຍ​ປັບ​ປຸງ​ຄຸນ​ສົມ​ບັດ, ປະ​ສິດ​ທິ​ພາບ, ແລະ​ ຄວາມ​ສະຖຽນ​ສໍາ​ລັບ​ຜູ້​ໃຊ້​ຢູ່​ທົ່ວ​ທຸກ​ແຫ່ງ.</string>
   <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">ຂໍ້​ມູນ​ກ່ຽວ​ກັບ​ອຸ​ປະ​ກອນ​ຂອງ​ທ່ານ, ການ​ຕັ້ງ​ຄ່າ​ຮາດ​ແວ, ແລະ​ ວິ​ທີ​ທີ່​ທ່ານ​ນໍາ​ໃຊ້ Firefox ຊ່ວຍ​ປັບ​ປຸງ​ຄຸນ​ສົມ​ບັດ, ປະ​ສິດ​ທິ​ພາບ, ແລະ ​ຄວາມ​ສະຖຽນສໍາ​ລັບ​ທຸກ​ຄົນ.</string>
-  <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບຂໍ້ມູນການນຳໃຊ້</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">ສຳເລັດ</string>
-  <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">ຍົກເລີກ</string>
   <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
   <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">ຍິນດີຕ້ອນຮັບສູ່ Firefox</string>
-  <!-- Terms of service sub header label. -->
-  <string name="onboarding_terms_of_service_sub_header" tools:ignore="UnusedResources" moz:removedIn="136">ການທ່ອງເວັບທີ່ວ່ອງໄວ ແລະ ປອດໄພ.</string>
   <!-- Terms of service sub header label. -->
   <string name="onboarding_terms_of_service_sub_header_2">ການທ່ອງເວັບທີ່ວ່ອງໄວ ແລະ ປອດໄພ</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label">ເຫັນດີ ແລະ ສືບຕໍ່</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
-  <string name="onboarding_term_of_service_line_one" moz:removedIn="136" tools:ignore="BrandUsage, UnusedResources">ໂດຍການດຳເນີນການຕໍ່, ແມ່ນຖືວ່າທ່ານຍອມຮັບໃນ Firefox %1$s.</string>
-  <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s.</string>
-  <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
-  <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນໄຂການໃຫ້ບໍລິການ</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">ເງື່ອນໄຂການນໍາໃຊ້ Firefox</string>
-  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
-  <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">Firefox ເປັນຫ່ວງກ່ຽວກັບຄວາມເປັນສ່ວນຕົວຂອງທ່ານ. ອ່ານເພີ່ມເຕີມໃນ %1$s ຂອງພວກເຮົາ.</string>
   <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
   <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Firefox ເປັນຫ່ວງກ່ຽວກັບຄວາມເປັນສ່ວນຕົວຂອງທ່ານ. ສຶກສາເພີ່ມເຕີມໃນ %1$s ຂອງພວກເຮົາ.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
@@ -690,8 +674,6 @@
   <string name="onboarding_customize_toolbar_placement_top_content_description">ຮູບພາບຂອງແຖບເຄື່ອງມືເທິງ</string>
   <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_toolbar_a11y_action_label_select">ເລືອກ</string>
-  <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">ເລືອກຮູບແບບສີສັນ</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -710,8 +692,6 @@
   <string name="onboarding_customize_theme_content_description">ຮູບພາບຂອງຮູບແບບສີສັນ %1$s</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_theme_a11y_action_label_select">ເລືອກ</string>
-  <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
-  <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
   <!--
     Widget Picker
 
@@ -919,6 +899,10 @@
   <string name="preferences_show_nonsponsored_suggestions_summary">ຮັບຄຳແນະນຳຈາກເວັບທີ່ກ່ຽວຂ້ອງກັບການຄົ້ນຫາຂອງທ່ານ</string>
   <!-- Preference for link sharing -->
   <string name="preferences_link_sharing">ການແບ່ງປັນລິ້ງ</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">ລວມເອົາລິ້ງດາວໂຫຼດ %1$s ຢູ່ໃນການແບ່ງປັນ WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">ເຊີນຊວນໝູ່ຂອງທ່ານເພື່ອລອງຊອກຫາໄວ, ປອດໄພກວ່າກັບ %1$s ທຸກໆຄັ້ງທີ່ທ່ານແບ່ງປັນລິ້ງໃນ WhatsApp.</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">ແບ່ງປັນລິ້ງແລ້ວ</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -957,6 +941,16 @@
   <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">ທາງເລືອກ</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
   <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">ອະນຸຍາດໃຫ້ສໍາລັບເວັບໄຊທ໌ທັງຫມົດ</string>
+  <!-- The subtitle for the allow for all sites preference toggle -->
+  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">ຖ້າທ່ານໄວ້ວາງໃຈສ່ວນຂະຫຍາຍນີ້, ທ່ານສາມາດອະນຸຍາດໃຫ້ມັນຢູ່ໃນທຸກເວັບໄຊທ໌.</string>
+  <!-- The text shown when an extension does not require permissions -->
+  <string name="addons_does_not_require_permissions">ສ່ວນຂະຫຍາຍນີ້ບໍ່ຕ້ອງການການອະນຸຍາດໃດໆ.</string>
+  <!--
+    Add-on Preferences
+
+    Preference to customize the configured AMO (addons.mozilla.org) collection
+  -->
+  <string name="preferences_customize_extension_collection">ການເກັບສ່ວນຂະຫຍາຍແບບກຳນົດເອງ</string>
   <!-- Button caption to confirm the add-on collection configuration -->
   <string name="customize_addon_collection_ok">ໂອເຄ</string>
   <!-- Button caption to abort the add-on collection configuration -->
@@ -965,6 +959,8 @@
   <string name="customize_addon_collection_hint">ຊື່ການເກັບສະສົມ</string>
   <!-- Hint displayed on input field for custom collection user ID -->
   <string name="customize_addon_collection_user_hint">ເຈົ້າຂອງການເກັບສະສົມ (ໄອດີຜູ້ໃຊ້)</string>
+  <!-- Toast shown after confirming the custom extension collection configuration -->
+  <string name="toast_customize_extension_collection_done">ດັດແກ້ຄໍເລັກຊັນສ່ວນຂະຫຍາຍ. ກຳລັງອອກຈາກແອັບພລິເຄຊັນເພື່ອນຳໃຊ້ການປ່ຽນແປງ…</string>
   <!--
     Customize Home
 
@@ -1010,6 +1006,10 @@
   <string name="wallpaper_classic_title">ຄລາດສິກ %s</string>
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
   <string name="wallpaper_artist_series_title">ຊຸດສິນລະປິນ       </string>
+  <!-- Description text for the artist series wallpapers with learn more link. %s is a learn more link using wallpaper_learn_more as text. "Independent voices" is the name of the wallpaper collection -->
+  <string name="wallpaper_artist_series_description_with_learn_more">ການເກັບກໍາສຽງເອກະລາດ. %s</string>
+  <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
+  <string name="wallpaper_artist_series_description">ການເກັບກໍາສຽງເອກະລາດ.</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">ລອງເລືອກສີສັນທີທ່ານມັກ</string>
   <!-- Wallpaper onboarding dialog body text. -->
@@ -1026,6 +1026,12 @@
   <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">ກວດເບິ່ງ 100+ ສ່ວນຂະຫຍາຍໃຫມ່ທີ່ຊ່ວຍໃຫ້ທ່ານສ້າງ Firefox ຂອງທ່ານເອງ.</string>
   <!-- Button text of the Nimbus message for extensions general availability. -->
   <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">ສຳຫຼວດສ່ວນຂະຫຍາຍ</string>
+  <!--
+    Extension process crash dialog to user
+
+    Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled
+  -->
+  <string name="extension_process_crash_dialog_title">ສ່ວນຂະຫຍາຍຖືກປິດໃຊ້ງານຊົ່ວຄາວ</string>
   <!--
     This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
@@ -1118,12 +1124,6 @@
   <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">ຂໍ້ມູນດ້ານວິຊາການ ແລະ ການໂຕ້ຕອບ</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
-  <!-- Preference description for usage and technical data collection. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
-  <!-- Preference switch for marketing data collection -->
-  <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ຂໍ້ມູນດ້ານການຕະຫຼາດ</string>
-  <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-  <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນກ່ຽວກັບວິທີທີ່ທ່ານຄົ້ນພົບ Firefox ກັບຄູ່ຮ່ວມການຕະຫຼາດຂອງ Mozilla. ນີ້ຈະຊ່ວຍໃຫ້ພວກເຮົາເຕີບໂຕ Firefox ແລະ ສ້າງອິນເຕີເນັດທີ່ດີກວ່າ</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບຂໍ້ມູນການຕະຫຼາດ</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1132,8 +1132,6 @@
   <string name="preferences_daily_usage_ping_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການໃຊ້ ping ປະຈໍາວັນ</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
-  <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
-  <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">ແບ່ງປັນຂໍ້ມູນການຂັດຂ້ອງໂດຍອັດຕະໂນມັດເມື່ອເລີ່ມຕົ້ນດ້ວຍ Mozilla ຫຼັງຈາກເກີດການຂັດຂ້ອງ</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
   <!-- Title for studies preferences -->
@@ -1316,20 +1314,10 @@
   <string name="studies_remove">ລຶບ</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">​ເປີດໃຊ້ງານ</string>
-  <!-- Description for studies, it indicates why Firefox use studies. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ອາດຈະຕິດຕັ້ງ ແລະດໍາເນີນການສຶກສາເປັນບາງໂອກາດ.</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title">ຕິດຕັ້ງ ແລະ ດໍາເນີນການສຶກສາ</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
-  <!--
-    Sessions
-
-    Title for the list of tabs in the current private session
-  -->
-  <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ແທັບສ່ວນຕົວ</string>
-  <!-- Title for the list of tabs in the synced tabs -->
-  <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">ແທັບທີ່ Sync ແລ້ວ</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">ເພີ່ມແທັບ</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1458,8 +1446,6 @@
   <string name="webcompat_reporter_label_url">URL</string>
   <!-- The error message of the URL text field when an invalid URL has been entered. -->
   <string name="webcompat_reporter_url_error_invalid">ກະລຸນາປ້ອນ URL ທີ່ຖືກຕ້ອງ</string>
-  <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
-  <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">ຂໍ້ຜິດພາດແມ່ນຫຍັງ? (ທາງເລືອກ)</string>
   <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
   <string name="webcompat_reporter_choose_reason">ເລືອກເຫດຜົນ</string>
   <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
@@ -2565,22 +2551,6 @@
   <string name="experiments_snackbar">ເປີດໃຊ້ງານການສົ່ງຂໍ້ມູນທາງໄກເພື່ອສົ່ງຂໍ້ມູນ.</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">ໄປທີ່ການຕັ້ງຄ່າ</string>
-  <!-- Text for learn more caption presenting a link with information about review quality. %s is a link using review_quality_check_info_learn_more_link as text. -->
-  <string name="review_quality_check_info_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມກ່ຽວກັບ %s.</string>
-  <!-- Text for title of settings section. -->
-  <string name="review_quality_check_settings_title" moz:removedIn="136" tools:ignore="UnusedResources">ການຕັ້ງຄ່າ</string>
-  <!-- Clickable text that links to review quality check recommended products support article. -->
-  <string name="review_quality_check_settings_recommended_products_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມຕື່ມ</string>
-  <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
-  <string name="review_quality_check_outdated_analysis_warning_action" moz:removedIn="136" tools:ignore="UnusedResources">ກວດເບິ່ງດຽວນີ້</string>
-  <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
-  <string name="review_quality_check_contextual_onboarding_learn_more_link" moz:removedIn="136" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
-  <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
-  <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນ​ໄຂ​ການ​ນໍາ​ໃຊ້​</string>
-  <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
-  <string name="review_quality_check_contextual_onboarding_secondary_button_text" moz:removedIn="136" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
-  <!-- Text for highlights card price category header. Reviews shown under this header should refer the product's price. -->
-  <string name="review_quality_check_highlights_type_price" moz:removedIn="136" tools:ignore="UnusedResources">ລາຄາ</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
