@@ -338,6 +338,56 @@ browser.engagement:
     unit: domains
     telemetry_mirror: BROWSER_ENGAGEMENT_UNIQUE_DOMAINS_COUNT
 
+  tab_count:
+    type: custom_distribution
+    description: >
+      Number of tabs opened across all windows, collected at most every 5
+      minutes whenever the user interacts with the browser in the following
+      ways: open tab/window, page load.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TAB_COUNT.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: tabs
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1361855
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1488945
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1361855
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1488945
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+    telemetry_mirror: TAB_COUNT
+
+  loaded_tab_count:
+    type: custom_distribution
+    description: >
+      Number of fully loaded (i.e., not pending from session restore) tabs
+      opened across all windows, collected at most every 5 minutes whenever the
+      user interacts with the browser in the following ways: open tab/window,
+      page load, restoring a pending tab.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram LOADED_TAB_COUNT.
+    range_min: 1
+    range_max: 1000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: tabs
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1634508
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1634508
+    notification_emails:
+      - beth@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: LOADED_TAB_COUNT
+
 installation.first_seen:
   failure_reason:
     type: string
@@ -1567,3 +1617,47 @@ browser.content_crash:
       - wmccloskey@mozilla.com
     expires: never
     telemetry_mirror: h#FX_CONTENT_CRASH_NOT_SUBMITTED
+
+link_icon_sizes_attr:
+  usage:
+    type: custom_distribution
+    description: >
+      The possible types of the 'sizes' attribute for <link rel=icon>. 0:
+      Attribute not specified, 1: 'any', 2: Integer dimensions, 3: Invalid
+      value.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram LINK_ICON_SIZES_ATTR_USAGE.
+    range_min: 0
+    range_max: 4
+    bucket_count: 5
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1053467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1053467
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: LINK_ICON_SIZES_ATTR_USAGE
+
+  dimension:
+    type: custom_distribution
+    description: >
+      The width dimension of the 'sizes' attribute for <link rel=icon>.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram LINK_ICON_SIZES_ATTR_DIMENSION.
+    range_min: 1
+    range_max: 513
+    bucket_count: 64
+    histogram_type: linear
+    unit: pixel
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1053467
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1053467
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: LINK_ICON_SIZES_ATTR_DIMENSION

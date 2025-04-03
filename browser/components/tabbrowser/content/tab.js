@@ -379,9 +379,9 @@
       }
 
       const diff_in_msec = Date.now() - this._lastUnloaded;
-      Services.telemetry
-        .getHistogramById("TAB_UNLOAD_TO_RELOAD")
-        .add(diff_in_msec / 1000);
+      Glean.browserEngagement.tabUnloadToReload.accumulateSingleSample(
+        diff_in_msec / 1000
+      );
       Glean.browserEngagement.tabReloadCount.add(1);
       delete this._lastUnloaded;
     }

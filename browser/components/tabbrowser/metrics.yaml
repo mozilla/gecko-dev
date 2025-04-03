@@ -79,6 +79,23 @@ browser.engagement:
         type: quantity
     expires: never
 
+  tab_unload_to_reload:
+    type: timing_distribution
+    description: >
+      How long (sec) a tab had been unloaded until it was reloaded.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TAB_UNLOAD_TO_RELOAD.
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1715858
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1715858
+    notification_emails:
+      - tkikuchi@mozilla.com
+    expires: never
+    telemetry_mirror: TAB_UNLOAD_TO_RELOAD
+
 browser.ui.interaction:
   all_tabs_panel_dragstart_tab_event_count:
     type: counter

@@ -367,6 +367,25 @@ session_restore:
     expires: never
     telemetry_mirror: FX_SESSION_RESTORE_NUMBER_OF_EAGER_TABS_RESTORED
 
+  shutdown_ok:
+    type: labeled_counter
+    description: >
+      Did the browser start after a successful shutdown
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram SHUTDOWN_OK.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1421688
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1421688
+    notification_emails:
+      - chutten@mozilla.com
+    expires: never
+    telemetry_mirror: h#SHUTDOWN_OK
+
 browser.engagement:
   sessionrestore_interstitial:
     type: labeled_counter

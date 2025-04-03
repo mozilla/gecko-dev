@@ -265,9 +265,9 @@ export var SessionStartup = {
       // Report shutdown success via telemetry. Shortcoming here are
       // being-killed-by-OS-shutdown-logic, shutdown freezing after
       // session restore was written, etc.
-      Services.telemetry
-        .getHistogramById("SHUTDOWN_OK")
-        .add(!this._previousSessionCrashed);
+      Glean.sessionRestore.shutdownOk[
+        this._previousSessionCrashed ? "false" : "true"
+      ].add();
       Glean.sessionRestore.shutdownSuccessSessionStartup.record({
         shutdown_ok: this._previousSessionCrashed.toString(),
         shutdown_reason: previousSessionCrashedReason,

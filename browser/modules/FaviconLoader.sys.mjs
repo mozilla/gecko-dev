@@ -385,13 +385,9 @@ function extractIconSize(aSizes) {
 
   // Telemetry probes for measuring the sizes attribute
   // usage and available dimensions.
-  Services.telemetry
-    .getHistogramById("LINK_ICON_SIZES_ATTR_USAGE")
-    .add(sizesType);
+  Glean.linkIconSizesAttr.usage.accumulateSingleSample(sizesType);
   if (width > 0) {
-    Services.telemetry
-      .getHistogramById("LINK_ICON_SIZES_ATTR_DIMENSION")
-      .add(width);
+    Glean.linkIconSizesAttr.dimension.accumulateSingleSample(width);
   }
 
   return width;

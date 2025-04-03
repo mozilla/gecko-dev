@@ -1391,7 +1391,7 @@ export let BrowserUsageTelemetry = {
       tabCount !== undefined &&
       currentTime > this._lastRecordTabCount + MINIMUM_TAB_COUNT_INTERVAL_MS
     ) {
-      Services.telemetry.getHistogramById("TAB_COUNT").add(tabCount);
+      Glean.browserEngagement.tabCount.accumulateSingleSample(tabCount);
       this._lastRecordTabCount = currentTime;
     }
 
@@ -1400,9 +1400,9 @@ export let BrowserUsageTelemetry = {
       currentTime >
         this._lastRecordLoadedTabCount + MINIMUM_TAB_COUNT_INTERVAL_MS
     ) {
-      Services.telemetry
-        .getHistogramById("LOADED_TAB_COUNT")
-        .add(loadedTabCount);
+      Glean.browserEngagement.loadedTabCount.accumulateSingleSample(
+        loadedTabCount
+      );
       this._lastRecordLoadedTabCount = currentTime;
     }
   },
