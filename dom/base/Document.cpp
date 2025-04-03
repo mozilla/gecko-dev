@@ -16936,7 +16936,7 @@ void Document::MaybeRecomputePartitionKey() {
       ->SetPartitionKey(originURI, false);
 }
 
-bool Document::RecomputeResistFingerprinting(bool aForceRefreshRTPCallerType) {
+bool Document::RecomputeResistFingerprinting() {
   mOverriddenFingerprintingSettings.reset();
   const bool previous = mShouldResistFingerprinting;
 
@@ -17009,7 +17009,7 @@ bool Document::RecomputeResistFingerprinting(bool aForceRefreshRTPCallerType) {
            mShouldResistFingerprinting));
 
   bool changed = previous != mShouldResistFingerprinting;
-  if (changed || aForceRefreshRTPCallerType) {
+  if (changed) {
     if (auto win = nsGlobalWindowInner::Cast(GetInnerWindow())) {
       win->RefreshReduceTimerPrecisionCallerType();
     }

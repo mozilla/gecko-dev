@@ -41,12 +41,7 @@ interface nsIRFPService : nsISupports
   void cleanAllOverrides();
 
   /**
-   * Enabled baseline FPP targets.
-   */
-  readonly attribute nsIRFPTargetSetIDL enabledFingerprintingProtectionsBaseline;
-
-  /**
-   * Enabled FPP targets.
+   * The bitfield of the default enabled RFP Targets.
    */
   readonly attribute nsIRFPTargetSetIDL enabledFingerprintingProtections;
 

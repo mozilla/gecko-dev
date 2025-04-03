@@ -18,21 +18,11 @@ def parse_defaults(path):
     return defaults
 
 
-def write_defaults(output, defaults_base, defaults_fpp):
-    output.write("export const DefaultTargetsBaseline = {\n")
-    for platform in defaults_base:
+def write_defaults(output, defaults):
+    output.write("export const DefaultTargets = {\n")
+    for platform in defaults:
         output.write(f'\t"{platform}": [')
-        for target in defaults_base[platform]:
-            output.write(f'"{target}",')
-        output.write("],\n")
-    output.write("}\n")
-
-    output.write("\n")
-
-    output.write("export const DefaultTargetsFPP = {\n")
-    for platform in defaults_fpp:
-        output.write(f'\t"{platform}": [')
-        for target in defaults_fpp[platform]:
+        for target in defaults[platform]:
             output.write(f'"{target}",')
         output.write("],\n")
     output.write("}\n")
@@ -62,14 +52,12 @@ def write_targets(output, targets):
     output.write("}\n")
 
 
-def main(output, targets_path, defaults_base_path, defaults_fpp_path):
+def main(output, targets_path, defaults_path):
     output.write("// This is a generated file. Please do not edit.\n")
     output.write(
-        f"// See extract_rfp_targets.py, {targets_path}, {defaults_base_path}, {defaults_fpp_path} files instead.\n"
+        "// See extract_rfp_targets.py, RFPTargets.inc, and RFPTargetsDefault.inc files instead.\n"
     )
 
     write_targets(output, parse_targets(targets_path))
     output.write("\n")
-    write_defaults(
-        output, parse_defaults(defaults_base_path), parse_defaults(defaults_fpp_path)
-    )
+    write_defaults(output, parse_defaults(defaults_path))
