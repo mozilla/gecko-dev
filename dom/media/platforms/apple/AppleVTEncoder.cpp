@@ -791,18 +791,20 @@ AppleVTEncoder::ProcessReconfigure(
   return P::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
 }
 
-static size_t NumberOfPlanes(dom::ImageBitmapFormat aPixelFormat) {
+static size_t NumberOfPlanes(OSType aPixelFormat) {
   switch (aPixelFormat) {
-    case dom::ImageBitmapFormat::RGBA32:
-    case dom::ImageBitmapFormat::BGRA32:
-    case dom::ImageBitmapFormat::RGB24:
-    case dom::ImageBitmapFormat::BGR24:
-    case dom::ImageBitmapFormat::GRAY8:
+    case kCVPixelFormatType_32RGBA:
+    case kCVPixelFormatType_32BGRA:
+    case kCVPixelFormatType_24RGB:
+    case kCVPixelFormatType_24BGR:
+    case kCVPixelFormatType_OneComponent8:
       return 1;
-    case dom::ImageBitmapFormat::YUV444P:
-    case dom::ImageBitmapFormat::YUV420P:
+    case kCVPixelFormatType_444YpCbCr8:
+    case kCVPixelFormatType_420YpCbCr8PlanarFullRange:
+    case kCVPixelFormatType_420YpCbCr8Planar:
       return 3;
-    case dom::ImageBitmapFormat::YUV420SP_NV12:
+    case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+    case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
       return 2;
     default:
       LOGE("Unsupported input pixel format");
@@ -834,7 +836,7 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
     }
 
     OSType format = MapPixelFormat(mConfig.mSourcePixelFormat).ref();
-    size_t numPlanes = NumberOfPlanes(mConfig.mSourcePixelFormat);
+    size_t numPlanes = NumberOfPlanes(format);
     const PlanarYCbCrImage::Data* yuv = image->GetData();
 
     auto ySize = yuv->YDataSize();
