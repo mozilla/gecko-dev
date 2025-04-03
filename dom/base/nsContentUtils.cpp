@@ -950,12 +950,12 @@ static void RecomputeResistFingerprintingAllDocs(const char*, void*) {
   AutoTArray<RefPtr<Document>, 64> allDocuments;
   Document::GetAllInProcessDocuments(allDocuments);
   for (auto& doc : allDocuments) {
-    if (doc->RecomputeResistFingerprinting()) {
-      if (auto* pc = doc->GetPresContext()) {
-        pc->MediaFeatureValuesChanged(
-            {MediaFeatureChangeReason::PreferenceChange},
-            MediaFeatureChangePropagation::JustThisDocument);
-      }
+    doc->RecomputeResistFingerprinting(
+        /* aForceRefreshRTPCallerType= */ true);
+    if (auto* pc = doc->GetPresContext()) {
+      pc->MediaFeatureValuesChanged(
+          {MediaFeatureChangeReason::PreferenceChange},
+          MediaFeatureChangePropagation::JustThisDocument);
     }
   }
 }
