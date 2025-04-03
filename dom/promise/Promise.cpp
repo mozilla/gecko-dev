@@ -80,10 +80,10 @@ Promise::Promise(nsIGlobalObject* aGlobal)
     : mGlobal(aGlobal), mPromiseObj(nullptr) {
   MOZ_ASSERT(mGlobal);
 
-  mozilla::HoldJSObjects(this);
+  mozilla::HoldJSObjectsWithKey(this);
 }
 
-Promise::~Promise() { mozilla::DropJSObjects(this); }
+Promise::~Promise() { mozilla::DropJSObjectsWithKey(this); }
 
 // static
 already_AddRefed<Promise> Promise::Create(

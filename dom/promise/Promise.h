@@ -16,6 +16,7 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
 #include "mozilla/WeakPtr.h"
@@ -42,7 +43,7 @@ class PromiseInit;
 class PromiseNativeHandler;
 class PromiseDebugging;
 
-class Promise : public SupportsWeakPtr {
+class Promise : public SupportsWeakPtr, public JSHolderBase {
   friend class PromiseTask;
   friend class PromiseWorkerProxy;
   friend class PromiseWorkerProxyRunnable;
