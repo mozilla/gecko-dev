@@ -29,7 +29,7 @@
 #include "nsITimer.h"
 #include "mozilla/Omnijar.h"
 #include "prenv.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/StartupcacheMetrics.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 #include "nsIProtocolHandler.h"
@@ -377,10 +377,9 @@ nsresult StartupCache::GetBuffer(const char* id, const char** outbuf,
   NS_ASSERTION(NS_IsMainThread(),
                "Startup cache only available on main thread");
 
-  Telemetry::LABELS_STARTUP_CACHE_REQUESTS label =
-      Telemetry::LABELS_STARTUP_CACHE_REQUESTS::Miss;
-  auto telemetry =
-      MakeScopeExit([&label] { Telemetry::AccumulateCategorical(label); });
+  auto label = glean::startup_cache::RequestsLabel::eMiss;
+  auto telemetry = MakeScopeExit(
+      [&label] { glean::startup_cache::requests.EnumGet(label).Add(); });
 
   MutexAutoLock lock(mTableLock);
   decltype(mTable)::Ptr p = mTable.lookup(nsDependentCString(id));
@@ -390,7 +389,7 @@ nsresult StartupCache::GetBuffer(const char* id, const char** outbuf,
 
   auto& value = p->value();
   if (value.mData) {
-    label = Telemetry::LABELS_STARTUP_CACHE_REQUESTS::HitMemory;
+    label = glean::startup_cache::RequestsLabel::eHitmemory;
   } else {
     if (!mCacheData.initialized()) {
       return NS_ERROR_NOT_AVAILABLE;
@@ -432,7 +431,7 @@ nsresult StartupCache::GetBuffer(const char* id, const char** outbuf,
 
     MMAP_FAULT_HANDLER_CATCH(NS_ERROR_FAILURE)
 
-    label = Telemetry::LABELS_STARTUP_CACHE_REQUESTS::HitDisk;
+    label = glean::startup_cache::RequestsLabel::eHitdisk;
   }
 
   if (!value.mRequested) {

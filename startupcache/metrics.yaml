@@ -1,0 +1,43 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: XPCOM'
+
+startup_cache:
+  requests:
+    type: labeled_counter
+    description: >
+      Record hits and misses to the startup cache, with categories.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram STARTUP_CACHE_REQUESTS.
+    labels:
+      - HitMemory
+      - HitDisk
+      - Miss
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364235
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590385
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623098
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649954
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689257
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754639
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364235
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590385
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623098
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649954
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689257
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754639
+    notification_emails:
+      - dothayer@mozilla.com
+      - plawless@mozilla.com
+    expires: never
+    telemetry_mirror: h#STARTUP_CACHE_REQUESTS
