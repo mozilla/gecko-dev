@@ -10384,24 +10384,6 @@
     "n_values": 4,
     "description": "Does enforcing a larger minimum RSA key size cause verification failures? 1 = no, 2 = yes, 3 = another error prevented finding a verified chain"
   },
-  "WEAVE_START_COUNT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "default",
-    "kind": "exponential",
-    "high": 1000,
-    "n_buckets": 10,
-    "description": "The number of times a sync started in this session"
-  },
-  "WEAVE_COMPLETE_SUCCESS_COUNT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "default",
-    "kind": "exponential",
-    "high": 1000,
-    "n_buckets": 10,
-    "description": "The number of times a sync successfully completed in this session"
-  },
   "WEBCRYPTO_EXTRACTABLE_IMPORT": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

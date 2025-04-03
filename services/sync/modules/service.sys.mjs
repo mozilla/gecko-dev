@@ -1345,13 +1345,8 @@ Sync11Service.prototype = {
     return this._lock(
       "service.js: sync",
       this._notify("sync", JSON.stringify({ why }), async function onNotify() {
-        Services.telemetry.getHistogramById("WEAVE_START_COUNT").add(1);
-
         let synchronizer = new EngineSynchronizer(this);
         await synchronizer.sync(engineNamesToSync, why); // Might throw!
-        Services.telemetry
-          .getHistogramById("WEAVE_COMPLETE_SUCCESS_COUNT")
-          .add(1);
 
         // We successfully synchronized.
         // Check if the identity wants to pre-fetch a migration sentinel from

@@ -664,3 +664,51 @@ sync_merge_dialog:
           Which variant we showed the user. Which can be "sync-warning", "sync-warning-allow-merge",
           "merge-warning", "merge-warning-allow-merge", "old-merge"
         type: string
+
+sync:
+  device_count_desktop:
+    type: custom_distribution
+    description: >
+      Number of desktop devices (including this device) associated with this
+      Sync account. Recorded each time Sync successfully completes the 'clients'
+      engine.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEAVE_DEVICE_COUNT_DESKTOP.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1232050
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1232050
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    telemetry_mirror: WEAVE_DEVICE_COUNT_DESKTOP
+    no_lint:
+      - COMMON_PREFIX
+
+  device_count_mobile:
+    type: custom_distribution
+    description: >
+      Number of mobile devices associated with this Sync account. Recorded each
+      time Sync successfully completes the 'clients' engine.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEAVE_DEVICE_COUNT_MOBILE.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1232050
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1232050
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    telemetry_mirror: WEAVE_DEVICE_COUNT_MOBILE
+    no_lint:
+      - COMMON_PREFIX
