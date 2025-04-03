@@ -10,6 +10,14 @@ mock_key! {
     pub struct MockCurrentExe => std::path::PathBuf
 }
 
+mock_key! {
+    pub struct MockEnv(pub OsString) => String
+}
+
+mock_key! {
+    pub struct MockHomeDir => super::path::PathBuf
+}
+
 pub struct ArgsOs {
     argv0: Option<OsString>,
 }
@@ -26,18 +34,24 @@ impl Iterator for ArgsOs {
     }
 }
 
-pub fn var<K: AsRef<OsStr>>(_key: K) -> Result<String, VarError> {
-    unimplemented!("no var access in tests")
+pub fn var<K: AsRef<OsStr>>(key: K) -> Result<String, VarError> {
+    MockEnv(key.as_ref().to_os_string())
+        .try_get(|value| value.clone())
+        .ok_or(VarError::NotPresent)
 }
 
-pub fn var_os<K: AsRef<OsStr>>(_key: K) -> Option<OsString> {
-    unimplemented!("no var access in tests")
+pub fn var_os<K: AsRef<OsStr>>(key: K) -> Option<OsString> {
+    MockEnv(key.as_ref().to_os_string()).try_get(|value| value.clone().into())
 }
 
 pub fn args_os() -> ArgsOs {
     MockCurrentExe.get(|r| ArgsOs {
         argv0: Some(r.clone().into()),
     })
+}
+
+pub fn home_dir() -> Option<super::path::PathBuf> {
+    MockHomeDir.try_get(|p| p.clone())
 }
 
 #[allow(unused)]
