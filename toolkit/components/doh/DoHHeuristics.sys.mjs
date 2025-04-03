@@ -26,7 +26,7 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  DoHConfigController: "resource:///modules/DoHConfig.sys.mjs",
+  DoHConfigController: "resource://gre/modules/DoHConfig.sys.mjs",
 });
 
 const GLOBAL_CANARY = "use-application-dns.net.";

@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"] # bug 1730213
 head = "head.js"
 firefox-appdir = "browser"
 support-files = ["../../../../../netwerk/test/unit/http2-ca.pem"]
@@ -8,7 +7,9 @@ support-files = ["../../../../../netwerk/test/unit/http2-ca.pem"]
 skip-if = ["debug"] # Bug 1617845
 
 ["test_LookupAggregator.js"]
+skip-if = ["os == 'android'"] # need to migrate telemetry
 
 ["test_TRRRacer.js"]
+skip-if = ["os == 'android'"] # need to migrate telemetry
 
 ["test_heuristics.js"]

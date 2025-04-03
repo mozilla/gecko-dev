@@ -262,20 +262,22 @@ export const DoHConfigController = {
   observe(subject, topic, data) {
     switch (topic) {
       case kPrefChangedTopic:
-        let allowedPrefs = Object.getOwnPropertyNames(kConfigPrefs).map(
-          k => kConfigPrefs[k]
-        );
-        if (
-          !allowedPrefs.some(pref =>
-            [
-              `${regionPrefBranch()}.${pref}`,
-              `${kGlobalPrefBranch}.${pref}`,
-            ].includes(data)
-          )
-        ) {
-          break;
+        {
+          let allowedPrefs = Object.getOwnPropertyNames(kConfigPrefs).map(
+            k => kConfigPrefs[k]
+          );
+          if (
+            !allowedPrefs.some(pref =>
+              [
+                `${regionPrefBranch()}.${pref}`,
+                `${kGlobalPrefBranch}.${pref}`,
+              ].includes(data)
+            )
+          ) {
+            break;
+          }
+          this.notifyNewConfig();
         }
-        this.notifyNewConfig();
         break;
       case "idle-daily":
         if (
