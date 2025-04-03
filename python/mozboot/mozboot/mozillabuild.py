@@ -187,21 +187,12 @@ class MozillaBuildBootstrapper(BaseBootstrapper):
             no_interactive=self.no_interactive,
             avd_manifest_path=android.AVD_MANIFEST_X86_64,
         )
-        android.ensure_android(
-            "windows",
-            os_arch,
-            system_images_only=True,
-            artifact_mode=artifact_mode,
-            no_interactive=self.no_interactive,
-            avd_manifest_path=android.AVD_MANIFEST_ARM,
-        )
 
     def ensure_mobile_android_packages(self):
         from mozboot import android
 
         android.ensure_java("windows", self._os_arch())
-        self.install_toolchain_artifact(android.WINDOWS_X86_64_ANDROID_AVD)
-        self.install_toolchain_artifact(android.WINDOWS_ARM_ANDROID_AVD)
+        self.install_toolchain_artifact(android.X86_64_ANDROID_AVD)
 
     def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
         self.install_mobile_android_packages(mozconfig_builder, artifact_mode=True)

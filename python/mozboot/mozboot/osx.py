@@ -62,14 +62,6 @@ class OSXAndroidBootstrapper(object):
                 no_interactive=self.no_interactive,
                 avd_manifest_path=android.AVD_MANIFEST_X86_64,
             )
-            android.ensure_android(
-                "macosx",
-                os_arch,
-                system_images_only=True,
-                artifact_mode=artifact_mode,
-                no_interactive=self.no_interactive,
-                avd_manifest_path=android.AVD_MANIFEST_ARM,
-            )
         else:
             android.ensure_android(
                 "macosx",
@@ -87,11 +79,9 @@ class OSXAndroidBootstrapper(object):
         android.ensure_java("macosx", arch)
 
         if arch == "x86_64" or arch == "x86":
-            self.install_toolchain_artifact(android.MACOS_X86_64_ANDROID_AVD)
-            self.install_toolchain_artifact(android.MACOS_ARM_ANDROID_AVD)
+            self.install_toolchain_artifact(android.X86_64_ANDROID_AVD)
         elif arch == "arm64":
-            # The only emulator supported on Apple Silicon is the Arm64 one.
-            self.install_toolchain_artifact(android.MACOS_ARM64_ANDROID_AVD)
+            self.install_toolchain_artifact(android.ARM64_ANDROID_AVD)
 
     def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
         self.install_mobile_android_packages(mozconfig_builder, artifact_mode=True)

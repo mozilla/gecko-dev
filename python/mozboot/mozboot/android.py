@@ -27,18 +27,10 @@ CMDLINE_TOOLS_VERSION = "13114758"
 BUNDLETOOL_VERSION = "1.18.1"
 
 # We expect the emulator AVD definitions to be platform agnostic
-LINUX_X86_64_ANDROID_AVD = "linux64-android-avd-x86_64-repack"
-LINUX_ARM_ANDROID_AVD = "linux64-android-avd-arm-repack"
-
-MACOS_X86_64_ANDROID_AVD = "linux64-android-avd-x86_64-repack"
-MACOS_ARM_ANDROID_AVD = "linux64-android-avd-arm-repack"
-MACOS_ARM64_ANDROID_AVD = "linux64-android-avd-arm64-repack"
-
-WINDOWS_X86_64_ANDROID_AVD = "linux64-android-avd-x86_64-repack"
-WINDOWS_ARM_ANDROID_AVD = "linux64-android-avd-arm-repack"
+X86_64_ANDROID_AVD = "linux64-android-avd-x86_64-repack"
+ARM64_ANDROID_AVD = "linux64-android-avd-arm64-repack"
 
 AVD_MANIFEST_X86_64 = Path(__file__).resolve().parent / "android-avds/x86_64.json"
-AVD_MANIFEST_ARM = Path(__file__).resolve().parent / "android-avds/arm.json"
 AVD_MANIFEST_ARM64 = Path(__file__).resolve().parent / "android-avds/arm64.json"
 
 JAVA_VERSION_MAJOR = "17"

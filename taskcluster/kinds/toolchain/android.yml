@@ -75,25 +75,6 @@ linux64-android30-avd-x86-repack:
             # Aliases aren't allowed for toolchains depending on toolchains.
             - linux64-jdk-repack
 
-linux64-android-avd-arm-repack:
-    attributes:
-        local-toolchain: true
-    description: "Android AVD (Linux) repack toolchain build"
-    treeherder:
-        symbol: TL(avd-arm-linux)
-    run:
-        script: repack-android-avd-linux.sh
-        arguments:
-            - 'python/mozboot/mozboot/android-avds/arm.json'
-        resources:
-            - 'python/mozboot/**/*android*'
-        toolchain-artifact: public/build/android-avd-linux.tar.zst
-        toolchain-alias: android-avd-arm-linux
-    fetches:
-        toolchain:
-            # Aliases aren't allowed for toolchains depending on toolchains.
-            - linux64-jdk-repack
-
 linux64-android-avd-arm64-repack:
     attributes:
         local-toolchain: true
