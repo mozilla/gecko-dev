@@ -38,6 +38,8 @@
 
 #include "common/using_std_string.h"
 
+struct DirectAuxvDumpInfo;
+
 namespace google_breakpad {
 
 class ClientInfo;
@@ -49,6 +51,8 @@ public:
   // be thread safe.
   using OnClientDumpRequestCallback = void (const ClientInfo& client_info,
                                             const string& file_path);
+
+  using GetAuxvInfo = bool (pid_t pid, DirectAuxvDumpInfo*);
 
   // Create an instance with the given parameters.
   //
@@ -64,6 +68,7 @@ public:
   // Parameter dump_path: Path for generating dumps; required only if true is
   //     passed for generateDumps parameter; NULL can be passed otherwise.
   CrashGenerationServer(const int listen_fd,
+                        std::function<GetAuxvInfo> get_auxv_info,
                         std::function<OnClientDumpRequestCallback> dump_callback,
                         const string* dump_path);
 
@@ -82,6 +87,9 @@ public:
   // this class's constructor, and |*client_fd| should be passed to
   // the ExceptionHandler constructor in the client process.
   static bool CreateReportChannel(int* server_fd, int* client_fd);
+  
+  CrashGenerationServer(CrashGenerationServer&&) = delete;
+  CrashGenerationServer& operator=(CrashGenerationServer&&) = delete;
 
   CrashGenerationServer(const CrashGenerationServer&) = delete;
   CrashGenerationServer& operator=(const CrashGenerationServer&) = delete;
@@ -108,6 +116,7 @@ private:
 
   int server_fd_;
 
+  std::function<GetAuxvInfo> get_auxv_info_;
   std::function<OnClientDumpRequestCallback> dump_callback_;
 
   string dump_dir_;

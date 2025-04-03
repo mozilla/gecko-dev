@@ -7,8 +7,11 @@
 #include "CrashReporterClient.h"
 #include "nsISupportsImpl.h"
 
-namespace mozilla {
-namespace ipc {
+#if defined(XP_LINUX)
+#  include "mozilla/toolkit/crashreporter/rust_minidump_writer_linux_ffi_generated.h"
+#endif  // defined(XP_LINUX)
+
+namespace mozilla::ipc {
 
 StaticMutex CrashReporterClient::sLock;
 StaticRefPtr<CrashReporterClient> CrashReporterClient::sClientSingleton;
@@ -31,6 +34,23 @@ void CrashReporterClient::InitSingleton() {
   }
 }
 
+/*static*/
+CrashReporter::CrashReporterInitArgs CrashReporterClient::CreateInitArgs() {
+  CrashReporter::CrashReporterInitArgs initArgs;
+  initArgs.threadId() = CrashReporter::CurrentThreadId();
+
+#if defined(XP_LINUX)
+  DirectAuxvDumpInfo auxvInfo = {};
+  CrashReporter::GetCurrentProcessAuxvInfo(&auxvInfo);
+  initArgs.auxvInfo().programHeaderCount() = auxvInfo.program_header_count;
+  initArgs.auxvInfo().programHeaderAddress() = auxvInfo.program_header_address;
+  initArgs.auxvInfo().linuxGateAddress() = auxvInfo.linux_gate_address;
+  initArgs.auxvInfo().entryAddress() = auxvInfo.entry_address;
+#endif  // defined(XP_LINUX)
+
+  return initArgs;
+}
+
 /* static */
 void CrashReporterClient::DestroySingleton() {
   StaticMutexAutoLock lock(sLock);
@@ -43,5 +63,4 @@ RefPtr<CrashReporterClient> CrashReporterClient::GetSingleton() {
   return sClientSingleton;
 }
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc

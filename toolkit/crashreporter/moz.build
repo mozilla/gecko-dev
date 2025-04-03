@@ -21,6 +21,12 @@ UNIFIED_SOURCES = [
     "nsExceptionHandlerUtils.cpp",
 ]
 
+PREPROCESSED_IPDL_SOURCES = [
+    "ipc/CrashReporterInitArgs.ipdlh",
+]
+
+include("/ipc/chromium/chromium-config.mozbuild")
+
 FINAL_LIBRARY = "xul"
 
 if CONFIG["MOZ_CRASHREPORTER"]:
@@ -89,8 +95,6 @@ if CONFIG["MOZ_CRASHREPORTER"]:
         "CrashReports.sys.mjs",
         "CrashSubmit.sys.mjs",
     ]
-
-    include("/ipc/chromium/chromium-config.mozbuild")
 
     if CONFIG["OS_TARGET"] == "Android":
         DEFINES["ANDROID_NDK_MAJOR_VERSION"] = CONFIG["ANDROID_NDK_MAJOR_VERSION"]
