@@ -28,7 +28,6 @@ static gboolean checkbox_check_state;
 static gboolean notebook_has_tab_gap;
 
 static ToolbarGTKMetrics sToolbarMetrics;
-static CSDWindowDecorationSize sToplevelWindowDecorationSize;
 
 using mozilla::Span;
 
@@ -194,7 +193,6 @@ void moz_gtk_refresh() {
   }
 
   sToolbarMetrics.initialized = false;
-  sToplevelWindowDecorationSize.initialized = false;
 
   /* This will destroy all of our widgets */
   ResetWidgetCache();
@@ -1632,69 +1630,6 @@ gint moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length,
   }
 
   return MOZ_GTK_SUCCESS;
-}
-
-// Best effort implementation of get_shadow_width() from gtkwindow.c...
-static GtkBorder ComputeWindowDecorationSize() {
-  GtkBorder decorationSize = {0, 0, 0, 0};
-  const bool solidDecorations = gtk_style_context_has_class(
-      GetStyleContext(MOZ_GTK_HEADERBAR_WINDOW, 1), "solid-csd");
-  // solid-csd does not use frame extents, quit now.
-  if (solidDecorations) {
-    return decorationSize;
-  }
-
-  // Scale factor is applied later when decoration size is used for actual
-  // gtk windows.
-  GtkStyleContext* context = GetStyleContext(MOZ_GTK_WINDOW_DECORATION);
-
-  /* Always sum border + padding */
-  GtkBorder padding;
-  GtkStateFlags state = gtk_style_context_get_state(context);
-  gtk_style_context_get_border(context, state, &decorationSize);
-  gtk_style_context_get_padding(context, state, &padding);
-  decorationSize += padding;
-
-  // Available on GTK 3.20+.
-  static auto sGtkRenderBackgroundGetClip = (void (*)(
-      GtkStyleContext*, gdouble, gdouble, gdouble, gdouble,
-      GdkRectangle*))dlsym(RTLD_DEFAULT, "gtk_render_background_get_clip");
-
-  if (!sGtkRenderBackgroundGetClip) {
-    return decorationSize;
-  }
-
-  GdkRectangle clip;
-  sGtkRenderBackgroundGetClip(context, 0, 0, 0, 0, &clip);
-
-  GtkBorder extents;
-  extents.top = -clip.y;
-  extents.right = clip.width + clip.x;
-  extents.bottom = clip.height + clip.y;
-  extents.left = -clip.x;
-
-  // Get shadow extents but combine with style margin; use the bigger value.
-  // Margin is used for resize grip size - it's not present on
-  // popup windows.
-  GtkBorder margin;
-  gtk_style_context_get_margin(context, state, &margin);
-
-  extents.top = MAX(extents.top, margin.top);
-  extents.right = MAX(extents.right, margin.right);
-  extents.bottom = MAX(extents.bottom, margin.bottom);
-  extents.left = MAX(extents.left, margin.left);
-
-  decorationSize += extents;
-  return decorationSize;
-}
-
-GtkBorder GetTopLevelCSDDecorationSize() {
-  if (!sToplevelWindowDecorationSize.initialized) {
-    sToplevelWindowDecorationSize.decorationSize =
-        ComputeWindowDecorationSize();
-    sToplevelWindowDecorationSize.initialized = true;
-  }
-  return sToplevelWindowDecorationSize.decorationSize;
 }
 
 /* cairo_t *cr argument has to be a system-cairo. */
