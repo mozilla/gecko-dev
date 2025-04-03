@@ -250,12 +250,6 @@ MediaResult AppleVTEncoder::InitSession() {
                        "SVC only supported on macOS 11.3 and more recent");
   }
 
-  auto r =
-      MapPixelFormat(mConfig.mFormat.mPixelFormat, mConfig.mFormat.mColorRange);
-  if (r.isErr()) {
-    return r.unwrapErr();
-  }
-
   bool lowLatencyRateControl =
       mConfig.mUsage == Usage::Realtime ||
       mConfig.mScalabilityMode != ScalabilityMode::None;
@@ -264,17 +258,14 @@ MediaResult AppleVTEncoder::InitSession() {
        mHardwareNotAllowed ? "no" : "yes");
   AutoCFRelease<CFDictionaryRef> spec(
       BuildEncoderSpec(mHardwareNotAllowed, lowLatencyRateControl));
-  AutoCFRelease<CFDictionaryRef> srcBufferAttr(
-      BuildSourceImageBufferAttributes(r.unwrap()));
-  if (!srcBufferAttr) {
-    return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
-                       "fail to create source buffer attributes");
-  }
 
+  // Bug 1955153: Set sourceImageBufferAttributes using the pixel format derived
+  // from mConfig.mFormat.
   OSStatus status = VTCompressionSessionCreate(
       kCFAllocatorDefault, mConfig.mSize.width, mConfig.mSize.height,
-      kCMVideoCodecType_H264, spec, srcBufferAttr, kCFAllocatorDefault,
-      &FrameCallback, this /* outputCallbackRefCon */, &mSession);
+      kCMVideoCodecType_H264, spec, nullptr /* sourceImageBufferAttributes */,
+      kCFAllocatorDefault, &FrameCallback, this /* outputCallbackRefCon */,
+      &mSession);
   if (status != noErr) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        "fail to create encoder session");
