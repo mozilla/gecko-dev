@@ -748,6 +748,9 @@ void AppleVTEncoder::ProcessEncode(const RefPtr<const VideoData>& aSample) {
 RefPtr<MediaDataEncoder::ReconfigurationPromise>
 AppleVTEncoder::ProcessReconfigure(
     const RefPtr<const EncoderConfigurationChangeList>& aConfigurationChanges) {
+  AssertOnTaskQueue();
+  MOZ_ASSERT(mSession);
+
   bool ok = false;
   for (const auto& confChange : aConfigurationChanges->mChanges) {
     // A reconfiguration on the fly succeeds if all changes can be applied
