@@ -19,7 +19,6 @@
 #include "mozilla/Span.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_security.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/glean/SecurityManagerSslMetrics.h"
 #include "mozilla/intl/Localization.h"
@@ -1037,8 +1036,8 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
             NonECCKeySize(channelInfo.keaKeyBits));
         break;
       case ssl_kea_ecdh:
-        Telemetry::Accumulate(Telemetry::SSL_KEA_ECDHE_CURVE_FULL,
-                              ECCCurve(channelInfo.keaKeyBits));
+        glean::ssl::kea_ecdhe_curve_full.AccumulateSingleSample(
+            ECCCurve(channelInfo.keaKeyBits));
         break;
       case ssl_kea_ecdh_hybrid:
         break;
