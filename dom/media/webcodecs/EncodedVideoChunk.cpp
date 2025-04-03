@@ -209,9 +209,8 @@ uint32_t EncodedVideoChunk::ByteLength() const {
 }
 
 // https://w3c.github.io/webcodecs/#dom-encodedvideochunk-copyto
-void EncodedVideoChunk::CopyTo(
-    const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDestination,
-    ErrorResult& aRv) {
+void EncodedVideoChunk::CopyTo(const AllowSharedBufferSource& aDestination,
+                               ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
   ProcessTypedArraysFixed(aDestination, [&](const Span<uint8_t>& aData) {

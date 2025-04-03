@@ -90,12 +90,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1295322
         is(threw, arrayBuffer.isShared, `Call testDictWithAllowShared with {arrayBuffer: ${arrayBuffer.type}}`);
 
         try {
-          test.testUnionOfBuffferSource(buffer);
+          test.testUnionOfBufferSource(buffer);
           threw = false;
         } catch(e) {
           threw = true;
         }
-        is(threw, arrayBuffer.isShared, `Call testUnionOfBuffferSource with ${arrayBuffer.type}`);
+        is(threw, arrayBuffer.isShared, `Call testUnionOfBufferSource with ${arrayBuffer.type}`);
 
         try {
           test.arrayBuffer = buffer;
@@ -131,12 +131,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1295322
         ok(!threw, `Call testDictWithAllowShared with {allowSharedArrayBuffer: ${arrayBuffer.type}}`);
 
         try {
-          test.testUnionOfAllowSharedBuffferSource(buffer);
+          test.testUnionOfAllowSharedBufferSource(buffer);
           threw = false;
         } catch(e) {
           threw = true;
         }
-        ok(!threw, `Call testUnionOfAllowSharedBuffferSource with ${arrayBuffer.type}`);
+        ok(!threw, `Call testUnionOfAllowSharedBufferSource with ${arrayBuffer.type}`);
 
         try {
           test.allowSharedArrayBuffer = buffer;
@@ -175,12 +175,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1295322
           is(threw, arrayBuffer.isShared, `Call testDictWithAllowShared with {arrayBufferView: ${arrayType} (${arrayBuffer.type})}`);
 
           try {
-            test.testUnionOfBuffferSource(array);
+            test.testUnionOfBufferSource(array);
             threw = false;
           } catch(e) {
             threw = true;
           }
-          is(threw, arrayBuffer.isShared, `Call testUnionOfBuffferSource with ${arrayType} (${arrayBuffer.type})`);
+          is(threw, arrayBuffer.isShared, `Call testUnionOfBufferSource with ${arrayType} (${arrayBuffer.type})`);
 
           try {
             test.arrayBufferView = array;
@@ -216,12 +216,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1295322
           ok(!threw, `Call testDictWithAllowShared with {allowSharedArrayBufferView: ${arrayType} (${arrayBuffer.type})}`);
 
           try {
-            test.testUnionOfAllowSharedBuffferSource(array);
+            test.testUnionOfAllowSharedBufferSource(array);
             threw = false;
           } catch(e) {
             threw = true;
           }
-          ok(!threw, `Call testUnionOfAllowSharedBuffferSource with ${arrayType} (${arrayBuffer.type})`);
+          ok(!threw, `Call testUnionOfAllowSharedBufferSource with ${arrayType} (${arrayBuffer.type})`);
 
           try {
             test.allowSharedArrayBufferView = array;

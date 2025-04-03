@@ -25,8 +25,6 @@ class MediaRawData;
 
 namespace dom {
 
-class MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer;
-class OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer;
 class StructuredCloneHolder;
 
 enum class EncodedVideoChunkType : uint8_t;
@@ -95,9 +93,7 @@ class EncodedVideoChunk final : public EncodedVideoChunkData,
 
   uint32_t ByteLength() const;
 
-  void CopyTo(
-      const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDestination,
-      ErrorResult& aRv);
+  void CopyTo(const AllowSharedBufferSource& aDestination, ErrorResult& aRv);
 
   // [Serializable] implementations: {Read, Write}StructuredClone
   static JSObject* ReadStructuredClone(JSContext* aCx, nsIGlobalObject* aGlobal,
