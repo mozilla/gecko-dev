@@ -229,11 +229,19 @@ GMPInstallManager.prototype = {
       "GMPInstallManager.recordUpdateXmlTelemetryForContentSignature"
     );
     try {
+      let updateResultHistogram = Services.telemetry.getHistogramById(
+        "MEDIA_GMP_UPDATE_XML_FETCH_RESULT"
+      );
+
+      // The non-glean telemetry used here will be removed in future and just
+      // the glean data will be gathered.
       if (didGetAddonList) {
+        updateResultHistogram.add("content_sig_ok");
         Glean.gmp.updateXmlFetchResult.content_sig_success.add(1);
         return;
       }
       // All remaining cases are failure cases.
+      updateResultHistogram.add("content_sig_fail");
       if (!err?.addonCheckerErr) {
         // Unknown error case. If this is happening we should audit error paths
         // to identify why we're not getting an error, or not getting it
@@ -283,11 +291,19 @@ GMPInstallManager.prototype = {
       "GMPInstallManager.recordUpdateXmlTelemetryForCertPinning"
     );
     try {
+      let updateResultHistogram = Services.telemetry.getHistogramById(
+        "MEDIA_GMP_UPDATE_XML_FETCH_RESULT"
+      );
+
+      // The non-glean telemetry used here will be removed in future and just
+      // the glean data will be gathered.
       if (didGetAddonList) {
+        updateResultHistogram.add("cert_pinning_ok");
         Glean.gmp.updateXmlFetchResult.cert_pin_success.add(1);
         return;
       }
       // All remaining cases are failure cases.
+      updateResultHistogram.add("cert_pinning_fail");
       if (!err?.addonCheckerErr) {
         // Unknown error case. If this is happening we should audit error paths
         // to identify why we're not getting an error, or not getting it
