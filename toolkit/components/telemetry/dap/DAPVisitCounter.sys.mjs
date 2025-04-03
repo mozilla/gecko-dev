@@ -25,6 +25,17 @@ export const DAPVisitCounter = new (class {
   timerId = null;
 
   async startup() {
+    if (
+      Services.startup.isInOrBeyondShutdownPhase(
+        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+      )
+    ) {
+      lazy.logConsole.warn(
+        "DAPVisitCounter startup not possible due to shutdown."
+      );
+      return;
+    }
+
     const asyncShutdownBlocker = async () => {
       lazy.logConsole.debug(`Sending on shutdown.`);
       await this.send(2 * 1000, "shutdown");
@@ -63,7 +74,7 @@ export const DAPVisitCounter = new (class {
 
       // Clear registered calllbacks
       lazy.PlacesUtils.observers.removeListener(placesTypes, placesListener);
-      lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+      lazy.AsyncShutdown.appShutdownConfirmed.removeBlocker(
         asyncShutdownBlocker
       );
 
@@ -76,7 +87,7 @@ export const DAPVisitCounter = new (class {
 
         lazy.PlacesUtils.observers.addListener(placesTypes, placesListener);
 
-        lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+        lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
           "DAPVisitCounter: sending data",
           asyncShutdownBlocker
         );
