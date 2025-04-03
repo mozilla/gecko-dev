@@ -35,6 +35,7 @@ import android.view.accessibility.AccessibilityNodeInfo.RangeInfo
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
+import androidx.core.content.withStyledAttributes
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
 import org.mozilla.fenix.R
@@ -232,27 +233,22 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
         set(seekBarValue) = setValueInternal(seekBarValue, true)
 
     init {
-        val a = context.obtainStyledAttributes(
+        context.withStyledAttributes(
             attrs,
             R.styleable.TextPercentageSeekBarPreference,
             defStyleAttr,
             defStyleRes,
-        )
-
-        // The ordering of these two statements are important. If we want to set max first, we need
-        // to perform the same steps by changing min/max to max/min as following:
-        // mMax = a.getInt(...) and setMin(...).
-        mMin = a.getInt(R.styleable.TextPercentageSeekBarPreference_min, 0)
-        max = a.getInt(R.styleable.TextPercentageSeekBarPreference_android_max, SEEK_BAR_MAX)
-        seekBarIncrement = a.getInt(R.styleable.TextPercentageSeekBarPreference_seekBarIncrement, 0)
-        isAdjustable = a.getBoolean(R.styleable.TextPercentageSeekBarPreference_adjustable, true)
-        mShowSeekBarValue =
-            a.getBoolean(R.styleable.TextPercentageSeekBarPreference_showSeekBarValue, false)
-        updatesContinuously = a.getBoolean(
-            R.styleable.TextPercentageSeekBarPreference_updatesContinuously,
-            false,
-        )
-        a.recycle()
+        ) {
+            // The ordering of these two statements are important. If we want to set max first, we need
+            // to perform the same steps by changing min/max to max/min as following:
+            // mMax = a.getInt(...) and setMin(...).
+            mMin = getInt(R.styleable.TextPercentageSeekBarPreference_min, 0)
+            max = getInt(R.styleable.TextPercentageSeekBarPreference_android_max, SEEK_BAR_MAX)
+            seekBarIncrement = getInt(R.styleable.TextPercentageSeekBarPreference_seekBarIncrement, 0)
+            isAdjustable = getBoolean(R.styleable.TextPercentageSeekBarPreference_adjustable, true)
+            mShowSeekBarValue = getBoolean(R.styleable.TextPercentageSeekBarPreference_showSeekBarValue, false)
+            updatesContinuously = getBoolean(R.styleable.TextPercentageSeekBarPreference_updatesContinuously, false)
+        }
     }
 
     override fun onBindViewHolder(view: PreferenceViewHolder) {

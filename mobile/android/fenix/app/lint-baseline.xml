@@ -2029,17 +2029,6 @@
 
     <issue
         id="UseKtx"
-        message="Use the KTX extension function `Context.withStyledAttributes` instead?"
-        errorLine1="        val a = context.obtainStyledAttributes("
-        errorLine2="                ^">
-        <location
-            file="src/main/java/org/mozilla/fenix/settings/TextPercentageSeekBarPreference.kt"
-            line="235"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
         message="Use the KTX extension function `Int.toDrawable` instead?"
         errorLine1="        popupWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
         errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
