@@ -52,14 +52,6 @@ style_path_print(GtkStyleContext *context)
 }
 #endif
 
-static GtkBorder operator+=(GtkBorder& first, const GtkBorder& second) {
-  first.left += second.left;
-  first.right += second.right;
-  first.top += second.top;
-  first.bottom += second.bottom;
-  return first;
-}
-
 static gint moz_gtk_get_tab_thickness(GtkStyleContext* style);
 
 static void Inset(GdkRectangle*, const GtkBorder&);
