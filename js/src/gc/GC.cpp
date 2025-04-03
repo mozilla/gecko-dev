@@ -392,7 +392,10 @@ void GCRuntime::releaseArena(Arena* arena, const AutoLockGC& lock) {
   } else {
     arena->zone()->gcHeapSize.removeBytes(ArenaSize, true, heapSize);
   }
-  arena->release(this, &lock);
+  if (arena->zone()->isAtomsZone()) {
+    arena->freeAtomMarkingBitmapIndex(this, lock);
+  }
+  arena->release();
   arena->chunk()->releaseArena(this, arena, lock);
 }
 

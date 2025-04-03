@@ -37,11 +37,11 @@ class AtomMarkingRuntime {
 
   AtomMarkingRuntime() : allocatedWords(0) {}
 
-  // Mark an arena as holding things in the atoms zone.
-  void registerArena(Arena* arena, const AutoLockGC& lock);
+  // Allocate an index in the atom marking bitmap for a new arena.
+  size_t allocateIndex(const AutoLockGC& lock);
 
-  // Mark an arena as no longer holding things in the atoms zone.
-  void unregisterArena(Arena* arena, const AutoLockGC& lock);
+  // Free an index in the atom marking bitmap.
+  void freeIndex(size_t index, const AutoLockGC& lock);
 
   // Update the atom marking bitmaps in all collected zones according to the
   // atoms zone mark bits.

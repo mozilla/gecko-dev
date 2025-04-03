@@ -245,9 +245,12 @@ class alignas(ArenaSize) Arena {
     last->initAsEmpty();
   }
 
+  inline void freeAtomMarkingBitmapIndex(GCRuntime* gc, const AutoLockGC& lock);
+
   // Return an allocated arena to its unallocated (free) state.
-  // The lock is required for arenas in an atoms zone.
-  inline void release(GCRuntime* gc, const AutoLockGC* maybeLock);
+  // For arenas in the atoms zone, freeAtomMarkingBitmapIndex() must be called
+  // first.
+  inline void release();
 
   uintptr_t address() const {
     checkAddress();
