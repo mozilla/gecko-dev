@@ -257,6 +257,11 @@ bool CacheStorage::DefineCachesForSandbox(JSContext* aCx,
   return JS_DefineProperty(aCx, aGlobal, "caches", caches, JSPROP_ENUMERATE);
 }
 
+// static
+bool CacheStorage::CachesEnabled(JSContext* aCx, JSObject* aObj) {
+  return cache::Cache::CachesEnabled(aCx, aObj);
+}
+
 CacheStorage::CacheStorage(Namespace aNamespace, nsIGlobalObject* aGlobal,
                            const PrincipalInfo& aPrincipalInfo,
                            SafeRefPtr<CacheWorkerRef> aWorkerRef)

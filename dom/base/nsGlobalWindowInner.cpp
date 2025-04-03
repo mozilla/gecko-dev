@@ -3348,15 +3348,6 @@ bool nsGlobalWindowInner::DeviceSensorsEnabled(JSContext*, JSObject*) {
 }
 
 /* static */
-bool nsGlobalWindowInner::CachesEnabled(JSContext* aCx, JSObject* aObj) {
-  if (!IsSecureContextOrObjectIsFromSecureContext(aCx, aObj)) {
-    return StaticPrefs::dom_caches_testing_enabled() ||
-           ServiceWorkersEnabled(aCx, aObj);
-  }
-  return true;
-}
-
-/* static */
 bool nsGlobalWindowInner::IsGleanNeeded(JSContext* aCx, JSObject* aObj) {
   // Glean is needed in ChromeOnly contexts and also in privileged about pages.
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);

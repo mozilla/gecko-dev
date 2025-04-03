@@ -55,6 +55,8 @@ class CacheStorage final : public nsISupports,
   static bool DefineCachesForSandbox(JSContext* aCx,
                                      JS::Handle<JSObject*> aGlobal);
 
+  static bool CachesEnabled(JSContext* aCx, JSObject*);
+
   // webidl interface methods
   already_AddRefed<Promise> Match(JSContext* aCx,
                                   const RequestOrUTF8String& aRequest,

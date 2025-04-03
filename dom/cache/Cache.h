@@ -44,6 +44,8 @@ class Cache final : public nsISupports,
  public:
   Cache(nsIGlobalObject* aGlobal, CacheChild* aActor, Namespace aNamespace);
 
+  static bool CachesEnabled(JSContext* aCx, JSObject*);
+
   // webidl interface methods
   already_AddRefed<Promise> Match(JSContext* aCx,
                                   const RequestOrUTF8String& aRequest,

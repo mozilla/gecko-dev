@@ -8,7 +8,7 @@
  */
 
 [Exposed=(Window,Worker),
- Func="nsGlobalWindowInner::CachesEnabled"]
+ Func="cache::Cache::CachesEnabled"]
 interface Cache {
   [NewObject]
   Promise<Response> match(RequestInfo request, optional CacheQueryOptions options = {});

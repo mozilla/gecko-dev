@@ -14,6 +14,7 @@
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/Response.h"
 #include "mozilla/dom/RootedDictionary.h"
+#include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/CacheBinding.h"
 #include "mozilla/dom/cache/AutoUtils.h"
@@ -221,6 +222,15 @@ Cache::Cache(nsIGlobalObject* aGlobal, CacheChild* aActor, Namespace aNamespace)
   MOZ_DIAGNOSTIC_ASSERT(mActor);
   MOZ_DIAGNOSTIC_ASSERT(mNamespace != INVALID_NAMESPACE);
   mActor->SetListener(this);
+}
+
+// static
+bool Cache::CachesEnabled(JSContext* aCx, JSObject* aObj) {
+  if (!IsSecureContextOrObjectIsFromSecureContext(aCx, aObj)) {
+    return StaticPrefs::dom_caches_testing_enabled() ||
+           ServiceWorkersEnabled(aCx, aObj);
+  }
+  return true;
 }
 
 already_AddRefed<Promise> Cache::Match(JSContext* aCx,

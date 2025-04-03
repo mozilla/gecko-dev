@@ -425,8 +425,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   static bool DeviceSensorsEnabled(JSContext*, JSObject*);
 
-  static bool CachesEnabled(JSContext* aCx, JSObject*);
-
   // WebIDL permission Func for whether Glean APIs are permitted.
   static bool IsGleanNeeded(JSContext*, JSObject*);
 

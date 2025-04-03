@@ -10,7 +10,7 @@
 interface Principal;
 
 [Exposed=(Window,Worker),
- Func="nsGlobalWindowInner::CachesEnabled"]
+ Func="cache::CacheStorage::CachesEnabled"]
 interface CacheStorage {
   [Throws, ChromeOnly]
   constructor(CacheStorageNamespace namespace, Principal principal);
