@@ -23,6 +23,7 @@ bounce.tracking.protection:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890582
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958152
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890582#c4
     data_sensitivity:
@@ -31,7 +32,7 @@ bounce.tracking.protection:
       - emz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 140
+    expires: 146
   num_hosts_per_purge_run:
     type: custom_distribution
     unit: integer
@@ -44,6 +45,7 @@ bounce.tracking.protection:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1899809
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958152
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1899809
     data_sensitivity:
@@ -52,7 +54,7 @@ bounce.tracking.protection:
       - emz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 140
+    expires: 146
   purge_count:
     type: labeled_counter
     description: >
@@ -63,6 +65,7 @@ bounce.tracking.protection:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890578
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958152
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890578
     data_sensitivity:
@@ -71,7 +74,7 @@ bounce.tracking.protection:
       - emz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 140
+    expires: 146
     labels:
       - success
       - failure
@@ -83,6 +86,7 @@ bounce.tracking.protection:
     bugs:
       - https://bugzilla.mozilla.org/1889444
       - https://bugzilla.mozilla.org/1922602
+      - https://bugzilla.mozilla.org/1958152
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1889444#c16
     data_sensitivity:
@@ -93,7 +97,7 @@ bounce.tracking.protection:
       - manuel@mozilla.com
     send_in_pings:
       - bounce-tracking-protection
-    expires: 140
+    expires: 146
     extra_keys:
       site_host:
         description: The site host of which the data has been purged.
@@ -116,6 +120,7 @@ bounce.tracking.protection:
       are any of nsIBounceTrackingProtection#Modes.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928062
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958152
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928062
     data_sensitivity:
@@ -124,7 +129,7 @@ bounce.tracking.protection:
       - emz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 140
+    expires: 146
   purge_count_classified_tracker:
     type: counter
     description: >
@@ -133,6 +138,7 @@ bounce.tracking.protection:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890580
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958152
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890580
     data_sensitivity:
@@ -141,4 +147,4 @@ bounce.tracking.protection:
       - emz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 140
+    expires: 146
