@@ -142,7 +142,7 @@ private fun Group(
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
-                text = stringResource(group.title),
+                text = stringResource(group.title, stringResource(R.string.firefox)),
                 style = FirefoxTheme.typography.subtitle1,
                 color = FirefoxTheme.colors.textPrimary,
                 modifier = Modifier.semantics { heading() },
