@@ -178,11 +178,11 @@ gradle.projectsLoaded { ->
         }
     }
 
-    // If we are doing a top-level build, initialize all project buildDirs to be
-    // in ${topobjdir} to follow conventions of mozilla-central build system.
-    // Specific subproject builds like fenix continue to build in source tree to
-    // avoiding breaking existing automation.
-    if (findProject(":geckoview") != null) {
+    // Initialize all project buildDirs to be in ${topobjdir} to follow
+    // conventions of mozilla-central build system. Android Components
+    // subproject continues to build in source tree to avoid breaking
+    // automation.
+    if (!rootDir.toString().endsWith("android-components")) {
         gradle.rootProject.allprojects { project ->
             def topSrcPath = file(gradle.mozconfig.topsrcdir).toPath()
             def topObjPath = file(gradle.mozconfig.topobjdir).toPath()

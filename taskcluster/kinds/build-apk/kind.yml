@@ -19,7 +19,7 @@ task-defaults:
     apk-artifact-template:
         type: file
         name: 'public/build/target.{abi}.apk'
-        path: '/builds/worker/checkouts/gecko/mobile/android/{source_project_name}/app/build/outputs/apk/{gradle_build}/{gradle_build_type}/{fileName}'
+        path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/{source_project_name}/app/outputs/apk/{gradle_build}/{gradle_build_type}/{fileName}'
     attributes:
         build_platform: android
 
@@ -327,7 +327,7 @@ tasks:
         source-project-name: "focus-android"
         apk-artifact-template:
             # this path is determined by the gradle build configs
-            path: '/builds/worker/checkouts/gecko/mobile/android/focus-android/app/build/outputs/apk/androidTest/focus/debug/app-focus-debug-androidTest.apk'
+            path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/focus-android/app/outputs/apk/androidTest/focus/debug/app-focus-debug-androidTest.apk'
         treeherder:
             symbol: focus-debug(Bat)
             platform: focus-android-all/opt
@@ -348,7 +348,7 @@ tasks:
             #  * "androidTest/" is added
             #  * "{gradle_build_type}" is forced to "debug"
             #  * "{fileName}" is forced to "app-fenix-debug-androidTest.apk"
-            path: '/builds/worker/checkouts/gecko/mobile/android/fenix/app/build/outputs/apk/androidTest/fenix/debug/app-fenix-debug-androidTest.apk'
+            path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/app/outputs/apk/androidTest/fenix/debug/app-fenix-debug-androidTest.apk'
         treeherder:
             symbol: fenix-debug(Bat)
             platform: fenix-android-all/opt
@@ -372,7 +372,7 @@ tasks:
         run-on-projects: [trunk]
         source-project-name: "focus-android"
         apk-artifact-template:
-            path: '/builds/worker/checkouts/gecko/mobile/android/focus-android/app/build/outputs/apk/androidTest/focus/nightly/app-focus-nightly-androidTest.apk'
+            path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/focus-android/app/outputs/apk/androidTest/focus/nightly/app-focus-nightly-androidTest.apk'
         treeherder:
             symbol: focus-nightly(Bat)
             platform: focus-android-all/opt
@@ -396,7 +396,7 @@ tasks:
             #  * "androidTest/" is added
             #  * "{gradle_build_type}" is forced to "debug"
             #  * "{fileName}" is forced to "app-fenix-nightly-androidTest.apk"
-            path: '/builds/worker/checkouts/gecko/mobile/android/fenix/app/build/outputs/apk/androidTest/fenix/nightly/app-fenix-nightly-androidTest.apk'
+            path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/app/outputs/apk/androidTest/fenix/nightly/app-fenix-nightly-androidTest.apk'
         disable-optimization: true
         run:
             gradle-build-type: androidTest
@@ -423,7 +423,7 @@ tasks:
         run-on-projects: ['release']
         source-project-name: "focus-android"
         apk-artifact-template:
-            path: '/builds/worker/checkouts/gecko/mobile/android/focus-android/app/build/outputs/apk/androidTest/focus/beta/app-focus-beta-androidTest.apk'
+            path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/focus-android/app/outputs/apk/androidTest/focus/beta/app-focus-beta-androidTest.apk'
         treeherder:
             symbol: focus-beta(Bat)
             platform: focus-android-all/opt
@@ -439,7 +439,7 @@ tasks:
             #  * "androidTest/" is added
             #  * "{gradle_build_type}" is forced to "beta"
             #  * "{fileName}" is forced to "app-fenix-beta-androidTest.apk"
-            path: '/builds/worker/checkouts/gecko/mobile/android/fenix/app/build/outputs/apk/androidTest/fenix/beta/app-fenix-beta-androidTest.apk'
+            path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/app/outputs/apk/androidTest/fenix/beta/app-fenix-beta-androidTest.apk'
         disable-optimization: true
         run:
             gradle-build-type: androidTest
@@ -463,7 +463,7 @@ tasks:
             #  * "androidTest/" is added
             #  * "{gradle_build_type}" is forced to "beta"
             #  * "{fileName}" is forced to "app-fenix-beta-androidTest.apk"
-            path: '/builds/worker/checkouts/gecko/mobile/android/fenix/app/build/outputs/apk/androidTest/fenix/beta/app-fenix-beta-androidTest.apk'
+            path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/app/outputs/apk/androidTest/fenix/beta/app-fenix-beta-androidTest.apk'
         run-on-projects: []
         disable-optimization: true
         run:

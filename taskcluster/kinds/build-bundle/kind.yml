@@ -19,7 +19,7 @@ task-defaults:
     aab-artifact-template:
         type: file
         name: 'public/build/target.aab'
-        path: '/builds/worker/checkouts/gecko/mobile/android/{source_project_name}/app/build/outputs/bundle/{variant_name}/app-{gradle_build}-{gradle_build_type}.aab'
+        path: '/builds/worker/workspace/obj-build/gradle/build/mobile/android/{source_project_name}/app/outputs/bundle/{variant_name}/app-{gradle_build}-{gradle_build_type}.aab'
     attributes:
         build_platform: android
     run:
