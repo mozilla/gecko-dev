@@ -51,7 +51,9 @@ fun ChecklistView(
             when (item) {
                 is ChecklistItem.Group -> GroupWithTasks(
                     group = item,
-                    onChecklistItemClicked = { interactor.onChecklistItemClicked(item) },
+                    onChecklistItemClicked = { clickedTask ->
+                        interactor.onChecklistItemClicked(clickedTask)
+                    },
                     // No divider for the last group, in case it is the last element
                     // in the parent composable.
                     addDivider = index != checklistItems.size - 1,
