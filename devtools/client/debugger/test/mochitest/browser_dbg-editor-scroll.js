@@ -89,6 +89,33 @@ add_task(async function testIsPositionVisible() {
   // Ensure having the default fixed height, as it can impact the number of displayed lines
   await pushPref("devtools.toolbox.footer.height", 250);
 
+  // Also set a precise size for side panels, as it can impact the number of displayed columns
+  await pushPref("devtools.debugger.start-panel-size", 300);
+  await pushPref("devtools.debugger.end-panel-size", 300);
+
+  // Strengthen the test by ensuring we always use the same Firefox window size.
+  // Note that the inner size is the important one as that's the final space available for DevTools.
+  // The outer size will be different based on OS/Environment.
+  const expectedWidth = 1280;
+  const expectedHeight = 1040;
+  if (
+    window.innerWidth != expectedWidth ||
+    window.innerHeight != expectedHeight
+  ) {
+    info("Resize the top level window to match the expected size");
+    const onResize = once(window, "resize");
+    const deltaW = window.outerWidth - window.innerWidth;
+    const deltaH = window.outerHeight - window.innerHeight;
+    const originalWidth = window.outerWidth;
+    const originalHeight = window.outerHeight;
+    window.resizeTo(expectedWidth + deltaW, expectedHeight + deltaH);
+    await onResize;
+    registerCleanupFunction(() => {
+      window.resizeTo(originalWidth, originalHeight);
+    });
+  }
+  is(window.innerWidth, expectedWidth);
+
   const dbg = await initDebugger(
     "doc-editor-scroll.html",
     "scroll.js",
@@ -98,18 +125,20 @@ add_task(async function testIsPositionVisible() {
   await selectSource(dbg, "scroll.js");
   const editor = getCMEditor(dbg);
 
-  function getFirstLine() {
+  // All the following methods lookup for first/last visible position in the current viewport.
+  // Also note that the element at the returned position may only be partially visible.
+  function getFirstVisibleLine() {
     const { x, y } = editor.codeMirror.dom.getBoundingClientRect();
     // Add a pixel as we may be on the edge of the previous line which is hidden
     const pos = editor.codeMirror.posAtCoords({ x, y: y + 1 });
     return editor.codeMirror.state.doc.lineAt(pos).number;
   }
-  function getLastLine() {
+  function getLastVisibleLine() {
     const { x, y, height } = editor.codeMirror.dom.getBoundingClientRect();
     const pos = editor.codeMirror.posAtCoords({ x, y: y + height });
     return editor.codeMirror.state.doc.lineAt(pos).number;
   }
-  const lastLine = getLastLine();
+  const lastLine = getLastVisibleLine();
 
   is(
     lastLine,
@@ -145,13 +174,13 @@ add_task(async function testIsPositionVisible() {
   await resume(dbg);
 
   info(
-    "Set a breakpoint on the last partially visibible line, it should scroll that line in the middle of the viewport"
+    "Set a breakpoint on the last partially visible line, it should scroll that line in the middle of the viewport"
   );
   await addBreakpoint(dbg, "scroll.js", lastLine);
   invokeInTab("line" + lastLine);
   await waitForPaused(dbg);
 
-  const newLastLine = getLastLine();
+  const newLastLine = getLastVisibleLine();
   is(newLastLine, 16, "The new last line is the 16th");
   ok(
     !isScrolledPositionVisible(dbg, newLastLine),
@@ -161,7 +190,7 @@ add_task(async function testIsPositionVisible() {
     isScrolledPositionVisible(dbg, newLastLine - 1),
     "The line before is reported as visible"
   );
-  const firstLine = getFirstLine();
+  const firstLine = getFirstVisibleLine();
   is(firstLine, 6);
   ok(
     isScrolledPositionVisible(dbg, firstLine),
@@ -181,7 +210,7 @@ add_task(async function testIsPositionVisible() {
   invokeInTab("line50");
   await waitForPaused(dbg);
 
-  const newLastLine2 = getLastLine();
+  const newLastLine2 = getLastVisibleLine();
   is(newLastLine2, 55);
   ok(
     !isScrolledPositionVisible(dbg, newLastLine2),
@@ -191,7 +220,7 @@ add_task(async function testIsPositionVisible() {
     isScrolledPositionVisible(dbg, newLastLine2 - 1),
     "The line before is visible"
   );
-  const firstLine2 = getFirstLine();
+  const firstLine2 = getFirstVisibleLine();
   is(firstLine2, 45);
   ok(
     isScrolledPositionVisible(dbg, firstLine2),

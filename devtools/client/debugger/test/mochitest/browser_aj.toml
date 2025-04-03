@@ -185,6 +185,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-editor-scroll.js"]
 skip-if = ["cm5"]
 
+["browser_dbg-editor-horizontal-scroll.js"]
+
 ["browser_dbg-editor-select.js"]
 
 ["browser_dbg-ember-original-variable-mapping-notifications.js"]
