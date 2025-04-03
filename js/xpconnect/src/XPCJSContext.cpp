@@ -742,9 +742,9 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
 
   // Accumulate slow script invokation delay.
   if (!chrome && !self->mTimeoutAccumulated) {
-    uint32_t delay = uint32_t(self->mSlowScriptActualWait.ToMilliseconds() -
-                              (limit * 1000.0));
-    Telemetry::Accumulate(Telemetry::SLOW_SCRIPT_NOTIFY_DELAY, delay);
+    TimeDuration delay =
+        self->mSlowScriptActualWait - TimeDuration::FromSeconds(limit);
+    glean::slow_script_warning::notify_delay.AccumulateRawDuration(delay);
     self->mTimeoutAccumulated = true;
   }
 

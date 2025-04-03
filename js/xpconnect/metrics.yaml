@@ -950,6 +950,24 @@ slow_script_warning:
     no_lint:
       - COMMON_PREFIX
 
+  notify_delay:
+    type: timing_distribution
+    description: >
+      The difference between the js slow script timeout for content set in prefs
+      and the actual time we waited before displaying the notification (msec).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SLOW_SCRIPT_NOTIFY_DELAY.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1271978
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1271978
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: SLOW_SCRIPT_NOTIFY_DELAY
+
 script.preloader:
   mainthread_recompile:
     type: counter
@@ -977,6 +995,65 @@ script.preloader:
       - plawless@mozilla.com
     expires: never
     telemetry_mirror: SCRIPT_PRELOADER_MAINTHREAD_RECOMPILE
+
+  requests:
+    type: labeled_counter
+    description: >
+      Record hits and misses to the script preloader, with categories.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram SCRIPT_PRELOADER_REQUESTS.
+    labels:
+      - Hit
+      - HitChild
+      - Miss
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364235
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590385
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623098
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649954
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689257
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754639
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364235
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590385
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623098
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649954
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689257
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754639
+    notification_emails:
+      - dothayer@mozilla.com
+      - plawless@mozilla.com
+    expires: never
+    telemetry_mirror: h#SCRIPT_PRELOADER_REQUESTS
+
+  wait_time:
+    type: timing_distribution
+    description: >
+      Time spent waiting for off-thread compiles in the script preloader.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram SCRIPT_PRELOADER_WAIT_TIME.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364235
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590385
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623098
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649954
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689257
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754639
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1364235
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590385
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1623098
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649954
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689257
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1754639
+    notification_emails:
+      - dothayer@mozilla.com
+      - plawless@mozilla.com
+    expires: never
+    telemetry_mirror: SCRIPT_PRELOADER_WAIT_TIME
 
 glam_experiment:
   time:

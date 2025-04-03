@@ -25,7 +25,6 @@
 #include "mozilla/TaskController.h"
 #include "mozilla/glean/JsXpconnectMetrics.h"
 #include "mozilla/glean/XpcomMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/ContentChild.h"
@@ -956,16 +955,19 @@ already_AddRefed<JS::Stencil> ScriptPreloader::GetCachedStencil(
     RefPtr<JS::Stencil> stencil =
         mChildCache->GetCachedStencilInternal(cx, options, path);
     if (stencil) {
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_PRELOADER_REQUESTS::HitChild);
+      glean::script_preloader::requests
+          .EnumGet(glean::script_preloader::RequestsLabel::eHitchild)
+          .Add();
       return stencil.forget();
     }
   }
 
   RefPtr<JS::Stencil> stencil = GetCachedStencilInternal(cx, options, path);
-  Telemetry::AccumulateCategorical(
-      stencil ? Telemetry::LABELS_SCRIPT_PRELOADER_REQUESTS::Hit
-              : Telemetry::LABELS_SCRIPT_PRELOADER_REQUESTS::Miss);
+  glean::script_preloader::requests
+      .EnumGet(stencil ? glean::script_preloader::RequestsLabel::eHit
+                       : glean::script_preloader::RequestsLabel::eMiss)
+      .Add();
+
   return stencil.forget();
 }
 
@@ -1021,10 +1023,9 @@ already_AddRefed<JS::Stencil> ScriptPreloader::WaitForCachedStencil(
           }
         }
 
-        double waitedMS = (TimeStamp::Now() - start).ToMilliseconds();
-        Telemetry::Accumulate(Telemetry::SCRIPT_PRELOADER_WAIT_TIME,
-                              int(waitedMS));
-        LOG(Debug, "Waited %fms\n", waitedMS);
+        TimeDuration waited = TimeStamp::Now() - start;
+        glean::script_preloader::wait_time.AccumulateRawDuration(waited);
+        LOG(Debug, "Waited %fms\n", waited.ToMilliseconds());
       }
     }
   }
