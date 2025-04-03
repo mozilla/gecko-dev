@@ -333,7 +333,11 @@ export const DoHConfigController = {
       return;
     }
 
-    if (localConfig.rolloutEnabled) {
+    let isAndroid = Services.appinfo.OS === "Android";
+    if (
+      (isAndroid && localConfig.androidRolloutEnabled) ||
+      (!isAndroid && localConfig.rolloutEnabled)
+    ) {
       newConfig.enabled = true;
     }
 
