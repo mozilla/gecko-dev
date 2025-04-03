@@ -570,10 +570,6 @@ nsresult ServiceWorkerPrivate::Initialize() {
   nsCOMPtr<nsIURI> firstPartyURI;
   bool foreignByAncestorContext = false;
   bool isOn3PCBExceptionList = false;
-  // Firefox doesn't support service workers in PBM,
-  // but we add this just so that when we do,
-  // we can handle it correctly.
-  bool isPBM = principal->GetIsInPrivateBrowsing();
   if (!principal->OriginAttributesRef().mPartitionKey.IsEmpty()) {
     net::CookieJarSettings::Cast(cookieJarSettings)
         ->SetPartitionKey(principal->OriginAttributesRef().mPartitionKey);
@@ -596,7 +592,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
       if (NS_SUCCEEDED(rv)) {
         overriddenFingerprintingSettings =
             nsRFPService::GetOverriddenFingerprintingSettingsForURI(
-                firstPartyURI, uri, isPBM);
+                firstPartyURI, uri);
         if (overriddenFingerprintingSettings.isSome()) {
           overriddenFingerprintingSettingsArg.emplace(
               overriddenFingerprintingSettings.ref());
@@ -629,9 +625,9 @@ nsresult ServiceWorkerPrivate::Initialize() {
       overriddenFingerprintingSettings =
           isThirdParty
               ? nsRFPService::GetOverriddenFingerprintingSettingsForURI(
-                    firstPartyURI, uri, isPBM)
+                    firstPartyURI, uri)
               : nsRFPService::GetOverriddenFingerprintingSettingsForURI(
-                    uri, nullptr, isPBM);
+                    uri, nullptr);
 
       RefPtr<net::CookieService> csSingleton =
           net::CookieService::GetSingleton();
@@ -654,8 +650,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
     // the service worker as the first-party domain to get the fingerprinting
     // protection overrides.
     overriddenFingerprintingSettings =
-        nsRFPService::GetOverriddenFingerprintingSettingsForURI(uri, nullptr,
-                                                                isPBM);
+        nsRFPService::GetOverriddenFingerprintingSettingsForURI(uri, nullptr);
 
     if (overriddenFingerprintingSettings.isSome()) {
       overriddenFingerprintingSettingsArg.emplace(
@@ -663,6 +658,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
     }
   }
 
+  bool isPBM = principal->GetIsInPrivateBrowsing();
   if (ContentBlockingAllowList::Check(principal, isPBM)) {
     net::CookieJarSettings::Cast(cookieJarSettings)
         ->SetIsOnContentBlockingAllowList(true);

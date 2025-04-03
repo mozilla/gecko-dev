@@ -21,11 +21,6 @@ interface nsIFingerprintingOverride : nsISupports
    * fingerprinting override pref "privacy.fingerprintingProtection.overrides".
    */
   readonly attribute ACString overrides;
-
-  /**
-   * Whether the override is baseline or FPP.
-   */
-  readonly attribute boolean isBaseline;
 };
 
 /**
