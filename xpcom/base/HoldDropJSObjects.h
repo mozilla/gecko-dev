@@ -13,6 +13,7 @@
 class nsISupports;
 class nsScriptObjectTracer;
 class nsCycleCollectionParticipant;
+class nsWrapperCache;
 
 namespace JS {
 class Zone;
@@ -138,11 +139,15 @@ void DropJSObjects(T* aHolder) {
 
 template <class T>
 void HoldJSObjectsWithKey(T* aHolder) {
+  static_assert(!std::is_base_of<nsWrapperCache, T>::value,
+                "Use HoldJSObjects for classes derived from nsWrapperCache.");
   HoldDropJSObjectsWithKeyHelper<T>::Hold(aHolder);
 }
 
 template <class T>
 void DropJSObjectsWithKey(T* aHolder) {
+  static_assert(!std::is_base_of<nsWrapperCache, T>::value,
+                "Use HoldJSObjects for classes derived from nsWrapperCache.");
   HoldDropJSObjectsWithKeyHelper<T>::Drop(aHolder);
 }
 

@@ -1615,6 +1615,7 @@ void CycleCollectedJSRuntime::AddJSHolder(void* aHolder,
 void CycleCollectedJSRuntime::AddJSHolderWithKey(void* aHolder,
                                                  nsScriptObjectTracer* aTracer,
                                                  JSHolderKey* aKey) {
+  MOZ_ASSERT(!mJSHolderMap.Has(aHolder));
   mJSHolderList.Put(aHolder, aTracer, aKey);
 }
 
@@ -1671,6 +1672,8 @@ void CycleCollectedJSRuntime::RemoveJSHolder(void* aHolder) {
 
 void CycleCollectedJSRuntime::RemoveJSHolderWithKey(void* aHolder,
                                                     JSHolderKey* aKey) {
+  MOZ_ASSERT(!mJSHolderMap.Has(aHolder));
+
   nsScriptObjectTracer* tracer = mJSHolderList.Extract(aHolder, aKey);
   if (tracer) {
     // Bug 1531951: The analysis can't see through the virtual call but we know
