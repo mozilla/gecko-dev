@@ -105,6 +105,13 @@ static void settings_changed_cb(GtkSettings*, GParamSpec* aSpec, void*) {
   OnSettingsChange(lnf, changeKind);
 }
 
+// https://docs.gtk.org/gio/signal.FileMonitor.changed.html
+static void kde_colors_changed(GFileMonitor* self, void*, void*,
+                               GFileMonitorEvent, gpointer) {
+  auto* lnf = static_cast<nsLookAndFeel*>(nsLookAndFeel::GetInstance());
+  OnSettingsChange(lnf, NativeChangeKind::GtkTheme);
+}
+
 static bool sCSDAvailable;
 
 static nsCString GVariantToString(GVariant* aVariant) {
@@ -372,7 +379,7 @@ nsLookAndFeel::nsLookAndFeel() {
         g_file_monitor_file(mKdeColors.get(), G_FILE_MONITOR_NONE, NULL, NULL));
     if (mKdeColorsMonitor) {
       g_signal_connect(mKdeColorsMonitor.get(), "changed",
-                       G_CALLBACK(settings_changed_cb), NULL);
+                       G_CALLBACK(kde_colors_changed), NULL);
     }
   }
 }
