@@ -27,6 +27,7 @@ DIRS += [
     "system",
     "../chrome",
     "build",
+    "ioutils",
 ]
 
 if CONFIG["OS_ARCH"] == "WINNT" and CONFIG["MOZ_DEBUG"]:

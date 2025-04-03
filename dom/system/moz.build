@@ -14,12 +14,6 @@ with Files("*ocationProvider*"):
 with Files("windows/*LocationProvider*"):
     BUG_COMPONENT = ("Core", "DOM: Geolocation")
 
-with Files("IOUtils*"):
-    BUG_COMPONENT = ("Toolkit", "IOUtils and PathUtils")
-
-with Files("PathUtils*"):
-    BUG_COMPONENT = ("Toolkit", "IOUtils and PathUtils")
-
 with Files("mac/*LocationProvider*"):
     BUG_COMPONENT = ("Core", "DOM: Geolocation")
 
@@ -32,20 +26,8 @@ with Files("linux/*LocationProvider*"):
 with Files("android/*LocationProvider*"):
     BUG_COMPONENT = ("Core", "DOM: Geolocation")
 
-with Files("tests/chrome.toml"):
-    BUG_COMPONENT = ("Toolkit", "IOUtils and PathUtils")
-
-with Files("tests/*constants*"):
-    BUG_COMPONENT = ("Toolkit", "IOUtils and PathUtils")
-
-with Files("tests/ioutils/**"):
-    BUG_COMPONENT = ("Toolkit", "IOUtils and PathUtils")
-
 with Files("tests/mochitest.toml"):
     BUG_COMPONENT = ("Core", "DOM: Device Interfaces")
-
-with Files("test/*pathutils*"):
-    BUG_COMPONENT = ("Toolkit", "IOUtils and PathUtils")
 
 with Files("tests/*1197901*"):
     BUG_COMPONENT = ("Core", "DOM: Device Interfaces")
@@ -78,17 +60,10 @@ EXPORTS += [
     "nsOSPermissionRequestBase.h",
 ]
 
-EXPORTS.mozilla.dom += [
-    "IOUtils.h",
-    "PathUtils.h",
-]
-
 UNIFIED_SOURCES += [
-    "IOUtils.cpp",
     "nsDeviceSensors.cpp",
     "nsHapticFeedback.cpp",
     "nsOSPermissionRequestBase.cpp",
-    "PathUtils.cpp",
 ]
 
 EXTRA_JS_MODULES += [
@@ -110,5 +85,4 @@ LOCAL_INCLUDES += [
     "/xpcom/base",
 ]
 
-MOCHITEST_CHROME_MANIFESTS += ["tests/chrome.toml", "tests/ioutils/chrome.toml"]
 MOCHITEST_MANIFESTS += ["tests/mochitest.toml"]

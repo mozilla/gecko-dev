@@ -9,7 +9,6 @@
 #include <cstdint>
 
 #include "ErrorList.h"
-#include "TypedArray.h"
 #include "js/ArrayBuffer.h"
 #include "js/ColumnNumber.h"  // JS::ColumnNumberOneOrigin
 #include "js/JSON.h"
@@ -96,10 +95,13 @@
     }                                                         \
   } while (0)
 
+
+using namespace mozilla::dom;
+
 static constexpr auto SHUTDOWN_ERROR =
     "IOUtils: Shutting down and refusing additional I/O tasks"_ns;
 
-namespace mozilla::dom {
+namespace mozilla {
 
 // static helper functions
 
@@ -158,7 +160,7 @@ static nsCString FormatErrorMessage(nsresult aError,
 [[nodiscard]] inline bool ToJSValue(
     JSContext* aCx, const IOUtils::InternalFileInfo& aInternalFileInfo,
     JS::MutableHandle<JS::Value> aValue) {
-  FileInfo info;
+  dom::FileInfo info;
   info.mPath.Construct(aInternalFileInfo.mPath);
   info.mType.Construct(aInternalFileInfo.mType);
   info.mSize.Construct(aInternalFileInfo.mSize);
@@ -331,8 +333,8 @@ void IOUtils::DispatchAndResolve(IOUtils::EventQueue* aQueue, Promise* aPromise,
   if (!NS_IsMainThread()) {
     // We need to manually keep the worker alive until the promise returned by
     // Dispatch() resolves or rejects.
-    workerRef = StrongWorkerRef::CreateForcibly(GetCurrentThreadWorkerPrivate(),
-                                                __func__);
+    workerRef = StrongWorkerRef::CreateForcibly(
+        GetCurrentThreadWorkerPrivate(), __func__);
   }
 
   if (RefPtr<IOPromise<OkT>> p = aQueue->Dispatch<OkT, Fn>(std::move(aFunc))) {
@@ -1884,16 +1886,16 @@ Result<IOUtils::InternalFileInfo, IOUtils::IOError> IOUtils::StatSync(
   }
 
   // Now we can populate the info object by querying the file.
-  info.mType = FileType::Regular;
+  info.mType = dom::FileType::Regular;
   if (!isRegular) {
     bool isDir = false;
     IOUTILS_TRY_WITH_CONTEXT(aFile->IsDirectory(&isDir), "Could not stat `%s'",
                              aFile->HumanReadablePath().get());
-    info.mType = isDir ? FileType::Directory : FileType::Other;
+    info.mType = isDir ? dom::FileType::Directory : dom::FileType::Other;
   }
 
   int64_t size = -1;
-  if (info.mType == FileType::Regular) {
+  if (info.mType == dom::FileType::Regular) {
     IOUTILS_TRY_WITH_CONTEXT(aFile->GetFileSize(&size), "Could not stat `%s'",
                              aFile->HumanReadablePath().get());
   }
@@ -2099,6 +2101,8 @@ Result<nsString, IOUtils::IOError> IOUtils::CreateUniqueSync(
 /* static */
 Result<nsCString, IOUtils::IOError> IOUtils::ComputeHexDigestSync(
     nsIFile* aFile, const HashAlgorithm aAlgorithm) {
+  using HashAlgorithm = HashAlgorithm;
+
   static constexpr size_t BUFFER_SIZE = 8192;
 
   SECOidTag alg;
@@ -3093,7 +3097,7 @@ uint32_t IOUtils::LaunchProcess(GlobalObject& aGlobal,
 }
 #endif  // XP_UNIX
 
-}  // namespace mozilla::dom
+}  // namespace mozilla
 
 #undef REJECT_IF_INIT_PATH_FAILED
 #undef IOUTILS_TRY_WITH_CONTEXT

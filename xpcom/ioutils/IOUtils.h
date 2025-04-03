@@ -51,8 +51,6 @@ class PR_CloseDelete {
   void operator()(PRFileDesc* aPtr) const { PR_Close(aPtr); }
 };
 
-namespace dom {
-
 /**
  * Implementation for the Web IDL interface at dom/chrome-webidl/IOUtils.webidl.
  * Methods of this class must only be called from the parent process.
@@ -72,71 +70,67 @@ class IOUtils final {
   using PhaseArray = EnumeratedArray<IOUtils::ShutdownPhase, T,
                                      size_t(IOUtils::ShutdownPhase::Count)>;
 
-  static already_AddRefed<Promise> Read(GlobalObject& aGlobal,
-                                        const nsAString& aPath,
-                                        const ReadOptions& aOptions,
-                                        ErrorResult& aError);
+  static already_AddRefed<dom::Promise> Read(dom::GlobalObject& aGlobal,
 
-  static already_AddRefed<Promise> ReadUTF8(GlobalObject& aGlobal,
-                                            const nsAString& aPath,
-                                            const ReadUTF8Options& aOptions,
-                                            ErrorResult& aError);
-
-  static already_AddRefed<Promise> ReadJSON(GlobalObject& aGlobal,
-                                            const nsAString& aPath,
-                                            const ReadUTF8Options& aOptions,
-                                            ErrorResult& aError);
-
-  static already_AddRefed<Promise> Write(GlobalObject& aGlobal,
-                                         const nsAString& aPath,
-                                         const Uint8Array& aData,
-                                         const WriteOptions& aOptions,
-                                         ErrorResult& aError);
-
-  static already_AddRefed<Promise> WriteUTF8(GlobalObject& aGlobal,
                                              const nsAString& aPath,
-                                             const nsACString& aString,
-                                             const WriteOptions& aOptions,
+                                             const dom::ReadOptions& aOptions,
                                              ErrorResult& aError);
 
-  static already_AddRefed<Promise> WriteJSON(GlobalObject& aGlobal,
-                                             const nsAString& aPath,
-                                             JS::Handle<JS::Value> aValue,
-                                             const WriteOptions& aOptions,
+  static already_AddRefed<dom::Promise> ReadUTF8(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::ReadUTF8Options& aOptions, ErrorResult& aError);
+
+  static already_AddRefed<dom::Promise> ReadJSON(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::ReadUTF8Options& aOptions, ErrorResult& aError);
+
+  static already_AddRefed<dom::Promise> Write(dom::GlobalObject& aGlobal,
+                                              const nsAString& aPath,
+                                              const dom::Uint8Array& aData,
+                                              const dom::WriteOptions& aOptions,
+                                              ErrorResult& aError);
+
+  static already_AddRefed<dom::Promise> WriteUTF8(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const nsACString& aString, const dom::WriteOptions& aOptions,
+      ErrorResult& aError);
+
+  static already_AddRefed<dom::Promise> WriteJSON(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      JS::Handle<JS::Value> aValue, const dom::WriteOptions& aOptions,
+      ErrorResult& aError);
+
+  static already_AddRefed<dom::Promise> Move(dom::GlobalObject& aGlobal,
+                                             const nsAString& aSourcePath,
+                                             const nsAString& aDestPath,
+                                             const dom::MoveOptions& aOptions,
                                              ErrorResult& aError);
 
-  static already_AddRefed<Promise> Move(GlobalObject& aGlobal,
-                                        const nsAString& aSourcePath,
-                                        const nsAString& aDestPath,
-                                        const MoveOptions& aOptions,
-                                        ErrorResult& aError);
+  static already_AddRefed<dom::Promise> Remove(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::RemoveOptions& aOptions, ErrorResult& aError);
 
-  static already_AddRefed<Promise> Remove(GlobalObject& aGlobal,
-                                          const nsAString& aPath,
-                                          const RemoveOptions& aOptions,
-                                          ErrorResult& aError);
+  static already_AddRefed<dom::Promise> MakeDirectory(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::MakeDirectoryOptions& aOptions, ErrorResult& aError);
 
-  static already_AddRefed<Promise> MakeDirectory(
-      GlobalObject& aGlobal, const nsAString& aPath,
-      const MakeDirectoryOptions& aOptions, ErrorResult& aError);
+  static already_AddRefed<dom::Promise> Stat(dom::GlobalObject& aGlobal,
+                                             const nsAString& aPath,
+                                             ErrorResult& aError);
 
-  static already_AddRefed<Promise> Stat(GlobalObject& aGlobal,
-                                        const nsAString& aPath,
-                                        ErrorResult& aError);
+  static already_AddRefed<dom::Promise> Copy(dom::GlobalObject& aGlobal,
+                                             const nsAString& aSourcePath,
+                                             const nsAString& aDestPath,
+                                             const dom::CopyOptions& aOptions,
+                                             ErrorResult& aError);
 
-  static already_AddRefed<Promise> Copy(GlobalObject& aGlobal,
-                                        const nsAString& aSourcePath,
-                                        const nsAString& aDestPath,
-                                        const CopyOptions& aOptions,
-                                        ErrorResult& aError);
+  static already_AddRefed<dom::Promise> SetAccessTime(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::Optional<int64_t>& aAccess, ErrorResult& aError);
 
-  static already_AddRefed<Promise> SetAccessTime(
-      GlobalObject& aGlobal, const nsAString& aPath,
-      const Optional<int64_t>& aAccess, ErrorResult& aError);
-
-  static already_AddRefed<Promise> SetModificationTime(
-      GlobalObject& aGlobal, const nsAString& aPath,
-      const Optional<int64_t>& aModification, ErrorResult& aError);
+  static already_AddRefed<dom::Promise> SetModificationTime(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::Optional<int64_t>& aModification, ErrorResult& aError);
 
  private:
   using SetTimeFn = decltype(&nsIFile::SetLastAccessedTime);
@@ -144,109 +138,101 @@ class IOUtils final {
   static_assert(
       std::is_same_v<SetTimeFn, decltype(&nsIFile::SetLastModifiedTime)>);
 
-  static already_AddRefed<Promise> SetTime(GlobalObject& aGlobal,
-                                           const nsAString& aPath,
-                                           const Optional<int64_t>& aNewTime,
-                                           SetTimeFn aSetTimeFn,
-                                           const char* const aTimeKind,
-                                           ErrorResult& aError);
+  static already_AddRefed<dom::Promise> SetTime(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::Optional<int64_t>& aNewTime, SetTimeFn aSetTimeFn,
+      const char* const aTimeKind, ErrorResult& aError);
 
  public:
-  static already_AddRefed<Promise> HasChildren(
-      GlobalObject& aGlobal, const nsAString& aPath,
-      const HasChildrenOptions& aOptions, ErrorResult& aError);
+  static already_AddRefed<dom::Promise> HasChildren(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::HasChildrenOptions& aOptions, ErrorResult& aError);
 
-  static already_AddRefed<Promise> GetChildren(
-      GlobalObject& aGlobal, const nsAString& aPath,
-      const GetChildrenOptions& aOptions, ErrorResult& aError);
+  static already_AddRefed<dom::Promise> GetChildren(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::GetChildrenOptions& aOptions, ErrorResult& aError);
 
-  static already_AddRefed<Promise> SetPermissions(GlobalObject& aGlobal,
-                                                  const nsAString& aPath,
-                                                  uint32_t aPermissions,
-                                                  const bool aHonorUmask,
-                                                  ErrorResult& aError);
+  static already_AddRefed<dom::Promise> SetPermissions(
+      dom::GlobalObject& aGlobal, const nsAString& aPath, uint32_t aPermissions,
+      const bool aHonorUmask, ErrorResult& aError);
 
-  static already_AddRefed<Promise> Exists(GlobalObject& aGlobal,
-                                          const nsAString& aPath,
-                                          ErrorResult& aError);
+  static already_AddRefed<dom::Promise> Exists(dom::GlobalObject& aGlobal,
+                                               const nsAString& aPath,
+                                               ErrorResult& aError);
 
-  static already_AddRefed<Promise> CreateUniqueFile(GlobalObject& aGlobal,
-                                                    const nsAString& aParent,
-                                                    const nsAString& aPrefix,
-                                                    const uint32_t aPermissions,
-                                                    ErrorResult& aError);
-  static already_AddRefed<Promise> CreateUniqueDirectory(
-      GlobalObject& aGlobal, const nsAString& aParent, const nsAString& aPrefix,
-      const uint32_t aPermissions, ErrorResult& aError);
+  static already_AddRefed<dom::Promise> CreateUniqueFile(
+      dom::GlobalObject& aGlobal, const nsAString& aParent,
+      const nsAString& aPrefix, const uint32_t aPermissions,
+      ErrorResult& aError);
+  static already_AddRefed<dom::Promise> CreateUniqueDirectory(
+      dom::GlobalObject& aGlobal, const nsAString& aParent,
+      const nsAString& aPrefix, const uint32_t aPermissions,
+      ErrorResult& aError);
 
  private:
   /**
    * A helper method for CreateUniqueFile and CreateUniqueDirectory.
    */
-  static already_AddRefed<Promise> CreateUnique(GlobalObject& aGlobal,
-                                                const nsAString& aParent,
-                                                const nsAString& aPrefix,
-                                                const uint32_t aFileType,
-                                                const uint32_t aPermissions,
-                                                ErrorResult& aError);
+  static already_AddRefed<dom::Promise> CreateUnique(
+      dom::GlobalObject& aGlobal, const nsAString& aParent,
+      const nsAString& aPrefix, const uint32_t aFileType,
+      const uint32_t aPermissions, ErrorResult& aError);
 
  public:
-  static already_AddRefed<Promise> ComputeHexDigest(
-      GlobalObject& aGlobal, const nsAString& aPath,
-      const HashAlgorithm aAlgorithm, ErrorResult& aError);
+  static already_AddRefed<dom::Promise> ComputeHexDigest(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const dom::HashAlgorithm aAlgorithm, ErrorResult& aError);
 
 #if defined(XP_WIN)
-  static already_AddRefed<Promise> GetWindowsAttributes(GlobalObject& aGlobal,
-                                                        const nsAString& aPath,
-                                                        ErrorResult& aError);
+  static already_AddRefed<dom::Promise> GetWindowsAttributes(
+      dom::GlobalObject& aGlobal, const nsAString& aPath, ErrorResult& aError);
 
-  static already_AddRefed<Promise> SetWindowsAttributes(
-      GlobalObject& aGlobal, const nsAString& aPath,
+  static already_AddRefed<dom::Promise> SetWindowsAttributes(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
       const mozilla::dom::WindowsFileAttributes& aAttrs, ErrorResult& aError);
 #elif defined(XP_MACOSX)
-  static already_AddRefed<Promise> HasMacXAttr(GlobalObject& aGlobal,
-                                               const nsAString& aPath,
-                                               const nsACString& aAttr,
-                                               ErrorResult& aError);
-  static already_AddRefed<Promise> GetMacXAttr(GlobalObject& aGlobal,
-                                               const nsAString& aPath,
-                                               const nsACString& aAttr,
-                                               ErrorResult& aError);
-  static already_AddRefed<Promise> SetMacXAttr(GlobalObject& aGlobal,
-                                               const nsAString& aPath,
-                                               const nsACString& aAttr,
-                                               const Uint8Array& aValue,
-                                               ErrorResult& aError);
-  static already_AddRefed<Promise> DelMacXAttr(GlobalObject& aGlobal,
-                                               const nsAString& aPath,
-                                               const nsACString& aAttr,
-                                               ErrorResult& aError);
+  static already_AddRefed<dom::Promise> HasMacXAttr(dom::GlobalObject& aGlobal,
+                                                    const nsAString& aPath,
+                                                    const nsACString& aAttr,
+                                                    ErrorResult& aError);
+  static already_AddRefed<dom::Promise> GetMacXAttr(dom::GlobalObject& aGlobal,
+                                                    const nsAString& aPath,
+                                                    const nsACString& aAttr,
+                                                    ErrorResult& aError);
+  static already_AddRefed<dom::Promise> SetMacXAttr(
+      dom::GlobalObject& aGlobal, const nsAString& aPath,
+      const nsACString& aAttr, const dom::Uint8Array& aValue,
+      ErrorResult& aError);
+  static already_AddRefed<dom::Promise> DelMacXAttr(dom::GlobalObject& aGlobal,
+                                                    const nsAString& aPath,
+                                                    const nsACString& aAttr,
+                                                    ErrorResult& aError);
 #endif
 
 #ifdef XP_UNIX
-  using UnixString = OwningUTF8StringOrUint8Array;
-  static uint32_t LaunchProcess(GlobalObject& aGlobal,
-                                const Sequence<UnixString>& aArgv,
-                                const LaunchOptions& aOptions,
+  using UnixString = dom::OwningUTF8StringOrUint8Array;
+  static uint32_t LaunchProcess(dom::GlobalObject& aGlobal,
+                                const dom::Sequence<UnixString>& aArgv,
+                                const dom::LaunchOptions& aOptions,
                                 ErrorResult& aRv);
 #endif
 
-  static already_AddRefed<Promise> GetFile(
-      GlobalObject& aGlobal, const Sequence<nsString>& aComponents,
+  static already_AddRefed<dom::Promise> GetFile(
+      dom::GlobalObject& aGlobal, const dom::Sequence<nsString>& aComponents,
       ErrorResult& aError);
 
-  static already_AddRefed<Promise> GetDirectory(
-      GlobalObject& aGlobal, const Sequence<nsString>& aComponents,
+  static already_AddRefed<dom::Promise> GetDirectory(
+      dom::GlobalObject& aGlobal, const dom::Sequence<nsString>& aComponents,
       ErrorResult& aError);
 
-  static void GetProfileBeforeChange(GlobalObject& aGlobal,
+  static void GetProfileBeforeChange(dom::GlobalObject& aGlobal,
                                      JS::MutableHandle<JS::Value>,
                                      ErrorResult& aRv);
 
-  static void GetSendTelemetry(GlobalObject& aGlobal,
+  static void GetSendTelemetry(dom::GlobalObject& aGlobal,
                                JS::MutableHandle<JS::Value>, ErrorResult& aRv);
 
-  static RefPtr<SyncReadFile> OpenFileForSyncReading(GlobalObject& aGlobal,
+  static RefPtr<SyncReadFile> OpenFileForSyncReading(dom::GlobalObject& aGlobal,
                                                      const nsAString& aPath,
                                                      ErrorResult& aRv);
 
@@ -255,7 +241,7 @@ class IOUtils final {
   /**
    * The kind of buffer to allocate.
    *
-   * This controls what kind of JS object (a JSString or a Uint8Array) is
+   * This controls what kind of JS object (a JSString or a dom::Uint8Array) is
    * returned by |ToJSValue()|.
    */
   enum class BufferKind {
@@ -277,9 +263,8 @@ class IOUtils final {
   class State;
 
   template <typename Fn>
-  static already_AddRefed<Promise> WithPromiseAndState(GlobalObject& aGlobal,
-                                                       ErrorResult& aError,
-                                                       Fn aFn);
+  static already_AddRefed<dom::Promise> WithPromiseAndState(
+      dom::GlobalObject& aGlobal, ErrorResult& aError, Fn aFn);
 
   /**
    * Dispatch a task on the event queue and resolve or reject the associated
@@ -293,16 +278,16 @@ class IOUtils final {
    * @param aFunc The task to run.
    */
   template <typename OkT, typename Fn>
-  static void DispatchAndResolve(EventQueue* aQueue, Promise* aPromise,
+  static void DispatchAndResolve(EventQueue* aQueue, dom::Promise* aPromise,
                                  Fn aFunc);
 
   /**
-   * Creates a new JS Promise.
+   * Creates a new JS dom::Promise.
    *
    * @return The new promise, or |nullptr| on failure.
    */
-  static already_AddRefed<Promise> CreateJSPromise(GlobalObject& aGlobal,
-                                                   ErrorResult& aError);
+  static already_AddRefed<dom::Promise> CreateJSPromise(
+      dom::GlobalObject& aGlobal, ErrorResult& aError);
 
   // Allow conversion of |InternalFileInfo| with |ToJSValue|.
   friend bool ToJSValue(JSContext* aCx,
@@ -539,7 +524,7 @@ class IOUtils final {
    * @return The hash of the file, as a hex digest.
    */
   static Result<nsCString, IOError> ComputeHexDigestSync(
-      nsIFile* aFile, const HashAlgorithm aAlgorithm);
+      nsIFile* aFile, const dom::HashAlgorithm aAlgorithm);
 
 #if defined(XP_WIN)
   /**
@@ -573,7 +558,7 @@ class IOUtils final {
                                              const nsCString& aAttr);
 #endif
 
-  static void GetShutdownClient(GlobalObject& aGlobal,
+  static void GetShutdownClient(dom::GlobalObject& aGlobal,
                                 JS::MutableHandle<JS::Value> aClient,
                                 ErrorResult& aRv, const ShutdownPhase aPhase);
 
@@ -727,7 +712,7 @@ class IOUtils::IOError {
  */
 struct IOUtils::InternalFileInfo {
   nsString mPath;
-  FileType mType = FileType::Other;
+  dom::FileType mType = dom::FileType::Other;
   uint64_t mSize = 0;
   Maybe<PRTime> mCreationTime;  // In ms since epoch.
   PRTime mLastAccessed = 0;     // In ms since epoch.
@@ -746,12 +731,12 @@ struct IOUtils::InternalFileInfo {
 struct IOUtils::InternalWriteOpts {
   RefPtr<nsIFile> mBackupFile;
   RefPtr<nsIFile> mTmpFile;
-  WriteMode mMode;
+  dom::WriteMode mMode;
   bool mFlush = false;
   bool mCompress = false;
 
   static Result<InternalWriteOpts, IOUtils::IOError> FromBinding(
-      const WriteOptions& aOptions);
+      const dom::WriteOptions& aOptions);
 };
 
 /**
@@ -938,7 +923,7 @@ class SyncReadFile : public nsISupports, public nsWrapperCache {
                                JS::Handle<JSObject*> aGivenProto) override;
 
   int64_t Size() const { return mSize; }
-  void ReadBytesInto(const Uint8Array&, const int64_t, ErrorResult& aRv);
+  void ReadBytesInto(const dom::Uint8Array&, const int64_t, ErrorResult& aRv);
   void Close();
 
  private:
@@ -949,7 +934,6 @@ class SyncReadFile : public nsISupports, public nsWrapperCache {
   int64_t mSize = 0;
 };
 
-}  // namespace dom
 }  // namespace mozilla
 
 #endif

@@ -31,7 +31,9 @@
 #include "nsURLHelper.h"
 #include "xpcpublic.h"
 
-namespace mozilla::dom {
+using namespace mozilla::dom;
+
+namespace mozilla {
 
 static constexpr auto ERROR_EMPTY_PATH =
     "PathUtils does not support empty paths"_ns;
@@ -632,4 +634,4 @@ nsresult PathUtils::DirectoryCache::PopulateDirectoriesImpl(
   return NS_OK;
 }
 
-}  // namespace mozilla::dom
+}  // namespace mozilla

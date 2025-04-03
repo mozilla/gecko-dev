@@ -37,3 +37,8 @@ run-if = ["os == 'mac'"]
 run-if = ["os == 'win'"]
 
 ["test_ioutils_worker.xhtml"]
+
+["test_pathutils.html"]
+
+["test_pathutils_worker.xhtml"]
+support-files = ["pathutils_worker.js"]

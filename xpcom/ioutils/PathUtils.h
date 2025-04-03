@@ -23,8 +23,6 @@
 namespace mozilla {
 class ErrorResult;
 
-namespace dom {
-
 class PathUtils final {
  public:
   /**
@@ -41,14 +39,15 @@ class PathUtils final {
    */
   static nsresult InitFileWithPath(nsIFile* aFile, const nsAString& aPath);
 
-  static void Filename(const GlobalObject&, const nsAString& aPath,
+  static void Filename(const dom::GlobalObject&, const nsAString& aPath,
                        nsString& aResult, ErrorResult& aErr);
 
-  static void Parent(const GlobalObject&, const nsAString& aPath,
+  static void Parent(const dom::GlobalObject&, const nsAString& aPath,
                      const int32_t aDepth, nsString& aResult,
                      ErrorResult& aErr);
 
-  static void Join(const GlobalObject&, const Sequence<nsString>& aComponents,
+  static void Join(const dom::GlobalObject&,
+                   const dom::Sequence<nsString>& aComponents,
                    nsString& aResult, ErrorResult& aErr);
 
   /**
@@ -65,45 +64,47 @@ class PathUtils final {
   static already_AddRefed<nsIFile> Join(const Span<const nsString>& aComponents,
                                         ErrorResult& aErr);
 
-  static void JoinRelative(const GlobalObject&, const nsAString& aBasePath,
+  static void JoinRelative(const dom::GlobalObject&, const nsAString& aBasePath,
                            const nsAString& aRelativePath, nsString& aResult,
                            ErrorResult& aErr);
 
-  static void ToExtendedWindowsPath(const GlobalObject&, const nsAString& aPath,
-                                    nsString& aResult, ErrorResult& aErr);
-
-  static void Normalize(const GlobalObject&, const nsAString& aPath,
-                        nsString& aResult, ErrorResult& aErr);
-
-  static void Split(const GlobalObject&, const nsAString& aPath,
-                    nsTArray<nsString>& aResult, ErrorResult& aErr);
-
-  static void SplitRelative(const GlobalObject& aGlobal, const nsAString& aPath,
-                            const SplitRelativeOptions& aOptions,
-                            nsTArray<nsString>& aResult, ErrorResult& aErr);
-
-  static void ToFileURI(const GlobalObject&, const nsAString& aPath,
-                        nsCString& aResult, ErrorResult& aErr);
-
-  static bool IsAbsolute(const GlobalObject&, const nsAString& aPath);
-
-  static void GetProfileDirSync(const GlobalObject&, nsString& aResult,
-                                ErrorResult& aErr);
-  static void GetLocalProfileDirSync(const GlobalObject&, nsString& aResult,
-                                     ErrorResult& aErr);
-  static void GetTempDirSync(const GlobalObject&, nsString& aResult,
-                             ErrorResult& aErr);
-  static void GetXulLibraryPathSync(const GlobalObject&, nsString& aResult,
+  static void ToExtendedWindowsPath(const dom::GlobalObject&,
+                                    const nsAString& aPath, nsString& aResult,
                                     ErrorResult& aErr);
 
-  static already_AddRefed<Promise> GetProfileDirAsync(
-      const GlobalObject& aGlobal, ErrorResult& aErr);
-  static already_AddRefed<Promise> GetLocalProfileDirAsync(
-      const GlobalObject& aGlobal, ErrorResult& aErr);
-  static already_AddRefed<Promise> GetTempDirAsync(const GlobalObject& aGlobal,
-                                                   ErrorResult& aErr);
-  static already_AddRefed<Promise> GetXulLibraryPathAsync(
-      const GlobalObject& aGlobal, ErrorResult& aErr);
+  static void Normalize(const dom::GlobalObject&, const nsAString& aPath,
+                        nsString& aResult, ErrorResult& aErr);
+
+  static void Split(const dom::GlobalObject&, const nsAString& aPath,
+                    nsTArray<nsString>& aResult, ErrorResult& aErr);
+
+  static void SplitRelative(const dom::GlobalObject& aGlobal,
+                            const nsAString& aPath,
+                            const dom::SplitRelativeOptions& aOptions,
+                            nsTArray<nsString>& aResult, ErrorResult& aErr);
+
+  static void ToFileURI(const dom::GlobalObject&, const nsAString& aPath,
+                        nsCString& aResult, ErrorResult& aErr);
+
+  static bool IsAbsolute(const dom::GlobalObject&, const nsAString& aPath);
+
+  static void GetProfileDirSync(const dom::GlobalObject&, nsString& aResult,
+                                ErrorResult& aErr);
+  static void GetLocalProfileDirSync(const dom::GlobalObject&,
+                                     nsString& aResult, ErrorResult& aErr);
+  static void GetTempDirSync(const dom::GlobalObject&, nsString& aResult,
+                             ErrorResult& aErr);
+  static void GetXulLibraryPathSync(const dom::GlobalObject&, nsString& aResult,
+                                    ErrorResult& aErr);
+
+  static already_AddRefed<dom::Promise> GetProfileDirAsync(
+      const dom::GlobalObject& aGlobal, ErrorResult& aErr);
+  static already_AddRefed<dom::Promise> GetLocalProfileDirAsync(
+      const dom::GlobalObject& aGlobal, ErrorResult& aErr);
+  static already_AddRefed<dom::Promise> GetTempDirAsync(
+      const dom::GlobalObject& aGlobal, ErrorResult& aErr);
+  static already_AddRefed<dom::Promise> GetXulLibraryPathAsync(
+      const dom::GlobalObject& aGlobal, ErrorResult& aErr);
 
  private:
   class DirectoryCache;
@@ -175,9 +176,9 @@ class PathUtils::DirectoryCache final {
    *
    * @return A promise that resolves to the path of the requested directory.
    */
-  already_AddRefed<Promise> GetDirectoryAsync(const GlobalObject& aGlobalObject,
-                                              ErrorResult& aErr,
-                                              const Directory aRequestedDir);
+  already_AddRefed<dom::Promise> GetDirectoryAsync(
+      const dom::GlobalObject& aGlobalObject, ErrorResult& aErr,
+      const Directory aRequestedDir);
 
  private:
   using PopulateDirectoriesPromise = MozPromise<Ok, nsresult, false>;
@@ -238,7 +239,8 @@ class PathUtils::DirectoryCache final {
    * @param aPromise The JS promise to resolve.
    * @param aRequestedDir The requested directory cache entry.
    */
-  void ResolveWithDirectory(Promise* aPromise, const Directory aRequestedDir);
+  void ResolveWithDirectory(dom::Promise* aPromise,
+                            const Directory aRequestedDir);
 
   template <typename T>
   using DirectoryArray =
@@ -255,7 +257,6 @@ class PathUtils::DirectoryCache final {
   };
 };
 
-}  // namespace dom
 }  // namespace mozilla
 
 #endif

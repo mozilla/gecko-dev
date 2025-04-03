@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-04-01T14:21:39.951774+00:00'
+updated_at: '2025-04-02T20:26:15.852994+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3245,6 +3245,8 @@ modules:
   - name: 'Core: XPCOM'
     description: The cross-platform object model and core data structures.
     includes:
+      - dom/chrome-webidl/IOUtils.webidl
+      - dom/chrome-webidl/PathUtils.webidl
       - startupcache/**/*
       - xpcom/**/*
       - xpcom/base/**/*
@@ -3253,6 +3255,8 @@ modules:
       - xpcom/docs/**/*
       - xpcom/ds/**/*
       - xpcom/glue/**/*
+      - xpcom/io/**/*
+      - xpcom/ioutils/**/*
       - xpcom/reflect/**/*
       - xpcom/rust/**/*
       - xpcom/system/**/*
@@ -3271,6 +3275,7 @@ modules:
       url: :ref:`XPCOM`
       components:
         - Core::XPCOM
+        - Toolkit::IOUtils and PathUtils
       review_group: xpcom-reviewers
     owners:
       - *nika
@@ -4541,5 +4546,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 1f1a65ce9444d293f1f1b8fc74b954bea0aa5a27
-  export: 26b31fcb1ebef52108b7df136973ebf35a4ddc5b
+  config: 93b411d8790c372028509fc186c01b8a34ec8cd5
+  export: 3823627c4a11aab9dc12d92537080eeddffceb34
