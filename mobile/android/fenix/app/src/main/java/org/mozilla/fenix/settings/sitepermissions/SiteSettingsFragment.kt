@@ -6,7 +6,7 @@ package org.mozilla.fenix.settings.sitepermissions
 
 import android.os.Bundle
 import androidx.core.content.ContextCompat
-import androidx.navigation.Navigation
+import androidx.navigation.findNavController
 import androidx.preference.Preference
 import androidx.preference.Preference.OnPreferenceClickListener
 import androidx.preference.PreferenceFragmentCompat
@@ -71,7 +71,7 @@ class SiteSettingsFragment : PreferenceFragmentCompat() {
 
         exceptionsCategory.onPreferenceClickListener = OnPreferenceClickListener {
             val directions = SiteSettingsFragmentDirections.actionSitePermissionsToExceptions()
-            Navigation.findNavController(requireView()).navigate(directions)
+            requireView().findNavController().navigate(directions)
             true
         }
     }
@@ -105,7 +105,7 @@ class SiteSettingsFragment : PreferenceFragmentCompat() {
             Autoplay.visitedSetting.record(NoExtras())
         }
         context?.let {
-            Navigation.findNavController(requireView()).navigateWithBreadcrumb(
+            requireView().findNavController().navigateWithBreadcrumb(
                 directions = directions,
                 navigateFrom = "SitePermissionsFragment",
                 navigateTo = "ActionSitePermissionsToManagePhoneFeatures",

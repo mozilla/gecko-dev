@@ -15,7 +15,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.Navigation
+import androidx.navigation.findNavController
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
@@ -109,8 +109,7 @@ class AddBookmarkFolderFragment : Fragment(R.layout.fragment_edit_bookmark), Men
                         requireComponents.core.bookmarksStorage.getTree(newGuid)
                     BookmarksManagement.folderAdd.record(NoExtras())
                     withContext(Main) {
-                        Navigation.findNavController(requireActivity(), R.id.container)
-                            .popBackStack()
+                        requireActivity().findNavController(R.id.container).popBackStack()
                     }
                 }
                 true

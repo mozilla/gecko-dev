@@ -1919,17 +1919,6 @@
 
     <issue
         id="UseKtx"
-        message="Use the KTX extension function `Activity.findNavController` instead?"
-        errorLine1="                        Navigation.findNavController(requireActivity(), R.id.container)"
-        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/library/bookmarks/addfolder/AddBookmarkFolderFragment.kt"
-            line="112"
-            column="25"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
         message="Use the KTX extension function `Int.toDrawable` instead?"
         errorLine1="                            ?: ColorDrawable(Color.TRANSPARENT)"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -2018,50 +2007,6 @@
 
     <issue
         id="UseKtx"
-        message="Use the KTX extension function `View.findNavController` instead?"
-        errorLine1="            Navigation.findNavController(it).navigate("
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/addons/InstalledAddonDetailsFragment.kt"
-            line="367"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `View.findNavController` instead?"
-        errorLine1="                Navigation.findNavController(this).navigate(directions)"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/addons/InstalledAddonDetailsFragment.kt"
-            line="395"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `View.findNavController` instead?"
-        errorLine1="            Navigation.findNavController(binding.root).navigate(directions)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/addons/InstalledAddonDetailsFragment.kt"
-            line="406"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `View.findNavController` instead?"
-        errorLine1="            Navigation.findNavController(binding.root).navigate(directions)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/addons/InstalledAddonDetailsFragment.kt"
-            line="416"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
         message="Use the KTX extension function `Int.toDrawable` instead?"
         errorLine1="                    val backgroundColorDrawable = ColorDrawable(android.graphics.Color.BLACK).mutate()"
         errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -2124,39 +2069,6 @@
             file="src/main/java/org/mozilla/fenix/search/toolbar/SearchSelectorToolbarAction.kt"
             line="127"
             column="12"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `View.findNavController` instead?"
-        errorLine1="            Navigation.findNavController(requireView()).navigate(directions)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/settings/sitepermissions/SiteSettingsFragment.kt"
-            line="74"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `View.findNavController` instead?"
-        errorLine1="            Navigation.findNavController(requireView()).navigate(directions)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/settings/sitepermissions/SiteSettingsFragment.kt"
-            line="74"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `View.findNavController` instead?"
-        errorLine1="            Navigation.findNavController(requireView()).navigateWithBreadcrumb("
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/settings/sitepermissions/SiteSettingsFragment.kt"
-            line="108"
-            column="13"/>
     </issue>
 
     <issue

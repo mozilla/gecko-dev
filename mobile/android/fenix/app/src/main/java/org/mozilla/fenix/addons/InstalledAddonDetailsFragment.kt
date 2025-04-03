@@ -12,7 +12,6 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.Navigation
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import kotlinx.coroutines.CoroutineDispatcher
@@ -364,7 +363,7 @@ class InstalledAddonDetailsFragment : Fragment() {
             )
 
             // Send user to the newly open tab.
-            Navigation.findNavController(it).navigate(
+            it.findNavController().navigate(
                 InstalledAddonDetailsFragmentDirections.actionGlobalBrowser(null),
             )
         }
@@ -392,7 +391,7 @@ class InstalledAddonDetailsFragment : Fragment() {
                     InstalledAddonDetailsFragmentDirections
                         .actionInstalledAddonFragmentToAddonInternalSettingsFragment(addon)
                 }
-                Navigation.findNavController(this).navigate(directions)
+                this.findNavController().navigate(directions)
             }
         }
     }
@@ -403,7 +402,7 @@ class InstalledAddonDetailsFragment : Fragment() {
                 InstalledAddonDetailsFragmentDirections.actionInstalledAddonFragmentToAddonDetailsFragment(
                     addon,
                 )
-            Navigation.findNavController(binding.root).navigate(directions)
+            binding.root.findNavController().navigate(directions)
         }
     }
 
@@ -413,7 +412,7 @@ class InstalledAddonDetailsFragment : Fragment() {
                 InstalledAddonDetailsFragmentDirections.actionInstalledAddonFragmentToAddonPermissionsDetailsFragment(
                     addon,
                 )
-            Navigation.findNavController(binding.root).navigate(directions)
+            binding.root.findNavController().navigate(directions)
         }
     }
 
