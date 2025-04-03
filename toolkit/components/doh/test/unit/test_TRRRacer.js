@@ -7,6 +7,7 @@
 add_task(setup);
 
 add_task(async function test_TRRRacer_cleanRun() {
+  Services.fog.testResetFOG();
   let deferred = Promise.withResolvers();
   let racer = new TRRRacer(() => {
     deferred.resolve();
@@ -17,15 +18,12 @@ add_task(async function test_TRRRacer_cleanRun() {
   await deferred.promise;
   Assert.equal(racer._retryCount, 1);
 
-  let events = Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-    true
-  ).parent;
-  Assert.ok(events);
-  events = events.filter(e => e[1] == "security.doh.trrPerformance");
+  let events =
+    await Glean.securityDohTrrPerformance.resolvedRecord.testGetValue();
+  events = events.filter(e => e.category == "security.doh.trr_performance");
   Assert.equal(events.length, racer._aggregator.totalLookups);
 
-  Services.telemetry.clearEvents();
+  Services.fog.testResetFOG();
 
   // Simulate network changes and ensure no re-runs since it's already complete.
   async function testNetworkChange(captivePortal = false) {
@@ -56,6 +54,7 @@ add_task(async function test_TRRRacer_cleanRun() {
 });
 
 async function test_TRRRacer_networkFlux_helper(captivePortal = false) {
+  Services.fog.testResetFOG();
   let deferred = Promise.withResolvers();
   let racer = new TRRRacer(() => {
     deferred.resolve();
@@ -85,15 +84,12 @@ async function test_TRRRacer_networkFlux_helper(captivePortal = false) {
 
   Assert.equal(racer._retryCount, 2);
 
-  let events = Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-    true
-  ).parent;
-  Assert.ok(events);
-  events = events.filter(e => e[1] == "security.doh.trrPerformance");
+  let events =
+    await Glean.securityDohTrrPerformance.resolvedRecord.testGetValue();
+  events = events.filter(e => e.category == "security.doh.trr_performance");
   Assert.equal(events.length, racer._aggregator.totalLookups);
 
-  Services.telemetry.clearEvents();
+  Services.fog.testResetFOG();
   if (captivePortal) {
     Services.obs.notifyObservers(null, "captive-portal-login-abort");
   }
@@ -145,15 +141,12 @@ async function test_TRRRacer_maxRetries_helper(captivePortal = false) {
   await deferred.promise;
   Assert.equal(racer._retryCount, 5);
 
-  let events = Services.telemetry.snapshotEvents(
-    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-    true
-  ).parent;
-  Assert.ok(events);
-  events = events.filter(e => e[1] == "security.doh.trrPerformance");
+  let events =
+    await Glean.securityDohTrrPerformance.resolvedRecord.testGetValue();
+  events = events.filter(e => e.category == "security.doh.trr_performance");
   Assert.equal(events.length, racer._aggregator.totalLookups);
 
-  Services.telemetry.clearEvents();
+  Services.fog.testResetFOG();
   if (captivePortal) {
     Services.obs.notifyObservers(null, "captive-portal-login-abort");
   }
