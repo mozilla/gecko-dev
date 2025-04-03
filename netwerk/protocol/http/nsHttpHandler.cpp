@@ -1887,14 +1887,18 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
     rv = Preferences::GetCString(HTTP_PREF("http3.alt-svc-mapping-for-testing"),
                                  altSvcMappings);
     if (NS_SUCCEEDED(rv)) {
-      for (const nsACString& tokenSubstring :
-           nsCCharSeparatedTokenizer(altSvcMappings, ',').ToRange()) {
-        nsAutoCString token{tokenSubstring};
-        int32_t index = token.Find(";");
-        if (index != kNotFound) {
-          mAltSvcMappingTemptativeMap.InsertOrUpdate(
-              Substring(token, 0, index),
-              MakeUnique<nsCString>(Substring(token, index + 1)));
+      if (altSvcMappings.IsEmpty()) {
+        mAltSvcMappingTemptativeMap.Clear();
+      } else {
+        for (const nsACString& tokenSubstring :
+             nsCCharSeparatedTokenizer(altSvcMappings, ',').ToRange()) {
+          nsAutoCString token{tokenSubstring};
+          int32_t index = token.Find(";");
+          if (index != kNotFound) {
+            mAltSvcMappingTemptativeMap.InsertOrUpdate(
+                Substring(token, 0, index),
+                MakeUnique<nsCString>(Substring(token, index + 1)));
+          }
         }
       }
     }

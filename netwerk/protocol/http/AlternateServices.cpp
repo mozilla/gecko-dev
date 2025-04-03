@@ -15,6 +15,7 @@
 #include "mozilla/dom/PContent.h"
 #include "mozilla/net/AltSvcTransactionChild.h"
 #include "mozilla/net/AltSvcTransactionParent.h"
+#include "mozilla/SyncRunnable.h"
 #include "nsComponentManagerUtils.h"
 #include "nsEscape.h"
 #include "nsHttpChannel.h"
@@ -25,6 +26,7 @@
 #include "nsITLSSocketControl.h"
 #include "nsIWellKnownOpportunisticUtils.h"
 #include "nsThreadUtils.h"
+#include "xpcpublic.h"
 
 /* RFC 7838 Alternative Services
    http://httpwg.org/http-extensions/opsec.html
@@ -64,11 +66,39 @@ void AltSvcMapping::ProcessHeader(
     bool privateBrowsing, nsIInterfaceRequestor* callbacks,
     nsProxyInfo* proxyInfo, uint32_t caps,
     const OriginAttributes& originAttributes,
-    nsHttpConnectionInfo* aTransConnInfo,
-    bool aDontValidate /* = false */) {  // aDontValidate is only used for
-                                         // testing
-  MOZ_ASSERT(NS_IsMainThread());
+    nsHttpConnectionInfo* aTransConnInfo, bool aDontValidate /* = false */) {
   LOG(("AltSvcMapping::ProcessHeader: %s\n", buf.get()));
+  // In tests, this might be called off the main thread. If so, dispatch it
+  // synchronously to the main thread.
+  if (!NS_IsMainThread() && xpc::AreNonLocalConnectionsDisabled()) {
+    nsCOMPtr<nsIThread> mainThread;
+    nsresult rv = NS_GetMainThread(getter_AddRefs(mainThread));
+    if (NS_FAILED(rv)) {
+      return;
+    }
+
+    nsCString userName(username);
+    nsCOMPtr<nsIInterfaceRequestor> cb = callbacks;
+    RefPtr<nsProxyInfo> info = proxyInfo;
+    RefPtr<nsHttpConnectionInfo> connInfo = aTransConnInfo;
+    // Forward to the main thread synchronously.
+    mozilla::SyncRunnable::DispatchToThread(
+        mainThread,
+        NS_NewRunnableFunction(
+            "AltSvcMapping::ProcessHeader",
+            [buf(buf), originScheme(originScheme), originHost(originHost),
+             originPort, userName, privateBrowsing, cb, info, caps,
+             originAttributes, connInfo, aDontValidate]() {
+              AltSvcMapping::ProcessHeader(
+                  buf, originScheme, originHost, originPort, userName,
+                  privateBrowsing, cb, info, caps, originAttributes, connInfo,
+                  aDontValidate);
+            }));
+
+    return;
+  }
+
+  MOZ_ASSERT(NS_IsMainThread());
 
   if (StaticPrefs::network_http_altsvc_proxy_checks() &&
       !AcceptableProxy(proxyInfo)) {
