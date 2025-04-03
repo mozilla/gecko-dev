@@ -129,6 +129,34 @@ quotamanager.initialize.temporarystorage:
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
     expires: 141
+quotamanager.shutdown:
+  total_time_excluding_suspend:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      This metric logs the total time required to shut down the QuotaManager
+      instance on the PBackground thread. The duration excludes any periods
+      when the system was suspended (system sleep or hibernation), to better
+      reflect actual time spent performing shutdown.
+      While the shutdown process is measured on the PBackground thread, it
+      involves spinning the event loop and thus waiting for operations on other
+      threads (especially I/O threads) to complete.
+      The primary goal is to measure the actual runtime cost of shutdown under
+      typical conditions, without distortion from system-level suspension
+      delays.
+      This data can help detect performance regressions or improvements related
+      to QuotaManager shutdown behavior, especially in scenarios involving
+      large amounts of user storage data.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: 141
 
 dom.quota:
   info_load_time:
