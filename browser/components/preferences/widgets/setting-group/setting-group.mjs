@@ -29,13 +29,10 @@ export class SettingGroup extends MozLitElement {
   }
 
   xulCheckboxTemplate(item, setting) {
-    let result = document.createDocumentFragment();
+    let result;
     let checkbox = document.createXULElement("checkbox");
     checkbox.id = item.id;
     document.l10n.setAttributes(checkbox, item.l10nId);
-    if (item.subcategory) {
-      checkbox.setAttribute("subcategory", item.subcategory);
-    }
     checkbox.addEventListener("command", e =>
       setting.userChange(e.target.checked)
     );
@@ -47,9 +44,12 @@ export class SettingGroup extends MozLitElement {
       supportLink.supportPage = item.supportPage;
       checkbox.classList.add("tail-with-learn-more");
       container.append(checkbox, supportLink);
-      result.append(container);
+      result = container;
     } else {
-      result.append(checkbox);
+      result = checkbox;
+    }
+    if (item.subcategory) {
+      result.dataset.subcategory = item.subcategory;
     }
     return result;
   }
