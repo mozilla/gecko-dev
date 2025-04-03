@@ -1,12 +1,6 @@
 {
   "data": [
     {
-      "schema": 1740664827138,
-      "scheme": "udp",
-      "id": "8974331d-6eeb-4955-b453-eb5b892ca17f",
-      "last_modified": 1740665439522
-    },
-    {
       "schema": 1726749097244,
       "scheme": "ed2k",
       "id": "2e569b4e-b4ff-4732-8b22-7bc2d68de052",
@@ -37,5 +31,5 @@
       "last_modified": 1726769128869
     }
   ],
-  "timestamp": 1740665439522
+  "timestamp": 1743513175300
 }
