@@ -64,6 +64,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/NotNull.h"
+#include "mozilla/Now.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
@@ -6473,7 +6474,25 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitializedInternal() {
       return NS_OK;
     }
 
+    // Glean SDK recommends using its own timing APIs where possible. In this
+    // case, we use NowExcludingSuspendMs() directly to manually calculate a
+    // duration that excludes suspend time. This is a valid exception because
+    // our use case is sensitive to suspend, and we need full control over the
+    // timing logic.
+
+    const auto startExcludingSuspendMs = NowExcludingSuspendMs();
+
     QM_TRY(MOZ_TO_RESULT(InitializeTemporaryStorageInternal()));
+
+    const auto endExcludingSuspendMs = NowExcludingSuspendMs();
+
+    if (startExcludingSuspendMs && endExcludingSuspendMs) {
+      const auto duration = TimeDuration::FromMilliseconds(
+          *endExcludingSuspendMs - *startExcludingSuspendMs);
+
+      glean::quotamanager_initialize_temporarystorage::
+          total_time_excluding_suspend.AccumulateRawDuration(duration);
+    }
 
     return NS_OK;
   };

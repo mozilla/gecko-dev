@@ -103,6 +103,32 @@ quotamanager.initialize.repository:
       - temporary
       - default
       - private
+quotamanager.initialize.temporarystorage:
+  total_time_excluding_suspend:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      This metric logs the total time required to initialize temporary storage
+      within the QuotaManager after startup on the I/O thread. The duration
+      excludes any periods when the system was suspended (e.g. system sleep or
+      hibernation), to better reflect actual time spent performing temporary
+      storage initialization.
+      The primary goal is to measure the actual runtime cost of temporary
+      storage initialization under typical conditions, without distortion from
+      system-level suspension delays.
+      This data can help detect performance regressions or improvements during
+      startup-related phases, particularly for users with significant amounts
+      of temporary storage data on disk.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955992
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1955992
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: 141
 
 dom.quota:
   info_load_time:
