@@ -313,6 +313,10 @@ void GCRuntime::verifyAllChunks() {
   fullChunks(lock).verifyChunks();
   availableChunks(lock).verifyChunks();
   emptyChunks(lock).verifyChunks();
+  if (currentChunk_) {
+    MOZ_ASSERT(currentChunk_->info.isCurrentChunk);
+    currentChunk_->verify();
+  }
 }
 #endif
 
@@ -1006,6 +1010,11 @@ void GCRuntime::finish() {
 
   zones().clear();
 
+  {
+    AutoLockGC lock(this);
+    clearCurrentChunk(lock);
+  }
+
   FreeChunkPool(fullChunks_.ref());
   FreeChunkPool(availableChunks_.ref());
   FreeChunkPool(emptyChunks_.ref());
@@ -1298,8 +1307,10 @@ uint32_t GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock) {
     case JSGC_PER_ZONE_GC_ENABLED:
       return perZoneGCEnabled;
     case JSGC_UNUSED_CHUNKS:
+      clearCurrentChunk(lock);
       return uint32_t(emptyChunks(lock).count());
     case JSGC_TOTAL_CHUNKS:
+      clearCurrentChunk(lock);
       return uint32_t(fullChunks(lock).count() + availableChunks(lock).count() +
                       emptyChunks(lock).count());
     case JSGC_SLICE_TIME_BUDGET_MS:
@@ -2192,8 +2203,14 @@ void GCRuntime::decommitFreeArenas(const bool& cancel, AutoLockGC& lock) {
   for (ArenaChunk* chunk : chunksToDecommit) {
     MOZ_ASSERT(chunk->getKind() == ChunkKind::TenuredArenas);
     MOZ_ASSERT(!chunk->isEmpty());
+
     if (!chunk->hasAvailableArenas()) {
       // Chunk has become full while lock was released.
+      continue;
+    }
+
+    if (chunk->info.isCurrentChunk) {
+      // Chunk has become current chunk while lock was released.
       continue;
     }
 
@@ -4005,6 +4022,11 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
       }
 
       atomMarking.mergePendingFreeArenaIndexes(this);
+
+      {
+        AutoLockGC lock(this);
+        clearCurrentChunk(lock);
+      }
 
       assertBackgroundSweepingFinished();
 

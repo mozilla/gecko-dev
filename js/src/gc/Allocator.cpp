@@ -391,22 +391,30 @@ retry_loop:
     goto retry_loop;
   }
 
-  {
+  // Use the current chunk if set.
+  ArenaChunk* chunk = gc->currentChunk_;
+  MOZ_ASSERT_IF(chunk, gc->isCurrentChunk(chunk));
+
+  if (!chunk) {
     // The chunk lists can be accessed by background sweeping and background
     // chunk allocation. Take the GC lock to synchronize access.
     AutoLockGCBgAlloc lock(gc);
 
-    ArenaChunk* chunk = gc->pickChunk(stallAndRetry, lock);
+    chunk = gc->pickChunk(stallAndRetry, lock);
     if (!chunk) {
       return nullptr;
     }
 
-    // Although our chunk should definitely have enough space for another arena,
-    // there are other valid reasons why ArenaChunk::allocateArena() may fail.
-    arena = gc->allocateArena(chunk, zone_, thingKind, checkThresholds, lock);
-    if (!arena) {
-      return nullptr;
-    }
+    gc->setCurrentChunk(chunk, lock);
+  }
+
+  MOZ_ASSERT(gc->isCurrentChunk(chunk));
+
+  // Although our chunk should definitely have enough space for another arena,
+  // there are other valid reasons why ArenaChunk::allocateArena() may fail.
+  arena = gc->allocateArena(chunk, zone_, thingKind, checkThresholds);
+  if (!arena) {
+    return nullptr;
   }
 
   arena->init(gc, zone_, thingKind);
@@ -466,8 +474,7 @@ bool GCRuntime::wantBackgroundAllocation(const AutoLockGC& lock) const {
 // Allocate a new arena but don't initialize it.
 Arena* GCRuntime::allocateArena(ArenaChunk* chunk, Zone* zone,
                                 AllocKind thingKind,
-                                ShouldCheckThresholds checkThresholds,
-                                const AutoLockGC& lock) {
+                                ShouldCheckThresholds checkThresholds) {
   MOZ_ASSERT(chunk->hasAvailableArenas());
 
   // Fail the allocation if we are over our heap size limits.
@@ -476,7 +483,7 @@ Arena* GCRuntime::allocateArena(ArenaChunk* chunk, Zone* zone,
     return nullptr;
   }
 
-  Arena* arena = chunk->allocateArena(this, zone, thingKind, lock);
+  Arena* arena = chunk->allocateArena(this, zone, thingKind);
 
   if (IsBufferAllocKind(thingKind)) {
     // Try to keep GC scheduling the same to minimize benchmark noise.
@@ -495,8 +502,11 @@ Arena* GCRuntime::allocateArena(ArenaChunk* chunk, Zone* zone,
   return arena;
 }
 
-Arena* ArenaChunk::allocateArena(GCRuntime* gc, Zone* zone, AllocKind thingKind,
-                                 const AutoLockGC& lock) {
+Arena* ArenaChunk::allocateArena(GCRuntime* gc, Zone* zone,
+                                 AllocKind thingKind) {
+  MOZ_ASSERT(info.isCurrentChunk);
+  MOZ_ASSERT(hasAvailableArenas());
+
   if (info.numArenasFreeCommitted == 0) {
     commitOnePage(gc);
     MOZ_ASSERT(info.numArenasFreeCommitted == ArenasPerPage);
@@ -505,7 +515,7 @@ Arena* ArenaChunk::allocateArena(GCRuntime* gc, Zone* zone, AllocKind thingKind,
   MOZ_ASSERT(info.numArenasFreeCommitted > 0);
   Arena* arena = fetchNextFreeArena(gc);
 
-  updateFreeCountsAfterAlloc(gc, 1, lock);
+  updateCurrentChunkAfterAlloc(gc);
 
   verify();
 
@@ -593,6 +603,7 @@ ArenaChunk* GCRuntime::getOrAllocChunk(StallAndRetry stallAndRetry,
 void GCRuntime::recycleChunk(ArenaChunk* chunk, const AutoLockGC& lock) {
 #ifdef DEBUG
   MOZ_ASSERT(chunk->isEmpty());
+  MOZ_ASSERT(!chunk->info.isCurrentChunk);
   chunk->verify();
 #endif
 
@@ -606,10 +617,12 @@ void GCRuntime::recycleChunk(ArenaChunk* chunk, const AutoLockGC& lock) {
 ArenaChunk* GCRuntime::pickChunk(StallAndRetry stallAndRetry,
                                  AutoLockGCBgAlloc& lock) {
   if (availableChunks(lock).count()) {
-    return availableChunks(lock).head();
+    ArenaChunk* chunk = availableChunks(lock).head();
+    availableChunks(lock).remove(chunk);
+    return chunk;
   }
 
-  ArenaChunk* chunk = getOrAllocChunk(stallAndRetry, lock);
+  ArenaChunk* chunk = takeOrAllocChunk(stallAndRetry, lock);
   if (!chunk) {
     return nullptr;
   }
@@ -617,7 +630,6 @@ ArenaChunk* GCRuntime::pickChunk(StallAndRetry stallAndRetry,
 #ifdef DEBUG
   chunk->verify();
   MOZ_ASSERT(chunk->isEmpty());
-  MOZ_ASSERT(emptyChunks(lock).contains(chunk));
 #endif
 
   return chunk;

@@ -566,12 +566,18 @@ class GCRuntime {
   }
   using NonEmptyChunksIter = ChainedIterator<ChunkPool::Iter, 2>;
   NonEmptyChunksIter allNonEmptyChunks(const AutoLockGC& lock) {
+    clearCurrentChunk(lock);
     return NonEmptyChunksIter(availableChunks(lock), fullChunks(lock));
   }
   uint32_t minEmptyChunkCount(const AutoLockGC& lock) const {
     return minEmptyChunkCount_;
   }
+  void setCurrentChunk(ArenaChunk* chunk, const AutoLockGC& lock);
+  void clearCurrentChunk(const AutoLockGC& lock);
 #ifdef DEBUG
+  bool isCurrentChunk(ArenaChunk* chunk) const {
+    return chunk == currentChunk_;
+  }
   void verifyAllChunks();
 #endif
 
@@ -715,8 +721,7 @@ class GCRuntime {
   friend class ArenaLists;
   ArenaChunk* pickChunk(StallAndRetry stallAndRetry, AutoLockGCBgAlloc& lock);
   Arena* allocateArena(ArenaChunk* chunk, Zone* zone, AllocKind kind,
-                       ShouldCheckThresholds checkThresholds,
-                       const AutoLockGC& lock);
+                       ShouldCheckThresholds checkThresholds);
 
   /*
    * Return the list of chunks that can be released outside the GC lock.
@@ -1087,6 +1092,11 @@ class GCRuntime {
   // When all arenas in a chunk are used, it is moved to the fullChunks pool
   // so as to reduce the cost of operations on the available lists.
   GCLockData<ChunkPool> fullChunks_;
+
+  // The chunk currently being allocated from. If non-null this is at the head
+  // of the available chunks list and has isCurrentChunk set to true. Can be
+  // accessed without taking the GC lock.
+  MainThreadData<ArenaChunk*> currentChunk_;
 
   /*
    * JSGC_MIN_EMPTY_CHUNK_COUNT
