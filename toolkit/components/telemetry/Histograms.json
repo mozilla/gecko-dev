@@ -6544,24 +6544,6 @@
     "bug_numbers": [1656994],
     "description": "Update: How much longer langpacks took to download than the app update in seconds."
   },
-  "THUNDERBIRD_GLODA_SIZE_MB": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "linear",
-    "high": 1000,
-    "n_buckets": 40,
-    "description": "Gloda: size of global-messages-db.sqlite (MB)"
-  },
-  "THUNDERBIRD_INDEXING_RATE_MSG_PER_S": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "linear",
-    "high": 100,
-    "n_buckets": 20,
-    "description": "Gloda: indexing rate (message/s)"
-  },
   "FX_TAB_CLOSE_TIME_ANIM_MS": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
