@@ -421,6 +421,37 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.equal(siblingElement.classList.contains("action-buttons"), true);
     });
 
+    it("should render the steps indicator in main inner content if fullscreen and not progress bar style", () => {
+      const SCREEN_PROPS = {
+        content: {
+          title: "Test Fullscreen Dot Steps",
+          fullscreen: true,
+          position: "split",
+          progress_bar: false,
+          totalNumberOfScreens: 2,
+        },
+      };
+
+      const wrapper = mount(<MultiStageProtonScreen {...SCREEN_PROPS} />);
+
+      const stepsIndicators = wrapper.find(".steps");
+      assert.equal(
+        stepsIndicators.length,
+        1,
+        "Only one steps indicator should be rendered"
+      );
+
+      assert.isTrue(
+        wrapper.find(".main-content-inner .steps").exists(),
+        "Steps indicator is inside main-content-inner"
+      );
+
+      assert.isFalse(
+        stepsIndicators.first().hasClass("progress-bar"),
+        "Steps indicator should not have progress-bar class"
+      );
+    });
+
     it("should render a progress bar if there are 2 steps", () => {
       const SCREEN_PROPS = {
         content: {

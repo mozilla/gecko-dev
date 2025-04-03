@@ -2077,6 +2077,10 @@ html {
     padding-block: 20px;
   }
 }
+.onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .main-content-inner .steps:not(.progress-bar) {
+  justify-content: start;
+  padding-top: 24px;
+}
 .onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .action-buttons {
   position: static;
   height: auto;

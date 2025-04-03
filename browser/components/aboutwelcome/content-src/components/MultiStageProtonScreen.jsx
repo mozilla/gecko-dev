@@ -639,8 +639,21 @@ export class ProtonScreen extends React.PureComponent {
                   activeMultiSelect={this.props.activeMultiSelect}
                 />
               )}
+              {
+                /* Fullscreen dot-style step indicator should sit inside the
+              main inner content to share its padding, which will be
+              configurable with Bug 1956042 */
+                !hideStepsIndicator &&
+                !aboveButtonStepsIndicator &&
+                !content.progress_bar &&
+                content.fullscreen
+                  ? this.renderStepsIndicator()
+                  : null
+              }
             </div>
-            {!hideStepsIndicator && !aboveButtonStepsIndicator
+            {!hideStepsIndicator &&
+            !aboveButtonStepsIndicator &&
+            !(content.fullscreen && !content.progress_bar)
               ? this.renderStepsIndicator()
               : null}
           </div>

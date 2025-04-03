@@ -1028,6 +1028,11 @@ html {
             @media only screen and (width <= 800px) {
               padding-block: 20px;
             }
+
+            .steps:not(.progress-bar) {
+              justify-content: start;
+              padding-top: 24px;
+            }
           }
 
           .action-buttons {
