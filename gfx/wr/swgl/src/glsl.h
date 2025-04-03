@@ -2022,6 +2022,14 @@ struct vec4 {
     return *this;
   }
 
+  friend I32 operator==(const vec4& l, const vec4& r) {
+    return l.x == r.x && l.y == r.y && l.z == r.z && l.w == r.w;
+  }
+
+  friend I32 operator!=(const vec4& l, const vec4& r) {
+    return l.x != r.x || l.y != r.y || l.z != r.z || l.w != r.w;
+  }
+
   Float x;
   Float y;
   Float z;
