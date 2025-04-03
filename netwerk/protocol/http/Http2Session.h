@@ -611,6 +611,7 @@ class Http2Session final : public ASpdySession,
   bool mPeerFailedHandshake;
 
  private:
+  TimeStamp mLastTRRResponseTime;  // Time of the last successful TRR response
   uint32_t mTrrStreams;
 
   // Whether we allow websockets, based on a pref

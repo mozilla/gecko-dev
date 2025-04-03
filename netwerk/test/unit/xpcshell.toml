@@ -1309,6 +1309,9 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_trr_httpssvc.js"]
 run-sequentially = "node server exceptions dont replay well"
 
+["test_trr_idle_time.js"]
+skip-if = ["socketprocess_networking"] # killing connections on socket process is async.
+
 ["test_trr_nat64.js"]
 run-sequentially = "node server exceptions dont replay well"
 

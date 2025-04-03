@@ -34,6 +34,8 @@
 
 namespace mozilla::net {
 
+extern const nsCString& TRRProviderKey();
+
 const uint64_t HTTP3_APP_ERROR_NO_ERROR = 0x100;
 // const uint64_t HTTP3_APP_ERROR_GENERAL_PROTOCOL_ERROR = 0x101;
 // const uint64_t HTTP3_APP_ERROR_INTERNAL_ERROR = 0x102;
@@ -1900,6 +1902,12 @@ void Http3Session::CloseStream(Http3StreamBase* aStream, nsresult aResult) {
                                   HTTP3_APP_ERROR_REQUEST_CANCELLED);
   }
 
+  if ((NS_SUCCEEDED(aResult) || NS_BASE_STREAM_CLOSED == aResult) &&
+      mConnInfo->GetIsTrrServiceChannel()) {
+    // save time of last successful response
+    mLastTRRResponseTime = TimeStamp::Now();
+  }
+
   aStream->Close(aResult);
   CloseStreamInternal(aStream, aResult);
 }
@@ -2514,6 +2522,20 @@ void Http3Session::CloseConnectionTelemetry(CloseError& aError, bool aClosing) {
   glean::http3::received_sent_dgrams
       .EnumGet(glean::http3::ReceivedSentDgramsLabel::eSent)
       .AccumulateSingleSample(stats.packets_tx);
+
+  if (aClosing) {
+    RefPtr<nsHttpConnectionInfo> ci;
+    GetConnectionInfo(getter_AddRefs(ci));
+    if (ci && ci->GetIsTrrServiceChannel() && !mLastTRRResponseTime.IsNull() &&
+        (mGoawayReceived ||
+         (aError.tag == CloseError::Tag::PeerAppError &&
+          aError.peer_app_error._0 == HTTP3_APP_ERROR_NO_ERROR))) {
+      // Record telemetry keyed by TRR provider.
+      glean::network::trr_idle_close_time_h3.Get(TRRProviderKey())
+          .AccumulateRawDuration(TimeStamp::Now() - mLastTRRResponseTime);
+      mLastTRRResponseTime = TimeStamp();
+    }
+  }
 }
 
 void Http3Session::Finish0Rtt(bool aRestart) {

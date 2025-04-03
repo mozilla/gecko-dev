@@ -1176,6 +1176,48 @@ network:
     expires: never
     telemetry_mirror: NETWORK_RESPONSE_END_PARENT_TO_CONTENT_MS
 
+  trr_idle_close_time_h1: &trr_idle_close_time
+    type: labeled_timing_distribution
+    description: >
+      Time (in seconds) that it takes for an idle TRR connection to be closed by the server (HTTP/1.1)
+    time_unit: second
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948639
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948639
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    labels:
+      - mozilla.cloudflare-dns.com
+      - firefox.dns.nextdns.io
+      - private.canadianshield.cira.ca
+      - doh.xfinity.com
+      - dns.shaw.ca
+      - dooh.cloudflare-dns.com
+      - mozilla.cloudflare-dns.com_2
+      - firefox.dns.nextdns.io_2
+      - private.canadianshield.cira.ca_2
+      - doh.xfinity.com_2
+      - dns.shaw.ca_2
+      - dooh.cloudflare-dns.com_2
+      - mozilla.cloudflare-dns.com_3
+      - firefox.dns.nextdns.io_3
+      - private.canadianshield.cira.ca_3
+      - doh.xfinity.com_3
+      - dns.shaw.ca_3
+      - dooh.cloudflare-dns.com_3
+
+  trr_idle_close_time_h2:
+    <<: *trr_idle_close_time
+    description: >
+      Time (in seconds) that it takes for an idle TRR connection to be closed by the server (HTTP/2)
+
+  trr_idle_close_time_h3:
+    <<: *trr_idle_close_time
+    description: >
+      Time (in seconds) that it takes for an idle TRR connection to be closed by the server (HTTP/3)
+
 networking:
   http3_enabled:
     type: boolean

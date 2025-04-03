@@ -50,6 +50,8 @@
 namespace mozilla {
 namespace net {
 
+extern const nsCString& TRRProviderKey();
+
 // Http2Session has multiple inheritance of things that implement nsISupports
 NS_IMPL_ADDREF_INHERITED(Http2Session, nsAHttpConnection)
 NS_IMPL_RELEASE_INHERITED(Http2Session, nsAHttpConnection)
@@ -1355,6 +1357,13 @@ void Http2Session::CloseStream(Http2StreamBase* aStream, nsresult aResult,
 
   if (aRemoveFromQueue) {
     RemoveStreamFromQueues(aStream);
+  }
+
+  RefPtr<nsHttpConnectionInfo> ci(aStream->ConnectionInfo());
+  if ((NS_SUCCEEDED(aResult) || NS_BASE_STREAM_CLOSED == aResult) && ci &&
+      ci->GetIsTrrServiceChannel()) {
+    // save time of last successful response
+    mLastTRRResponseTime = TimeStamp::Now();
   }
 
   // Send the stream the close() indication
@@ -3377,6 +3386,17 @@ void Http2Session::Close(nsresult aReason) {
         static_cast<uint32_t>(aReason)));
 
   mClosed = true;
+
+  if (!mLastTRRResponseTime.IsNull()) {
+    RefPtr<nsHttpConnectionInfo> ci;
+    GetConnectionInfo(getter_AddRefs(ci));
+    if (ci && ci->GetIsTrrServiceChannel() && mCleanShutdown) {
+      // Record telemetry keyed by TRR provider.
+      glean::network::trr_idle_close_time_h2.Get(TRRProviderKey())
+          .AccumulateRawDuration(TimeStamp::Now() - mLastTRRResponseTime);
+    }
+    mLastTRRResponseTime = TimeStamp();
+  }
 
   Shutdown(aReason);
 

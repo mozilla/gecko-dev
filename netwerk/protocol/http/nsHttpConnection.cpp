@@ -43,6 +43,10 @@
 #include "sslt.h"
 
 namespace mozilla::net {
+extern const nsCString& TRRProviderKey();
+}
+
+namespace mozilla::net {
 
 enum TlsHandshakeResult : uint32_t {
   EchConfigSuccessful = 0,
@@ -770,6 +774,13 @@ void nsHttpConnection::Close(nsresult reason, bool aIsShutdown) {
     }
     mKeepAlive = false;
   }
+
+  if (mConnInfo->GetIsTrrServiceChannel() && !mLastTRRResponseTime.IsNull() &&
+      NS_SUCCEEDED(reason) && !aIsShutdown) {
+    // Record telemetry keyed by TRR provider.
+    glean::network::trr_idle_close_time_h1.Get(TRRProviderKey())
+        .AccumulateRawDuration(TimeStamp::Now() - mLastTRRResponseTime);
+  }
 }
 
 void nsHttpConnection::MarkAsDontReuse() {
@@ -1494,6 +1505,13 @@ void nsHttpConnection::CloseTransaction(nsAHttpTransaction* trans,
     mSpdySession->SetCleanShutdown(aIsShutdown);
     mUsingSpdyVersion = SpdyVersion::NONE;
     mSpdySession = nullptr;
+  }
+
+  if ((NS_SUCCEEDED(reason) || NS_BASE_STREAM_CLOSED == reason) &&
+      trans->ConnectionInfo() &&
+      trans->ConnectionInfo()->GetIsTrrServiceChannel()) {
+    // save time of last successful response
+    mLastTRRResponseTime = TimeStamp::Now();
   }
 
   if (mTransaction) {

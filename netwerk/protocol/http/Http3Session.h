@@ -338,6 +338,7 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   Maybe<uint64_t> mFirstStreamIdReuseIdleConnection;
   TimeStamp mTimerShouldTrigger;
   TimeStamp mZeroRttStarted;
+  TimeStamp mLastTRRResponseTime;  // Time of the last successful TRR response
   uint64_t mBlockedByStreamLimitCount = 0;
   uint64_t mTransactionsBlockedByStreamLimitCount = 0;
   uint64_t mTransactionsSenderBlockedByFlowControlCount = 0;

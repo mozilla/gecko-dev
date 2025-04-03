@@ -27,6 +27,8 @@ namespace net {
 class TRRServiceChild;
 class TRRServiceParent;
 
+const nsCString& TRRProviderKey();
+
 class TRRService : public TRRServiceBase,
                    public nsIObserver,
                    public nsSupportsWeakReference,

@@ -100,6 +100,8 @@ void TRRService::SetProviderDomain(const nsACString& aTRRDomain) {
   }
 }
 
+const nsCString& TRRProviderKey() { return TRRService::ProviderKey(); }
+
 // static
 const nsCString& TRRService::ProviderKey() {
   return kTRRDomains[sCurrentTRRModeIndex][sDomainIndex];
