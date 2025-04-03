@@ -10,7 +10,6 @@ include "VRMessageUtils.h";
 include "VRParent.h";
 include "VRChild.h";
 
-include CrashReporterInitArgs;
 include GraphicsMessages;
 include MemoryReportTypes;
 include PrefsTypes;
@@ -42,7 +41,7 @@ child:
   async InitComplete();
   async OpenVRControllerActionPathToParent(nsCString aPath);
   async OpenVRControllerManifestPathToParent(VRControllerType aType, nsCString aPath);
-  async InitCrashReporter(CrashReporterInitArgs aInitArgs);
+  async InitCrashReporter(NativeThreadId threadId);
   async AddMemoryReport(MemoryReport aReport);
 };
 

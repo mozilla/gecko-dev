@@ -7,12 +7,8 @@
 use {
     anyhow::Context,
     libc::pid_t,
-    minidump_writer::{
-        crash_context::CrashContext,
-        minidump_writer::{DirectAuxvDumpInfo as InternalDumpInfo, MinidumpWriter},
-    },
+    minidump_writer::{crash_context::CrashContext, minidump_writer::MinidumpWriter},
     std::{
-        convert::TryInto,
         ffi::{c_char, CStr, CString},
         fs::File,
     },
@@ -34,19 +30,6 @@ type fpregset_t = u8;
 pub struct MinidumpWriterContext {
     dump_file: File,
     writer: MinidumpWriter,
-}
-
-/// Mirror of [minidump_writer::DirectAuxvDumpInfo][InternalDumpInfo] (`cbindgen` workaround)
-///
-/// The internal type can't be properly processed by `cbindgen` due to usage of the `cfg_if!()`
-/// macro, so we repeat it here for external usage.
-#[repr(C)]
-#[derive(Debug)]
-pub struct DirectAuxvDumpInfo {
-    pub program_header_count: usize,
-    pub program_header_address: usize,
-    pub linux_gate_address: usize,
-    pub entry_address: usize,
 }
 
 /// Create the [`MinidumpWriterContext`] object through FFI
@@ -133,31 +116,6 @@ pub extern "C" fn minidump_writer_set_crash_context(
             pid: context.writer.process_id,
             tid: context.writer.blamed_thread,
         },
-    });
-}
-
-/// Set the Auxv information for the target process
-///
-/// During crash report generation, "/proc/{pid}/auxv" may be inaccessible. To improve robustness,
-/// that information can be obtained by the target process ahead-of-time using whatever means it
-/// has available (preferrably the Linux `getauxval()` call) and passed to the minidump writer
-/// here.
-#[no_mangle]
-pub extern "C" fn minidump_writer_set_direct_auxv_dump_info(
-    context: &mut MinidumpWriterContext,
-    direct_auxv_dump_info: &DirectAuxvDumpInfo,
-) {
-    context.writer.set_direct_auxv_dump_info(InternalDumpInfo {
-        program_header_count: direct_auxv_dump_info
-            .program_header_count
-            .try_into()
-            .unwrap(),
-        program_header_address: direct_auxv_dump_info
-            .program_header_address
-            .try_into()
-            .unwrap(),
-        linux_gate_address: direct_auxv_dump_info.linux_gate_address.try_into().unwrap(),
-        entry_address: direct_auxv_dump_info.entry_address.try_into().unwrap(),
     });
 }
 
