@@ -7,6 +7,9 @@
 // This is loaded into chrome windows with the subscript loader. Wrap in
 // a block to prevent accidentally leaking globals onto `window`.
 {
+  const { TabGroupMetrics } = ChromeUtils.importESModule(
+    "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs"
+  );
   const { TabStateFlusher } = ChromeUtils.importESModule(
     "resource:///modules/sessionstore/TabStateFlusher.sys.mjs"
   );
@@ -445,7 +448,10 @@
       document
         .getElementById("tabGroupEditor_deleteGroup")
         .addEventListener("command", () => {
-          gBrowser.removeTabGroup(this.activeGroup);
+          gBrowser.removeTabGroup(this.activeGroup, {
+            isUserTriggered: true,
+            telemetrySource: TabGroupMetrics.METRIC_SOURCE.TAB_GROUP_MENU,
+          });
         });
 
       this.panel.addEventListener("popupshown", this);

@@ -233,6 +233,29 @@ tabgroup:
         description: The ID of the saved tab group
         type: string
 
+  delete:
+    type: event
+    description: >
+      Recorded when the user deletes a tab group
+    notification_emails:
+      - dao@mozilla.com
+      - jswinarton@mozilla.com
+      - sthompson@mozilla.com
+    bugs:
+      - https://bugzil.la/1938430
+    data_reviews:
+      - https://bugzil.la/1938430
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      source:
+        description: The system, surface, or control the user used to delete the tab group
+        type: string
+      id:
+        description: Tab group ID of the tab group being deleted. Tab group IDs are derived from their creation timestamps and have no other relationship to any tab group metadata.
+        type: string
+    expires: never
+
   smart_tab_optin:
     type: event
     description: >
