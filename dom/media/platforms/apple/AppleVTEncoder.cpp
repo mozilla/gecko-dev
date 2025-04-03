@@ -361,6 +361,14 @@ static Maybe<OSType> MapPixelFormat(dom::ImageBitmapFormat aFormat) {
   }
 }
 
+void AppleVTEncoder::InvalidateSessionIfNeeded() {
+  if (mSession) {
+    VTCompressionSessionInvalidate(mSession);
+    CFRelease(mSession);
+    mSession = nullptr;
+  }
+}
+
 CFDictionaryRef AppleVTEncoder::BuildSourceImageBufferAttributes() {
   Maybe<OSType> fmt = MapPixelFormat(mConfig.mSourcePixelFormat);
   if (fmt.isNothing()) {
@@ -990,11 +998,7 @@ RefPtr<ShutdownPromise> AppleVTEncoder::Shutdown() {
 RefPtr<ShutdownPromise> AppleVTEncoder::ProcessShutdown() {
   LOGD("::ProcessShutdown");
   AssertOnTaskQueue();
-  if (mSession) {
-    VTCompressionSessionInvalidate(mSession);
-    CFRelease(mSession);
-    mSession = nullptr;
-  }
+  InvalidateSessionIfNeeded();
   mInited = false;
 
   mError = MediaResult(NS_ERROR_DOM_MEDIA_CANCELED, "Canceled in shutdown");
