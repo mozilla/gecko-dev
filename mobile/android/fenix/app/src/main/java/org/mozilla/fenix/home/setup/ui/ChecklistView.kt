@@ -39,22 +39,22 @@ private const val ROTATE_180 = 180F
  * Renders a checklist for onboarding users.
  *
  * @param interactor the interactor to handle user actions.
- * @param checkListItems The list of [ChecklistItem] displayed in setup checklist.
+ * @param checklistItems The list of [ChecklistItem] displayed in setup checklist.
  */
 @Composable
-fun CheckListView(
+fun ChecklistView(
     interactor: SetupChecklistInteractor,
-    checkListItems: List<ChecklistItem>,
+    checklistItems: List<ChecklistItem>,
 ) {
     Column {
-        checkListItems.forEachIndexed { index, item ->
+        checklistItems.forEachIndexed { index, item ->
             when (item) {
                 is ChecklistItem.Group -> GroupWithTasks(
                     group = item,
                     onChecklistItemClicked = { interactor.onChecklistItemClicked(item) },
                     // No divider for the last group, in case it is the last element
                     // in the parent composable.
-                    addDivider = index != checkListItems.size - 1,
+                    addDivider = index != checklistItems.size - 1,
                 )
 
                 is ChecklistItem.Task -> Task(item) { interactor.onChecklistItemClicked(item) }
@@ -201,12 +201,12 @@ private fun TasksChecklistPreview() {
                 isExpanded = false,
             )
 
-            CheckListView(
+            ChecklistView(
                 interactor = object : SetupChecklistInteractor {
                     override fun onChecklistItemClicked(item: ChecklistItem) { /* no op */ }
                     override fun onRemoveChecklistButtonClicked() { /* no op */ }
                 },
-                checkListItems = listOf(group1, group2),
+                checklistItems = listOf(group1, group2),
             )
         }
     }

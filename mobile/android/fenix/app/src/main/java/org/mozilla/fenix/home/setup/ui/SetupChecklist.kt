@@ -69,9 +69,9 @@ fun SetupChecklist(
         ) {
             Header(title = title, subtitle = subtitle, progress = setupChecklistState.progress)
 
-            CheckListView(
+            ChecklistView(
                 interactor = interactor,
-                checkListItems = setupChecklistState.checklistItems,
+                checklistItems = setupChecklistState.checklistItems,
             )
 
             if (setupChecklistState.progress.allTasksCompleted()) {
