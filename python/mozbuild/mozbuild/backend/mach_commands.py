@@ -12,7 +12,6 @@ import mozpack.path as mozpath
 from mach.decorators import Command, CommandArgument
 from mozfile import which
 
-from mozbuild import build_commands
 from mozbuild.util import cpu_count
 
 
@@ -33,15 +32,6 @@ from mozbuild.util import cpu_count
 def run(command_context, ide, no_interactive, args):
     interactive = not no_interactive
 
-    backend = None
-    if ide == "eclipse":
-        backend = "CppEclipse"
-    elif ide == "visualstudio":
-        backend = "VisualStudio"
-    elif ide == "vscode":
-        if not command_context.config_environment.is_artifact_build:
-            backend = "Clangd"
-
     if ide == "eclipse" and not which("eclipse"):
         command_context.log(
             logging.ERROR,
@@ -58,50 +48,42 @@ def run(command_context, ide, no_interactive, args):
         return 1
 
     if ide == "vscode":
-        rc = build_commands.configure(command_context)
-
-        if rc != 0:
-            return rc
+        result = subprocess.run([sys.executable, "mach", "configure"])
+        if result.returncode:
+            return result.returncode
 
         # First install what we can through install manifests.
-        rc = command_context._run_make(
-            directory=command_context.topobjdir,
-            target="pre-export",
-            line_handler=None,
-        )
-        if rc != 0:
-            return rc
-
         # Then build the rest of the build dependencies by running the full
         # export target, because we can't do anything better.
-        for target in ("export", "pre-compile"):
-            rc = command_context._run_make(
-                directory=command_context.topobjdir,
-                target=target,
-                line_handler=None,
-            )
-            if rc != 0:
-                return rc
+        result = subprocess.run(
+            [sys.executable, "mach", "build", "pre-export", "export", "pre-compile"]
+        )
+        if result.returncode:
+            return result.returncode
     else:
         # Here we refresh the whole build. 'build export' is sufficient here and is
         # probably more correct but it's also nice having a single target to get a fully
         # built and indexed project (gives a easy target to use before go out to lunch).
-        res = command_context._mach_context.commands.dispatch(
-            "build", command_context._mach_context
-        )
-        if res != 0:
-            return 1
+        result = subprocess.run([sys.executable, "mach", "build"])
+        if result.returncode:
+            return result.returncode
+
+    backend = None
+    if ide == "eclipse":
+        backend = "CppEclipse"
+    elif ide == "visualstudio":
+        backend = "VisualStudio"
+    elif ide == "vscode":
+        if not command_context.config_environment.is_artifact_build:
+            backend = "Clangd"
 
     if backend:
         # Generate or refresh the IDE backend.
-        python = command_context.virtualenv_manager.python_path
-        config_status = os.path.join(command_context.topobjdir, "config.status")
-        args = [python, config_status, "--backend=%s" % backend]
-        res = command_context._run_command_in_objdir(
-            args=args, pass_thru=True, ensure_exit_code=False
+        result = subprocess.run(
+            [sys.executable, "mach", "build-backend", "-b", backend]
         )
-        if res != 0:
-            return 1
+        if result.returncode:
+            return result.returncode
 
     if ide == "eclipse":
         eclipse_workspace_dir = get_eclipse_workspace_path(command_context)
