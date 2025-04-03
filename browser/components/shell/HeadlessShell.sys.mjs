@@ -100,10 +100,10 @@ async function takeScreenshot(
     let browser = doc.createXULElement("browser");
     browser.setAttribute("remote", "true");
     browser.setAttribute("type", "content");
-    browser.setAttribute(
-      "style",
-      `width: ${contentWidth}px; min-width: ${contentWidth}px; height: ${contentHeight}px; min-height: ${contentHeight}px;`
-    );
+    browser.style.width = `${contentWidth}px`;
+    browser.style.minWidth = `${contentWidth}px`;
+    browser.style.height = `${contentHeight}px`;
+    browser.style.minHeight = `${contentHeight}px`;
     browser.setAttribute("maychangeremoteness", "true");
     doc.documentElement.appendChild(browser);
 

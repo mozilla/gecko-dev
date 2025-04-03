@@ -167,15 +167,10 @@ export const HiddenBrowserManager = new (class HiddenBrowserManager {
     let browser = doc.createXULElement("browser");
     browser.setAttribute("remote", "true");
     browser.setAttribute("type", "content");
-    browser.setAttribute(
-      "style",
-      `
-        width: ${BACKGROUND_WIDTH}px;
-        min-width: ${BACKGROUND_WIDTH}px;
-        height: ${BACKGROUND_HEIGHT}px;
-        min-height: ${BACKGROUND_HEIGHT}px;
-      `
-    );
+    browser.style.width = `${BACKGROUND_WIDTH}px`;
+    browser.style.minWidth = `${BACKGROUND_WIDTH}px`;
+    browser.style.height = `${BACKGROUND_HEIGHT}px`;
+    browser.style.minHeight = `${BACKGROUND_HEIGHT}px`;
     browser.setAttribute("maychangeremoteness", "true");
     doc.documentElement.appendChild(browser);
 
