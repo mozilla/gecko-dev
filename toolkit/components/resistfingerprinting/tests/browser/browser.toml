@@ -43,6 +43,8 @@ support-files = [
 
 ["browser_fpp_protections_matrix_4.js"]
 
+["browser_fpp_remote_settings_jexl.js"]
+
 ["browser_rfp_canvasplaceholder_pdfjs.js"]
 support-files = ["file_pdf.pdf"]
 
