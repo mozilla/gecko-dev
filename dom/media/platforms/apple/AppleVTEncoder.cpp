@@ -867,6 +867,8 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
         strides[0] = yuv->mYStride;
         break;
       default:
+        LOGE("Unexpected number of planes: %zu", numPlanes);
+        MOZ_ASSERT_UNREACHABLE("Unexpected number of planes");
         return nullptr;
     }
 
