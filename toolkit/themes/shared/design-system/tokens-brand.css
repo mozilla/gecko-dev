@@ -25,12 +25,12 @@
     --button-background-color-hover: color-mix(in srgb, currentColor 14%, transparent);
     --button-background-color-active: color-mix(in srgb, currentColor 21%, transparent);
     --button-text-color: light-dark(var(--color-gray-100), var(--color-gray-05));
-    --button-text-color-primary: light-dark(var(--color-gray-05), var(--color-gray-100));
+    --button-text-color-primary: light-dark(var(--color-white), var(--color-gray-100));
 
     /** Color **/
-    --color-accent-primary: light-dark(var(--color-blue-50), var(--color-cyan-50));
-    --color-accent-primary-hover: light-dark(var(--color-blue-60), var(--color-cyan-30));
-    --color-accent-primary-active: light-dark(var(--color-blue-70), var(--color-cyan-20));
+    --color-accent-primary: light-dark(var(--color-blue-60), var(--color-cyan-30));
+    --color-accent-primary-hover: light-dark(var(--color-blue-70), var(--color-cyan-20));
+    --color-accent-primary-active: light-dark(var(--color-blue-80), var(--color-cyan-10));
 
     /** Font Size **/
     --font-size-root: 15px;

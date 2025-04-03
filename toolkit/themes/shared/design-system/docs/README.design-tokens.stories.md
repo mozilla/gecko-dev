@@ -22,7 +22,7 @@ For example, [moz-toggle](https://searchfox.org/mozilla-central/source/toolkit/c
   <tr>
     <td><code>--toggle-background-color-pressed</code></td>
     <td><code>--color-accent-primary</code></td>
-    <td><code>--color-blue-50</code>(<code>#0060df</code>)</td>
+    <td><code>--color-blue-60</code>(<code>oklch(55% 0.24 260)</code>)</td>
   </tr>
   <tr>
     <td><code>--toggle-border-radius</code></td>
@@ -244,7 +244,7 @@ For example, we re-map the accent color token in `tokens-brand.css` to the
 value we want to use in brand contexts (in-content/about: pages):
 ```css
 /* tokens-brand.css */
---color-accent-primary: light-dark(var(--color-blue-50), var(--color-cyan-50));
+--color-accent-primary: light-dark(var(--color-blue-60), var(--color-cyan-30));
 ```
 
 #### `tokens-platform.css`
@@ -273,9 +273,9 @@ Base design tokens represent the most basic, or foundational, groups of design t
 
 ```css
 /* tokens-shared.css */
---color-blue-50: #0060df;
---color-blue-60: #0250bb;
---color-blue-70: #054096;
+--color-blue-50: oklch(62% 0.24 260);
+--color-blue-60: oklch(55% 0.24 260);
+--color-blue-70: oklch(48% 0.2 260);
 ```
 
 #### Application
@@ -283,7 +283,7 @@ Application design tokens represent the more semantic groups of design tokens th
 
 ```css
 /* tokens-brand.css */
---color-accent-primary: light-dark(var(--color-blue-50), var(--color-cyan-50));
+--color-accent-primary: light-dark(var(--color-blue-60), var(--color-cyan-30));
 ```
 
 #### Component
@@ -305,9 +305,9 @@ Border, Color, Font Weight...
 A comment heading should be added above each token group with its name:
 ```css
 /** Color **/
---color-white: #ffffff;
---color-blue-05: #deeafc;
---color-blue-30: #73a7f3;
+--color-blue-0: oklch(97% 0.05 260);
+--color-blue-10: oklch(90% 0.13 260);
+--color-blue-20: oklch(83% 0.17 260);
 ...
 ```
 
