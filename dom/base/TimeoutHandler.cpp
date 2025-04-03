@@ -89,7 +89,7 @@ CallbackTimeoutHandler::CallbackTimeoutHandler(
     JSContext* aCx, nsIGlobalObject* aGlobal, Function* aFunction,
     nsTArray<JS::Heap<JS::Value>>&& aArguments)
     : TimeoutHandler(aCx), mGlobal(aGlobal), mFunction(aFunction) {
-  mozilla::HoldJSObjects(this);
+  mozilla::HoldJSObjectsWithKey(this);
   mArgs = std::move(aArguments);
 }
 
@@ -149,7 +149,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(CallbackTimeoutHandler)
 
 void CallbackTimeoutHandler::ReleaseJSObjects() {
   mArgs.Clear();
-  mozilla::DropJSObjects(this);
+  mozilla::DropJSObjectsWithKey(this);
 }
 
 bool CallbackTimeoutHandler::Call(const char* aExecutionReason) {

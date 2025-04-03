@@ -13,6 +13,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsString.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/SourceLocation.h"
 #include "mozilla/dom/FunctionBinding.h"
 
@@ -21,7 +22,7 @@ namespace mozilla::dom {
 /**
  * Utility class for implementing nsITimeoutHandlers, designed to be subclassed.
  */
-class TimeoutHandler : public nsISupports {
+class TimeoutHandler : public nsISupports, public JSHolderBase {
  public:
   MOZ_CAN_RUN_SCRIPT virtual bool Call(const char* /* unused */);
   // Append a UTF-8 string to aOutString that describes the callback function,
