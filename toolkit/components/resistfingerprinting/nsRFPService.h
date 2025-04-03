@@ -400,6 +400,9 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // Returns the device pixel ratio at the given zoom level.
   static double GetDevicePixelRatioAtZoom(float aZoom);
 
+  // Returns the value of privacy.resistFingerprinting.exemptedDomains pref
+  static void GetExemptedDomainsLowercase(nsCString& aExemptedDomains);
+
  private:
   nsresult Init();
 
@@ -493,6 +496,8 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   static RFPTargetSet CreateOverridesFromText(
       const nsString& aOverridesText,
       RFPTargetSet aBaseOverrides = RFPTargetSet());
+
+  static nsCString* sExemptedDomainsLowercase;
 };
 
 }  // namespace mozilla

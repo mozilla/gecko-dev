@@ -68,5 +68,5 @@ include("/ipc/chromium/chromium-config.mozbuild")
 GeneratedFile(
     "RFPTargetConstants.sys.mjs",
     script="extract_rfp_targets.py",
-    inputs=["RFPTargets.inc", "RFPTargetsDefault.inc"],
+    inputs=["RFPTargets.inc", "RFPTargetsDefaultBaseline.inc", "RFPTargetsDefault.inc"],
 )
