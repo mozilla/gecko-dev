@@ -236,10 +236,13 @@ class FreeLists {
 };
 
 class ArenaLists {
-  enum class ConcurrentUse : uint32_t { None, BackgroundFinalize };
+  enum class ConcurrentUse : uint32_t {
+    None,
+    BackgroundFinalize,
+    BackgroundFinalizeFinished
+  };
 
-  using ConcurrentUseState =
-      mozilla::Atomic<ConcurrentUse, mozilla::SequentiallyConsistent>;
+  using ConcurrentUseState = mozilla::Atomic<ConcurrentUse, mozilla::Relaxed>;
 
   JS::Zone* zone_;
 
@@ -311,8 +314,9 @@ class ArenaLists {
 
   Arena* takeSweptEmptyArenas();
 
-  void mergeFinalizedArenas(AllocKind thingKind,
-                            SortedArenaList& finalizedArenas);
+  void mergeBackgroundSweptArenas();
+  void maybeMergeSweptArenas(AllocKind thingKind);
+  void mergeSweptArenas(AllocKind thingKind, ArenaList& sweptArenas);
 
   void moveArenasToCollectingLists();
   void mergeArenasFromCollectingLists();

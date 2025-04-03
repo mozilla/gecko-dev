@@ -3990,6 +3990,10 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
         break;
       }
 
+      for (GCZonesIter zone(this); !zone.done(); zone.next()) {
+        zone->arenas.mergeBackgroundSweptArenas();
+      }
+
       {
         BufferAllocator::AutoLock lock(this);
         for (GCZonesIter zone(this); !zone.done(); zone.next()) {

@@ -369,36 +369,40 @@ void* ArenaLists::refillFreeListAndAllocate(
 
   JSRuntime* rt = runtimeFromAnyThread();
 
-  mozilla::Maybe<AutoLockGCBgAlloc> maybeLock;
-
-  // See if we can proceed without taking the GC lock.
-  if (concurrentUse(thingKind) != ConcurrentUse::None) {
-    maybeLock.emplace(rt);
-  }
-
+retry_loop:
   Arena* arena = arenaList(thingKind).takeInitialNonFullArena();
   if (arena) {
     // Empty arenas should be immediately freed.
     MOZ_ASSERT(!arena->isEmpty());
-
     return freeLists().setArenaAndAllocate(arena, thingKind);
   }
 
-  // Parallel threads have their own ArenaLists, but chunks are shared;
-  // if we haven't already, take the GC lock now to avoid racing.
-  if (maybeLock.isNothing()) {
-    maybeLock.emplace(rt);
+  // If we have just finished background sweep then merge the swept arenas in
+  // and retry.
+  if (MOZ_UNLIKELY(concurrentUse(thingKind) ==
+                   ConcurrentUse::BackgroundFinalizeFinished)) {
+    ArenaList sweptArenas;
+    {
+      AutoLockGC lock(rt);
+      sweptArenas = std::move(collectingArenaList(thingKind));
+    }
+    mergeSweptArenas(thingKind, sweptArenas);
+    concurrentUse(thingKind) = ConcurrentUse::None;
+    goto retry_loop;
   }
 
-  ArenaChunk* chunk = rt->gc.pickChunk(stallAndRetry, maybeLock.ref());
+  // The chunk lists can be accessed by background sweeping and background chunk
+  // allocation. Take the GC lock to synchronize access.
+  AutoLockGCBgAlloc lock(rt);
+
+  ArenaChunk* chunk = rt->gc.pickChunk(stallAndRetry, lock);
   if (!chunk) {
     return nullptr;
   }
 
   // Although our chunk should definitely have enough space for another arena,
   // there are other valid reasons why ArenaChunk::allocateArena() may fail.
-  arena = rt->gc.allocateArena(chunk, zone_, thingKind, checkThresholds,
-                               maybeLock.ref());
+  arena = rt->gc.allocateArena(chunk, zone_, thingKind, checkThresholds, lock);
   if (!arena) {
     return nullptr;
   }
