@@ -5,7 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 with Files("**"):
-    BUG_COMPONENT = ("Core", "Networking: DNS")
+    BUG_COMPONENT = ("Firefox", "Security")
 
 EXTRA_JS_MODULES += [
     "DoHConfig.sys.mjs",

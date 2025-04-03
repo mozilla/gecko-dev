@@ -77,9 +77,6 @@ function getRandomSubdomain() {
 // callback. The wrapper attempts the lookup 3 times before passing on a failure.
 // If a false-y `domain` is supplied, a random subdomain will be used. Each retry
 // will use a different random subdomain to ensure we bypass chached responses.
-/**
- *
- */
 export class DNSLookup {
   constructor(domain, trrServer, callback) {
     this._domain = domain;
@@ -123,9 +120,6 @@ DNSLookup.prototype.QueryInterface = ChromeUtils.generateQI(["nsIDNSListener"]);
 // A wrapper around a single set of measurements. The required lookups are
 // triggered and the results aggregated before telemetry is sent. If aborted,
 // any aggregated results are discarded.
-/**
- *
- */
 export class LookupAggregator {
   constructor(onCompleteCallback, trrList) {
     this.onCompleteCallback = onCompleteCallback;
@@ -227,9 +221,6 @@ export class LookupAggregator {
 // When the network goes down, an ongoing aggregator is aborted and a new one
 // spawned next time we get a link, up to 5 times. On the fifth time, we just
 // let the aggegator complete and mark it as tainted.
-/**
- *
- */
 export class TRRRacer {
   constructor(onCompleteCallback, trrList) {
     this._aggregator = null;

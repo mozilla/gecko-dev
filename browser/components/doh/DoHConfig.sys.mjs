@@ -262,22 +262,20 @@ export const DoHConfigController = {
   observe(subject, topic, data) {
     switch (topic) {
       case kPrefChangedTopic:
-        {
-          let allowedPrefs = Object.getOwnPropertyNames(kConfigPrefs).map(
-            k => kConfigPrefs[k]
-          );
-          if (
-            !allowedPrefs.some(pref =>
-              [
-                `${regionPrefBranch()}.${pref}`,
-                `${kGlobalPrefBranch}.${pref}`,
-              ].includes(data)
-            )
-          ) {
-            break;
-          }
-          this.notifyNewConfig();
+        let allowedPrefs = Object.getOwnPropertyNames(kConfigPrefs).map(
+          k => kConfigPrefs[k]
+        );
+        if (
+          !allowedPrefs.some(pref =>
+            [
+              `${regionPrefBranch()}.${pref}`,
+              `${kGlobalPrefBranch}.${pref}`,
+            ].includes(data)
+          )
+        ) {
+          break;
         }
+        this.notifyNewConfig();
         break;
       case "idle-daily":
         if (
@@ -333,11 +331,7 @@ export const DoHConfigController = {
       return;
     }
 
-    let isAndroid = Services.appinfo.OS === "Android";
-    if (
-      (isAndroid && localConfig.androidRolloutEnabled) ||
-      (!isAndroid && localConfig.rolloutEnabled)
-    ) {
+    if (localConfig.rolloutEnabled) {
       newConfig.enabled = true;
     }
 

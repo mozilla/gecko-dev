@@ -26,7 +26,7 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  DoHConfigController: "resource://gre/modules/DoHConfig.sys.mjs",
+  DoHConfigController: "resource:///modules/DoHConfig.sys.mjs",
 });
 
 const GLOBAL_CANARY = "use-application-dns.net.";
@@ -279,10 +279,6 @@ async function thirdPartyRoots() {
 }
 
 async function enterprisePolicy() {
-  if (!Services.policies) {
-    return "no_policy_set";
-  }
-
   if (Services.policies.status === Services.policies.ACTIVE) {
     let policies = Services.policies.getActivePolicies();
 

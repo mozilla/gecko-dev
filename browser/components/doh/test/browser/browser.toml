@@ -1,6 +1,5 @@
 [DEFAULT]
 head = "head.js"
-skip-if = ["os == 'android'"] # browser-chrome tests don't work on android
 
 ["browser_cleanFlow.js"]
 

@@ -2,10 +2,10 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
-  DoHConfigController: "resource://gre/modules/DoHConfig.sys.mjs",
-  DoHController: "resource://gre/modules/DoHController.sys.mjs",
+  DoHConfigController: "resource:///modules/DoHConfig.sys.mjs",
+  DoHController: "resource:///modules/DoHController.sys.mjs",
   DoHTestUtils: "resource://testing-common/DoHTestUtils.sys.mjs",
-  Heuristics: "resource://gre/modules/DoHHeuristics.sys.mjs",
+  Heuristics: "resource:///modules/DoHHeuristics.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RegionTestUtils: "resource://testing-common/RegionTestUtils.sys.mjs",
