@@ -32,7 +32,7 @@
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/StyleSheet.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DomSecurityMetrics.h"
 #include "nsIWebProgressListener.h"
 
 static mozilla::LazyLogModule gReferrerInfoLog("ReferrerInfo");
@@ -1695,8 +1695,8 @@ void ReferrerInfo::RecordTelemetry(nsIHttpChannel* aChannel) {
                 1
           : 0;
 
-  Telemetry::Accumulate(Telemetry::REFERRER_POLICY_COUNT,
-                        static_cast<uint32_t>(mPolicy) + telemetryOffset);
+  glean::security::referrer_policy_count.AccumulateSingleSample(
+      static_cast<uint32_t>(mPolicy) + telemetryOffset);
 }
 
 }  // namespace mozilla::dom
