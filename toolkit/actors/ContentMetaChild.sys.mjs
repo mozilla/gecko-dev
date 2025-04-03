@@ -179,15 +179,6 @@ export class ContentMetaChild extends JSWindowActorChild {
             description: entry.description.value,
             previewImageURL: entry.image.value,
           });
-
-          // Telemetry for recording the size of page metadata
-          let metadataSize = entry.description.value
-            ? entry.description.value.length
-            : 0;
-          metadataSize += entry.image.value ? entry.image.value.length : 0;
-          Services.telemetry
-            .getHistogramById("PAGE_METADATA_SIZE")
-            .add(metadataSize);
         },
         TIMEOUT_DELAY,
         Ci.nsITimer.TYPE_ONE_SHOT
