@@ -11,11 +11,6 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const kWebAppWindowFeatures =
   "chrome,dialog=no,titlebar,close,toolbar,location,personalbar=no,status,menubar=no,resizable,minimizable,scrollbars";
 
-let lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
-});
-
 export let TaskbarTabs = {
   async init(window) {
     if (
@@ -35,10 +30,18 @@ export let TaskbarTabs = {
   async handleEvent(event) {
     let gBrowser = event.view.gBrowser;
 
-    await lazy.BrowserWindowTracker.promiseOpenWindow({
-      features: kWebAppWindowFeatures,
-      args: this._generateArgs(gBrowser.selectedTab),
+    let win = Services.ww.openWindow(
+      null,
+      AppConstants.BROWSER_CHROME_URL,
+      "_blank",
+      kWebAppWindowFeatures,
+      this._generateArgs(gBrowser.selectedTab)
+    );
+
+    await new Promise(resolve => {
+      win.addEventListener("load", resolve, { once: true });
     });
+    await win.delayedStartupPromise;
   },
 
   /**
