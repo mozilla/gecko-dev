@@ -40,6 +40,13 @@ export class NetworkDecodedBodySizeMap {
    *     The channel ID of the new channel in the authentication chain.
    */
   setAuthenticationAttemptMapping(previousChannelId, nextChannelId) {
+    if (previousChannelId === nextChannelId) {
+      // If the preference network.auth.use_redirect_for_retries is set to false
+      // all channels in the authentication chain will share the same channelId.
+      // In this case there is no need to set anything in the map, the content
+      // size will be set for the correct channelId by design.
+      return;
+    }
     this.#authenticationAttemptsMap.set(previousChannelId, nextChannelId);
   }
 
