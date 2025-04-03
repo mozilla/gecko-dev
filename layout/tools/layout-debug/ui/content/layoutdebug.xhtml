@@ -6,6 +6,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
+
 <!DOCTYPE window>
 
 <!--
@@ -24,9 +26,6 @@
   align="stretch"
   data-l10n-id="layoutdebug-main-window"
   windowtype="mozapp:layoutdebug"
-  onload="OnLDBLoad();"
-  onclose="OnLDBBeforeUnload(event);"
-  onunload="OnLDBUnload();"
   width="1024"
   height="768"
   screenX="4"
@@ -41,18 +40,15 @@
   <script src="chrome://layoutdebug/content/layoutdebug.js" />
 
   <commandset id="tasksCommands">
-    <command id="cmd_open" oncommand="openFile();" />
-    <command id="cmd_close" oncommand="window.close();" />
-    <command id="cmd_focusURLBar" oncommand="focusURLBar();" />
-    <command id="cmd_reload" oncommand="gBrowser.reload();" />
-    <command id="cmd_dumpContent" oncommand="gDebugger.dumpContent();" />
-    <command id="cmd_dumpFrames" oncommand="gDebugger.dumpFrames();" />
-    <command
-      id="cmd_dumpFramesInCSSPixels"
-      oncommand="gDebugger.dumpFramesInCSSPixels();"
-    />
-    <command id="cmd_dumpTextRuns" oncommand="gDebugger.dumpTextRuns();" />
-    <command id="cmd_openDevTools" oncommand="gDebugger.openDevTools();" />
+    <command id="cmd_open" />
+    <command id="cmd_close" />
+    <command id="cmd_focusURLBar" />
+    <command id="cmd_reload" />
+    <command id="cmd_dumpContent" />
+    <command id="cmd_dumpFrames" />
+    <command id="cmd_dumpFramesInCSSPixels" />
+    <command id="cmd_dumpTextRuns" />
+    <command id="cmd_openDevTools" />
   </commandset>
 
   <keyset id="tasksKeys">
@@ -115,120 +111,104 @@
               />
             </menupopup>
           </menu>
-          <menu data-l10n-id="layoutdebug-toggle-menu">
+          <menu
+            id="layoutdebug-toggle-menu"
+            data-l10n-id="layoutdebug-toggle-menu"
+          >
             <menupopup>
               <menuitem
                 type="checkbox"
                 id="menu_paintDumping"
                 data-l10n-id="layoutdebug-paint-dumping"
-                oncommand="toggle(this);"
               />
               <menuitem
                 type="checkbox"
                 id="menu_invalidateDumping"
                 data-l10n-id="layoutdebug-invalidate-dumping"
-                oncommand="toggle(this);"
               />
               <menuseparator />
               <menuitem
                 type="checkbox"
                 id="menu_eventDumping"
                 data-l10n-id="layoutdebug-event-dumping"
-                oncommand="toggle(this);"
               />
               <menuitem
                 type="checkbox"
                 id="menu_motionEventDumping"
                 data-l10n-id="layoutdebug-motion-event-dumping"
-                oncommand="toggle(this);"
               />
               <menuitem
                 type="checkbox"
                 id="menu_crossingEventDumping"
                 data-l10n-id="layoutdebug-crossing-event-dumping"
-                oncommand="toggle(this);"
               />
               <menuseparator />
               <menuitem
                 type="checkbox"
                 id="menu_reflowCounts"
                 data-l10n-id="layoutdebug-reflow-counts"
-                oncommand="toggle(this);"
               />
               <menuitem
                 type="checkbox"
                 id="menu_pagedMode"
                 data-l10n-id="layoutdebug-paged-mode"
-                oncommand="toggle(this);"
               />
               <menuseparator />
               <menuitem
                 type="checkbox"
                 id="menu_deterministicFrameDumping"
                 data-l10n-id="layoutdebug-deterministic-frame-dumping"
-                oncommand="toggle(this);"
               />
             </menupopup>
           </menu>
-          <menu data-l10n-id="layoutdebug-dump-menu">
+          <menu id="layoutdebug-dump-menu" data-l10n-id="layoutdebug-dump-menu">
             <menupopup>
               <menuitem
                 id="menu_processIDs"
                 label="Process IDs"
                 accesskey="P"
-                oncommand="gDebugger.dumpProcessIDs();"
               />
               <menuitem
                 id="menu_dumpContent"
                 data-l10n-id="layoutdebug-dump-content"
-                oncommand="gDebugger.dumpContent();"
               />
               <menuitem
                 id="menu_dumpFrames"
                 data-l10n-id="layoutdebug-dump-frames"
-                oncommand="gDebugger.dumpFrames();"
               />
               <menuitem
                 id="menu_dumpFramesInCSSPixels"
                 data-l10n-id="layoutdebug-dump-frames-in-css-pixels"
-                oncommand="gDebugger.dumpFramesInCSSPixels();"
               />
               <menuitem
                 id="menu_dumpTextRuns"
                 data-l10n-id="layoutdebug-dump-text-runs"
-                oncommand="gDebugger.dumpTextRuns();"
               />
               <menuitem
                 id="menu_dumpViews"
                 data-l10n-id="layoutdebug-dump-views"
-                oncommand="gDebugger.dumpViews();"
               />
               <menuitem
                 id="menu_dumpCounterManager"
                 data-l10n-id="layoutdebug-dump-counter-manager"
-                oncommand="gDebugger.dumpCounterManager();"
               />
               <menuseparator />
               <menuitem
                 id="menu_dumpStyleSheets"
                 data-l10n-id="layoutdebug-dump-style-sheets"
-                oncommand="gDebugger.dumpStyleSheets();"
               />
               <menuitem
                 id="menu_dumpMatchedRules"
                 data-l10n-id="layoutdebug-dump-matched-rules"
-                oncommand="gDebugger.dumpMatchedRules();"
               />
               <menuitem
                 id="menu_dumpComputedStyles"
                 data-l10n-id="layoutdebug-dump-computed-styles"
-                oncommand="gDebugger.dumpComputedStyles();"
               />
               <menuseparator />
               <menuitem
                 id="menu_dumpReflowStats"
                 data-l10n-id="layoutdebug-dump-reflow-stats"
-                oncommand="gDebugger.dumpReflowStats();"
               />
             </menupopup>
           </menu>
@@ -237,18 +217,16 @@
         </menubar>
       </toolbar>
 
-      <toolbar>
+      <toolbar id="nav-toolbar">
         <toolbarbutton
           id="back-button"
           class="toolbarbutton-1"
           data-l10n-id="layoutdebug-back-button"
-          oncommand="gBrowser.goBack();"
         />
         <toolbarbutton
           id="forward-button"
           class="toolbarbutton-1"
           data-l10n-id="layoutdebug-forward-button"
-          oncommand="gBrowser.goForward();"
         />
         <toolbarbutton
           id="reload-button"
@@ -260,14 +238,9 @@
           id="stop-button"
           class="toolbarbutton-1"
           data-l10n-id="layoutdebug-stop-button"
-          oncommand="gBrowser.stop();"
         />
 
-        <html:input
-          id="urlbar"
-          style="flex: 1"
-          onkeypress="if (event.keyCode == 13) go();"
-        />
+        <html:input id="urlbar" style="flex: 1" />
       </toolbar>
     </toolbox>
 

@@ -1284,6 +1284,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://gfxsanity/content/sanitytest.html"_ns,
     "chrome://global/content/commonDialog.xhtml"_ns,
     "chrome://global/content/resetProfileProgress.xhtml"_ns,
+    "chrome://layoutdebug/content/layoutdebug.xhtml"_ns,
     "chrome://mozapps/content/downloads/unknownContentType.xhtml"_ns,
     "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
     "chrome://mozapps/content/preferences/changemp.xhtml"_ns,
@@ -1960,7 +1961,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://global/content/megalist/megalist.html"_ns,
       "chrome://global/content/selectDialog.xhtml"_ns,
       "chrome://global/content/win.xhtml"_ns,
-      "chrome://layoutdebug/content/layoutdebug.xhtml"_ns,
       // Test files
       "chrome://mochikit/"_ns,
       "chrome://mochitests/"_ns,

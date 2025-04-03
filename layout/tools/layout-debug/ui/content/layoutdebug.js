@@ -339,6 +339,115 @@ const TabCrashedObserver = {
 };
 
 function OnLDBLoad() {
+  window.addEventListener("close", event => OnLDBBeforeUnload(event));
+  window.addEventListener("unload", OnLDBUnload);
+  document
+    .getElementById("tasksCommands")
+    .addEventListener("command", event => {
+      switch (event.target.id) {
+        case "cmd_open":
+          openFile();
+          break;
+        case "cmd_close":
+          window.close();
+          break;
+        case "cmd_focusURLBar":
+          focusURLBar();
+          break;
+        case "cmd_reload":
+          gBrowser.reload();
+          break;
+        case "cmd_dumpContent":
+          gDebugger.dumpContent();
+          break;
+        case "cmd_dumpFrames":
+          gDebugger.dumpFrames();
+          break;
+        case "cmd_dumpFramesInCSSPixels":
+          gDebugger.dumpFramesInCSSPixels();
+          break;
+        case "cmd_dumpTextRuns":
+          gDebugger.dumpTextRuns();
+          break;
+        case "cmd_openDevTools":
+          gDebugger.openDevTools();
+          break;
+        default:
+          // Default means that we are not handling a command so we should
+          // probably let people know.
+          throw new Error("Unhandled command event");
+      }
+    });
+  document
+    .getElementById("layoutdebug-toggle-menu")
+    .addEventListener("command", event => {
+      toggle(event.target);
+    });
+  document
+    .getElementById("layoutdebug-dump-menu")
+    .addEventListener("command", event => {
+      switch (event.target.id) {
+        case "menu_processIDs":
+          gDebugger.dumpProcessIDs();
+          break;
+        case "menu_dumpContent":
+          gDebugger.dumpContent();
+          break;
+        case "menu_dumpFrames":
+          gDebugger.dumpFrames();
+          break;
+        case "menu_dumpFramesInCSSPixels":
+          gDebugger.dumpFramesInCSSPixels();
+          break;
+        case "menu_dumpTextRuns":
+          gDebugger.dumTextRuns();
+          break;
+        case "menu_dumpViews":
+          gDebugger.dumpViews();
+          break;
+        case "menu_dumpCounterManager":
+          gDebugger.dumpCounterManager();
+          break;
+        case "menu_dumpStyleSheets":
+          gDebugger.dumpStyleSheets();
+          break;
+        case "menu_dumpMatchedRules":
+          gDebugger.dumpMatchedRules();
+          break;
+        case "menu_dumpComputedStyles":
+          gDebugger.dumpComputedStyles();
+          break;
+        case "menu_dumpReflowStats":
+          gDebugger.dumpReflowStats();
+          break;
+        default:
+          // Default means that we are not handling a command so we should
+          // probably let people know.
+          throw new Error("Unhandled command event");
+      }
+    });
+  document.getElementById("nav-toolbar").addEventListener("command", event => {
+    switch (event.target.id) {
+      case "back-button":
+        gBrowser.goBack();
+        break;
+      case "forward-button":
+        gBrowser.goForward();
+        break;
+      case "stop-button":
+        gBrowser.stop();
+        break;
+      default:
+        // Default means that we are not handling a command so we should
+        // probably let people know.
+        throw new Error("Unhandled command event");
+    }
+  });
+  document.getElementById("urlbar").addEventListener("keypress", event => {
+    if (event.key == "Enter") {
+      go();
+    }
+  });
   gBrowser = document.getElementById("browser");
   gURLBar = document.getElementById("urlbar");
 
@@ -550,3 +659,5 @@ function go() {
   loadStringURI(gURLBar.value);
   gBrowser.focus();
 }
+
+window.addEventListener("load", OnLDBLoad);
