@@ -279,6 +279,10 @@ async function thirdPartyRoots() {
 }
 
 async function enterprisePolicy() {
+  if (!Services.policies) {
+    return "no_policy_set";
+  }
+
   if (Services.policies.status === Services.policies.ACTIVE) {
     let policies = Services.policies.getActivePolicies();
 
