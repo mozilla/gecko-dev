@@ -14,7 +14,7 @@
 #include "WinUtils.h"
 #include "WindowsUIUtils.h"
 #include "mozilla/FontPropertyTypes.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/WidgetWindowsMetrics.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/widget/WinRegistry.h"
 
@@ -119,8 +119,10 @@ uint32_t nsLookAndFeel::SystemColorFilter() {
 }
 
 nsLookAndFeel::nsLookAndFeel() {
-  mozilla::Telemetry::Accumulate(mozilla::Telemetry::TOUCH_ENABLED_DEVICE,
-                                 WinUtils::IsTouchDeviceSupportPresent());
+  glean::widget::touch_enabled_device
+      .EnumGet(static_cast<glean::widget::TouchEnabledDeviceLabel>(
+          WinUtils::IsTouchDeviceSupportPresent()))
+      .Add();
 }
 
 nsLookAndFeel::~nsLookAndFeel() = default;

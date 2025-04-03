@@ -45,3 +45,24 @@ widget:
       - mnakano.birchill@mozilla.com
     expires: never
     telemetry_mirror: WIDGET_IME_NAME_ON_WINDOWS_INSERTED_CRLF
+
+  touch_enabled_device:
+    type: labeled_counter
+    description: >
+      Boolean indicating if a touch input device is detected.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram TOUCH_ENABLED_DEVICE.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=795307
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1390269
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=795307
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1390269
+    notification_emails:
+      - jimm@mozilla.com
+    expires: never
+    telemetry_mirror: h#TOUCH_ENABLED_DEVICE
