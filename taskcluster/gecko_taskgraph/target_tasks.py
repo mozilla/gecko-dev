@@ -838,6 +838,8 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                     # Bug 1954202 Safari + JS3 seems to be perma failing on CI.
                     if "jetstream3" in try_name and "safari-tp" not in try_name:
                         return False
+                    if "jetstream2" in try_name and "safari" in try_name:
+                        return False
                     return True
         # Android selection
         elif accept_raptor_android_build(platform):

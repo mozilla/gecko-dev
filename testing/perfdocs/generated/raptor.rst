@@ -662,11 +662,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
-      * - **browsertime-benchmark-safari-jetstream2**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
 
 
    .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
@@ -702,11 +697,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-jetstream2**
         - ✅
         - ✅
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-jetstream2**
-        - ❌
-        - ❌
         - ❌
         - ❌
 
@@ -976,11 +966,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
-      * - **browsertime-benchmark-safari-jetstream2**
-        - ❌
-        - ❌
-        - ❌
-        - ❌
 
 
    .. list-table:: **test-macosx1470-64-nightlyasrelease/opt**
@@ -1016,11 +1001,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
       * - **browsertime-benchmark-firefox-jetstream2**
         - ✅
         - ✅
-        - ❌
-        - ❌
-      * - **browsertime-benchmark-safari-jetstream2**
-        - ❌
-        - ❌
         - ❌
         - ❌
 
