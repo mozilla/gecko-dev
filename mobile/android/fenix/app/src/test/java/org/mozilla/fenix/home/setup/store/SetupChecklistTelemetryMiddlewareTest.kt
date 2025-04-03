@@ -130,7 +130,8 @@ class SetupChecklistTelemetryMiddlewareTest {
     }
 
     /**
-     * Invokes the [ChecklistItem] clicked action of [type] for the given [SetupChecklistMiddleware].
+     * Invokes the [ChecklistItem] clicked action of [type] for the given
+     * [SetupChecklistPreferencesMiddleware].
      */
     private fun checklistItemClickedAction(
         middleware: SetupChecklistTelemetryMiddleware,
