@@ -7,7 +7,6 @@
 #ifndef DOM_FS_FILESYSTEMSYNCACCESSHANDLE_H_
 #define DOM_FS_FILESYSTEMSYNCACCESSHANDLE_H_
 
-#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/PFileSystemManager.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "nsCOMPtr.h"
@@ -27,6 +26,7 @@ class FileSystemAccessHandleChild;
 class FileSystemAccessHandleControlChild;
 struct FileSystemReadWriteOptions;
 class FileSystemManager;
+class MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer;
 class Promise;
 class StrongWorkerRef;
 
@@ -70,11 +70,13 @@ class FileSystemSyncAccessHandle final : public nsISupports,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface
-  uint64_t Read(const AllowSharedBufferSource& aBuffer,
-                const FileSystemReadWriteOptions& aOptions, ErrorResult& aRv);
+  uint64_t Read(
+      const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer,
+      const FileSystemReadWriteOptions& aOptions, ErrorResult& aRv);
 
-  uint64_t Write(const AllowSharedBufferSource& aBuffer,
-                 const FileSystemReadWriteOptions& aOptions, ErrorResult& aRv);
+  uint64_t Write(
+      const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer,
+      const FileSystemReadWriteOptions& aOptions, ErrorResult& aRv);
 
   void Truncate(uint64_t aSize, ErrorResult& aError);
 
@@ -95,9 +97,10 @@ class FileSystemSyncAccessHandle final : public nsISupports,
 
   virtual ~FileSystemSyncAccessHandle();
 
-  uint64_t ReadOrWrite(const AllowSharedBufferSource& aBuffer,
-                       const FileSystemReadWriteOptions& aOptions,
-                       const bool aRead, ErrorResult& aRv);
+  uint64_t ReadOrWrite(
+      const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer,
+      const FileSystemReadWriteOptions& aOptions, const bool aRead,
+      ErrorResult& aRv);
 
   nsresult EnsureStream();
 

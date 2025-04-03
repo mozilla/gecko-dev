@@ -17,15 +17,17 @@ interface EncodedVideoChunk {
   readonly attribute unsigned long long? duration;    // microseconds
   readonly attribute unsigned long byteLength;
 
+  // bug 1696216: Should be `copyTo([AllowShared] BufferSource destination)`
   [Throws]
-  undefined copyTo(AllowSharedBufferSource destination);
+  undefined copyTo(([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) destination);
 };
 
 dictionary EncodedVideoChunkInit {
   required EncodedVideoChunkType type;
   required [EnforceRange] long long timestamp;        // microseconds
   [EnforceRange] unsigned long long duration;         // microseconds
-  required AllowSharedBufferSource data;
+  // bug 1696216: Should be `required BufferSource data`
+  required ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) data;
 };
 
 enum EncodedVideoChunkType {

@@ -1908,7 +1908,7 @@ uint32_t VideoFrame::AllocationSize(const VideoFrameCopyToOptions& aOptions,
 
 // https://w3c.github.io/webcodecs/#dom-videoframe-copyto
 already_AddRefed<Promise> VideoFrame::CopyTo(
-    const AllowSharedBufferSource& aDestination,
+    const MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDestination,
     const VideoFrameCopyToOptions& aOptions, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 

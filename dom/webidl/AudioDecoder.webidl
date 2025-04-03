@@ -48,6 +48,6 @@ dictionary AudioDecoderConfig {
   required [EnforceRange] unsigned long sampleRate;
   required [EnforceRange] unsigned long numberOfChannels;
 
-  // Bug 1958020: This should be BufferSource
-  AllowSharedBufferSource description;
+  // Bug 1696216: Should be AllowSharedBufferSource
+  ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) description;
 };

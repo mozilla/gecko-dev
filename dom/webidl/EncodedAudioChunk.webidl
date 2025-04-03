@@ -18,14 +18,17 @@ interface EncodedAudioChunk {
   readonly attribute unsigned long byteLength;
 
   [Throws]
-  undefined copyTo(AllowSharedBufferSource destination);
+  undefined copyTo(
+      // bug 1696216: Should be `copyTo(AllowSharedBufferSource destination, ...)`
+      ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) destination);
 };
 
 dictionary EncodedAudioChunkInit {
   required EncodedAudioChunkType type;
   required [EnforceRange] long long timestamp;    // microseconds
   [EnforceRange] unsigned long long duration;     // microseconds
-  required AllowSharedBufferSource data;
+  // bug 1696216: Should be AllowSharedBufferSource
+  required ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) data;
   sequence<ArrayBuffer> transfer = [];
 };
 

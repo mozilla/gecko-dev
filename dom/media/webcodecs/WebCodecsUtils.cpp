@@ -112,7 +112,8 @@ bool IsSameColorSpace(const VideoColorSpaceInit& aLhs,
  */
 
 static std::tuple<JS::ArrayBufferOrView, size_t, size_t> GetArrayBufferInfo(
-    JSContext* aCx, const OwningAllowSharedBufferSource& aBuffer) {
+    JSContext* aCx,
+    const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer) {
   if (aBuffer.IsArrayBuffer()) {
     const ArrayBuffer& buffer = aBuffer.GetAsArrayBuffer();
     size_t length;
@@ -137,10 +138,11 @@ static std::tuple<JS::ArrayBufferOrView, size_t, size_t> GetArrayBufferInfo(
       JS_GetArrayBufferViewByteLength(obj));
 }
 
-Result<Ok, nsresult> CloneBuffer(JSContext* aCx,
-                                 OwningAllowSharedBufferSource& aDest,
-                                 const OwningAllowSharedBufferSource& aSrc,
-                                 ErrorResult& aRv) {
+Result<Ok, nsresult> CloneBuffer(
+    JSContext* aCx,
+    OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDest,
+    const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aSrc,
+    ErrorResult& aRv) {
   std::tuple<JS::ArrayBufferOrView, size_t, size_t> info =
       GetArrayBufferInfo(aCx, aSrc);
   JS::Rooted<JS::ArrayBufferOrView> abov(aCx);
@@ -168,7 +170,7 @@ Result<Ok, nsresult> CloneBuffer(JSContext* aCx,
 }
 
 Result<RefPtr<MediaByteBuffer>, nsresult> GetExtraDataFromArrayBuffer(
-    const OwningAllowSharedBufferSource& aBuffer) {
+    const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer) {
   RefPtr<MediaByteBuffer> data = MakeRefPtr<MediaByteBuffer>();
   if (!AppendTypedArrayDataTo(aBuffer, *data)) {
     return Err(NS_ERROR_OUT_OF_MEMORY);
@@ -176,8 +178,9 @@ Result<RefPtr<MediaByteBuffer>, nsresult> GetExtraDataFromArrayBuffer(
   return data->Length() > 0 ? data : nullptr;
 }
 
-bool CopyExtradataToDescription(JSContext* aCx, Span<const uint8_t>& aSrc,
-                                OwningAllowSharedBufferSource& aDest) {
+bool CopyExtradataToDescription(
+    JSContext* aCx, Span<const uint8_t>& aSrc,
+    OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDest) {
   MOZ_ASSERT(!aSrc.IsEmpty());
 
   MOZ_ASSERT(aCx);

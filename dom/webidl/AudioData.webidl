@@ -24,7 +24,10 @@ interface AudioData {
   [Throws]
   unsigned long allocationSize(AudioDataCopyToOptions options);
   [Throws]
-  undefined copyTo(AllowSharedBufferSource destination, AudioDataCopyToOptions options);
+  undefined copyTo(
+      // bug 1696216: Should be `copyTo(AllowSharedBufferSource destination, ...)`
+      ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) destination,
+       AudioDataCopyToOptions options);
   [Throws]
   AudioData clone();
   undefined close();
@@ -36,7 +39,8 @@ dictionary AudioDataInit {
   required [EnforceRange] unsigned long numberOfFrames;
   required [EnforceRange] unsigned long numberOfChannels;
   required [EnforceRange] long long timestamp;  // microseconds
-  required AllowSharedBufferSource data;
+  // bug 1696216: Should be AllowSharedBufferSource
+  required ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer) data;
   sequence<ArrayBuffer> transfer = [];
 };
 
