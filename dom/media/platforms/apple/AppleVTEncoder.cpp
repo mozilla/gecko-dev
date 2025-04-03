@@ -839,9 +839,7 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
     OSType format = MapPixelFormat(mConfig.mSourcePixelFormat).ref();
     size_t numPlanes = NumberOfPlanes(mConfig.mSourcePixelFormat);
     const PlanarYCbCrImage::Data* yuv = image->GetData();
-    if (!yuv) {
-      return nullptr;
-    }
+
     auto ySize = yuv->YDataSize();
     auto cbcrSize = yuv->CbCrDataSize();
     void* addresses[3] = {};
