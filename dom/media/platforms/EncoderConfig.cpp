@@ -5,9 +5,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "EncoderConfig.h"
+#include "ImageContainer.h"
 #include "MP4Decoder.h"
 #include "VPXDecoder.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/ImageUtils.h"
 
 namespace mozilla {
 
@@ -48,8 +50,9 @@ nsCString EncoderConfig::ToString() const {
     } else {
       rv.AppendLiteral(", hw: no preference");
     }
-    rv.AppendPrintf(" format (source): %s",
-                    GetEnumString(mSourcePixelFormat).get());
+    rv.AppendPrintf(
+        " format: %s (%s-range)", GetEnumString(mFormat.mPixelFormat).get(),
+        mFormat.mColorRange == gfx::ColorRange::FULL ? "full" : "limited");
     if (mScalabilityMode == ScalabilityMode::L1T2) {
       rv.AppendLiteral(" (L1T2)");
     } else if (mScalabilityMode == ScalabilityMode::L1T3) {
@@ -64,5 +67,42 @@ nsCString EncoderConfig::ToString() const {
   rv.AppendPrintf("(w/%s codec specific)", mCodecSpecific ? "" : "o");
   return rv;
 };
+
+nsCString EncoderConfig::SampleFormat::ToString() const {
+  nsCString str;
+  str.AppendPrintf("SampleFormat: %s", dom::GetEnumString(mPixelFormat).get());
+  if (mColorRange == gfx::ColorRange::FULL) {
+    str.AppendLiteral(" (full-range)");
+  } else {
+    str.AppendLiteral(" (limited-range)");
+  }
+  return str;
+}
+
+Result<EncoderConfig::SampleFormat, MediaResult>
+EncoderConfig::SampleFormat::FromImage(layers::Image* aImage) {
+  if (!aImage) {
+    return Err(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "No image"));
+  }
+
+  const dom::ImageUtils imageUtils(aImage);
+  Maybe<dom::ImageBitmapFormat> format = imageUtils.GetFormat();
+  if (format.isNothing()) {
+    return Err(
+        MediaResult(NS_ERROR_NOT_IMPLEMENTED,
+                    nsPrintfCString("unsupported image format: %d",
+                                    static_cast<int>(aImage->GetFormat()))));
+  }
+
+  if (layers::PlanarYCbCrImage* image = aImage->AsPlanarYCbCrImage()) {
+    if (const layers::PlanarYCbCrImage::Data* yuv = image->GetData()) {
+      return EncoderConfig::SampleFormat{format.ref(), yuv->mColorRange};
+    }
+    return Err(MediaResult(NS_ERROR_UNEXPECTED,
+                           "failed to get YUV data from a YUV image"));
+  }
+
+  return EncoderConfig::SampleFormat{format.ref(), gfx::ColorRange::FULL};
+}
 
 }  // namespace mozilla

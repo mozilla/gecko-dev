@@ -8,10 +8,16 @@
 #define mozilla_EncoderConfig_h_
 
 #include "H264.h"
+#include "MediaResult.h"
+#include "mozilla/Result.h"
 #include "mozilla/Variant.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 
 namespace mozilla {
+
+namespace layers {
+class Image;
+}  // namespace layers
 
 enum class CodecType {
   _BeginVideo_,
@@ -116,15 +122,28 @@ struct VP9Specific : public VP8Specific {
 // instance are to be ignored, and are set at their default value.
 class EncoderConfig final {
  public:
-  using PixelFormat = dom::ImageBitmapFormat;
   using CodecSpecific =
       Variant<H264Specific, OpusSpecific, VP8Specific, VP9Specific>;
+
+  struct SampleFormat {
+    dom::ImageBitmapFormat mPixelFormat;
+    gfx::ColorRange mColorRange;
+    bool operator==(const SampleFormat& aOther) const {
+      return mPixelFormat == aOther.mPixelFormat &&
+             mColorRange == aOther.mColorRange;
+    }
+    bool operator!=(const SampleFormat& aOther) const {
+      return !(*this == aOther);
+    }
+    nsCString ToString() const;
+    static Result<SampleFormat, MediaResult> FromImage(layers::Image* aImage);
+  };
 
   EncoderConfig(const EncoderConfig& aConfig) = default;
 
   // This constructor is used for video encoders
   EncoderConfig(const CodecType aCodecType, gfx::IntSize aSize,
-                const Usage aUsage, const PixelFormat aSourcePixelFormat,
+                const Usage aUsage, const SampleFormat& aFormat,
                 const uint32_t aFramerate, const size_t aKeyframeInterval,
                 const uint32_t aBitrate, const uint32_t aMinBitrate,
                 const uint32_t aMaxBitrate, const BitrateMode aBitrateMode,
@@ -139,7 +158,7 @@ class EncoderConfig final {
         mMaxBitrate(aMaxBitrate),
         mUsage(aUsage),
         mHardwarePreference(aHardwarePreference),
-        mSourcePixelFormat(aSourcePixelFormat),
+        mFormat(aFormat),
         mScalabilityMode(aScalabilityMode),
         mFramerate(aFramerate),
         mKeyframeInterval(aKeyframeInterval),
@@ -181,7 +200,7 @@ class EncoderConfig final {
   Usage mUsage{};
   // Video-only
   HardwarePreference mHardwarePreference{};
-  PixelFormat mSourcePixelFormat{};
+  SampleFormat mFormat{};
   ScalabilityMode mScalabilityMode{};
   uint32_t mFramerate{};
   size_t mKeyframeInterval{};

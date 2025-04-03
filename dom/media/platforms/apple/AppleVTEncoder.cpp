@@ -221,26 +221,6 @@ static Result<OSType, MediaResult> MapPixelFormat(
                                          dom::GetEnumString(aFormat).get())));
 }
 
-static Result<OSType, MediaResult> GetPixelFormat(Image* aImage) {
-  const dom::ImageUtils imageUtils(aImage);
-  Maybe<dom::ImageBitmapFormat> format = imageUtils.GetFormat();
-  if (format.isNothing()) {
-    return Err(
-        MediaResult(NS_ERROR_NOT_IMPLEMENTED, "unsupported image format"));
-  }
-
-  if (PlanarYCbCrImage* image = aImage->AsPlanarYCbCrImage()) {
-    if (const PlanarYCbCrImage::Data* yuv = image->GetData()) {
-      return MapPixelFormat(format.ref(), yuv->mColorRange);
-    }
-    return Err(MediaResult(NS_ERROR_UNEXPECTED,
-                           "failed to get YUV data for YUV image"));
-  }
-
-  // Mac only supports full-range RGB formats.
-  return MapPixelFormat(format.ref(), gfx::ColorRange::FULL);
-}
-
 RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
   MOZ_ASSERT(!mSession,
              "Cannot initialize encoder again without shutting down");
@@ -270,8 +250,8 @@ MediaResult AppleVTEncoder::InitSession() {
                        "SVC only supported on macOS 11.3 and more recent");
   }
 
-  // TODO: Set color range correctly.
-  auto r = MapPixelFormat(mConfig.mSourcePixelFormat, gfx::ColorRange::FULL);
+  auto r =
+      MapPixelFormat(mConfig.mFormat.mPixelFormat, mConfig.mFormat.mColorRange);
   if (r.isErr()) {
     return r.unwrapErr();
   }
@@ -872,23 +852,31 @@ static void ReleaseImage(void* aImageGrip, const void* aDataPtr,
 CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   AssertOnTaskQueue();
 
-  auto r = GetPixelFormat(aSource);
-  if (r.isErr()) {
-    MediaResult err = r.unwrapErr();
+  auto sfr = EncoderConfig::SampleFormat::FromImage(aSource);
+  if (sfr.isErr()) {
+    MediaResult err = sfr.unwrapErr();
+    LOGE("%s", err.Description().get());
+    return nullptr;
+  }
+  const EncoderConfig::SampleFormat sf = sfr.unwrap();
+
+  auto pfr = MapPixelFormat(sf.mPixelFormat, sf.mColorRange);
+  if (pfr.isErr()) {
+    MediaResult err = pfr.unwrapErr();
     LOGE("%s", err.Description().get());
     return nullptr;
   }
 
-  OSType pixelFormat = r.unwrap();
+  OSType pixelFormat = pfr.unwrap();
 
-  OSType presetFormat =
-      MapPixelFormat(mConfig.mSourcePixelFormat, gfx::ColorRange::FULL)
-          .unwrap();
-  if (pixelFormat != presetFormat) {
+  if (sf != mConfig.mFormat) {
+    MOZ_ASSERT(pixelFormat != MapPixelFormat(mConfig.mFormat.mPixelFormat,
+                                             mConfig.mFormat.mColorRange)
+                                  .unwrap());
     LOGV(
-        "Input image in format %d but encoder configured with format %d. "
+        "Input image in format %s but encoder configured with format %s. "
         "Fingers crossed",
-        pixelFormat, presetFormat);
+        sf.ToString().get(), mConfig.mFormat.ToString().get());
     // If the encoder cannot encode the image in pixelFormat to presetFormat,
     // a kVTPixelTransferNotSupportedErr error will be thrown. In such cases,
     // the encoder should be re-initialized (see bug 1955153).

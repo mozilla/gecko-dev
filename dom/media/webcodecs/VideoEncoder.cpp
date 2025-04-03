@@ -275,15 +275,17 @@ EncoderConfig VideoEncoderConfigInternal::ToEncoderConfig() const {
         false                  /* Flexible */
         ));
   }
-  return EncoderConfig(codecType, {mWidth, mHeight}, usage,
-                       // Gecko favors BGRA
-                       ImageBitmapFormat::BGRA32,
-                       SaturatingCast<uint32_t>(mFramerate.refOr(0.f)), 0,
-                       mBitrate.refOr(0), 0, 0,
-                       mBitrateMode == VideoEncoderBitrateMode::Constant
-                           ? mozilla::BitrateMode::Constant
-                           : mozilla::BitrateMode::Variable,
-                       hwPref, scalabilityMode, specific);
+  return EncoderConfig(
+      codecType, {mWidth, mHeight}, usage,
+      // Gecko favors BGRA
+      EncoderConfig::SampleFormat{.mPixelFormat = ImageBitmapFormat::BGRA32,
+                                  .mColorRange = gfx::ColorRange::FULL},
+      SaturatingCast<uint32_t>(mFramerate.refOr(0.f)), 0, mBitrate.refOr(0), 0,
+      0,
+      mBitrateMode == VideoEncoderBitrateMode::Constant
+          ? mozilla::BitrateMode::Constant
+          : mozilla::BitrateMode::Variable,
+      hwPref, scalabilityMode, specific);
 }
 already_AddRefed<WebCodecsConfigurationChangeList>
 VideoEncoderConfigInternal::Diff(
