@@ -203,7 +203,7 @@ void Http2Session::Shutdown(nsresult aReason) {
     ShutdownStream(stream, aReason);
   }
 
-  for (const auto& stream : mTunnelStreamTransactionHash.Values()) {
+  for (auto& stream : mTunnelStreams) {
     ShutdownStream(stream, aReason);
   }
 }
@@ -591,8 +591,8 @@ already_AddRefed<nsHttpConnection> Http2Session::CreateTunnelStream(
   RefPtr<nsHttpConnection> newConn = refStream->CreateHttpConnection(
       aHttpTransaction, aCallbacks, aRtt, aIsExtendedCONNECT);
 
-  mTunnelStreamTransactionHash.InsertOrUpdate(aHttpTransaction,
-                                              std::move(refStream));
+  refStream->SetTransactionId(reinterpret_cast<uintptr_t>(aHttpTransaction));
+  mTunnelStreams.AppendElement(std::move(refStream));
   return newConn.forget();
 }
 
@@ -1316,7 +1316,7 @@ void Http2Session::CleanupStream(Http2StreamBase* aStream, nsresult aResult,
   // its transaction
   nsAHttpTransaction* trans = aStream->Transaction();
   mStreamTransactionHash.Remove(trans);
-  mTunnelStreamTransactionHash.Remove(trans);
+  mTunnelStreams.RemoveElement(aStream);
 
   if (mShouldGoAway && !mStreamTransactionHash.Count()) Close(NS_OK);
 }
@@ -3402,7 +3402,7 @@ void Http2Session::Close(nsresult aReason) {
 
   mStreamIDHash.Clear();
   mStreamTransactionHash.Clear();
-  mTunnelStreamTransactionHash.Clear();
+  mTunnelStreams.Clear();
 
   uint32_t goAwayReason;
   if (mGoAwayReason != NO_HTTP_ERROR) {
@@ -3875,8 +3875,15 @@ nsresult Http2Session::TakeTransport(nsISocketTransport**,
 
 WebTransportSessionBase* Http2Session::GetWebTransportSession(
     nsAHttpTransaction* aTransaction) {
-  RefPtr<Http2StreamBase> stream =
-      mTunnelStreamTransactionHash.Get(aTransaction);
+  uintptr_t id = reinterpret_cast<uintptr_t>(aTransaction);
+  RefPtr<Http2StreamBase> stream;
+  for (auto& entry : mTunnelStreams) {
+    if (entry->GetTransactionId() == id) {
+      entry->SetTransactionId(0);
+      stream = entry;
+      break;
+    }
+  }
 
   if (!stream || !stream->GetHttp2WebTransportSession()) {
     MOZ_ASSERT(false, "There must be a stream");

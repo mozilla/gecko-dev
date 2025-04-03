@@ -417,8 +417,7 @@ class Http2Session final : public ASpdySession,
   nsTHashMap<nsUint32HashKey, Http2StreamBase*> mStreamIDHash;
   nsRefPtrHashtable<nsPtrHashKey<nsAHttpTransaction>, Http2StreamBase>
       mStreamTransactionHash;
-  nsRefPtrHashtable<nsPtrHashKey<nsAHttpTransaction>, Http2StreamBase>
-      mTunnelStreamTransactionHash;
+  nsTArray<RefPtr<Http2StreamTunnel>> mTunnelStreams;
 
   nsTArray<WeakPtr<Http2StreamBase>> mReadyForWrite;
   nsTArray<WeakPtr<Http2StreamBase>> mQueuedStreams;

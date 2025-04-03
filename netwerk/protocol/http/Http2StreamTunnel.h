@@ -52,6 +52,9 @@ class Http2StreamTunnel : public Http2StreamBase,
   }
   void MakeNonSticky() override {}
 
+  void SetTransactionId(uintptr_t aId) { mId = aId; };
+  uintptr_t GetTransactionId() const { return mId; }
+
  protected:
   ~Http2StreamTunnel();
   nsresult CallToReadData(uint32_t count, uint32_t* countRead) override;
@@ -72,6 +75,8 @@ class Http2StreamTunnel : public Http2StreamBase,
   RefPtr<nsHttpConnectionInfo> mConnectionInfo;
   bool mSendClosed{false};
   nsresult mCondition{NS_OK};
+  // Stores the address of the transaction that created this Http2StreamTunnel.
+  uintptr_t mId{0};
 };
 
 // f9d10060-f5d4-443e-ba59-f84ea975c5f0
