@@ -829,6 +829,28 @@ static void ReleaseImage(void* aImageGrip, const void* aDataPtr,
 CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   AssertOnTaskQueue();
 
+  const dom::ImageUtils imageUtils(aSource);
+  Maybe<dom::ImageBitmapFormat> format = imageUtils.GetFormat();
+  if (format.isNothing()) {
+    LOGE("Unsupported image format");
+    return nullptr;
+  }
+
+  if (format.ref() != mConfig.mSourcePixelFormat) {
+    LOGV("Input image in format %s, but encoder applied with format %s",
+         dom::GetEnumString(format.ref()).get(),
+         dom::GetEnumString(mConfig.mSourcePixelFormat).get());
+  }
+
+  auto r = MapPixelFormat(format.ref());
+  if (r.isErr()) {
+    MediaResult err = r.unwrapErr();
+    LOGE("%s", err.Description().get());
+    return nullptr;
+  }
+
+  OSType pixelFormat = r.unwrap();
+
   if (aSource->GetFormat() == ImageFormat::PLANAR_YCBCR) {
     PlanarYCbCrImage* image = aSource->AsPlanarYCbCrImage();
     if (!image || !image->GetData()) {
@@ -836,8 +858,7 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
       return nullptr;
     }
 
-    OSType format = MapPixelFormat(mConfig.mSourcePixelFormat).unwrap();
-    size_t numPlanes = NumberOfPlanes(format);
+    size_t numPlanes = NumberOfPlanes(pixelFormat);
     const PlanarYCbCrImage::Data* yuv = image->GetData();
 
     auto ySize = yuv->YDataSize();
@@ -875,8 +896,8 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
     image->AddRef();  // Grip input buffers.
     CVReturn rv = CVPixelBufferCreateWithPlanarBytes(
         kCFAllocatorDefault, yuv->mPictureRect.width, yuv->mPictureRect.height,
-        format, nullptr /* dataPtr */, 0 /* dataSize */, numPlanes, addresses,
-        widths, heights, strides, ReleaseImage /* releaseCallback */,
+        pixelFormat, nullptr /* dataPtr */, 0 /* dataSize */, numPlanes,
+        addresses, widths, heights, strides, ReleaseImage /* releaseCallback */,
         image /* releaseRefCon */, nullptr /* pixelBufferAttributes */,
         &buffer);
     if (rv == kCVReturnSuccess) {
@@ -907,31 +928,11 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
     return nullptr;
   }
 
-  const dom::ImageUtils imageUtils(aSource);
-  Maybe<dom::ImageBitmapFormat> format = imageUtils.GetFormat();
-  if (format.isNothing()) {
-    LOGE("Image conversion not implemented in AppleVTEncoder");
-    return nullptr;
-  }
-
-  if (format.ref() != mConfig.mSourcePixelFormat) {
-    LOGV("Encode image in %s format, even though config's source format is %s",
-         dom::GetEnumString(format.ref()).get(),
-         dom::GetEnumString(mConfig.mSourcePixelFormat).get());
-  }
-
-  auto r = MapPixelFormat(format.ref());
-  if (r.isErr()) {
-    MediaResult err = r.unwrapErr();
-    LOGE("%s", err.Description().get());
-    return nullptr;
-  }
-
   CVPixelBufferRef buffer = nullptr;
   gfx::DataSourceSurface* dss = dataSurface.forget().take();
   CVReturn rv = CVPixelBufferCreateWithBytes(
       kCFAllocatorDefault, dss->GetSize().Width(), dss->GetSize().Height(),
-      r.unwrap(), map.GetData(), map.GetStride(), ReleaseSurface, dss, nullptr,
+      pixelFormat, map.GetData(), map.GetStride(), ReleaseSurface, dss, nullptr,
       &buffer);
   if (rv == kCVReturnSuccess) {
     return buffer;
