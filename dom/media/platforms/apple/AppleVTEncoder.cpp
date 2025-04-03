@@ -176,167 +176,12 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
   MOZ_ASSERT(!mSession,
              "Cannot initialize encoder again without shutting down");
 
-  auto errorExit = MakeScopeExit([&] { InvalidateSessionIfNeeded(); });
-
-  if (mConfig.mSize.width == 0 || mConfig.mSize.height == 0) {
-    LOGE("width or height 0 in encoder init");
-    return InitPromise::CreateAndReject(NS_ERROR_ILLEGAL_VALUE, __func__);
+  MediaResult r = InitSession();
+  if (NS_FAILED(r.Code())) {
+    LOGE("%s", r.Description().get());
+    return InitPromise::CreateAndReject(r, __func__);
   }
 
-  if (mConfig.mScalabilityMode != ScalabilityMode::None && !OSSupportsSVC()) {
-    LOGE("SVC only supported on macOS 11.3 and more recent");
-    return InitPromise::CreateAndReject(
-        MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
-                    "SVC only supported on macOS 11.3 and more recent"),
-        __func__);
-  }
-
-  bool lowLatencyRateControl =
-      mConfig.mUsage == Usage::Realtime ||
-      mConfig.mScalabilityMode != ScalabilityMode::None;
-  LOGD("low latency rate control: %s, Hardware allowed: %s",
-       lowLatencyRateControl ? "yes" : "no",
-       mHardwareNotAllowed ? "no" : "yes");
-  AutoCFRelease<CFDictionaryRef> spec(
-      BuildEncoderSpec(mHardwareNotAllowed, lowLatencyRateControl));
-  AutoCFRelease<CFDictionaryRef> srcBufferAttr(
-      BuildSourceImageBufferAttributes());
-  if (!srcBufferAttr) {
-    LOGE("Failed to create source buffer attr");
-    return InitPromise::CreateAndReject(
-        MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
-                    "fail to create source buffer attributes"),
-        __func__);
-  }
-
-  OSStatus status = VTCompressionSessionCreate(
-      kCFAllocatorDefault, mConfig.mSize.width, mConfig.mSize.height,
-      kCMVideoCodecType_H264, spec, srcBufferAttr, kCFAllocatorDefault,
-      &FrameCallback, this /* outputCallbackRefCon */, &mSession);
-
-  if (status != noErr) {
-    LOGE("Failed to create compression session");
-    return InitPromise::CreateAndReject(
-        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                    "fail to create encoder session"),
-        __func__);
-  }
-
-  if (VTSessionSetProperty(mSession,
-                           kVTCompressionPropertyKey_AllowFrameReordering,
-                           kCFBooleanFalse) != noErr) {
-    LOGE("Couldn't disable bframes");
-    return InitPromise::CreateAndReject(
-        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Couldn't disable bframes"),
-        __func__);
-  }
-
-  if (mConfig.mUsage == Usage::Realtime && !SetRealtime(mSession, true)) {
-    LOGE("fail to configure realtime properties");
-    return InitPromise::CreateAndReject(
-        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                    "fail to configure real-time"),
-        __func__);
-  }
-
-  if (mConfig.mBitrate) {
-    if (mConfig.mCodec == CodecType::H264 &&
-        mConfig.mBitrateMode == BitrateMode::Constant) {
-      // Not supported, fall-back to VBR.
-      LOGD("H264 CBR not supported in VideoToolbox, falling back to VBR");
-      mConfig.mBitrateMode = BitrateMode::Variable;
-    }
-    bool rv =
-        SetBitrateAndMode(mSession, mConfig.mBitrateMode, mConfig.mBitrate);
-    if (!rv) {
-      LOGE("failed to set bitrate to %d and mode to %s", mConfig.mBitrate,
-           mConfig.mBitrateMode == BitrateMode::Constant ? "constant"
-                                                         : "variable");
-      return InitPromise::CreateAndReject(
-          MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                      "fail to configurate bitrate"),
-          __func__);
-    }
-  }
-
-  if (mConfig.mScalabilityMode != ScalabilityMode::None) {
-    if (__builtin_available(macos 11.3, *)) {
-      float baseLayerFPSRatio = 1.0f;
-      switch (mConfig.mScalabilityMode) {
-        case ScalabilityMode::L1T2:
-          baseLayerFPSRatio = 0.5;
-          break;
-        case ScalabilityMode::L1T3:
-          // Not supported in hw on macOS, but is accepted and errors out when
-          // encoding. Reject the configuration now.
-          LOGE("macOS only supports L1T2 h264 SVC");
-          return InitPromise::CreateAndReject(
-              MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                          nsPrintfCString("macOS only support L1T2 h264 SVC")),
-              __func__);
-        default:
-          MOZ_ASSERT_UNREACHABLE("Unhandled value");
-      }
-      AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
-          kCFAllocatorDefault, kCFNumberFloatType, &baseLayerFPSRatio));
-      if (VTSessionSetProperty(
-              mSession, kVTCompressionPropertyKey_BaseLayerFrameRateFraction,
-              cf)) {
-        LOGE("Failed to set base layer framerate fraction to %f",
-             baseLayerFPSRatio);
-        return InitPromise::CreateAndReject(
-            MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                        nsPrintfCString("fail to configure SVC (base ratio: %f",
-                                        baseLayerFPSRatio)),
-            __func__);
-      }
-    } else {
-      LOGE("MacOS version too old to enable SVC");
-      return InitPromise::CreateAndReject(
-          MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                      "macOS version too old to enable SVC"),
-          __func__);
-    }
-  }
-
-  int64_t interval =
-      mConfig.mKeyframeInterval > std::numeric_limits<int64_t>::max()
-          ? std::numeric_limits<int64_t>::max()
-          : AssertedCast<int64_t>(mConfig.mKeyframeInterval);
-  AutoCFRelease<CFNumberRef> cf(
-      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &interval));
-  if (VTSessionSetProperty(mSession,
-                           kVTCompressionPropertyKey_MaxKeyFrameInterval,
-                           cf) != noErr) {
-    LOGE("Failed to set max keyframe interval");
-    return InitPromise::CreateAndReject(
-        MediaResult(
-            NS_ERROR_DOM_MEDIA_FATAL_ERR,
-            nsPrintfCString("fail to configurate keyframe interval:%" PRId64,
-                            interval)),
-        __func__);
-  }
-
-  if (mConfig.mCodecSpecific) {
-    const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
-    if (!SetProfileLevel(mSession, specific.mProfile)) {
-      LOGE("Failed to set profile level");
-      return InitPromise::CreateAndReject(
-          MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                      nsPrintfCString("fail to configurate profile level:%d",
-                                      int(specific.mProfile))),
-          __func__);
-    }
-  }
-
-  AutoCFRelease<CFBooleanRef> isUsingHW = nullptr;
-  status = VTSessionCopyProperty(
-      mSession, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
-      kCFAllocatorDefault, isUsingHW.receive());
-  mIsHardwareAccelerated = status == noErr && isUsingHW == kCFBooleanTrue;
-  LOGD("Using hw acceleration: %s", mIsHardwareAccelerated ? "yes" : "no");
-
-  errorExit.release();
   mError = NS_OK;
   return InitPromise::CreateAndResolve(true, __func__);
 }
@@ -362,6 +207,139 @@ static Maybe<OSType> MapPixelFormat(dom::ImageBitmapFormat aFormat) {
     default:
       return Nothing();
   }
+}
+
+MediaResult AppleVTEncoder::InitSession() {
+  MOZ_ASSERT(!mSession);
+
+  auto errorExit = MakeScopeExit([&] { InvalidateSessionIfNeeded(); });
+
+  if (mConfig.mSize.width == 0 || mConfig.mSize.height == 0) {
+    return MediaResult(NS_ERROR_ILLEGAL_VALUE,
+                       "width or height 0 in encoder init");
+  }
+
+  if (mConfig.mScalabilityMode != ScalabilityMode::None && !OSSupportsSVC()) {
+    return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                       "SVC only supported on macOS 11.3 and more recent");
+  }
+
+  bool lowLatencyRateControl =
+      mConfig.mUsage == Usage::Realtime ||
+      mConfig.mScalabilityMode != ScalabilityMode::None;
+  LOGD("low latency rate control: %s, Hardware allowed: %s",
+       lowLatencyRateControl ? "yes" : "no",
+       mHardwareNotAllowed ? "no" : "yes");
+  AutoCFRelease<CFDictionaryRef> spec(
+      BuildEncoderSpec(mHardwareNotAllowed, lowLatencyRateControl));
+  AutoCFRelease<CFDictionaryRef> srcBufferAttr(
+      BuildSourceImageBufferAttributes());
+  if (!srcBufferAttr) {
+    return MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR,
+                       "fail to create source buffer attributes");
+  }
+
+  OSStatus status = VTCompressionSessionCreate(
+      kCFAllocatorDefault, mConfig.mSize.width, mConfig.mSize.height,
+      kCMVideoCodecType_H264, spec, srcBufferAttr, kCFAllocatorDefault,
+      &FrameCallback, this /* outputCallbackRefCon */, &mSession);
+  if (status != noErr) {
+    return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                       "fail to create encoder session");
+  }
+
+  if (VTSessionSetProperty(mSession,
+                           kVTCompressionPropertyKey_AllowFrameReordering,
+                           kCFBooleanFalse) != noErr) {
+    return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                       "Couldn't disable bframes");
+  }
+
+  if (mConfig.mUsage == Usage::Realtime && !SetRealtime(mSession, true)) {
+    return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                       "fail to configure real-time");
+  }
+
+  if (mConfig.mBitrate) {
+    if (mConfig.mCodec == CodecType::H264 &&
+        mConfig.mBitrateMode == BitrateMode::Constant) {
+      // Not supported, fall-back to VBR.
+      LOGD("H264 CBR not supported in VideoToolbox, falling back to VBR");
+      mConfig.mBitrateMode = BitrateMode::Variable;
+    }
+    bool rv =
+        SetBitrateAndMode(mSession, mConfig.mBitrateMode, mConfig.mBitrate);
+    if (!rv) {
+      return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                         "fail to configurate bitrate");
+    }
+  }
+
+  if (mConfig.mScalabilityMode != ScalabilityMode::None) {
+    if (__builtin_available(macos 11.3, *)) {
+      float baseLayerFPSRatio = 1.0f;
+      switch (mConfig.mScalabilityMode) {
+        case ScalabilityMode::L1T2:
+          baseLayerFPSRatio = 0.5;
+          break;
+        case ScalabilityMode::L1T3:
+          // Not supported in hw on macOS, but is accepted and errors out when
+          // encoding. Reject the configuration now.
+          return MediaResult(
+              NS_ERROR_DOM_MEDIA_FATAL_ERR,
+              nsPrintfCString("macOS only support L1T2 h264 SVC"));
+        default:
+          MOZ_ASSERT_UNREACHABLE("Unhandled value");
+      }
+      AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
+          kCFAllocatorDefault, kCFNumberFloatType, &baseLayerFPSRatio));
+      if (VTSessionSetProperty(
+              mSession, kVTCompressionPropertyKey_BaseLayerFrameRateFraction,
+              cf)) {
+        return MediaResult(
+            NS_ERROR_DOM_MEDIA_FATAL_ERR,
+            nsPrintfCString("fail to configure SVC (base ratio: %f",
+                            baseLayerFPSRatio));
+      }
+    } else {
+      return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                         "macOS version too old to enable SVC");
+    }
+  }
+
+  int64_t interval =
+      mConfig.mKeyframeInterval > std::numeric_limits<int64_t>::max()
+          ? std::numeric_limits<int64_t>::max()
+          : AssertedCast<int64_t>(mConfig.mKeyframeInterval);
+  AutoCFRelease<CFNumberRef> cf(
+      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &interval));
+  if (VTSessionSetProperty(mSession,
+                           kVTCompressionPropertyKey_MaxKeyFrameInterval,
+                           cf) != noErr) {
+    return MediaResult(
+        NS_ERROR_DOM_MEDIA_FATAL_ERR,
+        nsPrintfCString("fail to configurate keyframe interval:%" PRId64,
+                        interval));
+  }
+
+  if (mConfig.mCodecSpecific) {
+    const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
+    if (!SetProfileLevel(mSession, specific.mProfile)) {
+      return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                         nsPrintfCString("fail to configurate profile level:%d",
+                                         int(specific.mProfile)));
+    }
+  }
+
+  AutoCFRelease<CFBooleanRef> isUsingHW = nullptr;
+  status = VTSessionCopyProperty(
+      mSession, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
+      kCFAllocatorDefault, isUsingHW.receive());
+  mIsHardwareAccelerated = status == noErr && isUsingHW == kCFBooleanTrue;
+  LOGD("Using hw acceleration: %s", mIsHardwareAccelerated ? "yes" : "no");
+
+  errorExit.release();
+  return NS_OK;
 }
 
 void AppleVTEncoder::InvalidateSessionIfNeeded() {
