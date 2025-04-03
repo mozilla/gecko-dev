@@ -333,6 +333,7 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
   mIsHardwareAccelerated = status == noErr && isUsingHW == kCFBooleanTrue;
   LOGD("Using hw acceleration: %s", mIsHardwareAccelerated ? "yes" : "no");
 
+  mInited = true;
   mError = NS_OK;
   return InitPromise::CreateAndResolve(true, __func__);
 }
@@ -691,6 +692,7 @@ void AppleVTEncoder::ProcessEncode(const RefPtr<const VideoData>& aSample) {
   LOGV("::ProcessEncode");
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
+  MOZ_ASSERT(mInited);
 
   if (NS_FAILED(mError)) {
     LOGE("Pending error: %s", mError.Description().get());
@@ -750,6 +752,7 @@ AppleVTEncoder::ProcessReconfigure(
     const RefPtr<const EncoderConfigurationChangeList>& aConfigurationChanges) {
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
+  MOZ_ASSERT(mInited);
 
   bool ok = false;
   for (const auto& confChange : aConfigurationChanges->mChanges) {
@@ -953,6 +956,7 @@ RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessDrain() {
   LOGV("::ProcessDrain");
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
+  MOZ_ASSERT(mInited);
 
   OSStatus status =
       VTCompressionSessionCompleteFrames(mSession, kCMTimeIndefinite);
@@ -990,8 +994,8 @@ RefPtr<ShutdownPromise> AppleVTEncoder::ProcessShutdown() {
     VTCompressionSessionInvalidate(mSession);
     CFRelease(mSession);
     mSession = nullptr;
-    mInited = false;
   }
+  mInited = false;
 
   mError = MediaResult(NS_ERROR_DOM_MEDIA_CANCELED, "Canceled in shutdown");
   MaybeResolveOrRejectEncodePromise();
