@@ -53,20 +53,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 export const DAPTelemetrySender = new (class {
   async startup() {
-    if (
-      Services.startup.isInOrBeyondShutdownPhase(
-        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
-      )
-    ) {
-      lazy.logConsole.warn(
-        "DAPTelemetrySender startup not possible due to shutdown."
-      );
-      return;
-    }
-
-    // Note that this can block until the ExperimentAPI is available.
-    // This is fine as we depend on it. In case of a race with shutdown
-    // it will reject, making the below getVariable calls return null.
     await lazy.NimbusFeatures.dapTelemetry.ready();
 
     if (
@@ -115,7 +101,7 @@ export const DAPTelemetrySender = new (class {
         });
       };
 
-      lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
+      lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
         "DAPTelemetrySender: sending data",
         this._asyncShutdownBlocker
       );
