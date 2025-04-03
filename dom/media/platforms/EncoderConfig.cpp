@@ -56,7 +56,7 @@ nsCString EncoderConfig::ToString() const {
     if (mScalabilityMode == ScalabilityMode::L1T2) {
       rv.AppendLiteral(" (L1T2)");
     } else if (mScalabilityMode == ScalabilityMode::L1T3) {
-      rv.AppendLiteral(" (L1T2)");
+      rv.AppendLiteral(" (L1T3)");
     }
     rv.AppendPrintf(", fps: %" PRIu8, mFramerate);
     rv.AppendPrintf(", kf interval: %zu", mKeyframeInterval);
