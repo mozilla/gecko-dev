@@ -1260,6 +1260,14 @@ html {
   --mr-screen-background-color: #F8F6F4;
   --single-select-border-color: #8F8F9D;
   --single-select-hover-color: #DEDEDF;
+  --picker-background-color: color-mix(in srgb, transparent 98%, black 2%);
+  --picker-hover-background-color: color-mix(in srgb, transparent 95%, black 5%);
+  --picker-border-color: var(--in-content-border-color);
+  --picker-checked-border-color: var(--in-content-item-selected);
+  --picker-hover-border-color: var(--picker-border-color);
+  --picker-focus-ring-color: var(--in-content-item-selected);
+  --picker-checkbox-color: var(--in-content-item-selected);
+  --picker-checkbox-hover-color: var(--picker-checkbox-color);
   font-family: system-ui;
   font-size: 16px;
   position: relative;
@@ -1274,6 +1282,20 @@ html {
     --mr-welcome-background-gradient: linear-gradient(0deg, rgba(144, 89, 255, 30%) 0%, rgba(2, 144, 238, 30%) 100%);
     --mr-screen-background-color: #62697A;
     --single-select-hover-color: #52525E;
+    --picker-background-color: color-mix(in srgb, transparent 98%, white 2%);
+    --picker-hover-background-color: color-mix(in srgb, transparent 95%, white 5%);
+  }
+}
+@media (forced-colors: active) {
+  .onboardingContainer {
+    --picker-background-color: ButtonFace;
+    --picker-hover-background-color: SelectedItemText;
+    --picker-border-color: ButtonText;
+    --picker-checked-border-color: var(--picker-border-color);
+    --picker-hover-border-color: SelectedItem;
+    --picker-focus-ring-color: CanvasText;
+    --picker-checkbox-color: ButtonText;
+    --picker-checkbox-hover-color: SelectedItem;
   }
 }
 @media (prefers-contrast) {
@@ -3213,6 +3235,66 @@ html {
 .onboardingContainer #content-tiles-container .content-tile .multi-select-container {
   padding: 24px;
   margin: 0;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker {
+  display: flex;
+  flex-flow: row wrap;
+  box-sizing: border-box;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker input[type=checkbox] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background-color: var(--picker-background-color);
+  border: 1px solid var(--picker-border-color);
+  padding: 8px 12px;
+  border-radius: 100px;
+  user-select: none;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container:has(input:checked) {
+  border-color: var(--picker-checked-border-color);
+  border-width: 3px;
+  margin: -2px;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container:has(input:checked):hover {
+  border-color: var(--picker-hover-border-color);
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container:hover {
+  background-color: var(--picker-hover-background-color);
+  border-color: var(--picker-hover-border-color);
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container:hover .picker-icon.picker-checked {
+  background-color: var(--picker-checkbox-hover-color);
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container:focus-visible {
+  outline: 2px solid var(--picker-focus-ring-color);
+  outline-offset: 6px;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container:focus-visible:has(input:checked) {
+  outline-offset: 4px;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container .picker-icon {
+  border-radius: 100%;
+  width: 27px;
+  height: 27px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  margin-inline-end: 8px;
+  font-size: 12px;
+  forced-color-adjust: none;
+}
+.onboardingContainer #content-tiles-container .content-tile .multi-select-container.picker .checkbox-container .picker-icon.picker-checked {
+  forced-color-adjust: auto;
+  background-color: var(--picker-checkbox-color);
+  mask: url("chrome://global/skin/icons/check.svg") center/15px no-repeat exclude, linear-gradient(#000 0 0);
 }
 .onboardingContainer #content-tiles-container .content-tile .multi-select-container .checkbox-container {
   display: grid;

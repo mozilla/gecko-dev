@@ -218,4 +218,166 @@ describe("MultiSelect component", () => {
     assert.strictEqual(checks.first().prop("style").color, "blue");
     assert.strictEqual(checks.at(1).prop("style").color, "yellow");
   });
+
+  it("should render picker elements when multiSelectItemDesign is 'picker'", () => {
+    const PICKER_PROPS = { ...MULTISELECT_SCREEN_PROPS };
+    PICKER_PROPS.content.tiles.multiSelectItemDesign = "picker";
+    PICKER_PROPS.content.tiles.data = [
+      {
+        id: "picker-option-1",
+        defaultValue: true,
+        label: "Picker Option 1",
+        pickerEmoji: "🙃",
+        pickerEmojiBackgroundColor: "#c3e0ff",
+      },
+      {
+        id: "picker-option-2",
+        defaultValue: false,
+        label: "Picker Option 2",
+        pickerEmoji: "✨",
+        pickerEmojiBackgroundColor: "#ffebcc",
+      },
+    ];
+
+    const wrapper = mount(<MultiSelect {...PICKER_PROPS} />);
+    wrapper.setProps({ activeMultiSelect: ["picker-option-1"] });
+
+    // Container should have picker class
+    const container = wrapper.find(".multi-select-container");
+    assert.strictEqual(container.hasClass("picker"), true);
+
+    const pickerIcons = wrapper.find(".picker-icon");
+    assert.strictEqual(pickerIcons.length, 2);
+
+    // First icon should be checked (no emoji, no background color)
+    const firstIcon = pickerIcons.at(0);
+    assert.strictEqual(firstIcon.hasClass("picker-checked"), true);
+    assert.strictEqual(firstIcon.text(), "");
+    assert.strictEqual(firstIcon.prop("style").backgroundColor, undefined);
+
+    // Second icon should not be checked (should have emoji and background color)
+    const secondIcon = pickerIcons.at(1);
+    assert.strictEqual(secondIcon.hasClass("picker-checked"), false);
+    assert.strictEqual(secondIcon.text(), "✨");
+    assert.strictEqual(secondIcon.prop("style").backgroundColor, "#ffebcc");
+  });
+
+  // The picker design adds functionality for checkbox to be checked
+  // even when click events occur on the container itself, instead of just
+  // the label or input
+  it("should handle click events for picker design", () => {
+    const PICKER_PROPS = { ...MULTISELECT_SCREEN_PROPS };
+    PICKER_PROPS.content.tiles.multiSelectItemDesign = "picker";
+    PICKER_PROPS.content.tiles.data = [
+      {
+        id: "picker-option-1",
+        defaultValue: true,
+        label: "Picker Option 1",
+        pickerEmoji: "🙃",
+      },
+      {
+        id: "picker-option-2",
+        defaultValue: false,
+        label: "Picker Option 2",
+        pickerEmoji: "✨",
+      },
+    ];
+
+    const wrapper = mount(<MultiSelect {...PICKER_PROPS} />);
+    wrapper.setProps({ activeMultiSelect: ["picker-option-1"] });
+
+    // check the container of the second item
+    const checkboxContainers = wrapper.find(".checkbox-container");
+    const secondContainer = checkboxContainers.at(1);
+    secondContainer.simulate("click");
+
+    // setActiveMultiSelect should be called with both ids
+    assert.calledWith(setActiveMultiSelect, [
+      "picker-option-1",
+      "picker-option-2",
+    ]);
+
+    // uncheck the first item
+    const firstContainer = checkboxContainers.at(0);
+    firstContainer.simulate("click");
+
+    // setActiveMultiSelect should be called with just the second id
+    assert.calledWith(setActiveMultiSelect, ["picker-option-2"]);
+  });
+
+  it("should handle keyboard events for picker design", () => {
+    const PICKER_PROPS = { ...MULTISELECT_SCREEN_PROPS };
+    PICKER_PROPS.content.tiles.multiSelectItemDesign = "picker";
+    PICKER_PROPS.content.tiles.data = [
+      {
+        id: "picker-option-1",
+        defaultValue: false,
+        label: "Picker Option 1",
+      },
+    ];
+
+    const wrapper = mount(<MultiSelect {...PICKER_PROPS} />);
+    wrapper.setProps({ activeMultiSelect: [] });
+
+    const checkboxContainer = wrapper.find(".checkbox-container").first();
+
+    // Test spacebar press
+    checkboxContainer.simulate("keydown", {
+      key: " ",
+    });
+    assert.calledWith(setActiveMultiSelect, ["picker-option-1"]);
+
+    // Test Enter press
+    checkboxContainer.simulate("keydown", {
+      key: "Enter",
+    });
+    assert.calledWith(setActiveMultiSelect, []);
+
+    // Test other key press
+    setActiveMultiSelect.reset();
+    checkboxContainer.simulate("keydown", {
+      key: "Tab",
+    });
+    assert.notCalled(setActiveMultiSelect);
+  });
+
+  it("should not use handleCheckboxContainerInteraction when multiSelectItemDesign is not 'picker'", () => {
+    const wrapper = mount(<MultiSelect {...MULTISELECT_SCREEN_PROPS} />);
+    wrapper.setProps({ activeMultiSelect: ["checkbox-1"] });
+
+    const checkboxContainer = wrapper.find(".checkbox-container").first();
+
+    assert.strictEqual(checkboxContainer.prop("tabIndex"), null);
+    assert.strictEqual(checkboxContainer.prop("onClick"), null);
+    assert.strictEqual(checkboxContainer.prop("onKeyDown"), null);
+    // Likewise, the extra accessibility attributes should not be present on the container
+    assert.strictEqual(checkboxContainer.prop("role"), null);
+    assert.strictEqual(checkboxContainer.prop("aria-checked"), null);
+  });
+
+  it("should set proper accessibility attributes for picker design when multiSelectItemDesign is 'picker' ", () => {
+    const PICKER_PROPS = { ...MULTISELECT_SCREEN_PROPS };
+    PICKER_PROPS.content.tiles.multiSelectItemDesign = "picker";
+    PICKER_PROPS.content.tiles.data = [
+      {
+        id: "picker-option-1",
+        defaultValue: true,
+        label: "Picker Option 1",
+      },
+    ];
+
+    const wrapper = mount(<MultiSelect {...PICKER_PROPS} />);
+    wrapper.setProps({ activeMultiSelect: ["picker-option-1"] });
+
+    const checkboxContainer = wrapper.find(".checkbox-container").first();
+
+    // the checkbox-container should have appropriate accessibility attributes
+    assert.strictEqual(checkboxContainer.prop("tabIndex"), "0");
+    assert.strictEqual(checkboxContainer.prop("role"), "checkbox");
+    assert.strictEqual(checkboxContainer.prop("aria-checked"), true);
+
+    // the actual (hidden) checkbox should have tabIndex="-1" (to avoid double focus)
+    const checkbox = wrapper.find("input[type='checkbox']").first();
+    assert.strictEqual(checkbox.prop("tabIndex"), "-1");
+  });
 });

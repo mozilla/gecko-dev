@@ -2665,8 +2665,10 @@ const MultiSelect = ({
   multiSelectId
 }) => {
   const {
-    data
+    data,
+    multiSelectItemDesign
   } = content.tiles;
+  const isPicker = multiSelectItemDesign === "picker";
   const refs = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)({});
   const handleChange = (0,react__WEBPACK_IMPORTED_MODULE_0__.useCallback)(() => {
     const newActiveMultiSelect = [];
@@ -2695,6 +2697,47 @@ const MultiSelect = ({
   }, [] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const containerStyle = (0,react__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getValidStyle(content.tiles.style, MULTI_SELECT_STYLES, true), [content.tiles.style]);
+  const PickerIcon = ({
+    emoji,
+    bgColor,
+    isChecked
+  }) => {
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+      className: `picker-icon ${isChecked ? "picker-checked" : ""}`,
+      style: {
+        ...(!isChecked && bgColor && {
+          backgroundColor: bgColor
+        })
+      }
+    }, !isChecked && emoji ? emoji : "");
+  };
+
+  // This handles interaction for when the user is clicking on or keyboard-interacting
+  // with the container element when using the picker design. It is required
+  // for appropriate accessibility.
+  const handleCheckboxContainerInteraction = e => {
+    if (!isPicker) {
+      return;
+    }
+    if (e.type === "keydown") {
+      // Prevent scroll on space presses
+      if (e.key === " ") {
+        e.preventDefault();
+      }
+
+      // Only handle space and enter keypresses
+      if (e.key !== " " && e.key !== "Enter") {
+        return;
+      }
+    }
+    const container = e.currentTarget;
+    // Manually flip the hidden checkbox since handleChange relies on it
+    const checkbox = container.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
+
+    // Manually call handleChange to update the multiselect state
+    handleChange();
+  };
 
   // When screen renders for first time, update state
   // with checkbox ids that has defaultvalue true
@@ -2714,7 +2757,7 @@ const MultiSelect = ({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "multi-select-container",
+    className: `multi-select-container ${multiSelectItemDesign || ""}`,
     style: containerStyle,
     role: items.some(({
       type,
@@ -2732,11 +2775,18 @@ const MultiSelect = ({
     icon,
     type = "checkbox",
     group,
-    style
+    style,
+    pickerEmoji,
+    pickerEmojiBackgroundColor
   }) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     key: id + label,
     className: "checkbox-container multi-select-item",
-    style: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getValidStyle(style, MULTI_SELECT_STYLES)
+    style: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getValidStyle(style, MULTI_SELECT_STYLES),
+    tabIndex: isPicker ? "0" : null,
+    onClick: isPicker ? handleCheckboxContainerInteraction : null,
+    onKeyDown: isPicker ? handleCheckboxContainerInteraction : null,
+    role: isPicker ? "checkbox" : null,
+    "aria-checked": isPicker ? activeMultiSelect?.includes(id) : null
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
     type: type // checkbox or radio
     ,
@@ -2747,7 +2797,12 @@ const MultiSelect = ({
     style: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getValidStyle(icon?.style, MULTI_SELECT_ICON_STYLES),
     onChange: handleChange,
     ref: el => refs.current[id] = el,
-    "aria-describedby": description ? `${id}-description` : null
+    "aria-describedby": description ? `${id}-description` : null,
+    tabIndex: isPicker ? "-1" : "0"
+  }), isPicker && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(PickerIcon, {
+    emoji: pickerEmoji,
+    bgColor: pickerEmojiBackgroundColor,
+    isChecked: activeMultiSelect?.includes(id)
   }), label ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: label
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
