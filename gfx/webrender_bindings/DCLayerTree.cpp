@@ -30,7 +30,7 @@
 #include "mozilla/webrender/RenderTextureHost.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/WindowsVersion.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "nsPrintfCString.h"
 #include "WinUtils.h"
 
@@ -631,8 +631,8 @@ void DCLayerTree::CompositorEndFrame() {
   mCompositionDevice->Commit();
 
   auto end = TimeStamp::Now();
-  mozilla::Telemetry::Accumulate(mozilla::Telemetry::COMPOSITE_SWAP_TIME,
-                                 (end - start).ToMilliseconds() * 10.);
+  mozilla::glean::gfx::composite_swap_time.AccumulateSingleSample(
+      (end - start).ToMilliseconds() * 10.);
 
   // Remove any framebuffers that haven't been
   // used in the last 60 frames.

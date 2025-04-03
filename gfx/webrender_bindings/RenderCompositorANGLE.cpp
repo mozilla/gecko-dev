@@ -24,7 +24,7 @@
 #include "mozilla/widget/CompositorWidget.h"
 #include "mozilla/widget/WinCompositorWidget.h"
 #include "mozilla/WindowsVersion.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "nsPrintfCString.h"
 #include "FxROutputHandler.h"
 
@@ -528,8 +528,8 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
       mSwapChain->Present(interval, flags);
     }
     auto end = TimeStamp::Now();
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::COMPOSITE_SWAP_TIME,
-                                   (end - start).ToMilliseconds() * 10.);
+    mozilla::glean::gfx::composite_swap_time.AccumulateSingleSample(
+        (end - start).ToMilliseconds() * 10.);
 
     if (mFirstPresent && mDCLayerTree) {
       // Wait for the GPU to finish executing its commands before

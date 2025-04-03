@@ -36,7 +36,6 @@
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StaticPrefs_webgl.h"
 #include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
@@ -354,7 +353,7 @@ class CrashTelemetryEvent : public Runnable {
 
   NS_IMETHOD Run() override {
     MOZ_ASSERT(NS_IsMainThread());
-    Telemetry::Accumulate(Telemetry::GFX_CRASH, mReason);
+    glean::gfx::crash.AccumulateSingleSample(mReason);
     return NS_OK;
   }
 
@@ -377,7 +376,7 @@ void CrashStatsLogForwarder::CrashAction(LogReason aReason) {
     // The callers need to assure that aReason is in the range
     // that the telemetry call below supports.
     if (NS_IsMainThread()) {
-      Telemetry::Accumulate(Telemetry::GFX_CRASH, (uint32_t)aReason);
+      glean::gfx::crash.AccumulateSingleSample((uint32_t)aReason);
     } else {
       nsCOMPtr<nsIRunnable> r1 = new CrashTelemetryEvent((uint32_t)aReason);
       NS_DispatchToMainThread(r1);

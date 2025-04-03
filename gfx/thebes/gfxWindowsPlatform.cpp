@@ -30,7 +30,6 @@
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "mozilla/glean/GfxMetrics.h"
-#include "mozilla/Telemetry.h"
 
 #include "plbase64.h"
 #include "nsIXULRuntime.h"
@@ -441,8 +440,8 @@ bool gfxWindowsPlatform::HandleDeviceReset() {
   }
 
   if (resetReason != mozilla::gfx::DeviceResetReason::FORCED_RESET) {
-    Telemetry::Accumulate(Telemetry::DEVICE_RESET_REASON,
-                          uint32_t(resetReason));
+    glean::gfx::device_reset_reason.AccumulateSingleSample(
+        uint32_t(resetReason));
   }
 
   // Remove devices and adapters.
@@ -1461,8 +1460,8 @@ void gfxWindowsPlatform::RecordContentDeviceFailure(
   if (!XRE_IsContentProcess()) {
     return;
   }
-  Telemetry::Accumulate(Telemetry::GFX_CONTENT_FAILED_TO_ACQUIRE_DEVICE,
-                        uint32_t(aDevice));
+  glean::gfx::content_failed_to_acquire_device.AccumulateSingleSample(
+      uint32_t(aDevice));
 }
 
 void gfxWindowsPlatform::RecordStartupTelemetry() {

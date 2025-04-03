@@ -538,7 +538,7 @@ class PinchGestureInput : public InputData {
       MOUSEWHEEL // Synthesized from modifier+mousewheel
 
       // If adding more items here, increase n_values for the
-      // APZ_ZOOM_PINCHSOURCE Telemetry metric.
+      // APZ_ZOOM_PINCHSOURCE Telemetry and glean::apz_zoom::pinchsource metrics.
   ));
   // clang-format on
 

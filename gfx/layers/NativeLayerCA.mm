@@ -32,7 +32,7 @@
 #include "mozilla/layers/ScreenshotGrabber.h"
 #include "mozilla/layers/SurfacePoolCA.h"
 #include "mozilla/StaticPrefs_gfx.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/webrender/RenderMacIOSurfaceTextureHost.h"
 #include "ScopedGLHelpers.h"
 
@@ -55,47 +55,67 @@ using gl::GLContext;
 using gl::GLContextCGL;
 #endif
 
-static Maybe<Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER>
-VideoLowPowerTypeToTelemetryType(VideoLowPowerType aVideoLowPower) {
+static void EmitTelemetryForVideoLowPower(VideoLowPowerType aVideoLowPower) {
   switch (aVideoLowPower) {
+    case VideoLowPowerType::NotVideo:
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eNotvideo)
+          .Add();
+      return;
+
     case VideoLowPowerType::LowPower:
-      return Some(Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::LowPower);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eLowpower)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailMultipleVideo:
-      return Some(
-          Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailMultipleVideo);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailmultiplevideo)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailWindowed:
-      return Some(Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailWindowed);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailwindowed)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailOverlaid:
-      return Some(Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailOverlaid);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailoverlaid)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailBacking:
-      return Some(Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailBacking);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailbacking)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailMacOSVersion:
-      return Some(
-          Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailMacOSVersion);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailmacosversion)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailPref:
-      return Some(Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailPref);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailpref)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailSurface:
-      return Some(Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailSurface);
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailsurface)
+          .Add();
+      return;
 
     case VideoLowPowerType::FailEnqueue:
-      return Some(Telemetry::LABELS_GFX_MACOS_VIDEO_LOW_POWER::FailEnqueue);
-
-    default:
-      return Nothing();
-  }
-}
-
-static void EmitTelemetryForVideoLowPower(VideoLowPowerType aVideoLowPower) {
-  auto telemetryValue = VideoLowPowerTypeToTelemetryType(aVideoLowPower);
-  if (telemetryValue.isSome()) {
-    Telemetry::AccumulateCategorical(telemetryValue.value());
+      glean::gfx::macos_video_low_power
+          .EnumGet(glean::gfx::MacosVideoLowPowerLabel::eFailenqueue)
+          .Add();
+      return;
   }
 }
 

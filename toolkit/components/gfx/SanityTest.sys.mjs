@@ -24,7 +24,7 @@ const TIMEOUT_SEC = 20;
 
 const MEDIA_ENGINE_PREF = "media.wmf.media-engine.enabled";
 
-// GRAPHICS_SANITY_TEST histogram enumeration values
+// Glean.gfx.sanityTest values
 const TEST_PASSED = 0;
 const TEST_FAILED_RENDER = 1;
 const TEST_FAILED_VIDEO = 2;
@@ -46,9 +46,7 @@ function testPixel(ctx, x, y, r, g, b, a, fuzz) {
 }
 
 function reportResult(val) {
-  try {
-    Services.telemetry.getHistogramById("GRAPHICS_SANITY_TEST").add(val);
-  } catch (e) {}
+  Glean.gfx.sanityTest.accumulateSingleSample(val);
 
   Services.prefs.setBoolPref(RUNNING_PREF, false);
   Services.prefs.savePrefFile(null);

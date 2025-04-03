@@ -110,6 +110,7 @@
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/SVGFragmentIdentifier.h"
 #include "mozilla/SVGObserverUtils.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
@@ -1190,8 +1191,10 @@ void PresShell::Destroy() {
     return true;
   };
   if (isUserZoomablePage()) {
-    Telemetry::Accumulate(Telemetry::APZ_ZOOM_ACTIVITY,
-                          IsResolutionUpdatedByApz());
+    glean::apz_zoom::activity
+        .EnumGet(static_cast<glean::apz_zoom::ActivityLabel>(
+            IsResolutionUpdatedByApz()))
+        .Add();
   }
 
   // dump out cumulative text perf metrics

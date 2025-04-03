@@ -11,7 +11,7 @@
 #include "mozilla/D3DMessageUtils.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/gfx/GPUParent.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/gfx/GraphicsMessages.h"
@@ -1288,8 +1288,8 @@ bool DeviceManagerDx::GetAnyDeviceRemovedReason(DeviceResetReason* aOutReason) {
 }
 
 void DeviceManagerDx::ForceDeviceReset(ForcedDeviceResetReason aReason) {
-  Telemetry::Accumulate(Telemetry::FORCED_DEVICE_RESET_REASON,
-                        uint32_t(aReason));
+  glean::gfx::forced_device_reset_reason.AccumulateSingleSample(
+      uint32_t(aReason));
   {
     MutexAutoLock lock(mDeviceLock);
     if (!mDeviceResetReason) {

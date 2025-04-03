@@ -1626,7 +1626,7 @@ nsEventStatus AsyncPanZoomController::OnScaleBegin(
   }
 
   SetState(PINCHING);
-  Telemetry::Accumulate(Telemetry::APZ_ZOOM_PINCHSOURCE, (int)aEvent.mSource);
+  glean::apz_zoom::pinchsource.AccumulateSingleSample((int)aEvent.mSource);
   SetVelocityVector(ParentLayerPoint(0, 0));
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   mLastZoomFocus =

@@ -15,7 +15,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_webgl.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/Components.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/dom/ContentChild.h"
@@ -447,8 +447,8 @@ void D3D11LayersCrashGuard::RecordTelemetry(TelemetryState aState) {
     return;
   }
 
-  Telemetry::Accumulate(Telemetry::GRAPHICS_DRIVER_STARTUP_TEST,
-                        int32_t(aState));
+  glean::gfx::graphics_driver_startup_test.AccumulateSingleSample(
+      int32_t(aState));
   sTelemetryStateRecorded = true;
 }
 

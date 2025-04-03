@@ -20,7 +20,6 @@
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/RemoteDecoderManagerChild.h"
 #include "mozilla/RemoteDecoderManagerParent.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUChild.h"
@@ -778,7 +777,7 @@ void GPUProcessManager::NotifyWebRenderError(wr::WebRenderError aError) {
 /* static */
 void GPUProcessManager::RecordDeviceReset(DeviceResetReason aReason) {
   if (aReason != DeviceResetReason::FORCED_RESET) {
-    Telemetry::Accumulate(Telemetry::DEVICE_RESET_REASON, uint32_t(aReason));
+    glean::gfx::device_reset_reason.AccumulateSingleSample(uint32_t(aReason));
   }
 
   CrashReporter::RecordAnnotationU32(

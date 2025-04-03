@@ -1849,9 +1849,7 @@ BrowserGlue.prototype = {
 
   _firstWindowTelemetry(aWindow) {
     let scaling = aWindow.devicePixelRatio * 100;
-    try {
-      Services.telemetry.getHistogramById("DISPLAY_SCALING").add(scaling);
-    } catch (ex) {}
+    Glean.gfxDisplay.scaling.accumulateSingleSample(scaling);
   },
 
   _collectStartupConditionsTelemetry() {
