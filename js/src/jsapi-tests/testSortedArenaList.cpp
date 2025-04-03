@@ -26,10 +26,7 @@ class MOZ_RAII AutoTestArena {
     arena = js_pod_calloc<Arena>(1);
     MOZ_RELEASE_ASSERT(arena);
 
-    {
-      AutoLockGC lock(cx->runtime());
-      arena->init(&cx->runtime()->gc, cx->zone(), kind, lock);
-    }
+    arena->init(&cx->runtime()->gc, cx->zone(), kind);
 
     size_t nallocs = Arena::thingsPerArena(kind) - nfree;
     size_t thingSize = Arena::thingSize(kind);
