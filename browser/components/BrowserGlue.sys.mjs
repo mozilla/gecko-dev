@@ -1316,7 +1316,10 @@ BrowserGlue.prototype = {
         break;
       case "app-startup": {
         this._earlyBlankFirstPaint(subject);
-        gThisInstanceIsTaskbarTab = subject.handleFlag("taskbar-tab", false);
+        // The "taskbar-tab" flag and its param will be handled in
+        // TaskbarTabCmd.sys.mjs
+        gThisInstanceIsTaskbarTab =
+          subject.findFlag("taskbar-tab", false) != -1;
         gThisInstanceIsLaunchOnLogin = subject.handleFlag(
           "os-autostart",
           false

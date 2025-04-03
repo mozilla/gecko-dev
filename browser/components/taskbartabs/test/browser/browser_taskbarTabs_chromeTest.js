@@ -115,6 +115,28 @@ add_task(async function testWindowChrome() {
 
   checkWindowChrome(win);
   await checkHamburgerMenu(win);
+  await BrowserTestUtils.closeWindow(win);
 
+  // Simulate opening a taskbar tab window via
+  // command line flag
+  let cmdLine = Cu.createCommandLine(
+    ["-taskbar-tab", "about:blank"],
+    null,
+    Ci.nsICommandLine.STATE_INITIAL_LAUNCH
+  );
+
+  let newWinPromise = BrowserTestUtils.waitForNewWindow({
+    url: "about:blank",
+  });
+
+  let cmdLineHandler = Cc["@mozilla.org/browser/taskbar-tabs-clh;1"].getService(
+    Ci.nsICommandLineHandler
+  );
+  cmdLineHandler.handle(cmdLine);
+
+  win = await newWinPromise;
+
+  checkWindowChrome(win);
+  await checkHamburgerMenu(win);
   await BrowserTestUtils.closeWindow(win);
 });
