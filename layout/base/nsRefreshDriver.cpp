@@ -1528,24 +1528,6 @@ void nsRefreshDriver::DispatchScrollEvents() {
   }
 }
 
-void nsRefreshDriver::PostVisualViewportScrollEvent(
-    VVPScrollEvent* aScrollEvent) {
-  mVisualViewportScrollEvents.AppendElement(aScrollEvent);
-  EnsureTimerStarted();
-}
-
-void nsRefreshDriver::DispatchVisualViewportScrollEvents() {
-  // Scroll events are one-shot, so after running them we can drop them.
-  // However, dispatching a scroll event can potentially cause more scroll
-  // events to be posted, so we move the initial set into a temporary array
-  // first. (Newly posted scroll events will be dispatched on the next tick.)
-  VisualViewportScrollEventArray events =
-      std::move(mVisualViewportScrollEvents);
-  for (auto& event : events) {
-    event->Run();
-  }
-}
-
 // https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes
 void nsRefreshDriver::EvaluateMediaQueriesAndReportChanges() {
   if (!mMightNeedMediaQueryListenerUpdate) {
@@ -1974,9 +1956,6 @@ auto nsRefreshDriver::GetReasonsToTick() const -> TickReasons {
   if (!mScrollEvents.IsEmpty()) {
     reasons |= TickReasons::eHasScrollEvents;
   }
-  if (!mVisualViewportScrollEvents.IsEmpty()) {
-    reasons |= TickReasons::eHasVisualViewportScrollEvents;
-  }
   if (mPresContext && mPresContext->IsRoot() &&
       mPresContext->NeedsMoreTicksForUserInput()) {
     reasons |= TickReasons::eRootNeedsMoreTicksForUserInput;
@@ -2025,9 +2004,6 @@ void nsRefreshDriver::AppendTickReasonsToString(TickReasons aReasons,
   }
   if (aReasons & TickReasons::eHasScrollEvents) {
     aStr.AppendLiteral(" HasScrollEvents");
-  }
-  if (aReasons & TickReasons::eHasVisualViewportScrollEvents) {
-    aStr.AppendLiteral(" HasVisualViewportScrollEvents");
   }
   if (aReasons & TickReasons::eRootNeedsMoreTicksForUserInput) {
     aStr.AppendLiteral(" RootNeedsMoreTicksForUserInput");
@@ -2725,7 +2701,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
 
   // Step 9. For each doc of docs, run the scroll steps for doc.
   DispatchScrollEvents();
-  DispatchVisualViewportScrollEvents();
 
   // Step 10. For each doc of docs, evaluate media queries and report changes
   // for doc.

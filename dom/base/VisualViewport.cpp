@@ -265,7 +265,7 @@ VisualViewport::VisualViewportScrollEvent::VisualViewportScrollEvent(
       mPrevLayoutOffset(aPrevLayoutOffset) {
   VVP_LOG("%p: Registering PostScroll on %p %p\n", aViewport, aPresContext,
           aPresContext->RefreshDriver());
-  aPresContext->RefreshDriver()->PostVisualViewportScrollEvent(this);
+  aPresContext->RefreshDriver()->PostScrollEvent(this);
 }
 
 bool VisualViewport::VisualViewportScrollEvent::HasPresContext(
