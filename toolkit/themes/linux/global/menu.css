@@ -12,22 +12,9 @@
 
 /* ..... internal content .... */
 
-.menu-text,
-.menu-iconic-left,
-.menu-iconic-text {
-  margin-block: 0;
-  margin-inline: 0 2px;
-}
-
 .menu-text {
   /* This is (18 + the size of end-padding on .menu-iconic-left)px */
   margin-inline-start: 21px;
-}
-
-.menu-accel,
-.menu-iconic-accel {
-  margin-block: 0;
-  margin-inline-start: 7px;
 }
 
 .menu-accel-container {
@@ -38,11 +25,6 @@
   min-width: 16px;
   /* We can only hardcode this, to make the default GTK icon<->label spacing */
   padding-inline-end: 3px;
-}
-
-.menu-iconic-icon {
-  width: 16px;
-  height: 16px;
 }
 
 menuitem:is([type="checkbox"], [checked="true"]) .menu-iconic-icon {

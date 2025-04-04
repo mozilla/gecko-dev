@@ -275,8 +275,31 @@ menucaption {
   }
 }
 
-@media (-moz-platform: macos) {
-  :is(.menu-accel, .menu-iconic-accel)[value] {
-    margin-inline-start: 25px;
+.menu-text,
+.menu-iconic-text,
+.menu-accel,
+.menu-iconic-accel {
+  margin: 0;
+  @media (-moz-platform: windows) {
+    padding: 1px 0;
   }
+  @media (-moz-platform: linux) {
+    margin-inline: 0 2px;
+  }
+}
+
+.menu-accel,
+.menu-iconic-accel {
+  margin-inline: 0.74em 1.35em;
+  @media (-moz-platform: macos) {
+    margin-inline: 0 25px;
+  }
+  @media (-moz-platform: linux) {
+    margin-inline: 0 7px;
+  }
+}
+
+.menu-iconic-icon {
+  width: 16px;
+  height: 16px;
 }

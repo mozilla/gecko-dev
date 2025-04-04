@@ -12,24 +12,6 @@
 
 /* ..... Internal content .... */
 
-.menu-accel,
-.menu-iconic-accel,
-.menu-text,
-.menu-iconic-text {
-  margin: 0;
-  padding: 1px 0;
-}
-
-.menu-accel,
-.menu-iconic-accel {
-  margin-inline: 0.74em 1.35em;
-}
-
-.menu-iconic-icon {
-  width: 16px;
-  height: 16px;
-}
-
 .menu-iconic > .menu-iconic-left,
 .menuitem-iconic > .menu-iconic-left {
   padding-top: 2px;
@@ -62,17 +44,17 @@ menupopup[needsgutter] menuitem:not([checked="true"], [icon], .menuitem-iconic) 
 
 menuitem[checked="true"] {
   padding-inline-start: 12px;
-}
 
-/* We need to do something to override the default style for selected
-   checkboxes and radio buttons because the native drawing we use on other
-   Windows versions looks pretty bad with the Win10 styles, so for now we'll
-   insert a generic checkmark icon for both types. */
-menuitem[checked="true"] > .menu-iconic-left {
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-  fill-opacity: var(--menu-icon-opacity);
-  list-style-image: url("chrome://global/skin/icons/menu-check.svg");
-  width: 16px;
-  margin-inline-end: 8px;
+  /* We need to do something to override the default style for selected
+     checkboxes and radio buttons because the native drawing we use on other
+     Windows versions looks pretty bad with the Win10 styles, so for now we'll
+     insert a generic checkmark icon for both types. */
+  > .menu-iconic-left {
+    -moz-context-properties: fill, fill-opacity;
+    fill: currentColor;
+    fill-opacity: var(--menu-icon-opacity);
+    list-style-image: url("chrome://global/skin/icons/menu-check.svg");
+    width: 16px;
+    margin-inline-end: 8px;
+  }
 }

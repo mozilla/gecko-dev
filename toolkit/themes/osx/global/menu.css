@@ -6,33 +6,6 @@
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
-/* Internal content */
-
-.menu-text,
-.menu-iconic-text,
-.menu-accel,
-.menu-iconic-accel {
-  margin: 0;
-}
-
-.menu-iconic-icon {
-  height: 16px;
-  margin-block: -2px;
-  margin-inline-end: 6px;
-  /* Empty icons shouldn't take up room, so we need to compensate
-   * the 6px margin-end with a negative margin-start.
-   */
-  margin-inline-start: -6px;
-}
-
-/* menuitems with icons */
-.menuitem-iconic > .menu-iconic-left > .menu-iconic-icon,
-.menu-iconic > .menu-iconic-left > .menu-iconic-icon,
-menuitem[image] > .menu-iconic-left > .menu-iconic-icon {
-  margin-inline-start: 0;
-  width: 16px;
-}
-
 /* checked menuitems */
 
 menupopup[needsgutter] {
