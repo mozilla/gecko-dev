@@ -1,10 +1,6 @@
 How to submit a patch
 =====================
 
-+--------------------------------------------------------------------+
-| This page is an import from MDN and the contents might be outdated |
-+--------------------------------------------------------------------+
-
 Submitting a patch, getting it reviewed, and committed to the Firefox
 source tree involves several steps. This article explains how.
 
