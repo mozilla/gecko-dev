@@ -3634,7 +3634,7 @@ toolbar#nav-bar {
             prefs = list(self.prefs_by_manifest[m])[0]
             self.extraPrefs = origPrefs.copy()
             if prefs:
-                prefs = prefs.strip().split()
+                prefs = prefs.strip().split("\n")
                 self.log.info(
                     "The following extra prefs will be set:\n  {}".format(
                         "\n  ".join(prefs)
