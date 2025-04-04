@@ -24,6 +24,7 @@ jfieldID GetValueFieldID(JNIEnv* aEnv, const char* aType) {
 // to skip doing that lookup on every get.
 static jfieldID gBooleanValueField;
 static jfieldID gIntValueField;
+static jfieldID gLongValueField;
 static jfieldID gDoubleValueField;
 
 void InitConversionStatics() {
@@ -31,6 +32,7 @@ void InitConversionStatics() {
   JNIEnv* const env = jni::GetGeckoThreadEnv();
   gBooleanValueField = GetValueFieldID<java::sdk::Boolean>(env, "Z");
   gIntValueField = GetValueFieldID<java::sdk::Integer>(env, "I");
+  gLongValueField = GetValueFieldID<java::sdk::Long>(env, "J");
   gDoubleValueField = GetValueFieldID<java::sdk::Double>(env, "D");
 }
 
@@ -84,6 +86,24 @@ double Java2Native(mozilla::jni::Object::Param aData, JNIEnv* aEnv) {
     MOZ_CATCH_JNI_EXCEPTION(aEnv);
   } else {
     result = java::sdk::Number::Ref::From(aData)->DoubleValue();
+  }
+
+  return result;
+}
+
+template <>
+jlong Java2Native(mozilla::jni::Object::Param aData, JNIEnv* aEnv) {
+  MOZ_ASSERT(aData.IsInstanceOf<jni::Long>());
+
+  jlong result = 0;
+  if (gLongValueField) {
+    if (!aEnv) {
+      aEnv = jni::GetEnvForThread();
+    }
+    result = aEnv->GetLongField(aData.Get(), gLongValueField);
+    MOZ_CATCH_JNI_EXCEPTION(aEnv);
+  } else {
+    result = java::sdk::Number::Ref::From(aData)->LongValue();
   }
 
   return result;

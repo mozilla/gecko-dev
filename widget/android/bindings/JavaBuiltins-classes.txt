@@ -20,6 +20,8 @@ valueOf(J)Ljava/lang/Long; =
 doubleValue =
 # Use intValue() for unboxing Byte/Int/Short.
 intValue =
+# Use longValue() for unboxing Long.
+longValue =
 
 [java.lang.String = skip:true]
 valueOf(Ljava/lang/Object;)Ljava/lang/String; =
