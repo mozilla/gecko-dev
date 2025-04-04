@@ -14,7 +14,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/IterableIterator.h"
 #include "mozilla/dom/QueuingStrategyBinding.h"
-#include "mozilla/dom/ReadableStreamController.h"
+#include "mozilla/dom/ReadableStreamControllerBase.h"
 #include "mozilla/dom/ReadableStreamDefaultController.h"
 #include "mozilla/dom/UnderlyingSourceCallbackHelpers.h"
 #include "nsCycleCollectionParticipant.h"
@@ -78,12 +78,14 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
       UnderlyingSourceAlgorithmsBase* aAlgorithms, ErrorResult& aRv);
 
   // Slot Getter/Setters:
-  MOZ_KNOWN_LIVE ReadableStreamController* Controller() { return mController; }
+  MOZ_KNOWN_LIVE ReadableStreamControllerBase* Controller() {
+    return mController;
+  }
   ReadableStreamDefaultController* DefaultController() {
     MOZ_ASSERT(mController && mController->IsDefault());
     return mController->AsDefault();
   }
-  void SetController(ReadableStreamController& aController) {
+  void SetController(ReadableStreamControllerBase& aController) {
     MOZ_ASSERT(!mController);
     mController = &aController;
   }
@@ -244,7 +246,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
 
   // Internal Slots:
  private:
-  RefPtr<ReadableStreamController> mController;
+  RefPtr<ReadableStreamControllerBase> mController;
   bool mDisturbed = false;
   RefPtr<ReadableStreamGenericReader> mReader;
   ReaderState mState = ReaderState::Readable;

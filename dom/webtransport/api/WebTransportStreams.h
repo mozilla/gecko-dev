@@ -26,7 +26,7 @@ class WebTransportIncomingStreamsAlgorithms
       WebTransportIncomingStreamsAlgorithms, UnderlyingSourceAlgorithmsWrapper)
 
   already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 
   // We call EnqueueNative, which is MOZ_CAN_RUN_SCRIPT but won't in this case

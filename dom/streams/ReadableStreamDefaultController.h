@@ -14,7 +14,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/QueuingStrategyBinding.h"
 #include "mozilla/dom/QueueWithSizes.h"
-#include "mozilla/dom/ReadableStreamController.h"
+#include "mozilla/dom/ReadableStreamControllerBase.h"
 #include "mozilla/dom/ReadRequest.h"
 #include "mozilla/dom/UnderlyingSourceCallbackHelpers.h"
 #include "nsCycleCollectionParticipant.h"
@@ -31,12 +31,13 @@ class ReadableStreamDefaultReader;
 struct UnderlyingSource;
 class ReadableStreamGenericReader;
 
-class ReadableStreamDefaultController final : public ReadableStreamController,
-                                              public nsWrapperCache {
+class ReadableStreamDefaultController final
+    : public ReadableStreamControllerBase,
+      public nsWrapperCache {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(
-      ReadableStreamDefaultController, ReadableStreamController)
+      ReadableStreamDefaultController, ReadableStreamControllerBase)
 
  public:
   explicit ReadableStreamDefaultController(nsIGlobalObject* aGlobal);

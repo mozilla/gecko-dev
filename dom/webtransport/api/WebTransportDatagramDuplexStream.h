@@ -31,7 +31,7 @@ class IncomingDatagramStreamAlgorithms
                                            UnderlyingSourceAlgorithmsWrapper)
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT void ReturnDatagram(JSContext* aCx, ErrorResult& aRv);

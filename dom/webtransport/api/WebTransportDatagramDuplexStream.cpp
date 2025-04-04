@@ -162,7 +162,8 @@ IncomingDatagramStreamAlgorithms::IncomingDatagramStreamAlgorithms(
 IncomingDatagramStreamAlgorithms::~IncomingDatagramStreamAlgorithms() = default;
 
 already_AddRefed<Promise> IncomingDatagramStreamAlgorithms::PullCallbackImpl(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    JSContext* aCx, ReadableStreamControllerBase& aController,
+    ErrorResult& aRv) {
   // https://w3c.github.io/webtransport/#datagram-duplex-stream-procedures
 
   RefPtr<Promise> promise =

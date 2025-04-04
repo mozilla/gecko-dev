@@ -36,7 +36,8 @@ WebTransportIncomingStreamsAlgorithms::
 
 already_AddRefed<Promise>
 WebTransportIncomingStreamsAlgorithms::PullCallbackImpl(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    JSContext* aCx, ReadableStreamControllerBase& aController,
+    ErrorResult& aRv) {
   // https://w3c.github.io/webtransport/#pullbidirectionalstream and
   // https://w3c.github.io/webtransport/#pullunidirectionalstream
 

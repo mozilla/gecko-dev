@@ -53,7 +53,7 @@ class nsISupportsStreamSource final : public UnderlyingSourceAlgorithmsWrapper {
 
   // From UnderlyingSourceAlgorithmsWrapper
   already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 
   void EnqueueOneThingFromQueue(JSContext* aCx);

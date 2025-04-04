@@ -41,7 +41,7 @@ NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourceAlgorithmsBase)
 
 // https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller-from-underlying-source
 void UnderlyingSourceAlgorithms::StartCallback(
-    JSContext* aCx, ReadableStreamController& aController,
+    JSContext* aCx, ReadableStreamControllerBase& aController,
     JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) {
   if (!mStartCallback) {
     // Step 2: Let startAlgorithm be an algorithm that returns undefined.
@@ -68,7 +68,8 @@ void UnderlyingSourceAlgorithms::StartCallback(
 
 // https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller-from-underlying-source
 already_AddRefed<Promise> UnderlyingSourceAlgorithms::PullCallback(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    JSContext* aCx, ReadableStreamControllerBase& aController,
+    ErrorResult& aRv) {
   JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSource);
   if (!mPullCallback) {
     // Step 3: Let pullAlgorithm be an algorithm that returns a promise resolved
@@ -121,8 +122,8 @@ already_AddRefed<Promise> UnderlyingSourceAlgorithms::CancelCallback(
 // https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support
 // Step 1: Let startAlgorithm be an algorithm that returns undefined.
 void UnderlyingSourceAlgorithmsWrapper::StartCallback(
-    JSContext*, ReadableStreamController&, JS::MutableHandle<JS::Value> aRetVal,
-    ErrorResult&) {
+    JSContext*, ReadableStreamControllerBase&,
+    JS::MutableHandle<JS::Value> aRetVal, ErrorResult&) {
   aRetVal.setUndefined();
 }
 
@@ -131,7 +132,8 @@ void UnderlyingSourceAlgorithmsWrapper::StartCallback(
 // https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support
 // Step 2: Let pullAlgorithmWrapper be an algorithm that runs these steps:
 already_AddRefed<Promise> UnderlyingSourceAlgorithmsWrapper::PullCallback(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    JSContext* aCx, ReadableStreamControllerBase& aController,
+    ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = aController.GetParentObject();
   return PromisifyAlgorithm(
       global,
@@ -244,7 +246,8 @@ InputToReadableStreamAlgorithms::InputToReadableStreamAlgorithms(
 }
 
 already_AddRefed<Promise> InputToReadableStreamAlgorithms::PullCallbackImpl(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    JSContext* aCx, ReadableStreamControllerBase& aController,
+    ErrorResult& aRv) {
   MOZ_ASSERT(aController.IsByte());
   ReadableStream* stream = aController.Stream();
   MOZ_ASSERT(stream);
@@ -559,7 +562,8 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(NonAsyncInputToReadableStreamAlgorithms,
 
 already_AddRefed<Promise>
 NonAsyncInputToReadableStreamAlgorithms::PullCallbackImpl(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    JSContext* aCx, ReadableStreamControllerBase& aController,
+    ErrorResult& aRv) {
   if (!mAsyncAlgorithms) {
     nsCOMPtr<nsIAsyncInputStream> asyncStream;
 

@@ -19,7 +19,7 @@
 #include "mozilla/dom/ReadableStream.h"
 #include "mozilla/dom/ReadRequest.h"
 #include "mozilla/dom/ReadableStreamBYOBRequest.h"
-#include "mozilla/dom/ReadableStreamController.h"
+#include "mozilla/dom/ReadableStreamControllerBase.h"
 #include "mozilla/dom/TypedArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
@@ -38,12 +38,12 @@ struct PullIntoDescriptor;
 struct ReadableByteStreamQueueEntry;
 struct ReadIntoRequest;
 
-class ReadableByteStreamController final : public ReadableStreamController,
+class ReadableByteStreamController final : public ReadableStreamControllerBase,
                                            public nsWrapperCache {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(
-      ReadableByteStreamController, ReadableStreamController)
+      ReadableByteStreamController, ReadableStreamControllerBase)
 
  public:
   explicit ReadableByteStreamController(nsIGlobalObject* aGlobal);

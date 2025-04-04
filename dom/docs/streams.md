@@ -36,7 +36,7 @@ This can roughly translate to the following C++:
 ```cpp
 class MySourceAlgorithms : UnderlyingSourceAlgorithmsWrapper {
    already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 };
 
@@ -113,7 +113,7 @@ This can translate to the following C++:
 class MySourceAlgorithms : UnderlyingSourceAlgorithmsWrapper {
    // Step 1: Let `pullAlgorithm` be the following steps:
    already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+      JSContext* aCx, ReadableStreamControllerBase& aController, ErrorResult& aRv) {
       RefPtr<ReadableStream> stream = aController.Stream();
 
       // Step 1.1: Enqueue a JavaScript string value "Hello Fox!".

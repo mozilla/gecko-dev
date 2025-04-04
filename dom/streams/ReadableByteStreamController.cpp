@@ -26,7 +26,7 @@
 #include "mozilla/dom/ReadableStream.h"
 #include "mozilla/dom/ReadableStreamBYOBReader.h"
 #include "mozilla/dom/ReadableStreamBYOBRequest.h"
-#include "mozilla/dom/ReadableStreamController.h"
+#include "mozilla/dom/ReadableStreamControllerBase.h"
 #include "mozilla/dom/ReadableStreamDefaultController.h"
 #include "mozilla/dom/ReadableStreamDefaultReader.h"
 #include "mozilla/dom/ReadableStreamGenericReader.h"
@@ -182,31 +182,32 @@ NS_IMPL_CYCLE_COLLECTION_WITH_JS_MEMBERS(PullIntoDescriptor, (), (mBuffer));
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(ReadableByteStreamController)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(ReadableByteStreamController,
-                                                ReadableStreamController)
+                                                ReadableStreamControllerBase)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mByobRequest, mQueue, mPendingPullIntos)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(ReadableByteStreamController,
-                                                  ReadableStreamController)
+                                                  ReadableStreamControllerBase)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mByobRequest, mQueue, mPendingPullIntos)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(ReadableByteStreamController,
-                                               ReadableStreamController)
+                                               ReadableStreamControllerBase)
   NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-NS_IMPL_ADDREF_INHERITED(ReadableByteStreamController, ReadableStreamController)
+NS_IMPL_ADDREF_INHERITED(ReadableByteStreamController,
+                         ReadableStreamControllerBase)
 NS_IMPL_RELEASE_INHERITED(ReadableByteStreamController,
-                          ReadableStreamController)
+                          ReadableStreamControllerBase)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ReadableByteStreamController)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-NS_INTERFACE_MAP_END_INHERITING(ReadableStreamController)
+NS_INTERFACE_MAP_END_INHERITING(ReadableStreamControllerBase)
 
 ReadableByteStreamController::ReadableByteStreamController(
     nsIGlobalObject* aGlobal)
-    : ReadableStreamController(aGlobal) {}
+    : ReadableStreamControllerBase(aGlobal) {}
 
 ReadableByteStreamController::~ReadableByteStreamController() = default;
 
@@ -624,7 +625,7 @@ void ReadableByteStreamControllerCallPullIfNeeded(
   aController->SetPulling(true);
 
   // Step 6.
-  RefPtr<ReadableStreamController> controller(aController);
+  RefPtr<ReadableStreamControllerBase> controller(aController);
   RefPtr<UnderlyingSourceAlgorithmsBase> algorithms =
       aController->GetAlgorithms();
   RefPtr<Promise> pullPromise = algorithms->PullCallback(aCx, *controller, aRv);
@@ -2167,7 +2168,7 @@ void SetUpReadableByteStreamController(
 
   // Step 14. Let startResult be the result of performing startAlgorithm.
   JS::Rooted<JS::Value> startResult(aCx, JS::UndefinedValue());
-  RefPtr<ReadableStreamController> controller = aController;
+  RefPtr<ReadableStreamControllerBase> controller = aController;
   aAlgorithms->StartCallback(aCx, *controller, &startResult, aRv);
   if (aRv.Failed()) {
     return;

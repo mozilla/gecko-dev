@@ -15,7 +15,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/ReadableStream.h"
-#include "mozilla/dom/ReadableStreamController.h"
+#include "mozilla/dom/ReadableStreamControllerBase.h"
 #include "mozilla/dom/ReadableStreamDefaultControllerBinding.h"
 #include "mozilla/dom/ReadableStreamDefaultReaderBinding.h"
 #include "mozilla/dom/UnderlyingSourceBinding.h"
@@ -27,19 +27,20 @@ namespace mozilla::dom {
 
 using namespace streams_abstract;
 
-NS_IMPL_CYCLE_COLLECTION(ReadableStreamController, mGlobal, mAlgorithms,
+NS_IMPL_CYCLE_COLLECTION(ReadableStreamControllerBase, mGlobal, mAlgorithms,
                          mStream)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(ReadableStreamController)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(ReadableStreamController)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(ReadableStreamControllerBase)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(ReadableStreamControllerBase)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ReadableStreamController)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ReadableStreamControllerBase)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-ReadableStreamController::ReadableStreamController(nsIGlobalObject* aGlobal)
+ReadableStreamControllerBase::ReadableStreamControllerBase(
+    nsIGlobalObject* aGlobal)
     : mGlobal(aGlobal) {}
 
-void ReadableStreamController::SetStream(ReadableStream* aStream) {
+void ReadableStreamControllerBase::SetStream(ReadableStream* aStream) {
   mStream = aStream;
 }
 
@@ -49,19 +50,19 @@ void ReadableStreamController::SetStream(ReadableStream* aStream) {
 NS_IMPL_CYCLE_COLLECTION_CLASS(ReadableStreamDefaultController)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(ReadableStreamDefaultController,
-                                                ReadableStreamController)
+                                                ReadableStreamControllerBase)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mStrategySizeAlgorithm)
   tmp->mQueue.clear();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(
-    ReadableStreamDefaultController, ReadableStreamController)
+    ReadableStreamDefaultController, ReadableStreamControllerBase)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStrategySizeAlgorithm)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(ReadableStreamDefaultController,
-                                               ReadableStreamController)
+                                               ReadableStreamControllerBase)
   NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
   // Trace the associated queue.
   for (const auto& queueEntry : tmp->mQueue) {
@@ -70,17 +71,17 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(ReadableStreamDefaultController,
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_ADDREF_INHERITED(ReadableStreamDefaultController,
-                         ReadableStreamController)
+                         ReadableStreamControllerBase)
 NS_IMPL_RELEASE_INHERITED(ReadableStreamDefaultController,
-                          ReadableStreamController)
+                          ReadableStreamControllerBase)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ReadableStreamDefaultController)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-NS_INTERFACE_MAP_END_INHERITING(ReadableStreamController)
+NS_INTERFACE_MAP_END_INHERITING(ReadableStreamControllerBase)
 
 ReadableStreamDefaultController::ReadableStreamDefaultController(
     nsIGlobalObject* aGlobal)
-    : ReadableStreamController(aGlobal) {
+    : ReadableStreamControllerBase(aGlobal) {
   mozilla::HoldJSObjects(this);
 }
 

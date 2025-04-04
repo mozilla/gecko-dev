@@ -50,7 +50,7 @@
 #include "mozilla/dom/WritableStream.h"
 #include "mozilla/dom/UnderlyingSinkCallbackHelpers.h"
 #include "mozilla/dom/WritableStreamDefaultController.h"
-#include "mozilla/dom/ReadableStreamController.h"
+#include "mozilla/dom/ReadableStreamControllerBase.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "js/RootingAPI.h"
@@ -100,7 +100,8 @@ void nsISupportsStreamSource::Enqueue(nsISupports* aThing) {
 }
 
 already_AddRefed<Promise> nsISupportsStreamSource::PullCallbackImpl(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    JSContext* aCx, ReadableStreamControllerBase& aController,
+    ErrorResult& aRv) {
   if (!mQueue.IsEmpty()) {
     EnqueueOneThingFromQueue(aCx);
     return nullptr;

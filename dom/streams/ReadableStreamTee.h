@@ -8,7 +8,7 @@
 #define mozilla_dom_ReadableStreamTee_h
 
 #include "mozilla/dom/ReadRequest.h"
-#include "mozilla/dom/ReadableStreamController.h"
+#include "mozilla/dom/ReadableStreamControllerBase.h"
 #include "mozilla/dom/UnderlyingSourceCallbackHelpers.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupportsImpl.h"
@@ -33,15 +33,14 @@ class ReadableStreamDefaultTeeSourceAlgorithms final
                                            TeeBranch aBranch)
       : mTeeState(aTeeState), mBranch(aBranch) {}
 
-  MOZ_CAN_RUN_SCRIPT void StartCallback(JSContext* aCx,
-                                        ReadableStreamController& aController,
-                                        JS::MutableHandle<JS::Value> aRetVal,
-                                        ErrorResult& aRv) override {
+  MOZ_CAN_RUN_SCRIPT void StartCallback(
+      JSContext* aCx, ReadableStreamControllerBase& aController,
+      JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) override {
     aRetVal.setUndefined();
   }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(

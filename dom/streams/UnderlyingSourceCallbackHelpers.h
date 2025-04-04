@@ -31,7 +31,7 @@ namespace mozilla::dom {
 
 class StrongWorkerRef;
 class BodyStreamHolder;
-class ReadableStreamController;
+class ReadableStreamControllerBase;
 class ReadableStream;
 
 class UnderlyingSourceAlgorithmsBase : public nsISupports {
@@ -40,13 +40,13 @@ class UnderlyingSourceAlgorithmsBase : public nsISupports {
   NS_DECL_CYCLE_COLLECTION_CLASS(UnderlyingSourceAlgorithmsBase)
 
   MOZ_CAN_RUN_SCRIPT virtual void StartCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) = 0;
 
   // A promise-returning algorithm that pulls data from the underlying byte
   // source
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) = 0;
 
   // A promise-returning algorithm, taking one argument (the cancel reason),
@@ -102,13 +102,12 @@ class UnderlyingSourceAlgorithms final : public UnderlyingSourceAlgorithmsBase {
     mozilla::HoldJSObjects(this);
   };
 
-  MOZ_CAN_RUN_SCRIPT void StartCallback(JSContext* aCx,
-                                        ReadableStreamController& aController,
-                                        JS::MutableHandle<JS::Value> aRetVal,
-                                        ErrorResult& aRv) override;
+  MOZ_CAN_RUN_SCRIPT void StartCallback(
+      JSContext* aCx, ReadableStreamControllerBase& aController,
+      JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
@@ -139,11 +138,11 @@ class UnderlyingSourceAlgorithms final : public UnderlyingSourceAlgorithmsBase {
 // `EnqueueNative()` etc. without direct controller access.
 class UnderlyingSourceAlgorithmsWrapper
     : public UnderlyingSourceAlgorithmsBase {
-  void StartCallback(JSContext*, ReadableStreamController&,
+  void StartCallback(JSContext*, ReadableStreamControllerBase&,
                      JS::MutableHandle<JS::Value> aRetVal, ErrorResult&) final;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) final;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
@@ -151,7 +150,8 @@ class UnderlyingSourceAlgorithmsWrapper
       ErrorResult& aRv) final;
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+      JSContext* aCx, ReadableStreamControllerBase& aController,
+      ErrorResult& aRv) {
     // pullAlgorithm is optional, return null by default
     return nullptr;
   }
@@ -240,7 +240,7 @@ class InputToReadableStreamAlgorithms final
   // Streams algorithms
 
   already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 
   void ReleaseObjects() override;
@@ -300,7 +300,7 @@ class NonAsyncInputToReadableStreamAlgorithms
       : mInput(&aInput) {}
 
   already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      JSContext* aCx, ReadableStreamControllerBase& aController,
       ErrorResult& aRv) override;
 
   void ReleaseObjects() override {
