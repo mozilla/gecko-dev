@@ -13,14 +13,14 @@ namespace mozilla::uniffi {
 extern mozilla::LazyLogModule gUniffiLogger;
 
 using dom::GlobalObject;
+using dom::OwningUniFFIScaffoldingValue;
 using dom::RootedDictionary;
 using dom::Sequence;
 using dom::UniFFIScaffoldingCallResult;
-using dom::UniFFIScaffoldingValue;
 
 void UniffiSyncCallHandler::CallSync(
     UniquePtr<UniffiSyncCallHandler> aHandler, const GlobalObject& aGlobal,
-    const Sequence<UniFFIScaffoldingValue>& aArgs,
+    const Sequence<OwningUniFFIScaffoldingValue>& aArgs,
     RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
     ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -39,7 +39,7 @@ void UniffiSyncCallHandler::CallSync(
 
 already_AddRefed<dom::Promise> UniffiSyncCallHandler::CallAsyncWrapper(
     UniquePtr<UniffiSyncCallHandler> aHandler, const dom::GlobalObject& aGlobal,
-    const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs,
+    const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs,
     ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
   aHandler->PrepareRustArgs(aArgs, aError);
@@ -156,7 +156,7 @@ void UniffiCallHandlerBase::ExtractCallResult(
 already_AddRefed<dom::Promise> UniffiAsyncCallHandler::CallAsync(
     UniquePtr<UniffiAsyncCallHandler> aHandler,
     const dom::GlobalObject& aGlobal,
-    const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs,
+    const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs,
     ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
   // Async calls return a Future rather than doing any work.  This means we can

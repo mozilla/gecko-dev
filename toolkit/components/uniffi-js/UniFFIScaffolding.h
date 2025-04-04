@@ -14,24 +14,26 @@
 
 namespace mozilla::dom {
 
-using UniFFIScaffoldingValue = OwningDoubleOrArrayBufferOrUniFFIPointer;
+using OwningUniFFIScaffoldingValue = OwningDoubleOrArrayBufferOrUniFFIPointer;
 
 // Handle functions defined in UniFFIScaffolding.webidl
 class UniFFIScaffolding {
  public:
   static void CallSync(
       const GlobalObject& aGlobal, uint64_t aId,
-      const Sequence<UniFFIScaffoldingValue>& aArgs,
+      const Sequence<OwningUniFFIScaffoldingValue>& aArgs,
       RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
       ErrorResult& aErrorResult);
 
   static already_AddRefed<Promise> CallAsync(
       const GlobalObject& aGlobal, uint64_t aId,
-      const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aErrorResult);
+      const Sequence<OwningUniFFIScaffoldingValue>& aArgs,
+      ErrorResult& aErrorResult);
 
   static already_AddRefed<Promise> CallAsyncWrapper(
       const GlobalObject& aGlobal, uint64_t aId,
-      const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aErrorResult);
+      const Sequence<OwningUniFFIScaffoldingValue>& aArgs,
+      ErrorResult& aErrorResult);
 
   static already_AddRefed<UniFFIPointer> ReadPointer(
       const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff,

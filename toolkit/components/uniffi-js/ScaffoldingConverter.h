@@ -47,7 +47,7 @@ class ScaffoldingConverter {
   // us.
   //
   // If this succeeds then IntoRust is also guaranteed to succeed
-  static void FromJs(const dom::UniFFIScaffoldingValue& aValue,
+  static void FromJs(const dom::OwningUniFFIScaffoldingValue& aValue,
                      IntermediateType* aResult, ErrorResult& aError) {
     if (!aValue.IsDouble()) {
       aError.ThrowTypeError("Bad argument type"_ns);
@@ -106,7 +106,8 @@ class ScaffoldingConverter {
   // This inputs an r-value reference since we may want to move data out of
   // this type.
   static void IntoJs(JSContext* aContext, IntermediateType&& aValue,
-                     dom::UniFFIScaffoldingValue* aDest, ErrorResult& aError) {
+                     dom::OwningUniFFIScaffoldingValue* aDest,
+                     ErrorResult& aError) {
     if constexpr (std::is_same<RustType, int64_t>::value ||
                   std::is_same<RustType, uint64_t>::value) {
       // Check that the value can fit in a double (only needed for 64 bit types)
@@ -133,7 +134,7 @@ class ScaffoldingConverter<RustBuffer> {
   using RustType = RustBuffer;
   using IntermediateType = OwnedRustBuffer;
 
-  static void FromJs(const dom::UniFFIScaffoldingValue& aValue,
+  static void FromJs(const dom::OwningUniFFIScaffoldingValue& aValue,
                      OwnedRustBuffer* aResult, ErrorResult& aError) {
     if (!aValue.IsArrayBuffer()) {
       aError.ThrowTypeError("Expected ArrayBuffer argument"_ns);
@@ -151,7 +152,8 @@ class ScaffoldingConverter<RustBuffer> {
   }
 
   static void IntoJs(JSContext* aContext, OwnedRustBuffer&& aValue,
-                     dom::UniFFIScaffoldingValue* aDest, ErrorResult& aError) {
+                     dom::OwningUniFFIScaffoldingValue* aDest,
+                     ErrorResult& aError) {
     JS::Rooted<JSObject*> obj(aContext);
     aValue.IntoArrayBuffer(aContext, &obj, aError);
     if (aError.Failed()) {
@@ -168,8 +170,8 @@ class ScaffoldingObjectConverter {
   using RustType = void*;
   using IntermediateType = void*;
 
-  static void FromJs(const dom::UniFFIScaffoldingValue& aValue, void** aResult,
-                     ErrorResult& aError) {
+  static void FromJs(const dom::OwningUniFFIScaffoldingValue& aValue,
+                     void** aResult, ErrorResult& aError) {
     if (!aValue.IsUniFFIPointer()) {
       aError.ThrowTypeError("Expected UniFFI pointer argument"_ns);
       return;
@@ -187,7 +189,8 @@ class ScaffoldingObjectConverter {
   static void* FromRust(void* aValue) { return aValue; }
 
   static void IntoJs(JSContext* aContext, void* aValue,
-                     dom::UniFFIScaffoldingValue* aDest, ErrorResult& aError) {
+                     dom::OwningUniFFIScaffoldingValue* aDest,
+                     ErrorResult& aError) {
     aDest->SetAsUniFFIPointer() =
         dom::UniFFIPointer::Create(aValue, PointerType);
   }

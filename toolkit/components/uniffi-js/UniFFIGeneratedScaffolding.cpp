@@ -25,7 +25,7 @@ using dom::GlobalObject;
 using dom::RootedDictionary;
 using dom::NullableRootedUnion;
 using dom::Promise;
-using dom::UniFFIScaffoldingValue;
+using dom::OwningUniFFIScaffoldingValue;
 using dom::Sequence;
 using dom::UniFFICallbackHandler;
 using dom::UniFFIPointer;
@@ -1863,7 +1863,7 @@ public:
 
   MOZ_CAN_RUN_SCRIPT
   void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler, ErrorResult& aError) override {
-    nsTArray<dom::UniFFIScaffoldingValue> uniffiArgs;
+    nsTArray<dom::OwningUniFFIScaffoldingValue> uniffiArgs;
     // Setup
     if (!uniffiArgs.AppendElements(2, mozilla::fallible)) {
       aError.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -1890,7 +1890,7 @@ public:
 
     // Stores the return value.  For now, we currently don't do anything with it, since we only support
     // fire-and-forget callbacks.
-    NullableRootedUnion<dom::UniFFIScaffoldingValue> returnValue(aCx);
+    NullableRootedUnion<dom::OwningUniFFIScaffoldingValue> returnValue(aCx);
     // Make the call
     aJsHandler->Call(mObjectHandle, 0, uniffiArgs, returnValue, aError);
   }
@@ -1898,7 +1898,7 @@ public:
 
 extern "C" void callback_interface_application_error_reporter_report_error(
     uint64_t uniffiHandle,
-    RustBuffer type_name, RustBuffer message, 
+    RustBuffer type_name, RustBuffer message,
     void* uniffiOutReturn,
     RustCallStatus* uniffiCallStatus
 ) {
@@ -1926,7 +1926,7 @@ public:
 
   MOZ_CAN_RUN_SCRIPT
   void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler, ErrorResult& aError) override {
-    nsTArray<dom::UniFFIScaffoldingValue> uniffiArgs;
+    nsTArray<dom::OwningUniFFIScaffoldingValue> uniffiArgs;
     // Setup
     if (!uniffiArgs.AppendElements(4, mozilla::fallible)) {
       aError.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -1969,7 +1969,7 @@ public:
 
     // Stores the return value.  For now, we currently don't do anything with it, since we only support
     // fire-and-forget callbacks.
-    NullableRootedUnion<dom::UniFFIScaffoldingValue> returnValue(aCx);
+    NullableRootedUnion<dom::OwningUniFFIScaffoldingValue> returnValue(aCx);
     // Make the call
     aJsHandler->Call(mObjectHandle, 1, uniffiArgs, returnValue, aError);
   }
@@ -1977,7 +1977,7 @@ public:
 
 extern "C" void callback_interface_application_error_reporter_report_breadcrumb(
     uint64_t uniffiHandle,
-    RustBuffer message, RustBuffer module, uint32_t line, uint32_t column, 
+    RustBuffer message, RustBuffer module, uint32_t line, uint32_t column,
     void* uniffiOutReturn,
     RustCallStatus* uniffiCallStatus
 ) {
@@ -2019,7 +2019,7 @@ public:
 
   MOZ_CAN_RUN_SCRIPT
   void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler, ErrorResult& aError) override {
-    nsTArray<dom::UniFFIScaffoldingValue> uniffiArgs;
+    nsTArray<dom::OwningUniFFIScaffoldingValue> uniffiArgs;
     // Setup
     if (!uniffiArgs.AppendElements(1, mozilla::fallible)) {
       aError.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -2038,7 +2038,7 @@ public:
 
     // Stores the return value.  For now, we currently don't do anything with it, since we only support
     // fire-and-forget callbacks.
-    NullableRootedUnion<dom::UniFFIScaffoldingValue> returnValue(aCx);
+    NullableRootedUnion<dom::OwningUniFFIScaffoldingValue> returnValue(aCx);
     // Make the call
     aJsHandler->Call(mObjectHandle, 0, uniffiArgs, returnValue, aError);
   }
@@ -2046,7 +2046,7 @@ public:
 
 extern "C" void callback_interface_logger_log(
     uint64_t uniffiHandle,
-    RustBuffer message, 
+    RustBuffer message,
     void* uniffiOutReturn,
     RustCallStatus* uniffiCallStatus
 ) {
@@ -2073,7 +2073,7 @@ public:
 
   MOZ_CAN_RUN_SCRIPT
   void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler, ErrorResult& aError) override {
-    nsTArray<dom::UniFFIScaffoldingValue> uniffiArgs;
+    nsTArray<dom::OwningUniFFIScaffoldingValue> uniffiArgs;
     // Setup
     if (!uniffiArgs.AppendElements(3, mozilla::fallible)) {
       aError.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -2108,7 +2108,7 @@ public:
 
     // Stores the return value.  For now, we currently don't do anything with it, since we only support
     // fire-and-forget callbacks.
-    NullableRootedUnion<dom::UniFFIScaffoldingValue> returnValue(aCx);
+    NullableRootedUnion<dom::OwningUniFFIScaffoldingValue> returnValue(aCx);
     // Make the call
     aJsHandler->Call(mObjectHandle, 1, uniffiArgs, returnValue, aError);
   }
@@ -2116,7 +2116,7 @@ public:
 
 extern "C" void callback_interface_logger_log_repeat(
     uint64_t uniffiHandle,
-    RustBuffer message, uint32_t count, RustBuffer exclude, 
+    RustBuffer message, uint32_t count, RustBuffer exclude,
     void* uniffiOutReturn,
     RustCallStatus* uniffiCallStatus
 ) {
@@ -2140,11 +2140,11 @@ public:
 
   MOZ_CAN_RUN_SCRIPT
   void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler, ErrorResult& aError) override {
-    nsTArray<dom::UniFFIScaffoldingValue> uniffiArgs;
+    nsTArray<dom::OwningUniFFIScaffoldingValue> uniffiArgs;
 
     // Stores the return value.  For now, we currently don't do anything with it, since we only support
     // fire-and-forget callbacks.
-    NullableRootedUnion<dom::UniFFIScaffoldingValue> returnValue(aCx);
+    NullableRootedUnion<dom::OwningUniFFIScaffoldingValue> returnValue(aCx);
     // Make the call
     aJsHandler->Call(mObjectHandle, 2, uniffiArgs, returnValue, aError);
   }
@@ -2152,7 +2152,7 @@ public:
 
 extern "C" void callback_interface_logger_finished(
     uint64_t uniffiHandle,
-    
+
     void* uniffiOutReturn,
     RustCallStatus* uniffiCallStatus
 ) {
@@ -2183,7 +2183,7 @@ static VTableCallbackInterfaceLogger kCallbackInterfaceVtableLogger {
 
 void RegisterCallbackHandler(uint64_t aInterfaceId, UniFFICallbackHandler& aCallbackHandler, ErrorResult& aError) {
   switch (aInterfaceId) {
-    
+
     case 0: {
       if (gCallbackInterfaceJsHandlerApplicationErrorReporter) {
         aError.ThrowUnknownError("[UniFFI] Callback handler already registered for errorsupport:ApplicationErrorReporter"_ns);
@@ -2194,7 +2194,7 @@ void RegisterCallbackHandler(uint64_t aInterfaceId, UniFFICallbackHandler& aCall
       uniffi_error_support_fn_init_callback_vtable_applicationerrorreporter(&kCallbackInterfaceVtableApplicationErrorReporter);
       break;
     }
-    
+
     #ifdef MOZ_UNIFFI_FIXTURES
     case 1: {
       if (gCallbackInterfaceJsHandlerLogger) {
@@ -2216,7 +2216,7 @@ void RegisterCallbackHandler(uint64_t aInterfaceId, UniFFICallbackHandler& aCall
 
 void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError) {
   switch (aInterfaceId) {
-    
+
     case 0: {
       if (!gCallbackInterfaceJsHandlerApplicationErrorReporter) {
         aError.ThrowUnknownError("[UniFFI] Callback handler not registered for errorsupport:ApplicationErrorReporter"_ns);
@@ -2226,7 +2226,7 @@ void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError) {
       gCallbackInterfaceJsHandlerApplicationErrorReporter = nullptr;
       break;
     }
-    
+
     #ifdef MOZ_UNIFFI_FIXTURES
     case 1: {
       if (!gCallbackInterfaceJsHandlerLogger) {
@@ -2256,7 +2256,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mErrorReporter, aError);
     if (aError.Failed()) {
       return;
@@ -2270,7 +2270,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiErrorSupportFnFuncUnsetApplicationErrorReporter : public UniffiSyncCallHandler {
@@ -2280,7 +2280,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -2289,7 +2289,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnFuncScore : public UniffiSyncCallHandler {
@@ -2302,7 +2302,7 @@ private:
   typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mInterestVector, aError);
     if (aError.Failed()) {
       return;
@@ -2323,7 +2323,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<double>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2342,7 +2342,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2366,7 +2366,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreBanditSelect : public UniffiSyncCallHandler {
@@ -2380,7 +2380,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2406,7 +2406,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2426,7 +2426,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2455,7 +2455,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreCalculateMetrics : public UniffiSyncCallHandler {
@@ -2467,7 +2467,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2483,7 +2483,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2500,7 +2500,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2514,7 +2514,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreGetBanditData : public UniffiSyncCallHandler {
@@ -2528,7 +2528,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2554,7 +2554,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2573,7 +2573,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2594,7 +2594,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2611,7 +2611,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2625,7 +2625,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRelevancyFnMethodRelevancystoreUserInterestVector : public UniffiSyncCallHandler {
@@ -2637,7 +2637,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2653,7 +2653,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2672,7 +2672,7 @@ private:
   typename ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mDbPath, aError);
     if (aError.Failed()) {
       return;
@@ -2693,7 +2693,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRelevancyRelevancyStorePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2712,7 +2712,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2736,7 +2736,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsGetRecords : public UniffiSyncCallHandler {
@@ -2748,7 +2748,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2764,7 +2764,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2783,7 +2783,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2804,7 +2804,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2822,7 +2822,7 @@ private:
   typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mRemoteSettingsConfig, aError);
     if (aError.Failed()) {
       return;
@@ -2838,7 +2838,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2856,7 +2856,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2872,7 +2872,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2891,7 +2891,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2912,7 +2912,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2931,7 +2931,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2952,7 +2952,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -2971,7 +2971,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -2992,7 +2992,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3009,7 +3009,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3023,7 +3023,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnMethodRemotesettingsserviceMakeClient : public UniffiSyncCallHandler {
@@ -3036,7 +3036,7 @@ private:
   typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsServicePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3057,7 +3057,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsClientPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3075,7 +3075,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsServicePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3091,7 +3091,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3109,7 +3109,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsServicePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3128,7 +3128,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiRemoteSettingsFnConstructorRemotesettingsserviceNew : public UniffiSyncCallHandler {
@@ -3141,7 +3141,7 @@ private:
   typename ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsServicePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mStorageDir, aError);
     if (aError.Failed()) {
       return;
@@ -3162,7 +3162,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRemoteSettingsRemoteSettingsServicePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3179,7 +3179,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSearchSearchEngineSelectorPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3193,7 +3193,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorFilterEngineConfiguration : public UniffiSyncCallHandler {
@@ -3206,7 +3206,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSearchSearchEngineSelectorPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3227,7 +3227,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3245,7 +3245,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSearchSearchEngineSelectorPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3264,7 +3264,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorSetSearchConfig : public UniffiSyncCallHandler {
@@ -3276,7 +3276,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSearchSearchEngineSelectorPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3295,7 +3295,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnMethodSearchengineselectorUseRemoteSettingsServer : public UniffiSyncCallHandler {
@@ -3308,7 +3308,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSearchSearchEngineSelectorPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3332,7 +3332,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSearchFnConstructorSearchengineselectorNew : public UniffiSyncCallHandler {
@@ -3343,7 +3343,7 @@ private:
   typename ScaffoldingObjectConverter<&kSearchSearchEngineSelectorPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -3354,7 +3354,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSearchSearchEngineSelectorPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3373,7 +3373,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mRawUrl, aError);
     if (aError.Failed()) {
       return;
@@ -3394,7 +3394,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3411,7 +3411,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3425,7 +3425,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreClearDismissedSuggestions : public UniffiSyncCallHandler {
@@ -3436,7 +3436,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3450,7 +3450,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreDismissSuggestion : public UniffiSyncCallHandler {
@@ -3462,7 +3462,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3481,7 +3481,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreFetchGeonames : public UniffiSyncCallHandler {
@@ -3497,7 +3497,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3533,7 +3533,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3551,7 +3551,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3567,7 +3567,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3586,7 +3586,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3607,7 +3607,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3626,7 +3626,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3647,7 +3647,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3665,7 +3665,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3684,7 +3684,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiSuggestFnMethodSuggeststoreQuery : public UniffiSyncCallHandler {
@@ -3697,7 +3697,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3718,7 +3718,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3737,7 +3737,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3758,7 +3758,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3777,7 +3777,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mPath, aError);
     if (aError.Failed()) {
       return;
@@ -3798,7 +3798,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3816,7 +3816,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3832,7 +3832,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStorePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3851,7 +3851,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3872,7 +3872,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3891,7 +3891,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3912,7 +3912,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3932,7 +3932,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3958,7 +3958,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -3977,7 +3977,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -3998,7 +3998,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4017,7 +4017,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4038,7 +4038,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4057,7 +4057,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4078,7 +4078,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4095,7 +4095,7 @@ private:
   typename ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -4106,7 +4106,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSuggestSuggestStoreBuilderPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4126,7 +4126,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4152,7 +4152,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4173,7 +4173,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4204,7 +4204,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4222,7 +4222,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4238,7 +4238,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4258,7 +4258,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4284,7 +4284,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4303,7 +4303,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4324,7 +4324,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4342,7 +4342,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4358,7 +4358,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4377,7 +4377,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4398,7 +4398,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4416,7 +4416,7 @@ private:
   typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4432,7 +4432,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4450,7 +4450,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4469,7 +4469,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineReset : public UniffiSyncCallHandler {
@@ -4480,7 +4480,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4494,7 +4494,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineResetSyncId : public UniffiSyncCallHandler {
@@ -4506,7 +4506,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4522,7 +4522,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4540,7 +4540,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4559,7 +4559,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSetUploaded : public UniffiSyncCallHandler {
@@ -4572,7 +4572,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4596,7 +4596,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineStoreIncoming : public UniffiSyncCallHandler {
@@ -4608,7 +4608,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4627,7 +4627,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncFinished : public UniffiSyncCallHandler {
@@ -4638,7 +4638,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4652,7 +4652,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineSyncId : public UniffiSyncCallHandler {
@@ -4664,7 +4664,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4680,7 +4680,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4697,7 +4697,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4711,7 +4711,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsbridgedengineWipe : public UniffiSyncCallHandler {
@@ -4722,7 +4722,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4736,7 +4736,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreBridgedEngine : public UniffiSyncCallHandler {
@@ -4748,7 +4748,7 @@ private:
   typename ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4764,7 +4764,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsBridgedEnginePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4781,7 +4781,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4795,7 +4795,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreGetAll : public UniffiSyncCallHandler {
@@ -4807,7 +4807,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4823,7 +4823,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4841,7 +4841,7 @@ private:
   typename ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4857,7 +4857,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsRemoteCommandStorePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4874,7 +4874,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4888,7 +4888,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnMethodTabsstoreSetLocalTabs : public UniffiSyncCallHandler {
@@ -4900,7 +4900,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4919,7 +4919,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiTabsFnConstructorTabsstoreNew : public UniffiSyncCallHandler {
@@ -4931,7 +4931,7 @@ private:
   typename ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mPath, aError);
     if (aError.Failed()) {
       return;
@@ -4947,7 +4947,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTabsTabsStorePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -4965,7 +4965,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -4981,7 +4981,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5000,7 +5000,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5021,7 +5021,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5039,7 +5039,7 @@ private:
   typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5055,7 +5055,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5073,7 +5073,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5092,7 +5092,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineReset : public UniffiSyncCallHandler {
@@ -5103,7 +5103,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5117,7 +5117,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineResetSyncId : public UniffiSyncCallHandler {
@@ -5129,7 +5129,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5145,7 +5145,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5163,7 +5163,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5182,7 +5182,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSetUploaded : public UniffiSyncCallHandler {
@@ -5195,7 +5195,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5219,7 +5219,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineStoreIncoming : public UniffiSyncCallHandler {
@@ -5231,7 +5231,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5250,7 +5250,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncFinished : public UniffiSyncCallHandler {
@@ -5261,7 +5261,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5275,7 +5275,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineSyncId : public UniffiSyncCallHandler {
@@ -5287,7 +5287,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5303,7 +5303,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5320,7 +5320,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5334,7 +5334,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragebridgedengineWipe : public UniffiSyncCallHandler {
@@ -5345,7 +5345,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5359,7 +5359,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreBridgedEngine : public UniffiSyncCallHandler {
@@ -5371,7 +5371,7 @@ private:
   typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5387,7 +5387,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageBridgedEnginePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5406,7 +5406,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5427,7 +5427,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5444,7 +5444,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5458,7 +5458,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiWebextStorageFnMethodWebextstoragestoreGet : public UniffiSyncCallHandler {
@@ -5472,7 +5472,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5498,7 +5498,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5518,7 +5518,7 @@ private:
   typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5544,7 +5544,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5562,7 +5562,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5578,7 +5578,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5598,7 +5598,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5624,7 +5624,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5644,7 +5644,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -5670,7 +5670,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5688,7 +5688,7 @@ private:
   typename ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mPath, aError);
     if (aError.Failed()) {
       return;
@@ -5704,7 +5704,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kWebextstorageWebExtStorageStorePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5725,7 +5725,7 @@ private:
   typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mA, aError);
     if (aError.Failed()) {
       return;
@@ -5746,7 +5746,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5765,7 +5765,7 @@ private:
   typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mDividend, aError);
     if (aError.Failed()) {
       return;
@@ -5786,7 +5786,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5805,7 +5805,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mA, aError);
     if (aError.Failed()) {
       return;
@@ -5826,7 +5826,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5845,7 +5845,7 @@ private:
   typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mA, aError);
     if (aError.Failed()) {
       return;
@@ -5866,7 +5866,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5884,7 +5884,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mDemo, aError);
     if (aError.Failed()) {
       return;
@@ -5900,7 +5900,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5918,7 +5918,7 @@ private:
   typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mValue, aError);
     if (aError.Failed()) {
       return;
@@ -5934,7 +5934,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<double>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5953,7 +5953,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn1, aError);
     if (aError.Failed()) {
       return;
@@ -5974,7 +5974,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -5991,7 +5991,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromJs(aArgs[0], &mSprite, aError);
     if (aError.Failed()) {
       return;
@@ -6005,7 +6005,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncCallLogRepeat : public UniffiSyncCallHandler {
@@ -6019,7 +6019,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mLogger, aError);
     if (aError.Failed()) {
       return;
@@ -6048,7 +6048,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbers : public UniffiSyncCallHandler {
@@ -6060,7 +6060,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mLogger, aError);
     if (aError.Failed()) {
       return;
@@ -6079,7 +6079,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureCallbacksFnFuncLogEvenNumbersMainThread : public UniffiSyncCallHandler {
@@ -6091,7 +6091,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mLogger, aError);
     if (aError.Failed()) {
       return;
@@ -6110,7 +6110,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncExpensiveComputation : public UniffiAsyncCallHandler {
@@ -6125,7 +6125,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
 
     mFutureHandle = uniffi_uniffi_fixture_futures_fn_func_expensive_computation(
     );
@@ -6137,7 +6137,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6153,7 +6153,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -6162,7 +6162,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncInitializeGlobalWorkerQueue : public UniffiSyncCallHandler {
@@ -6173,7 +6173,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesWorkerQueuePointerType>::FromJs(aArgs[0], &mWorkerQueue, aError);
     if (aError.Failed()) {
       return;
@@ -6187,7 +6187,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnFuncRoundtripF32 : public UniffiAsyncCallHandler {
@@ -6202,7 +6202,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<float>::IntermediateType mV;
     ScaffoldingConverter<float>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6220,7 +6220,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<float>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6241,7 +6241,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<double>::IntermediateType mV;
     ScaffoldingConverter<double>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6259,7 +6259,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<double>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6280,7 +6280,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<int16_t>::IntermediateType mV;
     ScaffoldingConverter<int16_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6298,7 +6298,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6319,7 +6319,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<int32_t>::IntermediateType mV;
     ScaffoldingConverter<int32_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6337,7 +6337,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6358,7 +6358,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<int64_t>::IntermediateType mV;
     ScaffoldingConverter<int64_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6376,7 +6376,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6397,7 +6397,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<int8_t>::IntermediateType mV;
     ScaffoldingConverter<int8_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6415,7 +6415,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6436,7 +6436,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mV;
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6454,7 +6454,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6475,7 +6475,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingObjectConverter<&kFuturesTravellerPointerType>::IntermediateType mV;
     ScaffoldingObjectConverter<&kFuturesTravellerPointerType>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6493,7 +6493,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesTravellerPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6514,7 +6514,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mV;
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6532,7 +6532,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6553,7 +6553,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<uint16_t>::IntermediateType mV;
     ScaffoldingConverter<uint16_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6571,7 +6571,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6592,7 +6592,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<uint32_t>::IntermediateType mV;
     ScaffoldingConverter<uint32_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6610,7 +6610,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6631,7 +6631,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<uint64_t>::IntermediateType mV;
     ScaffoldingConverter<uint64_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6649,7 +6649,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6670,7 +6670,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<uint8_t>::IntermediateType mV;
     ScaffoldingConverter<uint8_t>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6688,7 +6688,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6709,7 +6709,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingConverter<RustBuffer>::IntermediateType mV;
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mV, aError);
     if (aError.Failed()) {
@@ -6727,7 +6727,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6746,7 +6746,7 @@ private:
   typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesFutureTesterPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -6767,7 +6767,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6788,7 +6788,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     typename ScaffoldingObjectConverter<&kFuturesFutureTesterPointerType>::IntermediateType mPtr;
     ScaffoldingObjectConverter<&kFuturesFutureTesterPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
@@ -6806,7 +6806,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6823,7 +6823,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesFutureTesterPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -6837,7 +6837,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnConstructorFuturetesterInit : public UniffiSyncCallHandler {
@@ -6848,7 +6848,7 @@ private:
   typename ScaffoldingObjectConverter<&kFuturesFutureTesterPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -6859,7 +6859,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesFutureTesterPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6876,7 +6876,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesRustTaskPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -6890,7 +6890,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiFixtureFuturesFnMethodTravellerName : public UniffiSyncCallHandler {
@@ -6902,7 +6902,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesTravellerPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -6918,7 +6918,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6936,7 +6936,7 @@ private:
   typename ScaffoldingObjectConverter<&kFuturesTravellerPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mName, aError);
     if (aError.Failed()) {
       return;
@@ -6952,7 +6952,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesTravellerPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -6970,7 +6970,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kFuturesWorkerQueuePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -6989,7 +6989,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient : public UniffiSyncCallHandler {
@@ -7001,7 +7001,7 @@ private:
   typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn, aError);
     if (aError.Failed()) {
       return;
@@ -7017,7 +7017,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<double>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7036,7 +7036,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn1, aError);
     if (aError.Failed()) {
       return;
@@ -7057,7 +7057,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7074,7 +7074,7 @@ private:
   typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -7085,7 +7085,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7102,7 +7102,7 @@ private:
   typename ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -7113,7 +7113,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7130,7 +7130,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRefcountsSingletonObjectPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7144,7 +7144,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte : public UniffiSyncCallHandler {
@@ -7156,7 +7156,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mC, aError);
     if (aError.Failed()) {
       return;
@@ -7172,7 +7172,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7190,7 +7190,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mD, aError);
     if (aError.Failed()) {
       return;
@@ -7206,7 +7206,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7224,7 +7224,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mE, aError);
     if (aError.Failed()) {
       return;
@@ -7240,7 +7240,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7258,7 +7258,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mE, aError);
     if (aError.Failed()) {
       return;
@@ -7274,7 +7274,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7292,7 +7292,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::FromJs(aArgs[0], &mB, aError);
     if (aError.Failed()) {
       return;
@@ -7308,7 +7308,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7327,7 +7327,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7348,7 +7348,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7367,7 +7367,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7388,7 +7388,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7407,7 +7407,7 @@ private:
   typename ScaffoldingConverter<float>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7428,7 +7428,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<float>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7447,7 +7447,7 @@ private:
   typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7468,7 +7468,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<double>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7487,7 +7487,7 @@ private:
   typename ScaffoldingConverter<int16_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7508,7 +7508,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7527,7 +7527,7 @@ private:
   typename ScaffoldingConverter<int16_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7548,7 +7548,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7567,7 +7567,7 @@ private:
   typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7588,7 +7588,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7607,7 +7607,7 @@ private:
   typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7628,7 +7628,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7647,7 +7647,7 @@ private:
   typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7668,7 +7668,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7687,7 +7687,7 @@ private:
   typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7708,7 +7708,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7727,7 +7727,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7748,7 +7748,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7767,7 +7767,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7788,7 +7788,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7807,7 +7807,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7828,7 +7828,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7847,7 +7847,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7868,7 +7868,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7887,7 +7887,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7908,7 +7908,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7927,7 +7927,7 @@ private:
   typename ScaffoldingConverter<uint16_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7948,7 +7948,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -7967,7 +7967,7 @@ private:
   typename ScaffoldingConverter<uint16_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -7988,7 +7988,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8007,7 +8007,7 @@ private:
   typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8028,7 +8028,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8047,7 +8047,7 @@ private:
   typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8068,7 +8068,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8087,7 +8087,7 @@ private:
   typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8108,7 +8108,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8127,7 +8127,7 @@ private:
   typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8148,7 +8148,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8167,7 +8167,7 @@ private:
   typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8188,7 +8188,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8207,7 +8207,7 @@ private:
   typename ScaffoldingConverter<uint8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8228,7 +8228,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8247,7 +8247,7 @@ private:
   typename ScaffoldingConverter<uint8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8268,7 +8268,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8287,7 +8287,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8308,7 +8308,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8325,7 +8325,7 @@ private:
   typename ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -8336,7 +8336,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointOptionneurPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8355,7 +8355,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8376,7 +8376,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8395,7 +8395,7 @@ private:
   typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8416,7 +8416,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<double>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8435,7 +8435,7 @@ private:
   typename ScaffoldingConverter<float>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8456,7 +8456,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<float>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8475,7 +8475,7 @@ private:
   typename ScaffoldingConverter<int16_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8496,7 +8496,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8515,7 +8515,7 @@ private:
   typename ScaffoldingConverter<int32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8536,7 +8536,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8555,7 +8555,7 @@ private:
   typename ScaffoldingConverter<int64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8576,7 +8576,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8595,7 +8595,7 @@ private:
   typename ScaffoldingConverter<int8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8616,7 +8616,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<int8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8635,7 +8635,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8656,7 +8656,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8675,7 +8675,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8696,7 +8696,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8715,7 +8715,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8736,7 +8736,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8755,7 +8755,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8776,7 +8776,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8795,7 +8795,7 @@ private:
   typename ScaffoldingConverter<uint16_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8816,7 +8816,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint16_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8835,7 +8835,7 @@ private:
   typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8856,7 +8856,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8875,7 +8875,7 @@ private:
   typename ScaffoldingConverter<uint64_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8896,7 +8896,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint64_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8915,7 +8915,7 @@ private:
   typename ScaffoldingConverter<uint8_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -8936,7 +8936,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint8_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8953,7 +8953,7 @@ private:
   typename ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -8964,7 +8964,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointRetourneurPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -8983,7 +8983,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9004,7 +9004,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9023,7 +9023,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9044,7 +9044,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9063,7 +9063,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9084,7 +9084,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9103,7 +9103,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9124,7 +9124,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9143,7 +9143,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9164,7 +9164,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9183,7 +9183,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9204,7 +9204,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9223,7 +9223,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9244,7 +9244,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9263,7 +9263,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9284,7 +9284,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9303,7 +9303,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9324,7 +9324,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9343,7 +9343,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9364,7 +9364,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9383,7 +9383,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9404,7 +9404,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9423,7 +9423,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9444,7 +9444,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9461,7 +9461,7 @@ private:
   typename ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -9472,7 +9472,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kRondpointStringifierPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9491,7 +9491,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mP, aError);
     if (aError.Failed()) {
       return;
@@ -9512,7 +9512,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9530,7 +9530,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9546,7 +9546,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9564,7 +9564,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9583,7 +9583,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnMethodSpriteMoveTo : public UniffiSyncCallHandler {
@@ -9595,7 +9595,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSpritesSpritePointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9614,7 +9614,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiSpritesFnConstructorSpriteNew : public UniffiSyncCallHandler {
@@ -9626,7 +9626,7 @@ private:
   typename ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mInitialPosition, aError);
     if (aError.Failed()) {
       return;
@@ -9642,7 +9642,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9661,7 +9661,7 @@ private:
   typename ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mReference, aError);
     if (aError.Failed()) {
       return;
@@ -9682,7 +9682,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kSpritesSpritePointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9700,7 +9700,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mTodo, aError);
     if (aError.Failed()) {
       return;
@@ -9716,7 +9716,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9733,7 +9733,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -9744,7 +9744,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9761,7 +9761,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mList, aError);
     if (aError.Failed()) {
       return;
@@ -9775,7 +9775,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntries : public UniffiSyncCallHandler {
@@ -9787,7 +9787,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9806,7 +9806,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddEntry : public UniffiSyncCallHandler {
@@ -9818,7 +9818,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9837,7 +9837,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItem : public UniffiSyncCallHandler {
@@ -9849,7 +9849,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9868,7 +9868,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistAddItems : public UniffiSyncCallHandler {
@@ -9880,7 +9880,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9899,7 +9899,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistClearItem : public UniffiSyncCallHandler {
@@ -9911,7 +9911,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9930,7 +9930,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnMethodTodolistGetEntries : public UniffiSyncCallHandler {
@@ -9942,7 +9942,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9958,7 +9958,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -9976,7 +9976,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -9992,7 +9992,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -10010,7 +10010,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -10026,7 +10026,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -10044,7 +10044,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -10060,7 +10060,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -10078,7 +10078,7 @@ private:
   typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -10094,7 +10094,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<RustBuffer>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -10111,7 +10111,7 @@ private:
   // MakeRustCall stores the result of the call in these fields
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -10125,7 +10125,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
   }
 };
 class ScaffoldingCallHandlerUniffiUniffiTodolistFnConstructorTodolistNew : public UniffiSyncCallHandler {
@@ -10136,7 +10136,7 @@ private:
   typename ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -10147,7 +10147,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kTodolistTodoListPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -10164,7 +10164,7 @@ private:
   typename ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -10175,7 +10175,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -10192,7 +10192,7 @@ private:
   typename ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
   }
 
   void MakeRustCall(RustCallStatus* aOutStatus) override {
@@ -10203,7 +10203,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),
@@ -10223,7 +10223,7 @@ private:
   typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::FromJs(aArgs[0], &mPtr, aError);
     if (aError.Failed()) {
       return;
@@ -10249,7 +10249,7 @@ public:
     );
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     ScaffoldingConverter<uint32_t>::IntoJs(
       aCx,
       std::move(mUniffiReturnValue),

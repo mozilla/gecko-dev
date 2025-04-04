@@ -23,13 +23,13 @@
 
 using mozilla::dom::ArrayBuffer;
 using mozilla::dom::GlobalObject;
+using mozilla::dom::OwningUniFFIScaffoldingValue;
 using mozilla::dom::Promise;
 using mozilla::dom::RootedDictionary;
 using mozilla::dom::Sequence;
 using mozilla::dom::UniFFICallbackHandler;
 using mozilla::dom::UniFFIPointer;
 using mozilla::dom::UniFFIScaffoldingCallResult;
-using mozilla::dom::UniFFIScaffoldingValue;
 using mozilla::uniffi::UniffiAsyncCallHandler;
 using mozilla::uniffi::UniffiSyncCallHandler;
 
@@ -52,7 +52,7 @@ namespace mozilla::dom {
 
 void UniFFIScaffolding::CallSync(
     const GlobalObject& aGlobal, uint64_t aId,
-    const Sequence<UniFFIScaffoldingValue>& aArgs,
+    const Sequence<OwningUniFFIScaffoldingValue>& aArgs,
     RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
     ErrorResult& aError) {
   if (UniquePtr<UniffiSyncCallHandler> handler =
@@ -67,7 +67,7 @@ void UniFFIScaffolding::CallSync(
 
 already_AddRefed<Promise> UniFFIScaffolding::CallAsync(
     const GlobalObject& aGlobal, uint64_t aId,
-    const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
+    const Sequence<OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
   if (UniquePtr<UniffiAsyncCallHandler> handler =
           uniffi::GetAsyncCallHandler(aId)) {
     return UniffiAsyncCallHandler::CallAsync(std::move(handler), aGlobal, aArgs,
@@ -81,7 +81,7 @@ already_AddRefed<Promise> UniFFIScaffolding::CallAsync(
 
 already_AddRefed<Promise> UniFFIScaffolding::CallAsyncWrapper(
     const GlobalObject& aGlobal, uint64_t aId,
-    const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
+    const Sequence<OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
   if (UniquePtr<UniffiSyncCallHandler> handler =
           uniffi::GetSyncCallHandler(aId)) {
     return UniffiSyncCallHandler::CallAsyncWrapper(std::move(handler), aGlobal,
