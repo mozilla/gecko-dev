@@ -148,6 +148,31 @@ add_task(async function () {
   testHeaders("file", "ascending");
   await testContents([0, 1, 2, 3, 4]);
 
+  await showColumn(monitor, "path");
+  info("Testing path sort, ascending.");
+  EventUtils.sendMouseEvent(
+    { type: "click" },
+    document.querySelector("#requests-list-path-button")
+  );
+  testHeaders("path", "ascending");
+  await testContents([0, 1, 2, 3, 4]);
+
+  info("Testing path sort, descending.");
+  EventUtils.sendMouseEvent(
+    { type: "click" },
+    document.querySelector("#requests-list-path-button")
+  );
+  testHeaders("path", "descending");
+  await testContents([4, 3, 2, 1, 0]);
+
+  info("Testing path sort, ascending. Checking sort loops correctly.");
+  EventUtils.sendMouseEvent(
+    { type: "click" },
+    document.querySelector("#requests-list-path-button")
+  );
+  testHeaders("path", "ascending");
+  await testContents([0, 1, 2, 3, 4]);
+
   info("Testing URL sort, ascending.");
   EventUtils.sendMouseEvent(
     { type: "click" },

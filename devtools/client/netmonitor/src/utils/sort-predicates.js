@@ -66,6 +66,13 @@ function file(first, second) {
   return result || waterfall(first, second);
 }
 
+function path(first, second) {
+  const firstUrl = first.urlDetails.path.toLowerCase();
+  const secondUrl = second.urlDetails.path.toLowerCase();
+  const result = compareValues(firstUrl, secondUrl);
+  return result || waterfall(first, second);
+}
+
 function url(first, second) {
   const firstUrl = first.url.toLowerCase();
   const secondUrl = second.url.toLowerCase();
@@ -297,6 +304,7 @@ const sorters = {
   method,
   domain,
   file,
+  path,
   protocol,
   scheme,
   cookies,
