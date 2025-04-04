@@ -27,7 +27,7 @@ rest of Firefox.
    submission of counters is not necessary. Nevertheless, it is not free, so be
    cautious about telemetry on very hot paths.
 
-3. Add an entry to `dom/base/UseCounter.conf`.  Use a custom entry in the
+3. Add an entry to `dom/base/UseCounters.conf`.  Use a custom entry in the
    JavaScript feature usage section. _Note: the first character after `JS_` should
    be lowercase. See Bug 1934649._
 
