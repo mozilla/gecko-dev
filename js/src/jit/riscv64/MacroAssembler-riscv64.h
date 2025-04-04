@@ -295,6 +295,7 @@ class MacroAssemblerRiscv64 : public Assembler {
   Condition ma_cmp(Register rd, Register lhs, Imm32 imm, Condition c);
   void ma_cmp_set(Register dst, Register lhs, ImmWord imm, Condition c);
   void ma_cmp_set(Register dst, Register lhs, ImmPtr imm, Condition c);
+  void ma_cmp_set(Register dst, Address address, Register rhs, Condition c);
   void ma_cmp_set(Register dst, Address address, Imm32 imm, Condition c);
   void ma_cmp_set(Register dst, Address address, ImmWord imm, Condition c);
 
