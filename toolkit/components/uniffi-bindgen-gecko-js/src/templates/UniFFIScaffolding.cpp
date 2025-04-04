@@ -25,7 +25,7 @@ using dom::GlobalObject;
 using dom::RootedDictionary;
 using dom::NullableRootedUnion;
 using dom::Promise;
-using dom::UniFFIScaffoldingValue;
+using dom::OwningUniFFIScaffoldingValue;
 using dom::Sequence;
 using dom::UniFFICallbackHandler;
 using dom::UniFFIPointer;
@@ -91,7 +91,7 @@ public:
 
   MOZ_CAN_RUN_SCRIPT
   void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler, ErrorResult& aError) override {
-    nsTArray<dom::UniFFIScaffoldingValue> uniffiArgs;
+    nsTArray<dom::OwningUniFFIScaffoldingValue> uniffiArgs;
 
     {%- if !handler.arguments.is_empty() %}
     // Setup
@@ -115,7 +115,7 @@ public:
 
     // Stores the return value.  For now, we currently don't do anything with it, since we only support
     // fire-and-forget callbacks.
-    NullableRootedUnion<dom::UniFFIScaffoldingValue> returnValue(aCx);
+    NullableRootedUnion<dom::OwningUniFFIScaffoldingValue> returnValue(aCx);
     // Make the call
     aJsHandler->Call(mObjectHandle, {{ method_index }}, uniffiArgs, returnValue, aError);
   }
@@ -234,7 +234,7 @@ private:
   {%- endmatch %}
 
 public:
-  void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     {%- for arg in scaffolding_call.arguments %}
     {{ arg.scaffolding_converter }}::FromJs(aArgs[{{ loop.index0 }}], &{{ arg.var_name }}, aError);
     if (aError.Failed()) {
@@ -264,7 +264,7 @@ public:
     {%- endmatch %}
   }
 
-  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
     {{ return_type.scaffolding_converter }}::IntoJs(
@@ -294,7 +294,7 @@ protected:
   // Convert a sequence of JS arguments and call the scaffolding function.
   // Always called on the main thread since async Rust calls don't block, they
   // return a future.
-  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  void PrepareArgsAndMakeRustCall(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
     {%- for arg in scaffolding_call.arguments %}
     typename {{ arg.scaffolding_converter }}::IntermediateType {{ arg.var_name }};
     {{ arg.scaffolding_converter }}::FromJs(aArgs[{{ loop.index0 }}], &{{ arg.var_name }}, aError);
@@ -321,7 +321,7 @@ protected:
   }
 
 public:
-  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+  void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
     {%- match scaffolding_call.return_type %}
     {%- when Some(return_type) %}
     {{ return_type.scaffolding_converter }}::IntoJs(
