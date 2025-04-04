@@ -38,20 +38,6 @@ support-files = ["file_test_clipboard_getDataSnapshot.js"]
 skip-if = ["display == 'wayland'"] # Bug 1879835
 support-files = "file_test_clipboard_getDataSnapshotSync.js"
 
-["test_clipboard_pngPreservesTransparency.html"]
-skip-if = [
-  "headless",   # Clipboard call to get PNG data fails (bug 1878643)
-  "os == 'android'",   # Android cannot copy image contents (bug 1299578)
-]
-support-files = "file_test_clipboard_pngPreservesTransparency.js"
-
-["test_contextmenu_by_mouse_on_unix.html"]
-run-if = [
-  "os == 'linux'",
-  "os == 'android'",
-]
-skip-if = ["headless"] # headless widget doesn't dispatch contextmenu event by mouse event.
-
 ["test_contextmenu_chorded_buttons.html"]
 run-if = [
   "os == 'win'", # only Windows updates the mouse button state when enqueuing native mouse down event.
@@ -60,6 +46,13 @@ skip-if = [
   "headless", # headless widget doesn't dispatch contextmenu event by mouse event.
   "xorigin", # high-frequently intermittent fail
 ]
+
+["test_contextmenu_by_mouse_on_unix.html"]
+run-if = [
+  "os == 'linux'",
+  "os == 'android'",
+]
+skip-if = ["headless"] # headless widget doesn't dispatch contextmenu event by mouse event.
 
 ["test_keypress_event_with_alt_on_mac.html"]
 run-if = ["os == 'mac'"]
