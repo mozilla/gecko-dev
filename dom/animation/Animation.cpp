@@ -838,7 +838,10 @@ void Animation::CommitStyles(ErrorResult& aRv) {
   UniquePtr<StyleAnimationValueMap> animationValues(
       Servo_AnimationValueMap_Create());
   if (!presContext->EffectCompositor()->ComposeServoAnimationRuleForEffect(
-          *keyframeEffect, CascadeLevel(), animationValues.get())) {
+          *keyframeEffect, CascadeLevel(), animationValues.get(),
+          StaticPrefs::dom_animations_commit_styles_endpoint_inclusive()
+              ? EndpointBehavior::Inclusive
+              : EndpointBehavior::Exclusive)) {
     NS_WARNING("Failed to compose animation style to commit");
     return;
   }
@@ -1277,7 +1280,8 @@ void Animation::WillComposeStyle() {
 
 void Animation::ComposeStyle(
     StyleAnimationValueMap& aComposeResult,
-    const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip) {
+    const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip,
+    EndpointBehavior aEndpointBehavior) {
   if (!mEffect) {
     return;
   }
@@ -1331,7 +1335,8 @@ void Animation::ComposeStyle(
 
     KeyframeEffect* keyframeEffect = mEffect->AsKeyframeEffect();
     if (keyframeEffect) {
-      keyframeEffect->ComposeStyle(aComposeResult, aPropertiesToSkip);
+      keyframeEffect->ComposeStyle(aComposeResult, aPropertiesToSkip,
+                                   aEndpointBehavior);
     }
   }
 

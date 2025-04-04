@@ -18,6 +18,7 @@ EXPORTS.mozilla.dom += [
     "CSSPseudoElement.h",
     "CSSTransition.h",
     "DocumentTimeline.h",
+    "EndpointBehavior.h",
     "KeyframeEffect.h",
     "ScrollTimeline.h",
     "ViewTimeline.h",

@@ -275,8 +275,10 @@ class KeyframeEffect : public AnimationEffect {
   // Updates |aComposeResult| with the animation values produced by this
   // AnimationEffect for the current time except any properties contained
   // in |aPropertiesToSkip|.
-  void ComposeStyle(StyleAnimationValueMap& aComposeResult,
-                    const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip);
+  void ComposeStyle(
+      StyleAnimationValueMap& aComposeResult,
+      const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip,
+      EndpointBehavior aEndpointBehavior = EndpointBehavior::Exclusive);
 
   // Returns true if at least one property is being animated on compositor.
   bool IsRunningOnCompositor() const;
@@ -338,6 +340,8 @@ class KeyframeEffect : public AnimationEffect {
     MOZ_ASSERT(hasProperty || result.IsNull());
     return result;
   }
+
+  void UpdateBaseStyle(const ComputedStyle* aStyle);
 
   enum class MatchForCompositor {
     // This animation matches and should run on the compositor if possible.

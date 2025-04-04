@@ -343,8 +343,10 @@ class Animation : public DOMEventTargetHelper,
    * Any properties contained in |aPropertiesToSkip| will not be added or
    * updated in |aComposeResult|.
    */
-  void ComposeStyle(StyleAnimationValueMap& aComposeResult,
-                    const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip);
+  void ComposeStyle(
+      StyleAnimationValueMap& aComposeResult,
+      const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip,
+      EndpointBehavior aEndpointBehavior = EndpointBehavior::Exclusive);
 
   void NotifyEffectTimingUpdated();
   void NotifyEffectPropertiesUpdated();

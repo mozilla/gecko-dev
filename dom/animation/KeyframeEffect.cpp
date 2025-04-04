@@ -477,6 +477,10 @@ void KeyframeEffect::UpdateProperties(const ComputedStyle* aStyle,
   RequestRestyle(EffectCompositor::RestyleType::Layer);
 }
 
+void KeyframeEffect::UpdateBaseStyle(const ComputedStyle* aStyle) {
+  EnsureBaseStyles(aStyle, BuildProperties(aStyle), nullptr, nullptr);
+}
+
 void KeyframeEffect::EnsureBaseStyles(
     const ComputedStyle* aComputedValues,
     const nsTArray<AnimationProperty>& aProperties,
@@ -609,8 +613,9 @@ void KeyframeEffect::ComposeStyleRule(StyleAnimationValueMap& aAnimationValues,
 
 void KeyframeEffect::ComposeStyle(
     StyleAnimationValueMap& aComposeResult,
-    const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip) {
-  ComputedTiming computedTiming = GetComputedTiming();
+    const InvertibleAnimatedPropertyIDSet& aPropertiesToSkip,
+    EndpointBehavior aEndpointBehavior) {
+  ComputedTiming computedTiming = GetComputedTiming(nullptr, aEndpointBehavior);
 
   // If the progress is null, we don't have fill data for the current
   // time so we shouldn't animate.
