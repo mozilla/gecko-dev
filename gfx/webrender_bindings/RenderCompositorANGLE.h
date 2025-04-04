@@ -28,6 +28,10 @@ namespace gl {
 class GLLibraryEGL;
 }  // namespace gl
 
+namespace layers {
+class FenceD3D11;
+}  // namespace layers
+
 namespace wr {
 
 class DCLayerTree;
@@ -113,6 +117,8 @@ class RenderCompositorANGLE final : public RenderCompositor {
   bool RequestFullRender() override;
   uint32_t GetMaxPartialPresentRects() override;
 
+  RefPtr<layers::Fence> GetAndResetReleaseFence() override;
+
   bool MaybeReadback(const gfx::IntSize& aReadbackSize,
                      const wr::ImageFormat& aReadbackFormat,
                      const Range<uint8_t>& aReadbackBuffer,
@@ -169,6 +175,7 @@ class RenderCompositorANGLE final : public RenderCompositor {
   bool mFirstPresent = true;
   // Wether we're currently using alpha.
   bool mSwapChainUsingAlpha = false;
+  RefPtr<layers::FenceD3D11> mFence;
 };
 
 }  // namespace wr

@@ -9,6 +9,7 @@
 #include <d3d11.h>
 #include <d3d11_3.h>
 #include <d3d11_4.h>
+#include <dxgi1_6.h>
 
 #include "mozilla/gfx/Logging.h"
 
@@ -36,7 +37,7 @@ RefPtr<FenceD3D11> FenceD3D11::Create(ID3D11Device* aDevice) {
   RefPtr<ID3D11Fence> fenceD3D11;
   d3d11_5->CreateFence(0, D3D11_FENCE_FLAG_SHARED,
                        IID_PPV_ARGS((ID3D11Fence**)getter_AddRefs(fenceD3D11)));
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !fenceD3D11) {
     gfxCriticalNoteOnce << "Fence creation failed: " << gfx::hexa(hr);
     return nullptr;
   }
@@ -68,13 +69,45 @@ RefPtr<FenceD3D11> FenceD3D11::CreateFromHandle(
 
 /* static */
 bool FenceD3D11::IsSupported(ID3D11Device* aDevice) {
+  MOZ_ASSERT(aDevice);
+
+  if (!aDevice) {
+    return false;
+  }
   RefPtr<ID3D11Device5> d3d11_5;
-  auto hr =
-      aDevice->QueryInterface(__uuidof(ID3D11Device5), getter_AddRefs(d3d11_5));
+  auto hr = aDevice->QueryInterface((ID3D11Device5**)getter_AddRefs(d3d11_5));
   if (FAILED(hr)) {
     return false;
   }
-  return true;
+
+  // Check for IDXGIAdapter4:
+  RefPtr<IDXGIDevice> dxgiDevice;
+  aDevice->QueryInterface((IDXGIDevice**)getter_AddRefs(dxgiDevice));
+  if (FAILED(hr)) {
+    return false;
+  }
+
+  RefPtr<IDXGIAdapter> dxgiAdapter;
+  hr = dxgiDevice->GetAdapter(getter_AddRefs(dxgiAdapter));
+  if (FAILED(hr)) {
+    return false;
+  }
+
+  RefPtr<IDXGIAdapter4> dxgiAdapter4;
+  dxgiAdapter->QueryInterface((IDXGIAdapter4**)getter_AddRefs(dxgiAdapter4));
+  if (FAILED(hr)) {
+    gfxCriticalNoteOnce << "Failed to get IDXGIAdapter4: " << gfx::hexa(hr);
+    return false;
+  }
+
+  DXGI_ADAPTER_DESC3 adapterDesc;
+  hr = dxgiAdapter4->GetDesc3(&adapterDesc);
+  if (FAILED(hr)) {
+    return false;
+  }
+
+  // The adapter must support monitored fences.
+  return adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SUPPORT_MONITORED_FENCES;
 }
 
 FenceD3D11::FenceD3D11(RefPtr<gfx::FileHandleWrapper>& aHandle)
@@ -83,6 +116,14 @@ FenceD3D11::FenceD3D11(RefPtr<gfx::FileHandleWrapper>& aHandle)
 }
 
 FenceD3D11::~FenceD3D11() {}
+
+RefPtr<FenceD3D11> FenceD3D11::CloneFromHandle() {
+  RefPtr<FenceD3D11> fence = FenceD3D11::CreateFromHandle(mHandle);
+  if (fence) {
+    fence->Update(mFenceValue);
+  }
+  return fence;
+}
 
 gfx::FenceInfo FenceD3D11::GetFenceInfo() const {
   return gfx::FenceInfo(mHandle, mFenceValue);

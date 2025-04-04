@@ -14,6 +14,7 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/AsyncImagePipelineOp.h"
 #include "mozilla/layers/CompositorThread.h"
+#include "mozilla/layers/Fence.h"
 #include "mozilla/layers/RemoteTextureHostWrapper.h"
 #include "mozilla/layers/SharedSurfacesParent.h"
 #include "mozilla/layers/WebRenderImageHost.h"
@@ -25,6 +26,11 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include "mozilla/layers/TextureHostOGL.h"
+#endif
+
+#ifdef XP_WIN
+#  include "mozilla/layers/FenceD3D11.h"
+#  include "mozilla/layers/TextureD3D11.h"
 #endif
 
 namespace mozilla {
@@ -658,7 +664,7 @@ void AsyncImagePipelineManager::HoldExternalImage(
 void AsyncImagePipelineManager::NotifyPipelinesUpdated(
     RefPtr<const wr::WebRenderPipelineInfo> aInfo,
     wr::RenderedFrameId aLatestFrameId,
-    wr::RenderedFrameId aLastCompletedFrameId, UniqueFileHandle&& aFenceFd) {
+    wr::RenderedFrameId aLastCompletedFrameId, RefPtr<Fence>&& aFence) {
   MOZ_ASSERT(wr::RenderThread::IsInRenderThread());
   MOZ_ASSERT(mLastCompletedFrameId <= aLastCompletedFrameId.mId);
   MOZ_ASSERT(aLatestFrameId.IsValid());
@@ -673,7 +679,7 @@ void AsyncImagePipelineManager::NotifyPipelinesUpdated(
     // Move the pending updates into the submitted ones.
     mRenderSubmittedUpdates.emplace_back(
         aLatestFrameId,
-        WebRenderPipelineInfoHolder(std::move(aInfo), std::move(aFenceFd)));
+        WebRenderPipelineInfoHolder(std::move(aInfo), std::move(aFence)));
   }
 
   // Queue a runnable on the compositor thread to process the updates.
@@ -705,7 +711,7 @@ void AsyncImagePipelineManager::ProcessPipelineUpdates() {
     auto& holder = update.second;
     const auto& info = holder.mInfo->Raw();
 
-    mReleaseFenceFd = std::move(holder.mFenceFd);
+    mReleaseFence = std::move(holder.mFence);
 
     for (auto& epoch : info.epochs) {
       ProcessPipelineRendered(epoch.pipeline_id, epoch.epoch, update.first);
@@ -736,8 +742,10 @@ void AsyncImagePipelineManager::ProcessPipelineRendered(
     for (auto it = holder->mTextureHostsUntilRenderSubmitted.begin();
          it != firstSubmittedHostToKeep; ++it) {
       const auto& entry = it;
-      if (entry->mTexture->GetAndroidHardwareBuffer() && mReleaseFenceFd) {
-        entry->mTexture->SetReleaseFence(DuplicateFileHandle(mReleaseFenceFd));
+      if (entry->mTexture->GetAndroidHardwareBuffer() && mReleaseFence &&
+          mReleaseFence->AsFenceFileHandle()) {
+        entry->mTexture->SetReleaseFence(
+            mReleaseFence->AsFenceFileHandle()->DuplicateFileHandle());
       }
     }
 #endif
@@ -753,6 +761,18 @@ void AsyncImagePipelineManager::ProcessPipelineRendered(
         holder->mTextureHostsUntilRenderCompleted.begin(),
         holder->mTextureHostsUntilRenderCompleted.end(),
         [&aEpoch](const auto& entry) { return aEpoch <= entry->mEpoch; });
+
+#ifdef XP_WIN
+    for (auto it = holder->mTextureHostsUntilRenderCompleted.begin();
+         it != firstCompletedHostToKeep; ++it) {
+      const auto& entry = *it;
+      auto* host = entry->mTexture->AsDXGIYCbCrTextureHostD3D11();
+      if (host && mReleaseFence && mReleaseFence->AsFenceD3D11()) {
+        host->SetReadFence(mReleaseFence->AsFenceD3D11());
+      }
+    }
+#endif
+
     if (firstCompletedHostToKeep !=
         holder->mTextureHostsUntilRenderCompleted.begin()) {
       std::vector<UniquePtr<ForwardingTextureHost>> hostsUntilCompleted(
@@ -824,8 +844,8 @@ wr::Epoch AsyncImagePipelineManager::GetNextImageEpoch() {
 
 AsyncImagePipelineManager::WebRenderPipelineInfoHolder::
     WebRenderPipelineInfoHolder(RefPtr<const wr::WebRenderPipelineInfo>&& aInfo,
-                                UniqueFileHandle&& aFenceFd)
-    : mInfo(aInfo), mFenceFd(std::move(aFenceFd)) {}
+                                RefPtr<Fence>&& aFence)
+    : mInfo(aInfo), mFence(std::move(aFence)) {}
 
 AsyncImagePipelineManager::WebRenderPipelineInfoHolder::
     ~WebRenderPipelineInfoHolder() = default;

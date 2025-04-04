@@ -30,6 +30,7 @@
 #include "mozilla/glean/DomMediaPlatformsWmfMetrics.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/layers/FenceD3D11.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "nsPrintfCString.h"
 #include "nsThreadUtils.h"
@@ -668,10 +669,18 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
     return S_OK;
   }
 
-  RefPtr<layers::PlanarYCbCrImage> image =
-      new IMFYCbCrImage(buffer, twoDBuffer, mKnowsCompositor, mImageContainer);
-
-  VideoData::SetVideoDataToImage(image, mVideoInfo, b, pictureRegion, false);
+  RefPtr<layers::PlanarYCbCrImage> image;
+  RefPtr<ID3D11Device> device = gfx::DeviceManagerDx::Get()->GetImageDevice();
+  if (XRE_IsGPUProcess() && layers::FenceD3D11::IsSupported(device)) {
+    // Store YCbCr to 3 ID3D11Texture2Ds
+    image = new IMFYCbCrImage(buffer, twoDBuffer, mKnowsCompositor,
+                              mImageContainer);
+    VideoData::SetVideoDataToImage(image, mVideoInfo, b, pictureRegion, false);
+  } else {
+    // Store YCbCr to shmem
+    image = mImageContainer->CreatePlanarYCbCrImage();
+    VideoData::SetVideoDataToImage(image, mVideoInfo, b, pictureRegion, true);
+  }
 
   RefPtr<VideoData> v = VideoData::CreateFromImage(
       mVideoInfo.mDisplay, aStreamOffset, pts, duration, image.forget(), false,

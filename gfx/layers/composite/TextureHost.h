@@ -63,6 +63,7 @@ class CompositableParentManager;
 class ReadLockDescriptor;
 class CompositorBridgeParent;
 class DXGITextureHostD3D11;
+class DXGIYCbCrTextureHostD3D11;
 class SurfaceDescriptor;
 class HostIPCAllocator;
 class ISurfaceAllocator;
@@ -625,6 +626,10 @@ class TextureHost : public AtomicRefCountedWithFinalize<TextureHost> {
   }
 
   virtual DXGITextureHostD3D11* AsDXGITextureHostD3D11() { return nullptr; }
+
+  virtual DXGIYCbCrTextureHostD3D11* AsDXGIYCbCrTextureHostD3D11() {
+    return nullptr;
+  }
 
   virtual bool IsWrappingSurfaceTextureHost() { return false; }
 

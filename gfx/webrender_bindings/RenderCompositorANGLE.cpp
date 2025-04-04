@@ -13,6 +13,7 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/StackArray.h"
+#include "mozilla/layers/FenceD3D11.h"
 #include "mozilla/layers/TextureD3D11.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/SyncObject.h"
@@ -124,9 +125,12 @@ bool RenderCompositorANGLE::Initialize(nsACString& aError) {
   MOZ_ASSERT(mEGLConfig);
 
   mDevice = GetDeviceOfEGLDisplay(aError);
-
   if (!mDevice) {
     return false;
+  }
+
+  if (layers::FenceD3D11::IsSupported(mDevice)) {
+    mFence = layers::FenceD3D11::Create(mDevice);
   }
 
   mDevice->GetImmediateContext(getter_AddRefs(mCtx));
@@ -462,6 +466,10 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
   RenderedFrameId frameId = GetNextRenderFrameId();
   InsertGraphicsCommandsFinishedWaitQuery(frameId);
 
+  if (mFence) {
+    mFence->IncrementAndSignal();
+  }
+
   if (!UseCompositor()) {
     auto start = TimeStamp::Now();
     if (auto* fxrHandler = mWidget->AsWindows()->GetFxrOutputHandler()) {
@@ -562,6 +570,14 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
   }
 
   return frameId;
+}
+
+RefPtr<layers::Fence> RenderCompositorANGLE::GetAndResetReleaseFence() {
+  RefPtr<layers::Fence> fence;
+  if (mFence) {
+    fence = mFence->CloneFromHandle();
+  }
+  return fence.forget();
 }
 
 bool RenderCompositorANGLE::WaitForGPU() {
