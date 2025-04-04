@@ -252,3 +252,9 @@ fn try_run(config: &mut Arc<Config>) -> anyhow::Result<bool> {
         logic::ReportCrash::new(config.clone(), extra)?.run()
     }
 }
+
+// `std` uses `raw-dylib` to link this dll, but that doesn't work properly on x86 MinGW, so we explicitly
+// have to link it.
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+#[link(name="bcryptprimitives")]
+extern "C" {}
