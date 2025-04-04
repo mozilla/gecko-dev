@@ -2855,7 +2855,7 @@ void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
   // When testing for NaN, we want to ignore the sign bit.
   // Clear the top bit by shifting left and then right.
   slli(temp, val.valueReg(), 1);
-  slri(temp, temp, 1);
+  srli(temp, temp, 1);
 
   // Compare against a NaN with sign bit 0.
   static_assert(JS::detail::CanonicalizedNaNSignBit == 0);
