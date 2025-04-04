@@ -16,6 +16,10 @@
 #include "include/gpu/graphite/Recorder.h"
 #include "include/private/base/SingleOwner.h"
 
+#if defined(GPU_TEST_UTILS)
+#include "include/private/base/SkMutex.h"
+#endif
+
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -33,7 +37,7 @@ class Context;
 class ContextPriv;
 class GlobalCache;
 class PaintOptions;
-class PlotUploadTracker;
+class PrecompileContext;
 class QueueManager;
 class Recording;
 class ResourceProvider;
@@ -52,6 +56,11 @@ public:
     BackendApi backend() const;
 
     std::unique_ptr<Recorder> makeRecorder(const RecorderOptions& = {});
+
+    /** Creates a helper object that can be moved to a different thread and used
+     *  for precompilation.
+     */
+    std::unique_ptr<PrecompileContext> makePrecompileContext();
 
     bool insertRecording(const InsertRecordingInfo&);
     bool submit(SyncToCpu = SyncToCpu::kNo);
@@ -219,6 +228,12 @@ public:
     size_t maxBudgetedBytes() const;
 
     /**
+     * Sets the size of Context's gpu memory cache budget in bytes. If the new budget is lower than
+     * the current budget, the cache will try to free resources to get under the new budget.
+     */
+    void setMaxBudgetedBytes(size_t bytes);
+
+    /**
      * Enumerates all cached GPU resources owned by the Context and dumps their memory to
      * traceMemoryDump.
      */
@@ -239,6 +254,11 @@ public:
      * Does this context support protected content?
      */
     bool supportsProtectedContent() const;
+
+    /*
+     * Gets the types of GPU stats supported by this Context.
+     */
+    GpuStatsFlags supportedGpuStats() const;
 
     // Provides access to functions that aren't part of the public API.
     ContextPriv priv();
@@ -343,11 +363,14 @@ private:
     mutable SingleOwner fSingleOwner;
 
 #if defined(GPU_TEST_UTILS)
+    void deregisterRecorder(const Recorder*) SK_EXCLUDES(fTestingLock);
+
     // In test builds a Recorder may track the Context that was used to create it.
     bool fStoreContextRefInRecorder = false;
     // If this tracking is on, to allow the client to safely delete this Context or its Recorders
     // in any order we must also track the Recorders created here.
-    std::vector<Recorder*> fTrackedRecorders;
+    SkMutex fTestingLock;
+    std::vector<Recorder*> fTrackedRecorders SK_GUARDED_BY(fTestingLock);
 #endif
 
     // Needed for MessageBox handling

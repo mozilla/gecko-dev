@@ -11,6 +11,8 @@
 #include "include/gpu/graphite/precompile/PrecompileBase.h"
 
 #include "include/core/SkBlendMode.h"
+#include "include/core/SkImageInfo.h"
+#include "include/effects/SkGradientShader.h"
 
 class SkColorSpace;
 
@@ -109,11 +111,13 @@ namespace PrecompileShaders {
     // time this entry point allows the equivalent precompilation program structure to be created.
     // Note that this factory is for non-YUV SkImages, the YUVImage factory (below) should be used
     // to represent the shading and sampling required for YUV images.
-    SK_API sk_sp<PrecompileShader> Image();
+    SK_API sk_sp<PrecompileShader> Image(SkSpan<const SkColorInfo> = {},
+                                         SkSpan<const SkTileMode> = {});
     // As with the above Image call, raw ImageShaders are usually created via an
     // SkImage::makeRawShader call. The RawImage call allows the equivalent precompilation
     // program structure to be created without needing the SkImage.
-    SK_API sk_sp<PrecompileShader> RawImage();
+    SK_API sk_sp<PrecompileShader> RawImage(SkSpan<const SkColorInfo> = {},
+                                            SkSpan<const SkTileMode> = {});
 
     // In the main Skia API, the specifics of the SkImage used for the SkImage::makeShader call
     // can determine whether normal or YUV sampling is required. This entry point allows clients
@@ -126,10 +130,14 @@ namespace PrecompileShaders {
     SK_API sk_sp<PrecompileShader> MakeTurbulence();
 
     // --- This block of four matches all the factories in SkGradientShader (SkGradientShader.h)
-    SK_API sk_sp<PrecompileShader> LinearGradient();
-    SK_API sk_sp<PrecompileShader> RadialGradient();
-    SK_API sk_sp<PrecompileShader> TwoPointConicalGradient();
-    SK_API sk_sp<PrecompileShader> SweepGradient();
+    SK_API sk_sp<PrecompileShader> LinearGradient(
+            SkGradientShader::Interpolation = SkGradientShader::Interpolation());
+    SK_API sk_sp<PrecompileShader> RadialGradient(
+            SkGradientShader::Interpolation = SkGradientShader::Interpolation());
+    SK_API sk_sp<PrecompileShader> TwoPointConicalGradient(
+            SkGradientShader::Interpolation = SkGradientShader::Interpolation());
+    SK_API sk_sp<PrecompileShader> SweepGradient(
+            SkGradientShader::Interpolation = SkGradientShader::Interpolation());
 
     // Normally, SkPicture shaders are only created via SkPicture::makeShader. Since the
     // SkPicture to be drawn, most likely, won't be available at precompilation time, this

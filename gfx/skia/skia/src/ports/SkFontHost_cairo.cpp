@@ -100,7 +100,7 @@ void SkInitCairoFT(bool fontHintingEnabled)
 
 class SkScalerContext_CairoFT : public SkScalerContext {
 public:
-    SkScalerContext_CairoFT(sk_sp<SkTypeface> typeface,
+    SkScalerContext_CairoFT(SkTypeface& typeface,
                             const SkScalerContextEffects& effects,
                             const SkDescriptor* desc, FT_Face face,
                             void* faceContext, SkPixelGeometry pixelGeometry,
@@ -185,7 +185,7 @@ public:
     std::unique_ptr<SkScalerContext> onCreateScalerContext(const SkScalerContextEffects& effects, const SkDescriptor* desc) const override
     {
         SkScalerContext_CairoFT* ctx = new SkScalerContext_CairoFT(
-            sk_ref_sp(const_cast<SkCairoFTTypeface*>(this)), effects, desc,
+            *const_cast<SkCairoFTTypeface*>(this), effects, desc,
             fFTFace, fFTFaceContext, fPixelGeometry, fLcdFilter);
         std::unique_ptr<SkScalerContext> result(ctx);
         if (!ctx->isValid()) {
@@ -332,10 +332,10 @@ SkTypeface* SkCreateTypefaceFromCairoFTFont(FT_Face face, void* faceContext,
 }
 
 SkScalerContext_CairoFT::SkScalerContext_CairoFT(
-    sk_sp<SkTypeface> typeface, const SkScalerContextEffects& effects,
+    SkTypeface& typeface, const SkScalerContextEffects& effects,
     const SkDescriptor* desc, FT_Face face, void* faceContext,
     SkPixelGeometry pixelGeometry, FT_LcdFilter lcdFilter)
-    : SkScalerContext(std::move(typeface), effects, desc)
+    : SkScalerContext(typeface, effects, desc)
     , fFTFace(face)
     , fFTFaceContext(faceContext)
     , fLcdFilter(lcdFilter)

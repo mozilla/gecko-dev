@@ -191,14 +191,17 @@ private:
                           rust::Box<fontations_ffi::BridgeMappingIndex>&& mappingIndex,
                           rust::Box<fontations_ffi::BridgeNormalizedCoords>&& normalizedCoords,
                           rust::Box<fontations_ffi::BridgeOutlineCollection>&& outlines,
+                          rust::Box<fontations_ffi::BridgeGlyphStyles>&& glyph_styles,
                           rust::Vec<uint32_t>&& palette);
 
 public:
-    const fontations_ffi::BridgeFontRef& getBridgeFontRef() { return *fBridgeFontRef; }
-    const fontations_ffi::BridgeNormalizedCoords& getBridgeNormalizedCoords() {
+    const fontations_ffi::BridgeFontRef& getBridgeFontRef() const { return *fBridgeFontRef; }
+    const fontations_ffi::BridgeNormalizedCoords& getBridgeNormalizedCoords() const {
         return *fBridgeNormalizedCoords;
     }
-    const fontations_ffi::BridgeOutlineCollection& getOutlines() { return *fOutlines; }
+    const fontations_ffi::BridgeOutlineCollection& getOutlines() const { return *fOutlines; }
+    const fontations_ffi::BridgeGlyphStyles& getGlyphStyles() const { return *fGlyphStyles; }
+    const fontations_ffi::BridgeMappingIndex& getMappingIndex() const { return *fMappingIndex; }
     SkSpan<const SkColor> getPalette() const {
         return SkSpan(reinterpret_cast<const SkColor*>(fPalette.data()), fPalette.size());
     }
@@ -216,7 +219,7 @@ protected:
     std::unique_ptr<SkScalerContext> onCreateScalerContextAsProxyTypeface(
             const SkScalerContextEffects&,
             const SkDescriptor*,
-            sk_sp<SkTypeface>) const override;
+            SkTypeface* proxyTypeface) const override;
     void onFilterRec(SkScalerContextRec*) const override;
     std::unique_ptr<SkAdvancedTypefaceMetrics> onGetAdvancedMetrics() const override;
     void onGetFontDescriptor(SkFontDescriptor*, bool*) const override;
@@ -246,6 +249,7 @@ private:
     rust::Box<fontations_ffi::BridgeMappingIndex> fMappingIndex;
     rust::Box<fontations_ffi::BridgeNormalizedCoords> fBridgeNormalizedCoords;
     rust::Box<fontations_ffi::BridgeOutlineCollection> fOutlines;
+    rust::Box<fontations_ffi::BridgeGlyphStyles> fGlyphStyles;
     rust::Vec<uint32_t> fPalette;
 
     mutable SkOnce fGlyphMasksMayNeedCurrentColorOnce;

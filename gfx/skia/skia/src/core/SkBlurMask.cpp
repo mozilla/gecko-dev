@@ -8,7 +8,6 @@
 #include "src/core/SkBlurMask.h"
 
 #include "include/core/SkBlurTypes.h"
-#include "include/core/SkColorPriv.h"
 #include "include/core/SkPoint.h"
 #include "include/core/SkRect.h"
 #include "include/private/base/SkMath.h"
@@ -17,13 +16,12 @@
 #include "include/private/base/SkTemplates.h"
 #include "include/private/base/SkTo.h"
 #include "src/base/SkMathPriv.h"
+#include "src/core/SkColorPriv.h"
 #include "src/core/SkMaskBlurFilter.h"
 
 #include <cmath>
 #include <cstring>
 #include <utility>
-
-class SkRRect;
 
 using namespace skia_private;
 
@@ -106,15 +104,12 @@ static void clamp_outer_with_orig(uint8_t dst[], int dstRowBytes,
 }
 ///////////////////////////////////////////////////////////////////////////////
 
-// we use a local function to wrap the class static method to work around
-// a bug in gcc98
-void SkMask_FreeImage(uint8_t* image);
-void SkMask_FreeImage(uint8_t* image) {
-    SkMaskBuilder::FreeImage(image);
-}
-
-bool SkBlurMask::BoxBlur(SkMaskBuilder* dst, const SkMask& src, SkScalar sigma, SkBlurStyle style,
-                         SkIPoint* margin) {
+bool SkBlurMask::BoxBlur(SkMaskBuilder* dst,
+                         const SkMask& src,
+                         SkScalar sigma,
+                         SkBlurStyle style,
+                         SkIVector* margin) {
+    SkASSERT(dst);
     if (src.fFormat != SkMask::kBW_Format &&
         src.fFormat != SkMask::kA8_Format &&
         src.fFormat != SkMask::kARGB32_Format &&
@@ -136,15 +131,18 @@ bool SkBlurMask::BoxBlur(SkMaskBuilder* dst, const SkMask& src, SkScalar sigma, 
                 // This filter will disregard the src.fImage completely.
                 // The margin is actually {-(src.fBounds.width() / 2), -(src.fBounds.height() / 2)}
                 // but it is not clear if callers will fall over with negative margins.
-                *margin = SkIPoint{0,0};
+                *margin = SkIVector{0, 0};
             }
             return true;
         }
         return false;
     }
-    const SkIPoint border = blurFilter.blur(src, dst);
-    // If src.fImage is null, then this call is only to calculate the border.
+    const SkIVector border = blurFilter.blur(src, dst);
+
     if (src.fImage != nullptr && dst->fImage == nullptr) {
+        // The call to blur() failed to set our destination image up (e.g. an overflow).
+        // Note that if src.fImage was null, dst->fImage will also be null and that's
+        // *not* an error case - the code should continue to calculate the border.
         return false;
     }
 
@@ -404,9 +402,12 @@ void SkBlurMask::ComputeBlurredScanline(uint8_t *pixels, const uint8_t *profile,
     }
 }
 
-bool SkBlurMask::BlurRect(SkScalar sigma, SkMaskBuilder *dst,
-                          const SkRect &src, SkBlurStyle style,
-                          SkIPoint *margin, SkMaskBuilder::CreateMode createMode) {
+bool SkBlurMask::BlurRect(SkScalar sigma,
+                          SkMaskBuilder* dst,
+                          const SkRect& src,
+                          SkBlurStyle style,
+                          SkIVector* margin,
+                          SkMaskBuilder::CreateMode createMode) {
     int profileSize = SkScalarCeilToInt(6*sigma);
     if (profileSize <= 0) {
         return false;   // no blur to compute
@@ -501,22 +502,15 @@ bool SkBlurMask::BlurRect(SkScalar sigma, SkMaskBuilder *dst,
     return true;
 }
 
-bool SkBlurMask::BlurRRect(SkScalar sigma, SkMaskBuilder *dst,
-                           const SkRRect &src, SkBlurStyle style,
-                           SkIPoint *margin, SkMaskBuilder::CreateMode createMode) {
-    // Temporary for now -- always fail, should cause caller to fall back
-    // to old path.  Plumbing just to land API and parallelize effort.
-
-    return false;
-}
-
 // The "simple" blur is a direct implementation of separable convolution with a discrete
 // gaussian kernel.  It's "ground truth" in a sense; too slow to be used, but very
 // useful for correctness comparisons.
 
-bool SkBlurMask::BlurGroundTruth(SkScalar sigma, SkMaskBuilder* dst, const SkMask& src,
-                                 SkBlurStyle style, SkIPoint* margin) {
-
+bool SkBlurMask::BlurGroundTruth(SkScalar sigma,
+                                 SkMaskBuilder* dst,
+                                 const SkMask& src,
+                                 SkBlurStyle style,
+                                 SkIVector* margin) {
     if (src.fFormat != SkMask::kA8_Format) {
         return false;
     }

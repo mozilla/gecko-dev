@@ -30,8 +30,6 @@ typedef uint8_t SkOpDebugBool;
 typedef bool SkOpDebugBool;
 #endif
 
-#define SkDoubleIsNaN std::isnan
-
 class SkTCoincident {
 public:
     SkTCoincident() {

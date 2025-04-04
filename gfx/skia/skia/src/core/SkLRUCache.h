@@ -12,16 +12,21 @@
 #include "src/core/SkChecksum.h"
 #include "src/core/SkTHash.h"
 
+struct SkNoOpPurge {
+    template <typename K, typename V>
+    void operator()(void* /* context */, const K& /* k */, const V* /* v */) const {}
+};
+
 /**
  * A generic LRU cache.
  */
-template <typename K, typename V, typename HashK = SkGoodHash>
+template <typename K, typename V, typename HashK = SkGoodHash, typename PurgeCB = SkNoOpPurge>
 class SkLRUCache {
 private:
     struct Entry {
         Entry(const K& key, V&& value)
-        : fKey(key)
-        , fValue(std::move(value)) {}
+            : fKey(key)
+            , fValue(std::move(value)) {}
 
         K fKey;
         V fValue;
@@ -30,7 +35,9 @@ private:
     };
 
 public:
-    explicit SkLRUCache(int maxCount) : fMaxCount(maxCount) {}
+    explicit SkLRUCache(int maxCount, void* context = nullptr)
+            : fMaxCount(maxCount)
+            , fContext(context) {}
     SkLRUCache() = delete;
 
     ~SkLRUCache() {
@@ -101,6 +108,17 @@ public:
         }
     }
 
+    void remove(const K& key) {
+        Entry** value = fMap.find(key);
+        SkASSERT(value);
+        Entry* entry = *value;
+        SkASSERT(key == entry->fKey);
+        PurgeCB()(fContext, key, &entry->fValue);
+        fMap.remove(key);
+        fLRU.remove(entry);
+        delete entry;
+    }
+
 private:
     struct Traits {
         static const K& GetKey(Entry* e) {
@@ -112,19 +130,10 @@ private:
         }
     };
 
-    void remove(const K& key) {
-        Entry** value = fMap.find(key);
-        SkASSERT(value);
-        Entry* entry = *value;
-        SkASSERT(key == entry->fKey);
-        fMap.remove(key);
-        fLRU.remove(entry);
-        delete entry;
-    }
-
     int                                         fMaxCount;
     skia_private::THashTable<Entry*, K, Traits> fMap;
     SkTInternalLList<Entry>                     fLRU;
+    void*                                       fContext;
 };
 
 #endif

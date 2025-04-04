@@ -11,7 +11,6 @@
 #include "include/core/SkBlender.h"
 #include "include/core/SkClipOp.h"
 #include "include/core/SkColorType.h"
-#include "include/core/SkImage.h"
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkMatrix.h"
 #include "include/core/SkPaint.h"
@@ -58,10 +57,8 @@ struct Bounder {
 };
 
 class SkDrawTiler {
-    enum {
-        // 8K is 1 too big, since 8K << supersample == 32768 which is too big for SkFixed
-        kMaxDim = 8192 - 1
-    };
+    // 8K is 1 too big, since 8K << supersample == 32768 which is too big for SkFixed
+    static constexpr int kMaxDim = 8192 - 1;
 
     SkBitmapDevice* fDevice;
     SkPixmap        fRootPixmap;
@@ -355,19 +352,11 @@ void SkBitmapDevice::drawRect(const SkRect& r, const SkPaint& paint) {
 }
 
 void SkBitmapDevice::drawOval(const SkRect& oval, const SkPaint& paint) {
-    // call the VIRTUAL version, so any subclasses who do handle drawPath aren't
-    // required to override drawOval.
     this->drawPath(SkPath::Oval(oval), paint, true);
 }
 
 void SkBitmapDevice::drawRRect(const SkRRect& rrect, const SkPaint& paint) {
-#ifdef SK_IGNORE_BLURRED_RRECT_OPT
-    // call the VIRTUAL version, so any subclasses who do handle drawPath aren't
-    // required to override drawRRect.
-    this->drawPath(SkPath::RRect(rrect), paint, true);
-#else
     LOOP_TILER( drawRRect(rrect, paint), Bounder(rrect.getBounds(), paint))
-#endif
 }
 
 void SkBitmapDevice::drawPath(const SkPath& path,
@@ -588,15 +577,6 @@ void SkBitmapDevice::drawSpecial(SkSpecialImage* src,
         draw.fRC = &fRCStack.rc();
         draw.drawBitmap(resultBM, SkMatrix::I(), nullptr, sampling, paint);
     }
-}
-sk_sp<SkSpecialImage> SkBitmapDevice::makeSpecial(const SkBitmap& bitmap) {
-    return SkSpecialImages::MakeFromRaster(bitmap.bounds(), bitmap, this->surfaceProps());
-}
-
-sk_sp<SkSpecialImage> SkBitmapDevice::makeSpecial(const SkImage* image) {
-    return SkSpecialImages::MakeFromRaster(SkIRect::MakeWH(image->width(), image->height()),
-                                           image->makeNonTextureImage(),
-                                           this->surfaceProps());
 }
 
 sk_sp<SkSpecialImage> SkBitmapDevice::snapSpecial(const SkIRect& bounds, bool forceCopy) {

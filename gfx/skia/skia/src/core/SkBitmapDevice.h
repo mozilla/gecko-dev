@@ -42,7 +42,7 @@ struct SkPoint;
 struct SkRSXform;
 
 ///////////////////////////////////////////////////////////////////////////////
-class SkBitmapDevice : public SkDevice {
+class SkBitmapDevice final : public SkDevice {
 public:
     /**
      *  Construct a new device with the specified bitmap as its backend. It is
@@ -103,8 +103,6 @@ public:
     void drawSpecial(SkSpecialImage*, const SkMatrix&, const SkSamplingOptions&,
                      const SkPaint&, SkCanvas::SrcRectConstraint) override;
 
-    sk_sp<SkSpecialImage> makeSpecial(const SkBitmap&) override;
-    sk_sp<SkSpecialImage> makeSpecial(const SkImage*) override;
     sk_sp<SkSpecialImage> snapSpecial(const SkIRect&, bool forceCopy = false) override;
 
     sk_sp<SkDevice> createDevice(const CreateInfo&, const SkPaint*) override;
@@ -116,7 +114,6 @@ public:
     void* getRasterHandle() const override { return fRasterHandle; }
 
 private:
-    // friend class SkCanvas;
     friend class SkDraw;
     friend class SkDrawBase;
     friend class SkDrawTiler;

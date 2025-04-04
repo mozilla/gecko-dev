@@ -29,10 +29,10 @@
      */
     void SkFlattenable::PrivateInitializer::InitEffects() {
         // Shaders.
+        SkRegisterConicalGradientShaderFlattenable();
         SkRegisterLinearGradientShaderFlattenable();
         SkRegisterRadialGradientShaderFlattenable();
         SkRegisterSweepGradientShaderFlattenable();
-        SkRegisterConicalGradientShaderFlattenable();
 
         // Color filters.
         SkRegisterComposeColorFilterFlattenable();

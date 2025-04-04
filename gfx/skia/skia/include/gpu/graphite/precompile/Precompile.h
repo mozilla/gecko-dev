@@ -8,13 +8,15 @@
 #ifndef skgpu_graphite_precompile_Precompile_DEFINED
 #define skgpu_graphite_precompile_Precompile_DEFINED
 
+#include "include/core/SkColorSpace.h"
+#include "include/core/SkColorType.h"
 #include "include/core/SkSpan.h"
 #include "include/gpu/graphite/GraphiteTypes.h"
 
 namespace skgpu::graphite {
 
-class Context;
 class PaintOptions;
+class PrecompileContext;
 
 /**
  *  Describes the required properties of a RenderPass that will be combined with the
@@ -22,9 +24,18 @@ class PaintOptions;
  *  a pipeline.
  */
 struct SK_API RenderPassProperties {
-    DepthStencilFlags fDSFlags      = DepthStencilFlags::kNone;
-    SkColorType       fDstCT        = kRGBA_8888_SkColorType;
-    bool              fRequiresMSAA = false;
+    bool operator==(const RenderPassProperties& other) const {
+        return fDSFlags == other.fDSFlags &&
+               fDstCT == other.fDstCT &&
+               fRequiresMSAA == other.fRequiresMSAA &&
+               SkColorSpace::Equals(fDstCS.get(), other.fDstCS.get());
+    }
+    bool operator!= (const RenderPassProperties& other) const { return !(*this == other); }
+
+    DepthStencilFlags   fDSFlags      = DepthStencilFlags::kNone;
+    SkColorType         fDstCT        = kRGBA_8888_SkColorType;
+    sk_sp<SkColorSpace> fDstCS        = nullptr;
+    bool                fRequiresMSAA = false;
 };
 
 /**
@@ -33,12 +44,12 @@ struct SK_API RenderPassProperties {
  * drawing. Graphite will always be able to perform an inline compilation if some SkPaint
  * combination was omitted from precompilation.
  *
- *   @param context              the Context to which the actual draws will be submitted
+ *   @param precompileContext    thread-safe helper holding required portions of the Context
  *   @param paintOptions         captures a set of SkPaints that will be drawn
  *   @param drawTypes            communicates which primitives those paints will be drawn with
  *   @param renderPassProperties describes the RenderPasses needed for the desired Pipelines
  */
-void SK_API Precompile(Context* context,
+void SK_API Precompile(PrecompileContext* precompileContext,
                        const PaintOptions& paintOptions,
                        DrawTypeFlags drawTypes,
                        SkSpan<const RenderPassProperties> renderPassProperties);

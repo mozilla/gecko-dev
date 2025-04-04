@@ -28,6 +28,7 @@ class SkPixmap;
 class SkShader;
 class SkSurfaceProps;
 struct SkMask;
+enum class SkDrawCoverage : bool;
 
 /** SkBlitter and its subclasses are responsible for actually writing pixels
     into memory. Besides efficiency, they handle clipping and antialiasing.
@@ -38,6 +39,11 @@ struct SkMask;
 class SkBlitter {
 public:
     virtual ~SkBlitter();
+    SkBlitter() = default;
+    SkBlitter(const SkBlitter&) = delete;
+    SkBlitter(SkBlitter&&) = delete;
+    SkBlitter& operator=(const SkBlitter&) = delete;
+    SkBlitter& operator=(SkBlitter&&) = delete;
 
     /// Blit a horizontal run of one or more pixels.
     virtual void blitH(int x, int y, int width) = 0;
@@ -107,13 +113,6 @@ public:
     }
 
     /**
-     *  Special method just to identify the null blitter, which is returned
-     *  from Choose() if the request cannot be fulfilled. Default impl
-     *  returns false.
-     */
-    virtual bool isNullBlitter() const;
-
-    /**
      * Special methods for blitters that can blit more than one row at a time.
      * This function returns the number of rows that this blitter could optimally
      * process at a time. It is still required to support blitting one scanline
@@ -146,7 +145,7 @@ public:
                              const SkMatrix& ctm,
                              const SkPaint& paint,
                              SkArenaAlloc*,
-                             bool drawCoverage,
+                             SkDrawCoverage,
                              sk_sp<SkShader> clipShader,
                              const SkSurfaceProps& props);
 
@@ -165,21 +164,20 @@ protected:
 
 /** This blitter silently never draws anything.
 */
-class SkNullBlitter : public SkBlitter {
+class SkNullBlitter final : public SkBlitter {
 public:
-    void blitH(int x, int y, int width) override;
-    void blitAntiH(int x, int y, const SkAlpha[], const int16_t runs[]) override;
-    void blitV(int x, int y, int height, SkAlpha alpha) override;
-    void blitRect(int x, int y, int width, int height) override;
-    void blitMask(const SkMask&, const SkIRect& clip) override;
-    bool isNullBlitter() const override;
+    void blitH(int x, int y, int width) override {}
+    void blitAntiH(int x, int y, const SkAlpha[], const int16_t runs[]) override {}
+    void blitV(int x, int y, int height, SkAlpha alpha) override {}
+    void blitRect(int x, int y, int width, int height) override {}
+    void blitMask(const SkMask&, const SkIRect& clip) override {}
 };
 
 /** Wraps another (real) blitter, and ensures that the real blitter is only
     called with coordinates that have been clipped by the specified clipRect.
     This means the caller need not perform the clipping ahead of time.
 */
-class SkRectClipBlitter : public SkBlitter {
+class SkRectClipBlitter final : public SkBlitter {
 public:
     void init(SkBlitter* blitter, const SkIRect& clipRect) {
         SkASSERT(!clipRect.isEmpty());
@@ -212,7 +210,7 @@ private:
     called with coordinates that have been clipped by the specified clipRgn.
     This means the caller need not perform the clipping ahead of time.
 */
-class SkRgnClipBlitter : public SkBlitter {
+class SkRgnClipBlitter final : public SkBlitter {
 public:
     void init(SkBlitter* blitter, const SkRegion* clipRgn) {
         SkASSERT(clipRgn && !clipRgn->isEmpty());
@@ -242,7 +240,7 @@ private:
 };
 
 #ifdef SK_DEBUG
-class SkRectClipCheckBlitter : public SkBlitter {
+class SkRectClipCheckBlitter final : public SkBlitter {
 public:
     void init(SkBlitter* blitter, const SkIRect& clipRect) {
         SkASSERT(blitter);
@@ -289,8 +287,5 @@ private:
     SkRectClipBlitter   fRectBlitter;
     SkRgnClipBlitter    fRgnBlitter;
 };
-
-// A good size for creating shader contexts on the stack.
-enum {kSkBlitterContextSize = 3332};
 
 #endif

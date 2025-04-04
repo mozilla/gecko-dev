@@ -44,7 +44,9 @@ bool SkFontScanner_Fontations::scanFile(SkStreamAsset* stream, int* numFaces) co
     if (!fontations_ffi::font_or_collection(slice, num_fonts)) {
         return false;
     }
-    *numFaces = num_fonts == 0 ? 1 : num_fonts;
+    if (numFaces) {
+        *numFaces = num_fonts == 0 ? 1 : num_fonts;
+    }
     return true;
 }
 
@@ -82,7 +84,8 @@ bool SkFontScanner_Fontations::scanInstance(SkStreamAsset* stream,
                                             SkString* name,
                                             SkFontStyle* style,
                                             bool* isFixedPitch,
-                                            AxisDefinitions* axes) const {
+                                            AxisDefinitions* axes,
+                                            VariationPosition* position) const {
     sk_sp<SkData> fontData = make_data_avoiding_copy(stream);
     rust::Box<fontations_ffi::BridgeFontRef> bridgeFontFaceRef =
             make_bridge_font_ref(fontData.get(), faceIndex);
@@ -147,6 +150,12 @@ bool SkFontScanner_Fontations::scanInstance(SkStreamAsset* stream,
                                      fontStyle.width,
                                      static_cast<SkFontStyle::Slant>(fontStyle.slant));
             }
+            if (position) {
+                position->reset(variationPosition.coordinateCount);
+                for (int i = 0; i < variationPosition.coordinateCount; ++i) {
+                    (*position)[i] = variationPosition.coordinates[i];
+                }
+            }
         }
     }
 
@@ -162,10 +171,10 @@ bool SkFontScanner_Fontations::scanInstance(SkStreamAsset* stream,
         SkASSERT(size == size1);
         for (auto i = 0; i < size; ++i) {
             const auto var = variationAxes[i];
-            (*axes)[i].fTag = var.tag;
-            (*axes)[i].fMinimum = var.min;
-            (*axes)[i].fDefault = var.def;
-            (*axes)[i].fMaximum = var.max;
+            (*axes)[i].tag = var.tag;
+            (*axes)[i].min = var.min;
+            (*axes)[i].def = var.def;
+            (*axes)[i].max = var.max;
         }
     }
 

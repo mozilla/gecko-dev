@@ -8,7 +8,7 @@
 #ifndef SkKnownRuntimeEffects_DEFINED
 #define SkKnownRuntimeEffects_DEFINED
 
-#include "include/core/SkTypes.h"
+#include "include/core/SkRefCnt.h"
 #include <cstdint>
 
 class SkRuntimeEffect;
@@ -18,8 +18,7 @@ namespace SkKnownRuntimeEffects {
 // We allocate the keys in blocks in the order:
 //     Skia builtins
 //     Skia known runtime effects
-//     Android known runtime effects
-//     Chrome known runtime effects
+//     First party client (i.e., Chrome and Android) known runtime effects
 //     unknown runtime effects (on a first come, first served basis -> unstable)
 //
 // WARNING: If any of these values are changed, UniqueKeys that have stably-keyed effects
@@ -27,22 +26,17 @@ namespace SkKnownRuntimeEffects {
 // TODO(b/238759147): add a revision number that can drive the invalidation.
 static constexpr int kSkiaBuiltInReservedCnt = 500;
 static constexpr int kSkiaKnownRuntimeEffectsReservedCnt = 500;
-static constexpr int kAndroidKnownRuntimeEffectsReservedCnt = 100;
-static constexpr int kChromeKnownRuntimeEffectsReservedCnt = 100;
+static constexpr int kUserDefinedKnownRuntimeEffectsReservedCnt = 100;
 
 static constexpr int kSkiaKnownRuntimeEffectsStart = kSkiaBuiltInReservedCnt;
 static constexpr int kSkiaKnownRuntimeEffectsEnd = kSkiaKnownRuntimeEffectsStart +
                                                    kSkiaKnownRuntimeEffectsReservedCnt;
 
-static constexpr int kAndroidKnownRuntimeEffectsStart = kSkiaKnownRuntimeEffectsEnd;
-static constexpr int kAndroidKnownRuntimeEffectsEnd = kAndroidKnownRuntimeEffectsStart +
-                                                      kAndroidKnownRuntimeEffectsReservedCnt;
+static constexpr int kUserDefinedKnownRuntimeEffectsStart = kSkiaKnownRuntimeEffectsEnd;
+static constexpr int kUserDefinedKnownRuntimeEffectsEnd =
+        kUserDefinedKnownRuntimeEffectsStart + kUserDefinedKnownRuntimeEffectsReservedCnt;
 
-static constexpr int kChromeKnownRuntimeEffectsStart = kAndroidKnownRuntimeEffectsEnd;
-static constexpr int kChromeKnownRuntimeEffectsEnd = kChromeKnownRuntimeEffectsStart +
-                                                     kChromeKnownRuntimeEffectsReservedCnt;
-
-static constexpr int kUnknownRuntimeEffectIDStart = kChromeKnownRuntimeEffectsEnd;
+static constexpr int kUnknownRuntimeEffectIDStart = kUserDefinedKnownRuntimeEffectsEnd;
 
 // All six 1DBlur* stable keys must be consecutive after 1DBlurBase and
 // there is no 1DBlur24 bc for large kernels we bin by a multiple of eight.
@@ -105,7 +99,24 @@ enum class StableKey : uint32_t {
 static const int kStableKeyCnt = static_cast<int>(StableKey::kLast) -
                                  static_cast<int>(StableKey::kStart) + 1;
 
+// kStart cannot be allowed to be zero since that is used as the not-a-stable-key value in the
+// serialized runtime effects (c.f., SkRuntimeShader::flatten)
+static_assert(static_cast<uint32_t>(StableKey::kStart) != 0);
+
 static_assert(static_cast<int>(StableKey::kLast) < kSkiaKnownRuntimeEffectsEnd);
+
+// Is 'candidate' a viable StableKey value. Note that this includes the kInvalid value.
+bool IsSkiaKnownRuntimeEffect(int candidate);
+
+bool IsUserDefinedRuntimeEffect(int candidate);
+
+// This call provides a rough check on 'candidate's viability as a user-defined known
+// run-time effect stable key. Every use of this method should be followed up with a call to
+// ShaderCodeDictionary::isUserDefinedKnownRuntimeEffect - which provides tighter bounds.
+bool IsViableUserDefinedKnownRuntimeEffect(int candidate);
+
+// Validate 'candidate' before calling GetKnownRuntimeEffect
+sk_sp<SkRuntimeEffect> MaybeGetKnownRuntimeEffect(uint32_t candidate);
 
 const SkRuntimeEffect* GetKnownRuntimeEffect(StableKey);
 

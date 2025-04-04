@@ -47,19 +47,20 @@ protected:
     ~SkTypeface_FreeType() override;
 
     std::unique_ptr<SkFontData> cloneFontData(const SkFontArguments&, SkFontStyle* style) const;
-    std::unique_ptr<SkScalerContext> onCreateScalerContext(const SkScalerContextEffects&,
-                                                           const SkDescriptor*) const override;
+    std::unique_ptr<SkScalerContext> onCreateScalerContext(
+            const SkScalerContextEffects&,
+            const SkDescriptor*) const override;
     std::unique_ptr<SkScalerContext> onCreateScalerContextAsProxyTypeface(
-                                                           const SkScalerContextEffects&,
-                                                           const SkDescriptor*,
-                                                           sk_sp<SkTypeface>) const override;
+            const SkScalerContextEffects&,
+            const SkDescriptor*,
+            SkTypeface* proxyTypeface) const override;
     void onFilterRec(SkScalerContextRec*) const override;
     void getGlyphToUnicodeMap(SkUnichar*) const override;
     std::unique_ptr<SkAdvancedTypefaceMetrics> onGetAdvancedMetrics() const override;
     void getPostScriptGlyphNames(SkString* dstArray) const override;
     bool onGetPostScriptName(SkString*) const override;
     int onGetUPEM() const override;
-    bool onGetKerningPairAdjustments(const uint16_t glyphs[], int count,
+    bool onGetKerningPairAdjustments(const SkGlyphID glyphs[], int count,
                                      int32_t adjustments[]) const override;
     void onCharsToGlyphs(const SkUnichar uni[], int count, SkGlyphID glyphs[]) const override;
     int onCountGlyphs() const override;

@@ -8,11 +8,15 @@
 #ifndef skgpu_graphite_ContextOptions_DEFINED
 #define skgpu_graphite_ContextOptions_DEFINED
 
+#include "include/core/SkRefCnt.h"
+#include "include/core/SkSpan.h"
 #include "include/private/base/SkAPI.h"
 #include "include/private/base/SkMath.h"
 
 #include <optional>
 
+class SkData;
+class SkRuntimeEffect;
 namespace skgpu { class ShaderErrorHandler; }
 
 namespace skgpu::graphite {
@@ -85,12 +89,12 @@ struct SK_API ContextOptions {
     bool fSupportBilerpFromGlyphAtlas = false;
 
     /**
-     * Disable caching of glyph uploads at the start of each Recording. These can add additional
-     * overhead and are only necessary if Recordings are replayed or played out of order.
-     *
-     * Deprecated, now only used to set requireOrderedRecordings Caps.
+     * For the moment, if Recordings are replayed in the order they are recorded, then
+     * Graphite can make certain assumptions that allow for better performance. Otherwise
+     * we have to flush some caches at the start of each Recording to ensure that they can
+     * be played back properly.
      */
-    bool fDisableCachedGlyphUploads = false;
+    bool fRequireOrderedRecordings = false;
 
     static constexpr size_t kDefaultContextBudget = 256 * (1 << 20);
     /**
@@ -117,6 +121,37 @@ struct SK_API ContextOptions {
      * allocator to pass into Skia where they can fine tune this value themeselves.
      */
     std::optional<uint64_t> fVulkanVMALargeHeapBlockSize;
+
+    /** Client-provided context that is passed to client-provided PipelineCallback. */
+    using PipelineCallbackContext = void*;
+    /**  Client-provided callback that is called whenever Graphite encounters a new Pipeline. */
+    using PipelineCallback = void (*)(PipelineCallbackContext context, sk_sp<SkData> pipelineData);
+
+    /**
+     *  These two members allow a client to register a callback that will be invoked
+     *  whenever Graphite encounters a new Pipeline. The callback will be passed an
+     *  sk_sp<SkData> that a client can take ownership of and serialize. The SkData
+     *  contains all the information Graphite requires to recreate the Pipeline at
+     *  a later date. The SkData is versioned however, so must be regenerated and
+     *  re-serialized when it becomes out of date.
+     */
+    PipelineCallbackContext fPipelineCallbackContext = nullptr;
+    PipelineCallback fPipelineCallback = nullptr;
+
+    /**
+     * The runtime effects provided here will be registered as user-defined *known* runtime
+     * effects and will be given a stable key. Such runtime effects can then be used in
+     * serialized pipeline keys (c.f. PrecompileContext::precompile).
+     *
+     * Graphite will take a ref on the provided runtime effects and they will persist for as long
+     * as the Context exists. Rather than recreating new SkRuntimeEffects using the same SkSL,
+     * clients should use the existing SkRuntimeEffects provided here.
+     *
+     * Warning: Registering runtime effects here does obligate users to clear out their caches
+     * of serialized pipeline keys if the provided runtime effects ever change in a meaningful way.
+     * This includes adding, removing or reordering the effects provided here.
+     */
+    SkSpan<sk_sp<SkRuntimeEffect>> fUserDefinedKnownRuntimeEffects;
 
     /**
      * Private options that are only meant for testing within Skia's tools.

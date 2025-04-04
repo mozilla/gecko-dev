@@ -7,6 +7,7 @@
 
 #include "src/pdf/SkPDFDevice.h"
 
+#include "include/codec/SkCodec.h"
 #include "include/core/SkAlphaType.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkBlendMode.h"
@@ -40,7 +41,6 @@
 #include "include/core/SkTypeface.h"
 #include "include/core/SkTypes.h"
 #include "include/docs/SkPDFDocument.h"
-#include "include/encode/SkJpegEncoder.h"
 #include "include/pathops/SkPathOps.h"
 #include "include/private/base/SkDebug.h"
 #include "include/private/base/SkTemplates.h"
@@ -98,6 +98,7 @@ SkPDFDevice::MarkedContentManager::MarkedContentManager(SkPDFDocument* document,
     , fOut(out)
     , fCurrentlyActiveMark()
     , fNextMarksElemId(0)
+    , fCurrentMarksElemId(0)
     , fMadeMarks(false)
 {}
 
@@ -112,13 +113,14 @@ void SkPDFDevice::MarkedContentManager::setNextMarksElemId(int nextMarksElemId) 
 int SkPDFDevice::MarkedContentManager::elemId() const { return fNextMarksElemId; }
 
 void SkPDFDevice::MarkedContentManager::beginMark() {
-    if (fNextMarksElemId == fCurrentlyActiveMark.elemId()) {
+    if (fNextMarksElemId == fCurrentMarksElemId) {
         return;
     }
-    if (fCurrentlyActiveMark) {
+    if (fCurrentMarksElemId) {
         // End this mark
         fOut->writeText("EMC\n");
         fCurrentlyActiveMark = SkPDFStructTree::Mark();
+        fCurrentMarksElemId = 0;
     }
     if (fNextMarksElemId) {
         fCurrentlyActiveMark = fDoc->createMarkForElemId(fNextMarksElemId);
@@ -128,7 +130,37 @@ void SkPDFDevice::MarkedContentManager::beginMark() {
             fOut->writeText(" <</MCID ");
             fOut->writeDecAsText(fCurrentlyActiveMark.mcid());
             fOut->writeText(" >>BDC\n");
+            fCurrentMarksElemId = fCurrentlyActiveMark.elemId();
             fMadeMarks = true;
+        } else if (SkPDF::NodeID::BackgroundArtifact <= fNextMarksElemId &&
+                   fNextMarksElemId <= SkPDF::NodeID::OtherArtifact &&
+                   fDoc->hasCurrentPage())
+        {
+            fOut->writeText("/Artifact");
+            if (fNextMarksElemId == SkPDF::NodeID::OtherArtifact) {
+                fOut->writeText(" BMC\n");
+            } else if (fNextMarksElemId == SkPDF::NodeID::PaginationArtifact ||
+                       fNextMarksElemId == SkPDF::NodeID::PaginationHeaderArtifact ||
+                       fNextMarksElemId == SkPDF::NodeID::PaginationFooterArtifact ||
+                       fNextMarksElemId == SkPDF::NodeID::PaginationWatermarkArtifact)
+            {
+                fOut->writeText(" <</Type Pagination");
+                if (fNextMarksElemId == SkPDF::NodeID::PaginationHeaderArtifact) {
+                    fOut->writeText(" /Subtype Header");
+                } else if  (fNextMarksElemId == SkPDF::NodeID::PaginationFooterArtifact) {
+                    fOut->writeText(" /Subtype Footer");
+                } else if (fNextMarksElemId == SkPDF::NodeID::PaginationWatermarkArtifact) {
+                    fOut->writeText(" /Subtype Watermark");
+                }
+                fOut->writeText(" >>BDC\n");
+            } else if (fNextMarksElemId == SkPDF::NodeID::LayoutArtifact) {
+                fOut->writeText(" <</Type Layout >>BDC\n");
+            } else if (fNextMarksElemId == SkPDF::NodeID::PageArtifact) {
+                fOut->writeText(" <</Type Page >>BDC\n");
+            } else if (fNextMarksElemId == SkPDF::NodeID::BackgroundArtifact) {
+                fOut->writeText(" <</Type Background >>BDC\n");
+            }
+            fCurrentMarksElemId = fNextMarksElemId;
         }
     }
 }
@@ -140,38 +172,30 @@ void SkPDFDevice::MarkedContentManager::accumulate(const SkPoint& p) {
     fCurrentlyActiveMark.accumulate(p);
 }
 
-#ifndef SK_PDF_MASK_QUALITY
-    // If MASK_QUALITY is in [0,100], will be used for JpegEncoder.
-    // Otherwise, just encode masks losslessly.
-    #define SK_PDF_MASK_QUALITY 50
-    // Since these masks are used for blurry shadows, we shouldn't need
-    // high quality.  Raise this value if your shadows have visible JPEG
-    // artifacts.
-    // If SkJpegEncoder::Encode fails, we will fall back to the lossless
-    // encoding.
-#endif
-
 // This function destroys the mask and either frees or takes the pixels.
-sk_sp<SkImage> mask_to_greyscale_image(SkMaskBuilder* mask) {
+sk_sp<SkImage> mask_to_greyscale_image(SkMaskBuilder* mask, SkPDFDocument* doc) {
     sk_sp<SkImage> img;
     SkPixmap pm(SkImageInfo::Make(mask->fBounds.width(), mask->fBounds.height(),
                                   kGray_8_SkColorType, kOpaque_SkAlphaType),
                 mask->fImage, mask->fRowBytes);
-#ifndef MOZ_SKIA
-    const int imgQuality = SK_PDF_MASK_QUALITY;
-    if (imgQuality <= 100 && imgQuality >= 0) {
-        SkDynamicMemoryWStream buffer;
-        SkJpegEncoder::Options jpegOptions;
-        jpegOptions.fQuality = imgQuality;
-        if (SkJpegEncoder::Encode(&buffer, pm, jpegOptions)) {
-            img = SkImages::DeferredFromEncodedData(buffer.detachAsData());
-            SkASSERT(img);
-            if (img) {
-                SkMaskBuilder::FreeImage(mask->image());
+    constexpr int imgQuality = SK_PDF_MASK_QUALITY;
+    if constexpr (imgQuality <= 100 && imgQuality >= 0) {
+        SkPDF::EncodeJpegCallback encodeJPEG = doc->metadata().jpegEncoder;
+        SkPDF::DecodeJpegCallback decodeJPEG = doc->metadata().jpegDecoder;
+        if (encodeJPEG && decodeJPEG) {
+            SkDynamicMemoryWStream buffer;
+            // By encoding this into jpeg, it be embedded efficiently during drawImage.
+            if (encodeJPEG(&buffer, pm, imgQuality)) {
+                std::unique_ptr<SkCodec> codec = decodeJPEG(buffer.detachAsData());
+                SkASSERT(codec);
+                img = SkCodecs::DeferredImage(std::move(codec));
+                SkASSERT(img);
+                if (img) {
+                    SkMaskBuilder::FreeImage(mask->image());
+                }
             }
         }
     }
-#endif
     if (!img) {
         img = SkImages::RasterFromPixmap(
                 pm, [](const void* p, void*) { SkMaskBuilder::FreeImage(const_cast<void*>(p)); }, nullptr);
@@ -588,7 +612,7 @@ void SkPDFDevice::internalDrawPathWithFilter(const SkClipStack& clipStack,
         return;
     }
     SkIRect dstMaskBounds = dstMask.fBounds;
-    sk_sp<SkImage> mask = mask_to_greyscale_image(&dstMask);
+    sk_sp<SkImage> mask = mask_to_greyscale_image(&dstMask, fDocument);
     // PDF doesn't seem to allow masking vector graphics with an Image XObject.
     // Must mask with a Form XObject.
     sk_sp<SkPDFDevice> maskDevice = this->makeCongruentDevice();
@@ -756,7 +780,7 @@ public:
         bool thousandEM = fPDFFont->strike().fPath.fUnitsPerEM == 1000;
         fViewersAgreeOnAdvancesInFont = thousandEM || !convertedToType3;
     }
-    void writeGlyph(uint16_t glyph, SkScalar advanceWidth, SkPoint xy) {
+    void writeGlyph(SkGlyphID glyph, SkScalar advanceWidth, SkPoint xy) {
         SkASSERT(fPDFFont);
         if (!fInitialized) {
             // Flip the text about the x-axis to account for origin swap and include
@@ -864,7 +888,7 @@ void SkPDFDevice::drawGlyphRunAsPath(
     transparent.setColor(SK_ColorTRANSPARENT);
 
     if (this->localToDevice().hasPerspective()) {
-        SkAutoDeviceTransformRestore adr(this, SkMatrix::I());
+        SkAutoDeviceTransformRestore adr(this, SkM44());
         this->internalDrawGlyphRun(tmpGlyphRun, offset, transparent);
     } else {
         this->internalDrawGlyphRun(tmpGlyphRun, offset, transparent);
@@ -1295,13 +1319,12 @@ static void populate_graphic_state_entry_from_paint(
     // PDF treats a shader as a color, so we only set one or the other.
     SkShader* shader = paint.getShader();
     if (shader) {
-        // note: we always present the alpha as 1 for the shader, knowing that it will be
-        //       accounted for when we create our newGraphicsState (below)
         if (as_SB(shader)->type() == SkShaderBase::ShaderType::kColor) {
             auto colorShader = static_cast<SkColorShader*>(shader);
             // We don't have to set a shader just for a color.
-            color = SkColor4f::FromColor(colorShader->color());
-            entry->fColor = {color.fR, color.fG, color.fB, 1};
+            color = colorShader->color();
+            color.fA *= paint.getAlphaf();
+            entry->fColor = colorShader->color().makeOpaque();
         } else {
             // PDF positions patterns relative to the initial transform, so
             // we need to apply the current transform to the shader parameters.
@@ -1319,6 +1342,7 @@ static void populate_graphic_state_entry_from_paint(
             SkIRect bounds;
             clipStackBounds.roundOut(&bounds);
 
+            // Use alpha 1 for the shader, the paint alpha is applied with newGraphicsState (below)
             auto c = paint.getColor4f();
             SkPDFIndirectReference pdfShader = SkPDFMakeShader(doc, shader, transform, bounds,
                                                                {c.fR, c.fG, c.fB, 1.0f});
@@ -1828,7 +1852,7 @@ void SkPDFDevice::drawDevice(SkDevice* device, const SkSamplingOptions& sampling
         return;
     }
 
-    SkMatrix matrix = device->getRelativeTransform(*this);
+    SkMatrix matrix = device->getRelativeTransform(*this).asM33();
     ScopedContentEntry content(this, &this->cs(), matrix, paint);
     if (!content) {
         return;
@@ -1867,13 +1891,4 @@ void SkPDFDevice::drawSpecial(SkSpecialImage* srcImg, const SkMatrix& localToDev
         this->internalDrawImageRect(SkKeyedImage(resultBM), nullptr, r, sampling, paint,
                                     localToDevice);
     }
-}
-
-sk_sp<SkSpecialImage> SkPDFDevice::makeSpecial(const SkBitmap& bitmap) {
-    return SkSpecialImages::MakeFromRaster(bitmap.bounds(), bitmap, this->surfaceProps());
-}
-
-sk_sp<SkSpecialImage> SkPDFDevice::makeSpecial(const SkImage* image) {
-    return SkSpecialImages::MakeFromRaster(
-            image->bounds(), image->makeNonTextureImage(), this->surfaceProps());
 }

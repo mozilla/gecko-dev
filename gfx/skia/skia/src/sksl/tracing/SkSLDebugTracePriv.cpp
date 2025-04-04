@@ -4,23 +4,16 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-
 #include "src/sksl/tracing/SkSLDebugTracePriv.h"
 
-#include "include/core/SkData.h"
-#include "include/core/SkRefCnt.h"
 #include "include/core/SkStream.h"
 #include "include/core/SkTypes.h"
-#include "src/core/SkStreamPriv.h"
 #include "src/sksl/ir/SkSLType.h"
 
 #include <cstdio>
 #include <cstring>
 #include <sstream>
 #include <string>
-#include <string_view>
-
-static constexpr char kTraceVersion[] = "20220209";
 
 namespace SkSL {
 
@@ -195,12 +188,6 @@ void DebugTracePriv::dump(SkWStream* o) const {
             o->newline();
         }
     }
-}
-
-void DebugTracePriv::writeTrace(SkWStream* w) const {
-}
-
-bool DebugTracePriv::readTrace(SkStream* r) {
 }
 
 }  // namespace SkSL

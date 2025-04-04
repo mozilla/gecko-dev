@@ -101,6 +101,7 @@ namespace skcms_private {
     M(store_161616BE)      \
     M(store_16161616BE)    \
     M(store_101010x_XR)    \
+    M(store_10101010_XR)   \
     M(store_hhh)           \
     M(store_hhhh)          \
     M(store_fff)           \
@@ -144,21 +145,21 @@ namespace baseline {
 
 void run_program(const Op* program, const void** contexts, ptrdiff_t programSize,
                  const char* src, char* dst, int n,
-                 const size_t src_bpp, const size_t dst_bpp);
+                size_t src_bpp, size_t dst_bpp);
 
 }
 namespace hsw {
 
 void run_program(const Op* program, const void** contexts, ptrdiff_t programSize,
                  const char* src, char* dst, int n,
-                 const size_t src_bpp, const size_t dst_bpp);
+                size_t src_bpp, size_t dst_bpp);
 
 }
 namespace skx {
 
 void run_program(const Op* program, const void** contexts, ptrdiff_t programSize,
                  const char* src, char* dst, int n,
-                 const size_t src_bpp, const size_t dst_bpp);
+                size_t src_bpp, size_t dst_bpp);
 
 }
 }  // namespace skcms_private

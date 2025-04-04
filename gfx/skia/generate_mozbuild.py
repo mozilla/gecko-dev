@@ -219,6 +219,12 @@ def generate_separated_sources(platform_sources):
 
   separated = defaultdict(set, {
     'common': {
+      'skia/src/codec/SkCodec.cpp',
+      'skia/src/codec/SkCodecImageGenerator.cpp',
+      'skia/src/codec/SkColorPalette.cpp',
+      'skia/src/codec/SkImageGenerator_FromEncoded.cpp',
+      'skia/src/codec/SkPixmapUtils.cpp',
+      'skia/src/codec/SkSampler.cpp',
       'skia/src/effects/imagefilters/SkBlendImageFilter.cpp',
       'skia/src/effects/imagefilters/SkBlurImageFilter.cpp',
       'skia/src/effects/imagefilters/SkComposeImageFilter.cpp',

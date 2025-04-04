@@ -8,7 +8,6 @@
 #include "src/core/SkDevice.h"
 
 #include "include/core/SkAlphaType.h"
-#include "include/core/SkColorPriv.h"
 #include "include/core/SkColorSpace.h"
 #include "include/core/SkColorType.h"
 #include "include/core/SkDrawable.h"
@@ -27,6 +26,7 @@
 #include "include/core/SkVertices.h"
 #include "include/private/base/SkFloatingPoint.h"
 #include "include/private/chromium/Slug.h"  // IWYU pragma: keep
+#include "src/core/SkColorPriv.h"
 #include "src/core/SkEnumerate.h"
 #include "src/core/SkImageFilterTypes.h"
 #include "src/core/SkImageFilter_Base.h"
@@ -100,10 +100,10 @@ SkIPoint SkDevice::getOrigin() const {
                           SkScalarFloorToInt(fDeviceToGlobal.rc(1, 3)));
 }
 
-SkMatrix SkDevice::getRelativeTransform(const SkDevice& dstDevice) const {
+SkM44 SkDevice::getRelativeTransform(const SkDevice& dstDevice) const {
     // To get the transform from this space to the other device's, transform from our space to
     // global and then from global to the other device.
-    return (dstDevice.fGlobalToDevice * fDeviceToGlobal).asM33();
+    return dstDevice.fGlobalToDevice * fDeviceToGlobal;
 }
 
 static inline bool is_int(float x) {
@@ -135,7 +135,7 @@ void SkDevice::drawArc(const SkArc& arc, const SkPaint& paint) {
     SkPath path;
     bool isFillNoPathEffect = SkPaint::kFill_Style == paint.getStyle() && !paint.getPathEffect();
     SkPathPriv::CreateDrawArcPath(&path, arc, isFillNoPathEffect);
-    this->drawPath(path, paint);
+    this->drawPath(path, paint, true);
 }
 
 void SkDevice::drawDRRect(const SkRRect& outer,
@@ -244,7 +244,7 @@ void SkDevice::drawEdgeAAQuad(const SkRect& r, const SkPoint clip[4], SkCanvas::
         // Draw the clip directly as a quad since it's a filled color with no local coords
         SkPath clipPath;
         clipPath.addPoly(clip, 4, true);
-        this->drawPath(clipPath, paint);
+        this->drawPath(clipPath, paint, true);
     } else {
         this->drawRect(r, paint);
     }
@@ -310,8 +310,6 @@ void SkDevice::drawCoverageMask(const SkSpecialImage*, const SkMatrix& maskToDev
     SK_ABORT("Must override if useDrawCoverageMaskForMaskFilters() is true");
 }
 
-sk_sp<SkSpecialImage> SkDevice::makeSpecial(const SkBitmap&) { return nullptr; }
-sk_sp<SkSpecialImage> SkDevice::makeSpecial(const SkImage*) { return nullptr; }
 sk_sp<SkSpecialImage> SkDevice::snapSpecial(const SkIRect&, bool forceCopy) { return nullptr; }
 sk_sp<SkSpecialImage> SkDevice::snapSpecialScaled(const SkIRect& subset,
                                                   const SkISize& dstDims) {
@@ -333,7 +331,7 @@ void SkDevice::drawDevice(SkDevice* device,
     if (deviceImage) {
         // SkCanvas only calls drawDevice() when there are no filters (so the transform is pixel
         // aligned). As such it can be drawn without clamping.
-        SkMatrix relativeTransform = device->getRelativeTransform(*this);
+        SkMatrix relativeTransform = device->getRelativeTransform(*this).asM33();
         const bool strict = sampling != SkFilterMode::kNearest ||
                             !relativeTransform.isTranslate() ||
                             !SkScalarIsInt(relativeTransform.getTranslateX()) ||
@@ -372,7 +370,7 @@ void SkDevice::drawFilteredImage(const skif::Mapping& mapping,
     sk_sp<SkSpecialImage> result = as_IFB(filter)->filterImage(ctx).imageAndOffset(ctx, &offset);
     stats.reportStats();
     if (result) {
-        SkMatrix deviceMatrixWithOffset = mapping.layerToDevice();
+        SkMatrix deviceMatrixWithOffset = mapping.layerToDevice().asM33();
         deviceMatrixWithOffset.preTranslate(offset.fX, offset.fY);
         this->drawSpecial(result.get(), deviceMatrixWithOffset, sampling, paint);
     }

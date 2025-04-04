@@ -27,7 +27,7 @@
 SkEdgeBuilder::Combine SkBasicEdgeBuilder::combineVertical(const SkEdge* edge, SkEdge* last) {
     // We only consider edges that were originally lines to be vertical to avoid numerical issues
     // (crbug.com/1154864).
-    if (last->fEdgeType != SkEdge::kLine_Type || last->fDX || edge->fX != last->fX) {
+    if (last->fEdgeType != SkEdge::Type::kLine || last->fDX || edge->fX != last->fX) {
         return kNo_Combine;
     }
     if (edge->fWinding == last->fWinding) {
@@ -75,7 +75,7 @@ SkEdgeBuilder::Combine SkAnalyticEdgeBuilder::combineVertical(const SkAnalyticEd
 
     // We only consider edges that were originally lines to be vertical to avoid numerical issues
     // (crbug.com/1154864).
-    if (last->fEdgeType != SkAnalyticEdge::kLine_Type || last->fDX || edge->fX != last->fX) {
+    if (last->fEdgeType != SkAnalyticEdge::Type::kLine || last->fDX || edge->fX != last->fX) {
         return kNo_Combine;
     }
     if (edge->fWinding == last->fWinding) {
@@ -124,7 +124,7 @@ static bool is_vertical(const Edge* edge) {
     // We only consider edges that were originally lines to be vertical to avoid numerical issues
     // (crbug.com/1154864).
     return edge->fDX       == 0
-        && edge->fEdgeType == Edge::kLine_Type;
+        && edge->fEdgeType == Edge::Type::kLine;
 }
 
 // TODO: we can deallocate the edge if edge->setFoo() fails
@@ -301,10 +301,6 @@ int SkEdgeBuilder::buildPoly(const SkPath& path, const SkIRect* iclip, bool canC
 }
 
 int SkEdgeBuilder::build(const SkPath& path, const SkIRect* iclip, bool canCullToTheRight) {
-    SkAutoConicToQuads quadder;
-    const SkScalar conicTol = SK_Scalar1 / 4;
-    bool is_finite = true;
-
     SkPathEdgeIter iter(path);
     if (iclip) {
         SkRect clip = this->recoverClip(*iclip);
@@ -333,45 +329,49 @@ int SkEdgeBuilder::build(const SkPath& path, const SkIRect* iclip, bool canCullT
                 }
             }
         }, &rec);
-        is_finite = rec.fIsFinite;
-    } else {
-        auto handle_quad = [this](const SkPoint pts[3]) {
-            SkPoint monoX[5];
-            int n = SkChopQuadAtYExtrema(pts, monoX);
-            for (int i = 0; i <= n; i++) {
-                this->addQuad(&monoX[i * 2]);
+        fEdgeList = fList.begin();
+        return rec.fIsFinite ? fList.size() : 0;
+    }
+
+    SkAutoConicToQuads quadder;
+    constexpr float kConicTol = 0.25f;
+    SkPoint monoY[10];
+    SkPoint monoX[5];
+    auto handle_quad = [this, &monoX](const SkPoint pts[3]) {
+        int n = SkChopQuadAtYExtrema(pts, monoX);
+        for (int i = 0; i <= n; i++) {
+            this->addQuad(&monoX[i * 2]);
+        }
+    };
+
+    while (auto e = iter.next()) {
+        switch (e.fEdge) {
+            case SkPathEdgeIter::Edge::kLine:
+                this->addLine(e.fPts);
+                break;
+            case SkPathEdgeIter::Edge::kQuad: {
+                handle_quad(e.fPts);
+                break;
             }
-        };
-        while (auto e = iter.next()) {
-            switch (e.fEdge) {
-                case SkPathEdgeIter::Edge::kLine:
-                    this->addLine(e.fPts);
-                    break;
-                case SkPathEdgeIter::Edge::kQuad: {
-                    handle_quad(e.fPts);
-                    break;
+            case SkPathEdgeIter::Edge::kConic: {
+                const SkPoint* quadPts =
+                        quadder.computeQuads(e.fPts, iter.conicWeight(), kConicTol);
+                for (int i = 0; i < quadder.countQuads(); ++i) {
+                    handle_quad(quadPts);
+                    quadPts += 2;
                 }
-                case SkPathEdgeIter::Edge::kConic: {
-                    const SkPoint* quadPts = quadder.computeQuads(
-                                          e.fPts, iter.conicWeight(), conicTol);
-                    for (int i = 0; i < quadder.countQuads(); ++i) {
-                        handle_quad(quadPts);
-                        quadPts += 2;
-                    }
-                } break;
-                case SkPathEdgeIter::Edge::kCubic: {
-                    SkPoint monoY[10];
-                    int n = SkChopCubicAtYExtrema(e.fPts, monoY);
-                    for (int i = 0; i <= n; i++) {
-                        this->addCubic(&monoY[i * 3]);
-                    }
-                    break;
+            } break;
+            case SkPathEdgeIter::Edge::kCubic: {
+                int n = SkChopCubicAtYExtrema(e.fPts, monoY);
+                for (int i = 0; i <= n; i++) {
+                    this->addCubic(&monoY[i * 3]);
                 }
+                break;
             }
         }
     }
     fEdgeList = fList.begin();
-    return is_finite ? fList.size() : 0;
+    return fList.size();
 }
 
 int SkEdgeBuilder::buildEdges(const SkPath& path,

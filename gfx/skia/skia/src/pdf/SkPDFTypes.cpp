@@ -391,6 +391,14 @@ void SkPDFArray::emitObject(SkWStream* stream) const {
     stream->writeText("]");
 }
 
+void SkPDFOptionalArray::emitObject(SkWStream* stream) const {
+    if (this->size() == 1) {
+        this->values()[0].emitObject(stream);
+    } else {
+        this->SkPDFArray::emitObject(stream);
+    }
+}
+
 void SkPDFArray::append(SkPDFUnion&& value) {
     fValues.emplace_back(std::move(value));
 }
@@ -561,17 +569,6 @@ static void serialize_stream(SkPDFDict* origDict,
         SkDeflateWStream deflateWStream(&compressedData,SkToInt(doc->metadata().fCompressionLevel));
         SkStreamCopy(&deflateWStream, stream);
         deflateWStream.finalize();
-        #ifdef SK_PDF_BASE85_BINARY
-        {
-            SkPDFUtils::Base85Encode(compressedData.detachAsStream(), &compressedData);
-            tmp = compressedData.detachAsStream();
-            stream = tmp.get();
-            auto filters = SkPDFMakeArray();
-            filters->appendName("ASCII85Decode");
-            filters->appendName("FlateDecode");
-            dict.insertObject("Filter", std::move(filters));
-        }
-        #else
         if (stream->getLength() > compressedData.bytesWritten() + kMinimumSavings) {
             tmp = compressedData.detachAsStream();
             stream = tmp.get();
@@ -579,7 +576,6 @@ static void serialize_stream(SkPDFDict* origDict,
         } else {
             SkAssertResult(stream->rewind());
         }
-        #endif
 
     }
     dict.insertInt("Length", stream->getLength());

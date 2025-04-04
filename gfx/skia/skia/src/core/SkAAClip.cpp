@@ -11,7 +11,6 @@
 #include "include/core/SkPath.h"
 #include "include/core/SkRegion.h"
 #include "include/core/SkTypes.h"
-#include "include/private/SkColorData.h"
 #include "include/private/base/SkCPUTypes.h"
 #include "include/private/base/SkDebug.h"
 #include "include/private/base/SkMacros.h"
@@ -20,6 +19,7 @@
 #include "include/private/base/SkTDArray.h"
 #include "include/private/base/SkTo.h"
 #include "src/core/SkBlitter.h"
+#include "src/core/SkColorData.h"
 #include "src/core/SkMask.h"
 #include "src/core/SkScan.h"
 
@@ -1412,8 +1412,10 @@ bool SkAAClip::setPath(const SkPath& path, const SkIRect& clip, bool doAA) {
         ibounds = clip;
     } else {
         path.getBounds().roundOut(&ibounds);
-        // Since clip is already validated with isEmpty, it is safe to use isEmpty64
-        // for ibounds as it will be intersected with clip after.
+        // It's possible the bounds of our path might exceed SK_MaxS32 in width
+        // but since our clip is within that width (otherwise isEmpty() above
+        // would catch it), we can use isEmpty64() safely here. blitPath will
+        // interesect the two bounds before drawing.
         if (ibounds.isEmpty64() || !ibounds.intersect(clip)) {
             return this->setEmpty();
         }

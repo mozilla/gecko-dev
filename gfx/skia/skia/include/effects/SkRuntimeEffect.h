@@ -126,6 +126,8 @@ public:
         // don't run the inliner directly, but they still get an inlining pass once they are
         // painted.)
         bool forceUnoptimized = false;
+        // When possible this name will be used to identify the created runtime effect.
+        std::string_view fName;
 
     private:
         friend class SkRuntimeEffect;
@@ -170,6 +172,7 @@ public:
 
     // Shader SkSL requires an entry point that looks like:
     //     vec4 main(vec2 inCoords) { ... }
+    // The color that is returned should be premultiplied.
     static Result MakeForShader(SkString sksl, const Options&);
     static Result MakeForShader(SkString sksl) {
         return MakeForShader(std::move(sksl), Options{});
@@ -316,7 +319,9 @@ private:
     friend class SkRuntimeEffectPriv;
 
     uint32_t fHash;
-    uint32_t fStableKey;
+    // When not 0, this field holds a StableKey value or a user-defined stable key
+    uint32_t fStableKey = 0;
+    SkString fName;
 
     std::unique_ptr<SkSL::Program> fBaseProgram;
     std::unique_ptr<SkSL::RP::Program> fRPProgram;

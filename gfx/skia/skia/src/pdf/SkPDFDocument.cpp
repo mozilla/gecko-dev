@@ -14,6 +14,7 @@
 #include "include/core/SkRect.h"
 #include "include/core/SkSize.h"
 #include "include/core/SkStream.h"
+#include "include/core/SkTypeface.h"
 #include "include/core/SkTypes.h"
 #include "include/private/base/SkMutex.h"
 #include "include/private/base/SkPoint_impl.h"
@@ -44,6 +45,10 @@
 #include <cstddef>
 #include <new>
 #include <utility>
+
+#if defined(SK_CODEC_ENCODES_JPEG) && defined(SK_CODEC_DECODES_JPEG) && !defined(SK_DISABLE_LEGACY_PDF_JPEG)
+#include "include/docs/SkPDFJpegHelpers.h"
+#endif
 
 // For use in SkCanvas::drawAnnotation
 const char* SkPDFGetElemIdKey() {
@@ -511,7 +516,7 @@ static sk_sp<SkData> SkSrgbIcm() {
         "\214\363\31\363\247\3644\364\302\365P\365\336\366m\366\373\367\212"
         "\370\31\370\250\3718\371\307\372W\372\347\373w\374\7\374\230\375)\375"
         "\272\376K\376\334\377m\377\377";
-    const size_t kProfileLength = 3212;
+    constexpr size_t kProfileLength = 3212;
     static_assert(kProfileLength == sizeof(kProfile) - 1, "");
     return SkData::MakeWithoutCopy(kProfile, kProfileLength);
 }
@@ -696,6 +701,20 @@ sk_sp<SkDocument> SkPDF::MakeDocument(SkWStream* stream, const SkPDF::Metadata& 
     if (meta.fEncodingQuality < 0) {
         meta.fEncodingQuality = 0;
     }
+#if defined(SK_CODEC_ENCODES_JPEG) && defined(SK_CODEC_DECODES_JPEG) && !defined(SK_DISABLE_LEGACY_PDF_JPEG)
+    if (!meta.jpegDecoder) {
+        meta.jpegDecoder = SkPDF::JPEG::Decode;
+    }
+    if (!meta.jpegEncoder) {
+        meta.jpegEncoder = SkPDF::JPEG::Encode;
+    }
+#else
+    if (!meta.jpegDecoder || !meta.jpegEncoder) {
+        if (!meta.allowNoJpegs) {
+            SK_ABORT("Must set both a jpegDecoder and jpegEncoder to create PDFs");
+        }
+    }
+#endif
     return stream ? sk_make_sp<SkPDFDocument>(stream, std::move(meta)) : nullptr;
 }
 

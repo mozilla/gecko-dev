@@ -372,6 +372,15 @@ public:
     static uint32_t Hash(SkPackedGlyphID packedID) {
         return packedID.hash();
     }
+    static bool ShouldGrow(int count, int capacity) {
+        // Having the 50% load factor results in performance improvements and significantly reduces
+        // the average number of probes on the Speedometer3 Editor-TipTap benchmark.
+        return 2 * count >= capacity;
+    }
+    static bool ShouldShrink(int count, int capacity) {
+        // Use 1/6 as the minimal load.
+        return 6 * count <= capacity;
+    }
 
 private:
     void setAction(skglyph::ActionType actionType, skglyph::GlyphAction action) {
@@ -415,11 +424,11 @@ public:
     static std::optional<SkGlyph> MakeFromBuffer(SkReadBuffer&);
     // SkGlyph() is used for testing.
     constexpr SkGlyph() : SkGlyph{SkPackedGlyphID()} { }
-    SkGlyph(const SkGlyph&);
-    SkGlyph& operator=(const SkGlyph&);
-    SkGlyph(SkGlyph&&);
-    SkGlyph& operator=(SkGlyph&&);
-    ~SkGlyph();
+    SkGlyph(const SkGlyph&) = default;
+    SkGlyph& operator=(const SkGlyph&) = default;
+    SkGlyph(SkGlyph&&) = default;
+    SkGlyph& operator=(SkGlyph&&) = default;
+    ~SkGlyph() = default;
     constexpr explicit SkGlyph(SkPackedGlyphID id) : fID{id} { }
 
     SkVector advanceVector() const { return SkVector{fAdvanceX, fAdvanceY}; }

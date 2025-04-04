@@ -18,7 +18,6 @@
 #include "include/core/SkPathEffect.h"
 #include "include/core/SkPixmap.h"
 #include "include/core/SkStrokeRec.h"
-#include "include/private/SkColorData.h"
 #include "include/private/base/SkAlign.h"
 #include "include/private/base/SkCPUTypes.h"
 #include "include/private/base/SkDebug.h"
@@ -30,6 +29,7 @@
 #include "src/base/SkAutoMalloc.h"
 #include "src/core/SkAutoPixmapStorage.h"
 #include "src/core/SkBlitter_A8.h"
+#include "src/core/SkColorData.h"
 #include "src/core/SkDescriptor.h"
 #include "src/core/SkDrawBase.h"
 #include "src/core/SkFontPriv.h"
@@ -86,10 +86,10 @@ SkScalerContextRec SkScalerContext::PreprocessRec(const SkTypeface& typeface,
     return rec;
 }
 
-SkScalerContext::SkScalerContext(sk_sp<SkTypeface> typeface, const SkScalerContextEffects& effects,
+SkScalerContext::SkScalerContext(SkTypeface& typeface, const SkScalerContextEffects& effects,
                                  const SkDescriptor* desc)
-    : fRec(PreprocessRec(*typeface, effects, *desc))
-    , fTypeface(std::move(typeface))
+    : fRec(PreprocessRec(typeface, effects, *desc))
+    , fTypeface(typeface)
     , fPathEffect(sk_ref_sp(effects.fPathEffect))
     , fMaskFilter(sk_ref_sp(effects.fMaskFilter))
       // Initialize based on our settings. Subclasses can also force this.
@@ -566,7 +566,8 @@ void SkScalerContext::GenerateImageFromPath(
     draw.fDst            = dst;
     draw.fRC             = &clip;
     draw.fCTM            = &matrix;
-    draw.drawPath(*pathToUse, paint);
+    // We can save a copy if we had to use the local strokePath
+    draw.drawPath(*pathToUse, paint, nullptr, pathToUse == &strokePath);
 
     switch (dstMask.fFormat) {
         case SkMask::kBW_Format:
@@ -1287,13 +1288,13 @@ bool SkScalerContext::CheckBufferSizeForRec(const SkScalerContextRec& rec,
 }
 
 std::unique_ptr<SkScalerContext> SkScalerContext::MakeEmpty(
-        sk_sp<SkTypeface> typeface, const SkScalerContextEffects& effects,
+        SkTypeface& typeface, const SkScalerContextEffects& effects,
         const SkDescriptor* desc) {
     class SkScalerContext_Empty : public SkScalerContext {
     public:
-        SkScalerContext_Empty(sk_sp<SkTypeface> typeface, const SkScalerContextEffects& effects,
+        SkScalerContext_Empty(SkTypeface& typeface, const SkScalerContextEffects& effects,
                               const SkDescriptor* desc)
-                : SkScalerContext(std::move(typeface), effects, desc) {}
+                : SkScalerContext(typeface, effects, desc) {}
 
     protected:
         GlyphMetrics generateMetrics(const SkGlyph& glyph, SkArenaAlloc*) override {
@@ -1311,7 +1312,7 @@ std::unique_ptr<SkScalerContext> SkScalerContext::MakeEmpty(
         }
     };
 
-    return std::make_unique<SkScalerContext_Empty>(std::move(typeface), effects, desc);
+    return std::make_unique<SkScalerContext_Empty>(typeface, effects, desc);
 }
 
 

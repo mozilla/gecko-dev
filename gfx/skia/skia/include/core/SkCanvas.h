@@ -34,6 +34,7 @@
 #include "include/private/base/SkDeque.h"
 #include "include/private/base/SkTArray.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -53,6 +54,7 @@ class GrRecordingContext;
 
 class SkBitmap;
 class SkBlender;
+class SkBlurMaskFilterImpl;
 class SkColorSpace;
 class SkData;
 class SkDevice;
@@ -2502,15 +2504,18 @@ private:
         void reset(SkDevice* device);
     };
 
-    // the first N recs that can fit here mean we won't call malloc
-    static constexpr int kMCRecSize      = 96; // most recent measurement
-    static constexpr int kMCRecCount     = 32; // common depth for save/restores
+#if defined(SK_CANVAS_SAVE_RESTORE_PREALLOC_COUNT)
+    static constexpr int kMCRecCount = SK_CANVAS_SAVE_RESTORE_PREALLOC_COUNT;
+#else
+    static constexpr int kMCRecCount = 32; // common depth for save/restores
+#endif
 
-    intptr_t fMCRecStorage[kMCRecSize * kMCRecCount / sizeof(intptr_t)];
+    // This stack allocation of memory will be used to house the first kMCRecCount
+    // layers without need to call malloc.
+    alignas(MCRec) std::byte fMCRecStorage[sizeof(MCRec) * kMCRecCount];
 
-    SkDeque     fMCStack;
-    // points to top of stack
-    MCRec*      fMCRec;
+    SkDeque     fMCStack; // uses the stack memory
+    MCRec*      fMCRec;   // points to top of stack for convenience
 
     // Installed via init()
     sk_sp<SkDevice> fRootDevice;
@@ -2675,11 +2680,14 @@ private:
     // into the canvas' global space.
     SkRect computeDeviceClipBounds(bool outsetForAA=true) const;
 
-    // Attempt to draw a rrect with an analytic blur. If the paint does not contain a blur, or the
-    // geometry can't be drawn with an analytic blur by the device, a layer is returned for a
-    // regular draw. If the draw succeeds or predrawNotify fails, nullopt is returned indicating
-    // that nothing further should be drawn.
+    // Returns the paint's mask filter if it can be used to draw an rrect with an analytic blur, and
+    // returns null otherwise.
+    const SkBlurMaskFilterImpl* canAttemptBlurredRRectDraw(const SkPaint&) const;
+
+    // Attempt to draw a rrect with an analytic blur. If the draw succeeds or predrawNotify fails,
+    // nullopt is returned indicating that nothing further should be drawn.
     std::optional<AutoLayerForImageFilter> attemptBlurredRRectDraw(const SkRRect&,
+                                                                   const SkBlurMaskFilterImpl*,
                                                                    const SkPaint&,
                                                                    SkEnumBitMask<PredrawFlags>);
 

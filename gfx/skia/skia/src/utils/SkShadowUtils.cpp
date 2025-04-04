@@ -12,6 +12,7 @@
 #include "include/core/SkBlurTypes.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColorFilter.h"
+#include "include/core/SkM44.h"
 #include "include/core/SkMaskFilter.h"
 #include "include/core/SkMatrix.h"
 #include "include/core/SkPaint.h"
@@ -415,12 +416,17 @@ bool draw_shadow(const FACTORY& factory,
     FindContext<FACTORY> context(&path.viewMatrix(), &factory);
 
     SkResourceCache::Key* key = nullptr;
-    AutoSTArray<32 * 4, uint8_t> keyStorage;
+    constexpr int kMinBytes = 128;
+    // We need to make this array be of the cache's Key so the memory we create the Key in
+    // is properly aligned.
+    AutoSTArray<kMinBytes / sizeof(SkResourceCache::Key), SkResourceCache::Key> keyStorage;
     int keyDataBytes = path.keyBytes();
     if (keyDataBytes >= 0) {
+        // Store the key...
         keyStorage.reset(keyDataBytes + sizeof(SkResourceCache::Key));
         key = new (keyStorage.begin()) SkResourceCache::Key();
-        path.writeKey((uint32_t*)(keyStorage.begin() + sizeof(*key)));
+        // ... followed by the bytes from path.
+        path.writeKey((uint32_t*)(((uint8_t*)keyStorage.begin()) + sizeof(SkResourceCache::Key)));
         key->init(&kNamespace, resource_cache_shared_id(), keyDataBytes);
         SkResourceCache::Find(*key, FindVisitor<FACTORY>, &context);
     }
@@ -596,7 +602,7 @@ void SkDevice::drawShadow(const SkPath& path, const SkDrawShadowRec& rec) {
     }
 
     SkMatrix viewMatrix = this->localToDevice();
-    SkAutoDeviceTransformRestore adr(this, SkMatrix::I());
+    SkAutoDeviceTransformRestore adr(this, SkM44());
 
 #if !defined(SK_ENABLE_OPTIMIZE_SIZE)
     auto drawVertsProc = [this](const SkVertices* vertices, SkBlendMode mode, const SkPaint& paint,
@@ -607,8 +613,8 @@ void SkDevice::drawShadow(const SkPath& path, const SkDrawShadowRec& rec) {
             // change in translation from the cached version.
             SkAutoDeviceTransformRestore adr(
                     this,
-                    hasPerspective ? SkMatrix::I()
-                                   : this->localToDevice() * SkMatrix::Translate(tx, ty));
+                    hasPerspective ? SkM44()
+                                   : this->localToDevice44() * SkM44::Translate(tx, ty));
             // The vertex colors for a tesselated shadow polygon are always either opaque black
             // or transparent and their real contribution to the final blended color is via
             // their alpha. We can skip expensive per-vertex color conversion for this.
@@ -720,7 +726,7 @@ void SkDevice::drawShadow(const SkPath& path, const SkDrawShadowRec& rec) {
             SkScalar sigma = SkBlurMask::ConvertRadiusToSigma(blurRadius);
             bool respectCTM = false;
             paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, sigma, respectCTM));
-            this->drawPath(devSpacePath, paint);
+            this->drawPath(devSpacePath, paint, true);
         }
     }
 
@@ -832,14 +838,14 @@ void SkDevice::drawShadow(const SkPath& path, const SkDrawShadowRec& rec) {
                                                              &shadowMatrix, &radius)) {
                 return;
             }
-            SkAutoDeviceTransformRestore adr2(this, shadowMatrix);
+            SkAutoDeviceTransformRestore adr2(this, SkM44(shadowMatrix));
 
             SkPaint paint;
             paint.setColor(rec.fSpotColor);
             SkScalar sigma = SkBlurMask::ConvertRadiusToSigma(radius);
             bool respectCTM = false;
             paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, sigma, respectCTM));
-            this->drawPath(path, paint);
+            this->drawPath(path, paint, false);
         }
     }
 }
