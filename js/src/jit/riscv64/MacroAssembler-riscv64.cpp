@@ -3414,6 +3414,12 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
   *u32 = targetOffset - farJump.offset();
 }
 
+void MacroAssembler::patchFarJump(uint8_t* farJump, uint8_t* target) {
+  uint32_t* u32 = reinterpret_cast<uint32_t*>(farJump + 4 * kInstrSize);
+  MOZ_ASSERT(*u32 == UINT32_MAX);
+  *u32 = (int64_t)target - (int64_t)farJump;
+}
+
 void MacroAssembler::patchNearAddressMove(CodeLocationLabel loc,
                                           CodeLocationLabel target) {
   PatchDataWithValueCheck(loc, ImmPtr(target.raw()), ImmPtr(nullptr));
@@ -3471,6 +3477,16 @@ void MacroAssembler::PopRegsInMaskIgnore(LiveRegisterSet set,
   }
   MOZ_ASSERT(diff == 0);
   freeStack(reserved);
+}
+
+CodeOffset MacroAssembler::move32WithPatch(Register dest) {
+  CodeOffset offs = CodeOffset(currentOffset());
+  ma_liPatchable(dest, Imm32(0));
+  return offs;
+}
+
+void MacroAssembler::patchMove32(CodeOffset offset, Imm32 n) {
+  patchSub32FromStackPtr(offset, n);
 }
 
 void MacroAssembler::pushReturnAddress() { push(ra); }
