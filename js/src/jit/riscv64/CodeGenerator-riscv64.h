@@ -146,6 +146,11 @@ class CodeGeneratorRiscv64 : public CodeGeneratorShared {
   void emitWasmLoadI64(T* ins);
   template <typename T>
   void emitWasmStoreI64(T* ins);
+
+  void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
+                        Register output);
+  void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,
+                        Register output);
 };
 
 typedef CodeGeneratorRiscv64 CodeGeneratorSpecific;

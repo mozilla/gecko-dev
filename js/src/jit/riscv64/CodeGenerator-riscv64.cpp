@@ -403,6 +403,18 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   }
 }
 
+void CodeGeneratorRiscv64::emitBigIntPtrDiv(LBigIntPtrDiv* ins,
+                                           Register dividend, Register divisor,
+                                           Register output) {
+  masm.ma_div64(output, dividend, divisor);
+}
+
+void CodeGeneratorRiscv64::emitBigIntPtrMod(LBigIntPtrMod* ins,
+                                            Register dividend, Register divisor,
+                                            Register output) {
+  masm.ma_mod64(output, dividend, divisor);
+}
+
 void CodeGenerator::visitDivOrModI64(LDivOrModI64* lir) {
   Register lhs = ToRegister(lir->lhs());
   Register rhs = ToRegister(lir->rhs());

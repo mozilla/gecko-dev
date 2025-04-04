@@ -442,6 +442,38 @@ void LIRGeneratorRiscv64::lowerWasmBuiltinModI64(MWasmBuiltinModI64* mod) {
   MOZ_CRASH("We don't use runtime mod for this architecture");
 }
 
+void LIRGeneratorRiscv64::lowerBigIntPtrLsh(MBigIntPtrLsh* ins) {
+  auto* lir = new (alloc()) LBigIntPtrLsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+}
+
+void LIRGeneratorRiscv64::lowerBigIntPtrRsh(MBigIntPtrRsh* ins) {
+  auto* lir = new (alloc()) LBigIntPtrRsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+}
+
+void LIRGeneratorRiscv64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrDiv(useRegister(ins->lhs()), useRegister(ins->rhs()),
+                    LDefinition::BogusTemp(), LDefinition::BogusTemp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+}
+
+void LIRGeneratorRiscv64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrMod(useRegister(ins->lhs()), useRegister(ins->rhs()), temp(),
+                    LDefinition::BogusTemp());
+  if (ins->canBeDivideByZero()) {
+    assignSnapshot(lir, ins->bailoutKind());
+  }
+  define(lir, ins);
+}
+
 void LIRGeneratorRiscv64::lowerAtomicLoad64(MLoadUnboxedScalar* ins) {
   const LUse elements = useRegister(ins->elements());
   const LAllocation index =

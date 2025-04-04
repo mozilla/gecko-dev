@@ -86,6 +86,11 @@ class LIRGeneratorRiscv64 : public LIRGeneratorShared {
   void lowerWasmBuiltinDivI64(MWasmBuiltinDivI64* div);
   void lowerWasmBuiltinModI64(MWasmBuiltinModI64* mod);
 
+  void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
+  void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
+  void lowerBigIntPtrDiv(MBigIntPtrDiv* ins);
+  void lowerBigIntPtrMod(MBigIntPtrMod* ins);
+
   void lowerAtomicLoad64(MLoadUnboxedScalar* ins);
   void lowerAtomicStore64(MStoreUnboxedScalar* ins);
 };
