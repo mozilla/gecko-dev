@@ -1570,6 +1570,12 @@ nsXULAppInfo::GetChromeColorSchemeIsDark(bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsXULAppInfo::GetNativeMenubar(bool* aResult) {
+  *aResult = !!LookAndFeel::GetInt(LookAndFeel::IntID::NativeMenubar);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsXULAppInfo::GetContentThemeDerivedColorSchemeIsDark(bool* aResult) {
   *aResult =
       PreferenceSheet::ThemeDerivedColorSchemeForContent() == ColorScheme::Dark;

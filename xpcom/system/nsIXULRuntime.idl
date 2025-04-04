@@ -318,6 +318,9 @@ interface nsIXULRuntime : nsISupports
    */
   readonly attribute boolean restartedByOS;
 
+  /** Whether the desktop environment uses a native menubar */
+  readonly attribute boolean nativeMenubar;
+
   /** Whether the chrome color-scheme is dark */
   readonly attribute boolean chromeColorSchemeIsDark;
 

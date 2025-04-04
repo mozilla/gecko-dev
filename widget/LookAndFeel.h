@@ -332,6 +332,9 @@ class LookAndFeel {
     // bit more system specific heuristic, e.g. IsTabletMode on Windows.
     PointingDeviceKinds,
 
+    /* Whether the menubar is native / outside the application */
+    NativeMenubar,
+
     /*
      * Not an ID; used to define the range of valid IDs.  Must be last.
      */

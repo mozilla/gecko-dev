@@ -764,6 +764,8 @@ void DBusMenuBar::OnNameOwnerChanged() {
       mAppMenu = org_kde_kwin_appmenu_manager_create(appMenuManager, surface);
     }
 
+    // Mostly for consistency with the X11 path.
+    mMenuModel->Element()->SetBoolAttr(nsGkAtoms::hidden, true);
     org_kde_kwin_appmenu_set_address(mAppMenu, myServiceName,
                                      mObjectPath.get());
     return;

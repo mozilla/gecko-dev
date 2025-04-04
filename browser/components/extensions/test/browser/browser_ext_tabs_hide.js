@@ -118,7 +118,7 @@ add_task(function test_doorhanger_keep() {
 });
 
 add_task(function test_doorhanger_alltabs_button_in_menubar() {
-  if (!AppConstants.MENUBAR_CAN_AUTOHIDE) {
+  if (!Services.appinfo.nativeMenubar) {
     info("skipping test because the menubar is not customizable");
     return;
   }

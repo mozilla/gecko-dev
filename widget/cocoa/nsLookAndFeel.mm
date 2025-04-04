@@ -530,6 +530,9 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::FullKeyboardAccess:
       aResult = NSApp.isFullKeyboardAccessEnabled;
       break;
+    case IntID::NativeMenubar:
+      aResult = 1;
+      break;
     default:
       aResult = 0;
       res = NS_ERROR_FAILURE;

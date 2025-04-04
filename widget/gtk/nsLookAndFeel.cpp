@@ -1226,6 +1226,23 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::TouchDeviceSupportPresent:
       aResult = widget::WidgetUtilsGTK::IsTouchDeviceSupportPresent();
       break;
+    case IntID::NativeMenubar:
+      aResult = []() {
+        if (!StaticPrefs::widget_gtk_global_menu_enabled()) {
+          return false;
+        }
+#ifdef MOZ_WAYLAND
+        if (GdkIsWaylandDisplay()) {
+          return StaticPrefs::widget_gtk_global_menu_wayland_enabled() &&
+                 !!WaylandDisplayGet()->GetAppMenuManager();
+        }
+#endif
+        // TODO: Maybe detect whether we can register the window or something?
+        // Though the X11 code just hides the native menubar without
+        // communicating it to the front-end...
+        return false;
+      }();
+      break;
     default:
       aResult = 0;
       res = NS_ERROR_FAILURE;

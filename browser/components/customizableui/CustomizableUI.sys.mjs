@@ -360,7 +360,7 @@ var CustomizableUIInternal = {
       true
     );
 
-    if (AppConstants.MENUBAR_CAN_AUTOHIDE) {
+    if (!Services.appinfo.nativeMenubar) {
       this.registerArea(
         CustomizableUI.AREA_MENUBAR,
         {

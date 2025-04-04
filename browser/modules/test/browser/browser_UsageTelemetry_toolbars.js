@@ -131,7 +131,7 @@ function assertVisibilityScalars(expected) {
     ] ?? {};
 
   // Only some platforms have the menubar items.
-  if (AppConstants.MENUBAR_CAN_AUTOHIDE) {
+  if (!Services.appinfo.nativeMenubar) {
     expected.push("menubar-items_pinned_menu-bar");
   }
 
