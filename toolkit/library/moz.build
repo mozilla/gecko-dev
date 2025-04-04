@@ -27,6 +27,7 @@ def Libxul(name, output_category=None):
 
     DELAYLOAD_DLLS += [
         "avrt.dll",
+        "bcryptprimitives.dll",
         "comdlg32.dll",
         "credui.dll",
         "d3d11.dll",
@@ -378,6 +379,11 @@ if CONFIG["OS_ARCH"] == "WINNT":
         "d3dcompiler",
         "runtimeobject",
     ]
+
+    # `std` uses `raw-dylib` to link this dll, but that doesn't work properly on x86 MinGW, so we explicitly
+    # have to link it.
+    if CONFIG["CC_TYPE"] != "clang-cl":
+        OS_LIBS += ["bcryptprimitives"]
 
     if CONFIG["ACCESSIBILITY"]:
         OS_LIBS += [
