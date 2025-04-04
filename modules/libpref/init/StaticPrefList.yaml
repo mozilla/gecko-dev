@@ -4783,7 +4783,7 @@
 
 - name: dom.hidden_until_found.enabled
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 - name: dom.text_fragments.enabled
