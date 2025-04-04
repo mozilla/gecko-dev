@@ -145,7 +145,11 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_markup_dragdrop_tooltip.js"]
 
 ["browser_markup_events-overflow.js"]
-skip-if = ["true"] # Bug 1177550
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1177550
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1177550
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1177550
+]
 
 ["browser_markup_events-windowed-host.js"]
 
@@ -222,7 +226,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_markup_events_toggle.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_markup_flex_display_badge.js"]
 
@@ -281,7 +284,11 @@ skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 ["browser_markup_links_aria_attributes.js"]
 
 ["browser_markup_load_01.js"]
-skip-if = ["true"] # Bug 1706833, times out waiting for context menu to open
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1706833, times out waiting for context menu to open
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1706833, times out waiting for context menu to open
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1706833, times out waiting for context menu to open
+]
 
 ["browser_markup_mutation_01.js"]
 
@@ -424,10 +431,8 @@ skip-if = ["true"] # Bug 1706833, times out waiting for context menu to open
 ["browser_markup_update-on-navigtion.js"]
 
 ["browser_markup_view-original-source.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
 
 ["browser_markup_view-source.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
 
 ["browser_markup_void_elements_html.js"]
 

@@ -53,9 +53,9 @@ support-files = [
 
 ["browser_editor_disableSearchAddon.js"]
 
-["browser_editor_find_again.js"]
-
 ["browser_editor_find.js"]
+
+["browser_editor_find_again.js"]
 
 ["browser_editor_goto_line.js"]
 
@@ -68,4 +68,3 @@ support-files = [
 ["browser_editor_prefs.js"]
 
 ["browser_vimemacs.js"]
-skip-if = ["os == 'linux' && debug"] # bug 981707

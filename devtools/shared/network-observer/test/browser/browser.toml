@@ -17,15 +17,10 @@ support-files = [
 ]
 
 ["browser_networkobserver.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_networkobserver_auth_listener.js"]
 skip-if = [
-  "debug", # Disabled for frequent leaks in Bug 1873571.
-  "asan",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Disabled for frequent leaks in Bug 1873571.
 ]
 
 ["browser_networkobserver_data_url.js"]

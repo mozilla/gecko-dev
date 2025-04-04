@@ -10,10 +10,6 @@ support-files = [
 ]
 
 ["browser_inspector_command_findNodeFrontFromSelectors.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_inspector_command_getNodeFrontSelectorsFromTopDocument.js"]
 

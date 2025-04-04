@@ -11,9 +11,5 @@ support-files = [
 # individually, without any other test being executed before or after.
 
 ["browser_metrics_debugger.js"]
-run-if = ["os == 'linux'"] # Results should be platform agnostic - only run on linux64-opt
-skip-if = [
-  "debug",
-  "asan",
-  "verify",
-]
+run-if = ["os == 'linux' && opt"] # Results should be platform agnostic - only run on linux64-opt
+skip-if = ["verify"]

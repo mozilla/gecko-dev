@@ -101,10 +101,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_styleeditor_bug_1405342_serviceworker_iframes.js"]
-skip-if = [
-  "!debug && os == 'win'",
-  "os == 'linux' && os_version == '18.04'", #bug 1424914
-]
 
 ["browser_styleeditor_copyurl.js"]
 
@@ -112,15 +108,10 @@ skip-if = [
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_styleeditor_fetch-from-netmonitor.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_styleeditor_filesave.js"]
 skip-if = [
-  "http3", # Bug 1829298
-  "http2",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
 ]
 
 ["browser_styleeditor_filter.js"]
@@ -140,10 +131,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_styleeditor_inline_friendly_names.js"]
 
 ["browser_styleeditor_loading.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_styleeditor_loading_with_containers.js"]
 
@@ -151,7 +138,9 @@ skip-if = [
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_styleeditor_media_sidebar_sourcemaps.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+]
 
 ["browser_styleeditor_missing_stylesheet.js"]
 
@@ -185,13 +174,14 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_styleeditor_sourcemap_chrome.js"]
 
 ["browser_styleeditor_sourcemap_large.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+]
 
 ["browser_styleeditor_sourcemap_watching.js"]
 skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-  "a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
 ]
 
 ["browser_styleeditor_sourcemaps.js"]
@@ -206,7 +196,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_styleeditor_sv_resize.js"]
 
 ["browser_styleeditor_sync.js"]
-skip-if = ["a11y_checks && debug"] # Bugs 1849028 and 1858041 for causing intermittent test results
 
 ["browser_styleeditor_syncAddProperty.js"]
 
@@ -225,6 +214,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_toolbox_styleeditor.js"]
 skip-if = [
-  "asan", # Bug 1591064
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1591064
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929428
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1591064
 ]

@@ -1,10 +1,6 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 support-files = [
   "head.js",
   "animation.html",
@@ -116,24 +112,26 @@ support-files = [
 ["browser_animation_updatedState.js"]
 
 ["browser_application_manifest.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+]
 
 ["browser_canvasframe_helper_01.js"]
-skip-if = ["true"] # Bug 1183605
 
 ["browser_canvasframe_helper_02.js"]
-skip-if = ["true"] # iframe will not be loaded in xul:window with strict xhtml.
 
 ["browser_canvasframe_helper_03.js"]
-skip-if = ["true"] # Bug 1183605
 
 ["browser_canvasframe_helper_04.js"]
-skip-if = ["true"] # Bug 1183605
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1183605
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1183605
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1183605
+]
 
 ["browser_canvasframe_helper_05.js"]
-skip-if = ["true"] # Bug 1183605
 
 ["browser_canvasframe_helper_06.js"]
-skip-if = ["true"] # Bug 1183605
 
 ["browser_compatibility_cssIssues.js"]
 
@@ -178,33 +176,33 @@ skip-if = ["true"] # Bug 1183605
 ["browser_memory_allocations_01.js"]
 
 ["browser_perf-01.js"]
-skip-if = ["tsan"] # bug 1804081, profiler issues in TSAN
 
 ["browser_perf-02.js"]
-skip-if = ["tsan"] # bug 1804081, profiler issues in TSAN
 
 ["browser_perf-04.js"]
-skip-if = ["tsan"] # bug 1804081, profiler issues in TSAN
 
 ["browser_perf-getSupportedFeatures.js"]
-skip-if = ["tsan"] # bug 1804081, profiler issues in TSAN
 
 ["browser_storage_cookies-duplicate-names.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+]
 
 ["browser_storage_dynamic_windows.js"]
 https_first_disabled = true
 skip-if = [
-  "debug", # Bug 1715916 - test is having race conditions on slow hardware
-  "tsan", # high frequency intermittent
-  "win11_2009 && asan", # high frequency intermittent
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1715916 - test is having race conditions on slow hardware
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # high frequency intermittent
 ]
 
 ["browser_storage_listings.js"]
 https_first_disabled = true
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
 
 ["browser_storage_updates.js"]
 https_first_disabled = true
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
 
 ["browser_style_utils_getFontPreviewData.js"]
 

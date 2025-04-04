@@ -603,6 +603,7 @@ mochitest-devtools-chrome:
             linux.*-wayland.*/debug: 14
             linux.*64(-qr)?/debug: 14
             macosx.*64(-qr)?/debug: 8
+            win.*/debug: 8
             .*-asan.*/opt: 8
             .*-tsan(-qr)?/opt: 16
             default: 5

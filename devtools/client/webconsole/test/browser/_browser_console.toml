@@ -20,20 +20,20 @@ support-files = [
 ]
 
 ["browser_console.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
 
 ["browser_console_and_breakpoints.js"]
 
 ["browser_console_clear_cache.js"]
-skip-if = ["tsan"] # Bug 1479876
 
 ["browser_console_clear_closed_tab.js"]
 
 ["browser_console_clear_method.js"]
-skip-if = ["true"] # Bug 1437843
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1437843
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1437843
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1437843
+]
 
 ["browser_console_consolejsm_output.js"]
 
@@ -62,9 +62,8 @@ skip-if = ["verify"]
 
 ["browser_console_enable_network_monitoring.js"]
 skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
   "verify",
-  "http3", # Bug 1829298
-  "http2",
 ]
 
 ["browser_console_error_source_click.js"]
@@ -98,10 +97,6 @@ skip-if = ["verify"]
 ["browser_console_webconsole_iframe_messages.js"]
 
 ["browser_console_webconsole_private_browsing.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1689000
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1689000
-]
 
 ["browser_console_webextension.js"]
 
@@ -109,9 +104,7 @@ skip-if = [
 
 ["browser_toolbox_console_new_process.js"]
 skip-if = [
-  "asan", #  Bug 1591590
-  "debug", # Bug 1591590
-  "ccov", #  Bug 1591590
-  "os == 'win' && bits == 64 && opt", # Bug 1591590
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929454
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1591590
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929454
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1591590
 ]

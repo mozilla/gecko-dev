@@ -5,9 +5,8 @@ support-files = ["allocation-tracker.js"]
 
 ["browser_allocation_tracker.js"]
 skip-if = [
-  "debug", # Bug 1730507 - objects without stacks get allocated during the GC of the first test when running multiple times. Also avoid running in debug as we don't try to track memory from debug builds. And ccov as this doesn't aim to cover any production code, we are only testing test helpers here.
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # And ccov as this doesn't aim to cover any production code, we are only testing test helpers here.
   "verify",
-  "ccov",
 ]
 
 ["browser_dump_scope.js"]

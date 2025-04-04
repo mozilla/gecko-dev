@@ -2,11 +2,6 @@
 prefs = ["devtools.performance.recording.ui-base-url='https://example.com'"] # This sets up the WebChannel so that it can be used for our tests.
 tags = "devtools devtools-performance"
 subsuite = "devtools"
-skip-if = [
-  "tsan", # Bug 1804081, timeouts and data races in various tests
-  "http3", # Bug 1829298
-  "http2",
-]
 support-files = [
   "head.js",
   "helpers.js",
@@ -15,6 +10,7 @@ support-files = [
   "webchannel-favicons.html",
   "webchannel-open-script-in-debugger_assets/*",
 ]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan"] # Bug 1804081, timeouts and data races in various tests
 
 ["browser_aboutprofiling-entries.js"]
 
@@ -43,12 +39,10 @@ support-files = [
 ["browser_devtools-onboarding.js"]
 
 ["browser_devtools-presets.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_devtools-previously-started.js"]
 
 ["browser_devtools-record-capture.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_devtools-record-discard.js"]
 

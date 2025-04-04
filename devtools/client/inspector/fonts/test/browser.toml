@@ -41,10 +41,6 @@ support-files = [
 ["browser_fontinspector_no-fonts.js"]
 
 ["browser_fontinspector_reveal-in-page.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_fontinspector_text-node.js"]
 

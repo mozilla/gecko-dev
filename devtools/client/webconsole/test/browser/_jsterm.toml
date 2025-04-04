@@ -81,18 +81,12 @@ fail-if = ["a11y_checks"] # Bug 1849028
 ["browser_jsterm_autocomplete_inside_text.js"]
 
 ["browser_jsterm_autocomplete_mapped_variables.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-  "a11y_checks", # Bugs 1849028 and 1802390 - clicked <input> is inconsistently not accessible
-]
 
 ["browser_jsterm_autocomplete_native_getters.js"]
 
 ["browser_jsterm_autocomplete_nav_and_tab_key.js"]
 
 ["browser_jsterm_autocomplete_null.js"]
-skip-if = ["tsan"] # bug 1778033
 
 ["browser_jsterm_autocomplete_paste_undo.js"]
 
@@ -123,7 +117,6 @@ skip-if = ["tsan"] # bug 1778033
 ["browser_jsterm_await_helper_dollar_underscore.js"]
 
 ["browser_jsterm_await_paused.js"]
-skip-if = ["debug"] # crashes on "Unexpected UpdateTransformLayer hint" bug 1570685
 
 ["browser_jsterm_block_command.js"]
 
@@ -204,10 +197,6 @@ fail-if = ["a11y_checks"] # Bug 1849028
 ["browser_jsterm_evaluation_context_selector_pause_in_debugger.js"]
 
 ["browser_jsterm_evaluation_context_selector_targets_update.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_jsterm_evaluation_notification_original_variable_mapping_warning.js"]
 
@@ -244,6 +233,8 @@ fail-if = ["a11y_checks"] # Bug 1849028
 
 ["browser_jsterm_history_persist.js"]
 
+["browser_jsterm_input_and_tab_key_pressed.js"]
+
 ["browser_jsterm_insert_tab_when_overflows_no_scroll.js"]
 
 ["browser_jsterm_inspect.js"]
@@ -256,8 +247,6 @@ fail-if = ["a11y_checks"] # Bug 1849028
 fail-if = ["a11y_checks"] # Bug 1849028
 
 ["browser_jsterm_multiline.js"]
-
-["browser_jsterm_input_and_tab_key_pressed.js"]
 
 ["browser_jsterm_no_input_and_tab_key_pressed.js"]
 
@@ -276,7 +265,6 @@ fail-if = ["a11y_checks"] # Bug 1849028
 ["browser_jsterm_screenshot_command_user.js"]
 
 ["browser_jsterm_screenshot_command_warnings.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt"] # Bug 1701439
 
 ["browser_jsterm_selfxss.js"]
 

@@ -1,7 +1,6 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
-skip-if = ["os == 'win'"] # Win: Bug 1319248
 support-files = [
   "contextual_identity.html",
   "doc_contextmenu_inspect.html",
@@ -33,7 +32,6 @@ support-files = [
 https_first_disabled = true
 
 ["browser_container_tab.js"]
-skip-if = ["os == 'linux'"] # Bug 1625501, bug 1629729
 
 ["browser_contextmenu_inspect.js"]
 
@@ -41,20 +39,26 @@ skip-if = ["os == 'linux'"] # Bug 1625501, bug 1629729
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_device_custom.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+]
 
 ["browser_device_custom_edit.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_device_custom_remove.js"]
-skip-if = ["a11y_checks"] # Bug 1849028, 1858041 to investigate intermittent a11y_checks results (fails on Try, passes on Autoland)
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1849028, 1858041 to investigate intermittent a11y_checks results (fails on Try, passes on Autoland)
+]
 
 ["browser_device_modal_exit.js"]
 
 ["browser_device_modal_items.js"]
 
 ["browser_device_modal_submit.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Autoland, passes on Try)
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Autoland, passes on Try)
+]
 
 ["browser_device_pixel_ratio_change.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -103,10 +107,7 @@ https_first_disabled = true
 
 ["browser_permission_doorhanger.js"]
 tags = "devtools geolocation"
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
 
 ["browser_picker_link.js"]
 
@@ -118,10 +119,6 @@ skip-if = [
 https_first_disabled = true
 
 ["browser_scroll.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_state_restore.js"]
 
@@ -143,10 +140,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked button#device-pixel-ratio-menu e
 ["browser_toolbox_rule_view.js"]
 
 ["browser_toolbox_rule_view_reload.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1767691
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1767691
-]
 
 ["browser_toolbox_swap_browsers.js"]
 
@@ -161,11 +154,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_touch_event_iframes.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-  "os == 'linux' && os_version == '18.04' && debug", # Bug 1717330
-]
 
 ["browser_touch_event_should_bubble.js"]
 
@@ -173,7 +161,6 @@ skip-if = [
 
 ["browser_touch_simulation.js"]
 https_first_disabled = true
-skip-if = ["debug"] # timing-senstive tests should only run on optimized builds
 
 ["browser_typeahead_find.js"]
 
@@ -183,7 +170,6 @@ skip-if = ["debug"] # timing-senstive tests should only run on optimized builds
 https_first_disabled = true
 
 ["browser_viewport_changed_meta.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1824058 for causing intermittent crashes
 
 ["browser_viewport_fallback_width.js"]
 

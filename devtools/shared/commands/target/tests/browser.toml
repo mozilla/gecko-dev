@@ -20,9 +20,7 @@ support-files = [
 ["browser_target_command_bfcache.js"]
 
 ["browser_target_command_browser_workers.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1767778
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan"] # Bug 1767778
 
 ["browser_target_command_content_scripts.js"]
 
@@ -33,9 +31,6 @@ skip-if = [
 ["browser_target_command_frames_popups.js"]
 
 ["browser_target_command_frames_reload_server_side_targets.js"]
-skip-if = [
-  "os == 'linux' && !fission" # Bug 1855067
-]
 
 ["browser_target_command_getAllTargets.js"]
 
@@ -48,22 +43,17 @@ skip-if = [
 ["browser_target_command_scope_flag.js"]
 
 ["browser_target_command_service_workers.js"]
-skip-if = [
-  "http3",  # Bug 1781324
-  "http2",
-]
 
 ["browser_target_command_service_workers_navigation.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1767781
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan"] # Bug 1767781
 
 ["browser_target_command_service_workers_navigation_stopped.js"]
 skip-if = [
-  "os == 'linux'", # Bug 1767781
-  "win11_2009", # Bug 1767781
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1767781
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && !a11y_checks && !cm5", # Bug 1767781
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1767781
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929449
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1767781
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1767781
 ]
 
 ["browser_target_command_switchToTarget.js"]
@@ -71,10 +61,13 @@ skip-if = [
 ["browser_target_command_tab_workers.js"]
 
 ["browser_target_command_tab_workers_bfcache_navigation.js"]
-skip-if = ["debug"] # Bug 1721859
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1721859
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1721859
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1721859
+]
 
 ["browser_target_command_various_descriptors.js"]
-skip-if = ["os == 'linux' && bits == 64 && !debug"] #Bug 1701056
 
 ["browser_target_command_watchTargets.js"]
 

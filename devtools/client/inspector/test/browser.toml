@@ -146,13 +146,6 @@ run-if = ["os != 'mac'"] # Full keyboard navigation on OSX only works if Full Ke
 ["browser_inspector_highlighter-cssshape_03.js"]
 
 ["browser_inspector_highlighter-cssshape_04.js"]
-skip-if = [
-  "os == 'win' && asan", # Bug 1453214
-  "os == 'win' && debug", # Bug 1453214
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1453214
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1453214
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # high frequency intermittent, bug 1453214
-]
 
 ["browser_inspector_highlighter-cssshape_05.js"]
 
@@ -163,7 +156,6 @@ skip-if = [
 ["browser_inspector_highlighter-cssshape_07.js"]
 
 ["browser_inspector_highlighter-cssshape_iframe_01.js"]
-skip-if = ["verify && debug"]
 
 ["browser_inspector_highlighter-cssshape_offset-path.js"]
 
@@ -182,7 +174,6 @@ skip-if = ["verify && debug"]
 ["browser_inspector_highlighter-eyedropper-csp.js"]
 
 ["browser_inspector_highlighter-eyedropper-events.js"]
-skip-if = ["os == 'win'"] # bug 1413442
 
 ["browser_inspector_highlighter-eyedropper-frames.js"]
 
@@ -261,7 +252,6 @@ skip-if = ["os == 'win'"] # bug 1413442
 ["browser_inspector_highlighter-rulers_02.js"]
 
 ["browser_inspector_highlighter-rulers_03.js"]
-skip-if = ["os == 'win' && opt"] # Bug 1449754
 
 ["browser_inspector_highlighter-selector_01.js"]
 
@@ -290,7 +280,6 @@ skip-if = ["os == 'win' && opt"] # Bug 1449754
 ["browser_inspector_infobar_textnode.js"]
 
 ["browser_inspector_initialization.js"]
-skip-if = ["debug"] # Bug 1250058 - Docshell leak on debug
 
 ["browser_inspector_inspect-object-element.js"]
 
@@ -323,16 +312,9 @@ skip-if = ["debug"] # Bug 1250058 - Docshell leak on debug
 ["browser_inspector_menu-06-other.js"]
 
 ["browser_inspector_navigate_to_errors.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
 
 ["browser_inspector_navigation.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_inspector_open_on_neterror.js"]
 
@@ -434,7 +416,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_inspector_startup.js"]
 
 ["browser_inspector_switch-to-inspector-on-pick.js"]
-skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt"] # Bug 1713158
 
 ["browser_inspector_textbox-menu.js"]
 

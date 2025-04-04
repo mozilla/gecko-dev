@@ -27,10 +27,6 @@ support-files = [
 ]
 
 ["browser_rules_add-property-and-reselect.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_rules_add-property-cancel_01.js"]
 
@@ -39,7 +35,6 @@ skip-if = [
 ["browser_rules_add-property-cancel_03.js"]
 
 ["browser_rules_add-property-commented.js"]
-skip-if = ["os == 'win' && debug && verify"]
 
 ["browser_rules_add-property-invalid-identifier.js"]
 
@@ -78,12 +73,6 @@ skip-if = ["os == 'win' && debug && verify"]
 ["browser_rules_authored.js"]
 
 ["browser_rules_authored_color.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1559315
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "win11_2009", # Bug 1797751
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1797751
-]
 
 ["browser_rules_authored_override.js"]
 
@@ -108,7 +97,6 @@ skip-if = [
 ["browser_rules_colorUnit.js"]
 
 ["browser_rules_color_scheme_simulation.js"]
-skip-if = ["os == 'win' && opt"] # Bug 1703465
 
 ["browser_rules_color_scheme_simulation_bfcache.js"]
 
@@ -155,7 +143,6 @@ skip-if = ["os == 'win' && opt"] # Bug 1703465
 ["browser_rules_completion-new-property_01.js"]
 
 ["browser_rules_completion-new-property_02.js"]
-skip-if = ["os == 'win' && opt && verify"]
 
 ["browser_rules_completion-new-property_03.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -222,7 +209,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_rules_edit-property-order.js"]
 
 ["browser_rules_edit-property-remove_01.js"]
-skip-if = ["os == 'win' && debug && verify"]
 
 ["browser_rules_edit-property-remove_02.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -253,7 +239,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_rules_edit-property_10.js"]
 
 ["browser_rules_edit-selector-click-on-scrollbar.js"]
-skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"] # Bug 1245996 : click on scrollbar not working on OSX
 
 ["browser_rules_edit-selector-click.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -316,7 +301,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_rules_variables_01.js"]
 
 ["browser_rules_variables_02.js"]
-skip-if = ["debug"] # Bug 1250058 - Docshell leak on debug
 
 ["browser_rules_variables_03-case-sensitive.js"]
 

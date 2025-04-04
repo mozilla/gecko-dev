@@ -68,10 +68,6 @@ support-files = [
 ["browser_cubic-bezier-01.js"]
 
 ["browser_cubic-bezier-02.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_cubic-bezier-03.js"]
 
@@ -80,22 +76,21 @@ skip-if = [
 ["browser_cubic-bezier-05.js"]
 
 ["browser_cubic-bezier-06.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_cubic-bezier-07.js"]
 tags = "addons"
 
 ["browser_dbg_listaddons.js"]
-skip-if = ["debug"]
 tags = "addons"
 
 ["browser_dbg_listtabs-01.js"]
 
 ["browser_dbg_listtabs-02.js"]
-skip-if = ["true"] # Never worked for remote frames, needs a mock DevToolsServerConnection
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Never worked for remote frames, needs a mock DevToolsServerConnection
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Never worked for remote frames, needs a mock DevToolsServerConnection
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Never worked for remote frames, needs a mock DevToolsServerConnection
+]
 
 ["browser_dbg_listworkers.js"]
 
@@ -139,32 +134,18 @@ fail-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a
 
 ["browser_html_tooltip-02.js"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1721159
 ]
 
 ["browser_html_tooltip-03.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_html_tooltip-04.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt"] # Bug 1721159
 
 ["browser_html_tooltip-05.js"]
 
 ["browser_html_tooltip_arrow-01.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_html_tooltip_arrow-02.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_html_tooltip_consecutive-show.js"]
 
@@ -177,10 +158,6 @@ skip-if = [
 ["browser_html_tooltip_hover.js"]
 
 ["browser_html_tooltip_offset.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_html_tooltip_resize.js"]
 
@@ -190,15 +167,10 @@ skip-if = [
 
 ["browser_html_tooltip_variable-height.js"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1721159
 ]
 
 ["browser_html_tooltip_width-auto.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_html_tooltip_xul-wrapper.js"]
 
@@ -207,40 +179,20 @@ skip-if = [
 ["browser_inplace-editor-01.js"]
 
 ["browser_inplace-editor-02.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_inplace-editor_autoclose_parentheses.js"]
 
 ["browser_inplace-editor_autocomplete_01.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_inplace-editor_autocomplete_02.js"]
 
 ["browser_inplace-editor_autocomplete_css_variable.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_inplace-editor_autocomplete_offset.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_inplace-editor_focus_closest_editor.js"]
 
 ["browser_inplace-editor_maxwidth.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
-]
 
 ["browser_inplace-editor_stop_on_key.js"]
 
@@ -251,15 +203,9 @@ skip-if = [
 ["browser_layoutHelpers.js"]
 
 ["browser_layoutHelpers_getBoxQuads1.js"]
-skip-if = [
-  "verify",
-]
+skip-if = ["verify"]
 
 ["browser_layoutHelpers_getBoxQuads2.js"]
-skip-if = [
-  "http3", # Bug 1829298
-  "http2",
-]
 
 ["browser_link.js"]
 
@@ -280,14 +226,8 @@ skip-if = [
 ["browser_tableWidget_keyboard_interaction.js"]
 
 ["browser_tableWidget_mouse_interaction.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1118592
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1118592
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1118592
-]
 
 ["browser_telemetry_button_responsive.js"]
-skip-if = ["os == 'win'"] # Win: bug 1404197
 
 ["browser_telemetry_misc.js"]
 

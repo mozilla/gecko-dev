@@ -60,10 +60,13 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_boxmodel_tooltips.js"]
-skip-if = ["true"] # Bug 1336198
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1336198
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1336198
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1336198
+]
 
 ["browser_boxmodel_update-after-navigation.js"]
-skip-if = ["(os == 'linux' || os == 'win') && bits == 64"] #Bug 1582395
 
 ["browser_boxmodel_update-after-reload.js"]
 
