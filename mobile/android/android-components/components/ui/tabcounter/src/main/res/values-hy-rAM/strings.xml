@@ -13,7 +13,7 @@
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Նոր ներդիր</string>
   <!-- Browser menu button that creates a private tab -->
-  <string name="mozac_browser_menu_new_private_tab">Նոր մասնավոր ներդիր</string>
+  <string name="mozac_browser_menu_new_private_tab">Նոր գաղտնի ներդիր</string>
   <!-- Browser menu button to close tab. Closes the current session when pressed. -->
   <string name="mozac_close_tab">Փակել ներդիրը</string>
   <!-- Menu option to duplicate the current tab -->

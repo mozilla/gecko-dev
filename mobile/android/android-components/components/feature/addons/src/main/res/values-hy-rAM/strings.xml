@@ -99,7 +99,7 @@
   <!-- The last date that the add-on was updated. -->
   <string name="mozac_feature_addons_last_updated">Վերջին թարմացումը</string>
   <!-- The developer website (Homepage) of the add-on. -->
-  <string name="mozac_feature_addons_home_page">Տնային էջ</string>
+  <string name="mozac_feature_addons_home_page">Տնէջ</string>
   <!-- A link where users can find more information about add-ons permissions. -->
   <string name="mozac_feature_addons_learn_more">Իմանալ ավելին թույլտվությունների մասին</string>
   <!-- The rating of the add-on. -->
@@ -111,7 +111,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">Միաց.</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">Թույլատրել Մասնավոր դիտարկմամբ</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing">Թույլատրել գաղտնի դիտարկումում</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Աշխատեցնել գաղտնի դիտարկմամբ</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->

@@ -8,9 +8,9 @@
   -->
   <string name="mozac_feature_downloads_percentage_notification_text">%1$s-ն ավարտված է</string>
   <!-- Text shown on the second row of a paused download notification. -->
-  <string name="mozac_feature_downloads_paused_notification_text">Ներբեռնումը դադարեցված է</string>
+  <string name="mozac_feature_downloads_paused_notification_text">Ներբեռնումն ընդմիջվեց</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
-  <string name="mozac_feature_downloads_completed_notification_text2">Ներբեռնվեց</string>
+  <string name="mozac_feature_downloads_completed_notification_text2">Ներբեռնումն ավարտվեց</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">Ներբեռնումը ձախողվեց</string>
   <!--
@@ -40,7 +40,7 @@
     Alert dialog confirmation before downloading a file without network connection, this is the description.
     %1$s will be replaced with the name of the file.
   -->
-  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s-ը չի ներբեռնվել</string>
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s-ը չի ներբեռնվել։</string>
   <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
   <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Ստուգեք Ձեր կապը և փորձեք կրկին:</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
@@ -48,9 +48,9 @@
   <!-- Message that appears when the downloaded file could not be opened. -->
   <string name="mozac_feature_downloads_could_not_open_file">Հնարավոր չէ բացել ֆայլը</string>
   <!-- Message that appears when the downloaded file is a specific type (%1$s) that Android doesn't support opening. -->
-  <string name="mozac_feature_downloads_open_not_supported1">%1$s ֆայլերը բացելու համար որևէ հավելված չի գտնվել</string>
+  <string name="mozac_feature_downloads_open_not_supported1">%1$s ֆայլերը բացելու համար հավելված չի գտնվել</string>
   <!-- Button that pauses the download when pressed. -->
-  <string name="mozac_feature_downloads_button_pause">Դադարեցնել</string>
+  <string name="mozac_feature_downloads_button_pause">Ընդմիջել</string>
   <!-- Button that resumes the download when pressed. -->
   <string name="mozac_feature_downloads_button_resume">Վերսկսել</string>
   <!-- Button that cancels the download when pressed. -->
@@ -70,9 +70,9 @@
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
   <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Չեղարկե՞լ  անձնական ներբեռնումները:</string>
   <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">Եթե հիմա փակեք բոլոր Մասնավոր ներդիրները, %1$s ներբեռնում կչեղարկվի: Փակե՞լ:</string>
+  <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">Եթե հիմա փակեք բոլոր գաղտնի ներդիրները, %1$s-ի ներբեռնումը կչեղարկվի։ Վստա՞հ եք, որ ցանկանում եք լքել գաղտնի դիտարկումը։</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
   <string name="mozac_feature_downloads_cancel_active_downloads_accept">Չեղարկել ներբեռնումները</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
-  <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">Շարունակել Մասնավոր դիտարկումը</string>
+  <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">Մնալ գաղտնի դիտարկման մեջ</string>
 </resources>

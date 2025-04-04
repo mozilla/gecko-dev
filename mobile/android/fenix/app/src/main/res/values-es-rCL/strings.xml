@@ -770,6 +770,10 @@
   <string name="preferences_add_private_browsing_shortcut">Añadir acceso directo a la navegación privada</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Modo solo HTTPS</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Utiliza el bloqueo de pantalla para ocultar pestañas en la navegación privada</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Ver pestañas con huella digital, desbloqueo facial o PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Bloqueador de anuncios de cookies</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -3439,4 +3443,14 @@
   <string name="a11y_completed_task_description">Tarea completada</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Ícono de tarea</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Dejar pestañas privadas</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Desbloquear</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Desbloquear pestañas privadas</string>
 </resources>

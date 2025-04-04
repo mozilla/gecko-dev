@@ -3,7 +3,7 @@
   <!-- The tile for the list of external apps to open the link in -->
   <string name="mozac_feature_applinks_open_in">Բացել հետևյալում…</string>
   <!-- The description to warn users that their private browsing session changes -->
-  <string name="mozac_feature_applinks_confirm_dialog_title">Բացե՞լ եք հավելվածում: Ձեր գործունեությունն այլևս չի կարող լինել մասնավոր:</string>
+  <string name="mozac_feature_applinks_confirm_dialog_title">Բացե՞լ հավելվածում։ Ձեր գործունեությունն այլևս կարող է գաղտնի չլինել։</string>
   <!--
     The description to warn users that their private browsing session changes
     %s is a placeholder that will be replaced by an app name

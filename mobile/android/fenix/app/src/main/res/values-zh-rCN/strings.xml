@@ -1428,7 +1428,7 @@
   <!-- Text for the header that groups the history the past 7 days -->
   <string name="history_7_days">最近 7 天</string>
   <!-- Text for the header that groups the history the past 30 days -->
-  <string name="history_30_days">最近 30 天</string>
+  <string name="history_30_days">过去 30 天</string>
   <!-- Text for the header that groups the history older than the last month -->
   <string name="history_older">更早</string>
   <!-- Text shown when no history exists -->
@@ -3414,4 +3414,14 @@
   <string name="a11y_completed_task_description">已完成的任务</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">任务图标</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">退出隐私标签页</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">解锁</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">解锁隐私标签页</string>
 </resources>
