@@ -955,9 +955,13 @@ let Player = {
    * Moves the PiP window to the top right.
    */
   moveToTopRight() {
+    let decorations = PictureInPicture.windowDecorationMargins(window);
     window.moveTo(
-      window.screen.availLeft + window.screen.availWidth - window.innerWidth,
-      window.screen.availTop
+      window.screen.availLeft +
+        window.screen.availWidth -
+        window.outerWidth +
+        decorations.right,
+      window.screen.availTop - decorations.top
     );
   },
 
@@ -965,16 +969,27 @@ let Player = {
    * Moves the PiP window to the top left.
    */
   moveToTopLeft() {
-    window.moveTo(window.screen.availLeft, window.screen.availTop);
+    let decorations = PictureInPicture.windowDecorationMargins(window);
+    window.moveTo(
+      window.screen.availLeft - decorations.left,
+      window.screen.availTop - decorations.top
+    );
   },
 
   /**
    * Moves the PiP window to the bottom right.
    */
   moveToBottomRight() {
+    let decorations = PictureInPicture.windowDecorationMargins(window);
     window.moveTo(
-      window.screen.availLeft + window.screen.availWidth - window.innerWidth,
-      window.screen.availTop + window.screen.availHeight - window.innerHeight
+      window.screen.availLeft +
+        window.screen.availWidth -
+        window.outerWidth +
+        decorations.right,
+      window.screen.availTop +
+        window.screen.availHeight -
+        window.outerHeight +
+        decorations.bottom
     );
   },
 
@@ -982,9 +997,13 @@ let Player = {
    * Moves the PiP window to the bottom left.
    */
   moveToBottomLeft() {
+    let decorations = PictureInPicture.windowDecorationMargins(window);
     window.moveTo(
-      window.screen.availLeft,
-      window.screen.availTop + window.screen.availHeight - window.innerHeight
+      window.screen.availLeft - decorations.left,
+      window.screen.availTop +
+        window.screen.availHeight -
+        window.outerHeight +
+        decorations.bottom
     );
   },
 
