@@ -3372,11 +3372,7 @@
   <string name="text_field_eye_trailing_icon_default_content_description">ਲੁਕਵੀਂ ਲਿਖਤ ਨੂੰ ਵੇਖਾਓ</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">ਲਿਖਤ ਨੂੰ ਮਿਟਾਓ</string>
-  <!--
-    Setup checklist component
-
-    Accessibility description for a check mark on a completed task
-  -->
+  <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">ਕੰਮ ਪੂਰਾ ਹੋਇਆ</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">ਕੰਮ ਦਾ ਆਈਕਾਨ</string>

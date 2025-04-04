@@ -3436,10 +3436,22 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">تېكىستنى تازىلا</string>
   <!--
-    Setup checklist component
+    Setup checklist feature
 
-    Accessibility description for a check mark on a completed task
+    The title of the default browser task for the setup checklist
   -->
+  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">كۆڭۈلدىكى توركۆرگۈ قىلىپ تەڭشە</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">ھېساباتىڭىزغا تىزىمغا كىرىڭ</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">ئۆرنەك تاللىنىدۇ</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">قورال بالداق ئورۇن بەلگىسى تاللىنىدۇ</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">كېڭەيتىلمە بايقاش</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">ئىزدەش ئەپچە ئورنىتىدۇ</string>
+  <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">تاماملانغان ۋەزىپە</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">ۋەزىپە سىنبەلگىسى</string>
