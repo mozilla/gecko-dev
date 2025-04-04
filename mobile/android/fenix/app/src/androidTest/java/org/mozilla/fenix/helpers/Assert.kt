@@ -7,6 +7,7 @@ package org.mozilla.fenix.helpers
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Log
+import androidx.core.graphics.get
 import org.junit.Assert.assertEquals
 import org.mozilla.fenix.helpers.Constants.TAG
 
@@ -23,8 +24,8 @@ fun assertEqualsWithDelta(expectedB: Bitmap, actualB: Bitmap, delta: Float) {
 
     for (i in 0 until expectedB.width) {
         for (j in 0 until expectedB.height) {
-            val ePx = expectedB.getPixel(i, j)
-            val aPx = actualB.getPixel(i, j)
+            val ePx = expectedB[i, j]
+            val aPx = actualB[i, j]
             val warn = "Pixel ${i}x$j"
             assertEquals("$warn a", Color.alpha(ePx).toFloat(), Color.alpha(aPx).toFloat(), delta)
             assertEquals("$warn r", Color.red(ePx).toFloat(), Color.red(aPx).toFloat(), delta)

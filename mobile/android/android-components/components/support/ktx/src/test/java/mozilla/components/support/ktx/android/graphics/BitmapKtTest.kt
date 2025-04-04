@@ -6,6 +6,7 @@ package mozilla.components.support.ktx.android.graphics
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.core.graphics.get
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -43,14 +44,14 @@ class BitmapKtTest {
 
             cornerLocations.forEach { x ->
                 cornerLocations.forEach { y ->
-                    assertEquals(Color.TRANSPARENT, roundedBitmap.getPixel(x, y))
+                    assertEquals(Color.TRANSPARENT, roundedBitmap[x, y])
                 }
             }
         }
 
         fun assertCenterIsFilled() {
             val center = dimen / 2
-            assertEquals(fillColor, roundedBitmap.getPixel(center, center))
+            assertEquals(fillColor, roundedBitmap[center, center])
         }
 
         assertNotSame(bitmap, roundedBitmap)

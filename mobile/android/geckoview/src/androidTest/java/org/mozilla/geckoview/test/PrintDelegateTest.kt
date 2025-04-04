@@ -13,6 +13,7 @@ import android.graphics.Color.rgb
 import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SCROLLED
+import androidx.core.graphics.get
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -116,7 +117,7 @@ class PrintDelegateTest : BaseSessionTest() {
                 Handler(Looper.getMainLooper()).postDelayed({
                     val bitmap = uiAutomation.takeScreenshot()
                     val scaled = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false)
-                    pixelResult.complete(scaled.getPixel(scaledWidth / 2, scaledHeight / 2))
+                    pixelResult.complete(scaled[scaledWidth / 2, scaledHeight / 2])
                 }, 1500)
             }
         }

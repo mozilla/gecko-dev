@@ -2,6 +2,7 @@ package org.mozilla.geckoview.test
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.core.graphics.get
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import org.hamcrest.Matchers.equalTo
@@ -458,7 +459,7 @@ class ExtensionActionTest : BaseSessionTest() {
         val expected = BitmapFactory.decodeStream(stream)
         for (x in 0 until actual.height) {
             for (y in 0 until actual.width) {
-                assertEquals(expected.getPixel(x, y), actual.getPixel(x, y))
+                assertEquals(expected[x, y], actual[x, y])
             }
         }
     }
