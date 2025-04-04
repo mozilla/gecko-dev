@@ -1,0 +1,31 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+using mozilla::dom::NativeThreadId from "mozilla/dom/NativeThreadId.h";
+
+namespace CrashReporter {
+
+#if defined(XP_LINUX) && defined(MOZ_CRASHREPORTER) && defined(MOZ_OXIDIZED_BREAKPAD)
+
+struct AuxvInfo {
+    uintptr_t programHeaderCount;
+    uintptr_t programHeaderAddress;
+    uintptr_t linuxGateAddress;
+    uintptr_t entryAddress;
+};
+
+struct CrashReporterInitArgs {
+    NativeThreadId threadId;
+    AuxvInfo auxvInfo;
+};
+
+#else // defined(XP_LINUX) && defined(MOZ_CRASHREPORTER) && defined(MOZ_OXIDIZED_BREAKPAD)
+
+struct CrashReporterInitArgs {
+    NativeThreadId threadId;
+};
+
+#endif // defined(XP_LINUX) && defined(MOZ_CRASHREPORTER) && defined(MOZ_OXIDIZED_BREAKPAD)
+
+} // namespace CrashReporter

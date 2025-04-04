@@ -32,7 +32,10 @@
 #  include <mach/mach.h>
 #elif defined(XP_LINUX)
 #  include <signal.h>
-#endif
+#  if defined(MOZ_OXIDIZED_BREAKPAD)
+struct DirectAuxvDumpInfo;
+#  endif  // defined(MOZ_OXIDIZED_BREAKPAD)
+#endif    // defined(XP_LINUX)
 
 class nsIFile;
 
@@ -60,6 +63,13 @@ typedef int ThreadId;
 typedef int FileHandle;
 const FileHandle kInvalidFileHandle = -1;
 #endif
+
+#if defined(XP_LINUX) && defined(MOZ_OXIDIZED_BREAKPAD)
+void GetCurrentProcessAuxvInfo(DirectAuxvDumpInfo* aAuxvInfo);
+void RegisterChildAuxvInfo(pid_t aChildPid,
+                           const DirectAuxvDumpInfo& aAuxvInfo);
+void UnregisterChildAuxvInfo(pid_t aChildPid);
+#endif  // defined(XP_LINUX) && defined(MOZ_OXIDIZED_BREAKPAD)
 
 /**
  * Returns true if the crash reporter is using the dummy implementation.

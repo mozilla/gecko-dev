@@ -38,6 +38,10 @@
 
 #include "common/using_std_string.h"
 
+#if defined(MOZ_OXIDIZED_BREAKPAD)
+struct DirectAuxvDumpInfo;
+#endif // defined(MOZ_OXIDIZED_BREAKPAD)
+
 namespace google_breakpad {
 
 class ClientInfo;
@@ -50,22 +54,21 @@ public:
   using OnClientDumpRequestCallback = void (const ClientInfo& client_info,
                                             const string& file_path);
 
-  // Create an instance with the given parameters.
-  //
-  // Parameter listen_fd: The server fd created by CreateReportChannel().
-  // Parameter dump_callback: Callback for a client crash dump request.
-  // Parameter dump_context: Context for client crash dump request callback.
-  // Parameter exit_callback: Callback for client process exit.
-  // Parameter exit_context: Context for client exit callback.
-  // Parameter generate_dumps: Whether to automatically generate dumps.
-  //     Client code of this class might want to generate dumps explicitly
-  //     in the crash dump request callback. In that case, false can be
-  //     passed for this parameter.
-  // Parameter dump_path: Path for generating dumps; required only if true is
-  //     passed for generateDumps parameter; NULL can be passed otherwise.
-  CrashGenerationServer(const int listen_fd,
-                        std::function<OnClientDumpRequestCallback> dump_callback,
-                        const string* dump_path);
+#if defined(MOZ_OXIDIZED_BREAKPAD)
+  using GetAuxvInfo = bool (pid_t pid, DirectAuxvDumpInfo*);
+#endif // defined(MOZ_OXIDIZED_BREAKPAD)
+
+  // listen_fd: The server fd created by CreateReportChannel()
+  // get_auxv_info: Callback to retrieve the stored auxiliary vector for the given PID
+  // dump_callback: Callback for a client crash dump request.
+  // dump_path: Path for generating dumps
+  CrashGenerationServer(
+    const int listen_fd,
+#if defined(MOZ_OXIDIZED_BREAKPAD)
+    std::function<GetAuxvInfo> get_auxv_info,
+#endif // defined(MOZ_OXIDIZED_BREAKPAD)
+    std::function<OnClientDumpRequestCallback> dump_callback,
+    const string* dump_path);
 
   ~CrashGenerationServer();
 
@@ -82,6 +85,9 @@ public:
   // this class's constructor, and |*client_fd| should be passed to
   // the ExceptionHandler constructor in the client process.
   static bool CreateReportChannel(int* server_fd, int* client_fd);
+
+  CrashGenerationServer(CrashGenerationServer&&) = delete;
+  CrashGenerationServer& operator=(CrashGenerationServer&&) = delete;
 
   CrashGenerationServer(const CrashGenerationServer&) = delete;
   CrashGenerationServer& operator=(const CrashGenerationServer&) = delete;
@@ -107,6 +113,10 @@ private:
   void ReleaseFileDescriptors();
 
   int server_fd_;
+
+#if defined(MOZ_OXIDIZED_BREAKPAD)
+  std::function<GetAuxvInfo> get_auxv_info_;
+#endif // defined(MOZ_OXIDIZED_BREAKPAD)
 
   std::function<OnClientDumpRequestCallback> dump_callback_;
 
