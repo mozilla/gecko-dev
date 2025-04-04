@@ -7,13 +7,13 @@ package org.mozilla.geckoview.test
 import android.accessibilityservice.AccessibilityService
 import android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Color.rgb
 import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SCROLLED
 import androidx.core.graphics.get
+import androidx.core.graphics.scale
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -116,7 +116,7 @@ class PrintDelegateTest : BaseSessionTest() {
                 // Delaying the screenshot to give time for preview to load
                 Handler(Looper.getMainLooper()).postDelayed({
                     val bitmap = uiAutomation.takeScreenshot()
-                    val scaled = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false)
+                    val scaled = bitmap.scale(scaledWidth, scaledHeight, filter = false)
                     pixelResult.complete(scaled[scaledWidth / 2, scaledHeight / 2])
                 }, 1500)
             }

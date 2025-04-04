@@ -10,6 +10,7 @@ import android.graphics.Color.rgb
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.core.graphics.get
+import androidx.core.graphics.scale
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -96,7 +97,7 @@ class PdfCreationTest : BaseSessionTest() {
             val pdfInputStream = mainSession.saveAsPdf()
             sessionRule.waitForResult(pdfInputStream).let {
                 val bitmap = pdfToBitmap(it)!![0]
-                val scaled = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false)
+                val scaled = bitmap.scale(scaledWidth, scaledHeight, filter = false)
                 val centerPixel = scaled[scaledWidth / 2, scaledHeight / 2]
                 val orange = rgb(255, 113, 57)
                 assertTrue("The PDF orange color matches.", centerPixel == orange)
@@ -113,7 +114,7 @@ class PdfCreationTest : BaseSessionTest() {
             val pdfInputStream = mainSession.saveAsPdf()
             sessionRule.waitForResult(pdfInputStream).let {
                 val bitmap = pdfToBitmap(it)!![0]
-                val scaled = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, false)
+                val scaled = bitmap.scale(scaledWidth, scaledHeight, filter = false)
                 val redPixel = scaled[2, scaledHeight / 2]
                 assertTrue("The PDF red color matches.", redPixel == Color.RED)
                 val greenPixel = scaled[scaledWidth / 2, scaledHeight / 2]
