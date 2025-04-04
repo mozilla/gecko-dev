@@ -1758,50 +1758,6 @@
     </issue>
 
     <issue
-        id="RedundantNamespace"
-        message="This namespace declaration is redundant"
-        errorLine1="        &lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/debug/res/drawable/animated_splash_screen.xml"
-            line="7"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="RedundantNamespace"
-        message="This namespace declaration is redundant"
-        errorLine1="        &lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/drawable/animated_splash_screen.xml"
-            line="7"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="RedundantNamespace"
-        message="This namespace declaration is redundant"
-        errorLine1="            xmlns:aapt=&quot;http://schemas.android.com/aapt&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/debug/res/drawable/animated_splash_screen.xml"
-            line="8"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="RedundantNamespace"
-        message="This namespace declaration is redundant"
-        errorLine1="            xmlns:aapt=&quot;http://schemas.android.com/aapt&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/drawable/animated_splash_screen.xml"
-            line="8"
-            column="13"/>
-    </issue>
-
-    <issue
         id="IconXmlAndPng"
         message="The following images appear both as density independent `.xml` files and as bitmap files: src/main/res/drawable-hdpi/ic_logo_wordmark_normal.webp, src/main/res/drawable-night/ic_logo_wordmark_normal.xml">
         <location
