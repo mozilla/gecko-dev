@@ -72,9 +72,9 @@ the proposed change.
 If module ownership is not clear, ask on the newsgroups or `on
 Matrix <https://chat.mozilla.org>`__. The revision log for the relevant
 file might also be helpful. For example, see the change log for
-``browser/base/content/browser.js``, by clicking the "Hg Log"
+``browser/base/content/browser.js``, by clicking the "Git Log"
 link at the top of `Searchfox <https://searchfox.org/mozilla-central/source/>`__, or
-by running ``hg log browser/base/content/browser.js``. The corresponding
+by running ``git log browser/base/content/browser.js``. The corresponding
 checkin message will contain something like "r=nickname", identifying
 active code submissions, and potential code reviewers.
 
