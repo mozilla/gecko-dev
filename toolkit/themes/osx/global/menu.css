@@ -33,16 +33,6 @@ menuitem[image] > .menu-iconic-left > .menu-iconic-icon {
   width: 16px;
 }
 
-/* Internal content  */
-
-.menubar-left {
-  margin: 0 2px;
-}
-
-.menubar-text {
-  margin: 0 1px;
-}
-
 /* checked menuitems */
 
 menupopup[needsgutter] {

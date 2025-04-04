@@ -154,11 +154,12 @@ menubar {
   font: menu;
 }
 
-menubar  > menu {
+menubar > menu {
   @media (-moz-platform: linux) {
     color: inherit;
     background-color: transparent;
     border-radius: 0;
+    padding: 4px 6px;
     padding-bottom: 1px;
     border-bottom: 3px solid transparent;
 
@@ -183,7 +184,7 @@ menubar  > menu {
     }
   }
   @media (-moz-platform: windows) {
-    padding: 0;
+    padding: 1px 6px 2px;
 
     &:-moz-window-inactive {
       color: ThreeDShadow;
@@ -204,6 +205,10 @@ menubar  > menu {
       }
     }
   }
+}
+
+.menubar-text {
+  margin: 0;
 }
 
 menu,

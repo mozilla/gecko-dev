@@ -40,10 +40,6 @@ menuitem:is([type="checkbox"], [type="radio"]):not([checked="true"]) > .menu-ico
 }
 
 
-.menubar-text {
-  margin: 1px 6px 2px;
-}
-
 menulist > menupopup > menuitem[_moz-menuactive][disabled="true"] {
   color: GrayText;
 }

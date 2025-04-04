@@ -14,8 +14,7 @@
 
 .menu-text,
 .menu-iconic-left,
-.menu-iconic-text,
-.menubar-left {
+.menu-iconic-text {
   margin-block: 0;
   margin-inline: 0 2px;
 }
@@ -44,10 +43,6 @@
 .menu-iconic-icon {
   width: 16px;
   height: 16px;
-}
-
-.menubar-text {
-  margin: 0 1px;
 }
 
 menuitem:is([type="checkbox"], [checked="true"]) .menu-iconic-icon {
