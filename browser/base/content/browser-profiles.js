@@ -274,6 +274,7 @@ var gProfiles = {
       "aria-label",
       this.bundle.GetStringFromName("panel.back")
     );
+    backButton.style.fill = "var(--appmenu-profiles-theme-fg)";
 
     let currentProfileCard = PanelMultiView.getViewNode(
       document,
@@ -296,6 +297,7 @@ var gProfiles = {
       editButton.hidden = true;
     } else {
       profilesHeader.style.backgroundColor = "var(--appmenu-profiles-theme-bg)";
+      profilesHeader.style.color = "var(--appmenu-profiles-theme-fg)";
       editButton.hidden = false;
     }
 
