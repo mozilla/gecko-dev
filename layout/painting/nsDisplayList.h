@@ -5503,7 +5503,6 @@ class nsDisplaySubDocument : public nsDisplayOwnLayer {
   void RemoveFrame(nsIFrame* aFrame) override;
 
  protected:
-  ViewID mScrollParentId;
   bool mForceDispatchToContentRegion{};
   bool mShouldFlatten;
   nsSubDocumentFrame* mSubDocFrame;
