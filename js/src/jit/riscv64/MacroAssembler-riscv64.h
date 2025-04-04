@@ -53,6 +53,12 @@ class ScratchTagScopeRelease {
   ~ScratchTagScopeRelease() { ts_->reacquire(); }
 };
 
+struct ImmShiftedTag : public ImmWord {
+  explicit ImmShiftedTag(JSValueType type)
+      : ImmWord(uintptr_t(JSValueShiftedTag(JSVAL_TYPE_TO_SHIFTED_TAG(type)))) {
+  }
+};
+
 struct ImmTag : public Imm32 {
   ImmTag(JSValueTag mask) : Imm32(int32_t(mask)) {}
 };

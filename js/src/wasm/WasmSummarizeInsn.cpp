@@ -11,6 +11,12 @@
 #  include "jit/mips-shared/Architecture-mips-shared.h"
 #endif
 
+#if defined(JS_CODEGEN_RISCV64)
+#  include "jit/riscv64/constant/Constant-riscv64.h"
+#endif
+
+using namespace js::jit;
+
 using mozilla::Maybe;
 using mozilla::Nothing;
 using mozilla::Some;
