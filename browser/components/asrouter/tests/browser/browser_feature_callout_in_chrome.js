@@ -462,6 +462,150 @@ add_task(async function triggered_feature_tour_with_custom_pref() {
   );
 });
 
+// Test that a feature callout message can be loaded into ASRouter and displayed
+// via a standard trigger. Also test that the callout can be a feature tour
+// without requiring a tour pref to be used.
+add_task(async function triggered_feature_tour_with_advance_screens() {
+  let sandbox = sinon.createSandbox();
+  const TEST_MESSAGES = [
+    {
+      id: "TEST_FEATURE_TOUR",
+      template: "feature_callout",
+      content: {
+        id: "TEST_FEATURE_TOUR",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "FEATURE_CALLOUT_1",
+            anchors: [
+              {
+                selector: "#PanelUI-menu-button",
+                arrow_position: "top-center-arrow-end",
+              },
+            ],
+            content: {
+              position: "callout",
+              title: { string_id: "callout-pdfjs-edit-title" },
+              subtitle: { string_id: "callout-pdfjs-edit-body-b" },
+              primary_button: {
+                label: { string_id: "callout-pdfjs-edit-button" },
+                action: { advance_screens: { direction: 1 } },
+              },
+            },
+          },
+          {
+            id: "FEATURE_CALLOUT_2",
+            anchors: [
+              {
+                selector: "#back-button",
+                arrow_position: "top-center-arrow-start",
+              },
+            ],
+            content: {
+              position: "callout",
+              title: { string_id: "callout-pdfjs-draw-title" },
+              subtitle: { string_id: "callout-pdfjs-draw-body-b" },
+              primary_button: {
+                label: { raw: "Go forward" },
+                action: {
+                  advance_screens: { direction: 1 },
+                },
+              },
+              secondary_button: {
+                label: { raw: "Go back" },
+                action: {
+                  advance_screens: { direction: -1 },
+                },
+              },
+            },
+          },
+        ],
+      },
+      priority: 2,
+      targeting: "true",
+      trigger: { id: "nthTabClosed" },
+    },
+  ];
+  const getMessagesStub = sandbox.stub(FeatureCalloutMessages, "getMessages");
+  getMessagesStub.returns(TEST_MESSAGES);
+  await ASRouter._updateMessageProviders();
+  await ASRouter.loadMessagesFromAllProviders(
+    ASRouter.state.providers.filter(p => p.id === "onboarding")
+  );
+
+  // Test that callout is triggered and shown in browser chrome
+  const win1 = await BrowserTestUtils.openNewBrowserWindow();
+  win1.focus();
+  const tab1 = await BrowserTestUtils.openNewForegroundTab(win1.gBrowser);
+  await TestUtils.waitForTick();
+  win1.gBrowser.removeTab(tab1);
+  await waitForCalloutScreen(
+    win1.document,
+    TEST_MESSAGES[0].content.screens[0].id
+  );
+  ok(
+    win1.document.querySelector(calloutSelector),
+    "Feature Callout is rendered in the browser chrome when a message is available"
+  );
+
+  // Test that the callout advances screen
+  win1.document.querySelector(`#${calloutId} .primary`).click();
+  await waitForCalloutScreen(
+    win1.document,
+    TEST_MESSAGES[0].content.screens[1].id
+  );
+  ok(
+    win1.document.querySelector(calloutSelector),
+    "Feature Callout screen 2 is rendered"
+  );
+
+  // Test that the callout goes backward
+  win1.document.querySelector(`#${calloutId} .secondary`).click();
+  await waitForCalloutScreen(
+    win1.document,
+    TEST_MESSAGES[0].content.screens[0].id
+  );
+  ok(
+    win1.document.querySelector(calloutSelector),
+    "Feature Callout screen 1 is rendered again"
+  );
+
+  // Go forward again
+  win1.document.querySelector(`#${calloutId} .primary`).click();
+  await waitForCalloutScreen(
+    win1.document,
+    TEST_MESSAGES[0].content.screens[1].id
+  );
+  ok(
+    win1.document.querySelector(calloutSelector),
+    "Feature Callout screen 2 is rendered again"
+  );
+
+  // Test that the tour ends when advancing past the last screen
+  win1.document.querySelector(`#${calloutId} .primary`).click();
+  await waitForCalloutRemoved(win1.document);
+  ok(
+    !win1.document.querySelector(calloutSelector),
+    "Feature Callout is not rendered after the tour ends"
+  );
+  await BrowserTestUtils.waitForCondition(
+    () => !FeatureCalloutBroker.isCalloutShowing,
+    "Waiting for all callouts to empty from the callout broker"
+  );
+
+  BrowserTestUtils.closeWindow(win1);
+
+  sandbox.restore();
+  await ASRouter.resetMessageState();
+  await ASRouter._updateMessageProviders();
+  await ASRouter.loadMessagesFromAllProviders(
+    ASRouter.state.providers.filter(p => p.id === "onboarding")
+  );
+});
+
 add_task(async function callout_not_shown_if_dialog_open() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   let dialogPromise = BrowserTestUtils.promiseAlertDialog(null, undefined, {

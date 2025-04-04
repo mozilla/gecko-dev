@@ -627,9 +627,12 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
     }
     let actionResult;
     if (["OPEN_URL", "SHOW_FIREFOX_ACCOUNTS"].includes(action.type)) {
-      actionResult = this.handleOpenURL(action, props.flowParams, props.UTMTerm);
+      this.handleOpenURL(action, props.flowParams, props.UTMTerm);
     } else if (action.type) {
-      actionResult = action.needsAwait ? await _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action) : _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action);
+      let actionPromise = _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action);
+      if (action.needsAwait) {
+        actionResult = await actionPromise;
+      }
       if (action.type === "FXA_SIGNIN_FLOW") {
         _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, actionResult ? "sign_in" : "sign_in_cancel", "FXA_SIGNIN_FLOW");
       }
@@ -677,6 +680,15 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
     };
     if (shouldDoBehavior(action.navigate)) {
       props.navigate();
+    }
+
+    // Used by FeatureCallout to advance screens by re-rendering the whole
+    // wrapper, updating anchor, page_event_listeners, etc. `navigate` only
+    // updates the inner content. Only implemented by FeatureCallout.
+    if (action.advance_screens) {
+      if (shouldDoBehavior(action.advance_screens.behavior ?? true)) {
+        window.AWAdvanceScreens?.(action.advance_screens);
+      }
     }
     if (shouldDoBehavior(action.dismiss)) {
       window.AWFinish();
@@ -1350,6 +1362,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
         justifyContent: content.split_content_justify_content
       }
     }, content.logo && content.fullscreen ? this.renderPicture(content.logo) : null, content.title || content.subtitle ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      id: "multi-stage-message-welcome-text",
       className: `welcome-text ${content.title_style || ""}`
     }, content.title ? this.renderTitle(content) : null, content.subtitle ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: content.subtitle

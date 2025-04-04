@@ -582,7 +582,10 @@ export class ProtonScreen extends React.PureComponent {
                 ? this.renderPicture(content.logo)
                 : null}
               {content.title || content.subtitle ? (
-                <div className={`welcome-text ${content.title_style || ""}`}>
+                <div
+                  id="multi-stage-message-welcome-text"
+                  className={`welcome-text ${content.title_style || ""}`}
+                >
                   {content.title ? this.renderTitle(content) : null}
 
                   {content.subtitle ? (

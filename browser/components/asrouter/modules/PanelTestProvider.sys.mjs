@@ -1156,20 +1156,20 @@ const MESSAGES = () => [
             subtitle: { raw: "Hello!" },
             secondary_button: {
               label: { raw: "Advance" },
-              action: { navigate: true },
+              action: { advance_screens: { direction: 1 } },
             },
             submenu_button: {
               submenu: [
                 {
                   type: "action",
                   label: { raw: "Item 1" },
-                  action: { navigate: true },
+                  action: { advance_screens: { direction: 1 } },
                   id: "item1",
                 },
                 {
                   type: "action",
                   label: { raw: "Item 2" },
-                  action: { navigate: true },
+                  action: { advance_screens: { direction: 1 } },
                   id: "item2",
                 },
                 {
@@ -1179,13 +1179,17 @@ const MESSAGES = () => [
                     {
                       type: "action",
                       label: { raw: "Item 3" },
-                      action: { navigate: true },
+                      action: {
+                        advance_screens: { direction: 1 },
+                      },
                       id: "item3",
                     },
                     {
                       type: "action",
                       label: { raw: "Item 4" },
-                      action: { navigate: true },
+                      action: {
+                        advance_screens: { direction: 1 },
+                      },
                       id: "item4",
                     },
                   ],
@@ -1193,6 +1197,194 @@ const MESSAGES = () => [
                 },
               ],
               attached_to: "secondary_button",
+            },
+            dismiss_button: { action: { dismiss: true } },
+          },
+        },
+        {
+          id: "FEATURE_CALLOUT_2",
+          anchors: [
+            {
+              selector: "#PanelUI-menu-button",
+              panel_position: {
+                anchor_attachment: "bottomcenter",
+                callout_attachment: "topright",
+              },
+            },
+          ],
+          content: {
+            position: "callout",
+            title: { raw: "Panel Feature Callout 2" },
+            subtitle: { raw: "Hellossss!" },
+            secondary_button: {
+              label: { raw: "Advance" },
+              action: { advance_screens: { direction: 1 } },
+            },
+            primary_button: {
+              label: { raw: "Go back" },
+              style: "secondary",
+              action: { advance_screens: { direction: -1 } },
+            },
+            submenu_button: {
+              submenu: [
+                {
+                  type: "action",
+                  label: { raw: "Item 1" },
+                  action: { advance_screens: { direction: 1 } },
+                  id: "item1",
+                },
+                {
+                  type: "action",
+                  label: { raw: "Item 2" },
+                  action: { advance_screens: { direction: 1 } },
+                  id: "item2",
+                },
+                {
+                  type: "menu",
+                  label: { raw: "Menu 1" },
+                  submenu: [
+                    {
+                      type: "action",
+                      label: { raw: "Item 3" },
+                      action: {
+                        advance_screens: { direction: 1 },
+                      },
+                      id: "item3",
+                    },
+                    {
+                      type: "action",
+                      label: { raw: "Item 4" },
+                      action: {
+                        advance_screens: { direction: 1 },
+                      },
+                      id: "item4",
+                    },
+                  ],
+                  id: "menu1",
+                },
+              ],
+              attached_to: "secondary_button",
+            },
+            dismiss_button: { action: { dismiss: true } },
+          },
+        },
+        {
+          id: "FEATURE_CALLOUT_3",
+          anchors: [
+            {
+              selector: "#stop-reload-button",
+              panel_position: {
+                anchor_attachment: "bottomcenter",
+                callout_attachment: "topleft",
+              },
+            },
+          ],
+          content: {
+            position: "callout",
+            title: { raw: "Panel Feature Callout" },
+            subtitle: { raw: "Screen 2!" },
+            secondary_button: {
+              label: { raw: "Finish" },
+              style: "primary",
+              action: {
+                type: "MULTI_ACTION",
+                collectSelect: true,
+                dismiss: true,
+                data: { actions: [] },
+              },
+              disabled: "hasActiveMultiSelect",
+            },
+            primary_button: {
+              label: { raw: "Go back" },
+              style: "secondary",
+              action: { advance_screens: { direction: -1 } },
+            },
+            tiles: {
+              type: "multiselect",
+              style: {
+                flexDirection: "column",
+                alignItems: "flex-start",
+              },
+              data: [
+                {
+                  id: "radio-choice-1",
+                  type: "radio",
+                  group: "radios",
+                  icon: {
+                    style: {
+                      width: "14px",
+                      height: "14px",
+                      marginInline: "0 0.5em",
+                    },
+                  },
+                  label: { raw: "Choice 1" },
+                },
+                {
+                  id: "radio-choice-2",
+                  type: "radio",
+                  group: "radios",
+                  icon: {
+                    style: {
+                      width: "14px",
+                      height: "14px",
+                      marginInline: "0 0.5em",
+                    },
+                  },
+                  label: { raw: "Choice 2" },
+                },
+                {
+                  id: "radio-choice-3",
+                  type: "radio",
+                  group: "radios",
+                  icon: {
+                    style: {
+                      width: "14px",
+                      height: "14px",
+                      marginInline: "0 0.5em",
+                    },
+                  },
+                  label: { raw: "Choice 3" },
+                },
+                {
+                  id: "radio-choice-4",
+                  type: "radio",
+                  group: "radios",
+                  icon: {
+                    style: {
+                      width: "14px",
+                      height: "14px",
+                      marginInline: "0 0.5em",
+                    },
+                  },
+                  label: { raw: "Choice 4" },
+                },
+                {
+                  id: "radio-choice-5",
+                  type: "radio",
+                  group: "radios",
+                  icon: {
+                    style: {
+                      width: "14px",
+                      height: "14px",
+                      marginInline: "0 0.5em",
+                    },
+                  },
+                  label: { raw: "Choice 5" },
+                },
+                {
+                  id: "radio-choice-6",
+                  type: "radio",
+                  group: "radios",
+                  icon: {
+                    style: {
+                      width: "14px",
+                      height: "14px",
+                      marginInline: "0 0.5em",
+                    },
+                  },
+                  label: { raw: "Choice 6" },
+                },
+              ],
             },
             dismiss_button: {
               action: { dismiss: true },

@@ -323,8 +323,23 @@ Action for running multiple actions. Actions should be included in an array of a
 
 * args:
 ```ts
-{
-  actions: Array<UserAction>
+interface MultiAction {
+  type: "MULTI_ACTION";
+  data: {
+    actions: Array<UserAction>;
+    // Set to true if the actions should be executed in the order they are
+    // listed in the `actions` array. If false, the actions will be executed in
+    // parallel, with no guarantee of order. Defaults to false. If collectSelect
+    // is true and there are multiselect actions, they will be executed in the
+    // order they are rendered in the UI.
+    orderedExecution?: boolean;
+  };
+  // Set to true if this action is for the primary button and you're using the
+  // "multiselect" tile. This is what allows the primary button to perform the
+  // actions specified by the user's checkbox/radio selections. It will combine
+  // all the actions for all the selected checkboxes/radios into the above
+  // `actions` array before executing them.
+  collectSelect?: boolean;
 }
 ```
 
@@ -341,7 +356,8 @@ Action for running multiple actions. Actions should be included in an array of a
       {
         "type": "OPEN_AWESOME_BAR"
       }
-    ]
+    ],
+    "orderedExecution": true
   }
 }
 ```

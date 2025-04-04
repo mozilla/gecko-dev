@@ -136,32 +136,6 @@ add_task(async function feature_callout_closes_on_dismiss() {
   await BrowserTestUtils.closeWindow(win);
 });
 
-add_task(async function feature_callout_respects_cfr_features_pref() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      [
-        "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features",
-        false,
-      ],
-    ],
-  });
-
-  const testMessage = getTestMessage();
-
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const doc = win.document;
-  const browser = win.gBrowser.selectedBrowser;
-
-  await showFeatureCallout(browser, testMessage);
-  ok(
-    !doc.querySelector(calloutSelector),
-    "Feature Callout element was not created because CFR pref was disabled"
-  );
-
-  await SpecialPowers.popPrefEnv();
-  await BrowserTestUtils.closeWindow(win);
-});
-
 add_task(async function feature_callout_dismiss_on_timeout() {
   const testMessage = getTestMessage();
   const sandbox = sinon.createSandbox();

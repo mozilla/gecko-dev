@@ -510,15 +510,12 @@ export class WelcomeScreen extends React.PureComponent {
 
     let actionResult;
     if (["OPEN_URL", "SHOW_FIREFOX_ACCOUNTS"].includes(action.type)) {
-      actionResult = this.handleOpenURL(
-        action,
-        props.flowParams,
-        props.UTMTerm
-      );
+      this.handleOpenURL(action, props.flowParams, props.UTMTerm);
     } else if (action.type) {
-      actionResult = action.needsAwait
-        ? await AboutWelcomeUtils.handleUserAction(action)
-        : AboutWelcomeUtils.handleUserAction(action);
+      let actionPromise = AboutWelcomeUtils.handleUserAction(action);
+      if (action.needsAwait) {
+        actionResult = await actionPromise;
+      }
       if (action.type === "FXA_SIGNIN_FLOW") {
         AboutWelcomeUtils.sendActionTelemetry(
           props.messageId,
@@ -581,6 +578,15 @@ export class WelcomeScreen extends React.PureComponent {
 
     if (shouldDoBehavior(action.navigate)) {
       props.navigate();
+    }
+
+    // Used by FeatureCallout to advance screens by re-rendering the whole
+    // wrapper, updating anchor, page_event_listeners, etc. `navigate` only
+    // updates the inner content. Only implemented by FeatureCallout.
+    if (action.advance_screens) {
+      if (shouldDoBehavior(action.advance_screens.behavior ?? true)) {
+        window.AWAdvanceScreens?.(action.advance_screens);
+      }
     }
 
     if (shouldDoBehavior(action.dismiss)) {

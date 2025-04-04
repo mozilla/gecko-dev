@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -88,12 +86,6 @@ export class FeatureCallout {
 
     this._handlePrefChange = this._handlePrefChange.bind(this);
 
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "cfrFeaturesUserPref",
-      "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features",
-      true
-    );
     this.setupFeatureTourProgress();
 
     // When the window is focused, ensure tour is synced with tours in any other
@@ -192,13 +184,138 @@ export class FeatureCallout {
           this._featureTourProgress = null;
         }
         if (topic === "nsPref:changed") {
-          this._maybeAdvanceScreens();
+          this._advanceOnTourPrefChange();
         }
         break;
     }
   }
 
-  _maybeAdvanceScreens() {
+  /**
+   * @typedef {Object} AdvanceScreensOptions
+   * @property {Boolean|"actionResult"} [behavior] Set to true to take effect
+   *   immediately, or set to "actionResult" to only advance screens after the
+   *   special message action has resolved successfully. "actionResult" requires
+   *   `action.needsAwait` to be true. Defaults to true.
+   * @property {String} [id] The id of the screen to advance to. If both id and
+   *   direction are provided (which they shouldn't be), the id takes priority.
+   *   Either `id` or `direction` is required. Passing `%end%` ends the tour.
+   * @property {Number} [direction] How many screens, and in which direction, to
+   *   advance. Positive integers advance forward, negative integers advance
+   *   backward. Must be an integer. If advancing by the specified number of
+   *   screens would take you beyond the last screen, it will end the tour, just
+   *   like if you used `dismiss: true`. If it's a negative integer that
+   *   advances beyond the first screen, it will stop at the first screen.
+   */
+
+  /** @param {AdvanceScreensOptions} options */
+  _advanceScreens({ id, direction } = {}) {
+    if (!this.currentScreen) {
+      lazy.log.error(
+        `In ${this.location}: Cannot advance screens without a current screen.`
+      );
+      return;
+    }
+    if ((!direction || !Number.isInteger(direction)) && !id) {
+      lazy.log.debug(
+        `In ${this.location}: Cannot advance screens without a valid direction or id.`
+      );
+      return;
+    }
+    if (id === "%end%") {
+      // Special case for ending the tour. When `id` is `%end%`, we should end
+      // the tour and clear the current screen.
+      this.endTour();
+      return;
+    }
+    let nextIndex = -1; // Default to -1 to indicate an invalid index.
+    let currentIndex = this.config.screens.findIndex(
+      screen => screen.id === this.currentScreen.id
+    );
+    if (id) {
+      nextIndex = this.config.screens.findIndex(screen => screen.id === id);
+      if (nextIndex === -1) {
+        lazy.log.debug(
+          `In ${this.location}: Unable to find screen with id: ${id}`
+        );
+        return;
+      }
+      if (nextIndex === currentIndex) {
+        lazy.log.debug(
+          `In ${this.location}: Already on screen with id: ${id}. Not advancing.`
+        );
+        return;
+      }
+    } else {
+      // Calculate the next index based on the current screen and direction.
+      nextIndex = Math.max(0, currentIndex + direction);
+    }
+    if (nextIndex < 0) {
+      // Don't allow going before the first screen.
+      lazy.log.debug(
+        `In ${this.location}: Cannot advance before the first screen.`
+      );
+      return;
+    }
+    if (nextIndex >= this.config.screens.length) {
+      // Allow ending the tour if we would go beyond the last screen.
+      this.endTour();
+      return;
+    }
+
+    this.ready = false;
+    this._container?.classList.toggle(
+      "hidden",
+      this._container?.localName !== "panel"
+    );
+    this._pageEventManager?.emit({
+      type: "touradvance",
+      target: this._container,
+    });
+    const onFadeOut = async () => {
+      this._container?.remove();
+      this.renderObserver?.disconnect();
+      this._removePositionListeners();
+      this._removePanelConflictListeners();
+      this.doc.querySelector(`[src="${BUNDLE_SRC}"]`)?.remove();
+      if (this.message) {
+        const isMessageUnblocked = await lazy.ASRouter.isUnblockedMessage(
+          this.message
+        );
+        if (!isMessageUnblocked) {
+          this.endTour();
+          return;
+        }
+      }
+      let updated = await this._updateConfig(this.message, nextIndex);
+      if (!updated && !this.currentScreen) {
+        this.endTour();
+        return;
+      }
+      let rendering = await this._renderCallout();
+      if (!rendering) {
+        this.endTour();
+      }
+    };
+    if (this._container?.localName === "panel") {
+      this._container.removeEventListener("popuphiding", this);
+      const controller = new AbortController();
+      this._container.addEventListener(
+        "popuphidden",
+        event => {
+          if (event.target === this._container) {
+            controller.abort();
+            onFadeOut();
+          }
+        },
+        { signal: controller.signal }
+      );
+      this._container.hidePopup(true);
+    } else {
+      this.win.setTimeout(onFadeOut, TRANSITION_MS);
+    }
+  }
+
+  _advanceOnTourPrefChange() {
     if (this.doc.visibilityState === "hidden" || !this.featureTourProgress) {
       return;
     }
@@ -219,7 +336,7 @@ export class FeatureCallout {
     let prefVal = this.featureTourProgress;
     // End the tour according to the tour progress pref or if the user disabled
     // contextual feature recommendations.
-    if (prefVal.complete || !this.cfrFeaturesUserPref) {
+    if (prefVal.complete) {
       this.endTour();
     } else if (prefVal.screen !== this.currentScreen?.id) {
       // Pref changes only matter to us insofar as they let us advance an
@@ -282,9 +399,17 @@ export class FeatureCallout {
       };
       if (this._container?.localName === "panel") {
         this._container.removeEventListener("popuphiding", this);
-        this._container.addEventListener("popuphidden", onFadeOut, {
-          once: true,
-        });
+        const controller = new AbortController();
+        this._container.addEventListener(
+          "popuphidden",
+          event => {
+            if (event.target === this._container) {
+              controller.abort();
+              onFadeOut();
+            }
+          },
+          { signal: controller.signal }
+        );
         this._container.hidePopup(true);
       } else {
         this.win.setTimeout(onFadeOut, TRANSITION_MS);
@@ -356,7 +481,7 @@ export class FeatureCallout {
       }
 
       case "visibilitychange":
-        this._maybeAdvanceScreens();
+        this._advanceOnTourPrefChange();
         break;
 
       case "resize":
@@ -826,7 +951,7 @@ export class FeatureCallout {
       this._container.id = CONTAINER_ID;
       this._container.setAttribute(
         "aria-describedby",
-        `#${CONTAINER_ID} .welcome-text`
+        "multi-stage-message-welcome-text"
       );
       if (arrow_width) {
         this._container.style.setProperty("--arrow-width", `${arrow_width}px`);
@@ -1358,6 +1483,7 @@ export class FeatureCallout {
       ),
       AWSendToParent: (name, data) => getActionHandler(name)(data),
       AWFinish: () => this.endTour(),
+      AWAdvanceScreens: options => this._advanceScreens(options),
       AWEvaluateScreenTargeting: getActionHandler("EVALUATE_SCREEN_TARGETING"),
       AWEvaluateAttributeTargeting: getActionHandler(
         "EVALUATE_ATTRIBUTE_TARGETING"
@@ -1435,9 +1561,17 @@ export class FeatureCallout {
       this._emitEvent("end");
     };
     if (this._container?.localName === "panel") {
-      this._container.addEventListener("popuphidden", onFadeOut, {
-        once: true,
-      });
+      const controller = new AbortController();
+      this._container.addEventListener(
+        "popuphidden",
+        event => {
+          if (event.target === this._container) {
+            controller.abort();
+            onFadeOut();
+          }
+        },
+        { signal: controller.signal }
+      );
       this._container.hidePopup(!skipFadeOut);
     } else if (this._container) {
       this.win.setTimeout(onFadeOut, skipFadeOut ? 0 : TRANSITION_MS);
@@ -1502,21 +1636,22 @@ export class FeatureCallout {
    * in this.config, which is returned by AWGetFeatureConfig. The aboutwelcome
    * bundle will use that function to get the content when it executes.
    * @param {Object} [message] ASRouter message. Omit to request a new one.
+   * @param {Number} [screenIndex] Index of the screen to render.
    * @returns {Promise<boolean>} true if a message is loaded, false if not.
    */
-  async _updateConfig(message) {
+  async _updateConfig(message, screenIndex) {
     if (this.loadingConfig) {
       return false;
     }
 
-    this.message = message || (await this._loadConfig());
+    this.message = structuredClone(message || (await this._loadConfig()));
 
     switch (this.message.template) {
       case "feature_callout":
         break;
       case "spotlight":
-        // Special handling for spotlight messages, which can be configured as a
-        // kind of introduction to a feature tour.
+        // Deprecated: Special handling for spotlight messages, used as an
+        // introduction to feature tours.
         this.currentScreen = "spotlight";
       // fall through
       default:
@@ -1525,12 +1660,29 @@ export class FeatureCallout {
 
     this.config = this.message.content;
 
-    // Set the default start screen.
-    let newScreen = this.config?.screens?.[this.config?.startScreen || 0];
+    if (!this.config.screens) {
+      lazy.log.error(
+        `In ${
+          this.location
+        }: Expected a message object with content.screens property, got: ${JSON.stringify(
+          this.message
+        )}`
+      );
+      return false;
+    }
+
+    // Set or override the default start screen.
+    let overrideScreen = Number.isInteger(screenIndex);
+    if (overrideScreen) {
+      this.config.startScreen = screenIndex;
+    }
+
+    let newScreen = this.config?.screens?.[this.config?.startScreen ?? 0];
+
     // If we have a feature tour in progress, try to set the start screen to
     // whichever screen is configured in the feature tour pref.
     if (
-      this.config.screens &&
+      !overrideScreen &&
       this.config?.tour_pref_name &&
       this.config.tour_pref_name === this.pref?.name &&
       this.featureTourProgress
@@ -1606,20 +1758,25 @@ export class FeatureCallout {
    * @property {PageEventListenerOptions} [options] addEventListener options
    *
    * @typedef {Object} PageEventListenerOptions
-   * @property {Boolean} [capture] Use event capturing phase?
-   * @property {Boolean} [once] Remove listener after first event?
-   * @property {Boolean} [preventDefault] Prevent default action?
+   * @property {Boolean} [capture] Use event capturing phase
+   * @property {Boolean} [once] Remove listener after first event
+   * @property {Boolean} [preventDefault] Prevent default action
    * @property {Number} [interval] Used only for `timeout` and `interval` event
    *   types. These don't set up real event listeners, but instead invoke the
    *   action on a timer.
-   * @property {Boolean} [every_window] Extend addEventListener to all windows?
+   * @property {Boolean} [every_window] Extend addEventListener to all windows.
    *   Not compatible with `interval`.
    *
    * @typedef {Object} PageEventListenerAction Action sent to AboutWelcomeParent
    * @property {String} [type] Action type, e.g. `OPEN_URL`
    * @property {Object} [data] Extra data, properties depend on action type
-   * @property {Boolean} [dismiss] Dismiss screen after performing action?
-   * @property {Boolean} [reposition] Reposition screen after performing action?
+   * @property {AdvanceScreensOptions} [advance_screens] Jump to a new screen
+   * @property {Boolean|"actionResult"} [dismiss] Dismiss callout
+   * @property {Boolean|"actionResult"} [reposition] Reposition callout
+   * @property {Boolean} [needsAwait] Wait for any special message actions
+   *   (given by the type property above) to resolve before advancing screens,
+   *   dismissing, or repositioning the callout, if those actions are set to
+   *   "actionResult".
    */
   _attachPageEventListeners(listeners) {
     listeners?.forEach(({ params, action }) =>
@@ -1640,13 +1797,14 @@ export class FeatureCallout {
    * @param {PageEventListenerAction} action
    * @param {Event} event Triggering event
    */
-  _handlePageEventAction(action, event) {
+  async _handlePageEventAction(action, event) {
     const page = this.location;
     const message_id = this.config?.id.toUpperCase();
     const source =
       typeof event.target === "string"
         ? event.target
         : this._getUniqueElementIdentifier(event.target);
+    let actionResult;
     if (action.type) {
       this.win.AWSendEventTelemetry?.({
         event: "PAGE_EVENT",
@@ -1658,9 +1816,36 @@ export class FeatureCallout {
         },
         message_id,
       });
-      this.win.AWSendToParent("SPECIAL_ACTION", action);
+      let actionPromise = this.win.AWSendToParent("SPECIAL_ACTION", action);
+      if (action.needsAwait) {
+        actionResult = await actionPromise;
+      }
     }
-    if (action.dismiss) {
+
+    // `navigate` and `dismiss` can be true/false/undefined, or they can be a
+    // string "actionResult" in which case we should use the actionResult
+    // (boolean resolved by handleUserAction)
+    const shouldDoBehavior = behavior => {
+      if (behavior !== "actionResult") {
+        return behavior;
+      }
+      if (action.needsAwait) {
+        return actionResult;
+      }
+      lazy.log.warn(
+        `In ${
+          this.location
+        }: "actionResult" is only supported for actions with needsAwait, got: ${JSON.stringify(action)}`
+      );
+      return false;
+    };
+
+    if (action.advance_screens) {
+      if (shouldDoBehavior(action.advance_screens.behavior ?? true)) {
+        this._advanceScreens?.(action.advance_screens);
+      }
+    }
+    if (shouldDoBehavior(action.dismiss)) {
       this.win.AWSendEventTelemetry?.({
         event: "DISMISS",
         event_context: { source: `PAGE_EVENT:${source}`, page },
@@ -1668,7 +1853,7 @@ export class FeatureCallout {
       });
       this._dismiss();
     }
-    if (action.reposition) {
+    if (shouldDoBehavior(action.reposition)) {
       this.win.requestAnimationFrame(() => this._positionCallout());
     }
   }
@@ -1822,11 +2007,6 @@ export class FeatureCallout {
     this.ready = false;
     this._container?.remove();
     this.renderObserver?.disconnect();
-
-    if (!this.cfrFeaturesUserPref) {
-      this.endTour();
-      return false;
-    }
 
     let rendering = (await this._renderCallout()) && !!this.currentScreen;
     if (!rendering) {
