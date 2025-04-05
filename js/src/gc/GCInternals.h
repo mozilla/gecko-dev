@@ -297,6 +297,28 @@ class AutoSetThreadIsSweeping : public AutoSetThreadGCUseT<GCUse::Sweeping> {
 #endif
 };
 
+class MOZ_RAII AutoDisallowPreWriteBarrier {
+ public:
+  explicit AutoDisallowPreWriteBarrier(JS::GCContext* gcx) {
+#ifdef DEBUG
+    gcx_ = gcx;
+    MOZ_ASSERT(gcx->preWriteBarrierAllowed_);
+    gcx->preWriteBarrierAllowed_ = false;
+#endif
+  }
+  ~AutoDisallowPreWriteBarrier() {
+#ifdef DEBUG
+    MOZ_ASSERT(!gcx_->preWriteBarrierAllowed_);
+    gcx_->preWriteBarrierAllowed_ = true;
+#endif
+  }
+
+ private:
+#ifdef DEBUG
+  JS::GCContext* gcx_;
+#endif
+};
+
 #ifdef JSGC_HASH_TABLE_CHECKS
 void CheckHashTablesAfterMovingGC(JSRuntime* rt);
 void CheckHeapAfterGC(JSRuntime* rt);

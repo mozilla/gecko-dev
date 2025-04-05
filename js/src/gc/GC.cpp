@@ -298,6 +298,7 @@ JS::GCContext::~GCContext() {
   MOZ_ASSERT(gcUse() == GCUse::None);
   MOZ_ASSERT(!gcSweepZone());
   MOZ_ASSERT(!isTouchingGrayThings());
+  MOZ_ASSERT(isPreWriteBarrierAllowed());
 }
 
 void JS::GCContext::poisonJitCode() {

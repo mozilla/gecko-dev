@@ -45,6 +45,9 @@ class FreeSpan;
 class TenuredCell;
 class TenuringTracer;
 
+// Whether or not to release empty arenas while sweeping.
+enum class ReleaseEmpty : bool { No = false, Yes = true };
+
 /*
  * Arena lists contain a singly linked lists of arenas.
  *
@@ -145,6 +148,8 @@ class SortedArenaList {
 
   // Inserts an arena, which has room for |nfree| more things, in its bucket.
   inline void insertAt(Arena* arena, size_t nfree);
+
+  inline bool hasEmptyArenas() const;
 
   // Remove any empty arenas and prepend them to the list pointed to by
   // |destListHeadPtr|.
@@ -310,7 +315,9 @@ class ArenaLists {
   bool foregroundFinalize(JS::GCContext* gcx, AllocKind thingKind,
                           JS::SliceBudget& sliceBudget,
                           SortedArenaList& sweepList);
-  void backgroundFinalize(JS::GCContext* gcx, AllocKind kind, Arena** empty);
+  template <ReleaseEmpty releaseEmpty>
+  void backgroundFinalize(JS::GCContext* gcx, AllocKind kind,
+                          Arena** empty = nullptr);
 
   Arena* takeSweptEmptyArenas();
 

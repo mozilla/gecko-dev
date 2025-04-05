@@ -72,9 +72,13 @@ using JS::SliceBudget;
  *  2. ForegroundNonObjectFinalizePhase
  *     Non-JSObjects with finalizers. Swept incrementally on the main thread.
  *
- *  3. BackgroundFinalizePhases[...]
- *     Everything else. Swept in two sub-phases non-incrementally on a helper
- *     thread.
+ *  3. BackgroundObjectFinalizePhase
+ *     JSObjects with finalizers that can run off main thread. Swept
+ *     non-incrementally on a helper thread.
+ *
+ *  4. BackgroundTrivialFinalizePhase
+ *     Everything else. These may or may not have finalizers. Any finalizers
+ *     must not delete HeapPtrs. Swept non-incrementally on a helper thread.
  */
 
 static constexpr AllocKinds ForegroundObjectFinalizePhase = {
@@ -85,27 +89,46 @@ static constexpr AllocKinds ForegroundObjectFinalizePhase = {
 static constexpr AllocKinds ForegroundNonObjectFinalizePhase = {
     AllocKind::SCRIPT, AllocKind::JITCODE};
 
-static constexpr AllocKinds BackgroundFinalizePhases[] = {
-    {AllocKind::FUNCTION, AllocKind::FUNCTION_EXTENDED, AllocKind::OBJECT0,
-     AllocKind::OBJECT0_BACKGROUND, AllocKind::OBJECT2,
-     AllocKind::OBJECT2_BACKGROUND, AllocKind::ARRAYBUFFER4, AllocKind::OBJECT4,
-     AllocKind::OBJECT4_BACKGROUND, AllocKind::ARRAYBUFFER8, AllocKind::OBJECT8,
-     AllocKind::OBJECT8_BACKGROUND, AllocKind::ARRAYBUFFER12,
-     AllocKind::OBJECT12, AllocKind::OBJECT12_BACKGROUND,
-     AllocKind::ARRAYBUFFER16, AllocKind::OBJECT16,
-     AllocKind::OBJECT16_BACKGROUND},
-    {AllocKind::BUFFER16, AllocKind::BUFFER32, AllocKind::BUFFER64,
-     AllocKind::BUFFER128, AllocKind::SCOPE, AllocKind::REGEXP_SHARED,
-     AllocKind::FAT_INLINE_STRING, AllocKind::STRING,
-     AllocKind::EXTERNAL_STRING, AllocKind::FAT_INLINE_ATOM, AllocKind::ATOM,
-     AllocKind::SYMBOL, AllocKind::BIGINT, AllocKind::SHAPE,
-     AllocKind::BASE_SHAPE, AllocKind::GETTER_SETTER,
-     AllocKind::COMPACT_PROP_MAP, AllocKind::NORMAL_PROP_MAP,
-     AllocKind::DICT_PROP_MAP}};
+static constexpr AllocKinds BackgroundObjectFinalizePhase = {
+    AllocKind::OBJECT0_BACKGROUND, AllocKind::OBJECT2_BACKGROUND,
+    AllocKind::ARRAYBUFFER4,       AllocKind::OBJECT4_BACKGROUND,
+    AllocKind::ARRAYBUFFER8,       AllocKind::OBJECT8_BACKGROUND,
+    AllocKind::ARRAYBUFFER12,      AllocKind::OBJECT12_BACKGROUND,
+    AllocKind::ARRAYBUFFER16,      AllocKind::OBJECT16_BACKGROUND};
 
-static_assert(std::size(BackgroundFinalizePhases) == 2);
+static constexpr AllocKinds BackgroundTrivialFinalizePhase = {
+    AllocKind::FUNCTION,
+    AllocKind::FUNCTION_EXTENDED,
+    AllocKind::OBJECT0,
+    AllocKind::OBJECT2,
+    AllocKind::OBJECT4,
+    AllocKind::OBJECT8,
+    AllocKind::OBJECT12,
+    AllocKind::OBJECT16,
+    AllocKind::BUFFER16,
+    AllocKind::BUFFER32,
+    AllocKind::BUFFER64,
+    AllocKind::BUFFER128,
+    AllocKind::SCOPE,
+    AllocKind::REGEXP_SHARED,
+    AllocKind::FAT_INLINE_STRING,
+    AllocKind::STRING,
+    AllocKind::EXTERNAL_STRING,
+    AllocKind::FAT_INLINE_ATOM,
+    AllocKind::ATOM,
+    AllocKind::SYMBOL,
+    AllocKind::BIGINT,
+    AllocKind::SHAPE,
+    AllocKind::BASE_SHAPE,
+    AllocKind::GETTER_SETTER,
+    AllocKind::COMPACT_PROP_MAP,
+    AllocKind::NORMAL_PROP_MAP,
+    AllocKind::DICT_PROP_MAP};
+
 static constexpr AllocKinds AllBackgroundSweptKinds =
-    BackgroundFinalizePhases[0] + BackgroundFinalizePhases[1];
+    BackgroundObjectFinalizePhase + BackgroundTrivialFinalizePhase;
+
+static constexpr size_t ArenaReleaseBatchSize = 32;
 
 template <typename T, FinalizeKind finalizeKind>
 inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
@@ -188,7 +211,7 @@ inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
 // Finalize arenas from src list, releasing empty arenas if keepArenas wasn't
 // specified and inserting the others into the appropriate destination size
 // bins.
-template <typename T, FinalizeKind finalizeKind>
+template <typename T, FinalizeKind finalizeKind, ReleaseEmpty releaseEmpty>
 static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
                                        SortedArenaList& dest,
                                        AllocKind thingKind,
@@ -198,9 +221,10 @@ static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
   size_t thingSize = Arena::thingSize(thingKind);
   size_t thingsPerArena = Arena::thingsPerArena(thingKind);
   size_t markCount = 0;
+  size_t emptyCount = 0;
 
+  GCRuntime* gc = &gcx->runtimeFromAnyThread()->gc;
   auto updateMarkCount = mozilla::MakeScopeExit([&] {
-    GCRuntime* gc = &gcx->runtimeFromAnyThread()->gc;
     gc->stats().addCount(gcstats::COUNT_CELLS_MARKED, markCount);
   });
 
@@ -214,9 +238,34 @@ static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
 
     dest.insertAt(arena, nfree);
 
+    if constexpr (bool(releaseEmpty)) {
+      if (nmarked == 0) {
+        emptyCount++;
+        MOZ_ASSERT(emptyCount <= ArenaReleaseBatchSize);
+        if (emptyCount == ArenaReleaseBatchSize) {
+          Arena* emptyArenas = nullptr;
+          dest.extractEmptyTo(&emptyArenas);
+          emptyArenas =
+              gc->releaseSomeEmptyArenas(emptyArenas->zone(), emptyArenas);
+          MOZ_ASSERT(!emptyArenas);
+          emptyCount = 0;
+        }
+      }
+    }
+
     budget.step(thingsPerArena);
     if (budget.isOverBudget()) {
       return false;
+    }
+  }
+
+  if constexpr (bool(releaseEmpty)) {
+    if (emptyCount) {
+      Arena* emptyArenas = nullptr;
+      dest.extractEmptyTo(&emptyArenas);
+      emptyArenas =
+          gc->releaseSomeEmptyArenas(emptyArenas->zone(), emptyArenas);
+      MOZ_ASSERT(!emptyArenas);
     }
   }
 
@@ -226,14 +275,16 @@ static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
 /*
  * Finalize the list of areans.
  */
+template <ReleaseEmpty releaseEmpty>
 static bool FinalizeArenas(JS::GCContext* gcx, ArenaList& src,
                            SortedArenaList& dest, AllocKind thingKind,
                            SliceBudget& budget) {
   switch (thingKind) {
-#define EXPAND_CASE(allocKind, _1, type, _2, finalizeKind, _3, _4) \
-  case AllocKind::allocKind:                                       \
-    return FinalizeTypedArenas<type, FinalizeKind::finalizeKind>(  \
-        gcx, src, dest, thingKind, budget);
+#define EXPAND_CASE(allocKind, _1, type, _2, finalizeKind, _3, _4)      \
+  case AllocKind::allocKind:                                            \
+    return FinalizeTypedArenas<type, FinalizeKind::finalizeKind,        \
+                               releaseEmpty>(gcx, src, dest, thingKind, \
+                                             budget);
     FOR_EACH_ALLOCKIND(EXPAND_CASE)
 #undef EXPAND_CASE
 
@@ -258,10 +309,11 @@ void ArenaLists::initBackgroundSweep(AllocKind thingKind) {
   }
 }
 
+template <ReleaseEmpty releaseEmpty>
 void ArenaLists::backgroundFinalize(JS::GCContext* gcx, AllocKind kind,
                                     Arena** empty) {
   MOZ_ASSERT(IsBackgroundSwept(kind));
-  MOZ_ASSERT(empty);
+  MOZ_ASSERT(bool(empty) != bool(releaseEmpty));
 
   ArenaList& arenas = collectingArenaList(kind);
   if (arenas.isEmpty()) {
@@ -273,10 +325,13 @@ void ArenaLists::backgroundFinalize(JS::GCContext* gcx, AllocKind kind,
   SortedArenaList finalizedSorted(kind);
 
   auto unlimited = SliceBudget::unlimited();
-  FinalizeArenas(gcx, arenas, finalizedSorted, kind, unlimited);
+  FinalizeArenas<releaseEmpty>(gcx, arenas, finalizedSorted, kind, unlimited);
   MOZ_ASSERT(arenas.isEmpty());
 
-  finalizedSorted.extractEmptyTo(empty);
+  if constexpr (!bool(releaseEmpty)) {
+    finalizedSorted.extractEmptyTo(empty);
+  }
+  MOZ_ASSERT(!finalizedSorted.hasEmptyArenas());
 
   // Set the collectingArenaList to the possibly empty list of swept arenas
   // while holding the GC lock. Set concurrentUse to indicate to the main thread
@@ -351,85 +406,99 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
     ArenaLists& arenaLists = zone->arenas;
     Arena* emptyArenas = arenaLists.takeSweptEmptyArenas();
 
-    // We must finalize thing kinds in the order specified by
-    // BackgroundFinalizePhases.
+    // We must finalize kinds in the order specified at the top of this file.
 
-    for (const AllocKinds& kinds : BackgroundFinalizePhases) {
-      for (AllocKind kind : kinds) {
-        arenaLists.backgroundFinalize(gcx, kind, &emptyArenas);
-      }
+    for (auto kind : BackgroundObjectFinalizePhase) {
+      MOZ_ASSERT(IsBackgroundFinalized(kind));
+      arenaLists.backgroundFinalize<ReleaseEmpty::No>(gcx, kind, &emptyArenas);
     }
 
     // Release any arenas that are now empty.
     //
-    // Empty arenas are only released after everything has been finalized so
-    // that it's still possible to get a thing's zone after the thing has been
-    // finalized. The HeapPtr destructor depends on this, and this allows
-    // HeapPtrs between things of different alloc kind regardless of
-    // finalization order.
+    // Finalizers can still access the zone pointer in now-empty arenas because
+    // of the write barrier in the HeapPtr destructor. This means we can't
+    // release any empty arenas until all such finalizers have been run.
     //
-    // Batch releases so as to periodically drop and reaquire the GC lock to
-    // avoid blocking the main thread from allocating arenas. This is important
-    // for allocation-heavy workloads such as the splay benchmark.
-    //
-    // This block is equivalent to calling GCRuntime::releaseArena on each arena
-    // individually.
-    static constexpr size_t BatchSize = 32;
-    bool isAtomsZone = zone->isAtomsZone();
+    // At this point this has happened and we can release empty arenas
+    // immediately from now on.
+
+    AutoDisallowPreWriteBarrier disallowBarrier(gcx);
+
     while (emptyArenas) {
-      Arena* arenasToRelease[BatchSize];
-      size_t atomsBitmapIndexes[BatchSize];
-      size_t count = 0;
-
-      size_t gcHeapBytesFreed = 0;
-      size_t mallocHeapBytesFreed = 0;
-
-      // Take up to BatchSize arenas from emptyArenas list.
-      for (size_t i = 0; emptyArenas && i < BatchSize; i++) {
-        Arena* arena = emptyArenas;
-        emptyArenas = arena->next;
-
-        if (IsBufferAllocKind(arena->getAllocKind())) {
-          mallocHeapBytesFreed += ArenaSize - arena->getFirstThingOffset();
-        } else {
-          gcHeapBytesFreed += ArenaSize;
-        }
-
-        if (isAtomsZone) {
-          atomsBitmapIndexes[i] = arena->atomBitmapStart();
-#ifdef DEBUG
-          arena->atomBitmapStart() = 0;
-#endif
-        }
-
-        arena->release();
-        arenasToRelease[i] = arena;
-        count++;
-      }
-
-      zone->mallocHeapSize.removeBytes(mallocHeapBytesFreed, true);
-      zone->gcHeapSize.removeBytes(gcHeapBytesFreed, true, heapSize);
-
-      AutoLockGC lock(this);
-      for (size_t i = 0; i < count; i++) {
-        Arena* arena = arenasToRelease[i];
-        if (isAtomsZone) {
-          atomMarking.freeIndex(atomsBitmapIndexes[i], lock);
-        }
-        arena->chunk()->releaseArena(this, arena, lock);
-      }
+      emptyArenas = releaseSomeEmptyArenas(zone, emptyArenas);
     }
 
-    // Bug 1930497: If we had a separate phase for finalizing GC things with
-    // trivial finalizers, we could run this before it, potentially freeing more
-    // memory sooner. This could also happen in parallel with it.
+    // Now everything with a non-trivial finalizer has been finalized we can
+    // sweep buffer memory.
+    // TODO: This could happen in parallel with further arena sweeping.
     bool decommit = shouldDecommit() && DecommitEnabled();
     zone->bufferAllocator.sweepForMajorCollection(decommit);
+
+    // TODO: The remaining sweeping work can be parallelised between multiple
+    // threads.
+    for (AllocKind kind : BackgroundTrivialFinalizePhase) {
+      MOZ_ASSERT(IsBackgroundSwept(kind));
+      arenaLists.backgroundFinalize<ReleaseEmpty::Yes>(gcx, kind);
+    }
 
     // Record time spent sweeping this zone.
     TimeStamp endTime = TimeStamp::Now();
     zone->perZoneGCTime += endTime - startTime;
   }
+}
+
+Arena* GCRuntime::releaseSomeEmptyArenas(Zone* zone, Arena* emptyArenas) {
+  // Batch releases so as to periodically drop and reaquire the GC lock to
+  // avoid blocking the main thread from allocating arenas. This is important
+  // for allocation-heavy workloads such as the splay benchmark.
+  //
+  // This block is equivalent to calling GCRuntime::releaseArena on each arena
+  // individually.
+  bool isAtomsZone = zone->isAtomsZone();
+
+  Arena* arenasToRelease[ArenaReleaseBatchSize];
+  size_t atomsBitmapIndexes[ArenaReleaseBatchSize];
+  size_t count = 0;
+
+  size_t gcHeapBytesFreed = 0;
+  size_t mallocHeapBytesFreed = 0;
+
+  // Take up to ArenaReleaseBatchSize arenas from emptyArenas list.
+  for (size_t i = 0; emptyArenas && i < ArenaReleaseBatchSize; i++) {
+    Arena* arena = emptyArenas;
+    emptyArenas = arena->next;
+
+    if (IsBufferAllocKind(arena->getAllocKind())) {
+      mallocHeapBytesFreed += ArenaSize - arena->getFirstThingOffset();
+    } else {
+      gcHeapBytesFreed += ArenaSize;
+    }
+
+    if (isAtomsZone) {
+      atomsBitmapIndexes[i] = arena->atomBitmapStart();
+#ifdef DEBUG
+      arena->atomBitmapStart() = 0;
+#endif
+    }
+
+    arena->release();
+    arenasToRelease[i] = arena;
+    count++;
+  }
+
+  zone->mallocHeapSize.removeBytes(mallocHeapBytesFreed, true);
+  zone->gcHeapSize.removeBytes(gcHeapBytesFreed, true, heapSize);
+
+  AutoLockGC lock(this);
+  for (size_t i = 0; i < count; i++) {
+    Arena* arena = arenasToRelease[i];
+    if (isAtomsZone) {
+      atomMarking.freeIndex(atomsBitmapIndexes[i], lock);
+    }
+    arena->chunk()->releaseArena(this, arena, lock);
+  }
+
+  return emptyArenas;
 }
 
 void GCRuntime::assertBackgroundSweepingFinished() {
@@ -1706,11 +1775,10 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JS::GCContext* gcx,
   // or on the background thread.
 
   for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
-    for (const AllocKinds& phase : BackgroundFinalizePhases) {
-      initBackgroundSweep(zone, gcx, phase);
-    }
-
     zone->arenas.queueForegroundThingsForSweep();
+    constexpr AllocKinds backgroundKinds =
+        BackgroundObjectFinalizePhase + BackgroundTrivialFinalizePhase;
+    initBackgroundSweep(zone, gcx, backgroundKinds);
   }
 
   MOZ_ASSERT(!sweepZone);
@@ -1858,7 +1926,8 @@ bool ArenaLists::foregroundFinalize(JS::GCContext* gcx, AllocKind thingKind,
   // released when everything in the zone has been swept (see
   // GCRuntime::sweepBackgroundThings for more details).
   ArenaList& arenas = collectingArenaList(thingKind);
-  if (!FinalizeArenas(gcx, arenas, sweepList, thingKind, sliceBudget)) {
+  if (!FinalizeArenas<ReleaseEmpty::No>(gcx, arenas, sweepList, thingKind,
+                                        sliceBudget)) {
     return false;
   }
 

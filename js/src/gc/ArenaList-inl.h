@@ -89,6 +89,10 @@ void js::gc::SortedArenaList::insertAt(Arena* arena, size_t nfree) {
   }
 }
 
+bool js::gc::SortedArenaList::hasEmptyArenas() const {
+  return !buckets[emptyIndex()].isEmpty();
+}
+
 void js::gc::SortedArenaList::extractEmptyTo(Arena** destListHeadPtr) {
   MOZ_ASSERT(!isConvertedToArenaList);
   MOZ_ASSERT(destListHeadPtr);

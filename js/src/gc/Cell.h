@@ -507,9 +507,20 @@ MOZ_ALWAYS_INLINE void ReadBarrierImpl(Cell* thing) {
   }
 }
 
+#ifdef DEBUG
+static bool PreWriteBarrierAllowed() {
+  JS::GCContext* gcx = MaybeGetGCContext();
+  if (!gcx || !gcx->isPreWriteBarrierAllowed()) {
+    return false;
+  }
+
+  return gcx->onMainThread() || gcx->gcUse() == gc::GCUse::Sweeping ||
+         gcx->gcUse() == gc::GCUse::Finalizing;
+}
+#endif
+
 MOZ_ALWAYS_INLINE void PreWriteBarrierImpl(TenuredCell* thing) {
-  MOZ_ASSERT(CurrentThreadIsMainThread() || CurrentThreadIsGCSweeping() ||
-             CurrentThreadIsGCFinalizing());
+  MOZ_ASSERT(PreWriteBarrierAllowed());
   MOZ_ASSERT(thing);
 
   // Barriers can be triggered on the main thread while collecting, but are
