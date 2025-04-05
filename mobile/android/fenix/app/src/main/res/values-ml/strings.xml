@@ -3268,6 +3268,24 @@
   <string name="text_field_eye_trailing_icon_default_content_description">മറഞ്ഞിരിക്കുന്ന വാചകം കാണിക്കുക</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">എഴുത്തു് വേൎപ്പെടുത്തുക</string>
+  <!--
+    Setup checklist feature
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">തനിമട്ടായ അന്വേഷിയായി വയ്ക്കുക</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">അക്കൗണ്ടിലേക്കു് പ്രവേശിക്കുക</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">അലങ്കാരം തിരഞ്ഞെടുക്കുക</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ കാണുക</string>
+  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">%1$s ആവശ്യസാധനങ്ങൾ</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">%1$s ഇഷ്ടാനുസൃതമാക്കുക</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">തുണയ്ക്കുന്ന കരുകൾ</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">തീൎത്ത പണി</string>
   <!-- Accessibility description for the task icon -->
