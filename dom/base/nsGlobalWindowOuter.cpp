@@ -230,7 +230,6 @@
 #include "nsSandboxFlags.h"
 #include "nsXULControllers.h"
 #include "mozilla/dom/AudioContext.h"
-#include "mozilla/dom/BrowserElementDictionariesBinding.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/cache/CacheStorage.h"
 #include "mozilla/dom/Console.h"
@@ -3835,43 +3834,6 @@ bool nsGlobalWindowOuter::DispatchCustomEvent(
   }
 
   return defaultActionEnabled;
-}
-
-bool nsGlobalWindowOuter::DispatchResizeEvent(const CSSIntSize& aSize) {
-  ErrorResult res;
-  RefPtr<Event> domEvent =
-      mDoc->CreateEvent(u"CustomEvent"_ns, CallerType::System, res);
-  if (res.Failed()) {
-    return false;
-  }
-
-  // We don't init the AutoJSAPI with ourselves because we don't want it
-  // reporting errors to our onerror handlers.
-  AutoJSAPI jsapi;
-  jsapi.Init();
-  JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, GetWrapperPreserveColor());
-
-  DOMWindowResizeEventDetail detail;
-  detail.mWidth = aSize.width;
-  detail.mHeight = aSize.height;
-  JS::Rooted<JS::Value> detailValue(cx);
-  if (!ToJSValue(cx, detail, &detailValue)) {
-    return false;
-  }
-
-  CustomEvent* customEvent = static_cast<CustomEvent*>(domEvent.get());
-  customEvent->InitCustomEvent(cx, u"DOMWindowResize"_ns,
-                               /* aCanBubble = */ true,
-                               /* aCancelable = */ true, detailValue);
-
-  domEvent->SetTrusted(true);
-  domEvent->WidgetEventPtr()->mFlags.mOnlyChromeDispatch = true;
-
-  nsCOMPtr<EventTarget> target = this;
-  domEvent->SetTarget(target);
-
-  return target->DispatchEvent(*domEvent, CallerType::System, IgnoreErrors());
 }
 
 bool nsGlobalWindowOuter::WindowExists(const nsAString& aName,

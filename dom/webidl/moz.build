@@ -459,7 +459,6 @@ WEBIDL_FILES = [
     "BiquadFilterNode.webidl",
     "Blob.webidl",
     "BroadcastChannel.webidl",
-    "BrowserElementDictionaries.webidl",
     "Cache.webidl",
     "CacheStorage.webidl",
     "CancelContentJSOptions.webidl",
