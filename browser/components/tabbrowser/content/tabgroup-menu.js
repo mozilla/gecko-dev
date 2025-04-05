@@ -371,6 +371,11 @@
       );
       this.#panel = this.querySelector("panel");
       this.#nameField = this.querySelector("#tab-group-name");
+      this.#panel.addEventListener("click", e => {
+        if (e.target !== this.#nameField) {
+          this.#nameField.blur();
+        }
+      });
       this.#swatchesContainer = this.querySelector(
         ".tab-group-editor-swatches"
       );
@@ -737,6 +742,7 @@
       }
       this.#activeGroup.label = newLabel;
       this.#nameField.value = newLabel;
+      this.#nameField.select();
       this.#suggestedMlLabel = newLabel;
     }
 
