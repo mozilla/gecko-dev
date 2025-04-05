@@ -324,6 +324,7 @@
     #smartTabGroupingManager;
     #suggestionsOptinContainer;
     #suggestionsOptin;
+    #suggestionsRunToken;
 
     constructor() {
       super();
@@ -500,6 +501,7 @@
       this.#suggestionsOptin.addEventListener(
         "MlModelOptinCancelDownload",
         () => {
+          this.#suggestionsRunToken = null;
           this.#handleMLOptinTelemetry("step2-optin-cancel-download");
           this.#smartTabGroupingManager.terminateProcess();
           this.suggestionState = this.createMode
@@ -582,6 +584,7 @@
       );
       this.#cancelSuggestionsButton.addEventListener("click", () => {
         this.#handleMlTelemetry("cancel");
+        this.#suggestionsRunToken = null;
         this.close();
       });
       this.#suggestionsSeparator = this.querySelector(
@@ -602,6 +605,7 @@
         "#tab-group-suggestions-load-cancel"
       );
       this.#suggestionsLoadCancel.addEventListener("click", () => {
+        this.#suggestionsRunToken = null;
         this.#handleLoadSuggestionsCancel();
       });
     }
@@ -895,7 +899,8 @@
     }
 
     #handleLoadSuggestionsCancel() {
-      // TODO look into actually canceling any processes
+      this.#suggestionsRunToken = null;
+
       this.suggestionState = this.createMode
         ? MozTabbrowserTabGroupMenu.State.CREATE_AI_INITIAL
         : MozTabbrowserTabGroupMenu.State.EDIT_AI_INITIAL;
@@ -951,14 +956,20 @@
 
       // Init progress with value to show determiniate progress
       this.#suggestionsOptin.progressStatus = 0;
+      const runToken = Date.now();
+      this.#suggestionsRunToken = runToken;
       await this.#smartTabGroupingManager.preloadAllModels(prog => {
         this.#suggestionsOptin.progressStatus = prog.percentage;
       });
-
       // Clean up optin UI
       this.#setFormToDisabled(false);
       this.#suggestionsOptin.isHidden = true;
       this.#suggestionsOptin.isLoading = false;
+
+      if (runToken !== this.#suggestionsRunToken) {
+        // User has canceled
+        return;
+      }
 
       // Continue on with the suggest flow
       this.#handleMLOptinTelemetry("step3-optin-completed");
@@ -968,12 +979,18 @@
 
     async #handleSmartSuggest() {
       // Loading
+      const runToken = Date.now();
+      this.#suggestionsRunToken = runToken;
+
       this.suggestionState = MozTabbrowserTabGroupMenu.State.LOADING;
       const tabs = await this.#smartTabGroupingManager.smartTabGroupingForGroup(
         this.activeGroup,
         gBrowser.tabs
       );
-
+      if (this.#suggestionsRunToken != runToken) {
+        // User has canceled
+        return;
+      }
       if (!tabs.length) {
         // No un-grouped tabs found
         this.suggestionState = this.#createMode
