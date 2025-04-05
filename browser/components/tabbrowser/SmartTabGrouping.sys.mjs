@@ -98,6 +98,7 @@ const TAB_URLS_TO_EXCLUDE = [
   "about:home",
   "about:privatebrowsing",
   "chrome://browser/content/blanktab.html",
+  "about:firefoxview",
 ];
 
 /**
