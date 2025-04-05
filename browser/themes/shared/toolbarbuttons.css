@@ -75,6 +75,33 @@
   }
 }
 
+/* Taskbar Tab windows will hide all toolbar buttons that are not on the following list */
+
+:root[taskbartab] {
+  .chromeclass-toolbar-additional {
+    display: none;
+  }
+  #back-button,
+  #forward-button,
+  #stop-reload-button,
+  #customizableui-special-spring1,
+  #vertical-spacer,
+  #customizableui-special-spring2,
+  #downloads-button,
+  #unified-extensions-button,
+  #save-page-button,
+  #print-button,
+  #find-button,
+  #zoom-controls,
+  #edit-controls,
+  #characterencoding-button,
+  #email-link-button,
+  #screenshot-button,
+  #fullscreen-button {
+    display: revert;
+  }
+}
+
 toolbar .toolbarbutton-1 {
   appearance: none;
   margin: 0;
