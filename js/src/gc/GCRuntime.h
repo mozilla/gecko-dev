@@ -51,7 +51,6 @@ class AutoGCSession;
 class AutoHeapSession;
 class AutoTraceSession;
 class BufferAllocator;
-struct FinalizePhase;
 class MarkingValidator;
 struct MovingTracer;
 class ParallelMarkTask;
@@ -894,7 +893,7 @@ class GCRuntime {
   IncrementalProgress beginSweepingSweepGroup(JS::GCContext* gcx,
                                               JS::SliceBudget& budget);
   void initBackgroundSweep(Zone* zone, JS::GCContext* gcx,
-                           const FinalizePhase& phase);
+                           const AllocKinds& kinds);
   IncrementalProgress markDuringSweeping(JS::GCContext* gcx,
                                          JS::SliceBudget& budget);
   void updateAtomsBitmap();

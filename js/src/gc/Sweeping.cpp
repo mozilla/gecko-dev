@@ -61,50 +61,41 @@ using mozilla::TimeStamp;
 
 using JS::SliceBudget;
 
-struct js::gc::FinalizePhase {
-  gcstats::PhaseKind statsPhase;
-  AllocKinds kinds;
-};
+/*
+ * Finalization phase for objects swept incrementally on the main thread.
+ */
+static constexpr AllocKinds ForegroundObjectFinalizePhase = {
+    AllocKind::OBJECT0, AllocKind::OBJECT2,  AllocKind::OBJECT4,
+    AllocKind::OBJECT8, AllocKind::OBJECT12, AllocKind::OBJECT16};
 
 /*
- * Finalization order for objects swept incrementally on the main thread.
+ * Finalization phase for GC things swept incrementally on the main thread.
  */
-static constexpr FinalizePhase ForegroundObjectFinalizePhase = {
-    gcstats::PhaseKind::FINALIZE_OBJECT,
-    {AllocKind::OBJECT0, AllocKind::OBJECT2, AllocKind::OBJECT4,
-     AllocKind::OBJECT8, AllocKind::OBJECT12, AllocKind::OBJECT16}};
+static constexpr AllocKinds ForegroundNonObjectFinalizePhase = {
+    AllocKind::SCRIPT, AllocKind::JITCODE};
 
 /*
- * Finalization order for GC things swept incrementally on the main thread.
+ * Finalization phases for GC things swept on the background thread.
  */
-static constexpr FinalizePhase ForegroundNonObjectFinalizePhase = {
-    gcstats::PhaseKind::FINALIZE_NON_OBJECT,
-    {AllocKind::SCRIPT, AllocKind::JITCODE}};
-
-/*
- * Finalization order for GC things swept on the background thread.
- */
-static constexpr FinalizePhase BackgroundFinalizePhases[] = {
-    {gcstats::PhaseKind::FINALIZE_OBJECT,
-     {AllocKind::FUNCTION, AllocKind::FUNCTION_EXTENDED,
-      AllocKind::OBJECT0_BACKGROUND, AllocKind::OBJECT2_BACKGROUND,
-      AllocKind::ARRAYBUFFER4, AllocKind::OBJECT4_BACKGROUND,
-      AllocKind::ARRAYBUFFER8, AllocKind::OBJECT8_BACKGROUND,
-      AllocKind::ARRAYBUFFER12, AllocKind::OBJECT12_BACKGROUND,
-      AllocKind::ARRAYBUFFER16, AllocKind::OBJECT16_BACKGROUND}},
-    {gcstats::PhaseKind::FINALIZE_NON_OBJECT,
-     {AllocKind::BUFFER16, AllocKind::BUFFER32, AllocKind::BUFFER64,
-      AllocKind::BUFFER128, AllocKind::SCOPE, AllocKind::REGEXP_SHARED,
-      AllocKind::FAT_INLINE_STRING, AllocKind::STRING,
-      AllocKind::EXTERNAL_STRING, AllocKind::FAT_INLINE_ATOM, AllocKind::ATOM,
-      AllocKind::SYMBOL, AllocKind::BIGINT, AllocKind::SHAPE,
-      AllocKind::BASE_SHAPE, AllocKind::GETTER_SETTER,
-      AllocKind::COMPACT_PROP_MAP, AllocKind::NORMAL_PROP_MAP,
-      AllocKind::DICT_PROP_MAP}}};
+static constexpr AllocKinds BackgroundFinalizePhases[] = {
+    {AllocKind::FUNCTION, AllocKind::FUNCTION_EXTENDED,
+     AllocKind::OBJECT0_BACKGROUND, AllocKind::OBJECT2_BACKGROUND,
+     AllocKind::ARRAYBUFFER4, AllocKind::OBJECT4_BACKGROUND,
+     AllocKind::ARRAYBUFFER8, AllocKind::OBJECT8_BACKGROUND,
+     AllocKind::ARRAYBUFFER12, AllocKind::OBJECT12_BACKGROUND,
+     AllocKind::ARRAYBUFFER16, AllocKind::OBJECT16_BACKGROUND},
+    {AllocKind::BUFFER16, AllocKind::BUFFER32, AllocKind::BUFFER64,
+     AllocKind::BUFFER128, AllocKind::SCOPE, AllocKind::REGEXP_SHARED,
+     AllocKind::FAT_INLINE_STRING, AllocKind::STRING,
+     AllocKind::EXTERNAL_STRING, AllocKind::FAT_INLINE_ATOM, AllocKind::ATOM,
+     AllocKind::SYMBOL, AllocKind::BIGINT, AllocKind::SHAPE,
+     AllocKind::BASE_SHAPE, AllocKind::GETTER_SETTER,
+     AllocKind::COMPACT_PROP_MAP, AllocKind::NORMAL_PROP_MAP,
+     AllocKind::DICT_PROP_MAP}};
 
 static_assert(std::size(BackgroundFinalizePhases) == 2);
 static constexpr AllocKinds AllBackgroundSweptKinds =
-    BackgroundFinalizePhases[0].kinds + BackgroundFinalizePhases[1].kinds;
+    BackgroundFinalizePhases[0] + BackgroundFinalizePhases[1];
 
 template <typename T>
 inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
@@ -234,9 +225,8 @@ static bool FinalizeArenas(JS::GCContext* gcx, ArenaList& src,
 }
 
 void GCRuntime::initBackgroundSweep(Zone* zone, JS::GCContext* gcx,
-                                    const FinalizePhase& phase) {
-  gcstats::AutoPhase ap(stats(), phase.statsPhase);
-  for (auto kind : phase.kinds) {
+                                    const AllocKinds& kinds) {
+  for (AllocKind kind : kinds) {
     zone->arenas.initBackgroundSweep(kind);
   }
 }
@@ -345,8 +335,8 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
     // We must finalize thing kinds in the order specified by
     // BackgroundFinalizePhases.
 
-    for (const auto& phase : BackgroundFinalizePhases) {
-      for (auto kind : phase.kinds) {
+    for (const AllocKinds& kinds : BackgroundFinalizePhases) {
+      for (AllocKind kind : kinds) {
         arenaLists.backgroundFinalize(gcx, kind, &emptyArenas);
       }
     }
@@ -1697,7 +1687,7 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JS::GCContext* gcx,
   // or on the background thread.
 
   for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
-    for (const auto& phase : BackgroundFinalizePhases) {
+    for (const AllocKinds& phase : BackgroundFinalizePhases) {
       initBackgroundSweep(zone, gcx, phase);
     }
 
@@ -2370,7 +2360,7 @@ static UniquePtr<SweepAction> ForEachZoneInSweepGroup(
   return js::MakeUnique<Action>(rt, zoneOut, std::move(action));
 }
 
-static UniquePtr<SweepAction> ForEachAllocKind(AllocKinds kinds,
+static UniquePtr<SweepAction> ForEachAllocKind(const AllocKinds& kinds,
                                                AllocKind* kindOut,
                                                UniquePtr<SweepAction> action) {
   if (!action) {
@@ -2403,11 +2393,11 @@ bool GCRuntime::initSweepActions() {
           ForEachZoneInSweepGroup(
               rt, &sweepZone.ref(),
               Sequence(MaybeYield(ZealMode::YieldBeforeSweepingObjects),
-                       ForEachAllocKind(ForegroundObjectFinalizePhase.kinds,
+                       ForEachAllocKind(ForegroundObjectFinalizePhase,
                                         &sweepAllocKind.ref(),
                                         Call(&GCRuntime::finalizeAllocKind)),
                        MaybeYield(ZealMode::YieldBeforeSweepingNonObjects),
-                       ForEachAllocKind(ForegroundNonObjectFinalizePhase.kinds,
+                       ForEachAllocKind(ForegroundNonObjectFinalizePhase,
                                         &sweepAllocKind.ref(),
                                         Call(&GCRuntime::finalizeAllocKind)),
                        MaybeYield(ZealMode::YieldBeforeSweepingPropMapTrees),
