@@ -2,6 +2,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">Téléchargements</string>
+  <!--
+    Text shown on the second row of an in progress download notification.
+    %1$s will be replaced with the percentage of download completed so far.
+  -->
+  <string name="mozac_feature_downloads_percentage_notification_text">Progression : %1$s</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Téléchargement mis en pause</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->

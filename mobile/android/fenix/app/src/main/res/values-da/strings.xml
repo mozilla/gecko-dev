@@ -768,6 +768,10 @@
   <string name="preferences_add_private_browsing_shortcut">Tilføj genvej til privat browsing</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Tilstanden Kun-HTTPS</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Brug skærmlås til at skjule faneblade i privat browsing</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Vis faneblade med fingeraftryk, ansigtslås eller pinkode.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blokering af cookie-bannere</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -3430,12 +3434,12 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Vis skjult tekst</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Ryd tekst</string>
-  <!--
-    Setup checklist component
-
-    Accessibility description for a check mark on a completed task
-  -->
+  <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Fuldført opgave</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Opgaveikon</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Lås op</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Lås private faneblade op</string>
 </resources>

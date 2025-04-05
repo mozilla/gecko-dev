@@ -3435,11 +3435,7 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Показати прихований текст</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Очистити текст</string>
-  <!--
-    Setup checklist component
-
-    Accessibility description for a check mark on a completed task
-  -->
+  <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Виконане завдання</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Піктограма завдання</string>

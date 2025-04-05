@@ -687,6 +687,8 @@
   <string name="onboarding_customize_theme_main_image_content_description">Grond maletg dal chau-pagina utilisà en la vista da la selecziun dal design che mussa ina illustraziun dad utensils per artists e sviluppaders.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Maletg dal design «%1$s»</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">tscherner</string>
   <!--
     Widget Picker
 
@@ -1437,10 +1439,31 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Allontanà las telechargiadas</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Elements stizzads: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Allontanà %1$s</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">Stizzà «%1$s»</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Telechargiada en elavuraziun…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detagls</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Telechargiada cumplettada</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Avrir</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Revocar</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Naginas datotecas telechargiadas</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Anc naginas telechargiadas</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">Datotecas telechargiadas vegnan a cumparair qua.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1448,6 +1471,18 @@
   <string name="download_multi_select_title">%1$d tschernidas</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Allontanar</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">Parter l’URL</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Cundivider la datoteca</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Vuls ti propi stizzar ils elements tschernids?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Stizzar</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Interrumper</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">En elavuraziun</string>
   <!--
     Time period headers for downloads
 
@@ -1462,6 +1497,23 @@
   <string name="download_time_period_last_30_days">Ultims 30 dis</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Pli vegl</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • anc %3$s</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">pussà</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pendent</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">Telechargiada betg reussida</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">Retschertgar las telechargiadas</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Na chattà nagins resultats</string>
   <!--
     Downloads Content Type Filters
 
@@ -1586,6 +1638,14 @@
   <string name="bookmark_menu_delete_button">Stizzar</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Memorisar</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Zavrar tenor data pli nova</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Zavrar tenor data pli veglia</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Zavrar dad A enfin Z</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Zavrar da Z enfin A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -3363,11 +3423,7 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Mussar il text zuppà</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Stizzar il text</string>
-  <!--
-    Setup checklist component
-
-    Accessibility description for a check mark on a completed task
-  -->
+  <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Incumbensas terminadas</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Icona dad incumbensa</string>

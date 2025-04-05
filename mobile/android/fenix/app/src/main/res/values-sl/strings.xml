@@ -1439,8 +1439,15 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Prenosi odstranjeni</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Izbrisani predmeti: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s odstranjen</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">"%1$s" izbrisana</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Prenos poteka …</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1464,6 +1471,8 @@
   <string name="download_multi_select_title">%1$d izbranih</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Odstrani</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Izbriši</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Deli URL</string>
   <!-- Text for the button to share the download file -->
@@ -1510,6 +1519,8 @@
   <string name="download_content_type_filter_document">Dokumenti</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Drugo</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Drugo</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -3406,11 +3417,33 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Počisti besedilo</string>
   <!--
-    Setup checklist component
+    Setup checklist feature
 
-    Accessibility description for a check mark on a completed task
+    The title of the default browser task for the setup checklist
   -->
+  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Nastavi kot privzeti brskalnik</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Prijavite se v račun</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Izberite temo</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Izberite postavitev orodne vrstice</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Razišči razširitve</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Koristna orodja</string>
+  <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Dokončano opravilo</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Ikona opravila</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Zapusti zasebne zavihke</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Odkleni</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Odkleni zasebne zavihke</string>
 </resources>

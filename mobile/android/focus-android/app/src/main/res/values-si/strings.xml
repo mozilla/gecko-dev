@@ -56,6 +56,7 @@
   <string name="menu_about">පිළිබඳව</string>
   <string name="menu_help">උදව්</string>
   <string name="menu_rights" moz:removedIn="137">ඔබගේ අයිතීන්</string>
+  <string name="menu_terms_of_use">භාවිත නියම</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -490,6 +491,8 @@
   <string name="onboarding_first_screen_button_text" moz:removedIn="137" tools:ignore="UnusedResources">පටන් ගන්න</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue">එකඟ වී ඉදිරියට</string>
+  <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
+  <string name="a11y_link_available">සබැඳිය තිබේ</string>
   <!--
     Onboarding second screen: Title
 
