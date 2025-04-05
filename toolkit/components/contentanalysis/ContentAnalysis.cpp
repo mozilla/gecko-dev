@@ -2082,7 +2082,7 @@ void ContentAnalysis::NotifyResponseObservers(
 
 void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
                                     nsCString&& aUserActionId,
-                                    bool aAutoAcknowledge, bool aIsTimeout) {
+                                    bool aAcknowledge, bool aIsTimeout) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aResponse->GetAction() !=
              nsIContentAnalysisResponse::Action::eWarn);
@@ -2099,7 +2099,7 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
         "responded | userActionId: %s",
         aUserActionId.get());
 
-    if (aAutoAcknowledge) {
+    if (aAcknowledge) {
       // Respond to the agent with TOO_LATE because the response arrived
       // after the request was cancelled (for any reason).
       nsIContentAnalysisAcknowledgement::FinalAction action;
@@ -2139,7 +2139,7 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
     return;
   }
 
-  if (aAutoAcknowledge) {
+  if (aAcknowledge) {
     // Acknowledge every response we receive.
     auto acknowledgement = MakeRefPtr<ContentAnalysisAcknowledgement>(
         aIsTimeout ? nsIContentAnalysisAcknowledgement::Result::eTooLate
@@ -3261,8 +3261,15 @@ ContentAnalysis::RespondToWarnDialog(const nsACString& aRequestToken,
         entry->mUserActionId,
         CanceledResponse{ConvertResult(entry->mResponse->GetAction()), count});
   }
+  bool haveGottenResponse;
+  {
+    auto map = mRequestTokenToUserActionIdMap.Lock();
+    haveGottenResponse = !map->Contains(aRequestToken);
+  }
+
+  // Don't acknowledge if we haven't gotten a response from the agent yet
   IssueResponse(entry->mResponse, nsCString(entry->mUserActionId),
-                entry->mAutoAcknowledge, entry->mWasTimeout);
+                entry->mAutoAcknowledge && haveGottenResponse, entry->mWasTimeout);
   return NS_OK;
 }
 
