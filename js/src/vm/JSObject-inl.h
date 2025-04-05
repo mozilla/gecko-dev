@@ -82,9 +82,9 @@ inline void JSObject::finalize(JS::GCContext* gcx) {
 
 #ifdef DEBUG
   MOZ_ASSERT(isTenured());
-  if (!IsBackgroundFinalized(asTenured().getAllocKind())) {
+  if (IsForegroundFinalized(asTenured().getAllocKind())) {
     /* Assert we're on the main thread. */
-    MOZ_ASSERT(js::CurrentThreadCanAccessZone(zone()));
+    MOZ_ASSERT(js::CurrentThreadCanAccessZone(zoneFromAnyThread()));
   }
 #endif
 

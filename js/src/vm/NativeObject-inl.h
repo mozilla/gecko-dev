@@ -609,11 +609,8 @@ MOZ_ALWAYS_INLINE bool NativeObject::setShapeAndAddNewSlot(
 inline js::gc::AllocKind NativeObject::allocKindForTenure() const {
   using namespace js::gc;
   AllocKind kind = GetGCObjectFixedSlotsKind(numFixedSlots());
-  MOZ_ASSERT(!IsBackgroundFinalized(kind));
-  if (!CanChangeToBackgroundAllocKind(kind, getClass())) {
-    return kind;
-  }
-  return ForegroundToBackgroundAllocKind(kind);
+  MOZ_ASSERT(!IsFinalizedKind(kind));
+  return GetFinalizedAllocKindForClass(kind, getClass());
 }
 
 inline js::GlobalObject& NativeObject::global() const { return nonCCWGlobal(); }

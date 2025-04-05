@@ -149,20 +149,14 @@ MOZ_ALWAYS_INLINE WasmStructObject* WasmStructObject::createStructOOL(
 inline gc::AllocKind WasmArrayObject::allocKindForOOL() {
   gc::AllocKind allocKind =
       gc::GetGCObjectKindForBytes(sizeof(WasmArrayObject));
-  if (CanChangeToBackgroundAllocKind(allocKind, &WasmArrayObject::class_)) {
-    allocKind = ForegroundToBackgroundAllocKind(allocKind);
-  }
-  return allocKind;
+  return gc::GetFinalizedAllocKindForClass(allocKind, &WasmArrayObject::class_);
 }
 
 /* static */
 inline gc::AllocKind WasmArrayObject::allocKindForIL(uint32_t storageBytes) {
   gc::AllocKind allocKind =
       gc::GetGCObjectKindForBytes(sizeof(WasmArrayObject) + storageBytes);
-  if (CanChangeToBackgroundAllocKind(allocKind, &WasmArrayObject::class_)) {
-    allocKind = ForegroundToBackgroundAllocKind(allocKind);
-  }
-  return allocKind;
+  return gc::GetFinalizedAllocKindForClass(allocKind, &WasmArrayObject::class_);
 }
 
 inline gc::AllocKind WasmArrayObject::allocKind() const {

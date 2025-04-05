@@ -51,7 +51,7 @@ namespace gc {
 //  - their JS::TraceKind
 //  - their C++ base type
 //  - a C++ type of the correct size
-//  - whether they can be finalized on the background thread
+//  - their FinalizeKind (see above)
 //  - whether they can be allocated in the nursery (this is true for foreground
 //    finalized objects but these will can only actually be allocated in the
 //    nursery if JSCLASS_SKIP_NURSERY_FINALIZE is set)
@@ -59,57 +59,64 @@ namespace gc {
 
 // clang-format off
 #define FOR_EACH_OBJECT_ALLOCKIND(D) \
- /* AllocKind              TraceKind     TypeName           SizedType          BGFinal Nursery Compact */ \
-    D(FUNCTION,            Object,       JSObject,          JSObject_Slots4,   true,   true,   true) \
-    D(FUNCTION_EXTENDED,   Object,       JSObject,          JSObject_Slots7,   true,   true,   true) \
-    D(OBJECT0,             Object,       JSObject,          JSObject_Slots0,   false,  true,   true) \
-    D(OBJECT0_BACKGROUND,  Object,       JSObject,          JSObject_Slots0,   true,   true,   true) \
-    D(OBJECT2,             Object,       JSObject,          JSObject_Slots2,   false,  true,   true) \
-    D(OBJECT2_BACKGROUND,  Object,       JSObject,          JSObject_Slots2,   true,   true,   true) \
-    D(ARRAYBUFFER4,        Object,       JSObject,          JSObject_Slots4,   true,   true,   true) \
-    D(OBJECT4,             Object,       JSObject,          JSObject_Slots4,   false,  true,   true) \
-    D(OBJECT4_BACKGROUND,  Object,       JSObject,          JSObject_Slots4,   true,   true,   true) \
-    D(ARRAYBUFFER8,        Object,       JSObject,          JSObject_Slots8,   true,   true,   true) \
-    D(OBJECT8,             Object,       JSObject,          JSObject_Slots8,   false,  true,   true) \
-    D(OBJECT8_BACKGROUND,  Object,       JSObject,          JSObject_Slots8,   true,   true,   true) \
-    D(ARRAYBUFFER12,       Object,       JSObject,          JSObject_Slots12,  true,   true,   true) \
-    D(OBJECT12,            Object,       JSObject,          JSObject_Slots12,  false,  true,   true) \
-    D(OBJECT12_BACKGROUND, Object,       JSObject,          JSObject_Slots12,  true,   true,   true) \
-    D(ARRAYBUFFER16,       Object,       JSObject,          JSObject_Slots16,  true,   true,   true) \
-    D(OBJECT16,            Object,       JSObject,          JSObject_Slots16,  false,  true,   true) \
-    D(OBJECT16_BACKGROUND, Object,       JSObject,          JSObject_Slots16,  true,   true,   true)
+ /* AllocKind              TraceKind     TypeName               SizedType              Finalize    Nursery Compact */ \
+    D(FUNCTION,            Object,       JSObject,              JSObject_Slots4,       None,       true,   true) \
+    D(FUNCTION_EXTENDED,   Object,       JSObject,              JSObject_Slots7,       None,       true,   true) \
+    D(OBJECT0,             Object,       JSObject,              JSObject_Slots0,       None,       true,   true) \
+    D(OBJECT0_FOREGROUND,  Object,       JSObject,              JSObject_Slots0,       Foreground, true,   true) \
+    D(OBJECT0_BACKGROUND,  Object,       JSObject,              JSObject_Slots0,       Background, true,   true) \
+    D(OBJECT2,             Object,       JSObject,              JSObject_Slots2,       None,       true,   true) \
+    D(OBJECT2_FOREGROUND,  Object,       JSObject,              JSObject_Slots2,       Foreground, true,   true) \
+    D(OBJECT2_BACKGROUND,  Object,       JSObject,              JSObject_Slots2,       Background, true,   true) \
+    D(ARRAYBUFFER4,        Object,       JSObject,              JSObject_Slots4,       Background, true,   true) \
+    D(OBJECT4,             Object,       JSObject,              JSObject_Slots4,       None,       true,   true) \
+    D(OBJECT4_FOREGROUND,  Object,       JSObject,              JSObject_Slots4,       Foreground, true,   true) \
+    D(OBJECT4_BACKGROUND,  Object,       JSObject,              JSObject_Slots4,       Background, true,   true) \
+    D(ARRAYBUFFER8,        Object,       JSObject,              JSObject_Slots8,       Background, true,   true) \
+    D(OBJECT8,             Object,       JSObject,              JSObject_Slots8,       None,       true,   true) \
+    D(OBJECT8_FOREGROUND,  Object,       JSObject,              JSObject_Slots8,       Foreground, true,   true) \
+    D(OBJECT8_BACKGROUND,  Object,       JSObject,              JSObject_Slots8,       Background, true,   true) \
+    D(ARRAYBUFFER12,       Object,       JSObject,              JSObject_Slots12,      Background, true,   true) \
+    D(OBJECT12,            Object,       JSObject,              JSObject_Slots12,      None,       true,   true) \
+    D(OBJECT12_FOREGROUND, Object,       JSObject,              JSObject_Slots12,      Foreground, true,   true) \
+    D(OBJECT12_BACKGROUND, Object,       JSObject,              JSObject_Slots12,      Background, true,   true) \
+    D(ARRAYBUFFER16,       Object,       JSObject,              JSObject_Slots16,      Background, true,   true) \
+    D(OBJECT16,            Object,       JSObject,              JSObject_Slots16,      None,       true,   true) \
+    D(OBJECT16_FOREGROUND, Object,       JSObject,              JSObject_Slots16,      Foreground, true,   true) \
+    D(OBJECT16_BACKGROUND, Object,       JSObject,              JSObject_Slots16,      Background, true,   true)
 
 #define FOR_EACH_NONOBJECT_NONNURSERY_ALLOCKIND(D) \
- /* AllocKind              TraceKind     TypeName               SizedType              BGFinal Nursery Compact */ \
-    D(SCRIPT,              Script,       js::BaseScript,        js::BaseScript,        false,  false,  true) \
-    D(SHAPE,               Shape,        js::Shape,             js::SizedShape,        true,   false,  true) \
-    D(BASE_SHAPE,          BaseShape,    js::BaseShape,         js::BaseShape,         true,   false,  true) \
-    D(GETTER_SETTER,       GetterSetter, js::GetterSetter,      js::GetterSetter,      true,   false,  true) \
-    D(COMPACT_PROP_MAP,    PropMap,      js::CompactPropMap,    js::CompactPropMap,    true,   false,  true) \
-    D(NORMAL_PROP_MAP,     PropMap,      js::NormalPropMap,     js::NormalPropMap,     true,   false,  true) \
-    D(DICT_PROP_MAP,       PropMap,      js::DictionaryPropMap, js::DictionaryPropMap, true,   false,  true) \
-    D(EXTERNAL_STRING,     String,       JSExternalString,      JSExternalString,      true,   false,  true) \
-    D(FAT_INLINE_ATOM,     String,       js::FatInlineAtom,     js::FatInlineAtom,     true,   false,  false) \
-    D(ATOM,                String,       js::NormalAtom,        js::NormalAtom,        true,   false,  false) \
-    D(SYMBOL,              Symbol,       JS::Symbol,            JS::Symbol,            true,   false,  false) \
-    D(JITCODE,             JitCode,      js::jit::JitCode,      js::jit::JitCode,      false,  false,  false) \
-    D(SCOPE,               Scope,        js::Scope,             js::Scope,             true,   false,  true) \
-    D(REGEXP_SHARED,       RegExpShared, js::RegExpShared,      js::RegExpShared,      true,   false,  true)
+ /* AllocKind              TraceKind     TypeName               SizedType              Finalize    Nursery Compact */ \
+    D(SCRIPT,              Script,       js::BaseScript,        js::BaseScript,        Foreground, false,  true) \
+    D(SHAPE,               Shape,        js::Shape,             js::SizedShape,        Background, false,  true) \
+    D(BASE_SHAPE,          BaseShape,    js::BaseShape,         js::BaseShape,         None,       false,  true) \
+    D(GETTER_SETTER,       GetterSetter, js::GetterSetter,      js::GetterSetter,      None,       false,  true) \
+    D(COMPACT_PROP_MAP,    PropMap,      js::CompactPropMap,    js::CompactPropMap,    Background, false,  true) \
+    D(NORMAL_PROP_MAP,     PropMap,      js::NormalPropMap,     js::NormalPropMap,     Background, false,  true) \
+    D(DICT_PROP_MAP,       PropMap,      js::DictionaryPropMap, js::DictionaryPropMap, Background, false,  true) \
+    D(EXTERNAL_STRING,     String,       JSExternalString,      JSExternalString,      Background, false,  true) \
+    D(FAT_INLINE_ATOM,     String,       js::FatInlineAtom,     js::FatInlineAtom,     None,       false,  false) \
+    D(ATOM,                String,       js::NormalAtom,        js::NormalAtom,        Background, false,  false) \
+    D(SYMBOL,              Symbol,       JS::Symbol,            JS::Symbol,            None,       false,  false) \
+    D(JITCODE,             JitCode,      js::jit::JitCode,      js::jit::JitCode,      Foreground, false,  false) \
+    D(SCOPE,               Scope,        js::Scope,             js::Scope,             Background, false,  true) \
+    D(REGEXP_SHARED,       RegExpShared, js::RegExpShared,      js::RegExpShared,      Background, false,  true)
 
 #define FOR_EACH_NONOBJECT_NURSERY_ALLOCKIND(D) \
- /* AllocKind              TraceKind     TypeName           SizedType          BGFinal Nursery Compact */ \
-    D(BIGINT,              BigInt,       JS::BigInt,        JS::BigInt,        true,   true,  true)
+ /* AllocKind              TraceKind     TypeName               SizedType              Finalize    Nursery Compact */ \
+    D(BIGINT,              BigInt,       JS::BigInt,            JS::BigInt,            Background, true,   true)
 
 #define FOR_EACH_NURSERY_STRING_ALLOCKIND(D) \
-    D(FAT_INLINE_STRING,   String,        JSFatInlineString, JSFatInlineString, true,   true,  true) \
-    D(STRING,              String,        JSString,          JSString,          true,   true,  true)
+ /* AllocKind              TraceKind     TypeName               SizedType              Finalize    Nursery Compact */ \
+    D(FAT_INLINE_STRING,   String,       JSFatInlineString,     JSFatInlineString,     None,       true,   true) \
+    D(STRING,              String,       JSString,              JSString,              Background, true,   true)
 
 #define FOR_EACH_BUFFER_ALLOCKIND(D) \
- /* AllocKind              TraceKind     TypeName               SizedType                  BGFinal Nursery Compact */ \
-  D(BUFFER16,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<16>,  true,   false,  true) \
-  D(BUFFER32,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<32>,  true,   false,  true) \
-  D(BUFFER64,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<64>,  true,   false,  true) \
-  D(BUFFER128,             SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<128>, true,   false,  true)
+ /* AllocKind              TraceKind     TypeName               SizedType                  Finalize Nursery Compact */ \
+  D(BUFFER16,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<16>,  None,    false,  true) \
+  D(BUFFER32,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<32>,  None,    false,  true) \
+  D(BUFFER64,              SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<64>,  None,    false,  true) \
+  D(BUFFER128,             SmallBuffer,  js::gc::SmallBuffer,   js::gc::SmallBufferN<128>, None,    false,  true)
 // clang-format on
 
 #define FOR_EACH_NONOBJECT_NONBUFFER_ALLOCKIND(D) \
@@ -167,6 +174,19 @@ constexpr size_t AllocKindCount = size_t(AllocKind::LIMIT);
  * Order is important as these are numerically compared.
  */
 enum class Heap : uint8_t { Default = 0, Tenured = 1 };
+
+enum class FinalizeKind {
+  // Cells are not finalized. Arenas containing these cells are swept on a
+  // background thread.
+  None = 0,
+
+  // Requires foreground finalization. May have client-supplied finalizer.
+  Foreground,
+
+  // Does not require foreground finalization but is non-trivial. May have
+  // client-supplied finalizer. Finalized on a background thread.
+  Background
+};
 
 constexpr bool IsAllocKind(AllocKind kind) {
   return kind >= AllocKind::FIRST && kind <= AllocKind::LIMIT;
@@ -236,11 +256,10 @@ using ObjectAllocKindArray =
  */
 template <typename T>
 struct MapTypeToAllocKind {};
-#define EXPAND_MAPTYPETOALLOCKIND(allocKind, traceKind, type, sizedType, \
-                                  bgFinal, nursery, compact)             \
-  template <>                                                            \
-  struct MapTypeToAllocKind<type> {                                      \
-    static const AllocKind kind = AllocKind::allocKind;                  \
+#define EXPAND_MAPTYPETOALLOCKIND(allocKind, _1, type, _2, _3, _4, _5) \
+  template <>                                                          \
+  struct MapTypeToAllocKind<type> {                                    \
+    static const AllocKind kind = AllocKind::allocKind;                \
   };
 FOR_EACH_NONOBJECT_NONBUFFER_ALLOCKIND(EXPAND_MAPTYPETOALLOCKIND)
 #undef EXPAND_MAPTYPETOALLOCKIND
@@ -285,8 +304,7 @@ struct MapTypeToAllocKind<js::WasmGCShape> {
 
 constexpr JS::TraceKind MapAllocToTraceKind(AllocKind kind) {
   constexpr JS::TraceKind map[] = {
-#define EXPAND_ELEMENT(allocKind, traceKind, type, sizedType, bgFinal, \
-                       nursery, compact)                               \
+#define EXPAND_ELEMENT(_1, traceKind, _2, _3, _4, _5, _6) \
   JS::TraceKind::traceKind,
       FOR_EACH_ALLOCKIND(EXPAND_ELEMENT)
 #undef EXPAND_ELEMENT
@@ -311,22 +329,36 @@ constexpr bool IsNurseryAllocable(AllocKind kind) {
   return map[size_t(kind)];
 }
 
-constexpr bool IsBackgroundFinalized(AllocKind kind) {
+constexpr FinalizeKind GetFinalizeKind(AllocKind kind) {
   MOZ_ASSERT(IsValidAllocKind(kind));
 
-  constexpr bool map[] = {
-#define DEFINE_BACKGROUND_FINALIZED(_1, _2, _3, _4, bgFinal, _5, _6) bgFinal,
-      FOR_EACH_ALLOCKIND(DEFINE_BACKGROUND_FINALIZED)
-#undef DEFINE_BACKGROUND_FINALIZED
+  constexpr FinalizeKind map[] = {
+#define DEFINE_FINALIZE_KIND(_1, _2, _3, _4, finalizeKind, _5, _6) \
+  FinalizeKind::finalizeKind,
+      FOR_EACH_ALLOCKIND(DEFINE_FINALIZE_KIND)
+#undef DEFINE_FINALIZE_KIND
   };
 
-  static_assert(std::size(map) == AllocKindCount,
-                "IsBackgroundFinalized sanity check");
+  static_assert(std::size(map) == AllocKindCount);
   return map[size_t(kind)];
 }
 
+constexpr bool IsFinalizedKind(AllocKind kind) {
+  return GetFinalizeKind(kind) != FinalizeKind::None;
+}
+
 constexpr bool IsForegroundFinalized(AllocKind kind) {
-  return !IsBackgroundFinalized(kind);
+  return GetFinalizeKind(kind) == FinalizeKind::Foreground;
+}
+
+constexpr bool IsBackgroundFinalized(AllocKind kind) {
+  return GetFinalizeKind(kind) == FinalizeKind::Background;
+}
+
+// Arenas containing cells of kind FinalizeKind::None and
+// FinalizeKind::Background are swept on a background thread.
+constexpr bool IsBackgroundSwept(AllocKind kind) {
+  return !IsForegroundFinalized(kind);
 }
 
 constexpr bool IsCompactingKind(AllocKind kind) {

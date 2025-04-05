@@ -749,9 +749,7 @@ static MOZ_ALWAYS_INLINE NativeObject* NewObject(
   MOZ_ASSERT(!ClassCanHaveFixedData(clasp));
   size_t nfixed = GetGCKindSlots(kind);
 
-  if (CanChangeToBackgroundAllocKind(kind, clasp)) {
-    kind = ForegroundToBackgroundAllocKind(kind);
-  }
+  kind = gc::GetFinalizedAllocKindForClass(kind, clasp);
 
   Rooted<SharedShape*> shape(
       cx, SharedShape::getInitialShape(cx, clasp, cx->realm(), proto, nfixed,
@@ -1191,7 +1189,8 @@ static gc::AllocKind SwappableObjectAllocKind(JSObject* obj) {
 void JSObject::swap(JSContext* cx, HandleObject a, HandleObject b,
                     AutoEnterOOMUnsafeRegion& oomUnsafe) {
   // Ensure swap doesn't cause a finalizer to be run at the wrong time.
-  MOZ_ASSERT(a->isBackgroundFinalized() == b->isBackgroundFinalized());
+  MOZ_ASSERT(gc::GetFinalizeKind(a->allocKind()) ==
+             gc::GetFinalizeKind(b->allocKind()));
 
   MOZ_ASSERT(a->compartment() == b->compartment());
 
@@ -3122,6 +3121,15 @@ bool JSObject::isBackgroundFinalized() const {
   return js::gc::IsBackgroundFinalized(allocKindForTenure(nursery));
 }
 
+js::gc::AllocKind JSObject::allocKind() const {
+  if (isTenured()) {
+    return asTenured().getAllocKind();
+  }
+
+  Nursery& nursery = runtimeFromMainThread()->gc.nursery();
+  return allocKindForTenure(nursery);
+}
+
 js::gc::AllocKind JSObject::allocKindForTenure(
     const js::Nursery& nursery) const {
   using namespace js::gc;
@@ -3135,11 +3143,14 @@ js::gc::AllocKind JSObject::allocKindForTenure(
 
       /* Use minimal size object if we are just going to copy the pointer. */
       if (!nursery.isInside(nobj.getUnshiftedElementsHeader())) {
-        return gc::AllocKind::OBJECT0_BACKGROUND;
+        return gc::AllocKind::OBJECT0;
       }
 
       size_t nelements = nobj.getDenseCapacity();
-      return ForegroundToBackgroundAllocKind(GetGCArrayKind(nelements));
+      AllocKind kind = GetGCArrayKind(nelements);
+      MOZ_ASSERT(GetObjectFinalizeKind(getClass()) == gc::FinalizeKind::None);
+      MOZ_ASSERT(!IsFinalizedKind(kind));
+      return kind;
     }
 
     if (is<JSFunction>()) {
@@ -3165,7 +3176,8 @@ js::gc::AllocKind JSObject::allocKindForTenure(
   if (is<WasmStructObject>()) {
     // Figure out the size of this object, from the object's TypeDef.
     const wasm::TypeDef* typeDef = &as<WasmStructObject>().typeDef();
-    return WasmStructObject::allocKindForTypeDef(typeDef);
+    AllocKind kind = WasmStructObject::allocKindForTypeDef(typeDef);
+    return GetFinalizedAllocKindForClass(kind, getClass());
   }
 
   // WasmArrayObjects sometimes have a variable-length tail which contains the
@@ -3478,8 +3490,17 @@ void JSObject::debugCheckNewObject(Shape* shape, js::gc::AllocKind allocKind,
     }
   }
 
-  // Assert background finalization is used when possible.
-  MOZ_ASSERT(!CanChangeToBackgroundAllocKind(allocKind, clasp));
+  using namespace gc;
+  if (!clasp->isProxyObject()) {
+    // Check |allocKind| has the correct finalization kind for the class.
+    gc::FinalizeKind finalizeKind = GetObjectFinalizeKind(clasp);
+    MOZ_ASSERT_IF(finalizeKind == gc::FinalizeKind::None,
+                  !IsFinalizedKind(allocKind));
+    MOZ_ASSERT_IF(finalizeKind == gc::FinalizeKind::Background,
+                  IsBackgroundFinalized(allocKind));
+    MOZ_ASSERT_IF(finalizeKind == gc::FinalizeKind::Foreground,
+                  IsForegroundFinalized(allocKind));
+  }
 
   // Classes with a finalizer must specify whether instances will be finalized
   // on the main thread or in the background, except proxies whose behaviour
@@ -3491,8 +3512,6 @@ void JSObject::debugCheckNewObject(Shape* shape, js::gc::AllocKind allocKind,
   if (clasp->hasFinalize() && !clasp->isProxyObject()) {
     MOZ_ASSERT(finalizeFlags == JSCLASS_FOREGROUND_FINALIZE ||
                finalizeFlags == JSCLASS_BACKGROUND_FINALIZE);
-    MOZ_ASSERT((finalizeFlags == JSCLASS_BACKGROUND_FINALIZE) ==
-               IsBackgroundFinalized(allocKind));
   } else {
     MOZ_ASSERT(finalizeFlags == 0);
   }

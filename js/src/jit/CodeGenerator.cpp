@@ -2778,8 +2778,9 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx,
 
     auto emitAllocObject = [&](size_t elementCapacity) {
       gc::AllocKind kind = GuessArrayGCKind(elementCapacity);
-      MOZ_ASSERT(CanChangeToBackgroundAllocKind(kind, &ArrayObject::class_));
-      kind = ForegroundToBackgroundAllocKind(kind);
+      MOZ_ASSERT(gc::GetObjectFinalizeKind(&ArrayObject::class_) ==
+                 gc::FinalizeKind::None);
+      MOZ_ASSERT(!IsFinalizedKind(kind));
 
 #ifdef DEBUG
       // Assert all of the available slots are used for |elementCapacity|
@@ -8483,8 +8484,9 @@ void CodeGenerator::visitNewArrayObject(LNewArrayObject* lir) {
   uint32_t arrayLength = mir->length();
 
   gc::AllocKind allocKind = GuessArrayGCKind(arrayLength);
-  MOZ_ASSERT(CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
-  allocKind = ForegroundToBackgroundAllocKind(allocKind);
+  MOZ_ASSERT(gc::GetObjectFinalizeKind(&ArrayObject::class_) ==
+             gc::FinalizeKind::None);
+  MOZ_ASSERT(!IsFinalizedKind(allocKind));
 
   uint32_t slotCount = GetGCKindSlots(allocKind);
   MOZ_ASSERT(slotCount >= ObjectElements::VALUES_PER_HEADER);
@@ -15761,8 +15763,9 @@ void CodeGenerator::visitRest(LRest* lir) {
   if (Shape* shape = lir->mir()->shape()) {
     uint32_t arrayLength = 0;
     gc::AllocKind allocKind = GuessArrayGCKind(arrayCapacity);
-    MOZ_ASSERT(CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
-    allocKind = ForegroundToBackgroundAllocKind(allocKind);
+    MOZ_ASSERT(gc::GetObjectFinalizeKind(&ArrayObject::class_) ==
+               gc::FinalizeKind::None);
+    MOZ_ASSERT(!IsFinalizedKind(allocKind));
     MOZ_ASSERT(GetGCKindSlots(allocKind) ==
                arrayCapacity + ObjectElements::VALUES_PER_HEADER);
 

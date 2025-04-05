@@ -2364,11 +2364,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
       if (typeDef.kind() == TypeDefKind::Struct) {
         clasp = WasmStructObject::classForTypeDef(&typeDef);
         allocKind = WasmStructObject::allocKindForTypeDef(&typeDef);
-
-        // Move the alloc kind to background if possible
-        if (CanChangeToBackgroundAllocKind(allocKind, clasp)) {
-          allocKind = ForegroundToBackgroundAllocKind(allocKind);
-        }
+        allocKind = gc::GetFinalizedAllocKindForClass(allocKind, clasp);
       } else {
         clasp = &WasmArrayObject::class_;
         allocKind = gc::AllocKind::INVALID;

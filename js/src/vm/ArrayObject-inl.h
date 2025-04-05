@@ -28,6 +28,7 @@ namespace js {
   MOZ_ASSERT(shape->getObjectClass() == clasp);
   MOZ_ASSERT(clasp->isNativeObject());
   MOZ_ASSERT(!clasp->hasFinalize());
+  MOZ_ASSERT(!IsFinalizedKind(kind));
 
   // Note: the slot span is passed as argument to allow more constant folding
   // below for the common case of slotSpan == 0.

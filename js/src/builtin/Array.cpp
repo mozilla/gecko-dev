@@ -5351,8 +5351,9 @@ static MOZ_ALWAYS_INLINE ArrayObject* NewArrayWithShape(
   MOZ_ASSERT(shape->lastProperty().key() == NameToId(cx->names().length));
 
   gc::AllocKind allocKind = GuessArrayGCKind(length);
-  MOZ_ASSERT(CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
-  allocKind = ForegroundToBackgroundAllocKind(allocKind);
+  MOZ_ASSERT(gc::GetObjectFinalizeKind(&ArrayObject::class_) ==
+             gc::FinalizeKind::None);
+  MOZ_ASSERT(!IsFinalizedKind(allocKind));
 
   MOZ_ASSERT(shape->slotSpan() == 0);
   constexpr uint32_t slotSpan = 0;
@@ -5611,8 +5612,9 @@ ArrayObject* js::NewDenseFullyAllocatedArrayWithShape(
     JSContext* cx, uint32_t length, Handle<SharedShape*> shape) {
   AutoSetNewObjectMetadata metadata(cx);
   gc::AllocKind allocKind = GuessArrayGCKind(length);
-  MOZ_ASSERT(CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
-  allocKind = ForegroundToBackgroundAllocKind(allocKind);
+  MOZ_ASSERT(gc::GetObjectFinalizeKind(&ArrayObject::class_) ==
+             gc::FinalizeKind::None);
+  MOZ_ASSERT(!IsFinalizedKind(allocKind));
 
   gc::Heap heap = GetInitialHeap(GenericObject, &ArrayObject::class_);
   ArrayObject* arr = ArrayObject::create(cx, allocKind, heap, shape, length,

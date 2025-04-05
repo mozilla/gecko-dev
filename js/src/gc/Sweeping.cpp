@@ -62,28 +62,37 @@ using mozilla::TimeStamp;
 using JS::SliceBudget;
 
 /*
- * Finalization phase for objects swept incrementally on the main thread.
+ * Sweeping of arenas and possible finalization of dead cells proceeds in a
+ * sequence of phases.
+ *
+ *  1. ForegroundObjectFinalizePhase
+ *     JSObjects with finalizers. Swept incrementally on the main thread.
+ *
+ *  2. ForegroundNonObjectFinalizePhase
+ *     Non-JSObjects with finalizers. Swept incrementally on the main thread.
+ *
+ *  3. BackgroundFinalizePhases[...]
+ *     Everything else. Swept in two sub-phases non-incrementally on a helper
+ *     thread.
  */
-static constexpr AllocKinds ForegroundObjectFinalizePhase = {
-    AllocKind::OBJECT0, AllocKind::OBJECT2,  AllocKind::OBJECT4,
-    AllocKind::OBJECT8, AllocKind::OBJECT12, AllocKind::OBJECT16};
 
-/*
- * Finalization phase for GC things swept incrementally on the main thread.
- */
+static constexpr AllocKinds ForegroundObjectFinalizePhase = {
+    AllocKind::OBJECT0_FOREGROUND,  AllocKind::OBJECT2_FOREGROUND,
+    AllocKind::OBJECT4_FOREGROUND,  AllocKind::OBJECT8_FOREGROUND,
+    AllocKind::OBJECT12_FOREGROUND, AllocKind::OBJECT16_FOREGROUND};
+
 static constexpr AllocKinds ForegroundNonObjectFinalizePhase = {
     AllocKind::SCRIPT, AllocKind::JITCODE};
 
-/*
- * Finalization phases for GC things swept on the background thread.
- */
 static constexpr AllocKinds BackgroundFinalizePhases[] = {
-    {AllocKind::FUNCTION, AllocKind::FUNCTION_EXTENDED,
-     AllocKind::OBJECT0_BACKGROUND, AllocKind::OBJECT2_BACKGROUND,
-     AllocKind::ARRAYBUFFER4, AllocKind::OBJECT4_BACKGROUND,
-     AllocKind::ARRAYBUFFER8, AllocKind::OBJECT8_BACKGROUND,
-     AllocKind::ARRAYBUFFER12, AllocKind::OBJECT12_BACKGROUND,
-     AllocKind::ARRAYBUFFER16, AllocKind::OBJECT16_BACKGROUND},
+    {AllocKind::FUNCTION, AllocKind::FUNCTION_EXTENDED, AllocKind::OBJECT0,
+     AllocKind::OBJECT0_BACKGROUND, AllocKind::OBJECT2,
+     AllocKind::OBJECT2_BACKGROUND, AllocKind::ARRAYBUFFER4, AllocKind::OBJECT4,
+     AllocKind::OBJECT4_BACKGROUND, AllocKind::ARRAYBUFFER8, AllocKind::OBJECT8,
+     AllocKind::OBJECT8_BACKGROUND, AllocKind::ARRAYBUFFER12,
+     AllocKind::OBJECT12, AllocKind::OBJECT12_BACKGROUND,
+     AllocKind::ARRAYBUFFER16, AllocKind::OBJECT16,
+     AllocKind::OBJECT16_BACKGROUND},
     {AllocKind::BUFFER16, AllocKind::BUFFER32, AllocKind::BUFFER64,
      AllocKind::BUFFER128, AllocKind::SCOPE, AllocKind::REGEXP_SHARED,
      AllocKind::FAT_INLINE_STRING, AllocKind::STRING,
@@ -232,7 +241,7 @@ void GCRuntime::initBackgroundSweep(Zone* zone, JS::GCContext* gcx,
 }
 
 void ArenaLists::initBackgroundSweep(AllocKind thingKind) {
-  MOZ_ASSERT(IsBackgroundFinalized(thingKind));
+  MOZ_ASSERT(IsBackgroundSwept(thingKind));
   MOZ_ASSERT(concurrentUse(thingKind) == ConcurrentUse::None);
 
   if (!collectingArenaList(thingKind).isEmpty()) {
@@ -242,6 +251,7 @@ void ArenaLists::initBackgroundSweep(AllocKind thingKind) {
 
 void ArenaLists::backgroundFinalize(JS::GCContext* gcx, AllocKind kind,
                                     Arena** empty) {
+  MOZ_ASSERT(IsBackgroundSwept(kind));
   MOZ_ASSERT(empty);
 
   ArenaList& arenas = collectingArenaList(kind);

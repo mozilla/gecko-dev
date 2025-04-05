@@ -311,6 +311,8 @@ class JSObject
     js::gc::PostWriteBarrierImpl<JSObject>(cellp, prev, next);
   }
 
+  js::gc::AllocKind allocKind() const;
+
   /* Return the allocKind we would use if we were to tenure this object. */
   js::gc::AllocKind allocKindForTenure(const js::Nursery& nursery) const;
 

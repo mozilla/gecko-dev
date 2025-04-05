@@ -608,6 +608,9 @@ JS_PUBLIC_API JSObject* JS_CloneObject(JSContext* cx, HandleObject obj,
     }
   }
 
+  MOZ_ASSERT(gc::GetFinalizeKind(obj->allocKind()) ==
+             gc::GetFinalizeKind(clone->allocKind()));
+
   return clone;
 }
 

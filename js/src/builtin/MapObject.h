@@ -131,10 +131,6 @@ class MapObject : public OrderedHashMapObject {
     SlotCount
   };
 
-  // MapObject has 11 reserved slots so the AllocKind is OBJECT12_BACKGROUND.
-  // This is asserted in MapObject::create.
-  static constexpr gc::AllocKind allocKind = gc::AllocKind::OBJECT12_BACKGROUND;
-
   using IteratorKind = TableIteratorObject::Kind;
 
   static const JSClass class_;
@@ -276,10 +272,6 @@ class SetObject : public OrderedHashSetObject {
     RegisteredNurseryIteratorsSlot,
     SlotCount
   };
-
-  // SetObject has 11 reserved slots so the AllocKind is OBJECT12_BACKGROUND.
-  // This is asserted in SetObject::create.
-  static constexpr gc::AllocKind allocKind = gc::AllocKind::OBJECT12_BACKGROUND;
 
   using IteratorKind = TableIteratorObject::Kind;
 

@@ -4105,8 +4105,9 @@ bool BaselineCacheIRCompiler::emitNewArrayObjectResult(uint32_t arrayLength,
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
   gc::AllocKind allocKind = GuessArrayGCKind(arrayLength);
-  MOZ_ASSERT(CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
-  allocKind = ForegroundToBackgroundAllocKind(allocKind);
+  MOZ_ASSERT(gc::GetObjectFinalizeKind(&ArrayObject::class_) ==
+             gc::FinalizeKind::None);
+  MOZ_ASSERT(!IsFinalizedKind(allocKind));
 
   uint32_t slotCount = GetGCKindSlots(allocKind);
   MOZ_ASSERT(slotCount >= ObjectElements::VALUES_PER_HEADER);

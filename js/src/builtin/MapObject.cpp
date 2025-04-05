@@ -27,6 +27,7 @@
 #include "builtin/OrderedHashTableObject-inl.h"
 #include "gc/GCContext-inl.h"
 #include "gc/Marking-inl.h"
+#include "gc/ObjectKind-inl.h"
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/NativeObject-inl.h"
 
@@ -610,6 +611,8 @@ MapObject* MapObject::createWithProto(JSContext* cx, HandleObject proto,
                                       NewObjectKind newKind) {
   MOZ_ASSERT(proto);
 
+  gc::AllocKind allocKind = gc::GetGCObjectKind(SlotCount);
+
   AutoSetNewObjectMetadata metadata(cx);
   auto* mapObj =
       NewObjectWithGivenProtoAndKinds<MapObject>(cx, proto, allocKind, newKind);
@@ -625,10 +628,6 @@ MapObject* MapObject::createWithProto(JSContext* cx, HandleObject proto,
 
 MapObject* MapObject::create(JSContext* cx,
                              HandleObject proto /* = nullptr */) {
-  MOZ_ASSERT(gc::ForegroundToBackgroundAllocKind(
-                 gc::GetGCObjectKind(SlotCount)) == allocKind,
-             "allocKind constant doesn't match SlotCount");
-
   if (proto) {
     return createWithProto(cx, proto, GenericObject);
   }
@@ -639,6 +638,10 @@ MapObject* MapObject::create(JSContext* cx,
   if (!templateObj) {
     return nullptr;
   }
+
+  gc::AllocKind allocKind = templateObj->asTenured().getAllocKind();
+  MOZ_ASSERT(gc::GetGCKindSlots(allocKind) >= SlotCount);
+  MOZ_ASSERT(gc::IsBackgroundFinalized(allocKind));
 
   AutoSetNewObjectMetadata metadata(cx);
   Rooted<SharedShape*> shape(cx, templateObj->sharedShape());
@@ -1360,6 +1363,8 @@ SetObject* SetObject::createWithProto(JSContext* cx, HandleObject proto,
                                       NewObjectKind newKind) {
   MOZ_ASSERT(proto);
 
+  gc::AllocKind allocKind = gc::GetGCObjectKind(SlotCount);
+
   AutoSetNewObjectMetadata metadata(cx);
   auto* setObj =
       NewObjectWithGivenProtoAndKinds<SetObject>(cx, proto, allocKind, newKind);
@@ -1375,10 +1380,6 @@ SetObject* SetObject::createWithProto(JSContext* cx, HandleObject proto,
 
 SetObject* SetObject::create(JSContext* cx,
                              HandleObject proto /* = nullptr */) {
-  MOZ_ASSERT(gc::ForegroundToBackgroundAllocKind(
-                 gc::GetGCObjectKind(SlotCount)) == allocKind,
-             "allocKind constant doesn't match SlotCount");
-
   if (proto) {
     return createWithProto(cx, proto, GenericObject);
   }
@@ -1389,6 +1390,10 @@ SetObject* SetObject::create(JSContext* cx,
   if (!templateObj) {
     return nullptr;
   }
+
+  gc::AllocKind allocKind = templateObj->asTenured().getAllocKind();
+  MOZ_ASSERT(gc::GetGCKindSlots(allocKind) >= SlotCount);
+  MOZ_ASSERT(gc::IsBackgroundFinalized(allocKind));
 
   AutoSetNewObjectMetadata metadata(cx);
   Rooted<SharedShape*> shape(cx, templateObj->sharedShape());

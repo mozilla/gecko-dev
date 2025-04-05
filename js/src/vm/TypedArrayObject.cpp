@@ -349,9 +349,7 @@ static TypedArrayType* NewTypedArrayObject(JSContext* cx, const JSClass* clasp,
                                            gc::AllocKind allocKind,
                                            gc::Heap heap) {
   MOZ_ASSERT(proto);
-
-  MOZ_ASSERT(CanChangeToBackgroundAllocKind(allocKind, clasp));
-  allocKind = ForegroundToBackgroundAllocKind(allocKind);
+  allocKind = gc::GetFinalizedAllocKindForClass(allocKind, clasp);
 
   static_assert(std::is_same_v<TypedArrayType, FixedLengthTypedArrayObject> ||
                 std::is_same_v<TypedArrayType, ResizableTypedArrayObject>);

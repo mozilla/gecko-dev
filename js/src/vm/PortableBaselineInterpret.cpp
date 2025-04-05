@@ -4295,9 +4295,9 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         gc::AllocSite* site = reinterpret_cast<gc::AllocSite*>(
             stubInfo->getStubRawWord(cstub, siteOffset));
         gc::AllocKind allocKind = GuessArrayGCKind(arrayLength);
-        MOZ_ASSERT(
-            CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
-        allocKind = ForegroundToBackgroundAllocKind(allocKind);
+        MOZ_ASSERT(gc::GetObjectFinalizeKind(&ArrayObject::class_) ==
+                   gc::FinalizeKind::None);
+        MOZ_ASSERT(!IsFinalizedKind(allocKind));
         {
           PUSH_IC_FRAME();
           auto* result =

@@ -6762,8 +6762,9 @@ bool WarpCacheIRTranspiler::emitMetaScriptedThisShape(
   uint32_t numFixedSlots = shape->numFixedSlots();
   uint32_t numDynamicSlots = NativeObject::calculateDynamicSlots(shape);
   gc::AllocKind kind = gc::GetGCObjectKind(numFixedSlots);
-  MOZ_ASSERT(gc::CanChangeToBackgroundAllocKind(kind, &PlainObject::class_));
-  kind = gc::ForegroundToBackgroundAllocKind(kind);
+  MOZ_ASSERT(gc::GetObjectFinalizeKind(&PlainObject::class_) ==
+             gc::FinalizeKind::None);
+  MOZ_ASSERT(!IsFinalizedKind(kind));
 
   auto* createThis = MNewPlainObject::New(alloc(), shapeConst, numFixedSlots,
                                           numDynamicSlots, kind, heap);

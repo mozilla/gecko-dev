@@ -722,18 +722,21 @@ inline gc::AllocKind js::FixedLengthTypedArrayObject::allocKindForTenure()
   // buffer. Make sure there is room for the array's fixed data when moving the
   // array.
 
+  using namespace js::gc;
+
   if (hasBuffer()) {
     return NativeObject::allocKindForTenure();
   }
 
-  gc::AllocKind allocKind;
+  AllocKind allocKind;
   if (hasInlineElements()) {
     allocKind = AllocKindForLazyBuffer(byteLength());
   } else {
-    allocKind = gc::GetGCObjectKind(getClass());
+    allocKind = GetGCObjectKind(getClass());
   }
 
-  return gc::ForegroundToBackgroundAllocKind(allocKind);
+  MOZ_ASSERT(GetObjectFinalizeKind(getClass()) == gc::FinalizeKind::Background);
+  return GetFinalizedAllocKind(allocKind, gc::FinalizeKind::Background);
 }
 
 /* static */ gc::AllocKind
