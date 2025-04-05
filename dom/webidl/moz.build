@@ -565,7 +565,6 @@ WEBIDL_FILES = [
     "ExtendableMessageEvent.webidl",
     "External.webidl",
     "FailedCertSecurityInfo.webidl",
-    "FakePluginTagInit.webidl",
     "FeaturePolicy.webidl",
     "Fetch.webidl",
     "FetchEvent.webidl",
