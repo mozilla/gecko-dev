@@ -1033,28 +1033,6 @@ export var PictureInPicture = {
   },
 
   /**
-   * Computes the margins from the outer window size and position
-   * (screenX/screenY/outerWidth/outerHeight) to the inner ones
-   * (mozInnerScreenX/mozInnerScreenY/innerWidth/innerHeight).
-   *
-   *  @param {Window} window
-   *  @returns {object}
-   *   The decoration margins, in CSS pixels relative to window.
-   *
-   *   top (int): The top margin for the window.
-   *   left (int): The left margin for the window.
-   *   bottom (int): The bottom margin for the window.
-   *   right (int): The right margin for the window.
-   */
-  windowDecorationMargins(window) {
-    let top = window.mozInnerScreenY - window.screenY;
-    let left = window.mozInnerScreenX - window.screenX;
-    let bottom = window.outerHeight - window.innerHeight - top;
-    let right = window.outerWidth - window.innerWidth - left;
-    return { top, left, bottom, right };
-  },
-
-  /**
    * This function tries to restore the last known Picture-in-Picture location
    * and size. If those values are unknown or offscreen, then a default
    * location and size is used.
@@ -1157,8 +1135,9 @@ export var PictureInPicture = {
         let widthDesktopPix = width * PipScreenCssToDesktopScale;
         let heightDesktopPix = height * PipScreenCssToDesktopScale;
 
-        // We add some slop to account for window decorations.
-        const SLOP = 20;
+        // WIGGLE_ROOM allows the PiP window to be within 5 pixels of the right
+        // side of the screen to stay snapped to the right side
+        const WIGGLE_ROOM = 5;
         // If the PiP window was right next to the right side of the screen
         // then move the PiP window to the right the same distance that
         // the width changes from previous width to current width
@@ -1166,29 +1145,29 @@ export var PictureInPicture = {
         let distFromRight = rightScreen - (left + widthDesktopPix);
         if (
           0 < distFromRight &&
-          distFromRight <= SLOP + (oldWidthDesktopPix - widthDesktopPix)
+          distFromRight <= WIGGLE_ROOM + (oldWidthDesktopPix - widthDesktopPix)
         ) {
           left += distFromRight;
         }
 
         // Checks if some of the PiP window is off screen and
         // if so it will adjust to move everything on screen
-        if (left < PiPScreenLeft - SLOP) {
+        if (left < PiPScreenLeft) {
           // off the left of the screen
           // slide right
           left = PiPScreenLeft;
         }
-        if (top < PiPScreenTop - SLOP) {
+        if (top < PiPScreenTop) {
           // off the top of the screen
           // slide down
           top = PiPScreenTop;
         }
-        if (left + widthDesktopPix > PiPScreenLeft + PiPScreenWidth + SLOP) {
+        if (left + widthDesktopPix > PiPScreenLeft + PiPScreenWidth) {
           // off the right of the screen
           // slide left
           left = PiPScreenLeft + PiPScreenWidth - widthDesktopPix;
         }
-        if (top + heightDesktopPix > PiPScreenTop + PiPScreenHeight + SLOP) {
+        if (top + heightDesktopPix > PiPScreenTop + PiPScreenHeight) {
           // off the bottom of the screen
           // slide up
           top = PiPScreenTop + PiPScreenHeight - heightDesktopPix;
@@ -1269,20 +1248,6 @@ export var PictureInPicture = {
     left /= requestingCssToDesktopScale;
     width /= screenCssToDesktopScale;
     height /= screenCssToDesktopScale;
-
-    // Try to account for window decorations, if the requesting window also has a
-    // custom titlebar (if it doesn't, we know they won't match).
-    //
-    // TODO(emilio): The right thing to do here would be to propagate the fact
-    // that we want this to be the "inner" size, but we don't have a way of
-    // specifying inner window positions at open time right now.
-    if (requestingWin.document.documentElement.hasAttribute("customtitlebar")) {
-      let decorations = this.windowDecorationMargins(requestingWin);
-      width += decorations.left + decorations.right;
-      height += decorations.top + decorations.bottom;
-      top -= decorations.top;
-      left -= decorations.left;
-    }
 
     return { top, left, width, height };
   },
