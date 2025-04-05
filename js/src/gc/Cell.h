@@ -885,9 +885,6 @@ class alignas(gc::CellAlignBytes) SmallBuffer : public TenuredCell {
   void setNurseryOwned(bool value);
 
   static const JS::TraceKind TraceKind = JS::TraceKind::SmallBuffer;
-  void finalize(JS::GCContext* gcx) {
-    // Sized allocations don't have finalizers.
-  }
   void traceChildren(JSTracer* trc) {
     // TODO: Generic tracing not supported for sized allocations.
     // GCRuntime::checkForCompartmentMismatches ends up calling this because it

@@ -406,7 +406,7 @@ class alignas(ArenaSize) Arena {
   inline ArenaCellSet*& bufferedCells();
   inline size_t& atomBitmapStart();
 
-  template <typename T>
+  template <typename T, FinalizeKind finalizeKind>
   size_t finalize(JS::GCContext* gcx, AllocKind thingKind, size_t thingSize);
 
   static void staticAsserts();

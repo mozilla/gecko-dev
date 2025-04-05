@@ -82,10 +82,6 @@ class GetterSetter : public gc::TenuredCellWithGCPointer<JSObject> {
   static constexpr size_t offsetOfGetter() { return offsetOfHeaderPtr(); }
 
   void traceChildren(JSTracer* trc);
-
-  void finalize(JS::GCContext* gcx) {
-    // Nothing to do.
-  }
 };
 
 }  // namespace js

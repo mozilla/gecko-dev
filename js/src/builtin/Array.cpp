@@ -42,6 +42,7 @@
 #include "vm/JSFunction.h"
 #include "vm/JSObject.h"
 #include "vm/PlainObject.h"  // js::PlainObject
+#include "vm/Probes.h"
 #include "vm/SelfHosting.h"
 #include "vm/Shape.h"
 #include "vm/StringType.h"

@@ -43,6 +43,7 @@
 #include "vm/BigIntType.h"
 #include "vm/HelperThreads.h"
 #include "vm/JSContext.h"
+#include "vm/Probes.h"
 #include "vm/Time.h"
 #include "vm/WrapperObject.h"
 
@@ -106,7 +107,7 @@ static_assert(std::size(BackgroundFinalizePhases) == 2);
 static constexpr AllocKinds AllBackgroundSweptKinds =
     BackgroundFinalizePhases[0] + BackgroundFinalizePhases[1];
 
-template <typename T>
+template <typename T, FinalizeKind finalizeKind>
 inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
                               size_t thingSize) {
   /* Enforce requirements on size of T. */
@@ -118,6 +119,8 @@ inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
   MOZ_ASSERT(thingKind == getAllocKind());
   MOZ_ASSERT(thingSize == getThingSize());
   MOZ_ASSERT(!onDelayedMarkingList_);
+
+  MOZ_ASSERT(finalizeKind == GetFinalizeKind(thingKind));
 
   uint_fast16_t freeStart = firstThingOffset(thingKind);
 
@@ -142,7 +145,12 @@ inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
       freeStart = thing + thingSize;
       nmarked++;
     } else {
-      t->finalize(gcx);
+      if constexpr (std::is_same_v<T, JSObject>) {
+        js::probes::FinalizeObject(t);
+      }
+      if constexpr (finalizeKind != FinalizeKind::None) {
+        t->finalize(gcx);
+      }
       AlwaysPoison(t, JS_SWEPT_TENURED_PATTERN, thingSize,
                    MemCheckKind::MakeUndefined);
       gcprobes::TenuredFinalize(t);
@@ -180,7 +188,7 @@ inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
 // Finalize arenas from src list, releasing empty arenas if keepArenas wasn't
 // specified and inserting the others into the appropriate destination size
 // bins.
-template <typename T>
+template <typename T, FinalizeKind finalizeKind>
 static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
                                        SortedArenaList& dest,
                                        AllocKind thingKind,
@@ -198,7 +206,8 @@ static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
 
   while (!src.isEmpty()) {
     Arena* arena = src.popFront();
-    size_t nmarked = arena->finalize<T>(gcx, thingKind, thingSize);
+    size_t nmarked =
+        arena->finalize<T, finalizeKind>(gcx, thingKind, thingSize);
     size_t nfree = thingsPerArena - nmarked;
 
     markCount += nmarked;
@@ -221,10 +230,10 @@ static bool FinalizeArenas(JS::GCContext* gcx, ArenaList& src,
                            SortedArenaList& dest, AllocKind thingKind,
                            SliceBudget& budget) {
   switch (thingKind) {
-#define EXPAND_CASE(allocKind, traceKind, type, sizedType, bgFinal, nursery, \
-                    compact)                                                 \
-  case AllocKind::allocKind:                                                 \
-    return FinalizeTypedArenas<type>(gcx, src, dest, thingKind, budget);
+#define EXPAND_CASE(allocKind, _1, type, _2, finalizeKind, _3, _4) \
+  case AllocKind::allocKind:                                       \
+    return FinalizeTypedArenas<type, FinalizeKind::finalizeKind>(  \
+        gcx, src, dest, thingKind, budget);
     FOR_EACH_ALLOCKIND(EXPAND_CASE)
 #undef EXPAND_CASE
 
