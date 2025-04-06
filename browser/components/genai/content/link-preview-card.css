@@ -43,6 +43,11 @@
     -webkit-line-clamp: 3;
 }
 
+.og-error-message {
+  font-size: var(--og-main-font-size);
+  margin-block: 0 var(--space-medium);
+}
+
 .ai-content {
     padding: var(--og-padding);
 
