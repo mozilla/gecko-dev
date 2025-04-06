@@ -12,8 +12,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
 });
 
-// TODO put in actual link probably same as labs bug 1951144
-const FEEDBACK_LINK = "https://connect.mozilla.org/";
+const FEEDBACK_LINK =
+  "https://connect.mozilla.org/t5/discussions/try-out-link-previews-on-firefox-labs/td-p/92012";
 
 /**
  * Class representing a link preview element.
@@ -189,7 +189,7 @@ class LinkPreviewCard extends MozLitElement {
                 <p>
                   Key points are AI-generated and may have mistakes.
                   <a @click=${this.handleLink} href=${FEEDBACK_LINK}>
-                    Foxfooding feedback
+                    Share feedback
                   </a>
                 </p>
                 <p>
