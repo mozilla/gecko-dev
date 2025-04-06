@@ -1453,8 +1453,22 @@
   <string name="download_delete_multiple_items_snackbar_2">ລຶບລາຍການແລ້ວ: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບ %1$s ແລ້ວ</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">ລຶບ “%1$s” ແລ້ວ</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">ກຳລັງດາວໂຫລດ…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">ລາຍລະອຽດ</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">ດາວໂຫຼດສຳເລັດແລ້ວ</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">ເປີດ</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">ເອົາກັບຄືນ</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ບໍ່ມີໄຟລທີ່ໄດ້ດາວໂຫລດມາ</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">ບໍ່ມີການດາວໂຫຼດເທື່ອ</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1526,6 +1540,8 @@
   <string name="webcompat_reporter_reason_account">ເຂົ້າສູ່ລະບົບ ຫຼື ອອກຈາກລະບົບ</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker">ຕົວບລັອກໂຄສະນາ</string>
+  <!-- Broken site reason text for something else -->
+  <string name="webcompat_reporter_reason_other">ບາງສິ່ງບາງຢ່າງອື່ນ</string>
   <!--
     Crashes
 
