@@ -76,7 +76,7 @@ tasks:
     fedora42:
         image: fedora:42
         pre-commands:
-            - dnf install -y mercurial python3-pip
+            - dnf install -y mercurial python3-pip awk
     rockylinux8:
         image: rockylinux:8
         pre-commands:
