@@ -65,7 +65,7 @@ export class LinkPreviewChild extends JSWindowActorChild {
     channel.setRequestHeader("x-firefox-ai", "1", false);
 
     const { promise, resolve, reject } = Promise.withResolvers();
-    const MAX_CONTENT_LENGTH = 2 * 1024 * 1024; // 2 MB limit
+    const MAX_CONTENT_LENGTH = 5 * 1024 * 1024; // 5 MB limit
 
     let charset = "utf-8";
     const byteChunks = [];
@@ -91,8 +91,8 @@ export class LinkPreviewChild extends JSWindowActorChild {
           request.cancel(Cr.NS_ERROR_FILE_UNKNOWN_TYPE);
         }
 
-        // Save charset for later decoding
-        const match = contentType.match(/charset=([^;]+)/i);
+        // Save charset without quotes or spaces for TextDecoder
+        const match = contentType.match(/charset=["' ]*([^;"' ]+)/i);
         if (match) {
           charset = match[1];
         }
@@ -132,26 +132,100 @@ export class LinkPreviewChild extends JSWindowActorChild {
   async fetchPageData(url) {
     const ret = {
       article: {},
-      metaInfo: {},
+      rawMetaInfo: {},
       url,
     };
     try {
       const htmlCode = await this.fetchHTML(url);
+      ret.urlComponents = this.extractUrlComponents(url);
 
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlCode, "text/html");
-      ret.metaInfo = this.parseMetaTagsFromDoc(doc);
+      ret.rawMetaInfo = this.parseMetaTagsFromDoc(doc);
 
       if (!this.isProbablyReaderable(doc)) {
+        // Add normalized metadata even if the document isn't reader-able
+        ret.meta = this.extractNormalizedMetadata(ret.rawMetaInfo);
         return ret;
       }
 
       ret.article = await this.getArticleDataFromDoc(doc);
+
+      ret.meta = this.extractNormalizedMetadata(ret.rawMetaInfo, ret.article);
     } catch (error) {
       console.error(`Failed to fetch and parse page data: ${error}`);
       ret.error = { message: error.message, result: error.result };
+      // Add empty normalized metadata in case of error
+      ret.meta = this.extractNormalizedMetadata();
     }
     return ret;
+  }
+
+  /**
+   * Extracts and normalizes metadata from the page's meta tags and article content.
+   *
+   * @param {object} metaData - Metadata extracted from the page's meta tags (Open Graph, Twitter, HTML)
+   * @param {object} articleData - Data extracted from the article content using ReaderMode
+   * @returns {object} Normalized metadata containing:
+   *   - title: Page title prioritizing Open Graph, Twitter, then HTML title
+   *   - description: Content excerpt or meta description from various sources
+   *   - imageUrl: HTTPS-only URL of the page's primary image
+   *   - isMissingMetadata: Boolean flag indicating if description is missing
+   */
+  extractNormalizedMetadata(metaData = {}, articleData = {}) {
+    const title =
+      metaData["og:title"] ||
+      metaData["twitter:title"] ||
+      metaData["html:title"] ||
+      "";
+
+    const description =
+      articleData.excerpt ||
+      metaData["og:description"] ||
+      metaData["twitter:description"] ||
+      metaData.description ||
+      "";
+
+    let imageUrl = metaData["og:image"] || metaData["twitter:image:src"] || "";
+
+    if (!imageUrl.startsWith("https://")) {
+      imageUrl = "";
+    }
+
+    return {
+      title,
+      description,
+      imageUrl,
+    };
+  }
+
+  /**
+   * Extracts URL components including domain and filename.
+   *
+   * @param {string} url - The URL to extract information from.
+   * @returns {object} Object containing domain and filename.
+   */
+  extractUrlComponents(url) {
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+
+      // Extract the filename (last part of pathname)
+      let pathname = urlObj.pathname;
+      // Remove trailing slash if present
+      if (pathname.endsWith("/")) {
+        pathname = pathname.slice(0, -1);
+      }
+
+      // Get last segment of path
+      const pathParts = pathname.split("/");
+      const filename = pathParts[pathParts.length - 1] || domain;
+
+      return { domain, filename };
+    } catch (e) {
+      // Return both properties with same fallback value if URL is invalid
+      return { domain: url, filename: url };
+    }
   }
 
   /**
@@ -174,6 +248,7 @@ export class LinkPreviewChild extends JSWindowActorChild {
       "twitter:title",
       "og:description",
       "twitter:description",
+      "twitter:image:src",
     ];
 
     metaTags.forEach(tag => {

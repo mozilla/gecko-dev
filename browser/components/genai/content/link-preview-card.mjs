@@ -85,58 +85,17 @@ class LinkPreviewCard extends MozLitElement {
   }
 
   /**
-   * Extracts and validates essential metadata for link preview.
-   *
-   * This utility function processes the metadata object to extract the title and
-   * description from various potential sources (Open Graph, Twitter, HTML).
-   * It also determines if there's sufficient metadata to generate a meaningful preview.
-   *
-   * @param {object} metaData - The metadata object containing page information
-   * @returns {object} An object containing:
-   *  - isMissingMetadata {boolean} - True if either title or description is missing
-   *  - title {string} - The extracted page title or empty string if none found
-   *  - description {string} - The extracted page description or empty string if none found
-   */
-  extractMetadataContent(metaData = {}) {
-    const title =
-      metaData["og:title"] ||
-      metaData["twitter:title"] ||
-      metaData["html:title"] ||
-      "";
-
-    const description =
-      metaData["og:description"] ||
-      metaData["twitter:description"] ||
-      metaData.description ||
-      "";
-
-    const isMissingMetadata = !title || !description;
-
-    return {
-      isMissingMetadata,
-      title,
-      description,
-    };
-  }
-
-  /**
    * Renders the link preview element.
    *
    * @returns {import('lit').TemplateResult} The rendered HTML template.
    */
   render() {
     const articleData = this.pageData?.article || {};
-    const metaData = this.pageData?.metaInfo || {};
     const pageUrl = this.pageData?.url || "about:blank";
     const siteName = articleData.siteName || "";
 
-    const { isMissingMetadata, title, description } =
-      this.extractMetadataContent(metaData);
+    const { title, description, imageUrl } = this.pageData.meta;
 
-    let imageUrl = metaData["og:image"] || metaData["twitter:image:src"] || "";
-    if (!imageUrl.startsWith("https://")) {
-      imageUrl = "";
-    }
     const readingTimeMinsFast = articleData.readingTimeMinsFast || "";
     const readingTimeMinsSlow = articleData.readingTimeMinsSlow || "";
 
@@ -145,6 +104,11 @@ class LinkPreviewCard extends MozLitElement {
     if (!Number.isFinite(displayProgressPercentage)) {
       displayProgressPercentage = 100;
     }
+
+    // Check if both metadata and article text content are missing
+    const isMissingAllContent = !description && !articleData.textContent;
+
+    const filename = this.pageData?.urlComponents?.filename;
 
     // Error Link Preview card UI: A simplified version of the preview card showing only an error message
     // and a link to visit the URL. This is a fallback UI for cases when we don't have
@@ -170,7 +134,7 @@ class LinkPreviewCard extends MozLitElement {
     const normalCard = html`
       <div class="og-card">
         <div class="og-card-content">
-          ${imageUrl
+          ${imageUrl.startsWith("https://")
             ? html` <img class="og-card-img" src=${imageUrl} alt=${title} /> `
             : ""}
           ${siteName
@@ -180,13 +144,11 @@ class LinkPreviewCard extends MozLitElement {
                 </div>
               `
             : ""}
-          ${title
-            ? html`
-                <h2 class="og-card-title">
-                  <a @click=${this.handleLink} href=${pageUrl}>${title}</a>
-                </h2>
-              `
-            : ""}
+          <h2 class="og-card-title">
+            <a @click=${this.handleLink} href=${pageUrl}
+              >${title || filename}</a
+            >
+          </h2>
           ${description
             ? html`<p class="og-card-description">${description}</p>`
             : ""}
@@ -246,7 +208,7 @@ class LinkPreviewCard extends MozLitElement {
         rel="stylesheet"
         href="chrome://browser/content/genai/content/link-preview-card.css"
       />
-      ${isMissingMetadata ? errorCard : normalCard}
+      ${isMissingAllContent ? errorCard : normalCard}
     `;
   }
 }
