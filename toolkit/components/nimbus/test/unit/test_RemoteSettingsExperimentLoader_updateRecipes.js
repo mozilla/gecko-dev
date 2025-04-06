@@ -23,6 +23,9 @@ const { TelemetryEnvironment } = ChromeUtils.importESModule(
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
+const { UnenrollmentCause } = ChromeUtils.importESModule(
+  "resource://nimbus/lib/ExperimentManager.sys.mjs"
+);
 
 function assertEnrollments(store, expectedActive, expectedInactive) {
   for (const slug of expectedActive) {
@@ -1299,7 +1302,12 @@ add_task(async function test_rollout_reenroll_optout() {
     "Should enroll in rollout"
   );
 
-  manager.unenroll(rollout.slug, "individual-opt-out");
+  manager.unenroll(
+    rollout.slug,
+    UnenrollmentCause.fromReason(
+      NimbusTelemetry.UnenrollReason.INDIVIDUAL_OPT_OUT
+    )
+  );
 
   await loader.updateRecipes();
 
@@ -1438,8 +1446,8 @@ add_task(async function test_active_and_past_experiment_targeting() {
     ["experiment-a", "experiment-b", "rollout-a", "rollout-b"]
   );
 
-  manager.unenroll("experiment-c", "test");
-  manager.unenroll("rollout-c", "test");
+  manager.unenroll("experiment-c");
+  manager.unenroll("rollout-c");
 
   assertEmptyStore(manager.store);
   cleanupFeatures();
@@ -2316,8 +2324,8 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
     },
   ]);
 
-  manager.unenroll("stays-enrolled", "test");
-  manager.unenroll("enrolls", "test");
+  manager.unenroll("stays-enrolled");
+  manager.unenroll("enrolls");
   assertEmptyStore(manager.store);
 
   Services.fog.testResetFOG();
@@ -2561,8 +2569,8 @@ add_task(async function testUnenrollsFirst() {
   await loader.updateRecipes("timer");
   assertEnrollments(manager.store, ["e3", "r3"], ["e1", "e2", "r1", "r2"]);
 
-  manager.unenroll("e3", "test");
-  manager.unenroll("r3", "test");
+  manager.unenroll("e3");
+  manager.unenroll("r3");
 
   assertEmptyStore(manager.store);
 });

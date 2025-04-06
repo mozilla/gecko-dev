@@ -36,6 +36,8 @@ const STUDIES_OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
 
 const STUDIES_ENABLED_CHANGED = "nimbus:studies-enabled-changed";
 
+const FORCE_ENROLLMENT_SOURCE = "force-enrollment";
+
 function featuresCompat(branch) {
   if (!branch || (!branch.feature && !branch.features)) {
     return [];
@@ -54,6 +56,68 @@ function getFeatureFromBranch(branch, featureId) {
     featureConfig => featureConfig.featureId === featureId
   );
 }
+
+export const UnenrollmentCause = {
+  fromCheckRecipeResult(result) {
+    const { UnenrollReason } = lazy.NimbusTelemetry;
+
+    let reason;
+
+    if (result.ok) {
+      switch (result.status) {
+        case lazy.MatchStatus.NOT_SEEN:
+          reason = UnenrollReason.RECIPE_NOT_SEEN;
+          break;
+
+        case lazy.MatchStatus.NO_MATCH:
+          reason = UnenrollReason.TARGETING_MISMATCH;
+          break;
+
+        case lazy.MatchStatus.TARGETING_ONLY:
+          reason = UnenrollReason.BUCKETING;
+          break;
+
+        // TARGETING_AND_BUCKETING cannot cause unenrollment.
+      }
+    } else {
+      reason = result.reason;
+    }
+
+    return { reason };
+  },
+
+  fromReason(reason) {
+    return { reason };
+  },
+
+  ChangedPref(pref) {
+    return {
+      reason: lazy.NimbusTelemetry.UnenrollReason.CHANGED_PREF,
+      changedPref: pref,
+    };
+  },
+
+  PrefFlipsConflict(conflictingSlug) {
+    return {
+      reason: lazy.NimbusTelemetry.UnenrollReason.PREF_FLIPS_CONFLICT,
+      conflictingSlug,
+    };
+  },
+
+  PrefFlipsFailed(prefName, prefType) {
+    return {
+      reason: lazy.NimbusTelemetry.UnenrollReason.PREF_FLIPS_FAILED,
+      prefName,
+      prefType,
+    };
+  },
+
+  Unknown() {
+    return {
+      reason: lazy.NimbusTelemetry.UnenrollReason.UNKNOWN,
+    };
+  },
+};
 
 /**
  * A module for processes Experiment recipes, choosing and storing enrollment state,
@@ -261,18 +325,8 @@ export class _ExperimentManager {
     }
 
     if (result.status === lazy.MatchStatus.TARGETING_AND_BUCKETING) {
-      const enrollment = await this.enroll(recipe, source);
-      if (enrollment) {
-        lazy.NimbusTelemetry.recordEnrollmentStatus({
-          slug: enrollment.slug,
-          branch: enrollment.branch.slug,
-          status: EnrollmentStatus.ENROLLED,
-          reason: EnrollmentStatusReason.QUALIFIED,
-        });
-      }
+      await this.enroll(recipe, source);
     }
-
-    // TODO(bug 1955169): Record NotEnrolled enrollment status telemetry.
   }
 
   /**
@@ -519,10 +573,7 @@ export class _ExperimentManager {
 
       for (const prefName of Object.keys(featureValue.prefs)) {
         if (prefNames.has(prefName)) {
-          this._unenroll(enrollment, {
-            reason: lazy.NimbusTelemetry.UnenrollReason.PREF_FLIPS_CONFLICT,
-            conflictingSlug: slug,
-          });
+          this._unenroll(enrollment, UnenrollmentCause.PrefFlipsConflict(slug));
           break;
         }
       }
@@ -588,7 +639,7 @@ export class _ExperimentManager {
     return enrollment;
   }
 
-  forceEnroll(recipe, branch, source = "force-enrollment") {
+  forceEnroll(recipe, branch) {
     /**
      * If we happen to be enrolled in an experiment for the same feature
      * we need to unenroll from that experiment.
@@ -608,7 +659,12 @@ export class _ExperimentManager {
           } found for the same feature ${feature.featureId}, unenrolling.`
         );
 
-        this.unenroll(enrollment.slug, source);
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromReason(
+            lazy.NimbusTelemetry.UnenrollReason.FORCE_ENROLLMENT
+          )
+        );
       }
     }
 
@@ -621,7 +677,7 @@ export class _ExperimentManager {
         slug,
       },
       branch,
-      source,
+      FORCE_ENROLLMENT_SOURCE,
       { force: true }
     );
 
@@ -661,26 +717,19 @@ export class _ExperimentManager {
     if (enrollment.active) {
       if (!result.ok) {
         // If the recipe failed validation then we must unenroll.
-        this._unenroll(enrollment, { reason: result.reason });
-        lazy.NimbusTelemetry.recordEnrollmentStatus({
-          slug: enrollment.slug,
-          branch: enrollment.branch.slug,
-          status: EnrollmentStatus.DISQUALIFIED,
-          reason: EnrollmentStatusReason.ERROR,
-          error_string: result.reason,
-        });
-
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromCheckRecipeResult(result)
+        );
         return false;
       }
 
       if (result.status === lazy.MatchStatus.NOT_SEEN) {
         // If the recipe was not present in the source we must unenroll.
-        this._unenroll(enrollment, { reason: UnenrollReason.RECIPE_NOT_SEEN });
-        lazy.NimbusTelemetry.recordEnrollmentStatus({
-          slug: enrollment.slug,
-          branch: enrollment.branch.slug,
-          status: EnrollmentStatus.WAS_ENROLLED,
-        });
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromCheckRecipeResult(result)
+        );
         return false;
       }
 
@@ -688,30 +737,20 @@ export class _ExperimentManager {
         // Our branch has been removed so we must unenroll.
         //
         // This should not happen in practice.
-        this._unenroll(enrollment, { reason: UnenrollReason.BRANCH_REMOVED });
-        lazy.NimbusTelemetry.recordEnrollmentStatus({
-          slug: enrollment.slug,
-          branch: enrollment.branch.slug,
-          status: EnrollmentStatus.DISQUALIFIED,
-          reason: EnrollmentStatus.ERROR,
-          error_string: UnenrollReason.BRANCH_REMOVED,
-        });
-
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromReason(UnenrollReason.BRANCH_REMOVED)
+        );
         return false;
       }
 
       if (result.status === lazy.MatchStatus.NO_MATCH) {
         // If we have an active enrollment and we no longer match targeting we
         // must unenroll.
-        this._unenroll(enrollment, {
-          reason: UnenrollReason.TARGETING_MISMATCH,
-        });
-        lazy.NimbusTelemetry.recordEnrollmentStatus({
-          slug: enrollment.slug,
-          branch: enrollment.branch.slug,
-          status: EnrollmentStatus.DISQUALIFIED,
-          reason: EnrollmentStatusReason.NOT_TARGETED,
-        });
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromCheckRecipeResult(result)
+        );
         return false;
       }
 
@@ -721,20 +760,26 @@ export class _ExperimentManager {
       ) {
         // If we no longer fall in the bucketing allocation for this rollout we
         // must unenroll.
-        this._unenroll(enrollment, { reason: UnenrollReason.BUCKETING });
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromCheckRecipeResult(result)
+        );
         return false;
+      }
+
+      if (result.status === lazy.MatchStatus.TARGETING_AND_BUCKETING) {
+        lazy.NimbusTelemetry.recordEnrollmentStatus({
+          slug: enrollment.slug,
+          branch: enrollment.branch.slug,
+          status: EnrollmentStatus.ENROLLED,
+          reason: EnrollmentStatusReason.QUALIFIED,
+        });
       }
 
       // Either this recipe is not a rollout or both targeting matches and we
       // are in the bucket allocation. For the former, we do not re-evaluate
       // bucketing for experiments because the bucketing cannot change. For the
       // latter, we are already active so we don't need to enroll.
-      lazy.NimbusTelemetry.recordEnrollmentStatus({
-        slug: enrollment.slug,
-        branch: enrollment.branch.slug,
-        status: EnrollmentStatus.ENROLLED,
-        reason: EnrollmentStatusReason.QUALIFIED,
-      });
       return true;
     }
 
@@ -752,16 +797,7 @@ export class _ExperimentManager {
       // We only re-enroll if we match targeting and bucketing and the user did
       // not purposefully opt out via about:studies.
       lazy.log.debug(`Re-enrolling in rollout "${recipe.slug}`);
-      const enrollment = await this.enroll(recipe, source, { reenroll: true });
-      if (enrollment) {
-        lazy.NimbusTelemetry.recordEnrollmentStatus({
-          slug: enrollment.slug,
-          branch: enrollment.branch.slug,
-          status: EnrollmentStatus.ENROLLED,
-          reason: EnrollmentStatusReason.QUALIFIED,
-        });
-        return true;
-      }
+      return !!(await this.enroll(recipe, source, { reenroll: true }));
     }
 
     return false;
@@ -772,13 +808,13 @@ export class _ExperimentManager {
    *
    * @param {string} slug
    *        The slug of the enrollment to stop.
-   * @param {string} reason
-   *        An optional reason for the unenrollment. If not provided, "unknown"
-   *        will be used.
+   * @param {object?} cause
+   *        The cause of this unenrollment. If not provided, "unknown" will be
+   *        used for the unenrollment reason.
    *
-   *        This will be reported in telemetry.
+   *        See `UnenrollCause` for details.
    */
-  unenroll(slug, reason) {
+  unenroll(slug, cause) {
     const enrollment = this.store.get(slug);
     if (!enrollment) {
       lazy.NimbusTelemetry.recordUnenrollmentFailure(
@@ -789,9 +825,7 @@ export class _ExperimentManager {
       return;
     }
 
-    this._unenroll(enrollment, {
-      reason: reason ?? lazy.NimbusTelemetry.UnenrollReason.UNKNOWN,
-    });
+    this._unenroll(enrollment, cause ?? UnenrollmentCause.Unknown());
   }
 
   /**
@@ -800,33 +834,18 @@ export class _ExperimentManager {
    * @param {Enrollment} enrollment
    *        The enrollment to end.
    *
-   * @param {object} options
-   * @param {string} options.reason
-   *        An optional reason for the unenrollment.
+   * @param {object} cause
+   *        The cause of this unenrollment.
    *
-   *        This will be reported in telemetry.
+   *        See `UnenrollmentCause` for details.
    *
-   * @param {object?} options.changedPref
-   *        If the unenrollment was due to pref change, this will contain the
-   *        information about the pref that changed.
+   * @param {object?} options
    *
-   * @param {string} options.changedPref.name
-   *        The name of the pref that caused the unenrollment.
-   *
-   * @param {string} options.changedPref.branch
-   *        The branch that was changed ("user" or "default").
+   * @param {boolean} options.duringRestore
+   *        If true, this indicates that this was during the call to
+   *        `_restoreEnrollmentPrefs`.
    */
-  _unenroll(
-    enrollment,
-    {
-      reason = "unknown",
-      changedPref = undefined,
-      duringRestore = false,
-      conflictingSlug = undefined,
-      prefName = undefined,
-      prefType = undefined,
-    } = {}
-  ) {
+  _unenroll(enrollment, cause, { duringRestore = false } = {}) {
     const { slug } = enrollment;
 
     if (!enrollment.active) {
@@ -841,22 +860,12 @@ export class _ExperimentManager {
 
     this.store.updateExperiment(slug, {
       active: false,
-      unenrollReason: reason,
+      unenrollReason: cause.reason,
     });
 
-    lazy.NimbusTelemetry.recordUnenrollment(
-      slug,
-      reason,
-      enrollment.branch.slug,
-      {
-        changedPref,
-        conflictingSlug,
-        prefType,
-        prefName,
-      }
-    );
+    lazy.NimbusTelemetry.recordUnenrollment(enrollment, cause);
 
-    this._unsetEnrollmentPrefs(enrollment, { changedPref, duringRestore });
+    this._unsetEnrollmentPrefs(enrollment, cause, { duringRestore });
 
     lazy.log.debug(`Recipe unenrolled: ${slug}`);
   }
@@ -873,11 +882,21 @@ export class _ExperimentManager {
    * Unenroll from all active studies if user opts out.
    */
   _handleStudiesOptOut() {
-    for (const { slug } of this.store.getAllActiveExperiments()) {
-      this.unenroll(slug, lazy.NimbusTelemetry.UnenrollReason.STUDIES_OPT_OUT);
+    for (const enrollment of this.store.getAllActiveExperiments()) {
+      this._unenroll(
+        enrollment,
+        UnenrollmentCause.fromReason(
+          lazy.NimbusTelemetry.UnenrollReason.STUDIES_OPT_OUT
+        )
+      );
     }
-    for (const { slug } of this.store.getAllActiveRollouts()) {
-      this.unenroll(slug, lazy.NimbusTelemetry.UnenrollReason.STUDIES_OPT_OUT);
+    for (const enrollment of this.store.getAllActiveRollouts()) {
+      this._unenroll(
+        enrollment,
+        UnenrollmentCause.fromReason(
+          lazy.NimbusTelemetry.UnenrollReason.STUDIES_OPT_OUT
+        )
+      );
     }
 
     this.optInRecipes = [];
@@ -1121,26 +1140,20 @@ export class _ExperimentManager {
    * Otherwise, it will be set to the original value from before the enrollment
    * began.
    *
-   * @param {Enrollment} enrollment
+   * @param {object} enrollment
    *        The enrollment that has ended.
    *
+   * @param {object} cause
+   *        The cause of the unenrollment.
+   *
+   *        See `UnenrollmentCause` for details.
+   *
    * @param {object} options
-   *
-   * @param {object?} options.changedPref
-   *        If provided, a changed pref that caused the unenrollment that
-   *        triggered unsetting these prefs. This is provided as to not
-   *        overwrite a changed pref with an original value.
-   *
-   * @param {string} options.changedPref.name
-   *        The name of the changed pref.
-   *
-   * @param {string} options.changedPref.branch
-   *        The branch that was changed ("user" or "default").
    *
    * @param {boolean} options.duringRestore
    *        The unenrollment was caused during restore.
    */
-  _unsetEnrollmentPrefs(enrollment, { changedPref, duringRestore } = {}) {
+  _unsetEnrollmentPrefs(enrollment, cause, { duringRestore } = {}) {
     if (!enrollment.prefs?.length) {
       return;
     }
@@ -1153,8 +1166,9 @@ export class _ExperimentManager {
       this._removePrefObserver(pref.name, enrollment.slug);
 
       if (
-        changedPref?.name == pref.name &&
-        changedPref.branch === pref.branch
+        cause.reason === lazy.NimbusTelemetry.UnenrollReason.CHANGED_PREF &&
+        cause.changedPref.name === pref.name &&
+        cause.changedPref.branch === pref.branch
       ) {
         // Resetting the original value would overwite the pref the user just
         // set. Skip it.
@@ -1224,6 +1238,8 @@ export class _ExperimentManager {
    *                    enrollment has ended.
    */
   _restoreEnrollmentPrefs(enrollment) {
+    const { UnenrollReason } = lazy.NimbusTelemetry;
+
     const { branch, prefs = [], isRollout } = enrollment;
 
     if (!prefs?.length) {
@@ -1237,10 +1253,11 @@ export class _ExperimentManager {
     for (const { name, featureId, variable } of prefs) {
       // If the feature no longer exists, unenroll.
       if (!Object.hasOwn(lazy.NimbusFeatures, featureId)) {
-        this._unenroll(enrollment, {
-          reason: lazy.NimbusTelemetry.UnenrollReason.INVALID_FEATURE,
-          duringRestore: true,
-        });
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromReason(UnenrollReason.INVALID_FEATURE),
+          { duringRestore: true }
+        );
         return false;
       }
 
@@ -1248,10 +1265,11 @@ export class _ExperimentManager {
 
       // If the feature is missing a variable that set a pref, unenroll.
       if (!Object.hasOwn(variables, variable)) {
-        this._unenroll(enrollment, {
-          reason: lazy.NimbusTelemetry.UnenrollReason.PREF_VARIABLE_MISSING,
-          duringRestore: true,
-        });
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromReason(UnenrollReason.PREF_VARIABLE_MISSING),
+          { duringRestore: true }
+        );
         return false;
       }
 
@@ -1259,10 +1277,11 @@ export class _ExperimentManager {
 
       // If the variable is no longer a pref-setting variable, unenroll.
       if (!Object.hasOwn(variableDef, "setPref")) {
-        this._unenroll(enrollment, {
-          reason: lazy.NimbusTelemetry.UnenrollReason.PREF_VARIABLE_NO_LONGER,
-          duringRestore: true,
-        });
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromReason(UnenrollReason.PREF_VARIABLE_NO_LONGER),
+          { duringRestore: true }
+        );
         return false;
       }
 
@@ -1273,10 +1292,11 @@ export class _ExperimentManager {
           : variableDef.setPref;
 
       if (prefName !== name) {
-        this._unenroll(enrollment, {
-          reason: lazy.NimbusTelemetry.UnenrollReason.PREF_VARIABLE_CHANGED,
-          duringRestore: true,
-        });
+        this._unenroll(
+          enrollment,
+          UnenrollmentCause.fromReason(UnenrollReason.PREF_VARIABLE_CHANGED),
+          { duringRestore: true }
+        );
         return false;
       }
     }
@@ -1497,10 +1517,7 @@ export class _ExperimentManager {
     };
 
     for (const enrollment of enrollments) {
-      this._unenroll(enrollment, {
-        reason: lazy.NimbusTelemetry.UnenrollReason.CHANGED_PREF,
-        changedPref,
-      });
+      this._unenroll(enrollment, UnenrollmentCause.ChangedPref(changedPref));
     }
   }
 }

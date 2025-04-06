@@ -32,7 +32,7 @@ add_task(async function test_set_inactive() {
   await manager.onStartup();
   await manager.store.addEnrollment(ExperimentFakes.experiment("foo"));
 
-  manager.unenroll("foo", "some-reason");
+  manager.unenroll("foo");
 
   Assert.equal(
     manager.store.get("foo").active,
@@ -231,7 +231,7 @@ add_task(async function test_setExperimentInactive_called() {
     "experiment should be active before unenroll"
   );
 
-  manager.unenroll("foo", "some-reason");
+  manager.unenroll("foo");
 
   Assert.ok(
     TelemetryEnvironment.setExperimentInactive.calledWith("foo"),
@@ -270,7 +270,7 @@ add_task(async function test_send_unenroll_event() {
     "no Glean unenrollment events before unenrollment"
   );
 
-  manager.unenroll("foo", "some-reason");
+  manager.unenroll("foo", { reason: "some-reason" });
 
   Assert.ok(TelemetryEvents.sendEvent.calledOnce);
   Assert.deepEqual(
@@ -369,7 +369,7 @@ add_task(async function test_remove_rollouts() {
 
   await manager.onStartup();
 
-  manager.unenroll("foo", "some-reason");
+  manager.unenroll("foo", { reason: "some-reason" });
 
   Assert.ok(
     manager.store.updateExperiment.calledOnce,

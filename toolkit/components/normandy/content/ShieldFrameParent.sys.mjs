@@ -34,10 +34,7 @@ export class ShieldFrameParent extends JSWindowActorParent {
         );
         break;
       case "Shield:RemoveMessagingSystemExperiment":
-        aboutStudies.removeMessagingSystemExperiment(
-          msg.data.slug,
-          msg.data.reason
-        );
+        aboutStudies.removeMessagingSystemExperiment(msg.data.slug);
         break;
       case "Shield:OpenDataPreferences":
         aboutStudies.openDataPreferences();

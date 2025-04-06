@@ -37,6 +37,10 @@ function nimbusTargetingContextTelemetryDisabled() {
 add_task(
   { skip_if: nimbusTargetingContextTelemetryDisabled },
   async function test_enrollAndUnenroll_gleanMetricConfiguration() {
+    info(
+      "Testing the interaction of gleanMetricConfiguration with submission of enrollment status and targeting context telemetry"
+    );
+
     const experiment = ExperimentFakes.recipe("experiment", {
       bucketConfig: {
         ...ExperimentFakes.recipe.bucketConfig,
@@ -92,9 +96,14 @@ add_task(
     await manager.onStartup();
     await manager.store.ready();
 
+    // We don't call recordTargetingContext() here because we dont actually want
+    // to do all the work when we're just testing whether or not the metrics are
+    // being recorded.
     Glean.nimbusTargetingEnvironment.targetingContextValue.set(
       "nothing-active-0"
     );
+
+    // We're submitting a bogus event here -- we shouldn't see it recorded.
     Glean.nimbusEvents.enrollmentStatus.record({ reason: "nothing-active-0" });
 
     Assert.equal(
@@ -108,12 +117,14 @@ add_task(
       "enrollmentStatus not recorded by default"
     );
 
+    // Because the feature listener gets triggered before we submit telemetry,
+    // this will actually cause it to submit its own enrollment status telemetry
+    // for enrollment.
     await manager.enroll(rollout, "rs-loader");
 
     Glean.nimbusTargetingEnvironment.targetingContextValue.set(
       "rollout-active-1"
     );
-    Glean.nimbusEvents.enrollmentStatus.record({ reason: "rollout-active-1" });
 
     Assert.equal(
       Glean.nimbusTargetingEnvironment.targetingContextValue.testGetValue(),
@@ -121,45 +132,63 @@ add_task(
       "targetingContextValue not recorded by default"
     );
 
-    {
-      const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
-      Assert.equal(events?.length ?? 0, 1, "enrollmentStatus recorded once");
-      Assert.equal(
-        events[0].extra.reason,
-        "rollout-active-1",
-        "enrollmentStatus recorded once"
-      );
-    }
+    Assert.deepEqual(
+      Glean.nimbusEvents.enrollmentStatus
+        .testGetValue("events")
+        ?.map(ev => ev.extra),
+      [
+        {
+          slug: rollout.slug,
+          branch: rollout.branches[0].slug,
+          status: "Enrolled",
+          reason: "Qualified",
+        },
+      ],
+      "Should have recorded enrollmentStatus (rollout enabled metric)"
+    );
 
+    // Likewise, because the feature listener gets triggered before we submit
+    // telemetry, this will disable the metric before we submit it, so we
+    // shouldn't see another event.
     await manager.enroll(experiment, "rs-loader");
+    Assert.ok(
+      manager.store.get(experiment.slug)?.active,
+      "Experiment enrolled and active"
+    );
 
     Glean.nimbusTargetingEnvironment.targetingContextValue.set(
       "experiment-active-2"
     );
-    Glean.nimbusEvents.enrollmentStatus.record({
-      reason: "experiment-active-2",
-    });
 
     Assert.equal(
       Glean.nimbusTargetingEnvironment.targetingContextValue.testGetValue(),
-      "experiment-active-2"
+      "experiment-active-2",
+      "Targeting context metric was recorded"
     );
 
-    {
-      const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
-      Assert.equal(
-        events?.length ?? 0,
-        1,
-        "enrollmentStatus not recorded again"
-      );
-    }
+    Assert.deepEqual(
+      Glean.nimbusEvents.enrollmentStatus
+        .testGetValue("events")
+        ?.map(ev => ev.extra),
+      [
+        {
+          slug: rollout.slug,
+          branch: rollout.branches[0].slug,
+          status: "Enrolled",
+          reason: "Qualified",
+        },
+      ],
+      "Should not have recorded enrollmentStatus again (experiment disabled metric)"
+    );
 
-    await manager.unenroll("experiment");
+    // Now the listener triggers again and the metric re-enables. We should see
+    // telemetry for this unenrollment but not setting the targeting context
+    // value.
+    await manager.unenroll(experiment.slug, { reason: "recipe-not-seen" });
 
     Glean.nimbusTargetingEnvironment.targetingContextValue.set(
       "rollout-active-3"
     );
-    Glean.nimbusEvents.enrollmentStatus.record({ reason: "rollout-active-3" });
 
     Assert.equal(
       Glean.nimbusTargetingEnvironment.targetingContextValue.testGetValue(),
@@ -167,22 +196,32 @@ add_task(
       "targetingContextValue was not recorded again"
     );
 
-    {
-      const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
-      Assert.equal(events?.length ?? 0, 2, "enrollmentStatus recorded again");
-      Assert.equal(
-        events[1].extra.reason,
-        "rollout-active-3",
-        "enrollmentStatus recorded with correct value"
-      );
-    }
+    Assert.deepEqual(
+      Glean.nimbusEvents.enrollmentStatus
+        .testGetValue("events")
+        .map(ev => ev.extra),
+      [
+        {
+          slug: rollout.slug,
+          branch: rollout.branches[0].slug,
+          status: "Enrolled",
+          reason: "Qualified",
+        },
+        {
+          slug: experiment.slug,
+          branch: experiment.branches[0].slug,
+          status: "WasEnrolled",
+        },
+      ]
+    );
 
-    await manager.unenroll("rollout");
+    // Finally, this disables the enrollment status metric in the onUpdate
+    // handler. We don't see its unenrollment.
+    await manager.unenroll(rollout.slug, { reason: "recipe-not-seen" });
 
     Glean.nimbusTargetingEnvironment.targetingContextValue.set(
       "nothing-active-0"
     );
-    Glean.nimbusEvents.enrollmentStatus.record({ reason: "nothing-active-0" });
 
     Assert.equal(
       Glean.nimbusTargetingEnvironment.targetingContextValue.testGetValue(),
@@ -190,14 +229,24 @@ add_task(
       "targetingContextValue was not recorded again"
     );
 
-    {
-      const events = Glean.nimbusEvents.enrollmentStatus.testGetValue("events");
-      Assert.equal(
-        events?.length ?? 0,
-        2,
-        "enrollmentStatus not recorded again"
-      );
-    }
+    Assert.deepEqual(
+      Glean.nimbusEvents.enrollmentStatus
+        .testGetValue("events")
+        .map(ev => ev.extra),
+      [
+        {
+          slug: rollout.slug,
+          branch: rollout.branches[0].slug,
+          status: "Enrolled",
+          reason: "Qualified",
+        },
+        {
+          slug: experiment.slug,
+          branch: experiment.branches[0].slug,
+          status: "WasEnrolled",
+        },
+      ]
+    );
 
     Services.fog.testResetFOG();
 
