@@ -5,6 +5,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_tab_counter_open_tab_tray">ᱴᱮᱵᱽ ᱠᱚ ᱡᱷᱤᱡᱽ ᱢᱮ: %1$s ᱾ ᱴᱮᱵᱽ ᱵᱚᱫᱚᱞ ᱞᱟᱹᱜᱤᱫ ᱴᱤᱯᱟᱹᱣ ᱢᱮ ᱾</string>
+  <!--
+    Message announced to the user when tab tray is selected used by a11y services
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_open_tab_counter_tab_tray">ᱵᱮ-ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽᱠᱚ ᱡᱷᱤᱡᱽ ᱢᱮ ᱺ %1$s ᱾ ᱴᱮᱵᱽ ᱵᱚᱫᱚᱞ ᱞᱟᱹᱜᱤᱫ ᱴᱤᱯᱟᱹᱣ ᱢᱮ ᱾</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">ᱱᱟᱶᱟ ᱴᱮᱵᱽ</string>
   <!-- Browser menu button that creates a private tab -->

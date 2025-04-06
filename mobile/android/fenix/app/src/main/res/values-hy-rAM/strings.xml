@@ -3434,6 +3434,28 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Ցուցադրել թաքնված տեքստը</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Մաքրել տեքստը</string>
+  <!--
+    Setup checklist feature
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Կայել որպես սկզբնադիր դիտարկիչ</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Մուտք գործեք Ձեր հաշիվ</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Ընտրեք ոճը</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Ընտրեք գործիքագոտու տեղադրությունը</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Ուսումնասիրեք ընդլայնումները</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Տեղադրել որոնման վիջեթը</string>
+  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">%1$s կարևորներ</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">Հարմարեցրեք Ձեր %1$s-ը</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Օգտակար գործիքներ</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Կատարված առաջադրանքներ</string>
   <!-- Accessibility description for the task icon -->
