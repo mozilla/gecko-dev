@@ -958,8 +958,13 @@
 
   #tabbrowser-tabs[orient="vertical"] & {
     width: var(--tab-group-line-thickness);
-    inset: -3px 0 -2px;
+    inset-block: -3px -2px;
+    inset-inline: 2px 0;
     position: absolute;
+
+    #tabbrowser-tabs[expanded] & {
+      inset-inline-start: 0;
+    }
 
     .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
       inset-block-end: 0;
@@ -1061,8 +1066,8 @@ tab-group {
 
   #tabbrowser-tabs[orient="vertical"] tab-group:not([collapsed]) > &::after {
     width: var(--tab-group-line-thickness);
-    inset: 0;
-    inset-inline-end: auto;
+    inset-block: 0;
+    inset-inline: 2px auto;
     border-start-start-radius: 1px;
     border-start-end-radius: 1px;
   }
