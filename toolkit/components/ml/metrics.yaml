@@ -21,6 +21,7 @@ firefox.ai.runtime:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1891685
     data_reviews:
       - https://phabricator.services.mozilla.com/D238583
+      - https://phabricator.services.mozilla.com/D243790
     data_sensitivity:
       - interaction
     notification_emails:
@@ -33,6 +34,7 @@ firefox.ai.runtime:
       - ml-suggest-ner
       - about-inference
       - webextension
+      - wllamapreview
       - default-engine
 
   engine_creation_failure:
@@ -98,6 +100,7 @@ firefox.ai.runtime:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1891685
     data_reviews:
       - https://phabricator.services.mozilla.com/D238583
+      - https://phabricator.services.mozilla.com/D243790
     data_sensitivity:
       - interaction
     notification_emails:
@@ -110,4 +113,5 @@ firefox.ai.runtime:
       - ml-suggest-ner
       - about-inference
       - webextension
+      - wllamapreview
       - default-engine

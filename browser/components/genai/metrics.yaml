@@ -659,3 +659,184 @@ genai.chatbot:
       version:
         type: string
         description: The active version of sidebar (either "old" or "new").
+
+genai.linkpreview:
+  # metrics
+
+  enabled:
+    type: boolean
+    lifetime: application
+    description: >
+      Records if the user has link previews enabled
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - metrics
+
+  # events
+
+  card_close:
+    type: event
+    description: >
+      Recorded when the user closes the card
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      duration:
+        type: quantity
+        description: Milliseconds the card stayed open
+
+  card_link:
+    type: event
+    description: >
+      Recorded when the user clicks on a link from the card
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      source:
+        type: string
+        description: Which link, e.g., title, feedback, visit
+
+  fetch:
+    type: event
+    description: >
+      Recorded when the browser fetches the page to be previewed
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      description:
+        type: boolean
+        description: Description detected
+      image:
+        type: boolean
+        description: Image detected
+      length:
+        type: quantity
+        description: Length of the article
+      outcome:
+        type: string
+        description: success or error
+      sitename:
+        type: boolean
+        description: Site name detected
+      skipped:
+        type: boolean
+        description: Skipped for newer fetch
+      time:
+        type: quantity
+        description: Milliseconds to fetch and extract page
+      title:
+        type: boolean
+        description: Title detected
+
+  generate:
+    type: event
+    description: >
+      Recorded when the model finishes generating the preview
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      delay:
+        type: quantity
+        description: Milliseconds waiting on previous
+      download:
+        type: quantity
+        description: Milliseconds to finish download
+      latency:
+        type: quantity
+        description: Milliseconds to output first sentence
+      outcome:
+        type: string
+        description: success or prefetch or error
+      sentences:
+        type: quantity
+        description: Number of sentences generated
+      time:
+        type: quantity
+        description: Milliseconds to generate full result
+
+  labs_checkbox:
+    type: event
+    description: >
+      Recorded when the user clicks on the Labs checkbox
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      enabled:
+        type: boolean
+        description: New/current state is enabled
+
+  start:
+    type: event
+    description: >
+      Recorded when the user initiates a link preview
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      cached:
+        type: boolean
+        description: Reusing existing panel
+      source:
+        type: string
+        description: Entrypoint shortcut or context

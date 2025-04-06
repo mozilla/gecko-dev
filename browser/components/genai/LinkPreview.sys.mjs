@@ -17,15 +17,22 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "gLinkPreviewEnabled",
+  "enabled",
   "browser.ml.linkPreview.enabled",
   false,
   (_pref, _old, val) => LinkPreview.onEnabledPref(val)
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "prefetchOnEnable",
+  "browser.ml.linkPreview.prefetchOnEnable",
+  true
+);
 
 export const LinkPreview = {
   // Shared downloading state to use across multiple previews
-  downloadingModel: false,
+  progress: -1, // -1 = off, 0-100 = download progress
+
   keyboardComboActive: false,
   _windowStates: new Map(),
   linkPreviewPanelId: "link-preview-panel",
@@ -41,6 +48,14 @@ export const LinkPreview = {
     for (const win of this._windowStates.keys()) {
       this[method](win);
     }
+
+    // Prefetch the model when enabling by simulating a request.
+    if (enabled && lazy.prefetchOnEnable) {
+      this.generateKeyPoints();
+    }
+
+    Glean.genaiLinkpreview.enabled.set(enabled);
+    Glean.genaiLinkpreview.labsCheckbox.record({ enabled });
   },
 
   /**
@@ -57,9 +72,11 @@ export const LinkPreview = {
       );
     }
 
-    if (lazy.gLinkPreviewEnabled) {
+    if (lazy.enabled) {
       this._addEventListeners(win);
     }
+
+    Glean.genaiLinkpreview.enabled.set(lazy.enabled);
   },
 
   /**
@@ -70,7 +87,7 @@ export const LinkPreview = {
    */
   teardown(win) {
     // Remove event listeners from the specified window
-    if (lazy.gLinkPreviewEnabled) {
+    if (lazy.enabled) {
       this._removeEventListeners(win);
     }
 
@@ -174,8 +191,19 @@ export const LinkPreview = {
     const ogCard = doc.createElement("link-preview-card");
     ogCard.style.width = "100%";
     ogCard.pageData = pageData;
-    // Assume we need to wait if another generate is downloading.
-    ogCard.showWait = this.downloadingModel;
+
+    // Reflect the shared download progress to this preview.
+    const updateProgress = () => {
+      ogCard.progress = this.progress;
+      // If we are still downloading, update the progress again.
+      if (this.progress >= 0) {
+        doc.ownerGlobal.setTimeout(
+          () => ogCard.isConnected && updateProgress(),
+          250
+        );
+      }
+    };
+    updateProgress();
 
     // Generate key points if we have content, language and configured for any
     // language or restricted.
@@ -196,6 +224,13 @@ export const LinkPreview = {
    * @param {LinkPreviewCard} ogCard to add key points
    */
   async generateKeyPoints(ogCard) {
+    // Support prefetching without a card by mocking expected properties.
+    let outcome = ogCard ? "success" : "prefetch";
+    if (!ogCard) {
+      ogCard = { addKeyPoint() {}, isConnected: true, keyPoints: [] };
+    }
+
+    const startTime = Date.now();
     ogCard.generating = true;
 
     // Ensure sequential AI processing to reduce memory usage by passing our
@@ -204,33 +239,54 @@ export const LinkPreview = {
     const { promise, resolve } = Promise.withResolvers();
     this.lastRequest = promise;
     await previous;
+    const delay = Date.now() - startTime;
 
     // No need to generate if already removed.
     if (!ogCard.isConnected) {
       resolve();
+      Glean.genaiLinkpreview.generate.record({
+        delay,
+        outcome: "removed",
+      });
       return;
     }
 
+    let download, latency;
     try {
       await lazy.LinkPreviewModel.generateTextAI(
-        ogCard.pageData.article.textContent,
+        ogCard.pageData?.article.textContent ?? "",
         {
-          onDownload: (state, progressPercentage) => {
-            ogCard.showWait = state;
-            this.downloadingModel = state;
-            ogCard.progressPercentage = progressPercentage;
+          onDownload: (downloading, percentage) => {
+            // Initial percentage is NaN, so set to 0.
+            percentage = isNaN(percentage) ? 0 : percentage;
+            // Use the percentage while downloading, otherwise disable with -1.
+            this.progress = downloading ? percentage : -1;
+            ogCard.progress = this.progress;
+            download = Date.now() - startTime;
           },
-          onError: console.error,
+          onError: error => {
+            console.error(error);
+            outcome = error;
+          },
           onText: text => {
             // Clear waiting in case a different generate handled download.
             ogCard.showWait = false;
             ogCard.addKeyPoint(text);
+            latency = latency ?? Date.now() - startTime;
           },
         }
       );
     } finally {
       resolve();
       ogCard.generating = false;
+      Glean.genaiLinkpreview.generate.record({
+        delay,
+        download,
+        latency,
+        outcome,
+        sentences: ogCard.keyPoints.length,
+        time: Date.now() - startTime,
+      });
     }
   },
 
@@ -239,14 +295,16 @@ export const LinkPreview = {
    *
    * @param {Window} win - The browser window context.
    * @param {string} url - The URL of the link to be previewed.
+   * @param {string} source - Optional trigging behavior.
    */
-  async renderLinkPreviewPanel(win, url) {
+  async renderLinkPreviewPanel(win, url, source = "shortcut") {
     const doc = win.document;
     let panel = doc.getElementById(this.linkPreviewPanelId);
     const openPopup = () => {
       const { _x: x, _y: y } = win.MousePosTracker;
       // Open near the mouse offsetting so link in the card can be clicked.
       panel.openPopup(doc.documentElement, "overlap", x - 20, y - 160);
+      panel.openTime = Date.now();
     };
 
     // Reuse the existing panel if the url is the same.
@@ -254,6 +312,7 @@ export const LinkPreview = {
       if (panel.previewUrl == url) {
         if (panel.state == "closed") {
           openPopup();
+          Glean.genaiLinkpreview.start.record({ cached: true, source });
         }
         return;
       }
@@ -276,21 +335,43 @@ export const LinkPreview = {
         "--panel-border-radius",
         "calc(var(--border-radius-small) + var(--og-padding))"
       );
+      panel.addEventListener("popuphidden", () => {
+        Glean.genaiLinkpreview.cardClose.record({
+          duration: Date.now() - panel.openTime,
+        });
+      });
     }
     panel.previewUrl = url;
+    Glean.genaiLinkpreview.start.record({ cached: false, source });
 
     // TODO we want to immediately add a card as a placeholder to have UI be
     // more responsive while we wait on fetching page data.
     const browsingContext = win.browsingContext;
     const actor = browsingContext.currentWindowGlobal.getActor("LinkPreview");
+    const fetchTime = Date.now();
     const pageData = await actor.fetchPageData(url);
     // Skip updating content if we've moved on to showing something else.
-    if (pageData.url != panel.previewUrl) {
+    const skipped = pageData.url != panel.previewUrl;
+    Glean.genaiLinkpreview.fetch.record({
+      description: !!pageData.meta.description,
+      image: !!pageData.meta.imageUrl,
+      length:
+        Math.round((pageData.article.textContent?.length ?? 0) * 0.01) * 100,
+      outcome: pageData.error?.result ?? "success",
+      sitename: !!pageData.article.siteName,
+      skipped,
+      time: Date.now() - fetchTime,
+      title: !!pageData.meta.title,
+    });
+    if (skipped) {
       return;
     }
     const ogCard = this.createOGCard(doc, pageData);
     panel.append(ogCard);
-    ogCard.addEventListener("LinkPreviewCard:dismiss", () => panel.hidePopup());
+    ogCard.addEventListener("LinkPreviewCard:dismiss", event => {
+      panel.hidePopup();
+      Glean.genaiLinkpreview.cardLink.record({ source: event.detail });
+    });
 
     openPopup();
   },
