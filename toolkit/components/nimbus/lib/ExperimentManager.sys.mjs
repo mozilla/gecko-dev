@@ -324,8 +324,38 @@ export class _ExperimentManager {
       return;
     }
 
-    if (result.status === lazy.MatchStatus.TARGETING_AND_BUCKETING) {
-      await this.enroll(recipe, source);
+    switch (result.status) {
+      case lazy.MatchStatus.ENROLLMENT_PAUSED:
+        lazy.NimbusTelemetry.recordEnrollmentStatus({
+          slug: recipe.slug,
+          status: EnrollmentStatus.NOT_ENROLLED,
+          reason: EnrollmentStatusReason.ENROLLMENTS_PAUSED,
+        });
+        break;
+
+      case lazy.MatchStatus.NO_MATCH:
+        lazy.NimbusTelemetry.recordEnrollmentStatus({
+          slug: recipe.slug,
+          status: EnrollmentStatus.NOT_ENROLLED,
+          reason: EnrollmentStatusReason.NOT_TARGETED,
+        });
+        break;
+
+      case lazy.MatchStatus.TARGETING_ONLY:
+        lazy.NimbusTelemetry.recordEnrollmentStatus({
+          slug: recipe.slug,
+          status: EnrollmentStatus.NOT_ENROLLED,
+          reason: EnrollmentStatusReason.NOT_SELECTED,
+        });
+        break;
+
+      case lazy.MatchStatus.TARGETING_AND_BUCKETING:
+        await this.enroll(recipe, source);
+        break;
+
+      // This function will not be called with MatchStatus.NOT_SEEN --
+      // RemoteSettingsExperimentLoader will call updateEnrollment directly
+      // instead.
     }
   }
 
@@ -481,12 +511,18 @@ export class _ExperimentManager {
         slug,
         lazy.NimbusTelemetry.EnrollmentFailureReason.NAME_CONFLICT
       );
+      lazy.NimbusTelemetry.recordEnrollmentStatus({
+        slug,
+        status: lazy.NimbusTelemetry.EnrollmentStatus.NOT_ENROLLED,
+        reason: lazy.NimbusTelemetry.EnrollmentStatusReason.NAME_CONFLICT,
+      });
+
       throw new Error(`An experiment with the slug "${slug}" already exists.`);
     }
 
     let storeLookupByFeature = recipe.isRollout
       ? this.store.getRolloutForFeature.bind(this.store)
-      : this.store.hasExperimentForFeature.bind(this.store);
+      : this.store.getExperimentForFeature.bind(this.store);
     const userId = await this.getUserId(bucketConfig);
 
     let branch;
@@ -515,8 +551,9 @@ export class _ExperimentManager {
     }
 
     const features = featuresCompat(branch);
-    for (let feature of features) {
-      if (storeLookupByFeature(feature?.featureId)) {
+    for (const feature of features) {
+      const existingEnrollment = storeLookupByFeature(feature?.featureId);
+      if (existingEnrollment) {
         lazy.log.debug(
           `Skipping enrollment for "${slug}" because there is an existing ${
             recipe.isRollout ? "rollout" : "experiment"
@@ -526,7 +563,12 @@ export class _ExperimentManager {
           slug,
           lazy.NimbusTelemetry.EnrollmentFailureReason.FEATURE_CONFLICT
         );
-        // TODO (bug 1955170) Add enrollment status telemetry
+        lazy.NimbusTelemetry.recordEnrollmentStatus({
+          slug,
+          status: lazy.NimbusTelemetry.EnrollmentStatus.NOT_ENROLLED,
+          reason: lazy.NimbusTelemetry.EnrollmentStatusReason.FEATURE_CONFLICT,
+          conflict_slug: existingEnrollment.slug,
+        });
         return null;
       }
     }

@@ -36,6 +36,7 @@ const EnrollmentStatusReason = Object.freeze({
   NOT_TARGETED: "NotTargeted",
   ENROLLMENTS_PAUSED: "EnrollmentsPaused",
   FEATURE_CONFLICT: "FeatureConflict",
+  NAME_CONFLICT: "NameConflict",
   ERROR: "Error",
 });
 
