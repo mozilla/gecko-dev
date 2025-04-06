@@ -4,6 +4,9 @@
 const { _ExperimentFeature: ExperimentFeature, NimbusFeatures } =
   ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
 
+const { ObjectUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/ObjectUtils.sys.mjs"
+);
 const { PrefUtils } = ChromeUtils.importESModule(
   "resource://normandy/lib/PrefUtils.sys.mjs"
 );
@@ -11,6 +14,18 @@ const { PrefUtils } = ChromeUtils.importESModule(
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
+
+function assertIncludes(array, obj, msg) {
+  let found = false;
+  for (const el of array) {
+    if (ObjectUtils.deepEqual(el, obj)) {
+      found = true;
+      break;
+    }
+  }
+
+  Assert.ok(found, msg);
+}
 
 /**
  * Pick a single entry from an object and return a new object containing only
@@ -1721,6 +1736,13 @@ add_task(async function test_prefChange() {
     expectedUser = null,
   }) {
     Services.fog.testResetFOG();
+    Services.fog.applyServerKnobsConfig(
+      JSON.stringify({
+        metrics_enabled: {
+          "nimbus_events.enrollment_status": true,
+        },
+      })
+    );
     Services.telemetry.snapshotEvents(
       Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
       /* clear = */ true
@@ -1860,6 +1882,42 @@ add_task(async function test_prefChange() {
         "Glean should have no unenrollment events"
       );
     }
+
+    const expectedEnrollmentStatusEvents = [];
+    for (const enrollmentKind of Object.keys(configs)) {
+      expectedEnrollmentStatusEvents.push({
+        slug: slugs[enrollmentKind],
+        branch: "control",
+        status: "Enrolled",
+        reason: "Qualified",
+      });
+    }
+    for (const ev of expectedLegacyEvents) {
+      expectedEnrollmentStatusEvents.push({
+        slug: ev.value,
+        branch: "control",
+        status: "Disqualified",
+        reason: "ChangedPref",
+      });
+    }
+
+    const enrollmentStatusEvents = (
+      Glean.nimbusEvents.enrollmentStatus.testGetValue("events") ?? []
+    ).map(ev => ev.extra);
+
+    for (const expectedEvent of expectedEnrollmentStatusEvents) {
+      assertIncludes(
+        enrollmentStatusEvents,
+        expectedEvent,
+        "Event should appear in the enrollment status telemetry"
+      );
+    }
+
+    Assert.equal(
+      enrollmentStatusEvents.length,
+      expectedEnrollmentStatusEvents.length,
+      "We should see the expected number of enrollment status events"
+    );
 
     for (const enrollmentKind of expectedEnrollments) {
       await cleanup[enrollmentKind]();
