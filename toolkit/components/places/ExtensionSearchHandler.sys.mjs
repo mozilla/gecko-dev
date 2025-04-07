@@ -14,7 +14,9 @@ let gActiveInputSession = null;
 // the input changes or the input session ends.
 let gCurrentCallbackID = 0;
 
-// Handles keeping track of information associated to the registered keyword.
+/**
+ * Handles keeping track of information associated to the registered keyword.
+ */
 class KeywordInfo {
   constructor(extension, description) {
     this._extension = extension;
@@ -34,7 +36,9 @@ class KeywordInfo {
   }
 }
 
-// Responsible for handling communication between the extension and the urlbar.
+/**
+ * Responsible for handling communication between the extension and the urlbar.
+ */
 class InputSession {
   constructor(keyword, extension) {
     this._keyword = keyword;
@@ -154,7 +158,9 @@ export var ExtensionSearchHandler = Object.freeze({
    * description will be used for the comment in the heuristic result.
    *
    * @param {string} keyword The keyword.
-   * @param {string} description The description to use for the heuristic result.
+   * @param {object} options
+   * @param {string} options.description
+   *   The description to use for the heuristic result.
    */
   setDefaultSuggestion(keyword, { description }) {
     if (!gKeywordMap.has(keyword)) {
@@ -169,7 +175,7 @@ export var ExtensionSearchHandler = Object.freeze({
    * provided is no longer equal to the active callback ID.
    *
    * @param {string} keyword The keyword.
-   * @param {integer} id The ID of the suggestion callback.
+   * @param {number} id The ID of the suggestion callback.
    * @param {Array<object>} suggestions An array of suggestions to provide to the urlbar.
    */
   addSuggestions(keyword, id, suggestions) {
