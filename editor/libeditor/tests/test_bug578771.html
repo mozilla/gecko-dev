@@ -31,13 +31,13 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=578771
         ce.focus();
 
         synthesizeMouse(elem, 5, 5, {clickCount: 2 });
-        ok(elem.selectionStart == 0 && elem.selectionEnd == 7,
-           " Double-clicking on another " + elemTag + " works correctly");
+        is(elem.selectionStart, 0, `${elemTag} selectionStart after double-click`);
+        is(elem.selectionEnd, 7, `${elemTag} selectionEnd after double-click`);
 
         ce.focus();
         synthesizeMouse(elem, 5, 5, {clickCount: 3 });
-        ok(elem.selectionStart == 0 && elem.selectionEnd == 14,
-           "Triple-clicking on another " + elemTag + " works correctly");
+        is(elem.selectionStart, 0, `${elemTag} selectionStart after triple-click`);
+        is(elem.selectionEnd, 14, `${elemTag} selectionEnd after triple-click`);
       }
       // Avoid platform selection differences
       SimpleTest.waitForFocus(function() {

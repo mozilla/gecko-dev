@@ -4615,6 +4615,10 @@ nsresult nsIFrame::GetDataForTableSelection(
 }
 
 static bool IsEditingHost(const nsIFrame* aFrame) {
+  if (aFrame->Style()->GetPseudoType() ==
+      PseudoStyleType::mozTextControlEditingRoot) {
+    return true;
+  }
   nsIContent* content = aFrame->GetContent();
   return content && content->IsEditingHost();
 }
@@ -4666,8 +4670,6 @@ bool nsIFrame::ShouldHaveLineIfEmpty() const {
       break;
     case PseudoStyleType::scrolledContent:
       return GetParent()->ShouldHaveLineIfEmpty();
-    case PseudoStyleType::mozTextControlEditingRoot:
-      return true;
     case PseudoStyleType::buttonContent:
       // HTML quirk.
       return GetContent()->IsHTMLElement(nsGkAtoms::input);
@@ -5460,6 +5462,23 @@ struct MOZ_STACK_CLASS FrameContentRange {
   int32_t end;
 };
 
+static bool IsRelevantBlockFrame(const nsIFrame* aFrame) {
+  if (!aFrame->IsBlockOutside()) {
+    return false;
+  }
+  if (aFrame->GetContent()->IsInNativeAnonymousSubtree()) {
+    // This helps skipping things like scrollbar parts.
+    return false;
+  }
+  auto pseudoType = aFrame->Style()->GetPseudoType();
+  if (PseudoStyle::IsAnonBox(pseudoType)) {
+    // Table cell contents should be considered block boundaries for this
+    // purpose.
+    return pseudoType == PseudoStyleType::cellContent;
+  }
+  return true;
+}
+
 // Retrieve the content offsets of a frame
 static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
   nsIContent* content = aFrame->GetContent();
@@ -5486,7 +5505,7 @@ static FrameContentRange GetRangeForFrame(const nsIFrame* aFrame) {
 
   MOZ_ASSERT(!content->IsBeingRemoved());
   nsIContent* parent = content->GetParent();
-  if (aFrame->IsBlockOutside() || !parent) {
+  if (IsRelevantBlockFrame(aFrame) || !parent) {
     return FrameContentRange(content, 0, content->GetChildCount());
   }
 
@@ -9385,7 +9404,7 @@ static nsContentAndOffset FindLineBreakingFrame(nsIFrame* aFrame,
   // the content of the inline frames they were created from. The
   // first/last child of such frames is the real block frame we're
   // looking for.
-  if ((aFrame->IsBlockOutside() &&
+  if ((IsRelevantBlockFrame(aFrame) &&
        !aFrame->HasAnyStateBits(NS_FRAME_PART_OF_IBSPLIT)) ||
       aFrame->IsBrFrame()) {
     nsIContent* content = aFrame->GetContent();
@@ -9427,7 +9446,7 @@ nsresult nsIFrame::PeekOffsetForParagraph(PeekOffsetStruct* aPos) {
   nsIFrame* frame = this;
   nsContentAndOffset blockFrameOrBR;
   blockFrameOrBR.mContent = nullptr;
-  bool reachedLimit = frame->IsBlockOutside() || IsEditingHost(frame);
+  bool reachedLimit = IsRelevantBlockFrame(frame) || IsEditingHost(frame);
 
   auto traverse = [&aPos](nsIFrame* current) {
     return aPos->mDirection == eDirPrevious ? current->GetPrevSibling()
@@ -9463,7 +9482,8 @@ nsresult nsIFrame::PeekOffsetForParagraph(PeekOffsetStruct* aPos) {
       break;
     }
     frame = parent;
-    reachedLimit = frame && (frame->IsBlockOutside() || IsEditingHost(frame));
+    reachedLimit =
+        frame && (IsRelevantBlockFrame(frame) || IsEditingHost(frame));
   }
 
   if (reachedLimit) {  // no "stop frame" found
