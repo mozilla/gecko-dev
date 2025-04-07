@@ -6,8 +6,6 @@ import io
 import os
 import re
 
-import six
-
 RE_COMMENT = re.compile(r"\s+#")
 RE_HTTP = re.compile(r"HTTP\((\.\.(\/\.\.)*)\)")
 RE_PROTOCOL = re.compile(r"^\w+:")
@@ -152,7 +150,8 @@ class ReftestManifest(object):
         defaults = []
         for i, line in enumerate(lines):
             lineno = i + 1
-            line = six.ensure_text(line)
+            if isinstance(line, bytes):
+                line = line.decode()
 
             # Entire line is a comment.
             if line.startswith("#"):

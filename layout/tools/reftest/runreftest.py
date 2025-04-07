@@ -36,8 +36,6 @@ from manifestparser import TestManifest
 from manifestparser import filters as mpf
 from mozrunner.utils import get_stack_fixer_function, test_environment
 from mozscreenshot import dump_screen, printstatus
-from six import reraise, string_types
-from six.moves import range
 
 try:
     from marionette_driver.addons import Addons
@@ -966,13 +964,13 @@ class RefTest(object):
                 addons.install(options.reftestExtensionPath, temp=True)
 
                 marionette.delete_session()
-            except IOError:
+            except IOError as e:
                 # Any IOError as thrown by Marionette means that something is
                 # wrong with the process, like a crash or the socket is no
                 # longer open. We defer raising this specific error so that
                 # post-test checks for leaks and crashes are performed and
                 # reported first.
-                marionette_exception = sys.exc_info()
+                marionette_exception = e
 
         status = runner.wait()
         runner.process_handler = None
@@ -1017,8 +1015,7 @@ class RefTest(object):
         self.cleanup(profile.profile)
 
         if marionette_exception is not None:
-            exc, value, tb = marionette_exception
-            raise reraise(exc, value, tb)
+            raise marionette_exception
 
         self.log.info("Process mode: {}".format("e10s" if options.e10s else "non-e10s"))
         return status
@@ -1069,7 +1066,7 @@ class RefTest(object):
         def run(**kwargs):
             if kwargs.get("tests"):
                 self.lastTest = kwargs["tests"][-1]["identifier"]
-                if not isinstance(self.lastTest, string_types):
+                if not isinstance(self.lastTest, str):
                     self.lastTest = " ".join(self.lastTest)
 
             status = self.runApp(
@@ -1112,7 +1109,7 @@ class RefTest(object):
         for t in tests:
             tests_by_manifest[t["manifest"]].append(t)
             test_id = t["identifier"]
-            if not isinstance(test_id, string_types):
+            if not isinstance(test_id, str):
                 test_id = " ".join(test_id)
             ids_by_manifest[t["manifestID"]].append(test_id)
 
