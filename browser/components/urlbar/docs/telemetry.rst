@@ -291,6 +291,10 @@ urlbar.searchmode.*
     Used when the user selects a keyword offer result.
   - ``oneoff``
     Used when the user selects a one-off engine in the Urlbar.
+  - ``searchbutton``
+    Used when the user entered search mode via the unified search button.
+    Added in Firefox 133, but the unified search button was not enabled in
+    release until 136.
   - ``shortcut``
     Used when the user enters search mode with a keyboard shortcut or menu bar
     item (e.g. ``Accel+K``).
@@ -364,6 +368,14 @@ urlbar.searchmode.*
 
       Please note that symbols cannot trigger the ``urlbar.searchmode.keywordoffer``
       telemetry, as symbols are only valid for typed. [Bug `1919180`_]
+
+    Firefox 133
+      Added ``urlbar.searchmode.searchbutton``:
+        - This new probe is for accesses to search mode from the unified search
+          button. The button was released in Firefox 136 and replaced the previous
+          one-off buttons (``urlbar.searchmode.oneoff``).
+
+      Added Glean equivalents of the probes as labeled counters.
 
 
 urlbar.picked.*
