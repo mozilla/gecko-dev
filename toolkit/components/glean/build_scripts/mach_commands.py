@@ -90,7 +90,7 @@ def update_glean_tags(command_context):
 
     open(tags_filename, "w").write(
         "{}\n{}\n\n".format(LICENSE_HEADER, GENERATED_HEADER)
-        + yaml.dump(tags, width=78, explicit_start=True)
+        + yaml.dump(tags, width=78, explicit_start=True, line_break="\n")
     )
 
 
