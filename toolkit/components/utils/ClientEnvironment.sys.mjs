@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
   NormandyUtils: "resource://normandy/lib/NormandyUtils.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
   ShellService: "resource:///modules/ShellService.sys.mjs",
   TelemetryArchive: "resource://gre/modules/TelemetryArchive.sys.mjs",
   TelemetryController: "resource://gre/modules/TelemetryController.sys.mjs",
@@ -17,6 +18,16 @@ ChromeUtils.defineESModuleGetters(lazy, {
   WindowsVersionInfo:
     "resource://gre/modules/components-utils/WindowsVersionInfo.sys.mjs",
 });
+
+function getOsVersion() {
+  let version = null;
+  try {
+    version = Services.sysinfo.getProperty("version", null);
+  } catch (_e) {
+    // getProperty can throw if the version does not exist
+  }
+  return version;
+}
 
 /**
  * Create an object that provides general information about the client application.
@@ -29,10 +40,22 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * can add getter functions that return promises for async data.
  */
 export class ClientEnvironmentBase {
+  static get country() {
+    // The home region can be null and is updated regularly.
+    return lazy.Region.home;
+  }
+
   static get distribution() {
     return Services.prefs
       .getDefaultBranch(null)
       .getCharPref("distribution.id", "default");
+  }
+
+  static get formFactor() {
+    // TODO: distinguish Firefox running on "tablet"
+    return ["android", "ios"].includes(AppConstants.platform)
+      ? "phone"
+      : "desktop";
   }
 
   static get telemetry() {
@@ -185,21 +208,11 @@ export class ClientEnvironmentBase {
 
   static get os() {
     function coerceToNumber(version) {
+      if (!version) {
+        return null;
+      }
       const parts = version.split(".");
       return parseFloat(parts.slice(0, 2).join("."));
-    }
-
-    function getOsVersion() {
-      let version = null;
-      try {
-        version = Services.sysinfo.getProperty("version", null);
-      } catch (_e) {
-        // getProperty can throw if the version does not exist
-      }
-      if (version) {
-        version = coerceToNumber(version);
-      }
-      return version;
     }
 
     let osInfo = {
@@ -207,11 +220,20 @@ export class ClientEnvironmentBase {
       isMac: AppConstants.platform === "macosx",
       isLinux: AppConstants.platform === "linux",
 
+      get name() {
+        // Reuse value from `appinfo` to avoid confusion (eg. 'win' vs. 'WINNT', 'android' vs 'Android')
+        return ClientEnvironmentBase.appinfo.OS;
+      },
+
+      get version() {
+        return getOsVersion();
+      },
+
       get windowsVersion() {
         if (!osInfo.isWindows) {
           return null;
         }
-        return getOsVersion();
+        return coerceToNumber(getOsVersion());
       },
 
       /**
@@ -242,7 +264,7 @@ export class ClientEnvironmentBase {
         if (!osInfo.isMac) {
           return null;
         }
-        return getOsVersion();
+        return coerceToNumber(getOsVersion());
       },
 
       // Version information on linux is a lot harder and a lot less useful, so

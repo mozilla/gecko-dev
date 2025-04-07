@@ -731,6 +731,21 @@ add_task(async function test_inspect_method_uses_a_random_cache_bust() {
   Utils.fetchLatestChanges = backup;
 });
 
+add_task(async function test_jexl_context_is_shown_in_inspect() {
+  const { jexlContext } = await RemoteSettings.inspect();
+  deepEqual(Object.keys(jexlContext).sort(), [
+    "appinfo",
+    "channel",
+    "country",
+    "formFactor",
+    "locale",
+    "os",
+    "version",
+  ]);
+  deepEqual(Object.keys(jexlContext.os).sort(), ["name", "version"]);
+  deepEqual(Object.keys(jexlContext.appinfo).sort(), ["ID", "OS"]);
+});
+
 add_task(async function test_clearAll_method() {
   // Make sure we have some local data.
   await client.maybeSync(2000);

@@ -8,6 +8,8 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ClientEnvironmentBase:
+    "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   Database: "resource://services-settings/Database.sys.mjs",
   FilterExpressions:
     "resource://gre/modules/components-utils/FilterExpressions.sys.mjs",
@@ -637,6 +639,28 @@ function remoteSettingsFunction() {
       })
     );
 
+    // Turn the JEXL context object into a simple object that can be
+    // serialized into JSON.
+    // Here we only select the fields that are shared between clients
+    // implementations (application-services and Gecko).
+    const jexlContext = {
+      ...["channel", "version", "locale", "country", "formFactor"].reduce(
+        (acc, key) => {
+          acc[key] = lazy.ClientEnvironmentBase[key];
+          return acc;
+        },
+        {}
+      ),
+      os: ["name", "version"].reduce((acc, key) => {
+        acc[key] = lazy.ClientEnvironmentBase.os?.[key];
+        return acc;
+      }, {}),
+      appinfo: ["ID", "OS"].reduce((acc, key) => {
+        acc[key] = lazy.ClientEnvironmentBase.appinfo?.[key];
+        return acc;
+      }, {}),
+    };
+
     return {
       serverURL: lazy.Utils.SERVER_URL,
       pollingEndpoint: lazy.Utils.SERVER_URL + lazy.Utils.CHANGES_PATH,
@@ -653,6 +677,7 @@ function remoteSettingsFunction() {
         [TELEMETRY_SOURCE_SYNC]: await lazy.gSyncHistory.list(),
       },
       isSynchronizationBroken: await isSynchronizationBroken(),
+      jexlContext,
     };
   };
 
