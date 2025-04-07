@@ -249,6 +249,12 @@ interface nsIContentAnalysisRequest : nsISupports
   // What to multiply the timeout for this request by. Only needed if there are
   // requests with multiple userActionIds that are logically grouped together.
   attribute uint32_t timeoutMultiplier;
+
+  // Tests set this to allow reliably cancelling requests without that
+  // triggering CA to skip sending to the agent.  Outside of tests, that is
+  // a race where the winner is unimportant.  This must not be set outside
+  // of tests.
+  attribute boolean testOnlyIgnoreCanceledAndAlwaysSubmitToAgent;
 };
 
 [scriptable, builtinclass, uuid(cb09fc88-118c-411b-aa89-2e1bc5e3eba6)]

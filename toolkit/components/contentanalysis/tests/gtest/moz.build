@@ -22,6 +22,11 @@ if CONFIG["OS_TARGET"] == "WINNT":
     DIRS += ["agent"]
     OS_LIBS += ["pathcch"]
 
-TEST_HARNESS_FILES.gtest += ["allowedFile.txt", "blockedFile.txt"]
+TEST_HARNESS_FILES.gtest += [
+    "allowedFile.txt",
+    "allowedFile1.txt",
+    "allowedFile2.txt",
+    "blockedFile.txt",
+]
 
 FINAL_LIBRARY = "xul-gtest"

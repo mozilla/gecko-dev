@@ -172,6 +172,10 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
   // requests with multiple userActionIds that are logically grouped together.
   uint32_t mTimeoutMultiplier = 1;
 
+  // Submit request to agent, even if it was already canceled.  Always false
+  // if not in tests.
+  bool mTestOnlyAlwaysSubmitToAgent = false;
+
   friend class ::ContentAnalysisTest;
 };
 
@@ -307,7 +311,9 @@ class ContentAnalysis final : public nsIContentAnalysis,
       nsCString&& aUserActionId,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
       bool aAutoAcknowledge,
-      const std::shared_ptr<content_analysis::sdk::Client>& aClient);
+      const std::shared_ptr<content_analysis::sdk::Client>& aClient,
+      bool aTestOnlyIgnoreCanceled = false);
+
   static void HandleResponseFromAgent(
       content_analysis::sdk::ContentAnalysisResponse&& aResponse);
 
@@ -317,6 +323,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   };
   DataMutex<nsTHashMap<nsCString, UserActionIdAndAutoAcknowledge>>
       mRequestTokenToUserActionIdMap;
+
   void IssueResponse(ContentAnalysisResponse* response,
                      nsCString&& aUserActionId, bool aAcknowledge,
                      bool aIsTooLate);

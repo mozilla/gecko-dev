@@ -362,6 +362,20 @@ ContentAnalysisRequest::SetTimeoutMultiplier(uint32_t aTimeoutMultiplier) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+ContentAnalysisRequest::GetTestOnlyIgnoreCanceledAndAlwaysSubmitToAgent(
+    bool* aAlwaysSubmitToAgent) {
+  *aAlwaysSubmitToAgent = mTestOnlyAlwaysSubmitToAgent;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ContentAnalysisRequest::SetTestOnlyIgnoreCanceledAndAlwaysSubmitToAgent(
+    bool aAlwaysSubmitToAgent) {
+  mTestOnlyAlwaysSubmitToAgent = aAlwaysSubmitToAgent;
+  return NS_OK;
+}
+
 nsresult ContentAnalysis::CreateContentAnalysisClient(
     nsCString&& aPipePathName, nsString&& aClientSignatureSetting,
     bool aIsPerUser) {
@@ -1939,13 +1953,18 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
                              "dlp-request-sent-raw", requestArray.Elements());
   }
 
+  bool ignoreCanceled;
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetTestOnlyIgnoreCanceledAndAlwaysSubmitToAgent(
+      &ignoreCanceled));
+
   CallClientWithRetry<std::nullptr_t>(
       __func__,
-      [userActionId, pbRequest = std::move(pbRequest), aAutoAcknowledge](
+      [userActionId, pbRequest = std::move(pbRequest), aAutoAcknowledge,
+       ignoreCanceled](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable {
         MOZ_ASSERT(!NS_IsMainThread());
         return DoAnalyzeRequest(std::move(userActionId), std::move(pbRequest),
-                                aAutoAcknowledge, client);
+                                aAutoAcknowledge, client, ignoreCanceled);
       })
       ->Then(
           GetMainThreadSerialEventTarget(), __func__, []() { /* do nothing */ },
@@ -1969,7 +1988,8 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
     nsCString&& aUserActionId,
     content_analysis::sdk::ContentAnalysisRequest&& aRequest,
     bool aAutoAcknowledge,
-    const std::shared_ptr<content_analysis::sdk::Client>& aClient) {
+    const std::shared_ptr<content_analysis::sdk::Client>& aClient,
+    bool aTestOnlyIgnoreCanceled) {
   MOZ_ASSERT(!NS_IsMainThread());
   RefPtr<ContentAnalysis> owner =
       ContentAnalysis::GetContentAnalysisFromService();
@@ -1998,8 +2018,8 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
     }
   }
 
-  bool actionWasCanceled;
-  {
+  bool actionWasCanceled = false;
+  if (!aTestOnlyIgnoreCanceled) {
     auto userActionIdToCanceledResponseMap =
         owner->mUserActionIdToCanceledResponseMap.Lock();
     actionWasCanceled =
