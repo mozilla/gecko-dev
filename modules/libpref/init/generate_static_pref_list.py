@@ -5,13 +5,13 @@
 import os
 import sys
 from collections import defaultdict
+from io import StringIO
 
 import buildconfig
 import yaml
 from mozbuild.dirutils import ensureParentDir
 from mozbuild.preprocessor import Preprocessor
 from mozbuild.util import FileAvoidWrite
-from six import StringIO
 
 VALID_KEYS = {
     "name",

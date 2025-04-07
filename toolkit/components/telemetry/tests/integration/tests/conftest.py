@@ -15,7 +15,6 @@ from marionette_driver.addons import Addons
 from marionette_driver.errors import MarionetteException
 from marionette_driver.marionette import Marionette
 from marionette_driver.wait import Wait
-from six import reraise
 from telemetry_harness.ping_server import PingServer
 
 CANARY_CLIENT_ID = "c0ffeec0-ffee-c0ff-eec0-ffeec0ffeec0"
@@ -208,11 +207,9 @@ class Browser(object):
                 )
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            reraise(
-                exc_type,
-                exc_type("Failed to trigger opening a new tab: {}".format(exc_value)),
-                exc_traceback,
-            )
+            raise exc_type(
+                "Failed to trigger opening a new tab: {}".format(exc_value)
+            ).with_traceback(exc_traceback)
         else:
             Wait(self.marionette).until(
                 lambda mn: len(mn.window_handles) == len(current_tabs) + 1,
