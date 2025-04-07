@@ -117,10 +117,10 @@ class RemoteGTests(object):
             if os.path.isfile(libxul_buildid_path):
                 self.device.push(libxul_buildid_path, self.remote_libdir)
 
-        # Push support files to device. Avoid sub-directories so that libxul.so
+        # Push support files to device. Avoid gtest_bin so that libxul.so
         # is not included.
-        for f in glob.glob(os.path.join(test_dir, "*")):
-            if not os.path.isdir(f):
+        for f in glob.glob(os.path.join(test_dir, "**"), recursive=True):
+            if not "gtest_bin" in os.path.abspath(f):
                 self.device.push(f, self.remote_profile)
 
         if test_filter is not None:
