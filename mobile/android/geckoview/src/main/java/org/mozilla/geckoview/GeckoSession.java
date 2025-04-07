@@ -393,8 +393,8 @@ public class GeckoSession {
     // be replaced with the new viewport information provided.
     @WrapForJNI(calledFrom = "ui")
     private void notifyCompositorScrollUpdate(
-        final float scrollX, final float scrollY, final float zoom) {
-      GeckoSession.this.onCompositorScrollUpdate(scrollX, scrollY, zoom);
+        final float scrollX, final float scrollY, final float zoom, final int source) {
+      GeckoSession.this.onCompositorScrollUpdate(scrollX, scrollY, zoom, source);
     }
 
     @WrapForJNI(calledFrom = "ui")
@@ -7139,11 +7139,11 @@ public class GeckoSession {
   /** Information about an update to the content's scroll position. */
   public class ScrollPositionUpdate {
     // The scroll position changed as a direct result of user interaction.
-    public static final int SOURCE_USER_INTERACTION = 0;
+    @WrapForJNI public static final int SOURCE_USER_INTERACTION = 0;
     // The scroll position changed progammatically. This can include
     // changes caused by script on the page, and changes caused by
     // the browser engine such as scrolling an element into view.
-    public static final int SOURCE_OTHER = 1;
+    @WrapForJNI public static final int SOURCE_OTHER = 1;
 
     // The new horizontal scroll position in CSS pixels.
     public float scrollX;
@@ -8182,7 +8182,8 @@ public class GeckoSession {
     mOverscroll.setDistance(y, OverscrollEdgeEffect.AXIS_Y);
   }
 
-  /* package */ void onCompositorScrollUpdate(final float scrollX, final float scrollY, final float zoom) {
+  /* package */ void onCompositorScrollUpdate(
+      final float scrollX, final float scrollY, final float zoom, final int source) {
     if (DEBUG) {
       ThreadUtils.assertOnUiThread();
     }
@@ -8197,8 +8198,7 @@ public class GeckoSession {
     update.scrollX = scrollX;
     update.scrollY = scrollY;
     update.zoom = zoom;
-    // TODO(bug 1940581): Plumb in an accurate source here
-    update.source = ScrollPositionUpdate.SOURCE_USER_INTERACTION;
+    update.source = source;
     if (mCompositorScrollDelegate != null) {
       mCompositorScrollDelegate.onScrollChanged(this, update);
     }

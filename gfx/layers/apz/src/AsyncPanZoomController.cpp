@@ -32,6 +32,7 @@
 #include "SimpleVelocityTracker.h"      // for SimpleVelocityTracker
 #include "Units.h"                      // for CSSRect, CSSPoint, etc
 #include "UnitTransforms.h"             // for TransformTo
+#include "apz/public/CompositorScrollUpdate.h"
 #include "base/message_loop.h"          // for MessageLoop
 #include "base/task.h"                  // for NewRunnableMethod, etc
 #include "gfxTypes.h"                   // for gfxFloat
@@ -6097,7 +6098,7 @@ bool CompositorScrollUpdate::operator==(
   //        added in bug 1600652. It can probably be removed.
   return RoundedToInt(mVisualScrollOffset) ==
              RoundedToInt(aOther.mVisualScrollOffset) &&
-         mZoom == aOther.mZoom;
+         mZoom == aOther.mZoom && mSource == aOther.mSource;
 }
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -6106,9 +6107,11 @@ AsyncPanZoomController::GetCompositorScrollUpdates() {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   MOZ_ASSERT(Metrics().IsRootContent());
 
+  // FIXME(bug 1940581): Propagate an accurate source.
   CompositorScrollUpdate current{
       GetEffectiveScrollOffset(eForCompositing, lock),
-      GetEffectiveZoom(eForCompositing, lock)};
+      GetEffectiveZoom(eForCompositing, lock),
+      CompositorScrollUpdate::Source::UserInteraction};
   if (current != mLastCompositorScrollUpdate) {
     mLastCompositorScrollUpdate = current;
     return {current};

@@ -1181,17 +1181,26 @@ struct ParamTraits<mozilla::layers::DoubleTapToZoomMetrics> {
 };
 
 template <>
+struct ParamTraits<mozilla::layers::CompositorScrollUpdate::Source>
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::layers::CompositorScrollUpdate::Source,
+          mozilla::layers::CompositorScrollUpdate::Source::UserInteraction,
+          mozilla::layers::CompositorScrollUpdate::Source::Other> {};
+
+template <>
 struct ParamTraits<mozilla::layers::CompositorScrollUpdate> {
   typedef mozilla::layers::CompositorScrollUpdate paramType;
 
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter, aParam.mVisualScrollOffset);
     WriteParam(aWriter, aParam.mZoom);
+    WriteParam(aWriter, aParam.mSource);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
     return (ReadParam(aReader, &aResult->mVisualScrollOffset) &&
-            ReadParam(aReader, &aResult->mZoom));
+            ReadParam(aReader, &aResult->mZoom) &&
+            ReadParam(aReader, &aResult->mSource));
   }
 };
 

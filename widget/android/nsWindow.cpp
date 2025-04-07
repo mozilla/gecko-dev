@@ -41,6 +41,7 @@
 #include "mozilla/EventForwards.h"
 #include "nsAppShell.h"
 #include "nsContentUtils.h"
+#include "nsDragService.h"
 #include "nsFocusManager.h"
 #include "nsGkAtoms.h"
 #include "nsGfxCIID.h"
@@ -68,6 +69,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_android.h"
 #include "mozilla/StaticPrefs_ui.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/WheelHandlingHelper.h"  // for WheelDeltaAdjustmentStrategy
@@ -3240,6 +3242,18 @@ void nsWindow::RecvToolbarAnimatorMessageFromCompositor(int32_t aMessage) {
   }
 }
 
+static int32_t ConvertScrollUpdateSource(
+    CompositorScrollUpdate::Source aSource) {
+  switch (aSource) {
+    case CompositorScrollUpdate::Source::UserInteraction:
+      return java::GeckoSession::ScrollPositionUpdate::SOURCE_USER_INTERACTION;
+    case CompositorScrollUpdate::Source::Other:
+      return java::GeckoSession::ScrollPositionUpdate::SOURCE_OTHER;
+  }
+  MOZ_ASSERT_UNREACHABLE("Unknown CompositorScrollUpdate::Source");
+  return java::GeckoSession::ScrollPositionUpdate::SOURCE_USER_INTERACTION;
+}
+
 void nsWindow::NotifyCompositorScrollUpdate(
     const CompositorScrollUpdate& aUpdate) {
   MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
@@ -3247,9 +3261,9 @@ void nsWindow::NotifyCompositorScrollUpdate(
           mLayerViewSupport.Access()}) {
     const auto& compositor = lvs->GetJavaCompositor();
     mContentDocumentDisplayed = true;
-    compositor->NotifyCompositorScrollUpdate(aUpdate.mVisualScrollOffset.x,
-                                             aUpdate.mVisualScrollOffset.y,
-                                             aUpdate.mZoom.scale);
+    compositor->NotifyCompositorScrollUpdate(
+        aUpdate.mVisualScrollOffset.x, aUpdate.mVisualScrollOffset.y,
+        aUpdate.mZoom.scale, ConvertScrollUpdateSource(aUpdate.mSource));
   }
 }
 

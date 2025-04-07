@@ -19,8 +19,25 @@ namespace layers {
  * composition time.
  */
 struct CompositorScrollUpdate {
+  /**
+   * Describes the source of a CompositorScrollUpdate.
+   *
+   * This is used for populating the `source` field of
+   * `GeckoSession.ScrollPositionUpdate`, and should be kept in sync
+   * with the constants defined in that Java struct.
+   */
+  enum class Source {
+    // The scroll position changed as a direct result of user interaction.
+    UserInteraction,
+    // The scroll position changed programmatically. This can includes changes
+    // caused by script on the page, and changes caused by the browser engine
+    // such as scrolling an element into view.
+    Other
+  };
+
   CSSPoint mVisualScrollOffset;
   CSSToParentLayerScale mZoom;
+  Source mSource;
 
   bool operator==(const CompositorScrollUpdate& aOther) const;
   bool operator!=(const CompositorScrollUpdate& aOther) const {
