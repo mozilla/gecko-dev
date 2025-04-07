@@ -18418,7 +18418,7 @@
 #  * 2: auto
 - name: widget.windows.follow_shortcuts_on_file_open
   type: RelaxedAtomicInt32
-  value: 2
+  value: 1
   mirror: always
 
 # The number of messages of each type to keep for display in
