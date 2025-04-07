@@ -55,6 +55,3 @@ support-files = [
 ["test_visibility.html"]
 
 ["test_visibility.xhtml"]
-skip-if = [
-  "asan",  # Bug 1199631
-]

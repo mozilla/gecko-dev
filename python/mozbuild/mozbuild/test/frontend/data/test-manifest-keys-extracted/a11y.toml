@@ -1,4 +1,4 @@
 [DEFAULT]
 support-files = "a11y-support/**"
 
-['test_a11y.js']
+["test_a11y.js"]

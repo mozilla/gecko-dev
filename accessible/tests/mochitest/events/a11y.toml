@@ -43,16 +43,15 @@ support-files = [
 ["test_focus_autocomplete.xhtml"]
 # Disabled on Linux and Windows due to frequent failures - bug 695019, bug 890795
 skip-if = [
-  "os == 'win'",
-  "os == 'linux'",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
 ]
 
 ["test_focus_canvas.html"]
 
 ["test_focus_contextmenu.xhtml"]
-skip-if = [
-  "os == 'win' && os_version == '11.26100' && opt", # Bug 1865763
-]
 
 ["test_focus_controls.html"]
 
@@ -73,7 +72,6 @@ skip-if = [
 ["test_focus_selects.html"]
 
 ["test_focus_tabbox.xhtml"]
-skip-if = ["true"]
 
 ["test_focus_tree.xhtml"]
 
@@ -97,13 +95,10 @@ skip-if = ["true"]
 
 ["test_selection.html"]
 skip-if = [
-  "os == 'mac'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
 ]
 
 ["test_selection.xhtml"]
-skip-if = [
-  "os == 'mac'",
-]
 
 ["test_selection_aria.html"]
 
@@ -123,5 +118,5 @@ skip-if = [
 
 ["test_valuechange.html"]
 skip-if = [
-  "os == 'mac'",
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
 ]

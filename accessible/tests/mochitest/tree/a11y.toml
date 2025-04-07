@@ -10,7 +10,13 @@ support-files = [
   "!/dom/media/test/bug461281.ogg"]
 
 ["test_applicationacc.xhtml"]
-skip-if = ["true"] # Bug 561508
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 561508
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'", # Bug 561508
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 561508
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 561508
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 561508
+]
 
 ["test_aria_display_contents.html"]
 
@@ -85,10 +91,6 @@ skip-if = ["true"] # Bug 561508
 ["test_tabbox.xhtml"]
 
 ["test_tabbrowser.xhtml"]
-skip-if = [
-  "os == 'linux' && debug", # Bug 1389365
-  "os == 'win' && ccov", # Bug 1423218
-]
 
 ["test_table.html"]
 
