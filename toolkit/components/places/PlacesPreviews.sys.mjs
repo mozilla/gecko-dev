@@ -52,6 +52,7 @@ class LimitedSet extends Set {
         this.delete(entry);
       }
     }
+    return this;
   }
 }
 
@@ -188,6 +189,7 @@ class DeletionHandler {
  * format. All the previews are saved into a "places-previews" folder under
  * the roaming profile folder.
  */
+// @ts-ignore TypeScript doesn't like mixing prototype and classes
 export const PlacesPreviews = new (class extends EventEmitter {
   #placesObserver = null;
   #deletionHandler = null;
@@ -300,8 +302,10 @@ export const PlacesPreviews = new (class extends EventEmitter {
    * The previem image is encoded using WebP.
    *
    * @param {string} url The address of the page.
-   * @param {boolean} [forceUpdate] Whether to update the preview regardless.
-   * @returns {boolean} Whether a preview is available and ready.
+   * @param {object} options
+   * @param {boolean} [options.forceUpdate]
+   *   Whether to update the preview regardless.
+   * @returns {Promise<boolean>} Whether a preview is available and ready.
    */
   async update(url, { forceUpdate = false } = {}) {
     if (!this.enabled) {
@@ -374,7 +378,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
    * This method is slow, because it has to go through all the Places stored
    * pages, thus it's suggested to only run it as periodic maintenance.
    *
-   * @returns {boolean} Whether orphans deletion ran.
+   * @returns {Promise<boolean>} Whether orphans deletion ran.
    */
   async deleteOrphans() {
     if (!this.enabled) {
@@ -423,7 +427,7 @@ export const PlacesPreviews = new (class extends EventEmitter {
   /**
    * Used by tests to change the deletion timeout between chunks.
    *
-   * @param {integer} timeout New timeout in milliseconds.
+   * @param {number} timeout New timeout in milliseconds.
    */
   testSetDeletionTimeout(timeout) {
     if (timeout === null) {
