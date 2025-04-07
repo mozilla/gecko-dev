@@ -1132,6 +1132,33 @@ def expand_variables(s, variables):
     return result
 
 
+class ForwardingArgumentParser(argparse.ArgumentParser):
+    """
+    An argument parser with customized help generation when forwarding
+    arguments.
+    """
+
+    def add_forwarding_group(
+        self, title, dest, help, forwarding_help, default_type=list, **kwargs
+    ):
+        """
+        Add a group that captures all remaining arguments in order to pass them
+        down to another program.
+        """
+        group = self.add_argument_group(
+            title, description=f"-- --help {forwarding_help}", **kwargs
+        )
+
+        group.add_argument(
+            dest,
+            nargs=argparse.REMAINDER,
+            default=default_type(),
+            metavar=f"[--] {dest}...",
+            help=help,
+        )
+        return group
+
+
 class DefinesAction(argparse.Action):
     """An ArgumentParser action to handle -Dvar[=value] type of arguments."""
 

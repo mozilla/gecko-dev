@@ -7,6 +7,7 @@ import copy
 import hashlib
 import itertools
 import os
+import re
 import string
 import sys
 import unittest
@@ -19,6 +20,7 @@ from mozunit import main
 from mozbuild.util import (
     EnumString,
     EnumStringComparisonError,
+    ForwardingArgumentParser,
     HierarchicalStringList,
     MozbuildDeletionError,
     ReadOnlyDict,
@@ -884,6 +886,39 @@ def test_read_only_dict():
     d_copy = copy.deepcopy(d)
     assert d == d_copy
     assert isinstance(d_copy, ReadOnlyDict)
+
+
+def test_forwarding_argument_parser():
+    # init
+    parser = ForwardingArgumentParser()
+    parser.add_forwarding_group(
+        title="my forwarding group",
+        dest="fwd",
+        help="some program",
+        forwarding_help="some help",
+    )
+
+    # test help format
+    formatted_help = parser.format_help()
+    ref_help = """\
+usage: test_util.py \\[-h\\] ...
+
+option.*:
+  -h, --help   show this help message and exit
+
+my forwarding group:
+  -- --help some help
+
+  \\[--\\] fwd...  some program
+"""
+    assert re.match(ref_help, formatted_help)
+
+    # test argument parsing
+    forwarded_args = parser.parse_args(["1", "2"])
+    assert forwarded_args.fwd == ["1", "2"]
+
+    forwarded_help = parser.parse_args(["--", "--help"])
+    assert forwarded_help.fwd == ["--", "--help"]
 
 
 if __name__ == "__main__":
