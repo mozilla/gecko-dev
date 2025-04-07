@@ -8,6 +8,8 @@ import subprocess
 import sys
 import time
 
+from mozperftest.utils import ON_TRY
+
 # Add the python packages installed by mozperftest
 sys.path.insert(0, os.environ["PYTHON_PACKAGES"])
 
@@ -62,7 +64,8 @@ class ImageAnalzer:
         self.device.shell("settings put global animator_duration_scale 1")
 
     def app_setup(self):
-        self.device.shell(f"pm clear {self.package_name}")
+        if ON_TRY:
+            self.device.shell(f"pm clear {self.package_name}")
         time.sleep(3)
         self.skip_onboarding()
         self.device.shell(
