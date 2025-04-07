@@ -294,7 +294,11 @@
 # * 2: Enable unless incompatible accessibility clients are detected.
 - name: accessibility.uia.enable
   type: uint32_t
+#ifdef NIGHTLY_BUILD
+  value: 2
+#else
   value: 0
+#endif
   mirror: always
   do_not_use_directly: true
 
