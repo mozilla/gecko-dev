@@ -35,10 +35,7 @@ class ExternalTextureDMABuf final : public ExternalTexture {
       const layers::SurfaceDescriptorDMABuf& aSurfaceDescriptor);
   virtual ~ExternalTextureDMABuf();
 
-  void* GetExternalTextureHandle() override;
-
-  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor(
-      Maybe<gfx::FenceInfo>& aFenceInfo) override;
+  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() override;
 
   void GetSnapshot(const ipc::Shmem& aDestShmem,
                    const gfx::IntSize& aSize) override;

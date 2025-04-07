@@ -63,6 +63,11 @@ RefPtr<FenceD3D11> FenceD3D11::Create(ID3D11Device* aDevice) {
 /* static */
 RefPtr<FenceD3D11> FenceD3D11::CreateFromHandle(
     RefPtr<gfx::FileHandleWrapper> aHandle) {
+  MOZ_ASSERT(aHandle);
+
+  if (!aHandle) {
+    return nullptr;
+  }
   // Opening shared handle is deferred.
   return new FenceD3D11(aHandle);
 }
@@ -123,10 +128,6 @@ RefPtr<FenceD3D11> FenceD3D11::CloneFromHandle() {
     fence->Update(mFenceValue);
   }
   return fence;
-}
-
-gfx::FenceInfo FenceD3D11::GetFenceInfo() const {
-  return gfx::FenceInfo(mHandle, mFenceValue);
 }
 
 bool FenceD3D11::IncrementAndSignal() {

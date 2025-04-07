@@ -30,7 +30,7 @@ RenderDXGITextureHost::RenderDXGITextureHost(
     const uint32_t aArrayIndex, const gfx::SurfaceFormat aFormat,
     const gfx::ColorSpace2 aColorSpace, const gfx::ColorRange aColorRange,
     const gfx::IntSize aSize, bool aHasKeyedMutex,
-    const gfx::FenceInfo& aAcquireFenceInfo)
+    const Maybe<layers::GpuProcessFencesHolderId>& aFencesHolderId)
     : mHandle(aHandle),
       mGpuProcessTextureId(aGpuProcessTextureId),
       mArrayIndex(aArrayIndex),
@@ -42,7 +42,7 @@ RenderDXGITextureHost::RenderDXGITextureHost(
       mColorRange(aColorRange),
       mSize(aSize),
       mHasKeyedMutex(aHasKeyedMutex),
-      mAcquireFenceInfo(aAcquireFenceInfo),
+      mFencesHolderId(aFencesHolderId),
       mLocked(false) {
   MOZ_COUNT_CTOR_INHERITED(RenderDXGITextureHost, RenderTextureHost);
   MOZ_ASSERT((mFormat != gfx::SurfaceFormat::NV12 &&
@@ -367,19 +367,20 @@ wr::WrExternalImage RenderDXGITextureHost::Lock(uint8_t aChannelIndex,
 }
 
 bool RenderDXGITextureHost::LockInternal() {
-  if (!mLocked) {
-    if (mAcquireFenceInfo.mFenceHandle) {
-      if (!mAcquireFence) {
-        mAcquireFence = layers::FenceD3D11::CreateFromHandle(
-            mAcquireFenceInfo.mFenceHandle);
-      }
-      if (mAcquireFence) {
-        MOZ_ASSERT(mAcquireFenceInfo.mFenceHandle == mAcquireFence->mHandle);
+  MOZ_ASSERT(mTexture);
 
-        mAcquireFence->Update(mAcquireFenceInfo.mFenceValue);
-        RefPtr<ID3D11Device> d3d11Device =
-            gfx::DeviceManagerDx::Get()->GetCompositorDevice();
-        mAcquireFence->Wait(d3d11Device);
+  if (!mLocked) {
+    if (mFencesHolderId.isSome()) {
+      auto* fencesHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
+      if (!fencesHolderMap) {
+        MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+        return false;
+      }
+      RefPtr<ID3D11Device> device;
+      mTexture->GetDevice(getter_AddRefs(device));
+
+      if (!fencesHolderMap->WaitWriteFence(mFencesHolderId.ref(), device)) {
+        return false;
       }
     }
     if (mKeyedMutex) {
@@ -468,7 +469,7 @@ gfx::IntSize RenderDXGITextureHost::GetSize(uint8_t aChannelIndex) const {
 
 bool RenderDXGITextureHost::SyncObjectNeeded() {
   return mGpuProcessTextureId.isNothing() && !mHasKeyedMutex &&
-         !mAcquireFenceInfo.mFenceHandle;
+         mFencesHolderId.isNothing();
 }
 
 RenderDXGIYCbCrTextureHost::RenderDXGIYCbCrTextureHost(
@@ -641,12 +642,12 @@ bool RenderDXGIYCbCrTextureHost::EnsureD3D11Texture2D(ID3D11Device* aDevice) {
 
 bool RenderDXGIYCbCrTextureHost::LockInternal() {
   if (!mLocked) {
-    auto* fenceHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
-    if (!fenceHolderMap) {
+    auto* fencesHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
+    if (!fencesHolderMap) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
       return false;
     }
-    if (!fenceHolderMap->WaitWriteFence(mFencesHolderId, mDevice)) {
+    if (!fencesHolderMap->WaitWriteFence(mFencesHolderId, mDevice)) {
       return false;
     }
     mLocked = true;

@@ -13,11 +13,16 @@ struct ID3D11Texture2D;
 
 namespace mozilla {
 
+namespace layers {
+class FenceD3D11;
+}  // namespace layers
+
 namespace webgpu {
 
 class ExternalTextureD3D11 final : public ExternalTexture {
  public:
   static UniquePtr<ExternalTextureD3D11> Create(
+      WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
       const uint32_t aWidth, const uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage);
@@ -26,20 +31,25 @@ class ExternalTextureD3D11 final : public ExternalTexture {
                        const struct ffi::WGPUTextureFormat aFormat,
                        const ffi::WGPUTextureUsages aUsage,
                        const RefPtr<ID3D11Texture2D> aTexture,
-                       RefPtr<gfx::FileHandleWrapper>&& aSharedHandle);
+                       RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
+                       const layers::GpuProcessFencesHolderId aFencesHolderId,
+                       RefPtr<layers::FenceD3D11>&& aWriteFence);
   virtual ~ExternalTextureD3D11();
 
-  void* GetExternalTextureHandle() override;
+  void* GetExternalTextureHandle();
 
-  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor(
-      Maybe<gfx::FenceInfo>& aFenceInfo) override;
+  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() override;
 
   void GetSnapshot(const ipc::Shmem& aDestShmem,
                    const gfx::IntSize& aSize) override;
 
+  ExternalTextureD3D11* AsExternalTextureD3D11() override { return this; }
+
  protected:
   const RefPtr<ID3D11Texture2D> mTexture;
   const RefPtr<gfx::FileHandleWrapper> mSharedHandle;
+  const layers::GpuProcessFencesHolderId mFencesHolderId;
+  const RefPtr<layers::FenceD3D11> mWriteFence;
 };
 
 }  // namespace webgpu

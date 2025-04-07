@@ -17,13 +17,13 @@ StaticAutoPtr<GpuProcessD3D11FencesHolderMap>
 
 /* static */
 void GpuProcessD3D11FencesHolderMap::Init() {
-  MOZ_ASSERT(XRE_IsGPUProcess());
+  MOZ_ASSERT(XRE_IsGPUProcess() || XRE_IsParentProcess());
   sInstance = new GpuProcessD3D11FencesHolderMap();
 }
 
 /* static */
 void GpuProcessD3D11FencesHolderMap::Shutdown() {
-  MOZ_ASSERT(XRE_IsGPUProcess());
+  MOZ_ASSERT(XRE_IsGPUProcess() || XRE_IsParentProcess());
   sInstance = nullptr;
 }
 

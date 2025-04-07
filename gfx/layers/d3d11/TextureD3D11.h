@@ -26,7 +26,6 @@ namespace mozilla {
 
 namespace gfx {
 class FileHandleWrapper;
-struct FenceInfo;
 }  // namespace gfx
 
 namespace gl {
@@ -398,7 +397,7 @@ class DXGITextureHostD3D11 : public TextureHost {
   const gfx::IntSize mSize;
   const gfx::SurfaceFormat mFormat;
   const bool mHasKeyedMutex;
-  const gfx::FenceInfo mAcquireFenceInfo;
+  const Maybe<layers::GpuProcessFencesHolderId> mFencesHolderId;
   const gfx::ColorSpace2 mColorSpace;
   const gfx::ColorRange mColorRange;
 };

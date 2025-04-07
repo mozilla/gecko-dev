@@ -1203,24 +1203,6 @@ struct ParamTraits<mozilla::fontlist::Pointer> {
   }
 };
 
-template <>
-struct ParamTraits<mozilla::gfx::FenceInfo> {
-  typedef mozilla::gfx::FenceInfo paramType;
-
-  static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    WriteParam(aWriter, aParam.mFenceHandle);
-    WriteParam(aWriter, aParam.mFenceValue);
-  }
-
-  static bool Read(MessageReader* aReader, paramType* aResult) {
-    if (!ReadParam(aReader, &aResult->mFenceHandle) ||
-        !ReadParam(aReader, &aResult->mFenceValue)) {
-      return false;
-    }
-    return true;
-  }
-};
-
 }  // namespace IPC
 
 namespace mozilla {

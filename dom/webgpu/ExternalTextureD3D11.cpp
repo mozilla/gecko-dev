@@ -9,15 +9,40 @@
 
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/layers/FenceD3D11.h"
+#include "mozilla/layers/GpuProcessD3D11FencesHolderMap.h"
 #include "mozilla/layers/ImageDataSerializer.h"
+#include "mozilla/webgpu/WebGPUParent.h"
 
 namespace mozilla::webgpu {
 
 // static
 UniquePtr<ExternalTextureD3D11> ExternalTextureD3D11::Create(
+    WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage) {
+  auto* fencesHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
+  if (!fencesHolderMap) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    gfxCriticalNoteOnce << "Failed to get FencesHolderMap";
+    return nullptr;
+  }
+
+  RefPtr<gfx::FileHandleWrapper> fenceHandle =
+      aParent->GetDeviceFenceHandle(aDeviceId);
+  if (!fenceHandle) {
+    gfxCriticalNoteOnce << "Failed to get fenceHandle";
+    return nullptr;
+  }
+
+  RefPtr<layers::FenceD3D11> fence =
+      layers::FenceD3D11::CreateFromHandle(fenceHandle);
+  if (!fence) {
+    gfxCriticalNoteOnce << "Failed create FenceD3D11";
+    return nullptr;
+  }
+
   const RefPtr<ID3D11Device> d3d11Device =
       gfx::DeviceManagerDx::Get()->GetCompositorDevice();
   if (!d3d11Device) {
@@ -53,55 +78,74 @@ UniquePtr<ExternalTextureD3D11> ExternalTextureD3D11::Create(
   texture->QueryInterface((IDXGIResource1**)getter_AddRefs(resource));
   if (!resource) {
     gfxCriticalNoteOnce << "Failed to get IDXGIResource";
-    return 0;
+    return nullptr;
   }
 
   HANDLE sharedHandle;
   hr = resource->CreateSharedHandle(
       nullptr, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr,
       &sharedHandle);
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !sharedHandle) {
     gfxCriticalNoteOnce << "GetSharedHandle failed: " << gfx::hexa(hr);
-    return 0;
+    return nullptr;
   }
 
   RefPtr<gfx::FileHandleWrapper> handle =
       new gfx::FileHandleWrapper(UniqueFileHandle(sharedHandle));
 
+  auto fencesHolderId = layers::GpuProcessFencesHolderId::GetNext();
+  fencesHolderMap->Register(fencesHolderId);
+
   return MakeUnique<ExternalTextureD3D11>(aWidth, aHeight, aFormat, aUsage,
-                                          texture, std::move(handle));
+                                          texture, std::move(handle),
+                                          fencesHolderId, std::move(fence));
 }
 
 ExternalTextureD3D11::ExternalTextureD3D11(
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, const RefPtr<ID3D11Texture2D> aTexture,
-    RefPtr<gfx::FileHandleWrapper>&& aSharedHandle)
+    RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
+    const layers::GpuProcessFencesHolderId aFencesHolderId,
+    RefPtr<layers::FenceD3D11>&& aWriteFence)
     : ExternalTexture(aWidth, aHeight, aFormat, aUsage),
       mTexture(aTexture),
-      mSharedHandle(std::move(aSharedHandle)) {
+      mSharedHandle(std::move(aSharedHandle)),
+      mFencesHolderId(aFencesHolderId),
+      mWriteFence(std::move(aWriteFence)) {
   MOZ_ASSERT(mTexture);
 }
 
 ExternalTextureD3D11::~ExternalTextureD3D11() {}
 
 void* ExternalTextureD3D11::GetExternalTextureHandle() {
-  if (!mSharedHandle) {
-    return nullptr;
-  }
+  RefPtr<ID3D11Device> device;
+  mTexture->GetDevice(getter_AddRefs(device));
+  auto* fencesHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
+  MOZ_ASSERT(fencesHolderMap);
+
+  // XXX deliver fences to wgpu
+  fencesHolderMap->WaitAllFencesAndForget(mFencesHolderId, device);
 
   return mSharedHandle->GetHandle();
 }
 
-Maybe<layers::SurfaceDescriptor> ExternalTextureD3D11::ToSurfaceDescriptor(
-    Maybe<gfx::FenceInfo>& aFenceInfo) {
+Maybe<layers::SurfaceDescriptor> ExternalTextureD3D11::ToSurfaceDescriptor() {
+  MOZ_ASSERT(mSubmissionIndex > 0);
+
+  mWriteFence->Update(mSubmissionIndex);
+
+  auto* fencesHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
+  MOZ_ASSERT(fencesHolderMap);
+  fencesHolderMap->SetWriteFence(mFencesHolderId, mWriteFence);
+
   const auto format = gfx::SurfaceFormat::B8G8R8A8;
   return Some(layers::SurfaceDescriptorD3D10(
       mSharedHandle,
       /* gpuProcessTextureId */ Nothing(),
       /* arrayIndex */ 0, format, gfx::IntSize(mWidth, mHeight),
       gfx::ColorSpace2::SRGB, gfx::ColorRange::FULL,
-      /* hasKeyedMutex */ false, aFenceInfo));
+      /* hasKeyedMutex */ false, Some(mFencesHolderId)));
 }
 
 void ExternalTextureD3D11::GetSnapshot(const ipc::Shmem& aDestShmem,

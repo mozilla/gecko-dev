@@ -43,6 +43,7 @@ class ExtTex : public ObjectBase {
   void Cleanup() {}
 };
 
+class ExternalTextureD3D11;
 class ExternalTextureDMABuf;
 class ExternalTextureMacIOSurface;
 class WebGPUParent;
@@ -62,10 +63,7 @@ class ExternalTexture {
                   const ffi::WGPUTextureUsages aUsage);
   virtual ~ExternalTexture();
 
-  virtual void* GetExternalTextureHandle() { return nullptr; }
-
-  virtual Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor(
-      Maybe<gfx::FenceInfo>& aFenceInfo) = 0;
+  virtual Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() = 0;
 
   virtual void GetSnapshot(const ipc::Shmem& aDestShmem,
                            const gfx::IntSize& aSize) {}
@@ -75,6 +73,8 @@ class ExternalTexture {
   virtual ExternalTextureMacIOSurface* AsExternalTextureMacIOSurface() {
     return nullptr;
   }
+
+  virtual ExternalTextureD3D11* AsExternalTextureD3D11() { return nullptr; }
 
   gfx::IntSize GetSize() { return gfx::IntSize(mWidth, mHeight); }
 
@@ -114,8 +114,7 @@ class ExternalTextureReadBackPresent final : public ExternalTexture {
                                  const ffi::WGPUTextureUsages aUsage);
   virtual ~ExternalTextureReadBackPresent();
 
-  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor(
-      Maybe<gfx::FenceInfo>& aFenceInfo) override {
+  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() override {
     return Nothing();
   }
 };

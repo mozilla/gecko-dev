@@ -32,7 +32,7 @@ class RenderDXGITextureHost final : public RenderTextureHostSWGL {
       const uint32_t aArrayIndex, const gfx::SurfaceFormat aFormat,
       const gfx::ColorSpace2 aColorSpace, const gfx::ColorRange aColorRange,
       const gfx::IntSize aSize, const bool aHasKeyedMutex,
-      const gfx::FenceInfo& aAcquireFenceInfo);
+      const Maybe<layers::GpuProcessFencesHolderId>& aFencesHolderId);
 
   wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL) override;
   void Unlock() override;
@@ -121,15 +121,13 @@ class RenderDXGITextureHost final : public RenderTextureHostSWGL {
 
   bool mIsSoftwareDecodedVideo = false;
 
-  RefPtr<layers::FenceD3D11> mAcquireFence;
-
  public:
   const gfx::SurfaceFormat mFormat;
   const gfx::ColorSpace2 mColorSpace;
   const gfx::ColorRange mColorRange;
   const gfx::IntSize mSize;
   const bool mHasKeyedMutex;
-  const gfx::FenceInfo mAcquireFenceInfo;
+  const Maybe<layers::GpuProcessFencesHolderId> mFencesHolderId;
 
  private:
   bool mLocked;

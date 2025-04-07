@@ -22,6 +22,7 @@
 
 #if defined(XP_WIN)
 #  include "mozilla/gfx/DeviceManagerDx.h"
+#  include "mozilla/webgpu/ExternalTextureD3D11.h"
 #endif
 
 #if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
@@ -86,7 +87,12 @@ extern void* wgpu_server_get_external_texture_handle(void* aParam,
 
   void* sharedHandle = nullptr;
 #ifdef XP_WIN
-  sharedHandle = texture->GetExternalTextureHandle();
+  auto* textureD3D11 = texture->AsExternalTextureD3D11();
+  if (!textureD3D11) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return nullptr;
+  }
+  sharedHandle = textureD3D11->GetExternalTextureHandle();
   if (!sharedHandle) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     gfxCriticalNoteOnce << "Failed to get shared handle";
@@ -1428,19 +1434,11 @@ void WebGPUParent::PostExternalTexture(
 
   const auto surfaceFormat = gfx::SurfaceFormat::B8G8R8A8;
   const auto size = aExternalTexture->GetSize();
-  const auto index = aExternalTexture->GetSubmissionIndex();
-  MOZ_ASSERT(index != 0);
 
   RefPtr<PresentationData> data = lookup->second.get();
 
-  Maybe<gfx::FenceInfo> fenceInfo;
-  auto it = mDeviceFenceHandles.find(data->mDeviceId);
-  if (it != mDeviceFenceHandles.end()) {
-    fenceInfo = Some(gfx::FenceInfo(it->second, index));
-  }
-
   Maybe<layers::SurfaceDescriptor> desc =
-      aExternalTexture->ToSurfaceDescriptor(fenceInfo);
+      aExternalTexture->ToSurfaceDescriptor();
   if (!desc) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return;
@@ -1454,6 +1452,15 @@ void WebGPUParent::PostExternalTexture(
   if (recycledTexture) {
     data->mRecycledExternalTextures.push_back(recycledTexture);
   }
+}
+
+RefPtr<gfx::FileHandleWrapper> WebGPUParent::GetDeviceFenceHandle(
+    const RawId aDeviceId) {
+  auto it = mDeviceFenceHandles.find(aDeviceId);
+  if (it == mDeviceFenceHandles.end()) {
+    return nullptr;
+  }
+  return it->second;
 }
 
 ipc::IPCResult WebGPUParent::RecvSwapChainPresent(

@@ -43,20 +43,6 @@ class FileHandleWrapper {
   const mozilla::UniqueFileHandle mHandle;
 };
 
-struct FenceInfo {
-  FenceInfo() = default;
-  FenceInfo(FileHandleWrapper* aFenceHandle, uint64_t aFenceValue)
-      : mFenceHandle(aFenceHandle), mFenceValue(aFenceValue) {}
-
-  bool operator==(const FenceInfo& aOther) const {
-    return mFenceHandle == aOther.mFenceHandle &&
-           mFenceValue == aOther.mFenceValue;
-  }
-
-  RefPtr<FileHandleWrapper> mFenceHandle;
-  uint64_t mFenceValue = 0;
-};
-
 }  // namespace gfx
 }  // namespace mozilla
 

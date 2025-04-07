@@ -62,8 +62,6 @@ class FenceD3D11 final : public Fence {
 
   uint64_t GetFenceValue() const { return mFenceValue; }
 
-  gfx::FenceInfo GetFenceInfo() const;
-
   const RefPtr<gfx::FileHandleWrapper> mHandle;
 
  protected:

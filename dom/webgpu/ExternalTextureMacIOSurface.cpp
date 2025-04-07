@@ -55,17 +55,12 @@ ExternalTextureMacIOSurface::ExternalTextureMacIOSurface(
 
 ExternalTextureMacIOSurface::~ExternalTextureMacIOSurface() {}
 
-void* ExternalTextureMacIOSurface::GetExternalTextureHandle() {
-  return nullptr;
-}
-
 uint32_t ExternalTextureMacIOSurface::GetIOSurfaceId() {
   return mSurface->GetIOSurfaceID();
 }
 
 Maybe<layers::SurfaceDescriptor>
-ExternalTextureMacIOSurface::ToSurfaceDescriptor(
-    Maybe<gfx::FenceInfo>& aFenceInfo) {
+ExternalTextureMacIOSurface::ToSurfaceDescriptor() {
   MOZ_ASSERT(mSubmissionIndex > 0);
 
   RefPtr<layers::GpuFence> gpuFence;

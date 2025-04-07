@@ -97,10 +97,7 @@ ExternalTextureDMABuf::ExternalTextureDMABuf(
 
 ExternalTextureDMABuf::~ExternalTextureDMABuf() {}
 
-void* ExternalTextureDMABuf::GetExternalTextureHandle() { return nullptr; }
-
-Maybe<layers::SurfaceDescriptor> ExternalTextureDMABuf::ToSurfaceDescriptor(
-    Maybe<gfx::FenceInfo>& aFenceInfo) {
+Maybe<layers::SurfaceDescriptor> ExternalTextureDMABuf::ToSurfaceDescriptor() {
   layers::SurfaceDescriptor sd;
   if (!mSurface->Serialize(sd)) {
     return Nothing();

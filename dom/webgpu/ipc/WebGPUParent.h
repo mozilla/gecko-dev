@@ -190,6 +190,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
     return mActiveDeviceIds.Contains(aDeviceId);
   }
 
+  RefPtr<gfx::FileHandleWrapper> GetDeviceFenceHandle(const RawId aDeviceId);
+
  private:
   static void MapCallback(uint8_t* aUserData,
                           ffi::WGPUBufferMapAsyncStatus aStatus);
