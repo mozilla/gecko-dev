@@ -859,6 +859,11 @@ bool DMABufSurfaceRGBA::CreateExport(mozilla::gl::GLContext* aGLContext,
   // TODO: remove mDrmFormats array from RGBA
   mFOURCCFormat = mDrmFormats[0];
 
+  if (GetFormat() == gfx::SurfaceFormat::UNKNOWN) {
+    LOGDMABUF("  failed, unsupported drm format %x", mFOURCCFormat);
+    return false;
+  }
+
   LOGDMABUF("  created size %d x %d format %x planes %d modifiers %" PRIx64
             " alpha %d",
             mWidth, mHeight, mFOURCCFormat, mBufferPlaneCount, mBufferModifier,
