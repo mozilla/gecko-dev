@@ -5377,10 +5377,11 @@ startup:
     bug_numbers:
       - 1878339
       - 1916867
+      - 1958171
     description: >
       The version of the profiles.ini database loaded during startup. A value
       of "0" is used to indicate that no file was present during startup.
-    expires: "140"
+    expires: "147"
     keyed: false
     kind: string
     notification_emails:
@@ -5400,10 +5401,11 @@ startup:
     bug_numbers:
       - 1878339
       - 1916867
+      - 1958171
     description: >
       This records the number of known profiles after startup completes. This
       includes any profiles that were created during startup.
-    expires: "140"
+    expires: "147"
     keyed: false
     kind: uint
     notification_emails:
