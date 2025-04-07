@@ -78,6 +78,11 @@ add_task(
   { skip_if: () => !WebExtensionPolicy.backgroundServiceWorkerEnabled },
   async function test_service_worker_and_document() {
     await testExtensionWithBackground({
+      with_service_worker: true,
+      expected_background_type: "service_worker",
+      expected_manifest_warnings: [],
+    });
+    await testExtensionWithBackground({
       with_scripts: true,
       with_service_worker: true,
       expected_background_type: "scripts",
@@ -99,6 +104,7 @@ add_task(
       with_service_worker: true,
       expected_background_type: "page",
       expected_manifest_warnings: [
+        "Reading manifest: Warning processing background: Both background.page and background.scripts specified. background.scripts will be ignored.",
         "Reading manifest: Warning processing background: with both background.service_worker and background.page, only background.page will be loaded. This can be changed with background.preferred_environment.",
       ],
     });
@@ -147,7 +153,12 @@ add_task(async function test_preferred_environment_unrecognized() {
   await testExtensionWithBackground({
     with_scripts: true,
     with_service_worker: true,
+    // "page" and "scripts" are ignored (it should be "document"), so only
+    // "service_worker" is recognized.
     with_preferred_environment: ["page", "scripts", "service_worker"],
+    // If "service_worker" is recognized and supported, use it. Otherwise we
+    // default to the background page (in "scripts"), since it is the only
+    // specified entry that is supported.
     expected_background_type: WebExtensionPolicy.backgroundServiceWorkerEnabled
       ? "service_worker"
       : "scripts",
@@ -159,10 +170,11 @@ add_task(async function test_preferred_environment_unrecognized() {
   await testExtensionWithBackground({
     with_page: true,
     with_service_worker: true,
+    // All of these are invalid (only "service_worker" is recognized").
     with_preferred_environment: ["serviceWorker", "serviceworker", "worker"],
-    expected_background_type: WebExtensionPolicy.backgroundServiceWorkerEnabled
-      ? "service_worker"
-      : "page",
+    // Since there is no valid preferred_environment entry, we pick the default,
+    // i.e. "page".
+    expected_background_type: "page",
     expected_manifest_warnings: [
       'Reading manifest: Warning processing background.preferred_environment: Error processing background.preferred_environment.0: Invalid enumeration value "serviceWorker"',
       'Reading manifest: Warning processing background.preferred_environment: Error processing background.preferred_environment.1: Invalid enumeration value "serviceworker"',

@@ -1787,8 +1787,12 @@ export class ExtensionData {
       }
 
       // take the presence of preferred_environment as clue the author knows what it is doing
-      const hasPreference = Array.isArray(background.preferred_environment);
-      if (!hasPreference && WebExtensionPolicy.backgroundServiceWorkerEnabled) {
+      if (
+        !background.preferred_environment &&
+        background.service_worker &&
+        (background.page || background.scripts) &&
+        WebExtensionPolicy.backgroundServiceWorkerEnabled
+      ) {
         // both serviceWorker and document are specified, educate the author on the deterministic behaviour
         const documentType = background.page ? "page" : "scripts";
         this.manifestWarning(
