@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose.textfield
+package mozilla.components.compose.base.textfield
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -23,10 +24,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.R
 import mozilla.components.compose.base.text.Text
 import mozilla.components.compose.base.text.value
-import org.mozilla.fenix.R
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.ui.icons.R as iconsR
 
 /**
  * Scope for [TextField] trailing icons.
@@ -41,9 +43,9 @@ class TrailingIconScope(rowScope: RowScope) : RowScope by rowScope {
         contentDescription: Text? = Text.Resource(R.string.text_field_eye_trailing_icon_default_content_description),
         onTrailingIconClick: () -> Unit,
     ) = TrailingIconButton(
-        iconId = R.drawable.mozac_ic_eye_24,
+        iconId = iconsR.drawable.mozac_ic_eye_24,
         contentDescription = contentDescription,
-        tint = FirefoxTheme.colors.textPrimary,
+        tint = AcornTheme.colors.textPrimary,
         onTrailingIconClick = onTrailingIconClick,
     )
 
@@ -55,9 +57,9 @@ class TrailingIconScope(rowScope: RowScope) : RowScope by rowScope {
         contentDescription: Text? = Text.Resource(R.string.text_field_cross_trailing_icon_default_content_description),
         onTrailingIconClick: () -> Unit,
     ) = TrailingIconButton(
-        iconId = R.drawable.mozac_ic_cross_circle_fill_24,
+        iconId = iconsR.drawable.mozac_ic_cross_circle_fill_24,
         contentDescription = contentDescription,
-        tint = FirefoxTheme.colors.textPrimary,
+        tint = AcornTheme.colors.textPrimary,
         onTrailingIconClick = onTrailingIconClick,
     )
 
@@ -84,10 +86,10 @@ private fun EyeTextFieldButtonPreview() {
     var textFieldInput by remember { mutableStateOf("password") }
     var isPasswordVisible by remember { mutableStateOf(false) }
 
-    FirefoxTheme {
+    AcornTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer1)
+                .background(color = AcornTheme.colors.layer1)
                 .padding(8.dp),
         ) {
             TextField(
@@ -97,6 +99,7 @@ private fun EyeTextFieldButtonPreview() {
                 },
                 placeholder = "",
                 errorText = "",
+                modifier = Modifier.fillMaxWidth(),
                 label = "Eye",
                 trailingIcons = { EyeTextFieldButton { isPasswordVisible = !isPasswordVisible } },
                 visualTransformation = if (isPasswordVisible) {
@@ -114,10 +117,10 @@ private fun EyeTextFieldButtonPreview() {
 private fun CrossTextFieldButtonPreview() {
     var textFieldInput by remember { mutableStateOf("Delete me") }
 
-    FirefoxTheme {
+    AcornTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer1)
+                .background(color = AcornTheme.colors.layer1)
                 .padding(8.dp),
         ) {
             TextField(
@@ -127,6 +130,7 @@ private fun CrossTextFieldButtonPreview() {
                 },
                 placeholder = "",
                 errorText = "",
+                modifier = Modifier.fillMaxWidth(),
                 label = "Cross",
                 trailingIcons = { CrossTextFieldButton { textFieldInput = "" } },
             )

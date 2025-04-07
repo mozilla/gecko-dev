@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description (not visible, for screen readers etc.): Eye trailing icon button in TextField used to show hidden password text. -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Show hidden text</string>
+    <!-- The default content description (not visible, for screen readers etc.): Cross trailing icon button in TextField used to clear input. -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Clear text</string>
+</resources>

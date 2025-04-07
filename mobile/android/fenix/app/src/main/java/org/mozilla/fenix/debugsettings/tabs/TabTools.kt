@@ -40,10 +40,10 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
+import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ext.toLocaleString
-import org.mozilla.fenix.compose.textfield.TextField
 import org.mozilla.fenix.debugsettings.ui.DebugDrawer
 import org.mozilla.fenix.ext.maxActiveTime
 import org.mozilla.fenix.tabstray.ext.isNormalTabInactive
@@ -251,6 +251,7 @@ private fun TabCreationTool(
                     stringResource(id = textErrorID!!)
                 }
             },
+            modifier = Modifier.fillMaxWidth(),
             label = stringResource(R.string.debug_drawer_tab_tools_tab_creation_tool_text_field_label),
             isError = hasError,
             keyboardOptions = KeyboardOptions(

@@ -53,10 +53,10 @@ import mozilla.components.compose.base.button.TextButton
 import mozilla.components.compose.base.menu.MenuItem
 import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.text.Text.Resource
+import mozilla.components.compose.base.textfield.TextField
+import mozilla.components.compose.base.textfield.TextFieldColors
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.textfield.TextField
-import org.mozilla.fenix.compose.textfield.TextFieldColors
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.brokenSiteReporterSendButton
 import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.chooseReasonErrorMessage
@@ -124,6 +124,7 @@ fun WebCompatReporter(
                 },
                 placeholder = "",
                 errorText = stringResource(id = R.string.webcompat_reporter_url_error_invalid),
+                modifier = Modifier.fillMaxWidth(),
                 label = stringResource(id = R.string.webcompat_reporter_label_url),
                 isError = state.hasUrlTextError,
                 singleLine = true,

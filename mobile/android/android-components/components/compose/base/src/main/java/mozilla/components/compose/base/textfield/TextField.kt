@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose.textfield
+package mozilla.components.compose.base.textfield
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -47,8 +47,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.modifier.thenConditional
-import org.mozilla.fenix.R
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.ui.icons.R
 
 private val FocusedIndicatorLineThickness = 2.dp
 private val UnfocusedIndicatorLineThickness = 1.dp
@@ -91,7 +91,7 @@ fun TextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     errorText: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     label: String? = null,
     isError: Boolean = false,
     singleLine: Boolean = true,
@@ -258,6 +258,10 @@ data class TextFieldColors(
     val errorIndicatorColor: Color,
     val errorTrailingIconColor: Color,
 ) {
+
+    /**
+     * @see [TextFieldColors].
+     */
     companion object {
 
         /**
@@ -276,16 +280,16 @@ data class TextFieldColors(
          */
         @Composable
         fun default(
-            inputColor: Color = FirefoxTheme.colors.textPrimary,
-            labelColor: Color = FirefoxTheme.colors.textPrimary,
-            placeholderColor: Color = FirefoxTheme.colors.textSecondary,
-            errorTextColor: Color = FirefoxTheme.colors.textCritical,
-            cursorColor: Color = FirefoxTheme.colors.borderFormDefault,
-            errorCursorColor: Color = FirefoxTheme.colors.borderFormDefault,
-            focusedIndicatorColor: Color = FirefoxTheme.colors.borderFormDefault,
-            unfocusedIndicatorColor: Color = FirefoxTheme.colors.borderFormDefault,
-            errorIndicatorColor: Color = FirefoxTheme.colors.borderCritical,
-            errorTrailingIconColor: Color = FirefoxTheme.colors.iconCritical,
+            inputColor: Color = AcornTheme.colors.textPrimary,
+            labelColor: Color = AcornTheme.colors.textPrimary,
+            placeholderColor: Color = AcornTheme.colors.textSecondary,
+            errorTextColor: Color = AcornTheme.colors.textCritical,
+            cursorColor: Color = AcornTheme.colors.borderFormDefault,
+            errorCursorColor: Color = AcornTheme.colors.borderFormDefault,
+            focusedIndicatorColor: Color = AcornTheme.colors.borderFormDefault,
+            unfocusedIndicatorColor: Color = AcornTheme.colors.borderFormDefault,
+            errorIndicatorColor: Color = AcornTheme.colors.borderCritical,
+            errorTrailingIconColor: Color = AcornTheme.colors.iconCritical,
         ) = TextFieldColors(
             inputColor = inputColor,
             labelColor = labelColor,
@@ -315,6 +319,10 @@ data class TextFieldStyle(
     val placeholderStyle: TextStyle,
     val errorTextStyle: TextStyle,
 ) {
+
+    /**
+     * @see [TextFieldStyle].
+     */
     companion object {
 
         /**
@@ -326,10 +334,10 @@ data class TextFieldStyle(
          * @param errorTextStyle @see [TextFieldStyle.errorTextStyle].
          */
         fun default(
-            inputStyle: TextStyle = FirefoxTheme.typography.subtitle1,
-            labelStyle: TextStyle = FirefoxTheme.typography.caption,
-            placeholderStyle: TextStyle = FirefoxTheme.typography.subtitle1,
-            errorTextStyle: TextStyle = FirefoxTheme.typography.caption,
+            inputStyle: TextStyle = AcornTheme.typography.subtitle1,
+            labelStyle: TextStyle = AcornTheme.typography.caption,
+            placeholderStyle: TextStyle = AcornTheme.typography.subtitle1,
+            errorTextStyle: TextStyle = AcornTheme.typography.caption,
         ) = TextFieldStyle(
             inputStyle = inputStyle,
             labelStyle = labelStyle,
@@ -434,10 +442,10 @@ private fun TextFieldPreview(
 ) {
     var text by remember { mutableStateOf(textFieldState.initialText) }
 
-    FirefoxTheme {
+    AcornTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer1)
+                .background(color = AcornTheme.colors.layer1)
                 .padding(8.dp),
         ) {
             TextField(
@@ -445,6 +453,7 @@ private fun TextFieldPreview(
                 onValueChange = { text = it },
                 placeholder = textFieldState.placeholder,
                 errorText = textFieldState.errorText,
+                modifier = Modifier.fillMaxWidth(),
                 label = textFieldState.label,
                 isError = textFieldState.isError,
                 singleLine = textFieldState.singleLine,
