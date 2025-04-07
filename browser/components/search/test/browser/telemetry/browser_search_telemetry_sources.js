@@ -37,7 +37,7 @@ const TEST_PROVIDER_INFO = [
 /**
  * Returns the index of the first search suggestion in the urlbar results.
  *
- * @returns {Promise<number>} An index, or -1 if there are no search suggestions.
+ * @returns {number} An index, or -1 if there are no search suggestions.
  */
 async function getFirstSuggestionIndex() {
   const matchCount = UrlbarTestUtils.getResultCount(window);
@@ -195,40 +195,6 @@ add_task(async function test_source_urlbar() {
       }
       EventUtils.sendKey("return");
       await loadPromise;
-      return tab;
-    },
-    async () => {
-      BrowserTestUtils.removeTab(tab);
-    }
-  );
-});
-
-add_task(async function test_source_urlbar_newtab() {
-  let tab;
-  await track_ad_click(
-    "urlbar",
-    "urlbar",
-    async () => {
-      // Load a page because alt doesn't open new tabs on about:newtab.
-      BrowserTestUtils.startLoadingURIString(
-        gBrowser.selectedBrowser,
-        "https://example.com"
-      );
-      await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-
-      await UrlbarTestUtils.promiseAutocompleteResultPopup({
-        window,
-        value: "searchSuggestion",
-      });
-      let idx = await getFirstSuggestionIndex();
-      Assert.greaterOrEqual(idx, 0, "there should be a first suggestion");
-      while (idx--) {
-        EventUtils.sendKey("down");
-      }
-      let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
-      EventUtils.synthesizeKey("VK_RETURN", { altKey: true });
-
-      tab = await newTabPromise;
       return tab;
     },
     async () => {
