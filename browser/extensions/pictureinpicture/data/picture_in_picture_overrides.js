@@ -339,6 +339,12 @@ let AVAILABLE_PIP_OVERRIDES;
       },
     },
 
+    rte: {
+      "https://www.rte.ie/player/*": {
+        videoWrapperScriptPath: "video-wrappers/hotstar.js",
+      },
+    },
+
     sonyliv: {
       "https://*.sonyliv.com/*": {
         videoWrapperScriptPath: "video-wrappers/sonyliv.js",
