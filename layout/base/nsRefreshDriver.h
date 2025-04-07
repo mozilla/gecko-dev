@@ -430,19 +430,19 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
       const mozilla::layers::CompositionPayload& aPayload);
 
   enum class TickReasons : uint32_t {
-    eNone = 0,
-    eHasObservers = 1 << 0,
-    eHasImageRequests = 1 << 1,
-    eNeedsToUpdateIntersectionObservations = 1 << 2,
-    eNeedsToUpdateContentRelevancy = 1 << 3,
-    eHasVisualViewportResizeEvents = 1 << 4,
-    eHasScrollEvents = 1 << 5,
-    eHasPendingMediaQueryListeners = 1 << 7,
-    eNeedsToNotifyResizeObservers = 1 << 8,
-    eRootNeedsMoreTicksForUserInput = 1 << 9,
-    eNeedsToUpdateAnimations = 1 << 10,
-    eNeedsToRunFrameRequestCallbacks = 1 << 11,
-    eNeedsToUpdateViewTransitions = 1 << 12,
+    None = 0,
+    HasObservers = 1 << 0,
+    HasImageRequests = 1 << 1,
+    NeedsToUpdateIntersectionObservations = 1 << 2,
+    NeedsToUpdateContentRelevancy = 1 << 3,
+    HasVisualViewportResizeEvents = 1 << 4,
+    HasScrollEvents = 1 << 5,
+    HasPendingMediaQueryListeners = 1 << 7,
+    NeedsToNotifyResizeObservers = 1 << 8,
+    RootNeedsMoreTicksForUserInput = 1 << 9,
+    NeedsToUpdateAnimations = 1 << 10,
+    NeedsToRunFrameRequestCallbacks = 1 << 11,
+    NeedsToUpdateViewTransitions = 1 << 12,
   };
 
   void AddForceNotifyContentfulPaintPresContext(nsPresContext* aPresContext);
@@ -547,7 +547,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
                             mozilla::TimeStamp aNowTime);
 
   bool HasReasonsToTick() const {
-    return GetReasonsToTick() != TickReasons::eNone;
+    return GetReasonsToTick() != TickReasons::None;
   }
   TickReasons GetReasonsToTick() const;
   void AppendTickReasonsToString(TickReasons aReasons, nsACString& aStr) const;

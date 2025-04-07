@@ -1934,90 +1934,90 @@ bool nsRefreshDriver::HasImageRequests() const {
 }
 
 auto nsRefreshDriver::GetReasonsToTick() const -> TickReasons {
-  TickReasons reasons = TickReasons::eNone;
+  TickReasons reasons = TickReasons::None;
   if (HasObservers()) {
-    reasons |= TickReasons::eHasObservers;
+    reasons |= TickReasons::HasObservers;
   }
   if (HasImageRequests() && !mThrottled) {
-    reasons |= TickReasons::eHasImageRequests;
+    reasons |= TickReasons::HasImageRequests;
   }
   if (mNeedToUpdateResizeObservers) {
-    reasons |= TickReasons::eNeedsToNotifyResizeObservers;
+    reasons |= TickReasons::NeedsToNotifyResizeObservers;
   }
   if (mNeedToUpdateViewTransitions) {
-    reasons |= TickReasons::eNeedsToUpdateViewTransitions;
+    reasons |= TickReasons::NeedsToUpdateViewTransitions;
   }
   if (mNeedToUpdateAnimations) {
-    reasons |= TickReasons::eNeedsToUpdateAnimations;
+    reasons |= TickReasons::NeedsToUpdateAnimations;
   }
   if (mNeedToUpdateIntersectionObservations) {
-    reasons |= TickReasons::eNeedsToUpdateIntersectionObservations;
+    reasons |= TickReasons::NeedsToUpdateIntersectionObservations;
   }
   if (mMightNeedMediaQueryListenerUpdate) {
-    reasons |= TickReasons::eHasPendingMediaQueryListeners;
+    reasons |= TickReasons::HasPendingMediaQueryListeners;
   }
   if (mNeedToUpdateContentRelevancy) {
-    reasons |= TickReasons::eNeedsToUpdateContentRelevancy;
+    reasons |= TickReasons::NeedsToUpdateContentRelevancy;
   }
   if (mNeedToRunFrameRequestCallbacks) {
-    reasons |= TickReasons::eNeedsToRunFrameRequestCallbacks;
+    reasons |= TickReasons::NeedsToRunFrameRequestCallbacks;
   }
   if (!mVisualViewportResizeEvents.IsEmpty()) {
-    reasons |= TickReasons::eHasVisualViewportResizeEvents;
+    reasons |= TickReasons::HasVisualViewportResizeEvents;
   }
   if (!mScrollEvents.IsEmpty()) {
-    reasons |= TickReasons::eHasScrollEvents;
+    reasons |= TickReasons::HasScrollEvents;
   }
   if (mPresContext && mPresContext->IsRoot() &&
       mPresContext->NeedsMoreTicksForUserInput()) {
-    reasons |= TickReasons::eRootNeedsMoreTicksForUserInput;
+    reasons |= TickReasons::RootNeedsMoreTicksForUserInput;
   }
   return reasons;
 }
 
 void nsRefreshDriver::AppendTickReasonsToString(TickReasons aReasons,
                                                 nsACString& aStr) const {
-  if (aReasons == TickReasons::eNone) {
+  if (aReasons == TickReasons::None) {
     aStr.AppendLiteral(" <none>");
     return;
   }
 
-  if (aReasons & TickReasons::eHasObservers) {
+  if (aReasons & TickReasons::HasObservers) {
     aStr.AppendLiteral(" HasObservers (");
     AppendObserverDescriptionsToString(aStr);
     aStr.AppendLiteral(")");
   }
-  if (aReasons & TickReasons::eHasImageRequests) {
+  if (aReasons & TickReasons::HasImageRequests) {
     aStr.AppendLiteral(" HasImageAnimations");
   }
-  if (aReasons & TickReasons::eNeedsToNotifyResizeObservers) {
+  if (aReasons & TickReasons::NeedsToNotifyResizeObservers) {
     aStr.AppendLiteral(" NeedsToNotifyResizeObservers");
   }
-  if (aReasons & TickReasons::eNeedsToUpdateViewTransitions) {
+  if (aReasons & TickReasons::NeedsToUpdateViewTransitions) {
     aStr.AppendLiteral(" NeedsToUpdateViewTransitions");
   }
-  if (aReasons & TickReasons::eNeedsToUpdateAnimations) {
+  if (aReasons & TickReasons::NeedsToUpdateAnimations) {
     aStr.AppendLiteral(" NeedsToUpdateAnimations");
   }
-  if (aReasons & TickReasons::eNeedsToUpdateIntersectionObservations) {
+  if (aReasons & TickReasons::NeedsToUpdateIntersectionObservations) {
     aStr.AppendLiteral(" NeedsToUpdateIntersectionObservations");
   }
-  if (aReasons & TickReasons::eHasPendingMediaQueryListeners) {
+  if (aReasons & TickReasons::HasPendingMediaQueryListeners) {
     aStr.AppendLiteral(" HasPendingMediaQueryListeners");
   }
-  if (aReasons & TickReasons::eNeedsToUpdateContentRelevancy) {
+  if (aReasons & TickReasons::NeedsToUpdateContentRelevancy) {
     aStr.AppendLiteral(" NeedsToUpdateContentRelevancy");
   }
-  if (aReasons & TickReasons::eNeedsToRunFrameRequestCallbacks) {
+  if (aReasons & TickReasons::NeedsToRunFrameRequestCallbacks) {
     aStr.AppendLiteral(" NeedsToRunFrameRequestCallbacks");
   }
-  if (aReasons & TickReasons::eHasVisualViewportResizeEvents) {
+  if (aReasons & TickReasons::HasVisualViewportResizeEvents) {
     aStr.AppendLiteral(" HasVisualViewportResizeEvents");
   }
-  if (aReasons & TickReasons::eHasScrollEvents) {
+  if (aReasons & TickReasons::HasScrollEvents) {
     aStr.AppendLiteral(" HasScrollEvents");
   }
-  if (aReasons & TickReasons::eRootNeedsMoreTicksForUserInput) {
+  if (aReasons & TickReasons::RootNeedsMoreTicksForUserInput) {
     aStr.AppendLiteral(" RootNeedsMoreTicksForUserInput");
   }
 }
@@ -2599,7 +2599,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   }
 
   TickReasons tickReasons = GetReasonsToTick();
-  if (tickReasons == TickReasons::eNone) {
+  if (tickReasons == TickReasons::None) {
     // We no longer have any observers.
     // Discard composition payloads because there is no paint.
     mCompositionPayloads.Clear();
@@ -3148,7 +3148,7 @@ void nsRefreshDriver::SetActivity(bool aIsActive) {
     return;
   }
   mThrottled = shouldThrottle;
-  if (mActiveTimer || GetReasonsToTick() != TickReasons::eNone) {
+  if (mActiveTimer || GetReasonsToTick() != TickReasons::None) {
     // We want to switch our timer type here, so just stop and restart the
     // timer.
     EnsureTimerStarted(eForceAdjustTimer);
