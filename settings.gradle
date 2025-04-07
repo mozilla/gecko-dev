@@ -94,7 +94,7 @@ project(':port_messaging_example').projectDir = new File('mobile/android/example
 
 def now() {
     Instant now = Instant.now();
-    return now.getEpochSecond() + now.getNano() / 1_000_000_000L;
+    return BigDecimal.valueOf(now.getNano(), 9).add(now.getEpochSecond());
 }
 
 abstract class BuildStatusListener implements BuildService<BuildStatusListener.Params>, OperationCompletionListener {
@@ -103,8 +103,8 @@ abstract class BuildStatusListener implements BuildService<BuildStatusListener.P
 
     void onFinish(FinishEvent event) {
         def operationResult = event.result
-        println("BUILDSTATUS ${operationResult.startTime / 1000.0} START_gradle-task ${event.descriptor.name}")
-        println("BUILDSTATUS ${operationResult.endTime / 1000.0} END_gradle-task ${event.descriptor.name}")
+        println("BUILDSTATUS ${BigDecimal.valueOf(operationResult.startTime, 3)} START_gradle-task ${event.descriptor.name}")
+        println("BUILDSTATUS ${BigDecimal.valueOf(operationResult.endTime, 3)} END_gradle-task ${event.descriptor.name}")
     }
 }
 
