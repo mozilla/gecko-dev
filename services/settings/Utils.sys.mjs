@@ -505,7 +505,7 @@ export var Utils = {
       } else if (typeof value === "object") {
         return Utils.filterObject(value, entry[filter]);
       } else if (!Object.prototype.hasOwnProperty.call(entry, filter)) {
-        console.error(`The property ${filter} does not exist`);
+        log.debug(`The property ${filter} does not exist`);
         return false;
       }
       return entry[filter] === value;
