@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose
+package mozilla.components.compose.base
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,14 +40,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
-import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
 import mozilla.components.compose.base.text.Text
 import mozilla.components.compose.base.text.value
-import org.mozilla.fenix.R
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.ui.icons.R as iconsR
 
 private val IconSize = 24.dp
 private val HorizontalPadding = 4.dp
@@ -87,7 +86,7 @@ fun Dropdown(
     if (dropdownMenuTextWidth != null) {
         dropdownMenuWidth = ContextMenuWidth + dropdownMenuTextWidth
     } else {
-        val longestDropdownItemSize = getLongestItemWidth(dropdownItems, FirefoxTheme.typography.subtitle1)
+        val longestDropdownItemSize = getLongestItemWidth(dropdownItems, AcornTheme.typography.subtitle1)
         dropdownMenuWidth = ContextMenuWidth + longestDropdownItemSize
     }
 
@@ -116,8 +115,8 @@ fun Dropdown(
                 .wrapContentSize()
                 .defaultMinSize(minHeight = 16.dp)
                 .wrapContentHeight(),
-            color = FirefoxTheme.colors.textPrimary,
-            style = FirefoxTheme.typography.caption,
+            color = AcornTheme.colors.textPrimary,
+            style = AcornTheme.typography.caption,
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -129,16 +128,16 @@ fun Dropdown(
                 Text(
                     text = placeholderText,
                     modifier = Modifier.weight(1f),
-                    color = FirefoxTheme.colors.textPrimary,
-                    style = FirefoxTheme.typography.subtitle1,
+                    color = AcornTheme.colors.textPrimary,
+                    style = AcornTheme.typography.subtitle1,
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Icon(
-                    painter = painterResource(id = R.drawable.mozac_ic_dropdown_arrow),
+                    painter = painterResource(id = iconsR.drawable.mozac_ic_dropdown_arrow),
                     contentDescription = null,
-                    tint = FirefoxTheme.colors.iconPrimary,
+                    tint = AcornTheme.colors.iconPrimary,
                 )
             }
 
@@ -173,7 +172,7 @@ fun Dropdown(
             }
         }
 
-        Divider(color = FirefoxTheme.colors.formDefault)
+        Divider(color = AcornTheme.colors.formDefault)
     }
 }
 
@@ -227,11 +226,11 @@ private fun getSelectedDropdownItems(): List<MenuItem.CheckableItem> =
 @FlexibleWindowLightDarkPreview
 @Composable
 private fun DropdownPreview() {
-    FirefoxTheme {
+    AcornTheme {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(color = FirefoxTheme.colors.layer1),
+                .background(color = AcornTheme.colors.layer1),
         ) {
             Dropdown(
                 label = "Placeholder and nothing selected",
@@ -240,7 +239,7 @@ private fun DropdownPreview() {
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(modifier = Modifier.height(FirefoxTheme.layout.space.dynamic150))
+            Spacer(modifier = Modifier.height(AcornTheme.layout.space.dynamic150))
 
             Dropdown(
                 label = "Placeholder and item selected",
