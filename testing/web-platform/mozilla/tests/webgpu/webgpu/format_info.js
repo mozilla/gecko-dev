@@ -24,8 +24,21 @@ const kFormatUniversalDefaults = {
   color: undefined,
   depth: undefined,
   stencil: undefined,
+  /**
+   * Info when this format can be used as a color render target. The format may require a feature
+   * to actually be used as a render target. Eg: rg11b10ufloat which requires rg11b10ufloat-renderable
+   * Call {@link isTextureFormatPossiblyUsableAsColorRenderAttachment} before having a device
+   * Call {@link isTextureFormatColorRenderable}(device, format) to find out for a particular device.
+   * Use {@link kPossibleColorRenderableTextureFormats} for params.
+   */
   colorRender: undefined,
-  /** Whether the format can be used in a multisample texture. */
+  /**
+   * Whether the format can possibly be used as a multisample texture. The format may require a
+   * feature to actually multisampled. Eg: rg11b10ufloat which requires rg11b10ufloat-renderable
+   * Call {@link isTextureFormatPossiblyMultisampled} before having a device
+   * Call {@link isTextureFormatMultisampled}(device, format) to find out for a particular device.
+   * Use {@link kPossibleMultisampledTextureFormats} for params.
+   */
   multisample: undefined,
   /** Optional feature required to use this format, or `undefined` if none. */
   feature: undefined,
@@ -553,7 +566,8 @@ const kRegularTextureFormatInfo = formatTableWithDefaults({
         readWriteStorage: false,
         bytes: 4
       },
-      multisample: false,
+      colorRender: { blend: true, resolve: true, byteCost: 8, alignment: 4 },
+      multisample: true,
       get bytesPerBlock() {return this.color.bytes;}
     },
 
@@ -1626,15 +1640,13 @@ export const kPossibleReadWriteStorageTextureFormats = [
 // Some may require certain features to be enabled.
 export const kPossibleMultisampledTextureFormats = [
 ...kRegularTextureFormats.filter((f) => kTextureFormatInfo[f].multisample),
-...kDepthStencilFormats.filter((f) => kTextureFormatInfo[f].multisample),
-'rg11b10ufloat'];
+...kDepthStencilFormats.filter((f) => kTextureFormatInfo[f].multisample)];
 
 
 // Texture formats that may possibly be color renderable.
 // Some may require certain features to be enabled.
 export const kPossibleColorRenderableTextureFormats = [
-...kRegularTextureFormats.filter((f) => kTextureFormatInfo[f].colorRender),
-'rg11b10ufloat'];
+...kRegularTextureFormats.filter((f) => kTextureFormatInfo[f].colorRender)];
 
 
 
@@ -1941,12 +1953,9 @@ export function getBlockInfoForTextureFormat(format) {
 
 /**
  * Returns the "byteCost" of rendering to a color texture format.
- * MAINTENANCE_TODO: remove `rg11b10ufloat' from here and add its data to table
- * once CTS is refactored. See issue #4181
  */
 export function getColorRenderByteCost(format) {
-  const byteCost =
-  format === 'rg11b10ufloat' ? 8 : kTextureFormatInfo[format].colorRender?.byteCost;
+  const byteCost = kTextureFormatInfo[format].colorRender?.byteCost;
   // MAINTENANCE_TODO: remove this assert. The issue is typescript thinks
   // PossibleColorRenderTextureFormat contains all texture formats and not just
   // a filtered list.
@@ -1956,12 +1965,9 @@ export function getColorRenderByteCost(format) {
 
 /**
  * Returns the "alignment" of rendering to a color texture format.
- * MAINTENANCE_TODO: remove `rg11b10ufloat' from here and add its data to table
- * once CTS is refactored. See issue #4181
  */
 export function getColorRenderAlignment(format) {
-  const alignment =
-  format === 'rg11b10ufloat' ? 1 : kTextureFormatInfo[format].colorRender?.alignment;
+  const alignment = kTextureFormatInfo[format].colorRender?.alignment;
   // MAINTENANCE_TODO: remove this assert. The issue is typescript thinks
   // PossibleColorRenderTextureFormat contains all texture formats and not just
   // a filtered list.
@@ -2099,8 +2105,8 @@ export function isTextureFormatUsableAsRenderAttachment(
 device,
 format)
 {
-  if (format === 'rg11b10ufloat' && device.features.has('rg11b10ufloat-renderable')) {
-    return true;
+  if (format === 'rg11b10ufloat') {
+    return device.features.has('rg11b10ufloat-renderable');
   }
   return kTextureFormatInfo[format].colorRender || isDepthOrStencilTextureFormat(format);
 }
@@ -2112,8 +2118,8 @@ export function isTextureFormatColorRenderable(
 device,
 format)
 {
-  if (format === 'rg11b10ufloat' && device.features.has('rg11b10ufloat-renderable')) {
-    return true;
+  if (format === 'rg11b10ufloat') {
+    return device.features.has('rg11b10ufloat-renderable');
   }
   return !!kAllTextureFormatInfo[format].colorRender;
 }
@@ -2125,11 +2131,11 @@ export function isTextureFormatBlendable(device, format) {
   if (!isTextureFormatColorRenderable(device, format)) {
     return false;
   }
-  if (format === 'rg11b10ufloat' && device.features.has('rg11b10ufloat-renderable')) {
-    return true;
+  if (format === 'rg11b10ufloat') {
+    return device.features.has('rg11b10ufloat-renderable');
   }
-  if (is32Float(format) && device.features.has('float32-blendable')) {
-    return true;
+  if (is32Float(format)) {
+    return device.features.has('float32-blendable');
   }
   return !!kAllTextureFormatInfo[format].colorRender?.blend;
 }
@@ -2160,7 +2166,7 @@ export function getTextureFormatColorType(format) {
  */
 export function isTextureFormatPossiblyUsableAsRenderAttachment(format) {
   const info = kTextureFormatInfo[format];
-  return format === 'rg11b10ufloat' || isDepthOrStencilTextureFormat(format) || !!info.colorRender;
+  return isDepthOrStencilTextureFormat(format) || !!info.colorRender;
 }
 
 /**
@@ -2169,7 +2175,7 @@ export function isTextureFormatPossiblyUsableAsRenderAttachment(format) {
  */
 export function isTextureFormatPossiblyUsableAsColorRenderAttachment(format) {
   const info = kTextureFormatInfo[format];
-  return format === 'rg11b10ufloat' || !!info.colorRender;
+  return !!info.colorRender;
 }
 
 /**
@@ -2178,7 +2184,7 @@ export function isTextureFormatPossiblyUsableAsColorRenderAttachment(format) {
  */
 export function isTextureFormatPossiblyMultisampled(format) {
   const info = kTextureFormatInfo[format];
-  return format === 'rg11b10ufloat' || info.multisample;
+  return info.multisample;
 }
 
 /**
@@ -2327,8 +2333,8 @@ export function isTextureFormatMultisampled(device, format) {
       return false;
     }
   }
-  if (format === 'rg11b10ufloat' && device.features.has('rg11b10ufloat-renderable')) {
-    return true;
+  if (format === 'rg11b10ufloat') {
+    return device.features.has('rg11b10ufloat-renderable');
   }
   return kAllTextureFormatInfo[format].multisample;
 }
@@ -2338,8 +2344,8 @@ export function isTextureFormatMultisampled(device, format) {
  * can not be resolved.
  */
 export function isTextureFormatResolvable(device, format) {
-  if (format === 'rg11b10ufloat' && device.features.has('rg11b10ufloat-renderable')) {
-    return true;
+  if (format === 'rg11b10ufloat') {
+    return device.features.has('rg11b10ufloat-renderable');
   }
   // You can't resolve a non-multisampled format.
   if (!isTextureFormatMultisampled(device, format)) {
@@ -2364,10 +2370,7 @@ export function computeBytesPerSampleFromFormats(formats) {
     // The issue is if we add it now lots of tests will break as they'll think they can
     // render to the format but are not enabling 'rg11b10ufloat-renderable'. Once we
     // get the CTS refactored (see issue 4181), then fix this.
-    const info =
-    format === 'rg11b10ufloat' ?
-    { colorRender: { alignment: 4, byteCost: 8 } } :
-    kTextureFormatInfo[format];
+    const info = kTextureFormatInfo[format];
     const alignedBytesPerSample = align(bytesPerSample, info.colorRender.alignment);
     bytesPerSample = alignedBytesPerSample + info.colorRender.byteCost;
   }

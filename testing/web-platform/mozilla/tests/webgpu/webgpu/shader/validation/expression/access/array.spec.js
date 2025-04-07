@@ -337,6 +337,46 @@ const kOutOfBoundsCases = {
     result: true,
     pipeline: true,
     value: 5
+  },
+  override_array_cnt_size_zero_unsigned: {
+    code: `override x : u32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: false,
+    pipeline: true,
+    value: 0
+  },
+  override_array_cnt_size_zero_signed: {
+    code: `override x : i32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: false,
+    pipeline: true,
+    value: 0
+  },
+  override_array_cnt_size_neg: {
+    code: `override x : i32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: false,
+    pipeline: true,
+    value: -1
+  },
+  override_array_cnt_size_one: {
+    code: `override x : i32;
+    var<workgroup> v : array<u32,x>;
+    fn y() -> u32 {
+      return v[0];
+    }`,
+    result: true,
+    pipeline: true,
+    value: 1
   }
 };
 

@@ -524,7 +524,9 @@ Parameters:
       usage: GPUTextureUsage.COPY_DST,
     };
 
+    t.skipIf(typeof OffscreenCanvas === 'undefined', 'OffscreenCanvas is not supported');
     const { texels, canvas } = createCanvasWithRandomDataAndGetTexels(descriptor.size);
+
     let videoFrame: VideoFrame | undefined;
     let texture: GPUExternalTexture | GPUTexture;
     if (importExternalTexture) {

@@ -77,34 +77,37 @@ export function getGPU(recorder: TestCaseRecorder | null): GPU {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const origRequestDeviceFn = GPUAdapter.prototype.requestDevice;
 
-    impl.requestAdapter = async function (options?: GPURequestAdapterOptions) {
-      if (!s_defaultLimits) {
-        const tempAdapter = await origRequestAdapterFn.call(this, {
+    Object.defineProperty(impl, 'requestAdapter', {
+      configurable: true,
+      async value(options?: GPURequestAdapterOptions) {
+        if (!s_defaultLimits) {
+          const tempAdapter = await origRequestAdapterFn.call(this, {
+            ...defaultRequestAdapterOptions,
+            ...options,
+          });
+          // eslint-disable-next-line no-restricted-syntax
+          const tempDevice = await tempAdapter?.requestDevice();
+          s_defaultLimits = copyLimits(tempDevice!.limits);
+          tempDevice?.destroy();
+        }
+        const adapter = await origRequestAdapterFn.call(this, {
           ...defaultRequestAdapterOptions,
           ...options,
         });
-        // eslint-disable-next-line no-restricted-syntax
-        const tempDevice = await tempAdapter?.requestDevice();
-        s_defaultLimits = copyLimits(tempDevice!.limits);
-        tempDevice?.destroy();
-      }
-      const adapter = await origRequestAdapterFn.call(this, {
-        ...defaultRequestAdapterOptions,
-        ...options,
-      });
-      if (adapter) {
-        const limits = Object.fromEntries(
-          Object.entries(s_defaultLimits).map(([key, v]) => [key, v])
-        );
+        if (adapter) {
+          const limits = Object.fromEntries(
+            Object.entries(s_defaultLimits).map(([key, v]) => [key, v])
+          );
 
-        Object.defineProperty(adapter, 'limits', {
-          get() {
-            return limits;
-          },
-        });
-      }
-      return adapter;
-    };
+          Object.defineProperty(adapter, 'limits', {
+            get() {
+              return limits;
+            },
+          });
+        }
+        return adapter;
+      },
+    });
 
     const enforceDefaultLimits = (adapter: GPUAdapter, desc: GPUDeviceDescriptor | undefined) => {
       if (desc?.requiredLimits) {
@@ -134,12 +137,60 @@ export function getGPU(recorder: TestCaseRecorder | null): GPU {
       // In other words.
       //
       //   adapter.requestDevice({ requiredLimits: {
-      //     maxXXX: addapter.limits.maxXXX + 1,  // should throw
+      //     maxXXX: adapter.limits.maxXXX + 1,  // should throw
       //   });
       //
-      // But unless we enforce this manually, it won't actual through if the adapter's
+      // But unless we enforce this manually, it won't actually throw if the adapter's
       // true limits are higher than we patched above.
       enforceDefaultLimits(this, desc);
+      return await origRequestDeviceFn.call(this, desc);
+    };
+  }
+
+  if (globalTestConfig.blockAllFeatures) {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const origRequestAdapterFn = impl.requestAdapter;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const origRequestDeviceFn = GPUAdapter.prototype.requestDevice;
+
+    Object.defineProperty(impl, 'requestAdapter', {
+      configurable: true,
+      async value(options?: GPURequestAdapterOptions) {
+        const adapter = await origRequestAdapterFn.call(this, {
+          ...defaultRequestAdapterOptions,
+          ...options,
+        });
+        if (adapter) {
+          Object.defineProperty(adapter, 'features', {
+            enumerable: false,
+            value: new Set(
+              adapter.features.has('core-features-and-limits') ? ['core-features-and-limits'] : []
+            ),
+          });
+        }
+        return adapter;
+      },
+    });
+
+    const enforceBlockedFeatures = (adapter: GPUAdapter, desc: GPUDeviceDescriptor | undefined) => {
+      if (desc?.requiredFeatures) {
+        for (const [feature] of desc.requiredFeatures) {
+          // Note: This adapter has had its features property over-ridden and will only return
+          // have nothing or 'core-features-and-limits'.
+          if (!adapter.features.has(feature)) {
+            throw new TypeError(`requested feature ${feature} does not exist on adapter`);
+          }
+        }
+      }
+    };
+
+    GPUAdapter.prototype.requestDevice = async function (
+      this: GPUAdapter,
+      desc?: GPUDeviceDescriptor | undefined
+    ) {
+      // We need to enforce the feature block because even though we patched the adapter to
+      // advertise no features they still exist on the real adapter.
+      enforceBlockedFeatures(this, desc);
       return await origRequestDeviceFn.call(this, desc);
     };
   }

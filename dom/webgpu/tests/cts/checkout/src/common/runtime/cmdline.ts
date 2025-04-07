@@ -113,6 +113,8 @@ for (let i = 0; i < sys.args.length; ++i) {
       globalTestConfig.forceFallbackAdapter = true;
     } else if (a === '--enforce-default-limits') {
       globalTestConfig.enforceDefaultLimits = true;
+    } else if (a === '--block-all-features') {
+      globalTestConfig.blockAllFeatures = true;
     } else if (a === '--log-to-websocket') {
       globalTestConfig.logToWebSocket = true;
     } else {

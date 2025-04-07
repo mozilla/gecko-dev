@@ -57,6 +57,11 @@
 
 
 
+
+
+
+
+
 export const globalTestConfig = {
   enableDebugLogs: false,
   maxSubcasesInFlight: 100,
@@ -67,6 +72,7 @@ export const globalTestConfig = {
   compatibility: false,
   forceFallbackAdapter: false,
   enforceDefaultLimits: false,
+  blockAllFeatures: false,
   logToWebSocket: false
 };
 

@@ -511,7 +511,6 @@ u //
 fn((t) => {
   const { format, access } = t.params;
   t.skipIfTextureFormatNotSupported(format);
-  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
 
   const success =
   isTextureFormatUsableAsStorageFormat(t.device, format) &&

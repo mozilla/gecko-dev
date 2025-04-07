@@ -153,11 +153,10 @@ combine('modeU', kShortAddressModes).
 combine('modeV', kShortAddressModes).
 combine('offset', [false, true]).
 beginSubcases().
-combine('samplePoints', kSamplePointMethods).
-combine('baseMipLevel', [0, 1])
+combine('samplePoints', kSamplePointMethods)
 ).
 fn(async (t) => {
-  const { format, samplePoints, modeU, modeV, filt: minFilter, offset, baseMipLevel } = t.params;
+  const { format, samplePoints, modeU, modeV, filt: minFilter, offset } = t.params;
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
@@ -169,9 +168,7 @@ fn(async (t) => {
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
     mipLevelCount: 3
   };
-  const viewDescriptor = {
-    baseMipLevel
-  };
+  const viewDescriptor = {};
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const softwareTexture = { texels, descriptor, viewDescriptor };
   const sampler = {
@@ -189,6 +186,101 @@ fn(async (t) => {
     derivatives: true,
     offset,
     hashInputs: [format, samplePoints, modeU, modeV, minFilter, offset]
+  }).map(({ coords, derivativeMult, offset }) => {
+    return {
+      builtin: 'textureSample',
+      coordType: 'f',
+      coords,
+      derivativeMult,
+      offset
+    };
+  });
+  const textureType = 'texture_2d<f32>';
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    'f'
+  );
+  const res = await checkCallResults(
+    t,
+    { texels, descriptor, viewDescriptor },
+    textureType,
+    sampler,
+    calls,
+    results,
+    'f',
+    texture
+  );
+  t.expectOK(res);
+});
+
+g.test('sampled_2d_coords,lodClamp').
+specURL('https://www.w3.org/TR/WGSL/#texturesample').
+desc(
+  `
+tests textureSample with 2d coordinates and various combinations of
+baseMipLevel, lodMinClamp, and lodMaxClamp, with an dwithout filtering.
+`
+).
+params((u) =>
+u.
+combine('format', kAllTextureFormats).
+filter((t) => isPotentiallyFilterableAndFillable(t.format)).
+combine('filt', ['nearest', 'linear']).
+filter((t) => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format)).
+beginSubcases().
+combine('samplePoints', kSamplePointMethods).
+combineWithParams([
+{ baseMipLevel: 0, lodMinClamp: 0, lodMaxClamp: 2 },
+{ baseMipLevel: 0, lodMinClamp: 0.25, lodMaxClamp: 1.75 },
+{ baseMipLevel: 1, lodMinClamp: 0, lodMaxClamp: 1 },
+{ baseMipLevel: 0, lodMinClamp: 0, lodMaxClamp: 1 },
+{ baseMipLevel: 0, lodMinClamp: 1, lodMaxClamp: 2 }]
+)
+).
+fn(async (t) => {
+  const {
+    format,
+    samplePoints,
+    filt: minFilter,
+    baseMipLevel,
+    lodMaxClamp,
+    lodMinClamp
+  } = t.params;
+  skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+
+  // We want at least 4 blocks or something wide enough for 3 mip levels.
+  const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+
+  const descriptor = {
+    format,
+    size: { width, height },
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    mipLevelCount: 3
+  };
+  const viewDescriptor = {
+    baseMipLevel
+  };
+  const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+  const softwareTexture = { texels, descriptor, viewDescriptor };
+  const sampler = {
+    minFilter,
+    magFilter: minFilter,
+    mipmapFilter: minFilter,
+    lodMinClamp,
+    lodMaxClamp
+  };
+
+  const calls = generateTextureBuiltinInputs2D(50, {
+    sampler,
+    method: samplePoints,
+    softwareTexture,
+    derivatives: true,
+    hashInputs: [format, samplePoints, minFilter, baseMipLevel, lodMinClamp, lodMaxClamp]
   }).map(({ coords, derivativeMult, offset }) => {
     return {
       builtin: 'textureSample',

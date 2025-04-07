@@ -525,14 +525,6 @@ export const listing = [
       "api",
       "operation",
       "sampling",
-      "lod_clamp"
-    ]
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "sampling",
       "sampler_texture"
     ]
   },

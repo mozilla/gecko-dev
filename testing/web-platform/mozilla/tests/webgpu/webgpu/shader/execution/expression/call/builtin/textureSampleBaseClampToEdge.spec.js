@@ -33,9 +33,12 @@ isExternal)
 
 {
   if (isExternal) {
-    t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported');
+    t.skipIf(typeof OffscreenCanvas === 'undefined', 'OffscreenCanvas is not supported');
     const { texels, canvas } = createCanvasWithRandomDataAndGetTexels(descriptor.size);
+
+    t.skipIf(typeof VideoFrame === 'undefined', 'VideoFrames are not supported');
     const videoFrame = new VideoFrame(canvas, { timestamp: 0 });
+
     const texture = t.device.importExternalTexture({ source: videoFrame });
     return { texels, texture, videoFrame };
   } else {

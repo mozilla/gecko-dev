@@ -5,10 +5,9 @@ Validation tests for various texture types in shaders.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import {
   getTextureFormatType,
-  isTextureFormatPossiblyStorageReadable,
   isTextureFormatUsableAsStorageFormatInCreateShaderModule,
   kAllTextureFormats,
-  kColorTextureFormats } from
+  kPossibleStorageTextureFormats } from
 '../../../format_info.js';
 import { getPlainTypeInfo } from '../../../util/shader.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
@@ -21,8 +20,7 @@ desc(
 ).
 params((u) =>
 u.
-combine('format', kColorTextureFormats).
-filter((p) => isTextureFormatPossiblyStorageReadable(p.format)).
+combine('format', kPossibleStorageTextureFormats).
 beginSubcases().
 combine('shaderScalarType', ['f32', 'u32', 'i32', 'bool', 'f16'])
 ).

@@ -53,6 +53,7 @@ globalTestConfig.enableDebugLogs = options.debug;
 globalTestConfig.unrollConstEvalLoops = options.unrollConstEvalLoops;
 globalTestConfig.compatibility = compatibility;
 globalTestConfig.enforceDefaultLimits = options.enforceDefaultLimits;
+globalTestConfig.blockAllFeatures = options.blockAllFeatures;
 globalTestConfig.logToWebSocket = options.logToWebSocket;
 
 const logger = new Logger();
