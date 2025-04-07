@@ -67,15 +67,15 @@ TASK_CONFIG_TESTS = {
     "worker-overrides": [
         ([], None),
         (
-            ["--worker-override", "alias=worker/pool"],
-            {"try_task_config": {"worker-overrides": {"alias": "worker/pool"}}},
+            ["--worker-override", "b-linux=worker/pool"],
+            {"try_task_config": {"worker-overrides": {"b-linux": "worker/pool"}}},
         ),
         (
             [
                 "--worker-override",
-                "alias=worker/pool",
+                "b-linux=worker/pool",
                 "--worker-override",
-                "alias=other/pool",
+                "b-linux=other/pool",
             ],
             SystemExit,
         ),

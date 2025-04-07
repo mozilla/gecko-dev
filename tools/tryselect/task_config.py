@@ -617,6 +617,10 @@ class WorkerOverrides(TryConfig):
         from gecko_taskgraph.util.workertypes import get_worker_type
         from taskgraph.config import load_graph_config
 
+        root = build.topsrcdir
+        root = os.path.join(root, "taskcluster")
+        graph_config = load_graph_config(root)
+
         overrides = {}
         if worker_overrides:
             for override in worker_overrides:
@@ -631,10 +635,36 @@ class WorkerOverrides(TryConfig):
                     sys.exit(1)
                 overrides[alias] = worker_pool
 
+                try:
+                    provisioner, worker_type = get_worker_type(
+                        graph_config, worker_type=alias, parameters={"level": "1"}
+                    )
+                except KeyError:
+                    print(
+                        f"Invalid worker type {alias}, use a value that matches below (limited to b-*, t-*, win*):"
+                    )
+                    root_alias = alias.strip("gecko-")
+                    root_alias = root_alias.strip("t-")
+                    root_alias = root_alias.split("-")[0]
+                    possible_matches = []
+                    for item in graph_config["workers"]["aliases"]:
+                        if root_alias in item:
+                            possible_matches.append(item)
+                        if (
+                            item.startswith("t-")
+                            or item.startswith("b-")
+                            or item.startswith("win")
+                        ):
+                            print(f"{item}")
+
+                    print("")
+                    if len(possible_matches) == 1:
+                        print(f"did you mean: {possible_matches[0]}")
+                    elif len(possible_matches) > 1:
+                        print(f"did you mean one of these {possible_matches}")
+                    sys.exit(1)
+
         if worker_suffixes:
-            root = build.topsrcdir
-            root = os.path.join(root, "taskcluster")
-            graph_config = load_graph_config(root)
             for worker_suffix in worker_suffixes:
                 alias, suffix = worker_suffix.split("=", 1)
                 if alias in overrides:
