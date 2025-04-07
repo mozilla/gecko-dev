@@ -111,7 +111,6 @@ class DMABufSurface {
   virtual int GetWidth(int aPlane = 0) = 0;
   virtual int GetHeight(int aPlane = 0) = 0;
   virtual mozilla::gfx::SurfaceFormat GetFormat() = 0;
-  virtual mozilla::gfx::SurfaceFormat GetFormatGL() = 0;
 
   virtual bool CreateTexture(mozilla::gl::GLContext* aGLContext,
                              int aPlane = 0) = 0;
@@ -297,7 +296,6 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
   int GetWidth(int aPlane = 0) override { return mWidth; };
   int GetHeight(int aPlane = 0) override { return mHeight; };
   mozilla::gfx::SurfaceFormat GetFormat() override;
-  mozilla::gfx::SurfaceFormat GetFormatGL() override;
   bool HasAlpha();
 
   void* MapReadOnly(uint32_t aX, uint32_t aY, uint32_t aWidth, uint32_t aHeight,
@@ -386,7 +384,6 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   int GetWidth(int aPlane = 0) override { return mWidth[aPlane]; }
   int GetHeight(int aPlane = 0) override { return mHeight[aPlane]; }
   mozilla::gfx::SurfaceFormat GetFormat() override;
-  mozilla::gfx::SurfaceFormat GetFormatGL() override;
 
   // Get hardware compatible format for SW decoded one.
   // It's used for uploading SW decoded images to DMABuf.

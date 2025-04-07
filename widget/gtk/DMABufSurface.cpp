@@ -859,8 +859,10 @@ bool DMABufSurfaceRGBA::CreateExport(mozilla::gl::GLContext* aGLContext,
   // TODO: remove mDrmFormats array from RGBA
   mFOURCCFormat = mDrmFormats[0];
 
-  LOGDMABUF("  created size %d x %d format %x planes %d modifiers %" PRIx64,
-            mWidth, mHeight, mFOURCCFormat, mBufferPlaneCount, mBufferModifier);
+  LOGDMABUF("  created size %d x %d format %x planes %d modifiers %" PRIx64
+            " alpha %d",
+            mWidth, mHeight, mFOURCCFormat, mBufferPlaneCount, mBufferModifier,
+            HasAlpha());
 
   releaseTextures.release();
   return true;
@@ -1332,18 +1334,41 @@ void DMABufSurfaceRGBA::Clear() {
 #endif
 
 bool DMABufSurfaceRGBA::HasAlpha() {
-  return mFOURCCFormat == GBM_FORMAT_ARGB8888;
+  return mFOURCCFormat == GBM_FORMAT_ARGB8888 ||
+         mFOURCCFormat == GBM_FORMAT_ABGR8888 ||
+         mFOURCCFormat == GBM_FORMAT_RGBA8888 ||
+         mFOURCCFormat == GBM_FORMAT_BGRA8888;
 }
 
 gfx::SurfaceFormat DMABufSurfaceRGBA::GetFormat() {
-  return HasAlpha() ? gfx::SurfaceFormat::B8G8R8A8
-                    : gfx::SurfaceFormat::B8G8R8X8;
-}
+  switch (mFOURCCFormat) {
+    case GBM_FORMAT_ARGB8888:
+      return gfx::SurfaceFormat::B8G8R8A8;
+    case GBM_FORMAT_ABGR8888:
+      return gfx::SurfaceFormat::R8G8B8A8;
+    case GBM_FORMAT_BGRA8888:
+      return gfx::SurfaceFormat::A8R8G8B8;
+    case GBM_FORMAT_RGBA8888:
+      gfxCriticalError() << "DMABufSurfaceRGBA::GetFormat(): Unsupported "
+                            "format GBM_FORMAT_RGBA8888";
+      return gfx::SurfaceFormat::UNKNOWN;
 
-// GL uses swapped R and B components so report accordingly.
-gfx::SurfaceFormat DMABufSurfaceRGBA::GetFormatGL() {
-  return HasAlpha() ? gfx::SurfaceFormat::R8G8B8A8
-                    : gfx::SurfaceFormat::R8G8B8X8;
+    case GBM_FORMAT_XRGB8888:
+      return gfx::SurfaceFormat::B8G8R8X8;
+    case GBM_FORMAT_XBGR8888:
+      return gfx::SurfaceFormat::R8G8B8X8;
+    case GBM_FORMAT_BGRX8888:
+      return gfx::SurfaceFormat::X8R8G8B8;
+    case GBM_FORMAT_RGBX8888:
+      gfxCriticalError() << "DMABufSurfaceRGBA::GetFormat(): Unsupported "
+                            "format GBM_FORMAT_RGBX8888";
+      return gfx::SurfaceFormat::UNKNOWN;
+
+    default:
+      gfxCriticalError() << "DMABufSurfaceRGBA::GetFormat(): Unknown format"
+                         << gfx::hexa(mFOURCCFormat);
+      return gfx::SurfaceFormat::UNKNOWN;
+  }
 }
 
 already_AddRefed<DMABufSurfaceRGBA> DMABufSurfaceRGBA::CreateDMABufSurface(
@@ -2023,10 +2048,6 @@ gfx::SurfaceFormat DMABufSurfaceYUV::GetHWFormat(gfx::SurfaceFormat aSWFormat) {
       return gfx::SurfaceFormat::UNKNOWN;
   }
 }
-
-// GL uses swapped R and B components so report accordingly.
-// YUV formats are not affected so report what we have directly.
-gfx::SurfaceFormat DMABufSurfaceYUV::GetFormatGL() { return GetFormat(); }
 
 int DMABufSurfaceYUV::GetTextureCount() { return mBufferPlaneCount; }
 

@@ -136,6 +136,8 @@ void NativeLayerRootWayland::Init() {
   //
   // TODO: Recreate (Unmap/Map and Dispose buffers) child surfaces
   // if there's format table refresh.
+  //
+  // TODO: Don't use for exported dmabuf surfaces.
   mSurface->EnableDMABufFormatsLocked(lock, [this, self = RefPtr{this}](
                                                 DMABufFormats* aFormats) {
     if (DRMFormat* format = aFormats->GetFormat(GBM_FORMAT_ARGB8888,
@@ -213,8 +215,9 @@ already_AddRefed<NativeLayer> NativeLayerRootWayland::CreateLayer(
 
 already_AddRefed<NativeLayer>
 NativeLayerRootWayland::CreateLayerForExternalTexture(bool aIsOpaque) {
-  LOG("NativeLayerRootWayland::CreateLayerForExternalTexture() nsWindow [%p]",
-      GetLoggingWidget());
+  LOG("NativeLayerRootWayland::CreateLayerForExternalTexture() nsWindow [%p] "
+      "opaque %d",
+      GetLoggingWidget(), aIsOpaque);
   return MakeAndAddRef<NativeLayerWaylandExternal>(this, aIsOpaque);
 }
 
@@ -968,9 +971,10 @@ void NativeLayerWaylandExternal::AttachExternalImage(
   mIsHDR = mTextureHost->GetSurface()->IsHDRSurface();
 
   LOG("NativeLayerWaylandExternal::AttachExternalImage() host [%p] "
-      "DMABufSurface [%p] DMABuf UID %d [%d x %d] HDR %d",
+      "DMABufSurface [%p] DMABuf UID %d [%d x %d] HDR %d Opaque %d",
       mTextureHost.get(), mTextureHost->GetSurface().get(),
-      mTextureHost->GetSurface()->GetUID(), mSize.width, mSize.height, mIsHDR);
+      mTextureHost->GetSurface()->GetUID(), mSize.width, mSize.height, mIsHDR,
+      mIsOpaque);
 }
 
 void NativeLayerWaylandExternal::DiscardBackbuffersLocked(
