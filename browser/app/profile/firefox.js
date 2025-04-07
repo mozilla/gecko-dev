@@ -1057,7 +1057,13 @@ pref("browser.tabs.groups.enabled", true);
 #else
 pref("browser.tabs.groups.enabled", false);
 #endif
+
+#ifdef NIGHTLY_BUILD
+pref("browser.tabs.groups.smart.enabled", true);
+#else
 pref("browser.tabs.groups.smart.enabled", false);
+#endif
+
 pref("browser.tabs.groups.smart.optin", false);
 
 pref("browser.tabs.dragDrop.createGroup.delayMS", 240);
