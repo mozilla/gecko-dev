@@ -253,6 +253,9 @@ ALL_PROCESSES += [
 
     # Cylance, bug 1756190 and bug 1799562
     DllBlocklistEntry("CylanceMemDef64.dll", ALL_VERSIONS),
+
+    # Qihoo 360 Internet Security, bug 1958112
+    DllBlocklistEntry("chromesafe64.dll", (2, 0, 0, 42)),
 ]
 
 # Shell extensions that result in crashes when the file-dialog is opened. (These
