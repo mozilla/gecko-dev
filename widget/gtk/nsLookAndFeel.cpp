@@ -1805,8 +1805,6 @@ void nsLookAndFeel::InitializeGlobalSettings() {
 }
 
 void nsLookAndFeel::ConfigureFinalEffectiveTheme() {
-  MOZ_ASSERT(mSystemThemeOverridden,
-             "By this point, the alt theme should be configured");
   const bool shouldUseSystemTheme = [&] {
     using ChromeSetting = PreferenceSheet::ChromeColorSchemeSetting;
     // NOTE: We can't call ColorSchemeForChrome directly because this might run
@@ -1829,6 +1827,10 @@ void nsLookAndFeel::ConfigureFinalEffectiveTheme() {
   const bool usingSystem = !mSystemThemeOverridden;
   LOGLNF("OverrideSystemThemeIfNeeded(matchesSystem=%d, usingSystem=%d)\n",
          shouldUseSystemTheme, usingSystem);
+
+  if (shouldUseSystemTheme == usingSystem) {
+    return;
+  }
 
   if (shouldUseSystemTheme) {
     RestoreSystemTheme();

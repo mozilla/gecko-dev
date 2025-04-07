@@ -58,6 +58,12 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   char16_t GetPasswordCharacterImpl() override;
   bool GetEchoPasswordImpl() override;
 
+  void RefreshImpl() override {
+    // When calling Refresh(), we don't need to reload all our GTK theme info,
+    // but we might need to change our effective theme.
+    RecordChange(NativeChangeKind::OtherSettings);
+  }
+
   bool GetDefaultDrawInTitlebar() override;
 
   nsXPLookAndFeel::TitlebarAction GetTitlebarAction(
