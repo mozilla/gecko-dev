@@ -206,8 +206,8 @@ class WasmArrayObject : public WasmGcObject,
   //
   // This logic is mirrored in WasmArrayObject::maxInlineElementsForElemSize and
   // MacroAssembler::wasmNewArrayObject.
-  static mozilla::CheckedUint32 calcStorageBytesChecked(uint32_t elemSize,
-                                                        uint32_t numElements) {
+  static constexpr mozilla::CheckedUint32 calcStorageBytesChecked(
+      uint32_t elemSize, uint32_t numElements) {
     static_assert(sizeof(WasmArrayObject) % gc::CellAlignBytes == 0);
     mozilla::CheckedUint32 storageBytes = elemSize;
     storageBytes *= numElements;
@@ -229,7 +229,8 @@ class WasmArrayObject : public WasmGcObject,
   }
   // Compute the maximum number of elements that can be stored inline for the
   // given element size.
-  static inline uint32_t maxInlineElementsForElemSize(uint32_t elemSize);
+  static inline constexpr uint32_t maxInlineElementsForElemSize(
+      uint32_t elemSize);
 
   using DataHeader = uintptr_t;
   static const DataHeader DataIsIL = 0;
@@ -448,7 +449,7 @@ static_assert((WasmStructObject_MaxInlineBytes % 16) == 0);
 static_assert((WasmArrayObject_MaxInlineBytes % 16) == 0);
 
 /* static */
-inline uint32_t WasmArrayObject::maxInlineElementsForElemSize(
+inline constexpr uint32_t WasmArrayObject::maxInlineElementsForElemSize(
     uint32_t elemSize) {
   // This implementation inverts the logic of WasmArrayObject::calcStorageBytes
   // to compute numElements.
@@ -513,6 +514,41 @@ inline uint8_t* WasmStructObject::fieldOffsetToAddress(
 // are in the NULL pointer guard page.
 static_assert(WasmStructObject_MaxInlineBytes <= wasm::NullPtrGuardSize);
 static_assert(sizeof(WasmArrayObject) <= wasm::NullPtrGuardSize);
+
+// Template to acquire a stable pointer to the elements of a WasmArrayObject
+// that will not move even if there is a GC. This will create a copy of the
+// array onto the stack when the array has inline data, and can be expensive.
+template <typename T>
+class MOZ_RAII StableWasmArrayObjectElements {
+  static constexpr size_t MaxInlineElements =
+      WasmArrayObject::maxInlineElementsForElemSize(sizeof(T));
+  Rooted<WasmArrayObject*> array_;
+  T* elements_;
+  mozilla::Maybe<mozilla::Vector<T, MaxInlineElements, SystemAllocPolicy>>
+      ownElements_;
+
+ public:
+  StableWasmArrayObjectElements(JSContext* cx, Handle<WasmArrayObject*> array)
+      : array_(cx, array), elements_(nullptr) {
+    if (array->isDataInline()) {
+      ownElements_.emplace();
+      if (!ownElements_->resize(array->numElements_)) {
+        // Should not happen as we have inline storage for the maximum needed
+        // elements.
+        MOZ_CRASH();
+      }
+      std::copy(array->inlineStorage(),
+                array->inlineStorage() + array->numElements_ * sizeof(T),
+                ownElements_->begin());
+      elements_ = ownElements_->begin();
+    } else {
+      elements_ = reinterpret_cast<T*>(array->data_);
+    }
+  }
+
+  T* elements() { return elements_; }
+  size_t length() const { return array_->numElements_; }
+};
 
 }  // namespace js
 
