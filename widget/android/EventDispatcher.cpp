@@ -20,6 +20,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/java/EventCallbackWrappers.h"
 #include "mozilla/jni/GeckoBundleUtils.h"
+#include "mozilla/ProfilerMarkers.h"
 
 namespace mozilla {
 namespace widget {
@@ -438,6 +439,7 @@ nsresult EventDispatcher::DispatchOnGecko(
   MOZ_ASSERT(NS_IsMainThread());
   dom::AutoNoJSAPI nojsapi;
 
+  AUTO_PROFILER_MARKER_TEXT("DispatchOnGecko", OTHER, {}, aEvent);
   list->lockCount++;
 
   auto iteratingScope = MakeScopeExit([list] {
