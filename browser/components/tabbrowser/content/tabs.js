@@ -191,6 +191,13 @@
         "always-show"
       );
 
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "_sidebarPositionStart",
+        "sidebar.position_start",
+        true
+      );
+
       if (gMultiProcessBrowser) {
         this.tabbox.tabpanels.setAttribute("async", "true");
       }
@@ -1395,7 +1402,10 @@
         let crossAxisPos = this.verticalMode ? event.screenX : event.screenY;
         let crossAxisStart, crossAxisEnd;
         if (this.verticalMode) {
-          if (RTL_UI) {
+          if (
+            (RTL_UI && this._sidebarPositionStart) ||
+            (!RTL_UI && !this._sidebarPositionStart)
+          ) {
             crossAxisStart = window.screenX + rect.right - 1.5 * rect.width;
             crossAxisEnd = window.screenX;
           } else {
