@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1749736367000000);
+static const PRTime kCTExpirationTime = INT64_C(1750072636000000);
 
 namespace mozilla::ct {
 
@@ -151,8 +151,8 @@ const CTLogInfo kCTLogList[] = {
      "\x95\x24\x7c\xd8\x91\x98\x48\x3b\xf0\xf0\xdf\x21\xf1\xb0\x81\x5a\x59\x25"
      "\x43",
      91},
-    {"DigiCert Nessie2025 Log", CTLogState::Admissible,
-     1667328840000,  // 2022-11-01T18:54:00Z
+    {"DigiCert Nessie2025 Log", CTLogState::Retired,
+     1744758000000,  // 2025-04-15T23:00:00Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xf2\xf0\xf0\xa7\x8b\x81\x2e\x09\x39"
