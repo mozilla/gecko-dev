@@ -6,6 +6,7 @@ import React, { useCallback, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { ThumbUpThumbDownToast } from "./Toasts/ThumbUpThumbDownToast";
+import { ReportContentToast } from "./Toasts/ReportContentToast";
 
 function Notifications({ dispatch }) {
   const toastQueue = useSelector(state => state.Notifications.toastQueue);
@@ -43,13 +44,27 @@ function Notifications({ dispatch }) {
       throw new Error("No toast found");
     }
 
-    return (
-      <ThumbUpThumbDownToast
-        onDismissClick={syncHiddenToastData}
-        onAnimationEnd={syncHiddenToastData}
-        key={toastCounter}
-      />
-    );
+    switch (latestToastItem) {
+      case "reportSuccessToast":
+        return (
+          <ReportContentToast
+            onDismissClick={syncHiddenToastData}
+            onAnimationEnd={syncHiddenToastData}
+            key={toastCounter}
+          />
+        );
+      case "thumbsUpToast":
+      case "thumbsDownToast":
+        return (
+          <ThumbUpThumbDownToast
+            onDismissClick={syncHiddenToastData}
+            onAnimationEnd={syncHiddenToastData}
+            key={toastCounter}
+          />
+        );
+      default:
+        throw new Error(`Unexpected toast type: ${latestToastItem}`);
+    }
   }, [syncHiddenToastData, toastCounter, toastQueue]);
 
   useEffect(() => {

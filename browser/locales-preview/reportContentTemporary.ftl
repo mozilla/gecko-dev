@@ -17,3 +17,5 @@ newtab-report-ads-reason-seen-it-too-many-times =
 newtab-report-ads-reason-not-interested =
   .label = Not interested
 newtab-report-submit = Submit
+newtab-toast-thanks-for-feedback =
+    .message = Thanks for your feedback.

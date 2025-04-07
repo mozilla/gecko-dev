@@ -5898,6 +5898,13 @@ const ReportContent = spocs => {
         ...report
       }]
     }));
+    dispatch(actionCreators.OnlyToOneContent({
+      type: actionTypes.SHOW_TOAST_MESSAGE,
+      data: {
+        toastId: "reportSuccessToast",
+        showNotifications: true
+      }
+    }, "ActivityStream:Content"));
   }, [dispatch, selectedReason, report, spocData]);
 
   // Opens and closes the modal based on user interaction
@@ -13385,10 +13392,43 @@ function ThumbUpThumbDownToast({
   });
 }
 
+;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/ReportContentToast.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function ReportContentToast({
+  onDismissClick,
+  onAnimationEnd
+}) {
+  const mozMessageBarRef = (0,external_React_namespaceObject.useRef)(null);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const {
+      current: mozMessageBarElement
+    } = mozMessageBarRef;
+    mozMessageBarElement.addEventListener("message-bar:user-dismissed", onDismissClick, {
+      once: true
+    });
+    return () => {
+      mozMessageBarElement.removeEventListener("message-bar:user-dismissed", onDismissClick);
+    };
+  }, [onDismissClick]);
+  return /*#__PURE__*/external_React_default().createElement("moz-message-bar", {
+    type: "success",
+    class: "notification-feed-item",
+    dismissable: true,
+    "data-l10n-id": "newtab-toast-thanks-for-feedback",
+    ref: mozMessageBarRef,
+    onAnimationEnd: onAnimationEnd
+  });
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/Notifications/Notifications.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -13424,11 +13464,23 @@ function Notifications_Notifications({
     if (!latestToastItem) {
       throw new Error("No toast found");
     }
-    return /*#__PURE__*/external_React_default().createElement(ThumbUpThumbDownToast, {
-      onDismissClick: syncHiddenToastData,
-      onAnimationEnd: syncHiddenToastData,
-      key: toastCounter
-    });
+    switch (latestToastItem) {
+      case "reportSuccessToast":
+        return /*#__PURE__*/external_React_default().createElement(ReportContentToast, {
+          onDismissClick: syncHiddenToastData,
+          onAnimationEnd: syncHiddenToastData,
+          key: toastCounter
+        });
+      case "thumbsUpToast":
+      case "thumbsDownToast":
+        return /*#__PURE__*/external_React_default().createElement(ThumbUpThumbDownToast, {
+          onDismissClick: syncHiddenToastData,
+          onAnimationEnd: syncHiddenToastData,
+          key: toastCounter
+        });
+      default:
+        throw new Error(`Unexpected toast type: ${latestToastItem}`);
+    }
   }, [syncHiddenToastData, toastCounter, toastQueue]);
   (0,external_React_namespaceObject.useEffect)(() => {
     getToast();

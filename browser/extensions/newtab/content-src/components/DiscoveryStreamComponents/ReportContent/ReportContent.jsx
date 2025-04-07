@@ -100,6 +100,19 @@ export const ReportContent = spocs => {
         data: [{ ...report }],
       })
     );
+
+    dispatch(
+      ac.OnlyToOneContent(
+        {
+          type: at.SHOW_TOAST_MESSAGE,
+          data: {
+            toastId: "reportSuccessToast",
+            showNotifications: true,
+          },
+        },
+        "ActivityStream:Content"
+      )
+    );
   }, [dispatch, selectedReason, report, spocData]);
 
   // Opens and closes the modal based on user interaction
