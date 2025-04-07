@@ -3,6 +3,13 @@
 
 "use strict";
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
+});
+
 // Note: copied from preferences head.js. We can remove this when we migrate
 // this test into that component.
 async function openPreferencesViaOpenPreferencesAPI(aPane, aOptions) {
@@ -177,4 +184,100 @@ add_task(async function testPrivacyInfoHiddenWhenDisabled() {
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   await SpecialPowers.popPrefEnv();
+});
+
+// If the user disables data collection, then re-enables data collection in
+// another profile in the profile group, verify that the new profile group ID
+// is correctly set to the value passed in from the database.
+add_task(async function testReactivateProfileGroupID() {
+  if (!AppConstants.MOZ_TELEMETRY_REPORTING) {
+    ok(true, "Skipping test because telemetry reporting is disabled");
+    return;
+  }
+
+  await initGroupDatabase();
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["datareporting.healthreport.uploadEnabled", true]],
+  });
+
+  await openPreferencesViaOpenPreferencesAPI("privacy", {
+    leaveOpen: true,
+  });
+  let checkbox = gBrowser.contentDocument.getElementById(
+    "submitHealthReportBox"
+  );
+  ok(
+    checkbox.checked,
+    "initially the data reporting checkbox should be checked"
+  );
+
+  let checkboxUpdated = BrowserTestUtils.waitForMutationCondition(
+    checkbox,
+    { attributeFilter: ["checked"] },
+    () => !checkbox.checked
+  );
+
+  checkbox.click();
+  await checkboxUpdated;
+
+  Assert.ok(
+    !checkbox.checked,
+    "checkbox should not be checked after waiting for update"
+  );
+  Assert.equal(
+    Services.prefs.getBoolPref("datareporting.healthreport.uploadEnabled"),
+    false,
+    "upload should be disabled after unchecking checkbox"
+  );
+
+  // TODO: what could we explicitly await, rather than resorting to a timeout?
+  await new Promise(resolve => lazy.setTimeout(resolve, 1000));
+
+  Assert.equal(
+    Services.prefs.getStringPref("toolkit.telemetry.cachedProfileGroupID"),
+    lazy.TelemetryUtils.knownProfileGroupID,
+    "after disabling data collection, the profile group ID pref should have the canary value"
+  );
+
+  let groupID = await lazy.ClientID.getProfileGroupID();
+  Assert.equal(
+    groupID,
+    lazy.TelemetryUtils.knownProfileGroupID,
+    "after disabling data collection, the ClientID profile group ID should have the canary value"
+  );
+
+  // Simulate an update request from another instance that re-enables data
+  // reporting and sends over a new profile group ID.
+  let NEW_GROUP_ID = "12345678-b0ba-cafe-face-decafbad0123";
+  SelectableProfileService._getAllDBPrefs =
+    SelectableProfileService.getAllDBPrefs;
+  SelectableProfileService.getAllDBPrefs = () => [
+    {
+      name: "datareporting.healthreport.uploadEnabled",
+      value: true,
+      type: "boolean",
+    },
+    {
+      name: "toolkit.telemetry.cachedProfileGroupID",
+      value: NEW_GROUP_ID,
+      type: "string",
+    },
+  ];
+  await SelectableProfileService.loadSharedPrefsFromDatabase();
+
+  groupID = await lazy.ClientID.getProfileGroupID();
+  Assert.equal(
+    groupID,
+    NEW_GROUP_ID,
+    "after re-enabling data collection, the ClientID profile group ID should have the remote value"
+  );
+  Assert.equal(
+    Services.prefs.getStringPref("toolkit.telemetry.cachedProfileGroupID"),
+    NEW_GROUP_ID,
+    "after re-enabling data collection, the profile group ID pref should have the remote value"
+  );
+  SelectableProfileService.getAllDBPrefs =
+    SelectableProfileService._getAllDBPrefs;
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });

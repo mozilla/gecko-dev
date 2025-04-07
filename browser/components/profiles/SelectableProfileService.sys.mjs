@@ -13,16 +13,19 @@ const lazy = {};
 // This is used to keep the icon controllers alive for as long as their windows are alive.
 const TASKBAR_ICON_CONTROLLERS = new WeakMap();
 const PROFILES_PREF_NAME = "browser.profiles.enabled";
+const GROUPID_PREF_NAME = "toolkit.telemetry.cachedProfileGroupID";
 const DEFAULT_THEME_ID = "default-theme@mozilla.org";
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
+  ClientID: "resource://gre/modules/ClientID.sys.mjs",
   CryptoUtils: "resource://services-crypto/utils.sys.mjs",
   EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
-  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
+  TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
@@ -122,7 +125,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     "datareporting.policy.minimumPolicyVersion",
     "datareporting.policy.minimumPolicyVersion.channel-beta",
     "datareporting.usage.uploadEnabled",
-    "toolkit.telemetry.cachedProfileGroupID",
+    GROUPID_PREF_NAME,
   ];
 
   // Preferences that were previously shared but should now be ignored.
@@ -960,6 +963,18 @@ class SelectableProfileServiceClass extends EventEmitter {
 
     for (let { name, value, type } of await this.getAllDBPrefs()) {
       if (SelectableProfileServiceClass.ignoredSharedPrefs.includes(name)) {
+        continue;
+      }
+
+      // If the user has disabled then re-enabled data collection in another
+      // profile in the group, an extra step is needed to ensure each profile
+      // uses the same profile group ID.
+      if (
+        name === GROUPID_PREF_NAME &&
+        value !== lazy.TelemetryUtils.knownProfileGroupID &&
+        value !== Services.prefs.getCharPref(GROUPID_PREF_NAME)
+      ) {
+        await lazy.ClientID.setProfileGroupID(value); // Sets the pref for us.
         continue;
       }
 
