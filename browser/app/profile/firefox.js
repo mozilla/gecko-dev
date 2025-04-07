@@ -383,8 +383,6 @@ pref("browser.theme.colorway-closet", true);
 
 #if defined(MOZ_WIDGET_GTK)
   pref("browser.theme.native-theme", true);
-#elif defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
-  pref("browser.theme.native-theme", true);
 #else
   pref("browser.theme.native-theme", false);
 #endif
