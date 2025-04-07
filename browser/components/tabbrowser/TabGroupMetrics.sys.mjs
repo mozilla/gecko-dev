@@ -10,23 +10,9 @@
 const METRIC_SOURCE = Object.freeze({
   TAB_OVERFLOW_MENU: "tab_overflow",
   TAB_GROUP_MENU: "tab_group",
-  SUGGEST: "suggest",
-  RECENT_TABS: "recent",
   UNKNOWN: "unknown",
-});
-
-const METRIC_TABS_LAYOUT = Object.freeze({
-  HORIZONTAL: "horizontal",
-  VERTICAL: "vertical",
-});
-
-const METRIC_REOPEN_TYPE = Object.freeze({
-  SAVED: "saved",
-  DELETED: "deleted",
 });
 
 export const TabGroupMetrics = {
   METRIC_SOURCE,
-  METRIC_TABS_LAYOUT,
-  METRIC_REOPEN_TYPE,
 };

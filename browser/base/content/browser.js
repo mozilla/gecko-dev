@@ -4537,10 +4537,7 @@ function undoCloseTab(aIndex, sourceWindowSSId) {
     if (SessionStore.getSavedTabGroup(lastClosedTabGroupId)) {
       group = SessionStore.openSavedTabGroup(
         lastClosedTabGroupId,
-        targetWindow,
-        {
-          source: "recent",
-        }
+        targetWindow
       );
     } else {
       group = SessionStore.undoCloseTabGroup(
