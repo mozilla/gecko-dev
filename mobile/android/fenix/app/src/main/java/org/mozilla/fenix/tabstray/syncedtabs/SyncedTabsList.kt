@@ -34,10 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mozilla.components.browser.storage.sync.TabEntry
 import mozilla.components.compose.base.Divider
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.modifier.dashedBorder
 import mozilla.components.feature.syncedtabs.view.SyncedTabsView
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.compose.list.FaviconListItem
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
@@ -213,6 +213,7 @@ fun SyncedTabsErrorItem(
 
                 PrimaryButton(
                     text = it.buttonText,
+                    modifier = Modifier.fillMaxWidth(),
                     icon = painterResource(R.drawable.ic_sign_in),
                     onClick = it.onClick,
                 )

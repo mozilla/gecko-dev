@@ -29,9 +29,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.Wallpaper
@@ -155,6 +155,7 @@ fun MessageCard(
 
                 PrimaryButton(
                     text = buttonText,
+                    modifier = Modifier.fillMaxWidth(),
                     textColor = messageColors.buttonTextColor,
                     backgroundColor = messageColors.buttonColor,
                     onClick = onClick,

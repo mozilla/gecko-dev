@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,11 +46,11 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.text.Text
 import mozilla.components.compose.base.text.value
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.menu.MenuItem.FixedItem.Level
 import org.mozilla.fenix.theme.FirefoxTheme
 import androidx.compose.material.DropdownMenu as MaterialDropdownMenu
@@ -363,6 +364,7 @@ private val menuPreviewParameters by lazy {
 
 @PreviewLightDark
 @Composable
+@Suppress("LongMethod")
 private fun DropdownMenuPreview() {
     FirefoxTheme {
         Column(
@@ -391,7 +393,10 @@ private fun DropdownMenuPreview() {
                     var expanded by remember { mutableStateOf(false) }
                     val text by remember { mutableStateOf(it.itemType.name.replace("_", " ")) }
 
-                    PrimaryButton(text = text) {
+                    PrimaryButton(
+                        text = text,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         expanded = true
                     }
                     DropdownMenu(

@@ -21,11 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
+import mozilla.components.compose.base.button.SecondaryButton
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.compose.SwitchWithLabel
-import org.mozilla.fenix.compose.button.SecondaryButton
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -93,6 +93,7 @@ private fun ResetCfrTool(
 
             SecondaryButton(
                 text = stringResource(R.string.debug_drawer_cfr_tools_reset_cfr_timestamp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 cfrToolsStore.dispatch(CfrToolsAction.ResetLastCFRTimestampButtonClicked)
             }

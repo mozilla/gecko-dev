@@ -43,10 +43,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.onboarding.store.OnboardingStore
 import org.mozilla.fenix.theme.FirefoxTheme
 

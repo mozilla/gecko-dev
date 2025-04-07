@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -29,8 +30,8 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.button.PrimaryButton
 import org.mozilla.fenix.compose.TabCounter
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.menu.DropdownMenu
 import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -133,6 +134,7 @@ private fun TabStripTabCounterButtonPreview() {
 
             PrimaryButton(
                 text = "Toggle privacy badge",
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 privacyBadgeVisible = !privacyBadgeVisible
             }

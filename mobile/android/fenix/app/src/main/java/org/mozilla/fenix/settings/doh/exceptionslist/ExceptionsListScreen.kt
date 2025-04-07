@@ -22,8 +22,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
+import mozilla.components.compose.base.button.TertiaryButton
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.TertiaryButton
 import org.mozilla.fenix.compose.list.FaviconListItem
 import org.mozilla.fenix.settings.doh.DohSettingsState
 import org.mozilla.fenix.settings.doh.ProtectionLevel

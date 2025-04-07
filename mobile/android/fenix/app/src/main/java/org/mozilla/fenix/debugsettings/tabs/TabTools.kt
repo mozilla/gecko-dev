@@ -39,9 +39,9 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.ext.toLocaleString
 import org.mozilla.fenix.compose.textfield.TextField
 import org.mozilla.fenix.debugsettings.ui.DebugDrawer
@@ -267,6 +267,7 @@ private fun TabCreationTool(
 
         PrimaryButton(
             text = stringResource(id = R.string.debug_drawer_tab_tools_tab_creation_tool_button_text_active),
+            modifier = Modifier.fillMaxWidth(),
             enabled = !hasError,
             onClick = {
                 onCreateTabsClick(tabQuantityToCreate.toInt(), false, false)
@@ -278,6 +279,7 @@ private fun TabCreationTool(
         if (inactiveTabsEnabled) {
             PrimaryButton(
                 text = stringResource(id = R.string.debug_drawer_tab_tools_tab_creation_tool_button_text_inactive),
+                modifier = Modifier.fillMaxWidth(),
                 enabled = !hasError,
                 onClick = {
                     onCreateTabsClick(tabQuantityToCreate.toInt(), true, false)
@@ -289,6 +291,7 @@ private fun TabCreationTool(
 
         PrimaryButton(
             text = stringResource(id = R.string.debug_drawer_tab_tools_tab_creation_tool_button_text_private),
+            modifier = Modifier.fillMaxWidth(),
             enabled = !hasError,
             onClick = {
                 onCreateTabsClick(tabQuantityToCreate.toInt(), false, true)

@@ -29,11 +29,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.feature.downloads.DefaultFileSizeFormatter
 import mozilla.components.feature.downloads.FileSizeFormatter
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**

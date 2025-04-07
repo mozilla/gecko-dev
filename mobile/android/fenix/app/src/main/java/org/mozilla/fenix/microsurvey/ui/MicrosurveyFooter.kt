@@ -19,10 +19,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -47,6 +47,7 @@ fun MicrosurveyFooter(
         if (!isSubmitted) {
             PrimaryButton(
                 text = stringResource(id = R.string.micro_survey_submit_button_label),
+                modifier = Modifier.fillMaxWidth(),
                 enabled = isContentAnswerSelected,
                 onClick = { onButtonClick() },
             )

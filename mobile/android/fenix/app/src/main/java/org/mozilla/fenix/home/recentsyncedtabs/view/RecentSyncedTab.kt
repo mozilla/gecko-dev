@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mozilla.components.compose.base.button.SecondaryButton
 import mozilla.components.compose.base.text.Text
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.concept.sync.DeviceType
@@ -47,7 +48,6 @@ import mozilla.components.support.ktx.kotlin.trimmed
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Image
 import org.mozilla.fenix.compose.ThumbnailCard
-import org.mozilla.fenix.compose.button.SecondaryButton
 import org.mozilla.fenix.compose.menu.DropdownMenu
 import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
@@ -184,6 +184,7 @@ fun RecentSyncedTab(
                 } else {
                     ""
                 },
+                modifier = Modifier.fillMaxWidth(),
                 textColor = buttonTextColor,
                 backgroundColor = buttonBackgroundColor,
                 onClick = onSeeAllSyncedTabsButtonClick,

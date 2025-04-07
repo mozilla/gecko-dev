@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose.button
+package mozilla.components.compose.base.button
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.ButtonDefaults
@@ -24,8 +23,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import org.mozilla.fenix.R
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.ui.icons.R
 
 const val DEFAULT_MAX_LINES = 2
 
@@ -83,7 +82,7 @@ private fun Button(
             text = text,
             textAlign = TextAlign.Center,
             color = textColor,
-            style = FirefoxTheme.typography.button,
+            style = AcornTheme.typography.button,
             maxLines = if (fontScale > 1.0f) Int.MAX_VALUE else DEFAULT_MAX_LINES,
         )
     }
@@ -108,13 +107,13 @@ private fun Button(
 @Composable
 fun PrimaryButton(
     text: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    textColor: Color = FirefoxTheme.colors.textActionPrimary,
-    backgroundColor: Color = FirefoxTheme.colors.actionPrimary,
+    textColor: Color = AcornTheme.colors.textActionPrimary,
+    backgroundColor: Color = AcornTheme.colors.actionPrimary,
     icon: Painter? = null,
     iconModifier: Modifier = Modifier,
-    iconTint: Color = FirefoxTheme.colors.iconActionPrimary,
+    iconTint: Color = AcornTheme.colors.iconActionPrimary,
     onClick: () -> Unit,
 ) {
     var buttonTextColor = textColor
@@ -122,11 +121,11 @@ fun PrimaryButton(
 
     // If not enabled and using default colors, then use the disabled button color defaults.
     if (!enabled &&
-        textColor == FirefoxTheme.colors.textActionPrimary &&
-        backgroundColor == FirefoxTheme.colors.actionPrimary
+        textColor == AcornTheme.colors.textActionPrimary &&
+        backgroundColor == AcornTheme.colors.actionPrimary
     ) {
-        buttonTextColor = FirefoxTheme.colors.textActionPrimaryDisabled
-        buttonBackgroundColor = FirefoxTheme.colors.actionPrimaryDisabled
+        buttonTextColor = AcornTheme.colors.textActionPrimaryDisabled
+        buttonBackgroundColor = AcornTheme.colors.actionPrimaryDisabled
     }
 
     Button(
@@ -158,10 +157,10 @@ fun PrimaryButton(
 @Composable
 fun SecondaryButton(
     text: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    textColor: Color = FirefoxTheme.colors.textActionSecondary,
-    backgroundColor: Color = FirefoxTheme.colors.actionSecondary,
+    textColor: Color = AcornTheme.colors.textActionSecondary,
+    backgroundColor: Color = AcornTheme.colors.actionSecondary,
     icon: Painter? = null,
     iconModifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -174,7 +173,7 @@ fun SecondaryButton(
         enabled = enabled,
         icon = icon,
         iconModifier = iconModifier,
-        tint = FirefoxTheme.colors.iconActionSecondary,
+        tint = AcornTheme.colors.iconActionSecondary,
         onClick = onClick,
     )
 }
@@ -195,10 +194,10 @@ fun SecondaryButton(
 @Composable
 fun TertiaryButton(
     text: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    textColor: Color = FirefoxTheme.colors.textActionTertiary,
-    backgroundColor: Color = FirefoxTheme.colors.actionTertiary,
+    textColor: Color = AcornTheme.colors.textActionTertiary,
+    backgroundColor: Color = AcornTheme.colors.actionTertiary,
     icon: Painter? = null,
     iconModifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -211,7 +210,7 @@ fun TertiaryButton(
         enabled = enabled,
         icon = icon,
         iconModifier = iconModifier,
-        tint = FirefoxTheme.colors.iconActionTertiary,
+        tint = AcornTheme.colors.iconActionTertiary,
         onClick = onClick,
     )
 }
@@ -232,10 +231,10 @@ fun TertiaryButton(
 @Composable
 fun DestructiveButton(
     text: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    textColor: Color = FirefoxTheme.colors.textCriticalButton,
-    backgroundColor: Color = FirefoxTheme.colors.actionSecondary,
+    textColor: Color = AcornTheme.colors.textCriticalButton,
+    backgroundColor: Color = AcornTheme.colors.actionSecondary,
     icon: Painter? = null,
     iconModifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -248,7 +247,7 @@ fun DestructiveButton(
         enabled = enabled,
         icon = icon,
         iconModifier = iconModifier,
-        tint = FirefoxTheme.colors.iconCriticalButton,
+        tint = AcornTheme.colors.iconCriticalButton,
         onClick = onClick,
     )
 }
@@ -256,34 +255,34 @@ fun DestructiveButton(
 @Composable
 @LightDarkPreview
 private fun ButtonPreview() {
-    FirefoxTheme {
+    AcornTheme {
         Column(
             modifier = Modifier
-                .background(FirefoxTheme.colors.layer1)
+                .background(AcornTheme.colors.layer1)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             PrimaryButton(
                 text = "Label",
-                icon = painterResource(R.drawable.ic_tab_collection),
+                icon = painterResource(R.drawable.mozac_ic_collection_24),
                 onClick = {},
             )
 
             SecondaryButton(
                 text = "Label",
-                icon = painterResource(R.drawable.ic_tab_collection),
+                icon = painterResource(R.drawable.mozac_ic_collection_24),
                 onClick = {},
             )
 
             TertiaryButton(
                 text = "Label",
-                icon = painterResource(R.drawable.ic_tab_collection),
+                icon = painterResource(R.drawable.mozac_ic_collection_24),
                 onClick = {},
             )
 
             DestructiveButton(
                 text = "Label",
-                icon = painterResource(R.drawable.ic_tab_collection),
+                icon = painterResource(R.drawable.mozac_ic_collection_24),
                 onClick = {},
             )
         }

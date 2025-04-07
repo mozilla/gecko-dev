@@ -47,13 +47,13 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.text.Text.Resource
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Dropdown
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.compose.textfield.TextField
 import org.mozilla.fenix.compose.textfield.TextFieldColors

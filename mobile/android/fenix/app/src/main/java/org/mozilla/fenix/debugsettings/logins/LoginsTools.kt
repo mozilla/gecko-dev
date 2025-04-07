@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,13 +31,13 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.list.TextListItem
 import org.mozilla.fenix.debugsettings.ui.DebugDrawer
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -123,6 +124,7 @@ private fun LoginsContent(
 
         PrimaryButton(
             text = stringResource(R.string.debug_drawer_logins_add_login_button),
+            modifier = Modifier.fillMaxWidth(),
             onClick = onAddFakeLogin,
         )
 

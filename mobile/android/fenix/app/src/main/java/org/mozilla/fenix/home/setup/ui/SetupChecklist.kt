@@ -28,12 +28,12 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.theme.layout.AcornLayout
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
 import org.mozilla.fenix.components.appstate.setup.checklist.Progress
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.home.sessioncontrol.SetupChecklistInteractor
 import org.mozilla.fenix.theme.FirefoxTheme
 

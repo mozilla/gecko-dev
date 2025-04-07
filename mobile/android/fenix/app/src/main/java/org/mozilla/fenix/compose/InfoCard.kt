@@ -31,8 +31,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.shopping.ui.ext.headingResource
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -140,6 +140,7 @@ fun InfoCard(
 
             PrimaryButton(
                 text = it.text,
+                modifier = Modifier.fillMaxWidth(),
                 textColor = type.buttonTextColor,
                 backgroundColor = type.buttonBackgroundColor,
                 onClick = it.onClick,

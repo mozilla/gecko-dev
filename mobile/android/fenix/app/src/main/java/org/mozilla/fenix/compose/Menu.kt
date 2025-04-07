@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
@@ -39,8 +40,8 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
+import mozilla.components.compose.base.button.PrimaryButton
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -215,7 +216,10 @@ private fun ContextualMenuPreview() {
     var showMenu by remember { mutableStateOf(false) }
     FirefoxTheme {
         Box(modifier = Modifier.size(400.dp)) {
-            PrimaryButton(text = "Show menu") {
+            PrimaryButton(
+                text = "Show menu",
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 showMenu = true
             }
 

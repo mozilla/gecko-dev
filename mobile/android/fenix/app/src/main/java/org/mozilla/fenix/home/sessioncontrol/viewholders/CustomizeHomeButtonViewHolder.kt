@@ -8,6 +8,7 @@ import android.view.View
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,11 +17,11 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
+import mozilla.components.compose.base.button.TertiaryButton
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.ComposeViewHolder
-import org.mozilla.fenix.compose.button.TertiaryButton
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.sessioncontrol.CustomizeHomeIteractor
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -63,6 +64,7 @@ class CustomizeHomeButtonViewHolder(
 
             TertiaryButton(
                 text = stringResource(R.string.browser_menu_customize_home_1),
+                modifier = Modifier.fillMaxWidth(),
                 backgroundColor = buttonColor,
                 onClick = interactor::openCustomizeHomePage,
             )
