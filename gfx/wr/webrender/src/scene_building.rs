@@ -393,10 +393,15 @@ impl PictureChainBuilder {
                 // If no picture was created for this stacking context, create a
                 // pass-through wrapper now. This is only needed in 1-2 edge cases
                 // now, and will be removed as a follow up.
+
+                // If the picture is snapshotted, it needs to have a surface rather
+                // than being pass-through.
+                let composite_mode = snapshot.map(|_| PictureCompositeMode::Blit(BlitReason::SNAPSHOT));
+
                 let pic_index = PictureIndex(prim_store.pictures
                     .alloc()
                     .init(PicturePrimitive::new_image(
-                        None,
+                        composite_mode,
                         Picture3DContext::Out,
                         self.flags,
                         prim_list,
@@ -2618,7 +2623,10 @@ impl<'a> SceneBuilder<'a> {
                 // 3d render context.
                 for child_pic_index in &prim_list.child_pictures {
                     let child_pic = &mut self.prim_store.pictures[child_pic_index.0];
-                    child_pic.composite_mode = None;
+                    let needs_surface = child_pic.snapshot.is_some();
+                    if !needs_surface {
+                        child_pic.composite_mode = None;
+                    }
                     child_pic.context_3d = Picture3DContext::Out;
                 }
 
