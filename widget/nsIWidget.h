@@ -82,6 +82,7 @@ namespace layers {
 class AsyncDragMetrics;
 class Compositor;
 class CompositorBridgeChild;
+struct CompositorScrollUpdate;
 struct FrameMetrics;
 class LayerManager;
 class WebRenderBridgeChild;
@@ -2019,14 +2020,11 @@ class nsIWidget : public nsISupports {
   virtual void RecvToolbarAnimatorMessageFromCompositor(int32_t aMessage) = 0;
 
   /**
-   * UpdateRootFrameMetrics steady state frame metrics send from compositor
-   * thread
-   *
-   * @param aScrollOffset  page scroll offset value in screen pixels.
-   * @param aZoom          current page zoom.
+   * NotifyCompositorScrollUpdate notify widget about an update to the
+   * composited scroll offset and zoom
    */
-  virtual void UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset,
-                                      const CSSToScreenScale& aZoom) = 0;
+  virtual void NotifyCompositorScrollUpdate(
+      const mozilla::layers::CompositorScrollUpdate& aUpdate) = 0;
 
   /**
    * RecvScreenPixels Buffer containing the pixel from the frame buffer. Used

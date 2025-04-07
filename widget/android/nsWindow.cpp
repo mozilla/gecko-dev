@@ -3240,15 +3240,16 @@ void nsWindow::RecvToolbarAnimatorMessageFromCompositor(int32_t aMessage) {
   }
 }
 
-void nsWindow::UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset,
-                                      const CSSToScreenScale& aZoom) {
+void nsWindow::NotifyCompositorScrollUpdate(
+    const CompositorScrollUpdate& aUpdate) {
   MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
   if (::mozilla::jni::NativeWeakPtr<LayerViewSupport>::Accessor lvs{
           mLayerViewSupport.Access()}) {
     const auto& compositor = lvs->GetJavaCompositor();
     mContentDocumentDisplayed = true;
-    compositor->UpdateRootFrameMetrics(aScrollOffset.x, aScrollOffset.y,
-                                       aZoom.scale);
+    compositor->NotifyCompositorScrollUpdate(aUpdate.mVisualScrollOffset.x,
+                                             aUpdate.mVisualScrollOffset.y,
+                                             aUpdate.mZoom.scale);
   }
 }
 

@@ -9,8 +9,10 @@ using mozilla::CSSRect from "Units.h";
 using mozilla::CSSToScreenScale from "Units.h";
 using mozilla::ScreenIntSize from "Units.h";
 using mozilla::ScreenPoint from "Units.h";
+using mozilla::layers::CompositorScrollUpdate from "mozilla/layers/CompositorScrollUpdate.h";
 
 include "mozilla/GfxMessageUtils.h";
+include "mozilla/layers/LayersMessageUtils.h";
 
 namespace mozilla {
 namespace layers {
@@ -40,7 +42,7 @@ parent:
   async EnableLayerUpdateNotifications(bool aEnable);
 child:
   async ToolbarAnimatorMessageFromCompositor(int32_t aMessage);
-  async RootFrameMetrics(ScreenPoint aScrollOffset, CSSToScreenScale aZoom);
+  async NotifyCompositorScrollUpdate(CompositorScrollUpdate aUpdate);
   async ScreenPixels(Shmem aMem, ScreenIntSize aSize, bool aNeedsYFlip);
 };
 

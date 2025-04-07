@@ -8,6 +8,7 @@
 #define NSWINDOW_H_
 
 #include "AndroidGraphics.h"
+#include "mozilla/layers/CompositorScrollUpdate.h"
 #include "nsBaseWidget.h"
 #include "gfxPoint.h"
 #include "nsIUserIdleServiceInternal.h"
@@ -240,8 +241,8 @@ class nsWindow final : public nsBaseWidget {
   RefPtr<mozilla::a11y::SessionAccessibility> GetSessionAccessibility();
 
   void RecvToolbarAnimatorMessageFromCompositor(int32_t aMessage) override;
-  void UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset,
-                              const CSSToScreenScale& aZoom) override;
+  void NotifyCompositorScrollUpdate(
+      const mozilla::layers::CompositorScrollUpdate& aUpdate) override;
   void RecvScreenPixels(mozilla::ipc::Shmem&& aMem, const ScreenIntSize& aSize,
                         bool aNeedsYFlip) override;
   void UpdateDynamicToolbarMaxHeight(mozilla::ScreenIntCoord aHeight) override;

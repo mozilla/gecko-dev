@@ -208,13 +208,10 @@ void UiCompositorControllerParent::NotifyFirstPaint() {
 void UiCompositorControllerParent::NotifyCompositorScrollUpdate(
     const CompositorScrollUpdate& aUpdate) {
 #if defined(MOZ_WIDGET_ANDROID)
-  CSSToScreenScale scale = ViewTargetAs<ScreenPixel>(
-      aUpdate.mZoom, PixelCastJustification::ScreenIsParentLayerForRoot);
-  ScreenPoint scrollOffset = aUpdate.mVisualScrollOffset * scale;
-  CompositorThread()->Dispatch(NewRunnableMethod<ScreenPoint, CSSToScreenScale>(
-      "UiCompositorControllerParent::SendRootFrameMetrics", this,
-      &UiCompositorControllerParent::SendRootFrameMetrics, scrollOffset,
-      scale));
+  CompositorThread()->Dispatch(NewRunnableMethod<CompositorScrollUpdate>(
+      "UiCompositorControllerParent::SendNotifyCompositorScrollUpdate", this,
+      &UiCompositorControllerParent::SendNotifyCompositorScrollUpdate,
+      aUpdate));
 #endif
 }
 

@@ -227,11 +227,12 @@ UiCompositorControllerChild::RecvToolbarAnimatorMessageFromCompositor(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult UiCompositorControllerChild::RecvRootFrameMetrics(
-    const ScreenPoint& aScrollOffset, const CSSToScreenScale& aZoom) {
+mozilla::ipc::IPCResult
+UiCompositorControllerChild::RecvNotifyCompositorScrollUpdate(
+    const CompositorScrollUpdate& aUpdate) {
 #if defined(MOZ_WIDGET_ANDROID)
   if (mWidget) {
-    mWidget->UpdateRootFrameMetrics(aScrollOffset, aZoom);
+    mWidget->NotifyCompositorScrollUpdate(aUpdate);
   }
 #endif  // defined(MOZ_WIDGET_ANDROID)
 

@@ -410,8 +410,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
 #if defined(MOZ_WIDGET_ANDROID)
   void RecvToolbarAnimatorMessageFromCompositor(int32_t) override {};
-  void UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset,
-                              const CSSToScreenScale& aZoom) override {};
+  void NotifyCompositorScrollUpdate(
+      const mozilla::layers::CompositorScrollUpdate& aUpdate) override {};
   void RecvScreenPixels(mozilla::ipc::Shmem&& aMem, const ScreenIntSize& aSize,
                         bool aNeedsYFlip) override {};
 #endif

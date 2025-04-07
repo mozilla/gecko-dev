@@ -392,9 +392,9 @@ public class GeckoSession {
     // cases, the viewport information we have in Java is no longer valid and needs to
     // be replaced with the new viewport information provided.
     @WrapForJNI(calledFrom = "ui")
-    private void updateRootFrameMetrics(
+    private void notifyCompositorScrollUpdate(
         final float scrollX, final float scrollY, final float zoom) {
-      GeckoSession.this.onMetricsChanged(scrollX, scrollY, zoom);
+      GeckoSession.this.onCompositorScrollUpdate(scrollX, scrollY, zoom);
     }
 
     @WrapForJNI(calledFrom = "ui")
@@ -8182,20 +8182,20 @@ public class GeckoSession {
     mOverscroll.setDistance(y, OverscrollEdgeEffect.AXIS_Y);
   }
 
-  /* package */ void onMetricsChanged(final float scrollX, final float scrollY, final float zoom) {
+  /* package */ void onCompositorScrollUpdate(final float scrollX, final float scrollY, final float zoom) {
     if (DEBUG) {
       ThreadUtils.assertOnUiThread();
     }
 
-    mViewportLeft = scrollX;
-    mViewportTop = scrollY;
+    // Tbe incoming scrollX and scrollY are in CSS pixels.
+    // For mViewportLeft/Top, convert them to Screen pixels.
+    mViewportLeft = scrollX * zoom;
+    mViewportTop = scrollY * zoom;
     mViewportZoom = zoom;
 
     final ScrollPositionUpdate update = new ScrollPositionUpdate();
-    // Tbe incoming scrollX and scrollY are in screen pixels.
-    // For ScrollPositionUpdate, convert them to CSS pixels.
-    update.scrollX = scrollX / zoom;
-    update.scrollY = scrollY / zoom;
+    update.scrollX = scrollX;
+    update.scrollY = scrollY;
     update.zoom = zoom;
     // TODO(bug 1940581): Plumb in an accurate source here
     update.source = ScrollPositionUpdate.SOURCE_USER_INTERACTION;
