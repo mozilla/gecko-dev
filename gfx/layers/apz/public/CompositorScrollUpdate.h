@@ -21,6 +21,11 @@ namespace layers {
 struct CompositorScrollUpdate {
   CSSPoint mVisualScrollOffset;
   CSSToParentLayerScale mZoom;
+
+  bool operator==(const CompositorScrollUpdate& aOther) const;
+  bool operator!=(const CompositorScrollUpdate& aOther) const {
+    return !(*this == aOther);
+  }
 };
 
 }  // namespace layers

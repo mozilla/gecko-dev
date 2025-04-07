@@ -6091,12 +6091,32 @@ const FrameMetrics& AsyncPanZoomController::Metrics() const {
   return mScrollMetadata.GetMetrics();
 }
 
-CompositorScrollUpdate AsyncPanZoomController::GetCompositorScrollUpdate()
-    const {
-  RecursiveMutexAutoLock lock(mRecursiveMutex);
-  return CompositorScrollUpdate{GetEffectiveScrollOffset(eForCompositing, lock),
-                                GetEffectiveZoom(eForCompositing, lock)};
+bool CompositorScrollUpdate::operator==(
+    const CompositorScrollUpdate& aOther) const {
+  // FIXME: RoundedToInt is used to preserve existing behaviour
+  //        added in bug 1600652. It can probably be removed.
+  return RoundedToInt(mVisualScrollOffset) ==
+             RoundedToInt(aOther.mVisualScrollOffset) &&
+         mZoom == aOther.mZoom;
 }
+
+#ifdef MOZ_WIDGET_ANDROID
+std::vector<CompositorScrollUpdate>
+AsyncPanZoomController::GetCompositorScrollUpdates() {
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
+  MOZ_ASSERT(Metrics().IsRootContent());
+
+  CompositorScrollUpdate current{
+      GetEffectiveScrollOffset(eForCompositing, lock),
+      GetEffectiveZoom(eForCompositing, lock)};
+  if (current != mLastCompositorScrollUpdate) {
+    mLastCompositorScrollUpdate = current;
+    return {current};
+  }
+
+  return {};
+}
+#endif  // defined(MOZ_WIDGET_ANDROID)
 
 wr::MinimapData AsyncPanZoomController::GetMinimapData() const {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
@@ -6120,26 +6140,6 @@ wr::MinimapData AsyncPanZoomController::GetMinimapData() const {
   // root_content_pipeline_id) will be populated by the caller, since they
   // require information from other APZCs to compute.
   return result;
-}
-
-bool AsyncPanZoomController::UpdateRootFrameMetricsIfChanged(
-    CompositorScrollUpdate& aMetrics) {
-  RecursiveMutexAutoLock lock(mRecursiveMutex);
-
-  if (!Metrics().IsRootContent()) {
-    return false;
-  }
-
-  CompositorScrollUpdate newMetrics = GetCompositorScrollUpdate();
-  bool hasChanged = RoundedToInt(aMetrics.mVisualScrollOffset) !=
-                        RoundedToInt(newMetrics.mVisualScrollOffset) ||
-                    aMetrics.mZoom != newMetrics.mZoom;
-
-  if (hasChanged) {
-    aMetrics = newMetrics;
-  }
-
-  return hasChanged;
 }
 
 const FrameMetrics& AsyncPanZoomController::GetFrameMetrics() const {

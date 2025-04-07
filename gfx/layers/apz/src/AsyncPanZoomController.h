@@ -592,17 +592,20 @@ class AsyncPanZoomController {
   const FrameMetrics& Metrics() const;
   FrameMetrics& Metrics();
 
+#ifdef MOZ_WIDGET_ANDROID
   /**
-   * Get the CompositorScrollUpdate to be sent to consumers for the current
+   * Get the CompositorScrollUpdates to be sent to consumers for the current
    * composite.
    */
-  CompositorScrollUpdate GetCompositorScrollUpdate() const;
+  std::vector<CompositorScrollUpdate> GetCompositorScrollUpdates();
 
+ private:
+  // Last CompositorScrollUpdate sent to GeckoView through UIController.
+  CompositorScrollUpdate mLastCompositorScrollUpdate;
+#endif  // defined(MOZ_WIDGET_ANDROID)
+
+ public:
   wr::MinimapData GetMinimapData() const;
-
-  // Helper function to compare root frame metrics and update them
-  // Returns true when the metrics have changed and were updated.
-  bool UpdateRootFrameMetricsIfChanged(CompositorScrollUpdate& aMetrics);
 
   // Returns the cached current frame time.
   SampleTime GetFrameTime() const;

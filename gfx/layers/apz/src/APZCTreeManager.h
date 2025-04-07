@@ -1145,12 +1145,6 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   // Whether there's any OOP iframe in this tree.
   // NOTE: This variable needs to be guarded by mTreeLock.
   bool mHaveOOPIframes;
-
-#if defined(MOZ_WIDGET_ANDROID)
- private:
-  // Last compositor scroll update sent to java through UIController.
-  CompositorScrollUpdate mLastCompositorScrollUpdate;
-#endif  // defined(MOZ_WIDGET_ANDROID)
 };
 
 }  // namespace layers

@@ -892,12 +892,15 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
     }
 
 #if defined(MOZ_WIDGET_ANDROID)
-    // Send the root frame metrics to java through the UIController
-    RefPtr<UiCompositorControllerParent> uiController =
-        UiCompositorControllerParent::GetFromRootLayerTreeId(mRootLayersId);
-    if (uiController &&
-        apzc->UpdateRootFrameMetricsIfChanged(mLastCompositorScrollUpdate)) {
-      uiController->NotifyCompositorScrollUpdate(mLastCompositorScrollUpdate);
+    if (apzc->IsRootContent()) {
+      // Send the root frame metrics to java through the UIController
+      if (RefPtr<UiCompositorControllerParent> uiController =
+              UiCompositorControllerParent::GetFromRootLayerTreeId(
+                  mRootLayersId)) {
+        for (const auto& update : apzc->GetCompositorScrollUpdates()) {
+          uiController->NotifyCompositorScrollUpdate(update);
+        }
+      }
     }
 #endif
   }
