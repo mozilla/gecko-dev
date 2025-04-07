@@ -181,16 +181,6 @@ enum class AsyncTransformConsumer {
  */
 enum class HandoffConsumer { Scrolling, PullToRefresh };
 
-/**
- * Metrics that GeckoView wants to know at every composite.
- * These are the effective visual scroll offset and zoom level of
- * the root content APZC at composition time.
- */
-struct GeckoViewMetrics {
-  CSSPoint mVisualScrollOffset;
-  CSSToParentLayerScale mZoom;
-};
-
 namespace apz {
 
 /**

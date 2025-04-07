@@ -89,6 +89,7 @@ EXPORTS.mozilla.layers += [
     "apz/public/APZSampler.h",
     "apz/public/APZUpdater.h",
     "apz/public/CompositorController.h",
+    "apz/public/CompositorScrollUpdate.h",
     "apz/public/GeckoContentController.h",
     "apz/public/GeckoContentControllerTypes.h",
     "apz/public/IAPZCTreeManager.h",

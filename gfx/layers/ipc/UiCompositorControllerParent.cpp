@@ -205,13 +205,12 @@ void UiCompositorControllerParent::NotifyFirstPaint() {
   ToolbarAnimatorMessageFromCompositor(FIRST_PAINT);
 }
 
-void UiCompositorControllerParent::NotifyUpdateScreenMetrics(
-    const GeckoViewMetrics& aMetrics) {
+void UiCompositorControllerParent::NotifyCompositorScrollUpdate(
+    const CompositorScrollUpdate& aUpdate) {
 #if defined(MOZ_WIDGET_ANDROID)
-  // TODO: Need to handle different x-and y-scales.
   CSSToScreenScale scale = ViewTargetAs<ScreenPixel>(
-      aMetrics.mZoom, PixelCastJustification::ScreenIsParentLayerForRoot);
-  ScreenPoint scrollOffset = aMetrics.mVisualScrollOffset * scale;
+      aUpdate.mZoom, PixelCastJustification::ScreenIsParentLayerForRoot);
+  ScreenPoint scrollOffset = aUpdate.mVisualScrollOffset * scale;
   CompositorThread()->Dispatch(NewRunnableMethod<ScreenPoint, CSSToScreenScale>(
       "UiCompositorControllerParent::SendRootFrameMetrics", this,
       &UiCompositorControllerParent::SendRootFrameMetrics, scrollOffset,

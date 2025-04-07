@@ -896,8 +896,8 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
     RefPtr<UiCompositorControllerParent> uiController =
         UiCompositorControllerParent::GetFromRootLayerTreeId(mRootLayersId);
     if (uiController &&
-        apzc->UpdateRootFrameMetricsIfChanged(mLastRootMetrics)) {
-      uiController->NotifyUpdateScreenMetrics(mLastRootMetrics);
+        apzc->UpdateRootFrameMetricsIfChanged(mLastCompositorScrollUpdate)) {
+      uiController->NotifyCompositorScrollUpdate(mLastCompositorScrollUpdate);
     }
 #endif
   }
