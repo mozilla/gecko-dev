@@ -17,6 +17,7 @@ import { OnboardingVideo } from "./OnboardingVideo";
 import { AdditionalCTA } from "./AdditionalCTA";
 import { LinkParagraph } from "./LinkParagraph";
 import { ContentTiles } from "./ContentTiles";
+import { InstallButton } from "./InstallButton";
 
 export const MultiStageProtonScreen = props => {
   const { autoAdvance, handleAction, order } = props;
@@ -70,9 +71,12 @@ export const MultiStageProtonScreen = props => {
       previousOrder={props.previousOrder}
       autoAdvance={props.autoAdvance}
       isRtamo={props.isRtamo}
+      addonId={props.addonId}
+      addonType={props.addonType}
       addonName={props.addonName}
-      isTheme={props.isTheme}
-      iconURL={props.iconURL}
+      addonURL={props.addonURL}
+      addonIconURL={props.addonIconURL}
+      themeScreenshots={props.themeScreenshots}
       messageId={props.messageId}
       negotiatedLanguage={props.negotiatedLanguage}
       langPackInstallPhase={props.langPackInstallPhase}
@@ -84,7 +88,15 @@ export const MultiStageProtonScreen = props => {
 };
 
 export const ProtonScreenActionButtons = props => {
-  const { content, addonName, activeMultiSelect } = props;
+  const {
+    content,
+    isRtamo,
+    addonId,
+    addonType,
+    addonName,
+    activeMultiSelect,
+    installedAddons,
+  } = props;
   const defaultValue = content.checkbox?.defaultValue;
 
   const [isChecked, setIsChecked] = useState(defaultValue || false);
@@ -104,6 +116,12 @@ export const ProtonScreenActionButtons = props => {
     !content.additional_button
   ) {
     return null;
+  }
+
+  if (isRtamo) {
+    content.primary_button.label.string_id = addonType?.includes("theme")
+      ? "return-to-amo-add-theme-label"
+      : "mr1-return-to-amo-add-extension-label";
   }
 
   // If we have a multi-select screen, we want to disable the primary button
@@ -133,28 +151,42 @@ export const ProtonScreenActionButtons = props => {
       flow={content.additional_button?.flow}
       alignment={content.additional_button?.alignment}
     >
-      <Localized text={content.primary_button?.label}>
-        <button
-          ref={buttonRef}
-          className={`${content.primary_button?.style ?? "primary"}${
-            content.primary_button?.has_arrow_icon ? " arrow-icon" : ""
-          }`}
-          // Whether or not the checkbox is checked determines which action
-          // should be handled. By setting value here, we indicate to
-          // this.handleAction() where in the content tree it should take
-          // the action to execute from.
-          value={isChecked ? "checkbox" : "primary_button"}
-          disabled={isPrimaryDisabled(content.primary_button?.disabled)}
-          onClick={props.handleAction}
-          data-l10n-args={
-            addonName
-              ? JSON.stringify({
-                  "addon-name": addonName,
-                })
-              : ""
-          }
+      {isRtamo ? (
+        <InstallButton
+          key={addonId}
+          addonId={addonId}
+          addonType={addonType}
+          addonName={addonName}
+          index={"primary_button"}
+          handleAction={props.handleAction}
+          installedAddons={installedAddons}
+          install_label={content.primary_button.label}
+          install_complete_label={content.primary_button.install_complete_label}
         />
-      </Localized>
+      ) : (
+        <Localized text={content.primary_button?.label}>
+          <button
+            ref={buttonRef}
+            className={`${content.primary_button?.style ?? "primary"}${
+              content.primary_button?.has_arrow_icon ? " arrow-icon" : ""
+            }`}
+            // Whether or not the checkbox is checked determines which action
+            // should be handled. By setting value here, we indicate to
+            // this.handleAction() where in the content tree it should take
+            // the action to execute from.
+            value={isChecked ? "checkbox" : "primary_button"}
+            disabled={isPrimaryDisabled(content.primary_button?.disabled)}
+            onClick={props.handleAction}
+            data-l10n-args={
+              addonName
+                ? JSON.stringify({
+                    "addon-name": addonName,
+                  })
+                : ""
+            }
+          />
+        </Localized>
+      )}
       {content.additional_button ? (
         <AdditionalCTA content={content} handleAction={props.handleAction} />
       ) : null}
@@ -443,12 +475,30 @@ export class ProtonScreen extends React.PureComponent {
     return <>{elements}</>;
   }
 
+  renderRTAMOIcon(addonType, themeScreenshots, addonIconURL) {
+    return (
+      <div className="rtamo-icon">
+        <img
+          className={`${addonType?.includes("theme") ? "rtamo-theme-icon" : "brand-logo"}`}
+          src={
+            addonType?.includes("theme")
+              ? themeScreenshots[0].url
+              : addonIconURL
+          }
+          loading={AboutWelcomeUtils.getLoadingStrategyFor(addonIconURL)}
+          alt=""
+          role="presentation"
+        />
+      </div>
+    );
+  }
+
   render() {
     const {
       autoAdvance,
       content,
       isRtamo,
-      isTheme,
+      addonType,
       isFirstScreen,
       isLastScreen,
       isSingleScreen,
@@ -558,19 +608,13 @@ export class ProtonScreen extends React.PureComponent {
               ? this.renderPicture(content.logo)
               : null}
 
-            {isRtamo ? (
-              <div className="rtamo-icon">
-                <img
-                  className={`${isTheme ? "rtamo-theme-icon" : "brand-logo"}`}
-                  src={this.props.iconURL}
-                  loading={AboutWelcomeUtils.getLoadingStrategyFor(
-                    this.props.iconURL
-                  )}
-                  alt=""
-                  role="presentation"
-                />
-              </div>
-            ) : null}
+            {isRtamo && !content.fullscreen
+              ? this.renderRTAMOIcon(
+                  addonType,
+                  this.props.themeScreenshots,
+                  this.props.addonIconURL
+                )
+              : null}
 
             <div
               className="main-content-inner"
@@ -580,6 +624,13 @@ export class ProtonScreen extends React.PureComponent {
             >
               {content.logo && content.fullscreen
                 ? this.renderPicture(content.logo)
+                : null}
+              {isRtamo && content.fullscreen
+                ? this.renderRTAMOIcon(
+                    addonType,
+                    this.props.themeScreenshots,
+                    this.props.addonIconURL
+                  )
                 : null}
               {content.title || content.subtitle ? (
                 <div
@@ -607,7 +658,11 @@ export class ProtonScreen extends React.PureComponent {
                   {content.action_buttons_above_content && (
                     <ProtonScreenActionButtons
                       content={content}
+                      isRtamo={this.props.isRtamo}
+                      installedAddons={this.props.installedAddons}
+                      addonId={this.props.addonId}
                       addonName={this.props.addonName}
+                      addonType={this.props.addonType}
                       handleAction={this.props.handleAction}
                       activeMultiSelect={this.props.activeMultiSelect}
                     />
@@ -637,7 +692,11 @@ export class ProtonScreen extends React.PureComponent {
               {!content.action_buttons_above_content && (
                 <ProtonScreenActionButtons
                   content={content}
+                  isRtamo={this.props.isRtamo}
+                  installedAddons={this.props.installedAddons}
+                  addonId={this.props.addonId}
                   addonName={this.props.addonName}
+                  addonType={this.props.addonType}
                   handleAction={this.props.handleAction}
                   activeMultiSelect={this.props.activeMultiSelect}
                 />
