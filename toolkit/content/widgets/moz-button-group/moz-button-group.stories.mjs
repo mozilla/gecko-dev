@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { html } from "../vendor/lit.all.mjs";
+import "../moz-card/moz-card.mjs";
 import {
   PLATFORM_LINUX,
   PLATFORM_MACOS,
@@ -29,7 +30,7 @@ moz-button-group-cancel = Cancel
 };
 
 const Template = ({ platform }) => html`
-  <div class="card card-no-hover" style="max-width: 400px">
+  <moz-card type="default" style="max-width: 400px">
     <p data-l10n-id="moz-button-group-p"></p>
     <moz-button-group .platform=${platform}>
       <moz-button
@@ -38,7 +39,7 @@ const Template = ({ platform }) => html`
       ></moz-button>
       <moz-button data-l10n-id="moz-button-group-cancel"></moz-button>
     </moz-button-group>
-  </div>
+  </moz-card>
 `;
 
 export const Default = Template.bind({});
