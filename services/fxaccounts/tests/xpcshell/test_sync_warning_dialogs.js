@@ -318,3 +318,56 @@ add_task(
     Services.prefs.clearUserPref("browser.profiles.sync.allow-danger-merge");
   }
 );
+
+add_task(async function test_current_profile_is_correctly_skipped() {
+  // Define two profiles.
+  const fakeProfiles = [
+    { name: "Profile1", path: "/path/to/profile1" },
+    { name: "Profile2", path: "/path/to/profile2" },
+  ];
+
+  // Fake signedInUser.json content for each profile.
+  // Profile1 (the current profile) is signed in with user@example.com.
+  // Profile2 is signed in with other@example.com.
+  const fakeSignedInUsers = {
+    "/path/to/profile1/signedInUser.json": {
+      accountData: { email: "user@example.com" },
+      version: 1,
+    },
+    "/path/to/profile2/signedInUser.json": {
+      accountData: { email: "other@example.com" },
+      version: 1,
+    },
+  };
+
+  // Create an instance of the FxAccountsWebChannelHelpers.
+  let channel = new FxAccountsWebChannelHelpers();
+
+  // Override the methods to return our fake data.
+  channel._getAllProfiles = async () => fakeProfiles;
+  channel._getCurrentProfileName = () => "Profile1";
+  channel._readJSONFileAsync = async filePath =>
+    fakeSignedInUsers[filePath] || null;
+
+  // Case 1: The account email is in the current profile.
+  let associatedProfile =
+    await channel._getProfileAssociatedWithAcct("user@example.com");
+  Assert.equal(
+    associatedProfile,
+    null,
+    "Should not return the current profile."
+  );
+
+  // Case 2: The account email is in a different profile.
+  associatedProfile =
+    await channel._getProfileAssociatedWithAcct("other@example.com");
+  Assert.ok(
+    associatedProfile,
+    "Should return a profile when account email is in another profile."
+  );
+  Assert.equal(
+    associatedProfile.name,
+    "Profile2",
+    "Returned profile should be 'Profile2'."
+  );
+});
