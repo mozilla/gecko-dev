@@ -610,10 +610,9 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "discoverystream.reportContent.enabled",
+    "discoverystream.reportAds.enabled",
     {
-      title:
-        "Boolean flag to enable reporting content and ads from the context menu",
+      title: "Boolean flag to enable reporting ads from the context menu",
       value: false,
     },
   ],

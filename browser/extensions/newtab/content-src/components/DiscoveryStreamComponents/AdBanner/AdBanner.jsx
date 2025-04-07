@@ -49,6 +49,7 @@ export const AdBanner = ({
   };
 
   const sectionsEnabled = prefs["discoverystream.sections.enabled"];
+  const showAdReporting = prefs["discoverystream.reportAds.enabled"];
 
   const { width: imgWidth, height: imgHeight } = getDimensions(spoc.format);
 
@@ -89,7 +90,7 @@ export const AdBanner = ({
           spoc={spoc}
           position={row}
           type={type}
-          prefs={prefs}
+          showAdReporting={showAdReporting}
         />
         <SafeAnchor
           className="ad-banner-link"

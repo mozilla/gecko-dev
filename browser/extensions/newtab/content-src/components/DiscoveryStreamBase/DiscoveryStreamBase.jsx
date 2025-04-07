@@ -253,8 +253,9 @@ export class _DiscoveryStreamBase extends React.PureComponent {
     const { config } = this.props.DiscoveryStream;
     const topicSelectionEnabled =
       this.props.Prefs.values["discoverystream.topicSelection.enabled"];
-    const reportContentEnabled =
-      this.props.Prefs.values["discoverystream.reportContent.enabled"];
+    const reportAdsEnabled =
+      this.props.Prefs.values["discoverystream.reportAds.enabled"];
+    const spocsEnabled = this.props.Prefs.values["unifiedAds.spocs.enabled"];
 
     // Allow rendering without extracting special components
     if (!config.collapsible) {
@@ -319,16 +320,19 @@ export class _DiscoveryStreamBase extends React.PureComponent {
       }
     }
 
-    // Render a DS-style TopSites then the rest if any in a collapsible section
     const { DiscoveryStream } = this.props;
+
     return (
       <React.Fragment>
         {this.props.DiscoveryStream.isPrivacyInfoModalVisible && (
           <DSPrivacyModal dispatch={this.props.dispatch} />
         )}
-        {reportContentEnabled && (
+
+        {/* Reporting stories/articles will only be available in sections, not the default card grid  */}
+        {((reportAdsEnabled && spocsEnabled) || sectionsEnabled) && (
           <ReportContent spocs={DiscoveryStream.spocs} />
         )}
+
         {topSites &&
           this.renderLayout([
             {

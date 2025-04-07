@@ -12,15 +12,15 @@ export class _DSLinkMenu extends React.PureComponent {
   render() {
     const { index, dispatch } = this.props;
     let TOP_STORIES_CONTEXT_MENU_OPTIONS;
-    const PREF_REPORT_CONTENT_ENABLED = "discoverystream.reportContent.enabled";
+    const PREF_REPORT_ADS_ENABLED = "discoverystream.reportAds.enabled";
     const prefs = this.props.Prefs.values;
-    const showReporting = prefs[PREF_REPORT_CONTENT_ENABLED];
+    const showAdsReporting = prefs[PREF_REPORT_ADS_ENABLED];
     const isSpoc = this.props.card_type === "spoc";
 
     if (isSpoc) {
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "BlockUrl",
-        ...(showReporting ? ["ReportAd"] : []),
+        ...(showAdsReporting ? ["ReportAd"] : []),
         "ManageSponsoredContent",
         "OurSponsorsAndYourPrivacy",
       ];
@@ -31,7 +31,7 @@ export class _DSLinkMenu extends React.PureComponent {
 
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "CheckBookmark",
-        ...(showReporting && this.props.section ? ["ReportContent"] : []),
+        ...(this.props.section ? ["ReportContent"] : []),
         ...saveToPocketOptions,
         "Separator",
         "OpenInNewWindow",
@@ -40,9 +40,6 @@ export class _DSLinkMenu extends React.PureComponent {
         "BlockUrl",
       ];
     }
-
-    // eslint-disable-next-line no-console
-    console.log("dslinkmenu prop", this.props);
 
     const type = this.props.type || "DISCOVERY_STREAM";
     const title = this.props.title || this.props.source;
