@@ -46,6 +46,7 @@ info = {
     "bits": unknown,
     "has_sandbox": unknown,
     "display": None,
+    "android_version": "",
     "automation": bool(os.environ.get("MOZ_AUTOMATION", False)),
 }
 (system, node, release, version, machine, processor) = platform.uname()
