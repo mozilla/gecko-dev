@@ -392,90 +392,96 @@ LogicalSides nsTableCellFrame::GetLogicalSkipSides() const {
 /* virtual */
 nsMargin nsTableCellFrame::GetBorderOverflow() { return nsMargin(0, 0, 0, 0); }
 
-void nsTableCellFrame::BlockDirAlignChild(
-    WritingMode aWM, nscoord aMaxAscent,
-    ForceAlignTopForTableCell aForceAlignTop) {
+void nsTableCellFrame::AlignChildWithinCell(
+    nscoord aMaxAscent, ForceAlignTopForTableCell aForceAlignTop) {
   MOZ_ASSERT(aForceAlignTop != ForceAlignTopForTableCell::Yes ||
                  PresContext()->IsPaginated(),
              "We shouldn't force table-cells to do 'vertical-align:top' if "
              "we're not in printing!");
 
-  /* It's the 'border-collapse' on the table that matters */
-  const LogicalMargin border = GetLogicalUsedBorder(GetWritingMode())
-                                   .ApplySkipSides(GetLogicalSkipSides())
-                                   .ConvertTo(aWM, GetWritingMode());
+  nsIFrame* const inner = Inner();
+  const WritingMode tableWM = GetWritingMode();
+  const WritingMode innerWM = inner->GetWritingMode();
 
-  nscoord bStartInset = border.BStart(aWM);
-  nscoord bEndInset = border.BEnd(aWM);
+  // The anonymous block child is to be placed within the cell's padding rect.
+  // Get it in the inner frame's writing mode for alignment calculation.
+  const nsSize containerSize = mRect.Size();
+  const LogicalRect paddingRect(innerWM, GetPaddingRectRelativeToSelf(),
+                                containerSize);
 
-  nscoord bSize = BSize(aWM);
-  nsIFrame* inner = Inner();
-  nsSize containerSize = mRect.Size();
-  LogicalRect kidRect = inner->GetLogicalRect(aWM, containerSize);
-  nscoord childBSize = kidRect.BSize(aWM);
+  const LogicalRect kidRect = inner->GetLogicalRect(innerWM, containerSize);
 
-  // Vertically align the child
+  // Calculate the position for the inner frame, initializing to the origin.
+  LogicalPoint kidPosition = paddingRect.Origin(innerWM);
+
+  // Apply CSS `vertical-align` to the block coordinate.
   const auto verticalAlign = aForceAlignTop == ForceAlignTopForTableCell::Yes
                                  ? StyleVerticalAlignKeyword::Top
                                  : GetVerticalAlign();
-  nscoord kidBStart = 0;
   switch (verticalAlign) {
     case StyleVerticalAlignKeyword::Baseline:
       if (auto baseline = GetCellBaseline()) {
-        // Align the baselines of the child frame with the baselines of
-        // other children in the same row which have 'vertical-align: baseline'
-        kidBStart = bStartInset + aMaxAscent - *baseline;
+        // Align the baseline of the child frame with the baselines of other
+        // children in the same row which have 'vertical-align: baseline'
+        kidPosition.B(innerWM) =
+            paddingRect.BStart(innerWM) + aMaxAscent - *baseline;
         break;
       }
       // fallback to start alignment
       [[fallthrough]];
     case StyleVerticalAlignKeyword::Top:
-      // Align the top of the child frame with the top of the content area,
-      kidBStart = bStartInset;
+      // Leave kidPosition at the origin: the child frame will be aligned
+      // with the padding rect's block-start.
       break;
 
     case StyleVerticalAlignKeyword::Bottom:
-      // Align the bottom of the child frame with the bottom of the content
-      // area,
-      kidBStart = bSize - childBSize - bEndInset;
+      // Align the block-end of the child frame with the block-end of the
+      // padding rect.
+      kidPosition.B(innerWM) =
+          paddingRect.BEnd(innerWM) - kidRect.BSize(innerWM);
       break;
 
     default:
     case StyleVerticalAlignKeyword::Middle:
-      // Align the middle of the child frame with the middle of the content
-      // area,
-      kidBStart = (bSize - childBSize - bEndInset + bStartInset) / 2;
+      // Align the middle of the child frame with the middle of the cell's
+      // padding rect.
+      kidPosition.B(innerWM) =
+          paddingRect.BStart(innerWM) +
+          (paddingRect.BSize(innerWM) - kidRect.BSize(innerWM)) / 2;
   }
-  // If the content is larger than the cell bsize, align from bStartInset
-  // (cell's content-box bstart edge).
-  kidBStart = std::max(bStartInset, kidBStart);
 
-  if (kidBStart != kidRect.BStart(aWM)) {
-    // Invalidate at the old position first
+  // If the content is larger than the cell bSize, align from the padding-rect's
+  // bStart edge.
+  kidPosition.B(innerWM) =
+      std::max(paddingRect.BStart(innerWM), kidPosition.B(innerWM));
+
+  if (kidPosition != kidRect.Origin(innerWM)) {
+    // If we're moving the inner frame, invalidate at the old position first.
     inner->InvalidateFrameSubtree();
   }
 
-  inner->SetPosition(aWM, LogicalPoint(aWM, kidRect.IStart(aWM), kidBStart),
-                     containerSize);
-  ReflowOutput desiredSize(aWM);
-  desiredSize.SetSize(aWM, GetLogicalSize(aWM));
+  inner->SetPosition(innerWM, kidPosition, containerSize);
+
+  ReflowOutput reflowOutput(tableWM);
+  reflowOutput.SetSize(tableWM, GetLogicalSize(tableWM));
 
   nsRect overflow(nsPoint(), GetSize());
   overflow.Inflate(GetBorderOverflow());
-  desiredSize.mOverflowAreas.SetAllTo(overflow);
-  ConsiderChildOverflow(desiredSize.mOverflowAreas, inner);
-  FinishAndStoreOverflow(&desiredSize);
-  if (kidBStart != kidRect.BStart(aWM)) {
+  reflowOutput.mOverflowAreas.SetAllTo(overflow);
+  ConsiderChildOverflow(reflowOutput.mOverflowAreas, inner);
+  FinishAndStoreOverflow(&reflowOutput);
+
+  if (kidPosition != kidRect.Origin(innerWM)) {
     // Make sure any child views are correctly positioned. We know the inner
-    // table cell won't have a view
+    // table cell won't have a view.
     nsContainerFrame::PositionChildViews(inner);
 
-    // Invalidate new overflow rect
+    // Invalidate new overflow rect.
     inner->InvalidateFrameSubtree();
   }
   if (HasView()) {
     nsContainerFrame::SyncFrameViewAfterReflow(PresContext(), this, GetView(),
-                                               desiredSize.InkOverflow(),
+                                               reflowOutput.InkOverflow(),
                                                ReflowChildFlags::Default);
   }
 }

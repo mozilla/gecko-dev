@@ -369,7 +369,7 @@ void nsTableRowFrame::DidResize(ForceAlignTopForTableCell aForceAlignTop) {
 
     // realign cell content based on the new bsize.  We might be able to
     // skip this if the bsize didn't change... maybe.  Hard to tell.
-    cellFrame->BlockDirAlignChild(wm, mMaxCellAscent, aForceAlignTop);
+    cellFrame->AlignChildWithinCell(mMaxCellAscent, aForceAlignTop);
 
     // Always store the overflow, even if the height didn't change, since
     // we'll lose part of our overflow area otherwise.
@@ -1007,12 +1007,12 @@ nscoord nsTableRowFrame::ReflowCellFrame(nsPresContext* aPresContext,
   aCellFrame->SetSize(
       wm, LogicalSize(wm, cellSize.ISize(wm), desiredSize.BSize(wm)));
 
-  // Note: BlockDirAlignChild can affect the overflow rect.
+  // Note: AlignChildWithinCell can affect the overflow rect.
   // XXX What happens if this cell has 'vertical-align: baseline' ?
   // XXX Why is it assumed that the cell's ascent hasn't changed ?
   if (isCompleteAndNotTruncated) {
-    aCellFrame->BlockDirAlignChild(wm, mMaxCellAscent,
-                                   ForceAlignTopForTableCell::Yes);
+    aCellFrame->AlignChildWithinCell(mMaxCellAscent,
+                                     ForceAlignTopForTableCell::Yes);
   }
 
   nsTableFrame::InvalidateTableFrame(

@@ -119,9 +119,15 @@ class nsTableCellFrame : public nsContainerFrame,
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-  // Align the cell's child frame within the cell.
-  void BlockDirAlignChild(mozilla::WritingMode aWM, nscoord aMaxAscent,
-                          mozilla::ForceAlignTopForTableCell aForceAlignTop);
+  // Align the cell's anonymous-block child within the cell. This applies the
+  // CSS `vertical-align` property to position the child frame appropriately
+  // (in terms of the writing mode of the cell contents, which may be different
+  // from the table's WM).
+  // This also resets the child's inline position, which in the case of an
+  // orthogonal child may have been based on an unknown container size when
+  // it was initially reflowed.
+  void AlignChildWithinCell(nscoord aMaxAscent,
+                            mozilla::ForceAlignTopForTableCell aForceAlignTop);
 
   /*
    * Get the value of vertical-align adjusted for CSS 2's rules for a
