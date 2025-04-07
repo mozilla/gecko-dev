@@ -1877,7 +1877,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
   > .subviewbutton-back {
     -moz-context-properties: fill;
-    fill: var(--arrowpanel-color);
+    fill: var(--button-icon-fill);
     list-style-image: url(chrome://global/skin/icons/arrow-left.svg);
     padding: var(--arrowpanel-header-back-icon-padding);
   }
