@@ -286,15 +286,16 @@ function generateDocumentation() {
   let string_mapping = {
     BackgroundAppUpdate: "BackgroundAppUpdate2",
     Certificates: "CertificatesDescription",
+    DisableFirefoxAccounts: "DisableFirefoxAccounts1",
     DisableMasterPasswordCreation: "DisablePrimaryPasswordCreation",
     DisablePocket: "DisablePocket2",
     DisableSetDesktopBackground: "DisableSetAsDesktopBackground",
     FirefoxHome: "FirefoxHome2",
     Permissions: "Permissions2",
     SanitizeOnShutdown: "SanitizeOnShutdown2",
-    WindowsSSO: "Windows10SSO",
     SecurityDevices: "SecurityDevices2",
-    DisableFirefoxAccounts: "DisableFirefoxAccounts1",
+    SkipTermsOfUse: "SkipTermsOfUse2",
+    WindowsSSO: "Windows10SSO",
   };
 
   for (let policyName in schema.properties) {
