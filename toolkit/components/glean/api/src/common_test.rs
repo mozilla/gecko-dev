@@ -27,6 +27,7 @@ pub fn lock_test() -> (MutexGuard<'static, ()>, tempfile::TempDir) {
         vec![],
         vec![],
         true,
+        vec![],
     );
 
     let dir = setup_glean(None);
