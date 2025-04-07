@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use anyhow::{Context, Result};
-use askama::Template;
+use anyhow::{bail, Context, Result};
+use rinja::Template;
 
 use heck::{ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use once_cell::sync::Lazy;
@@ -13,8 +13,6 @@ use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::Debug;
 
-use crate::backend::TemplateExpression;
-
 use crate::interface::*;
 use crate::VisitMut;
 
@@ -22,7 +20,6 @@ mod callback_interface;
 mod compounds;
 mod custom;
 mod enum_;
-mod external;
 mod miscellany;
 mod object;
 mod primitives;
@@ -43,8 +40,8 @@ trait CodeType: Debug {
         self.type_label()
     }
 
-    fn literal(&self, _literal: &Literal) -> String {
-        unimplemented!("Unimplemented for {}", self.type_label())
+    fn literal(&self, _literal: &Literal) -> Result<String> {
+        bail!("Unimplemented for {}", self.type_label())
     }
 
     /// Name of the FfiConverter
@@ -52,17 +49,6 @@ trait CodeType: Debug {
     /// This is the object that contains the lower, write, lift, and read methods for this type.
     fn ffi_converter_name(&self) -> String {
         format!("FfiConverter{}", self.canonical_name())
-    }
-
-    /// A list of imports that are needed if this type is in use.
-    /// Classes are imported exactly once.
-    fn imports(&self) -> Option<Vec<String>> {
-        None
-    }
-
-    /// Function to run at startup
-    fn initialization_fn(&self) -> Option<String> {
-        None
     }
 }
 
@@ -120,12 +106,35 @@ pub struct Config {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CustomTypeConfig {
     // This `CustomTypeConfig` doesn't have a `type_name` like the others -- which is why we have
     // separate structs rather than a shared one.
     imports: Option<Vec<String>>,
-    into_custom: TemplateExpression,
-    from_custom: TemplateExpression,
+    into_custom: String, // b/w compat alias for lift
+    lift: String,
+    from_custom: String, // b/w compat alias for lower
+    lower: String,
+}
+
+// functions replace literal "{}" in strings with a specified value.
+impl CustomTypeConfig {
+    fn lift(&self, name: &str) -> String {
+        let converter = if self.lift.is_empty() {
+            &self.into_custom
+        } else {
+            &self.lift
+        };
+        converter.replace("{}", name)
+    }
+    fn lower(&self, name: &str) -> String {
+        let converter = if self.lower.is_empty() {
+            &self.from_custom
+        } else {
+            &self.lower
+        };
+        converter.replace("{}", name)
+    }
 }
 
 impl Config {
@@ -233,7 +242,7 @@ impl<'a> TypeRenderer<'a> {
     // Call this inside your template to cause an import statement to be added at the top of the
     // file.  Imports will be sorted and de-deuped.
     //
-    // Returns an empty string so that it can be used inside an askama `{{ }}` block.
+    // Returns an empty string so that it can be used inside an rinja `{{ }}` block.
     fn add_import(&self, name: &str) -> &str {
         self.imports.borrow_mut().insert(ImportRequirement::Module {
             mod_name: name.to_owned(),
@@ -270,16 +279,18 @@ impl<'a> TypeRenderer<'a> {
     // but that's pathological :)
     fn get_custom_type_aliases(&self) -> Vec<(String, &Type)> {
         let mut ordered = vec![];
-        for type_ in self.ci.iter_types() {
-            if let Type::Custom { name, builtin, .. } = type_ {
-                match ordered.iter().position(|x: &(&str, &Type)| {
-                    x.1.iter_types()
-                        .any(|nested_type| *name == nested_type.as_codetype().type_label())
-                }) {
-                    // This 'name' appears as a builtin, so we must insert our type first.
-                    Some(pos) => ordered.insert(pos, (name, builtin)),
-                    // Otherwise at the end.
-                    None => ordered.push((name, builtin)),
+        for type_ in self.ci.iter_local_types() {
+            if !self.ci.is_external(type_) {
+                if let Type::Custom { name, builtin, .. } = type_ {
+                    match ordered.iter().position(|x: &(&str, &Type)| {
+                        x.1.iter_types()
+                            .any(|nested_type| *name == nested_type.as_codetype().type_label())
+                    }) {
+                        // This 'name' appears as a builtin, so we must insert our type first.
+                        Some(pos) => ordered.insert(pos, (name, builtin)),
+                        // Otherwise at the end.
+                        None => ordered.push((name, builtin)),
+                    }
                 }
             }
         }
@@ -287,6 +298,17 @@ impl<'a> TypeRenderer<'a> {
             .into_iter()
             .map(|(n, t)| (PythonCodeOracle.class_name(n), t))
             .collect()
+    }
+
+    // Sort object types to avoid forward references; traits before everything else.
+    fn iter_sorted_object_types(&self) -> impl Iterator<Item = &Type> {
+        let mut obs: Vec<&Type> = self
+            .ci
+            .iter_local_types()
+            .filter(|t| matches!(t, Type::Object { .. }))
+            .collect();
+        obs.sort_by_key(|t| !matches!(t, Type::Object { imp, .. } if imp.is_trait_interface()));
+        obs.into_iter()
     }
 }
 
@@ -367,7 +389,7 @@ impl PythonCodeOracle {
         format!("_Uniffi{}", nm.to_upper_camel_case())
     }
 
-    fn ffi_type_label(&self, ffi_type: &FfiType) -> String {
+    fn ffi_type_label(&self, ffi_type: &FfiType, ci: &ComponentInterface) -> String {
         match ffi_type {
             FfiType::Int8 => "ctypes.c_int8".to_string(),
             FfiType::UInt8 => "ctypes.c_uint8".to_string(),
@@ -382,15 +404,19 @@ impl PythonCodeOracle {
             FfiType::Handle => "ctypes.c_uint64".to_string(),
             FfiType::RustArcPtr(_) => "ctypes.c_void_p".to_string(),
             FfiType::RustBuffer(maybe_external) => match maybe_external {
-                Some(external_meta) => format!("_UniffiRustBuffer{}", external_meta.name),
-                None => "_UniffiRustBuffer".to_string(),
+                Some(external_meta) if external_meta.module_path != ci.crate_name() => {
+                    format!("_UniffiRustBuffer{}", external_meta.name)
+                }
+                _ => "_UniffiRustBuffer".to_string(),
             },
             FfiType::RustCallStatus => "_UniffiRustCallStatus".to_string(),
             FfiType::ForeignBytes => "_UniffiForeignBytes".to_string(),
             FfiType::Callback(name) => self.ffi_callback_name(name),
             FfiType::Struct(name) => self.ffi_struct_name(name),
             // Pointer to an `asyncio.EventLoop` instance
-            FfiType::Reference(inner) => format!("ctypes.POINTER({})", self.ffi_type_label(inner)),
+            FfiType::Reference(inner) | FfiType::MutReference(inner) => {
+                format!("ctypes.POINTER({})", self.ffi_type_label(inner, ci))
+            }
             FfiType::VoidPointer => "ctypes.c_void_p".to_string(),
         }
     }
@@ -423,24 +449,6 @@ impl PythonCodeOracle {
             None => "0".to_owned(),
         }
     }
-
-    /// Get the name of the protocol and class name for an object.
-    ///
-    /// If we support callback interfaces, the protocol name is the object name, and the class name is derived from that.
-    /// Otherwise, the class name is the object name and the protocol name is derived from that.
-    ///
-    /// This split determines what types `FfiConverter.lower()` inputs.  If we support callback
-    /// interfaces, `lower` must lower anything that implements the protocol.  If not, then lower
-    /// only lowers the concrete class.
-    fn object_names(&self, obj: &Object) -> (String, String) {
-        let class_name = self.class_name(obj.name());
-        if obj.has_callback_interface() {
-            let impl_name = format!("{class_name}Impl");
-            (class_name, impl_name)
-        } else {
-            (format!("{class_name}Protocol"), class_name)
-        }
-    }
 }
 
 impl VisitMut for PythonCodeOracle {
@@ -450,6 +458,10 @@ impl VisitMut for PythonCodeOracle {
 
     fn visit_object(&self, object: &mut Object) {
         object.rename(self.class_name(object.name()));
+        for i in object.trait_impls_mut() {
+            i.trait_name = self.class_name(&i.trait_name);
+            // should i.tr_module_path be fixed?
+        }
     }
 
     fn visit_field(&self, field: &mut Field) {
@@ -464,12 +476,8 @@ impl VisitMut for PythonCodeOracle {
         ffi_argument.rename(self.class_name(ffi_argument.name()));
     }
 
-    fn visit_enum(&self, is_error: bool, enum_: &mut Enum) {
-        if is_error {
-            enum_.rename(self.class_name(enum_.name()));
-        } else {
-            enum_.rename(self.enum_variant_name(enum_.name()));
-        }
+    fn visit_enum(&self, _is_error: bool, enum_: &mut Enum) {
+        enum_.rename(self.class_name(enum_.name()));
     }
 
     fn visit_enum_key(&self, key: &mut String) -> String {
@@ -477,12 +485,6 @@ impl VisitMut for PythonCodeOracle {
     }
 
     fn visit_variant(&self, is_error: bool, variant: &mut Variant) {
-        //TODO: If we want to remove the last var_name filter
-        // in the template, this is it. We need an additional
-        // attribute for the `Variant` so we can
-        // display Python is_NAME functions
-        // variant.set_is_name(self.var_name(variant.name()));
-
         if is_error {
             variant.rename(self.class_name(variant.name()));
         } else {
@@ -572,100 +574,90 @@ impl<T: AsType> AsCodeType for T {
                 key_type,
                 value_type,
             } => Box::new(compounds::MapCodeType::new(*key_type, *value_type)),
-            Type::External { name, .. } => Box::new(external::ExternalCodeType::new(name)),
             Type::Custom { name, .. } => Box::new(custom::CustomCodeType::new(name)),
         }
     }
 }
 
 pub mod filters {
-    use super::*;
-    pub use crate::backend::filters::*;
+    use crate::backend::filters::to_rinja_error;
 
-    pub(super) fn type_name(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    use super::*;
+
+    pub(super) fn type_name(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(as_ct.as_codetype().type_label())
     }
 
-    //TODO: Remove. Currently just being used by EnumTemplate.py to
-    // display is_NAME_OF_ENUM.
-    /// Get the idiomatic Python rendering of a variable name.
-    pub fn var_name(nm: &str) -> Result<String, askama::Error> {
-        Ok(PythonCodeOracle.var_name(nm))
-    }
-
-    //TODO: Remove. Currently just being used by wrapper.py to display the
-    // callback_interface function names.
-    /// Get the idiomatic Python rendering of a class name (for enums, records, errors, etc).
-    pub fn class_name(nm: &str) -> Result<String, askama::Error> {
-        Ok(PythonCodeOracle.class_name(nm))
-    }
-
-    pub(super) fn ffi_converter_name(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    pub(super) fn ffi_converter_name(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(String::from("_Uniffi") + &as_ct.as_codetype().ffi_converter_name()[3..])
     }
 
-    pub(super) fn canonical_name(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    pub(super) fn canonical_name(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(as_ct.as_codetype().canonical_name())
     }
 
-    pub(super) fn lift_fn(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    pub(super) fn lift_fn(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(format!("{}.lift", ffi_converter_name(as_ct)?))
     }
 
-    pub(super) fn check_lower_fn(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    pub(super) fn check_lower_fn(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(format!("{}.check_lower", ffi_converter_name(as_ct)?))
     }
 
-    pub(super) fn lower_fn(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    pub(super) fn lower_fn(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(format!("{}.lower", ffi_converter_name(as_ct)?))
     }
 
-    pub(super) fn read_fn(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    pub(super) fn read_fn(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(format!("{}.read", ffi_converter_name(as_ct)?))
     }
 
-    pub(super) fn write_fn(as_ct: &impl AsCodeType) -> Result<String, askama::Error> {
+    pub(super) fn write_fn(as_ct: &impl AsCodeType) -> Result<String, rinja::Error> {
         Ok(format!("{}.write", ffi_converter_name(as_ct)?))
     }
 
     pub(super) fn literal_py(
         literal: &Literal,
         as_ct: &impl AsCodeType,
-    ) -> Result<String, askama::Error> {
-        Ok(as_ct.as_codetype().literal(literal))
+    ) -> Result<String, rinja::Error> {
+        as_ct
+            .as_codetype()
+            .literal(literal)
+            .map_err(|e| to_rinja_error(&e))
     }
 
     // Get the idiomatic Python rendering of an individual enum variant's discriminant
-    pub fn variant_discr_literal(e: &Enum, index: &usize) -> Result<String, askama::Error> {
-        let literal = e.variant_discr(*index).expect("invalid index");
-        Ok(Type::UInt64.as_codetype().literal(&literal))
+    pub fn variant_discr_literal(e: &Enum, index: &usize) -> Result<String, rinja::Error> {
+        let literal = e
+            .variant_discr(*index)
+            .context("invalid index")
+            .map_err(|e| to_rinja_error(&e))?;
+        Type::UInt64
+            .as_codetype()
+            .literal(&literal)
+            .map_err(|e| to_rinja_error(&e))
     }
 
-    pub fn ffi_type_name(type_: &FfiType) -> Result<String, askama::Error> {
-        Ok(PythonCodeOracle.ffi_type_label(type_))
+    pub fn ffi_type_name(type_: &FfiType, ci: &ComponentInterface) -> Result<String, rinja::Error> {
+        Ok(PythonCodeOracle.ffi_type_label(type_, ci))
     }
 
-    pub fn ffi_default_value(return_type: Option<FfiType>) -> Result<String, askama::Error> {
+    pub fn ffi_default_value(return_type: Option<FfiType>) -> Result<String, rinja::Error> {
         Ok(PythonCodeOracle.ffi_default_value(return_type.as_ref()))
     }
 
     /// Get the idiomatic Python rendering of an FFI callback function name
-    pub fn ffi_callback_name(nm: &str) -> Result<String, askama::Error> {
+    pub fn ffi_callback_name(nm: &str) -> Result<String, rinja::Error> {
         Ok(PythonCodeOracle.ffi_callback_name(nm))
     }
 
     /// Get the idiomatic Python rendering of an FFI struct name
-    pub fn ffi_struct_name(nm: &str) -> Result<String, askama::Error> {
+    pub fn ffi_struct_name(nm: &str) -> Result<String, rinja::Error> {
         Ok(PythonCodeOracle.ffi_struct_name(nm))
     }
 
-    /// Get the idiomatic Python rendering of an individual enum variant.
-    pub fn object_names(obj: &Object) -> Result<(String, String), askama::Error> {
-        Ok(PythonCodeOracle.object_names(obj))
-    }
-
     /// Get the idiomatic Python rendering of docstring
-    pub fn docstring(docstring: &str, spaces: &i32) -> Result<String, askama::Error> {
+    pub fn docstring(docstring: &str, spaces: &i32) -> Result<String, rinja::Error> {
         let docstring = textwrap::dedent(docstring);
         // Escape triple quotes to avoid syntax error
         let escaped = docstring.replace(r#"""""#, r#"\"\"\""#);

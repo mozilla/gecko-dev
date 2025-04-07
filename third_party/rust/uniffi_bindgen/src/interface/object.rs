@@ -58,7 +58,7 @@
 //! ```
 
 use anyhow::Result;
-use uniffi_meta::Checksum;
+use uniffi_meta::{Checksum, ObjectTraitImplMetadata};
 
 use super::callbacks;
 use super::ffi::{FfiArgument, FfiCallbackFunction, FfiFunction, FfiStruct, FfiType};
@@ -85,12 +85,16 @@ pub struct Object {
     /// How this object is implemented in Rust
     pub(super) imp: ObjectImpl,
     pub(super) module_path: String,
+    pub(super) remote: bool,
     pub(super) constructors: Vec<Constructor>,
     pub(super) methods: Vec<Method>,
     // The "trait" methods - they have a (presumably "well known") name, and
     // a regular method (albeit with a generated name)
     // XXX - this should really be a HashSet, but not enough transient types support hash to make it worthwhile now.
     pub(super) uniffi_traits: Vec<UniffiTrait>,
+    // These are traits described in our CI which this object has declared it implements.
+    // This allows foreign bindings to implement things like inheritance or whatever makes sense for them.
+    pub(super) trait_impls: Vec<ObjectTraitImplMetadata>,
     // We don't include the FfiFuncs in the hash calculation, because:
     //  - it is entirely determined by the other fields,
     //    so excluding it is safe.
@@ -129,6 +133,10 @@ impl Object {
 
     pub fn imp(&self) -> &ObjectImpl {
         &self.imp
+    }
+
+    pub fn remote(&self) -> bool {
+        self.remote
     }
 
     pub fn is_trait_interface(&self) -> bool {
@@ -174,6 +182,15 @@ impl Object {
 
     pub fn uniffi_traits(&self) -> Vec<&UniffiTrait> {
         self.uniffi_traits.iter().collect()
+    }
+
+    pub fn trait_impls(&self) -> Vec<&ObjectTraitImplMetadata> {
+        self.trait_impls.iter().collect()
+    }
+
+    // used by bindings for renaming.
+    pub fn trait_impls_mut(&mut self) -> &mut Vec<ObjectTraitImplMetadata> {
+        &mut self.trait_impls
     }
 
     pub fn ffi_object_clone(&self) -> &FfiFunction {
@@ -313,9 +330,11 @@ impl From<uniffi_meta::ObjectMetadata> for Object {
             module_path: meta.module_path,
             name: meta.name,
             imp: meta.imp,
+            remote: meta.remote,
             constructors: Default::default(),
             methods: Default::default(),
             uniffi_traits: Default::default(),
+            trait_impls: Default::default(),
             ffi_func_clone: FfiFunction {
                 name: ffi_clone_name,
                 ..Default::default()
@@ -376,6 +395,8 @@ pub struct Constructor {
     // Force a checksum value, or we'll fallback to the trait.
     #[checksum_ignore]
     pub(super) checksum: Option<u16>,
+    // to help with lifetimes elsewhere...
+    pub(super) self_type: Type,
 }
 
 impl Constructor {
@@ -385,6 +406,14 @@ impl Constructor {
 
     pub fn rename(&mut self, new_name: String) {
         self.name = new_name;
+    }
+
+    pub fn is_async(&self) -> bool {
+        self.is_async
+    }
+
+    pub fn object_name(&self) -> &str {
+        &self.object_name
     }
 
     pub fn arguments(&self) -> Vec<&Argument> {
@@ -434,10 +463,6 @@ impl Constructor {
             self.arguments.iter().map(Into::into),
         );
     }
-
-    pub fn iter_types(&self) -> TypeIterator<'_> {
-        Box::new(self.arguments.iter().flat_map(Argument::iter_types))
-    }
 }
 
 impl From<uniffi_meta::ConstructorMetadata> for Constructor {
@@ -451,6 +476,11 @@ impl From<uniffi_meta::ConstructorMetadata> for Constructor {
             is_async: meta.is_async,
             ..FfiFunction::default()
         };
+        let self_type = Type::Object {
+            module_path: meta.module_path.clone(),
+            name: meta.self_name.clone(),
+            imp: ObjectImpl::Struct,
+        };
         Self {
             name: meta.name,
             object_name: meta.self_name,
@@ -459,9 +489,10 @@ impl From<uniffi_meta::ConstructorMetadata> for Constructor {
             arguments,
             ffi_func,
             docstring: meta.docstring.clone(),
-            throws: meta.throws.map(Into::into),
+            throws: meta.throws,
             checksum_fn_name,
             checksum: meta.checksum,
+            self_type,
         }
     }
 }
@@ -508,6 +539,10 @@ impl Method {
 
     pub fn is_async(&self) -> bool {
         self.is_async
+    }
+
+    pub fn object_name(&self) -> &str {
+        &self.object_name
     }
 
     pub fn arguments(&self) -> Vec<&Argument> {
@@ -580,15 +615,6 @@ impl Method {
         Ok(())
     }
 
-    pub fn iter_types(&self) -> TypeIterator<'_> {
-        Box::new(
-            self.arguments
-                .iter()
-                .flat_map(Argument::iter_types)
-                .chain(self.return_type.iter().flat_map(Type::iter_types)),
-        )
-    }
-
     /// For async callback interface methods, the FFI struct to pass to the completion function.
     pub fn foreign_future_ffi_result_struct(&self) -> FfiStruct {
         callbacks::foreign_future_ffi_result_struct(self.return_type.as_ref().map(FfiType::from))
@@ -600,7 +626,7 @@ impl From<uniffi_meta::MethodMetadata> for Method {
         let ffi_name = meta.ffi_symbol_name();
         let checksum_fn_name = meta.checksum_symbol_name();
         let is_async = meta.is_async;
-        let return_type = meta.return_type.map(Into::into);
+        let return_type = meta.return_type;
         let arguments = meta.inputs.into_iter().map(Into::into).collect();
 
         let ffi_func = FfiFunction {
@@ -619,7 +645,7 @@ impl From<uniffi_meta::MethodMetadata> for Method {
             return_type,
             ffi_func,
             docstring: meta.docstring.clone(),
-            throws: meta.throws.map(Into::into),
+            throws: meta.throws,
             takes_self_by_arc: meta.takes_self_by_arc,
             checksum_fn_name,
             checksum: meta.checksum,
@@ -632,7 +658,7 @@ impl From<uniffi_meta::TraitMethodMetadata> for Method {
         let ffi_name = meta.ffi_symbol_name();
         let checksum_fn_name = meta.checksum_symbol_name();
         let is_async = meta.is_async;
-        let return_type = meta.return_type.map(Into::into);
+        let return_type = meta.return_type;
         let arguments = meta.inputs.into_iter().map(Into::into).collect();
         let ffi_func = FfiFunction {
             name: ffi_name,
@@ -647,7 +673,7 @@ impl From<uniffi_meta::TraitMethodMetadata> for Method {
             arguments,
             return_type,
             docstring: meta.docstring.clone(),
-            throws: meta.throws.map(Into::into),
+            throws: meta.throws,
             takes_self_by_arc: meta.takes_self_by_arc,
             checksum_fn_name,
             checksum: meta.checksum,
@@ -701,20 +727,24 @@ impl Callable for Constructor {
         self.arguments()
     }
 
-    fn return_type(&self) -> Option<Type> {
-        Some(Type::Object {
-            name: self.object_name.clone(),
-            module_path: self.object_module_path.clone(),
-            imp: ObjectImpl::Struct,
-        })
+    fn return_type(&self) -> Option<&Type> {
+        Some(&self.self_type)
     }
 
-    fn throws_type(&self) -> Option<Type> {
-        self.throws_type().cloned()
+    fn throws_type(&self) -> Option<&Type> {
+        self.throws_type()
+    }
+
+    fn docstring(&self) -> Option<&str> {
+        self.docstring()
     }
 
     fn is_async(&self) -> bool {
         self.is_async
+    }
+
+    fn ffi_func(&self) -> &FfiFunction {
+        &self.ffi_func
     }
 }
 
@@ -723,12 +753,16 @@ impl Callable for Method {
         self.arguments()
     }
 
-    fn return_type(&self) -> Option<Type> {
-        self.return_type().cloned()
+    fn return_type(&self) -> Option<&Type> {
+        self.return_type()
     }
 
-    fn throws_type(&self) -> Option<Type> {
-        self.throws_type().cloned()
+    fn throws_type(&self) -> Option<&Type> {
+        self.throws_type()
+    }
+
+    fn docstring(&self) -> Option<&str> {
+        self.docstring()
     }
 
     fn is_async(&self) -> bool {
@@ -737,6 +771,10 @@ impl Callable for Method {
 
     fn takes_self(&self) -> bool {
         true
+    }
+
+    fn ffi_func(&self) -> &FfiFunction {
+        &self.ffi_func
     }
 }
 
@@ -758,20 +796,20 @@ mod test {
         assert_eq!(ci.object_definitions().len(), 1);
         ci.get_object_definition("Testing").unwrap();
 
-        assert_eq!(ci.iter_types().count(), 6);
-        assert!(ci.iter_types().any(|t| t == &Type::UInt16));
-        assert!(ci.iter_types().any(|t| t == &Type::UInt32));
-        assert!(ci.iter_types().any(|t| t
+        assert_eq!(ci.iter_local_types().count(), 6);
+        assert!(ci.iter_local_types().any(|t| t == &Type::UInt16));
+        assert!(ci.iter_local_types().any(|t| t == &Type::UInt32));
+        assert!(ci.iter_local_types().any(|t| t
             == &Type::Sequence {
                 inner_type: Box::new(Type::UInt32)
             }));
-        assert!(ci.iter_types().any(|t| t == &Type::String));
-        assert!(ci.iter_types().any(|t| t
+        assert!(ci.iter_local_types().any(|t| t == &Type::String));
+        assert!(ci.iter_local_types().any(|t| t
             == &Type::Optional {
                 inner_type: Box::new(Type::String)
             }));
         assert!(ci
-            .iter_types()
+            .iter_local_types()
             .any(|t| matches!(t, Type::Object { name, ..} if name == "Testing")));
     }
 

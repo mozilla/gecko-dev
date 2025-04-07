@@ -6,7 +6,10 @@ fileprivate struct {{ trait_impl }} {
 
     // Create the VTable using a series of closures.
     // Swift automatically converts these into C callback functions.
-    static var vtable: {{ vtable|ffi_type_name }} = {{ vtable|ffi_type_name }}(
+    //
+    // This creates 1-element array, since this seems to be the only way to construct a const
+    // pointer that we can pass to the Rust code.
+    static let vtable: [{{ vtable|ffi_type_name }}] = [{{ vtable|ffi_type_name }}(
         {%- for (ffi_callback, meth) in vtable_methods %}
         {{ meth.name()|fn_name }}: { (
             {%- for arg in ffi_callback.arguments() %}
@@ -57,11 +60,9 @@ fileprivate struct {{ trait_impl }} {
                 uniffiFutureCallback(
                     uniffiCallbackData,
                     {{ meth.foreign_future_ffi_result_struct().name()|ffi_struct_name }}(
-                        {%- match meth.return_type() %}
-                        {%- when Some(return_type) %}
+                        {%- if let Some(return_type) = meth.return_type() %}
                         returnValue: {{ return_type|lower_fn }}(returnValue),
-                        {%- when None %}
-                        {%- endmatch %}
+                        {%- endif %}
                         callStatus: RustCallStatus()
                     )
                 )
@@ -70,11 +71,9 @@ fileprivate struct {{ trait_impl }} {
                 uniffiFutureCallback(
                     uniffiCallbackData,
                     {{ meth.foreign_future_ffi_result_struct().name()|ffi_struct_name }}(
-                        {%- match meth.return_type() %}
-                        {%- when Some(return_type) %}
+                        {%- if let Some(return_type) = meth.return_type() %}
                         returnValue: {{ meth.return_type().map(FfiType::from)|ffi_default_value }},
-                        {%- when None %}
-                        {%- endmatch %}
+                        {%- endif %}
                         callStatus: RustCallStatus(code: statusCode, errorBuf: errorBuf)
                     )
                 )
@@ -105,9 +104,9 @@ fileprivate struct {{ trait_impl }} {
                 print("Uniffi callback interface {{ name }}: handle missing in uniffiFree")
             }
         }
-    )
+    )]
 }
 
 private func {{ callback_init }}() {
-    {{ ffi_init_callback.name() }}(&{{ trait_impl }}.vtable)
+    {{ ffi_init_callback.name() }}({{ trait_impl }}.vtable)
 }

@@ -104,29 +104,11 @@ fn deletion_request_only_when_toggled_from_on_to_off() {
 fn empty_pings_with_flag_are_sent() {
     let (mut glean, _t) = new_glean(None);
 
-    let ping1 = PingType::new(
-        "custom-ping1",
-        true,
-        true,
-        true,
-        true,
-        true,
-        vec![],
-        vec![],
-        true,
-    );
+    let ping1 = PingBuilder::new("custom-ping1")
+        .with_send_if_empty(true)
+        .build();
     glean.register_ping_type(&ping1);
-    let ping2 = PingType::new(
-        "custom-ping2",
-        true,
-        false,
-        true,
-        true,
-        true,
-        vec![],
-        vec![],
-        true,
-    );
+    let ping2 = PingBuilder::new("custom-ping2").build();
     glean.register_ping_type(&ping2);
 
     // No data is stored in either of the custom pings
@@ -163,7 +145,7 @@ fn test_pings_submitted_metric() {
     let metrics_ping = new_test_ping(&mut glean, "metrics");
     let baseline_ping = new_test_ping(&mut glean, "baseline");
 
-    let custom_ping = PingType::new("custom", true, true, true, true, true, vec![], vec![], true);
+    let custom_ping = PingBuilder::new("custom").with_send_if_empty(true).build();
     glean.register_ping_type(&custom_ping);
 
     // We need to store a metric as an empty ping is not stored.
@@ -296,30 +278,15 @@ fn events_ping_with_metric_but_no_events_is_not_sent() {
 fn test_scheduled_pings_are_sent() {
     let (mut glean, _t) = new_glean(None);
 
-    let piggyback_ping = PingType::new(
-        "piggyback",
-        true,
-        true,
-        true,
-        true,
-        true,
-        vec![],
-        vec![],
-        true,
-    );
+    let piggyback_ping = PingBuilder::new("piggyback")
+        .with_send_if_empty(true)
+        .build();
     glean.register_ping_type(&piggyback_ping);
 
-    let trigger_ping = PingType::new(
-        "trigger",
-        true,
-        true,
-        true,
-        true,
-        true,
-        vec!["piggyback".into()],
-        vec![],
-        true,
-    );
+    let trigger_ping = PingBuilder::new("trigger")
+        .with_send_if_empty(true)
+        .with_schedules_pings(vec!["piggyback".into()])
+        .build();
     glean.register_ping_type(&trigger_ping);
 
     assert!(trigger_ping.submit_sync(&glean, None));

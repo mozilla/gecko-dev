@@ -55,7 +55,7 @@ version = "1"
 features = ["derive"]
 
 [dependencies.uniffi]
-version = "0.28.2"
+version = "0.29.0"
 
 [dev-dependencies]
 mockito = "0.31"
@@ -71,5 +71,5 @@ default-features = false
 path = "../support/viaduct-reqwest"
 
 [build-dependencies.uniffi]
-version = "0.28.2"
+version = "0.29.0"
 features = ["build"]

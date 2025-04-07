@@ -40,7 +40,7 @@ use uniffi_meta::Checksum;
 
 use super::ffi::{FfiArgument, FfiCallbackFunction, FfiField, FfiFunction, FfiStruct, FfiType};
 use super::object::Method;
-use super::{AsType, Type, TypeIterator};
+use super::{AsType, Callable, Type, TypeIterator};
 
 #[derive(Debug, Clone, Checksum)]
 pub struct CallbackInterface {
@@ -62,6 +62,10 @@ pub struct CallbackInterface {
 impl CallbackInterface {
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn module_path(&self) -> &str {
+        &self.module_path
     }
 
     pub fn methods(&self) -> Vec<&Method> {
@@ -153,7 +157,9 @@ pub fn method_ffi_callback(trait_name: &str, method: &Method, index: usize) -> F
             arguments: iter::once(FfiArgument::new("uniffi_handle", FfiType::UInt64))
                 .chain(method.arguments().into_iter().map(Into::into))
                 .chain(iter::once(match method.return_type() {
-                    Some(t) => FfiArgument::new("uniffi_out_return", FfiType::from(t).reference()),
+                    Some(t) => {
+                        FfiArgument::new("uniffi_out_return", FfiType::from(t).mut_reference())
+                    }
                     None => FfiArgument::new("uniffi_out_return", FfiType::VoidPointer),
                 }))
                 .collect(),
@@ -175,7 +181,7 @@ pub fn method_ffi_callback(trait_name: &str, method: &Method, index: usize) -> F
                     FfiArgument::new("uniffi_callback_data", FfiType::UInt64),
                     FfiArgument::new(
                         "uniffi_out_return",
-                        FfiType::Struct("ForeignFuture".to_owned()).reference(),
+                        FfiType::Struct("ForeignFuture".to_owned()).mut_reference(),
                     ),
                 ])
                 .collect(),

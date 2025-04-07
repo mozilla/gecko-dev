@@ -1,4 +1,4 @@
-{%- let ffi_type_name=builtin|ffi_type|ffi_type_name %}
+{%- let ffi_type_name=builtin|ffi_type|ref|ffi_type_name %}
 {%- match config.custom_types.get(name.as_str())  %}
 {%- when None %}
 {#- No config, just forward all methods to our builtin type #}
@@ -29,26 +29,22 @@ public struct FfiConverterType{{ name }}: FfiConverter {
     }
 }
 
-{%- when Some with (config) %}
+{%- when Some(config) %}
 
 {# When the config specifies a different type name, create a typealias for it #}
-{%- match config.type_name %}
-{%- when Some with (concrete_type_name) %}
+{%- if let Some(concrete_type_name) = config.type_name %}
 /**
  * Typealias from the type name used in the UDL file to the custom type.  This
  * is needed because the UDL type name is used in function/method signatures.
  */
 public typealias {{ type_name }} = {{ concrete_type_name }}
-{%- else %}
-{%- endmatch %}
+{%- endif %}
 
-{%- match config.imports %}
-{%- when Some(imports) %}
+{%- if let Some(imports) = config.imports %}
 {%- for import_name in imports %}
 {{ self.add_import(import_name) }}
 {%- endfor %}
-{%- else %}
-{%- endmatch %}
+{%- endif %}
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
@@ -58,21 +54,21 @@ public struct FfiConverterType{{ name }}: FfiConverter {
 
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> {{ type_name }} {
         let builtinValue = try {{ builtin|read_fn }}(from: &buf)
-        return {{ config.into_custom.render("builtinValue") }}
+        return {{ config.lift("builtinValue") }}
     }
 
     public static func write(_ value: {{ type_name }}, into buf: inout [UInt8]) {
-        let builtinValue = {{ config.from_custom.render("value") }}
+        let builtinValue = {{ config.lower("value") }}
         return {{ builtin|write_fn }}(builtinValue, into: &buf)
     }
 
     public static func lift(_ value: {{ ffi_type_name }}) throws -> {{ type_name }} {
         let builtinValue = try {{ builtin|lift_fn }}(value)
-        return {{ config.into_custom.render("builtinValue") }}
+        return {{ config.lift("builtinValue") }}
     }
 
     public static func lower(_ value: {{ type_name }}) -> {{ ffi_type_name }} {
-        let builtinValue = {{ config.from_custom.render("value") }}
+        let builtinValue = {{ config.lower("value") }}
         return {{ builtin|lower_fn }}(builtinValue)
     }
 }

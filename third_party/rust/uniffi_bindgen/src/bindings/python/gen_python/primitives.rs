@@ -3,12 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::CodeType;
-use crate::backend::Literal;
-use crate::interface::Radix;
-use paste::paste;
+use crate::{backend::Literal, bail, interface::Radix, Result};
 
-fn render_literal(literal: &Literal) -> String {
-    match literal {
+fn render_literal(literal: &Literal) -> Result<String> {
+    Ok(match literal {
         Literal::Boolean(v) => {
             if *v {
                 "True".into()
@@ -30,27 +28,25 @@ fn render_literal(literal: &Literal) -> String {
         },
         Literal::Float(string, _type_) => string.clone(),
 
-        _ => unreachable!("Literal"),
-    }
+        _ => bail!("Invalid literal {literal:?}"),
+    })
 }
 
 macro_rules! impl_code_type_for_primitive {
-    ($T:ty, $python_name:literal, $canonical_name:literal) => {
-        paste! {
-            #[derive(Debug)]
-            pub struct $T;
-            impl CodeType for $T  {
-                fn type_label(&self) -> String {
-                    $python_name.into()
-                }
+    ($T:ident, $python_name:literal, $canonical_name:literal) => {
+        #[derive(Debug)]
+        pub struct $T;
+        impl CodeType for $T {
+            fn type_label(&self) -> String {
+                $python_name.into()
+            }
 
-                fn canonical_name(&self) -> String {
-                    $canonical_name.into()
-                }
+            fn canonical_name(&self) -> String {
+                $canonical_name.into()
+            }
 
-                fn literal(&self, literal: &Literal) -> String {
-                    render_literal(&literal)
-                }
+            fn literal(&self, literal: &Literal) -> Result<String> {
+                render_literal(&literal)
             }
         }
     };

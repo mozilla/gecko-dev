@@ -246,10 +246,18 @@ pub struct Component<Config> {
 /// In most cases `cargo_metadata` can be used, but this should be able to work in
 /// more environments.
 pub trait BindgenCrateConfigSupplier {
-    /// Get the toml for the crate. Probably came from uniffi.toml in the root of the crate source.
+    /// Get a `toml::value::Table` instance for the crate.
     fn get_toml(&self, _crate_name: &str) -> Result<Option<toml::value::Table>> {
         Ok(None)
     }
+
+    /// Get the path to the TOML file for a crate.
+    ///
+    /// This is usually the `uniffi.toml` path in the root of the crate source.
+    fn get_toml_path(&self, _crate_name: &str) -> Option<Utf8PathBuf> {
+        None
+    }
+
     /// Obtains the contents of the named UDL file which was referenced by the type metadata.
     fn get_udl(&self, crate_name: &str, udl_name: &str) -> Result<String> {
         bail!("Crate {crate_name} has no UDL {udl_name}")
@@ -262,7 +270,7 @@ impl BindgenCrateConfigSupplier for EmptyCrateConfigSupplier {}
 /// A convenience function for the CLI to help avoid using static libs
 /// in places cdylibs are required.
 pub fn is_cdylib(library_file: impl AsRef<Utf8Path>) -> bool {
-    crate::library_mode::calc_cdylib_name(library_file.as_ref()).is_some()
+    library_mode::calc_cdylib_name(library_file.as_ref()).is_some()
 }
 
 /// Generate bindings for an external binding generator
@@ -311,7 +319,7 @@ pub fn generate_external_bindings<T: BindingGenerator>(
     let settings = GenerationSettings {
         cdylib: match library_file {
             Some(ref library_file) => {
-                crate::library_mode::calc_cdylib_name(library_file.as_ref()).map(ToOwned::to_owned)
+                library_mode::calc_cdylib_name(library_file.as_ref()).map(ToOwned::to_owned)
             }
             None => None,
         },
@@ -335,7 +343,8 @@ pub fn generate_component_scaffolding(
     out_dir_override: Option<&Utf8Path>,
     format_code: bool,
 ) -> Result<()> {
-    let component = parse_udl(udl_file, &crate_name_from_cargo_toml(udl_file)?)?;
+    let component = parse_udl(udl_file, &crate_name_from_cargo_toml(udl_file)?)
+        .with_context(|| format!("parsing udl file {udl_file}"))?;
     generate_component_scaffolding_inner(component, udl_file, out_dir_override, format_code)
 }
 
@@ -348,7 +357,8 @@ pub fn generate_component_scaffolding_for_crate(
     out_dir_override: Option<&Utf8Path>,
     format_code: bool,
 ) -> Result<()> {
-    let component = parse_udl(udl_file, crate_name)?;
+    let component =
+        parse_udl(udl_file, crate_name).with_context(|| format!("parsing udl file {udl_file}"))?;
     generate_component_scaffolding_inner(component, udl_file, out_dir_override, format_code)
 }
 
@@ -365,7 +375,7 @@ fn generate_component_scaffolding_inner(
     write!(f, "{}", RustScaffolding::new(&component, file_stem))
         .context("Failed to write output file")?;
     if format_code {
-        format_code_with_rustfmt(&out_path)?;
+        format_code_with_rustfmt(&out_path).context("formatting generated Rust code")?;
     }
     Ok(())
 }
@@ -531,14 +541,14 @@ fn merge_toml(a: &mut toml::value::Table, b: toml::value::Table) {
 }
 
 // FIXME(HACK):
-// Include the askama config file into the build.
+// Include the rinja config file into the build.
 // That way cargo tracks the file and other tools relying on file tracking see it as well.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1774585
-// In the future askama should handle that itself by using the `track_path::path` API,
+// In the future rinja should handle that itself by using the `track_path::path` API,
 // see https://github.com/rust-lang/rust/pull/84029
 #[allow(dead_code)]
 mod __unused {
-    const _: &[u8] = include_bytes!("../askama.toml");
+    const _: &[u8] = include_bytes!("../rinja.toml");
 }
 
 #[cfg(test)]

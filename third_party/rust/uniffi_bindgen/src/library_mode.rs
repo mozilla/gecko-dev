@@ -19,12 +19,12 @@ use crate::{
     macro_metadata, overridden_config_value, BindgenCrateConfigSupplier, BindingGenerator,
     Component, ComponentInterface, GenerationSettings, Result,
 };
-use anyhow::bail;
+use anyhow::{bail, Context};
 use camino::Utf8Path;
-use std::{collections::HashMap, fs};
+use std::{collections::BTreeMap, fs};
 use toml::value::Table as TomlTable;
 use uniffi_meta::{
-    create_metadata_groups, fixup_external_type, group_metadata, Metadata, MetadataGroup,
+    create_metadata_groups, group_metadata, Metadata, MetadataGroup, NamespaceMetadata,
 };
 
 /// Generate foreign bindings
@@ -34,7 +34,7 @@ use uniffi_meta::{
 /// interface and allows for more flexibility in how the external bindings are generated.
 ///
 /// Returns the list of sources used to generate the bindings, in no particular order.
-pub fn generate_bindings<T: BindingGenerator + ?Sized>(
+pub fn generate_bindings<T: BindingGenerator>(
     library_path: &Utf8Path,
     crate_name: Option<String>,
     binding_generator: &T,
@@ -43,11 +43,14 @@ pub fn generate_bindings<T: BindingGenerator + ?Sized>(
     out_dir: &Utf8Path,
     try_format_code: bool,
 ) -> Result<Vec<Component<T::Config>>> {
-    let mut components = find_components(library_path, config_supplier)?
+    let mut components = find_components(library_path, config_supplier)
+        .with_context(|| format!("finding components in '{library_path}'"))?
         .into_iter()
         .map(|Component { ci, config }| {
             let toml_value = overridden_config_value(config, config_file_override)?;
-            let config = binding_generator.new_config(&toml_value)?;
+            let config = binding_generator
+                .new_config(&toml_value)
+                .context("loading toml")?;
             Ok(Component { ci, config })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -105,39 +108,39 @@ pub fn find_components(
     let mut metadata_groups = create_metadata_groups(&items);
     group_metadata(&mut metadata_groups, items)?;
 
-    // Collect and process all UDL from all groups at the start - the fixups
-    // of external types makes this tricky to do as we finalize the group.
-    let mut udl_items: HashMap<String, MetadataGroup> = HashMap::new();
-
-    for group in metadata_groups.values() {
+    for group in metadata_groups.values_mut() {
         let crate_name = group.namespace.crate_name.clone();
-        if let Some(mut metadata_group) = load_udl_metadata(group, &crate_name, config_supplier)? {
-            // fixup the items.
-            metadata_group.items = metadata_group
+        if let Some(udl_group) = load_udl_metadata(group, &crate_name, config_supplier)? {
+            let mut udl_items = udl_group
                 .items
                 .into_iter()
-                .map(|item| fixup_external_type(item, &metadata_groups))
                 // some items are both in UDL and library metadata. For many that's fine but
                 // uniffi-traits aren't trivial to compare meaning we end up with dupes.
                 // We filter out such problematic items here.
                 .filter(|item| !matches!(item, Metadata::UniffiTrait { .. }))
                 .collect();
-            udl_items.insert(crate_name, metadata_group);
+            group.items.append(&mut udl_items);
+            if group.namespace_docstring.is_none() {
+                group.namespace_docstring = udl_group.namespace_docstring;
+            }
         };
     }
+
+    let crate_to_namespace_map: BTreeMap<String, NamespaceMetadata> = metadata_groups
+        .iter()
+        .map(|(k, v)| (k.clone(), v.namespace.clone()))
+        .collect();
 
     metadata_groups
         .into_values()
         .map(|group| {
             let crate_name = &group.namespace.crate_name;
             let mut ci = ComponentInterface::new(crate_name);
-            if let Some(metadata) = udl_items.remove(crate_name) {
-                ci.add_metadata(metadata)?;
-            };
             ci.add_metadata(group)?;
             let config = config_supplier
                 .get_toml(ci.crate_name())?
                 .unwrap_or_default();
+            ci.set_crate_to_namespace_map(crate_to_namespace_map.clone());
             Ok(Component { ci, config })
         })
         .collect()
@@ -152,7 +155,7 @@ fn load_udl_metadata(
         .items
         .iter()
         .filter_map(|i| match i {
-            uniffi_meta::Metadata::UdlFile(meta) => Some(meta),
+            Metadata::UdlFile(meta) => Some(meta),
             _ => None,
         })
         .collect::<Vec<_>>();

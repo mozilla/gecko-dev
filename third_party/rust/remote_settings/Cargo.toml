@@ -82,7 +82,7 @@ features = ["derive"]
 path = "../support/sql"
 
 [dependencies.uniffi]
-version = "0.28.2"
+version = "0.29.0"
 
 [dependencies.viaduct]
 path = "../viaduct"
@@ -100,5 +100,5 @@ features = ["preserve_order"]
 path = "../support/viaduct-reqwest"
 
 [build-dependencies.uniffi]
-version = "0.28.2"
+version = "0.29.0"
 features = ["build"]

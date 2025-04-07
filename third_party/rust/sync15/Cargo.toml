@@ -88,7 +88,7 @@ path = "../support/guid"
 features = ["random"]
 
 [dependencies.uniffi]
-version = "0.28.2"
+version = "0.29.0"
 
 [dependencies.url]
 version = "2"
@@ -103,8 +103,5 @@ version = "0.10"
 default-features = false
 
 [build-dependencies.uniffi]
-version = "0.28.2"
+version = "0.29.0"
 features = ["build"]
-
-[lints.clippy]
-empty-line-after-doc-comments = "allow"

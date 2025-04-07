@@ -1,5 +1,5 @@
 {%- call swift::docstring(e, 0) %}
-public enum {{ type_name }} {
+public enum {{ type_name }}: Swift.Error {
 
     {% if e.is_flat() %}
     {% for variant in e.variants() %}
@@ -87,11 +87,32 @@ public struct {{ ffi_converter_name }}: FfiConverterRustBuffer {
     }
 }
 
+{#
+We always write these public functions just in case the error is used as
+an external type by another crate.
+#}
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}_lift(_ buf: RustBuffer) throws -> {{ type_name }} {
+    return try {{ ffi_converter_name }}.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}_lower(_ value: {{ type_name }}) -> RustBuffer {
+    return {{ ffi_converter_name }}.lower(value)
+}
+
 {% if !contains_object_references %}
 extension {{ type_name }}: Equatable, Hashable {}
 {% endif %}
+
+{% if !config.omit_localized_error_conformance() %}
 extension {{ type_name }}: Foundation.LocalizedError {
     public var errorDescription: String? {
         String(reflecting: self)
     }
 }
+{% endif %}

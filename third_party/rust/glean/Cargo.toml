@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.76"
+rust-version = "1.82"
 name = "glean"
-version = "63.1.0"
+version = "64.0.1"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -42,6 +42,14 @@ repository = "https://github.com/mozilla/glean"
 [lib]
 name = "glean"
 path = "src/lib.rs"
+
+[[test]]
+name = "collection_enabled"
+path = "tests/collection_enabled.rs"
+
+[[test]]
+name = "collection_enabled_bin"
+path = "tests/collection_enabled_bin.rs"
 
 [[test]]
 name = "custom_distribution_buffered"
@@ -99,11 +107,15 @@ path = "tests/timing_distribution_single_sample.rs"
 name = "upload_timing"
 path = "tests/upload_timing.rs"
 
+[[test]]
+name = "uploader_capabilities"
+path = "tests/uploader_capabilities.rs"
+
 [dependencies.crossbeam-channel]
 version = "0.5"
 
 [dependencies.glean-core]
-version = "63.1.0"
+version = "64.0.1"
 
 [dependencies.inherent]
 version = "1"

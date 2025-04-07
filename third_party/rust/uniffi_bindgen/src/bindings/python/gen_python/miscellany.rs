@@ -3,27 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::CodeType;
-use crate::backend::Literal;
-use paste::paste;
 
 macro_rules! impl_code_type_for_miscellany {
-    ($T:ty, $canonical_name:literal) => {
-        paste! {
-            #[derive(Debug)]
-            pub struct $T;
+    ($T:ident, $canonical_name:literal) => {
+        #[derive(Debug)]
+        pub struct $T;
 
-            impl CodeType for $T  {
-                fn type_label(&self) -> String {
-                    format!("{}", $canonical_name)
-                }
+        impl CodeType for $T {
+            fn type_label(&self) -> String {
+                format!("{}", $canonical_name)
+            }
 
-                fn canonical_name(&self) -> String {
-                    format!("{}", $canonical_name)
-                }
-
-                fn literal(&self, _literal: &Literal) -> String {
-                    unreachable!()
-                }
+            fn canonical_name(&self) -> String {
+                format!("{}", $canonical_name)
             }
         }
     };

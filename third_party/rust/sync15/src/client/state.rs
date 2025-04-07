@@ -53,8 +53,7 @@ const DEFAULT_DECLINED: &[&str] = &[];
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "schema_version")]
 pub enum PersistedGlobalState {
-    /// V1 was when we persisted the entire GlobalState, keys and all!
-
+    // V1 was when we persisted the entire GlobalState, keys and all!
     /// V2 is just tracking the globally declined list.
     /// None means "I've no idea" and theoretically should only happen on the
     /// very first sync for an app.

@@ -12,8 +12,13 @@
 [package]
 edition = "2021"
 name = "uniffi"
-version = "0.28.2"
-authors = ["Firefox Sync Team <sync-team@mozilla.com>"]
+version = "0.29.1"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "a multi-language bindings generator for rust"
 homepage = "https://mozilla.github.io/uniffi-rs"
 documentation = "https://mozilla.github.io/uniffi-rs"
@@ -24,6 +29,37 @@ keywords = [
 ]
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/uniffi-rs"
+
+[features]
+bindgen = ["dep:uniffi_bindgen"]
+bindgen-tests = [
+    "dep:uniffi_bindgen",
+    "uniffi_bindgen?/bindgen-tests",
+]
+build = ["dep:uniffi_build"]
+cargo-metadata = [
+    "dep:cargo_metadata",
+    "uniffi_bindgen?/cargo-metadata",
+]
+cli = [
+    "bindgen",
+    "dep:clap",
+    "dep:camino",
+]
+default = ["cargo-metadata"]
+ffi-trace = [
+    "uniffi_core/ffi-trace",
+    "uniffi_bindgen?/ffi-trace",
+]
+scaffolding-ffi-buffer-fns = [
+    "uniffi_core/scaffolding-ffi-buffer-fns",
+    "uniffi_macros/scaffolding-ffi-buffer-fns",
+]
+tokio = ["uniffi_core/tokio"]
+
+[lib]
+name = "uniffi"
+path = "src/lib.rs"
 
 [dependencies.anyhow]
 version = "1"
@@ -40,47 +76,29 @@ optional = true
 version = "4"
 features = [
     "cargo",
-    "std",
     "derive",
+    "error-context",
+    "help",
+    "suggestions",
+    "std",
+    "usage",
 ]
 optional = true
+default-features = false
 
 [dependencies.uniffi_bindgen]
-version = "=0.28.2"
+version = "=0.29.1"
 optional = true
 
 [dependencies.uniffi_build]
-version = "=0.28.2"
+version = "=0.29.1"
 optional = true
 
 [dependencies.uniffi_core]
-version = "=0.28.2"
+version = "=0.29.1"
 
 [dependencies.uniffi_macros]
-version = "=0.28.2"
+version = "=0.29.1"
 
 [dev-dependencies.trybuild]
 version = "1"
-
-[features]
-bindgen = ["dep:uniffi_bindgen"]
-bindgen-tests = [
-    "dep:uniffi_bindgen",
-    "uniffi_bindgen/bindgen-tests",
-]
-build = ["dep:uniffi_build"]
-cargo-metadata = [
-    "dep:cargo_metadata",
-    "uniffi_bindgen?/cargo-metadata",
-]
-cli = [
-    "bindgen",
-    "dep:clap",
-    "dep:camino",
-]
-default = ["cargo-metadata"]
-scaffolding-ffi-buffer-fns = [
-    "uniffi_core/scaffolding-ffi-buffer-fns",
-    "uniffi_macros/scaffolding-ffi-buffer-fns",
-]
-tokio = ["uniffi_core/tokio"]

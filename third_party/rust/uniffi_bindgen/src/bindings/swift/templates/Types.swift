@@ -1,5 +1,5 @@
 {%- import "macros.swift" as swift %}
-{%- for type_ in ci.iter_types() %}
+{%- for type_ in ci.iter_local_types() %}
 {%- let type_name = type_|type_name %}
 {%- let ffi_converter_name = type_|ffi_converter_name %}
 {%- let canonical_type_name = type_|canonical_name %}
@@ -65,7 +65,9 @@
 {%- include "CallbackInterfaceTemplate.swift" %}
 
 {%- when Type::Custom { name, module_path, builtin } %}
+{%- if !ci.is_external(type_) %}
 {%- include "CustomType.swift" %}
+{%- endif %}
 
 {%- when Type::Enum { name, module_path } %}
 {%- let e = ci.get_enum_definition(name).unwrap() %}
@@ -75,7 +77,7 @@
 {%- include "EnumTemplate.swift" %}
 {% endif %}
 
-{%- when Type::Object{ name, module_path, imp } %}
+{%- when Type::Object{ name, module_path, .. } %}
 {%- include "ObjectTemplate.swift" %}
 
 {%- when Type::Record { name, module_path } %}

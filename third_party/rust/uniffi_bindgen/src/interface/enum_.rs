@@ -174,6 +174,7 @@ use super::{AsType, Literal, Type, TypeIterator};
 pub struct Enum {
     pub(super) name: String,
     pub(super) module_path: String,
+    pub(super) remote: bool,
     pub(super) discr_type: Option<Type>,
     pub(super) variants: Vec<Variant>,
     pub(super) shape: EnumShape,
@@ -191,6 +192,10 @@ impl Enum {
         self.name = name;
     }
 
+    pub fn remote(&self) -> bool {
+        self.remote
+    }
+
     pub fn variants(&self) -> &[Variant] {
         &self.variants
     }
@@ -204,14 +209,20 @@ impl Enum {
     // in those cases, so by the time this get's run we can be confident these
     // error cases can't exist.
     pub fn variant_discr(&self, variant_index: usize) -> Result<Literal> {
-        if variant_index >= self.variants.len() {
-            anyhow::bail!("Invalid variant index {variant_index}");
+        for (i, lit) in self.variant_discr_iter().enumerate() {
+            let lit = lit?;
+            if i == variant_index {
+                return Ok(lit);
+            }
         }
+        anyhow::bail!("Invalid variant index {variant_index}");
+    }
+
+    // Iterate over variant discriminants
+    pub fn variant_discr_iter(&self) -> impl Iterator<Item = Result<Literal>> + '_ {
         let mut next = 0;
-        let mut this;
-        let mut this_lit = Literal::new_uint(0);
-        for v in self.variants().iter().take(variant_index + 1) {
-            (this, this_lit) = match v.discr {
+        self.variants().iter().map(move |v| {
+            let (this, this_lit) = match v.discr {
                 None => (
                     next,
                     if (next as i64) < 0 {
@@ -226,8 +237,8 @@ impl Enum {
                 _ => anyhow::bail!("Invalid literal type {v:?}"),
             };
             next = this.wrapping_add(1);
-        }
-        Ok(this_lit)
+            Ok(this_lit)
+        })
     }
 
     pub fn variant_discr_type(&self) -> &Option<Type> {
@@ -261,6 +272,7 @@ impl TryFrom<uniffi_meta::EnumMetadata> for Enum {
         Ok(Self {
             name: meta.name,
             module_path: meta.module_path,
+            remote: meta.remote,
             discr_type: meta.discr_type,
             variants: meta
                 .variants
@@ -469,17 +481,17 @@ mod test {
                 module_path: "crate_name".into()
             }
         );
-        assert_eq!(
+        assert!(matches!(
             farg.ffi_func().arguments()[0].type_(),
-            FfiType::RustBuffer(None)
-        );
+            FfiType::RustBuffer(_)
+        ));
         let fret = ci.get_function_definition("returns_an_enum").unwrap();
         assert!(
             matches!(fret.return_type(), Some(Type::Enum { name, .. }) if name == "TestEnum" && !ci.is_name_used_as_error(name))
         );
         assert!(matches!(
             fret.ffi_func().return_type(),
-            Some(FfiType::RustBuffer(None))
+            Some(FfiType::RustBuffer(_))
         ));
 
         // Enums with associated data pass over the FFI as bytebuffers.
@@ -493,10 +505,10 @@ mod test {
                 module_path: "crate_name".into()
             }
         );
-        assert_eq!(
+        assert!(matches!(
             farg.ffi_func().arguments()[0].type_(),
-            FfiType::RustBuffer(None)
-        );
+            FfiType::RustBuffer(_)
+        ));
         let fret = ci
             .get_function_definition("returns_an_enum_with_data")
             .unwrap();
@@ -505,7 +517,7 @@ mod test {
         );
         assert!(matches!(
             fret.ffi_func().return_type(),
-            Some(FfiType::RustBuffer(None))
+            Some(FfiType::RustBuffer(_))
         ));
     }
 
@@ -662,6 +674,7 @@ mod test {
         let mut e = Enum {
             module_path: "test".to_string(),
             name: "test".to_string(),
+            remote: false,
             discr_type: None,
             variants: vec![],
             shape: EnumShape::Enum,

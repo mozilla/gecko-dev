@@ -1,4 +1,4 @@
-{%- let obj = ci|get_object_definition(name) %}
+{%- let obj = ci.get_object_definition(name).unwrap() %}
 {%- let (protocol_name, impl_class_name) = obj|object_names %}
 {%- let methods = obj.methods() %}
 {%- let protocol_docstring = obj.docstring() %}
@@ -8,24 +8,7 @@
 {% include "Protocol.swift" %}
 
 {%- call swift::docstring(obj, 0) %}
-open class {{ impl_class_name }}:
-    {%- for tm in obj.uniffi_traits() %}
-    {%-     match tm %}
-    {%-         when UniffiTrait::Display { fmt } %}
-    CustomStringConvertible,
-    {%-         when UniffiTrait::Debug { fmt } %}
-    CustomDebugStringConvertible,
-    {%-         when UniffiTrait::Eq { eq, ne } %}
-    Equatable,
-    {%-         when UniffiTrait::Hash { hash } %}
-    Hashable,
-    {%-         else %}
-    {%-    endmatch %}
-    {%- endfor %}
-    {%- if is_error %}
-    Swift.Error,
-    {% endif %}
-    {{ protocol_name }} {
+open class {{ impl_class_name }}: {{ protocol_name }}, @unchecked Sendable {
     fileprivate let pointer: UnsafeMutableRawPointer!
 
     /// Used to instantiate a [FFIObject] without an actual pointer, for fakes in tests, mostly.
@@ -39,6 +22,9 @@ open class {{ impl_class_name }}:
     // TODO: We'd like this to be `private` but for Swifty reasons,
     // we can't implement `FfiConverter` without making this `required` and we can't
     // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
     required public init(unsafeFromRawPointer pointer: UnsafeMutableRawPointer) {
         self.pointer = pointer
     }
@@ -63,7 +49,7 @@ open class {{ impl_class_name }}:
     }
 
     {%- match obj.primary_constructor() %}
-    {%- when Some with (cons) %}
+    {%- when Some(cons) %}
     {%- call swift::ctor_decl(cons, 4) %}
     {%- when None %}
     // No primary constructor declared for this class.
@@ -89,25 +75,25 @@ open class {{ impl_class_name }}:
     {%-     match tm %}
     {%-         when UniffiTrait::Display { fmt } %}
     open var description: String {
-        return {% call swift::try(fmt) %} {{ fmt.return_type().unwrap()|lift_fn }}(
+        return {% call swift::is_try(fmt) %} {{ fmt.return_type().unwrap()|lift_fn }}(
             {% call swift::to_ffi_call(fmt) %}
         )
     }
     {%-         when UniffiTrait::Debug { fmt } %}
     open var debugDescription: String {
-        return {% call swift::try(fmt) %} {{ fmt.return_type().unwrap()|lift_fn }}(
+        return {% call swift::is_try(fmt) %} {{ fmt.return_type().unwrap()|lift_fn }}(
             {% call swift::to_ffi_call(fmt) %}
         )
     }
     {%-         when UniffiTrait::Eq { eq, ne } %}
     public static func == (self: {{ impl_class_name }}, other: {{ impl_class_name }}) -> Bool {
-        return {% call swift::try(eq) %} {{ eq.return_type().unwrap()|lift_fn }}(
+        return {% call swift::is_try(eq) %} {{ eq.return_type().unwrap()|lift_fn }}(
             {% call swift::to_ffi_call(eq) %}
         )
     }
     {%-         when UniffiTrait::Hash { hash } %}
     open func hash(into hasher: inout Hasher) {
-        let val = {% call swift::try(hash) %} {{ hash.return_type().unwrap()|lift_fn }}(
+        let val = {% call swift::is_try(hash) %} {{ hash.return_type().unwrap()|lift_fn }}(
             {% call swift::to_ffi_call(hash) %}
         )
         hasher.combine(val)
@@ -127,12 +113,35 @@ open class {{ impl_class_name }}:
 {% include "CallbackInterfaceImpl.swift" %}
 {%- endif %}
 
+{%- for tm in obj.uniffi_traits() %}
+{%-     match tm %}
+{%-         when UniffiTrait::Display { fmt } %}
+extension {{ impl_class_name }}: CustomStringConvertible {}
+{%-         when UniffiTrait::Debug { fmt } %}
+extension {{ impl_class_name }}: CustomDebugStringConvertible {}
+{%-         when UniffiTrait::Eq { eq, ne } %}
+extension {{ impl_class_name }}: Equatable {}
+{%-         when UniffiTrait::Hash { hash } %}
+extension {{ impl_class_name }}: Hashable {}
+{%-         else %}
+{%-    endmatch %}
+{%- endfor %}
+
+{%- if is_error %}
+extension {{ impl_class_name }}: Swift.Error {}
+{% endif %}
+
+{%- for t in obj.trait_impls() %}
+extension {{impl_class_name}}: {{ self::trait_protocol_name(ci, t.trait_name)? }} {}
+{% endfor %}
+
+
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
 public struct {{ ffi_converter_name }}: FfiConverter {
     {%- if obj.has_callback_interface() %}
-    fileprivate static var handleMap = UniffiHandleMap<{{ type_name }}>()
+    fileprivate static let handleMap = UniffiHandleMap<{{ type_name }}>()
     {%- endif %}
 
     typealias FfiType = UnsafeMutableRawPointer
@@ -171,14 +180,34 @@ public struct {{ ffi_converter_name }}: FfiConverter {
     }
 }
 
+{#
+We always write these public functions just in case the object is used as
+an external type by another crate.
+#}
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}_lift(_ pointer: UnsafeMutableRawPointer) throws -> {{ type_name }} {
+    return try {{ ffi_converter_name }}.lift(pointer)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}_lower(_ value: {{ type_name }}) -> UnsafeMutableRawPointer {
+    return {{ ffi_converter_name }}.lower(value)
+}
+
 {# Objects as error #}
 {%- if is_error %}
 
+{% if !config.omit_localized_error_conformance() %}
 extension {{ type_name }}: Foundation.LocalizedError {
     public var errorDescription: String? {
         String(reflecting: self)
     }
 }
+{% endif %}
 
 {# Due to some mismatches in the ffi converter mechanisms, errors are a RustBuffer holding a pointer #}
 #if swift(>=5.8)
@@ -202,22 +231,20 @@ public struct {{ ffi_converter_name }}__as_error: FfiConverterRustBuffer {
         fatalError("not implemented")
     }
 }
+
+{# Error FFI converters also need these public functions. #}
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}__as_error_lift(_ buf: RustBuffer) throws -> {{ type_name }} {
+    return try {{ ffi_converter_name }}__as_error.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func {{ ffi_converter_name }}__as_error_lower(_ value: {{ type_name }}) -> RustBuffer {
+    return {{ ffi_converter_name }}__as_error.lower(value)
+}
+
 {%- endif %}
-
-{#
-We always write these public functions just in case the enum is used as
-an external type by another crate.
-#}
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-public func {{ ffi_converter_name }}_lift(_ pointer: UnsafeMutableRawPointer) throws -> {{ type_name }} {
-    return try {{ ffi_converter_name }}.lift(pointer)
-}
-
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-public func {{ ffi_converter_name }}_lower(_ value: {{ type_name }}) -> UnsafeMutableRawPointer {
-    return {{ ffi_converter_name }}.lower(value)
-}

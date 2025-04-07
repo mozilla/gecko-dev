@@ -6,7 +6,7 @@
 
 {% include "UdlMetadata.rs" %}
 
-{% for ty in ci.iter_types() %}
+{% for ty in ci.iter_local_types() %}
 {%- match ty %}
 {%- when Type::Map { key_type: k, value_type: v } -%}
 {# Next comment MUST be after the line to be in the compiler output #}
@@ -44,9 +44,6 @@ uniffi::deps::static_assertions::assert_impl_all!({{ k|type_rs }}: ::std::cmp::E
 {% for cbi in ci.callback_interface_definitions() %}
 {% include "CallbackInterfaceTemplate.rs" %}
 {% endfor %}
-
-// External and Wrapped types
-{% include "ExternalTypesTemplate.rs" %}
 
 // Export scaffolding checksums for UDL items
 {% include "Checksums.rs" %}

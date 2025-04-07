@@ -12,8 +12,13 @@
 [package]
 edition = "2021"
 name = "uniffi_bindgen"
-version = "0.28.2"
-authors = ["Firefox Sync Team <sync-team@mozilla.com>"]
+version = "0.29.1"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "a multi-language bindings generator for rust (codegen and cli tooling)"
 homepage = "https://mozilla.github.io/uniffi-rs"
 documentation = "https://mozilla.github.io/uniffi-rs"
@@ -25,13 +30,21 @@ keywords = [
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/uniffi-rs"
 
+[features]
+bindgen-tests = [
+    "cargo-metadata",
+    "dep:uniffi_testing",
+]
+cargo-metadata = ["dep:cargo_metadata"]
+default = ["cargo-metadata"]
+ffi-trace = ["uniffi_testing?/ffi-trace"]
+
+[lib]
+name = "uniffi_bindgen"
+path = "src/lib.rs"
+
 [dependencies.anyhow]
 version = "1"
-
-[dependencies.askama]
-version = "0.12"
-features = ["config"]
-default-features = false
 
 [dependencies.camino]
 version = "1.0.8"
@@ -58,6 +71,11 @@ version = "1.12"
 [dependencies.paste]
 version = "1.0"
 
+[dependencies.rinja]
+version = "0.3.4"
+features = ["config"]
+default-features = false
+
 [dependencies.serde]
 version = "1"
 features = ["derive"]
@@ -71,19 +89,11 @@ default-features = false
 version = "0.5"
 
 [dependencies.uniffi_meta]
-version = "=0.28.2"
+version = "=0.29.1"
 
 [dependencies.uniffi_testing]
-version = "=0.28.2"
+version = "=0.29.1"
 optional = true
 
 [dependencies.uniffi_udl]
-version = "=0.28.2"
-
-[features]
-bindgen-tests = [
-    "cargo-metadata",
-    "dep:uniffi_testing",
-]
-cargo-metadata = ["dep:cargo_metadata"]
-default = ["cargo-metadata"]
+version = "=0.29.1"

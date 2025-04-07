@@ -5,24 +5,25 @@
 use crate::db::RelevancyDao;
 use crate::rs::{
     from_json, from_json_slice, RelevancyAttachmentData, RelevancyRecord,
-    RelevancyRemoteSettingsClient, REMOTE_SETTINGS_COLLECTION,
+    RelevancyRemoteSettingsClient,
 };
 use crate::url_hash::UrlHash;
 use crate::{Error, Interest, RelevancyDb, Result};
 use base64::{engine::general_purpose::STANDARD, Engine};
-use remote_settings::{
-    RemoteSettings, RemoteSettingsConfig, RemoteSettingsRecord, RemoteSettingsServer,
-};
+use remote_settings::RemoteSettingsRecord;
 
 // Number of rows to write when inserting interest data before checking for interruption
 const WRITE_CHUNK_SIZE: usize = 100;
 
-pub fn ensure_interest_data_populated(db: &RelevancyDb) -> Result<()> {
+pub fn ensure_interest_data_populated<C: RelevancyRemoteSettingsClient>(
+    db: &RelevancyDb,
+    client: C,
+) -> Result<()> {
     if !db.read(|dao| dao.need_to_load_url_interests())? {
         return Ok(());
     }
 
-    match fetch_interest_data() {
+    match fetch_interest_data_inner(client) {
         Ok(data) => {
             db.read_write(move |dao| insert_interest_data(data, dao))?;
         }
@@ -34,27 +35,17 @@ pub fn ensure_interest_data_populated(db: &RelevancyDb) -> Result<()> {
     Ok(())
 }
 
-fn fetch_interest_data() -> Result<Vec<(Interest, UrlHash)>> {
-    let rs = RemoteSettings::new(RemoteSettingsConfig {
-        collection_name: REMOTE_SETTINGS_COLLECTION.to_string(),
-        server: Some(RemoteSettingsServer::Prod),
-        server_url: None,
-        bucket_name: None,
-    })?;
-    fetch_interest_data_inner(rs)
-}
-
 /// Fetch the interest data
-fn fetch_interest_data_inner(
-    rs: impl RelevancyRemoteSettingsClient,
+fn fetch_interest_data_inner<C: RelevancyRemoteSettingsClient>(
+    client: C,
 ) -> Result<Vec<(Interest, UrlHash)>> {
-    let remote_settings_response = rs.get_records()?;
+    let remote_settings_response = client.get_records()?;
     let mut result = vec![];
 
     for record in remote_settings_response.records {
         let attachment_data = match &record.attachment {
             None => return Err(Error::FetchInterestDataError),
-            Some(a) => rs.get_attachment(&a.location)?,
+            Some(a) => client.get_attachment(&a.location)?,
         };
         let interest = get_interest(&record)?;
         let urls = get_hash_urls(attachment_data)?;
