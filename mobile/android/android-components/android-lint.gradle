@@ -14,8 +14,6 @@ android {
                 'UnusedResources',
                 // "We do not impose rules on locales"
                 // https://github.com/mozilla-mobile/android-components/pull/11069
-                'TypographyDashes',
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1952578
-                'UseKtx'
+                'TypographyDashes'
     }
 }
