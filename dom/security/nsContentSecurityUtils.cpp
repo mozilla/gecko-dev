@@ -1959,7 +1959,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://global/content/appPicker.xhtml"_ns,
       "chrome://global/content/backgroundPageThumbs.xhtml"_ns,
       "chrome://global/content/megalist/megalist.html"_ns,
-      "chrome://global/content/selectDialog.xhtml"_ns,
       // Test files
       "chrome://mochikit/"_ns,
       "chrome://mochitests/"_ns,
