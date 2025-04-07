@@ -46,6 +46,7 @@
 #include "hb-set.hh"
 
 #include "hb-aat-layout.hh"
+#include "hb-ot-layout-gdef-table.hh"
 #include "hb-ot-stat-table.hh"
 
 
@@ -210,6 +211,14 @@ hb_ot_shape_planner_t::compile (hb_ot_shape_plan_t           &plan,
      https://github.com/harfbuzz/harfbuzz/issues/2967. */
   if (plan.apply_morx)
     plan.adjust_mark_positioning_when_zeroing = false;
+
+  /* According to Ned, trak is applied by default for "modern fonts", as detected by presence of STAT table. */
+#ifndef HB_NO_STYLE
+  plan.apply_trak = hb_aat_layout_has_tracking (face) && face->table.STAT->has_data ();
+#else
+  plan.apply_trak = false;
+#endif
+
 #endif
 }
 
@@ -274,6 +283,11 @@ hb_ot_shape_plan_t::position (hb_font_t   *font,
 #endif
   else if (this->apply_fallback_kern)
     _hb_ot_shape_fallback_kern (this, font, buffer);
+
+#ifndef HB_NO_AAT_SHAPE
+  if (this->apply_trak)
+    hb_aat_layout_track (this, font, buffer);
+#endif
 }
 
 
@@ -410,17 +424,26 @@ _hb_ot_shaper_face_data_destroy (hb_ot_face_data_t *data)
  * shaper font data
  */
 
-struct hb_ot_font_data_t {};
+struct hb_ot_font_data_t {
+  OT::ItemVariationStore::cache_t unused; // Just for alignment
+};
 
 hb_ot_font_data_t *
-_hb_ot_shaper_font_data_create (hb_font_t *font HB_UNUSED)
+_hb_ot_shaper_font_data_create (hb_font_t *font)
 {
-  return (hb_ot_font_data_t *) HB_SHAPER_DATA_SUCCEEDED;
+  if (!font->num_coords)
+    return (hb_ot_font_data_t *) HB_SHAPER_DATA_SUCCEEDED;
+
+  const OT::ItemVariationStore &var_store = font->face->table.GDEF->table->get_var_store ();
+  auto *cache = (hb_ot_font_data_t *) var_store.create_cache ();
+  return cache ? cache : (hb_ot_font_data_t *) HB_SHAPER_DATA_SUCCEEDED;
 }
 
 void
-_hb_ot_shaper_font_data_destroy (hb_ot_font_data_t *data HB_UNUSED)
+_hb_ot_shaper_font_data_destroy (hb_ot_font_data_t *data)
 {
+  if (data == HB_SHAPER_DATA_SUCCEEDED) return;
+  OT::ItemVariationStore::destroy_cache ((OT::ItemVariationStore::cache_t *) data);
 }
 
 
