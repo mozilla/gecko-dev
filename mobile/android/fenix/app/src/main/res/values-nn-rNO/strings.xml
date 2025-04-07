@@ -769,6 +769,10 @@
   <string name="preferences_add_private_browsing_shortcut">Legg til snarveg for privat nettlesing</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Berre HTTPS-modus</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Bruk skjermlås for å skjule faner i privat nettlesing</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Vis faner med fingeravtrykk, ansiktslås eller PIN-kode.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blokkering av infokapselbanner</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -3440,14 +3444,24 @@
   <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Logg inn på kontoen din</string>
   <!-- The title of the theme selection task for the setup checklist -->
   <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Vel eit tema</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Vel plassering for verktøylinja</string>
   <!-- The title of the explore extensions task for the setup checklist -->
   <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Utforsk utvidingar</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">Tilpass %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Nyttige verktøy</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Fullført oppgåve</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Oppgåve-ikon</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Forlat private faner</string>
   <!-- Label for the primary action button to unlock private tabs -->
   <string name="pbm_authentication_unlock">Lås opp</string>
   <!-- Title text instructing the user to unlock private tabs -->

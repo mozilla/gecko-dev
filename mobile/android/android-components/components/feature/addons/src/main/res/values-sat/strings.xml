@@ -84,8 +84,14 @@
   <string name="mozac_feature_addons_permissions_trial_ml_description">ᱟᱢᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮ AI ᱢᱚᱰᱮᱞ ᱠᱚ ᱰᱟᱣᱱᱞᱳᱰ ᱢᱮ ᱟᱨ ᱪᱟᱹᱞᱩᱭ ᱢᱮ</string>
   <!-- Description for userScripts permission. -->
   <string name="mozac_feature_addons_permissions_user_scripts_description">ᱵᱤᱱ ᱯᱩᱥᱴᱟᱹᱣ ᱟᱠᱟᱱ ᱛᱮᱥᱟᱨ ᱯᱟᱨᱴᱤ ᱥᱠᱨᱤᱯᱴ ᱠᱚ ᱟᱢᱟᱜ ᱰᱟᱴᱟ ᱮᱠᱥᱮᱥ ᱞᱟᱹᱜᱤᱫ ᱟᱫᱮᱨ ᱮᱢᱚᱜ ᱢᱮ</string>
+  <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">ᱵᱤᱱ ᱯᱩᱥᱴᱟᱹᱣ ᱟᱠᱟᱱ ᱥᱠᱨᱤᱯᱴ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱟᱨ ᱜᱩᱱᱛᱷᱤ ᱨᱮᱭᱟᱜ ᱡᱷᱩᱠᱤ ᱛᱮᱭᱟᱨ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾ ᱟᱢ ᱯᱟᱹᱛᱭᱟᱹᱣᱟᱱ ᱮᱠᱥᱴᱮᱱᱥᱚᱱ ᱥᱮ ᱥᱚᱨᱥ ᱠᱷᱚᱱ ᱥᱩᱢᱩᱝ ᱥᱠᱨᱤᱯᱴ ᱪᱟᱹᱞᱩᱭ ᱢᱮ ᱾</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">ᱟᱢᱟᱜ ᱰᱟᱴᱟ ᱠᱷᱩᱞᱟᱹ ᱴᱮᱵᱽ ᱠᱚᱨᱮ ᱟᱹᱛᱩᱨ ᱞᱟᱹᱜᱤᱫ ᱛᱮ ᱵᱟᱲᱦᱟᱣᱟᱜ ᱴᱩᱞ ᱚᱥᱟᱨ ᱢᱮ</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">ᱡᱷᱚᱛᱚ ᱥᱟᱭᱤᱴ ᱫᱮᱠᱷᱟᱣ ᱢᱮ</string>
+  <!-- Description for text button that hides the majority of the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">ᱠᱚᱢ ᱥᱟᱭᱤᱴ ᱫᱮᱠᱷᱟᱣ ᱢᱮ</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">ᱟᱨᱩᱯᱷᱮᱨᱟᱣ</string>
   <!-- The author of an add-on. -->
