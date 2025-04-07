@@ -3303,6 +3303,35 @@ class PromptFeatureTest {
     }
 
     @Test
+    fun `GIVEN the redirect dialog is active WHEN handleDialogsRequest is called THEN dismiss the prompt request`() {
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fileUploadsDirCleaner = mock(),
+                tabsUseCases = mock(),
+                fragmentManager = fragmentManager,
+                onNeedToRequestPermissions = {},
+            ),
+        )
+        feature.start()
+        feature.activePrompt = WeakReference(mock())
+        `when`(feature.redirectDialogFragmentIsActive()).thenReturn(true)
+
+        val promptRequest = spy(
+            SingleChoice(
+                choices = arrayOf(mock()),
+                onConfirm = {},
+                onDismiss = {},
+            ),
+        )
+        val session = tab()!!
+        feature.handleDialogsRequest(promptRequest, session)
+
+        verify(feature).dismissDialogRequest(promptRequest, session)
+    }
+
+    @Test
     fun `GIVEN a CertificateRequest prompt THEN handleCertificateRequest(promptRequest) is called`() {
         val feature = spy(
             PromptFeature(
