@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const PREF_TEST_ORIGINS = "browser.uitour.testingOrigins";
-const UITOUR_PERMISSION = "uitour";
+import { UITourUtils } from "moz-src:///browser/components/uitour/UITourUtils.sys.mjs";
 
 export class UITourChild extends JSWindowActorChild {
   handleEvent(event) {
-    if (!this.ensureTrustedOrigin()) {
+    if (!UITourUtils.ensureTrustedOrigin(this.manager)) {
       return;
     }
 
@@ -16,62 +15,6 @@ export class UITourChild extends JSWindowActorChild {
       type: event.type,
       pageVisibilityState: this.document.visibilityState,
     });
-  }
-
-  isTestingOrigin(aURI) {
-    let testingOrigins = Services.prefs.getStringPref(PREF_TEST_ORIGINS, "");
-    if (!testingOrigins) {
-      return false;
-    }
-
-    // Allow any testing origins (comma-seperated).
-    for (let origin of testingOrigins.split(/\s*,\s*/)) {
-      try {
-        let testingURI = Services.io.newURI(origin);
-        if (aURI.prePath == testingURI.prePath) {
-          return true;
-        }
-      } catch (ex) {
-        console.error(ex);
-      }
-    }
-    return false;
-  }
-
-  // This function is copied from UITour.sys.mjs.
-  isSafeScheme(aURI) {
-    let allowedSchemes = new Set(["https", "about"]);
-    if (!allowedSchemes.has(aURI.scheme)) {
-      return false;
-    }
-
-    return true;
-  }
-
-  ensureTrustedOrigin() {
-    if (this.browsingContext.top != this.browsingContext) {
-      return false;
-    }
-
-    let uri = this.document.documentURIObject;
-
-    if (uri.schemeIs("chrome")) {
-      return true;
-    }
-
-    if (!this.isSafeScheme(uri)) {
-      return false;
-    }
-
-    let permission = Services.perms.testPermissionFromPrincipal(
-      this.document.nodePrincipal,
-      UITOUR_PERMISSION
-    );
-    if (permission == Services.perms.ALLOW_ACTION) {
-      return true;
-    }
-
-    return this.isTestingOrigin(uri);
   }
 
   receiveMessage(aMessage) {
@@ -86,7 +29,7 @@ export class UITourChild extends JSWindowActorChild {
   }
 
   sendPageEvent(type, detail) {
-    if (!this.ensureTrustedOrigin()) {
+    if (!UITourUtils.ensureTrustedOrigin(this.manager)) {
       return;
     }
 

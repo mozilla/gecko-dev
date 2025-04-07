@@ -14,6 +14,7 @@
 #include "nsWrapperCache.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/WindowGlobalActor.h"
+#include "mozilla/dom/WindowProxyHolder.h"
 
 class nsGlobalWindowInner;
 class nsDocShell;
@@ -52,6 +53,8 @@ class WindowGlobalChild final : public WindowGlobalActor,
   dom::BrowsingContext* BrowsingContext() override;
   dom::WindowContext* WindowContext() const { return mWindowContext; }
   nsGlobalWindowInner* GetWindowGlobal() const { return mWindowGlobal; }
+
+  Nullable<WindowProxyHolder> GetContentWindow();
 
   // Has this actor been shut down
   bool IsClosed() { return !CanSend(); }

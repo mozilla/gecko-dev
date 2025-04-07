@@ -16,6 +16,10 @@ add_task(async function test_privatebrowsing_window() {
   const ABOUT_ORIGIN_WITH_UITOUR_DEFAULT = "about:newtab";
   const HTTPS_ORIGIN_WITH_UITOUR_DEFAULT = "https://www.mozilla.org";
 
+  let { UITourUtils } = ChromeUtils.importESModule(
+    "moz-src:///browser/components/uitour/UITourUtils.sys.mjs"
+  );
+
   let win = await BrowserTestUtils.openNewBrowserWindow({ private: true });
   let browser = win.gBrowser.selectedBrowser;
 
@@ -26,10 +30,21 @@ add_task(async function test_privatebrowsing_window() {
     BrowserTestUtils.startLoadingURIString(browser, uri);
     await BrowserTestUtils.browserLoaded(browser);
 
+    Assert.ok(
+      UITourUtils.ensureTrustedOrigin(
+        browser.browsingContext.currentWindowGlobal
+      ),
+      "Page should be considered trusted for UITour in the parent."
+    );
+
     await SpecialPowers.spawn(browser, [], async () => {
       let actor = content.windowGlobalChild.getActor("UITour");
+      // eslint-disable-next-line no-shadow
+      let { UITourUtils } = ChromeUtils.importESModule(
+        "moz-src:///browser/components/uitour/UITourUtils.sys.mjs"
+      );
       Assert.ok(
-        actor.ensureTrustedOrigin(),
+        UITourUtils.ensureTrustedOrigin(actor.manager),
         "Page should be considered trusted for UITour."
       );
     });
