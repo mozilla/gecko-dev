@@ -3312,6 +3312,11 @@ export class UrlbarInput {
 
     if (openUILinkWhere != "current") {
       this.handleRevert();
+      if (openUILinkWhere == "tab") {
+        // Always open new tabs next to the current tab. This also allows the
+        // SERP telemetry to find the opener of new search tabs.
+        params.relatedToCurrent = true;
+      }
     }
 
     // Notify about the start of navigation.

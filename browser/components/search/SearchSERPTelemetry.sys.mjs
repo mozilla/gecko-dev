@@ -450,6 +450,13 @@ class TelemetryHandler {
     } else if (this._browserSourceMap.has(browser)) {
       source = this._browserSourceMap.get(browser);
       this._browserSourceMap.delete(browser);
+    } else {
+      let openerBrowser = browser.getTabBrowser().getTabForBrowser(browser)
+        .openerTab?.linkedBrowser;
+      if (openerBrowser && this._browserSourceMap.has(openerBrowser)) {
+        source = this._browserSourceMap.get(openerBrowser);
+        this._browserSourceMap.delete(openerBrowser);
+      }
     }
 
     let newtabSessionId;

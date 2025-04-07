@@ -413,6 +413,12 @@
           params[key] = aParams[key];
         }
       }
+
+      if (aWhere == "tab") {
+        // Always open new tabs next to the current tab. This also allows the
+        // SERP telemetry to find the opener of new search tabs.
+        params.relatedToCurrent = true;
+      }
       openTrustedLinkIn(submission.uri.spec, aWhere, params);
     }
 
