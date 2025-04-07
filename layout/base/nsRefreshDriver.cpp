@@ -1171,6 +1171,14 @@ static StaticRefPtr<RefreshDriverTimer> sRegularRateTimer;
 static StaticAutoPtr<nsTArray<RefreshDriverTimer*>> sRegularRateTimerList;
 static StaticRefPtr<InactiveRefreshDriverTimer> sThrottledRateTimer;
 
+static bool IsPresentingInVR() {
+#ifdef MOZ_WIDGET_ANDROID
+  return gfx::VRManagerChild::IsPresenting();
+#else
+  return false;
+#endif
+}
+
 void nsRefreshDriver::CreateVsyncRefreshTimer() {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -2562,12 +2570,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
   auto cleanupInExtraTick = MakeScopeExit([&] { mInNormalTick = false; });
   mInNormalTick = aIsExtraTick != IsExtraTick::Yes;
 
-  bool isPresentingInVR = false;
-#if defined(MOZ_WIDGET_ANDROID)
-  isPresentingInVR = gfx::VRManagerChild::IsPresenting();
-#endif  // defined(MOZ_WIDGET_ANDROID)
-
-  if (!isPresentingInVR && IsWaitingForPaint(aNowTime)) {
+  if (!IsPresentingInVR() && IsWaitingForPaint(aNowTime)) {
     // In immersive VR mode, we do not get notifications when frames are
     // presented, so we do not wait for the compositor in that mode.
 
@@ -2797,59 +2800,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
 
   UpdateAnimatedImages(previousRefresh, aNowTime);
 
-  bool dispatchTasksAfterTick = false;
-  if (mViewManagerFlushIsPending && !mThrottled) {
-    nsCString transactionId;
-    if (profiler_thread_is_being_profiled_for_markers()) {
-      transactionId.AppendLiteral("Transaction ID: ");
-      transactionId.AppendInt((uint64_t)mNextTransactionId);
-    }
-    AUTO_PROFILER_MARKER_TEXT(
-        "ViewManagerFlush", GRAPHICS,
-        MarkerOptions(
-            MarkerInnerWindowIdFromDocShell(GetDocShell(mPresContext)),
-            MarkerStack::TakeBacktrace(std::move(mViewManagerFlushCause))),
-        transactionId);
-
-    // Forward our composition payloads to the layer manager.
-    if (!mCompositionPayloads.IsEmpty()) {
-      nsCOMPtr<nsIWidget> widget = mPresContext->GetRootWidget();
-      WindowRenderer* renderer = widget ? widget->GetWindowRenderer() : nullptr;
-      if (renderer && renderer->AsWebRender()) {
-        renderer->AsWebRender()->RegisterPayloads(mCompositionPayloads);
-      }
-      mCompositionPayloads.Clear();
-    }
-
-#ifdef MOZ_DUMP_PAINTING
-    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-      printf_stderr("Starting ProcessPendingUpdates\n");
-    }
-#endif
-
-    mViewManagerFlushIsPending = false;
-    RefPtr<nsViewManager> vm = mPresContext->GetPresShell()->GetViewManager();
-    const bool skipPaint = isPresentingInVR;
-    // Skip the paint in immersive VR mode because whatever we paint here will
-    // not end up on the screen. The screen is displaying WebGL content from a
-    // single canvas in that mode.
-    if (!skipPaint) {
-      PaintTelemetry::AutoRecordPaint record;
-      vm->ProcessPendingUpdates();
-    }
-
-#ifdef MOZ_DUMP_PAINTING
-    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-      printf_stderr("Ending ProcessPendingUpdates\n");
-    }
-#endif
-
-    dispatchTasksAfterTick = true;
-    mHasScheduleFlush = false;
-  } else {
-    // No paint happened, discard composition payloads.
-    mCompositionPayloads.Clear();
-  }
+  bool dispatchTasksAfterTick = FlushViewManagerIfNeeded();
 
   // This needs to happen after DL building since we rely on the raster scales
   // being stored in nsSubDocumentFrame.
@@ -2878,6 +2829,63 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
       TaskController::Get()->AddTask(taskWithDelay.forget());
     }
   }
+}
+
+bool nsRefreshDriver::FlushViewManagerIfNeeded() {
+  if (!mViewManagerFlushIsPending || mThrottled) {
+    // No paint happened, discard composition payloads.
+    mCompositionPayloads.Clear();
+    return false;
+  }
+  nsCString transactionId;
+  if (profiler_thread_is_being_profiled_for_markers()) {
+    transactionId.AppendLiteral("Transaction ID: ");
+    transactionId.AppendInt((uint64_t)mNextTransactionId);
+  }
+  AUTO_PROFILER_MARKER_TEXT(
+      "ViewManagerFlush", GRAPHICS,
+      MarkerOptions(
+          MarkerInnerWindowIdFromDocShell(GetDocShell(mPresContext)),
+          MarkerStack::TakeBacktrace(std::move(mViewManagerFlushCause))),
+      transactionId);
+
+  // Forward our composition payloads to the layer manager.
+  if (!mCompositionPayloads.IsEmpty()) {
+    nsCOMPtr<nsIWidget> widget = mPresContext->GetRootWidget();
+    WindowRenderer* renderer = widget ? widget->GetWindowRenderer() : nullptr;
+    if (renderer && renderer->AsWebRender()) {
+      renderer->AsWebRender()->RegisterPayloads(mCompositionPayloads);
+    }
+    mCompositionPayloads.Clear();
+  }
+
+#ifdef MOZ_DUMP_PAINTING
+  if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+    printf_stderr("Starting ProcessPendingUpdates\n");
+  }
+#endif
+
+  mViewManagerFlushIsPending = false;
+  RefPtr<nsViewManager> vm = mPresContext->GetPresShell()->GetViewManager();
+  const bool skipPaint = IsPresentingInVR();
+  // Skip the paint in immersive VR mode because whatever we paint here will
+  // not end up on the screen. The screen is displaying WebGL content from a
+  // single canvas in that mode.
+  // FIXME(emilio): Should we early return above instead, just like if we're
+  // throttled or what not?
+  if (!skipPaint) {
+    PaintTelemetry::AutoRecordPaint record;
+    vm->ProcessPendingUpdates();
+  }
+
+#ifdef MOZ_DUMP_PAINTING
+  if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+    printf_stderr("Ending ProcessPendingUpdates\n");
+  }
+#endif
+
+  mHasScheduleFlush = false;
+  return true;
 }
 
 void nsRefreshDriver::UpdateAnimatedImages(TimeStamp aPreviousRefresh,
