@@ -114,7 +114,7 @@ class FinalizeOriginEvictionOp : public OriginOperationBase {
 };
 
 class SaveOriginAccessTimeOp
-    : public OpenStorageDirectoryHelper<NormalOriginOperationBase> {
+    : public OpenStorageDirectoryHelper<ResolvableNormalOriginOp<bool>> {
   const OriginMetadata mOriginMetadata;
   int64_t mTimestamp;
 
@@ -129,8 +129,6 @@ class SaveOriginAccessTimeOp
     AssertIsOnOwningThread();
   }
 
-  NS_INLINE_DECL_REFCOUNTING(SaveOriginAccessTimeOp, override)
-
  private:
   ~SaveOriginAccessTimeOp() = default;
 
@@ -138,7 +136,7 @@ class SaveOriginAccessTimeOp
 
   virtual nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
 
-  virtual void SendResults() override;
+  bool UnwrapResolveValue() override { return true; }
 
   void CloseDirectory() override;
 };
@@ -1006,7 +1004,7 @@ RefPtr<OriginOperationBase> CreateFinalizeOriginEvictionOp(
                                               std::move(aLocks));
 }
 
-RefPtr<NormalOriginOperationBase> CreateSaveOriginAccessTimeOp(
+RefPtr<ResolvableNormalOriginOp<bool>> CreateSaveOriginAccessTimeOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const OriginMetadata& aOriginMetadata, int64_t aTimestamp) {
   return MakeRefPtr<SaveOriginAccessTimeOp>(std::move(aQuotaManager),
@@ -1330,8 +1328,6 @@ nsresult SaveOriginAccessTimeOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
 
   return NS_OK;
 }
-
-void SaveOriginAccessTimeOp::SendResults() {}
 
 void SaveOriginAccessTimeOp::CloseDirectory() {
   AssertIsOnOwningThread();

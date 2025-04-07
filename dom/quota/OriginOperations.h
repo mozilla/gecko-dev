@@ -45,7 +45,7 @@ RefPtr<OriginOperationBase> CreateFinalizeOriginEvictionOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     nsTArray<RefPtr<OriginDirectoryLock>>&& aLocks);
 
-RefPtr<NormalOriginOperationBase> CreateSaveOriginAccessTimeOp(
+RefPtr<ResolvableNormalOriginOp<bool>> CreateSaveOriginAccessTimeOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const OriginMetadata& aOriginMetadata, int64_t aTimestamp);
 

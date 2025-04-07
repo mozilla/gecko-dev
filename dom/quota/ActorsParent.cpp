@@ -2699,12 +2699,7 @@ void QuotaManager::UpdateOriginAccessTime(
 
     MutexAutoUnlock autoUnlock(mQuotaMutex);
 
-    auto op = CreateSaveOriginAccessTimeOp(WrapMovingNotNullUnchecked(this),
-                                           aOriginMetadata, timestamp);
-
-    RegisterNormalOriginOp(*op);
-
-    op->RunImmediately();
+    SaveOriginAccessTime(aOriginMetadata, timestamp);
   }
 }
 
@@ -6587,6 +6582,21 @@ RefPtr<BoolPromise> QuotaManager::InitializeAllTemporaryOrigins() {
   }
 
   return promise;
+}
+
+RefPtr<BoolPromise> QuotaManager::SaveOriginAccessTime(
+    const OriginMetadata& aOriginMetadata, int64_t aTimestamp) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
+
+  auto saveOriginAccessTimeOp = CreateSaveOriginAccessTimeOp(
+      WrapMovingNotNullUnchecked(this), aOriginMetadata, aTimestamp);
+
+  RegisterNormalOriginOp(*saveOriginAccessTimeOp);
+
+  saveOriginAccessTimeOp->RunImmediately();
+
+  return saveOriginAccessTimeOp->OnResults();
 }
 
 RefPtr<OriginUsageMetadataArrayPromise> QuotaManager::GetUsage(

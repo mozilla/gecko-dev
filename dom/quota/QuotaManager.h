@@ -510,6 +510,9 @@ class QuotaManager final : public BackgroundThreadObject {
  public:
   RefPtr<BoolPromise> InitializeAllTemporaryOrigins();
 
+  RefPtr<BoolPromise> SaveOriginAccessTime(
+      const OriginMetadata& aOriginMetadata, int64_t aTimestamp);
+
   RefPtr<OriginUsageMetadataArrayPromise> GetUsage(
       bool aGetAll, RefPtr<BoolPromise> aOnCancelPromise = nullptr);
 

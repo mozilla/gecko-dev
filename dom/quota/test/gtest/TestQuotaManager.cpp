@@ -17,6 +17,7 @@
 #include "mozilla/dom/quota/UniversalDirectoryLock.h"
 #include "mozilla/gtest/MozAssertions.h"
 #include "nsFmtString.h"
+#include "prtime.h"
 #include "QuotaManagerDependencyFixture.h"
 #include "QuotaManagerTestHelpers.h"
 
@@ -1985,6 +1986,39 @@ TEST_F(TestQuotaManager,
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Tests the availability of SaveOriginAccessTime and verifies that calling it
+// does not trigger temporary storage or origin initialization.
+TEST_F(TestQuotaManager, SaveOriginAccessTime_Simple) {
+  auto testOriginMetadata = GetTestOriginMetadata();
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginNotInitialized(testOriginMetadata));
+
+  PerformOnBackgroundThread([testOriginMetadata]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      int64_t timestamp = PR_Now();
+
+      auto value = Await(
+          quotaManager->SaveOriginAccessTime(testOriginMetadata, timestamp));
+      ASSERT_TRUE(value.IsResolve());
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginNotInitialized(testOriginMetadata));
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 }
