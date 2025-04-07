@@ -1248,11 +1248,15 @@ var gKeywordURIFixup = {
       },
     };
 
-    Services.uriFixup.checkHost(
-      fixedURI,
-      onLookupCompleteListener,
-      contentPrincipal.originAttributes
-    );
+    try {
+      Services.uriFixup.checkHost(
+        fixedURI,
+        onLookupCompleteListener,
+        contentPrincipal.originAttributes
+      );
+    } catch (ex) {
+      // Ignore errors.
+    }
   },
 
   observe(fixupInfo) {

@@ -134,11 +134,15 @@ export class NetErrorChild extends RemotePageChild {
       },
     };
 
-    Services.uriFixup.checkHost(
-      info.fixedURI,
-      onLookupCompleteListener,
-      this.document.nodePrincipal.originAttributes
-    );
+    try {
+      Services.uriFixup.checkHost(
+        info.fixedURI,
+        onLookupCompleteListener,
+        this.document.nodePrincipal.originAttributes
+      );
+    } catch (ex) {
+      // Ignore errors.
+    }
   }
 
   // Get the header from the http response of the failed channel. This function
