@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.mozilla.fenix.compose.ext.FadeDirection
-import org.mozilla.fenix.compose.ext.horizontalFadeGradient
+import mozilla.components.compose.base.modifier.FadeDirection
+import mozilla.components.compose.base.modifier.horizontalFadeGradient
 
 /**
  * A [Text] Composable that will have a horizontal fade and truncate the string.

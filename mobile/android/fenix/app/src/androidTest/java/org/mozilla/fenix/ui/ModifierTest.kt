@@ -12,11 +12,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.modifier.onShown
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import org.mozilla.fenix.compose.ext.onShown
 
 private const val ON_SHOWN_ROOT_TAG = "onShownRoot"
 private const val ON_SHOWN_SETTLE_TIME_MS = 1000

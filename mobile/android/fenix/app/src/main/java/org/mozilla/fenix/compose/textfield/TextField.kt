@@ -46,10 +46,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.modifier.thenConditional
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.ext.thenConditional
-import org.mozilla.fenix.compose.text.Text
-import org.mozilla.fenix.compose.text.value
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val FocusedIndicatorLineThickness = 2.dp

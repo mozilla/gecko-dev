@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mozilla.components.compose.base.annotation.LightDarkPreview
-import org.mozilla.fenix.compose.ext.thenConditional
+import mozilla.components.compose.base.modifier.thenConditional
 import org.mozilla.fenix.theme.FirefoxTheme
 
 const val ITEM_WIDTH = 328

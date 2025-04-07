@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose.ext
+package mozilla.components.compose.base.modifier
 
 import android.graphics.Rect
 import android.os.SystemClock
@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.delay
-import org.mozilla.fenix.compose.utils.toFraction
+import mozilla.components.compose.base.utils.toFraction
 import kotlin.math.max
 import kotlin.math.min
 

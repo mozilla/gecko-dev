@@ -45,9 +45,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
+import mozilla.components.compose.base.modifier.thenConditional
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.PrimaryButton
-import org.mozilla.fenix.compose.ext.thenConditional
 import org.mozilla.fenix.compose.menu.MenuItem.FixedItem.Level
 import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.compose.text.value

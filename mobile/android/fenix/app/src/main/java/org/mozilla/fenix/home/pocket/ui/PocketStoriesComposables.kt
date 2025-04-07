@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.core.net.toUri
+import mozilla.components.compose.base.modifier.onShown
 import mozilla.components.compose.base.utils.inComposePreview
 import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
@@ -71,7 +72,6 @@ import org.mozilla.fenix.compose.ListItemTabSurface
 import org.mozilla.fenix.compose.SelectableChip
 import org.mozilla.fenix.compose.SelectableChipColors
 import org.mozilla.fenix.compose.TabSubtitleWithInterdot
-import org.mozilla.fenix.compose.ext.onShown
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.pocket.POCKET_STORIES_DEFAULT_CATEGORY_NAME

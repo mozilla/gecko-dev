@@ -48,9 +48,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.core.graphics.createBitmap
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
+import mozilla.components.compose.base.modifier.debouncedClickable
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ClickableSubstringLink
-import org.mozilla.fenix.compose.ext.debouncedClickable
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.Wallpaper
 

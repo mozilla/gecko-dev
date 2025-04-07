@@ -60,6 +60,7 @@ import androidx.core.text.BidiFormatter
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
@@ -70,7 +71,6 @@ import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.HorizontalFadingEdgeBox
 import org.mozilla.fenix.compose.ext.isItemPartiallyVisible
-import org.mozilla.fenix.compose.ext.thenConditional
 import org.mozilla.fenix.tabstray.browser.compose.DragItemContainer
 import org.mozilla.fenix.tabstray.browser.compose.createListReorderState
 import org.mozilla.fenix.tabstray.browser.compose.detectListPressAndDrag
