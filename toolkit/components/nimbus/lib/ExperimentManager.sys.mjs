@@ -135,13 +135,21 @@ export class _ExperimentManager {
 
     // A Map from pref names to pref observers and metadata. See
     // `_updatePrefObservers` for the full structure.
-    this._prefs = new Map();
+    //
+    // This can only be used in the parent process ExperimentManager.
+    this._prefs = null;
+
     // A Map from enrollment slugs to a Set of prefs that enrollment is setting
     // or would set (e.g., if the enrollment is a rollout and there wasn't an
     // active experiment already setting it).
-    this._prefsBySlug = new Map();
+    //
+    // This can only be used in the parent process ExperimentManager.
+    this._prefsBySlug = null;
 
-    this._prefFlips = new PrefFlipsFeature({ manager: this });
+    // The PrefFlipsFeature instance for managing arbitrary pref flips.
+    //
+    // This can only be used in the parent process ExperimentManager.
+    this._prefFlips = null;
   }
 
   get studiesEnabled() {
@@ -233,6 +241,10 @@ export class _ExperimentManager {
    * ambient environment.
    */
   async onStartup(extraContext = {}) {
+    this._prefs = new Map();
+    this._prefsBySlug = new Map();
+    this._prefFlips = new PrefFlipsFeature({ manager: this });
+
     await this.store.init();
     this.extraContext = extraContext;
 
