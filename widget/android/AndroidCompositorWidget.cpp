@@ -30,8 +30,7 @@ AndroidCompositorWidget::~AndroidCompositorWidget() {
 
 already_AddRefed<gfx::DrawTarget>
 AndroidCompositorWidget::StartRemoteDrawingInRegion(
-    const LayoutDeviceIntRegion& aInvalidRegion,
-    layers::BufferMode* aBufferMode) {
+    const LayoutDeviceIntRegion& aInvalidRegion) {
   if (!mNativeWindow) {
     EGLNativeWindowType window = GetEGLNativeWindow();
     JNIEnv* const env = jni::GetEnvForThread();

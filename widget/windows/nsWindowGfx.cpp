@@ -258,25 +258,16 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
         return false;
       }
 
-      // don't need to double buffer with anything but GDI
-      BufferMode doubleBuffering = mozilla::layers::BufferMode::BUFFER_NONE;
-      switch (mTransparencyMode) {
-        case TransparencyMode::Transparent:
-          // If we're rendering with translucency, we're going to be
-          // rendering the whole window; make sure we clear it first
-          dt->ClearRect(Rect(dt->GetRect()));
-          break;
-        default:
-          // If we're not doing translucency, then double buffer
-          doubleBuffering = mozilla::layers::BufferMode::BUFFERED;
-          break;
+      if (mTransparencyMode == TransparencyMode::Transparent) {
+        // If we're rendering with translucency, we're going to be
+        // rendering the whole window; make sure we clear it first
+        dt->ClearRect(Rect(dt->GetRect()));
       }
 
       gfxContext thebesContext(dt);
 
       {
-        AutoLayerManagerSetup setupLayerManager(this, &thebesContext,
-                                                doubleBuffering);
+        AutoLayerManagerSetup setupLayerManager(this, &thebesContext);
         if (nsIWidgetListener* listener = GetPaintListener()) {
           result = listener->PaintWindow(this, region);
         }

@@ -140,7 +140,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   typedef base::Thread Thread;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::SourceSurface SourceSurface;
-  typedef mozilla::layers::BufferMode BufferMode;
   typedef mozilla::layers::CompositorBridgeChild CompositorBridgeChild;
   typedef mozilla::layers::CompositorBridgeParent CompositorBridgeParent;
   typedef mozilla::layers::IAPZCTreeManager IAPZCTreeManager;
@@ -385,8 +384,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
    */
   class AutoLayerManagerSetup {
    public:
-    AutoLayerManagerSetup(nsBaseWidget* aWidget, gfxContext* aTarget,
-                          BufferMode aDoubleBuffering);
+    AutoLayerManagerSetup(nsBaseWidget* aWidget, gfxContext* aTarget);
     ~AutoLayerManagerSetup();
 
    private:
@@ -435,7 +433,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   }
   virtual already_AddRefed<DrawTarget> StartRemoteDrawing();
   virtual already_AddRefed<DrawTarget> StartRemoteDrawingInRegion(
-      const LayoutDeviceIntRegion& aInvalidRegion, BufferMode* aBufferMode) {
+      const LayoutDeviceIntRegion& aInvalidRegion) {
     return StartRemoteDrawing();
   }
   virtual void EndRemoteDrawing() {}

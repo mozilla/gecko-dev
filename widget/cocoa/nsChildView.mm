@@ -1310,7 +1310,7 @@ bool nsChildView::PaintWindowInDrawTarget(gfx::DrawTarget* aDT,
   nsAutoRetainCocoaObject kungFuDeathGrip(mView);
   if (GetWindowRenderer()->GetBackendType() == LayersBackend::LAYERS_NONE) {
     nsBaseWidget::AutoLayerManagerSetup setupLayerManager(
-        this, &targetContext, BufferMode::BUFFER_NONE);
+        this, &targetContext);
     return PaintWindow(aRegion);
   }
   return false;

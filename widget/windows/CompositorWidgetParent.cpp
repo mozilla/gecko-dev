@@ -70,15 +70,8 @@ LayoutDeviceIntSize CompositorWidgetParent::GetClientSize() {
 
 already_AddRefed<gfx::DrawTarget>
 CompositorWidgetParent::StartRemoteDrawingInRegion(
-    const LayoutDeviceIntRegion& aInvalidRegion,
-    layers::BufferMode* aBufferMode) {
+    const LayoutDeviceIntRegion& aInvalidRegion) {
   MOZ_ASSERT(mRemoteBackbufferClient);
-  MOZ_ASSERT(aBufferMode);
-
-  // Because we use remote backbuffering, there is no need to use a local
-  // backbuffer too.
-  (*aBufferMode) = layers::BufferMode::BUFFER_NONE;
-
   return mRemoteBackbufferClient->BorrowDrawTarget();
 }
 
