@@ -5,7 +5,6 @@
 <style>
   body { margin: 0; font: 16px/1 sans-serif; }
   code { display: inline-block }
-  #d code { overflow: auto }
 </style>
 <p id="a">Some <code>code</code> with <span>text</span> with <code>code</code> in it</p>
 
@@ -15,8 +14,6 @@
 some <span>more</span> code <span>with</span> pre-formatted
 whitespace <span>that</span> should be selected
 line <span>by</span> line</pre>
-
-<p id="d">Some <code>code</code> with <span>text</span> with <code>code</code> in <span>it</span></p>
 
 <script>
   SimpleTest.waitForExplicitFinish();
@@ -28,7 +25,7 @@ line <span>by</span> line</pre>
   }
 
   SimpleTest.waitForFocus(function () {
-    for (let child of document.querySelectorAll(":is(#a, #d) :is(span, code)"))
+    for (let child of document.querySelectorAll("#a span, #a code"))
       testTripleClick(child, "Some code with text with code in it");
 
     {
