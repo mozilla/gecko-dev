@@ -31,7 +31,12 @@ let [clientCert] = certDB.getCerts();
 
 function addSecurityInfo({ host, topLevelBaseDomain, originAttributes = {} }) {
   let attrs = getOAWithPartitionKey({ topLevelBaseDomain }, originAttributes);
-  cars.rememberDecisionScriptable(host, attrs, clientCert);
+  cars.rememberDecisionScriptable(
+    host,
+    attrs,
+    clientCert,
+    Ci.nsIClientAuthRememberService.Permanent
+  );
 }
 
 function testSecurityInfo({

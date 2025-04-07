@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
+#include "nsIClientAuthRememberService.idl"
 
 interface nsILoadContext;
 interface nsIX509Cert;
@@ -10,7 +11,7 @@ interface nsIX509Cert;
 [scriptable, function, uuid(6b00d96d-fb8a-4c9f-9632-c9e1235befce)]
 interface nsIClientAuthDialogCallback : nsISupports
 {
-  void certificateChosen(in nsIX509Cert cert, in boolean rememberDecision);
+  void certificateChosen(in nsIX509Cert cert, in nsIClientAuthRememberService_Duration rememberDuration);
 };
 
 /**

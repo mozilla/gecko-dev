@@ -637,8 +637,9 @@ class ClientAuthDialogCallback : public nsIClientAuthDialogCallback {
 NS_IMPL_ISUPPORTS(ClientAuthDialogCallback, nsIClientAuthDialogCallback)
 
 NS_IMETHODIMP
-ClientAuthDialogCallback::CertificateChosen(nsIX509Cert* cert,
-                                            bool rememberDecision) {
+ClientAuthDialogCallback::CertificateChosen(
+    nsIX509Cert* cert,
+    nsIClientAuthRememberService::Duration rememberDuration) {
   MOZ_ASSERT(mSelectClientAuthCertificate);
   if (!mSelectClientAuthCertificate) {
     return NS_ERROR_FAILURE;
@@ -646,10 +647,9 @@ ClientAuthDialogCallback::CertificateChosen(nsIX509Cert* cert,
   const ClientAuthInfo& info = mSelectClientAuthCertificate->Info();
   nsCOMPtr<nsIClientAuthRememberService> clientAuthRememberService(
       do_GetService(NS_CLIENTAUTHREMEMBERSERVICE_CONTRACTID));
-  if (info.ProviderTlsFlags() == 0 && rememberDecision &&
-      clientAuthRememberService) {
+  if (info.ProviderTlsFlags() == 0 && clientAuthRememberService) {
     (void)clientAuthRememberService->RememberDecision(
-        info.HostName(), info.OriginAttributesRef(), cert);
+        info.HostName(), info.OriginAttributesRef(), cert, rememberDuration);
   }
   nsTArray<uint8_t> selectedCertBytes;
   if (cert) {

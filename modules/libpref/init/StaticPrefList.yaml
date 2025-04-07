@@ -16090,6 +16090,19 @@
   value: true
   mirror: always
 
+# When a TLS server asks for a client authentication certificate, the platform
+# will ask the user to select one or opt to not send one. At the same time, the
+# platform will offer a few options for how long to remember the decision at
+# hand. The value of this preference determines which of these three options is
+# selected by default.
+# 0 selects "do not remember the decision"
+# 1 selects "remember the decision permanently"
+# 2 selects "remember the decision for the rest of the session"
+- name: security.client_auth_certificate_default_remember_setting
+  type: uint32_t
+  value: 2
+  mirror: always
+
 - name: security.csp.reporting.script-sample.max-length
   type: int32_t
   value: 40

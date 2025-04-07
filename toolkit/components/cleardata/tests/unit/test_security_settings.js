@@ -31,7 +31,12 @@ function addSecurityInfo({ host, topLevelBaseDomain, originAttributes = {} }) {
 
   gSSService.processHeader(uri, "max-age=1000;", attrs);
 
-  cars.rememberDecisionScriptable(host, attrs, clientCert);
+  cars.rememberDecisionScriptable(
+    host,
+    attrs,
+    clientCert,
+    Ci.nsIClientAuthRememberService.Permanent
+  );
 }
 
 function addTestSecurityInfo() {

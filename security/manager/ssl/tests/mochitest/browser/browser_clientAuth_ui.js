@@ -38,7 +38,7 @@ var cert;
  */
 function openClientAuthDialog(cert) {
   let certArray = [cert];
-  let retVals = { cert: undefined, rememberDecision: undefined };
+  let retVals = { cert: undefined, rememberDuration: undefined };
   let args = PromptUtils.objectToPropBag({
     hostname: TEST_HOSTNAME,
     certArray,
@@ -140,22 +140,23 @@ add_task(async function testContents() {
 // Test that the right values are returned when the dialog is accepted.
 add_task(async function testAcceptDialogReturnValues() {
   let { win, retVals } = await openClientAuthDialog(cert);
-  win.document.getElementById("rememberBox").checked = true;
+  win.document.getElementById("rememberSetting").value = 1;
   info("Accepting dialog");
   win.document.getElementById("certAuthAsk").acceptDialog();
   await BrowserTestUtils.windowClosed(win);
 
   is(retVals.cert, cert, "cert should be returned as chosen cert");
-  ok(
-    retVals.rememberDecision,
-    "Return value should signal 'Remember this decision' checkbox was checked"
+  is(
+    retVals.rememberDuration,
+    1,
+    "Return value should signal 'Remember persistently' option was selected"
   );
 });
 
 // Test that the right values are returned when the dialog is canceled.
 add_task(async function testCancelDialogReturnValues() {
   let { win, retVals } = await openClientAuthDialog(cert);
-  win.document.getElementById("rememberBox").checked = false;
+  win.document.getElementById("rememberSetting").value = 0;
   info("Canceling dialog");
   win.document.getElementById("certAuthAsk").cancelDialog();
   await BrowserTestUtils.windowClosed(win);
@@ -164,8 +165,37 @@ add_task(async function testCancelDialogReturnValues() {
     !retVals.cert,
     "Return value should signal user did not choose a certificate"
   );
-  ok(
-    !retVals.rememberDecision,
-    "Return value should signal 'Remember this decision' checkbox was unchecked"
+  is(
+    retVals.rememberDuration,
+    0,
+    "Return value should signal 'Remember once' was selected"
   );
+});
+
+async function testDefaultRememberSettingFromPreference(
+  preferenceValue,
+  expectedSetting
+) {
+  Services.prefs.setIntPref(
+    "security.client_auth_certificate_default_remember_setting",
+    preferenceValue
+  );
+  let { win } = await openClientAuthDialog(cert);
+  is(
+    win.document.getElementById("rememberSetting").value,
+    expectedSetting,
+    "remember setting should default to value specified by preference"
+  );
+  info("Canceling dialog");
+  win.document.getElementById("certAuthAsk").cancelDialog();
+  await BrowserTestUtils.windowClosed(win);
+}
+
+// Test that the preference to set the default remember duration works.
+add_task(async function testDefaultRememberSettingFromAllPreferenceValues() {
+  await testDefaultRememberSettingFromPreference(0, "0");
+  await testDefaultRememberSettingFromPreference(1, "1");
+  await testDefaultRememberSettingFromPreference(2, "2");
+  // Setting the preference to an invalid value will result in the default of "2".
+  await testDefaultRememberSettingFromPreference(3, "2");
 });

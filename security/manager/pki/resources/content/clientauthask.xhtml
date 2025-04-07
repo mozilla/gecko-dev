@@ -56,61 +56,64 @@
       class="important"
       data-l10n-id="client-auth-cert-details"
     ></description>
+    <vbox class="info-box-container">
+      <description
+        id="clientAuthCertDetailsIssuedTo"
+        class="details"
+        data-l10n-id="client-auth-cert-details-issued-to"
+        data-l10n-args='{"issuedTo":""}'
+      ></description>
+      <description
+        id="clientAuthCertDetailsSerialNumber"
+        class="details"
+        data-l10n-id="client-auth-cert-details-serial-number"
+        data-l10n-args='{"serialNumber":""}'
+      ></description>
+      <description
+        id="clientAuthCertDetailsValidityPeriod"
+        class="details"
+        data-l10n-id="client-auth-cert-details-validity-period"
+        data-l10n-args='{"notBefore":"","notAfter":""}'
+      ></description>
+      <description
+        id="clientAuthCertDetailsKeyUsages"
+        class="details"
+        data-l10n-id="client-auth-cert-details-key-usages"
+        data-l10n-args='{"keyUsages":""}'
+      ></description>
+      <description
+        id="clientAuthCertDetailsEmailAddresses"
+        class="details"
+        data-l10n-id="client-auth-cert-details-email-addresses"
+        data-l10n-args='{"emailAddresses":""}'
+      ></description>
+      <description
+        id="clientAuthCertDetailsIssuedBy"
+        class="details"
+        data-l10n-id="client-auth-cert-details-issued-by"
+        data-l10n-args='{"issuedBy":""}'
+      ></description>
+      <description
+        id="clientAuthCertDetailsStoredOn"
+        class="details"
+        data-l10n-id="client-auth-cert-details-stored-on"
+        data-l10n-args='{"storedOn":""}'
+      ></description>
+    </vbox>
 
-    <description
-      id="clientAuthCertDetailsIssuedTo"
-      class="details"
-      data-l10n-id="client-auth-cert-details-issued-to"
-      data-l10n-args='{"issuedTo":""}'
-    ></description>
-
-    <description
-      id="clientAuthCertDetailsSerialNumber"
-      class="details"
-      data-l10n-id="client-auth-cert-details-serial-number"
-      data-l10n-args='{"serialNumber":""}'
-    ></description>
-
-    <description
-      id="clientAuthCertDetailsValidityPeriod"
-      class="details"
-      data-l10n-id="client-auth-cert-details-validity-period"
-      data-l10n-args='{"notBefore":"","notAfter":""}'
-    ></description>
-
-    <description
-      id="clientAuthCertDetailsKeyUsages"
-      class="details"
-      data-l10n-id="client-auth-cert-details-key-usages"
-      data-l10n-args='{"keyUsages":""}'
-    ></description>
-
-    <description
-      id="clientAuthCertDetailsEmailAddresses"
-      class="details"
-      data-l10n-id="client-auth-cert-details-email-addresses"
-      data-l10n-args='{"emailAddresses":""}'
-    ></description>
-
-    <description
-      id="clientAuthCertDetailsIssuedBy"
-      class="details"
-      data-l10n-id="client-auth-cert-details-issued-by"
-      data-l10n-args='{"issuedBy":""}'
-    ></description>
-
-    <description
-      id="clientAuthCertDetailsStoredOn"
-      class="details"
-      data-l10n-id="client-auth-cert-details-stored-on"
-      data-l10n-args='{"storedOn":""}'
-    ></description>
-
-    <checkbox
-      id="rememberBox"
-      data-l10n-id="client-auth-cert-remember-box"
-      checked="true"
-      native="true"
-    />
+    <hbox align="center">
+      <spacer flex="1" />
+      <label data-l10n-id="client-auth-cert-remember-label" />
+      <menulist id="rememberSetting" flex="1">
+        <menupopup>
+          <menuitem value="0" data-l10n-id="client-auth-cert-remember-never" />
+          <menuitem value="1" data-l10n-id="client-auth-cert-remember-always" />
+          <menuitem
+            value="2"
+            data-l10n-id="client-auth-cert-remember-temporarily"
+          />
+        </menupopup>
+      </menulist>
+    </hbox>
   </dialog>
 </window>

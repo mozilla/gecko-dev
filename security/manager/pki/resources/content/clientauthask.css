@@ -15,3 +15,10 @@
   overflow: hidden;
   white-space: nowrap;
 }
+
+.info-box-container {
+  background-color: var(--in-content-box-info-background);
+  padding: 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
