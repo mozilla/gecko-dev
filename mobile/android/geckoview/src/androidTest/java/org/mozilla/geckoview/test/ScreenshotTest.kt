@@ -8,6 +8,7 @@ import android.graphics.* // ktlint-disable no-wildcard-imports
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.view.Surface
+import androidx.core.graphics.createBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -39,7 +40,7 @@ private const val BIG_SCREEN_WIDTH = 999999
 @MediumTest
 class ScreenshotTest : BaseSessionTest() {
     private fun getComparisonScreenshot(width: Int, height: Int): Bitmap {
-        val screenshotFile = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val screenshotFile = createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(screenshotFile)
         val paint = Paint()
         paint.shader = LinearGradient(0f, 0f, width.toFloat(), height.toFloat(), Color.RED, Color.WHITE, Shader.TileMode.MIRROR)

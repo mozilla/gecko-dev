@@ -28,7 +28,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
-import androidx.navigation.Navigation
+import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.Dispatchers.IO
@@ -364,8 +364,7 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                         MetricsUtils.recordBookmarkMetrics(MetricsUtils.BookmarkAction.DELETE, METRIC_SOURCE)
 
                         launch(Main) {
-                            Navigation.findNavController(requireActivity(), R.id.container)
-                                .popBackStack()
+                            requireActivity().findNavController(R.id.container).popBackStack()
 
                             bookmarkNode?.let { bookmark ->
                                 requireComponents.appStore.dispatch(

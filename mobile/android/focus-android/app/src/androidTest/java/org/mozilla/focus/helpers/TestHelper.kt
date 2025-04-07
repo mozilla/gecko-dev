@@ -23,6 +23,7 @@ import android.view.inputmethod.InputMethodManager
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabsIntent.SHARE_STATE_ON
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
@@ -257,7 +258,7 @@ object TestHelper {
     }
 
     private fun createTestBitmap(): Bitmap {
-        val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(100, 100, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.GREEN)
         return bitmap

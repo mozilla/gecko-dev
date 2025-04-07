@@ -7,6 +7,7 @@ package org.mozilla.fenix.search.toolbar
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.appcompat.view.ContextThemeWrapper
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -888,7 +889,7 @@ class ToolbarViewTest {
 private val fakeSearchEngine = SearchEngine(
     id = "fakeId",
     name = "fakeName",
-    icon = Bitmap.createBitmap(1, 1, Bitmap.Config.ALPHA_8),
+    icon = createBitmap(1, 1, Bitmap.Config.ALPHA_8),
     type = SearchEngine.Type.CUSTOM,
     resultUrls = emptyList(),
 )

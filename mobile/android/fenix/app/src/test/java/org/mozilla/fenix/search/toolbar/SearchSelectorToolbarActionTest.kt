@@ -4,13 +4,13 @@
 
 package org.mozilla.fenix.search.toolbar
 
-import android.graphics.Bitmap
 import android.graphics.Bitmap.Config.ARGB_8888
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.graphics.applyCanvas
+import androidx.core.graphics.createBitmap
 import com.google.android.material.card.MaterialCardView
 import io.mockk.MockKAnnotations
 import io.mockk.every
@@ -251,10 +251,10 @@ class SearchSelectorToolbarActionTest {
 
     @Test
     fun `GIVEN a search engine WHEN asking for a scaled icon THEN return a drawable with a fixed size`() {
-        val originalIcon = Bitmap.createBitmap(100, 100, ARGB_8888).applyCanvas {
+        val originalIcon = createBitmap(100, 100, ARGB_8888).applyCanvas {
             drawColor(Color.RED)
         }
-        val expectedScaledIcon = Bitmap.createBitmap(
+        val expectedScaledIcon = createBitmap(
             testContext.resources.getDimensionPixelSize(R.dimen.preference_icon_drawable_size),
             testContext.resources.getDimensionPixelSize(R.dimen.preference_icon_drawable_size),
             ARGB_8888,

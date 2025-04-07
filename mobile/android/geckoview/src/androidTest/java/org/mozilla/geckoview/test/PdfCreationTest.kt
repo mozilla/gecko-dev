@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.graphics.Color.rgb
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.get
 import androidx.core.graphics.scale
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -76,7 +77,7 @@ class PdfCreationTest : BaseSessionTest() {
             val pdfRenderer = PdfRenderer(createFileDescriptor(pdfInputStream))
             for (pageNo in 0 until pdfRenderer.pageCount) {
                 val page = pdfRenderer.openPage(pageNo)
-                var bitmap = Bitmap.createBitmap(deviceWidth, deviceHeight, Bitmap.Config.ARGB_8888)
+                var bitmap = createBitmap(deviceWidth, deviceHeight, Bitmap.Config.ARGB_8888)
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 bitmaps.add(bitmap)
                 page.close()

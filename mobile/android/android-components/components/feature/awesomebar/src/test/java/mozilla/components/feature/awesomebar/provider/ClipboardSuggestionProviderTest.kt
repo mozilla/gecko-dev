@@ -10,6 +10,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.view.textclassifier.TextClassifier
+import androidx.core.graphics.createBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -141,7 +142,7 @@ class ClipboardSuggestionProviderTest {
     @Test
     fun `provider should allow customization of title and icon on suggestion`() = runTestOnMain {
         getSuggestionWithClipboard("https://www.mozilla.org")
-        val bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(2, 2, Bitmap.Config.ARGB_8888)
         val provider = ClipboardSuggestionProvider(
             testContext,
             mock(),

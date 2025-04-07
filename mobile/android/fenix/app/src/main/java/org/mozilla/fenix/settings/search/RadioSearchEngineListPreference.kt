@@ -15,7 +15,7 @@ import android.widget.LinearLayout
 import android.widget.RadioGroup
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
-import androidx.navigation.Navigation.findNavController
+import androidx.navigation.findNavController
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -157,7 +157,7 @@ class RadioSearchEngineListPreference @JvmOverloads constructor(
         val directions =
             DefaultSearchEngineFragmentDirections
                 .actionDefaultEngineFragmentToSaveSearchEngineFragment(engine.id)
-        findNavController(view).navigate(directions)
+        view.findNavController().navigate(directions)
     }
 
     private fun deleteSearchEngine(

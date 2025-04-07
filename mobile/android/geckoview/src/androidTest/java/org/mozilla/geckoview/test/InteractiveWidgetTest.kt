@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.* // ktlint-disable no-wildcard-imports
 import android.graphics.Bitmap
 import android.view.inputmethod.InputMethodManager
+import androidx.core.graphics.createBitmap
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -119,7 +120,7 @@ class InteractiveWidgetTest : BaseSessionTest() {
             val rect = Rect()
             mainSession.getSurfaceBounds(rect)
 
-            val bitmap = Bitmap.createBitmap(rect.width(), height.toInt(), Bitmap.Config.ARGB_8888)
+            val bitmap = createBitmap(rect.width(), height.toInt(), Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             val paint = Paint()
             paint.color = Color.rgb(255, 255, 255)
@@ -193,7 +194,7 @@ class InteractiveWidgetTest : BaseSessionTest() {
             val rect = Rect()
             mainSession.getSurfaceBounds(rect)
 
-            val bitmap = Bitmap.createBitmap(rect.width(), height.toInt(), Bitmap.Config.ARGB_8888)
+            val bitmap = createBitmap(rect.width(), height.toInt(), Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             val paint = Paint()
             paint.color = Color.rgb(0, 128, 0)
