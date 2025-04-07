@@ -515,6 +515,7 @@ export const LinkMenuOptions = {
   ManageSponsoredContent: () => ({
     id: "newtab-menu-manage-sponsored-content",
     action: ac.OnlyToMain({ type: at.SETTINGS_OPEN }),
+    userEvent: "OPEN_NEWTAB_PREFS",
   }),
   OurSponsorsAndYourPrivacy: () => ({
     id: "newtab-menu-our-sponsors-and-your-privacy",
@@ -524,6 +525,7 @@ export const LinkMenuOptions = {
         url: "https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs",
       },
     }),
+    userEvent: "CLICK_PRIVACY_INFO",
   }),
   ReportAd: site => {
     return {
