@@ -218,7 +218,7 @@ class QATests(SnapTestsBase):
         """
 
         self._test_audio_playback(
-            "http://www.hyperion-records.co.uk/audiotest/18%20MacCunn%20The%20Lay%20of%20the%20Last%20Minstrel%20-%20Part%202%20Final%20chorus%20O%20Caledonia!%20stern%20and%20wild.FLAC"
+            "https://dl.espressif.com/dl/audio/ff-16b-2c-44100hz.flac"
         )
 
         return True
