@@ -142,7 +142,7 @@ macro_rules! lnf_int_variable {
     }};
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 9] = [
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 10] = [
     lnf_int_variable!(
         atom!("-moz-mac-titlebar-height"),
         MacTitlebarHeight,
@@ -156,6 +156,11 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 9] = [
     lnf_int_variable!(
         atom!("-moz-gtk-csd-titlebar-radius"),
         TitlebarRadius,
+        int_pixels
+    ),
+    lnf_int_variable!(
+        atom!("-moz-gtk-csd-tooltip-radius"),
+        TooltipRadius,
         int_pixels
     ),
     lnf_int_variable!(

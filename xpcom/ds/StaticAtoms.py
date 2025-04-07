@@ -2293,6 +2293,7 @@ STATIC_ATOMS = [
     Atom("_moz_gtk_csd_available", "-moz-gtk-csd-available"),
     Atom("_moz_gtk_csd_transparency_available", "-moz-gtk-csd-transparency-available"),
     Atom("_moz_gtk_csd_titlebar_radius", "-moz-gtk-csd-titlebar-radius"),
+    Atom("_moz_gtk_csd_tooltip_radius", "-moz-gtk-csd-tooltip-radius"),
     Atom("_moz_gtk_csd_titlebar_button_spacing", "-moz-gtk-csd-titlebar-button-spacing"),
     Atom("_moz_gtk_csd_minimize_button", "-moz-gtk-csd-minimize-button"),
     Atom("_moz_gtk_csd_minimize_button_position", "-moz-gtk-csd-minimize-button-position"),

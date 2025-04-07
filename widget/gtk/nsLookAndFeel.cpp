@@ -1176,6 +1176,11 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       // No GTK API for checking if inverted colors is enabled
       aResult = 0;
       break;
+    case IntID::TooltipRadius: {
+      EnsureInit();
+      aResult = EffectiveTheme().mTooltipRadius;
+      break;
+    }
     case IntID::TitlebarRadius: {
       EnsureInit();
       aResult = EffectiveTheme().mTitlebarRadius;
@@ -2100,6 +2105,7 @@ void nsLookAndFeel::PerThemeData::Init() {
   mInfo.mFg = GetTextColor(style);
   style = GetStyleContext(MOZ_GTK_TOOLTIP);
   mInfo.mBg = GetBackgroundColor(style, mInfo.mFg);
+  mTooltipRadius = GetBorderRadius(style);
 
   style = GetStyleContext(MOZ_GTK_MENUITEM);
   {

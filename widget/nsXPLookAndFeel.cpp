@@ -158,6 +158,7 @@ static const char sIntPrefs[][45] = {
     "ui.touchDeviceSupportPresent",
     "ui.titlebarRadius",
     "ui.titlebarButtonSpacing",
+    "ui.tooltipRadius",
     "ui.dynamicRange",
     "ui.panelAnimations",
     "ui.hideCursorWhileTyping",
