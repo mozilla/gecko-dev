@@ -17,8 +17,6 @@ ChromeUtils.defineESModuleGetters(this, {
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SEARCH_TELEMETRY_SHARED:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
-  SearchSERPCategorization:
-    "resource:///modules/SearchSERPCategorization.sys.mjs",
   SearchSERPDomainToCategoriesMap:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",

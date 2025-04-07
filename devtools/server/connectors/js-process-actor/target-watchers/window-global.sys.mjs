@@ -10,8 +10,6 @@ ChromeUtils.defineESModuleGetters(
   {
     isWindowGlobalPartOfContext:
       "resource://devtools/server/actors/watcher/browsing-context-helpers.sys.mjs",
-    WindowGlobalLogger:
-      "resource://devtools/server/connectors/js-window-actor/WindowGlobalLogger.sys.mjs",
     WEBEXTENSION_FALLBACK_DOC_URL:
       "resource://devtools/server/actors/watcher/browsing-context-helpers.sys.mjs",
   },
@@ -33,24 +31,6 @@ const isEveryFrameTargetEnabled = Services.prefs.getBoolPref(
   "devtools.every-frame-target.enabled",
   false
 );
-
-// If true, log info about DOMProcess's being created.
-const DEBUG = false;
-
-/**
- * Print information about operation being done against each Window Global.
- *
- * @param {WindowGlobalChild} windowGlobal
- *        The window global for which we should log a message.
- * @param {String} message
- *        Message to log.
- */
-function logWindowGlobal(windowGlobal, message) {
-  if (!DEBUG) {
-    return;
-  }
-  lazy.WindowGlobalLogger.logWindowGlobal(windowGlobal, message);
-}
 
 function watch() {
   // Set the following preference in this function, so that we can easily
@@ -401,8 +381,6 @@ function createWindowGlobalTargetActor(
   windowGlobalChild,
   isDocumentCreation = false
 ) {
-  logWindowGlobal(windowGlobalChild, "Instantiate WindowGlobalTarget");
-
   // When debugging privileged pages running a the shared system compartment, and we aren't in the browser toolbox (which already uses a distinct loader),
   // we have to use the distinct loader in order to ensure running DevTools in a distinct compartment than the page we are about to debug
   // Such page could be about:addons, chrome://browser/content/browser.xhtml,...
