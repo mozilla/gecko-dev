@@ -110,6 +110,8 @@ abstract class AbstractFetchDownloadService : Service() {
 
     internal var downloadJobs = mutableMapOf<String, DownloadJobState>()
 
+    protected abstract val fileSizeFormatter: FileSizeFormatter
+
     // TODO Move this to browser store and make immutable:
     // https://github.com/mozilla-mobile/android-components/issues/7050
     internal data class DownloadJobState(
@@ -393,9 +395,10 @@ abstract class AbstractFetchDownloadService : Service() {
     ) {
         val notification = when (latestUIStatus) {
             DOWNLOADING -> DownloadNotification.createOngoingDownloadNotification(
-                context,
-                download,
-                style.notificationAccentColor,
+                context = context,
+                downloadJobState = download,
+                fileSizeFormatter = fileSizeFormatter,
+                notificationAccentColor = style.notificationAccentColor,
             )
             PAUSED -> DownloadNotification.createPausedDownloadNotification(
                 context,
@@ -600,9 +603,10 @@ abstract class AbstractFetchDownloadService : Service() {
             val downloadList = downloadJobs.values.toList()
             val notificationGroup =
                 DownloadNotification.createDownloadGroupNotification(
-                    context,
-                    downloadList,
-                    style.notificationAccentColor,
+                    context = context,
+                    fileSizeFormatter = fileSizeFormatter,
+                    notifications = downloadList,
+                    notificationAccentColor = style.notificationAccentColor,
                 )
 
             notificationsDelegate.notify(
@@ -618,9 +622,10 @@ abstract class AbstractFetchDownloadService : Service() {
     internal fun createCompactForegroundNotification(downloadJobState: DownloadJobState): Notification {
         val notification =
             DownloadNotification.createOngoingDownloadNotification(
-                context,
-                downloadJobState,
-                style.notificationAccentColor,
+                context = context,
+                downloadJobState = downloadJobState,
+                fileSizeFormatter = fileSizeFormatter,
+                notificationAccentColor = style.notificationAccentColor,
             )
         compatForegroundNotificationId = downloadJobState.foregroundServiceId
 

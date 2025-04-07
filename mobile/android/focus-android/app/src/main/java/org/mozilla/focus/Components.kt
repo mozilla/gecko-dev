@@ -22,8 +22,10 @@ import mozilla.components.feature.app.links.AppLinksInterceptor
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuUseCases
 import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
+import mozilla.components.feature.downloads.DefaultFileSizeFormatter
 import mozilla.components.feature.downloads.DownloadMiddleware
 import mozilla.components.feature.downloads.DownloadsUseCases
+import mozilla.components.feature.downloads.FileSizeFormatter
 import mozilla.components.feature.media.MediaSessionFeature
 import mozilla.components.feature.media.middleware.RecordingDevicesMiddleware
 import mozilla.components.feature.prompts.PromptMiddleware
@@ -251,6 +253,8 @@ class Components(
             },
         )
     }
+
+    val fileSizeFormatter: FileSizeFormatter by lazy { DefaultFileSizeFormatter(context.applicationContext) }
 }
 
 private fun createCrashReporter(context: Context): CrashReporter {

@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobState
+import mozilla.components.feature.downloads.fake.FakeFileSizeFormatter
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -24,6 +25,8 @@ import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
 class DownloadNotificationTest {
+
+    private val fakeFileSizeFormatter: FileSizeFormatter = FakeFileSizeFormatter()
 
     @Test
     fun getProgress() {
@@ -41,19 +44,39 @@ class DownloadNotificationTest {
             status = DownloadState.Status.DOWNLOADING,
         )
 
-        assertEquals("10%", downloadJobState.getProgress())
+        assertEquals(
+            "10 / 100",
+            downloadJobState.getProgress(
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
 
         val newDownload = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = null))
 
-        assertEquals("", newDownload.getProgress())
+        assertEquals(
+            "",
+            newDownload.getProgress(
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
 
         val downloadWithNoSize = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = 0))
 
-        assertEquals("", downloadWithNoSize.getProgress())
+        assertEquals(
+            "",
+            downloadWithNoSize.getProgress(
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
 
         val downloadWithNullSize = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = null))
 
-        assertEquals("", downloadWithNullSize.getProgress())
+        assertEquals(
+            "",
+            downloadWithNullSize.getProgress(
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
     }
 
     @Test
@@ -93,7 +116,15 @@ class DownloadNotificationTest {
             currentBytesCopied = 10,
         )
 
-        assertEquals(downloadJobState.getProgress(), downloadJobState.getStatusDescription(testContext))
+        assertEquals(
+            downloadJobState.getProgress(
+                fakeFileSizeFormatter,
+            ),
+            downloadJobState.getStatusDescription(
+                context = testContext,
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
 
         downloadJobState = DownloadJobState(
             job = null,
@@ -109,7 +140,13 @@ class DownloadNotificationTest {
             status = DownloadState.Status.PAUSED,
         )
 
-        assertEquals(pausedText, downloadJobState.getStatusDescription(testContext))
+        assertEquals(
+            pausedText,
+            downloadJobState.getStatusDescription(
+                context = testContext,
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
 
         downloadJobState = DownloadJobState(
             job = null,
@@ -125,7 +162,13 @@ class DownloadNotificationTest {
             status = DownloadState.Status.COMPLETED,
         )
 
-        assertEquals(completedText, downloadJobState.getStatusDescription(testContext))
+        assertEquals(
+            completedText,
+            downloadJobState.getStatusDescription(
+                context = testContext,
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
 
         downloadJobState = DownloadJobState(
             job = null,
@@ -141,7 +184,13 @@ class DownloadNotificationTest {
             status = DownloadState.Status.FAILED,
         )
 
-        assertEquals(failedText, downloadJobState.getStatusDescription(testContext))
+        assertEquals(
+            failedText,
+            downloadJobState.getStatusDescription(
+                context = testContext,
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
 
         downloadJobState = DownloadJobState(
             job = null,
@@ -157,7 +206,13 @@ class DownloadNotificationTest {
             status = DownloadState.Status.CANCELLED,
         )
 
-        assertEquals("", downloadJobState.getStatusDescription(testContext))
+        assertEquals(
+            "",
+            downloadJobState.getStatusDescription(
+                context = testContext,
+                fileSizeFormatter = fakeFileSizeFormatter,
+            ),
+        )
     }
 
     @Test
@@ -191,8 +246,12 @@ class DownloadNotificationTest {
             status = DownloadState.Status.DOWNLOADING,
         )
 
-        val summary = DownloadNotification.getSummaryList(testContext, listOf(download1, download2))
-        assertEquals(listOf("mozilla.txt 10%", "mozilla2.txt 20%"), summary)
+        val summary = DownloadNotification.getSummaryList(
+            context = testContext,
+            fileSizeFormatter = fakeFileSizeFormatter,
+            notifications = listOf(download1, download2),
+        )
+        assertEquals(listOf("mozilla.txt 10 / 100", "mozilla2.txt 20 / 100"), summary)
     }
 
     @Test
@@ -217,8 +276,9 @@ class DownloadNotificationTest {
         val style = AbstractFetchDownloadService.Style()
 
         val notification = DownloadNotification.createOngoingDownloadNotification(
-            testContext,
-            downloadJobState,
+            context = testContext,
+            downloadJobState = downloadJobState,
+            fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
         )
 
@@ -230,16 +290,18 @@ class DownloadNotificationTest {
         assertEquals(false, notification.extras.getBoolean(EXTRA_PROGRESS_INDETERMINATE))
 
         val notificationNewDownload = DownloadNotification.createOngoingDownloadNotification(
-            testContext,
-            downloadJobState.copy(state = downloadJobState.state.copy(contentLength = null)),
+            context = testContext,
+            downloadJobState = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = null)),
+            fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
         )
 
         assertEquals(true, notificationNewDownload.extras.getBoolean(EXTRA_PROGRESS_INDETERMINATE))
 
         val notificationDownloadWithNoSize = DownloadNotification.createOngoingDownloadNotification(
-            testContext,
-            downloadJobState.copy(state = downloadJobState.state.copy(contentLength = 0)),
+            context = testContext,
+            downloadJobState = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = 0)),
+            fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
         )
 
@@ -266,8 +328,9 @@ class DownloadNotificationTest {
         val style = AbstractFetchDownloadService.Style()
 
         val notification = DownloadNotification.createOngoingDownloadNotification(
-            testContext,
-            download,
+            context = testContext,
+            downloadJobState = download,
+            fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
         )
 
@@ -402,8 +465,9 @@ class DownloadNotificationTest {
         val style = AbstractFetchDownloadService.Style()
 
         val notification = DownloadNotification.createDownloadGroupNotification(
-            testContext,
-            listOf(download1, download2),
+            context = testContext,
+            fileSizeFormatter = fakeFileSizeFormatter,
+            notifications = listOf(download1, download2),
             notificationAccentColor = style.notificationAccentColor,
         )
 

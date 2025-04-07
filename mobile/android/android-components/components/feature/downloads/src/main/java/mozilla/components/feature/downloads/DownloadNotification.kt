@@ -48,6 +48,7 @@ internal object DownloadNotification {
     @VisibleForTesting
     internal fun createDownloadGroupNotification(
         context: Context,
+        fileSizeFormatter: FileSizeFormatter,
         notifications: List<DownloadJobState>,
         notificationAccentColor: Int,
     ): Notification {
@@ -57,7 +58,11 @@ internal object DownloadNotification {
         } else {
             R.drawable.mozac_feature_download_ic_ongoing_download
         }
-        val summaryList = getSummaryList(context, notifications)
+        val summaryList = getSummaryList(
+            context = context,
+            fileSizeFormatter = fileSizeFormatter,
+            notifications = notifications,
+        )
         val summaryLine1 = summaryList.first()
         val summaryLine2 = if (summaryList.size == 2) summaryList[1] else ""
 
@@ -81,6 +86,7 @@ internal object DownloadNotification {
     fun createOngoingDownloadNotification(
         context: Context,
         downloadJobState: DownloadJobState,
+        fileSizeFormatter: FileSizeFormatter,
         notificationAccentColor: Int,
     ): Notification {
         val downloadState = downloadJobState.state
@@ -92,15 +98,19 @@ internal object DownloadNotification {
             .setStyle(
                 NotificationCompat.BigTextStyle()
                     .setBigContentTitle(downloadState.fileName.orEmpty())
-                    .setSummaryText(downloadJobState.getProgress()),
+                    .setSummaryText(
+                        if (downloadJobState.isIndeterminate()) {
+                            ""
+                        } else {
+                            "${PERCENTAGE_MULTIPLIER * downloadJobState.currentBytesCopied /
+                                downloadJobState.state.contentLength!!}%"
+                        },
+                    ),
             )
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
             .setContentTitle(downloadState.fileName.orEmpty())
             .setContentText(
-                context.applicationContext.getString(
-                    R.string.mozac_feature_downloads_percentage_notification_text,
-                    downloadJobState.getProgress(),
-                ),
+                downloadJobState.getProgress(fileSizeFormatter = fileSizeFormatter),
             )
             .setColor(ContextCompat.getColor(context, notificationAccentColor))
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
@@ -202,9 +212,16 @@ internal object DownloadNotification {
     }
 
     @VisibleForTesting
-    internal fun getSummaryList(context: Context, notifications: List<DownloadJobState>): List<String> {
+    internal fun getSummaryList(
+        context: Context,
+        fileSizeFormatter: FileSizeFormatter,
+        notifications: List<DownloadJobState>,
+    ): List<String> {
         return notifications.take(2).map { downloadState ->
-            "${downloadState.state.fileName} ${downloadState.getStatusDescription(context)}"
+            "${downloadState.state.fileName} ${downloadState.getStatusDescription(
+                context = context,
+                fileSizeFormatter = fileSizeFormatter,
+            )}"
         }
     }
 
@@ -343,12 +360,12 @@ private fun DownloadJobState.getPercent(): Int? {
 }
 
 @VisibleForTesting
-internal fun DownloadJobState.getProgress(): String {
-    val bytesCopied = currentBytesCopied
+internal fun DownloadJobState.getProgress(fileSizeFormatter: FileSizeFormatter): String {
     return if (isIndeterminate()) {
         ""
     } else {
-        "${DownloadNotification.PERCENTAGE_MULTIPLIER * bytesCopied / state.contentLength!!}%"
+        "${fileSizeFormatter.formatSizeInBytes(currentBytesCopied)} / " +
+            fileSizeFormatter.formatSizeInBytes(state.contentLength!!)
     }
 }
 
@@ -358,10 +375,13 @@ private fun DownloadJobState.isIndeterminate(): Boolean {
 }
 
 @VisibleForTesting
-internal fun DownloadJobState.getStatusDescription(context: Context): String {
+internal fun DownloadJobState.getStatusDescription(
+    context: Context,
+    fileSizeFormatter: FileSizeFormatter,
+): String {
     return when (this.status) {
         DOWNLOADING -> {
-            getProgress()
+            getProgress(fileSizeFormatter = fileSizeFormatter)
         }
 
         PAUSED -> {

@@ -51,6 +51,7 @@ import mozilla.components.feature.downloads.AbstractFetchDownloadService.CopyInC
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobState
 import mozilla.components.feature.downloads.DownloadNotification.NOTIFICATION_DOWNLOAD_GROUP_ID
 import mozilla.components.feature.downloads.facts.DownloadsFacts.Items.NOTIFICATION
+import mozilla.components.feature.downloads.fake.FakeFileSizeFormatter
 import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.base.facts.Action
 import mozilla.components.support.base.facts.processor.CollectionProcessor
@@ -118,6 +119,8 @@ class AbstractFetchDownloadServiceTest {
     private val mainDispatcher = coroutinesTestRule.testDispatcher
     private val testsDispatcher = UnconfinedTestDispatcher(TestCoroutineScheduler())
 
+    private val fakeFileSizeFormatter: FileSizeFormatter = FakeFileSizeFormatter()
+
     @Mock private lateinit var client: Client
     private lateinit var browserStore: BrowserStore
     private lateinit var notificationManagerCompat: NotificationManagerCompat
@@ -140,6 +143,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -264,6 +268,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -288,6 +293,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -315,6 +321,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1477,6 +1484,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = mockStore
                 override val notificationsDelegate = mockNotificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1546,9 +1554,10 @@ class AbstractFetchDownloadServiceTest {
 
         val notificationStyle = AbstractFetchDownloadService.Style()
         val notification = DownloadNotification.createOngoingDownloadNotification(
-            testContext,
-            downloadState,
-            notificationStyle.notificationAccentColor,
+            context = testContext,
+            downloadJobState = downloadState,
+            fileSizeFormatter = fakeFileSizeFormatter,
+            notificationAccentColor = notificationStyle.notificationAccentColor,
         )
 
         NotificationManagerCompat.from(testContext).notify(downloadState.foregroundServiceId, notification)
@@ -1575,6 +1584,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1606,6 +1616,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1634,6 +1645,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1667,6 +1679,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1700,6 +1713,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1739,6 +1753,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
         val append = true
@@ -1761,6 +1776,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
         val uniqueFile: DownloadState = mock()
@@ -1790,6 +1806,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1818,6 +1835,7 @@ class AbstractFetchDownloadServiceTest {
                     override val httpClient = client
                     override val store = browserStore
                     override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                    override val fileSizeFormatter = fakeFileSizeFormatter
                 },
             )
 
@@ -1855,6 +1873,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
 
@@ -1887,6 +1906,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
         val spyContext = spy(testContext)
@@ -1925,6 +1945,7 @@ class AbstractFetchDownloadServiceTest {
                 override val httpClient = client
                 override val store = browserStore
                 override val notificationsDelegate = this@AbstractFetchDownloadServiceTest.notificationsDelegate
+                override val fileSizeFormatter = fakeFileSizeFormatter
             },
         )
         val spyContext = spy(testContext)
