@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.compose.menu
+package mozilla.components.compose.base.menu
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -47,12 +47,12 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.button.PrimaryButton
+import mozilla.components.compose.base.menu.MenuItem.FixedItem.Level
 import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.text.Text
 import mozilla.components.compose.base.text.value
-import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.menu.MenuItem.FixedItem.Level
-import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.ui.icons.R
 import androidx.compose.material.DropdownMenu as MaterialDropdownMenu
 import androidx.compose.material.DropdownMenuItem as MaterialDropdownMenuItem
 
@@ -87,7 +87,7 @@ fun DropdownMenu(
             onDismissRequest = onDismissRequest,
             offset = offset,
             scrollState = scrollState,
-            modifier = modifier.background(FirefoxTheme.colors.layer2),
+            modifier = modifier.background(AcornTheme.colors.layer2),
         ) {
             DropdownMenuContent(
                 menuItems = menuItems,
@@ -196,7 +196,7 @@ private fun CheckableMenuItemContent(
     if (item.isChecked) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_checkmark_24),
-            tint = FirefoxTheme.levelColors.iconPrimary,
+            tint = AcornTheme.levelColors.iconPrimary,
             contentDescription = null,
         )
     } else {
@@ -212,7 +212,7 @@ private fun IconMenuItemContent(
 ) {
     Icon(
         painter = painterResource(item.drawableRes),
-        tint = FirefoxTheme.levelColors.iconPrimary,
+        tint = AcornTheme.levelColors.iconPrimary,
         contentDescription = null,
     )
 
@@ -251,8 +251,8 @@ private fun FlexibleDropdownMenuItem(
 private fun MenuItemText(text: Text) {
     Text(
         text = text.value,
-        color = FirefoxTheme.levelColors.textPrimary,
-        style = FirefoxTheme.typography.subtitle1,
+        color = AcornTheme.levelColors.textPrimary,
+        style = AcornTheme.typography.subtitle1,
     )
 }
 
@@ -275,7 +275,7 @@ private val LocalLevelColor = compositionLocalOf { Level.Default }
 /**
  * Returns the [LevelColors] based on the current level of importance.
  */
-private val FirefoxTheme.levelColors: LevelColors
+private val AcornTheme.levelColors: LevelColors
     @Composable
     get() {
         val current = LocalLevelColor.current
@@ -366,26 +366,26 @@ private val menuPreviewParameters by lazy {
 @Composable
 @Suppress("LongMethod")
 private fun DropdownMenuPreview() {
-    FirefoxTheme {
+    AcornTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer1)
+                .background(color = AcornTheme.colors.layer1)
                 .fillMaxSize()
-                .padding(FirefoxTheme.layout.space.dynamic400),
-            verticalArrangement = Arrangement.spacedBy(FirefoxTheme.layout.space.dynamic400),
+                .padding(AcornTheme.layout.space.dynamic400),
+            verticalArrangement = Arrangement.spacedBy(AcornTheme.layout.space.dynamic400),
         ) {
             Text(
                 text = "Click buttons to expand dropdown menu",
-                style = FirefoxTheme.typography.body1,
-                color = FirefoxTheme.colors.textPrimary,
+                style = AcornTheme.typography.body1,
+                color = AcornTheme.colors.textPrimary,
             )
 
             Text(
                 text = """
                     The menu items along with checkable state should be hoisted in feature logic and simply passed to the DropdownMenu composable. The mapping is done here in the composable as an example, try to do that outside the composables.
                 """.trimIndent(),
-                style = FirefoxTheme.typography.caption,
-                color = FirefoxTheme.colors.textPrimary,
+                style = AcornTheme.typography.caption,
+                color = AcornTheme.colors.textPrimary,
             )
 
             menuPreviewParameters.forEach {
@@ -407,16 +407,16 @@ private fun DropdownMenuPreview() {
                 }
             }
 
-            Spacer(modifier = Modifier.size(FirefoxTheme.layout.space.dynamic400))
+            Spacer(modifier = Modifier.size(AcornTheme.layout.space.dynamic400))
 
             Text(
                 text = "Dropdown menu items",
-                style = FirefoxTheme.typography.body1,
-                color = FirefoxTheme.colors.textPrimary,
+                style = AcornTheme.typography.body1,
+                color = AcornTheme.colors.textPrimary,
             )
 
             Column(
-                modifier = Modifier.background(color = FirefoxTheme.colors.layer2),
+                modifier = Modifier.background(color = AcornTheme.colors.layer2),
             ) {
                 val menuItems: List<MenuItem> by remember {
                     mutableStateOf(menuPreviewParameters.map { it.menuItems.first() })
@@ -425,16 +425,16 @@ private fun DropdownMenuPreview() {
                 DropdownMenuContent(menuItems) { }
             }
 
-            Spacer(modifier = Modifier.size(FirefoxTheme.layout.space.dynamic400))
+            Spacer(modifier = Modifier.size(AcornTheme.layout.space.dynamic400))
 
             Text(
                 text = "Checkable menu item usage",
-                style = FirefoxTheme.typography.body1,
-                color = FirefoxTheme.colors.textPrimary,
+                style = AcornTheme.typography.body1,
+                color = AcornTheme.colors.textPrimary,
             )
 
             Column(
-                modifier = Modifier.background(color = FirefoxTheme.colors.layer2),
+                modifier = Modifier.background(color = AcornTheme.colors.layer2),
             ) {
                 var isChecked by remember { mutableStateOf(true) }
 

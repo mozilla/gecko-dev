@@ -31,9 +31,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.button.PrimaryButton
+import mozilla.components.compose.base.menu.DropdownMenu
+import mozilla.components.compose.base.menu.MenuItem
 import org.mozilla.fenix.compose.TabCounter
-import org.mozilla.fenix.compose.menu.DropdownMenu
-import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
