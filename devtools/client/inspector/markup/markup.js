@@ -2343,6 +2343,8 @@ MarkupView.prototype = {
 
         const fragment = this.doc.createDocumentFragment();
 
+        // Store the focused element before moving elements to the document fragment
+        const previouslyActiveElement = this.doc.activeElement;
         for (const child of children.nodes) {
           const slotted = !isShadowHost && child.isDirectShadowHostChild;
           const childContainer = this.importNode(child, flash, slotted);
@@ -2363,6 +2365,11 @@ MarkupView.prototype = {
         }
 
         container.children.appendChild(fragment);
+        // If previouslyActiveElement was moved to `fragment`, the focus was moved elsewhere,
+        // so here we set it back (see Bug 1955040)
+        if (container.children.contains(previouslyActiveElement)) {
+          previouslyActiveElement.focus();
+        }
         return container;
       })
       .catch(this._handleRejectionIfNotDestroyed);
