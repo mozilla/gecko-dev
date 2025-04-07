@@ -20,5 +20,6 @@ prefs = [
 ["browser_messagepreview_show_invalidmessage.js"]
 
 ["browser_messagepreview_show_privatebrowsing.js"]
+skip-if = ["true"] # Bug 1946629
 
 ["browser_messagepreview_show_spotlight.js"]
