@@ -1480,6 +1480,7 @@ browser/components/storybook/storybook-static/
 browser/extensions/newtab/data/content/activity-stream.bundle.js
 browser/extensions/newtab/logs/
 browser/extensions/newtab/node_modules/
+browser/extensions/newtab/prerendered/
 browser/locales/l10n-changesets.json
 browser/locales/l10n-onchange-changesets.json
 devtools/client/aboutdebugging/test/jest/node_modules/
