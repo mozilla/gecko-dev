@@ -1,8 +1,5 @@
 [DEFAULT]
-prefs = [
-  "gfx.font_loader.delay=0",
-  "privacy.restrict3rdpartystorage.heuristic.window_open=true",
-]
+prefs = ["gfx.font_loader.delay=0"]
 support-files = [
   "347174transform.xsl",
   "347174transformable.xml",

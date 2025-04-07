@@ -13,7 +13,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1384658
   /** Test for Bug 1384658 **/
 
 function test_frameset() {
-  var bc = new BroadcastChannel("test_channel");
+  var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("test_channel");
   bc.postMessage("go");
   bc.onmessage = ev => {
     ok(ev.data.success, "We didn't hang");
@@ -25,7 +25,7 @@ function test_frameset() {
 function test_window() {
   var win = window.open("http://example.com/tests/dom/websocket/tests/window_bug1384658.html",
                         "_blank", "width=100,height=100");
-  var bc = new BroadcastChannel("test_channel");
+  var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("test_channel");
   bc.onmessage = ev => {
     ok(ev.data.success, "We didn't hang");
     bc.close();
@@ -41,8 +41,6 @@ SpecialPowers.pushPrefEnv({
   set: [
     ["network.cookie.cookieBehavior", 4],
     // disable third-party storage isolation so the test works as expected
-    ["privacy.partition.always_partition_third_party_non_cookie_storage", false],
-    ["privacy.restrict3rdpartystorage.heuristic.window_open", true],
     ["dom.security.https_first", false]
   ],
 }, test_frameset);

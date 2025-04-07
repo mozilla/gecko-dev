@@ -3,7 +3,7 @@
 <script>
   onload = function() {
     function done(success) {
-      var bc = new BroadcastChannel("test_channel");
+      var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("test_channel");
       bc.postMessage({success});
       bc.close();
     }

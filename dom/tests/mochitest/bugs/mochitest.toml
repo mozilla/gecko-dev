@@ -134,7 +134,10 @@ skip-if = [
 ["test_bug456151.html"]
 
 ["test_bug458091.html"]
-skip-if = ["os == 'android'"] # Bug 1525959
+skip-if = [
+  "xorigin", # sessionStorage partitioning breaks this, and we don't need xorigin to validate the bugfix
+  "os == 'android'", # Bug 1525959
+]
 
 ["test_bug459848.html"]
 
