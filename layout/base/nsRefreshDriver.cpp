@@ -839,11 +839,17 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
       sMostRecentHighRate = rate;
     }
 
+#ifdef DEBUG
     // On 32-bit Windows we sometimes get times where TimeStamp::Now() is not
     // monotonic because the underlying system apis produce non-monontonic
-    // results. (bug 1306896)
-#if !defined(_WIN32)
+    // results; see bug 1306896.
+    // On Wayland, vsync timestamp might not precisely match system time; see
+    // bug 1958043.
+#  if defined(_WIN32) || defined(MOZ_WAYLAND)
+    Unused << NS_WARN_IF(aVsyncTimestamp > tickStart);
+#  else
     MOZ_ASSERT(aVsyncTimestamp <= tickStart);
+#  endif
 #endif
 
     bool shouldGiveNonVSyncTasksMoreTime = ShouldGiveNonVsyncTasksMoreTime();
