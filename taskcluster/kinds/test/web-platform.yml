@@ -460,6 +460,7 @@ web-platform-tests-canvas:
         by-test-platform:
             .*-tsan.*: 2700
             .*-asan.*: 2700
+            .*-ccov.*: 2700
             default: 1800
     variants:
         - no-fission
