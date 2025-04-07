@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.LightDarkPreview
 import mozilla.components.compose.base.button.TextButton
+import mozilla.components.compose.base.text.Text
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.TranslationError
 import org.mozilla.fenix.R
@@ -46,7 +47,6 @@ import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.menu.MenuItem.CheckableItem
-import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.theme.FirefoxTheme
 import java.util.Locale
 

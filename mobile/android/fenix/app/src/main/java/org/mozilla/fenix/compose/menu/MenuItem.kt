@@ -9,7 +9,7 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import mozilla.components.compose.base.Divider
-import org.mozilla.fenix.compose.text.Text
+import mozilla.components.compose.base.text.Text
 
 /**
  * Model for [DropdownMenuItem]. This is a sealed type to represent the different types of menu

@@ -6,9 +6,9 @@ package org.mozilla.fenix.browser.tabstrip
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import mozilla.components.compose.base.text.Text
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.menu.MenuItem
-import org.mozilla.fenix.compose.text.Text
 
 /**
  * Model representing different tab strip tab counter menu items.
