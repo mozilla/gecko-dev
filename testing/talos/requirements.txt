@@ -14,3 +14,4 @@ requests>=2.9.1
 ../tools/wpt_third_party/h2
 ../tools/wpt_third_party/pywebsocket3
 manifestparser>=2.1.0
+xdg>=5.1.1

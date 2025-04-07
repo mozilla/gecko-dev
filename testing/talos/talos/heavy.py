@@ -14,6 +14,7 @@ from email.utils import parsedate
 import requests
 from mozlog import get_proxy_logger
 from requests.adapters import HTTPAdapter
+from xdg import xdg_config_home
 
 LOG = get_proxy_logger()
 TC_LINK = (
@@ -85,7 +86,10 @@ def profile_age(profile_dir, last_modified=None):
 
 def download_profile(name, profiles_dir=None):
     if profiles_dir is None:
-        profiles_dir = os.path.join(os.path.expanduser("~"), ".mozilla", "profiles")
+        if os.environ.get("MOZ_LEGACY_HOME") == "1":
+            profiles_dir = os.path.join(os.path.expanduser("~"), ".mozilla", "profiles")
+        else:
+            profiles_dir = os.path.join(xdg_config_home(), "mozilla", "profiles")
     profiles_dir = os.path.abspath(profiles_dir)
     if not os.path.exists(profiles_dir):
         os.makedirs(profiles_dir)
