@@ -26,6 +26,7 @@
 #include "mozilla/PodOperations.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/ipc/FileDescriptor.h"
+#include "nsIThreadManager.h"
 
 namespace mozilla {
 
@@ -646,10 +647,13 @@ SandboxBrokerSigStress::DoSomething()
 // (This uses a different test group because it doesn't use the
 // fixture class, and gtest doesn't allow mixing TEST and TEST_F in
 // the same group.)
-TEST(SandboxBrokerMisc, LeakCheck)
+TEST(SandboxBrokerMisc, FileDescLeak)
 {
   // If this value is increased in the future, check that it won't
-  // cause the test to take an excessive amount of time:
+  // cause the test to take an excessive amount of time.
+  // (Alternately, this test could be changed to run a smaller number
+  // of cycles and check for increased fd usage afterwards; some care
+  // would be needed to avoid false positives.)
   static constexpr size_t kCycles = 4096;
   struct rlimit oldLimit;
   bool changedLimit = false;
@@ -685,6 +689,42 @@ TEST(SandboxBrokerMisc, LeakCheck)
 
   if (changedLimit) {
     ASSERT_EQ(setrlimit(RLIMIT_NOFILE, &oldLimit), 0) << strerror(errno);
+  }
+}
+
+// Bug 1958444: In theory this test could fail intermittently: it
+// creates a large number of threads which will do a small amount of
+// work and then exit, but intentionally doesn't join them, so there
+// could be a large number of threads actually live at once, even if
+// they would be cleaned up correctly when they exit.
+//
+// To test locally, delete the `DISABLED_` prefix and rebuild.
+TEST(SandboxBrokerMisc, DISABLED_StackLeak)
+{
+  // The idea is that kCycles * DEFAULT_STACK_SIZE is more than 4GiB
+  // so this fails on 32-bit if the thread stack is leaked.  This
+  // isn't ideal; it would be better to either use resource limits
+  // (maybe RLIMIT_AS) or measure address space usage (getrusage or
+  // procfs), to detect such bugs with a smaller amount of leakage.
+  static constexpr size_t kCycles = 16384;
+
+  if (nsIThreadManager::DEFAULT_STACK_SIZE) {
+    EXPECT_GE(nsIThreadManager::DEFAULT_STACK_SIZE, size_t(256 * 1024));
+  }
+
+  pid_t pid = getpid();
+  for (size_t i = 0; i < kCycles; ++i) {
+    auto policy = MakeUnique<SandboxBroker::Policy>();
+    // Currently nothing in `Create` tries to check for or
+    // special-case an empty policy, but just in case:
+    policy->AddPath(SandboxBroker::MAY_READ, "/dev/null",
+                    SandboxBroker::Policy::AddAlways);
+    ipc::FileDescriptor fd;
+    RefPtr<SandboxBroker> broker =
+        SandboxBroker::Create(std::move(policy), pid, fd);
+    ASSERT_TRUE(broker != nullptr) << "iter " << i;
+    ASSERT_TRUE(fd.IsValid()) << "iter " << i;
+    broker = nullptr;
   }
 }
 
