@@ -23,12 +23,22 @@ add_task(function test_data_storage() {
 
   // Test that getting a value with the same key but of a different type throws.
   Assert.throws(
+    () => dataStorage.get("test", Ci.nsIDataStorage.Temporary),
+    /NS_ERROR_NOT_AVAILABLE/,
+    "getting a value of a type that hasn't been set yet should throw"
+  );
+  Assert.throws(
     () => dataStorage.get("test", Ci.nsIDataStorage.Private),
     /NS_ERROR_NOT_AVAILABLE/,
     "getting a value of a type that hasn't been set yet should throw"
   );
 
-  // Put with Private data shouldn't affect Persistent data
+  // Put with Temporary/Private data shouldn't affect Persistent data
+  dataStorage.put("test", "temporary", Ci.nsIDataStorage.Temporary);
+  Assert.equal(
+    dataStorage.get("test", Ci.nsIDataStorage.Temporary),
+    "temporary"
+  );
   dataStorage.put("test", "private", Ci.nsIDataStorage.Private);
   Assert.equal(dataStorage.get("test", Ci.nsIDataStorage.Private), "private");
   Assert.equal(dataStorage.get("test", Ci.nsIDataStorage.Persistent), "value");
@@ -44,10 +54,20 @@ add_task(function test_data_storage() {
     /NS_ERROR_NOT_AVAILABLE/,
     "getting a removed value should throw"
   );
-  // But removing one type shouldn't affect the other
+  // But removing one type shouldn't affect the others
+  Assert.equal(
+    dataStorage.get("test", Ci.nsIDataStorage.Temporary),
+    "temporary"
+  );
   Assert.equal(dataStorage.get("test", Ci.nsIDataStorage.Private), "private");
-  // Test removing the other type as well
+  // Test removing the other types as well
+  dataStorage.remove("test", Ci.nsIDataStorage.Temporary);
   dataStorage.remove("test", Ci.nsIDataStorage.Private);
+  Assert.throws(
+    () => dataStorage.get("test", Ci.nsIDataStorage.Temporary),
+    /NS_ERROR_NOT_AVAILABLE/,
+    "getting a removed value should throw"
+  );
   Assert.throws(
     () => dataStorage.get("test", Ci.nsIDataStorage.Private),
     /NS_ERROR_NOT_AVAILABLE/,
