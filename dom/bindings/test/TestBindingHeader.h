@@ -38,12 +38,8 @@ namespace mozilla {
 namespace dom {
 
 // IID for nsRenamedInterface
-#define NS_RENAMED_INTERFACE_IID                     \
-  {                                                  \
-    0xd4b19ef3, 0xe68b, 0x4e3f, {                    \
-      0x94, 0xbc, 0xc9, 0xde, 0x3a, 0x69, 0xb0, 0xe8 \
-    }                                                \
-  }
+#define NS_RENAMED_INTERFACE_IID \
+  {0xd4b19ef3, 0xe68b, 0x4e3f, {0x94, 0xbc, 0xc9, 0xde, 0x3a, 0x69, 0xb0, 0xe8}}
 
 class nsRenamedInterface : public nsISupports, public nsWrapperCache {
  public:
@@ -57,12 +53,8 @@ class nsRenamedInterface : public nsISupports, public nsWrapperCache {
 NS_DEFINE_STATIC_IID_ACCESSOR(nsRenamedInterface, NS_RENAMED_INTERFACE_IID)
 
 // IID for the TestExternalInterface
-#define NS_TEST_EXTERNAL_INTERFACE_IID               \
-  {                                                  \
-    0xd5ba0c99, 0x9b1d, 0x4e71, {                    \
-      0x8a, 0x94, 0x56, 0x38, 0x6c, 0xa3, 0xda, 0x3d \
-    }                                                \
-  }
+#define NS_TEST_EXTERNAL_INTERFACE_IID \
+  {0xd5ba0c99, 0x9b1d, 0x4e71, {0x8a, 0x94, 0x56, 0x38, 0x6c, 0xa3, 0xda, 0x3d}}
 class TestExternalInterface : public nsISupports {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_TEST_EXTERNAL_INTERFACE_IID)
@@ -1151,6 +1143,8 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void PassUnionArrayBuffer(const StringOrArrayBuffer& foo);
   void PassUnionAllowSharedArrayBuffer(
       const StringOrMaybeSharedArrayBuffer& foo);
+  void passAllowSharedInt8ArrayOrInt16Array(
+      const MaybeSharedInt8ArrayOrMaybeSharedInt16Array&);
 
   void GetReflectedHTMLAttributeReturningFrozenArray(
       bool*, Nullable<nsTArray<RefPtr<Element>>>&) const;
