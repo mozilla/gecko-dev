@@ -336,7 +336,7 @@ class nsIGlobalObject : public nsISupports {
   }
   // Return true if there is any active IndexedDB databases which could block
   // timeout-throttling.
-  virtual bool HasActiveIndexedDBDatabases() { return false; }
+  virtual bool HasActiveIndexedDBDatabases() const { return false; }
   /**
    * Check whether the active peer connection count is non-zero.
    */
@@ -352,6 +352,9 @@ class nsIGlobalObject : public nsISupports {
   }
 
   virtual void UpdateWebSocketCount(int32_t aDelta) {};
+  // Increase/Decrease the number of active IndexedDB databases for the
+  // decision making of timeout-throttling.
+  virtual void UpdateActiveIndexedDBDatabaseCount(int32_t aDelta) {}
 
   /**
    * Report a localized error message to the error console.  Currently this

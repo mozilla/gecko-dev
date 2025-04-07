@@ -2849,7 +2849,7 @@ void nsPIDOMWindowInner::TryToCacheTopInnerWindow() {
   }
 }
 
-void nsPIDOMWindowInner::UpdateActiveIndexedDBDatabaseCount(int32_t aDelta) {
+void nsGlobalWindowInner::UpdateActiveIndexedDBDatabaseCount(int32_t aDelta) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aDelta == 0) {
@@ -2865,7 +2865,7 @@ void nsPIDOMWindowInner::UpdateActiveIndexedDBDatabaseCount(int32_t aDelta) {
   counter += aDelta;
 }
 
-bool nsGlobalWindowInner::HasActiveIndexedDBDatabases() {
+bool nsGlobalWindowInner::HasActiveIndexedDBDatabases() const {
   MOZ_ASSERT(NS_IsMainThread());
 
   return mTopInnerWindow ? mTopInnerWindow->mNumOfIndexedDBDatabases > 0

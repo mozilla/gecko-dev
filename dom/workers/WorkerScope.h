@@ -218,7 +218,19 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
     mNumOfOpenWebSockets += aDelta;
   }
 
+  // Increase/Decrease the number of active IndexedDB databases for the
+  // decision making of timeout-throttling.
+  void UpdateActiveIndexedDBDatabaseCount(int32_t aDelta) override {
+    AssertIsOnWorkerThread();
+    mNumOfIndexedDBDatabases += aDelta;
+  }
+
   bool HasOpenWebSockets() const override { return mNumOfOpenWebSockets; }
+
+  bool HasActiveIndexedDBDatabases() const override {
+    AssertIsOnWorkerThread();
+    return mNumOfIndexedDBDatabases;
+  }
 
   void TriggerUpdateCCFlag() override {
     mWorkerPrivate->UpdateCCFlag(WorkerPrivate::CCFlag::EligibleForTimeout);
@@ -247,6 +259,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 #endif
   mozilla::UniquePtr<mozilla::dom::TimeoutManager> mTimeoutManager;
   uint32_t mNumOfOpenWebSockets{};
+  uint32_t mNumOfIndexedDBDatabases{};
 };
 
 namespace workerinternals {
