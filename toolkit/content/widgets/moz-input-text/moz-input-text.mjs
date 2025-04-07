@@ -22,7 +22,7 @@ import { MozBaseInputElement } from "../lit-utils.mjs";
 export default class MozInputText extends MozBaseInputElement {
   static properties = {
     placeholder: { type: String, fluent: true },
-    readonly: { type: Boolean, mapped: true },
+    readonly: { type: Boolean, reflect: true },
   };
   static inputLayout = "block";
 

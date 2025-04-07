@@ -31,6 +31,10 @@
         await testHelpers.testCommonInputProperties("moz-input-text");
       });
 
+      add_task(async function testMozInputTextReadonlyProperty() {
+        await testHelpers.verifyReadonly("moz-input-text");
+      });
+
       add_task(async function testMozInputTextEvents() {
         await testHelpers.testTextBasedInputEvents("moz-input-text");
       });
