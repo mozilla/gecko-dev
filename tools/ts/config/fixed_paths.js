@@ -45,9 +45,6 @@ exports.paths = {
   "resource://devtools/server/actors/descriptors/webextension.js": [
     "devtools/server/actors/descriptors/webextension.js",
   ],
-  "resource://gre/modules/AppConstants.sys.mjs": [
-    "tools/@types/substitutions/AppConstants.sys.d.mts",
-  ],
   "resource://gre/modules/CrashManager.sys.mjs": [
     "toolkit/components/crashes/CrashManager.in.sys.mjs",
   ],

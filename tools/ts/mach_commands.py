@@ -134,6 +134,27 @@ def paths(ctx):
     return node(ctx, "build_paths", ctx.topsrcdir, lib, lazy)
 
 
+@SubCommand("ts", "subs", description="Emit substitution .d.ts for processed sources.")
+def subs(ctx):
+    maybe_setup(ctx)
+    processed = [
+        # AppConstants.sys.mjs has a (better) manually created declaration file.
+        "dist/bin/browser/modules/policies/schema.sys.mjs",
+        "dist/bin/modules/Readerable.sys.mjs",
+        "toolkit/components/nimbus/FeatureManifest.sys.mjs",
+        "toolkit/components/promiseworker/worker/PromiseWorker.js",
+        "toolkit/components/promiseworker/worker/PromiseWorker.mjs",
+        "toolkit/components/resistfingerprinting/RFPTargetConstants.sys.mjs",
+    ]
+    args = ["--declaration", "--emitDeclarationOnly", "--allowJs", "--outDir"]
+    subs_dir = mozpath.join(ctx.topsrcdir, "tools/@types/subs")
+
+    for file in processed:
+        path = mozpath.join(ctx.topobjdir, file)
+        print(f"[INFO] {path} -> {subs_dir}/{mozpath.basename(path)}")
+        node(ctx, "node_modules/typescript/bin/tsc", *args, subs_dir, path)
+
+
 def node(ctx, script, *args):
     maybe_setup(ctx)
     path = mozpath.join(mozpath.dirname(__file__), script)
