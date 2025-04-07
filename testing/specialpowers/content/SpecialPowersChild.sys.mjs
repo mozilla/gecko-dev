@@ -25,7 +25,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://testing-common/SpecialPowersSandbox.sys.mjs",
   WrapPrivileged: "resource://testing-common/WrapPrivileged.sys.mjs",
 });
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 Cu.crashIfNotInAutomation();
 
@@ -2320,6 +2319,3 @@ SpecialPowersChild.prototype._proxiedObservers = {
     );
   },
 };
-
-SpecialPowersChild.prototype.EARLY_BETA_OR_EARLIER =
-  AppConstants.EARLY_BETA_OR_EARLIER;
