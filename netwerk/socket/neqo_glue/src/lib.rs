@@ -385,7 +385,7 @@ impl NeqoHttp3Conn {
             return;
         }
 
-        for (s, postfix) in [(stats.frame_tx, "_tx"), (stats.frame_rx, "_rx")] {
+        for (s, postfix) in [(&stats.frame_tx, "_tx"), (&stats.frame_rx, "_rx")] {
             let add = |label: &str, value: usize| {
                 glean::http_3_quic_frame_count
                     .get(&(label.to_string() + postfix))
@@ -416,7 +416,7 @@ impl NeqoHttp3Conn {
             add("datagram", s.datagram);
         }
 
-        if static_prefs::pref!("network.http.http3.ecn") && stats.packets_rx != 0 {
+        if static_prefs::pref!("network.http.http3.ecn") && stats.frame_rx.handshake_done != 0 {
             if stats.ecn_tx[IpTosEcn::Ect0] > 0 {
                 if let Ok(ratio) = i64::try_from(
                     (stats.ecn_tx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_tx[IpTosEcn::Ect0],
