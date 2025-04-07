@@ -1267,14 +1267,33 @@ ContentAnalysis::ContentAnalysis()
 
   MOZ_ALWAYS_SUCCEEDS(
       mThreadPool->SetName(nsAutoCString("ContentAnalysisAgentIO")));
+
   unsigned long threadLimit =
       std::min(static_cast<unsigned long>(
                    StaticPrefs::browser_contentanalysis_max_connections()),
                kMaxContentAnalysisAgentThreads);
   MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetThreadLimit(threadLimit));
-  unsigned long idleThreadLimit =
-      std::min(threadLimit, kMaxIdleContentAnalysisAgentThreads);
-  MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetIdleThreadLimit(idleThreadLimit));
+
+  // Update thread limit if the pref changes, for testing (otherwise it is
+  // locked).  We cannot use RegisterCallbackAndCall since the callback needs
+  // to get the service that we are currently constructing.
+  Preferences::RegisterCallback(
+      [](const char* aPref, void*) {
+        auto self = GetContentAnalysisFromService();
+        if (!self) {
+          return;
+        }
+        unsigned long threadLimit = std::min(
+            static_cast<unsigned long>(
+                StaticPrefs::browser_contentanalysis_max_connections()),
+            kMaxContentAnalysisAgentThreads);
+        MOZ_ALWAYS_SUCCEEDS(self->mThreadPool->SetThreadLimit(threadLimit));
+      },
+      nsDependentCString(
+          StaticPrefs::GetPrefName_browser_contentanalysis_max_connections()));
+
+  MOZ_ALWAYS_SUCCEEDS(
+      mThreadPool->SetIdleThreadLimit(kMaxIdleContentAnalysisAgentThreads));
   MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetIdleThreadGraceTimeout(
       kIdleContentAnalysisAgentTimeoutMs));
   MOZ_ALWAYS_SUCCEEDS(mThreadPool->SetIdleThreadMaximumTimeout(
@@ -1397,7 +1416,7 @@ NS_IMETHODIMP
 ContentAnalysis::GetIsActive(bool* aIsActive) {
   *aIsActive = false;
   if (!StaticPrefs::browser_contentanalysis_enabled()) {
-    LOGD("Local DLP Content Analysis is not active");
+    LOGD("Local DLP Content Analysis is not enabled");
     return NS_OK;
   }
   // Accessing mSetByEnterprise and non-static prefs
@@ -1414,7 +1433,7 @@ ContentAnalysis::GetIsActive(bool* aIsActive) {
   }
 
   *aIsActive = true;
-  LOGD("Local DLP Content Analysis is active");
+  LOGD("Local DLP Content Analysis is enabled");
   return CreateClientIfNecessary();
 }
 
@@ -1538,6 +1557,8 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     return;
   }
   AssertIsOnMainThread();
+  LOGD("CancelWithError | aUserActionId: %s | aResult: %s\n",
+       aUserActionId.get(), SafeGetStaticErrorName(aResult));
 
   AutoTArray<nsCString, 1> tokens;
   RefPtr<nsIContentAnalysisCallback> callback;
@@ -1553,6 +1574,14 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
         "ContentAnalysis::CancelWithError user action not found -- already "
         "responded | userActionId: %s",
         aUserActionId.get());
+    auto userActionIdToCanceledResponseMap =
+        mUserActionIdToCanceledResponseMap.Lock();
+    if (auto entry = userActionIdToCanceledResponseMap->Lookup(aUserActionId)) {
+      entry->mNumExpectedResponses--;
+      if (!entry->mNumExpectedResponses) {
+        entry.Remove();
+      }
+    }
     return;
   }
 
@@ -1625,6 +1654,7 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
       cancelError =
           nsIContentAnalysisResponse::CancelError::eInvalidAgentSignature;
       break;
+    case NS_ERROR_WONT_HANDLE_CONTENT:
     case NS_ERROR_ABORT:
       cancelError = nsIContentAnalysisResponse::CancelError::
           eOtherRequestInGroupCancelled;
@@ -1673,8 +1703,20 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
 
   RemoveFromUserActionMap(nsCString(aUserActionId));
 
-  mUserActionIdToCanceledResponseMap.InsertOrUpdate(
-      aUserActionId, CanceledResponse{ConvertResult(action), tokens.Length()});
+  // NS_ERROR_WONT_HANDLE_CONTENT and NS_ERROR_CONNECTION_REFUSED mean the
+  // request was never sent to the agent, so we don't cancel it.
+  if (aResult != NS_ERROR_WONT_HANDLE_CONTENT &&
+      aResult != NS_ERROR_CONNECTION_REFUSED) {
+    auto userActionIdToCanceledResponseMap =
+        mUserActionIdToCanceledResponseMap.Lock();
+    userActionIdToCanceledResponseMap->InsertOrUpdate(
+        aUserActionId,
+        CanceledResponse{ConvertResult(action), tokens.Length()});
+  } else {
+    LOGD("CancelWithError cancelling unsubmitted request with error %s.",
+         SafeGetStaticErrorName(aResult));
+    return;
+  }
 
   // Re-get service in case the registered service is mocked for testing.
   nsCOMPtr<nsIContentAnalysis> contentAnalysis =
@@ -1956,6 +1998,21 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
     }
   }
 
+  bool actionWasCanceled;
+  {
+    auto userActionIdToCanceledResponseMap =
+        owner->mUserActionIdToCanceledResponseMap.Lock();
+    actionWasCanceled =
+        userActionIdToCanceledResponseMap->Contains(aUserActionId);
+  }
+  if (actionWasCanceled) {
+    LOGD(
+        "DoAnalyzeRequest | userAction: %s | requestToken: %s | was already "
+        "canceled",
+        aUserActionId.get(), aRequest.request_token().c_str());
+    return Err(NS_ERROR_WONT_HANDLE_CONTENT);
+  }
+
   // Run request, then dispatch back to main thread to resolve
   // aCallback
   content_analysis::sdk::ContentAnalysisResponse pbResponse;
@@ -1967,6 +2024,11 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
         nsCString(aRequest.request_token()),
         UserActionIdAndAutoAcknowledge{aUserActionId, aAutoAcknowledge});
   }
+
+  LOGD(
+      "DoAnalyzeRequest | userAction: %s | requestToken: %s | sending request "
+      "to agent",
+      aUserActionId.get(), aRequest.request_token().c_str());
   int err = aClient->Send(aRequest, &pbResponse);
   if (err != 0) {
     LOGE("DoAnalyzeRequest got err=%d for request_token=%s, user_action_id=%s",
@@ -2103,7 +2165,9 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
       // Respond to the agent with TOO_LATE because the response arrived
       // after the request was cancelled (for any reason).
       nsIContentAnalysisAcknowledgement::FinalAction action;
-      mUserActionIdToCanceledResponseMap.WithEntryHandle(
+      auto userActionIdToCanceledResponseMap =
+          mUserActionIdToCanceledResponseMap.Lock();
+      userActionIdToCanceledResponseMap->WithEntryHandle(
           aUserActionId, [&](auto&& canceledResponseEntry) {
             if (canceledResponseEntry) {
               action = canceledResponseEntry->mAction;
@@ -3252,12 +3316,14 @@ ContentAnalysis::RespondToWarnDialog(const nsACString& aRequestToken,
         "userActionId %s",
         entry->mUserActionId.get());
     size_t count = 1;
+    auto userActionIdToCanceledResponseMap =
+        mUserActionIdToCanceledResponseMap.Lock();
     if (auto maybeData =
-            mUserActionIdToCanceledResponseMap.Lookup(entry->mUserActionId)) {
+            userActionIdToCanceledResponseMap->Lookup(entry->mUserActionId)) {
       count += maybeData->mNumExpectedResponses;
     }
 
-    mUserActionIdToCanceledResponseMap.InsertOrUpdate(
+    userActionIdToCanceledResponseMap->InsertOrUpdate(
         entry->mUserActionId,
         CanceledResponse{ConvertResult(entry->mResponse->GetAction()), count});
   }
