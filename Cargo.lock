@@ -5108,6 +5108,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkcs11testmodule-static"
+version = "0.1.0"
+dependencies = [
+ "mozilla-central-workspace-hack",
+ "pkcs11-bindings",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
