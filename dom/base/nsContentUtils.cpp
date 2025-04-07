@@ -3942,9 +3942,13 @@ void nsContentUtils::GenerateStateKey(nsIContent* aContent, Document* aDocument,
     nsINode* parent = aContent->GetParentNode();
     nsINode* content = aContent;
     while (parent) {
-      KeyAppendInt(parent->ComputeIndexOf_Deprecated(content), aKey);
+      if (content->IsShadowRoot()) {
+        KeyAppendString("s"_ns, aKey);
+      } else {
+        KeyAppendInt(parent->ComputeIndexOf_Deprecated(content), aKey);
+      }
       content = parent;
-      parent = content->GetParentNode();
+      parent = content->GetParentOrShadowHostNode();
     }
   }
 }
