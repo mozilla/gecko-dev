@@ -52,6 +52,7 @@ const SUPPORTED_TASKS = [
   "text2text-generation",
   "text-generation",
   "text-to-speech",
+  "text-to-audio",
   "zero-shot-classification",
   "image-to-text",
   "image-classification",
