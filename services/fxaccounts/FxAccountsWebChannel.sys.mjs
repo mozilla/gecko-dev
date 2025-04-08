@@ -978,9 +978,9 @@ FxAccountsWebChannelHelpers.prototype = {
    */
   async _getProfileAssociatedWithAcct(acctEmail) {
     let profiles = await this._getAllProfiles();
-    let currentProfileName = await this._getCurrentProfileName();
+    let currentProfile = await this._getCurrentProfileName();
     for (let profile of profiles) {
-      if (profile.name === currentProfileName) {
+      if (profile.name === currentProfile.name) {
         continue; // Skip current profile
       }
 
