@@ -24,9 +24,9 @@ void accumulateToBoolean(HistogramID aId, const nsACString& aLabel,
              "When mirroring to boolean histograms, we only support "
              "accumulating one sample at a time.");
   if (aLabel.EqualsASCII("true")) {
-    mozilla::Telemetry::Accumulate(aId, true);
+    TelemetryHistogram::Accumulate(aId, true);
   } else if (aLabel.EqualsASCII("false")) {
-    mozilla::Telemetry::Accumulate(aId, false);
+    TelemetryHistogram::Accumulate(aId, false);
   } else {
     MOZ_ASSERT_UNREACHABLE(
         "When mirroring to boolean histograms, we only support labels 'true' "
@@ -37,7 +37,7 @@ void accumulateToBoolean(HistogramID aId, const nsACString& aLabel,
 /* static */
 void accumulateToKeyedCount(HistogramID aId, const nsCString& aLabel,
                             int32_t aAmount) {
-  mozilla::Telemetry::Accumulate(aId, aLabel, aAmount);
+  TelemetryHistogram::Accumulate(aId, aLabel, aAmount);
 }
 
 /* static */
@@ -95,7 +95,7 @@ void CounterMetric::Add(int32_t aAmount) const {
     } else {
       auto hgramId = HistogramIdForMetric(mId);
       if (hgramId) {
-        Telemetry::Accumulate(hgramId.extract(), aAmount);
+        TelemetryHistogram::Accumulate(hgramId.extract(), aAmount);
       }
     }
   }

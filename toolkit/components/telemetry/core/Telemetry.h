@@ -52,62 +52,19 @@ void Init();
 void ShutdownTelemetry();
 
 /**
- * Adds sample to a histogram defined in TelemetryHistogramEnums.h
- *
- * @param id - histogram id
- * @param sample - value to record.
- */
-void Accumulate(HistogramID id, uint32_t sample);
-
-/**
- * Adds an array of samples to a histogram defined in TelemetryHistograms.h
- * @param id - histogram id
- * @param samples - values to record.
- */
-void Accumulate(HistogramID id, const nsTArray<uint32_t>& samples);
-
-/**
+ * DEPRECATED:
  * Adds sample to a keyed histogram defined in TelemetryHistogramEnums.h
+ * The only remaining callers should use keyed boolean or keyed categorical
+ * histograms, that do not have glean equivalents yet (see bug 1657470).
  *
  * @param id - keyed histogram id
  * @param key - the string key
- * @param sample - (optional) value to record, defaults to 1.
+ * @param sample - value to record.
  */
-void Accumulate(HistogramID id, const nsCString& key, uint32_t sample = 1);
+void Accumulate(HistogramID id, const nsCString& key, uint32_t sample);
 
 /**
- * Adds an array of samples to a histogram defined in TelemetryHistograms.h
- * @param id - histogram id
- * @param samples - values to record.
- * @param key - the string key
- */
-void Accumulate(HistogramID id, const nsCString& key,
-                const nsTArray<uint32_t>& samples);
-
-/**
- * Adds a sample to a histogram defined in TelemetryHistogramEnums.h.
- * This function is here to support telemetry measurements from Java,
- * where we have only names and not numeric IDs.  You should almost
- * certainly be using the by-enum-id version instead of this one.
- *
- * @param name - histogram name
- * @param sample - value to record
- */
-void Accumulate(const char* name, uint32_t sample);
-
-/**
- * Adds a sample to a histogram defined in TelemetryHistogramEnums.h.
- * This function is here to support telemetry measurements from Java,
- * where we have only names and not numeric IDs.  You should almost
- * certainly be using the by-enum-id version instead of this one.
- *
- * @param name - histogram name
- * @param key - the string key
- * @param sample - sample - (optional) value to record, defaults to 1.
- */
-void Accumulate(const char* name, const nsCString& key, uint32_t sample = 1);
-
-/**
+ * DEPRECATED:
  * Adds sample to a keyed categorical histogram defined in
  * TelemetryHistogramEnums.h This is the typesafe - and preferred - way to use
  * the keyed categorical histograms by passing values from the corresponding

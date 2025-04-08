@@ -1658,20 +1658,6 @@ TelemetryImpl::GetAllStores(JSContext* aCx,
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 //
-// EXTERNALLY VISIBLE FUNCTIONS in no name space
-// These are NOT listed in Telemetry.h
-
-/**
- * The XRE_TelemetryAdd function is to be used by embedding applications
- * that can't use mozilla::Telemetry::Accumulate() directly.
- */
-void XRE_TelemetryAccumulate(int aID, uint32_t aSample) {
-  mozilla::Telemetry::Accumulate((mozilla::Telemetry::HistogramID)aID, aSample);
-}
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////
-//
 // EXTERNALLY VISIBLE FUNCTIONS in mozilla::
 // These are NOT listed in Telemetry.h
 
@@ -1759,29 +1745,8 @@ void RecordShutdownEndTimeStamp() {
 
 namespace mozilla::Telemetry {
 
-void Accumulate(HistogramID aHistogram, uint32_t aSample) {
-  TelemetryHistogram::Accumulate(aHistogram, aSample);
-}
-
-void Accumulate(HistogramID aHistogram, const nsTArray<uint32_t>& aSamples) {
-  TelemetryHistogram::Accumulate(aHistogram, aSamples);
-}
-
 void Accumulate(HistogramID aID, const nsCString& aKey, uint32_t aSample) {
   TelemetryHistogram::Accumulate(aID, aKey, aSample);
-}
-
-void Accumulate(HistogramID aID, const nsCString& aKey,
-                const nsTArray<uint32_t>& aSamples) {
-  TelemetryHistogram::Accumulate(aID, aKey, aSamples);
-}
-
-void Accumulate(const char* name, uint32_t sample) {
-  TelemetryHistogram::Accumulate(name, sample);
-}
-
-void Accumulate(const char* name, const nsCString& key, uint32_t sample) {
-  TelemetryHistogram::Accumulate(name, key, sample);
 }
 
 const char* GetHistogramName(HistogramID id) {

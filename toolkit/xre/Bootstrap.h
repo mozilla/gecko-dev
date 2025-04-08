@@ -82,8 +82,6 @@ class Bootstrap {
 
   virtual void NS_LogTerm() = 0;
 
-  virtual void XRE_TelemetryAccumulate(int aID, uint32_t aSample) = 0;
-
   virtual void XRE_StartupTimelineRecord(int aEvent,
                                          mozilla::TimeStamp aWhen) = 0;
 

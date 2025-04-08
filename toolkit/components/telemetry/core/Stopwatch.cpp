@@ -6,7 +6,6 @@
 
 #include "mozilla/telemetry/Stopwatch.h"
 
-#include "TelemetryHistogram.h"
 #include "TelemetryUserInteraction.h"
 
 #include "js/MapAndSet.h"
@@ -165,18 +164,6 @@ class Timers final : public BackgroundHangAnnotator {
   bool Delete(JSContext* aCx, const nsAString& aHistogram,
               JS::Handle<JSObject*> aObj, const nsAString& aKey);
 
-  int32_t TimeElapsed(JSContext* aCx, const nsAString& aHistogram,
-                      JS::Handle<JSObject*> aObj, const nsAString& aKey,
-                      bool aCanceledOkay = false);
-
-  bool Start(JSContext* aCx, const nsAString& aHistogram,
-             JS::Handle<JSObject*> aObj, const nsAString& aKey,
-             bool aInSeconds = false);
-
-  int32_t Finish(JSContext* aCx, const nsAString& aHistogram,
-                 JS::Handle<JSObject*> aObj, const nsAString& aKey,
-                 bool aCanceledOkay = false);
-
   bool& SuppressErrors() { return mSuppressErrors; }
 
   bool StartUserInteraction(JSContext* aCx, const nsAString& aUserInteraction,
@@ -321,88 +308,6 @@ bool Timers::Delete(JSContext* aCx, const nsAString& aHistogram,
     return keys->Delete(aKey);
   }
   return false;
-}
-
-int32_t Timers::TimeElapsed(JSContext* aCx, const nsAString& aHistogram,
-                            JS::Handle<JSObject*> aObj, const nsAString& aKey,
-                            bool aCanceledOkay) {
-  RefPtr<Timer> timer = Get(aCx, aHistogram, aObj, aKey, false);
-  if (!timer) {
-    if (!aCanceledOkay && !mSuppressErrors) {
-      LogError(aCx, nsPrintfCString(
-                        "TelemetryStopwatch: requesting elapsed time for "
-                        "nonexisting stopwatch. Histogram: \"%s\", key: \"%s\"",
-                        NS_ConvertUTF16toUTF8(aHistogram).get(),
-                        NS_ConvertUTF16toUTF8(aKey).get()));
-    }
-    return -1;
-  }
-
-  return timer->Elapsed();
-}
-
-bool Timers::Start(JSContext* aCx, const nsAString& aHistogram,
-                   JS::Handle<JSObject*> aObj, const nsAString& aKey,
-                   bool aInSeconds) {
-  if (RefPtr<Timer> timer = Get(aCx, aHistogram, aObj, aKey)) {
-    if (timer->Started()) {
-      if (!mSuppressErrors) {
-        LogError(aCx,
-                 nsPrintfCString(
-                     "TelemetryStopwatch: key \"%s\" was already initialized",
-                     NS_ConvertUTF16toUTF8(aHistogram).get()));
-      }
-      Delete(aCx, aHistogram, aObj, aKey);
-    } else {
-      timer->Start(aInSeconds);
-      return true;
-    }
-  }
-  return false;
-}
-
-int32_t Timers::Finish(JSContext* aCx, const nsAString& aHistogram,
-                       JS::Handle<JSObject*> aObj, const nsAString& aKey,
-                       bool aCanceledOkay) {
-  RefPtr<Timer> timer = GetAndDelete(aCx, aHistogram, aObj, aKey);
-  if (!timer) {
-    if (!aCanceledOkay && !mSuppressErrors) {
-      LogError(aCx, nsPrintfCString(
-                        "TelemetryStopwatch: finishing nonexisting stopwatch. "
-                        "Histogram: \"%s\", key: \"%s\"",
-                        NS_ConvertUTF16toUTF8(aHistogram).get(),
-                        NS_ConvertUTF16toUTF8(aKey).get()));
-    }
-    return -1;
-  }
-
-  int32_t delta = timer->Elapsed();
-  NS_ConvertUTF16toUTF8 histogram(aHistogram);
-  nsresult rv;
-  if (!aKey.IsVoid()) {
-    NS_ConvertUTF16toUTF8 key(aKey);
-    rv = TelemetryHistogram::Accumulate(histogram.get(), key, delta);
-  } else {
-    rv = TelemetryHistogram::Accumulate(histogram.get(), delta);
-  }
-  if (profiler_thread_is_being_profiled_for_markers()) {
-    nsCString markerText = histogram;
-    if (!aKey.IsVoid()) {
-      markerText.AppendLiteral(":");
-      markerText.Append(NS_ConvertUTF16toUTF8(aKey));
-    }
-    PROFILER_MARKER_TEXT("Stopwatch", TELEMETRY,
-                         MarkerTiming::IntervalUntilNowFrom(timer->StartTime()),
-                         markerText);
-  }
-  if (NS_FAILED(rv) && rv != NS_ERROR_NOT_AVAILABLE && !mSuppressErrors) {
-    LogError(aCx, nsPrintfCString(
-                      "TelemetryStopwatch: failed to update the Histogram "
-                      "\"%s\", using key: \"%s\"",
-                      NS_ConvertUTF16toUTF8(aHistogram).get(),
-                      NS_ConvertUTF16toUTF8(aKey).get()));
-  }
-  return NS_SUCCEEDED(rv) ? delta : -1;
 }
 
 bool Timers::StartUserInteraction(JSContext* aCx,

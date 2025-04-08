@@ -350,8 +350,6 @@ bool XRE_ShutdownTestShell();
 void XRE_InstallX11ErrorHandler();
 void XRE_CleanupX11ErrorHandler();
 
-void XRE_TelemetryAccumulate(int aID, uint32_t aSample);
-
 void XRE_StartupTimelineRecord(int aEvent, mozilla::TimeStamp aWhen);
 
 void XRE_InitOmnijar(nsIFile* aGreOmni, nsIFile* aAppOmni);

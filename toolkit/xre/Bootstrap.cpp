@@ -36,10 +36,6 @@ class BootstrapImpl final : public Bootstrap {
 
   virtual void NS_LogTerm() override { ::NS_LogTerm(); }
 
-  virtual void XRE_TelemetryAccumulate(int aID, uint32_t aSample) override {
-    ::XRE_TelemetryAccumulate(aID, aSample);
-  }
-
   virtual void XRE_StartupTimelineRecord(int aEvent,
                                          mozilla::TimeStamp aWhen) override {
     ::XRE_StartupTimelineRecord(aEvent, aWhen);

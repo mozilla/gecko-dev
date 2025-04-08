@@ -15,6 +15,7 @@
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "GIFFTFwd.h"
 
 namespace mozilla::glean {
 
@@ -28,15 +29,15 @@ void CustomDistributionMetric::AccumulateSamples(
     // N.B.: There is an `Accumulate(nsTArray<T>)`, but `T` is `uint32_t` and
     // we got `uint64_t`s here.
     for (auto sample : aSamples) {
-      Telemetry::Accumulate(id, sample);
+      TelemetryHistogram::Accumulate(id, sample);
     }
   } else if (IsSubmetricId(mId)) {
     GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
       auto tuple = lock.ref()->MaybeGet(mId);
       if (tuple) {
         for (auto sample : aSamples) {
-          Telemetry::Accumulate(std::get<0>(tuple.ref()),
-                                std::get<1>(tuple.ref()), sample);
+          TelemetryHistogram::Accumulate(std::get<0>(tuple.ref()),
+                                         std::get<1>(tuple.ref()), sample);
         }
       }
     });
@@ -48,13 +49,13 @@ void CustomDistributionMetric::AccumulateSingleSample(uint64_t aSample) const {
   auto hgramId = HistogramIdForMetric(mId);
   if (hgramId) {
     auto id = hgramId.extract();
-    Telemetry::Accumulate(id, aSample);
+    TelemetryHistogram::Accumulate(id, aSample);
   } else if (IsSubmetricId(mId)) {
     GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
       auto tuple = lock.ref()->MaybeGet(mId);
       if (tuple) {
-        Telemetry::Accumulate(std::get<0>(tuple.ref()),
-                              std::get<1>(tuple.ref()), aSample);
+        TelemetryHistogram::Accumulate(std::get<0>(tuple.ref()),
+                                       std::get<1>(tuple.ref()), aSample);
       }
     });
   }
@@ -69,15 +70,15 @@ void CustomDistributionMetric::AccumulateSamplesSigned(
     // N.B.: There is an `Accumulate(nsTArray<T>)`, but `T` is `uint32_t` and
     // we got `int64_t`s here.
     for (auto sample : aSamples) {
-      Telemetry::Accumulate(id, sample);
+      TelemetryHistogram::Accumulate(id, sample);
     }
   } else if (IsSubmetricId(mId)) {
     GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
       auto tuple = lock.ref()->MaybeGet(mId);
       if (tuple) {
         for (auto sample : aSamples) {
-          Telemetry::Accumulate(std::get<0>(tuple.ref()),
-                                std::get<1>(tuple.ref()), sample);
+          TelemetryHistogram::Accumulate(std::get<0>(tuple.ref()),
+                                         std::get<1>(tuple.ref()), sample);
         }
       }
     });
@@ -90,13 +91,13 @@ void CustomDistributionMetric::AccumulateSingleSampleSigned(
   auto hgramId = HistogramIdForMetric(mId);
   if (hgramId) {
     auto id = hgramId.extract();
-    Telemetry::Accumulate(id, aSample);
+    TelemetryHistogram::Accumulate(id, aSample);
   } else if (IsSubmetricId(mId)) {
     GetLabeledDistributionMirrorLock().apply([&](const auto& lock) {
       auto tuple = lock.ref()->MaybeGet(mId);
       if (tuple) {
-        Telemetry::Accumulate(std::get<0>(tuple.ref()),
-                              std::get<1>(tuple.ref()), aSample);
+        TelemetryHistogram::Accumulate(std::get<0>(tuple.ref()),
+                                       std::get<1>(tuple.ref()), aSample);
       }
     });
   }

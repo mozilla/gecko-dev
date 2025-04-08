@@ -2586,12 +2586,17 @@ static nsresult JSSizeOfTab(JSObject* objArg, size_t* jsObjectsSize,
 
 }  // namespace xpc
 
+// Temporary workaround until bug 1949494 can land.
+namespace TelemetryHistogram {
+void Accumulate(mozilla::Telemetry::HistogramID aHistogram, uint32_t aSample);
+}
+
 static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
   // clang-format off
   switch (id) {
-#define CASE_ACCUMULATE(NAME, _)                      \
-    case JSMetric::NAME:                              \
-      Telemetry::Accumulate(Telemetry::NAME, sample); \
+#define CASE_ACCUMULATE(NAME, _)                                \
+    case JSMetric::NAME:                                        \
+      TelemetryHistogram::Accumulate(Telemetry::NAME, sample);  \
       break;
 
     FOR_EACH_JS_LEGACY_METRIC(CASE_ACCUMULATE)

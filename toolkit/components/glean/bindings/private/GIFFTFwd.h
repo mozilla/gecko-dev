@@ -27,6 +27,11 @@ void Set(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, bool aValue);
 
 namespace TelemetryHistogram {
 uint8_t GetHistogramType(mozilla::Telemetry::HistogramID aId);
+void Accumulate(mozilla::Telemetry::HistogramID aHistogram, uint32_t aSample);
+void Accumulate(mozilla::Telemetry::HistogramID aHistogram,
+                const nsTArray<uint32_t>& aSamples);
+void Accumulate(mozilla::Telemetry::HistogramID aID, const nsCString& aKey,
+                uint32_t aSample);
 void AccumulateCategorical(mozilla::Telemetry::HistogramID aId,
                            const nsCString& aLabel);
 }  // namespace TelemetryHistogram

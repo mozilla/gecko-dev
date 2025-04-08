@@ -217,25 +217,32 @@ extern "C" NS_EXPORT void GIFFT_TimingDistributionStopAndAccumulate(
         // Values are from Glean's `TimeUnit`
         switch (aUnit) {
           case 0:  // Nanos
-            Accumulate(mirrorId.extract(), duration.ToMicroseconds() * 1000);
+            TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                           duration.ToMicroseconds() * 1000);
             break;
           case 1:  // Micros
-            Accumulate(mirrorId.extract(), duration.ToMicroseconds());
+            TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                           duration.ToMicroseconds());
             break;
           case 2:  // Millis
-            Accumulate(mirrorId.extract(), duration.ToMilliseconds());
+            TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                           duration.ToMilliseconds());
             break;
           case 3:  // Seconds
-            Accumulate(mirrorId.extract(), duration.ToSeconds());
+            TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                           duration.ToSeconds());
             break;
           case 4:  // Minutes
-            Accumulate(mirrorId.extract(), duration.ToSeconds() / 60);
+            TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                           duration.ToSeconds() / 60);
             break;
           case 5:  // Hours
-            Accumulate(mirrorId.extract(), duration.ToSeconds() / 60 / 60);
+            TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                           duration.ToSeconds() / 60 / 60);
             break;
           case 6:  // Days
-            Accumulate(mirrorId.extract(), duration.ToSeconds() / 60 / 60 / 24);
+            TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                           duration.ToSeconds() / 60 / 60 / 24);
             break;
           default:
             MOZ_ASSERT_UNREACHABLE("Invalid/Unsupported time unit");
@@ -251,7 +258,7 @@ extern "C" NS_EXPORT void GIFFT_TimingDistributionAccumulateRawSample(
     uint32_t aMetricId, uint32_t aSample) {
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
-    Accumulate(mirrorId.extract(), aSample);
+    TelemetryHistogram::Accumulate(mirrorId.extract(), aSample);
   }
 }
 
@@ -260,7 +267,7 @@ extern "C" NS_EXPORT void GIFFT_TimingDistributionAccumulateRawSamples(
     uint32_t aMetricId, const nsTArray<uint32_t>& aSamples) {
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
-    Accumulate(mirrorId.extract(), aSamples);
+    TelemetryHistogram::Accumulate(mirrorId.extract(), aSamples);
   }
 }
 
@@ -303,10 +310,11 @@ extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionStopAndAccumulate(
       // The timer might not be in the map to be removed if it's already been
       // cancelled or stop_and_accumulate'd.
       if (!NS_WARN_IF(!optStart)) {
-        Accumulate(mirrorId.extract(), PromiseFlatCString(aLabel),
-                   static_cast<uint32_t>(
-                       (mozilla::TimeStamp::Now() - optStart.extract())
-                           .ToMilliseconds()));
+        TelemetryHistogram::Accumulate(
+            mirrorId.extract(), PromiseFlatCString(aLabel),
+            static_cast<uint32_t>(
+                (mozilla::TimeStamp::Now() - optStart.extract())
+                    .ToMilliseconds()));
       }
     });
   }
@@ -317,7 +325,8 @@ extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionAccumulateRawMillis(
     uint32_t aMetricId, const nsACString& aLabel, uint32_t aMS) {
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
-    Accumulate(mirrorId.extract(), PromiseFlatCString(aLabel), aMS);
+    TelemetryHistogram::Accumulate(mirrorId.extract(),
+                                   PromiseFlatCString(aLabel), aMS);
   }
 }
 
