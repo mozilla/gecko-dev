@@ -637,6 +637,7 @@ let JSWINDOWACTORS = {
       "http://*/*",
       "https://*/*",
       "file:///*",
+      "moz-extension://*",
 
       // The actor is explicitly loaded by this page,
       // so it needs to be allowed for it.

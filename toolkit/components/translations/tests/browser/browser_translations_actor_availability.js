@@ -30,8 +30,9 @@ add_task(async function test_actor_at_data_url() {
   BrowserTestUtils.removeTab(tab);
 });
 
-// Confirms that the Translations actor is unavailable in extension documents,
-// including child frames (even if these are from https).
+// Confirms that the Translations actor is only available in moz-extension pages
+// but otherwise unavailable in extension documents, including child frames
+// (even if these are from https).
 add_task(async function test_actor_at_moz_extension() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
@@ -81,8 +82,8 @@ add_task(async function test_actor_at_moz_extension() {
     await extension.awaitMessage("frame_loaded_in_extpage");
 
     Assert.ok(
-      !hasTranslationActor(tab.linkedBrowser.browsingContext),
-      "moz-extension:-page in tab does not have actor"
+      hasTranslationActor(tab.linkedBrowser.browsingContext),
+      "moz-extension:-page in tab has actor"
     );
     Assert.ok(
       !hasTranslationActor(tab.linkedBrowser.browsingContext.children[0]),

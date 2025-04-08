@@ -958,6 +958,7 @@ export class TranslationsParent extends JSWindowActorParent {
       case "https":
       case "http":
       case "file":
+      case "moz-extension":
         return false;
     }
     return true;
