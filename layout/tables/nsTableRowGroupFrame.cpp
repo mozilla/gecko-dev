@@ -401,7 +401,8 @@ void nsTableRowGroupFrame::ReflowChildren(
           // the overflow area may have changed inflate the overflow area
           const nsStylePosition* stylePos = StylePosition();
           if (tableFrame->IsAutoBSize(wm) &&
-              !stylePos->BSize(wm).ConvertsToLength()) {
+              !stylePos->BSize(wm, StyleDisplay()->mPosition)
+                   ->ConvertsToLength()) {
             // Because other cells in the row may need to be aligned
             // differently, repaint the entire row
             InvalidateFrame();

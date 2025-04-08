@@ -1277,12 +1277,12 @@ nsChangeHint nsStylePosition::CalcDifference(
     hint |= nsChangeHint_NeedReflow;
   }
 
-  bool widthChanged = GetWidth() != aNewData.GetWidth() ||
-                      GetMinWidth() != aNewData.GetMinWidth() ||
-                      GetMaxWidth() != aNewData.GetMaxWidth();
-  bool heightChanged = GetHeight() != aNewData.GetHeight() ||
-                       GetMinHeight() != aNewData.GetMinHeight() ||
-                       GetMaxHeight() != aNewData.GetMaxHeight();
+  bool widthChanged = mWidth != aNewData.mWidth ||
+                      mMinWidth != aNewData.mMinWidth ||
+                      mMaxWidth != aNewData.mMaxWidth;
+  bool heightChanged = mHeight != aNewData.mHeight ||
+                       mMinHeight != aNewData.mMinHeight ||
+                       mMaxHeight != aNewData.mMaxHeight;
 
   if (widthChanged || heightChanged) {
     // It doesn't matter whether we're looking at the old or new visibility
@@ -1469,9 +1469,102 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
   }
 }
 
-MOZ_RUNINIT const StyleSize nsStylePosition::kAutoSize = StyleSize::Auto();
-MOZ_RUNINIT const StyleMaxSize nsStylePosition::kNoneMaxSize =
-    StyleMaxSize::None();
+AnchorResolvedSize::AnchorResolvedSize(const mozilla::StyleSize& aValue,
+                                       mozilla::StylePositionProperty aPosition)
+    : AnchorResolved<StyleSize>{FromUnresolved(aValue, aPosition)} {}
+
+AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::FromUnresolved(
+    const mozilla::StyleSize& aValue,
+    mozilla::StylePositionProperty aPosition) {
+  if (!aValue.HasAnchorPositioningFunction()) {
+    return AnchorResolved::Unchanged(aValue);
+  }
+  if (aValue.IsAnchorSizeFunction()) {
+    auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
+    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
+                                    &resolved);
+    if (resolved.IsInvalid()) {
+      return Invalid();
+    }
+    if (resolved.IsResolvedReference()) {
+      return Evaluated(*resolved.AsResolvedReference());
+    }
+    return Evaluated(resolved.AsResolved());
+  }
+
+  const auto& lp = aValue.AsAnchorContainingCalcFunction();
+  // Follows the same reasoning as anchor resolved insets.
+  const auto& c = lp.AsCalc();
+  auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
+  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, aPosition, &result);
+  if (result.IsInvalid()) {
+    return Invalid();
+  }
+  return Evaluated(result.AsValid());
+}
+
+AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::Invalid() {
+  return AnchorResolved::Evaluated(StyleSize::Auto());
+}
+
+AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::Evaluated(
+    mozilla::StyleLengthPercentage&& aLP) {
+  return AnchorResolved::Evaluated(StyleSize::LengthPercentage(aLP));
+}
+
+AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::Evaluated(
+    const mozilla::StyleLengthPercentage& aLP) {
+  return AnchorResolved::Evaluated(StyleSize::LengthPercentage(aLP));
+}
+
+AnchorResolvedMaxSize::AnchorResolvedMaxSize(
+    const mozilla::StyleMaxSize& aValue,
+    mozilla::StylePositionProperty aPosition)
+    : AnchorResolved<StyleMaxSize>{FromUnresolved(aValue, aPosition)} {}
+
+AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::FromUnresolved(
+    const mozilla::StyleMaxSize& aValue,
+    mozilla::StylePositionProperty aPosition) {
+  if (!aValue.HasAnchorPositioningFunction()) {
+    return AnchorResolved::Unchanged(aValue);
+  }
+  if (aValue.IsAnchorSizeFunction()) {
+    auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
+    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
+                                    &resolved);
+    if (resolved.IsInvalid()) {
+      return Invalid();
+    }
+    if (resolved.IsResolvedReference()) {
+      return Evaluated(*resolved.AsResolvedReference());
+    }
+    return Evaluated(resolved.AsResolved());
+  }
+
+  const auto& lp = aValue.AsAnchorContainingCalcFunction();
+  // Follows the same reasoning as anchor resolved insets.
+  const auto& c = lp.AsCalc();
+  auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
+  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, aPosition, &result);
+  if (result.IsInvalid()) {
+    return Invalid();
+  }
+  return Evaluated(result.AsValid());
+}
+
+AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::Invalid() {
+  return AnchorResolved::Evaluated(StyleMaxSize::None());
+}
+
+AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::Evaluated(
+    mozilla::StyleLengthPercentage&& aLP) {
+  return AnchorResolved::Evaluated(StyleMaxSize::LengthPercentage(aLP));
+}
+
+AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::Evaluated(
+    const mozilla::StyleLengthPercentage& aLP) {
+  return AnchorResolved::Evaluated(StyleMaxSize::LengthPercentage(aLP));
+}
 
 // --------------------
 // nsStyleTable

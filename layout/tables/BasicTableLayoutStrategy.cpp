@@ -79,6 +79,7 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
              "The caller is expected to pass aFrame's writing mode!");
   nscoord minCoord, prefCoord;
   const nsStylePosition* stylePos = aFrame->StylePosition();
+  const auto positionProperty = aFrame->StyleDisplay()->mPosition;
   bool isQuirks =
       aFrame->PresContext()->CompatibilityMode() == eCompatibility_NavQuirks;
   nscoord boxSizingToBorderEdge = 0;
@@ -103,8 +104,10 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
             ? aFrame->IntrinsicBSizeOffsets().BorderPadding()
             : 0;
     const nscoord cellBSize = nsIFrame::ComputeBSizeValueAsPercentageBasis(
-        stylePos->BSize(aWM), stylePos->MinBSize(aWM), stylePos->MaxBSize(aWM),
-        cbBSize, contentEdgeToBoxSizingBSize);
+        *stylePos->BSize(aWM, positionProperty),
+        *stylePos->MinBSize(aWM, positionProperty),
+        *stylePos->MaxBSize(aWM, positionProperty), cbBSize,
+        contentEdgeToBoxSizingBSize);
 
     const IntrinsicSizeInput input(
         aRenderingContext, Nothing(),
@@ -134,14 +137,14 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   float prefPercent = 0.0f;
   bool hasSpecifiedISize = false;
 
-  const auto& iSize = stylePos->ISize(aWM);
+  const auto iSize = stylePos->ISize(aWM, positionProperty);
   // NOTE: We're ignoring calc() units with both lengths and percentages here,
   // for lack of a sensible idea for what to do with them.  This means calc()
   // with percentages is basically handled like 'auto' for table cells and
   // columns.
-  if (iSize.ConvertsToLength()) {
+  if (iSize->ConvertsToLength()) {
     hasSpecifiedISize = true;
-    nscoord c = iSize.ToLength();
+    nscoord c = iSize->ToLength();
     // Quirk: A cell with "nowrap" set and a coord value for the
     // isize which is bigger than the intrinsic minimum isize uses
     // that coord value as the minimum isize.
@@ -152,10 +155,10 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
       minCoord = c;
     }
     prefCoord = std::max(c, minCoord);
-  } else if (iSize.ConvertsToPercentage()) {
-    prefPercent = iSize.ToPercentage();
+  } else if (iSize->ConvertsToPercentage()) {
+    prefPercent = iSize->ToPercentage();
   } else if (aIsCell) {
-    switch (iSize.tag) {
+    switch (iSize->tag) {
       case StyleSize::Tag::MaxContent:
         // 'inline-size' only affects pref isize, not min
         // isize, so don't change anything
@@ -177,55 +180,57 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
     }
   }
 
-  StyleMaxSize maxISize = stylePos->MaxISize(aWM);
-  if (nsIFrame::ToExtremumLength(maxISize)) {
-    if (!aIsCell || maxISize.BehavesLikeStretchOnInlineAxis()) {
-      maxISize = StyleMaxSize::None();
-    } else if (maxISize.IsFitContent() || maxISize.IsFitContentFunction()) {
+  auto maxISize = stylePos->MaxISize(aWM, positionProperty);
+  if (nsIFrame::ToExtremumLength(*maxISize)) {
+    if (!aIsCell || maxISize->BehavesLikeStretchOnInlineAxis()) {
+      maxISize = AnchorResolvedMaxSize::None();
+    } else if (maxISize->IsFitContent() || maxISize->IsFitContentFunction()) {
       // TODO: Bug 1708310: Make sure fit-content() work properly in table.
       // for 'max-inline-size', '-moz-fit-content' is like 'max-content'
-      maxISize = StyleMaxSize::MaxContent();
+      maxISize = AnchorResolvedMaxSize::MaxContent();
     }
   }
   // XXX To really implement 'max-inline-size' well, we'd need to store
   // it separately on the columns.
   const LogicalSize zeroSize(aWM);
-  if (maxISize.ConvertsToLength() || nsIFrame::ToExtremumLength(maxISize)) {
+  if (maxISize->ConvertsToLength() || nsIFrame::ToExtremumLength(*maxISize)) {
     nscoord c = aFrame
-                    ->ComputeISizeValue(
-                        aRenderingContext, aWM, zeroSize, zeroSize, 0, maxISize,
-                        stylePos->BSize(aWM), aFrame->GetAspectRatio())
+                    ->ComputeISizeValue(aRenderingContext, aWM, zeroSize,
+                                        zeroSize, 0, *maxISize,
+                                        *stylePos->BSize(aWM, positionProperty),
+                                        aFrame->GetAspectRatio())
                     .mISize;
     minCoord = std::min(c, minCoord);
     prefCoord = std::min(c, prefCoord);
-  } else if (maxISize.ConvertsToPercentage()) {
-    float p = maxISize.ToPercentage();
+  } else if (maxISize->ConvertsToPercentage()) {
+    float p = maxISize->ToPercentage();
     if (p < prefPercent) {
       prefPercent = p;
     }
   }
 
-  StyleSize minISize = stylePos->MinISize(aWM);
-  if (nsIFrame::ToExtremumLength(maxISize)) {
-    if (!aIsCell || minISize.BehavesLikeStretchOnInlineAxis()) {
-      minISize = StyleSize::LengthPercentage(LengthPercentage::Zero());
-    } else if (minISize.IsFitContent() || minISize.IsFitContentFunction()) {
+  auto minISize = stylePos->MinISize(aWM, positionProperty);
+  if (nsIFrame::ToExtremumLength(*maxISize)) {
+    if (!aIsCell || minISize->BehavesLikeStretchOnInlineAxis()) {
+      minISize = AnchorResolvedSize::Zero();
+    } else if (minISize->IsFitContent() || minISize->IsFitContentFunction()) {
       // TODO: Bug 1708310: Make sure fit-content() work properly in table.
       // for 'min-inline-size', '-moz-fit-content' is like 'min-content'
-      minISize = StyleSize::MinContent();
+      minISize = AnchorResolvedSize::MinContent();
     }
   }
 
-  if (minISize.ConvertsToLength() || nsIFrame::ToExtremumLength(minISize)) {
+  if (minISize->ConvertsToLength() || nsIFrame::ToExtremumLength(*minISize)) {
     nscoord c = aFrame
-                    ->ComputeISizeValue(
-                        aRenderingContext, aWM, zeroSize, zeroSize, 0, minISize,
-                        stylePos->BSize(aWM), aFrame->GetAspectRatio())
+                    ->ComputeISizeValue(aRenderingContext, aWM, zeroSize,
+                                        zeroSize, 0, *minISize,
+                                        *stylePos->BSize(aWM, positionProperty),
+                                        aFrame->GetAspectRatio())
                     .mISize;
     minCoord = std::max(c, minCoord);
     prefCoord = std::max(c, prefCoord);
-  } else if (minISize.ConvertsToPercentage()) {
-    float p = minISize.ToPercentage();
+  } else if (minISize->ConvertsToPercentage()) {
+    float p = minISize->ToPercentage();
     if (p > prefPercent) {
       prefPercent = p;
     }

@@ -376,8 +376,12 @@ template <typename T>
 class AnchorResolved {
  public:
   const T* operator->() const { return Ptr(); }
-
   const T& operator*() const { return *Ptr(); }
+
+  AnchorResolved(AnchorResolved&& aOther) = default;
+  AnchorResolved& operator=(AnchorResolved&& aOther) = default;
+  AnchorResolved(const AnchorResolved& aOther) = delete;
+  AnchorResolved& operator=(const AnchorResolved& aOther) = delete;
 
  protected:
   static AnchorResolved Evaluated(T&& aValue) {
@@ -786,6 +790,81 @@ class AnchorResolvedInset final : public AnchorResolved<mozilla::StyleInset> {
       const mozilla::StyleLengthPercentage& aLP);
 };
 
+class AnchorResolvedSize final : public AnchorResolved<mozilla::StyleSize> {
+ public:
+  AnchorResolvedSize(const mozilla::StyleSize& aValue,
+                     mozilla::StylePositionProperty aPosition);
+
+  AnchorResolvedSize(AnchorResolvedSize&& aOther) = default;
+  AnchorResolvedSize& operator=(AnchorResolvedSize&& aOther) = default;
+  static AnchorResolvedSize Overridden(const mozilla::StyleSize& aSize) {
+    return AnchorResolvedSize{aSize};
+  }
+
+  static AnchorResolvedSize Zero() {
+    return AnchorResolvedSize{mozilla::StyleSize::LengthPercentage(
+        mozilla::StyleLengthPercentage::Zero())};
+  }
+
+  static AnchorResolvedSize MinContent() {
+    return AnchorResolvedSize{mozilla::StyleSize::MinContent()};
+  }
+
+  static AnchorResolvedSize Auto() {
+    return AnchorResolvedSize{mozilla::StyleSize::Auto()};
+  }
+
+  static AnchorResolvedSize LengthPercentage(
+      const mozilla::StyleLengthPercentage& aLP) {
+    return AnchorResolvedSize{mozilla::StyleSize::LengthPercentage(aLP)};
+  }
+
+ private:
+  explicit AnchorResolvedSize(mozilla::StyleSize&& aSize)
+      : AnchorResolved<mozilla::StyleSize>{
+            AnchorResolved::Evaluated(std::move(aSize))} {}
+  explicit AnchorResolvedSize(const mozilla::StyleSize& aSize)
+      : AnchorResolved<mozilla::StyleSize>{AnchorResolved::Unchanged(aSize)} {}
+
+  static AnchorResolved<mozilla::StyleSize> FromUnresolved(
+      const mozilla::StyleSize& aValue,
+      mozilla::StylePositionProperty aPosition);
+  static AnchorResolved<mozilla::StyleSize> Invalid();
+  static AnchorResolved<mozilla::StyleSize> Evaluated(
+      mozilla::StyleLengthPercentage&& aLP);
+  static AnchorResolved<mozilla::StyleSize> Evaluated(
+      const mozilla::StyleLengthPercentage& aLP);
+};
+
+class AnchorResolvedMaxSize final
+    : public AnchorResolved<mozilla::StyleMaxSize> {
+ public:
+  AnchorResolvedMaxSize(const mozilla::StyleMaxSize& aValue,
+                        mozilla::StylePositionProperty aPosition);
+
+  static AnchorResolvedMaxSize MaxContent() {
+    return AnchorResolvedMaxSize{mozilla::StyleMaxSize::MaxContent()};
+  }
+
+  static AnchorResolvedMaxSize None() {
+    return AnchorResolvedMaxSize{mozilla::StyleMaxSize::None()};
+  }
+
+ private:
+  explicit AnchorResolvedMaxSize(mozilla::StyleMaxSize&& aSize)
+      : AnchorResolved<mozilla::StyleMaxSize>{
+            AnchorResolved::Evaluated(std::move(aSize))} {}
+
+  static AnchorResolved<mozilla::StyleMaxSize> FromUnresolved(
+      const mozilla::StyleMaxSize& aValue,
+      mozilla::StylePositionProperty aPosition);
+  static AnchorResolved<mozilla::StyleMaxSize> Invalid();
+  static AnchorResolved<mozilla::StyleMaxSize> Evaluated(
+      mozilla::StyleLengthPercentage&& aLP);
+  static AnchorResolved<mozilla::StyleMaxSize> Evaluated(
+      const mozilla::StyleLengthPercentage& aLP);
+};
+
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   STYLE_STRUCT(nsStylePosition)
   nsStylePosition();
@@ -912,21 +991,30 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   // given a WritingMode value. The definitions of these methods are
   // found in WritingModes.h (after the WritingMode class is fully
   // declared).
-  inline const StyleSize& ISize(WritingMode) const;
-  inline const StyleSize& MinISize(WritingMode) const;
-  inline const StyleMaxSize& MaxISize(WritingMode) const;
-  inline const StyleSize& BSize(WritingMode) const;
-  inline const StyleSize& MinBSize(WritingMode) const;
-  inline const StyleMaxSize& MaxBSize(WritingMode) const;
-  inline const StyleSize& Size(LogicalAxis, WritingMode) const;
-  inline const StyleSize& MinSize(LogicalAxis, WritingMode) const;
-  inline const StyleMaxSize& MaxSize(LogicalAxis, WritingMode) const;
-  inline bool ISizeDependsOnContainer(WritingMode) const;
-  inline bool MinISizeDependsOnContainer(WritingMode) const;
-  inline bool MaxISizeDependsOnContainer(WritingMode) const;
-  inline bool BSizeDependsOnContainer(WritingMode) const;
-  inline bool MinBSizeDependsOnContainer(WritingMode) const;
-  inline bool MaxBSizeDependsOnContainer(WritingMode) const;
+  inline AnchorResolvedSize ISize(WritingMode,
+                                  mozilla::StylePositionProperty) const;
+  inline AnchorResolvedSize MinISize(WritingMode,
+                                     mozilla::StylePositionProperty) const;
+  inline AnchorResolvedMaxSize MaxISize(WritingMode,
+                                        mozilla::StylePositionProperty) const;
+  inline AnchorResolvedSize BSize(WritingMode,
+                                  mozilla::StylePositionProperty) const;
+  inline AnchorResolvedSize MinBSize(WritingMode,
+                                     mozilla::StylePositionProperty) const;
+  inline AnchorResolvedMaxSize MaxBSize(WritingMode,
+                                        mozilla::StylePositionProperty) const;
+  inline AnchorResolvedSize Size(LogicalAxis, WritingMode,
+                                 mozilla::StylePositionProperty) const;
+  inline AnchorResolvedSize MinSize(LogicalAxis, WritingMode,
+                                    mozilla::StylePositionProperty) const;
+  inline AnchorResolvedMaxSize MaxSize(LogicalAxis, WritingMode,
+                                       mozilla::StylePositionProperty) const;
+  static inline bool ISizeDependsOnContainer(const AnchorResolvedSize&);
+  static inline bool MinISizeDependsOnContainer(const AnchorResolvedSize&);
+  static inline bool MaxISizeDependsOnContainer(const AnchorResolvedMaxSize&);
+  static inline bool BSizeDependsOnContainer(const AnchorResolvedSize&);
+  static inline bool MinBSizeDependsOnContainer(const AnchorResolvedSize&);
+  static inline bool MaxBSizeDependsOnContainer(const AnchorResolvedMaxSize&);
 
   // TODO(dshin): These inset getters are to be removed when
   // interleaving computation is implemented.
@@ -936,51 +1024,30 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
       mozilla::LogicalSide aSide, WritingMode aWM,
       mozilla::StylePositionProperty aPosition) const;
 
-  // TODO(dshin): These size getters can be removed when anchor
-  // size is actually calculated.
-  static const StyleSize kAutoSize;
-  static const StyleMaxSize kNoneMaxSize;
-
-  const StyleSize& GetWidth() const {
-    if (MOZ_UNLIKELY(mWidth.HasAnchorPositioningFunction())) {
-      return kAutoSize;
-    }
-    return mWidth;
+  AnchorResolvedSize GetWidth(mozilla::StylePositionProperty aProp) const {
+    return {mWidth, aProp};
   }
 
-  const StyleSize& GetHeight() const {
-    if (MOZ_UNLIKELY(mHeight.HasAnchorPositioningFunction())) {
-      return kAutoSize;
-    }
-    return mHeight;
+  AnchorResolvedSize GetHeight(mozilla::StylePositionProperty aProp) const {
+    return {mHeight, aProp};
   }
 
-  const StyleSize& GetMinWidth() const {
-    if (MOZ_UNLIKELY(mMinWidth.HasAnchorPositioningFunction())) {
-      return kAutoSize;
-    }
-    return mMinWidth;
+  AnchorResolvedSize GetMinWidth(mozilla::StylePositionProperty aProp) const {
+    return {mMinWidth, aProp};
   }
 
-  const StyleSize& GetMinHeight() const {
-    if (MOZ_UNLIKELY(mMinHeight.HasAnchorPositioningFunction())) {
-      return kAutoSize;
-    }
-    return mMinHeight;
+  AnchorResolvedSize GetMinHeight(mozilla::StylePositionProperty aProp) const {
+    return {mMinHeight, aProp};
   }
 
-  const StyleMaxSize& GetMaxWidth() const {
-    if (MOZ_UNLIKELY(mMaxWidth.HasAnchorPositioningFunction())) {
-      return kNoneMaxSize;
-    }
-    return mMaxWidth;
+  AnchorResolvedMaxSize GetMaxWidth(
+      mozilla::StylePositionProperty aProp) const {
+    return {mMaxWidth, aProp};
   }
 
-  const StyleMaxSize& GetMaxHeight() const {
-    if (MOZ_UNLIKELY(mMaxHeight.HasAnchorPositioningFunction())) {
-      return kNoneMaxSize;
-    }
-    return mMaxHeight;
+  AnchorResolvedMaxSize GetMaxHeight(
+      mozilla::StylePositionProperty aProp) const {
+    return {mMaxHeight, aProp};
   }
 
  private:

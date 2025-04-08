@@ -144,7 +144,8 @@ nscoord SVGOuterSVGFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
     // is treated as 100%). The following if-condition, deciding to return
     // either the fallback intrinsic size or zero, is made to match blink and
     // webkit's behavior for webcompat.
-    if (isize.IsExplicitlySet() || StylePosition()->ISize(wm).HasPercent() ||
+    if (isize.IsExplicitlySet() ||
+        StylePosition()->ISize(wm, StyleDisplay()->mPosition)->HasPercent() ||
         !GetAspectRatio()) {
       result = wm.IsVertical() ? kFallbackIntrinsicSize.height
                                : kFallbackIntrinsicSize.width;

@@ -1948,15 +1948,18 @@ nsRect nsTreeBodyFrame::GetImageSize(int32_t aRowIndex, nsTreeColumn* aCol,
       GetImage(aRowIndex, aCol, aUseContext, aComputedStyle);
 
   const nsStylePosition* myPosition = aComputedStyle->StylePosition();
-  if (myPosition->GetWidth().ConvertsToLength()) {
-    int32_t val = myPosition->GetWidth().ToLength();
+  const auto positionProperty = aComputedStyle->StyleDisplay()->mPosition;
+  const auto width = myPosition->GetWidth(positionProperty);
+  if (width->ConvertsToLength()) {
+    int32_t val = width->ToLength();
     r.width += val;
   } else {
     needWidth = true;
   }
 
-  if (myPosition->GetHeight().ConvertsToLength()) {
-    int32_t val = myPosition->GetHeight().ToLength();
+  const auto height = myPosition->GetHeight(positionProperty);
+  if (height->ConvertsToLength()) {
+    int32_t val = height->ToLength();
     r.height += val;
   } else {
     needHeight = true;
@@ -2006,18 +2009,20 @@ nsSize nsTreeBodyFrame::GetImageDestSize(ComputedStyle* aComputedStyle,
   // Get the style position to see if the CSS has specified the
   // destination width/height.
   const nsStylePosition* myPosition = aComputedStyle->StylePosition();
-
-  if (myPosition->GetWidth().ConvertsToLength()) {
+  const auto positionProperty = aComputedStyle->StyleDisplay()->mPosition;
+  const auto width = myPosition->GetWidth(positionProperty);
+  if (width->ConvertsToLength()) {
     // CSS has specified the destination width.
-    size.width = myPosition->GetWidth().ToLength();
+    size.width = width->ToLength();
   } else {
     // We'll need to get the width of the image/region.
     needWidth = true;
   }
 
-  if (myPosition->GetHeight().ConvertsToLength()) {
+  const auto height = myPosition->GetHeight(positionProperty);
+  if (height->ConvertsToLength()) {
     // CSS has specified the destination height.
-    size.height = myPosition->GetHeight().ToLength();
+    size.height = height->ToLength();
   } else {
     // We'll need to get the height of the image/region.
     needHeight = true;
@@ -2094,15 +2099,18 @@ int32_t nsTreeBodyFrame::GetRowHeight() {
       GetPseudoComputedStyle(nsCSSAnonBoxes::mozTreeRow());
   if (rowContext) {
     const nsStylePosition* myPosition = rowContext->StylePosition();
+    const auto positionProperty = rowContext->StyleDisplay()->mPosition;
 
     nscoord minHeight = 0;
-    if (myPosition->GetMinHeight().ConvertsToLength()) {
-      minHeight = myPosition->GetMinHeight().ToLength();
+    const auto styleMinHeight = myPosition->GetMinHeight(positionProperty);
+    if (styleMinHeight->ConvertsToLength()) {
+      minHeight = styleMinHeight->ToLength();
     }
 
     nscoord height = 0;
-    if (myPosition->GetHeight().ConvertsToLength()) {
-      height = myPosition->GetHeight().ToLength();
+    const auto styleHeight = myPosition->GetHeight(positionProperty);
+    if (styleHeight->ConvertsToLength()) {
+      height = styleHeight->ToLength();
     }
 
     if (height < minHeight) {
@@ -2136,8 +2144,10 @@ int32_t nsTreeBodyFrame::GetIndentation() {
       GetPseudoComputedStyle(nsCSSAnonBoxes::mozTreeIndentation());
   if (indentContext) {
     const nsStylePosition* myPosition = indentContext->StylePosition();
-    if (myPosition->GetWidth().ConvertsToLength()) {
-      return myPosition->GetWidth().ToLength();
+    const auto positionProperty = indentContext->StyleDisplay()->mPosition;
+    const auto width = myPosition->GetWidth(positionProperty);
+    if (width->ConvertsToLength()) {
+      return width->ToLength();
     }
   }
 
@@ -2762,11 +2772,13 @@ ImgDrawResult nsTreeBodyFrame::PaintSeparator(int32_t aRowIndex,
       GetPseudoComputedStyle(nsCSSAnonBoxes::mozTreeSeparator());
 
   const nsStylePosition* stylePosition = separatorContext->StylePosition();
+  const auto positionProperty = separatorContext->StyleDisplay()->mPosition;
 
   // Obtain the height for the separator or use the default value.
   nscoord height;
-  if (stylePosition->GetHeight().ConvertsToLength()) {
-    height = stylePosition->GetHeight().ToLength();
+  const auto styleHeight = stylePosition->GetHeight(positionProperty);
+  if (styleHeight->ConvertsToLength()) {
+    height = styleHeight->ToLength();
   } else {
     // Use default height 2px.
     height = nsPresContext::CSSPixelsToAppUnits(2);
@@ -3500,8 +3512,10 @@ ImgDrawResult nsTreeBodyFrame::PaintDropFeedback(
 
     // Obtain the width for the drop feedback or use default value.
     nscoord width;
-    if (stylePosition->GetWidth().ConvertsToLength()) {
-      width = stylePosition->GetWidth().ToLength();
+    const auto positionProperty = feedbackContext->StyleDisplay()->mPosition;
+    const auto styleWidth = stylePosition->GetWidth(positionProperty);
+    if (styleWidth->ConvertsToLength()) {
+      width = styleWidth->ToLength();
     } else {
       // Use default width 50px.
       width = nsPresContext::CSSPixelsToAppUnits(50);
@@ -3509,8 +3523,9 @@ ImgDrawResult nsTreeBodyFrame::PaintDropFeedback(
 
     // Obtain the height for the drop feedback or use default value.
     nscoord height;
-    if (stylePosition->GetHeight().ConvertsToLength()) {
-      height = stylePosition->GetHeight().ToLength();
+    const auto styleHeight = stylePosition->GetHeight(positionProperty);
+    if (styleHeight->ConvertsToLength()) {
+      height = styleHeight->ToLength();
     } else {
       // Use default height 2px.
       height = nsPresContext::CSSPixelsToAppUnits(2);

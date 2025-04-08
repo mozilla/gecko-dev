@@ -413,7 +413,9 @@ void nsFieldSetFrame::Reflow(nsPresContext* aPresContext,
     const auto legendWM = legend->GetWritingMode();
     LogicalSize legendAvailSize = availSize.ConvertTo(legendWM, wm);
     ComputeSizeFlags sizeFlags;
-    if (legend->StylePosition()->ISize(wm).IsAuto()) {
+    if (legend->StylePosition()
+            ->ISize(wm, legend->StyleDisplay()->mPosition)
+            ->IsAuto()) {
       sizeFlags = ComputeSizeFlag::ShrinkWrap;
     }
     ReflowInput::InitFlags initFlags;  // intentionally empty

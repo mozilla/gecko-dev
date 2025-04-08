@@ -637,12 +637,15 @@ nsresult nsSplitterFrameInner::MouseDown(Event* aMouseEvent) {
 
     nsSize curSize = childBox->GetSize();
     const auto& pos = *childBox->StylePosition();
-    nsSize minSize =
-        ToLengthWithFallback(pos.GetMinWidth(), pos.GetMinHeight());
-    nsSize maxSize = ToLengthWithFallback(pos.GetMaxWidth(), pos.GetMaxHeight(),
+    const auto positionProperty = childBox->StyleDisplay()->mPosition;
+    nsSize minSize = ToLengthWithFallback(*pos.GetMinWidth(positionProperty),
+                                          *pos.GetMinHeight(positionProperty));
+    nsSize maxSize = ToLengthWithFallback(*pos.GetMaxWidth(positionProperty),
+                                          *pos.GetMaxHeight(positionProperty),
                                           NS_UNCONSTRAINEDSIZE);
-    nsSize prefSize(ToLengthWithFallback(pos.GetWidth(), curSize.width),
-                    ToLengthWithFallback(pos.GetHeight(), curSize.height));
+    nsSize prefSize(
+        ToLengthWithFallback(*pos.GetWidth(positionProperty), curSize.width),
+        ToLengthWithFallback(*pos.GetHeight(positionProperty), curSize.height));
 
     maxSize.width = std::max(maxSize.width, minSize.width);
     maxSize.height = std::max(maxSize.height, minSize.height);

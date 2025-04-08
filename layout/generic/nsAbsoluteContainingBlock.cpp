@@ -315,9 +315,12 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // then our frame isize does not depend on the parent isize.
     // Note that borders never depend on the parent isize.
     // XXX All of the enumerated values except -moz-available are ok too.
-    if (pos->ISizeDependsOnContainer(wm) ||
-        pos->MinISizeDependsOnContainer(wm) ||
-        pos->MaxISizeDependsOnContainer(wm) ||
+    if (nsStylePosition::ISizeDependsOnContainer(
+            pos->ISize(wm, positionProperty)) ||
+        nsStylePosition::MinISizeDependsOnContainer(
+            pos->MinISize(wm, positionProperty)) ||
+        nsStylePosition::MaxISizeDependsOnContainer(
+            pos->MaxISize(wm, positionProperty)) ||
         !IsFixedPaddingSize(padding->mPadding.GetIStart(wm)) ||
         !IsFixedPaddingSize(padding->mPadding.GetIEnd(wm))) {
       return true;
@@ -343,15 +346,18 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     //
     // FIXME(emilio): Should the BSize(wm).IsAuto() check also for the extremum
     // lengths?
-    if ((pos->BSizeDependsOnContainer(wm) &&
-         !(pos->BSize(wm).IsAuto() &&
+    const auto bSize = pos->BSize(wm, positionProperty);
+    if ((nsStylePosition::BSizeDependsOnContainer(bSize) &&
+         !(bSize->IsAuto() &&
            pos->GetAnchorResolvedInset(LogicalSide::BEnd, wm, positionProperty)
                ->IsAuto() &&
            !pos->GetAnchorResolvedInset(LogicalSide::BStart, wm,
                                         positionProperty)
                 ->IsAuto())) ||
-        pos->MinBSizeDependsOnContainer(wm) ||
-        pos->MaxBSizeDependsOnContainer(wm) ||
+        nsStylePosition::MinBSizeDependsOnContainer(
+            pos->MinBSize(wm, positionProperty)) ||
+        nsStylePosition::MaxBSizeDependsOnContainer(
+            pos->MaxBSize(wm, positionProperty)) ||
         !IsFixedPaddingSize(padding->mPadding.GetBStart(wm)) ||
         !IsFixedPaddingSize(padding->mPadding.GetBEnd(wm))) {
       return true;

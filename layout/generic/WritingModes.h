@@ -2131,46 +2131,64 @@ inline bool StyleMaxSize::BehavesLikeInitialValue(LogicalAxis aAxis) const {
 
 // Definitions of inline methods for nsStylePosition, declared in
 // nsStyleStruct.h but not defined there because they need WritingMode.
-inline const mozilla::StyleSize& nsStylePosition::ISize(WritingMode aWM) const {
-  return aWM.IsVertical() ? GetHeight() : GetWidth();
-}
-inline const mozilla::StyleSize& nsStylePosition::MinISize(
-    WritingMode aWM) const {
-  return aWM.IsVertical() ? GetMinHeight() : GetMinWidth();
-}
-inline const mozilla::StyleMaxSize& nsStylePosition::MaxISize(
-    WritingMode aWM) const {
-  return aWM.IsVertical() ? GetMaxHeight() : GetMaxWidth();
-}
-inline const mozilla::StyleSize& nsStylePosition::BSize(WritingMode aWM) const {
-  return aWM.IsVertical() ? GetWidth() : GetHeight();
-}
-inline const mozilla::StyleSize& nsStylePosition::MinBSize(
-    WritingMode aWM) const {
-  return aWM.IsVertical() ? GetMinWidth() : GetMinHeight();
-}
-inline const mozilla::StyleMaxSize& nsStylePosition::MaxBSize(
-    WritingMode aWM) const {
-  return aWM.IsVertical() ? GetMaxWidth() : GetMaxHeight();
-}
-inline const mozilla::StyleSize& nsStylePosition::Size(
-    mozilla::LogicalAxis aAxis, WritingMode aWM) const {
-  return aAxis == mozilla::LogicalAxis::Inline ? ISize(aWM) : BSize(aWM);
-}
-inline const mozilla::StyleSize& nsStylePosition::MinSize(
-    mozilla::LogicalAxis aAxis, WritingMode aWM) const {
-  return aAxis == mozilla::LogicalAxis::Inline ? MinISize(aWM) : MinBSize(aWM);
-}
-inline const mozilla::StyleMaxSize& nsStylePosition::MaxSize(
-    mozilla::LogicalAxis aAxis, WritingMode aWM) const {
-  return aAxis == mozilla::LogicalAxis::Inline ? MaxISize(aWM) : MaxBSize(aWM);
+inline AnchorResolvedSize nsStylePosition::ISize(
+    WritingMode aWM, mozilla::StylePositionProperty aProp) const {
+  return aWM.IsVertical() ? GetHeight(aProp) : GetWidth(aProp);
 }
 
-inline bool nsStylePosition::ISizeDependsOnContainer(WritingMode aWM) const {
-  const auto& iSize = ISize(aWM);
-  return iSize.IsAuto() || ISizeCoordDependsOnContainer(iSize);
+inline AnchorResolvedSize nsStylePosition::MinISize(
+    WritingMode aWM, mozilla::StylePositionProperty aProp) const {
+  return aWM.IsVertical() ? GetMinHeight(aProp) : GetMinWidth(aProp);
 }
-inline bool nsStylePosition::MinISizeDependsOnContainer(WritingMode aWM) const {
+
+inline AnchorResolvedMaxSize nsStylePosition::MaxISize(
+    WritingMode aWM, mozilla::StylePositionProperty aProp) const {
+  return aWM.IsVertical() ? GetMaxHeight(aProp) : GetMaxWidth(aProp);
+}
+
+inline AnchorResolvedSize nsStylePosition::BSize(
+    WritingMode aWM, mozilla::StylePositionProperty aProp) const {
+  return aWM.IsVertical() ? GetWidth(aProp) : GetHeight(aProp);
+}
+
+inline AnchorResolvedSize nsStylePosition::MinBSize(
+    WritingMode aWM, mozilla::StylePositionProperty aProp) const {
+  return aWM.IsVertical() ? GetMinWidth(aProp) : GetMinHeight(aProp);
+}
+
+inline AnchorResolvedMaxSize nsStylePosition::MaxBSize(
+    WritingMode aWM, mozilla::StylePositionProperty aProp) const {
+  return aWM.IsVertical() ? GetMaxWidth(aProp) : GetMaxHeight(aProp);
+}
+
+inline AnchorResolvedSize nsStylePosition::Size(
+    mozilla::LogicalAxis aAxis, WritingMode aWM,
+    mozilla::StylePositionProperty aProp) const {
+  return aAxis == mozilla::LogicalAxis::Inline ? ISize(aWM, aProp)
+                                               : BSize(aWM, aProp);
+}
+
+inline AnchorResolvedSize nsStylePosition::MinSize(
+    mozilla::LogicalAxis aAxis, WritingMode aWM,
+    mozilla::StylePositionProperty aProp) const {
+  return aAxis == mozilla::LogicalAxis::Inline ? MinISize(aWM, aProp)
+                                               : MinBSize(aWM, aProp);
+}
+
+inline AnchorResolvedMaxSize nsStylePosition::MaxSize(
+    mozilla::LogicalAxis aAxis, mozilla::WritingMode aWM,
+    mozilla::StylePositionProperty aProp) const {
+  return aAxis == mozilla::LogicalAxis::Inline ? MaxISize(aWM, aProp)
+                                               : MaxBSize(aWM, aProp);
+}
+
+inline bool nsStylePosition::ISizeDependsOnContainer(
+    const AnchorResolvedSize& aSize) {
+  return aSize->IsAuto() || ISizeCoordDependsOnContainer(*aSize);
+}
+
+inline bool nsStylePosition::MinISizeDependsOnContainer(
+    const AnchorResolvedSize& aSize) {
   // NOTE: For a flex item, "min-inline-size:auto" is supposed to behave like
   // "min-content", which does depend on the container, so you might think we'd
   // need a special case for "flex item && min-inline-size:auto" here. However,
@@ -2179,29 +2197,36 @@ inline bool nsStylePosition::MinISizeDependsOnContainer(WritingMode aWM) const {
   // it's 0) until the flex container explicitly considers it. So -- since the
   // flex container doesn't rely on this method, we don't need to worry about
   // special behavior for flex items' "min-inline-size:auto" values here.
-  return ISizeCoordDependsOnContainer(MinISize(aWM));
+  return ISizeCoordDependsOnContainer(*aSize);
 }
-inline bool nsStylePosition::MaxISizeDependsOnContainer(WritingMode aWM) const {
+
+inline bool nsStylePosition::MaxISizeDependsOnContainer(
+    const AnchorResolvedMaxSize& aSize) {
   // NOTE: The comment above MinISizeDependsOnContainer about flex items
   // applies here, too.
-  return ISizeCoordDependsOnContainer(MaxISize(aWM));
+  return ISizeCoordDependsOnContainer(*aSize);
 }
+
 // Note that these functions count `auto` as depending on the container
 // since that's the case for absolutely positioned elements.
 // However, some callers do not care about this case and should check
 // for it, since it is the most common case.
 // FIXME: We should probably change the assumption to be the other way
 // around.
-inline bool nsStylePosition::BSizeDependsOnContainer(WritingMode aWM) const {
-  const auto& bSize = BSize(aWM);
-  return bSize.BehavesLikeInitialValueOnBlockAxis() ||
-         BSizeCoordDependsOnContainer(bSize);
+inline bool nsStylePosition::BSizeDependsOnContainer(
+    const AnchorResolvedSize& aSize) {
+  return aSize->BehavesLikeInitialValueOnBlockAxis() ||
+         BSizeCoordDependsOnContainer(*aSize);
 }
-inline bool nsStylePosition::MinBSizeDependsOnContainer(WritingMode aWM) const {
-  return BSizeCoordDependsOnContainer(MinBSize(aWM));
+
+inline bool nsStylePosition::MinBSizeDependsOnContainer(
+    const AnchorResolvedSize& aSize) {
+  return BSizeCoordDependsOnContainer(*aSize);
 }
-inline bool nsStylePosition::MaxBSizeDependsOnContainer(WritingMode aWM) const {
-  return BSizeCoordDependsOnContainer(MaxBSize(aWM));
+
+inline bool nsStylePosition::MaxBSizeDependsOnContainer(
+    const AnchorResolvedMaxSize& aSize) {
+  return BSizeCoordDependsOnContainer(*aSize);
 }
 
 inline bool nsStyleMargin::HasBlockAxisAuto(

@@ -41,11 +41,14 @@ SVGGEOMETRYPROPERTY_GENERATETAG(R, LengthPercentNoAuto, XY, nsStyleSVGReset);
 
 #undef SVGGEOMETRYPROPERTY_GENERATETAG
 
+using StyleSizeGetter = AnchorResolvedSize (nsStylePosition::*)(
+    mozilla::StylePositionProperty) const;
+
 struct Height;
 struct Width {
   using ResolverType = ResolverTypes::LengthPercentWidthHeight;
   constexpr static auto CtxDirection = SVGContentUtils::X;
-  constexpr static auto Getter = &nsStylePosition::GetWidth;
+  constexpr static StyleSizeGetter Getter = &nsStylePosition::GetWidth;
   constexpr static auto SizeGetter = &gfx::Size::width;
   static AspectRatio AspectRatioRelative(AspectRatio aAspectRatio) {
     return aAspectRatio.Inverted();
@@ -56,7 +59,7 @@ struct Width {
 struct Height {
   using ResolverType = ResolverTypes::LengthPercentWidthHeight;
   constexpr static auto CtxDirection = SVGContentUtils::Y;
-  constexpr static auto Getter = &nsStylePosition::GetHeight;
+  constexpr static StyleSizeGetter Getter = &nsStylePosition::GetHeight;
   constexpr static auto SizeGetter = &gfx::Size::height;
   static AspectRatio AspectRatioRelative(AspectRatio aAspectRatio) {
     return aAspectRatio;
@@ -110,10 +113,11 @@ float ResolveImpl(ComputedStyle const& aStyle, const SVGElement* aElement,
       std::is_same<Tag, Tags::Width>{} || std::is_same<Tag, Tags::Height>{},
       "Wrong tag");
 
-  auto const& value = std::invoke(Tag::Getter, aStyle.StylePosition());
-  if (value.IsLengthPercentage()) {
+  auto const value = std::invoke(Tag::Getter, aStyle.StylePosition(),
+                                 aStyle.StyleDisplay()->mPosition);
+  if (value->IsLengthPercentage()) {
     return ResolvePureLengthPercentage<Tag::CtxDirection>(
-        aElement, value.AsLengthPercentage());
+        aElement, value->AsLengthPercentage());
   }
 
   if (aElement->IsSVGElement(nsGkAtoms::image)) {
@@ -130,7 +134,8 @@ float ResolveImpl(ComputedStyle const& aStyle, const SVGElement* aElement,
     }
 
     using Other = typename Tag::CounterPart;
-    auto const& valueOther = std::invoke(Other::Getter, aStyle.StylePosition());
+    auto const valueOther = std::invoke(Other::Getter, aStyle.StylePosition(),
+                                        aStyle.StyleDisplay()->mPosition);
 
     gfx::Size intrinsicImageSize;
     AspectRatio aspectRatio;
@@ -139,10 +144,10 @@ float ResolveImpl(ComputedStyle const& aStyle, const SVGElement* aElement,
       return 0.f;
     }
 
-    if (valueOther.IsLengthPercentage()) {
+    if (valueOther->IsLengthPercentage()) {
       // We are |auto|, but the other side has specifed length.
       float lengthOther = ResolvePureLengthPercentage<Other::CtxDirection>(
-          aElement, valueOther.AsLengthPercentage());
+          aElement, valueOther->AsLengthPercentage());
 
       if (aspectRatio) {
         // Preserve aspect ratio if it's present.

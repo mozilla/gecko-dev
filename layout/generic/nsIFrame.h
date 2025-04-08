@@ -3280,8 +3280,9 @@ class nsIFrame : public nsQueryFrame {
   // Returns true iff this frame's computed block-size property is one of the
   // intrinsic-sizing keywords.
   bool HasIntrinsicKeywordForBSize() const {
-    const auto& bSize = StylePosition()->BSize(GetWritingMode());
-    return IsIntrinsicKeyword(bSize);
+    const auto bSize =
+        StylePosition()->BSize(GetWritingMode(), StyleDisplay()->mPosition);
+    return IsIntrinsicKeyword(*bSize);
   }
 
  protected:

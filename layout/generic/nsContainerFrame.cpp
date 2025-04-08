@@ -2204,15 +2204,18 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
     const LogicalSize& aBorderPadding, const StyleSizeOverrides& aSizeOverrides,
     ComputeSizeFlags aFlags) {
   const nsStylePosition* stylePos = StylePosition();
-  const auto& styleISize = aSizeOverrides.mStyleISize
-                               ? *aSizeOverrides.mStyleISize
-                               : stylePos->ISize(aWM);
+  const auto positionProperty = StyleDisplay()->mPosition;
+  const auto styleISize =
+      aSizeOverrides.mStyleISize
+          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleISize)
+          : stylePos->ISize(aWM, positionProperty);
 
   // TODO(dholbert): if styleBSize is 'stretch' here, we should probably
   // resolve it like we do in nsIFrame::ComputeSize. See bug 1937275.
-  const auto& styleBSize = aSizeOverrides.mStyleBSize
-                               ? *aSizeOverrides.mStyleBSize
-                               : stylePos->BSize(aWM);
+  const auto styleBSize =
+      aSizeOverrides.mStyleBSize
+          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleBSize)
+          : stylePos->BSize(aWM, positionProperty);
   const auto& aspectRatio =
       aSizeOverrides.mAspectRatio ? *aSizeOverrides.mAspectRatio : aAspectRatio;
 
@@ -2240,9 +2243,9 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   // or (a * b) / c (which are equivalent).
 
   const bool isAutoOrMaxContentISize =
-      styleISize.IsAuto() || styleISize.IsMaxContent();
+      styleISize->IsAuto() || styleISize->IsMaxContent();
   const bool isAutoBSize =
-      nsLayoutUtils::IsAutoBSize(styleBSize, aCBSize.BSize(aWM));
+      nsLayoutUtils::IsAutoBSize(*styleBSize, aCBSize.BSize(aWM));
 
   const auto boxSizingAdjust = stylePos->mBoxSizing == StyleBoxSizing::Border
                                    ? aBorderPadding
@@ -2283,8 +2286,8 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   Maybe<nscoord> bSizeToFillCB;
   if (!isAutoOrMaxContentISize) {
     iSize = ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
-                              boxSizingToMarginEdgeISize, styleISize,
-                              styleBSize, aspectRatio, aFlags)
+                              boxSizingToMarginEdgeISize, *styleISize,
+                              *styleBSize, aspectRatio, aFlags)
                 .mISize;
   } else if (MOZ_UNLIKELY(isGridItem) &&
              !parentFrame->IsMasonry(isOrthogonal ? LogicalAxis::Block
@@ -2317,22 +2320,24 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   // algorithm.)
   const bool isFlexItemInlineAxisMainAxis =
       flexItemMainAxis && *flexItemMainAxis == LogicalAxis::Inline;
-  const auto& maxISizeCoord = stylePos->MaxISize(aWM);
-  if (!maxISizeCoord.IsNone() && !isFlexItemInlineAxisMainAxis) {
-    maxISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
-                                 boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 maxISizeCoord, styleBSize, aspectRatio, aFlags)
-                   .mISize;
+  const auto maxISizeCoord = stylePos->MaxISize(aWM, positionProperty);
+  if (!maxISizeCoord->IsNone() && !isFlexItemInlineAxisMainAxis) {
+    maxISize =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, *maxISizeCoord,
+                          *styleBSize, aspectRatio, aFlags)
+            .mISize;
   } else {
     maxISize = nscoord_MAX;
   }
 
-  const auto& minISizeCoord = stylePos->MinISize(aWM);
-  if (!minISizeCoord.IsAuto() && !isFlexItemInlineAxisMainAxis) {
-    minISize = ComputeISizeValue(aRenderingContext, aWM, aCBSize,
-                                 boxSizingAdjust, boxSizingToMarginEdgeISize,
-                                 minISizeCoord, styleBSize, aspectRatio, aFlags)
-                   .mISize;
+  const auto minISizeCoord = stylePos->MinISize(aWM, positionProperty);
+  if (!minISizeCoord->IsAuto() && !isFlexItemInlineAxisMainAxis) {
+    minISize =
+        ComputeISizeValue(aRenderingContext, aWM, aCBSize, boxSizingAdjust,
+                          boxSizingToMarginEdgeISize, *minISizeCoord,
+                          *styleBSize, aspectRatio, aFlags)
+            .mISize;
   } else {
     // Treat "min-width: auto" as 0.
     // NOTE: Technically, "auto" is supposed to behave like "min-content" on
@@ -2345,7 +2350,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   if (!isAutoBSize) {
     bSize = nsLayoutUtils::ComputeBSizeValueHandlingStretch(
         aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
-        boxSizingAdjust.BSize(aWM), styleBSize);
+        boxSizingAdjust.BSize(aWM), *styleBSize);
   } else if (MOZ_UNLIKELY(isGridItem) &&
              !parentFrame->IsMasonry(isOrthogonal ? LogicalAxis::Inline
                                                   : LogicalAxis::Block)) {
@@ -2377,22 +2382,22 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   // algorithm.)
   const bool isFlexItemBlockAxisMainAxis =
       flexItemMainAxis && *flexItemMainAxis == LogicalAxis::Block;
-  const auto& maxBSizeCoord = stylePos->MaxBSize(aWM);
-  if (!nsLayoutUtils::IsAutoBSize(maxBSizeCoord, aCBSize.BSize(aWM)) &&
+  const auto maxBSizeCoord = stylePos->MaxBSize(aWM, positionProperty);
+  if (!nsLayoutUtils::IsAutoBSize(*maxBSizeCoord, aCBSize.BSize(aWM)) &&
       !isFlexItemBlockAxisMainAxis) {
     maxBSize = nsLayoutUtils::ComputeBSizeValueHandlingStretch(
         aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
-        boxSizingAdjust.BSize(aWM), maxBSizeCoord);
+        boxSizingAdjust.BSize(aWM), *maxBSizeCoord);
   } else {
     maxBSize = nscoord_MAX;
   }
 
-  const auto& minBSizeCoord = stylePos->MinBSize(aWM);
-  if (!nsLayoutUtils::IsAutoBSize(minBSizeCoord, aCBSize.BSize(aWM)) &&
+  const auto minBSizeCoord = stylePos->MinBSize(aWM, positionProperty);
+  if (!nsLayoutUtils::IsAutoBSize(*minBSizeCoord, aCBSize.BSize(aWM)) &&
       !isFlexItemBlockAxisMainAxis) {
     minBSize = nsLayoutUtils::ComputeBSizeValueHandlingStretch(
         aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
-        boxSizingAdjust.BSize(aWM), minBSizeCoord);
+        boxSizingAdjust.BSize(aWM), *minBSizeCoord);
   } else {
     minBSize = 0;
   }

@@ -631,11 +631,12 @@ nscoord nsRangeFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
   if (aType == IntrinsicISizeType::MinISize) {
     const auto* pos = StylePosition();
     auto wm = GetWritingMode();
-    if (pos->ISize(wm).HasPercent()) {
+    const auto iSize = pos->ISize(wm, StyleDisplay()->mPosition);
+    if (iSize->HasPercent()) {
       // https://drafts.csswg.org/css-sizing-3/#percentage-sizing
       // https://drafts.csswg.org/css-sizing-3/#min-content-zero
-      return nsLayoutUtils::ResolveToLength<true>(
-          pos->ISize(wm).AsLengthPercentage(), nscoord(0));
+      return nsLayoutUtils::ResolveToLength<true>(iSize->AsLengthPercentage(),
+                                                  nscoord(0));
     }
   }
   if (IsInlineOriented()) {

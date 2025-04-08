@@ -206,16 +206,17 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
     auto GetISizeConstraint = [this](const nsIFrame* aFrame) -> nscoord {
       nscoord limit = NS_UNCONSTRAINEDSIZE;
       const auto* pos = aFrame->StylePosition();
-      if (auto size =
-              nsLayoutUtils::GetAbsoluteSize(pos->ISize(mWritingMode))) {
+      const auto positionProperty = aFrame->StyleDisplay()->mPosition;
+      if (auto size = nsLayoutUtils::GetAbsoluteSize(
+              *pos->ISize(mWritingMode, positionProperty))) {
         limit = size.value();
       } else if (auto maxSize = nsLayoutUtils::GetAbsoluteSize(
-                     pos->MaxISize(mWritingMode))) {
+                     *pos->MaxISize(mWritingMode, positionProperty))) {
         limit = maxSize.value();
       }
       if (limit != NS_UNCONSTRAINEDSIZE) {
-        if (auto minSize =
-                nsLayoutUtils::GetAbsoluteSize(pos->MinISize(mWritingMode))) {
+        if (auto minSize = nsLayoutUtils::GetAbsoluteSize(
+                *pos->MinISize(mWritingMode, positionProperty))) {
           limit = std::max(limit, minSize.value());
         }
       }
@@ -332,7 +333,9 @@ nscoord SizeComputationInput::ComputeISizeValue(
   return mFrame
       ->ComputeISizeValue(mRenderingContext, wm, aContainingBlockSize,
                           contentEdgeToBoxSizing, boxSizingToMarginEdgeISize,
-                          aSize, mFrame->StylePosition()->BSize(wm),
+                          aSize,
+                          *mFrame->StylePosition()->BSize(
+                              wm, mFrame->StyleDisplay()->mPosition),
                           mFrame->GetAspectRatio())
       .mISize;
 }
@@ -464,10 +467,13 @@ void ReflowInput::Init(nsPresContext* aPresContext,
     // An SVG foreignObject frame is inherently constrained block-size.
     mFrame->AddStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
   } else {
-    const auto& bSizeCoord = mStylePosition->BSize(mWritingMode);
-    const auto& maxBSizeCoord = mStylePosition->MaxBSize(mWritingMode);
-    if ((!bSizeCoord.BehavesLikeInitialValueOnBlockAxis() ||
-         !maxBSizeCoord.BehavesLikeInitialValueOnBlockAxis()) &&
+    const auto positionProperty = mStyleDisplay->mPosition;
+    const auto bSizeCoord =
+        mStylePosition->BSize(mWritingMode, positionProperty);
+    const auto maxBSizeCoord =
+        mStylePosition->MaxBSize(mWritingMode, positionProperty);
+    if ((!bSizeCoord->BehavesLikeInitialValueOnBlockAxis() ||
+         !maxBSizeCoord->BehavesLikeInitialValueOnBlockAxis()) &&
         // Don't set NS_FRAME_IN_CONSTRAINED_BSIZE on body or html elements.
         (mFrame->GetContent() && !(mFrame->GetContent()->IsAnyOfHTMLElements(
                                      nsGkAtoms::body, nsGkAtoms::html)))) {
@@ -477,14 +483,18 @@ void ReflowInput::Init(nsPresContext* aPresContext,
       nsIFrame* containingBlk = mFrame;
       while (containingBlk) {
         const nsStylePosition* stylePos = containingBlk->StylePosition();
-        const auto& bSizeCoord = stylePos->BSize(mWritingMode);
-        const auto& maxBSizeCoord = stylePos->MaxBSize(mWritingMode);
-        if ((bSizeCoord.IsLengthPercentage() && !bSizeCoord.HasPercent()) ||
-            (maxBSizeCoord.IsLengthPercentage() &&
-             !maxBSizeCoord.HasPercent())) {
+        const auto containingBlkPositionProperty =
+            containingBlk->StyleDisplay()->mPosition;
+        const auto bSizeCoord =
+            stylePos->BSize(mWritingMode, containingBlkPositionProperty);
+        const auto& maxBSizeCoord =
+            stylePos->MaxBSize(mWritingMode, containingBlkPositionProperty);
+        if ((bSizeCoord->IsLengthPercentage() && !bSizeCoord->HasPercent()) ||
+            (maxBSizeCoord->IsLengthPercentage() &&
+             !maxBSizeCoord->HasPercent())) {
           mFrame->AddStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
           break;
-        } else if (bSizeCoord.HasPercent() || maxBSizeCoord.HasPercent()) {
+        } else if (bSizeCoord->HasPercent() || maxBSizeCoord->HasPercent()) {
           if (!(containingBlk = containingBlk->GetContainingBlock())) {
             // If we've reached the top of the tree, then we don't have
             // a constrained block-size.
@@ -511,7 +521,8 @@ void ReflowInput::Init(nsPresContext* aPresContext,
     // with auto-height it's the inline-size, so that they can add
     // columns in the container's block direction
     if (type == LayoutFrameType::ColumnSet &&
-        mStylePosition->ISize(mWritingMode).IsAuto()) {
+        mStylePosition->ISize(mWritingMode, mStyleDisplay->mPosition)
+            ->IsAuto()) {
       SetComputedISize(NS_UNCONSTRAINEDSIZE, ResetResizeFlags::No);
     } else {
       SetAvailableBSize(NS_UNCONSTRAINEDSIZE);
@@ -716,7 +727,11 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
   }
 
   SetIResize(!mFrame->HasAnyStateBits(NS_FRAME_IS_DIRTY) && isIResize);
+  const auto positionProperty = mStyleDisplay->mPosition;
 
+  const auto bSize = mStylePosition->BSize(wm, positionProperty);
+  const auto minBSize = mStylePosition->MinBSize(wm, positionProperty);
+  const auto maxBSize = mStylePosition->MaxBSize(wm, positionProperty);
   // XXX Should we really need to null check mCBReflowInput?  (We do for
   // at least nsBoxFrame).
   if (mFrame->HasBSizeChange()) {
@@ -733,9 +748,8 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
     // clear it in nsIFrame::DidReflow.
   } else if (mCBReflowInput &&
              mCBReflowInput->IsBResizeForPercentagesForWM(wm) &&
-             (mStylePosition->BSize(wm).HasPercent() ||
-              mStylePosition->MinBSize(wm).HasPercent() ||
-              mStylePosition->MaxBSize(wm).HasPercent())) {
+             (bSize->HasPercent() || minBSize->HasPercent() ||
+              maxBSize->HasPercent())) {
     // We have a percentage (or calc-with-percentage) block-size, and the
     // value it's relative to has changed.
     SetBResize(true);
@@ -775,13 +789,12 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
                    ComputedLogicalBorderPadding(wm).BStartEnd(wm));
   }
 
-  const auto positionProperty = mStyleDisplay->mPosition;
   bool dependsOnCBBSize =
-      (mStylePosition->BSizeDependsOnContainer(wm) &&
+      (nsStylePosition::BSizeDependsOnContainer(bSize) &&
        // FIXME: condition this on not-abspos?
-       !mStylePosition->BSize(wm).IsAuto()) ||
-      mStylePosition->MinBSizeDependsOnContainer(wm) ||
-      mStylePosition->MaxBSizeDependsOnContainer(wm) ||
+       !bSize->IsAuto()) ||
+      nsStylePosition::MinBSizeDependsOnContainer(minBSize) ||
+      nsStylePosition::MaxBSizeDependsOnContainer(maxBSize) ||
       mStylePosition
           ->GetAnchorResolvedInset(LogicalSide::BStart, wm, positionProperty)
           ->HasPercent() ||
@@ -880,7 +893,8 @@ bool ReflowInput::ShouldApplyAutomaticMinimumOnBlockAxis() const {
   MOZ_ASSERT(!mFrame->HasReplacedSizing());
   return mFlags.mIsBSizeSetByAspectRatio &&
          !mStyleDisplay->IsScrollableOverflow() &&
-         mStylePosition->MinBSize(GetWritingMode()).IsAuto();
+         mStylePosition->MinBSize(GetWritingMode(), mStyleDisplay->mPosition)
+             ->IsAuto();
 }
 
 bool ReflowInput::IsInFragmentedContext() const {
@@ -1310,8 +1324,9 @@ void ReflowInput::CalculateHypotheticalPosition(
   // us to exactly determine both the inline edges
   WritingMode wm = containingBlock->GetWritingMode();
 
-  const auto& styleISize = mStylePosition->ISize(wm);
-  bool isAutoISize = styleISize.IsAuto();
+  const auto positionProperty = mStyleDisplay->mPosition;
+  const auto styleISize = mStylePosition->ISize(wm, positionProperty);
+  bool isAutoISize = styleISize->IsAuto();
   Maybe<nsSize> intrinsicSize;
   if (mFlags.mIsReplaced && isAutoISize) {
     // See if we can get the intrinsic size of the element
@@ -1362,8 +1377,8 @@ void ReflowInput::CalculateHypotheticalPosition(
               ->ComputeISizeValue(mRenderingContext, wm, blockContentSize,
                                   LogicalSize(wm, contentEdgeToBoxSizingISize,
                                               contentEdgeToBoxSizingBSize),
-                                  boxSizingToMarginEdgeISize, styleISize,
-                                  mStylePosition->BSize(wm),
+                                  boxSizingToMarginEdgeISize, *styleISize,
+                                  *mStylePosition->BSize(wm, positionProperty),
                                   mFrame->GetAspectRatio())
               .mISize;
       boxISize.emplace(contentISize + contentEdgeToBoxSizingISize +
@@ -1561,9 +1576,9 @@ void ReflowInput::CalculateHypotheticalPosition(
                                  &insideBoxSizing, &outsideBoxSizing);
 
     nscoord boxBSize;
-    const auto& styleBSize = mStylePosition->BSize(wm);
+    const auto styleBSize = mStylePosition->BSize(wm, positionProperty);
     const bool isAutoBSize =
-        nsLayoutUtils::IsAutoBSize(styleBSize, blockContentSize.BSize(wm));
+        nsLayoutUtils::IsAutoBSize(*styleBSize, blockContentSize.BSize(wm));
     if (isAutoBSize) {
       if (mFlags.mIsReplaced && intrinsicSize) {
         // It's a replaced element with an 'auto' block size so the box
@@ -1576,7 +1591,7 @@ void ReflowInput::CalculateHypotheticalPosition(
         // positioned frame?)
         boxBSize = 0;
       }
-    } else if (styleBSize.BehavesLikeStretchOnBlockAxis()) {
+    } else if (styleBSize->BehavesLikeStretchOnBlockAxis()) {
       MOZ_ASSERT(blockContentSize.BSize(wm) != NS_UNCONSTRAINEDSIZE,
                  "If we're 'stretch' with unconstrained size, isAutoBSize "
                  "should be true which should make us skip this code");
@@ -1592,7 +1607,7 @@ void ReflowInput::CalculateHypotheticalPosition(
       // computed value calculated using the absolute containing block height.
       boxBSize = nsLayoutUtils::ComputeBSizeValue(
                      blockContentSize.BSize(wm), insideBoxSizing,
-                     styleBSize.AsLengthPercentage()) +
+                     styleBSize->AsLengthPercentage()) +
                  insideBoxSizing + outsideBoxSizing;
     }
 
@@ -1796,7 +1811,8 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   LogicalMargin margin = ComputedLogicalMargin(cbwm);
   const LogicalMargin borderPadding = ComputedLogicalBorderPadding(cbwm);
 
-  bool iSizeIsAuto = mStylePosition->ISize(cbwm).IsAuto();
+  bool iSizeIsAuto =
+      mStylePosition->ISize(cbwm, mStyleDisplay->mPosition)->IsAuto();
   bool marginIStartIsAuto = false;
   bool marginIEndIsAuto = false;
   bool marginBStartIsAuto = false;
@@ -1854,8 +1870,8 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
                                   marginIEndIsAuto, margin, offsets);
   }
 
-  bool bSizeIsAuto =
-      mStylePosition->BSize(cbwm).BehavesLikeInitialValueOnBlockAxis();
+  bool bSizeIsAuto = mStylePosition->BSize(cbwm, mStyleDisplay->mPosition)
+                         ->BehavesLikeInitialValueOnBlockAxis();
   if (bStartIsAuto) {
     // solve for block-start
     if (bSizeIsAuto) {
@@ -2104,6 +2120,7 @@ LogicalSize ReflowInput::ComputeContainingBlockRectangle(
     auto IsQuirky = [](const StyleSize& aSize) -> bool {
       return aSize.ConvertsToPercentage();
     };
+    const auto positionProperty = mStyleDisplay->mPosition;
     // an element in quirks mode gets a containing block based on looking for a
     // parent with a non-auto height if the element has a percent height.
     // Note: We don't emulate this quirk for percents in calc(), or in vertical
@@ -2111,12 +2128,12 @@ LogicalSize ReflowInput::ComputeContainingBlockRectangle(
     if (!wm.IsVertical() && NS_UNCONSTRAINEDSIZE == cbSize.BSize(wm)) {
       if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
           !aContainingBlockRI->mFrame->IsFlexOrGridItem() &&
-          (IsQuirky(mStylePosition->GetHeight()) ||
+          (IsQuirky(*mStylePosition->GetHeight(positionProperty)) ||
            (mFrame->IsTableWrapperFrame() &&
-            IsQuirky(mFrame->PrincipalChildList()
-                         .FirstChild()
-                         ->StylePosition()
-                         ->GetHeight())))) {
+            IsQuirky(*mFrame->PrincipalChildList()
+                          .FirstChild()
+                          ->StylePosition()
+                          ->GetHeight(positionProperty))))) {
         cbSize.BSize(wm) = CalcQuirkContainingBlockHeight(aContainingBlockRI);
       }
     }
@@ -2193,12 +2210,12 @@ void ReflowInput::InitConstraints(
                 mComputeSizeFlags, aBorder, aPadding, mStyleDisplay);
 
     // For calculating the size of this box, we use its own writing mode
-    const auto& blockSize = mStylePosition->BSize(wm);
-    bool isAutoBSize = blockSize.BehavesLikeInitialValueOnBlockAxis();
+    const auto blockSize = mStylePosition->BSize(wm, mStyleDisplay->mPosition);
+    bool isAutoBSize = blockSize->BehavesLikeInitialValueOnBlockAxis();
 
     // Check for a percentage based block size and a containing block
     // block size that depends on the content block size
-    if (blockSize.HasPercent()) {
+    if (blockSize->HasPercent()) {
       if (NS_UNCONSTRAINEDSIZE == cbSize.BSize(wm)) {
         // this if clause enables %-blockSize on replaced inline frames,
         // such as images.  See bug 54119.  The else clause "blockSizeUnit =
@@ -2263,8 +2280,9 @@ void ReflowInput::InitConstraints(
       // Internal table elements. The rules vary depending on the type.
       // Calculate the computed isize
       bool rowOrRowGroup = false;
-      const auto& inlineSize = mStylePosition->ISize(wm);
-      bool isAutoISize = inlineSize.IsAuto();
+      const auto inlineSize =
+          mStylePosition->ISize(wm, mStyleDisplay->mPosition);
+      bool isAutoISize = inlineSize->IsAuto();
       if ((StyleDisplay::TableRow == mStyleDisplay->mDisplay) ||
           (StyleDisplay::TableRowGroup == mStyleDisplay->mDisplay)) {
         // 'inlineSize' property doesn't apply to table rows and row groups
@@ -2274,7 +2292,7 @@ void ReflowInput::InitConstraints(
 
       // calc() with both percentages and lengths act like auto on internal
       // table elements
-      if (isAutoISize || inlineSize.HasLengthAndPercentage()) {
+      if (isAutoISize || inlineSize->HasLengthAndPercentage()) {
         if (AvailableISize() != NS_UNCONSTRAINEDSIZE && !rowOrRowGroup) {
           // Internal table elements don't have margins. Only tables and
           // cells have border and padding
@@ -2289,7 +2307,7 @@ void ReflowInput::InitConstraints(
 
       } else {
         SetComputedISize(
-            ComputeISizeValue(cbSize, mStylePosition->mBoxSizing, inlineSize),
+            ComputeISizeValue(cbSize, mStylePosition->mBoxSizing, *inlineSize),
             ResetResizeFlags::No);
       }
 
@@ -2301,12 +2319,12 @@ void ReflowInput::InitConstraints(
       }
       // calc() with both percentages and lengths acts like 'auto' on internal
       // table elements
-      if (isAutoBSize || blockSize.HasLengthAndPercentage()) {
+      if (isAutoBSize || blockSize->HasLengthAndPercentage()) {
         SetComputedBSize(NS_UNCONSTRAINEDSIZE, ResetResizeFlags::No);
       } else {
         SetComputedBSize(
             ComputeBSizeValue(cbSize.BSize(wm), mStylePosition->mBoxSizing,
-                              blockSize.AsLengthPercentage()),
+                              blockSize->AsLengthPercentage()),
             ResetResizeFlags::No);
       }
 
@@ -2946,10 +2964,11 @@ bool SizeComputationInput::ComputePadding(WritingMode aCBWM,
 void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
   WritingMode wm = GetWritingMode();
 
-  const auto& minISize = mStylePosition->MinISize(wm);
-  const auto& maxISize = mStylePosition->MaxISize(wm);
-  const auto& minBSize = mStylePosition->MinBSize(wm);
-  const auto& maxBSize = mStylePosition->MaxBSize(wm);
+  const auto positionProperty = mStyleDisplay->mPosition;
+  const auto minISize = mStylePosition->MinISize(wm, positionProperty);
+  const auto maxISize = mStylePosition->MaxISize(wm, positionProperty);
+  const auto minBSize = mStylePosition->MinBSize(wm, positionProperty);
+  const auto maxBSize = mStylePosition->MaxBSize(wm, positionProperty);
 
   LogicalSize minWidgetSize(wm);
   if (mIsThemed) {
@@ -2968,23 +2987,23 @@ void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
   // NOTE: min-width:auto resolves to 0, except on a flex item. (But
   // even there, it's supposed to be ignored (i.e. treated as 0) until
   // the flex container explicitly resolves & considers it.)
-  if (minISize.IsAuto()) {
+  if (minISize->IsAuto()) {
     SetComputedMinISize(0);
   } else {
     SetComputedMinISize(
-        ComputeISizeValue(aCBSize, mStylePosition->mBoxSizing, minISize));
+        ComputeISizeValue(aCBSize, mStylePosition->mBoxSizing, *minISize));
   }
 
   if (mIsThemed) {
     SetComputedMinISize(std::max(ComputedMinISize(), minWidgetSize.ISize(wm)));
   }
 
-  if (maxISize.IsNone()) {
+  if (maxISize->IsNone()) {
     // Specified value of 'none'
     SetComputedMaxISize(NS_UNCONSTRAINEDSIZE);
   } else {
     SetComputedMaxISize(
-        ComputeISizeValue(aCBSize, mStylePosition->mBoxSizing, maxISize));
+        ComputeISizeValue(aCBSize, mStylePosition->mBoxSizing, *maxISize));
   }
 
   // If the computed value of 'min-width' is greater than the value of
@@ -3012,23 +3031,23 @@ void ReflowInput::ComputeMinMaxValues(const LogicalSize& aCBSize) {
   // NOTE: min-height:auto resolves to 0, except on a flex item. (But
   // even there, it's supposed to be ignored (i.e. treated as 0) until
   // the flex container explicitly resolves & considers it.)
-  if (BSizeBehavesAsInitialValue(minBSize)) {
+  if (BSizeBehavesAsInitialValue(*minBSize)) {
     SetComputedMinBSize(0);
   } else {
     SetComputedMinBSize(ComputeBSizeValueHandlingStretch(
-        bPercentageBasis, mStylePosition->mBoxSizing, minBSize));
+        bPercentageBasis, mStylePosition->mBoxSizing, *minBSize));
   }
 
   if (mIsThemed) {
     SetComputedMinBSize(std::max(ComputedMinBSize(), minWidgetSize.BSize(wm)));
   }
 
-  if (BSizeBehavesAsInitialValue(maxBSize)) {
+  if (BSizeBehavesAsInitialValue(*maxBSize)) {
     // Specified value of 'none'
     SetComputedMaxBSize(NS_UNCONSTRAINEDSIZE);
   } else {
     SetComputedMaxBSize(ComputeBSizeValueHandlingStretch(
-        bPercentageBasis, mStylePosition->mBoxSizing, maxBSize));
+        bPercentageBasis, mStylePosition->mBoxSizing, *maxBSize));
   }
 
   // If the computed value of 'min-height' is greater than the value of

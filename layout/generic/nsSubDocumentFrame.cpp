@@ -1293,8 +1293,10 @@ nsPoint nsSubDocumentFrame::GetExtraOffset() const {
 
 void nsSubDocumentFrame::SubdocumentIntrinsicSizeOrRatioChanged() {
   const nsStylePosition* pos = StylePosition();
-  bool dependsOnIntrinsics = !pos->GetWidth().ConvertsToLength() ||
-                             !pos->GetHeight().ConvertsToLength();
+  const auto positionProperty = StyleDisplay()->mPosition;
+  bool dependsOnIntrinsics =
+      !pos->GetWidth(positionProperty)->ConvertsToLength() ||
+      !pos->GetHeight(positionProperty)->ConvertsToLength();
 
   if (dependsOnIntrinsics || pos->mObjectFit != StyleObjectFit::Fill) {
     auto dirtyHint = dependsOnIntrinsics

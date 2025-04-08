@@ -252,10 +252,10 @@ static Maybe<nscoord> ComputeTransferredSize(
   const Maybe<nscoord> basis = GetPercentageBasisForAR(
       GetOrthogonalAxis(aAxis), aWM, aContainingBlockSize);
   nscoord rdSize = 0;
-  if (aRatioDeterminingSize.ConvertsToLength()) {
-    rdSize = aRatioDeterminingSize.ToLength();
-  } else if (aRatioDeterminingSize.HasPercent() && basis) {
-    rdSize = aRatioDeterminingSize.AsLengthPercentage().Resolve(*basis);
+  if (aRatioDeterminingSize->ConvertsToLength()) {
+    rdSize = aRatioDeterminingSize->ToLength();
+  } else if (aRatioDeterminingSize->HasPercent() && basis) {
+    rdSize = aRatioDeterminingSize->AsLengthPercentage().Resolve(*basis);
   } else {
     // Either we are not using LengthPercentage or there is no percentage basis.
     return Nothing();
@@ -283,6 +283,7 @@ struct RepeatTrackSizingInput {
                      const AspectRatio& aAspectRatio,
                      const Maybe<LogicalSize>& aContainingBlockSize) {
     const auto& pos = aStyle->StylePosition();
+    const auto positionProperty = aStyle->StyleDisplay()->mPosition;
     BoxSizingAdjustment boxSizingAdjustment(aWM, *aStyle);
     const nscoord cbSizeInAxis = aContainingBlockSize
                                      ? aContainingBlockSize->Size(aAxis, aWM)
@@ -295,17 +296,18 @@ struct RepeatTrackSizingInput {
     };
 
     nscoord& min = mMin.Size(aAxis, aWM);
-    const auto& styleMinSize = pos->MinSize(aAxis, aWM);
-    if (styleMinSize.ConvertsToLength()) {
-      min = adjustForBoxSizing(styleMinSize.ToLength());
-    } else if (styleMinSize.HasPercent() &&
+    const auto styleMinSize = pos->MinSize(aAxis, aWM, positionProperty);
+    if (styleMinSize->ConvertsToLength()) {
+      min = adjustForBoxSizing(styleMinSize->ToLength());
+    } else if (styleMinSize->HasPercent() &&
                cbSizeInAxis != NS_UNCONSTRAINEDSIZE) {
       min = adjustForBoxSizing(
-          styleMinSize.AsLengthPercentage().Resolve(cbSizeInAxis));
-    } else if (aAspectRatio && styleMinSize.BehavesLikeInitialValue(aAxis)) {
+          styleMinSize->AsLengthPercentage().Resolve(cbSizeInAxis));
+    } else if (aAspectRatio && styleMinSize->BehavesLikeInitialValue(aAxis)) {
       // Use GetOrthogonalAxis() to get the ratio-determining axis. Same for max
       // and size below in this function.
-      const auto& styleRDMinSize = pos->MinSize(GetOrthogonalAxis(aAxis), aWM);
+      const auto styleRDMinSize =
+          pos->MinSize(GetOrthogonalAxis(aAxis), aWM, positionProperty);
       if (Maybe<nscoord> resolvedMinSize = ComputeTransferredSize(
               styleRDMinSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment,
               aContainingBlockSize)) {
@@ -314,16 +316,17 @@ struct RepeatTrackSizingInput {
     }
 
     nscoord& max = mMax.Size(aAxis, aWM);
-    const auto& styleMaxSize = pos->MaxSize(aAxis, aWM);
-    if (styleMaxSize.ConvertsToLength()) {
-      max = std::max(min, adjustForBoxSizing(styleMaxSize.ToLength()));
-    } else if (styleMaxSize.HasPercent() &&
+    const auto styleMaxSize = pos->MaxSize(aAxis, aWM, positionProperty);
+    if (styleMaxSize->ConvertsToLength()) {
+      max = std::max(min, adjustForBoxSizing(styleMaxSize->ToLength()));
+    } else if (styleMaxSize->HasPercent() &&
                cbSizeInAxis != NS_UNCONSTRAINEDSIZE) {
       max = std::max(
           min, adjustForBoxSizing(
-                   styleMaxSize.AsLengthPercentage().Resolve(cbSizeInAxis)));
-    } else if (aAspectRatio && styleMaxSize.BehavesLikeInitialValue(aAxis)) {
-      const auto& styleRDMaxSize = pos->MaxSize(GetOrthogonalAxis(aAxis), aWM);
+                   styleMaxSize->AsLengthPercentage().Resolve(cbSizeInAxis)));
+    } else if (aAspectRatio && styleMaxSize->BehavesLikeInitialValue(aAxis)) {
+      const auto styleRDMaxSize =
+          pos->MaxSize(GetOrthogonalAxis(aAxis), aWM, positionProperty);
       if (Maybe<nscoord> resolvedMaxSize = ComputeTransferredSize(
               styleRDMaxSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment,
               aContainingBlockSize)) {
@@ -334,17 +337,20 @@ struct RepeatTrackSizingInput {
     nscoord& size = mSize.Size(aAxis, aWM);
     // When computing the intrinsic inline size, disregard the explicit
     // inline-size property as it should not affect the final result.
-    const auto& styleSize =
-        aAxis == LogicalAxis::Inline ? StyleSize::Auto() : pos->BSize(aWM);
-    if (styleSize.ConvertsToLength()) {
-      size = std::clamp(adjustForBoxSizing(styleSize.ToLength()), min, max);
-    } else if (styleSize.HasPercent() && cbSizeInAxis != NS_UNCONSTRAINEDSIZE) {
+    const auto styleSize = aAxis == LogicalAxis::Inline
+                               ? AnchorResolvedSize::Auto()
+                               : pos->BSize(aWM, positionProperty);
+    if (styleSize->ConvertsToLength()) {
+      size = std::clamp(adjustForBoxSizing(styleSize->ToLength()), min, max);
+    } else if (styleSize->HasPercent() &&
+               cbSizeInAxis != NS_UNCONSTRAINEDSIZE) {
       size =
           std::clamp(adjustForBoxSizing(
-                         styleSize.AsLengthPercentage().Resolve(cbSizeInAxis)),
+                         styleSize->AsLengthPercentage().Resolve(cbSizeInAxis)),
                      min, max);
-    } else if (aAspectRatio && styleSize.BehavesLikeInitialValue(aAxis)) {
-      const auto& styleRDSize = pos->Size(GetOrthogonalAxis(aAxis), aWM);
+    } else if (aAspectRatio && styleSize->BehavesLikeInitialValue(aAxis)) {
+      const auto styleRDSize =
+          pos->Size(GetOrthogonalAxis(aAxis), aWM, positionProperty);
       if (Maybe<nscoord> resolvedSize = ComputeTransferredSize(
               styleRDSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment,
               aContainingBlockSize)) {
@@ -851,29 +857,31 @@ struct nsGridContainerFrame::GridItemInfo {
         aContainerWM.IsOrthogonalTo(mFrame->GetWritingMode())
             ? GetOrthogonalAxis(aContainerAxis)
             : aContainerAxis;
-    const auto* pos =
-        mFrame->IsTableWrapperFrame()
-            ? mFrame->PrincipalChildList().FirstChild()->StylePosition()
-            : mFrame->StylePosition();
-    const auto& size = pos->Size(aContainerAxis, aContainerWM);
+    const auto* styleFrame = mFrame->IsTableWrapperFrame()
+                                 ? mFrame->PrincipalChildList().FirstChild()
+                                 : mFrame;
+    const auto* pos = styleFrame->StylePosition();
+    const auto positionProperty = styleFrame->StyleDisplay()->mPosition;
+    const auto size = pos->Size(aContainerAxis, aContainerWM, positionProperty);
     // max-content and min-content should behave as initial value in block axis.
     // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
     // for block size dimension on sizing properties (e.g. height), so we
     // treat it as `auto`.
-    bool isAuto = size.BehavesLikeInitialValue(itemAxis);
+    bool isAuto = size->BehavesLikeInitialValue(itemAxis);
     // TODO alaskanemily: This probably shouldn't be a special case.
     // Although this being a percentage isn't relevant to whether or not the
     // minimum contribution is content-based or not, but this matches the
     // expectations of MinContribution().
-    if (!isAuto && !size.HasPercent()) {
+    if (!isAuto && !size->HasPercent()) {
       return false;
     }
-    const auto& minSize = pos->MinSize(aContainerAxis, aContainerWM);
+    const auto minSize =
+        pos->MinSize(aContainerAxis, aContainerWM, positionProperty);
     // max-content and min-content should behave as initial value in block axis.
     // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
     // for block size dimension on sizing properties (e.g. height), so we
     // treat it as `auto`.
-    isAuto = minSize.BehavesLikeInitialValue(itemAxis);
+    isAuto = minSize->BehavesLikeInitialValue(itemAxis);
     return isAuto && !mFrame->StyleDisplay()->IsScrollableOverflow();
   }
 
@@ -939,10 +947,13 @@ struct nsGridContainerFrame::GridItemInfo {
     };
 
     const nsStylePosition* stylePos = mFrame->StylePosition();
-    bool isItemAutoSize =
-        IsDependentOnContainerSize(stylePos->BSize(aContainerWM)) ||
-        IsDependentOnContainerSize(stylePos->MinBSize(aContainerWM)) ||
-        IsDependentOnContainerSize(stylePos->MaxBSize(aContainerWM));
+    const auto positionProperty = mFrame->StyleDisplay()->mPosition;
+    bool isItemAutoSize = IsDependentOnContainerSize(*stylePos->BSize(
+                              aContainerWM, positionProperty)) ||
+                          IsDependentOnContainerSize(*stylePos->MinBSize(
+                              aContainerWM, positionProperty)) ||
+                          IsDependentOnContainerSize(*stylePos->MaxBSize(
+                              aContainerWM, positionProperty));
 
     return isItemAutoSize;
   }
@@ -5924,7 +5935,8 @@ static nscoord MinContribution(const GridItemInfo& aGridItem,
   nsIFrame* child = aGridItem.mFrame;
   PhysicalAxis axis(aCBWM.PhysicalAxis(aAxis));
   const nsStylePosition* stylePos = child->StylePosition();
-  StyleSize styleSize = stylePos->Size(aAxis, aCBWM);
+  const auto positionProperty = child->StyleDisplay()->mPosition;
+  auto styleSize = stylePos->Size(aAxis, aCBWM, positionProperty);
   const LogicalAxis axisInItemWM = aCBWM.IsOrthogonalTo(child->GetWritingMode())
                                        ? GetOrthogonalAxis(aAxis)
                                        : aAxis;
@@ -5933,8 +5945,8 @@ static nscoord MinContribution(const GridItemInfo& aGridItem,
   // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
   // for block size dimension on sizing properties (e.g. height), so we
   // treat it as `auto`.
-  if (!styleSize.BehavesLikeInitialValue(axisInItemWM) &&
-      !styleSize.HasPercent()) {
+  if (!styleSize->BehavesLikeInitialValue(axisInItemWM) &&
+      !styleSize->HasPercent()) {
     nscoord s =
         MinContentContribution(aGridItem, aGridRI, aRC, aCBWM, aAxis, aCache);
     aCache->mMinSize.emplace(s);
@@ -5957,13 +5969,13 @@ static nscoord MinContribution(const GridItemInfo& aGridItem,
   MOZ_ASSERT((aGridItem.mState[aAxis] & ItemState::eIsBaselineAligned) ||
                  aGridItem.mBaselineOffset[aAxis] == nscoord(0),
              "baseline offset should be zero when not baseline-aligned");
-  const StyleSize& styleMinSize = stylePos->MinSize(aAxis, aCBWM);
+  const auto styleMinSize = stylePos->MinSize(aAxis, aCBWM, positionProperty);
 
   // max-content and min-content should behave as initial value in block axis.
   // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
   // for block size dimension on sizing properties (e.g. height), so we
   // treat it as `auto`.
-  const bool isAuto = styleMinSize.BehavesLikeInitialValue(axisInItemWM);
+  const bool isAuto = styleMinSize->BehavesLikeInitialValue(axisInItemWM);
   nscoord sz = aGridItem.mBaselineOffset[aAxis];
 
   // Check if the min-size style of the grid item is auto and the minimum
@@ -5978,7 +5990,7 @@ static nscoord MinContribution(const GridItemInfo& aGridItem,
         *aCache->mPercentageBasis);
 
     if ((axisInItemWM == LogicalAxis::Inline &&
-         nsIFrame::ToExtremumLength(styleMinSize)) ||
+         nsIFrame::ToExtremumLength(*styleMinSize)) ||
         (isAuto && !child->StyleDisplay()->IsScrollableOverflow())) {
       // Now calculate the "content size" part and return whichever is smaller.
       MOZ_ASSERT(isAuto || sz == NS_UNCONSTRAINEDSIZE);
@@ -7860,8 +7872,10 @@ void nsGridContainerFrame::ReflowInFlowChild(
   // it in that axis, then setup a frame property to tell
   // nsBlockFrame::ComputeFinalSize the size.
   if (isConstrainedBSize && !wm.IsOrthogonalTo(childWM)) {
-    const bool stretch = childRI.mStylePosition->BSize(childWM).IsAuto() &&
-                         GridItemShouldStretch(aChild, LogicalAxis::Block);
+    const bool stretch =
+        childRI.mStylePosition->BSize(childWM, childRI.mStyleDisplay->mPosition)
+            ->IsAuto() &&
+        GridItemShouldStretch(aChild, LogicalAxis::Block);
     if (stretch) {
       aChild->SetProperty(FragStretchBSizeProperty(), *aStretchBSize);
     } else {

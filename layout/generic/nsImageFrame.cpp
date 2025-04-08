@@ -323,12 +323,13 @@ void BrokenImageIcon::Notify(imgIRequest* aRequest, int32_t aType,
 // test if the width and height are fixed, looking at the style data
 // This is used by nsImageFrame::ImageFrameTypeFor and should not be used for
 // layout decisions.
-static bool HaveSpecifiedSize(const nsStylePosition* aStylePosition) {
+static bool HaveSpecifiedSize(const nsStylePosition* aStylePosition,
+                              StylePositionProperty aProp) {
   // check the width and height values in the reflow input's style struct
   // - if width and height are specified as either coord or percentage, then
   //   the size of the image frame is constrained
-  return aStylePosition->GetWidth().IsLengthPercentage() &&
-         aStylePosition->GetHeight().IsLengthPercentage();
+  return aStylePosition->GetWidth(aProp)->IsLengthPercentage() &&
+         aStylePosition->GetHeight(aProp)->IsLengthPercentage();
 }
 
 template <typename SizeOrMaxSize>
@@ -355,6 +356,7 @@ static bool DependsOnIntrinsicSize(const SizeOrMaxSize& aMinOrMaxSize) {
 // image's intrinsic size changing.
 static bool SizeDependsOnIntrinsicSize(const ReflowInput& aReflowInput) {
   const auto& position = *aReflowInput.mStylePosition;
+  const auto positionProperty = aReflowInput.mStyleDisplay->mPosition;
   WritingMode wm = aReflowInput.GetWritingMode();
   // Don't try to make this optimization when an image has percentages
   // in its 'width' or 'height'.  The percentages might be treated like
@@ -365,10 +367,10 @@ static bool SizeDependsOnIntrinsicSize(const ReflowInput& aReflowInput) {
   // don't need to check them.
   //
   // Flex item's min-[width|height]:auto resolution depends on intrinsic size.
-  return !position.GetHeight().ConvertsToLength() ||
-         !position.GetWidth().ConvertsToLength() ||
-         DependsOnIntrinsicSize(position.MinISize(wm)) ||
-         DependsOnIntrinsicSize(position.MaxISize(wm)) ||
+  return !position.GetHeight(positionProperty)->ConvertsToLength() ||
+         !position.GetWidth(positionProperty)->ConvertsToLength() ||
+         DependsOnIntrinsicSize(*position.MinISize(wm, positionProperty)) ||
+         DependsOnIntrinsicSize(*position.MaxISize(wm, positionProperty)) ||
          aReflowInput.mFrame->IsFlexItem();
 }
 
@@ -763,7 +765,7 @@ void nsImageFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
     // Increase load priority further if intrinsic size might be important for
     // layout.
-    if (!HaveSpecifiedSize(StylePosition())) {
+    if (!HaveSpecifiedSize(StylePosition(), StyleDisplay()->mPosition)) {
       categoryToBoostPriority |= imgIRequest::CATEGORY_SIZE_QUERY;
     }
 
@@ -1148,7 +1150,8 @@ auto nsImageFrame::ImageFrameTypeFor(const Element& aElement,
   // FIXME(emilio, bug 1788767): We definitely don't reframe when
   // HaveSpecifiedSize changes...
   if (aElement.OwnerDoc()->GetCompatibilityMode() == eCompatibility_NavQuirks &&
-      HaveSpecifiedSize(aStyle.StylePosition())) {
+      HaveSpecifiedSize(aStyle.StylePosition(),
+                        aStyle.StyleDisplay()->mPosition)) {
     return ImageFrameType::ForElementRequest;
   }
 
@@ -2967,7 +2970,10 @@ static bool IsInAutoWidthTableCellForQuirk(nsIFrame* aFrame) {
   if (ancestor->Style()->GetPseudoType() == PseudoStyleType::cellContent) {
     // Assume direct parent is a table cell frame.
     nsIFrame* grandAncestor = static_cast<nsIFrame*>(ancestor->GetParent());
-    return grandAncestor && grandAncestor->StylePosition()->GetWidth().IsAuto();
+    return grandAncestor &&
+           grandAncestor->StylePosition()
+               ->GetWidth(grandAncestor->StyleDisplay()->mPosition)
+               ->IsAuto();
   }
   return false;
 }

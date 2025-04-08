@@ -2440,9 +2440,10 @@ void AppWindow::IntrinsicallySizeShell(const CSSIntSize& aWindowDiff,
       // TODO: Make this more generic perhaps?
       if (prefWidthAttr.EqualsLiteral("min-width")) {
         if (auto* f = element->GetPrimaryFrame(FlushType::Frames)) {
-          const auto& coord = f->StylePosition()->GetMinWidth();
-          if (coord.ConvertsToLength()) {
-            prefWidth = CSSPixel::FromAppUnitsRounded(coord.ToLength());
+          const auto coord =
+              f->StylePosition()->GetMinWidth(f->StyleDisplay()->mPosition);
+          if (coord->ConvertsToLength()) {
+            prefWidth = CSSPixel::FromAppUnitsRounded(coord->ToLength());
           }
         }
       }

@@ -282,7 +282,7 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
   void SetValueFromFitContentFunction(nsROCSSPrimitiveValue* aValue,
                                       const mozilla::LengthPercentage&);
 
-  void SetValueToSize(nsROCSSPrimitiveValue* aValue, const mozilla::StyleSize&);
+  void SetValueToSize(nsROCSSPrimitiveValue* aValue, const AnchorResolvedSize&);
 
   void SetValueToLengthPercentageOrAuto(nsROCSSPrimitiveValue* aValue,
                                         const LengthPercentageOrAuto&,
@@ -295,7 +295,7 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
                                   bool aClampNegativeCalc);
 
   void SetValueToMaxSize(nsROCSSPrimitiveValue* aValue,
-                         const mozilla::StyleMaxSize&);
+                         const AnchorResolvedMaxSize&);
 
   bool GetCBContentWidth(nscoord& aWidth);
   bool GetCBContentHeight(nscoord& aHeight);
