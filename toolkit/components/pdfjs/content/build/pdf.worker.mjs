@@ -320,7 +320,8 @@ const OPS = {
   paintSolidColorImageMask: 90,
   constructPath: 91,
   setStrokeTransparent: 92,
-  setFillTransparent: 93
+  setFillTransparent: 93,
+  rawFillPath: 94
 };
 const DrawOPS = {
   moveTo: 0,
@@ -533,42 +534,134 @@ class Util {
   static makeHexColor(r, g, b) {
     return `#${hexNumbers[r]}${hexNumbers[g]}${hexNumbers[b]}`;
   }
+  static scaleMinMax(transform, minMax) {
+    let temp;
+    if (transform[0]) {
+      if (transform[0] < 0) {
+        temp = minMax[0];
+        minMax[0] = minMax[2];
+        minMax[2] = temp;
+      }
+      minMax[0] *= transform[0];
+      minMax[2] *= transform[0];
+      if (transform[3] < 0) {
+        temp = minMax[1];
+        minMax[1] = minMax[3];
+        minMax[3] = temp;
+      }
+      minMax[1] *= transform[3];
+      minMax[3] *= transform[3];
+    } else {
+      temp = minMax[0];
+      minMax[0] = minMax[1];
+      minMax[1] = temp;
+      temp = minMax[2];
+      minMax[2] = minMax[3];
+      minMax[3] = temp;
+      if (transform[1] < 0) {
+        temp = minMax[1];
+        minMax[1] = minMax[3];
+        minMax[3] = temp;
+      }
+      minMax[1] *= transform[1];
+      minMax[3] *= transform[1];
+      if (transform[2] < 0) {
+        temp = minMax[0];
+        minMax[0] = minMax[2];
+        minMax[2] = temp;
+      }
+      minMax[0] *= transform[2];
+      minMax[2] *= transform[2];
+    }
+    minMax[0] += transform[4];
+    minMax[1] += transform[5];
+    minMax[2] += transform[4];
+    minMax[3] += transform[5];
+  }
   static transform(m1, m2) {
     return [m1[0] * m2[0] + m1[2] * m2[1], m1[1] * m2[0] + m1[3] * m2[1], m1[0] * m2[2] + m1[2] * m2[3], m1[1] * m2[2] + m1[3] * m2[3], m1[0] * m2[4] + m1[2] * m2[5] + m1[4], m1[1] * m2[4] + m1[3] * m2[5] + m1[5]];
   }
   static applyTransform(p, m) {
-    const xt = p[0] * m[0] + p[1] * m[2] + m[4];
-    const yt = p[0] * m[1] + p[1] * m[3] + m[5];
-    return [xt, yt];
+    const p0 = p[0];
+    const p1 = p[1];
+    p[0] = p0 * m[0] + p1 * m[2] + m[4];
+    p[1] = p0 * m[1] + p1 * m[3] + m[5];
+  }
+  static applyTransformToBezier(p, transform) {
+    const m0 = transform[0];
+    const m1 = transform[1];
+    const m2 = transform[2];
+    const m3 = transform[3];
+    const m4 = transform[4];
+    const m5 = transform[5];
+    for (let i = 0; i < 6; i += 2) {
+      const pI = p[i];
+      const pI1 = p[i + 1];
+      p[i] = pI * m0 + pI1 * m2 + m4;
+      p[i + 1] = pI * m1 + pI1 * m3 + m5;
+    }
   }
   static applyInverseTransform(p, m) {
+    const p0 = p[0];
+    const p1 = p[1];
     const d = m[0] * m[3] - m[1] * m[2];
-    const xt = (p[0] * m[3] - p[1] * m[2] + m[2] * m[5] - m[4] * m[3]) / d;
-    const yt = (-p[0] * m[1] + p[1] * m[0] + m[4] * m[1] - m[5] * m[0]) / d;
-    return [xt, yt];
+    p[0] = (p0 * m[3] - p1 * m[2] + m[2] * m[5] - m[4] * m[3]) / d;
+    p[1] = (-p0 * m[1] + p1 * m[0] + m[4] * m[1] - m[5] * m[0]) / d;
   }
-  static getAxialAlignedBoundingBox(r, m) {
-    const p1 = this.applyTransform(r, m);
-    const p2 = this.applyTransform(r.slice(2, 4), m);
-    const p3 = this.applyTransform([r[0], r[3]], m);
-    const p4 = this.applyTransform([r[2], r[1]], m);
-    return [Math.min(p1[0], p2[0], p3[0], p4[0]), Math.min(p1[1], p2[1], p3[1], p4[1]), Math.max(p1[0], p2[0], p3[0], p4[0]), Math.max(p1[1], p2[1], p3[1], p4[1])];
+  static axialAlignedBoundingBox(rect, transform, output) {
+    const m0 = transform[0];
+    const m1 = transform[1];
+    const m2 = transform[2];
+    const m3 = transform[3];
+    const m4 = transform[4];
+    const m5 = transform[5];
+    const r0 = rect[0];
+    const r1 = rect[1];
+    const r2 = rect[2];
+    const r3 = rect[3];
+    let a0 = m0 * r0 + m4;
+    let a2 = a0;
+    let a1 = m0 * r2 + m4;
+    let a3 = a1;
+    let b0 = m3 * r1 + m5;
+    let b2 = b0;
+    let b1 = m3 * r3 + m5;
+    let b3 = b1;
+    if (m1 !== 0 || m2 !== 0) {
+      const m1r0 = m1 * r0;
+      const m1r2 = m1 * r2;
+      const m2r1 = m2 * r1;
+      const m2r3 = m2 * r3;
+      a0 += m2r1;
+      a3 += m2r1;
+      a1 += m2r3;
+      a2 += m2r3;
+      b0 += m1r0;
+      b3 += m1r0;
+      b1 += m1r2;
+      b2 += m1r2;
+    }
+    output[0] = Math.min(output[0], a0, a1, a2, a3);
+    output[1] = Math.min(output[1], b0, b1, b2, b3);
+    output[2] = Math.max(output[2], a0, a1, a2, a3);
+    output[3] = Math.max(output[3], b0, b1, b2, b3);
   }
   static inverseTransform(m) {
     const d = m[0] * m[3] - m[1] * m[2];
     return [m[3] / d, -m[1] / d, -m[2] / d, m[0] / d, (m[2] * m[5] - m[4] * m[3]) / d, (m[4] * m[1] - m[5] * m[0]) / d];
   }
-  static singularValueDecompose2dScale(m) {
-    const transpose = [m[0], m[2], m[1], m[3]];
-    const a = m[0] * transpose[0] + m[1] * transpose[2];
-    const b = m[0] * transpose[1] + m[1] * transpose[3];
-    const c = m[2] * transpose[0] + m[3] * transpose[2];
-    const d = m[2] * transpose[1] + m[3] * transpose[3];
-    const first = (a + d) / 2;
-    const second = Math.sqrt((a + d) ** 2 - 4 * (a * d - c * b)) / 2;
-    const sx = first + second || 1;
-    const sy = first - second || 1;
-    return [Math.sqrt(sx), Math.sqrt(sy)];
+  static singularValueDecompose2dScale(matrix, output) {
+    const m0 = matrix[0];
+    const m1 = matrix[1];
+    const m2 = matrix[2];
+    const m3 = matrix[3];
+    const a = m0 ** 2 + m1 ** 2;
+    const b = m0 * m2 + m1 * m3;
+    const c = m2 ** 2 + m3 ** 2;
+    const first = (a + c) / 2;
+    const second = Math.sqrt(first ** 2 - (a * c - b ** 2));
+    output[0] = Math.sqrt(first + second || 1);
+    output[1] = Math.sqrt(first - second || 1);
   }
   static normalizeRect(rect) {
     const r = rect.slice(0);
@@ -1816,7 +1909,10 @@ async function __wbg_init(module_or_path) {
     }
   }
   if (typeof module_or_path === 'undefined') {
-    module_or_path = new URL('qcms_bg.wasm', import.meta.url);
+    module_or_path = new URL(
+    /*webpackIgnore: true*/
+    /*@vite-ignore*/
+    'qcms_bg.wasm', import.meta.url);
   }
   const imports = __wbg_get_imports();
   if (typeof module_or_path === 'string' || typeof Request === 'function' && module_or_path instanceof Request || typeof URL === 'function' && module_or_path instanceof URL) {
@@ -5344,7 +5440,10 @@ var OpenJPEG = (() => {
       if (Module["locateFile"]) {
         return locateFile("openjpeg.wasm");
       }
-      return new URL("openjpeg.wasm", import.meta.url).href;
+      return new URL(
+      /*webpackIgnore: true*/
+      /*@vite-ignore*/
+      "openjpeg.wasm", import.meta.url).href;
     }
     function getBinarySync(file) {
       if (file == wasmBinaryFile && wasmBinary) {
@@ -5947,6 +6046,602 @@ class JpxImage {
       }
     }
     throw new JpxError("No size marker found in JPX stream");
+  }
+}
+
+;// ./src/core/operator_list.js
+
+function addState(parentState, pattern, checkFn, iterateFn, processFn) {
+  let state = parentState;
+  for (let i = 0, ii = pattern.length - 1; i < ii; i++) {
+    const item = pattern[i];
+    state = state[item] ||= [];
+  }
+  state[pattern.at(-1)] = {
+    checkFn,
+    iterateFn,
+    processFn
+  };
+}
+const InitialState = [];
+addState(InitialState, [OPS.save, OPS.transform, OPS.paintInlineImageXObject, OPS.restore], null, function iterateInlineImageGroup(context, i) {
+  const fnArray = context.fnArray;
+  const iFirstSave = context.iCurr - 3;
+  const pos = (i - iFirstSave) % 4;
+  switch (pos) {
+    case 0:
+      return fnArray[i] === OPS.save;
+    case 1:
+      return fnArray[i] === OPS.transform;
+    case 2:
+      return fnArray[i] === OPS.paintInlineImageXObject;
+    case 3:
+      return fnArray[i] === OPS.restore;
+  }
+  throw new Error(`iterateInlineImageGroup - invalid pos: ${pos}`);
+}, function foundInlineImageGroup(context, i) {
+  const MIN_IMAGES_IN_INLINE_IMAGES_BLOCK = 10;
+  const MAX_IMAGES_IN_INLINE_IMAGES_BLOCK = 200;
+  const MAX_WIDTH = 1000;
+  const IMAGE_PADDING = 1;
+  const fnArray = context.fnArray,
+    argsArray = context.argsArray;
+  const curr = context.iCurr;
+  const iFirstSave = curr - 3;
+  const iFirstTransform = curr - 2;
+  const iFirstPIIXO = curr - 1;
+  const count = Math.min(Math.floor((i - iFirstSave) / 4), MAX_IMAGES_IN_INLINE_IMAGES_BLOCK);
+  if (count < MIN_IMAGES_IN_INLINE_IMAGES_BLOCK) {
+    return i - (i - iFirstSave) % 4;
+  }
+  let maxX = 0;
+  const map = [];
+  let maxLineHeight = 0;
+  let currentX = IMAGE_PADDING,
+    currentY = IMAGE_PADDING;
+  for (let q = 0; q < count; q++) {
+    const transform = argsArray[iFirstTransform + (q << 2)];
+    const img = argsArray[iFirstPIIXO + (q << 2)][0];
+    if (currentX + img.width > MAX_WIDTH) {
+      maxX = Math.max(maxX, currentX);
+      currentY += maxLineHeight + 2 * IMAGE_PADDING;
+      currentX = 0;
+      maxLineHeight = 0;
+    }
+    map.push({
+      transform,
+      x: currentX,
+      y: currentY,
+      w: img.width,
+      h: img.height
+    });
+    currentX += img.width + 2 * IMAGE_PADDING;
+    maxLineHeight = Math.max(maxLineHeight, img.height);
+  }
+  const imgWidth = Math.max(maxX, currentX) + IMAGE_PADDING;
+  const imgHeight = currentY + maxLineHeight + IMAGE_PADDING;
+  const imgData = new Uint8Array(imgWidth * imgHeight * 4);
+  const imgRowSize = imgWidth << 2;
+  for (let q = 0; q < count; q++) {
+    const data = argsArray[iFirstPIIXO + (q << 2)][0].data;
+    const rowSize = map[q].w << 2;
+    let dataOffset = 0;
+    let offset = map[q].x + map[q].y * imgWidth << 2;
+    imgData.set(data.subarray(0, rowSize), offset - imgRowSize);
+    for (let k = 0, kk = map[q].h; k < kk; k++) {
+      imgData.set(data.subarray(dataOffset, dataOffset + rowSize), offset);
+      dataOffset += rowSize;
+      offset += imgRowSize;
+    }
+    imgData.set(data.subarray(dataOffset - rowSize, dataOffset), offset);
+    while (offset >= 0) {
+      data[offset - 4] = data[offset];
+      data[offset - 3] = data[offset + 1];
+      data[offset - 2] = data[offset + 2];
+      data[offset - 1] = data[offset + 3];
+      data[offset + rowSize] = data[offset + rowSize - 4];
+      data[offset + rowSize + 1] = data[offset + rowSize - 3];
+      data[offset + rowSize + 2] = data[offset + rowSize - 2];
+      data[offset + rowSize + 3] = data[offset + rowSize - 1];
+      offset -= imgRowSize;
+    }
+  }
+  const img = {
+    width: imgWidth,
+    height: imgHeight
+  };
+  if (context.isOffscreenCanvasSupported) {
+    const canvas = new OffscreenCanvas(imgWidth, imgHeight);
+    const ctx = canvas.getContext("2d");
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(imgData.buffer), imgWidth, imgHeight), 0, 0);
+    img.bitmap = canvas.transferToImageBitmap();
+    img.data = null;
+  } else {
+    img.kind = ImageKind.RGBA_32BPP;
+    img.data = imgData;
+  }
+  fnArray.splice(iFirstSave, count * 4, OPS.paintInlineImageXObjectGroup);
+  argsArray.splice(iFirstSave, count * 4, [img, map]);
+  return iFirstSave + 1;
+});
+addState(InitialState, [OPS.save, OPS.transform, OPS.paintImageMaskXObject, OPS.restore], null, function iterateImageMaskGroup(context, i) {
+  const fnArray = context.fnArray;
+  const iFirstSave = context.iCurr - 3;
+  const pos = (i - iFirstSave) % 4;
+  switch (pos) {
+    case 0:
+      return fnArray[i] === OPS.save;
+    case 1:
+      return fnArray[i] === OPS.transform;
+    case 2:
+      return fnArray[i] === OPS.paintImageMaskXObject;
+    case 3:
+      return fnArray[i] === OPS.restore;
+  }
+  throw new Error(`iterateImageMaskGroup - invalid pos: ${pos}`);
+}, function foundImageMaskGroup(context, i) {
+  const MIN_IMAGES_IN_MASKS_BLOCK = 10;
+  const MAX_IMAGES_IN_MASKS_BLOCK = 100;
+  const MAX_SAME_IMAGES_IN_MASKS_BLOCK = 1000;
+  const fnArray = context.fnArray,
+    argsArray = context.argsArray;
+  const curr = context.iCurr;
+  const iFirstSave = curr - 3;
+  const iFirstTransform = curr - 2;
+  const iFirstPIMXO = curr - 1;
+  let count = Math.floor((i - iFirstSave) / 4);
+  if (count < MIN_IMAGES_IN_MASKS_BLOCK) {
+    return i - (i - iFirstSave) % 4;
+  }
+  let isSameImage = false;
+  let iTransform, transformArgs;
+  const firstPIMXOArg0 = argsArray[iFirstPIMXO][0];
+  const firstTransformArg0 = argsArray[iFirstTransform][0],
+    firstTransformArg1 = argsArray[iFirstTransform][1],
+    firstTransformArg2 = argsArray[iFirstTransform][2],
+    firstTransformArg3 = argsArray[iFirstTransform][3];
+  if (firstTransformArg1 === firstTransformArg2) {
+    isSameImage = true;
+    iTransform = iFirstTransform + 4;
+    let iPIMXO = iFirstPIMXO + 4;
+    for (let q = 1; q < count; q++, iTransform += 4, iPIMXO += 4) {
+      transformArgs = argsArray[iTransform];
+      if (argsArray[iPIMXO][0] !== firstPIMXOArg0 || transformArgs[0] !== firstTransformArg0 || transformArgs[1] !== firstTransformArg1 || transformArgs[2] !== firstTransformArg2 || transformArgs[3] !== firstTransformArg3) {
+        if (q < MIN_IMAGES_IN_MASKS_BLOCK) {
+          isSameImage = false;
+        } else {
+          count = q;
+        }
+        break;
+      }
+    }
+  }
+  if (isSameImage) {
+    count = Math.min(count, MAX_SAME_IMAGES_IN_MASKS_BLOCK);
+    const positions = new Float32Array(count * 2);
+    iTransform = iFirstTransform;
+    for (let q = 0; q < count; q++, iTransform += 4) {
+      transformArgs = argsArray[iTransform];
+      positions[q << 1] = transformArgs[4];
+      positions[(q << 1) + 1] = transformArgs[5];
+    }
+    fnArray.splice(iFirstSave, count * 4, OPS.paintImageMaskXObjectRepeat);
+    argsArray.splice(iFirstSave, count * 4, [firstPIMXOArg0, firstTransformArg0, firstTransformArg1, firstTransformArg2, firstTransformArg3, positions]);
+  } else {
+    count = Math.min(count, MAX_IMAGES_IN_MASKS_BLOCK);
+    const images = [];
+    for (let q = 0; q < count; q++) {
+      transformArgs = argsArray[iFirstTransform + (q << 2)];
+      const maskParams = argsArray[iFirstPIMXO + (q << 2)][0];
+      images.push({
+        data: maskParams.data,
+        width: maskParams.width,
+        height: maskParams.height,
+        interpolate: maskParams.interpolate,
+        count: maskParams.count,
+        transform: transformArgs
+      });
+    }
+    fnArray.splice(iFirstSave, count * 4, OPS.paintImageMaskXObjectGroup);
+    argsArray.splice(iFirstSave, count * 4, [images]);
+  }
+  return iFirstSave + 1;
+});
+addState(InitialState, [OPS.save, OPS.transform, OPS.paintImageXObject, OPS.restore], function (context) {
+  const argsArray = context.argsArray;
+  const iFirstTransform = context.iCurr - 2;
+  return argsArray[iFirstTransform][1] === 0 && argsArray[iFirstTransform][2] === 0;
+}, function iterateImageGroup(context, i) {
+  const fnArray = context.fnArray,
+    argsArray = context.argsArray;
+  const iFirstSave = context.iCurr - 3;
+  const pos = (i - iFirstSave) % 4;
+  switch (pos) {
+    case 0:
+      return fnArray[i] === OPS.save;
+    case 1:
+      if (fnArray[i] !== OPS.transform) {
+        return false;
+      }
+      const iFirstTransform = context.iCurr - 2;
+      const firstTransformArg0 = argsArray[iFirstTransform][0];
+      const firstTransformArg3 = argsArray[iFirstTransform][3];
+      if (argsArray[i][0] !== firstTransformArg0 || argsArray[i][1] !== 0 || argsArray[i][2] !== 0 || argsArray[i][3] !== firstTransformArg3) {
+        return false;
+      }
+      return true;
+    case 2:
+      if (fnArray[i] !== OPS.paintImageXObject) {
+        return false;
+      }
+      const iFirstPIXO = context.iCurr - 1;
+      const firstPIXOArg0 = argsArray[iFirstPIXO][0];
+      if (argsArray[i][0] !== firstPIXOArg0) {
+        return false;
+      }
+      return true;
+    case 3:
+      return fnArray[i] === OPS.restore;
+  }
+  throw new Error(`iterateImageGroup - invalid pos: ${pos}`);
+}, function (context, i) {
+  const MIN_IMAGES_IN_BLOCK = 3;
+  const MAX_IMAGES_IN_BLOCK = 1000;
+  const fnArray = context.fnArray,
+    argsArray = context.argsArray;
+  const curr = context.iCurr;
+  const iFirstSave = curr - 3;
+  const iFirstTransform = curr - 2;
+  const iFirstPIXO = curr - 1;
+  const firstPIXOArg0 = argsArray[iFirstPIXO][0];
+  const firstTransformArg0 = argsArray[iFirstTransform][0];
+  const firstTransformArg3 = argsArray[iFirstTransform][3];
+  const count = Math.min(Math.floor((i - iFirstSave) / 4), MAX_IMAGES_IN_BLOCK);
+  if (count < MIN_IMAGES_IN_BLOCK) {
+    return i - (i - iFirstSave) % 4;
+  }
+  const positions = new Float32Array(count * 2);
+  let iTransform = iFirstTransform;
+  for (let q = 0; q < count; q++, iTransform += 4) {
+    const transformArgs = argsArray[iTransform];
+    positions[q << 1] = transformArgs[4];
+    positions[(q << 1) + 1] = transformArgs[5];
+  }
+  const args = [firstPIXOArg0, firstTransformArg0, firstTransformArg3, positions];
+  fnArray.splice(iFirstSave, count * 4, OPS.paintImageXObjectRepeat);
+  argsArray.splice(iFirstSave, count * 4, args);
+  return iFirstSave + 1;
+});
+addState(InitialState, [OPS.beginText, OPS.setFont, OPS.setTextMatrix, OPS.showText, OPS.endText], null, function iterateShowTextGroup(context, i) {
+  const fnArray = context.fnArray,
+    argsArray = context.argsArray;
+  const iFirstSave = context.iCurr - 4;
+  const pos = (i - iFirstSave) % 5;
+  switch (pos) {
+    case 0:
+      return fnArray[i] === OPS.beginText;
+    case 1:
+      return fnArray[i] === OPS.setFont;
+    case 2:
+      return fnArray[i] === OPS.setTextMatrix;
+    case 3:
+      if (fnArray[i] !== OPS.showText) {
+        return false;
+      }
+      const iFirstSetFont = context.iCurr - 3;
+      const firstSetFontArg0 = argsArray[iFirstSetFont][0];
+      const firstSetFontArg1 = argsArray[iFirstSetFont][1];
+      if (argsArray[i][0] !== firstSetFontArg0 || argsArray[i][1] !== firstSetFontArg1) {
+        return false;
+      }
+      return true;
+    case 4:
+      return fnArray[i] === OPS.endText;
+  }
+  throw new Error(`iterateShowTextGroup - invalid pos: ${pos}`);
+}, function (context, i) {
+  const MIN_CHARS_IN_BLOCK = 3;
+  const MAX_CHARS_IN_BLOCK = 1000;
+  const fnArray = context.fnArray,
+    argsArray = context.argsArray;
+  const curr = context.iCurr;
+  const iFirstBeginText = curr - 4;
+  const iFirstSetFont = curr - 3;
+  const iFirstSetTextMatrix = curr - 2;
+  const iFirstShowText = curr - 1;
+  const iFirstEndText = curr;
+  const firstSetFontArg0 = argsArray[iFirstSetFont][0];
+  const firstSetFontArg1 = argsArray[iFirstSetFont][1];
+  let count = Math.min(Math.floor((i - iFirstBeginText) / 5), MAX_CHARS_IN_BLOCK);
+  if (count < MIN_CHARS_IN_BLOCK) {
+    return i - (i - iFirstBeginText) % 5;
+  }
+  let iFirst = iFirstBeginText;
+  if (iFirstBeginText >= 4 && fnArray[iFirstBeginText - 4] === fnArray[iFirstSetFont] && fnArray[iFirstBeginText - 3] === fnArray[iFirstSetTextMatrix] && fnArray[iFirstBeginText - 2] === fnArray[iFirstShowText] && fnArray[iFirstBeginText - 1] === fnArray[iFirstEndText] && argsArray[iFirstBeginText - 4][0] === firstSetFontArg0 && argsArray[iFirstBeginText - 4][1] === firstSetFontArg1) {
+    count++;
+    iFirst -= 5;
+  }
+  let iEndText = iFirst + 4;
+  for (let q = 1; q < count; q++) {
+    fnArray.splice(iEndText, 3);
+    argsArray.splice(iEndText, 3);
+    iEndText += 2;
+  }
+  return iEndText + 1;
+});
+addState(InitialState, [OPS.save, OPS.transform, OPS.constructPath, OPS.restore], context => {
+  const argsArray = context.argsArray;
+  const iFirstConstructPath = context.iCurr - 1;
+  const op = argsArray[iFirstConstructPath][0];
+  if (op !== OPS.stroke && op !== OPS.closeStroke && op !== OPS.fillStroke && op !== OPS.eoFillStroke && op !== OPS.closeFillStroke && op !== OPS.closeEOFillStroke) {
+    return true;
+  }
+  const iFirstTransform = context.iCurr - 2;
+  const transform = argsArray[iFirstTransform];
+  return transform[0] === 1 && transform[1] === 0 && transform[2] === 0 && transform[3] === 1;
+}, () => false, (context, i) => {
+  const {
+    fnArray,
+    argsArray
+  } = context;
+  const curr = context.iCurr;
+  const iFirstSave = curr - 3;
+  const iFirstTransform = curr - 2;
+  const iFirstConstructPath = curr - 1;
+  const args = argsArray[iFirstConstructPath];
+  const transform = argsArray[iFirstTransform];
+  const [, [buffer], minMax] = args;
+  Util.scaleMinMax(transform, minMax);
+  for (let k = 0, kk = buffer.length; k < kk;) {
+    switch (buffer[k++]) {
+      case DrawOPS.moveTo:
+      case DrawOPS.lineTo:
+        Util.applyTransform(buffer.subarray(k), transform);
+        k += 2;
+        break;
+      case DrawOPS.curveTo:
+        Util.applyTransformToBezier(buffer.subarray(k), transform);
+        k += 6;
+        break;
+    }
+  }
+  fnArray.splice(iFirstSave, 4, OPS.constructPath);
+  argsArray.splice(iFirstSave, 4, args);
+  return iFirstSave + 1;
+});
+class NullOptimizer {
+  constructor(queue) {
+    this.queue = queue;
+  }
+  _optimize() {}
+  push(fn, args) {
+    this.queue.fnArray.push(fn);
+    this.queue.argsArray.push(args);
+    this._optimize();
+  }
+  flush() {}
+  reset() {}
+}
+class QueueOptimizer extends NullOptimizer {
+  constructor(queue) {
+    super(queue);
+    this.state = null;
+    this.context = {
+      iCurr: 0,
+      fnArray: queue.fnArray,
+      argsArray: queue.argsArray,
+      isOffscreenCanvasSupported: OperatorList.isOffscreenCanvasSupported
+    };
+    this.match = null;
+    this.lastProcessed = 0;
+  }
+  _optimize() {
+    const fnArray = this.queue.fnArray;
+    let i = this.lastProcessed,
+      ii = fnArray.length;
+    let state = this.state;
+    let match = this.match;
+    if (!state && !match && i + 1 === ii && !InitialState[fnArray[i]]) {
+      this.lastProcessed = ii;
+      return;
+    }
+    const context = this.context;
+    while (i < ii) {
+      if (match) {
+        const iterate = (0, match.iterateFn)(context, i);
+        if (iterate) {
+          i++;
+          continue;
+        }
+        i = (0, match.processFn)(context, i + 1);
+        ii = fnArray.length;
+        match = null;
+        state = null;
+        if (i >= ii) {
+          break;
+        }
+      }
+      state = (state || InitialState)[fnArray[i]];
+      if (!state || Array.isArray(state)) {
+        i++;
+        continue;
+      }
+      context.iCurr = i;
+      i++;
+      if (state.checkFn && !(0, state.checkFn)(context)) {
+        state = null;
+        continue;
+      }
+      match = state;
+      state = null;
+    }
+    this.state = state;
+    this.match = match;
+    this.lastProcessed = i;
+  }
+  flush() {
+    while (this.match) {
+      const length = this.queue.fnArray.length;
+      this.lastProcessed = (0, this.match.processFn)(this.context, length);
+      this.match = null;
+      this.state = null;
+      this._optimize();
+    }
+  }
+  reset() {
+    this.state = null;
+    this.match = null;
+    this.lastProcessed = 0;
+  }
+}
+class OperatorList {
+  static CHUNK_SIZE = 1000;
+  static CHUNK_SIZE_ABOUT = this.CHUNK_SIZE - 5;
+  static isOffscreenCanvasSupported = false;
+  constructor(intent = 0, streamSink) {
+    this._streamSink = streamSink;
+    this.fnArray = [];
+    this.argsArray = [];
+    this.optimizer = streamSink && !(intent & RenderingIntentFlag.OPLIST) ? new QueueOptimizer(this) : new NullOptimizer(this);
+    this.dependencies = new Set();
+    this._totalLength = 0;
+    this.weight = 0;
+    this._resolved = streamSink ? null : Promise.resolve();
+  }
+  static setOptions({
+    isOffscreenCanvasSupported
+  }) {
+    this.isOffscreenCanvasSupported = isOffscreenCanvasSupported;
+  }
+  get length() {
+    return this.argsArray.length;
+  }
+  get ready() {
+    return this._resolved || this._streamSink.ready;
+  }
+  get totalLength() {
+    return this._totalLength + this.length;
+  }
+  addOp(fn, args) {
+    this.optimizer.push(fn, args);
+    this.weight++;
+    if (this._streamSink) {
+      if (this.weight >= OperatorList.CHUNK_SIZE) {
+        this.flush();
+      } else if (this.weight >= OperatorList.CHUNK_SIZE_ABOUT && (fn === OPS.restore || fn === OPS.endText)) {
+        this.flush();
+      }
+    }
+  }
+  addImageOps(fn, args, optionalContent, hasMask = false) {
+    if (hasMask) {
+      this.addOp(OPS.save);
+      this.addOp(OPS.setGState, [[["SMask", false]]]);
+    }
+    if (optionalContent !== undefined) {
+      this.addOp(OPS.beginMarkedContentProps, ["OC", optionalContent]);
+    }
+    this.addOp(fn, args);
+    if (optionalContent !== undefined) {
+      this.addOp(OPS.endMarkedContent, []);
+    }
+    if (hasMask) {
+      this.addOp(OPS.restore);
+    }
+  }
+  addDependency(dependency) {
+    if (this.dependencies.has(dependency)) {
+      return;
+    }
+    this.dependencies.add(dependency);
+    this.addOp(OPS.dependency, [dependency]);
+  }
+  addDependencies(dependencies) {
+    for (const dependency of dependencies) {
+      this.addDependency(dependency);
+    }
+  }
+  addOpList(opList) {
+    if (!(opList instanceof OperatorList)) {
+      warn('addOpList - ignoring invalid "opList" parameter.');
+      return;
+    }
+    for (const dependency of opList.dependencies) {
+      this.dependencies.add(dependency);
+    }
+    for (let i = 0, ii = opList.length; i < ii; i++) {
+      this.addOp(opList.fnArray[i], opList.argsArray[i]);
+    }
+  }
+  getIR() {
+    return {
+      fnArray: this.fnArray,
+      argsArray: this.argsArray,
+      length: this.length
+    };
+  }
+  get _transfers() {
+    const transfers = [];
+    const {
+      fnArray,
+      argsArray,
+      length
+    } = this;
+    for (let i = 0; i < length; i++) {
+      switch (fnArray[i]) {
+        case OPS.paintInlineImageXObject:
+        case OPS.paintInlineImageXObjectGroup:
+        case OPS.paintImageMaskXObject:
+          {
+            const {
+              bitmap,
+              data
+            } = argsArray[i][0];
+            if (bitmap || data?.buffer) {
+              transfers.push(bitmap || data.buffer);
+            }
+            break;
+          }
+        case OPS.constructPath:
+          {
+            const [, [data], minMax] = argsArray[i];
+            if (data) {
+              transfers.push(data.buffer, minMax.buffer);
+            }
+            break;
+          }
+        case OPS.paintFormXObjectBegin:
+          const [matrix, bbox] = argsArray[i];
+          if (matrix) {
+            transfers.push(matrix.buffer);
+          }
+          if (bbox) {
+            transfers.push(bbox.buffer);
+          }
+          break;
+        case OPS.setTextMatrix:
+          transfers.push(argsArray[i][0].buffer);
+          break;
+      }
+    }
+    return transfers;
+  }
+  flush(lastChunk = false, separateAnnots = null) {
+    this.optimizer.flush();
+    const length = this.length;
+    this._totalLength += length;
+    this._streamSink.enqueue({
+      fnArray: this.fnArray,
+      argsArray: this.argsArray,
+      lastChunk,
+      separateAnnots,
+      length
+    }, 1, this._transfers);
+    this.dependencies.clear();
+    this.fnArray.length = 0;
+    this.argsArray.length = 0;
+    this.weight = 0;
+    this.optimizer.reset();
   }
 }
 
@@ -11184,11 +11879,6 @@ class CMapFactory {
   }
 }
 
-;// ./src/core/charsets.js
-const ISOAdobeCharset = [".notdef", "space", "exclam", "quotedbl", "numbersign", "dollar", "percent", "ampersand", "quoteright", "parenleft", "parenright", "asterisk", "plus", "comma", "hyphen", "period", "slash", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "colon", "semicolon", "less", "equal", "greater", "question", "at", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "bracketleft", "backslash", "bracketright", "asciicircum", "underscore", "quoteleft", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "braceleft", "bar", "braceright", "asciitilde", "exclamdown", "cent", "sterling", "fraction", "yen", "florin", "section", "currency", "quotesingle", "quotedblleft", "guillemotleft", "guilsinglleft", "guilsinglright", "fi", "fl", "endash", "dagger", "daggerdbl", "periodcentered", "paragraph", "bullet", "quotesinglbase", "quotedblbase", "quotedblright", "guillemotright", "ellipsis", "perthousand", "questiondown", "grave", "acute", "circumflex", "tilde", "macron", "breve", "dotaccent", "dieresis", "ring", "cedilla", "hungarumlaut", "ogonek", "caron", "emdash", "AE", "ordfeminine", "Lslash", "Oslash", "OE", "ordmasculine", "ae", "dotlessi", "lslash", "oslash", "oe", "germandbls", "onesuperior", "logicalnot", "mu", "trademark", "Eth", "onehalf", "plusminus", "Thorn", "onequarter", "divide", "brokenbar", "degree", "thorn", "threequarters", "twosuperior", "registered", "minus", "eth", "multiply", "threesuperior", "copyright", "Aacute", "Acircumflex", "Adieresis", "Agrave", "Aring", "Atilde", "Ccedilla", "Eacute", "Ecircumflex", "Edieresis", "Egrave", "Iacute", "Icircumflex", "Idieresis", "Igrave", "Ntilde", "Oacute", "Ocircumflex", "Odieresis", "Ograve", "Otilde", "Scaron", "Uacute", "Ucircumflex", "Udieresis", "Ugrave", "Yacute", "Ydieresis", "Zcaron", "aacute", "acircumflex", "adieresis", "agrave", "aring", "atilde", "ccedilla", "eacute", "ecircumflex", "edieresis", "egrave", "iacute", "icircumflex", "idieresis", "igrave", "ntilde", "oacute", "ocircumflex", "odieresis", "ograve", "otilde", "scaron", "uacute", "ucircumflex", "udieresis", "ugrave", "yacute", "ydieresis", "zcaron"];
-const ExpertCharset = [".notdef", "space", "exclamsmall", "Hungarumlautsmall", "dollaroldstyle", "dollarsuperior", "ampersandsmall", "Acutesmall", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "comma", "hyphen", "period", "fraction", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "colon", "semicolon", "commasuperior", "threequartersemdash", "periodsuperior", "questionsmall", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "fi", "fl", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "Circumflexsmall", "hyphensuperior", "Gravesmall", "Asmall", "Bsmall", "Csmall", "Dsmall", "Esmall", "Fsmall", "Gsmall", "Hsmall", "Ismall", "Jsmall", "Ksmall", "Lsmall", "Msmall", "Nsmall", "Osmall", "Psmall", "Qsmall", "Rsmall", "Ssmall", "Tsmall", "Usmall", "Vsmall", "Wsmall", "Xsmall", "Ysmall", "Zsmall", "colonmonetary", "onefitted", "rupiah", "Tildesmall", "exclamdownsmall", "centoldstyle", "Lslashsmall", "Scaronsmall", "Zcaronsmall", "Dieresissmall", "Brevesmall", "Caronsmall", "Dotaccentsmall", "Macronsmall", "figuredash", "hypheninferior", "Ogoneksmall", "Ringsmall", "Cedillasmall", "onequarter", "onehalf", "threequarters", "questiondownsmall", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "onesuperior", "twosuperior", "threesuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior", "Agravesmall", "Aacutesmall", "Acircumflexsmall", "Atildesmall", "Adieresissmall", "Aringsmall", "AEsmall", "Ccedillasmall", "Egravesmall", "Eacutesmall", "Ecircumflexsmall", "Edieresissmall", "Igravesmall", "Iacutesmall", "Icircumflexsmall", "Idieresissmall", "Ethsmall", "Ntildesmall", "Ogravesmall", "Oacutesmall", "Ocircumflexsmall", "Otildesmall", "Odieresissmall", "OEsmall", "Oslashsmall", "Ugravesmall", "Uacutesmall", "Ucircumflexsmall", "Udieresissmall", "Yacutesmall", "Thornsmall", "Ydieresissmall"];
-const ExpertSubsetCharset = [".notdef", "space", "dollaroldstyle", "dollarsuperior", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "comma", "hyphen", "period", "fraction", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "colon", "semicolon", "commasuperior", "threequartersemdash", "periodsuperior", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "fi", "fl", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "hyphensuperior", "colonmonetary", "onefitted", "rupiah", "centoldstyle", "figuredash", "hypheninferior", "onequarter", "onehalf", "threequarters", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "onesuperior", "twosuperior", "threesuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior"];
-
 ;// ./src/core/encodings.js
 const ExpertEncoding = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "space", "exclamsmall", "Hungarumlautsmall", "", "dollaroldstyle", "dollarsuperior", "ampersandsmall", "Acutesmall", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "comma", "hyphen", "period", "fraction", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "colon", "semicolon", "commasuperior", "threequartersemdash", "periodsuperior", "questionsmall", "", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "", "", "", "isuperior", "", "", "lsuperior", "msuperior", "nsuperior", "osuperior", "", "", "rsuperior", "ssuperior", "tsuperior", "", "ff", "fi", "fl", "ffi", "ffl", "parenleftinferior", "", "parenrightinferior", "Circumflexsmall", "hyphensuperior", "Gravesmall", "Asmall", "Bsmall", "Csmall", "Dsmall", "Esmall", "Fsmall", "Gsmall", "Hsmall", "Ismall", "Jsmall", "Ksmall", "Lsmall", "Msmall", "Nsmall", "Osmall", "Psmall", "Qsmall", "Rsmall", "Ssmall", "Tsmall", "Usmall", "Vsmall", "Wsmall", "Xsmall", "Ysmall", "Zsmall", "colonmonetary", "onefitted", "rupiah", "Tildesmall", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "exclamdownsmall", "centoldstyle", "Lslashsmall", "", "", "Scaronsmall", "Zcaronsmall", "Dieresissmall", "Brevesmall", "Caronsmall", "", "Dotaccentsmall", "", "", "Macronsmall", "", "", "figuredash", "hypheninferior", "", "", "Ogoneksmall", "Ringsmall", "Cedillasmall", "", "", "", "onequarter", "onehalf", "threequarters", "questiondownsmall", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "", "", "zerosuperior", "onesuperior", "twosuperior", "threesuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior", "Agravesmall", "Aacutesmall", "Acircumflexsmall", "Atildesmall", "Adieresissmall", "Aringsmall", "AEsmall", "Ccedillasmall", "Egravesmall", "Eacutesmall", "Ecircumflexsmall", "Edieresissmall", "Igravesmall", "Iacutesmall", "Icircumflexsmall", "Idieresissmall", "Ethsmall", "Ntildesmall", "Ogravesmall", "Oacutesmall", "Ocircumflexsmall", "Otildesmall", "Odieresissmall", "OEsmall", "Oslashsmall", "Ugravesmall", "Uacutesmall", "Ucircumflexsmall", "Udieresissmall", "Yacutesmall", "Thornsmall", "Ydieresissmall"];
 const MacExpertEncoding = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "space", "exclamsmall", "Hungarumlautsmall", "centoldstyle", "dollaroldstyle", "dollarsuperior", "ampersandsmall", "Acutesmall", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "comma", "hyphen", "period", "fraction", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "colon", "semicolon", "", "threequartersemdash", "", "questionsmall", "", "", "", "", "Ethsmall", "", "", "onequarter", "onehalf", "threequarters", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "", "", "", "", "", "", "ff", "fi", "fl", "ffi", "ffl", "parenleftinferior", "", "parenrightinferior", "Circumflexsmall", "hypheninferior", "Gravesmall", "Asmall", "Bsmall", "Csmall", "Dsmall", "Esmall", "Fsmall", "Gsmall", "Hsmall", "Ismall", "Jsmall", "Ksmall", "Lsmall", "Msmall", "Nsmall", "Osmall", "Psmall", "Qsmall", "Rsmall", "Ssmall", "Tsmall", "Usmall", "Vsmall", "Wsmall", "Xsmall", "Ysmall", "Zsmall", "colonmonetary", "onefitted", "rupiah", "Tildesmall", "", "", "asuperior", "centsuperior", "", "", "", "", "Aacutesmall", "Agravesmall", "Acircumflexsmall", "Adieresissmall", "Atildesmall", "Aringsmall", "Ccedillasmall", "Eacutesmall", "Egravesmall", "Ecircumflexsmall", "Edieresissmall", "Iacutesmall", "Igravesmall", "Icircumflexsmall", "Idieresissmall", "Ntildesmall", "Oacutesmall", "Ogravesmall", "Ocircumflexsmall", "Odieresissmall", "Otildesmall", "Uacutesmall", "Ugravesmall", "Ucircumflexsmall", "Udieresissmall", "", "eightsuperior", "fourinferior", "threeinferior", "sixinferior", "eightinferior", "seveninferior", "Scaronsmall", "", "centinferior", "twoinferior", "", "Dieresissmall", "", "Caronsmall", "osuperior", "fiveinferior", "", "commainferior", "periodinferior", "Yacutesmall", "", "dollarinferior", "", "", "Thornsmall", "", "nineinferior", "zeroinferior", "Zcaronsmall", "AEsmall", "Oslashsmall", "questiondownsmall", "oneinferior", "Lslashsmall", "", "", "", "", "", "", "Cedillasmall", "", "", "", "", "", "OEsmall", "figuredash", "hyphensuperior", "", "", "", "", "exclamdownsmall", "", "Ydieresissmall", "", "onesuperior", "twosuperior", "threesuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "ninesuperior", "zerosuperior", "", "esuperior", "rsuperior", "tsuperior", "", "", "isuperior", "ssuperior", "dsuperior", "", "", "", "", "", "lsuperior", "Ogoneksmall", "Brevesmall", "Macronsmall", "bsuperior", "nsuperior", "msuperior", "commasuperior", "periodsuperior", "Dotaccentsmall", "Ringsmall", "", "", "", ""];
@@ -11215,1476 +11905,6 @@ function getEncoding(encodingName) {
       return MacExpertEncoding;
     default:
       return null;
-  }
-}
-
-;// ./src/core/cff_parser.js
-
-
-
-
-const MAX_SUBR_NESTING = 10;
-const CFFStandardStrings = [".notdef", "space", "exclam", "quotedbl", "numbersign", "dollar", "percent", "ampersand", "quoteright", "parenleft", "parenright", "asterisk", "plus", "comma", "hyphen", "period", "slash", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "colon", "semicolon", "less", "equal", "greater", "question", "at", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "bracketleft", "backslash", "bracketright", "asciicircum", "underscore", "quoteleft", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "braceleft", "bar", "braceright", "asciitilde", "exclamdown", "cent", "sterling", "fraction", "yen", "florin", "section", "currency", "quotesingle", "quotedblleft", "guillemotleft", "guilsinglleft", "guilsinglright", "fi", "fl", "endash", "dagger", "daggerdbl", "periodcentered", "paragraph", "bullet", "quotesinglbase", "quotedblbase", "quotedblright", "guillemotright", "ellipsis", "perthousand", "questiondown", "grave", "acute", "circumflex", "tilde", "macron", "breve", "dotaccent", "dieresis", "ring", "cedilla", "hungarumlaut", "ogonek", "caron", "emdash", "AE", "ordfeminine", "Lslash", "Oslash", "OE", "ordmasculine", "ae", "dotlessi", "lslash", "oslash", "oe", "germandbls", "onesuperior", "logicalnot", "mu", "trademark", "Eth", "onehalf", "plusminus", "Thorn", "onequarter", "divide", "brokenbar", "degree", "thorn", "threequarters", "twosuperior", "registered", "minus", "eth", "multiply", "threesuperior", "copyright", "Aacute", "Acircumflex", "Adieresis", "Agrave", "Aring", "Atilde", "Ccedilla", "Eacute", "Ecircumflex", "Edieresis", "Egrave", "Iacute", "Icircumflex", "Idieresis", "Igrave", "Ntilde", "Oacute", "Ocircumflex", "Odieresis", "Ograve", "Otilde", "Scaron", "Uacute", "Ucircumflex", "Udieresis", "Ugrave", "Yacute", "Ydieresis", "Zcaron", "aacute", "acircumflex", "adieresis", "agrave", "aring", "atilde", "ccedilla", "eacute", "ecircumflex", "edieresis", "egrave", "iacute", "icircumflex", "idieresis", "igrave", "ntilde", "oacute", "ocircumflex", "odieresis", "ograve", "otilde", "scaron", "uacute", "ucircumflex", "udieresis", "ugrave", "yacute", "ydieresis", "zcaron", "exclamsmall", "Hungarumlautsmall", "dollaroldstyle", "dollarsuperior", "ampersandsmall", "Acutesmall", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "commasuperior", "threequartersemdash", "periodsuperior", "questionsmall", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "Circumflexsmall", "hyphensuperior", "Gravesmall", "Asmall", "Bsmall", "Csmall", "Dsmall", "Esmall", "Fsmall", "Gsmall", "Hsmall", "Ismall", "Jsmall", "Ksmall", "Lsmall", "Msmall", "Nsmall", "Osmall", "Psmall", "Qsmall", "Rsmall", "Ssmall", "Tsmall", "Usmall", "Vsmall", "Wsmall", "Xsmall", "Ysmall", "Zsmall", "colonmonetary", "onefitted", "rupiah", "Tildesmall", "exclamdownsmall", "centoldstyle", "Lslashsmall", "Scaronsmall", "Zcaronsmall", "Dieresissmall", "Brevesmall", "Caronsmall", "Dotaccentsmall", "Macronsmall", "figuredash", "hypheninferior", "Ogoneksmall", "Ringsmall", "Cedillasmall", "questiondownsmall", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior", "Agravesmall", "Aacutesmall", "Acircumflexsmall", "Atildesmall", "Adieresissmall", "Aringsmall", "AEsmall", "Ccedillasmall", "Egravesmall", "Eacutesmall", "Ecircumflexsmall", "Edieresissmall", "Igravesmall", "Iacutesmall", "Icircumflexsmall", "Idieresissmall", "Ethsmall", "Ntildesmall", "Ogravesmall", "Oacutesmall", "Ocircumflexsmall", "Otildesmall", "Odieresissmall", "OEsmall", "Oslashsmall", "Ugravesmall", "Uacutesmall", "Ucircumflexsmall", "Udieresissmall", "Yacutesmall", "Thornsmall", "Ydieresissmall", "001.000", "001.001", "001.002", "001.003", "Black", "Bold", "Book", "Light", "Medium", "Regular", "Roman", "Semibold"];
-const NUM_STANDARD_CFF_STRINGS = 391;
-const CharstringValidationData = [null, {
-  id: "hstem",
-  min: 2,
-  stackClearing: true,
-  stem: true
-}, null, {
-  id: "vstem",
-  min: 2,
-  stackClearing: true,
-  stem: true
-}, {
-  id: "vmoveto",
-  min: 1,
-  stackClearing: true
-}, {
-  id: "rlineto",
-  min: 2,
-  resetStack: true
-}, {
-  id: "hlineto",
-  min: 1,
-  resetStack: true
-}, {
-  id: "vlineto",
-  min: 1,
-  resetStack: true
-}, {
-  id: "rrcurveto",
-  min: 6,
-  resetStack: true
-}, null, {
-  id: "callsubr",
-  min: 1,
-  undefStack: true
-}, {
-  id: "return",
-  min: 0,
-  undefStack: true
-}, null, null, {
-  id: "endchar",
-  min: 0,
-  stackClearing: true
-}, null, null, null, {
-  id: "hstemhm",
-  min: 2,
-  stackClearing: true,
-  stem: true
-}, {
-  id: "hintmask",
-  min: 0,
-  stackClearing: true
-}, {
-  id: "cntrmask",
-  min: 0,
-  stackClearing: true
-}, {
-  id: "rmoveto",
-  min: 2,
-  stackClearing: true
-}, {
-  id: "hmoveto",
-  min: 1,
-  stackClearing: true
-}, {
-  id: "vstemhm",
-  min: 2,
-  stackClearing: true,
-  stem: true
-}, {
-  id: "rcurveline",
-  min: 8,
-  resetStack: true
-}, {
-  id: "rlinecurve",
-  min: 8,
-  resetStack: true
-}, {
-  id: "vvcurveto",
-  min: 4,
-  resetStack: true
-}, {
-  id: "hhcurveto",
-  min: 4,
-  resetStack: true
-}, null, {
-  id: "callgsubr",
-  min: 1,
-  undefStack: true
-}, {
-  id: "vhcurveto",
-  min: 4,
-  resetStack: true
-}, {
-  id: "hvcurveto",
-  min: 4,
-  resetStack: true
-}];
-const CharstringValidationData12 = [null, null, null, {
-  id: "and",
-  min: 2,
-  stackDelta: -1
-}, {
-  id: "or",
-  min: 2,
-  stackDelta: -1
-}, {
-  id: "not",
-  min: 1,
-  stackDelta: 0
-}, null, null, null, {
-  id: "abs",
-  min: 1,
-  stackDelta: 0
-}, {
-  id: "add",
-  min: 2,
-  stackDelta: -1,
-  stackFn(stack, index) {
-    stack[index - 2] = stack[index - 2] + stack[index - 1];
-  }
-}, {
-  id: "sub",
-  min: 2,
-  stackDelta: -1,
-  stackFn(stack, index) {
-    stack[index - 2] = stack[index - 2] - stack[index - 1];
-  }
-}, {
-  id: "div",
-  min: 2,
-  stackDelta: -1,
-  stackFn(stack, index) {
-    stack[index - 2] = stack[index - 2] / stack[index - 1];
-  }
-}, null, {
-  id: "neg",
-  min: 1,
-  stackDelta: 0,
-  stackFn(stack, index) {
-    stack[index - 1] = -stack[index - 1];
-  }
-}, {
-  id: "eq",
-  min: 2,
-  stackDelta: -1
-}, null, null, {
-  id: "drop",
-  min: 1,
-  stackDelta: -1
-}, null, {
-  id: "put",
-  min: 2,
-  stackDelta: -2
-}, {
-  id: "get",
-  min: 1,
-  stackDelta: 0
-}, {
-  id: "ifelse",
-  min: 4,
-  stackDelta: -3
-}, {
-  id: "random",
-  min: 0,
-  stackDelta: 1
-}, {
-  id: "mul",
-  min: 2,
-  stackDelta: -1,
-  stackFn(stack, index) {
-    stack[index - 2] = stack[index - 2] * stack[index - 1];
-  }
-}, null, {
-  id: "sqrt",
-  min: 1,
-  stackDelta: 0
-}, {
-  id: "dup",
-  min: 1,
-  stackDelta: 1
-}, {
-  id: "exch",
-  min: 2,
-  stackDelta: 0
-}, {
-  id: "index",
-  min: 2,
-  stackDelta: 0
-}, {
-  id: "roll",
-  min: 3,
-  stackDelta: -2
-}, null, null, null, {
-  id: "hflex",
-  min: 7,
-  resetStack: true
-}, {
-  id: "flex",
-  min: 13,
-  resetStack: true
-}, {
-  id: "hflex1",
-  min: 9,
-  resetStack: true
-}, {
-  id: "flex1",
-  min: 11,
-  resetStack: true
-}];
-class CFFParser {
-  constructor(file, properties, seacAnalysisEnabled) {
-    this.bytes = file.getBytes();
-    this.properties = properties;
-    this.seacAnalysisEnabled = !!seacAnalysisEnabled;
-  }
-  parse() {
-    const properties = this.properties;
-    const cff = new CFF();
-    this.cff = cff;
-    const header = this.parseHeader();
-    const nameIndex = this.parseIndex(header.endPos);
-    const topDictIndex = this.parseIndex(nameIndex.endPos);
-    const stringIndex = this.parseIndex(topDictIndex.endPos);
-    const globalSubrIndex = this.parseIndex(stringIndex.endPos);
-    const topDictParsed = this.parseDict(topDictIndex.obj.get(0));
-    const topDict = this.createDict(CFFTopDict, topDictParsed, cff.strings);
-    cff.header = header.obj;
-    cff.names = this.parseNameIndex(nameIndex.obj);
-    cff.strings = this.parseStringIndex(stringIndex.obj);
-    cff.topDict = topDict;
-    cff.globalSubrIndex = globalSubrIndex.obj;
-    this.parsePrivateDict(cff.topDict);
-    cff.isCIDFont = topDict.hasName("ROS");
-    const charStringOffset = topDict.getByName("CharStrings");
-    const charStringIndex = this.parseIndex(charStringOffset).obj;
-    const fontMatrix = topDict.getByName("FontMatrix");
-    if (fontMatrix) {
-      properties.fontMatrix = fontMatrix;
-    }
-    const fontBBox = topDict.getByName("FontBBox");
-    if (fontBBox) {
-      properties.ascent = Math.max(fontBBox[3], fontBBox[1]);
-      properties.descent = Math.min(fontBBox[1], fontBBox[3]);
-      properties.ascentScaled = true;
-    }
-    let charset, encoding;
-    if (cff.isCIDFont) {
-      const fdArrayIndex = this.parseIndex(topDict.getByName("FDArray")).obj;
-      for (let i = 0, ii = fdArrayIndex.count; i < ii; ++i) {
-        const dictRaw = fdArrayIndex.get(i);
-        const fontDict = this.createDict(CFFTopDict, this.parseDict(dictRaw), cff.strings);
-        this.parsePrivateDict(fontDict);
-        cff.fdArray.push(fontDict);
-      }
-      encoding = null;
-      charset = this.parseCharsets(topDict.getByName("charset"), charStringIndex.count, cff.strings, true);
-      cff.fdSelect = this.parseFDSelect(topDict.getByName("FDSelect"), charStringIndex.count);
-    } else {
-      charset = this.parseCharsets(topDict.getByName("charset"), charStringIndex.count, cff.strings, false);
-      encoding = this.parseEncoding(topDict.getByName("Encoding"), properties, cff.strings, charset.charset);
-    }
-    cff.charset = charset;
-    cff.encoding = encoding;
-    const charStringsAndSeacs = this.parseCharStrings({
-      charStrings: charStringIndex,
-      localSubrIndex: topDict.privateDict.subrsIndex,
-      globalSubrIndex: globalSubrIndex.obj,
-      fdSelect: cff.fdSelect,
-      fdArray: cff.fdArray,
-      privateDict: topDict.privateDict
-    });
-    cff.charStrings = charStringsAndSeacs.charStrings;
-    cff.seacs = charStringsAndSeacs.seacs;
-    cff.widths = charStringsAndSeacs.widths;
-    return cff;
-  }
-  parseHeader() {
-    let bytes = this.bytes;
-    const bytesLength = bytes.length;
-    let offset = 0;
-    while (offset < bytesLength && bytes[offset] !== 1) {
-      ++offset;
-    }
-    if (offset >= bytesLength) {
-      throw new FormatError("Invalid CFF header");
-    }
-    if (offset !== 0) {
-      info("cff data is shifted");
-      bytes = bytes.subarray(offset);
-      this.bytes = bytes;
-    }
-    const major = bytes[0];
-    const minor = bytes[1];
-    const hdrSize = bytes[2];
-    const offSize = bytes[3];
-    const header = new CFFHeader(major, minor, hdrSize, offSize);
-    return {
-      obj: header,
-      endPos: hdrSize
-    };
-  }
-  parseDict(dict) {
-    let pos = 0;
-    function parseOperand() {
-      let value = dict[pos++];
-      if (value === 30) {
-        return parseFloatOperand();
-      } else if (value === 28) {
-        value = readInt16(dict, pos);
-        pos += 2;
-        return value;
-      } else if (value === 29) {
-        value = dict[pos++];
-        value = value << 8 | dict[pos++];
-        value = value << 8 | dict[pos++];
-        value = value << 8 | dict[pos++];
-        return value;
-      } else if (value >= 32 && value <= 246) {
-        return value - 139;
-      } else if (value >= 247 && value <= 250) {
-        return (value - 247) * 256 + dict[pos++] + 108;
-      } else if (value >= 251 && value <= 254) {
-        return -((value - 251) * 256) - dict[pos++] - 108;
-      }
-      warn('CFFParser_parseDict: "' + value + '" is a reserved command.');
-      return NaN;
-    }
-    function parseFloatOperand() {
-      let str = "";
-      const eof = 15;
-      const lookup = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "E", "E-", null, "-"];
-      const length = dict.length;
-      while (pos < length) {
-        const b = dict[pos++];
-        const b1 = b >> 4;
-        const b2 = b & 15;
-        if (b1 === eof) {
-          break;
-        }
-        str += lookup[b1];
-        if (b2 === eof) {
-          break;
-        }
-        str += lookup[b2];
-      }
-      return parseFloat(str);
-    }
-    let operands = [];
-    const entries = [];
-    pos = 0;
-    const end = dict.length;
-    while (pos < end) {
-      let b = dict[pos];
-      if (b <= 21) {
-        if (b === 12) {
-          b = b << 8 | dict[++pos];
-        }
-        entries.push([b, operands]);
-        operands = [];
-        ++pos;
-      } else {
-        operands.push(parseOperand());
-      }
-    }
-    return entries;
-  }
-  parseIndex(pos) {
-    const cffIndex = new CFFIndex();
-    const bytes = this.bytes;
-    const count = bytes[pos++] << 8 | bytes[pos++];
-    const offsets = [];
-    let end = pos;
-    let i, ii;
-    if (count !== 0) {
-      const offsetSize = bytes[pos++];
-      const startPos = pos + (count + 1) * offsetSize - 1;
-      for (i = 0, ii = count + 1; i < ii; ++i) {
-        let offset = 0;
-        for (let j = 0; j < offsetSize; ++j) {
-          offset <<= 8;
-          offset += bytes[pos++];
-        }
-        offsets.push(startPos + offset);
-      }
-      end = offsets[count];
-    }
-    for (i = 0, ii = offsets.length - 1; i < ii; ++i) {
-      const offsetStart = offsets[i];
-      const offsetEnd = offsets[i + 1];
-      cffIndex.add(bytes.subarray(offsetStart, offsetEnd));
-    }
-    return {
-      obj: cffIndex,
-      endPos: end
-    };
-  }
-  parseNameIndex(index) {
-    const names = [];
-    for (let i = 0, ii = index.count; i < ii; ++i) {
-      const name = index.get(i);
-      names.push(bytesToString(name));
-    }
-    return names;
-  }
-  parseStringIndex(index) {
-    const strings = new CFFStrings();
-    for (let i = 0, ii = index.count; i < ii; ++i) {
-      const data = index.get(i);
-      strings.add(bytesToString(data));
-    }
-    return strings;
-  }
-  createDict(Type, dict, strings) {
-    const cffDict = new Type(strings);
-    for (const [key, value] of dict) {
-      cffDict.setByKey(key, value);
-    }
-    return cffDict;
-  }
-  parseCharString(state, data, localSubrIndex, globalSubrIndex) {
-    if (!data || state.callDepth > MAX_SUBR_NESTING) {
-      return false;
-    }
-    let stackSize = state.stackSize;
-    const stack = state.stack;
-    let length = data.length;
-    for (let j = 0; j < length;) {
-      const value = data[j++];
-      let validationCommand = null;
-      if (value === 12) {
-        const q = data[j++];
-        if (q === 0) {
-          data[j - 2] = 139;
-          data[j - 1] = 22;
-          stackSize = 0;
-        } else {
-          validationCommand = CharstringValidationData12[q];
-        }
-      } else if (value === 28) {
-        stack[stackSize] = readInt16(data, j);
-        j += 2;
-        stackSize++;
-      } else if (value === 14) {
-        if (stackSize >= 4) {
-          stackSize -= 4;
-          if (this.seacAnalysisEnabled) {
-            state.seac = stack.slice(stackSize, stackSize + 4);
-            return false;
-          }
-        }
-        validationCommand = CharstringValidationData[value];
-      } else if (value >= 32 && value <= 246) {
-        stack[stackSize] = value - 139;
-        stackSize++;
-      } else if (value >= 247 && value <= 254) {
-        stack[stackSize] = value < 251 ? (value - 247 << 8) + data[j] + 108 : -(value - 251 << 8) - data[j] - 108;
-        j++;
-        stackSize++;
-      } else if (value === 255) {
-        stack[stackSize] = (data[j] << 24 | data[j + 1] << 16 | data[j + 2] << 8 | data[j + 3]) / 65536;
-        j += 4;
-        stackSize++;
-      } else if (value === 19 || value === 20) {
-        state.hints += stackSize >> 1;
-        if (state.hints === 0) {
-          data.copyWithin(j - 1, j, -1);
-          j -= 1;
-          length -= 1;
-          continue;
-        }
-        j += state.hints + 7 >> 3;
-        stackSize %= 2;
-        validationCommand = CharstringValidationData[value];
-      } else if (value === 10 || value === 29) {
-        const subrsIndex = value === 10 ? localSubrIndex : globalSubrIndex;
-        if (!subrsIndex) {
-          validationCommand = CharstringValidationData[value];
-          warn("Missing subrsIndex for " + validationCommand.id);
-          return false;
-        }
-        let bias = 32768;
-        if (subrsIndex.count < 1240) {
-          bias = 107;
-        } else if (subrsIndex.count < 33900) {
-          bias = 1131;
-        }
-        const subrNumber = stack[--stackSize] + bias;
-        if (subrNumber < 0 || subrNumber >= subrsIndex.count || isNaN(subrNumber)) {
-          validationCommand = CharstringValidationData[value];
-          warn("Out of bounds subrIndex for " + validationCommand.id);
-          return false;
-        }
-        state.stackSize = stackSize;
-        state.callDepth++;
-        const valid = this.parseCharString(state, subrsIndex.get(subrNumber), localSubrIndex, globalSubrIndex);
-        if (!valid) {
-          return false;
-        }
-        state.callDepth--;
-        stackSize = state.stackSize;
-        continue;
-      } else if (value === 11) {
-        state.stackSize = stackSize;
-        return true;
-      } else if (value === 0 && j === data.length) {
-        data[j - 1] = 14;
-        validationCommand = CharstringValidationData[14];
-      } else if (value === 9) {
-        data.copyWithin(j - 1, j, -1);
-        j -= 1;
-        length -= 1;
-        continue;
-      } else {
-        validationCommand = CharstringValidationData[value];
-      }
-      if (validationCommand) {
-        if (validationCommand.stem) {
-          state.hints += stackSize >> 1;
-          if (value === 3 || value === 23) {
-            state.hasVStems = true;
-          } else if (state.hasVStems && (value === 1 || value === 18)) {
-            warn("CFF stem hints are in wrong order");
-            data[j - 1] = value === 1 ? 3 : 23;
-          }
-        }
-        if ("min" in validationCommand) {
-          if (!state.undefStack && stackSize < validationCommand.min) {
-            warn("Not enough parameters for " + validationCommand.id + "; actual: " + stackSize + ", expected: " + validationCommand.min);
-            if (stackSize === 0) {
-              data[j - 1] = 14;
-              return true;
-            }
-            return false;
-          }
-        }
-        if (state.firstStackClearing && validationCommand.stackClearing) {
-          state.firstStackClearing = false;
-          stackSize -= validationCommand.min;
-          if (stackSize >= 2 && validationCommand.stem) {
-            stackSize %= 2;
-          } else if (stackSize > 1) {
-            warn("Found too many parameters for stack-clearing command");
-          }
-          if (stackSize > 0) {
-            state.width = stack[stackSize - 1];
-          }
-        }
-        if ("stackDelta" in validationCommand) {
-          if ("stackFn" in validationCommand) {
-            validationCommand.stackFn(stack, stackSize);
-          }
-          stackSize += validationCommand.stackDelta;
-        } else if (validationCommand.stackClearing) {
-          stackSize = 0;
-        } else if (validationCommand.resetStack) {
-          stackSize = 0;
-          state.undefStack = false;
-        } else if (validationCommand.undefStack) {
-          stackSize = 0;
-          state.undefStack = true;
-          state.firstStackClearing = false;
-        }
-      }
-    }
-    if (length < data.length) {
-      data.fill(14, length);
-    }
-    state.stackSize = stackSize;
-    return true;
-  }
-  parseCharStrings({
-    charStrings,
-    localSubrIndex,
-    globalSubrIndex,
-    fdSelect,
-    fdArray,
-    privateDict
-  }) {
-    const seacs = [];
-    const widths = [];
-    const count = charStrings.count;
-    for (let i = 0; i < count; i++) {
-      const charstring = charStrings.get(i);
-      const state = {
-        callDepth: 0,
-        stackSize: 0,
-        stack: [],
-        undefStack: true,
-        hints: 0,
-        firstStackClearing: true,
-        seac: null,
-        width: null,
-        hasVStems: false
-      };
-      let valid = true;
-      let localSubrToUse = null;
-      let privateDictToUse = privateDict;
-      if (fdSelect && fdArray.length) {
-        const fdIndex = fdSelect.getFDIndex(i);
-        if (fdIndex === -1) {
-          warn("Glyph index is not in fd select.");
-          valid = false;
-        }
-        if (fdIndex >= fdArray.length) {
-          warn("Invalid fd index for glyph index.");
-          valid = false;
-        }
-        if (valid) {
-          privateDictToUse = fdArray[fdIndex].privateDict;
-          localSubrToUse = privateDictToUse.subrsIndex;
-        }
-      } else if (localSubrIndex) {
-        localSubrToUse = localSubrIndex;
-      }
-      if (valid) {
-        valid = this.parseCharString(state, charstring, localSubrToUse, globalSubrIndex);
-      }
-      if (state.width !== null) {
-        const nominalWidth = privateDictToUse.getByName("nominalWidthX");
-        widths[i] = nominalWidth + state.width;
-      } else {
-        const defaultWidth = privateDictToUse.getByName("defaultWidthX");
-        widths[i] = defaultWidth;
-      }
-      if (state.seac !== null) {
-        seacs[i] = state.seac;
-      }
-      if (!valid) {
-        charStrings.set(i, new Uint8Array([14]));
-      }
-    }
-    return {
-      charStrings,
-      seacs,
-      widths
-    };
-  }
-  emptyPrivateDictionary(parentDict) {
-    const privateDict = this.createDict(CFFPrivateDict, [], parentDict.strings);
-    parentDict.setByKey(18, [0, 0]);
-    parentDict.privateDict = privateDict;
-  }
-  parsePrivateDict(parentDict) {
-    if (!parentDict.hasName("Private")) {
-      this.emptyPrivateDictionary(parentDict);
-      return;
-    }
-    const privateOffset = parentDict.getByName("Private");
-    if (!Array.isArray(privateOffset) || privateOffset.length !== 2) {
-      parentDict.removeByName("Private");
-      return;
-    }
-    const size = privateOffset[0];
-    const offset = privateOffset[1];
-    if (size === 0 || offset >= this.bytes.length) {
-      this.emptyPrivateDictionary(parentDict);
-      return;
-    }
-    const privateDictEnd = offset + size;
-    const dictData = this.bytes.subarray(offset, privateDictEnd);
-    const dict = this.parseDict(dictData);
-    const privateDict = this.createDict(CFFPrivateDict, dict, parentDict.strings);
-    parentDict.privateDict = privateDict;
-    if (privateDict.getByName("ExpansionFactor") === 0) {
-      privateDict.setByName("ExpansionFactor", 0.06);
-    }
-    if (!privateDict.getByName("Subrs")) {
-      return;
-    }
-    const subrsOffset = privateDict.getByName("Subrs");
-    const relativeOffset = offset + subrsOffset;
-    if (subrsOffset === 0 || relativeOffset >= this.bytes.length) {
-      this.emptyPrivateDictionary(parentDict);
-      return;
-    }
-    const subrsIndex = this.parseIndex(relativeOffset);
-    privateDict.subrsIndex = subrsIndex.obj;
-  }
-  parseCharsets(pos, length, strings, cid) {
-    if (pos === 0) {
-      return new CFFCharset(true, CFFCharsetPredefinedTypes.ISO_ADOBE, ISOAdobeCharset);
-    } else if (pos === 1) {
-      return new CFFCharset(true, CFFCharsetPredefinedTypes.EXPERT, ExpertCharset);
-    } else if (pos === 2) {
-      return new CFFCharset(true, CFFCharsetPredefinedTypes.EXPERT_SUBSET, ExpertSubsetCharset);
-    }
-    const bytes = this.bytes;
-    const start = pos;
-    const format = bytes[pos++];
-    const charset = [cid ? 0 : ".notdef"];
-    let id, count, i;
-    length -= 1;
-    switch (format) {
-      case 0:
-        for (i = 0; i < length; i++) {
-          id = bytes[pos++] << 8 | bytes[pos++];
-          charset.push(cid ? id : strings.get(id));
-        }
-        break;
-      case 1:
-        while (charset.length <= length) {
-          id = bytes[pos++] << 8 | bytes[pos++];
-          count = bytes[pos++];
-          for (i = 0; i <= count; i++) {
-            charset.push(cid ? id++ : strings.get(id++));
-          }
-        }
-        break;
-      case 2:
-        while (charset.length <= length) {
-          id = bytes[pos++] << 8 | bytes[pos++];
-          count = bytes[pos++] << 8 | bytes[pos++];
-          for (i = 0; i <= count; i++) {
-            charset.push(cid ? id++ : strings.get(id++));
-          }
-        }
-        break;
-      default:
-        throw new FormatError("Unknown charset format");
-    }
-    const end = pos;
-    const raw = bytes.subarray(start, end);
-    return new CFFCharset(false, format, charset, raw);
-  }
-  parseEncoding(pos, properties, strings, charset) {
-    const encoding = Object.create(null);
-    const bytes = this.bytes;
-    let predefined = false;
-    let format, i, ii;
-    let raw = null;
-    function readSupplement() {
-      const supplementsCount = bytes[pos++];
-      for (i = 0; i < supplementsCount; i++) {
-        const code = bytes[pos++];
-        const sid = (bytes[pos++] << 8) + (bytes[pos++] & 0xff);
-        encoding[code] = charset.indexOf(strings.get(sid));
-      }
-    }
-    if (pos === 0 || pos === 1) {
-      predefined = true;
-      format = pos;
-      const baseEncoding = pos ? ExpertEncoding : StandardEncoding;
-      for (i = 0, ii = charset.length; i < ii; i++) {
-        const index = baseEncoding.indexOf(charset[i]);
-        if (index !== -1) {
-          encoding[index] = i;
-        }
-      }
-    } else {
-      const dataStart = pos;
-      format = bytes[pos++];
-      switch (format & 0x7f) {
-        case 0:
-          const glyphsCount = bytes[pos++];
-          for (i = 1; i <= glyphsCount; i++) {
-            encoding[bytes[pos++]] = i;
-          }
-          break;
-        case 1:
-          const rangesCount = bytes[pos++];
-          let gid = 1;
-          for (i = 0; i < rangesCount; i++) {
-            const start = bytes[pos++];
-            const left = bytes[pos++];
-            for (let j = start; j <= start + left; j++) {
-              encoding[j] = gid++;
-            }
-          }
-          break;
-        default:
-          throw new FormatError(`Unknown encoding format: ${format} in CFF`);
-      }
-      const dataEnd = pos;
-      if (format & 0x80) {
-        bytes[dataStart] &= 0x7f;
-        readSupplement();
-      }
-      raw = bytes.subarray(dataStart, dataEnd);
-    }
-    format &= 0x7f;
-    return new CFFEncoding(predefined, format, encoding, raw);
-  }
-  parseFDSelect(pos, length) {
-    const bytes = this.bytes;
-    const format = bytes[pos++];
-    const fdSelect = [];
-    let i;
-    switch (format) {
-      case 0:
-        for (i = 0; i < length; ++i) {
-          const id = bytes[pos++];
-          fdSelect.push(id);
-        }
-        break;
-      case 3:
-        const rangesCount = bytes[pos++] << 8 | bytes[pos++];
-        for (i = 0; i < rangesCount; ++i) {
-          let first = bytes[pos++] << 8 | bytes[pos++];
-          if (i === 0 && first !== 0) {
-            warn("parseFDSelect: The first range must have a first GID of 0" + " -- trying to recover.");
-            first = 0;
-          }
-          const fdIndex = bytes[pos++];
-          const next = bytes[pos] << 8 | bytes[pos + 1];
-          for (let j = first; j < next; ++j) {
-            fdSelect.push(fdIndex);
-          }
-        }
-        pos += 2;
-        break;
-      default:
-        throw new FormatError(`parseFDSelect: Unknown format "${format}".`);
-    }
-    if (fdSelect.length !== length) {
-      throw new FormatError("parseFDSelect: Invalid font data.");
-    }
-    return new CFFFDSelect(format, fdSelect);
-  }
-}
-class CFF {
-  constructor() {
-    this.header = null;
-    this.names = [];
-    this.topDict = null;
-    this.strings = new CFFStrings();
-    this.globalSubrIndex = null;
-    this.encoding = null;
-    this.charset = null;
-    this.charStrings = null;
-    this.fdArray = [];
-    this.fdSelect = null;
-    this.isCIDFont = false;
-  }
-  duplicateFirstGlyph() {
-    if (this.charStrings.count >= 65535) {
-      warn("Not enough space in charstrings to duplicate first glyph.");
-      return;
-    }
-    const glyphZero = this.charStrings.get(0);
-    this.charStrings.add(glyphZero);
-    if (this.isCIDFont) {
-      this.fdSelect.fdSelect.push(this.fdSelect.fdSelect[0]);
-    }
-  }
-  hasGlyphId(id) {
-    if (id < 0 || id >= this.charStrings.count) {
-      return false;
-    }
-    const glyph = this.charStrings.get(id);
-    return glyph.length > 0;
-  }
-}
-class CFFHeader {
-  constructor(major, minor, hdrSize, offSize) {
-    this.major = major;
-    this.minor = minor;
-    this.hdrSize = hdrSize;
-    this.offSize = offSize;
-  }
-}
-class CFFStrings {
-  constructor() {
-    this.strings = [];
-  }
-  get(index) {
-    if (index >= 0 && index <= NUM_STANDARD_CFF_STRINGS - 1) {
-      return CFFStandardStrings[index];
-    }
-    if (index - NUM_STANDARD_CFF_STRINGS <= this.strings.length) {
-      return this.strings[index - NUM_STANDARD_CFF_STRINGS];
-    }
-    return CFFStandardStrings[0];
-  }
-  getSID(str) {
-    let index = CFFStandardStrings.indexOf(str);
-    if (index !== -1) {
-      return index;
-    }
-    index = this.strings.indexOf(str);
-    if (index !== -1) {
-      return index + NUM_STANDARD_CFF_STRINGS;
-    }
-    return -1;
-  }
-  add(value) {
-    this.strings.push(value);
-  }
-  get count() {
-    return this.strings.length;
-  }
-}
-class CFFIndex {
-  constructor() {
-    this.objects = [];
-    this.length = 0;
-  }
-  add(data) {
-    this.length += data.length;
-    this.objects.push(data);
-  }
-  set(index, data) {
-    this.length += data.length - this.objects[index].length;
-    this.objects[index] = data;
-  }
-  get(index) {
-    return this.objects[index];
-  }
-  get count() {
-    return this.objects.length;
-  }
-}
-class CFFDict {
-  constructor(tables, strings) {
-    this.keyToNameMap = tables.keyToNameMap;
-    this.nameToKeyMap = tables.nameToKeyMap;
-    this.defaults = tables.defaults;
-    this.types = tables.types;
-    this.opcodes = tables.opcodes;
-    this.order = tables.order;
-    this.strings = strings;
-    this.values = Object.create(null);
-  }
-  setByKey(key, value) {
-    if (!(key in this.keyToNameMap)) {
-      return false;
-    }
-    if (value.length === 0) {
-      return true;
-    }
-    for (const val of value) {
-      if (isNaN(val)) {
-        warn(`Invalid CFFDict value: "${value}" for key "${key}".`);
-        return true;
-      }
-    }
-    const type = this.types[key];
-    if (type === "num" || type === "sid" || type === "offset") {
-      value = value[0];
-    }
-    this.values[key] = value;
-    return true;
-  }
-  setByName(name, value) {
-    if (!(name in this.nameToKeyMap)) {
-      throw new FormatError(`Invalid dictionary name "${name}"`);
-    }
-    this.values[this.nameToKeyMap[name]] = value;
-  }
-  hasName(name) {
-    return this.nameToKeyMap[name] in this.values;
-  }
-  getByName(name) {
-    if (!(name in this.nameToKeyMap)) {
-      throw new FormatError(`Invalid dictionary name ${name}"`);
-    }
-    const key = this.nameToKeyMap[name];
-    if (!(key in this.values)) {
-      return this.defaults[key];
-    }
-    return this.values[key];
-  }
-  removeByName(name) {
-    delete this.values[this.nameToKeyMap[name]];
-  }
-  static createTables(layout) {
-    const tables = {
-      keyToNameMap: {},
-      nameToKeyMap: {},
-      defaults: {},
-      types: {},
-      opcodes: {},
-      order: []
-    };
-    for (const entry of layout) {
-      const key = Array.isArray(entry[0]) ? (entry[0][0] << 8) + entry[0][1] : entry[0];
-      tables.keyToNameMap[key] = entry[1];
-      tables.nameToKeyMap[entry[1]] = key;
-      tables.types[key] = entry[2];
-      tables.defaults[key] = entry[3];
-      tables.opcodes[key] = Array.isArray(entry[0]) ? entry[0] : [entry[0]];
-      tables.order.push(key);
-    }
-    return tables;
-  }
-}
-const CFFTopDictLayout = [[[12, 30], "ROS", ["sid", "sid", "num"], null], [[12, 20], "SyntheticBase", "num", null], [0, "version", "sid", null], [1, "Notice", "sid", null], [[12, 0], "Copyright", "sid", null], [2, "FullName", "sid", null], [3, "FamilyName", "sid", null], [4, "Weight", "sid", null], [[12, 1], "isFixedPitch", "num", 0], [[12, 2], "ItalicAngle", "num", 0], [[12, 3], "UnderlinePosition", "num", -100], [[12, 4], "UnderlineThickness", "num", 50], [[12, 5], "PaintType", "num", 0], [[12, 6], "CharstringType", "num", 2], [[12, 7], "FontMatrix", ["num", "num", "num", "num", "num", "num"], [0.001, 0, 0, 0.001, 0, 0]], [13, "UniqueID", "num", null], [5, "FontBBox", ["num", "num", "num", "num"], [0, 0, 0, 0]], [[12, 8], "StrokeWidth", "num", 0], [14, "XUID", "array", null], [15, "charset", "offset", 0], [16, "Encoding", "offset", 0], [17, "CharStrings", "offset", 0], [18, "Private", ["offset", "offset"], null], [[12, 21], "PostScript", "sid", null], [[12, 22], "BaseFontName", "sid", null], [[12, 23], "BaseFontBlend", "delta", null], [[12, 31], "CIDFontVersion", "num", 0], [[12, 32], "CIDFontRevision", "num", 0], [[12, 33], "CIDFontType", "num", 0], [[12, 34], "CIDCount", "num", 8720], [[12, 35], "UIDBase", "num", null], [[12, 37], "FDSelect", "offset", null], [[12, 36], "FDArray", "offset", null], [[12, 38], "FontName", "sid", null]];
-class CFFTopDict extends CFFDict {
-  static get tables() {
-    return shadow(this, "tables", this.createTables(CFFTopDictLayout));
-  }
-  constructor(strings) {
-    super(CFFTopDict.tables, strings);
-    this.privateDict = null;
-  }
-}
-const CFFPrivateDictLayout = [[6, "BlueValues", "delta", null], [7, "OtherBlues", "delta", null], [8, "FamilyBlues", "delta", null], [9, "FamilyOtherBlues", "delta", null], [[12, 9], "BlueScale", "num", 0.039625], [[12, 10], "BlueShift", "num", 7], [[12, 11], "BlueFuzz", "num", 1], [10, "StdHW", "num", null], [11, "StdVW", "num", null], [[12, 12], "StemSnapH", "delta", null], [[12, 13], "StemSnapV", "delta", null], [[12, 14], "ForceBold", "num", 0], [[12, 17], "LanguageGroup", "num", 0], [[12, 18], "ExpansionFactor", "num", 0.06], [[12, 19], "initialRandomSeed", "num", 0], [20, "defaultWidthX", "num", 0], [21, "nominalWidthX", "num", 0], [19, "Subrs", "offset", null]];
-class CFFPrivateDict extends CFFDict {
-  static get tables() {
-    return shadow(this, "tables", this.createTables(CFFPrivateDictLayout));
-  }
-  constructor(strings) {
-    super(CFFPrivateDict.tables, strings);
-    this.subrsIndex = null;
-  }
-}
-const CFFCharsetPredefinedTypes = {
-  ISO_ADOBE: 0,
-  EXPERT: 1,
-  EXPERT_SUBSET: 2
-};
-class CFFCharset {
-  constructor(predefined, format, charset, raw) {
-    this.predefined = predefined;
-    this.format = format;
-    this.charset = charset;
-    this.raw = raw;
-  }
-}
-class CFFEncoding {
-  constructor(predefined, format, encoding, raw) {
-    this.predefined = predefined;
-    this.format = format;
-    this.encoding = encoding;
-    this.raw = raw;
-  }
-}
-class CFFFDSelect {
-  constructor(format, fdSelect) {
-    this.format = format;
-    this.fdSelect = fdSelect;
-  }
-  getFDIndex(glyphIndex) {
-    if (glyphIndex < 0 || glyphIndex >= this.fdSelect.length) {
-      return -1;
-    }
-    return this.fdSelect[glyphIndex];
-  }
-}
-class CFFOffsetTracker {
-  constructor() {
-    this.offsets = Object.create(null);
-  }
-  isTracking(key) {
-    return key in this.offsets;
-  }
-  track(key, location) {
-    if (key in this.offsets) {
-      throw new FormatError(`Already tracking location of ${key}`);
-    }
-    this.offsets[key] = location;
-  }
-  offset(value) {
-    for (const key in this.offsets) {
-      this.offsets[key] += value;
-    }
-  }
-  setEntryLocation(key, values, output) {
-    if (!(key in this.offsets)) {
-      throw new FormatError(`Not tracking location of ${key}`);
-    }
-    const data = output.data;
-    const dataOffset = this.offsets[key];
-    const size = 5;
-    for (let i = 0, ii = values.length; i < ii; ++i) {
-      const offset0 = i * size + dataOffset;
-      const offset1 = offset0 + 1;
-      const offset2 = offset0 + 2;
-      const offset3 = offset0 + 3;
-      const offset4 = offset0 + 4;
-      if (data[offset0] !== 0x1d || data[offset1] !== 0 || data[offset2] !== 0 || data[offset3] !== 0 || data[offset4] !== 0) {
-        throw new FormatError("writing to an offset that is not empty");
-      }
-      const value = values[i];
-      data[offset0] = 0x1d;
-      data[offset1] = value >> 24 & 0xff;
-      data[offset2] = value >> 16 & 0xff;
-      data[offset3] = value >> 8 & 0xff;
-      data[offset4] = value & 0xff;
-    }
-  }
-}
-class CFFCompiler {
-  constructor(cff) {
-    this.cff = cff;
-  }
-  compile() {
-    const cff = this.cff;
-    const output = {
-      data: [],
-      length: 0,
-      add(data) {
-        try {
-          this.data.push(...data);
-        } catch {
-          this.data = this.data.concat(data);
-        }
-        this.length = this.data.length;
-      }
-    };
-    const header = this.compileHeader(cff.header);
-    output.add(header);
-    const nameIndex = this.compileNameIndex(cff.names);
-    output.add(nameIndex);
-    if (cff.isCIDFont) {
-      if (cff.topDict.hasName("FontMatrix")) {
-        const base = cff.topDict.getByName("FontMatrix");
-        cff.topDict.removeByName("FontMatrix");
-        for (const subDict of cff.fdArray) {
-          let matrix = base.slice(0);
-          if (subDict.hasName("FontMatrix")) {
-            matrix = Util.transform(matrix, subDict.getByName("FontMatrix"));
-          }
-          subDict.setByName("FontMatrix", matrix);
-        }
-      }
-    }
-    const xuid = cff.topDict.getByName("XUID");
-    if (xuid?.length > 16) {
-      cff.topDict.removeByName("XUID");
-    }
-    cff.topDict.setByName("charset", 0);
-    let compiled = this.compileTopDicts([cff.topDict], output.length, cff.isCIDFont);
-    output.add(compiled.output);
-    const topDictTracker = compiled.trackers[0];
-    const stringIndex = this.compileStringIndex(cff.strings.strings);
-    output.add(stringIndex);
-    const globalSubrIndex = this.compileIndex(cff.globalSubrIndex);
-    output.add(globalSubrIndex);
-    if (cff.encoding && cff.topDict.hasName("Encoding")) {
-      if (cff.encoding.predefined) {
-        topDictTracker.setEntryLocation("Encoding", [cff.encoding.format], output);
-      } else {
-        const encoding = this.compileEncoding(cff.encoding);
-        topDictTracker.setEntryLocation("Encoding", [output.length], output);
-        output.add(encoding);
-      }
-    }
-    const charset = this.compileCharset(cff.charset, cff.charStrings.count, cff.strings, cff.isCIDFont);
-    topDictTracker.setEntryLocation("charset", [output.length], output);
-    output.add(charset);
-    const charStrings = this.compileCharStrings(cff.charStrings);
-    topDictTracker.setEntryLocation("CharStrings", [output.length], output);
-    output.add(charStrings);
-    if (cff.isCIDFont) {
-      topDictTracker.setEntryLocation("FDSelect", [output.length], output);
-      const fdSelect = this.compileFDSelect(cff.fdSelect);
-      output.add(fdSelect);
-      compiled = this.compileTopDicts(cff.fdArray, output.length, true);
-      topDictTracker.setEntryLocation("FDArray", [output.length], output);
-      output.add(compiled.output);
-      const fontDictTrackers = compiled.trackers;
-      this.compilePrivateDicts(cff.fdArray, fontDictTrackers, output);
-    }
-    this.compilePrivateDicts([cff.topDict], [topDictTracker], output);
-    output.add([0]);
-    return output.data;
-  }
-  encodeNumber(value) {
-    if (Number.isInteger(value)) {
-      return this.encodeInteger(value);
-    }
-    return this.encodeFloat(value);
-  }
-  static get EncodeFloatRegExp() {
-    return shadow(this, "EncodeFloatRegExp", /\.(\d*?)(?:9{5,20}|0{5,20})\d{0,2}(?:e(.+)|$)/);
-  }
-  encodeFloat(num) {
-    let value = num.toString();
-    const m = CFFCompiler.EncodeFloatRegExp.exec(value);
-    if (m) {
-      const epsilon = parseFloat("1e" + ((m[2] ? +m[2] : 0) + m[1].length));
-      value = (Math.round(num * epsilon) / epsilon).toString();
-    }
-    let nibbles = "";
-    let i, ii;
-    for (i = 0, ii = value.length; i < ii; ++i) {
-      const a = value[i];
-      if (a === "e") {
-        nibbles += value[++i] === "-" ? "c" : "b";
-      } else if (a === ".") {
-        nibbles += "a";
-      } else if (a === "-") {
-        nibbles += "e";
-      } else {
-        nibbles += a;
-      }
-    }
-    nibbles += nibbles.length & 1 ? "f" : "ff";
-    const out = [30];
-    for (i = 0, ii = nibbles.length; i < ii; i += 2) {
-      out.push(parseInt(nibbles.substring(i, i + 2), 16));
-    }
-    return out;
-  }
-  encodeInteger(value) {
-    let code;
-    if (value >= -107 && value <= 107) {
-      code = [value + 139];
-    } else if (value >= 108 && value <= 1131) {
-      value -= 108;
-      code = [(value >> 8) + 247, value & 0xff];
-    } else if (value >= -1131 && value <= -108) {
-      value = -value - 108;
-      code = [(value >> 8) + 251, value & 0xff];
-    } else if (value >= -32768 && value <= 32767) {
-      code = [0x1c, value >> 8 & 0xff, value & 0xff];
-    } else {
-      code = [0x1d, value >> 24 & 0xff, value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff];
-    }
-    return code;
-  }
-  compileHeader(header) {
-    return [header.major, header.minor, 4, header.offSize];
-  }
-  compileNameIndex(names) {
-    const nameIndex = new CFFIndex();
-    for (const name of names) {
-      const length = Math.min(name.length, 127);
-      let sanitizedName = new Array(length);
-      for (let j = 0; j < length; j++) {
-        let char = name[j];
-        if (char < "!" || char > "~" || char === "[" || char === "]" || char === "(" || char === ")" || char === "{" || char === "}" || char === "<" || char === ">" || char === "/" || char === "%") {
-          char = "_";
-        }
-        sanitizedName[j] = char;
-      }
-      sanitizedName = sanitizedName.join("");
-      if (sanitizedName === "") {
-        sanitizedName = "Bad_Font_Name";
-      }
-      nameIndex.add(stringToBytes(sanitizedName));
-    }
-    return this.compileIndex(nameIndex);
-  }
-  compileTopDicts(dicts, length, removeCidKeys) {
-    const fontDictTrackers = [];
-    let fdArrayIndex = new CFFIndex();
-    for (const fontDict of dicts) {
-      if (removeCidKeys) {
-        fontDict.removeByName("CIDFontVersion");
-        fontDict.removeByName("CIDFontRevision");
-        fontDict.removeByName("CIDFontType");
-        fontDict.removeByName("CIDCount");
-        fontDict.removeByName("UIDBase");
-      }
-      const fontDictTracker = new CFFOffsetTracker();
-      const fontDictData = this.compileDict(fontDict, fontDictTracker);
-      fontDictTrackers.push(fontDictTracker);
-      fdArrayIndex.add(fontDictData);
-      fontDictTracker.offset(length);
-    }
-    fdArrayIndex = this.compileIndex(fdArrayIndex, fontDictTrackers);
-    return {
-      trackers: fontDictTrackers,
-      output: fdArrayIndex
-    };
-  }
-  compilePrivateDicts(dicts, trackers, output) {
-    for (let i = 0, ii = dicts.length; i < ii; ++i) {
-      const fontDict = dicts[i];
-      const privateDict = fontDict.privateDict;
-      if (!privateDict || !fontDict.hasName("Private")) {
-        throw new FormatError("There must be a private dictionary.");
-      }
-      const privateDictTracker = new CFFOffsetTracker();
-      const privateDictData = this.compileDict(privateDict, privateDictTracker);
-      let outputLength = output.length;
-      privateDictTracker.offset(outputLength);
-      if (!privateDictData.length) {
-        outputLength = 0;
-      }
-      trackers[i].setEntryLocation("Private", [privateDictData.length, outputLength], output);
-      output.add(privateDictData);
-      if (privateDict.subrsIndex && privateDict.hasName("Subrs")) {
-        const subrs = this.compileIndex(privateDict.subrsIndex);
-        privateDictTracker.setEntryLocation("Subrs", [privateDictData.length], output);
-        output.add(subrs);
-      }
-    }
-  }
-  compileDict(dict, offsetTracker) {
-    const out = [];
-    for (const key of dict.order) {
-      if (!(key in dict.values)) {
-        continue;
-      }
-      let values = dict.values[key];
-      let types = dict.types[key];
-      if (!Array.isArray(types)) {
-        types = [types];
-      }
-      if (!Array.isArray(values)) {
-        values = [values];
-      }
-      if (values.length === 0) {
-        continue;
-      }
-      for (let j = 0, jj = types.length; j < jj; ++j) {
-        const type = types[j];
-        const value = values[j];
-        switch (type) {
-          case "num":
-          case "sid":
-            out.push(...this.encodeNumber(value));
-            break;
-          case "offset":
-            const name = dict.keyToNameMap[key];
-            if (!offsetTracker.isTracking(name)) {
-              offsetTracker.track(name, out.length);
-            }
-            out.push(0x1d, 0, 0, 0, 0);
-            break;
-          case "array":
-          case "delta":
-            out.push(...this.encodeNumber(value));
-            for (let k = 1, kk = values.length; k < kk; ++k) {
-              out.push(...this.encodeNumber(values[k]));
-            }
-            break;
-          default:
-            throw new FormatError(`Unknown data type of ${type}`);
-        }
-      }
-      out.push(...dict.opcodes[key]);
-    }
-    return out;
-  }
-  compileStringIndex(strings) {
-    const stringIndex = new CFFIndex();
-    for (const string of strings) {
-      stringIndex.add(stringToBytes(string));
-    }
-    return this.compileIndex(stringIndex);
-  }
-  compileCharStrings(charStrings) {
-    const charStringsIndex = new CFFIndex();
-    for (let i = 0; i < charStrings.count; i++) {
-      const glyph = charStrings.get(i);
-      if (glyph.length === 0) {
-        charStringsIndex.add(new Uint8Array([0x8b, 0x0e]));
-        continue;
-      }
-      charStringsIndex.add(glyph);
-    }
-    return this.compileIndex(charStringsIndex);
-  }
-  compileCharset(charset, numGlyphs, strings, isCIDFont) {
-    let out;
-    const numGlyphsLessNotDef = numGlyphs - 1;
-    if (isCIDFont) {
-      out = new Uint8Array([2, 0, 0, numGlyphsLessNotDef >> 8 & 0xff, numGlyphsLessNotDef & 0xff]);
-    } else {
-      const length = 1 + numGlyphsLessNotDef * 2;
-      out = new Uint8Array(length);
-      out[0] = 0;
-      let charsetIndex = 0;
-      const numCharsets = charset.charset.length;
-      let warned = false;
-      for (let i = 1; i < out.length; i += 2) {
-        let sid = 0;
-        if (charsetIndex < numCharsets) {
-          const name = charset.charset[charsetIndex++];
-          sid = strings.getSID(name);
-          if (sid === -1) {
-            sid = 0;
-            if (!warned) {
-              warned = true;
-              warn(`Couldn't find ${name} in CFF strings`);
-            }
-          }
-        }
-        out[i] = sid >> 8 & 0xff;
-        out[i + 1] = sid & 0xff;
-      }
-    }
-    return this.compileTypedArray(out);
-  }
-  compileEncoding(encoding) {
-    return this.compileTypedArray(encoding.raw);
-  }
-  compileFDSelect(fdSelect) {
-    const format = fdSelect.format;
-    let out, i;
-    switch (format) {
-      case 0:
-        out = new Uint8Array(1 + fdSelect.fdSelect.length);
-        out[0] = format;
-        for (i = 0; i < fdSelect.fdSelect.length; i++) {
-          out[i + 1] = fdSelect.fdSelect[i];
-        }
-        break;
-      case 3:
-        const start = 0;
-        let lastFD = fdSelect.fdSelect[0];
-        const ranges = [format, 0, 0, start >> 8 & 0xff, start & 0xff, lastFD];
-        for (i = 1; i < fdSelect.fdSelect.length; i++) {
-          const currentFD = fdSelect.fdSelect[i];
-          if (currentFD !== lastFD) {
-            ranges.push(i >> 8 & 0xff, i & 0xff, currentFD);
-            lastFD = currentFD;
-          }
-        }
-        const numRanges = (ranges.length - 3) / 3;
-        ranges[1] = numRanges >> 8 & 0xff;
-        ranges[2] = numRanges & 0xff;
-        ranges.push(i >> 8 & 0xff, i & 0xff);
-        out = new Uint8Array(ranges);
-        break;
-    }
-    return this.compileTypedArray(out);
-  }
-  compileTypedArray(data) {
-    return Array.from(data);
-  }
-  compileIndex(index, trackers = []) {
-    const objects = index.objects;
-    const count = objects.length;
-    if (count === 0) {
-      return [0, 0];
-    }
-    const data = [count >> 8 & 0xff, count & 0xff];
-    let lastOffset = 1,
-      i;
-    for (i = 0; i < count; ++i) {
-      lastOffset += objects[i].length;
-    }
-    let offsetSize;
-    if (lastOffset < 0x100) {
-      offsetSize = 1;
-    } else if (lastOffset < 0x10000) {
-      offsetSize = 2;
-    } else if (lastOffset < 0x1000000) {
-      offsetSize = 3;
-    } else {
-      offsetSize = 4;
-    }
-    data.push(offsetSize);
-    let relativeOffset = 1;
-    for (i = 0; i < count + 1; i++) {
-      if (offsetSize === 1) {
-        data.push(relativeOffset & 0xff);
-      } else if (offsetSize === 2) {
-        data.push(relativeOffset >> 8 & 0xff, relativeOffset & 0xff);
-      } else if (offsetSize === 3) {
-        data.push(relativeOffset >> 16 & 0xff, relativeOffset >> 8 & 0xff, relativeOffset & 0xff);
-      } else {
-        data.push(relativeOffset >>> 24 & 0xff, relativeOffset >> 16 & 0xff, relativeOffset >> 8 & 0xff, relativeOffset & 0xff);
-      }
-      if (objects[i]) {
-        relativeOffset += objects[i].length;
-      }
-    }
-    for (i = 0; i < count; i++) {
-      if (trackers[i]) {
-        trackers[i].offset(data.length);
-      }
-      data.push(...objects[i]);
-    }
-    return data;
   }
 }
 
@@ -17450,6 +16670,1614 @@ const getVerticalPresentationForm = getLookupTableFactory(t => {
   t[0xff5b] = 0xfe37;
   t[0xff5d] = 0xfe38;
 });
+const MAX_SIZE_TO_COMPILE = 1000;
+function compileType3Glyph({
+  data: img,
+  width,
+  height
+}) {
+  if (width > MAX_SIZE_TO_COMPILE || height > MAX_SIZE_TO_COMPILE) {
+    return null;
+  }
+  const POINT_TO_PROCESS_LIMIT = 1000;
+  const POINT_TYPES = new Uint8Array([0, 2, 4, 0, 1, 0, 5, 4, 8, 10, 0, 8, 0, 2, 1, 0]);
+  const width1 = width + 1;
+  const points = new Uint8Array(width1 * (height + 1));
+  let i, j, j0;
+  const lineSize = width + 7 & ~7;
+  const data = new Uint8Array(lineSize * height);
+  let pos = 0;
+  for (const elem of img) {
+    let mask = 128;
+    while (mask > 0) {
+      data[pos++] = elem & mask ? 0 : 255;
+      mask >>= 1;
+    }
+  }
+  let count = 0;
+  pos = 0;
+  if (data[pos] !== 0) {
+    points[0] = 1;
+    ++count;
+  }
+  for (j = 1; j < width; j++) {
+    if (data[pos] !== data[pos + 1]) {
+      points[j] = data[pos] ? 2 : 1;
+      ++count;
+    }
+    pos++;
+  }
+  if (data[pos] !== 0) {
+    points[j] = 2;
+    ++count;
+  }
+  for (i = 1; i < height; i++) {
+    pos = i * lineSize;
+    j0 = i * width1;
+    if (data[pos - lineSize] !== data[pos]) {
+      points[j0] = data[pos] ? 1 : 8;
+      ++count;
+    }
+    let sum = (data[pos] ? 4 : 0) + (data[pos - lineSize] ? 8 : 0);
+    for (j = 1; j < width; j++) {
+      sum = (sum >> 2) + (data[pos + 1] ? 4 : 0) + (data[pos - lineSize + 1] ? 8 : 0);
+      if (POINT_TYPES[sum]) {
+        points[j0 + j] = POINT_TYPES[sum];
+        ++count;
+      }
+      pos++;
+    }
+    if (data[pos - lineSize] !== data[pos]) {
+      points[j0 + j] = data[pos] ? 2 : 4;
+      ++count;
+    }
+    if (count > POINT_TO_PROCESS_LIMIT) {
+      return null;
+    }
+  }
+  pos = lineSize * (height - 1);
+  j0 = i * width1;
+  if (data[pos] !== 0) {
+    points[j0] = 8;
+    ++count;
+  }
+  for (j = 1; j < width; j++) {
+    if (data[pos] !== data[pos + 1]) {
+      points[j0 + j] = data[pos] ? 4 : 8;
+      ++count;
+    }
+    pos++;
+  }
+  if (data[pos] !== 0) {
+    points[j0 + j] = 4;
+    ++count;
+  }
+  if (count > POINT_TO_PROCESS_LIMIT) {
+    return null;
+  }
+  const steps = new Int32Array([0, width1, -1, 0, -width1, 0, 0, 0, 1]);
+  const pathBuf = [];
+  const {
+    a,
+    b,
+    c,
+    d,
+    e,
+    f
+  } = new DOMMatrix().scaleSelf(1 / width, -1 / height).translateSelf(0, -height);
+  for (i = 0; count && i <= height; i++) {
+    let p = i * width1;
+    const end = p + width;
+    while (p < end && !points[p]) {
+      p++;
+    }
+    if (p === end) {
+      continue;
+    }
+    let x = p % width1;
+    let y = i;
+    pathBuf.push(DrawOPS.moveTo, a * x + c * y + e, b * x + d * y + f);
+    const p0 = p;
+    let type = points[p];
+    do {
+      const step = steps[type];
+      do {
+        p += step;
+      } while (!points[p]);
+      const pp = points[p];
+      if (pp !== 5 && pp !== 10) {
+        type = pp;
+        points[p] = 0;
+      } else {
+        type = pp & 0x33 * type >> 4;
+        points[p] &= type >> 2 | type << 2;
+      }
+      x = p % width1;
+      y = p / width1 | 0;
+      pathBuf.push(DrawOPS.lineTo, a * x + c * y + e, b * x + d * y + f);
+      if (!points[p]) {
+        --count;
+      }
+    } while (p0 !== p);
+    --i;
+  }
+  return [OPS.rawFillPath, [new Float32Array(pathBuf)], new Float32Array([0, 0, width, height])];
+}
+
+;// ./src/core/charsets.js
+const ISOAdobeCharset = [".notdef", "space", "exclam", "quotedbl", "numbersign", "dollar", "percent", "ampersand", "quoteright", "parenleft", "parenright", "asterisk", "plus", "comma", "hyphen", "period", "slash", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "colon", "semicolon", "less", "equal", "greater", "question", "at", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "bracketleft", "backslash", "bracketright", "asciicircum", "underscore", "quoteleft", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "braceleft", "bar", "braceright", "asciitilde", "exclamdown", "cent", "sterling", "fraction", "yen", "florin", "section", "currency", "quotesingle", "quotedblleft", "guillemotleft", "guilsinglleft", "guilsinglright", "fi", "fl", "endash", "dagger", "daggerdbl", "periodcentered", "paragraph", "bullet", "quotesinglbase", "quotedblbase", "quotedblright", "guillemotright", "ellipsis", "perthousand", "questiondown", "grave", "acute", "circumflex", "tilde", "macron", "breve", "dotaccent", "dieresis", "ring", "cedilla", "hungarumlaut", "ogonek", "caron", "emdash", "AE", "ordfeminine", "Lslash", "Oslash", "OE", "ordmasculine", "ae", "dotlessi", "lslash", "oslash", "oe", "germandbls", "onesuperior", "logicalnot", "mu", "trademark", "Eth", "onehalf", "plusminus", "Thorn", "onequarter", "divide", "brokenbar", "degree", "thorn", "threequarters", "twosuperior", "registered", "minus", "eth", "multiply", "threesuperior", "copyright", "Aacute", "Acircumflex", "Adieresis", "Agrave", "Aring", "Atilde", "Ccedilla", "Eacute", "Ecircumflex", "Edieresis", "Egrave", "Iacute", "Icircumflex", "Idieresis", "Igrave", "Ntilde", "Oacute", "Ocircumflex", "Odieresis", "Ograve", "Otilde", "Scaron", "Uacute", "Ucircumflex", "Udieresis", "Ugrave", "Yacute", "Ydieresis", "Zcaron", "aacute", "acircumflex", "adieresis", "agrave", "aring", "atilde", "ccedilla", "eacute", "ecircumflex", "edieresis", "egrave", "iacute", "icircumflex", "idieresis", "igrave", "ntilde", "oacute", "ocircumflex", "odieresis", "ograve", "otilde", "scaron", "uacute", "ucircumflex", "udieresis", "ugrave", "yacute", "ydieresis", "zcaron"];
+const ExpertCharset = [".notdef", "space", "exclamsmall", "Hungarumlautsmall", "dollaroldstyle", "dollarsuperior", "ampersandsmall", "Acutesmall", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "comma", "hyphen", "period", "fraction", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "colon", "semicolon", "commasuperior", "threequartersemdash", "periodsuperior", "questionsmall", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "fi", "fl", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "Circumflexsmall", "hyphensuperior", "Gravesmall", "Asmall", "Bsmall", "Csmall", "Dsmall", "Esmall", "Fsmall", "Gsmall", "Hsmall", "Ismall", "Jsmall", "Ksmall", "Lsmall", "Msmall", "Nsmall", "Osmall", "Psmall", "Qsmall", "Rsmall", "Ssmall", "Tsmall", "Usmall", "Vsmall", "Wsmall", "Xsmall", "Ysmall", "Zsmall", "colonmonetary", "onefitted", "rupiah", "Tildesmall", "exclamdownsmall", "centoldstyle", "Lslashsmall", "Scaronsmall", "Zcaronsmall", "Dieresissmall", "Brevesmall", "Caronsmall", "Dotaccentsmall", "Macronsmall", "figuredash", "hypheninferior", "Ogoneksmall", "Ringsmall", "Cedillasmall", "onequarter", "onehalf", "threequarters", "questiondownsmall", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "onesuperior", "twosuperior", "threesuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior", "Agravesmall", "Aacutesmall", "Acircumflexsmall", "Atildesmall", "Adieresissmall", "Aringsmall", "AEsmall", "Ccedillasmall", "Egravesmall", "Eacutesmall", "Ecircumflexsmall", "Edieresissmall", "Igravesmall", "Iacutesmall", "Icircumflexsmall", "Idieresissmall", "Ethsmall", "Ntildesmall", "Ogravesmall", "Oacutesmall", "Ocircumflexsmall", "Otildesmall", "Odieresissmall", "OEsmall", "Oslashsmall", "Ugravesmall", "Uacutesmall", "Ucircumflexsmall", "Udieresissmall", "Yacutesmall", "Thornsmall", "Ydieresissmall"];
+const ExpertSubsetCharset = [".notdef", "space", "dollaroldstyle", "dollarsuperior", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "comma", "hyphen", "period", "fraction", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "colon", "semicolon", "commasuperior", "threequartersemdash", "periodsuperior", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "fi", "fl", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "hyphensuperior", "colonmonetary", "onefitted", "rupiah", "centoldstyle", "figuredash", "hypheninferior", "onequarter", "onehalf", "threequarters", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "onesuperior", "twosuperior", "threesuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior"];
+
+;// ./src/core/cff_parser.js
+
+
+
+
+const MAX_SUBR_NESTING = 10;
+const CFFStandardStrings = [".notdef", "space", "exclam", "quotedbl", "numbersign", "dollar", "percent", "ampersand", "quoteright", "parenleft", "parenright", "asterisk", "plus", "comma", "hyphen", "period", "slash", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "colon", "semicolon", "less", "equal", "greater", "question", "at", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "bracketleft", "backslash", "bracketright", "asciicircum", "underscore", "quoteleft", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "braceleft", "bar", "braceright", "asciitilde", "exclamdown", "cent", "sterling", "fraction", "yen", "florin", "section", "currency", "quotesingle", "quotedblleft", "guillemotleft", "guilsinglleft", "guilsinglright", "fi", "fl", "endash", "dagger", "daggerdbl", "periodcentered", "paragraph", "bullet", "quotesinglbase", "quotedblbase", "quotedblright", "guillemotright", "ellipsis", "perthousand", "questiondown", "grave", "acute", "circumflex", "tilde", "macron", "breve", "dotaccent", "dieresis", "ring", "cedilla", "hungarumlaut", "ogonek", "caron", "emdash", "AE", "ordfeminine", "Lslash", "Oslash", "OE", "ordmasculine", "ae", "dotlessi", "lslash", "oslash", "oe", "germandbls", "onesuperior", "logicalnot", "mu", "trademark", "Eth", "onehalf", "plusminus", "Thorn", "onequarter", "divide", "brokenbar", "degree", "thorn", "threequarters", "twosuperior", "registered", "minus", "eth", "multiply", "threesuperior", "copyright", "Aacute", "Acircumflex", "Adieresis", "Agrave", "Aring", "Atilde", "Ccedilla", "Eacute", "Ecircumflex", "Edieresis", "Egrave", "Iacute", "Icircumflex", "Idieresis", "Igrave", "Ntilde", "Oacute", "Ocircumflex", "Odieresis", "Ograve", "Otilde", "Scaron", "Uacute", "Ucircumflex", "Udieresis", "Ugrave", "Yacute", "Ydieresis", "Zcaron", "aacute", "acircumflex", "adieresis", "agrave", "aring", "atilde", "ccedilla", "eacute", "ecircumflex", "edieresis", "egrave", "iacute", "icircumflex", "idieresis", "igrave", "ntilde", "oacute", "ocircumflex", "odieresis", "ograve", "otilde", "scaron", "uacute", "ucircumflex", "udieresis", "ugrave", "yacute", "ydieresis", "zcaron", "exclamsmall", "Hungarumlautsmall", "dollaroldstyle", "dollarsuperior", "ampersandsmall", "Acutesmall", "parenleftsuperior", "parenrightsuperior", "twodotenleader", "onedotenleader", "zerooldstyle", "oneoldstyle", "twooldstyle", "threeoldstyle", "fouroldstyle", "fiveoldstyle", "sixoldstyle", "sevenoldstyle", "eightoldstyle", "nineoldstyle", "commasuperior", "threequartersemdash", "periodsuperior", "questionsmall", "asuperior", "bsuperior", "centsuperior", "dsuperior", "esuperior", "isuperior", "lsuperior", "msuperior", "nsuperior", "osuperior", "rsuperior", "ssuperior", "tsuperior", "ff", "ffi", "ffl", "parenleftinferior", "parenrightinferior", "Circumflexsmall", "hyphensuperior", "Gravesmall", "Asmall", "Bsmall", "Csmall", "Dsmall", "Esmall", "Fsmall", "Gsmall", "Hsmall", "Ismall", "Jsmall", "Ksmall", "Lsmall", "Msmall", "Nsmall", "Osmall", "Psmall", "Qsmall", "Rsmall", "Ssmall", "Tsmall", "Usmall", "Vsmall", "Wsmall", "Xsmall", "Ysmall", "Zsmall", "colonmonetary", "onefitted", "rupiah", "Tildesmall", "exclamdownsmall", "centoldstyle", "Lslashsmall", "Scaronsmall", "Zcaronsmall", "Dieresissmall", "Brevesmall", "Caronsmall", "Dotaccentsmall", "Macronsmall", "figuredash", "hypheninferior", "Ogoneksmall", "Ringsmall", "Cedillasmall", "questiondownsmall", "oneeighth", "threeeighths", "fiveeighths", "seveneighths", "onethird", "twothirds", "zerosuperior", "foursuperior", "fivesuperior", "sixsuperior", "sevensuperior", "eightsuperior", "ninesuperior", "zeroinferior", "oneinferior", "twoinferior", "threeinferior", "fourinferior", "fiveinferior", "sixinferior", "seveninferior", "eightinferior", "nineinferior", "centinferior", "dollarinferior", "periodinferior", "commainferior", "Agravesmall", "Aacutesmall", "Acircumflexsmall", "Atildesmall", "Adieresissmall", "Aringsmall", "AEsmall", "Ccedillasmall", "Egravesmall", "Eacutesmall", "Ecircumflexsmall", "Edieresissmall", "Igravesmall", "Iacutesmall", "Icircumflexsmall", "Idieresissmall", "Ethsmall", "Ntildesmall", "Ogravesmall", "Oacutesmall", "Ocircumflexsmall", "Otildesmall", "Odieresissmall", "OEsmall", "Oslashsmall", "Ugravesmall", "Uacutesmall", "Ucircumflexsmall", "Udieresissmall", "Yacutesmall", "Thornsmall", "Ydieresissmall", "001.000", "001.001", "001.002", "001.003", "Black", "Bold", "Book", "Light", "Medium", "Regular", "Roman", "Semibold"];
+const NUM_STANDARD_CFF_STRINGS = 391;
+const CharstringValidationData = [null, {
+  id: "hstem",
+  min: 2,
+  stackClearing: true,
+  stem: true
+}, null, {
+  id: "vstem",
+  min: 2,
+  stackClearing: true,
+  stem: true
+}, {
+  id: "vmoveto",
+  min: 1,
+  stackClearing: true
+}, {
+  id: "rlineto",
+  min: 2,
+  resetStack: true
+}, {
+  id: "hlineto",
+  min: 1,
+  resetStack: true
+}, {
+  id: "vlineto",
+  min: 1,
+  resetStack: true
+}, {
+  id: "rrcurveto",
+  min: 6,
+  resetStack: true
+}, null, {
+  id: "callsubr",
+  min: 1,
+  undefStack: true
+}, {
+  id: "return",
+  min: 0,
+  undefStack: true
+}, null, null, {
+  id: "endchar",
+  min: 0,
+  stackClearing: true
+}, null, null, null, {
+  id: "hstemhm",
+  min: 2,
+  stackClearing: true,
+  stem: true
+}, {
+  id: "hintmask",
+  min: 0,
+  stackClearing: true
+}, {
+  id: "cntrmask",
+  min: 0,
+  stackClearing: true
+}, {
+  id: "rmoveto",
+  min: 2,
+  stackClearing: true
+}, {
+  id: "hmoveto",
+  min: 1,
+  stackClearing: true
+}, {
+  id: "vstemhm",
+  min: 2,
+  stackClearing: true,
+  stem: true
+}, {
+  id: "rcurveline",
+  min: 8,
+  resetStack: true
+}, {
+  id: "rlinecurve",
+  min: 8,
+  resetStack: true
+}, {
+  id: "vvcurveto",
+  min: 4,
+  resetStack: true
+}, {
+  id: "hhcurveto",
+  min: 4,
+  resetStack: true
+}, null, {
+  id: "callgsubr",
+  min: 1,
+  undefStack: true
+}, {
+  id: "vhcurveto",
+  min: 4,
+  resetStack: true
+}, {
+  id: "hvcurveto",
+  min: 4,
+  resetStack: true
+}];
+const CharstringValidationData12 = [null, null, null, {
+  id: "and",
+  min: 2,
+  stackDelta: -1
+}, {
+  id: "or",
+  min: 2,
+  stackDelta: -1
+}, {
+  id: "not",
+  min: 1,
+  stackDelta: 0
+}, null, null, null, {
+  id: "abs",
+  min: 1,
+  stackDelta: 0
+}, {
+  id: "add",
+  min: 2,
+  stackDelta: -1,
+  stackFn(stack, index) {
+    stack[index - 2] = stack[index - 2] + stack[index - 1];
+  }
+}, {
+  id: "sub",
+  min: 2,
+  stackDelta: -1,
+  stackFn(stack, index) {
+    stack[index - 2] = stack[index - 2] - stack[index - 1];
+  }
+}, {
+  id: "div",
+  min: 2,
+  stackDelta: -1,
+  stackFn(stack, index) {
+    stack[index - 2] = stack[index - 2] / stack[index - 1];
+  }
+}, null, {
+  id: "neg",
+  min: 1,
+  stackDelta: 0,
+  stackFn(stack, index) {
+    stack[index - 1] = -stack[index - 1];
+  }
+}, {
+  id: "eq",
+  min: 2,
+  stackDelta: -1
+}, null, null, {
+  id: "drop",
+  min: 1,
+  stackDelta: -1
+}, null, {
+  id: "put",
+  min: 2,
+  stackDelta: -2
+}, {
+  id: "get",
+  min: 1,
+  stackDelta: 0
+}, {
+  id: "ifelse",
+  min: 4,
+  stackDelta: -3
+}, {
+  id: "random",
+  min: 0,
+  stackDelta: 1
+}, {
+  id: "mul",
+  min: 2,
+  stackDelta: -1,
+  stackFn(stack, index) {
+    stack[index - 2] = stack[index - 2] * stack[index - 1];
+  }
+}, null, {
+  id: "sqrt",
+  min: 1,
+  stackDelta: 0
+}, {
+  id: "dup",
+  min: 1,
+  stackDelta: 1
+}, {
+  id: "exch",
+  min: 2,
+  stackDelta: 0
+}, {
+  id: "index",
+  min: 2,
+  stackDelta: 0
+}, {
+  id: "roll",
+  min: 3,
+  stackDelta: -2
+}, null, null, null, {
+  id: "hflex",
+  min: 7,
+  resetStack: true
+}, {
+  id: "flex",
+  min: 13,
+  resetStack: true
+}, {
+  id: "hflex1",
+  min: 9,
+  resetStack: true
+}, {
+  id: "flex1",
+  min: 11,
+  resetStack: true
+}];
+class CFFParser {
+  constructor(file, properties, seacAnalysisEnabled) {
+    this.bytes = file.getBytes();
+    this.properties = properties;
+    this.seacAnalysisEnabled = !!seacAnalysisEnabled;
+  }
+  parse() {
+    const properties = this.properties;
+    const cff = new CFF();
+    this.cff = cff;
+    const header = this.parseHeader();
+    const nameIndex = this.parseIndex(header.endPos);
+    const topDictIndex = this.parseIndex(nameIndex.endPos);
+    const stringIndex = this.parseIndex(topDictIndex.endPos);
+    const globalSubrIndex = this.parseIndex(stringIndex.endPos);
+    const topDictParsed = this.parseDict(topDictIndex.obj.get(0));
+    const topDict = this.createDict(CFFTopDict, topDictParsed, cff.strings);
+    cff.header = header.obj;
+    cff.names = this.parseNameIndex(nameIndex.obj);
+    cff.strings = this.parseStringIndex(stringIndex.obj);
+    cff.topDict = topDict;
+    cff.globalSubrIndex = globalSubrIndex.obj;
+    this.parsePrivateDict(cff.topDict);
+    cff.isCIDFont = topDict.hasName("ROS");
+    const charStringOffset = topDict.getByName("CharStrings");
+    const charStringIndex = this.parseIndex(charStringOffset).obj;
+    const fontMatrix = topDict.getByName("FontMatrix");
+    if (fontMatrix) {
+      properties.fontMatrix = fontMatrix;
+    }
+    const fontBBox = topDict.getByName("FontBBox");
+    if (fontBBox) {
+      properties.ascent = Math.max(fontBBox[3], fontBBox[1]);
+      properties.descent = Math.min(fontBBox[1], fontBBox[3]);
+      properties.ascentScaled = true;
+    }
+    let charset, encoding;
+    if (cff.isCIDFont) {
+      const fdArrayIndex = this.parseIndex(topDict.getByName("FDArray")).obj;
+      for (let i = 0, ii = fdArrayIndex.count; i < ii; ++i) {
+        const dictRaw = fdArrayIndex.get(i);
+        const fontDict = this.createDict(CFFTopDict, this.parseDict(dictRaw), cff.strings);
+        this.parsePrivateDict(fontDict);
+        cff.fdArray.push(fontDict);
+      }
+      encoding = null;
+      charset = this.parseCharsets(topDict.getByName("charset"), charStringIndex.count, cff.strings, true);
+      cff.fdSelect = this.parseFDSelect(topDict.getByName("FDSelect"), charStringIndex.count);
+    } else {
+      charset = this.parseCharsets(topDict.getByName("charset"), charStringIndex.count, cff.strings, false);
+      encoding = this.parseEncoding(topDict.getByName("Encoding"), properties, cff.strings, charset.charset);
+    }
+    cff.charset = charset;
+    cff.encoding = encoding;
+    const charStringsAndSeacs = this.parseCharStrings({
+      charStrings: charStringIndex,
+      localSubrIndex: topDict.privateDict.subrsIndex,
+      globalSubrIndex: globalSubrIndex.obj,
+      fdSelect: cff.fdSelect,
+      fdArray: cff.fdArray,
+      privateDict: topDict.privateDict
+    });
+    cff.charStrings = charStringsAndSeacs.charStrings;
+    cff.seacs = charStringsAndSeacs.seacs;
+    cff.widths = charStringsAndSeacs.widths;
+    return cff;
+  }
+  parseHeader() {
+    let bytes = this.bytes;
+    const bytesLength = bytes.length;
+    let offset = 0;
+    while (offset < bytesLength && bytes[offset] !== 1) {
+      ++offset;
+    }
+    if (offset >= bytesLength) {
+      throw new FormatError("Invalid CFF header");
+    }
+    if (offset !== 0) {
+      info("cff data is shifted");
+      bytes = bytes.subarray(offset);
+      this.bytes = bytes;
+    }
+    const major = bytes[0];
+    const minor = bytes[1];
+    const hdrSize = bytes[2];
+    const offSize = bytes[3];
+    const header = new CFFHeader(major, minor, hdrSize, offSize);
+    return {
+      obj: header,
+      endPos: hdrSize
+    };
+  }
+  parseDict(dict) {
+    let pos = 0;
+    function parseOperand() {
+      let value = dict[pos++];
+      if (value === 30) {
+        return parseFloatOperand();
+      } else if (value === 28) {
+        value = readInt16(dict, pos);
+        pos += 2;
+        return value;
+      } else if (value === 29) {
+        value = dict[pos++];
+        value = value << 8 | dict[pos++];
+        value = value << 8 | dict[pos++];
+        value = value << 8 | dict[pos++];
+        return value;
+      } else if (value >= 32 && value <= 246) {
+        return value - 139;
+      } else if (value >= 247 && value <= 250) {
+        return (value - 247) * 256 + dict[pos++] + 108;
+      } else if (value >= 251 && value <= 254) {
+        return -((value - 251) * 256) - dict[pos++] - 108;
+      }
+      warn('CFFParser_parseDict: "' + value + '" is a reserved command.');
+      return NaN;
+    }
+    function parseFloatOperand() {
+      let str = "";
+      const eof = 15;
+      const lookup = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "E", "E-", null, "-"];
+      const length = dict.length;
+      while (pos < length) {
+        const b = dict[pos++];
+        const b1 = b >> 4;
+        const b2 = b & 15;
+        if (b1 === eof) {
+          break;
+        }
+        str += lookup[b1];
+        if (b2 === eof) {
+          break;
+        }
+        str += lookup[b2];
+      }
+      return parseFloat(str);
+    }
+    let operands = [];
+    const entries = [];
+    pos = 0;
+    const end = dict.length;
+    while (pos < end) {
+      let b = dict[pos];
+      if (b <= 21) {
+        if (b === 12) {
+          b = b << 8 | dict[++pos];
+        }
+        entries.push([b, operands]);
+        operands = [];
+        ++pos;
+      } else {
+        operands.push(parseOperand());
+      }
+    }
+    return entries;
+  }
+  parseIndex(pos) {
+    const cffIndex = new CFFIndex();
+    const bytes = this.bytes;
+    const count = bytes[pos++] << 8 | bytes[pos++];
+    const offsets = [];
+    let end = pos;
+    let i, ii;
+    if (count !== 0) {
+      const offsetSize = bytes[pos++];
+      const startPos = pos + (count + 1) * offsetSize - 1;
+      for (i = 0, ii = count + 1; i < ii; ++i) {
+        let offset = 0;
+        for (let j = 0; j < offsetSize; ++j) {
+          offset <<= 8;
+          offset += bytes[pos++];
+        }
+        offsets.push(startPos + offset);
+      }
+      end = offsets[count];
+    }
+    for (i = 0, ii = offsets.length - 1; i < ii; ++i) {
+      const offsetStart = offsets[i];
+      const offsetEnd = offsets[i + 1];
+      cffIndex.add(bytes.subarray(offsetStart, offsetEnd));
+    }
+    return {
+      obj: cffIndex,
+      endPos: end
+    };
+  }
+  parseNameIndex(index) {
+    const names = [];
+    for (let i = 0, ii = index.count; i < ii; ++i) {
+      const name = index.get(i);
+      names.push(bytesToString(name));
+    }
+    return names;
+  }
+  parseStringIndex(index) {
+    const strings = new CFFStrings();
+    for (let i = 0, ii = index.count; i < ii; ++i) {
+      const data = index.get(i);
+      strings.add(bytesToString(data));
+    }
+    return strings;
+  }
+  createDict(Type, dict, strings) {
+    const cffDict = new Type(strings);
+    for (const [key, value] of dict) {
+      cffDict.setByKey(key, value);
+    }
+    return cffDict;
+  }
+  parseCharString(state, data, localSubrIndex, globalSubrIndex) {
+    if (!data || state.callDepth > MAX_SUBR_NESTING) {
+      return false;
+    }
+    let stackSize = state.stackSize;
+    const stack = state.stack;
+    let length = data.length;
+    for (let j = 0; j < length;) {
+      const value = data[j++];
+      let validationCommand = null;
+      if (value === 12) {
+        const q = data[j++];
+        if (q === 0) {
+          data[j - 2] = 139;
+          data[j - 1] = 22;
+          stackSize = 0;
+        } else {
+          validationCommand = CharstringValidationData12[q];
+        }
+      } else if (value === 28) {
+        stack[stackSize] = readInt16(data, j);
+        j += 2;
+        stackSize++;
+      } else if (value === 14) {
+        if (stackSize >= 4) {
+          stackSize -= 4;
+          if (this.seacAnalysisEnabled) {
+            state.seac = stack.slice(stackSize, stackSize + 4);
+            return false;
+          }
+        }
+        validationCommand = CharstringValidationData[value];
+      } else if (value >= 32 && value <= 246) {
+        stack[stackSize] = value - 139;
+        stackSize++;
+      } else if (value >= 247 && value <= 254) {
+        stack[stackSize] = value < 251 ? (value - 247 << 8) + data[j] + 108 : -(value - 251 << 8) - data[j] - 108;
+        j++;
+        stackSize++;
+      } else if (value === 255) {
+        stack[stackSize] = (data[j] << 24 | data[j + 1] << 16 | data[j + 2] << 8 | data[j + 3]) / 65536;
+        j += 4;
+        stackSize++;
+      } else if (value === 19 || value === 20) {
+        state.hints += stackSize >> 1;
+        if (state.hints === 0) {
+          data.copyWithin(j - 1, j, -1);
+          j -= 1;
+          length -= 1;
+          continue;
+        }
+        j += state.hints + 7 >> 3;
+        stackSize %= 2;
+        validationCommand = CharstringValidationData[value];
+      } else if (value === 10 || value === 29) {
+        const subrsIndex = value === 10 ? localSubrIndex : globalSubrIndex;
+        if (!subrsIndex) {
+          validationCommand = CharstringValidationData[value];
+          warn("Missing subrsIndex for " + validationCommand.id);
+          return false;
+        }
+        let bias = 32768;
+        if (subrsIndex.count < 1240) {
+          bias = 107;
+        } else if (subrsIndex.count < 33900) {
+          bias = 1131;
+        }
+        const subrNumber = stack[--stackSize] + bias;
+        if (subrNumber < 0 || subrNumber >= subrsIndex.count || isNaN(subrNumber)) {
+          validationCommand = CharstringValidationData[value];
+          warn("Out of bounds subrIndex for " + validationCommand.id);
+          return false;
+        }
+        state.stackSize = stackSize;
+        state.callDepth++;
+        const valid = this.parseCharString(state, subrsIndex.get(subrNumber), localSubrIndex, globalSubrIndex);
+        if (!valid) {
+          return false;
+        }
+        state.callDepth--;
+        stackSize = state.stackSize;
+        continue;
+      } else if (value === 11) {
+        state.stackSize = stackSize;
+        return true;
+      } else if (value === 0 && j === data.length) {
+        data[j - 1] = 14;
+        validationCommand = CharstringValidationData[14];
+      } else if (value === 9) {
+        data.copyWithin(j - 1, j, -1);
+        j -= 1;
+        length -= 1;
+        continue;
+      } else {
+        validationCommand = CharstringValidationData[value];
+      }
+      if (validationCommand) {
+        if (validationCommand.stem) {
+          state.hints += stackSize >> 1;
+          if (value === 3 || value === 23) {
+            state.hasVStems = true;
+          } else if (state.hasVStems && (value === 1 || value === 18)) {
+            warn("CFF stem hints are in wrong order");
+            data[j - 1] = value === 1 ? 3 : 23;
+          }
+        }
+        if ("min" in validationCommand) {
+          if (!state.undefStack && stackSize < validationCommand.min) {
+            warn("Not enough parameters for " + validationCommand.id + "; actual: " + stackSize + ", expected: " + validationCommand.min);
+            if (stackSize === 0) {
+              data[j - 1] = 14;
+              return true;
+            }
+            return false;
+          }
+        }
+        if (state.firstStackClearing && validationCommand.stackClearing) {
+          state.firstStackClearing = false;
+          stackSize -= validationCommand.min;
+          if (stackSize >= 2 && validationCommand.stem) {
+            stackSize %= 2;
+          } else if (stackSize > 1) {
+            warn("Found too many parameters for stack-clearing command");
+          }
+          if (stackSize > 0) {
+            state.width = stack[stackSize - 1];
+          }
+        }
+        if ("stackDelta" in validationCommand) {
+          if ("stackFn" in validationCommand) {
+            validationCommand.stackFn(stack, stackSize);
+          }
+          stackSize += validationCommand.stackDelta;
+        } else if (validationCommand.stackClearing) {
+          stackSize = 0;
+        } else if (validationCommand.resetStack) {
+          stackSize = 0;
+          state.undefStack = false;
+        } else if (validationCommand.undefStack) {
+          stackSize = 0;
+          state.undefStack = true;
+          state.firstStackClearing = false;
+        }
+      }
+    }
+    if (length < data.length) {
+      data.fill(14, length);
+    }
+    state.stackSize = stackSize;
+    return true;
+  }
+  parseCharStrings({
+    charStrings,
+    localSubrIndex,
+    globalSubrIndex,
+    fdSelect,
+    fdArray,
+    privateDict
+  }) {
+    const seacs = [];
+    const widths = [];
+    const count = charStrings.count;
+    for (let i = 0; i < count; i++) {
+      const charstring = charStrings.get(i);
+      const state = {
+        callDepth: 0,
+        stackSize: 0,
+        stack: [],
+        undefStack: true,
+        hints: 0,
+        firstStackClearing: true,
+        seac: null,
+        width: null,
+        hasVStems: false
+      };
+      let valid = true;
+      let localSubrToUse = null;
+      let privateDictToUse = privateDict;
+      if (fdSelect && fdArray.length) {
+        const fdIndex = fdSelect.getFDIndex(i);
+        if (fdIndex === -1) {
+          warn("Glyph index is not in fd select.");
+          valid = false;
+        }
+        if (fdIndex >= fdArray.length) {
+          warn("Invalid fd index for glyph index.");
+          valid = false;
+        }
+        if (valid) {
+          privateDictToUse = fdArray[fdIndex].privateDict;
+          localSubrToUse = privateDictToUse.subrsIndex;
+        }
+      } else if (localSubrIndex) {
+        localSubrToUse = localSubrIndex;
+      }
+      if (valid) {
+        valid = this.parseCharString(state, charstring, localSubrToUse, globalSubrIndex);
+      }
+      if (state.width !== null) {
+        const nominalWidth = privateDictToUse.getByName("nominalWidthX");
+        widths[i] = nominalWidth + state.width;
+      } else {
+        const defaultWidth = privateDictToUse.getByName("defaultWidthX");
+        widths[i] = defaultWidth;
+      }
+      if (state.seac !== null) {
+        seacs[i] = state.seac;
+      }
+      if (!valid) {
+        charStrings.set(i, new Uint8Array([14]));
+      }
+    }
+    return {
+      charStrings,
+      seacs,
+      widths
+    };
+  }
+  emptyPrivateDictionary(parentDict) {
+    const privateDict = this.createDict(CFFPrivateDict, [], parentDict.strings);
+    parentDict.setByKey(18, [0, 0]);
+    parentDict.privateDict = privateDict;
+  }
+  parsePrivateDict(parentDict) {
+    if (!parentDict.hasName("Private")) {
+      this.emptyPrivateDictionary(parentDict);
+      return;
+    }
+    const privateOffset = parentDict.getByName("Private");
+    if (!Array.isArray(privateOffset) || privateOffset.length !== 2) {
+      parentDict.removeByName("Private");
+      return;
+    }
+    const size = privateOffset[0];
+    const offset = privateOffset[1];
+    if (size === 0 || offset >= this.bytes.length) {
+      this.emptyPrivateDictionary(parentDict);
+      return;
+    }
+    const privateDictEnd = offset + size;
+    const dictData = this.bytes.subarray(offset, privateDictEnd);
+    const dict = this.parseDict(dictData);
+    const privateDict = this.createDict(CFFPrivateDict, dict, parentDict.strings);
+    parentDict.privateDict = privateDict;
+    if (privateDict.getByName("ExpansionFactor") === 0) {
+      privateDict.setByName("ExpansionFactor", 0.06);
+    }
+    if (!privateDict.getByName("Subrs")) {
+      return;
+    }
+    const subrsOffset = privateDict.getByName("Subrs");
+    const relativeOffset = offset + subrsOffset;
+    if (subrsOffset === 0 || relativeOffset >= this.bytes.length) {
+      this.emptyPrivateDictionary(parentDict);
+      return;
+    }
+    const subrsIndex = this.parseIndex(relativeOffset);
+    privateDict.subrsIndex = subrsIndex.obj;
+  }
+  parseCharsets(pos, length, strings, cid) {
+    if (pos === 0) {
+      return new CFFCharset(true, CFFCharsetPredefinedTypes.ISO_ADOBE, ISOAdobeCharset);
+    } else if (pos === 1) {
+      return new CFFCharset(true, CFFCharsetPredefinedTypes.EXPERT, ExpertCharset);
+    } else if (pos === 2) {
+      return new CFFCharset(true, CFFCharsetPredefinedTypes.EXPERT_SUBSET, ExpertSubsetCharset);
+    }
+    const bytes = this.bytes;
+    const start = pos;
+    const format = bytes[pos++];
+    const charset = [cid ? 0 : ".notdef"];
+    let id, count, i;
+    length -= 1;
+    switch (format) {
+      case 0:
+        for (i = 0; i < length; i++) {
+          id = bytes[pos++] << 8 | bytes[pos++];
+          charset.push(cid ? id : strings.get(id));
+        }
+        break;
+      case 1:
+        while (charset.length <= length) {
+          id = bytes[pos++] << 8 | bytes[pos++];
+          count = bytes[pos++];
+          for (i = 0; i <= count; i++) {
+            charset.push(cid ? id++ : strings.get(id++));
+          }
+        }
+        break;
+      case 2:
+        while (charset.length <= length) {
+          id = bytes[pos++] << 8 | bytes[pos++];
+          count = bytes[pos++] << 8 | bytes[pos++];
+          for (i = 0; i <= count; i++) {
+            charset.push(cid ? id++ : strings.get(id++));
+          }
+        }
+        break;
+      default:
+        throw new FormatError("Unknown charset format");
+    }
+    const end = pos;
+    const raw = bytes.subarray(start, end);
+    return new CFFCharset(false, format, charset, raw);
+  }
+  parseEncoding(pos, properties, strings, charset) {
+    const encoding = Object.create(null);
+    const bytes = this.bytes;
+    let predefined = false;
+    let format, i, ii;
+    let raw = null;
+    function readSupplement() {
+      const supplementsCount = bytes[pos++];
+      for (i = 0; i < supplementsCount; i++) {
+        const code = bytes[pos++];
+        const sid = (bytes[pos++] << 8) + (bytes[pos++] & 0xff);
+        encoding[code] = charset.indexOf(strings.get(sid));
+      }
+    }
+    if (pos === 0 || pos === 1) {
+      predefined = true;
+      format = pos;
+      const baseEncoding = pos ? ExpertEncoding : StandardEncoding;
+      for (i = 0, ii = charset.length; i < ii; i++) {
+        const index = baseEncoding.indexOf(charset[i]);
+        if (index !== -1) {
+          encoding[index] = i;
+        }
+      }
+    } else {
+      const dataStart = pos;
+      format = bytes[pos++];
+      switch (format & 0x7f) {
+        case 0:
+          const glyphsCount = bytes[pos++];
+          for (i = 1; i <= glyphsCount; i++) {
+            encoding[bytes[pos++]] = i;
+          }
+          break;
+        case 1:
+          const rangesCount = bytes[pos++];
+          let gid = 1;
+          for (i = 0; i < rangesCount; i++) {
+            const start = bytes[pos++];
+            const left = bytes[pos++];
+            for (let j = start; j <= start + left; j++) {
+              encoding[j] = gid++;
+            }
+          }
+          break;
+        default:
+          throw new FormatError(`Unknown encoding format: ${format} in CFF`);
+      }
+      const dataEnd = pos;
+      if (format & 0x80) {
+        bytes[dataStart] &= 0x7f;
+        readSupplement();
+      }
+      raw = bytes.subarray(dataStart, dataEnd);
+    }
+    format &= 0x7f;
+    return new CFFEncoding(predefined, format, encoding, raw);
+  }
+  parseFDSelect(pos, length) {
+    const bytes = this.bytes;
+    const format = bytes[pos++];
+    const fdSelect = [];
+    let i;
+    switch (format) {
+      case 0:
+        for (i = 0; i < length; ++i) {
+          const id = bytes[pos++];
+          fdSelect.push(id);
+        }
+        break;
+      case 3:
+        const rangesCount = bytes[pos++] << 8 | bytes[pos++];
+        for (i = 0; i < rangesCount; ++i) {
+          let first = bytes[pos++] << 8 | bytes[pos++];
+          if (i === 0 && first !== 0) {
+            warn("parseFDSelect: The first range must have a first GID of 0" + " -- trying to recover.");
+            first = 0;
+          }
+          const fdIndex = bytes[pos++];
+          const next = bytes[pos] << 8 | bytes[pos + 1];
+          for (let j = first; j < next; ++j) {
+            fdSelect.push(fdIndex);
+          }
+        }
+        pos += 2;
+        break;
+      default:
+        throw new FormatError(`parseFDSelect: Unknown format "${format}".`);
+    }
+    if (fdSelect.length !== length) {
+      throw new FormatError("parseFDSelect: Invalid font data.");
+    }
+    return new CFFFDSelect(format, fdSelect);
+  }
+}
+class CFF {
+  constructor() {
+    this.header = null;
+    this.names = [];
+    this.topDict = null;
+    this.strings = new CFFStrings();
+    this.globalSubrIndex = null;
+    this.encoding = null;
+    this.charset = null;
+    this.charStrings = null;
+    this.fdArray = [];
+    this.fdSelect = null;
+    this.isCIDFont = false;
+  }
+  duplicateFirstGlyph() {
+    if (this.charStrings.count >= 65535) {
+      warn("Not enough space in charstrings to duplicate first glyph.");
+      return;
+    }
+    const glyphZero = this.charStrings.get(0);
+    this.charStrings.add(glyphZero);
+    if (this.isCIDFont) {
+      this.fdSelect.fdSelect.push(this.fdSelect.fdSelect[0]);
+    }
+  }
+  hasGlyphId(id) {
+    if (id < 0 || id >= this.charStrings.count) {
+      return false;
+    }
+    const glyph = this.charStrings.get(id);
+    return glyph.length > 0;
+  }
+}
+class CFFHeader {
+  constructor(major, minor, hdrSize, offSize) {
+    this.major = major;
+    this.minor = minor;
+    this.hdrSize = hdrSize;
+    this.offSize = offSize;
+  }
+}
+class CFFStrings {
+  constructor() {
+    this.strings = [];
+  }
+  get(index) {
+    if (index >= 0 && index <= NUM_STANDARD_CFF_STRINGS - 1) {
+      return CFFStandardStrings[index];
+    }
+    if (index - NUM_STANDARD_CFF_STRINGS <= this.strings.length) {
+      return this.strings[index - NUM_STANDARD_CFF_STRINGS];
+    }
+    return CFFStandardStrings[0];
+  }
+  getSID(str) {
+    let index = CFFStandardStrings.indexOf(str);
+    if (index !== -1) {
+      return index;
+    }
+    index = this.strings.indexOf(str);
+    if (index !== -1) {
+      return index + NUM_STANDARD_CFF_STRINGS;
+    }
+    return -1;
+  }
+  add(value) {
+    this.strings.push(value);
+  }
+  get count() {
+    return this.strings.length;
+  }
+}
+class CFFIndex {
+  constructor() {
+    this.objects = [];
+    this.length = 0;
+  }
+  add(data) {
+    this.length += data.length;
+    this.objects.push(data);
+  }
+  set(index, data) {
+    this.length += data.length - this.objects[index].length;
+    this.objects[index] = data;
+  }
+  get(index) {
+    return this.objects[index];
+  }
+  get count() {
+    return this.objects.length;
+  }
+}
+class CFFDict {
+  constructor(tables, strings) {
+    this.keyToNameMap = tables.keyToNameMap;
+    this.nameToKeyMap = tables.nameToKeyMap;
+    this.defaults = tables.defaults;
+    this.types = tables.types;
+    this.opcodes = tables.opcodes;
+    this.order = tables.order;
+    this.strings = strings;
+    this.values = Object.create(null);
+  }
+  setByKey(key, value) {
+    if (!(key in this.keyToNameMap)) {
+      return false;
+    }
+    if (value.length === 0) {
+      return true;
+    }
+    for (const val of value) {
+      if (isNaN(val)) {
+        warn(`Invalid CFFDict value: "${value}" for key "${key}".`);
+        return true;
+      }
+    }
+    const type = this.types[key];
+    if (type === "num" || type === "sid" || type === "offset") {
+      value = value[0];
+    }
+    this.values[key] = value;
+    return true;
+  }
+  setByName(name, value) {
+    if (!(name in this.nameToKeyMap)) {
+      throw new FormatError(`Invalid dictionary name "${name}"`);
+    }
+    this.values[this.nameToKeyMap[name]] = value;
+  }
+  hasName(name) {
+    return this.nameToKeyMap[name] in this.values;
+  }
+  getByName(name) {
+    if (!(name in this.nameToKeyMap)) {
+      throw new FormatError(`Invalid dictionary name ${name}"`);
+    }
+    const key = this.nameToKeyMap[name];
+    if (!(key in this.values)) {
+      return this.defaults[key];
+    }
+    return this.values[key];
+  }
+  removeByName(name) {
+    delete this.values[this.nameToKeyMap[name]];
+  }
+  static createTables(layout) {
+    const tables = {
+      keyToNameMap: {},
+      nameToKeyMap: {},
+      defaults: {},
+      types: {},
+      opcodes: {},
+      order: []
+    };
+    for (const entry of layout) {
+      const key = Array.isArray(entry[0]) ? (entry[0][0] << 8) + entry[0][1] : entry[0];
+      tables.keyToNameMap[key] = entry[1];
+      tables.nameToKeyMap[entry[1]] = key;
+      tables.types[key] = entry[2];
+      tables.defaults[key] = entry[3];
+      tables.opcodes[key] = Array.isArray(entry[0]) ? entry[0] : [entry[0]];
+      tables.order.push(key);
+    }
+    return tables;
+  }
+}
+const CFFTopDictLayout = [[[12, 30], "ROS", ["sid", "sid", "num"], null], [[12, 20], "SyntheticBase", "num", null], [0, "version", "sid", null], [1, "Notice", "sid", null], [[12, 0], "Copyright", "sid", null], [2, "FullName", "sid", null], [3, "FamilyName", "sid", null], [4, "Weight", "sid", null], [[12, 1], "isFixedPitch", "num", 0], [[12, 2], "ItalicAngle", "num", 0], [[12, 3], "UnderlinePosition", "num", -100], [[12, 4], "UnderlineThickness", "num", 50], [[12, 5], "PaintType", "num", 0], [[12, 6], "CharstringType", "num", 2], [[12, 7], "FontMatrix", ["num", "num", "num", "num", "num", "num"], [0.001, 0, 0, 0.001, 0, 0]], [13, "UniqueID", "num", null], [5, "FontBBox", ["num", "num", "num", "num"], [0, 0, 0, 0]], [[12, 8], "StrokeWidth", "num", 0], [14, "XUID", "array", null], [15, "charset", "offset", 0], [16, "Encoding", "offset", 0], [17, "CharStrings", "offset", 0], [18, "Private", ["offset", "offset"], null], [[12, 21], "PostScript", "sid", null], [[12, 22], "BaseFontName", "sid", null], [[12, 23], "BaseFontBlend", "delta", null], [[12, 31], "CIDFontVersion", "num", 0], [[12, 32], "CIDFontRevision", "num", 0], [[12, 33], "CIDFontType", "num", 0], [[12, 34], "CIDCount", "num", 8720], [[12, 35], "UIDBase", "num", null], [[12, 37], "FDSelect", "offset", null], [[12, 36], "FDArray", "offset", null], [[12, 38], "FontName", "sid", null]];
+class CFFTopDict extends CFFDict {
+  static get tables() {
+    return shadow(this, "tables", this.createTables(CFFTopDictLayout));
+  }
+  constructor(strings) {
+    super(CFFTopDict.tables, strings);
+    this.privateDict = null;
+  }
+}
+const CFFPrivateDictLayout = [[6, "BlueValues", "delta", null], [7, "OtherBlues", "delta", null], [8, "FamilyBlues", "delta", null], [9, "FamilyOtherBlues", "delta", null], [[12, 9], "BlueScale", "num", 0.039625], [[12, 10], "BlueShift", "num", 7], [[12, 11], "BlueFuzz", "num", 1], [10, "StdHW", "num", null], [11, "StdVW", "num", null], [[12, 12], "StemSnapH", "delta", null], [[12, 13], "StemSnapV", "delta", null], [[12, 14], "ForceBold", "num", 0], [[12, 17], "LanguageGroup", "num", 0], [[12, 18], "ExpansionFactor", "num", 0.06], [[12, 19], "initialRandomSeed", "num", 0], [20, "defaultWidthX", "num", 0], [21, "nominalWidthX", "num", 0], [19, "Subrs", "offset", null]];
+class CFFPrivateDict extends CFFDict {
+  static get tables() {
+    return shadow(this, "tables", this.createTables(CFFPrivateDictLayout));
+  }
+  constructor(strings) {
+    super(CFFPrivateDict.tables, strings);
+    this.subrsIndex = null;
+  }
+}
+const CFFCharsetPredefinedTypes = {
+  ISO_ADOBE: 0,
+  EXPERT: 1,
+  EXPERT_SUBSET: 2
+};
+class CFFCharset {
+  constructor(predefined, format, charset, raw) {
+    this.predefined = predefined;
+    this.format = format;
+    this.charset = charset;
+    this.raw = raw;
+  }
+}
+class CFFEncoding {
+  constructor(predefined, format, encoding, raw) {
+    this.predefined = predefined;
+    this.format = format;
+    this.encoding = encoding;
+    this.raw = raw;
+  }
+}
+class CFFFDSelect {
+  constructor(format, fdSelect) {
+    this.format = format;
+    this.fdSelect = fdSelect;
+  }
+  getFDIndex(glyphIndex) {
+    if (glyphIndex < 0 || glyphIndex >= this.fdSelect.length) {
+      return -1;
+    }
+    return this.fdSelect[glyphIndex];
+  }
+}
+class CFFOffsetTracker {
+  constructor() {
+    this.offsets = Object.create(null);
+  }
+  isTracking(key) {
+    return key in this.offsets;
+  }
+  track(key, location) {
+    if (key in this.offsets) {
+      throw new FormatError(`Already tracking location of ${key}`);
+    }
+    this.offsets[key] = location;
+  }
+  offset(value) {
+    for (const key in this.offsets) {
+      this.offsets[key] += value;
+    }
+  }
+  setEntryLocation(key, values, output) {
+    if (!(key in this.offsets)) {
+      throw new FormatError(`Not tracking location of ${key}`);
+    }
+    const data = output.data;
+    const dataOffset = this.offsets[key];
+    const size = 5;
+    for (let i = 0, ii = values.length; i < ii; ++i) {
+      const offset0 = i * size + dataOffset;
+      const offset1 = offset0 + 1;
+      const offset2 = offset0 + 2;
+      const offset3 = offset0 + 3;
+      const offset4 = offset0 + 4;
+      if (data[offset0] !== 0x1d || data[offset1] !== 0 || data[offset2] !== 0 || data[offset3] !== 0 || data[offset4] !== 0) {
+        throw new FormatError("writing to an offset that is not empty");
+      }
+      const value = values[i];
+      data[offset0] = 0x1d;
+      data[offset1] = value >> 24 & 0xff;
+      data[offset2] = value >> 16 & 0xff;
+      data[offset3] = value >> 8 & 0xff;
+      data[offset4] = value & 0xff;
+    }
+  }
+}
+class CFFCompiler {
+  constructor(cff) {
+    this.cff = cff;
+  }
+  compile() {
+    const cff = this.cff;
+    const output = {
+      data: [],
+      length: 0,
+      add(data) {
+        try {
+          this.data.push(...data);
+        } catch {
+          this.data = this.data.concat(data);
+        }
+        this.length = this.data.length;
+      }
+    };
+    const header = this.compileHeader(cff.header);
+    output.add(header);
+    const nameIndex = this.compileNameIndex(cff.names);
+    output.add(nameIndex);
+    if (cff.isCIDFont) {
+      if (cff.topDict.hasName("FontMatrix")) {
+        const base = cff.topDict.getByName("FontMatrix");
+        cff.topDict.removeByName("FontMatrix");
+        for (const subDict of cff.fdArray) {
+          let matrix = base.slice(0);
+          if (subDict.hasName("FontMatrix")) {
+            matrix = Util.transform(matrix, subDict.getByName("FontMatrix"));
+          }
+          subDict.setByName("FontMatrix", matrix);
+        }
+      }
+    }
+    const xuid = cff.topDict.getByName("XUID");
+    if (xuid?.length > 16) {
+      cff.topDict.removeByName("XUID");
+    }
+    cff.topDict.setByName("charset", 0);
+    let compiled = this.compileTopDicts([cff.topDict], output.length, cff.isCIDFont);
+    output.add(compiled.output);
+    const topDictTracker = compiled.trackers[0];
+    const stringIndex = this.compileStringIndex(cff.strings.strings);
+    output.add(stringIndex);
+    const globalSubrIndex = this.compileIndex(cff.globalSubrIndex);
+    output.add(globalSubrIndex);
+    if (cff.encoding && cff.topDict.hasName("Encoding")) {
+      if (cff.encoding.predefined) {
+        topDictTracker.setEntryLocation("Encoding", [cff.encoding.format], output);
+      } else {
+        const encoding = this.compileEncoding(cff.encoding);
+        topDictTracker.setEntryLocation("Encoding", [output.length], output);
+        output.add(encoding);
+      }
+    }
+    const charset = this.compileCharset(cff.charset, cff.charStrings.count, cff.strings, cff.isCIDFont);
+    topDictTracker.setEntryLocation("charset", [output.length], output);
+    output.add(charset);
+    const charStrings = this.compileCharStrings(cff.charStrings);
+    topDictTracker.setEntryLocation("CharStrings", [output.length], output);
+    output.add(charStrings);
+    if (cff.isCIDFont) {
+      topDictTracker.setEntryLocation("FDSelect", [output.length], output);
+      const fdSelect = this.compileFDSelect(cff.fdSelect);
+      output.add(fdSelect);
+      compiled = this.compileTopDicts(cff.fdArray, output.length, true);
+      topDictTracker.setEntryLocation("FDArray", [output.length], output);
+      output.add(compiled.output);
+      const fontDictTrackers = compiled.trackers;
+      this.compilePrivateDicts(cff.fdArray, fontDictTrackers, output);
+    }
+    this.compilePrivateDicts([cff.topDict], [topDictTracker], output);
+    output.add([0]);
+    return output.data;
+  }
+  encodeNumber(value) {
+    if (Number.isInteger(value)) {
+      return this.encodeInteger(value);
+    }
+    return this.encodeFloat(value);
+  }
+  static get EncodeFloatRegExp() {
+    return shadow(this, "EncodeFloatRegExp", /\.(\d*?)(?:9{5,20}|0{5,20})\d{0,2}(?:e(.+)|$)/);
+  }
+  encodeFloat(num) {
+    let value = num.toString();
+    const m = CFFCompiler.EncodeFloatRegExp.exec(value);
+    if (m) {
+      const epsilon = parseFloat("1e" + ((m[2] ? +m[2] : 0) + m[1].length));
+      value = (Math.round(num * epsilon) / epsilon).toString();
+    }
+    let nibbles = "";
+    let i, ii;
+    for (i = 0, ii = value.length; i < ii; ++i) {
+      const a = value[i];
+      if (a === "e") {
+        nibbles += value[++i] === "-" ? "c" : "b";
+      } else if (a === ".") {
+        nibbles += "a";
+      } else if (a === "-") {
+        nibbles += "e";
+      } else {
+        nibbles += a;
+      }
+    }
+    nibbles += nibbles.length & 1 ? "f" : "ff";
+    const out = [30];
+    for (i = 0, ii = nibbles.length; i < ii; i += 2) {
+      out.push(parseInt(nibbles.substring(i, i + 2), 16));
+    }
+    return out;
+  }
+  encodeInteger(value) {
+    let code;
+    if (value >= -107 && value <= 107) {
+      code = [value + 139];
+    } else if (value >= 108 && value <= 1131) {
+      value -= 108;
+      code = [(value >> 8) + 247, value & 0xff];
+    } else if (value >= -1131 && value <= -108) {
+      value = -value - 108;
+      code = [(value >> 8) + 251, value & 0xff];
+    } else if (value >= -32768 && value <= 32767) {
+      code = [0x1c, value >> 8 & 0xff, value & 0xff];
+    } else {
+      code = [0x1d, value >> 24 & 0xff, value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff];
+    }
+    return code;
+  }
+  compileHeader(header) {
+    return [header.major, header.minor, 4, header.offSize];
+  }
+  compileNameIndex(names) {
+    const nameIndex = new CFFIndex();
+    for (const name of names) {
+      const length = Math.min(name.length, 127);
+      let sanitizedName = new Array(length);
+      for (let j = 0; j < length; j++) {
+        let char = name[j];
+        if (char < "!" || char > "~" || char === "[" || char === "]" || char === "(" || char === ")" || char === "{" || char === "}" || char === "<" || char === ">" || char === "/" || char === "%") {
+          char = "_";
+        }
+        sanitizedName[j] = char;
+      }
+      sanitizedName = sanitizedName.join("");
+      if (sanitizedName === "") {
+        sanitizedName = "Bad_Font_Name";
+      }
+      nameIndex.add(stringToBytes(sanitizedName));
+    }
+    return this.compileIndex(nameIndex);
+  }
+  compileTopDicts(dicts, length, removeCidKeys) {
+    const fontDictTrackers = [];
+    let fdArrayIndex = new CFFIndex();
+    for (const fontDict of dicts) {
+      if (removeCidKeys) {
+        fontDict.removeByName("CIDFontVersion");
+        fontDict.removeByName("CIDFontRevision");
+        fontDict.removeByName("CIDFontType");
+        fontDict.removeByName("CIDCount");
+        fontDict.removeByName("UIDBase");
+      }
+      const fontDictTracker = new CFFOffsetTracker();
+      const fontDictData = this.compileDict(fontDict, fontDictTracker);
+      fontDictTrackers.push(fontDictTracker);
+      fdArrayIndex.add(fontDictData);
+      fontDictTracker.offset(length);
+    }
+    fdArrayIndex = this.compileIndex(fdArrayIndex, fontDictTrackers);
+    return {
+      trackers: fontDictTrackers,
+      output: fdArrayIndex
+    };
+  }
+  compilePrivateDicts(dicts, trackers, output) {
+    for (let i = 0, ii = dicts.length; i < ii; ++i) {
+      const fontDict = dicts[i];
+      const privateDict = fontDict.privateDict;
+      if (!privateDict || !fontDict.hasName("Private")) {
+        throw new FormatError("There must be a private dictionary.");
+      }
+      const privateDictTracker = new CFFOffsetTracker();
+      const privateDictData = this.compileDict(privateDict, privateDictTracker);
+      let outputLength = output.length;
+      privateDictTracker.offset(outputLength);
+      if (!privateDictData.length) {
+        outputLength = 0;
+      }
+      trackers[i].setEntryLocation("Private", [privateDictData.length, outputLength], output);
+      output.add(privateDictData);
+      if (privateDict.subrsIndex && privateDict.hasName("Subrs")) {
+        const subrs = this.compileIndex(privateDict.subrsIndex);
+        privateDictTracker.setEntryLocation("Subrs", [privateDictData.length], output);
+        output.add(subrs);
+      }
+    }
+  }
+  compileDict(dict, offsetTracker) {
+    const out = [];
+    for (const key of dict.order) {
+      if (!(key in dict.values)) {
+        continue;
+      }
+      let values = dict.values[key];
+      let types = dict.types[key];
+      if (!Array.isArray(types)) {
+        types = [types];
+      }
+      if (!Array.isArray(values)) {
+        values = [values];
+      }
+      if (values.length === 0) {
+        continue;
+      }
+      for (let j = 0, jj = types.length; j < jj; ++j) {
+        const type = types[j];
+        const value = values[j];
+        switch (type) {
+          case "num":
+          case "sid":
+            out.push(...this.encodeNumber(value));
+            break;
+          case "offset":
+            const name = dict.keyToNameMap[key];
+            if (!offsetTracker.isTracking(name)) {
+              offsetTracker.track(name, out.length);
+            }
+            out.push(0x1d, 0, 0, 0, 0);
+            break;
+          case "array":
+          case "delta":
+            out.push(...this.encodeNumber(value));
+            for (let k = 1, kk = values.length; k < kk; ++k) {
+              out.push(...this.encodeNumber(values[k]));
+            }
+            break;
+          default:
+            throw new FormatError(`Unknown data type of ${type}`);
+        }
+      }
+      out.push(...dict.opcodes[key]);
+    }
+    return out;
+  }
+  compileStringIndex(strings) {
+    const stringIndex = new CFFIndex();
+    for (const string of strings) {
+      stringIndex.add(stringToBytes(string));
+    }
+    return this.compileIndex(stringIndex);
+  }
+  compileCharStrings(charStrings) {
+    const charStringsIndex = new CFFIndex();
+    for (let i = 0; i < charStrings.count; i++) {
+      const glyph = charStrings.get(i);
+      if (glyph.length === 0) {
+        charStringsIndex.add(new Uint8Array([0x8b, 0x0e]));
+        continue;
+      }
+      charStringsIndex.add(glyph);
+    }
+    return this.compileIndex(charStringsIndex);
+  }
+  compileCharset(charset, numGlyphs, strings, isCIDFont) {
+    let out;
+    const numGlyphsLessNotDef = numGlyphs - 1;
+    if (isCIDFont) {
+      out = new Uint8Array([2, 0, 0, numGlyphsLessNotDef >> 8 & 0xff, numGlyphsLessNotDef & 0xff]);
+    } else {
+      const length = 1 + numGlyphsLessNotDef * 2;
+      out = new Uint8Array(length);
+      out[0] = 0;
+      let charsetIndex = 0;
+      const numCharsets = charset.charset.length;
+      let warned = false;
+      for (let i = 1; i < out.length; i += 2) {
+        let sid = 0;
+        if (charsetIndex < numCharsets) {
+          const name = charset.charset[charsetIndex++];
+          sid = strings.getSID(name);
+          if (sid === -1) {
+            sid = 0;
+            if (!warned) {
+              warned = true;
+              warn(`Couldn't find ${name} in CFF strings`);
+            }
+          }
+        }
+        out[i] = sid >> 8 & 0xff;
+        out[i + 1] = sid & 0xff;
+      }
+    }
+    return this.compileTypedArray(out);
+  }
+  compileEncoding(encoding) {
+    return this.compileTypedArray(encoding.raw);
+  }
+  compileFDSelect(fdSelect) {
+    const format = fdSelect.format;
+    let out, i;
+    switch (format) {
+      case 0:
+        out = new Uint8Array(1 + fdSelect.fdSelect.length);
+        out[0] = format;
+        for (i = 0; i < fdSelect.fdSelect.length; i++) {
+          out[i + 1] = fdSelect.fdSelect[i];
+        }
+        break;
+      case 3:
+        const start = 0;
+        let lastFD = fdSelect.fdSelect[0];
+        const ranges = [format, 0, 0, start >> 8 & 0xff, start & 0xff, lastFD];
+        for (i = 1; i < fdSelect.fdSelect.length; i++) {
+          const currentFD = fdSelect.fdSelect[i];
+          if (currentFD !== lastFD) {
+            ranges.push(i >> 8 & 0xff, i & 0xff, currentFD);
+            lastFD = currentFD;
+          }
+        }
+        const numRanges = (ranges.length - 3) / 3;
+        ranges[1] = numRanges >> 8 & 0xff;
+        ranges[2] = numRanges & 0xff;
+        ranges.push(i >> 8 & 0xff, i & 0xff);
+        out = new Uint8Array(ranges);
+        break;
+    }
+    return this.compileTypedArray(out);
+  }
+  compileTypedArray(data) {
+    return Array.from(data);
+  }
+  compileIndex(index, trackers = []) {
+    const objects = index.objects;
+    const count = objects.length;
+    if (count === 0) {
+      return [0, 0];
+    }
+    const data = [count >> 8 & 0xff, count & 0xff];
+    let lastOffset = 1,
+      i;
+    for (i = 0; i < count; ++i) {
+      lastOffset += objects[i].length;
+    }
+    let offsetSize;
+    if (lastOffset < 0x100) {
+      offsetSize = 1;
+    } else if (lastOffset < 0x10000) {
+      offsetSize = 2;
+    } else if (lastOffset < 0x1000000) {
+      offsetSize = 3;
+    } else {
+      offsetSize = 4;
+    }
+    data.push(offsetSize);
+    let relativeOffset = 1;
+    for (i = 0; i < count + 1; i++) {
+      if (offsetSize === 1) {
+        data.push(relativeOffset & 0xff);
+      } else if (offsetSize === 2) {
+        data.push(relativeOffset >> 8 & 0xff, relativeOffset & 0xff);
+      } else if (offsetSize === 3) {
+        data.push(relativeOffset >> 16 & 0xff, relativeOffset >> 8 & 0xff, relativeOffset & 0xff);
+      } else {
+        data.push(relativeOffset >>> 24 & 0xff, relativeOffset >> 16 & 0xff, relativeOffset >> 8 & 0xff, relativeOffset & 0xff);
+      }
+      if (objects[i]) {
+        relativeOffset += objects[i].length;
+      }
+    }
+    for (i = 0; i < count; i++) {
+      if (trackers[i]) {
+        trackers[i].offset(data.length);
+      }
+      data.push(...objects[i]);
+    }
+    return data;
+  }
+}
 
 ;// ./src/core/standard_fonts.js
 
@@ -29349,543 +30177,6 @@ class MurmurHash3_64 {
   }
 }
 
-;// ./src/core/operator_list.js
-
-function addState(parentState, pattern, checkFn, iterateFn, processFn) {
-  let state = parentState;
-  for (let i = 0, ii = pattern.length - 1; i < ii; i++) {
-    const item = pattern[i];
-    state = state[item] ||= [];
-  }
-  state[pattern.at(-1)] = {
-    checkFn,
-    iterateFn,
-    processFn
-  };
-}
-const InitialState = [];
-addState(InitialState, [OPS.save, OPS.transform, OPS.paintInlineImageXObject, OPS.restore], null, function iterateInlineImageGroup(context, i) {
-  const fnArray = context.fnArray;
-  const iFirstSave = context.iCurr - 3;
-  const pos = (i - iFirstSave) % 4;
-  switch (pos) {
-    case 0:
-      return fnArray[i] === OPS.save;
-    case 1:
-      return fnArray[i] === OPS.transform;
-    case 2:
-      return fnArray[i] === OPS.paintInlineImageXObject;
-    case 3:
-      return fnArray[i] === OPS.restore;
-  }
-  throw new Error(`iterateInlineImageGroup - invalid pos: ${pos}`);
-}, function foundInlineImageGroup(context, i) {
-  const MIN_IMAGES_IN_INLINE_IMAGES_BLOCK = 10;
-  const MAX_IMAGES_IN_INLINE_IMAGES_BLOCK = 200;
-  const MAX_WIDTH = 1000;
-  const IMAGE_PADDING = 1;
-  const fnArray = context.fnArray,
-    argsArray = context.argsArray;
-  const curr = context.iCurr;
-  const iFirstSave = curr - 3;
-  const iFirstTransform = curr - 2;
-  const iFirstPIIXO = curr - 1;
-  const count = Math.min(Math.floor((i - iFirstSave) / 4), MAX_IMAGES_IN_INLINE_IMAGES_BLOCK);
-  if (count < MIN_IMAGES_IN_INLINE_IMAGES_BLOCK) {
-    return i - (i - iFirstSave) % 4;
-  }
-  let maxX = 0;
-  const map = [];
-  let maxLineHeight = 0;
-  let currentX = IMAGE_PADDING,
-    currentY = IMAGE_PADDING;
-  for (let q = 0; q < count; q++) {
-    const transform = argsArray[iFirstTransform + (q << 2)];
-    const img = argsArray[iFirstPIIXO + (q << 2)][0];
-    if (currentX + img.width > MAX_WIDTH) {
-      maxX = Math.max(maxX, currentX);
-      currentY += maxLineHeight + 2 * IMAGE_PADDING;
-      currentX = 0;
-      maxLineHeight = 0;
-    }
-    map.push({
-      transform,
-      x: currentX,
-      y: currentY,
-      w: img.width,
-      h: img.height
-    });
-    currentX += img.width + 2 * IMAGE_PADDING;
-    maxLineHeight = Math.max(maxLineHeight, img.height);
-  }
-  const imgWidth = Math.max(maxX, currentX) + IMAGE_PADDING;
-  const imgHeight = currentY + maxLineHeight + IMAGE_PADDING;
-  const imgData = new Uint8Array(imgWidth * imgHeight * 4);
-  const imgRowSize = imgWidth << 2;
-  for (let q = 0; q < count; q++) {
-    const data = argsArray[iFirstPIIXO + (q << 2)][0].data;
-    const rowSize = map[q].w << 2;
-    let dataOffset = 0;
-    let offset = map[q].x + map[q].y * imgWidth << 2;
-    imgData.set(data.subarray(0, rowSize), offset - imgRowSize);
-    for (let k = 0, kk = map[q].h; k < kk; k++) {
-      imgData.set(data.subarray(dataOffset, dataOffset + rowSize), offset);
-      dataOffset += rowSize;
-      offset += imgRowSize;
-    }
-    imgData.set(data.subarray(dataOffset - rowSize, dataOffset), offset);
-    while (offset >= 0) {
-      data[offset - 4] = data[offset];
-      data[offset - 3] = data[offset + 1];
-      data[offset - 2] = data[offset + 2];
-      data[offset - 1] = data[offset + 3];
-      data[offset + rowSize] = data[offset + rowSize - 4];
-      data[offset + rowSize + 1] = data[offset + rowSize - 3];
-      data[offset + rowSize + 2] = data[offset + rowSize - 2];
-      data[offset + rowSize + 3] = data[offset + rowSize - 1];
-      offset -= imgRowSize;
-    }
-  }
-  const img = {
-    width: imgWidth,
-    height: imgHeight
-  };
-  if (context.isOffscreenCanvasSupported) {
-    const canvas = new OffscreenCanvas(imgWidth, imgHeight);
-    const ctx = canvas.getContext("2d");
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(imgData.buffer), imgWidth, imgHeight), 0, 0);
-    img.bitmap = canvas.transferToImageBitmap();
-    img.data = null;
-  } else {
-    img.kind = ImageKind.RGBA_32BPP;
-    img.data = imgData;
-  }
-  fnArray.splice(iFirstSave, count * 4, OPS.paintInlineImageXObjectGroup);
-  argsArray.splice(iFirstSave, count * 4, [img, map]);
-  return iFirstSave + 1;
-});
-addState(InitialState, [OPS.save, OPS.transform, OPS.paintImageMaskXObject, OPS.restore], null, function iterateImageMaskGroup(context, i) {
-  const fnArray = context.fnArray;
-  const iFirstSave = context.iCurr - 3;
-  const pos = (i - iFirstSave) % 4;
-  switch (pos) {
-    case 0:
-      return fnArray[i] === OPS.save;
-    case 1:
-      return fnArray[i] === OPS.transform;
-    case 2:
-      return fnArray[i] === OPS.paintImageMaskXObject;
-    case 3:
-      return fnArray[i] === OPS.restore;
-  }
-  throw new Error(`iterateImageMaskGroup - invalid pos: ${pos}`);
-}, function foundImageMaskGroup(context, i) {
-  const MIN_IMAGES_IN_MASKS_BLOCK = 10;
-  const MAX_IMAGES_IN_MASKS_BLOCK = 100;
-  const MAX_SAME_IMAGES_IN_MASKS_BLOCK = 1000;
-  const fnArray = context.fnArray,
-    argsArray = context.argsArray;
-  const curr = context.iCurr;
-  const iFirstSave = curr - 3;
-  const iFirstTransform = curr - 2;
-  const iFirstPIMXO = curr - 1;
-  let count = Math.floor((i - iFirstSave) / 4);
-  if (count < MIN_IMAGES_IN_MASKS_BLOCK) {
-    return i - (i - iFirstSave) % 4;
-  }
-  let isSameImage = false;
-  let iTransform, transformArgs;
-  const firstPIMXOArg0 = argsArray[iFirstPIMXO][0];
-  const firstTransformArg0 = argsArray[iFirstTransform][0],
-    firstTransformArg1 = argsArray[iFirstTransform][1],
-    firstTransformArg2 = argsArray[iFirstTransform][2],
-    firstTransformArg3 = argsArray[iFirstTransform][3];
-  if (firstTransformArg1 === firstTransformArg2) {
-    isSameImage = true;
-    iTransform = iFirstTransform + 4;
-    let iPIMXO = iFirstPIMXO + 4;
-    for (let q = 1; q < count; q++, iTransform += 4, iPIMXO += 4) {
-      transformArgs = argsArray[iTransform];
-      if (argsArray[iPIMXO][0] !== firstPIMXOArg0 || transformArgs[0] !== firstTransformArg0 || transformArgs[1] !== firstTransformArg1 || transformArgs[2] !== firstTransformArg2 || transformArgs[3] !== firstTransformArg3) {
-        if (q < MIN_IMAGES_IN_MASKS_BLOCK) {
-          isSameImage = false;
-        } else {
-          count = q;
-        }
-        break;
-      }
-    }
-  }
-  if (isSameImage) {
-    count = Math.min(count, MAX_SAME_IMAGES_IN_MASKS_BLOCK);
-    const positions = new Float32Array(count * 2);
-    iTransform = iFirstTransform;
-    for (let q = 0; q < count; q++, iTransform += 4) {
-      transformArgs = argsArray[iTransform];
-      positions[q << 1] = transformArgs[4];
-      positions[(q << 1) + 1] = transformArgs[5];
-    }
-    fnArray.splice(iFirstSave, count * 4, OPS.paintImageMaskXObjectRepeat);
-    argsArray.splice(iFirstSave, count * 4, [firstPIMXOArg0, firstTransformArg0, firstTransformArg1, firstTransformArg2, firstTransformArg3, positions]);
-  } else {
-    count = Math.min(count, MAX_IMAGES_IN_MASKS_BLOCK);
-    const images = [];
-    for (let q = 0; q < count; q++) {
-      transformArgs = argsArray[iFirstTransform + (q << 2)];
-      const maskParams = argsArray[iFirstPIMXO + (q << 2)][0];
-      images.push({
-        data: maskParams.data,
-        width: maskParams.width,
-        height: maskParams.height,
-        interpolate: maskParams.interpolate,
-        count: maskParams.count,
-        transform: transformArgs
-      });
-    }
-    fnArray.splice(iFirstSave, count * 4, OPS.paintImageMaskXObjectGroup);
-    argsArray.splice(iFirstSave, count * 4, [images]);
-  }
-  return iFirstSave + 1;
-});
-addState(InitialState, [OPS.save, OPS.transform, OPS.paintImageXObject, OPS.restore], function (context) {
-  const argsArray = context.argsArray;
-  const iFirstTransform = context.iCurr - 2;
-  return argsArray[iFirstTransform][1] === 0 && argsArray[iFirstTransform][2] === 0;
-}, function iterateImageGroup(context, i) {
-  const fnArray = context.fnArray,
-    argsArray = context.argsArray;
-  const iFirstSave = context.iCurr - 3;
-  const pos = (i - iFirstSave) % 4;
-  switch (pos) {
-    case 0:
-      return fnArray[i] === OPS.save;
-    case 1:
-      if (fnArray[i] !== OPS.transform) {
-        return false;
-      }
-      const iFirstTransform = context.iCurr - 2;
-      const firstTransformArg0 = argsArray[iFirstTransform][0];
-      const firstTransformArg3 = argsArray[iFirstTransform][3];
-      if (argsArray[i][0] !== firstTransformArg0 || argsArray[i][1] !== 0 || argsArray[i][2] !== 0 || argsArray[i][3] !== firstTransformArg3) {
-        return false;
-      }
-      return true;
-    case 2:
-      if (fnArray[i] !== OPS.paintImageXObject) {
-        return false;
-      }
-      const iFirstPIXO = context.iCurr - 1;
-      const firstPIXOArg0 = argsArray[iFirstPIXO][0];
-      if (argsArray[i][0] !== firstPIXOArg0) {
-        return false;
-      }
-      return true;
-    case 3:
-      return fnArray[i] === OPS.restore;
-  }
-  throw new Error(`iterateImageGroup - invalid pos: ${pos}`);
-}, function (context, i) {
-  const MIN_IMAGES_IN_BLOCK = 3;
-  const MAX_IMAGES_IN_BLOCK = 1000;
-  const fnArray = context.fnArray,
-    argsArray = context.argsArray;
-  const curr = context.iCurr;
-  const iFirstSave = curr - 3;
-  const iFirstTransform = curr - 2;
-  const iFirstPIXO = curr - 1;
-  const firstPIXOArg0 = argsArray[iFirstPIXO][0];
-  const firstTransformArg0 = argsArray[iFirstTransform][0];
-  const firstTransformArg3 = argsArray[iFirstTransform][3];
-  const count = Math.min(Math.floor((i - iFirstSave) / 4), MAX_IMAGES_IN_BLOCK);
-  if (count < MIN_IMAGES_IN_BLOCK) {
-    return i - (i - iFirstSave) % 4;
-  }
-  const positions = new Float32Array(count * 2);
-  let iTransform = iFirstTransform;
-  for (let q = 0; q < count; q++, iTransform += 4) {
-    const transformArgs = argsArray[iTransform];
-    positions[q << 1] = transformArgs[4];
-    positions[(q << 1) + 1] = transformArgs[5];
-  }
-  const args = [firstPIXOArg0, firstTransformArg0, firstTransformArg3, positions];
-  fnArray.splice(iFirstSave, count * 4, OPS.paintImageXObjectRepeat);
-  argsArray.splice(iFirstSave, count * 4, args);
-  return iFirstSave + 1;
-});
-addState(InitialState, [OPS.beginText, OPS.setFont, OPS.setTextMatrix, OPS.showText, OPS.endText], null, function iterateShowTextGroup(context, i) {
-  const fnArray = context.fnArray,
-    argsArray = context.argsArray;
-  const iFirstSave = context.iCurr - 4;
-  const pos = (i - iFirstSave) % 5;
-  switch (pos) {
-    case 0:
-      return fnArray[i] === OPS.beginText;
-    case 1:
-      return fnArray[i] === OPS.setFont;
-    case 2:
-      return fnArray[i] === OPS.setTextMatrix;
-    case 3:
-      if (fnArray[i] !== OPS.showText) {
-        return false;
-      }
-      const iFirstSetFont = context.iCurr - 3;
-      const firstSetFontArg0 = argsArray[iFirstSetFont][0];
-      const firstSetFontArg1 = argsArray[iFirstSetFont][1];
-      if (argsArray[i][0] !== firstSetFontArg0 || argsArray[i][1] !== firstSetFontArg1) {
-        return false;
-      }
-      return true;
-    case 4:
-      return fnArray[i] === OPS.endText;
-  }
-  throw new Error(`iterateShowTextGroup - invalid pos: ${pos}`);
-}, function (context, i) {
-  const MIN_CHARS_IN_BLOCK = 3;
-  const MAX_CHARS_IN_BLOCK = 1000;
-  const fnArray = context.fnArray,
-    argsArray = context.argsArray;
-  const curr = context.iCurr;
-  const iFirstBeginText = curr - 4;
-  const iFirstSetFont = curr - 3;
-  const iFirstSetTextMatrix = curr - 2;
-  const iFirstShowText = curr - 1;
-  const iFirstEndText = curr;
-  const firstSetFontArg0 = argsArray[iFirstSetFont][0];
-  const firstSetFontArg1 = argsArray[iFirstSetFont][1];
-  let count = Math.min(Math.floor((i - iFirstBeginText) / 5), MAX_CHARS_IN_BLOCK);
-  if (count < MIN_CHARS_IN_BLOCK) {
-    return i - (i - iFirstBeginText) % 5;
-  }
-  let iFirst = iFirstBeginText;
-  if (iFirstBeginText >= 4 && fnArray[iFirstBeginText - 4] === fnArray[iFirstSetFont] && fnArray[iFirstBeginText - 3] === fnArray[iFirstSetTextMatrix] && fnArray[iFirstBeginText - 2] === fnArray[iFirstShowText] && fnArray[iFirstBeginText - 1] === fnArray[iFirstEndText] && argsArray[iFirstBeginText - 4][0] === firstSetFontArg0 && argsArray[iFirstBeginText - 4][1] === firstSetFontArg1) {
-    count++;
-    iFirst -= 5;
-  }
-  let iEndText = iFirst + 4;
-  for (let q = 1; q < count; q++) {
-    fnArray.splice(iEndText, 3);
-    argsArray.splice(iEndText, 3);
-    iEndText += 2;
-  }
-  return iEndText + 1;
-});
-class NullOptimizer {
-  constructor(queue) {
-    this.queue = queue;
-  }
-  _optimize() {}
-  push(fn, args) {
-    this.queue.fnArray.push(fn);
-    this.queue.argsArray.push(args);
-    this._optimize();
-  }
-  flush() {}
-  reset() {}
-}
-class QueueOptimizer extends NullOptimizer {
-  constructor(queue) {
-    super(queue);
-    this.state = null;
-    this.context = {
-      iCurr: 0,
-      fnArray: queue.fnArray,
-      argsArray: queue.argsArray,
-      isOffscreenCanvasSupported: false
-    };
-    this.match = null;
-    this.lastProcessed = 0;
-  }
-  set isOffscreenCanvasSupported(value) {
-    this.context.isOffscreenCanvasSupported = value;
-  }
-  _optimize() {
-    const fnArray = this.queue.fnArray;
-    let i = this.lastProcessed,
-      ii = fnArray.length;
-    let state = this.state;
-    let match = this.match;
-    if (!state && !match && i + 1 === ii && !InitialState[fnArray[i]]) {
-      this.lastProcessed = ii;
-      return;
-    }
-    const context = this.context;
-    while (i < ii) {
-      if (match) {
-        const iterate = (0, match.iterateFn)(context, i);
-        if (iterate) {
-          i++;
-          continue;
-        }
-        i = (0, match.processFn)(context, i + 1);
-        ii = fnArray.length;
-        match = null;
-        state = null;
-        if (i >= ii) {
-          break;
-        }
-      }
-      state = (state || InitialState)[fnArray[i]];
-      if (!state || Array.isArray(state)) {
-        i++;
-        continue;
-      }
-      context.iCurr = i;
-      i++;
-      if (state.checkFn && !(0, state.checkFn)(context)) {
-        state = null;
-        continue;
-      }
-      match = state;
-      state = null;
-    }
-    this.state = state;
-    this.match = match;
-    this.lastProcessed = i;
-  }
-  flush() {
-    while (this.match) {
-      const length = this.queue.fnArray.length;
-      this.lastProcessed = (0, this.match.processFn)(this.context, length);
-      this.match = null;
-      this.state = null;
-      this._optimize();
-    }
-  }
-  reset() {
-    this.state = null;
-    this.match = null;
-    this.lastProcessed = 0;
-  }
-}
-class OperatorList {
-  static CHUNK_SIZE = 1000;
-  static CHUNK_SIZE_ABOUT = this.CHUNK_SIZE - 5;
-  constructor(intent = 0, streamSink) {
-    this._streamSink = streamSink;
-    this.fnArray = [];
-    this.argsArray = [];
-    this.optimizer = streamSink && !(intent & RenderingIntentFlag.OPLIST) ? new QueueOptimizer(this) : new NullOptimizer(this);
-    this.dependencies = new Set();
-    this._totalLength = 0;
-    this.weight = 0;
-    this._resolved = streamSink ? null : Promise.resolve();
-  }
-  set isOffscreenCanvasSupported(value) {
-    this.optimizer.isOffscreenCanvasSupported = value;
-  }
-  get length() {
-    return this.argsArray.length;
-  }
-  get ready() {
-    return this._resolved || this._streamSink.ready;
-  }
-  get totalLength() {
-    return this._totalLength + this.length;
-  }
-  addOp(fn, args) {
-    this.optimizer.push(fn, args);
-    this.weight++;
-    if (this._streamSink) {
-      if (this.weight >= OperatorList.CHUNK_SIZE) {
-        this.flush();
-      } else if (this.weight >= OperatorList.CHUNK_SIZE_ABOUT && (fn === OPS.restore || fn === OPS.endText)) {
-        this.flush();
-      }
-    }
-  }
-  addImageOps(fn, args, optionalContent, hasMask = false) {
-    if (hasMask) {
-      this.addOp(OPS.save);
-      this.addOp(OPS.setGState, [[["SMask", false]]]);
-    }
-    if (optionalContent !== undefined) {
-      this.addOp(OPS.beginMarkedContentProps, ["OC", optionalContent]);
-    }
-    this.addOp(fn, args);
-    if (optionalContent !== undefined) {
-      this.addOp(OPS.endMarkedContent, []);
-    }
-    if (hasMask) {
-      this.addOp(OPS.restore);
-    }
-  }
-  addDependency(dependency) {
-    if (this.dependencies.has(dependency)) {
-      return;
-    }
-    this.dependencies.add(dependency);
-    this.addOp(OPS.dependency, [dependency]);
-  }
-  addDependencies(dependencies) {
-    for (const dependency of dependencies) {
-      this.addDependency(dependency);
-    }
-  }
-  addOpList(opList) {
-    if (!(opList instanceof OperatorList)) {
-      warn('addOpList - ignoring invalid "opList" parameter.');
-      return;
-    }
-    for (const dependency of opList.dependencies) {
-      this.dependencies.add(dependency);
-    }
-    for (let i = 0, ii = opList.length; i < ii; i++) {
-      this.addOp(opList.fnArray[i], opList.argsArray[i]);
-    }
-  }
-  getIR() {
-    return {
-      fnArray: this.fnArray,
-      argsArray: this.argsArray,
-      length: this.length
-    };
-  }
-  get _transfers() {
-    const transfers = [];
-    const {
-      fnArray,
-      argsArray,
-      length
-    } = this;
-    for (let i = 0; i < length; i++) {
-      switch (fnArray[i]) {
-        case OPS.paintInlineImageXObject:
-        case OPS.paintInlineImageXObjectGroup:
-        case OPS.paintImageMaskXObject:
-          const arg = argsArray[i][0];
-          if (!arg.cached && arg.data?.buffer instanceof ArrayBuffer) {
-            transfers.push(arg.data.buffer);
-          }
-          break;
-        case OPS.constructPath:
-          const [, [data], minMax] = argsArray[i];
-          if (data) {
-            transfers.push(data.buffer, minMax.buffer);
-          }
-          break;
-      }
-    }
-    return transfers;
-  }
-  flush(lastChunk = false, separateAnnots = null) {
-    this.optimizer.flush();
-    const length = this.length;
-    this._totalLength += length;
-    this._streamSink.enqueue({
-      fnArray: this.fnArray,
-      argsArray: this.argsArray,
-      lastChunk,
-      separateAnnots,
-      length
-    }, 1, this._transfers);
-    this.dependencies.clear();
-    this.fnArray.length = 0;
-    this.argsArray.length = 0;
-    this.weight = 0;
-    this.optimizer.reset();
-  }
-}
-
 ;// ./src/core/image.js
 
 
@@ -30798,13 +31089,19 @@ function normalizeBlendMode(value, parsingArray = false) {
   warn(`Unsupported blend mode: ${value.name}`);
   return "source-over";
 }
-function addLocallyCachedImageOps(opList, data) {
-  if (data.objId) {
-    opList.addDependency(data.objId);
+function addCachedImageOps(opList, {
+  objId,
+  fn,
+  args,
+  optionalContent,
+  hasMask
+}) {
+  if (objId) {
+    opList.addDependency(objId);
   }
-  opList.addImageOps(data.fn, data.args, data.optionalContent, data.hasMask);
-  if (data.fn === OPS.paintImageMaskXObject && data.args[0]?.count > 0) {
-    data.args[0].count++;
+  opList.addImageOps(fn, args, optionalContent, hasMask);
+  if (fn === OPS.paintImageMaskXObject && args[0]?.count > 0) {
+    args[0].count++;
   }
 }
 class TimeSlotManager {
@@ -31045,7 +31342,9 @@ class PartialEvaluator {
       }
       operatorList.addOp(OPS.beginGroup, [groupOptions]);
     }
-    const args = group ? [matrix, null] : [matrix, bbox];
+    const f32matrix = matrix && new Float32Array(matrix);
+    const f32bbox = !group && bbox && new Float32Array(bbox) || null;
+    const args = [f32matrix, f32bbox];
     operatorList.addOp(OPS.paintFormXObjectBegin, args);
     await this.getOperatorList({
       stream: xobj,
@@ -31115,21 +31414,13 @@ class PartialEvaluator {
           inverseDecode: decode?.[0] > 0,
           interpolate
         });
-        imgData.cached = !!cacheKey;
-        fn = OPS.paintImageMaskXObject;
-        args = [imgData];
-        operatorList.addImageOps(fn, args, optionalContent);
-        if (cacheKey) {
-          const cacheData = {
-            fn,
-            args,
-            optionalContent
-          };
-          localImageCache.set(cacheKey, imageRef, cacheData);
-          if (imageRef) {
-            this._regionalImageCache.set(null, imageRef, cacheData);
-          }
+        args = compileType3Glyph(imgData);
+        if (args) {
+          operatorList.addImageOps(OPS.constructPath, args, optionalContent);
+          return;
         }
+        warn("Cannot compile Type3 glyph.");
+        operatorList.addImageOps(OPS.paintImageMaskXObject, [imgData], optionalContent);
         return;
       }
       imgData = await PDFImage.createMask({
@@ -31199,7 +31490,6 @@ class PartialEvaluator {
           localColorSpaceCache
         });
         imgData = await imageObj.createImageData(true, false);
-        operatorList.isOffscreenCanvasSupported = this.options.isOffscreenCanvasSupported;
         operatorList.addImageOps(OPS.paintInlineImageXObject, [imgData], optionalContent);
       } catch (reason) {
         const msg = `Unable to decode inline image: "${reason}".`;
@@ -31211,7 +31501,8 @@ class PartialEvaluator {
       return;
     }
     let objId = `img_${this.idFactory.createObjId()}`,
-      cacheGlobally = false;
+      cacheGlobally = false,
+      globalCacheData = null;
     if (this.parsingType3Font) {
       objId = `${this.idFactory.getDocId()}_type3_${objId}`;
     } else if (cacheKey && imageRef) {
@@ -31226,15 +31517,16 @@ class PartialEvaluator {
     args = [objId, w, h];
     operatorList.addImageOps(fn, args, optionalContent, hasMask);
     if (cacheGlobally) {
+      globalCacheData = {
+        objId,
+        fn,
+        args,
+        optionalContent,
+        hasMask,
+        byteSize: 0
+      };
       if (this.globalImageCache.hasDecodeFailed(imageRef)) {
-        this.globalImageCache.setData(imageRef, {
-          objId,
-          fn,
-          args,
-          optionalContent,
-          hasMask,
-          byteSize: 0
-        });
+        this.globalImageCache.setData(imageRef, globalCacheData);
         this._sendImgData(objId, null, cacheGlobally);
         return;
       }
@@ -31243,14 +31535,7 @@ class PartialEvaluator {
           imageRef
         }]);
         if (localLength) {
-          this.globalImageCache.setData(imageRef, {
-            objId,
-            fn,
-            args,
-            optionalContent,
-            hasMask,
-            byteSize: 0
-          });
+          this.globalImageCache.setData(imageRef, globalCacheData);
           this.globalImageCache.addByteSize(imageRef, localLength);
           return;
         }
@@ -31291,14 +31576,8 @@ class PartialEvaluator {
       if (imageRef) {
         this._regionalImageCache.set(null, imageRef, cacheData);
         if (cacheGlobally) {
-          this.globalImageCache.setData(imageRef, {
-            objId,
-            fn,
-            args,
-            optionalContent,
-            hasMask,
-            byteSize: 0
-          });
+          assert(globalCacheData, "The global cache-data must be available.");
+          this.globalImageCache.setData(imageRef, globalCacheData);
         }
       }
     }
@@ -31953,7 +32232,7 @@ class PartialEvaluator {
             if (isValidName) {
               const localImage = localImageCache.getByName(name);
               if (localImage) {
-                addLocallyCachedImageOps(operatorList, localImage);
+                addCachedImageOps(operatorList, localImage);
                 args = null;
                 continue;
               }
@@ -31964,16 +32243,9 @@ class PartialEvaluator {
               }
               let xobj = xobjs.getRaw(name);
               if (xobj instanceof Ref) {
-                const localImage = localImageCache.getByRef(xobj) || self._regionalImageCache.getByRef(xobj);
-                if (localImage) {
-                  addLocallyCachedImageOps(operatorList, localImage);
-                  resolveXObject();
-                  return;
-                }
-                const globalImage = self.globalImageCache.getData(xobj, self.pageIndex);
-                if (globalImage) {
-                  operatorList.addDependency(globalImage.objId);
-                  operatorList.addImageOps(globalImage.fn, globalImage.args, globalImage.optionalContent, globalImage.hasMask);
+                const cachedImage = localImageCache.getByRef(xobj) || self._regionalImageCache.getByRef(xobj) || self.globalImageCache.getData(xobj, self.pageIndex);
+                if (cachedImage) {
+                  addCachedImageOps(operatorList, cachedImage);
                   resolveXObject();
                   return;
                 }
@@ -32034,7 +32306,7 @@ class PartialEvaluator {
             if (cacheKey) {
               const localImage = localImageCache.getByName(cacheKey);
               if (localImage) {
-                addLocallyCachedImageOps(operatorList, localImage);
+                addCachedImageOps(operatorList, localImage);
                 args = null;
                 continue;
               }
@@ -32322,6 +32594,9 @@ class PartialEvaluator {
               }
               continue;
             }
+          case OPS.setTextMatrix:
+            operatorList.addOp(fn, [new Float32Array(args)]);
+            continue;
           case OPS.markPoint:
           case OPS.markPointProps:
           case OPS.beginCompat:
@@ -49207,7 +49482,9 @@ function getQuadPoints(dict, rect) {
   return newQuadPoints;
 }
 function getTransformMatrix(rect, bbox, matrix) {
-  const [minX, minY, maxX, maxY] = Util.getAxialAlignedBoundingBox(bbox, matrix);
+  const minMax = new Float32Array([Infinity, Infinity, -Infinity, -Infinity]);
+  Util.axialAlignedBoundingBox(bbox, matrix, minMax);
+  const [minX, minY, maxX, maxY] = minMax;
   if (minX === maxX || minY === maxY) {
     return [1, 0, 0, 1, rect[0], rect[1]];
   }
@@ -49624,8 +49901,10 @@ class Annotation {
     const transform = getTransformMatrix(rect, bbox, matrix);
     transform[4] -= rect[0];
     transform[5] -= rect[1];
-    coords = Util.applyTransform(coords, transform);
-    return Util.applyTransform(coords, matrix);
+    const p = coords.slice();
+    Util.applyTransform(p, transform);
+    Util.applyTransform(p, matrix);
+    return p;
   }
   getFieldObject() {
     if (this.data.kidIds) {
@@ -55755,6 +56034,7 @@ class PDFDocument {
 
 
 
+
 function parseDocBaseUrl(url) {
   if (url) {
     const absoluteUrl = createValidAbsoluteUrl(url);
@@ -55783,6 +56063,7 @@ class BasePdfManager {
     this.evaluatorOptions = Object.freeze(evaluatorOptions);
     ImageResizer.setOptions(evaluatorOptions);
     JpegStream.setOptions(evaluatorOptions);
+    OperatorList.setOptions(evaluatorOptions);
     const options = {
       ...evaluatorOptions,
       handler
@@ -56449,7 +56730,7 @@ function writeString(string, offset, buffer) {
 function computeMD5(filesize, xrefInfo) {
   const time = Math.floor(Date.now() / 1000);
   const filename = xrefInfo.filename || "";
-  const md5Buffer = [time.toString(), filename, filesize.toString(), ...Object.values(xrefInfo.info)];
+  const md5Buffer = [time.toString(), filename, filesize.toString(), ...xrefInfo.infoMap.values()];
   const md5BufferLen = Math.sumPrecise(md5Buffer.map(str => str.length));
   const array = new Uint8Array(md5BufferLen);
   let offset = 0;
@@ -56892,7 +57173,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.1.91";
+    const workerVersion = "5.2.33";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57275,12 +57556,12 @@ class WorkerMessageHandler {
       }
       let newXrefInfo = Object.create(null);
       if (xref.trailer) {
-        const infoObj = Object.create(null);
+        const infoMap = new Map();
         const xrefInfo = xref.trailer.get("Info") || null;
         if (xrefInfo instanceof Dict) {
           for (const [key, value] of xrefInfo) {
             if (typeof value === "string") {
-              infoObj[key] = stringToPDFString(value);
+              infoMap.set(key, stringToPDFString(value));
             }
           }
         }
@@ -57289,7 +57570,7 @@ class WorkerMessageHandler {
           encryptRef: xref.trailer.getRaw("Encrypt") || null,
           newRef: xref.getNewTemporaryRef(),
           infoRef: xref.trailer.getRaw("Info") || null,
-          info: infoObj,
+          infoMap,
           fileIds: xref.trailer.get("ID") || null,
           startXRef: linearization ? startXRef : xref.lastXRefStreamPos ?? startXRef,
           filename
@@ -57417,8 +57698,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.1.91";
-const pdfjsBuild = "45cbe8bb0";
+const pdfjsVersion = "5.2.33";
+const pdfjsBuild = "72feb4c25";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

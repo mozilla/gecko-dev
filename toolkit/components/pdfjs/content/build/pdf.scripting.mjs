@@ -1213,8 +1213,8 @@ class AForm {
       AVG: args => args.reduce((acc, value) => acc + value, 0) / args.length,
       SUM: args => args.reduce((acc, value) => acc + value, 0),
       PRD: args => args.reduce((acc, value) => acc * value, 1),
-      MIN: args => args.reduce((acc, value) => Math.min(acc, value), Number.MAX_VALUE),
-      MAX: args => args.reduce((acc, value) => Math.max(acc, value), Number.MIN_VALUE)
+      MIN: args => Math.min(...args),
+      MAX: args => Math.max(...args)
     };
     if (!(cFunction in actions)) {
       throw new TypeError("Invalid function in AFSimple_Calculate");
@@ -4043,8 +4043,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "5.1.91";
-const pdfjsBuild = "45cbe8bb0";
+const pdfjsVersion = "5.2.33";
+const pdfjsBuild = "72feb4c25";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
