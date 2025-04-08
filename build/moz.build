@@ -26,10 +26,9 @@ if CONFIG["RUSTC"]:
 
 DEFINES["ACCEPTED_MAR_CHANNEL_IDS"] = CONFIG["ACCEPTED_MAR_CHANNEL_IDS"]
 
-if CONFIG["MOZ_BUILD_APP"] == "browser":
-    PYTHON_UNITTEST_MANIFESTS += [
-        "compare-mozconfig/python.toml",
-    ]
+PYTHON_UNITTEST_MANIFESTS += [
+    "compare-mozconfig/python.toml",
+]
 
 if CONFIG["ENABLE_TESTS"] or CONFIG["MOZ_DMD"]:
     FINAL_TARGET_FILES += ["/tools/rb/fix_stacks.py"]

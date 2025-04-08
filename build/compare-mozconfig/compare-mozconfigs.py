@@ -34,7 +34,8 @@ class ConfigError(Exception):
 
 def readConfig(configfile):
     c = {}
-    execfile(configfile, c)
+    with open(configfile) as config:
+        exec(config.read(), c)
     return c["whitelist"]
 
 
@@ -109,7 +110,7 @@ def verify_mozconfigs(
 
 def get_mozconfig(path):
     """Consumes a path and returns a list of lines from the mozconfig file."""
-    with open(path, "rb") as fh:
+    with open(path) as fh:
         return fh.readlines()
 
 
