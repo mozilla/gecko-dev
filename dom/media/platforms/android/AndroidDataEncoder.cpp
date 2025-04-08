@@ -241,30 +241,35 @@ class AutoRelease final {
   java::Sample::GlobalRef mSample;
 };
 
+static bool IsAVCC(Maybe<EncoderConfig::CodecSpecific>& aCodecSpecific) {
+  return aCodecSpecific && aCodecSpecific->is<H264Specific>() &&
+         aCodecSpecific->as<H264Specific>().mFormat == H264BitStreamFormat::AVC;
+}
+
 static RefPtr<MediaByteBuffer> ExtractCodecConfig(
     java::SampleBuffer::Param aBuffer, const int32_t aOffset,
-    const int32_t aSize, const bool aAsAnnexB) {
-  auto annexB = MakeRefPtr<MediaByteBuffer>(aSize);
-  annexB->SetLength(aSize);
+    const int32_t aSize, const bool aAsAVCC) {
+  auto config = MakeRefPtr<MediaByteBuffer>(aSize);
+  config->SetLength(aSize);
   jni::ByteBuffer::LocalRef dest =
-      jni::ByteBuffer::New(annexB->Elements(), aSize);
+      jni::ByteBuffer::New(config->Elements(), aSize);
   aBuffer->WriteToByteBuffer(dest, aOffset, aSize);
-  if (aAsAnnexB) {
-    return annexB;
+  if (!aAsAVCC) {
+    return config;
   }
   // Convert to avcC.
   nsTArray<AnnexB::NALEntry> paramSets;
   AnnexB::ParseNALEntries(
-      Span<const uint8_t>(annexB->Elements(), annexB->Length()), paramSets);
+      Span<const uint8_t>(config->Elements(), config->Length()), paramSets);
 
   auto avcc = MakeRefPtr<MediaByteBuffer>();
   AnnexB::NALEntry& sps = paramSets.ElementAt(0);
   AnnexB::NALEntry& pps = paramSets.ElementAt(1);
-  const uint8_t* spsPtr = annexB->Elements() + sps.mOffset;
+  const uint8_t* spsPtr = config->Elements() + sps.mOffset;
   H264::WriteExtraData(
       avcc, spsPtr[1], spsPtr[2], spsPtr[3],
       Span<const uint8_t>(spsPtr, sps.mSize),
-      Span<const uint8_t>(annexB->Elements() + pps.mOffset, pps.mSize));
+      Span<const uint8_t>(config->Elements() + pps.mOffset, pps.mSize));
   return avcc;
 }
 
@@ -313,7 +318,7 @@ void AndroidDataEncoder::ProcessOutput(
   if (size > 0) {
     if ((flags & java::sdk::MediaCodec::BUFFER_FLAG_CODEC_CONFIG) != 0) {
       mConfigData = ExtractCodecConfig(aBuffer, offset, size,
-                                       mConfig.mUsage == Usage::Realtime);
+                                       IsAVCC(mConfig.mCodecSpecific));
       return;
     }
     RefPtr<MediaRawData> output;
@@ -366,11 +371,12 @@ RefPtr<MediaRawData> AndroidDataEncoder::GetOutputDataH264(
 
   size_t prependSize = 0;
   RefPtr<MediaByteBuffer> avccHeader;
+  bool asAVCC = IsAVCC(mConfig.mCodecSpecific);
   if (aIsKeyFrame && mConfigData) {
-    if (mConfig.mUsage == Usage::Realtime) {
-      prependSize = mConfigData->Length();
-    } else {
+    if (asAVCC) {
       avccHeader = mConfigData;
+    } else {
+      prependSize = mConfigData->Length();
     }
   }
 
@@ -388,8 +394,7 @@ RefPtr<MediaRawData> AndroidDataEncoder::GetOutputDataH264(
       jni::ByteBuffer::New(writer->Data() + prependSize, aSize);
   aBuffer->WriteToByteBuffer(buf, aOffset, aSize);
 
-  if (mConfig.mUsage != Usage::Realtime &&
-      !AnnexB::ConvertSampleToAVCC(output, avccHeader)) {
+  if (asAVCC && !AnnexB::ConvertSampleToAVCC(output, avccHeader)) {
     AND_ENC_LOGE("fail to convert annex-b sample to AVCC");
     return nullptr;
   }
