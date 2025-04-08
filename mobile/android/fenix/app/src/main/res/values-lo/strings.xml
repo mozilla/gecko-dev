@@ -1469,6 +1469,8 @@
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ບໍ່ມີໄຟລທີ່ໄດ້ດາວໂຫລດມາ</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">ບໍ່ມີການດາວໂຫຼດເທື່ອ</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">ໄຟລ໌ທີ່ທ່ານດາວໂຫຼດຈະປາກົດຢູ່ບ່ອນນີ້.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1476,6 +1478,8 @@
   <string name="download_multi_select_title">ເລືອກ %1$d ແລ້ວ</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">ລຶບ</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">ລຶບ</string>
   <!--
     Time period headers for downloads
 
@@ -1496,6 +1500,20 @@
     Text for the filter button to show all files in the downloads list
   -->
   <string name="download_content_type_filter_all">ທັງໝົດ</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">ຮູບພາບ</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">ວີດີໂອ</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">ເອກະສານ</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">ອື່ນໆ</string>
+  <!--
+    Description of a downloaded item, displayed in the downloads list.
+    %1$s: The size of the downloaded file.
+    %2$s: The URL of the downloaded file.
+  -->
+  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 

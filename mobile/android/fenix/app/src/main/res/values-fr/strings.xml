@@ -3438,17 +3438,17 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Définir comme navigateur par défaut</string>
+  <string name="setup_checklist_task_default_browser">Définir comme navigateur par défaut</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Vous connecter à votre compte</string>
+  <string name="setup_checklist_task_account_sync">Vous connecter à votre compte</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Sélectionner un thème</string>
+  <string name="setup_checklist_task_theme_selection">Sélectionner un thème</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Choisir l’emplacement de la barre d’outils</string>
+  <string name="setup_checklist_task_toolbar_selection">Choisir l’emplacement de la barre d’outils</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Parcourir les extensions</string>
+  <string name="setup_checklist_task_explore_extensions">Parcourir les extensions</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Installer le widget de recherche</string>
+  <string name="setup_checklist_task_search_widget">Installer le widget de recherche</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Tâche terminée</string>
   <!-- Accessibility description for the task icon -->

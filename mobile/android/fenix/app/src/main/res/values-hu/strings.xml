@@ -3440,24 +3440,24 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Beállítás alapértelmezett böngészőként</string>
+  <string name="setup_checklist_task_default_browser">Beállítás alapértelmezett böngészőként</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Bejelentkezés a fiókjába</string>
+  <string name="setup_checklist_task_account_sync">Bejelentkezés a fiókjába</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Téma kiválasztása
+  <string name="setup_checklist_task_theme_selection">Téma kiválasztása
 </string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Eszköztár elhelyezésének kiválasztása</string>
+  <string name="setup_checklist_task_toolbar_selection">Eszköztár elhelyezésének kiválasztása</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Kiegészítők felfedezése</string>
+  <string name="setup_checklist_task_explore_extensions">Kiegészítők felfedezése</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Keresőmodul telepítése</string>
+  <string name="setup_checklist_task_search_widget">Keresőmodul telepítése</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">A %1$s alapvető funkciói</string>
+  <string name="setup_checklist_group_essentials">A %1$s alapvető funkciói</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">A %1$s testreszabása</string>
+  <string name="setup_checklist_group_customize">A %1$s testreszabása</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Hasznos eszközök</string>
+  <string name="setup_checklist_group_helpful_tools">Hasznos eszközök</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Befejezett feladat</string>
   <!-- Accessibility description for the task icon -->

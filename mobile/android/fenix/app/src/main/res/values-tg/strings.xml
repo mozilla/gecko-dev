@@ -3441,23 +3441,23 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Гузоштан ҳамчун браузери пешфарз</string>
+  <string name="setup_checklist_task_default_browser">Гузоштан ҳамчун браузери пешфарз</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Ба ҳисоби худ ворид шавед</string>
+  <string name="setup_checklist_task_account_sync">Ба ҳисоби худ ворид шавед</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Мавзуеро интихоб намоед</string>
+  <string name="setup_checklist_task_theme_selection">Мавзуеро интихоб намоед</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Ҷойгиршавии навори абзорҳоро интихоб намоед</string>
+  <string name="setup_checklist_task_toolbar_selection">Ҷойгиршавии навори абзорҳоро интихоб намоед</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Васеъшавиҳоро озмоед</string>
+  <string name="setup_checklist_task_explore_extensions">Васеъшавиҳоро озмоед</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Насб кардани виҷети ҷустуҷӯ</string>
+  <string name="setup_checklist_task_search_widget">Насб кардани виҷети ҷустуҷӯ</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">Чизҳои муҳим барои «%1$s»</string>
+  <string name="setup_checklist_group_essentials">Чизҳои муҳим барои «%1$s»</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">Браузери «%1$s»-и худро ба таври дихоҳ танзим намоед</string>
+  <string name="setup_checklist_group_customize">Браузери «%1$s»-и худро ба таври дихоҳ танзим намоед</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Абзорҳои муфид</string>
+  <string name="setup_checklist_group_helpful_tools">Абзорҳои муфид</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Вазифаи иҷрошуда</string>
   <!-- Accessibility description for the task icon -->

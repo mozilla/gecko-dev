@@ -643,6 +643,22 @@
   <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Per aiutà à amendà u navigatore, Firefox manda à Mozilla dati di diagnosticu è d’interazzione. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Amministrà</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Aiutateci à fà cresce Firefox</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Quandu vo spartite cumu vo avete scupertu Firefox è chì vo l’impiegate, ci aiutate à fà cunnosce u nostru navigatore à un mezu paese.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Spartite unipochi dati cu i cumpagni di tecnolugia cummerciale. Sti dati ùn sò mai vindute o impiegate per mustravvi publicità.</string>
+  <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+  <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Cumu no impieghemu i dati</string>
+  <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Cunfirmà è principià a navigazione</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Un’ultima cosa</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Spartite cumu vo avete scupertu Firefox, è chì vo l’impiegate, cù i cumpagni cummerciali di Mozilla. Sti dati ùn sò mai vindute.</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Accettà è principià a navigazione</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Sciglite a piazza di a barra d’attrezzi</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -658,6 +674,8 @@
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Fiura di a barra d’attrezzi inferiore</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Fiura di a barra d’attrezzi superiore</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">selezziunà</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Sceglie un tema</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -674,6 +692,14 @@
   <string name="onboarding_customize_theme_main_image_content_description">Fiura maiò d’intestatura di a vista di selezzione di u tema mustrendu attrezzi illustrati per artisti è custruttori.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Fiura di u tema %1$s</string>
+  <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_theme_a11y_action_label_select">selezziunà</string>
+  <!--
+    Widget Picker
+
+    Widget description for widget picker screen
+  -->
+  <string name="widget_picket_description">Lancià una ricerca pronta</string>
   <!--
     Search Widget
 
@@ -745,6 +771,10 @@
   <string name="preferences_add_private_browsing_shortcut">Aghjunghje un accurtatoghju per a navigazione privata</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Modu solu HTTPS</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Impiegà l’ammarchjunata di u screnu per piattà l’unghjette in navigazione privata</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Affissà l’unghjette cù l’impronta digitale, a ricunnuscenza faciale o un codice PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blucchime di e striscie di cannistrelli</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -841,12 +871,18 @@
   <string name="preferences_show_voice_search">Affissà a ricerca vucale</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Affissà durante e sessioni di navigazione privata</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Affissà e suggestioni pupulare</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">Affissà e ricerche recente</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Affissà e suggestioni di u preme’papei</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Ricercà in a cronolugia di navigazione</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Ricercà in l’indette</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Affissà l’accurtatoghji</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Ricercà in l’unghjette sincrunizate</string>
   <!-- Preference for account settings -->
@@ -867,6 +903,16 @@
   <string name="preferences_show_nonsponsored_suggestions">Suggestioni da %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Ottene suggestioni da u web relative à a vostra ricerca</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">Spartera di liame</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">Include un liame di scaricamentu di %1$s in e spartere nant’à WhatsApp</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Invitate i vostri amichi à pruvà una navigazione più rapida è più sicura cù %1$s ogni volta chì vo spartite un liame nant’à WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Liame spartutu</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Amministrà i parametri</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Apre i liami in l’appiecazioni</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1084,8 +1130,19 @@
   <string name="exceptions_empty_message_learn_more_link">Sapene di più</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Dati tecnichi è d’interazzione</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_2">Mandà i dati tecnichi è d’interazzione</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">Sapene di più</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">I dati apprupositu di u vostru apparechju, a cunfigurazione materiale è u vostru adopru ci aiutanu à amendà e funzioni, e perfurmenze è a stabilità di Firefox.</string>
+  <!-- Preference switch for campaign measurement data (marketing data) collection -->
+  <string name="preferences_marketing_data_2">Dati di misura di e campagne</string>
+  <!--
+    Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
+  -->
+  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Spartite cumu vo avete scupertu Firefox, è chì vo l’impiegate, cù i cumpagni cummerciali di Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Sapene di più nant’à i dati cummerciali</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1282,6 +1339,10 @@
   <string name="studies_remove">Caccià</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Attivi</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">Pruvate funzioni è idee prima ch’elle sianu dispunibule à tutti.</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">Installà è lancià studii</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Sapene di più</string>
   <!--
@@ -1387,10 +1448,31 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Scaricamenti cacciati</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Elementi squassati : %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s hè statu cacciatu</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">« %1$s » squassatu</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Scaricamentu in corsu…</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detaglii</string>
+  <!-- Text for the snackbar to confirm that a download has completed. -->
+  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Scaricamentu compiu</string>
+  <!-- Text for the snackbar action button to open a completed download. -->
+  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Apre</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Abbandunà</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Nisunu schedariu scaricatu</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Nisunu scaricamentu à st’ora</string>
+  <!-- Text description shown when no download exists -->
+  <string name="download_empty_description">I schedarii chì vo scaricate seranu affissati quì.</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1398,6 +1480,73 @@
   <string name="download_multi_select_title">%1$d selezziunatu(i)</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Caccià</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Squassà</string>
+  <!-- Text for the button to share the download URL -->
+  <string name="download_share_url">Sparte l’indirizzu web</string>
+  <!-- Text for the button to share the download file -->
+  <string name="download_share_file">Sparte u schedariu</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the title. -->
+  <string name="download_delete_multi_select_dialog_confirmation" tools:ignore="UnusedResources">Da veru, vulete squassà l’elementi selezziunati ?</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the positive action. -->
+  <string name="download_delete_multi_select_dialog_confirm" tools:ignore="UnusedResources">Squassà</string>
+  <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
+  <string name="download_delete_multi_select_dialog_cancel" tools:ignore="UnusedResources">Abbandunà</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress" tools:ignore="UnusedResources">In corsu</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Oghje</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Eri</string>
+  <!-- Text for the header that groups the downloads the past 7 days -->
+  <string name="download_time_period_last_7_days">L’ultimi 7 ghjorni</string>
+  <!-- Text for the header that groups the downloads the past 30 days -->
+  <string name="download_time_period_last_30_days">L’ultimi 30 ghjorni</string>
+  <!-- Text for the header that groups the downloads older than other groups -->
+  <string name="download_time_period_older">Più vechju</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s rimanente</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" tools:ignore="UnusedResources">in pausa</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">in attesa</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed" tools:ignore="UnusedResources">Fiascu di u scaricamentu</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">Circà in i scaricamenti</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">Nisunu risultatu trovu</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">Tutti</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">Fiure</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">Filmetti</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">Ducumenti</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Altri</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Altru</string>
+  <!--
+    Description of a downloaded item, displayed in the downloads list.
+    %1$s: The size of the downloaded file.
+    %2$s: The URL of the downloaded file.
+  -->
+  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 
@@ -1502,6 +1651,14 @@
   <string name="bookmark_menu_delete_button">Squassà</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Arregistrà</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Ordinà da u piu recente</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Ordinà da u più vechju</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Ordinà da A à Z</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Ordinà da Z à A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -1776,6 +1933,10 @@
   <string name="sync_add_new_device_learn_button">Sapene di più nant’à u mandà d’unghjette…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Cunnette un altru apparechju…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nMandatu da %2$s 🦊 Pruvate u navigatore mobile : %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nMandatu da %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2114,6 +2275,94 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Icona di preferenza d’eccezzione à a prutezzione rinfurzata contr’à u spiunagiu</string>
+  <!--
+    DNS Over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS sopra HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">U sistema di nome di duminiu (DNS) sopra HTTPS manda a vostra richiesta di nome di duminiu attraversu una cunnessione cifrata, pruvidendu un DNS sicuru per rende più difficiule a scuperta di quellu situ web chì vo state per accede.%1$s</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Sapene di più</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="preference_doh_up_description">Navigà insù</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Eccezzioni</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">Infurmazione</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Aghjunghje un situ</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Prutezzione predefinita</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s decide quandu impiegà u DNS sicuru per prutege a vostra vita privata.</string>
+  <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_1">Impiegà u furnidore chì vo avete selezziunatu</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">Impiegà u vostru sistema predefinitu di risuluzione di nome s’ella ci hè un prublema cù u furnidore di DNS sicuru</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Impiegà un furnidore lucale, s\'ella hè pussibule. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Disattivà in presenza di VPN, di cuntrollu parentale, o di strategie d’impresa</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Disattivà quand’una reta dice à %1$s ch’ellu ùn duveria micca impiegà di DNS sicuru. %2$s</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Prutezzione rinfurzata</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Cuntrollate quandu impiegà u DNS sicuru è sciglite u vostru furnidore.</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">Impiegà u furnidore chì vo avete selezziunatu</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">Impiegà u vostru sistema predefinitu di risuluzione di nome solu s’ella ci hè un prublema cù u DNS sicuru</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Prutezzione massima</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s impiegherà sempre u DNS sicuru. Riciverete un avertimentu di risicu di sicurità prima chì no impiegheghjimu u vostru DNS di u sistema.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Impiegà solu u furnidore chì vo avete selezziunatu</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Avertisce sempre s’è u DNS sicuru ùn hè micca dispunibule</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">S’è u DNS sicuru ùn hè micca dispunibule, i siti ùn si caricheranu micca o ùn funziuneranu micca currettamente</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">Disattivatu</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Impiegà u vostru sistema predefinitu di risuluzione</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Sceglie u furnidore</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(predefinitu)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Persunalizatu</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">Furnidore persunalizatu</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">Furnidore</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">L’indirizzu web deve principià cù « https:// »</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">Indirizzu web inaccettevule</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Abbandunà</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">Aghjunghje</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Eccezzioni</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s ùn impiegherà micca u DNS sicuru nant’à sti siti è i so sottuduminii.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Aghjunghje un situ</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Situ</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">esempiu.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">U duminiu deve esse accettevule</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Arregistrà</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Caccià tutte l’eccezzioni</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Assistenza</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2122,6 +2371,8 @@
   <string name="about_privacy_notice">Pulitica di cunfidenzialità</string>
   <!-- About page link text to open know your rights link -->
   <string name="about_know_your_rights">I vostri diritti</string>
+  <!-- About page link text to open terms of use link -->
+  <string name="about_terms_of_use" tools:ignore="UnusedResources">Cundizioni d’utilizazione</string>
   <!-- About page link text to open licensing information link -->
   <string name="about_licensing_information">Infurmazione di licenza</string>
   <!-- About page link text to open a screen with libraries that are used -->
@@ -2416,6 +2667,8 @@
   <string name="quick_settings_sheet_secure_connection_2">A cunnessione hè assicurata</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">A cunnessione ùn hè micca assicurata</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">Sta pagina hè piazzata nant’à u vostru apparechju.</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">Squassà i canistrelli è i dati di siti</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2571,10 +2824,19 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox suggerisce</string>
+  <!-- Search suggestions title for trending searches. -->
+  <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Ricerche pupulare</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">Tendenza nant’à %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Ricerca Google</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">Ricerca cù %s</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">Ricerche recente</string>
   <!--
     Default browser experiment
 
@@ -2887,6 +3149,14 @@
   <string name="download_language_file_dialog_positive_button_text_all_languages">Scaricà è traduce</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Abbandunà</string>
+  <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">Sicuru</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">Nonsicuru</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Fate casu nant’à stu situ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -2911,6 +3181,46 @@
   <string name="protection_panel_etp_toggle_enabled_description">S’è qualcosa ùn pare micca funziunà nant’à stu situ, pruvate di disattivà e prutezzioni.</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
   <string name="protection_panel_etp_toggle_disabled_description">E prutezzioni sò disattivate. Vi ricumandemu di riattivalle torna.</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Perseguitatori bluccati : %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">Ùn si trova nisunu perseguitatore</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Parametri di cunfidenzialità è di sicurità</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Perseguitatori bluccati : %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s : %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description">A squassatura di i canistrelli è di i dati di i siti per &lt;b&gt;%s&lt;/b&gt; puderia discunnettevi è viutà e sporte di cumprera.</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">Squassà</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">Abbandunà</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">Canistrelli è dati di siti sò stati squassati</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">Cunnessione assicurizata</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">Cunnessione micca assicurata</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">Verificatu da %s</string>
   <!--
     Debug drawer
 
@@ -3127,4 +3437,40 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Affissà u testu piattatu</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Squassà u testu</string>
+  <!--
+    Setup checklist feature
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser">Sceglie cum’è navigatore predefinitu</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync">Cunnittitevi à u vostru contu</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection">Selezziunà un temu</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">Sceglie a pusizione di a barra d’attrezzi</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions">Esplurà l’estensioni</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">Installà u widget di ricerca</string>
+  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_essentials">Essenziale per %1$s</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize">Persunalizà u vostru %1$s</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools">Attrezzi ghjuvevule</string>
+  <!-- Accessibility description for a check mark on a completed task -->
+  <string name="a11y_completed_task_description">Tacca compia</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">Icona di tacca</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Lascià l’unghjette private</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Spalancà</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Spalancà l’unghjette private</string>
 </resources>

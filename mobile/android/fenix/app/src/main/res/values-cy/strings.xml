@@ -3441,23 +3441,23 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Gosod fel y porwr ragosodedig</string>
+  <string name="setup_checklist_task_default_browser">Gosod fel y porwr ragosodedig</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Mewngofnodwch i\'ch cyfrif</string>
+  <string name="setup_checklist_task_account_sync">Mewngofnodwch i\'ch cyfrif</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Dewiswch thema</string>
+  <string name="setup_checklist_task_theme_selection">Dewiswch thema</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Dewiswch leoliad bar offer</string>
+  <string name="setup_checklist_task_toolbar_selection">Dewiswch leoliad bar offer</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Archwilio\'r estyniadau</string>
+  <string name="setup_checklist_task_explore_extensions">Archwilio\'r estyniadau</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Gosod teclyn chwilio</string>
+  <string name="setup_checklist_task_search_widget">Gosod teclyn chwilio</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">Hanfodion %1$s</string>
+  <string name="setup_checklist_group_essentials">Hanfodion %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">Cyfaddasu eich %1$s</string>
+  <string name="setup_checklist_group_customize">Cyfaddasu eich %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Offer defnyddiol</string>
+  <string name="setup_checklist_group_helpful_tools">Offer defnyddiol</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Tasg wedi\'i chwblhau</string>
   <!-- Accessibility description for the task icon -->
