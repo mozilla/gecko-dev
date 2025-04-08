@@ -70,3 +70,22 @@ region:
     telemetry_mirror: SEARCH_SERVICE_COUNTRY_FETCH_RESULT
     no_lint:
       - COMMON_PREFIX
+
+  store_region_result:
+    type: labeled_counter
+    description: >
+      Records if a detected region value was stored or ignored. A region might
+      be ignored if it is the US but the set timezone is not the US.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1938160
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1938160
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never
+    labels:
+      - setForRestOfWorld
+      - setForUnitedStates
+      - ignoredUnitedStatesIncorrectTimezone

@@ -225,16 +225,22 @@ class RegionDetector {
   /**
    * Validate then store the region and report telemetry.
    *
-   * @param region
+   * @param {string} region
    *   The region to store.
    */
   async _storeRegion(region) {
-    let isTimezoneUS = isUSTimezone();
+    let isTimezoneUS = this._isUSTimezone();
     // If it's a US region, but not a US timezone, we don't store
     // the value. This works because no region defaults to
     // ZZ (unknown) in nsURLFormatter
-    if (region != "US" || isTimezoneUS) {
+    if (region != "US") {
       this._setCurrentRegion(region, true);
+      Glean.region.storeRegionResult.setForRestOfWorld.add();
+    } else if (isTimezoneUS) {
+      this._setCurrentRegion(region, true);
+      Glean.region.storeRegionResult.setForUnitedStates.add();
+    } else {
+      Glean.region.storeRegionResult.ignoredUnitedStatesIncorrectTimezone.add();
     }
   }
 
@@ -784,6 +790,32 @@ class RegionDetector {
     }
   }
 
+  /**
+   * A method that tries to determine if this user is in a US geography according
+   * to their timezones.
+   *
+   * This is exposed so that tests may override it to avoid timezone issues when
+   * testing.
+   *
+   * @returns {boolean}
+   */
+  _isUSTimezone() {
+    // Timezone assumptions! We assume that if the system clock's timezone is
+    // between Newfoundland and Hawaii, that the user is in North America.
+
+    // This includes all of South America as well, but we have relatively few
+    // en-US users there, so that's OK.
+
+    // 150 minutes = 2.5 hours (UTC-2.5), which is
+    // Newfoundland Daylight Time (http://www.timeanddate.com/time/zones/ndt)
+
+    // 600 minutes = 10 hours (UTC-10), which is
+    // Hawaii-Aleutian Standard Time (http://www.timeanddate.com/time/zones/hast)
+
+    let UTCOffset = new Date().getTimezoneOffset();
+    return UTCOffset >= 150 && UTCOffset <= 600;
+  }
+
   observe(aSubject, aTopic) {
     log.info(`Observed ${aTopic}`);
     switch (aTopic) {
@@ -808,21 +840,3 @@ class RegionDetector {
 
 export let Region = new RegionDetector();
 Region.init();
-
-// A method that tries to determine if this user is in a US geography.
-function isUSTimezone() {
-  // Timezone assumptions! We assume that if the system clock's timezone is
-  // between Newfoundland and Hawaii, that the user is in North America.
-
-  // This includes all of South America as well, but we have relatively few
-  // en-US users there, so that's OK.
-
-  // 150 minutes = 2.5 hours (UTC-2.5), which is
-  // Newfoundland Daylight Time (http://www.timeanddate.com/time/zones/ndt)
-
-  // 600 minutes = 10 hours (UTC-10), which is
-  // Hawaii-Aleutian Standard Time (http://www.timeanddate.com/time/zones/hast)
-
-  let UTCOffset = new Date().getTimezoneOffset();
-  return UTCOffset >= 150 && UTCOffset <= 600;
-}

@@ -12,6 +12,9 @@ const { setTimeout } = ChromeUtils.importESModule(
 const { TestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TestUtils.sys.mjs"
 );
+const { sinon } = ChromeUtils.importESModule(
+  "resource://testing-common/Sinon.sys.mjs"
+);
 
 ChromeUtils.defineESModuleGetters(this, {
   RegionTestUtils: "resource://testing-common/RegionTestUtils.sys.mjs",
@@ -26,7 +29,7 @@ const histogram = Services.telemetry.getHistogramById(
   "SEARCH_SERVICE_COUNTRY_FETCH_RESULT"
 );
 
-// Region.sys.mjs will call init() on startup and sent a background
+// Region.sys.mjs will call init() on being loaded and set a background
 // task to fetch the region, ensure we have completed this before
 // running the rest of the tests.
 add_task(async function test_startup() {
@@ -36,6 +39,8 @@ add_task(async function test_startup() {
 });
 
 add_task(async function test_basic() {
+  Services.fog.testResetFOG();
+
   let srv = useHttpServer(RegionTestUtils.REGION_URL_PREF);
   srv.registerPathHandler("/", (req, res) => {
     res.setStatusLine("1.1", 200, "OK");
@@ -53,6 +58,8 @@ add_task(async function test_basic() {
     Region.home,
     "Notification should be sent with the correct region"
   );
+
+  assertStoredResultTelemetry({ restOfWorld: 1 });
 
   await cleanup(srv);
 });
@@ -135,6 +142,32 @@ add_task(async function test_update() {
   Assert.equal(Region.home, "DE", "Should have updated now");
 
   await cleanup();
+});
+
+add_task(async function test_update_us() {
+  Services.fog.testResetFOG();
+
+  // Setting the region to US whilst within a US timezone should work.
+  let stub = sinon.stub(Region, "_isUSTimezone").returns(true);
+  Region._home = null;
+  RegionTestUtils.setNetworkRegion("US");
+  await Region._fetchRegion();
+
+  assertStoredResultTelemetry({ unitedStates: 1 });
+  Assert.equal(Region.home, "US", "Should have correct region");
+
+  Services.fog.testResetFOG();
+
+  // Setting the region to US whilst not within a US timezone should not work.
+  stub.returns(false);
+  Region._home = null;
+  RegionTestUtils.setNetworkRegion("US");
+  await Region._fetchRegion();
+
+  assertStoredResultTelemetry({ ignoredUnitedStates: 1 });
+  Assert.equal(Region.home, null, "Should have not set the region");
+
+  sinon.restore();
 });
 
 add_task(async function test_max_retry() {
@@ -248,4 +281,26 @@ async function checkTelemetry(aExpectedValue) {
   });
   let snapshot = histogram.snapshot();
   Assert.equal(snapshot.values[aExpectedValue], 1);
+}
+
+function assertStoredResultTelemetry({
+  restOfWorld = null,
+  unitedStates = null,
+  ignoredUnitedStates = null,
+}) {
+  Assert.equal(
+    Glean.region.storeRegionResult.ignoredUnitedStatesIncorrectTimezone.testGetValue(),
+    ignoredUnitedStates,
+    "Should have the expected count for ignoring setting the region when US but not in the correct timezone"
+  );
+  Assert.equal(
+    Glean.region.storeRegionResult.setForUnitedStates.testGetValue(),
+    unitedStates,
+    "Should have the expected count for setting the region for the US"
+  );
+  Assert.equal(
+    Glean.region.storeRegionResult.setForRestOfWorld.testGetValue(),
+    restOfWorld,
+    "Should have the expected count for setting the region for the rest of the world"
+  );
 }
