@@ -173,6 +173,7 @@ for (const type of [
   "INIT",
   "INLINE_SELECTION_CLICK",
   "INLINE_SELECTION_IMPRESSION",
+  "MESSAGE_BLOCK",
   "MESSAGE_CLICK",
   "MESSAGE_DISMISS",
   "MESSAGE_IMPRESSION",
@@ -3039,9 +3040,16 @@ function FeatureHighlight({
         outsideClickCallback();
       }
     };
+    const handleKeyDown = e => {
+      if (e.key === "Escape") {
+        outsideClickCallback();
+      }
+    };
     windowObj.document.addEventListener("click", handleOutsideClick);
+    windowObj.document.addEventListener("keydown", handleKeyDown);
     return () => {
       windowObj.document.removeEventListener("click", handleOutsideClick);
+      windowObj.document.removeEventListener("keydown", handleKeyDown);
     };
   }, [windowObj, outsideClickCallback]);
   const onToggleClick = (0,external_React_namespaceObject.useCallback)(() => {
@@ -13754,9 +13762,13 @@ function WallpaperFeatureHighlight({
   position,
   dispatch,
   handleDismiss,
-  handleClose,
-  handleClick
+  handleClick,
+  handleBlock
 }) {
+  const onDismiss = (0,external_React_namespaceObject.useCallback)(() => {
+    handleDismiss();
+    handleBlock();
+  }, [handleDismiss, handleBlock]);
   const onToggleClick = (0,external_React_namespaceObject.useCallback)(elementId => {
     dispatch({
       type: actionTypes.SHOW_PERSONALIZE
@@ -13765,8 +13777,8 @@ function WallpaperFeatureHighlight({
       event: "SHOW_PERSONALIZE"
     }));
     handleClick(elementId);
-    handleDismiss();
-  }, [dispatch, handleDismiss, handleClick]);
+    onDismiss();
+  }, [dispatch, onDismiss, handleClick]);
   return /*#__PURE__*/external_React_default().createElement("div", {
     className: "wallpaper-feature-highlight"
   }, /*#__PURE__*/external_React_default().createElement(FeatureHighlight, {
@@ -13799,8 +13811,8 @@ function WallpaperFeatureHighlight({
     }),
     openedOverride: true,
     showButtonIcon: false,
-    dismissCallback: handleDismiss,
-    outsideClickCallback: handleClose
+    dismissCallback: onDismiss,
+    outsideClickCallback: handleDismiss
   }));
 }
 ;// CONCATENATED MODULE: ./content-src/components/MessageWrapper/MessageWrapper.jsx
@@ -13868,6 +13880,17 @@ function MessageWrapper({
     }
     handleClose();
   }
+  function handleBlock() {
+    const {
+      id
+    } = message.messageData;
+    if (id) {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.MESSAGE_BLOCK,
+        data: id
+      }));
+    }
+  }
   function handleClick(elementId) {
     const {
       id
@@ -13892,8 +13915,9 @@ function MessageWrapper({
   }, /*#__PURE__*/external_React_default().cloneElement(children, {
     isIntersecting,
     handleDismiss,
-    handleClose,
-    handleClick
+    handleClick,
+    handleBlock,
+    handleClose
   }));
 }
 
