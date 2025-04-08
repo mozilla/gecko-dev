@@ -6,6 +6,7 @@
 
 #include "gc/ParallelMarking.h"
 
+#include "gc/GCInternals.h"
 #include "gc/GCLock.h"
 #include "gc/ParallelWork.h"
 #include "vm/GeckoProfiler.h"
@@ -159,6 +160,8 @@ void ParallelMarkTask::recordDuration() {
 }
 
 void ParallelMarkTask::run(AutoLockHelperThreadState& lock) {
+  AutoUpdateMarkStackRanges updateRanges(*marker);
+
   for (;;) {
     if (hasWork()) {
       if (!tryMarking(lock)) {

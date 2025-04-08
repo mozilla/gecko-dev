@@ -1336,16 +1336,6 @@ bool GCMarker::doMarking(SliceBudget& budget, ShouldReportMarkTime reportTime) {
   return true;
 }
 
-class MOZ_RAII gc::AutoUpdateMarkStackRanges {
-  GCMarker& marker_;
-
- public:
-  explicit AutoUpdateMarkStackRanges(GCMarker& marker) : marker_(marker) {
-    marker_.updateRangesAtStartOfSlice();
-  }
-  ~AutoUpdateMarkStackRanges() { marker_.updateRangesAtEndOfSlice(); }
-};
-
 template <uint32_t opts, MarkColor color>
 bool GCMarker::markOneColor(SliceBudget& budget) {
   AutoSetMarkColor setColor(*this, color);
@@ -1361,7 +1351,7 @@ bool GCMarker::markOneColor(SliceBudget& budget) {
 }
 
 bool GCMarker::markCurrentColorInParallel(SliceBudget& budget) {
-  AutoUpdateMarkStackRanges updateRanges(*this);
+  MOZ_ASSERT(stack.elementsRangesAreValid);
 
   ParallelMarker::AtomicCount& waitingTaskCount =
       parallelMarker_->waitingTaskCountRef();
@@ -1429,6 +1419,8 @@ static inline size_t NumUsedDynamicSlots(NativeObject* obj) {
 }
 
 void GCMarker::updateRangesAtStartOfSlice() {
+  MOZ_ASSERT(!stack.elementsRangesAreValid);
+
   for (MarkStackIter iter(stack); !iter.done(); iter.next()) {
     if (iter.isSlotsOrElementsRange()) {
       MarkStack::SlotsOrElementsRange range = iter.slotsOrElementsRange();
@@ -1451,12 +1443,13 @@ void GCMarker::updateRangesAtStartOfSlice() {
   }
 
 #ifdef DEBUG
-  MOZ_ASSERT(!stack.elementsRangesAreValid);
   stack.elementsRangesAreValid = true;
 #endif
 }
 
 void GCMarker::updateRangesAtEndOfSlice() {
+  MOZ_ASSERT(stack.elementsRangesAreValid);
+
   for (MarkStackIter iter(stack); !iter.done(); iter.next()) {
     if (iter.isSlotsOrElementsRange()) {
       MarkStack::SlotsOrElementsRange range = iter.slotsOrElementsRange();
@@ -1470,7 +1463,6 @@ void GCMarker::updateRangesAtEndOfSlice() {
   }
 
 #ifdef DEBUG
-  MOZ_ASSERT(stack.elementsRangesAreValid);
   stack.elementsRangesAreValid = false;
 #endif
 }
@@ -1925,6 +1917,9 @@ size_t MarkStack::moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
   // When this method runs during parallel marking, we are on the thread that
   // owns |src|, and the thread that owns |dst| is blocked waiting on the
   // ParallelMarkTask::resumed condition variable.
+
+  MOZ_ASSERT(dst.isEmpty());
+  MOZ_ASSERT(src.elementsRangesAreValid == dst.elementsRangesAreValid);
 
   // Limit the size of moves to stop threads with work spending too much time
   // donating.

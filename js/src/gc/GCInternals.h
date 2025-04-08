@@ -19,11 +19,15 @@
 #include "gc/Cell.h"
 #include "gc/GC.h"
 #include "gc/GCContext.h"
+#include "gc/GCMarker.h"
 #include "vm/GeckoProfiler.h"
 #include "vm/HelperThreads.h"
 #include "vm/JSContext.h"
 
 namespace js {
+
+class GCMarker;
+
 namespace gc {
 
 /*
@@ -341,6 +345,16 @@ struct MinorSweepingTracer final
   template <typename T>
   void onEdge(T** thingp, const char* name);
   friend class GenericTracerImpl<MinorSweepingTracer>;
+};
+
+class MOZ_RAII AutoUpdateMarkStackRanges {
+  GCMarker& marker_;
+
+ public:
+  explicit AutoUpdateMarkStackRanges(GCMarker& marker) : marker_(marker) {
+    marker_.updateRangesAtStartOfSlice();
+  }
+  ~AutoUpdateMarkStackRanges() { marker_.updateRangesAtEndOfSlice(); }
 };
 
 extern void DelayCrossCompartmentGrayMarking(GCMarker* maybeMarker,
