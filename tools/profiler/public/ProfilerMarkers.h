@@ -32,6 +32,7 @@
 #ifndef ProfilerMarkers_h
 #define ProfilerMarkers_h
 
+#include "mozilla/Assertions.h"
 #include "mozilla/BaseProfilerMarkers.h"
 #include "mozilla/ProfilerMarkersDetail.h"
 #include "mozilla/ProfilerLabels.h"
@@ -352,6 +353,74 @@ class MOZ_RAII AutoProfilerTextMarker {
   mozilla::MarkerCategory mCategory;
   mozilla::MarkerOptions mOptions;
   nsCString mText;
+};
+
+// Creates an AutoProfilerFmtMarker RAII object. This macro is safe to use
+// even if MOZ_GECKO_PROFILER is not #defined.
+#define AUTO_PROFILER_MARKER_FMT(markerName, categoryName, options, format, \
+                                 ...)                                       \
+  AutoProfilerFmtMarker PROFILER_RAII(                                      \
+      markerName, ::mozilla::baseprofiler::category::categoryName, options, \
+      FMT_STRING(format), __VA_ARGS__)
+
+#define AUTO_PROFILER_MARKER_FMT_LONG(size, markerName, categoryName, options, \
+                                      format, ...)                             \
+  AutoProfilerFmtMarker<size> PROFILER_RAII(                                   \
+      markerName, ::mozilla::baseprofiler::category::categoryName, options,    \
+      FMT_STRING(format), __VA_ARGS__)
+
+// RAII object that adds a PROFILER_MARKER_FMT when destroyed; the marker's
+// timing will be the interval from construction (unless an instant or start
+// time is already specified in the provided options) until destruction.
+template <size_t TextLength = 512, typename CharT = char>
+class AutoProfilerFmtMarker {
+ public:
+  template <typename... Args>
+  AutoProfilerFmtMarker(const CharT* aMarkerName,
+                        const mozilla::MarkerCategory& aCategory,
+                        mozilla::MarkerOptions&& aOptions,
+                        fmt::format_string<Args...> aFormatStr, Args&&... aArgs)
+      : mMarkerName(aMarkerName),
+        mCategory(aCategory),
+        mOptions(std::move(aOptions)) {
+    if (profiler_is_active_and_unpaused()) {
+      if (mOptions.Timing().StartTime().IsNull()) {
+        mOptions.Set(mozilla::MarkerTiming::InstantNow());
+      }
+      auto [out, size] = fmt::vformat_to_n(
+          mFormatted, sizeof(mFormatted) - 1, aFormatStr,
+          fmt::make_format_args<fmt::buffered_context<CharT>>(aArgs...));
+
+#ifdef DEBUG
+      if (size > sizeof(mFormatted)) {
+        MOZ_CRASH_UNSAFE_PRINTF(
+            "Truncated marker, consider increasing the buffer (needed: %zu, "
+            "actual: %zu)",
+            size, sizeof(mFormatted));
+      }
+#endif
+
+      *out = 0;
+    }
+  }
+  ~AutoProfilerFmtMarker() {
+    if (profiler_is_active_and_unpaused()) {
+      AUTO_PROFILER_LABEL("FmtMarker", PROFILER);
+      mOptions.TimingRef().SetIntervalEnd();
+      AUTO_PROFILER_STATS(AUTO_PROFILER_MARKER_TEXT);
+      profiler_add_marker(
+          mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+          mCategory, std::move(mOptions), geckoprofiler::markers::TextMarker{},
+          mozilla::ProfilerString8View::WrapNullTerminatedString(mFormatted));
+    }
+  }
+
+ private:
+  const char* mMarkerName;
+  mozilla::TimeStamp startTime;
+  mozilla::MarkerCategory mCategory;
+  mozilla::MarkerOptions mOptions;
+  char mFormatted[TextLength]{};
 };
 
 // Creates an AutoProfilerTextMarker RAII object.  This macro is safe to use
