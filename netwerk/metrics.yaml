@@ -3168,3 +3168,42 @@ network:
       - necko@mozilla.com
     expires: never
     telemetry_mirror: IPV4_AND_IPV6_ADDRESS_CONNECTIVITY
+
+  rel_preload_miss_ratio:
+    type: labeled_counter
+    description: >
+      Ratio of used and unused resources preloaded with link rel=preload tag or
+      response header, broken down by supported resource type.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram REL_PRELOAD_MISS_RATIO.
+    labels:
+      - TYPE_SCRIPT_USED
+      - TYPE_SCRIPT_UNUSED
+      - TYPE_STYLE_USED
+      - TYPE_STYLE_UNUSED
+      - TYPE_IMAGE_USED
+      - TYPE_IMAGE_UNUSED
+      - TYPE_FONT_USED
+      - TYPE_FONT_UNUSED
+      - TYPE_FETCH_USED
+      - TYPE_FETCH_UNUSED
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1658532
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1583604
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1666981
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700831
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1736687
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1777403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1658532
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1583604
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1666981
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700831
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1736687
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1777403
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: h#REL_PRELOAD_MISS_RATIO

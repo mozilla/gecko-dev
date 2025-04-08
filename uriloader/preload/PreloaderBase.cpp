@@ -5,7 +5,7 @@
 #include "PreloaderBase.h"
 
 #include "mozilla/dom/Document.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "nsContentUtils.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIHttpChannel.h"
@@ -322,8 +322,8 @@ void PreloaderBase::ReportUsageTelemetry() {
     ++index;
   }
 
-  auto label = static_cast<Telemetry::LABELS_REL_PRELOAD_MISS_RATIO>(index);
-  Telemetry::AccumulateCategorical(label);
+  auto label = static_cast<glean::network::RelPreloadMissRatioLabel>(index);
+  glean::network::rel_preload_miss_ratio.EnumGet(label).Add();
 }
 
 nsresult PreloaderBase::AsyncConsume(nsIStreamListener* aListener) {
