@@ -199,6 +199,18 @@ mozilla::ipc::IPCResult SessionStoreParent::RecvIncrementalSessionStoreUpdate(
     const Maybe<FormData>& aFormData, const Maybe<nsPoint>& aScrollPosition,
     uint32_t aEpoch) {
   if (!aBrowsingContext.IsNull()) {
+    // The passed in BrowsingContext maybe already discarded and its mRawPtr is
+    // nullptr here. Let try to use the BrowsingContextId to get its
+    // Canonical one in the parent process for SessionStore update.
+    RefPtr<CanonicalBrowsingContext> bc;
+    if (aBrowsingContext.IsDiscarded()) {
+      bc = CanonicalBrowsingContext::Get(aBrowsingContext.ContextId());
+    } else {
+      bc = aBrowsingContext.GetMaybeDiscarded()->Canonical();
+    }
+    if (!bc) {
+      return IPC_OK();
+    }
     if (aFormData.isSome()) {
       mHasNewFormData = true;
     }
@@ -206,9 +218,7 @@ mozilla::ipc::IPCResult SessionStoreParent::RecvIncrementalSessionStoreUpdate(
       mHasNewScrollPosition = true;
     }
 
-    mSessionStore->UpdateSessionStore(
-        aBrowsingContext.GetMaybeDiscarded()->Canonical(), aFormData,
-        aScrollPosition, aEpoch);
+    mSessionStore->UpdateSessionStore(bc, aFormData, aScrollPosition, aEpoch);
   }
 
   return IPC_OK();
@@ -217,8 +227,19 @@ mozilla::ipc::IPCResult SessionStoreParent::RecvIncrementalSessionStoreUpdate(
 mozilla::ipc::IPCResult SessionStoreParent::RecvResetSessionStore(
     const MaybeDiscarded<BrowsingContext>& aBrowsingContext, uint32_t aEpoch) {
   if (!aBrowsingContext.IsNull()) {
-    mSessionStore->RemoveSessionStore(
-        aBrowsingContext.GetMaybeDiscarded()->Canonical());
+    // The passed in BrowsingContext maybe already discarded and its mRawPtr is
+    // nullptr here. Let try to use the BrowsingContextId to get its
+    // Canonical one in the parent process for SessionStore update.
+    RefPtr<CanonicalBrowsingContext> bc;
+    if (aBrowsingContext.IsDiscarded()) {
+      bc = CanonicalBrowsingContext::Get(aBrowsingContext.ContextId());
+    } else {
+      bc = aBrowsingContext.GetMaybeDiscarded()->Canonical();
+    }
+    if (!bc) {
+      return IPC_OK();
+    }
+    mSessionStore->RemoveSessionStore(bc);
   }
   return IPC_OK();
 }
