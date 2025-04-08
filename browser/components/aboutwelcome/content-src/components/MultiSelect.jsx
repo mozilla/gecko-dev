@@ -62,8 +62,9 @@ export const MultiSelect = ({
   setActiveMultiSelect,
   multiSelectId,
 }) => {
-  const { data } = content.tiles;
+  const { data, multiSelectItemDesign } = content.tiles;
 
+  const isPicker = multiSelectItemDesign === "picker";
   const refs = useRef({});
 
   const handleChange = useCallback(() => {
@@ -107,6 +108,48 @@ export const MultiSelect = ({
     [content.tiles.style]
   );
 
+  const PickerIcon = ({ emoji, bgColor, isChecked }) => {
+    return (
+      <span
+        className={`picker-icon ${isChecked ? "picker-checked" : ""}`}
+        style={{
+          ...(!isChecked && bgColor && { backgroundColor: bgColor }),
+        }}
+      >
+        {!isChecked && emoji ? emoji : ""}
+      </span>
+    );
+  };
+
+  // This handles interaction for when the user is clicking on or keyboard-interacting
+  // with the container element when using the picker design. It is required
+  // for appropriate accessibility.
+  const handleCheckboxContainerInteraction = e => {
+    if (!isPicker) {
+      return;
+    }
+
+    if (e.type === "keydown") {
+      // Prevent scroll on space presses
+      if (e.key === " ") {
+        e.preventDefault();
+      }
+
+      // Only handle space and enter keypresses
+      if (e.key !== " " && e.key !== "Enter") {
+        return;
+      }
+    }
+
+    const container = e.currentTarget;
+    // Manually flip the hidden checkbox since handleChange relies on it
+    const checkbox = container.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
+
+    // Manually call handleChange to update the multiselect state
+    handleChange();
+  };
+
   // When screen renders for first time, update state
   // with checkbox ids that has defaultvalue true
   useEffect(() => {
@@ -123,7 +166,7 @@ export const MultiSelect = ({
 
   return (
     <div
-      className="multi-select-container"
+      className={`multi-select-container ${multiSelectItemDesign || ""}`}
       style={containerStyle}
       role={
         items.some(({ type, group }) => type === "radio" && group)
@@ -138,11 +181,26 @@ export const MultiSelect = ({
         </Localized>
       ) : null}
       {items.map(
-        ({ id, label, description, icon, type = "checkbox", group, style }) => (
+        ({
+          id,
+          label,
+          description,
+          icon,
+          type = "checkbox",
+          group,
+          style,
+          pickerEmoji,
+          pickerEmojiBackgroundColor,
+        }) => (
           <div
             key={id + label}
             className="checkbox-container multi-select-item"
             style={AboutWelcomeUtils.getValidStyle(style, MULTI_SELECT_STYLES)}
+            tabIndex={isPicker ? "0" : null}
+            onClick={isPicker ? handleCheckboxContainerInteraction : null}
+            onKeyDown={isPicker ? handleCheckboxContainerInteraction : null}
+            role={isPicker ? "checkbox" : null}
+            aria-checked={isPicker ? activeMultiSelect?.includes(id) : null}
           >
             <input
               type={type} // checkbox or radio
@@ -157,7 +215,15 @@ export const MultiSelect = ({
               onChange={handleChange}
               ref={el => (refs.current[id] = el)}
               aria-describedby={description ? `${id}-description` : null}
+              tabIndex={isPicker ? "-1" : "0"}
             />
+            {isPicker && (
+              <PickerIcon
+                emoji={pickerEmoji}
+                bgColor={pickerEmojiBackgroundColor}
+                isChecked={activeMultiSelect?.includes(id)}
+              />
+            )}
             {label ? (
               <Localized text={label}>
                 <label htmlFor={id}></label>
