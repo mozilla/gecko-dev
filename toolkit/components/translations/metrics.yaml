@@ -8,7 +8,7 @@
 ---
 $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
 $tags:
-  - 'Firefox :: Translation'
+  - 'Firefox :: Translations'
 
 translations:
   request_count:

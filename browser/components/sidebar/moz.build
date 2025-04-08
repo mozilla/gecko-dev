@@ -18,3 +18,6 @@ EXTRA_JS_MODULES += [
 XPCSHELL_TESTS_MANIFESTS += ["tests/unit/xpcshell.toml"]
 
 SPHINX_TREES["docs"] = "docs"
+
+with Files("**"):
+    BUG_COMPONENT = ("Firefox", "Sidebar")

@@ -37,8 +37,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Core :: Cycle Collector':
   description: The Bugzilla component which applies to this object.
-'Core :: DLL Services':
-  description: The Bugzilla component which applies to this object.
 'Core :: DOM: Animation':
   description: The Bugzilla component which applies to this object.
 'Core :: DOM: Bindings (WebIDL)':
@@ -73,7 +71,7 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Core :: DOM: Notifications':
   description: The Bugzilla component which applies to this object.
-'Core :: DOM: Performance':
+'Core :: DOM: Performance APIs':
   description: The Bugzilla component which applies to this object.
 'Core :: DOM: Push Subscriptions':
   description: The Bugzilla component which applies to this object.
@@ -122,8 +120,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Core :: Hardware Abstraction Layer (HAL)':
   description: The Bugzilla component which applies to this object.
 'Core :: IPC':
-  description: The Bugzilla component which applies to this object.
-'Core :: IPC: MSCOM':
   description: The Bugzilla component which applies to this object.
 'Core :: Internationalization':
   description: The Bugzilla component which applies to this object.
@@ -209,11 +205,15 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Core :: Privacy: Anti-Tracking':
   description: The Bugzilla component which applies to this object.
+'Core :: SQLite and Embedded Database Bindings':
+  description: The Bugzilla component which applies to this object.
 'Core :: SVG':
   description: The Bugzilla component which applies to this object.
 'Core :: Security':
   description: The Bugzilla component which applies to this object.
 'Core :: Security: CAPS':
+  description: The Bugzilla component which applies to this object.
+'Core :: Security: MLS':
   description: The Bugzilla component which applies to this object.
 'Core :: Security: PSM':
   description: The Bugzilla component which applies to this object.
@@ -222,6 +222,8 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Core :: Security: RLBox':
   description: The Bugzilla component which applies to this object.
 'Core :: Spelling checker':
+  description: The Bugzilla component which applies to this object.
+'Core :: Storage: Bucket File System':
   description: The Bugzilla component which applies to this object.
 'Core :: Storage: Cache API':
   description: The Bugzilla component which applies to this object.
@@ -347,8 +349,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Firefox :: Keyboard Navigation':
   description: The Bugzilla component which applies to this object.
-'Firefox :: Launcher Process':
-  description: The Bugzilla component which applies to this object.
 'Firefox :: Menus':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Messaging System':
@@ -403,9 +403,13 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Firefox :: Toolbars and Customization':
   description: The Bugzilla component which applies to this object.
+'Firefox :: Top Sites':
+  description: The Bugzilla component which applies to this object.
 'Firefox :: Tours':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Translation':
+  description: The Bugzilla component which applies to this object.
+'Firefox :: Translations':
   description: The Bugzilla component which applies to this object.
 'Firefox :: about:logins':
   description: The Bugzilla component which applies to this object.
@@ -421,6 +425,8 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'GeckoView :: General':
   description: The Bugzilla component which applies to this object.
+'Geckoview :: General':
+  description: The Bugzilla component which applies to this object.
 'Localization Infrastructure and Tools :: Fluent Migration':
   description: The Bugzilla component which applies to this object.
 'Localization Infrastructure and Tools :: General':
@@ -431,9 +437,11 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'NSS :: Libraries':
   description: The Bugzilla component which applies to this object.
+'Release Engineering :: Applications: MozharnessCore':
+  description: The Bugzilla component which applies to this object.
 'Release Engineering :: General':
   description: The Bugzilla component which applies to this object.
-'Release Engineering :: Release Automation: Updates':
+'Release Engineering :: Release Automation':
   description: The Bugzilla component which applies to this object.
 'Remote Protocol :: Agent':
   description: The Bugzilla component which applies to this object.
@@ -501,13 +509,13 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Toolkit :: Downloads API':
   description: The Bugzilla component which applies to this object.
-'Toolkit :: FeatureGate':
-  description: The Bugzilla component which applies to this object.
 'Toolkit :: Find Toolbar':
   description: The Bugzilla component which applies to this object.
 'Toolkit :: Form Autofill':
   description: The Bugzilla component which applies to this object.
 'Toolkit :: Form Manager':
+  description: The Bugzilla component which applies to this object.
+'Toolkit :: Gecko Trace':
   description: The Bugzilla component which applies to this object.
 'Toolkit :: General':
   description: The Bugzilla component which applies to this object.
@@ -532,8 +540,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Toolkit :: Safe Browsing':
   description: The Bugzilla component which applies to this object.
 'Toolkit :: Startup and Profile System':
-  description: The Bugzilla component which applies to this object.
-'Toolkit :: Storage':
   description: The Bugzilla component which applies to this object.
 'Toolkit :: Telemetry':
   description: The Bugzilla component which applies to this object.
