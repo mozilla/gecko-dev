@@ -13,10 +13,6 @@ RemoteWorkerDebuggerManagerChild::RemoteWorkerDebuggerManagerChild() {
       RemoteWorkerService::Thread()->IsOnCurrentThread());
 }
 
-RemoteWorkerDebuggerManagerChild::~RemoteWorkerDebuggerManagerChild() {
-  MOZ_ASSERT_DEBUG_OR_FUZZING(
-      RemoteWorkerService::Thread() &&
-      RemoteWorkerService::Thread()->IsOnCurrentThread());
-}
+RemoteWorkerDebuggerManagerChild::~RemoteWorkerDebuggerManagerChild() {}
 
 }  // end of namespace mozilla::dom

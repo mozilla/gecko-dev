@@ -16,11 +16,15 @@ class WorkerPrivate;
 
 class RemoteWorkerDebuggerChild final : public PRemoteWorkerDebuggerChild {
   friend class PRemoteWorkerDebuggerChild;
+  friend class WorkerPrivate;
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteWorkerDebuggerChild, final)
 
   explicit RemoteWorkerDebuggerChild(WorkerPrivate* aWorkerPrivate);
+
+  mozilla::ipc::IPCResult RecvRegisterDone();
+  mozilla::ipc::IPCResult RecvUnregisterDone();
 
   mozilla::ipc::IPCResult RecvInitialize(const nsString& aURL);
   mozilla::ipc::IPCResult RecvPostMessage(const nsString& aMessage);
@@ -29,7 +33,7 @@ class RemoteWorkerDebuggerChild final : public PRemoteWorkerDebuggerChild {
  private:
   ~RemoteWorkerDebuggerChild();
 
-  RefPtr<WorkerPrivate> mWorkerPrivate;
+  bool mIsInitialized{false};
 };
 
 }  // namespace mozilla::dom
