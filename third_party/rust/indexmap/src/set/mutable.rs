@@ -29,7 +29,7 @@ pub trait MutableValues: private::Sealed {
 
     /// Return mutable reference to the value at an index.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Computes in **O(1)** time.
     fn get_index_mut2(&mut self, index: usize) -> Option<&mut Self::Value>;

@@ -299,6 +299,7 @@ impl<K, V, S> IndexMap<K, V, S> {
     ///
     /// ***Panics*** if the starting point is greater than the end point or if
     /// the end point is greater than the length of the map.
+    #[track_caller]
     pub fn drain<R>(&mut self, range: R) -> Drain<'_, K, V>
     where
         R: RangeBounds<usize>,
@@ -313,6 +314,7 @@ impl<K, V, S> IndexMap<K, V, S> {
     /// the elements `[0, at)` with its previous capacity unchanged.
     ///
     /// ***Panics*** if `at > len`.
+    #[track_caller]
     pub fn split_off(&mut self, at: usize) -> Self
     where
         S: Clone,
@@ -493,8 +495,15 @@ where
     /// assert_eq!(map.get_index_of(&'+'), Some(27));
     /// assert_eq!(map.len(), 28);
     /// ```
+    #[track_caller]
     pub fn insert_before(&mut self, mut index: usize, key: K, value: V) -> (usize, Option<V>) {
-        assert!(index <= self.len(), "index out of bounds");
+        let len = self.len();
+
+        assert!(
+            index <= len,
+            "index out of bounds: the len is {len} but the index is {index}. Expected index <= len"
+        );
+
         match self.entry(key) {
             Entry::Occupied(mut entry) => {
                 if index > entry.index() {
@@ -571,17 +580,26 @@ where
     /// // This is an invalid index for moving an existing key!
     /// map.shift_insert(map.len(), 'a', ());
     /// ```
+    #[track_caller]
     pub fn shift_insert(&mut self, index: usize, key: K, value: V) -> Option<V> {
         let len = self.len();
         match self.entry(key) {
             Entry::Occupied(mut entry) => {
-                assert!(index < len, "index out of bounds");
+                assert!(
+                    index < len,
+                    "index out of bounds: the len is {len} but the index is {index}"
+                );
+
                 let old = mem::replace(entry.get_mut(), value);
                 entry.move_index(index);
                 Some(old)
             }
             Entry::Vacant(entry) => {
-                assert!(index <= len, "index out of bounds");
+                assert!(
+                    index <= len,
+                    "index out of bounds: the len is {len} but the index is {index}. Expected index <= len"
+                );
+
                 entry.shift_insert(index, value);
                 None
             }
@@ -627,6 +645,7 @@ where
     /// assert!(map.into_iter().eq([(0, '_'), (1, 'A'), (5, 'E'), (3, 'C'), (2, 'B'), (4, 'D')]));
     /// assert_eq!(removed, &[(2, 'b'), (3, 'c')]);
     /// ```
+    #[track_caller]
     pub fn splice<R, I>(&mut self, range: R, replace_with: I) -> Splice<'_, I::IntoIter, K, V, S>
     where
         R: RangeBounds<usize>,
@@ -1149,7 +1168,7 @@ impl<K, V, S> IndexMap<K, V, S> {
 
     /// Get a key-value pair by index
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Computes in **O(1)** time.
     pub fn get_index(&self, index: usize) -> Option<(&K, &V)> {
@@ -1158,7 +1177,7 @@ impl<K, V, S> IndexMap<K, V, S> {
 
     /// Get a key-value pair by index
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Computes in **O(1)** time.
     pub fn get_index_mut(&mut self, index: usize) -> Option<(&K, &mut V)> {
@@ -1167,7 +1186,7 @@ impl<K, V, S> IndexMap<K, V, S> {
 
     /// Get an entry in the map by index for in-place manipulation.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Computes in **O(1)** time.
     pub fn get_index_entry(&mut self, index: usize) -> Option<IndexedEntry<'_, K, V>> {
@@ -1179,7 +1198,7 @@ impl<K, V, S> IndexMap<K, V, S> {
 
     /// Returns a slice of key-value pairs in the given range of indices.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Computes in **O(1)** time.
     pub fn get_range<R: RangeBounds<usize>>(&self, range: R) -> Option<&Slice<K, V>> {
@@ -1190,7 +1209,7 @@ impl<K, V, S> IndexMap<K, V, S> {
 
     /// Returns a mutable slice of key-value pairs in the given range of indices.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Computes in **O(1)** time.
     pub fn get_range_mut<R: RangeBounds<usize>>(&mut self, range: R) -> Option<&mut Slice<K, V>> {
@@ -1245,7 +1264,7 @@ impl<K, V, S> IndexMap<K, V, S> {
 
     /// Remove the key-value pair by index
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Like [`Vec::swap_remove`], the pair is removed by swapping it with the
     /// last element of the map and popping it off. **This perturbs
@@ -1258,7 +1277,7 @@ impl<K, V, S> IndexMap<K, V, S> {
 
     /// Remove the key-value pair by index
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     ///
     /// Like [`Vec::remove`], the pair is removed by shifting all of the
     /// elements that follow it, preserving their relative order.
@@ -1278,6 +1297,7 @@ impl<K, V, S> IndexMap<K, V, S> {
     /// ***Panics*** if `from` or `to` are out of bounds.
     ///
     /// Computes in **O(n)** time (average).
+    #[track_caller]
     pub fn move_index(&mut self, from: usize, to: usize) {
         self.core.move_index(from, to)
     }
@@ -1287,6 +1307,7 @@ impl<K, V, S> IndexMap<K, V, S> {
     /// ***Panics*** if `a` or `b` are out of bounds.
     ///
     /// Computes in **O(1)** time (average).
+    #[track_caller]
     pub fn swap_indices(&mut self, a: usize, b: usize) {
         self.core.swap_indices(a, b)
     }
@@ -1325,7 +1346,7 @@ where
     ///
     /// ***Panics*** if `key` is not present in the map.
     fn index(&self, key: &Q) -> &V {
-        self.get(key).expect("IndexMap: key not found")
+        self.get(key).expect("no entry found for key")
     }
 }
 
@@ -1367,7 +1388,7 @@ where
     ///
     /// ***Panics*** if `key` is not present in the map.
     fn index_mut(&mut self, key: &Q) -> &mut V {
-        self.get_mut(key).expect("IndexMap: key not found")
+        self.get_mut(key).expect("no entry found for key")
     }
 }
 
@@ -1411,7 +1432,12 @@ impl<K, V, S> Index<usize> for IndexMap<K, V, S> {
     /// ***Panics*** if `index` is out of bounds.
     fn index(&self, index: usize) -> &V {
         self.get_index(index)
-            .expect("IndexMap: index out of bounds")
+            .unwrap_or_else(|| {
+                panic!(
+                    "index out of bounds: the len is {len} but the index is {index}",
+                    len = self.len()
+                );
+            })
             .1
     }
 }
@@ -1450,8 +1476,12 @@ impl<K, V, S> IndexMut<usize> for IndexMap<K, V, S> {
     ///
     /// ***Panics*** if `index` is out of bounds.
     fn index_mut(&mut self, index: usize) -> &mut V {
+        let len: usize = self.len();
+
         self.get_index_mut(index)
-            .expect("IndexMap: index out of bounds")
+            .unwrap_or_else(|| {
+                panic!("index out of bounds: the len is {len} but the index is {index}");
+            })
             .1
     }
 }

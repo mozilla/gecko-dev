@@ -221,6 +221,7 @@ impl<K, V> Default for IterMut2<'_, K, V> {
 ///
 /// This `struct` is created by the [`IndexMap::into_iter`] method
 /// (provided by the [`IntoIterator`] trait). See its documentation for more.
+#[derive(Clone)]
 pub struct IntoIter<K, V> {
     iter: vec::IntoIter<Bucket<K, V>>,
 }
@@ -384,8 +385,8 @@ impl<K, V> Default for Keys<'_, K, V> {
 /// [values]: IndexMap#impl-Index<usize>-for-IndexMap<K,+V,+S>
 ///
 /// Since `Keys` is also an iterator, consuming items from the iterator will
-/// offset the effective indexes. Similarly, if `Keys` is obtained from
-/// [`Slice::keys`], indexes will be interpreted relative to the position of
+/// offset the effective indices. Similarly, if `Keys` is obtained from
+/// [`Slice::keys`], indices will be interpreted relative to the position of
 /// that slice.
 ///
 /// # Examples
@@ -431,7 +432,7 @@ impl<K, V> Default for Keys<'_, K, V> {
 /// map.insert("foo", 1);
 /// println!("{:?}", map.keys()[10]); // panics!
 /// ```
-impl<'a, K, V> Index<usize> for Keys<'a, K, V> {
+impl<K, V> Index<usize> for Keys<'_, K, V> {
     type Output = K;
 
     /// Returns a reference to the key at the supplied `index`.
@@ -666,6 +667,7 @@ where
     K: Hash + Eq,
     S: BuildHasher,
 {
+    #[track_caller]
     pub(super) fn new<R>(map: &'a mut IndexMap<K, V, S>, range: R, replace_with: I) -> Self
     where
         R: RangeBounds<usize>,
@@ -757,7 +759,7 @@ where
 {
 }
 
-impl<'a, I, K, V, S> fmt::Debug for Splice<'a, I, K, V, S>
+impl<I, K, V, S> fmt::Debug for Splice<'_, I, K, V, S>
 where
     I: fmt::Debug + Iterator<Item = (K, V)>,
     K: fmt::Debug + Hash + Eq,

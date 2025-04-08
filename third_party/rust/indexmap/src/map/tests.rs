@@ -542,6 +542,26 @@ fn into_values() {
 }
 
 #[test]
+fn drain_range() {
+    // Test the various heuristics of `erase_indices`
+    for range in [
+        0..0,   // nothing erased
+        10..90, // reinsert the few kept (..10 and 90..)
+        80..90, // update the few to adjust (80..)
+        20..30, // sweep everything
+    ] {
+        let mut vec = Vec::from_iter(0..100);
+        let mut map: IndexMap<i32, ()> = (0..100).map(|i| (i, ())).collect();
+        drop(vec.drain(range.clone()));
+        drop(map.drain(range));
+        assert!(vec.iter().eq(map.keys()));
+        for (i, x) in vec.iter().enumerate() {
+            assert_eq!(map.get_index_of(x), Some(i));
+        }
+    }
+}
+
+#[test]
 #[cfg(feature = "std")]
 fn from_array() {
     let map = IndexMap::from([(1, 2), (3, 4)]);
@@ -793,3 +813,18 @@ fn test_partition_point() {
     assert_eq!(b.partition_point(|_, &x| x < 7), 4);
     assert_eq!(b.partition_point(|_, &x| x < 8), 5);
 }
+
+macro_rules! move_index_oob {
+    ($test:ident, $from:expr, $to:expr) => {
+        #[test]
+        #[should_panic(expected = "index out of bounds")]
+        fn $test() {
+            let mut map: IndexMap<i32, ()> = (0..10).map(|k| (k, ())).collect();
+            map.move_index($from, $to);
+        }
+    };
+}
+move_index_oob!(test_move_index_out_of_bounds_0_10, 0, 10);
+move_index_oob!(test_move_index_out_of_bounds_0_max, 0, usize::MAX);
+move_index_oob!(test_move_index_out_of_bounds_10_0, 10, 0);
+move_index_oob!(test_move_index_out_of_bounds_max_0, usize::MAX, 0);

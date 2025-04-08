@@ -2,7 +2,7 @@ use super::{
     Bucket, Entries, IndexMap, IntoIter, IntoKeys, IntoValues, Iter, IterMut, Keys, Values,
     ValuesMut,
 };
-use crate::util::try_simplify_range;
+use crate::util::{slice_eq, try_simplify_range};
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -73,21 +73,21 @@ impl<K, V> Slice<K, V> {
 
     /// Get a key-value pair by index.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     pub fn get_index(&self, index: usize) -> Option<(&K, &V)> {
         self.entries.get(index).map(Bucket::refs)
     }
 
     /// Get a key-value pair by index, with mutable access to the value.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     pub fn get_index_mut(&mut self, index: usize) -> Option<(&K, &mut V)> {
         self.entries.get_mut(index).map(Bucket::ref_mut)
     }
 
     /// Returns a slice of key-value pairs in the given range of indices.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     pub fn get_range<R: RangeBounds<usize>>(&self, range: R) -> Option<&Self> {
         let range = try_simplify_range(range, self.entries.len())?;
         self.entries.get(range).map(Slice::from_slice)
@@ -95,7 +95,7 @@ impl<K, V> Slice<K, V> {
 
     /// Returns a mutable slice of key-value pairs in the given range of indices.
     ///
-    /// Valid indices are *0 <= index < self.len()*
+    /// Valid indices are `0 <= index < self.len()`.
     pub fn get_range_mut<R: RangeBounds<usize>>(&mut self, range: R) -> Option<&mut Self> {
         let range = try_simplify_range(range, self.entries.len())?;
         self.entries.get_mut(range).map(Slice::from_mut_slice)
@@ -335,9 +335,55 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for Slice<K, V> {
     }
 }
 
-impl<K: PartialEq, V: PartialEq> PartialEq for Slice<K, V> {
-    fn eq(&self, other: &Self) -> bool {
-        self.len() == other.len() && self.iter().eq(other)
+impl<K, V, K2, V2> PartialEq<Slice<K2, V2>> for Slice<K, V>
+where
+    K: PartialEq<K2>,
+    V: PartialEq<V2>,
+{
+    fn eq(&self, other: &Slice<K2, V2>) -> bool {
+        slice_eq(&self.entries, &other.entries, |b1, b2| {
+            b1.key == b2.key && b1.value == b2.value
+        })
+    }
+}
+
+impl<K, V, K2, V2> PartialEq<[(K2, V2)]> for Slice<K, V>
+where
+    K: PartialEq<K2>,
+    V: PartialEq<V2>,
+{
+    fn eq(&self, other: &[(K2, V2)]) -> bool {
+        slice_eq(&self.entries, other, |b, t| b.key == t.0 && b.value == t.1)
+    }
+}
+
+impl<K, V, K2, V2> PartialEq<Slice<K2, V2>> for [(K, V)]
+where
+    K: PartialEq<K2>,
+    V: PartialEq<V2>,
+{
+    fn eq(&self, other: &Slice<K2, V2>) -> bool {
+        slice_eq(self, &other.entries, |t, b| t.0 == b.key && t.1 == b.value)
+    }
+}
+
+impl<K, V, K2, V2, const N: usize> PartialEq<[(K2, V2); N]> for Slice<K, V>
+where
+    K: PartialEq<K2>,
+    V: PartialEq<V2>,
+{
+    fn eq(&self, other: &[(K2, V2); N]) -> bool {
+        <Self as PartialEq<[_]>>::eq(self, other)
+    }
+}
+
+impl<K, V, const N: usize, K2, V2> PartialEq<Slice<K2, V2>> for [(K, V); N]
+where
+    K: PartialEq<K2>,
+    V: PartialEq<V2>,
+{
+    fn eq(&self, other: &Slice<K2, V2>) -> bool {
+        <[_] as PartialEq<_>>::eq(self, other)
     }
 }
 

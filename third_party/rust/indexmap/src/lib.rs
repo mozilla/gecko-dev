@@ -1,4 +1,4 @@
-// We *mostly* avoid unsafe code, but `map::core::raw` allows it to use `RawTable` buckets.
+// We *mostly* avoid unsafe code, but `Slice` allows it for DST casting.
 #![deny(unsafe_code)]
 #![warn(rust_2018_idioms)]
 #![no_std]
@@ -36,7 +36,11 @@
 //!   (de)serializing [`IndexMap`] as an ordered sequence are available in the
 //!   [`map::serde_seq`] module.
 //! * `borsh`: Adds implementations for [`BorshSerialize`] and [`BorshDeserialize`]
-//!   to [`IndexMap`] and [`IndexSet`].
+//!   to [`IndexMap`] and [`IndexSet`]. **Note:** When this feature is enabled,
+//!   you cannot enable the `derive` feature of [`borsh`] due to a cyclic
+//!   dependency. Instead, add the `borsh-derive` crate as an explicit
+//!   dependency in your Cargo.toml and import as e.g.
+//!   `use borsh_derive::{BorshSerialize, BorshDeserialize};`.
 //! * `arbitrary`: Adds implementations for the [`arbitrary::Arbitrary`] trait
 //!   to [`IndexMap`] and [`IndexSet`].
 //! * `quickcheck`: Adds implementations for the [`quickcheck::Arbitrary`] trait
@@ -50,6 +54,7 @@
 //! [`Deserialize`]: `::serde::Deserialize`
 //! [`BorshSerialize`]: `::borsh::BorshSerialize`
 //! [`BorshDeserialize`]: `::borsh::BorshDeserialize`
+//! [`borsh`]: `::borsh`
 //! [`arbitrary::Arbitrary`]: `::arbitrary::Arbitrary`
 //! [`quickcheck::Arbitrary`]: `::quickcheck::Arbitrary`
 //!
@@ -63,20 +68,14 @@
 //!
 //! ```
 //! use fnv::FnvBuildHasher;
-//! use fxhash::FxBuildHasher;
 //! use indexmap::{IndexMap, IndexSet};
 //!
 //! type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 //! type FnvIndexSet<T> = IndexSet<T, FnvBuildHasher>;
 //!
-//! type FxIndexMap<K, V> = IndexMap<K, V, FxBuildHasher>;
-//! type FxIndexSet<T> = IndexSet<T, FxBuildHasher>;
-//!
 //! let std: IndexSet<i32> = (0..100).collect();
 //! let fnv: FnvIndexSet<i32> = (0..100).collect();
-//! let fx: FxIndexSet<i32> = (0..100).collect();
 //! assert_eq!(std, fnv);
-//! assert_eq!(std, fx);
 //! ```
 //!
 //! ### Rust Version
@@ -99,7 +98,8 @@
 //!   [`with_capacity_and_hasher`][IndexMap::with_capacity_and_hasher] instead.
 //!   A no-std compatible hasher will be needed as well, for example
 //!   from the crate `twox-hash`.
-//! - Macros [`indexmap!`] and [`indexset!`] are unavailable without `std`.
+//! - Macros [`indexmap!`] and [`indexset!`] are unavailable without `std`. Use
+//!   the macros [`indexmap_with_default!`] and [`indexset_with_default!`] instead.
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -127,9 +127,6 @@ pub mod set;
 // are documented after the "normal" methods.
 #[cfg(feature = "rayon")]
 mod rayon;
-
-#[cfg(feature = "rustc-rayon")]
-mod rustc;
 
 pub use crate::map::IndexMap;
 pub use crate::set::IndexSet;
