@@ -36,14 +36,14 @@ def readConfig(configfile):
     c = {}
     with open(configfile) as config:
         exec(config.read(), c)
-    return c["whitelist"]
+    return c["allowlist"]
 
 
 def verify_mozconfigs(
-    mozconfig_pair, nightly_mozconfig_pair, platform, mozconfigWhitelist
+    mozconfig_pair, nightly_mozconfig_pair, platform, mozconfigAllowlist
 ):
     """Compares mozconfig to nightly_mozconfig and compare to an optional
-    whitelist of known differences. mozconfig_pair and nightly_mozconfig_pair
+    allowlist of known differences. mozconfig_pair and nightly_mozconfig_pair
     are pairs containing the mozconfig's identifier and the list of lines in
     the mozconfig."""
 
@@ -68,20 +68,20 @@ def verify_mozconfigs(
             # skip comment lines
             if clean_line.startswith("#"):
                 continue
-            # compare to whitelist
+            # compare to allowlist
             message = ""
             if line[0] == "-":
                 # handle lines that move around in diff
                 if "+" + line[1:] in diff_list:
                     continue
-                if platform in mozconfigWhitelist.get("release", {}):
-                    if clean_line in mozconfigWhitelist["release"][platform]:
+                if platform in mozconfigAllowlist.get("release", {}):
+                    if clean_line in mozconfigAllowlist["release"][platform]:
                         continue
             elif line[0] == "+":
                 if "-" + line[1:] in diff_list:
                     continue
-                if platform in mozconfigWhitelist.get("nightly", {}):
-                    if clean_line in mozconfigWhitelist["nightly"][platform]:
+                if platform in mozconfigAllowlist.get("nightly", {}):
+                    if clean_line in mozconfigAllowlist["nightly"][platform]:
                         continue
                     else:
                         log.warning(
@@ -89,7 +89,7 @@ def verify_mozconfigs(
                             % (
                                 clean_line,
                                 platform,
-                                mozconfigWhitelist["nightly"][platform],
+                                mozconfigAllowlist["nightly"][platform],
                             )
                         )
             else:
@@ -116,7 +116,7 @@ def get_mozconfig(path):
 
 def compare(topsrcdir):
     app = os.path.join(topsrcdir, "browser")
-    whitelist = readConfig(os.path.join(app, "config", "mozconfigs", "whitelist"))
+    allowlist = readConfig(os.path.join(app, "config", "mozconfigs", "allowlist"))
 
     success = True
 
@@ -136,18 +136,18 @@ def compare(topsrcdir):
         beta_lines = get_mozconfig(beta_path)
         release_lines = get_mozconfig(release_path)
 
-        # Validate that entries in whitelist['nightly'][platform] are actually
+        # Validate that entries in allowlist['nightly'][platform] are actually
         # present.
-        whitelist_normalized = normalize_lines(whitelist["nightly"].get(platform, []))
+        allowlist_normalized = normalize_lines(allowlist["nightly"].get(platform, []))
         nightly_normalized = normalize_lines(nightly_lines)
 
-        for line in sorted(whitelist_normalized - nightly_normalized):
-            log.error("extra line in nightly whitelist: %s" % line)
+        for line in sorted(allowlist_normalized - nightly_normalized):
+            log.error("extra line in nightly allowlist: %s" % line)
             success = False
 
         log.info("Comparing beta and nightly mozconfigs")
         passed = verify_mozconfigs(
-            (beta_path, beta_lines), (nightly_path, nightly_lines), platform, whitelist
+            (beta_path, beta_lines), (nightly_path, nightly_lines), platform, allowlist
         )
 
         if not passed:
@@ -158,7 +158,7 @@ def compare(topsrcdir):
             (release_path, release_lines),
             (nightly_path, nightly_lines),
             platform,
-            whitelist,
+            allowlist,
         )
         if not passed:
             success = False

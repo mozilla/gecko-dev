@@ -67,7 +67,6 @@ avoid-blacklist-and-whitelist:
         - build/clang-plugin/NaNExprChecker.cpp
         - build/clang-plugin/NoPrincipalGetURI.cpp
         - build/clang-plugin/tests/TestNANTestingExpr.cpp
-        - build/compare-mozconfig/compare-mozconfigs.py
         - build/moz.configure/bindgen.configure
         - build/moz.configure/toolchain.configure
         - config/check_vanilla_allocations.py
