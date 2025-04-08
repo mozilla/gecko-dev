@@ -1167,19 +1167,31 @@ export var BrowserTestUtils = {
    * @resolves When the SessionStore information is updated.
    */
   waitForSessionStoreUpdate(tab) {
-    return new Promise(resolve => {
-      let browser = tab.linkedBrowser;
-      let flushTopic = "sessionstore-browser-shutdown-flush";
-      let observer = subject => {
-        if (subject === browser) {
-          Services.obs.removeObserver(observer, flushTopic);
-          // Wait for the next event tick to make sure other listeners are
-          // called.
-          TestUtils.executeSoon(() => resolve());
-        }
-      };
-      Services.obs.addObserver(observer, flushTopic);
-    });
+    let browser = tab.linkedBrowser;
+    return TestUtils.topicObserved(
+      "sessionstore-browser-shutdown-flush",
+      s => s === browser
+    );
+  },
+
+  /**
+   * @returns {Promise}
+   * @resolves When the locale has been changed.
+   */
+  enableRtlLocale() {
+    let localeChanged = TestUtils.topicObserved("intl:app-locales-changed");
+    Services.prefs.setStringPref("intl.l10n.pseudo", "bidi");
+    return localeChanged;
+  },
+
+  /**
+   * @returns {Promise}
+   * @resolves When the locale has been changed.
+   */
+  disableRtlLocale() {
+    let localeChanged = TestUtils.topicObserved("intl:app-locales-changed");
+    Services.prefs.setStringPref("intl.l10n.pseudo", "");
+    return localeChanged;
   },
 
   /**

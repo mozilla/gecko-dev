@@ -228,6 +228,7 @@
   "Marionette",
   "RemoteAgent",
   "RTL_UI",
+  "gLocaleChangeObserver",
   "gBrandBundle",
   "gBrowserBundle",
   "gCustomizeMode",

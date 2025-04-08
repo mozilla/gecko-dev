@@ -375,6 +375,7 @@ var gBrowserInit = {
     Services.obs.addObserver(gXPInstallObserver, "addon-install-failed");
     Services.obs.addObserver(gXPInstallObserver, "addon-install-confirmation");
     Services.obs.addObserver(gKeywordURIFixup, "keyword-uri-fixup");
+    Services.obs.addObserver(gLocaleChangeObserver, "intl:app-locales-changed");
 
     BrowserOffline.init();
     CanvasPermissionPromptHelper.init();
@@ -1103,6 +1104,10 @@ var gBrowserInit = {
         "addon-install-confirmation"
       );
       Services.obs.removeObserver(gKeywordURIFixup, "keyword-uri-fixup");
+      Services.obs.removeObserver(
+        gLocaleChangeObserver,
+        "intl:app-locales-changed"
+      );
 
       MenuTouchModeObserver.uninit();
       BrowserOffline.uninit();

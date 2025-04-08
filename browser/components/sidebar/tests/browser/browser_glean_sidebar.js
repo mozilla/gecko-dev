@@ -558,9 +558,7 @@ add_task(async function test_sidebar_tabs_layout() {
 });
 
 add_task(async function test_sidebar_position_rtl_ui() {
-  const sandbox = sinon.createSandbox();
-  sandbox.stub(window, "RTL_UI").value(true);
-  await SpecialPowers.pushPrefEnv({ set: [["intl.l10n.pseudo", "bidi"]] });
+  await BrowserTestUtils.enableRtlLocale();
   Services.fog.testResetFOG();
 
   // When RTL is enabled, sidebar is shown on the right by default.
@@ -578,8 +576,7 @@ add_task(async function test_sidebar_position_rtl_ui() {
     "right"
   );
 
-  sandbox.restore();
-  await SpecialPowers.popPrefEnv();
+  await BrowserTestUtils.disableRtlLocale();
   await SidebarController.waitUntilStable();
 });
 

@@ -236,6 +236,9 @@
       if (this.#verticalMode) {
         return false;
       }
+      if ("RTL_UI" in window) {
+        return window.RTL_UI;
+      }
       if (!("_isRTLScrollbox" in this)) {
         this._isRTLScrollbox =
           document.defaultView.getComputedStyle(this.scrollbox).direction ==

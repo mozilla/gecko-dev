@@ -498,24 +498,20 @@ add_task(async function testArrowsInPanelMultiView() {
 // Test that right/left arrows move in the expected direction for RTL locales.
 add_task(async function testArrowsRtl() {
   AddOldMenuSideButtons();
-  await SpecialPowers.pushPrefEnv({ set: [["intl.l10n.pseudo", "bidi"]] });
-  // window.RTL_UI doesn't update in existing windows when this pref is changed,
-  // so we need to test in a new window.
-  let win = await BrowserTestUtils.openNewBrowserWindow();
-  startFromUrlBar(win);
-  await expectFocusAfterKey("Tab", afterUrlBarButton, false, win);
-  EventUtils.synthesizeKey("KEY_ArrowRight", {}, win);
+  await BrowserTestUtils.enableRtlLocale();
+  startFromUrlBar(window);
+  await expectFocusAfterKey("Tab", afterUrlBarButton);
+  EventUtils.synthesizeKey("KEY_ArrowRight", {});
   is(
-    win.document.activeElement.id,
+    document.activeElement.id,
     afterUrlBarButton,
     "ArrowRight at end of button group does nothing"
   );
-  await expectFocusAfterKey("ArrowLeft", "library-button", false, win);
+  await expectFocusAfterKey("ArrowLeft", "library-button");
   if (!sidebarRevampEnabled) {
-    await expectFocusAfterKey("ArrowLeft", "sidebar-button", false, win);
+    await expectFocusAfterKey("ArrowLeft", "sidebar-button");
   }
-  await BrowserTestUtils.closeWindow(win);
-  await SpecialPowers.popPrefEnv();
+  await BrowserTestUtils.disableRtlLocale();
   RemoveOldMenuSideButtons();
 });
 
