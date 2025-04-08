@@ -28,8 +28,8 @@ namespace widget {
 
 enum class NativeChangeKind : uint8_t {
   None = 0,
-  GtkTheme = 2 << 0,
-  OtherSettings = 3 << 0,
+  GtkTheme = 1 << 0,
+  OtherSettings = 1 << 1,
   All = GtkTheme | OtherSettings,
 };
 
