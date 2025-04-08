@@ -1599,7 +1599,7 @@ export var UrlbarUtils = {
     if (result.providerName != "UrlbarProviderGlobalActions") {
       return result.payload.action?.key ?? "none";
     }
-    return result.payload.results.map(({ key }) => key).join(",");
+    return result.payload.actionsResults.map(({ key }) => key).join(",");
   },
 
   _getQuickSuggestTelemetryType(result) {

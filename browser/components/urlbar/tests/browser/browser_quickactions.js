@@ -56,9 +56,15 @@ add_setup(async function setup() {
     label: "quickactions-downloads2",
     onPick: () => testActionCalled++,
   });
+  ActionsProviderQuickActions.addAction("othertestaction", {
+    commands: ["othertestaction"],
+    label: "quickactions-downloads2",
+    onPick: () => {},
+  });
 
   registerCleanupFunction(() => {
     ActionsProviderQuickActions.removeAction("testaction");
+    ActionsProviderQuickActions.removeAction("othertestaction");
   });
 });
 
@@ -147,6 +153,35 @@ add_task(async function test_viewsource() {
   // Clean up.
   BrowserTestUtils.removeTab(viewSourceTab);
   BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function testAfterTabSwitch() {
+  let tab1 = gBrowser.selectedTab;
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "testaction",
+  });
+  await assertAction("testaction");
+
+  let tab2 = await BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    opening: "https://example.com",
+    waitForLoad: true,
+  });
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "othertestaction",
+  });
+  await assertAction("othertestaction");
+
+  await BrowserTestUtils.switchTab(gBrowser, tab1);
+  info("Testing if quick action in tab 1 still works.");
+  EventUtils.synthesizeKey("KEY_Tab", {}, window);
+  assertAccessibilityWhenSelected("testaction");
+  EventUtils.synthesizeKey("KEY_Enter", {}, window);
+  Assert.equal(testActionCalled, 2, "Test action was called");
+
+  BrowserTestUtils.removeTab(tab2);
 });
 
 async function doAlertDialogTest({ input, dialogContentURI }) {

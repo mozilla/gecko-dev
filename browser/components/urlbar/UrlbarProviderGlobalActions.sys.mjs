@@ -48,9 +48,6 @@ let globalActionsProviders = [
  * A provider that lets the user view all available global actions for a query.
  */
 class ProviderGlobalActions extends UrlbarProvider {
-  // A Map of the last queried actions.
-  #actions = new Map();
-
   get name() {
     return "UrlbarProviderGlobalActions";
   }
@@ -68,8 +65,7 @@ class ProviderGlobalActions extends UrlbarProvider {
   }
 
   async startQuery(queryContext, addCallback) {
-    this.#actions.clear();
-
+    let actionsResults = [];
     let searchModeEngine = "";
 
     for (let provider of globalActionsProviders) {
@@ -81,12 +77,12 @@ class ProviderGlobalActions extends UrlbarProvider {
             // We only allow one action that provides an engine search mode.
             continue;
           }
-          this.#actions.set(action.key, action);
+          actionsResults.push(action);
         }
       }
     }
 
-    if (!this.#actions.size) {
+    if (!actionsResults.length) {
       return;
     }
 
@@ -94,14 +90,12 @@ class ProviderGlobalActions extends UrlbarProvider {
       lazy.UrlbarPrefs.get(TIMES_TO_SHOW_PREF) >
       lazy.UrlbarPrefs.get(TIMES_SHOWN_PREF);
 
-    let results = [...this.#actions.keys()];
-
-    let query = results.includes("matched-contextual-search")
+    let query = actionsResults.some(a => a.key == "matched-contextual-search")
       ? ""
       : queryContext.searchString;
 
     let payload = {
-      results,
+      actionsResults,
       dynamicType: DYNAMIC_TYPE_NAME,
       inputLength: queryContext.searchString.length,
       input: query,
@@ -125,12 +119,14 @@ class ProviderGlobalActions extends UrlbarProvider {
 
   onSelection(result, element) {
     let key = element.dataset.action;
-    this.#actions.get(key).onSelection?.(result, element);
+    let action = result.payload.actionsResults.find(a => a.key == key);
+    action.onSelection?.(result, element);
   }
 
   onEngagement(queryContext, controller, details) {
     let key = details.element.dataset.action;
-    let options = this.#actions.get(key).onPick(queryContext, controller);
+    let action = details.result.payload.actionsResults.find(a => a.key == key);
+    let options = action.onPick(queryContext, controller);
     if (options?.focusContent) {
       details.element.ownerGlobal.gBrowser.selectedBrowser.focus();
     }
@@ -153,15 +149,14 @@ class ProviderGlobalActions extends UrlbarProvider {
   }
 
   getViewTemplate(result) {
-    let children = result.payload.results.map((key, i) => {
-      let action = this.#actions.get(key);
+    let children = result.payload.actionsResults.map((action, i) => {
       let btn = {
         name: `button-${i}`,
         tag: "span",
         classList: ["urlbarView-action-btn"],
         attributes: {
           inputLength: result.payload.inputLength,
-          "data-action": key,
+          "data-action": action.key,
           role: "button",
         },
         children: [
@@ -211,8 +206,7 @@ class ProviderGlobalActions extends UrlbarProvider {
         l10n: { id: "press-tab-label", cacheable: true },
       };
     }
-    result.payload.results.forEach((key, i) => {
-      let action = this.#actions.get(key);
+    result.payload.actionsResults.forEach((action, i) => {
       viewUpdate[`label-${i}`] = {
         l10n: { id: action.l10nId, args: action.l10nArgs, cacheable: true },
       };

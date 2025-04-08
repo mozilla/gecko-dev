@@ -893,7 +893,7 @@ add_task(async function selected_result_action() {
         selected_position: 2,
         provider: "UrlbarProviderGlobalActions",
         results: "search_engine,action",
-        actions: "none",
+        actions: "none,settings",
       },
     ]);
   });
