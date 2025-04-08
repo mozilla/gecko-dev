@@ -7,7 +7,6 @@
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/IdleTaskRunner.h"
 #include "mozilla/MainThreadIdlePeriod.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/ipc/IdleSchedulerChild.h"
 #include "nsCycleCollector.h"

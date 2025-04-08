@@ -15,7 +15,6 @@
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
 #include "prtime.h"
-#include "mozilla/Telemetry.h"
 #include "mozIStorageStatementCallback.h"
 
 class nsIFile;
@@ -309,22 +308,6 @@ class FinalizeStatementCacheProxy : public Runnable {
  * @return true if this visit should be hidden.
  */
 bool GetHiddenState(bool aIsRedirect, uint32_t aTransitionType);
-
-/**
- * Used to notify a topic to system observers on async execute completion.
- */
-class AsyncStatementTelemetryTimer : public AsyncStatementCallback {
- public:
-  explicit AsyncStatementTelemetryTimer(Telemetry::HistogramID aHistogramId,
-                                        TimeStamp aStart = TimeStamp::Now())
-      : mHistogramId(aHistogramId), mStart(aStart) {}
-
-  NS_IMETHOD HandleCompletion(uint16_t aReason) override;
-
- private:
-  const Telemetry::HistogramID mHistogramId;
-  const TimeStamp mStart;
-};
 
 }  // namespace mozilla::places
 

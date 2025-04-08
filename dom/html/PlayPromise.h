@@ -8,12 +8,9 @@
 #define __PlayPromise_h__
 
 #include "mozilla/dom/Promise.h"
-#include "mozilla/Telemetry.h"
 
 namespace mozilla::dom {
 
-// Decorates a DOM Promise to report telemetry as to whether it was resolved
-// or rejected and why.
 class PlayPromise : public Promise {
  public:
   static already_AddRefed<PlayPromise> Create(nsIGlobalObject* aGlobal,

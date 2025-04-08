@@ -8,7 +8,6 @@
 #define mozilla_dom_ServiceWorkerRegistrar_h
 
 #include "mozilla/Monitor.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/ServiceWorkerRegistrarTypes.h"
 #include "nsClassHashtable.h"
 #include "nsIAsyncShutdown.h"

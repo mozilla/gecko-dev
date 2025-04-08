@@ -17,8 +17,6 @@
 #include <aom/aom_decoder.h>
 #include "dav1d/dav1d.h"
 
-#include "mozilla/Telemetry.h"
-
 namespace mozilla {
 namespace image {
 class RasterImage;

@@ -14,8 +14,6 @@
 #include "jxl/decode_cxx.h"
 #include "jxl/thread_parallel_runner_cxx.h"
 
-#include "mozilla/Telemetry.h"
-
 namespace mozilla::image {
 class RasterImage;
 
