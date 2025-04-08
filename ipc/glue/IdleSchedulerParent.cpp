@@ -10,7 +10,6 @@
 #include "mozilla/ipc/IdleSchedulerParent.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/NeverDestroyed.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/ipc/SharedMemoryMapping.h"
 #include "nsSystemInfo.h"

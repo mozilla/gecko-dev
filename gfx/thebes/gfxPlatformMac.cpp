@@ -31,7 +31,6 @@
 #include "nsThreadUtils.h"
 
 #ifdef MOZ_BUNDLED_FONTS
-#  include "mozilla/Telemetry.h"
 #  include "nsDirectoryServiceDefs.h"
 #  include "mozilla/StaticPrefs_gfx.h"
 #endif

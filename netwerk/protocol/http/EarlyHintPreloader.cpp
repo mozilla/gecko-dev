@@ -23,7 +23,6 @@
 #include "mozilla/net/EarlyHintRegistrar.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/Telemetry.h"
 #include "nsAttrValue.h"
 #include "nsCOMPtr.h"
 #include "nsContentPolicyUtils.h"

@@ -41,7 +41,6 @@
 #include "mozilla/StaticPrefs_general.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/SVGIntegrationUtils.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/layers/APZCCallbackHelper.h"

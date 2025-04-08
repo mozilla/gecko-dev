@@ -9,7 +9,6 @@
 #include "PKCS11ModuleDB.h"
 #include "mozilla/Casting.h"
 #include "mozilla/Logging.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "nsCOMPtr.h"
 #include "nsIMutableArray.h"

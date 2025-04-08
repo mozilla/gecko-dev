@@ -23,7 +23,6 @@
 #include "mozilla/Base64.h"
 #include "mozilla/storage.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "nsNetUtil.h"
 #include "nsPrintfCString.h"

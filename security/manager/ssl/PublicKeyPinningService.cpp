@@ -12,7 +12,6 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Span.h"
 #include "mozilla/StaticPrefs_security.h"
-#include "mozilla/Telemetry.h"
 #include "nsDependentString.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSiteSecurityService.h"

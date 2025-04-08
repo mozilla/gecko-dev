@@ -9,7 +9,6 @@
 #include "GLContext.h"
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/Telemetry.h"
 #include "nsPrintfCString.h"
 #include "WebGLBuffer.h"
 #include "WebGLFormats.h"

@@ -39,7 +39,6 @@
 #include "mozilla/SelectionMovementUtils.h"
 #include "mozilla/StackWalk.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ToString.h"
 #include "mozilla/Try.h"
 

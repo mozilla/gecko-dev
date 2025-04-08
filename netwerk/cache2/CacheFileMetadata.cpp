@@ -14,7 +14,6 @@
 #include "nsICacheEntry.h"  // for nsICacheEntryMetaDataVisitor
 #include "nsIFile.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/glean/NetwerkMetrics.h"

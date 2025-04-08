@@ -43,7 +43,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RangeUtils.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ToString.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Likely.h"

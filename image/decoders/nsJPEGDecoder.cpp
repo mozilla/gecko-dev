@@ -24,7 +24,6 @@
 #include "gfxPlatform.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/gfx/Types.h"
-#include "mozilla/Telemetry.h"
 
 extern "C" {
 #include "iccjpeg.h"

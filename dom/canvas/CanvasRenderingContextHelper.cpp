@@ -12,7 +12,6 @@
 #include "mozilla/dom/OffscreenCanvasRenderingContext2D.h"
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/glean/DomCanvasMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/webgpu/CanvasContext.h"
 #include "MozFramebuffer.h"

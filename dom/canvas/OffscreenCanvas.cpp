@@ -17,7 +17,6 @@
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/layers/ImageBridgeChild.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/webgpu/CanvasContext.h"
 #include "CanvasRenderingContext2D.h"
 #include "CanvasUtils.h"

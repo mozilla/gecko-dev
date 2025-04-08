@@ -18,7 +18,6 @@
 #include "Http2Session.h"
 
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/Telemetry.h"
 
 namespace mozilla {
 namespace net {

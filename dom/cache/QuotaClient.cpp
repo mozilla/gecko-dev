@@ -10,7 +10,6 @@
 #include "FileUtilsImpl.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/ResultExtensions.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/cache/DBSchema.h"
 #include "mozilla/dom/cache/Manager.h"

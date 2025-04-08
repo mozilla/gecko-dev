@@ -11,7 +11,6 @@
 #include "mozilla/RestyleManager.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/StaticPrefs_print.h"
-#include "mozilla/Telemetry.h"
 #include "nsThreadUtils.h"
 #include "nscore.h"
 #include "nsCOMPtr.h"
@@ -131,7 +130,6 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 

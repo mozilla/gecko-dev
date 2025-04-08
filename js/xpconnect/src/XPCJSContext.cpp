@@ -25,7 +25,6 @@
 #include "nsPrintfCString.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/MemoryTelemetry.h"
 #include "mozilla/Services.h"
 #ifdef FUZZING

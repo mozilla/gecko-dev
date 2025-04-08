@@ -9,7 +9,6 @@
 #include "mozilla/AbstractThread.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ThrottledEventQueue.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CustomElementRegistry.h"

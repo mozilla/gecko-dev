@@ -23,7 +23,6 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/StaticPrefs_layout.h"
-#include "mozilla/Telemetry.h"
 
 // Defined in dwmapi in a header that needs a higher numbered _WINNT #define
 #ifndef DWM_SIT_DISPLAYFRAME

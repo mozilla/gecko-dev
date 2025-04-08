@@ -72,7 +72,6 @@
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/StoragePrincipalHelper.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ThreadEventQueue.h"
 #include "mozilla/ThreadSafety.h"
 #include "mozilla/ThrottledEventQueue.h"

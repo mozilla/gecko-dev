@@ -9,7 +9,6 @@
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/IdlePeriodState.h"
-#include "mozilla/Telemetry.h"
 #include "BackgroundChild.h"
 
 namespace mozilla::ipc {

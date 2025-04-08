@@ -51,7 +51,6 @@
 #include "mozilla/dom/SubmitEvent.h"
 #include "mozilla/intl/Localization.h"
 #include "mozilla/glean/DomSecurityMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_prompts.h"
 #include "nsCategoryManagerUtils.h"

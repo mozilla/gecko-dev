@@ -28,7 +28,6 @@
 #include "mozilla/ProfilerState.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
-#include "mozilla/Telemetry.h"
 
 #include "D3D11ShareHandleImage.h"
 #include "DeviceAttachmentsD3D11.h"

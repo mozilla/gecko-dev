@@ -22,7 +22,6 @@
 #include "SurfaceCache.h"
 #include "SurfacePipeFactory.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/Telemetry.h"
 
 using namespace mozilla::gfx;
 

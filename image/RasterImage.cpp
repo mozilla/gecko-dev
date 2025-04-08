@@ -34,7 +34,6 @@
 #include "mozilla/SizeOfState.h"
 #include "mozilla/StaticPrefs_image.h"
 #include "mozilla/glean/ImageDecodersMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 
 #include "mozilla/gfx/2D.h"

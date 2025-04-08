@@ -60,7 +60,6 @@
 #include "ImageContainer.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/StaticPrefs_layout.h"
-#include "mozilla/Telemetry.h"
 #include "gfxUtils.h"
 #include "gfxGradientCache.h"
 #include "nsInlineFrame.h"

@@ -20,7 +20,6 @@
 #include "ASpdySession.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/glean/NetwerkMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "HttpConnectionUDP.h"
 #include "nsHttpHandler.h"
 #include "Http3Session.h"

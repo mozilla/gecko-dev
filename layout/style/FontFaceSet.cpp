@@ -35,7 +35,6 @@
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/ServoUtils.h"
 #include "mozilla/Sprintf.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/LoadInfo.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentPolicyUtils.h"

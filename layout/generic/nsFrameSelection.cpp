@@ -81,7 +81,6 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/SelectionBinding.h"
 #include "mozilla/AsyncEventDispatcher.h"
-#include "mozilla/Telemetry.h"
 
 #include "nsFocusManager.h"
 #include "nsPIDOMWindow.h"

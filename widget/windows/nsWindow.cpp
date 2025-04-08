@@ -223,7 +223,6 @@
 #include "InputData.h"
 
 #include "mozilla/TaskController.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "mozilla/layers/IAPZCTreeManager.h"
 
@@ -7171,7 +7170,8 @@ LayoutDeviceIntRegion nsWindow::GetTranslucentRegion() {
   if (mTransparencyMode != TransparencyMode::Transparent) {
     return {};
   }
-  const auto clientRect = LayoutDeviceIntRect(LayoutDeviceIntPoint(), GetClientSize());
+  const auto clientRect =
+      LayoutDeviceIntRect(LayoutDeviceIntPoint(), GetClientSize());
   LayoutDeviceIntRegion translucentRegion{clientRect};
   translucentRegion.SubOut(mOpaqueRegion);
   return translucentRegion;
