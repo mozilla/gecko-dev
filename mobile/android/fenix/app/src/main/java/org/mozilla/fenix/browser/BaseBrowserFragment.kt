@@ -183,6 +183,7 @@ import org.mozilla.fenix.components.toolbar.BottomToolbarContainerIntegration
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
 import org.mozilla.fenix.components.toolbar.BrowserFragmentState
 import org.mozilla.fenix.components.toolbar.BrowserFragmentStore
+import org.mozilla.fenix.components.toolbar.BrowserToolbarComposable
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMenuController
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarController
@@ -1227,14 +1228,22 @@ abstract class BaseBrowserFragment :
         initializeMicrosurveyFeature(context)
     }
 
-    @Suppress("TooGenericExceptionThrown")
     private fun initializeBrowserToolbar(
         activity: HomeActivity,
         store: BrowserStore,
     ) = when (activity.settings().shouldUseComposableToolbar) {
-        true -> throw RuntimeException("Browser toolbar composable not yet implemented")
+        true -> initializeBrowserToolbarComposable(activity)
         false -> initializeBrowserToolbarView(activity, store)
     }
+
+    private fun initializeBrowserToolbarComposable(
+        activity: HomeActivity,
+    ) = BrowserToolbarComposable(
+        container = binding.browserLayout,
+        context = activity,
+        settings = activity.settings(),
+        tabStripContent = buildTabStrip(activity),
+    )
 
     private fun initializeBrowserToolbarView(
         activity: HomeActivity,
@@ -1247,43 +1256,47 @@ abstract class BaseBrowserFragment :
         interactor = browserToolbarInteractor,
         customTabSession = customTabSessionId?.let { store.state.findCustomTab(it) },
         lifecycleOwner = viewLifecycleOwner,
-        tabStripContent = {
-            FirefoxTheme {
-                TabStrip(
-                    onAddTabClick = {
-                        findNavController().navigate(
-                            NavGraphDirections.actionGlobalHome(
-                                focusOnAddressBar = true,
-                            ),
-                        )
-                        TabStripMetrics.newTabTapped.record()
-                    },
-                    onLastTabClose = { isPrivate ->
-                        requireComponents.appStore.dispatch(
-                            AppAction.TabStripAction.UpdateLastTabClosed(isPrivate),
-                        )
-                        findNavController().navigate(
-                            BrowserFragmentDirections.actionGlobalHome(),
-                        )
-                    },
-                    onSelectedTabClick = {
-                        TabStripMetrics.selectTab.record()
-                    },
-                    onCloseTabClick = { isPrivate ->
-                        showUndoSnackbar(activity.tabClosedUndoMessage(isPrivate))
-                        TabStripMetrics.closeTab.record()
-                    },
-                    onPrivateModeToggleClick = { mode ->
-                        activity.browsingModeManager.mode = mode
-                        findNavController().navigate(
-                            BrowserFragmentDirections.actionGlobalHome(),
-                        )
-                    },
-                    onTabCounterClick = { onTabCounterClicked(activity.browsingModeManager.mode) },
-                )
-            }
-        },
+        tabStripContent = buildTabStrip(activity),
     )
+
+    private fun buildTabStrip(
+        activity: HomeActivity,
+    ): @Composable () -> Unit = {
+        FirefoxTheme {
+            TabStrip(
+                onAddTabClick = {
+                    findNavController().navigate(
+                        NavGraphDirections.actionGlobalHome(
+                            focusOnAddressBar = true,
+                        ),
+                    )
+                    TabStripMetrics.newTabTapped.record()
+                },
+                onLastTabClose = { isPrivate ->
+                    requireComponents.appStore.dispatch(
+                        AppAction.TabStripAction.UpdateLastTabClosed(isPrivate),
+                    )
+                    findNavController().navigate(
+                        BrowserFragmentDirections.actionGlobalHome(),
+                    )
+                },
+                onSelectedTabClick = {
+                    TabStripMetrics.selectTab.record()
+                },
+                onCloseTabClick = { isPrivate ->
+                    showUndoSnackbar(activity.tabClosedUndoMessage(isPrivate))
+                    TabStripMetrics.closeTab.record()
+                },
+                onPrivateModeToggleClick = { mode ->
+                    activity.browsingModeManager.mode = mode
+                    findNavController().navigate(
+                        BrowserFragmentDirections.actionGlobalHome(),
+                    )
+                },
+                onTabCounterClick = { onTabCounterClicked(activity.browsingModeManager.mode) },
+            )
+        }
+    }
 
     private fun showUndoSnackbar(message: String) {
         viewLifecycleOwner.lifecycleScope.allowUndo(
@@ -1558,7 +1571,8 @@ abstract class BaseBrowserFragment :
     ) {
         NavigationBar.browserInitializeTimespan.start()
 
-        val browserToolbar = (browserToolbarView as BrowserToolbarView).toolbar
+        val browserToolbar = (browserToolbarView as? BrowserToolbarView)?.toolbar
+            ?: (browserToolbarView as BrowserToolbarComposable).layout
         val isToolbarAtBottom = context.isToolbarAtBottom()
 
         // The toolbar view has already been added directly to the container.
@@ -1855,7 +1869,8 @@ abstract class BaseBrowserFragment :
         val view = requireView()
 
         val isToolbarAtBottom = context.isToolbarAtBottom()
-        val browserToolbar = (browserToolbarView as BrowserToolbarView).toolbar
+        val browserToolbar = (browserToolbarView as? BrowserToolbarView)?.toolbar
+            ?: (browserToolbarView as BrowserToolbarComposable).layout
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
         if (isToolbarAtBottom) {
@@ -2567,7 +2582,8 @@ abstract class BaseBrowserFragment :
             updateNavBarForConfigurationChange(
                 context = requireContext(),
                 parent = binding.browserLayout,
-                toolbarView = (browserToolbarView as BrowserToolbarView).toolbar,
+                toolbarView = (browserToolbarView as? BrowserToolbarView)?.toolbar
+                    ?: (browserToolbarView as BrowserToolbarComposable).layout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = ::initializeMicrosurveyPrompt,

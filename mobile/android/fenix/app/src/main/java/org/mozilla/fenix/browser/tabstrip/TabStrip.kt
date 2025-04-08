@@ -178,7 +178,8 @@ private fun TabStripContent(
 ) {
     Row(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .height(dimensionResource(R.dimen.tab_strip_height))
             .background(FirefoxTheme.colors.layer3)
             .systemGestureExclusion()
             .padding(horizontal = tabStripHorizontalPadding),
