@@ -85,7 +85,7 @@ def worker_type_implementation(graph_config, parameters, worker_type):
     worker_config = _get(
         graph_config, worker_type, "1", "staging", parameters["project"]
     )
-    return worker_config["implementation"], worker_config.get("os")
+    return worker_config.get("implementation"), worker_config.get("os")
 
 
 def get_worker_type(graph_config, parameters, worker_type):

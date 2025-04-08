@@ -1552,25 +1552,49 @@ def set_implementation(config, tasks):
     Set the worker implementation based on the worker-type alias.
     """
     for task in tasks:
-        worker = task.setdefault("worker", {})
-        if "implementation" in task["worker"]:
-            yield task
-            continue
-
-        impl, os = worker_type_implementation(
+        default_worker_implementation, default_os = worker_type_implementation(
             config.graph_config, config.params, task["worker-type"]
         )
 
+        worker = task.setdefault("worker", {})
         tags = task.setdefault("tags", {})
-        tags["worker-implementation"] = impl
-        if os:
-            tags["os"] = os
 
-        worker["implementation"] = impl
+        worker_implementation = worker.get(
+            "implementation", default_worker_implementation
+        )
+        tag_worker_implementation = _get_worker_implementation_tag(
+            config, task["worker-type"], worker_implementation
+        )
+        if worker_implementation:
+            worker["implementation"] = worker_implementation
+            # TODO: Remove this if-statement in part 2.
+            if tag_worker_implementation:
+                tags["worker-implementation"] = tag_worker_implementation
+
+        os = worker.get("os", default_os)
         if os:
+            # TODO: Remove this if-statement in part 2.
+            if tag_worker_implementation:
+                tags["os"] = os
             worker["os"] = os
 
         yield task
+
+
+def _get_worker_implementation_tag(config, task_worker_type, worker_implementation):
+    # Scriptworkers have different types of payload and each sets its own
+    # worker-implementation. Per bug 1955941, we want to bundle them all in one category
+    # through their tags.
+    provisioner_id, _ = get_worker_type(
+        config.graph_config,
+        config.params,
+        task_worker_type,
+    )
+    if provisioner_id in ("scriptworker-k8s", "scriptworker-prov-v1"):
+        # TODO: Return "scriptworker" in part 2.
+        return None
+
+    return worker_implementation
 
 
 @transforms.add
