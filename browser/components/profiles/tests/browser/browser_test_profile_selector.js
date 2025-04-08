@@ -73,6 +73,11 @@ add_task(async function test_selector_window() {
 
   Assert.ok(profileSelector.checkbox.checked, "Checkbox should be checked");
 
+  Assert.ok(
+    !profileSelector.checkbox.querySelector('[slot="description"]'),
+    "Description slot should not exist when checkbox is checked"
+  );
+
   let asyncFlushCalled = false;
   gProfileService.asyncFlush = () => (asyncFlushCalled = true);
 
@@ -101,6 +106,11 @@ add_task(async function test_selector_window() {
     "Profile selector should be disabled"
   );
 
+  Assert.ok(
+    profileSelector.checkbox.querySelector('[slot="description"]'),
+    "Description slot should exist when checkbox is unchecked"
+  );
+
   await assertGlean(
     "profiles",
     "selector_window",
@@ -122,6 +132,11 @@ add_task(async function test_selector_window() {
   Assert.ok(
     gProfileService.groupProfile.showProfileSelector,
     "Profile selector should be disabled"
+  );
+
+  Assert.ok(
+    !profileSelector.checkbox.querySelector('[slot="description"]'),
+    "Description slot should not exist when checkbox is checked again"
   );
 
   profileSelector.selectableProfileService.execProcess = mock;
