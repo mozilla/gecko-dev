@@ -1392,7 +1392,7 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
       const auto& lp = aValue.AsAnchorContainingCalcFunction();
       const auto& c = lp.AsCalc();
       auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, aAxis, aPosition,
+      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &aAxis, aPosition,
                                                    &result);
       if (result.IsInvalid()) {
         return Invalid();

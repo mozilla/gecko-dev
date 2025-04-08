@@ -8447,12 +8447,12 @@ pub enum CalcAnchorPositioningFunctionResolution {
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunctionsInCalcPercentage(
     calc: &computed::length_percentage::CalcLengthPercentage,
-    axis: PhysicalAxis,
+    axis: Option<&PhysicalAxis>,
     position_property: PositionProperty,
     out: &mut CalcAnchorPositioningFunctionResolution,
 ) {
     let resolved = calc.resolve_anchor(CalcAnchorFunctionResolutionInfo {
-        axis: axis,
+        axis: axis.copied(),
         position_property,
     });
 

@@ -915,9 +915,10 @@ fn resolve_anchor_functions(
 ) -> Result<Option<CalcNode>, ()> {
     let resolution = match node {
         CalcNode::Anchor(f) => {
+            let axis = info.axis.expect("Unexpected anchor()");
             // Invalid use of `anchor()` (i.e. Outside of inset properties) should've been
             // caught at parse time.
-            f.resolve(info.axis, info.position_property)
+            f.resolve(axis, info.position_property)
         },
         CalcNode::AnchorSize(f) => f.resolve(info.position_property),
         _ => return Ok(None),
@@ -940,9 +941,11 @@ pub struct CalcAnchorFunctionResolutionInfo {
     /// Which axis we're resolving anchor functions for.
     /// This is only relevant for `anchor()`, which requires
     /// the property using the function to be in the same axis
-    /// as the specified side [1].
+    /// as the specified side [1]. `None` if we aren't expecting
+    /// `anchor()`, like in size properties, where only `anchor-size()`
+    /// is allowed.
     /// [1]: https://drafts.csswg.org/css-anchor-position-1/#anchor-valid
-    pub axis: PhysicalAxis,
+    pub axis: Option<PhysicalAxis>,
     /// `position` property of the box for which this style is being resolved.
     pub position_property: PositionProperty,
 }
