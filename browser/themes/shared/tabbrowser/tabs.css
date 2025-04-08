@@ -1575,6 +1575,7 @@ tab-group {
   }
 
   .tab-background {
+    flex-direction: row-reverse;
     border-radius: var(--border-radius-medium);
     margin-inline: var(--tab-inner-inline-margin);
   }
