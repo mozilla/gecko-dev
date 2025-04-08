@@ -5327,6 +5327,12 @@ PhysicalAxes ScrollContainerFrame::GetOverflowAxes() const {
 nsresult ScrollContainerFrame::FireScrollPortEvent() {
   mAsyncScrollPortEvent.Forget();
 
+  // TODO(emilio): why do we need the whole WillPaintObserver infrastructure and
+  // can't use AddScriptRunner & co? I guess it made sense when we used
+  // WillPaintObserver for scroll events too, or when this used to flush.
+  //
+  // Should we remove this?
+
   PhysicalAxes overflowAxes = GetOverflowAxes();
 
   bool newVerticalOverflow = overflowAxes.contains(PhysicalAxis::Vertical);
@@ -5944,8 +5950,13 @@ void ScrollContainerFrame::PostOverflowEvent() {
     return;
   }
 
+  nsRootPresContext* rpc = PresContext()->GetRootPresContext();
+  if (!rpc) {
+    return;
+  }
+
   mAsyncScrollPortEvent = new AsyncScrollPortEvent(this);
-  nsContentUtils::AddScriptRunner(mAsyncScrollPortEvent.get());
+  rpc->AddWillPaintObserver(mAsyncScrollPortEvent.get());
 }
 
 nsIFrame* ScrollContainerFrame::GetFrameForStyle() const {
