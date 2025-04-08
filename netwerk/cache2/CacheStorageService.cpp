@@ -695,7 +695,8 @@ NS_IMETHODIMP CacheStorageService::Clear() {
   return NS_OK;
 }
 
-NS_IMETHODIMP CacheStorageService::ClearOrigin(nsIPrincipal* aPrincipal) {
+NS_IMETHODIMP CacheStorageService::ClearOriginsByPrincipal(
+    nsIPrincipal* aPrincipal) {
   nsresult rv;
 
   if (NS_WARN_IF(!aPrincipal)) {
@@ -715,7 +716,7 @@ NS_IMETHODIMP CacheStorageService::ClearOrigin(nsIPrincipal* aPrincipal) {
   return NS_OK;
 }
 
-NS_IMETHODIMP CacheStorageService::ClearOriginAttributes(
+NS_IMETHODIMP CacheStorageService::ClearOriginsByOriginAttributes(
     const nsAString& aOriginAttributes) {
   nsresult rv;
 

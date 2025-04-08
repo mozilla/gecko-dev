@@ -67,9 +67,9 @@ async function test(oaLoad, oaClear, shouldExist) {
   let exists = cache_storage.exists(make_uri(url), null);
   Assert.ok(exists, "Entry should be in cache");
 
-  Services.cache2.clearOrigin(clearPrincipal);
+  Services.cache2.clearOriginsByPrincipal(clearPrincipal);
 
-  // clearOrigin is async, so we block on cacheIOThread
+  // clearOriginsByPrincipal is async, so we block on cacheIOThread
   await new Promise(resolve => {
     syncWithCacheIOThread(resolve, true);
   });

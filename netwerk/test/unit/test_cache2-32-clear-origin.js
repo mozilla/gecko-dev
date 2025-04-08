@@ -37,7 +37,7 @@ function run_test() {
                       {}
                     );
 
-                  Services.cache2.clearOrigin(principal);
+                  Services.cache2.clearOriginsByPrincipal(principal);
 
                   asyncOpenCacheEntry(
                     URL + "/a",

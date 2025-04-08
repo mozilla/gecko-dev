@@ -47,9 +47,9 @@ async function test(oaLoad, oaClear, shouldExist) {
   let exists = cache_storage.exists(make_uri(url), null);
   Assert.ok(exists, "Entry should be in cache");
 
-  Services.cache2.clearOriginAttributes(JSON.stringify(oaClear));
+  Services.cache2.clearOriginsByOriginAttributes(JSON.stringify(oaClear));
 
-  // clearOriginAttributes is async, so we block on cacheIOThread
+  // clearOriginsByOriginAttributes is async, so we block on cacheIOThread
   await new Promise(resolve => {
     syncWithCacheIOThread(resolve, true);
   });

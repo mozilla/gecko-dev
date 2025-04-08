@@ -492,8 +492,8 @@ const NetworkCacheCleaner = {
       aOriginAttributes
     );
 
-    Services.cache2.clearOrigin(httpPrincipal);
-    Services.cache2.clearOrigin(httpsPrincipal);
+    Services.cache2.clearOriginsByPrincipal(httpPrincipal);
+    Services.cache2.clearOriginsByPrincipal(httpsPrincipal);
   },
 
   async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
@@ -503,14 +503,14 @@ const NetworkCacheCleaner = {
 
   deleteByPrincipal(aPrincipal) {
     return new Promise(aResolve => {
-      Services.cache2.clearOrigin(aPrincipal);
+      Services.cache2.clearOriginsByPrincipal(aPrincipal);
       aResolve();
     });
   },
 
   deleteByOriginAttributes(aOriginAttributesString) {
     return new Promise(aResolve => {
-      Services.cache2.clearOriginAttributes(aOriginAttributesString);
+      Services.cache2.clearOriginsByOriginAttributes(aOriginAttributesString);
       aResolve();
     });
   },
