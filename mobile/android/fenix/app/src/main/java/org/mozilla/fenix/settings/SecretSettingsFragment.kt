@@ -69,6 +69,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_enable_composable_toolbar).apply {
+            isVisible = Config.channel.isDebug
+            isChecked = context.settings().shouldUseComposableToolbar
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_enable_compose_top_sites).apply {
             isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().enableComposeTopSites

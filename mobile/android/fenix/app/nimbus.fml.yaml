@@ -465,6 +465,15 @@ features:
         value:
           enabled: true
 
+  composable-toolbar:
+    description: Use a composable toolbar instead of the View based one.
+    variables:
+      enabled:
+        description: >
+          When the feature is enabled the user will see a new composable toolbar instead the previous View based one.
+        type: Boolean
+        default: false
+
   remote-tab-management:
     description: >
       Features that let users manage tabs on other devices that are

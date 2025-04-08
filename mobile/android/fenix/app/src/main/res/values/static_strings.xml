@@ -95,6 +95,8 @@
     <string name="preferences_debug_settings_fxsuggest" translatable="false">Enable Firefox Suggest</string>
     <!-- Label for enabling Navigation Toolbar -->
     <string name="preferences_debug_settings_navigation_toolbar" translatable="false">Enable Navigation Toolbar</string>
+    <!-- Label for enabling the redesigned toolbar -->
+    <string name="preferences_debug_settings_composable_toolbar" translatable="false">Enable Composable Toolbar</string>
     <!-- Label for enabling Felt Privacy -->
     <string name="preferences_debug_felt_privacy" translatable="false">Enable Felt Privacy</string>
     <!-- Label for enabling the Debug Drawer -->
