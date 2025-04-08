@@ -252,7 +252,7 @@ sidebar-main,
     */
     &[sidebar-launcher-expanded],
     &[sidebar-ongoing-animations]:not([sidebar-launcher-expanded]) {
-      z-index: var(--browser-area-z-index-sidebar-wrapper);
+      z-index: var(--browser-area-z-index-sidebar-expand-on-hover);
       position: absolute;
       color: var(--toolbox-textcolor);
       background-color: var(--toolbox-bgcolor);
