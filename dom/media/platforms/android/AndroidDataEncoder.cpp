@@ -202,6 +202,8 @@ RefPtr<MediaDataEncoder::EncodePromise> AndroidDataEncoder::ProcessEncode(
   RefPtr<const VideoData> sample(aSample->As<const VideoData>());
   MOZ_ASSERT(sample);
 
+  mInputSampleDuration = aSample->mDuration;
+
   // Bug 1789846: Check with the Encoder if MediaCodec has a stride or height
   // value to use.
   jni::ByteBuffer::LocalRef buffer = ConvertI420ToNV12Buffer(
@@ -333,6 +335,7 @@ void AndroidDataEncoder::ProcessOutput(
     }
     output->mEOS = isEOS;
     output->mTime = media::TimeUnit::FromMicroseconds(presentationTimeUs);
+    output->mDuration = mInputSampleDuration;
     mEncodedData.AppendElement(std::move(output));
   }
 

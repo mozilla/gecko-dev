@@ -112,6 +112,8 @@ class AndroidDataEncoder final : public MediaDataEncoder {
   EncodedData mEncodedData;
   // SPS/PPS NALUs for realtime usage, avcC otherwise.
   RefPtr<MediaByteBuffer> mConfigData;
+  // Record the input sample duration because MediaCodec doesn’t provide it.
+  media::TimeUnit mInputSampleDuration = media::TimeUnit::Invalid();
 
   enum class DrainState { DRAINABLE, DRAINING, DRAINED };
   DrainState mDrainState = DrainState::DRAINABLE;
