@@ -11,7 +11,6 @@ import android.view.View
 import androidx.activity.OnBackPressedCallback
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.concept.engine.EngineView
-import mozilla.components.support.locale.LocaleAwareAppCompatActivity
 import mozilla.components.support.utils.SafeIntent
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.components
@@ -23,7 +22,7 @@ import org.mozilla.focus.telemetry.startuptelemetry.StartupTypeTelemetry
 /**
  * The main entry point for "custom tabs" opened by third-party apps.
  */
-class CustomTabActivity : LocaleAwareAppCompatActivity() {
+class CustomTabActivity : EdgeToEdgeActivity() {
     private lateinit var customTabId: String
     private lateinit var browserFragment: BrowserFragment
 
@@ -46,9 +45,6 @@ class CustomTabActivity : LocaleAwareAppCompatActivity() {
         }
 
         this.customTabId = customTabId
-
-        @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/focus-android/issues/5016
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 
         setContentView(R.layout.activity_customtab)
 
