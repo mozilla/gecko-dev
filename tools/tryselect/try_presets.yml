@@ -361,6 +361,7 @@ webgpu:
         - "source-test-mozlint-updatebot"
         - "source-test-vendor-rust"
     full: true
+    rebuild: 3
 
 webrender:
     selector: fuzzy
