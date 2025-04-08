@@ -1431,44 +1431,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 class nsRootPresContext final : public nsPresContext {
  public:
   nsRootPresContext(mozilla::dom::Document* aDocument, nsPresContextType aType);
-  virtual bool IsRoot() const override { return true; }
-
-  /**
-   * Add a runnable that will get called before the next paint. They will get
-   * run eventually even if painting doesn't happen. They might run well before
-   * painting happens.
-   */
-  void AddWillPaintObserver(nsIRunnable* aRunnable);
-
-  /**
-   * Run all runnables that need to get called before the next paint.
-   */
-  void FlushWillPaintObservers();
-
-  virtual size_t SizeOfExcludingThis(
-      mozilla::MallocSizeOf aMallocSizeOf) const override;
-
- protected:
-  class RunWillPaintObservers : public mozilla::Runnable {
-   public:
-    explicit RunWillPaintObservers(nsRootPresContext* aPresContext)
-        : Runnable("nsPresContextType::RunWillPaintObservers"),
-          mPresContext(aPresContext) {}
-    void Revoke() { mPresContext = nullptr; }
-    NS_IMETHOD Run() override {
-      if (mPresContext) {
-        mPresContext->FlushWillPaintObservers();
-      }
-      return NS_OK;
-    }
-    // The lifetime of this reference is handled by an nsRevocableEventPtr
-    nsRootPresContext* MOZ_NON_OWNING_REF mPresContext;
-  };
-
-  friend class nsPresContext;
-
-  nsTArray<nsCOMPtr<nsIRunnable>> mWillPaintObservers;
-  nsRevocableEventPtr<RunWillPaintObservers> mWillPaintFallbackEvent;
+  bool IsRoot() const override { return true; }
 };
 
 #ifdef MOZ_REFLOW_PERF
