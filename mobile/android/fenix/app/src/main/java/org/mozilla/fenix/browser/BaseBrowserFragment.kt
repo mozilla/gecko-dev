@@ -172,7 +172,6 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.FenixAutocompletePrompt
 import org.mozilla.fenix.components.FenixSuggestStrongPasswordPrompt
 import org.mozilla.fenix.components.FindInPageIntegration
-import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FxaWebChannelIntegration
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
@@ -181,8 +180,6 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerIntegration
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
-import org.mozilla.fenix.components.toolbar.BrowserFragmentState
-import org.mozilla.fenix.components.toolbar.BrowserFragmentStore
 import org.mozilla.fenix.components.toolbar.BrowserToolbarComposable
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMenuController
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
@@ -280,7 +277,6 @@ abstract class BaseBrowserFragment :
     private var creditCardSelectBar: AutocompletePrompt<CreditCardEntry>? = null
     private var suggestStrongPasswordBar: PasswordPromptView? = null
 
-    private lateinit var browserFragmentStore: BrowserFragmentStore
     private lateinit var browserAnimator: BrowserAnimator
     private lateinit var startForResult: ActivityResultLauncher<Intent>
 
@@ -424,12 +420,6 @@ abstract class BaseBrowserFragment :
         val activity = activity as HomeActivity
         val originalContext = ActivityContextWrapper.getOriginalContext(activity)
         binding.engineView.setActivityContext(originalContext)
-
-        browserFragmentStore = StoreProvider.get(this) {
-            BrowserFragmentStore(
-                BrowserFragmentState(),
-            )
-        }
 
         startForResult = registerForActivityResult { result ->
             listOf(
