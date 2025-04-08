@@ -318,12 +318,14 @@ header-back-button =
 
 # Explanatory introduction to the list of recommended add-ons. The action word
 # ("recommends") in the final sentence is a link to external documentation.
-discopane-intro2 =
+# We hard code "Firefox" because we do not want to imply that a Firefox fork is
+# making this recommendation.
+discopane-intro3 =
     Extensions and themes let you customize { -brand-product-name }. They can boost privacy,
     enhance productivity, improve media, change the way { -brand-product-name } looks, and
     so much more. These small software programs are often developed by a third party. Here’s
-    a selection { -brand-product-name } <a data-l10n-name="learn-more-trigger">recommends</a>
-    for exceptional security, performance, and functionality.
+    a selection Firefox <a data-l10n-name="learn-more-trigger">recommends</a> for
+    exceptional security, performance, and functionality.
 
 # Notice to make user aware that the recommendations are personalized.
 discopane-notice-recommendations2 =
@@ -470,14 +472,24 @@ addon-detail-group-label-quarantined-domains =
 ## This is the tooltip text for the recommended badges for an extension in about:addons. The
 ## badge is a small icon displayed next to an extension when it is recommended on AMO.
 
-addon-badge-recommended3 =
-  .title = { -brand-product-name } only recommends extensions that meet our standards for security and performance
+# This string needs to work in the context of other forks that are not Firefox
+# or built by Mozilla. In particular, we do not want to imply that an
+# organisation other than Mozilla or the Firefox team are making the
+# recommendation. As such, we hard code "Firefox" and avoid personalising
+# language like the words "our" or "we".
+addon-badge-recommended4 =
+  .title = Firefox only recommends extensions that meet standards for security and performance
 # We hard code "Mozilla" in the string below because the extensions are built
 # by Mozilla and we don't want forks to display "by Fork".
 addon-badge-line4 =
   .title = Official extension built by Mozilla. Meets security and performance standards
-addon-badge-verified3 =
-  .title = This extension has been reviewed to meet our standards for security and performance
+# This string needs to work in the context of other forks that are not Firefox
+# or built by Mozilla. In particular, we do not want to imply that an
+# organisation other than Mozilla or the Firefox team are performing the
+# security or performance reviews. As such, we avoid personalising language
+# like the words "our" or "we".
+addon-badge-verified4 =
+  .title = This extension has been reviewed to meet standards for security and performance
 
 ##
 

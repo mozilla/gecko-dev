@@ -172,7 +172,10 @@ CO01:
         # devtools/shared/locales/en-US/webconsole-commands.ftl
         - webconsole-commands-usage-block
         # toolkit/about/aboutAddons.ftl
+        - discopane-intro3
+        - addon-badge-recommended4
         - addon-badge-line4
+        - addon-badge-verified4
         - details-notification-hard-blocked-extension
         - details-notification-hard-blocked-other
         - details-notification-soft-blocked-extension-disabled
