@@ -679,7 +679,7 @@ workers:
         addon:
             provisioner: scriptworker-k8s
             implementation: push-addons
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     production: '{trust-domain}-3-addon'
@@ -687,7 +687,7 @@ workers:
         balrog:
             provisioner: scriptworker-k8s
             implementation: balrog
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     production: '{trust-domain}-3-balrog'
@@ -697,7 +697,7 @@ workers:
             # Note that this implementation doesn't correspond with an
             # payload_builder, there are several `bouncer-*` implemenations.
             implementation: bouncer
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     production: '{trust-domain}-3-bouncer'
@@ -705,7 +705,7 @@ workers:
         beetmover:
             provisioner: scriptworker-k8s
             implementation: beetmover
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     production: '{trust-domain}-3-beetmover'
@@ -713,7 +713,7 @@ workers:
         beetmover-android:
             provisioner: scriptworker-k8s
             implementation: scriptworker-beetmover
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     production: '{trust-domain}-3-beetmover'
@@ -721,7 +721,7 @@ workers:
         shipit:
             provisioner: scriptworker-k8s
             implementation: shipit
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     production: '{trust-domain}-3-shipit'
@@ -755,12 +755,12 @@ workers:
         push-apk:
             provisioner: scriptworker-k8s
             implementation: scriptworker-pushapk
-            os: scriptworker
+            os: linux
             worker-type: '{trust-domain}-{level}-pushapk'
         pushflatpak:
             provisioner: scriptworker-k8s
             implementation: push-flatpak
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     staging: '{trust-domain}-1-pushflatpak'
@@ -768,7 +768,7 @@ workers:
         pushmsix:
             provisioner: scriptworker-k8s
             implementation: push-msix
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     staging: '{trust-domain}-1-pushmsix'
@@ -776,7 +776,7 @@ workers:
         tree:
             provisioner: scriptworker-k8s
             implementation: treescript
-            os: scriptworker
+            os: linux
             worker-type:
                 by-release-level:
                     production: '{trust-domain}-3-tree'
@@ -787,7 +787,7 @@ workers:
         tree-dev:
             provisioner: scriptworker-k8s
             implementation: treescript
-            os: scriptworker
+            os: linux
             worker-type: '{trust-domain}-1-tree-dev'
         t-bitbar-gw.*:
             provisioner: proj-autophone

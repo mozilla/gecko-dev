@@ -1567,15 +1567,11 @@ def set_implementation(config, tasks):
         )
         if worker_implementation:
             worker["implementation"] = worker_implementation
-            # TODO: Remove this if-statement in part 2.
-            if tag_worker_implementation:
-                tags["worker-implementation"] = tag_worker_implementation
+            tags["worker-implementation"] = tag_worker_implementation
 
         os = worker.get("os", default_os)
         if os:
-            # TODO: Remove this if-statement in part 2.
-            if tag_worker_implementation:
-                tags["os"] = os
+            tags["os"] = os
             worker["os"] = os
 
         yield task
@@ -1591,8 +1587,7 @@ def _get_worker_implementation_tag(config, task_worker_type, worker_implementati
         task_worker_type,
     )
     if provisioner_id in ("scriptworker-k8s", "scriptworker-prov-v1"):
-        # TODO: Return "scriptworker" in part 2.
-        return None
+        return "scriptworker"
 
     return worker_implementation
 

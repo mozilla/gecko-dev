@@ -142,6 +142,7 @@ def make_beetmover_checksums_worker(config, jobs):
 
         worker = {
             "implementation": "beetmover",
+            "os": "linux",
             "release-properties": craft_release_properties(config, job),
             "upstream-artifacts": generate_upstream_artifacts(
                 refs,
