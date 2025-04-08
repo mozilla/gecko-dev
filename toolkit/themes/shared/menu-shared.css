@@ -4,7 +4,8 @@
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
-*|*:root {
+menupopup,
+panel {
   --menu-icon-opacity: 1;
   --menu-arrow-width: 1em;
   --menuitem-border-radius: 3px;
