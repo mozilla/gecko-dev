@@ -95,7 +95,7 @@ class AboutFragment : BaseComposeFragment() {
     @Composable
     override fun Content() {
         AboutPageContent(
-            aboutVersion = getAboutHeader(),
+            aboutVersion = aboutHeader,
             content = content,
             learnMore = learnMore,
             secretSettingsUnlocker = secretSettingsUnlocker,
