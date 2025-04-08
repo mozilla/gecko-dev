@@ -42,7 +42,7 @@ struct {{ obj.name|Camelize }}{{ suffix }} {
       {% elif type == "boolean" %}
       extraValues.AppendElement()->AssignASCII({{item|camelize}}.value() ? "true" : "false");
       {% elif type == "quantity" %}
-      extraValues.EmplaceBack(nsPrintfCString("%d", {{item|camelize}}.value()));
+      extraValues.AppendElement()->AppendInt({{item|camelize}}.value());
       {% else %}
 #error "Glean: Invalid extra key type for metric {{obj.category}}.{{obj.name}}, defined in: {{obj.defined_in['filepath']}}:{{obj.defined_in['line']}})"
       {% endif %}

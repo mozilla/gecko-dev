@@ -370,6 +370,12 @@ test.nested:
       another_extra_key:
         type: string
         description: Another extra key description
+      quantity_extra:
+        type: quantity
+        description: A quantity extra
+      bool_extra:
+        type: boolean
+        description: A boolean extra
     telemetry_mirror: EventMetric_EnumName_WithExtra
 
   quantity_metric:

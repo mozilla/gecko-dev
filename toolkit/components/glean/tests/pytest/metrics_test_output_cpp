@@ -187,6 +187,8 @@ namespace test_nested {
   struct EventMetricWithExtraExtra {
     mozilla::Maybe<nsCString> anExtraKey;
     mozilla::Maybe<nsCString> anotherExtraKey;
+    mozilla::Maybe<bool> boolExtra;
+    mozilla::Maybe<uint32_t> quantityExtra;
 
     std::tuple<nsTArray<nsCString>, nsTArray<nsCString>> ToFfiExtra() const {
       nsTArray<nsCString> extraKeys;
@@ -198,6 +200,14 @@ namespace test_nested {
       if (anotherExtraKey) {
         extraKeys.AppendElement()->AssignASCII("another_extra_key");
         extraValues.EmplaceBack(anotherExtraKey.value());
+      }
+      if (boolExtra) {
+        extraKeys.AppendElement()->AssignASCII("bool_extra");
+        extraValues.AppendElement()->AssignASCII(boolExtra.value() ? "true" : "false");
+      }
+      if (quantityExtra) {
+        extraKeys.AppendElement()->AssignASCII("quantity_extra");
+        extraValues.AppendElement()->AppendInt(quantityExtra.value());
       }
       return std::make_tuple(std::move(extraKeys), std::move(extraValues));
     }

@@ -520,15 +520,19 @@ pub mod test_nested {
     pub struct EventMetricWithExtraExtra {
         pub r#an_extra_key: Option<String>,
         pub r#another_extra_key: Option<String>,
+        pub r#bool_extra: Option<bool>,
+        pub r#quantity_extra: Option<u32>,
     }
 
     impl ExtraKeys for EventMetricWithExtraExtra {
-        const ALLOWED_KEYS: &'static [&'static str] = &["an_extra_key", "another_extra_key"];
+        const ALLOWED_KEYS: &'static [&'static str] = &["an_extra_key", "another_extra_key", "bool_extra", "quantity_extra"];
 
         fn into_ffi_extra(self) -> ::std::collections::HashMap<String, String> {
           let mut map = ::std::collections::HashMap::new();
           self.r#an_extra_key.and_then(|val| map.insert("an_extra_key".into(), val.to_string()));
           self.r#another_extra_key.and_then(|val| map.insert("another_extra_key".into(), val.to_string()));
+          self.r#bool_extra.and_then(|val| map.insert("bool_extra".into(), val.to_string()));
+          self.r#quantity_extra.and_then(|val| map.insert("quantity_extra".into(), val.to_string()));
           map
         }
     }
