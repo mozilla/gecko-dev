@@ -57,7 +57,8 @@ struct CachedPositionAndAccuracy {
 class nsGeolocationService final : public nsIGeolocationUpdate,
                                    public nsIObserver {
  public:
-  static already_AddRefed<nsGeolocationService> GetGeolocationService();
+  static already_AddRefed<nsGeolocationService> GetGeolocationService(
+      mozilla::dom::BrowsingContext* browsingContext = nullptr);
   static mozilla::StaticRefPtr<nsGeolocationService> sService;
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -166,6 +167,11 @@ class Geolocation final : public nsIGeolocationUpdate, public nsWrapperCache {
   // Shutting down.
   void Shutdown();
 
+  // Getter for the browsing context that this Geolocation was loaded for
+  mozilla::dom::BrowsingContext* GetBrowsingContext() {
+    return mBrowsingContext;
+  }
+
   // Getter for the principal that this Geolocation was loaded from
   nsIPrincipal* GetPrincipal() { return mPrincipal; }
 
@@ -234,6 +240,7 @@ class Geolocation final : public nsIGeolocationUpdate, public nsWrapperCache {
 
   // where the content was loaded from
   nsCOMPtr<nsIPrincipal> mPrincipal;
+  RefPtr<mozilla::dom::BrowsingContext> mBrowsingContext;
 
   // the protocols we want to measure
   enum class ProtocolType : uint8_t { OTHER, HTTP, HTTPS };
@@ -243,6 +250,8 @@ class Geolocation final : public nsIGeolocationUpdate, public nsWrapperCache {
 
   // owning back pointer.
   RefPtr<nsGeolocationService> mService;
+  // owning back pointer for service override.
+  RefPtr<nsGeolocationService> mServiceOverride;
 
   // Watch ID
   uint32_t mLastWatchId;

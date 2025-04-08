@@ -32,8 +32,10 @@
 #include "nsILoadInfo.h"
 #include "nsILoadContext.h"
 #include "nsThreadUtils.h"
+#include "nsIDOMGeoPosition.h"
 
 class nsDocShellLoadState;
+class nsGeolocationService;
 class nsGlobalWindowInner;
 class nsGlobalWindowOuter;
 class nsIPrincipal;
@@ -484,6 +486,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   bool IsContentSubframe() const { return IsContent() && IsSubframe(); }
 
+  RefPtr<nsGeolocationService> GetGeolocationServiceOverride();
+
   // non-zero
   uint64_t Id() const { return mBrowsingContextId; }
 
@@ -612,6 +616,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   bool WatchedByDevTools();
   void SetWatchedByDevTools(bool aWatchedByDevTools, ErrorResult& aRv);
+
+  void SetGeolocationServiceOverride(
+      const Optional<nsIDOMGeoPosition*>& aGeolocationOverride);
 
   dom::TouchEventsOverride TouchEventsOverride() const;
   bool TargetTopLevelLinkClicksToBlank() const;
@@ -1353,6 +1360,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   nsTArray<RefPtr<WindowContext>> mWindowContexts;
   RefPtr<WindowContext> mCurrentWindowContext;
+
+  RefPtr<nsGeolocationService> mGeolocationServiceOverride;
 
   // This is not a strong reference, but using a JS::Heap for that should be
   // fine. The JSObject stored in here should be a proxy with a

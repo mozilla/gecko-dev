@@ -80,6 +80,9 @@ support-files = ["file_empty.html"]
 
 ["browser_frame_elements.js"]
 
+["browser_geolocation_override.js"]
+support-files = ["file_empty.html"]
+
 ["browser_hasActivePeerConnections.js"]
 support-files = ["create_webrtc_peer_connection.html"]
 skip-if = [
