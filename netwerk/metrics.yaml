@@ -610,6 +610,7 @@ networking:
       The count of calls to the native DNS APIs
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879165
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958160
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879165
     data_sensitivity:
@@ -617,7 +618,7 @@ networking:
     notification_emails:
       - vgosu@mozilla.com
       - necko@mozilla.com
-    expires: 140
+    expires: 148
     labels:
       - regular
       - private
@@ -1519,12 +1520,13 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1866245
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1902190
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958160
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1866245
     notification_emails:
       - vgosu@mozilla.com
       - necko@mozilla.com
-    expires: 140
+    expires: never
     labels:
       - regular
       - private
