@@ -257,8 +257,9 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         val navbarIntegration = CustomTabsNavigationBarIntegration(
             context = requireContext(),
             browserStore = requireComponents.core.store,
+            interactor = browserToolbarInteractor,
+            lifecycleOwner = viewLifecycleOwner,
             customTabSessionId = customTabSessionId,
-            toolbar = browserToolbarView,
         )
         navbarIntegration.navbarMenu.apply {
             recordClickEvent = { NavigationBar.customMenuTapped.record(NoExtras()) }

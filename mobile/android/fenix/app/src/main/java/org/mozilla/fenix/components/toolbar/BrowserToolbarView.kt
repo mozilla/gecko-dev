@@ -6,9 +6,7 @@ package org.mozilla.fenix.components.toolbar
 
 import android.content.Context
 import android.graphics.Color
-import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.annotation.VisibleForTesting
@@ -27,8 +25,6 @@ import mozilla.components.support.ktx.util.URLStringUtils
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.customtabs.CustomTabToolbarIntegration
-import org.mozilla.fenix.customtabs.CustomTabToolbarMenu
-import org.mozilla.fenix.ext.bookmarkStorage
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.utils.Settings
@@ -108,7 +104,6 @@ class BrowserToolbarView(
         }
 
         with(context) {
-            val isPinningSupported = components.useCases.webAppUseCases.isPinningSupported()
             layout.elevation = if (shouldShowDropShadow()) {
                 resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
             } else {
@@ -145,32 +140,15 @@ class BrowserToolbarView(
                 display.hint = context.getString(R.string.search_hint)
             }
 
-            if (isCustomTabSession) {
-                menuToolbar = CustomTabToolbarMenu(
-                    context = this,
-                    store = components.core.store,
-                    sessionId = customTabSession?.id,
-                    shouldReverseItems = settings.toolbarPosition == ToolbarPosition.TOP,
-                    isSandboxCustomTab = false,
-                    onItemTapped = {
-                        it.performHapticIfNeeded(toolbar)
-                        interactor.onBrowserToolbarMenuItemTapped(it)
-                    },
-                )
-            } else {
-                menuToolbar = DefaultToolbarMenu(
-                    context = this,
-                    store = components.core.store,
-                    hasAccountProblem = components.backgroundServices.accountManager.accountNeedsReauth(),
-                    onItemTapped = {
-                        it.performHapticIfNeeded(toolbar)
-                        interactor.onBrowserToolbarMenuItemTapped(it)
-                    },
-                    lifecycleOwner = lifecycleOwner,
-                    bookmarksStorage = bookmarkStorage,
-                    pinnedSiteStorage = components.core.pinnedSiteStorage,
-                    isPinningSupported = isPinningSupported,
-                )
+            menuToolbar = ToolbarMenuBuilder(
+                context = this,
+                components = components,
+                settings = settings,
+                interactor = interactor,
+                lifecycleOwner = lifecycleOwner,
+                customTabSessionId = customTabSession?.id,
+            ).build()
+            if (!isCustomTabSession) {
                 toolbar.display.setMenuDismissAction {
                     toolbar.invalidateActions()
                 }
@@ -265,15 +243,5 @@ class BrowserToolbarView(
                 R.color.fx_mobile_icon_color_information,
             ),
         )
-    }
-
-    @Suppress("ComplexCondition")
-    private fun ToolbarMenu.Item.performHapticIfNeeded(view: View) {
-        if (this is ToolbarMenu.Item.Reload && this.bypassCache ||
-            this is ToolbarMenu.Item.Back && this.viewHistory ||
-            this is ToolbarMenu.Item.Forward && this.viewHistory
-        ) {
-            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
     }
 }

@@ -193,6 +193,7 @@ import org.mozilla.fenix.components.toolbar.NewTabMenu
 import org.mozilla.fenix.components.toolbar.ToolbarContainerView
 import org.mozilla.fenix.components.toolbar.ToolbarIntegration
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
+import org.mozilla.fenix.components.toolbar.ToolbarMenuBuilder
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.interactor.DefaultBrowserToolbarInteractor
@@ -1668,9 +1669,15 @@ abstract class BaseBrowserFragment :
         var showCFR by remember { mutableStateOf(false) }
         val lastTimeNavigationButtonsClicked = remember { mutableLongStateOf(0L) }
 
-        // We need a second menu button, but we could reuse the existing builder.
         val menuButton = MenuButton(context).apply {
-            menuBuilder = (browserToolbarView as BrowserToolbarView).menuToolbar.menuBuilder
+            menuBuilder = ToolbarMenuBuilder(
+                context = context,
+                components = context.components,
+                settings = context.settings(),
+                interactor = browserToolbarInteractor,
+                lifecycleOwner = viewLifecycleOwner,
+                customTabSessionId = customTabSessionId,
+            ).build().menuBuilder
             // We have to set colorFilter manually as the button isn't being managed by a [BrowserToolbarView].
             setColorFilter(
                 getColor(
@@ -2708,7 +2715,7 @@ abstract class BaseBrowserFragment :
         runIfFragmentIsAttached {
             val toolbarView = _browserToolbarView as? BrowserToolbarView
             if (toolbarView != null) {
-                (toolbarView.toolbar as? BrowserToolbar)?.invalidateActions()
+                toolbarView.toolbar.invalidateActions()
                 toolbarView.toolbarIntegration.invalidateMenu()
             }
             _menuButtonView?.setHighlightStatus()

@@ -6,12 +6,15 @@ package org.mozilla.fenix.customtabs
 
 import android.content.Context
 import androidx.core.content.ContextCompat.getColor
+import androidx.lifecycle.LifecycleOwner
 import mozilla.components.browser.menu.view.MenuButton
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.customtabs.addCustomMenuItems
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.toolbar.BrowserToolbarView
-import org.mozilla.fenix.components.toolbar.FenixBrowserToolbarView
+import org.mozilla.fenix.components.toolbar.ToolbarMenuBuilder
+import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
+import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.ThemeManager
 
 /**
@@ -26,14 +29,16 @@ private const val START_OF_MENU_ITEMS_INDEX = 2
  *
  * @param context Android [Context] used for system interactions.
  * @param browserStore The [BrowserStore] containing data about the current custom tabs.
+ * @param interactor [BrowserToolbarInteractor] for handling user interactions with the menu items.
+ * @param lifecycleOwner [LifecycleOwner] for preventing dangling long running jobs.
  * @param customTabSessionId ID of the custom tab session.
- * @param toolbar The [BrowserToolbarView] shown for the current custom tab that the navigation bar will match in style.
  */
 internal class CustomTabsNavigationBarIntegration(
     private val context: Context,
     private val browserStore: BrowserStore,
+    private val interactor: BrowserToolbarInteractor,
+    private val lifecycleOwner: LifecycleOwner,
     private val customTabSessionId: String,
-    private val toolbar: FenixBrowserToolbarView,
 ) {
     /**
      * Menu allowing users to interact with all options for this custom tab.
@@ -41,7 +46,14 @@ internal class CustomTabsNavigationBarIntegration(
      */
     val navbarMenu by lazy(LazyThreadSafetyMode.NONE) {
         MenuButton(context).apply {
-            menuBuilder = (toolbar as BrowserToolbarView).menuToolbar.menuBuilder.addCustomMenuItems(
+            menuBuilder = ToolbarMenuBuilder(
+                context = context,
+                components = context.components,
+                settings = context.settings(),
+                interactor = interactor,
+                lifecycleOwner = lifecycleOwner,
+                customTabSessionId = customTabSessionId,
+            ).build().menuBuilder.addCustomMenuItems(
                 context = context,
                 browserStore = browserStore,
                 customTabSessionId = customTabSessionId,
