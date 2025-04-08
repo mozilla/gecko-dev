@@ -10,7 +10,7 @@ class PictureInPictureVideoWrapper {
       ".rcplayer-btn.rcplayer-smallPlayPauseBtn"
     );
     if (video.paused) {
-      playPauseButton.click();
+      playPauseButton?.click();
     }
   }
 
@@ -19,16 +19,16 @@ class PictureInPictureVideoWrapper {
       ".rcplayer-btn.rcplayer-smallPlayPauseBtn"
     );
     if (!video.paused) {
-      playPauseButton.click();
+      playPauseButton?.click();
     }
   }
 
   setMuted(video, shouldMute) {
     let muteButton = document.querySelector(
-      ".rcplayer-bouton-with-panel--volume > button"
+      ".rcplayer-bouton-with-panel--volume .rcplayer-btn"
     );
-    if (video.muted !== shouldMute && muteButton) {
-      muteButton.click();
+    if (video.muted !== shouldMute) {
+      muteButton?.click();
     }
   }
 }
