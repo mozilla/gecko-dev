@@ -108,21 +108,6 @@ void Accumulate(const char* name, uint32_t sample);
 void Accumulate(const char* name, const nsCString& key, uint32_t sample = 1);
 
 /**
- * Adds sample to a categorical histogram defined in TelemetryHistogramEnums.h
- * This is the typesafe - and preferred - way to use the categorical histograms
- * by passing values from the corresponding Telemetry::LABELS_* enum.
- *
- * @param enumValue - Label value from one of the Telemetry::LABELS_* enums.
- */
-template <class E>
-void AccumulateCategorical(E enumValue) {
-  static_assert(IsCategoricalLabelEnum<E>::value,
-                "Only categorical label enum types are supported.");
-  Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value),
-             static_cast<uint32_t>(enumValue));
-};
-
-/**
  * Adds sample to a keyed categorical histogram defined in
  * TelemetryHistogramEnums.h This is the typesafe - and preferred - way to use
  * the keyed categorical histograms by passing values from the corresponding
@@ -138,27 +123,6 @@ void AccumulateCategoricalKeyed(const nsCString& key, E enumValue) {
   Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value), key,
              static_cast<uint32_t>(enumValue));
 };
-
-/**
- * Adds sample to a categorical histogram defined in TelemetryHistogramEnums.h
- * This string will be matched against the labels defined in Histograms.json.
- * If the string does not match a label defined for the histogram, nothing will
- * be recorded.
- *
- * @param id - The histogram id.
- * @param label - A string label value that is defined in Histograms.json for
- *                this histogram.
- */
-void AccumulateCategorical(HistogramID id, const nsCString& label);
-
-/**
- * Adds an array of samples to a categorical histogram defined in
- * Histograms.json
- *
- * @param id - The histogram id
- * @param labels - The array of labels to accumulate
- */
-void AccumulateCategorical(HistogramID id, const nsTArray<nsCString>& labels);
 
 /**
  * Adds time delta in milliseconds to a histogram defined in

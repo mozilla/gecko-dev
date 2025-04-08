@@ -46,7 +46,7 @@ void accumulateToCategorical(HistogramID aId, const nsCString& aLabel,
   MOZ_ASSERT(aAmount == 1,
              "When mirroring to categorical histograms, we only support "
              "accumulating one sample at a time.");
-  mozilla::Telemetry::AccumulateCategorical(aId, aLabel);
+  TelemetryHistogram::AccumulateCategorical(aId, aLabel);
 }
 
 namespace mozilla::glean {

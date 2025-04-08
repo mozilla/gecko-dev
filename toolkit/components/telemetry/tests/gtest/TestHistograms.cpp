@@ -3,6 +3,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+#include "core/TelemetryHistogram.h"
 #include "gtest/gtest.h"
 #include "js/Conversions.h"
 #include "mozilla/glean/GleanTestsTestMetrics.h"
@@ -152,22 +153,16 @@ TEST_F(TelemetryTestFixture, TestKeyedKeysHistogram) {
 }
 
 TEST_F(TelemetryTestFixture, AccumulateCategoricalHistogram) {
-  const uint32_t kExpectedValue = 2;
+  const uint32_t kExpectedValue = 1;
 
   AutoJSContextWithGlobal cx(mCleanGlobal);
 
   GetAndClearHistogram(cx.GetJSContext(), mTelemetry,
                        "TELEMETRY_TEST_CATEGORICAL"_ns, false);
 
-  // Accumulate one unit into the categorical histogram with label
-  // Telemetry::LABELS_TELEMETRY_TEST_CATEGORICAL::CommonLabel
-  Telemetry::AccumulateCategorical(
-      Telemetry::LABELS_TELEMETRY_TEST_CATEGORICAL::CommonLabel);
-
-  // Accumulate another unit into the same categorical histogram using a string
-  // label
-  Telemetry::AccumulateCategorical(Telemetry::TELEMETRY_TEST_CATEGORICAL,
-                                   "CommonLabel"_ns);
+  // Accumulate one unit into the categorical histogram using a string label
+  TelemetryHistogram::AccumulateCategorical(
+      Telemetry::TELEMETRY_TEST_CATEGORICAL, "CommonLabel"_ns);
 
   // Get a snapshot for all the histograms
   JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
@@ -606,83 +601,6 @@ TEST_F(TelemetryTestFixture, TestKeyedKeysHistogram_MultipleSamples) {
   CheckKeyedUintScalar("telemetry.accumulate_unknown_histogram_keys",
                        "TELEMETRY_TEST_KEYED_KEYS", cx.GetJSContext(),
                        scalarsSnapshot, expectedAccumulateUnknownCount);
-}
-
-TEST_F(TelemetryTestFixture,
-       AccumulateCategoricalHistogram_MultipleStringLabels) {
-  const uint32_t kExpectedValue = 2;
-  const nsTArray<nsCString> labels({"CommonLabel"_ns, "CommonLabel"_ns});
-  AutoJSContextWithGlobal cx(mCleanGlobal);
-
-  GetAndClearHistogram(cx.GetJSContext(), mTelemetry,
-                       "TELEMETRY_TEST_CATEGORICAL"_ns, false);
-
-  // Accumulate the units into a categorical histogram using a string label
-  Telemetry::AccumulateCategorical(Telemetry::TELEMETRY_TEST_CATEGORICAL,
-                                   labels);
-
-  // Get a snapshot for all the histograms
-  JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
-  GetSnapshots(cx.GetJSContext(), mTelemetry, "TELEMETRY_TEST_CATEGORICAL",
-               &snapshot, false);
-
-  // Get our histogram from the snapshot
-  JS::Rooted<JS::Value> histogram(cx.GetJSContext());
-  GetProperty(cx.GetJSContext(), "TELEMETRY_TEST_CATEGORICAL", snapshot,
-              &histogram);
-
-  // Get values object from histogram. Each entry in the object maps to a label
-  // in the histogram.
-  JS::Rooted<JS::Value> values(cx.GetJSContext());
-  GetProperty(cx.GetJSContext(), "values", histogram, &values);
-
-  // Get the value for the label we care about
-  JS::Rooted<JS::Value> value(cx.GetJSContext());
-  GetElement(cx.GetJSContext(),
-             static_cast<uint32_t>(
-                 Telemetry::LABELS_TELEMETRY_TEST_CATEGORICAL::CommonLabel),
-             values, &value);
-
-  // Check that the value stored in the histogram matches with |kExpectedValue|
-  uint32_t uValue = 0;
-  JS::ToUint32(cx.GetJSContext(), value, &uValue);
-  ASSERT_EQ(uValue, kExpectedValue)
-      << "The histogram is not returning expected value";
-
-  // Now we check for no accumulation when a bad label is present in the array.
-  //
-  // The 'values' property is not initialized unless data is accumulated so
-  // keeping another test to check for this case alone is wasteful as we will
-  // have to accumulate some data anyway.
-
-  const nsTArray<nsCString> badLabelArray({"CommonLabel"_ns, "BadLabel"_ns});
-
-  // Try to accumulate the array into the histogram.
-  Telemetry::AccumulateCategorical(Telemetry::TELEMETRY_TEST_CATEGORICAL,
-                                   badLabelArray);
-
-  // Get snapshot of all the histograms
-  GetSnapshots(cx.GetJSContext(), mTelemetry, "TELEMETRY_TEST_CATEGORICAL",
-               &snapshot, false);
-
-  // Get our histogram from the snapshot
-  GetProperty(cx.GetJSContext(), "TELEMETRY_TEST_CATEGORICAL", snapshot,
-              &histogram);
-
-  // Get values array from histogram
-  GetProperty(cx.GetJSContext(), "values", histogram, &values);
-
-  // Get the value for the label we care about
-  GetElement(cx.GetJSContext(),
-             static_cast<uint32_t>(
-                 Telemetry::LABELS_TELEMETRY_TEST_CATEGORICAL::CommonLabel),
-             values, &value);
-
-  // Check that the value stored in the histogram matches with |kExpectedValue|
-  uValue = 0;
-  JS::ToUint32(cx.GetJSContext(), value, &uValue);
-  ASSERT_EQ(uValue, kExpectedValue)
-      << "The histogram accumulated data when it should not have";
 }
 
 TEST_F(TelemetryTestFixture, AccumulateTimeDelta) {
