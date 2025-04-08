@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!--
+    `minimum-scale=1` for disallowing scaling down this document even if there's any element wider than the ICB.
+   -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+  <title>Tests that scrollIntoView doesn't scroll to an element which is already in view in the minimum-scale viewport</title>
+  <script src="apz_test_native_event_utils.js"></script>
+  <script src="apz_test_utils.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <style>
+  html {
+    height: 10000px;
+    scroll-behavior: auto; /* to make scrolling instant */
+  }
+  #fixed {
+    position: fixed;
+    bottom: 0px;
+    height: 20vh;
+    overflow: scroll;
+    background-color: gray;
+  }
+  #name {
+    height: 10px;
+    width: 200vw; /* wider than the ICB */
+  }
+  </style>
+</head>
+<body>
+<div id="fixed">
+  <input type="text" id="name" />
+</div>
+<script>
+const isAndroid = getPlatform() == "android";
+async function test() {
+  is(window.scrollY, 0, "The initial scroll offset should be 0");
+  is(visualViewport.scale, 1.0, "The document should not get scaled");
+  is(visualViewport.pageTop, 0, "The initial visual viewport pageTop should be 0");
+
+  visualViewport.addEventListener("scroll", () => {
+    ok(isAndroid, "Any VisualViewport scroll event should not be observed");
+  });
+  window.addEventListener("scroll", () => {
+    ok(isAndroid, "Any scroll event should not be observed");
+  });
+
+  // Scroll to the input element inside a position:fixed element.
+  document.querySelector("#name").scrollIntoView();
+
+  await promiseApzFlushedRepaints();
+
+  // Wait two frames to give a chance to scroll.
+  await promiseFrame();
+  await promiseFrame();
+
+  if (isAndroid) {
+    todo_is(visualViewport.pageTop, 0, "The visual viewport pageTop should be zero");
+    todo_is(window.scrollY, 0, "The scroll offset should be zero");
+  } else {
+    is(visualViewport.pageTop, 0, "The visual viewport pageTop should be zero");
+    is(window.scrollY, 0, "The scroll offset should be zero");
+  }
+}
+
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+</script>
+</body>
+</html>
