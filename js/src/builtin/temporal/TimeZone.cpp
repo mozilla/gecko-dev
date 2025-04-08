@@ -797,20 +797,24 @@ bool js::temporal::TimeZoneEquals(const TimeZoneValue& one,
  * GetISOPartsFromEpoch ( epochNanoseconds )
  */
 static ISODateTime GetISOPartsFromEpoch(
-    const EpochNanoseconds& epochNanoseconds) {
+    const EpochNanoseconds& epochNanoseconds, int64_t offsetNanoseconds) {
   // Step 1.
   MOZ_ASSERT(IsValidEpochNanoseconds(epochNanoseconds));
+  MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
+
+  auto totalNanoseconds =
+      epochNanoseconds + EpochDuration::fromNanoseconds(offsetNanoseconds);
 
   // Step 2.
-  int32_t remainderNs = epochNanoseconds.nanoseconds % 1'000'000;
+  int32_t remainderNs = totalNanoseconds.nanoseconds % 1'000'000;
 
   // Step 10. (Reordered)
   //
   // Reordered so the compiler can merge the divisons in steps 2, 3, and 10.
-  int32_t millisecond = epochNanoseconds.nanoseconds / 1'000'000;
+  int32_t millisecond = totalNanoseconds.nanoseconds / 1'000'000;
 
   // Step 3.
-  int64_t epochMilliseconds = epochNanoseconds.floorToMilliseconds();
+  int64_t epochMilliseconds = totalNanoseconds.floorToMilliseconds();
 
   // Steps 4-6.
   auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
@@ -844,29 +848,6 @@ static ISODateTime GetISOPartsFromEpoch(
 }
 
 /**
- * BalanceISODateTime ( year, month, day, hour, minute, second, millisecond,
- * microsecond, nanosecond )
- */
-static ISODateTime BalanceISODateTime(const ISODateTime& dateTime,
-                                      int64_t nanoseconds) {
-  MOZ_ASSERT(IsValidISODateTime(dateTime));
-  MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
-  MOZ_ASSERT(std::abs(nanoseconds) < ToNanoseconds(TemporalUnit::Day));
-
-  const auto& [date, time] = dateTime;
-
-  // Step 1.
-  auto balancedTime = BalanceTime(time, nanoseconds);
-  MOZ_ASSERT(std::abs(balancedTime.days) <= 1);
-
-  // Step 2.
-  auto balancedDate = BalanceISODate(date, balancedTime.days);
-
-  // Step 3.
-  return {balancedDate, balancedTime.time};
-}
-
-/**
  * GetISODateTimeFor ( timeZone, epochNs )
  */
 ISODateTime js::temporal::GetISODateTimeFor(const EpochNanoseconds& epochNs,
@@ -876,16 +857,8 @@ ISODateTime js::temporal::GetISODateTimeFor(const EpochNanoseconds& epochNs,
 
   // Step 1. (Not applicable)
 
-  // TODO: Steps 2-3 can be combined into a single operation to improve perf.
-
-  // Step 2.
-  ISODateTime dateTime = GetISOPartsFromEpoch(epochNs);
-
-  // Step 3.
-  auto balanced = BalanceISODateTime(dateTime, offsetNanoseconds);
-  MOZ_ASSERT(ISODateTimeWithinLimits(balanced));
-
-  return balanced;
+  // Steps 2-3.
+  return GetISOPartsFromEpoch(epochNs, offsetNanoseconds);
 }
 
 /**
