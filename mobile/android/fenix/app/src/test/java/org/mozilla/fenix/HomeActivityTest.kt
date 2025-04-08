@@ -5,10 +5,7 @@
 package org.mozilla.fenix
 
 import android.content.Intent
-import android.graphics.Insets
 import android.os.Bundle
-import android.view.View
-import android.widget.FrameLayout
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -30,7 +27,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.Metrics
-import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.HomeActivity.Companion.PRIVATE_BROWSING_MODE
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -40,7 +36,6 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getIntentSource
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.ext.systemGesturesInsets
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.helpers.perf.TestStrictModeManager
@@ -192,63 +187,6 @@ class HomeActivityTest {
         every { activity.applicationContext } returns testContext
 
         assertFalse(activity.shouldStartOnHome(startingIntent))
-    }
-
-    @Test
-    fun `GIVEN gesture navigation is enabled WHEN collecting related telemetry THEN send the right value`() {
-        mockkStatic(View::systemGesturesInsets) {
-            every { any<View>().systemGesturesInsets } returns Insets.of(10, 20, 10, 20)
-            val rootView: FrameLayout = mockk {
-                every { isAttachedToWindow } returns true
-            }
-            activity.binding = mockk {
-                every { root } returns rootView
-            }
-
-            assertNull(NavigationBar.osNavigationUsesGestures.testGetValue())
-
-            activity.collectOSNavigationTelemetry()
-
-            assertTrue(NavigationBar.osNavigationUsesGestures.testGetValue()!!)
-        }
-    }
-
-    @Test
-    fun `GIVEN gesture navigation is disabled WHEN collecting related telemetry THEN send the right value`() {
-        mockkStatic(View::systemGesturesInsets) {
-            every { any<View>().systemGesturesInsets } returns Insets.of(0, 20, 0, 20)
-            val rootView: FrameLayout = mockk {
-                every { isAttachedToWindow } returns true
-            }
-            activity.binding = mockk {
-                every { root } returns rootView
-            }
-
-            assertNull(NavigationBar.osNavigationUsesGestures.testGetValue())
-
-            activity.collectOSNavigationTelemetry()
-
-            assertFalse(NavigationBar.osNavigationUsesGestures.testGetValue()!!)
-        }
-    }
-
-    @Test
-    fun `GIVEN gesture navigation is not available WHEN collecting related telemetry THEN send the right value`() {
-        mockkStatic(View::systemGesturesInsets) {
-            every { any<View>().systemGesturesInsets } returns null
-            val rootView: FrameLayout = mockk {
-                every { isAttachedToWindow } returns true
-            }
-            activity.binding = mockk {
-                every { root } returns rootView
-            }
-
-            assertNull(NavigationBar.osNavigationUsesGestures.testGetValue())
-
-            activity.collectOSNavigationTelemetry()
-
-            assertFalse(NavigationBar.osNavigationUsesGestures.testGetValue()!!)
-        }
     }
 
     @Test
