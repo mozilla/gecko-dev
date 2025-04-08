@@ -203,11 +203,6 @@ class PromiseJobRunnable final : public MicroTaskRunnable {
         callback ? xpc::NativeGlobal(callback) : nullptr;
     if (global && !global->IsDying()) {
       // Propagate the user input event handling bit if needed.
-      nsPIDOMWindowInner* win = global->GetAsInnerWindow();
-      RefPtr<Document> doc;
-      if (win) {
-        doc = win->GetExtantDoc();
-      }
       AutoHandlingUserInputStatePusher userInpStatePusher(
           mPropagateUserInputEventHandling);
 
