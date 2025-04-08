@@ -25,9 +25,9 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
+import org.mozilla.focus.browser.BrowserCoordinatorLayout
 import org.mozilla.focus.databinding.FragmentBrowserBinding
 import org.mozilla.focus.fragment.BrowserFragment
-import org.mozilla.focus.widget.ResizableKeyboardCoordinatorLayout
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
@@ -65,7 +65,7 @@ class BrowserFragmentTest {
 
         // Get the layout parent of the EngineView
         val engineViewParent = spy(
-            (engineView as View).parent as ResizableKeyboardCoordinatorLayout,
+            (engineView as View).parent as BrowserCoordinatorLayout,
         )
 
         assertNotNull(engineViewParent)
