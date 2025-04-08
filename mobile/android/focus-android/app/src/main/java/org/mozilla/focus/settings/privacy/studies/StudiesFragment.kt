@@ -36,7 +36,7 @@ class StudiesFragment : BaseSettingsLikeFragment() {
         _binding = FragmentStudiesBinding.inflate(inflater, container, false)
         viewModel = ViewModelProvider(
             this,
-        ).get(StudiesViewModel::class.java)
+        )[StudiesViewModel::class.java]
         setLearnMore()
         setStudiesSwitch()
         setRemoveStudyListener()
