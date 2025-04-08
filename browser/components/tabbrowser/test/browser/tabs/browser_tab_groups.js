@@ -2169,3 +2169,63 @@ add_task(async function test_bug1936015() {
 
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_bug1957723_addTabsByIndex() {
+  let initialTab = gBrowser.tabs[0];
+  let triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+
+  const tabs = createManyTabs(5);
+  const tabGroup = gBrowser.addTabGroup([tabs[1], tabs[2], tabs[3]], {
+    insertBefore: tabs[1],
+  });
+
+  let tab1 = gBrowser.addTab("https://example.com", {
+    index: 2,
+    triggeringPrincipal,
+  });
+  Assert.equal(
+    tab1._tPos,
+    2,
+    "Tab added at starting index of tab group is in correct position"
+  );
+  Assert.equal(
+    tab1.group,
+    null,
+    "Tab added at starting index of tab group is not in group"
+  );
+  gBrowser.removeTab(tab1);
+
+  let tab2 = gBrowser.addTab("https://example.com", {
+    index: 4,
+    triggeringPrincipal,
+  });
+  Assert.equal(
+    tab2._tPos,
+    4,
+    "Tab added by index just before end of tab group is in correct position"
+  );
+  Assert.equal(
+    tab2.group.id,
+    tabGroup.id,
+    "Tab added by index just before end of tab group is in group"
+  );
+  gBrowser.removeTab(tab2);
+
+  let tab3 = gBrowser.addTab("https://example.com", {
+    index: 5,
+    triggeringPrincipal,
+  });
+  Assert.equal(
+    tab3._tPos,
+    5,
+    "Tab added at index just after end of tab group is in correct position"
+  );
+  Assert.equal(
+    tab3.group,
+    null,
+    "Tab added at index just after end of tab group is not in group"
+  );
+  gBrowser.removeTab(tab3);
+
+  gBrowser.removeAllTabsBut(initialTab);
+});

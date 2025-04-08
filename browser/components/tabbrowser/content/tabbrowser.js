@@ -3945,13 +3945,22 @@
           // 2) `itemAfter` is in a different tab group
           this.moveTabToGroup(tab, tabGroup);
         }
+      } else if (
+        this.isTab(itemAfter) &&
+        itemAfter?.group?.tabs[0] == itemAfter
+      ) {
+        // If there is ambiguity around whether or not a tab should be inserted
+        // into a group (i.e. because the new tab is being inserted on the
+        // edges of the group), prefer not to insert the tab into the group.
+        //
+        // We only need to handle the case where the tab is being inserted at
+        // the starting boundary of a group because `insertBefore` called on
+        // the tab just after a tab group will not add it to the group by
+        // default.
+        this.tabContainer.insertBefore(tab, itemAfter.group);
       } else {
-        // Place ungrouped tab before `itemAfter` or its group
-        // 1) Ungrouped tab between standalone tabs
-        // 2) Ungrouped tab at the end of the tab strip
-        // 3) Ungrouped tab right before the next tab group, if the
-        //    next tab is in a group
-        this.tabContainer.insertBefore(tab, itemAfter?.group ?? itemAfter);
+        // Place ungrouped tab before `itemAfter` by default
+        this.tabContainer.insertBefore(tab, itemAfter);
       }
 
       this._updateTabsAfterInsert();
