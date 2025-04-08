@@ -2239,7 +2239,6 @@ RemoteSettingsServer.Custom = class extends RemoteSettingsServer{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeRemoteSettingsServer extends FfiConverterArrayBuffer {
     static read(dataStream) {
-        // Use sequential indices (1-based) for the wire format to match Python bindings
         switch (dataStream.readInt32()) {
             case 1:
                 return new RemoteSettingsServer.Prod(
@@ -2300,7 +2299,7 @@ export class FfiConverterTypeRemoteSettingsServer extends FfiConverterArrayBuffe
     }
 
     static checkType(value) {
-      if (value === undefined || value === null || !(value instanceof RemoteSettingsServer)) {
+      if (!(value instanceof RemoteSettingsServer)) {
         throw new UniFFITypeError(`${value} is not a subclass instance of RemoteSettingsServer`);
       }
     }
