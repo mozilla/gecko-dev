@@ -3125,3 +3125,46 @@ network:
       - necko@mozilla.com
     expires: never
     telemetry_mirror: h#NETWORK_ID_ONLINE
+
+  backgroundfilesaver_thread_count:
+    type: custom_distribution
+    description: >
+      Maximum number of concurrent threads reached during a given download
+      session
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram BACKGROUNDFILESAVER_THREAD_COUNT.
+    range_min: 0
+    range_max: 21
+    bucket_count: 22
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: BACKGROUNDFILESAVER_THREAD_COUNT
+
+  ipv4_and_ipv6_address_connectivity:
+    type: custom_distribution
+    description: >
+      Count the number of 0) successful connections to an ipv4 address, 1)
+      failed connection an ipv4 address, 2) successful connection to an ipv6
+      address and 3) failed connections to an ipv6 address.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram IPV4_AND_IPV6_ADDRESS_CONNECTIVITY.
+    range_min: 0
+    range_max: 4
+    bucket_count: 5
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: IPV4_AND_IPV6_ADDRESS_CONNECTIVITY

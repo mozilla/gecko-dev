@@ -16,6 +16,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/net/NeckoChild.h"
@@ -1722,13 +1723,13 @@ bool nsSocketTransport::RecoverFromError() {
   if ((mState == STATE_CONNECTING) && mDNSRecord) {
     if (mNetAddr.raw.family == AF_INET) {
       if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
-        Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
-                              UNSUCCESSFUL_CONNECTING_TO_IPV4_ADDRESS);
+        glean::network::ipv4_and_ipv6_address_connectivity
+            .AccumulateSingleSample(UNSUCCESSFUL_CONNECTING_TO_IPV4_ADDRESS);
       }
     } else if (mNetAddr.raw.family == AF_INET6) {
       if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
-        Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
-                              UNSUCCESSFUL_CONNECTING_TO_IPV6_ADDRESS);
+        glean::network::ipv4_and_ipv6_address_connectivity
+            .AccumulateSingleSample(UNSUCCESSFUL_CONNECTING_TO_IPV6_ADDRESS);
       }
     }
   }
@@ -2199,13 +2200,13 @@ void nsSocketTransport::OnSocketReady(PRFileDesc* fd, int16_t outFlags) {
 
       if (mNetAddr.raw.family == AF_INET) {
         if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
-          Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
-                                SUCCESSFUL_CONNECTING_TO_IPV4_ADDRESS);
+          glean::network::ipv4_and_ipv6_address_connectivity
+              .AccumulateSingleSample(SUCCESSFUL_CONNECTING_TO_IPV4_ADDRESS);
         }
       } else if (mNetAddr.raw.family == AF_INET6) {
         if (mSocketTransportService->IsTelemetryEnabledAndNotSleepPhase()) {
-          Telemetry::Accumulate(Telemetry::IPV4_AND_IPV6_ADDRESS_CONNECTIVITY,
-                                SUCCESSFUL_CONNECTING_TO_IPV6_ADDRESS);
+          glean::network::ipv4_and_ipv6_address_connectivity
+              .AccumulateSingleSample(SUCCESSFUL_CONNECTING_TO_IPV6_ADDRESS);
         }
       }
     } else {
