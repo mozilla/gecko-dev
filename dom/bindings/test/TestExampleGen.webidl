@@ -869,7 +869,6 @@ interface TestExampleInterface {
   undefined passAllowSharedNullableArrayBuffer([AllowShared] ArrayBuffer? foo);
   undefined passUnionArrayBuffer((DOMString or ArrayBuffer) foo);
   undefined passUnionAllowSharedArrayBuffer((DOMString or [AllowShared] ArrayBuffer) foo);
-  undefined passAllowSharedInt8ArrayOrInt16Array([AllowShared] (Int8Array or Int16Array) foo);
 
   [Frozen, ReflectedHTMLAttributeReturningFrozenArray]
   attribute sequence<Element>? reflectedHTMLAttributeReturningFrozenArray;

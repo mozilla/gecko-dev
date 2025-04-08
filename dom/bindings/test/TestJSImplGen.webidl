@@ -865,7 +865,6 @@ interface TestJSImplInterface {
   undefined passAllowSharedNullableArrayBuffer([AllowShared] ArrayBuffer? foo);
   undefined passUnionArrayBuffer((DOMString or ArrayBuffer) foo);
   undefined passUnionAllowSharedArrayBuffer((DOMString or [AllowShared] ArrayBuffer) foo);
-  undefined passAllowSharedInt8ArrayOrInt16Array([AllowShared] (Int8Array or Int16Array) foo);
 
   // If you add things here, add them to TestCodeGen as well
 };

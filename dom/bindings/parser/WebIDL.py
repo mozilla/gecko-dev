@@ -2838,11 +2838,11 @@ class IDLUnresolvedType(IDLType):
         assert not obj.isType()
         if obj.isTypedef():
             assert self.name.name == obj.identifier.name
-            typedefType = IDLTypedefType(
-                self.location, obj.innerType, obj.identifier
-            ).withExtendedAttributes(self.extraTypeAttributes)
+            typedefType = IDLTypedefType(self.location, obj.innerType, obj.identifier)
             assert not typedefType.isComplete()
-            return typedefType.complete(scope)
+            return typedefType.complete(scope).withExtendedAttributes(
+                self.extraTypeAttributes
+            )
         elif obj.isCallback() and not obj.isInterface():
             assert self.name.name == obj.identifier.name
             return IDLCallbackType(self.location, obj)
@@ -3420,12 +3420,6 @@ class IDLUnionType(IDLType):
 
     def _getDependentObjects(self):
         return set(self.memberTypes)
-
-    def withExtendedAttributes(self, attrs):
-        memberTypes = list(self.memberTypes)
-        for idx, memberType in enumerate(self.memberTypes):
-            memberTypes[idx] = memberType.withExtendedAttributes(attrs)
-        return IDLUnionType(self.location, memberTypes)
 
 
 class IDLTypedefType(IDLType):
