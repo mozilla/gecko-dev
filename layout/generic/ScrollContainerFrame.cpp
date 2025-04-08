@@ -5923,18 +5923,7 @@ void ScrollContainerFrame::PostOverflowEvent() {
     return;
   }
 
-  auto overflowEventEnabled = [&]() -> bool {
-    Document* doc = PresContext()->Document();
-    if (nsContentUtils::IsChromeDoc(doc)) {
-      return true;
-    }
-    if (nsContentUtils::IsAddonDoc(doc)) {
-      return StaticPrefs::layout_overflow_underflow_content_enabled_in_addons();
-    }
-    return StaticPrefs::layout_overflow_underflow_content_enabled();
-  }();
-
-  if (!overflowEventEnabled) {
+  if (!nsContentUtils::IsChromeDoc(PresContext()->Document())) {
     return;
   }
 
