@@ -314,21 +314,6 @@ AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::ResolveAnchor(
   return Evaluated(result.AsValid());
 }
 
-AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::Invalid() {
-  return AnchorResolved::Evaluated(
-      StyleMargin::LengthPercentage(StyleLengthPercentage::Zero()));
-}
-
-AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::Evaluated(
-    mozilla::StyleLengthPercentage&& aLP) {
-  return AnchorResolved::Evaluated(StyleMargin::LengthPercentage(aLP));
-}
-
-AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::Evaluated(
-    const mozilla::StyleLengthPercentage& aLP) {
-  return AnchorResolved::Evaluated(StyleMargin::LengthPercentage(aLP));
-}
-
 nsStyleMargin::nsStyleMargin()
     : mMargin(StyleRectWithAllSides(
           StyleMargin::LengthPercentage(LengthPercentage::Zero()))),
@@ -1378,43 +1363,7 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
   return {StyleAlignFlags::NORMAL};
 }
 
-AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
-    Side aSide, StylePositionProperty aPosition) const {
-  return {mOffset.Get(aSide), GetStylePhysicalAxis(aSide), aPosition};
-}
-
-AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
-    mozilla::LogicalSide aSide, WritingMode aWM,
-    mozilla::StylePositionProperty aPosition) const {
-  return GetAnchorResolvedInset(aWM.PhysicalSide(aSide), aPosition);
-}
-
-AnchorResolvedInset::AnchorResolvedInset(
-    const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
-    mozilla::StylePositionProperty aPosition)
-    : AnchorResolved<StyleInset>{FromUnresolved(aValue, aAxis, aPosition)} {}
-
-AnchorResolvedInset::AnchorResolvedInset(
-    const mozilla::StyleInset& aValue, mozilla::LogicalAxis aAxis,
-    mozilla::WritingMode aWM, mozilla::StylePositionProperty aPosition)
-    : AnchorResolved<StyleInset>{FromUnresolved(
-          aValue, ToStylePhysicalAxis(aWM.PhysicalAxis(aAxis)), aPosition)} {}
-
-AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::Invalid() {
-  return AnchorResolved::Evaluated(StyleInset::Auto());
-}
-
-AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::Evaluated(
-    mozilla::StyleLengthPercentage&& aLP) {
-  return AnchorResolved::Evaluated(StyleInset::LengthPercentage(aLP));
-}
-
-AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::Evaluated(
-    const mozilla::StyleLengthPercentage& aLP) {
-  return AnchorResolved::Evaluated(StyleInset::LengthPercentage(aLP));
-}
-
-AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
+AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::ResolveAnchor(
     const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
     mozilla::StylePositionProperty aPosition) {
   // TODO(dshin): Maybe worth pref-gating here.
@@ -1424,9 +1373,8 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
   static_assert(static_cast<uint8_t>(mozilla::PhysicalAxis::Horizontal) ==
                     static_cast<uint8_t>(StylePhysicalAxis::Horizontal),
                 "Horizontal axis doesn't match");
-  if (!aValue.HasAnchorPositioningFunction()) {
-    return AnchorResolved::Unchanged(aValue);
-  }
+  MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
+             "Calling anchor resolution without using it?");
   switch (aValue.tag) {
     case StyleInset::Tag::AnchorContainingCalcFunction: {
       const auto& lp = aValue.AsAnchorContainingCalcFunction();
@@ -1469,16 +1417,11 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
   }
 }
 
-AnchorResolvedSize::AnchorResolvedSize(const mozilla::StyleSize& aValue,
-                                       mozilla::StylePositionProperty aPosition)
-    : AnchorResolved<StyleSize>{FromUnresolved(aValue, aPosition)} {}
-
-AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::FromUnresolved(
+AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::ResolveAnchor(
     const mozilla::StyleSize& aValue,
     mozilla::StylePositionProperty aPosition) {
-  if (!aValue.HasAnchorPositioningFunction()) {
-    return AnchorResolved::Unchanged(aValue);
-  }
+  MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
+             "Calling anchor resolution without using it?");
   if (aValue.IsAnchorSizeFunction()) {
     auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
     Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
@@ -1503,31 +1446,11 @@ AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::FromUnresolved(
   return Evaluated(result.AsValid());
 }
 
-AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::Invalid() {
-  return AnchorResolved::Evaluated(StyleSize::Auto());
-}
-
-AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::Evaluated(
-    mozilla::StyleLengthPercentage&& aLP) {
-  return AnchorResolved::Evaluated(StyleSize::LengthPercentage(aLP));
-}
-
-AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::Evaluated(
-    const mozilla::StyleLengthPercentage& aLP) {
-  return AnchorResolved::Evaluated(StyleSize::LengthPercentage(aLP));
-}
-
-AnchorResolvedMaxSize::AnchorResolvedMaxSize(
-    const mozilla::StyleMaxSize& aValue,
-    mozilla::StylePositionProperty aPosition)
-    : AnchorResolved<StyleMaxSize>{FromUnresolved(aValue, aPosition)} {}
-
-AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::FromUnresolved(
+AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::ResolveAnchor(
     const mozilla::StyleMaxSize& aValue,
     mozilla::StylePositionProperty aPosition) {
-  if (!aValue.HasAnchorPositioningFunction()) {
-    return AnchorResolved::Unchanged(aValue);
-  }
+  MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
+             "Calling anchor resolution without using it?");
   if (aValue.IsAnchorSizeFunction()) {
     auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
     Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
@@ -1550,20 +1473,6 @@ AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::FromUnresolved(
     return Invalid();
   }
   return Evaluated(result.AsValid());
-}
-
-AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::Invalid() {
-  return AnchorResolved::Evaluated(StyleMaxSize::None());
-}
-
-AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::Evaluated(
-    mozilla::StyleLengthPercentage&& aLP) {
-  return AnchorResolved::Evaluated(StyleMaxSize::LengthPercentage(aLP));
-}
-
-AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::Evaluated(
-    const mozilla::StyleLengthPercentage& aLP) {
-  return AnchorResolved::Evaluated(StyleMaxSize::LengthPercentage(aLP));
 }
 
 // --------------------

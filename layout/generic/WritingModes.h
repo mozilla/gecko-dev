@@ -2131,6 +2131,18 @@ inline bool StyleMaxSize::BehavesLikeInitialValue(LogicalAxis aAxis) const {
 
 // Definitions of inline methods for nsStylePosition, declared in
 // nsStyleStruct.h but not defined there because they need WritingMode.
+inline AnchorResolvedInset::AnchorResolvedInset(
+  const mozilla::StyleInset& aValue, mozilla::LogicalAxis aAxis,
+  mozilla::WritingMode aWM, mozilla::StylePositionProperty aPosition)
+  : AnchorResolved<mozilla::StyleInset>{FromUnresolved(
+        aValue, ToStylePhysicalAxis(aWM.PhysicalAxis(aAxis)), aPosition)} {}
+
+inline AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
+    mozilla::LogicalSide aSide, WritingMode aWM,
+    mozilla::StylePositionProperty aPosition) const {
+  return GetAnchorResolvedInset(aWM.PhysicalSide(aSide), aPosition);
+}
+
 inline AnchorResolvedSize nsStylePosition::ISize(
     WritingMode aWM, mozilla::StylePositionProperty aProp) const {
   return aWM.IsVertical() ? GetHeight(aProp) : GetWidth(aProp);
