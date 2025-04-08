@@ -5,6 +5,7 @@
 package org.mozilla.fenix.customtabs
 
 import android.content.res.Configuration
+import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.every
@@ -25,6 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.OrientationMode
@@ -64,11 +66,17 @@ class CustomTabsIntegrationTest {
             ),
         )
         appStore = AppStore()
+        toolbar = BrowserToolbar(testContext).apply {
+            id = R.id.toolbar
+        }
         browserToolbarView = spyk(
             BrowserToolbarView(
                 context = testContext,
                 settings = settings,
-                container = CoordinatorLayout(testContext),
+                container = CoordinatorLayout(testContext).apply {
+                    layoutDirection = View.LAYOUT_DIRECTION_LTR
+                    addView(toolbar, CoordinatorLayout.LayoutParams(100, 100))
+                },
                 snackbarParent = mockk(),
                 interactor = mockk(),
                 customTabSession = mockk(relaxed = true),
@@ -76,9 +84,9 @@ class CustomTabsIntegrationTest {
                 tabStripContent = {},
             ),
         )
-        toolbar = spyk(BrowserToolbar(testContext))
 
-        every { browserToolbarView.view } returns toolbar
+        toolbar = spyk(toolbar)
+        browserToolbarView.toolbar = toolbar
         every { activity.settings() } returns settings
     }
 
@@ -91,7 +99,8 @@ class CustomTabsIntegrationTest {
                 appStore = appStore,
                 interactor = mockk(),
                 useCases = mockk(),
-                browserToolbarView = mockk(relaxed = true),
+                browserToolbarView = browserToolbarView,
+                browserToolbar = toolbar,
                 sessionId = sessionId,
                 activity = activity,
                 isPrivate = false,
@@ -188,7 +197,8 @@ class CustomTabsIntegrationTest {
 
     @Test
     fun `GIVEN isLandscape is true WHEN updateAddressBarNavigationActions is called THEN navigation buttons are added`() {
-        val integration = spyk(getIntegration())
+        val toolbar: BrowserToolbar = mockk(relaxed = true)
+        val integration = spyk(getIntegration(toolbar))
 
         assertNull(integration.forwardAction)
         assertNull(integration.backAction)
@@ -203,7 +213,8 @@ class CustomTabsIntegrationTest {
 
     @Test
     fun `GIVEN isTablet is true WHEN updateAddressBarNavigationActions is called THEN navigation buttons are added`() {
-        val integration = spyk(getIntegration())
+        val toolbar: BrowserToolbar = mockk(relaxed = true)
+        val integration = spyk(getIntegration(toolbar))
 
         assertNull(integration.forwardAction)
         assertNull(integration.backAction)
@@ -260,7 +271,9 @@ class CustomTabsIntegrationTest {
 
     @Test
     fun `GIVEN navigation bar is enabled  WHEN updateToolbarLayout is called THEN navigation, open in actions and menu are updated`() {
-        val integration = spyk(getIntegration())
+        val toolbar: BrowserToolbar = mockk(relaxed = true)
+        val integration = spyk(getIntegration(toolbar))
+
         integration.updateToolbarLayout(
             context = testContext,
             isNavBarEnabled = true,
@@ -286,7 +299,9 @@ class CustomTabsIntegrationTest {
         verify(exactly = 0) { browserToolbarView.updateMenuVisibility(any()) }
     }
 
-    private fun getIntegration(): CustomTabsIntegration {
+    private fun getIntegration(
+        toolbar: BrowserToolbar = this.toolbar,
+    ): CustomTabsIntegration {
         return CustomTabsIntegration(
             context = testContext,
             store = browserStore,
@@ -294,6 +309,7 @@ class CustomTabsIntegrationTest {
             interactor = mockk(),
             useCases = mockk(),
             browserToolbarView = browserToolbarView,
+            browserToolbar = toolbar,
             sessionId = sessionId,
             activity = activity,
             isPrivate = false,

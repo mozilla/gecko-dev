@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.base.theme.layout.AcornWindowSize
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
@@ -39,6 +40,7 @@ import org.mozilla.fenix.browser.ContextMenuSnackbarDelegate
 import org.mozilla.fenix.browser.CustomTabContextMenuCandidate
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.components.toolbar.FenixBrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.CustomTabNavBar
@@ -80,25 +82,28 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
 
         initializeNavBar()
 
-        customTabsIntegration.set(
-            feature = CustomTabsIntegration(
-                context = requireContext(),
-                store = requireComponents.core.store,
-                appStore = requireComponents.appStore,
-                useCases = requireComponents.useCases.customTabsUseCases,
-                browserToolbarView = browserToolbarView,
-                sessionId = customTabSessionId,
-                activity = activity,
-                interactor = browserToolbarInteractor,
-                isPrivate = tab.content.private,
-                shouldReverseItems = !activity.settings().shouldUseBottomToolbar,
-                isSandboxCustomTab = args.isSandboxCustomTab,
-                isMenuRedesignEnabled = requireContext().settings().enableMenuRedesign,
-                isNavBarEnabled = isNavBarEnabled,
-            ),
-            owner = this,
-            view = view,
-        )
+        ((browserToolbarView as? BrowserToolbarView)?.toolbar as? BrowserToolbar)?.let {
+            customTabsIntegration.set(
+                feature = CustomTabsIntegration(
+                    context = requireContext(),
+                    store = requireComponents.core.store,
+                    appStore = requireComponents.appStore,
+                    useCases = requireComponents.useCases.customTabsUseCases,
+                    browserToolbarView = browserToolbarView,
+                    browserToolbar = it,
+                    sessionId = customTabSessionId,
+                    activity = activity,
+                    interactor = browserToolbarInteractor,
+                    isPrivate = tab.content.private,
+                    shouldReverseItems = !activity.settings().shouldUseBottomToolbar,
+                    isSandboxCustomTab = args.isSandboxCustomTab,
+                    isMenuRedesignEnabled = requireContext().settings().enableMenuRedesign,
+                    isNavBarEnabled = isNavBarEnabled,
+                ),
+                owner = this,
+                view = view,
+            )
+        }
 
         windowFeature.set(
             feature = CustomTabWindowFeature(activity, components.core.store, customTabSessionId),
@@ -179,7 +184,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         }
     }
 
-    override fun onUpdateToolbarForConfigurationChange(toolbar: BrowserToolbarView) {
+    override fun onUpdateToolbarForConfigurationChange(toolbar: FenixBrowserToolbarView) {
         super.onUpdateToolbarForConfigurationChange(toolbar)
         initializeNavBar()
         customTabsIntegration.withFeature {
@@ -274,8 +279,11 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                     if (isToolbarAtBottom) {
                         // If the toolbar is reinitialized - for example after the screen is rotated
                         // the toolbar might have been already set.
-                        (browserToolbarView.view.parent as? ViewGroup)?.removeView(browserToolbarView.view)
-                        AndroidView(factory = { _ -> browserToolbarView.view })
+                        val browserToolbarView = (browserToolbarView as? BrowserToolbarView)?.toolbar
+                        browserToolbarView?.let {
+                            (it.parent as? ViewGroup)?.removeView(it)
+                            AndroidView(factory = { _ -> it })
+                        }
                     }
 
                     CustomTabNavBar(

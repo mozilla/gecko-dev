@@ -39,7 +39,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.getSystemService
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -188,6 +187,7 @@ import org.mozilla.fenix.components.toolbar.BrowserToolbarMenuController
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarController
 import org.mozilla.fenix.components.toolbar.DefaultBrowserToolbarMenuController
+import org.mozilla.fenix.components.toolbar.FenixBrowserToolbarView
 import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.components.toolbar.NewTabMenu
 import org.mozilla.fenix.components.toolbar.ToolbarContainerView
@@ -290,10 +290,10 @@ abstract class BaseBrowserFragment :
 
     @VisibleForTesting
     @Suppress("VariableNaming")
-    internal var _browserToolbarView: BrowserToolbarView? = null
+    internal var _browserToolbarView: FenixBrowserToolbarView? = null
 
     @VisibleForTesting
-    internal val browserToolbarView: BrowserToolbarView
+    internal val browserToolbarView: FenixBrowserToolbarView
         get() = _browserToolbarView!!
 
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
@@ -579,56 +579,11 @@ abstract class BaseBrowserFragment :
             browserToolbarMenuController,
         )
 
-        _browserToolbarView = BrowserToolbarView(
-            context = context,
-            container = binding.browserLayout,
-            snackbarParent = binding.dynamicSnackbarContainer,
-            settings = context.settings(),
-            interactor = browserToolbarInteractor,
-            customTabSession = customTabSessionId?.let { store.state.findCustomTab(it) },
-            lifecycleOwner = viewLifecycleOwner,
-            tabStripContent = {
-                FirefoxTheme {
-                    TabStrip(
-                        onAddTabClick = {
-                            findNavController().navigate(
-                                NavGraphDirections.actionGlobalHome(
-                                    focusOnAddressBar = true,
-                                ),
-                            )
-                            TabStripMetrics.newTabTapped.record()
-                        },
-                        onLastTabClose = { isPrivate ->
-                            requireComponents.appStore.dispatch(
-                                AppAction.TabStripAction.UpdateLastTabClosed(isPrivate),
-                            )
-                            findNavController().navigate(
-                                BrowserFragmentDirections.actionGlobalHome(),
-                            )
-                        },
-                        onSelectedTabClick = {
-                            TabStripMetrics.selectTab.record()
-                        },
-                        onCloseTabClick = { isPrivate ->
-                            showUndoSnackbar(context.tabClosedUndoMessage(isPrivate))
-                            TabStripMetrics.closeTab.record()
-                        },
-                        onPrivateModeToggleClick = { mode ->
-                            activity.browsingModeManager.mode = mode
-                            findNavController().navigate(
-                                BrowserFragmentDirections.actionGlobalHome(),
-                            )
-                        },
-                        onTabCounterClick = { onTabCounterClicked(activity.browsingModeManager.mode) },
-                    )
-                }
-            },
-        )
+        _browserToolbarView = initializeBrowserToolbar(activity, store)
 
         val shouldAddNavigationBar = context.shouldAddNavigationBar() && webAppToolbarShouldBeVisible
         if (shouldAddNavigationBar) {
             initializeNavBar(
-                browserToolbar = browserToolbarView.view,
                 view = view,
                 context = context,
                 activity = activity,
@@ -639,11 +594,13 @@ abstract class BaseBrowserFragment :
             listenForMicrosurveyMessage(context)
         }
 
-        toolbarIntegration.set(
-            feature = browserToolbarView.toolbarIntegration,
-            owner = this,
-            view = view,
-        )
+        (browserToolbarView as? BrowserToolbarView)?.toolbarIntegration?.let {
+            toolbarIntegration.set(
+                feature = it,
+                owner = this,
+                view = view,
+            )
+        }
 
         findInPageBinding.set(
             feature = FindInPageBinding(
@@ -676,7 +633,7 @@ abstract class BaseBrowserFragment :
             view = view,
         )
 
-        browserToolbarView.view.display.setOnSiteInfoClickedListener {
+        (browserToolbarView as? BrowserToolbarView)?.toolbar?.display?.setOnSiteInfoClickedListener {
             showQuickSettingsDialog()
             Events.browserToolbarSecurityIndicatorTapped.record()
         }
@@ -1099,7 +1056,7 @@ abstract class BaseBrowserFragment :
                 context = context,
                 browserStore = requireComponents.core.store,
                 appStore = requireComponents.appStore,
-                toolbar = browserToolbarView.view,
+                toolbar = browserToolbarView,
                 components = requireComponents,
                 settings = context.settings(),
                 navController = findNavController(),
@@ -1269,6 +1226,64 @@ abstract class BaseBrowserFragment :
         initializeMicrosurveyFeature(context)
     }
 
+    @Suppress("TooGenericExceptionThrown")
+    private fun initializeBrowserToolbar(
+        activity: HomeActivity,
+        store: BrowserStore,
+    ) = when (activity.settings().shouldUseComposableToolbar) {
+        true -> throw RuntimeException("Browser toolbar composable not yet implemented")
+        false -> initializeBrowserToolbarView(activity, store)
+    }
+
+    private fun initializeBrowserToolbarView(
+        activity: HomeActivity,
+        store: BrowserStore,
+    ) = BrowserToolbarView(
+        context = activity,
+        container = binding.browserLayout,
+        snackbarParent = binding.dynamicSnackbarContainer,
+        settings = activity.settings(),
+        interactor = browserToolbarInteractor,
+        customTabSession = customTabSessionId?.let { store.state.findCustomTab(it) },
+        lifecycleOwner = viewLifecycleOwner,
+        tabStripContent = {
+            FirefoxTheme {
+                TabStrip(
+                    onAddTabClick = {
+                        findNavController().navigate(
+                            NavGraphDirections.actionGlobalHome(
+                                focusOnAddressBar = true,
+                            ),
+                        )
+                        TabStripMetrics.newTabTapped.record()
+                    },
+                    onLastTabClose = { isPrivate ->
+                        requireComponents.appStore.dispatch(
+                            AppAction.TabStripAction.UpdateLastTabClosed(isPrivate),
+                        )
+                        findNavController().navigate(
+                            BrowserFragmentDirections.actionGlobalHome(),
+                        )
+                    },
+                    onSelectedTabClick = {
+                        TabStripMetrics.selectTab.record()
+                    },
+                    onCloseTabClick = { isPrivate ->
+                        showUndoSnackbar(activity.tabClosedUndoMessage(isPrivate))
+                        TabStripMetrics.closeTab.record()
+                    },
+                    onPrivateModeToggleClick = { mode ->
+                        activity.browsingModeManager.mode = mode
+                        findNavController().navigate(
+                            BrowserFragmentDirections.actionGlobalHome(),
+                        )
+                    },
+                    onTabCounterClick = { onTabCounterClicked(activity.browsingModeManager.mode) },
+                )
+            }
+        },
+    )
+
     private fun showUndoSnackbar(message: String) {
         viewLifecycleOwner.lifecycleScope.allowUndo(
             binding.dynamicSnackbarContainer,
@@ -1282,12 +1297,12 @@ abstract class BaseBrowserFragment :
     }
 
     private fun onAutocompleteBarShow() {
-        removeBottomToolbarDivider(browserToolbarView.view)
+        removeBottomToolbarDivider()
         updateNavbarDivider()
     }
 
     private fun onAutocompleteBarHide() {
-        restoreBottomToolbarDivider(browserToolbarView.view)
+        restoreBottomToolbarDivider()
         updateNavbarDivider()
     }
 
@@ -1536,13 +1551,13 @@ abstract class BaseBrowserFragment :
 
     @Suppress("LongMethod")
     private fun initializeNavBar(
-        browserToolbar: BrowserToolbar,
         view: View,
         context: Context,
         activity: HomeActivity,
     ) {
         NavigationBar.browserInitializeTimespan.start()
 
+        val browserToolbar = (browserToolbarView as BrowserToolbarView).toolbar
         val isToolbarAtBottom = context.isToolbarAtBottom()
 
         // The toolbar view has already been added directly to the container.
@@ -1567,7 +1582,7 @@ abstract class BaseBrowserFragment :
                         if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
                                 if (isToolbarAtBottom) {
-                                    removeBottomToolbarDivider(browserToolbar)
+                                    removeBottomToolbarDivider()
                                 }
 
                                 Divider()
@@ -1599,7 +1614,7 @@ abstract class BaseBrowserFragment :
                                 )
                             }
                         } else {
-                            restoreBottomToolbarDivider(browserToolbar)
+                            restoreBottomToolbarDivider()
                         }
 
                         if (isToolbarAtBottom) {
@@ -1655,7 +1670,7 @@ abstract class BaseBrowserFragment :
 
         // We need a second menu button, but we could reuse the existing builder.
         val menuButton = MenuButton(context).apply {
-            menuBuilder = browserToolbarView.menuToolbar.menuBuilder
+            menuBuilder = (browserToolbarView as BrowserToolbarView).menuToolbar.menuBuilder
             // We have to set colorFilter manually as the button isn't being managed by a [BrowserToolbarView].
             setColorFilter(
                 getColor(
@@ -1833,7 +1848,7 @@ abstract class BaseBrowserFragment :
         val view = requireView()
 
         val isToolbarAtBottom = context.isToolbarAtBottom()
-        val browserToolbar = browserToolbarView.view
+        val browserToolbar = (browserToolbarView as BrowserToolbarView).toolbar
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
         if (isToolbarAtBottom) {
@@ -1852,7 +1867,7 @@ abstract class BaseBrowserFragment :
                         if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
                                 if (isToolbarAtBottom) {
-                                    removeBottomToolbarDivider(browserToolbar)
+                                    removeBottomToolbarDivider()
                                 }
 
                                 Divider()
@@ -1884,7 +1899,7 @@ abstract class BaseBrowserFragment :
                                 )
                             }
                         } else {
-                            restoreBottomToolbarDivider(browserToolbar)
+                            restoreBottomToolbarDivider()
                         }
 
                         if (isToolbarAtBottom) {
@@ -1915,29 +1930,13 @@ abstract class BaseBrowserFragment :
         reinitializeEngineView()
     }
 
-    private fun removeBottomToolbarDivider(browserToolbar: BrowserToolbar) {
-        val safeContext = context ?: return
-        if (safeContext.isToolbarAtBottom()) {
-            val drawable = ResourcesCompat.getDrawable(
-                resources,
-                R.drawable.toolbar_background_no_divider,
-                null,
-            )
-            browserToolbar.background = drawable
-            browserToolbar.elevation = 0.0f
-        }
+    private fun removeBottomToolbarDivider() {
+        browserToolbarView.updateDividerVisibility(false)
+        browserToolbarView.layout.elevation = 0.0f
     }
 
-    private fun restoreBottomToolbarDivider(browserToolbar: BrowserToolbar) {
-        val safeContext = context ?: return
-        if (safeContext.isToolbarAtBottom()) {
-            val defaultBackground = ResourcesCompat.getDrawable(
-                resources,
-                R.drawable.toolbar_background,
-                context?.theme,
-            )
-            browserToolbar.background = defaultBackground
-        }
+    private fun restoreBottomToolbarDivider() {
+        browserToolbarView.updateDividerVisibility(true)
     }
 
     private fun updateNavbarDivider() {
@@ -2551,8 +2550,8 @@ abstract class BaseBrowserFragment :
     }
 
     @CallSuper
-    internal open fun onUpdateToolbarForConfigurationChange(toolbar: BrowserToolbarView) {
-        toolbar.dismissMenu()
+    internal open fun onUpdateToolbarForConfigurationChange(toolbar: FenixBrowserToolbarView) {
+        (toolbar as? BrowserToolbarView)?.dismissMenu()
 
         // If the navbar feature could be visible, we should update it's state.
         val shouldUpdateNavBarState =
@@ -2561,7 +2560,7 @@ abstract class BaseBrowserFragment :
             updateNavBarForConfigurationChange(
                 context = requireContext(),
                 parent = binding.browserLayout,
-                toolbarView = browserToolbarView.view,
+                toolbarView = (browserToolbarView as BrowserToolbarView).toolbar,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = ::initializeMicrosurveyPrompt,
@@ -2584,7 +2583,6 @@ abstract class BaseBrowserFragment :
 
     private fun reinitializeNavBar() {
         initializeNavBar(
-            browserToolbar = browserToolbarView.view,
             view = requireView(),
             context = requireContext(),
             activity = requireActivity() as HomeActivity,
@@ -2708,9 +2706,9 @@ abstract class BaseBrowserFragment :
     // messages are processed the fragment/view may no longer be attached.
     internal fun safeInvalidateBrowserToolbarView() {
         runIfFragmentIsAttached {
-            val toolbarView = _browserToolbarView
+            val toolbarView = _browserToolbarView as? BrowserToolbarView
             if (toolbarView != null) {
-                toolbarView.view.invalidateActions()
+                (toolbarView.toolbar as? BrowserToolbar)?.invalidateActions()
                 toolbarView.toolbarIntegration.invalidateMenu()
             }
             _menuButtonView?.setHighlightStatus()

@@ -11,6 +11,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.customtabs.addCustomMenuItems
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.components.toolbar.FenixBrowserToolbarView
 import org.mozilla.fenix.theme.ThemeManager
 
 /**
@@ -32,7 +33,7 @@ internal class CustomTabsNavigationBarIntegration(
     private val context: Context,
     private val browserStore: BrowserStore,
     private val customTabSessionId: String,
-    private val toolbar: BrowserToolbarView,
+    private val toolbar: FenixBrowserToolbarView,
 ) {
     /**
      * Menu allowing users to interact with all options for this custom tab.
@@ -40,7 +41,7 @@ internal class CustomTabsNavigationBarIntegration(
      */
     val navbarMenu by lazy(LazyThreadSafetyMode.NONE) {
         MenuButton(context).apply {
-            menuBuilder = toolbar.menuToolbar.menuBuilder.addCustomMenuItems(
+            menuBuilder = (toolbar as BrowserToolbarView).menuToolbar.menuBuilder.addCustomMenuItems(
                 context = context,
                 browserStore = browserStore,
                 customTabSessionId = customTabSessionId,

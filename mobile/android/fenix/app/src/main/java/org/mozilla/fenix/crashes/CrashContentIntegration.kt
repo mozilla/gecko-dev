@@ -21,6 +21,7 @@ import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.EngineState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
+import mozilla.components.concept.toolbar.ScrollableToolbar
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
@@ -66,7 +67,7 @@ class CrashContentIntegration(
     private val context: Context,
     private val browserStore: BrowserStore,
     private val appStore: AppStore,
-    private val toolbar: BrowserToolbar,
+    private val toolbar: ScrollableToolbar,
     private val components: Components,
     private val settings: Settings,
     private val navController: NavController,

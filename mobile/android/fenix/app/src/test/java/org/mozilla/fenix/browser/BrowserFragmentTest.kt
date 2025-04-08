@@ -89,7 +89,7 @@ class BrowserFragmentTest {
         browserFragment = spyk(BrowserFragment())
         every { browserFragment.view } returns view
         every { browserFragment.isAdded } returns true
-        every { browserFragment.browserToolbarView } returns mockk(relaxed = true)
+        every { browserFragment.browserToolbarView } returns mockk<BrowserToolbarView>(relaxed = true)
         every { browserFragment.browserToolbarInteractor } returns mockk(relaxed = true)
         every { browserFragment.activity } returns homeActivity
         every { browserFragment.lifecycle } returns lifecycleOwner.lifecycle
@@ -305,7 +305,7 @@ class BrowserFragmentTest {
         val browserToolbarView: BrowserToolbarView = mockk(relaxed = true)
         val browserToolbar: BrowserToolbar = mockk(relaxed = true)
         val toolbarIntegration: ToolbarIntegration = mockk(relaxed = true)
-        every { browserToolbarView.view } returns browserToolbar
+        every { browserToolbarView.toolbar } returns browserToolbar
         every { browserToolbarView.toolbarIntegration } returns toolbarIntegration
         every { browserFragment.context } returns null
         browserFragment._browserToolbarView = browserToolbarView
@@ -331,7 +331,7 @@ class BrowserFragmentTest {
         val browserToolbarView: BrowserToolbarView = mockk(relaxed = true)
         val browserToolbar: BrowserToolbar = mockk(relaxed = true)
         val toolbarIntegration: ToolbarIntegration = mockk(relaxed = true)
-        every { browserToolbarView.view } returns browserToolbar
+        every { browserToolbarView.toolbar } returns browserToolbar
         every { browserToolbarView.toolbarIntegration } returns toolbarIntegration
         every { browserFragment.context } returns mockk(relaxed = true)
         browserFragment._browserToolbarView = browserToolbarView
@@ -397,8 +397,8 @@ class BrowserFragmentTest {
         val leadingAction: BrowserToolbar.Button = mockk(relaxed = true)
         browserFragment.leadingAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
-        every { browserFragment.browserToolbarView.view } returns browserToolbar
-        every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
+        every { browserToolbarView.toolbar } returns browserToolbar
+        every { browserToolbarView.updateMenuVisibility(any()) } just Runs
         every { browserFragment.reinitializeEngineView() } just Runs
 
         mockkObject(ThemeManager.Companion)
@@ -426,8 +426,8 @@ class BrowserFragmentTest {
         val leadingAction: BrowserToolbar.Button = mockk(relaxed = true)
         browserFragment.leadingAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
-        every { browserFragment.browserToolbarView.view } returns browserToolbar
-        every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
+        every { browserToolbarView.toolbar } returns browserToolbar
+        every { browserToolbarView.updateMenuVisibility(any()) } just Runs
         every { browserFragment.reinitializeEngineView() } just Runs
 
         mockkObject(ThemeManager.Companion)
@@ -454,8 +454,8 @@ class BrowserFragmentTest {
         val leadingAction: BrowserToolbar.Button = mockk(relaxed = true)
         browserFragment.leadingAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
-        every { browserFragment.browserToolbarView.view } returns browserToolbar
-        every { browserFragment.browserToolbarView.updateMenuVisibility(any()) } just Runs
+        every { browserToolbarView.toolbar } returns browserToolbar
+        every { browserToolbarView.updateMenuVisibility(any()) } just Runs
         every { browserFragment.reinitializeEngineView() } just Runs
 
         mockkObject(ThemeManager.Companion)

@@ -42,6 +42,7 @@ import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.components.toolbar.FenixBrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.toolbar.ui.createShareBrowserAction
@@ -93,7 +94,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                     activity = requireActivity(),
                     contentLayout = binding.browserLayout,
                     tabPreview = binding.tabPreview,
-                    toolbarLayout = browserToolbarView.view,
+                    toolbarLayout = browserToolbarView.layout,
                     store = components.core.store,
                     selectTabUseCase = components.useCases.tabsUseCases.selectTab,
                     onSwipeStarted = {
@@ -103,22 +104,18 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             )
         }
 
-        updateBrowserToolbarLeadingAndNavigationActions(
-            context = context,
-            redesignEnabled = context.settings().navigationToolbarEnabled,
-            isLandscape = context.isLandscape(),
-            isTablet = isLargeWindow(),
-            isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
-            feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
-            isWindowSizeSmall = AcornWindowSize.getWindowSize(context) == AcornWindowSize.Small,
-        )
-
-        updateBrowserToolbarMenuVisibility()
-
-        initReaderMode(context, view)
-        initTranslationsAction(context, view)
-        initSharePageAction(context)
-        initReloadAction(context)
+        if (browserToolbarView is BrowserToolbarView) {
+            updateBrowserToolbarLeadingAndNavigationActions(
+                context = context,
+                redesignEnabled = context.settings().navigationToolbarEnabled,
+                isLandscape = context.isLandscape(),
+                isTablet = isLargeWindow(),
+                isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
+                feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
+                isWindowSizeSmall = AcornWindowSize.getWindowSize(context) == AcornWindowSize.Small,
+            )
+            initBrowserToolbarViewActions(view)
+        }
 
         thumbnailsFeature.set(
             feature = BrowserThumbnails(context, binding.engineView, components.core.store),
@@ -153,6 +150,15 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         }
     }
 
+    private fun initBrowserToolbarViewActions(rootView: View) {
+        updateBrowserToolbarMenuVisibility()
+
+        initReaderMode(rootView.context, rootView)
+        initTranslationsAction(rootView.context, rootView)
+        initSharePageAction(rootView.context)
+        initReloadAction(rootView.context)
+    }
+
     private fun initSharePageAction(context: Context) {
         if (!context.settings().navigationToolbarEnabled || context.isTabStripEnabled()) {
             return
@@ -165,7 +171,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             browserToolbarInteractor.onShareActionClicked()
         }
 
-        browserToolbarView.view.addPageAction(sharePageAction)
+        (browserToolbarView as BrowserToolbarView).toolbar.addPageAction(sharePageAction)
     }
 
     private fun initTranslationsAction(context: Context, view: View) {
@@ -188,7 +194,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 browserToolbarInteractor.onTranslationsButtonClicked()
             },
         )
-        browserToolbarView.view.addPageAction(translationsAction)
+        (browserToolbarView as BrowserToolbarView).toolbar.addPageAction(translationsAction)
 
         translationsBinding.set(
             feature = TranslationsBinding(
@@ -268,7 +274,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             )
 
         refreshAction?.let {
-            browserToolbarView.view.addPageAction(it)
+            (browserToolbarView as BrowserToolbarView).toolbar.addPageAction(it)
         }
     }
 
@@ -295,7 +301,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             listener = browserToolbarInteractor::onReaderModePressed,
         )
 
-        browserToolbarView.view.addPageAction(readerModeAction)
+        (browserToolbarView as BrowserToolbarView).toolbar.addPageAction(readerModeAction)
 
         readerViewFeature.set(
             feature = context.components.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
@@ -309,10 +315,12 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                         ReaderMode.available.record(NoExtras())
                     }
 
-                    if (active) {
-                        browserToolbarView.view.display.removeSecurityIndicator()
-                    } else {
-                        browserToolbarView.view.display.addSecurityIndicator()
+                    (browserToolbarView as BrowserToolbarView).let {
+                        if (active) {
+                            it.toolbar.display.removeSecurityIndicator()
+                        } else {
+                            it.toolbar.display.addSecurityIndicator()
+                        }
                     }
 
                     readerModeAvailable = available
@@ -358,14 +366,14 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         }
 
         leadingAction?.let {
-            browserToolbarView.view.addNavigationAction(it)
+            (_browserToolbarView as? BrowserToolbarView)?.toolbar?.addNavigationAction(it)
         }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun removeLeadingAction() {
         leadingAction?.let {
-            browserToolbarView.view.removeNavigationAction(it)
+            (_browserToolbarView as? BrowserToolbarView)?.toolbar?.removeNavigationAction(it)
         }
         leadingAction = null
     }
@@ -410,11 +418,11 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             )
             updateTabletToolbarActions(isTablet = isTablet)
         }
-        browserToolbarView.view.invalidateActions()
+        (browserToolbarView as? BrowserToolbarView)?.toolbar?.invalidateActions()
     }
 
     private fun updateBrowserToolbarMenuVisibility() {
-        browserToolbarView.updateMenuVisibility(
+        (browserToolbarView as? BrowserToolbarView)?.updateMenuVisibility(
             isVisible = !requireContext().shouldAddNavigationBar(),
         )
     }
@@ -454,20 +462,22 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         }
     }
 
-    override fun onUpdateToolbarForConfigurationChange(toolbar: BrowserToolbarView) {
+    override fun onUpdateToolbarForConfigurationChange(toolbar: FenixBrowserToolbarView) {
         super.onUpdateToolbarForConfigurationChange(toolbar)
 
-        updateBrowserToolbarLeadingAndNavigationActions(
-            context = requireContext(),
-            redesignEnabled = requireContext().settings().navigationToolbarEnabled,
-            isLandscape = requireContext().isLandscape(),
-            isTablet = isLargeWindow(),
-            isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
-            feltPrivateBrowsingEnabled = requireContext().settings().feltPrivateBrowsingEnabled,
-            isWindowSizeSmall = AcornWindowSize.getWindowSize(requireContext()) == AcornWindowSize.Small,
-        )
+        if (browserToolbarView is BrowserToolbarView) {
+            updateBrowserToolbarLeadingAndNavigationActions(
+                context = requireContext(),
+                redesignEnabled = requireContext().settings().navigationToolbarEnabled,
+                isLandscape = requireContext().isLandscape(),
+                isTablet = isLargeWindow(),
+                isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
+                feltPrivateBrowsingEnabled = requireContext().settings().feltPrivateBrowsingEnabled,
+                isWindowSizeSmall = AcornWindowSize.getWindowSize(requireContext()) == AcornWindowSize.Small,
+            )
 
-        updateBrowserToolbarMenuVisibility()
+            updateBrowserToolbarMenuVisibility()
+        }
     }
 
     @VisibleForTesting
@@ -510,7 +520,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                     )
                 },
             ).also {
-                browserToolbarView.view.addNavigationAction(it)
+                (_browserToolbarView as? BrowserToolbarView)?.toolbar?.addNavigationAction(it)
             }
         }
 
@@ -536,7 +546,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                     )
                 },
             ).also {
-                browserToolbarView.view.addNavigationAction(it)
+                (_browserToolbarView as? BrowserToolbarView)?.toolbar?.addNavigationAction(it)
             }
         }
     }
@@ -578,7 +588,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                     }
                 },
             ).also {
-                browserToolbarView.view.addNavigationAction(it)
+                (_browserToolbarView as? BrowserToolbarView)?.toolbar?.addNavigationAction(it)
             }
         }
     }
@@ -586,11 +596,11 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     @VisibleForTesting
     internal fun removeNavigationActions() {
         forwardAction?.let {
-            browserToolbarView.view.removeNavigationAction(it)
+            (_browserToolbarView as? BrowserToolbarView)?.toolbar?.removeNavigationAction(it)
         }
         forwardAction = null
         backAction?.let {
-            browserToolbarView.view.removeNavigationAction(it)
+            (_browserToolbarView as? BrowserToolbarView)?.toolbar?.removeNavigationAction(it)
         }
         backAction = null
     }
@@ -600,7 +610,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         removeNavigationActions()
 
         refreshAction?.let {
-            browserToolbarView.view.removeNavigationAction(it)
+            (_browserToolbarView as? BrowserToolbarView)?.toolbar?.removeNavigationAction(it)
         }
     }
 

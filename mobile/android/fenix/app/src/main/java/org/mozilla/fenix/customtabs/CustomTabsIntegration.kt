@@ -40,6 +40,7 @@ import org.mozilla.fenix.browser.BrowserFragment.Companion.OPEN_IN_ACTION_WEIGHT
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.components.toolbar.FenixBrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
@@ -53,7 +54,8 @@ class CustomTabsIntegration(
     store: BrowserStore,
     private val appStore: AppStore,
     useCases: CustomTabsUseCases,
-    private val browserToolbarView: BrowserToolbarView,
+    private val browserToolbarView: FenixBrowserToolbarView,
+    private val browserToolbar: BrowserToolbar,
     private val sessionId: String,
     private val activity: Activity,
     private val interactor: BrowserToolbarInteractor,
@@ -64,7 +66,6 @@ class CustomTabsIntegration(
     private val isNavBarEnabled: Boolean,
 ) : LifecycleAwareFeature, UserInteractionHandler {
 
-    private val toolbar: BrowserToolbar = browserToolbarView.view
     private lateinit var scope: CoroutineScope
     private val isNavBarVisible
         get() = context.shouldAddNavigationBar()
@@ -80,17 +81,17 @@ class CustomTabsIntegration(
 
     init {
         // Remove toolbar shadow
-        toolbar.elevation = 0f
+        browserToolbar.elevation = 0f
 
-        toolbar.display.displayIndicatorSeparator = false
-        toolbar.display.indicators = listOf(
+        browserToolbar.display.displayIndicatorSeparator = false
+        browserToolbar.display.indicators = listOf(
             DisplayToolbar.Indicators.SECURITY,
         )
 
         // If in private mode, override toolbar background to use private color
         // See #5334
         if (isPrivate) {
-            toolbar.background = getDrawable(activity, R.drawable.toolbar_background)
+            browserToolbar.background = getDrawable(activity, R.drawable.toolbar_background)
         }
     }
 
@@ -107,7 +108,7 @@ class CustomTabsIntegration(
 
     private val feature = CustomTabsToolbarFeature(
         store = store,
-        toolbar = toolbar,
+        toolbar = browserToolbar,
         sessionId = sessionId,
         useCases = useCases,
         menuBuilder = if (isMenuRedesignEnabled) null else customTabToolbarMenu.menuBuilder,
@@ -205,7 +206,7 @@ class CustomTabsIntegration(
                 isWindowSizeSmall = isWindowSizeSmall,
             )
 
-            browserToolbarView.updateMenuVisibility(
+            (browserToolbarView as? BrowserToolbarView)?.updateMenuVisibility(
                 isVisible = !isWindowSizeSmall,
             )
 
@@ -225,7 +226,7 @@ class CustomTabsIntegration(
     ) {
         if (!isWindowSizeSmall) {
             addNavigationActions(context)
-            toolbar.invalidateActions()
+            browserToolbar.invalidateActions()
         } else {
             removeNavigationActions()
         }
@@ -315,7 +316,7 @@ class CustomTabsIntegration(
                     )
                 },
             ).also {
-                toolbar.addNavigationAction(it)
+                browserToolbar.addNavigationAction(it)
             }
         }
     }
@@ -362,7 +363,7 @@ class CustomTabsIntegration(
                     )
                 },
             ).also {
-                toolbar.addNavigationAction(it)
+                browserToolbar.addNavigationAction(it)
             }
         }
     }
@@ -370,12 +371,12 @@ class CustomTabsIntegration(
     @VisibleForTesting
     internal fun removeNavigationActions() {
         forwardAction?.let {
-            toolbar.removeNavigationAction(it)
+            browserToolbar.removeNavigationAction(it)
         }
         forwardAction = null
 
         backAction?.let {
-            toolbar.removeNavigationAction(it)
+            browserToolbar.removeNavigationAction(it)
         }
         backAction = null
     }
@@ -421,7 +422,7 @@ class CustomTabsIntegration(
                     )
                 },
             ).also {
-                toolbar.addBrowserAction(it)
+                browserToolbar.addBrowserAction(it)
             }
         }
     }
@@ -429,7 +430,7 @@ class CustomTabsIntegration(
     @VisibleForTesting
     internal fun removeOpenInAction() {
         openInAction?.let {
-            toolbar.removeBrowserAction(it)
+            browserToolbar.removeBrowserAction(it)
         }
         openInAction = null
     }

@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.toolbar
 
 import android.content.Context
+import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -23,6 +24,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
@@ -39,8 +41,9 @@ class BrowserToolbarViewTest {
 
     @Before
     fun setup() {
-        toolbar = BrowserToolbar(testContext)
-        toolbar.layoutParams = CoordinatorLayout.LayoutParams(100, 100)
+        toolbar = BrowserToolbar(testContext).apply {
+            id = R.id.toolbar
+        }
 
         mockkStatic(Context::shouldAddNavigationBar) {
             every { testContext.shouldAddNavigationBar() } returns false
@@ -54,7 +57,10 @@ class BrowserToolbarViewTest {
         toolbarView = BrowserToolbarView(
             context = testContext,
             settings = settings,
-            container = CoordinatorLayout(testContext),
+            container = CoordinatorLayout(testContext).apply {
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                addView(toolbar, CoordinatorLayout.LayoutParams(100, 100))
+            },
             snackbarParent = mockk(),
             interactor = mockk(),
             customTabSession = mockk(relaxed = true),
@@ -62,7 +68,7 @@ class BrowserToolbarViewTest {
             tabStripContent = {},
         )
 
-        toolbarView.view = toolbar
+        toolbarView.toolbar = toolbar
         behavior = spyk(EngineViewScrollingBehavior(testContext, null, MozacToolbarPosition.BOTTOM))
         (toolbarView.layout.layoutParams as CoordinatorLayout.LayoutParams).behavior = behavior
     }
