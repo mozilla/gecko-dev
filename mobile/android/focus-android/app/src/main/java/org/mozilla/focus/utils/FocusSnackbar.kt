@@ -107,7 +107,7 @@ class FocusSnackbar private constructor(
 
                 if (view != null) {
                     val parent = view.parent
-                    view = if (parent is View) parent else null
+                    view = parent as? View
                 }
             } while (view != null)
 
