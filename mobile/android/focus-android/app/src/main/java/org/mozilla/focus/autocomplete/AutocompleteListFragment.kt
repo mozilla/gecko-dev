@@ -78,7 +78,7 @@ open class AutocompleteListFragment : BaseSettingsLikeFragment(), CoroutineScope
 
             override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
                 if (viewHolder is AddActionViewHolder) {
-                    return ItemTouchHelper.Callback.makeMovementFlags(0, 0)
+                    return makeMovementFlags(0, 0)
                 }
 
                 return super.getMovementFlags(recyclerView, viewHolder)

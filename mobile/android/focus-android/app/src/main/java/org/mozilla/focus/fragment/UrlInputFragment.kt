@@ -166,7 +166,7 @@ class UrlInputFragment :
             requireComponents.appStore.state.showSearchWidgetSnackbar
         ) {
             ViewUtils.showBrandedSnackbar(view, R.string.promote_search_widget_snackbar_message, 0)
-            SearchWidget.widgetWasAdded.record(mozilla.telemetry.glean.private.NoExtras())
+            SearchWidget.widgetWasAdded.record(NoExtras())
             requireComponents.appStore.dispatch(AppAction.ShowSearchWidgetSnackBar(false))
         }
     }

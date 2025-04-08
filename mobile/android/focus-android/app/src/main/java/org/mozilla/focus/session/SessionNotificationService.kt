@@ -51,7 +51,7 @@ class SessionNotificationService : Service() {
     private var shouldSendTaskRemovedTelemetry = true
 
     private val notificationManager: NotificationManager by lazy {
-        applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        applicationContext.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
