@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.util.AttributeSet
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,7 +20,8 @@ import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.edit
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.preference.PreferenceManager
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.concept.engine.EngineView
@@ -390,27 +392,19 @@ open class MainActivity : EdgeToEdgeActivity() {
     fun getToolbar(): ActionBar {
         if (!isToolbarInflated) {
             val toolbar = binding.toolbar.inflate() as Toolbar
+
+            StatusBarUtils.getStatusBarHeight(toolbar) { statusBarHeight ->
+                toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    height = height + statusBarHeight
+                }
+                toolbar.updatePadding(top = statusBarHeight)
+            }
+
             setSupportActionBar(toolbar)
             setNavigationIcon(R.drawable.ic_back_button)
             isToolbarInflated = true
         }
         return supportActionBar!!
-    }
-
-    fun customizeStatusBar(backgroundColorId: Int? = null) {
-        with(binding.statusBarBackground) {
-            binding.statusBarBackground.isVisible = true
-            StatusBarUtils.getStatusBarHeight(this) { statusBarHeight ->
-                layoutParams.height = statusBarHeight
-                backgroundColorId?.let { color ->
-                    setBackgroundColor(ContextCompat.getColor(context, color))
-                }
-            }
-        }
-    }
-
-    fun hideStatusBarBackground() {
-        binding.statusBarBackground.isVisible = false
     }
 
     override fun onDestroy() {

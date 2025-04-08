@@ -14,12 +14,6 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <View
-            android:id="@+id/status_bar_background"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:background="@drawable/background_gradient" />
-
         <org.mozilla.focus.widget.ResizableKeyboardCoordinatorLayout
             android:layout_marginTop="0dp"
             android:id="@+id/main_content"

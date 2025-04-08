@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import org.mozilla.focus.R
-import org.mozilla.focus.activity.MainActivity
 import org.mozilla.focus.ext.hideToolbar
 import org.mozilla.focus.ext.requireComponents
 import org.mozilla.focus.state.AppAction
@@ -89,7 +88,6 @@ abstract class BaseComposeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         hideToolbar()
-        (requireActivity() as? MainActivity)?.hideStatusBarBackground()
         val title = getTitle()
         composeView.setContent {
             FocusTheme {
