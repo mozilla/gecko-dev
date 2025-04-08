@@ -28,6 +28,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
+  BlockListManager: "chrome://global/content/ml/Utils.sys.mjs",
 });
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -52,8 +53,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "browser.ml.linkPreview.prompt",
   "Provide a concise, objective summary of the input text in up to three sentences, focusing on key actions and intentions without using second or third person pronouns."
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "blockListEnabled",
+  "browser.ml.linkPreview.blockListEnabled"
+);
 
 export const LinkPreviewModel = {
+  /**
+   * Manager for the block list. If null, no block list is applied.
+   *
+   * @type {BlockListManager}
+   */
+  blockListManager: null,
+
   /**
    * Blocked token list
    *
@@ -262,6 +275,17 @@ export const LinkPreviewModel = {
   },
 
   /**
+   * Creates a new ML engine instance with the provided options for link preview.
+   *
+   * @param {object} options - Configuration options for the ML engine.
+   * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback A function to call to indicate notifications.
+   * @returns {Promise<MLEngine>} - A promise that resolves to the ML engine instance.
+   */
+  async createEngine(options, notificationsCallback = null) {
+    return lazy.createEngine(options, notificationsCallback);
+  },
+
+  /**
    * Generate summary text using AI.
    *
    * @param {string} inputText
@@ -285,7 +309,7 @@ export const LinkPreviewModel = {
 
     let engine;
     try {
-      engine = await lazy.createEngine(
+      engine = await this.createEngine(
         {
           backend: "wllama",
           engineId: "wllamapreview",
@@ -315,7 +339,7 @@ export const LinkPreviewModel = {
         }
       );
 
-      const postProcessor = new SentencePostProcessor();
+      const postProcessor = await SentencePostProcessor.initialize();
       const blockedTokens = this.getBlockTokenList();
       for await (const val of engine.runWithGenerator({
         nPredict,
@@ -380,11 +404,56 @@ export class SentencePostProcessor {
   currentNumSentences = 0;
 
   /**
-   * @param {number} maxNumOutputSentences - The maximum number of sentences to
-   * output before truncating the buffer.
+   * Manager for the block list. If null, no block list is applied.
+   *
+   * @type {BlockListManager}
    */
-  constructor(maxNumOutputSentences = lazy.outputSentences) {
+  blockListManager = null;
+
+  /**
+   * Create an instance of the sentence postprocessor.
+   *
+   * @param {object} config - Configuration object.
+   * @param {number} config.maxNumOutputSentences - The maximum number of sentences to
+   * output before truncating the buffer.
+   * @param {BlockListManager | null} config.blockListManager - Manager for the block list
+   */
+  constructor({
+    maxNumOutputSentences = lazy.outputSentences,
+    blockListManager,
+  } = {}) {
     this.maxNumOutputSentences = maxNumOutputSentences;
+    this.blockListManager = blockListManager;
+  }
+
+  /**
+   * @param {object} config - Configuration object.
+   * @param {number} config.maxNumOutputSentences - The maximum number of sentences to
+   * output before truncating the buffer.
+   * @param {boolean} config.blockListEnabled - Wether to enable block list. If enabled, we
+   * don't return the sentence that has a blocked word along with any sentences coming after.
+   * @returns {SentencePostProcessor} - An instance of SentencePostProcessor
+   */
+  static async initialize({
+    maxNumOutputSentences = lazy.outputSentences,
+    blockListEnabled = lazy.blockListEnabled,
+  } = {}) {
+    if (!blockListEnabled) {
+      LinkPreviewModel.blockListManager = null;
+    } else if (!LinkPreviewModel.blockListManager) {
+      LinkPreviewModel.blockListManager =
+        await lazy.BlockListManager.initializeFromRemoteSettings({
+          blockListName: "link-preview-test-en",
+          language: "en",
+          fallbackToDefault: true,
+          majorVersion: 1,
+        });
+    }
+
+    return new SentencePostProcessor({
+      maxNumOutputSentences,
+      blockListManager: LinkPreviewModel.blockListManager,
+    });
   }
 
   /**
@@ -417,6 +486,16 @@ export class SentencePostProcessor {
         abort = true;
       }
       sentence = sentences[0];
+
+      // If the sentence contains a block word, abort
+      if (
+        this.blockListManager &&
+        this.blockListManager.matchAtWordBoundary({ text: sentence })
+      ) {
+        sentence = "";
+        abort = true;
+        this.currentNumSentences = this.maxNumOutputSentences;
+      }
     }
 
     return { sentence, abort };
