@@ -76,6 +76,12 @@ support-files = [
   "helper_oopif_reconstruct_nested_grandchild.html",
 ]
 
+["browser_test_tabpanels.js"]
+support-files = [
+  "470711-1.xhtml",
+  "470711-1-ref.xhtml"
+]
+
 ["browser_visual_viewport_iframe.js"]
 support-files = [
   "test_visual_viewport_in_oopif.html",
