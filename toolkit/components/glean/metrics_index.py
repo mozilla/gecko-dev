@@ -59,6 +59,7 @@ gecko_metrics = [
     "netwerk/dns/metrics.yaml",
     "netwerk/metrics.yaml",
     "netwerk/protocol/http/metrics.yaml",
+    "netwerk/protocol/websocket/metrics.yaml",
     "parser/html/metrics.yaml",
     "parser/htmlparser/metrics.yaml",
     "security/certverifier/metrics.yaml",

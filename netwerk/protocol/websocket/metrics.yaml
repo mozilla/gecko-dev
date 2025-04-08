@@ -1,0 +1,34 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Networking: WebSockets'
+
+websockets:
+  handshake_type:
+    type: custom_distribution
+    description: >
+      Websockets Handshake Results (ws-ok-plain, ws-ok-proxy, ws-failed-plain,
+      ws-failed-proxy, wss-ok-plain, wss-ok-proxy, wss-failed-plain,
+      wss-failed-proxy)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram WEBSOCKETS_HANDSHAKE_TYPE.
+    range_min: 0
+    range_max: 16
+    bucket_count: 17
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=805457
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=805457
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: WEBSOCKETS_HANDSHAKE_TYPE
