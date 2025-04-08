@@ -160,18 +160,6 @@ static const struct EVInfo kEVInfos[] = {
     "ALtAHEP1Xk+w",
   },
   {
-    // CN=XRamp Global Certification Authority,O=XRamp Security Services Inc,OU=www.xrampsecurity.com,C=US
-    "2.16.840.1.114404.1.1.2.4.1",
-    "Trustwave EV OID",
-    { 0xCE, 0xCD, 0xDC, 0x90, 0x50, 0x99, 0xD8, 0xDA, 0xDF, 0xC5, 0xB1,
-      0xD2, 0x09, 0xB7, 0x37, 0xCB, 0xE2, 0xC1, 0x8C, 0xFB, 0x2C, 0x10,
-      0xC0, 0xFF, 0x0B, 0xCF, 0x0D, 0x32, 0x86, 0xFC, 0x1A, 0xA2 },
-    "MIGCMQswCQYDVQQGEwJVUzEeMBwGA1UECxMVd3d3LnhyYW1wc2VjdXJpdHkuY29t"
-    "MSQwIgYDVQQKExtYUmFtcCBTZWN1cml0eSBTZXJ2aWNlcyBJbmMxLTArBgNVBAMT"
-    "JFhSYW1wIEdsb2JhbCBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eQ==",
-    "UJRs7Bjq1ZxN1ZfvdY+grQ==",
-  },
-  {
     // CN=SecureTrust CA,O=SecureTrust Corporation,C=US
     "2.16.840.1.114404.1.1.2.4.1",
     "Trustwave EV OID",
@@ -218,18 +206,6 @@ static const struct EVInfo kEVInfos[] = {
     "ToEtioJl4AsC7j41AkblPQ==",
   },
   {
-    // OU=Go Daddy Class 2 Certification Authority,O=\"The Go Daddy Group, Inc.\",C=US
-    "2.16.840.1.114413.1.7.23.3",
-    "Go Daddy EV OID a",
-    { 0xC3, 0x84, 0x6B, 0xF2, 0x4B, 0x9E, 0x93, 0xCA, 0x64, 0x27, 0x4C,
-      0x0E, 0xC6, 0x7C, 0x1E, 0xCC, 0x5E, 0x02, 0x4F, 0xFC, 0xAC, 0xD2,
-      0xD7, 0x40, 0x19, 0x35, 0x0E, 0x81, 0xFE, 0x54, 0x6A, 0xE4 },
-    "MGMxCzAJBgNVBAYTAlVTMSEwHwYDVQQKExhUaGUgR28gRGFkZHkgR3JvdXAsIElu"
-    "Yy4xMTAvBgNVBAsTKEdvIERhZGR5IENsYXNzIDIgQ2VydGlmaWNhdGlvbiBBdXRo"
-    "b3JpdHk=",
-    "AA==",
-  },
-  {
     // CN=Go Daddy Root Certificate Authority - G2,O="GoDaddy.com, Inc.",L=Scottsdale,ST=Arizona,C=US
     "2.16.840.1.114413.1.7.23.3",
     "Go Daddy EV OID a",
@@ -239,18 +215,6 @@ static const struct EVInfo kEVInfos[] = {
     "MIGDMQswCQYDVQQGEwJVUzEQMA4GA1UECBMHQXJpem9uYTETMBEGA1UEBxMKU2Nv"
     "dHRzZGFsZTEaMBgGA1UEChMRR29EYWRkeS5jb20sIEluYy4xMTAvBgNVBAMTKEdv"
     "IERhZGR5IFJvb3QgQ2VydGlmaWNhdGUgQXV0aG9yaXR5IC0gRzI=",
-    "AA==",
-  },
-  {
-    // OU=Starfield Class 2 Certification Authority,O=\"Starfield Technologies, Inc.\",C=US
-    "2.16.840.1.114414.1.7.23.3",
-    "Go Daddy EV OID b",
-    { 0x14, 0x65, 0xFA, 0x20, 0x53, 0x97, 0xB8, 0x76, 0xFA, 0xA6, 0xF0,
-      0xA9, 0x95, 0x8E, 0x55, 0x90, 0xE4, 0x0F, 0xCC, 0x7F, 0xAA, 0x4F,
-      0xB7, 0xC2, 0xC8, 0x67, 0x75, 0x21, 0xFB, 0x5F, 0xB6, 0x58 },
-    "MGgxCzAJBgNVBAYTAlVTMSUwIwYDVQQKExxTdGFyZmllbGQgVGVjaG5vbG9naWVz"
-    "LCBJbmMuMTIwMAYDVQQLEylTdGFyZmllbGQgQ2xhc3MgMiBDZXJ0aWZpY2F0aW9u"
-    "IEF1dGhvcml0eQ==",
     "AA==",
   },
   {
@@ -315,17 +279,6 @@ static const struct EVInfo kEVInfos[] = {
     "MAYDVQQDEylFbnRydXN0IFJvb3QgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkgLSBH"
     "NA==",
     "ANm1Q3+vqTkPAAAAAFVlrVg=",
-  },
-  {
-    // CN=GlobalSign Root CA,OU=Root CA,O=GlobalSign nv-sa,C=BE
-    "2.23.140.1.1",
-    "CA/Browser Forum EV OID",
-    { 0xEB, 0xD4, 0x10, 0x40, 0xE4, 0xBB, 0x3E, 0xC7, 0x42, 0xC9, 0xE3,
-      0x81, 0xD3, 0x1E, 0xF2, 0xA4, 0x1A, 0x48, 0xB6, 0x68, 0x5C, 0x96,
-      0xE7, 0xCE, 0xF3, 0xC1, 0xDF, 0x6C, 0xD4, 0x33, 0x1C, 0x99 },
-    "MFcxCzAJBgNVBAYTAkJFMRkwFwYDVQQKExBHbG9iYWxTaWduIG52LXNhMRAwDgYD"
-    "VQQLEwdSb290IENBMRswGQYDVQQDExJHbG9iYWxTaWduIFJvb3QgQ0E=",
-    "BAAAAAABFUtaw5Q=",
   },
   {
     // CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R3
@@ -647,19 +600,6 @@ static const struct EVInfo kEVInfos[] = {
     "MEwxIDAeBgNVBAsTF0dsb2JhbFNpZ24gUm9vdCBDQSAtIFI2MRMwEQYDVQQKEwpH"
     "bG9iYWxTaWduMRMwEQYDVQQDEwpHbG9iYWxTaWdu",
     "Rea7A4Mzw4VlSOb/RVE=",
-  },
-  {
-    // CN=Entrust.net Certification Authority (2048),OU=(c) 1999 Entrust.net Limited,OU=www.entrust.net/CPS_2048 incorp. by ref. (limits liab.),O=Entrust.net
-    "2.16.840.1.114028.10.1.2",
-    "Entrust EV OID",
-    { 0x6D, 0xC4, 0x71, 0x72, 0xE0, 0x1C, 0xBC, 0xB0, 0xBF, 0x62, 0x58,
-      0x0D, 0x89, 0x5F, 0xE2, 0xB8, 0xAC, 0x9A, 0xD4, 0xF8, 0x73, 0x80,
-      0x1E, 0x0C, 0x10, 0xB9, 0xC8, 0x37, 0xD2, 0x1E, 0xB1, 0x77 },
-    "MIG0MRQwEgYDVQQKEwtFbnRydXN0Lm5ldDFAMD4GA1UECxQ3d3d3LmVudHJ1c3Qu"
-    "bmV0L0NQU18yMDQ4IGluY29ycC4gYnkgcmVmLiAobGltaXRzIGxpYWIuKTElMCMG"
-    "A1UECxMcKGMpIDE5OTkgRW50cnVzdC5uZXQgTGltaXRlZDEzMDEGA1UEAxMqRW50"
-    "cnVzdC5uZXQgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkgKDIwNDgp",
-    "OGPe+A==",
   },
   {
     // CN=Entrust Root Certification Authority - G2,OU="(c) 2009 Entrust, Inc. - for authorized use only",OU=See www.entrust.net/legal-terms,O="Entrust, Inc.",C=US
@@ -1027,32 +967,6 @@ static const struct EVInfo kEVInfos[] = {
     "TkYgQXV0b3JpZGFkIGRlIENlcnRpZmljYWNpb24xFDASBgNVBAsTC0FORiBDQSBS"
     "YWl6MSIwIAYDVQQDExlBTkYgU2VjdXJlIFNlcnZlciBSb290IENB",
     "DdPjvGz5a7E=",
-  },
-  {
-    // CN=Hellenic Academic and Research Institutions ECC RootCA 2015,O=Hellenic Academic and Research Institutions Cert. Authority,L=Athens,C=GR
-    "2.23.140.1.1",
-    "CA/Browser Forum EV OID",
-    { 0x44, 0xB5, 0x45, 0xAA, 0x8A, 0x25, 0xE6, 0x5A, 0x73, 0xCA, 0x15,
-      0xDC, 0x27, 0xFC, 0x36, 0xD2, 0x4C, 0x1C, 0xB9, 0x95, 0x3A, 0x06,
-      0x65, 0x39, 0xB1, 0x15, 0x82, 0xDC, 0x48, 0x7B, 0x48, 0x33 },
-    "MIGqMQswCQYDVQQGEwJHUjEPMA0GA1UEBxMGQXRoZW5zMUQwQgYDVQQKEztIZWxs"
-    "ZW5pYyBBY2FkZW1pYyBhbmQgUmVzZWFyY2ggSW5zdGl0dXRpb25zIENlcnQuIEF1"
-    "dGhvcml0eTFEMEIGA1UEAxM7SGVsbGVuaWMgQWNhZGVtaWMgYW5kIFJlc2VhcmNo"
-    "IEluc3RpdHV0aW9ucyBFQ0MgUm9vdENBIDIwMTU=",
-    "AA==",
-  },
-  {
-    // CN=Hellenic Academic and Research Institutions RootCA 2015,O=Hellenic Academic and Research Institutions Cert. Authority,L=Athens,C=GR
-    "2.23.140.1.1",
-    "CA/Browser Forum EV OID",
-    { 0xA0, 0x40, 0x92, 0x9A, 0x02, 0xCE, 0x53, 0xB4, 0xAC, 0xF4, 0xF2,
-      0xFF, 0xC6, 0x98, 0x1C, 0xE4, 0x49, 0x6F, 0x75, 0x5E, 0x6D, 0x45,
-      0xFE, 0x0B, 0x2A, 0x69, 0x2B, 0xCD, 0x52, 0x52, 0x3F, 0x36 },
-    "MIGmMQswCQYDVQQGEwJHUjEPMA0GA1UEBxMGQXRoZW5zMUQwQgYDVQQKEztIZWxs"
-    "ZW5pYyBBY2FkZW1pYyBhbmQgUmVzZWFyY2ggSW5zdGl0dXRpb25zIENlcnQuIEF1"
-    "dGhvcml0eTFAMD4GA1UEAxM3SGVsbGVuaWMgQWNhZGVtaWMgYW5kIFJlc2VhcmNo"
-    "IEluc3RpdHV0aW9ucyBSb290Q0EgMjAxNQ==",
-    "AA==",
   },
   {
     // CN=HARICA TLS RSA Root CA 2021,O=Hellenic Academic and Research Institutions CA,C=GR
