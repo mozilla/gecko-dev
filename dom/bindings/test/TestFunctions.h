@@ -16,6 +16,7 @@
 namespace mozilla {
 namespace dom {
 
+class MaybeSharedInt8ArrayOrMaybeSharedInt16Array;
 class Promise;
 class PromiseReturner;
 class WrapperCachedNonISupportsTestInterface;
@@ -109,6 +110,8 @@ class TestFunctions : public NonRefcountedDOMObject {
       const ArrayBufferOrArrayBufferViewOrString& aUnion);
   void TestUnionOfAllowSharedBufferSource(
       const AllowSharedBufferSource& aUnion);
+  void TestUnionWithAllowShared(
+      const MaybeSharedInt8ArrayOrMaybeSharedInt16Array& aUnion);
 
   bool StaticAndNonStaticOverload() { return false; }
   static bool StaticAndNonStaticOverload(GlobalObject& aGlobal,
