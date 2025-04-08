@@ -43,7 +43,7 @@
 #include "mozilla/SHA1.h"
 #include "mozilla/Base64.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "../LinkServiceCommon.h"
 #include <iptypes.h>
 #include <iphlpapi.h>
@@ -245,7 +245,7 @@ void nsNotifyAddrListener::calculateNetworkId(void) {
       mNetworkId.Truncate();
     }
     LOG(("calculateNetworkId: no network ID - no active networks"));
-    Telemetry::Accumulate(Telemetry::NETWORK_ID2, 0);
+    glean::network::id.AccumulateSingleSample(0);
     if (idChanged) {
       NotifyObservers(NS_NETWORK_ID_CHANGED_TOPIC, nullptr);
     }
@@ -264,7 +264,7 @@ void nsNotifyAddrListener::calculateNetworkId(void) {
       MutexAutoLock lock(mMutex);
       mNetworkId.Truncate();
     }
-    Telemetry::Accumulate(Telemetry::NETWORK_ID2, 0);
+    glean::network::id.AccumulateSingleSample(0);
     LOG(("calculateNetworkId: no network ID Base64Encode error %X",
          uint32_t(rv)));
     return;
@@ -273,11 +273,11 @@ void nsNotifyAddrListener::calculateNetworkId(void) {
   MutexAutoLock lock(mMutex);
   if (output != mNetworkId) {
     mNetworkId = output;
-    Telemetry::Accumulate(Telemetry::NETWORK_ID2, 1);
+    glean::network::id.AccumulateSingleSample(1);
     LOG(("calculateNetworkId: new NetworkID: %s", output.get()));
     NotifyObservers(NS_NETWORK_ID_CHANGED_TOPIC, nullptr);
   } else {
-    Telemetry::Accumulate(Telemetry::NETWORK_ID2, 2);
+    glean::network::id.AccumulateSingleSample(2);
     LOG(("calculateNetworkId: same NetworkID: %s", output.get()));
   }
 }

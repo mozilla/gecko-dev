@@ -27,7 +27,7 @@
 #include "mozilla/Base64.h"
 #include "mozilla/FunctionTypeTraits.h"
 #include "mozilla/ProfilerThreadSleep.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/ScopeExit.h"
 
@@ -249,7 +249,7 @@ class NetlinkNeighbor {
   bool mHasMAC{false};
   uint8_t mMAC[ETH_ALEN]{};
   in_common_addr mAddr{};
-  struct ndmsg mNeigh {};
+  struct ndmsg mNeigh{};
 };
 
 class NetlinkLink {
@@ -295,7 +295,7 @@ class NetlinkLink {
 
  private:
   nsCString mName;
-  struct ifinfomsg mIface {};
+  struct ifinfomsg mIface{};
 };
 
 class NetlinkRoute {
@@ -480,7 +480,7 @@ class NetlinkRoute {
 
   uint32_t mOif{};
   uint32_t mPrio{};
-  struct rtmsg mRtm {};
+  struct rtmsg mRtm{};
 };
 
 class NetlinkMsg {
@@ -501,17 +501,17 @@ class NetlinkMsg {
   bool SendRequest(int aFD, void* aRequest, uint32_t aRequestLength) {
     MOZ_ASSERT(!mIsPending, "Request has been already sent!");
 
-    struct sockaddr_nl kernel {};
+    struct sockaddr_nl kernel{};
     memset(&kernel, 0, sizeof(kernel));
     kernel.nl_family = AF_NETLINK;
     kernel.nl_groups = 0;
 
-    struct iovec io {};
+    struct iovec io{};
     memset(&io, 0, sizeof(io));
     io.iov_base = aRequest;
     io.iov_len = aRequestLength;
 
-    struct msghdr rtnl_msg {};
+    struct msghdr rtnl_msg{};
     memset(&rtnl_msg, 0, sizeof(rtnl_msg));
     rtnl_msg.msg_iov = &io;
     rtnl_msg.msg_iovlen = 1;
@@ -655,17 +655,17 @@ void NetlinkService::OnNetlinkMessage(int aNetlinkSocket) {
   // for netlink messages.
   char buffer[4096];
 
-  struct sockaddr_nl kernel {};
+  struct sockaddr_nl kernel{};
   memset(&kernel, 0, sizeof(kernel));
   kernel.nl_family = AF_NETLINK;
   kernel.nl_groups = 0;
 
-  struct iovec io {};
+  struct iovec io{};
   memset(&io, 0, sizeof(io));
   io.iov_base = buffer;
   io.iov_len = sizeof(buffer);
 
-  struct msghdr rtnl_reply {};
+  struct msghdr rtnl_reply{};
   memset(&rtnl_reply, 0, sizeof(rtnl_reply));
   rtnl_reply.msg_iov = &io;
   rtnl_reply.msg_iovlen = 1;
@@ -1165,7 +1165,7 @@ NetlinkService::Run() {
     return NS_ERROR_FAILURE;
   }
 
-  struct sockaddr_nl addr {};
+  struct sockaddr_nl addr{};
   memset(&addr, 0, sizeof(addr));
 
   addr.nl_family = AF_NETLINK;
@@ -1690,7 +1690,7 @@ void NetlinkService::ExtractDNSProperties() {
   nsTArray<NetAddr> resolvers;
 #if defined(HAVE_RES_NINIT)
   [&]() {
-    struct __res_state res {};
+    struct __res_state res{};
     int ret = res_ninit(&res);
     if (ret != 0) {
       LOG(("Call to res_ninit failed: %d", ret));
@@ -1831,18 +1831,18 @@ void NetlinkService::CalculateNetworkID() {
     if (mNetworkId != output) {
       // new id
       if (found4 && !found6) {
-        Telemetry::Accumulate(Telemetry::NETWORK_ID2, 1);  // IPv4 only
+        glean::network::id.AccumulateSingleSample(1);  // IPv4 only
       } else if (!found4 && found6) {
-        Telemetry::Accumulate(Telemetry::NETWORK_ID2, 3);  // IPv6 only
+        glean::network::id.AccumulateSingleSample(3);  // IPv6 only
       } else {
-        Telemetry::Accumulate(Telemetry::NETWORK_ID2, 4);  // Both!
+        glean::network::id.AccumulateSingleSample(4);  // Both!
       }
       mNetworkId = output;
       idChanged = true;
     } else {
       // same id
       LOG(("Same network id"));
-      Telemetry::Accumulate(Telemetry::NETWORK_ID2, 2);
+      glean::network::id.AccumulateSingleSample(2);
     }
   } else {
     // no id
@@ -1851,7 +1851,7 @@ void NetlinkService::CalculateNetworkID() {
     if (!mNetworkId.IsEmpty()) {
       mNetworkId.Truncate();
       idChanged = true;
-      Telemetry::Accumulate(Telemetry::NETWORK_ID2, 0);
+      glean::network::id.AccumulateSingleSample(0);
     }
   }
 

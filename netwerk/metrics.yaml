@@ -3081,3 +3081,47 @@ network.cookies:
       - necko@mozilla.com
     expires: never
     telemetry_mirror: MOZ_SQLITE_COOKIES_OPEN_READAHEAD_MS
+
+network:
+  id:
+    type: custom_distribution
+    description: >
+      Network identification (0=None, 1=New Ipv4, 2=Same, 3=New IPv6, 4=New
+      dual)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram NETWORK_ID2.
+    range_min: 0
+    range_max: 6
+    bucket_count: 7
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1240932
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1395914
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1240932
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1395914
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORK_ID2
+
+  id_online:
+    type: labeled_counter
+    description: >
+      Network ID presence when the network connectivity checker reports that we
+      have connectivity
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram NETWORK_ID_ONLINE.
+    labels:
+      - absent
+      - present
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1580130
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1580130
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#NETWORK_ID_ONLINE
