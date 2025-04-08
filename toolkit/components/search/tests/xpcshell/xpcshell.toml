@@ -193,6 +193,8 @@ support-files = [
 
 ["test_searchSuggest_private.js"]
 
+["test_searchSuggestionCountTelemetry.js"]
+
 ["test_searchTermFromResult.js"]
 
 ["test_searchUrlDomain.js"]

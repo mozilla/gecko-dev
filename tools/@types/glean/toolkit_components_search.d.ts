@@ -38,4 +38,10 @@ interface GleanImpl {
   search: {
     suggestionsLatency: Record<string, GleanTimingDistribution>;
   }
+
+  searchSuggestions: {
+    successfulRequests: Record<string, GleanCounter>;
+    abortedRequests: Record<string, GleanCounter>;
+    failedRequests: Record<string, GleanCounter>;
+  }
 }

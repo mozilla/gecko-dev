@@ -500,8 +500,8 @@ search:
     type: labeled_timing_distribution
     description: >
       Records the latencies (ms) of search suggestions fetches per search
-      engine. Keys in this histogram are search engine IDs for built-in search
-      engines and 'other' for non-built-in search engines.
+      engine. Keys in this histogram are search engine identifiers for built-in
+      search engines and 'other' for non-built-in search engines.
 
       This metric was generated to correspond to the Legacy Telemetry
       exponential histogram SEARCH_SUGGESTIONS_LATENCY_MS.
@@ -515,3 +515,50 @@ search:
       - adw@mozilla.com
     expires: never
     telemetry_mirror: SEARCH_SUGGESTIONS_LATENCY_MS
+
+search.suggestions:
+  successful_requests:
+    type: labeled_counter
+    description: >
+      Counts the number of successful search suggestion fetches per search
+      engine. Only records app provided engines using their short IDs
+      ('id', not 'identifier') as labels.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957950
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957950
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: 146
+  aborted_requests:
+    type: labeled_counter
+    description: >
+      Counts the number of aborted search suggestion fetches per search
+      engine. Only records app provided engines using their short IDs
+      ('id', not 'identifier') as labels.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957950
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957950
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: 146
+  failed_requests:
+    type: labeled_counter
+    description: >
+      Counts the number of failed search suggestion fetches per search
+      engine. Only records app provided engines using their short IDs
+      ('id', not 'identifier') as labels.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957950
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957950
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: 146

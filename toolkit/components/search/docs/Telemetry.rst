@@ -77,7 +77,7 @@ systems:
 
 Glean Telemetry
 ---------------
-`These search service fields are documented via Glean dictionary <https://dictionary.telemetry.mozilla.org/apps/firefox_desktop?page=1&search=search.service>`__.
+`These search service fields are documented via Glean dictionary <https://dictionary.telemetry.mozilla.org/apps/firefox_desktop?search=tags%3A%22Firefox%20%3A%3A%20Search%22>`__.
 
 search.service.startup_time
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -92,3 +92,12 @@ search.service.initializaitonStatus
   ``failedLoadEngines``, ``failedLoadSettingsAddonManager``, ``success``.
 
   A counter for initialization successes on start up.
+
+search.suggestions.*
+~~~~~~~~~~~~~~~~~~~~
+
+  Labeled counters to count the number of suggestion requests sent from app-
+  provided search engines. There are three separate counters for the number of
+  successful, aborted and failed requests. Aborted requests can happen when
+  users type faster than the search engine responds and failed requests when
+  there is an HTTP or network error.
