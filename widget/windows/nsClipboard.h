@@ -59,6 +59,9 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
   // registered as clipboard format "text/html" to support previous versions
   // of Gecko.
   static UINT GetFormat(const char* aMimeStr, bool aMapHTMLMime = true);
+  // This function returns a secondary format for a given MIME string, if any.
+  // This is something that Firefox can read and convert to the expected type.
+  static mozilla::Maybe<UINT> GetSecondaryFormat(const char* aMimeStr);
 
   static UINT GetClipboardFileDescriptorFormatA();
   static UINT GetClipboardFileDescriptorFormatW();
