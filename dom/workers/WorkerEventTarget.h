@@ -24,9 +24,7 @@ class WorkerEventTarget final : public nsISerialEventTarget {
   //   with a holder in place.)
   //
   // * ControlOnly targets will simply dispatch a control runnable.
-  //
-  // * DebuggerOnly targets will simply dispatch a debugger runnable.
-  enum class Behavior : uint8_t { Hybrid, ControlOnly, DebuggerOnly };
+  enum class Behavior : uint8_t { Hybrid, ControlOnly };
 
  private:
   mozilla::Mutex mMutex;

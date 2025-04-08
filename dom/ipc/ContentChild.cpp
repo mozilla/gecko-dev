@@ -81,7 +81,6 @@
 #include "mozilla/dom/PSessionStorageObserverChild.h"
 #include "mozilla/dom/PostMessageEvent.h"
 #include "mozilla/dom/PushNotifier.h"
-#include "mozilla/dom/RemoteWorkerDebuggerManagerChild.h"
 #include "mozilla/dom/RemoteWorkerService.h"
 #include "mozilla/dom/ScreenOrientation.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
@@ -2680,10 +2679,8 @@ void ContentChild::PreallocInit() {
 const nsACString& ContentChild::GetRemoteType() const { return mRemoteType; }
 
 mozilla::ipc::IPCResult ContentChild::RecvInitRemoteWorkerService(
-    Endpoint<PRemoteWorkerServiceChild>&& aEndpoint,
-    Endpoint<PRemoteWorkerDebuggerManagerChild>&& aDebuggerChiledEp) {
-  RemoteWorkerService::InitializeChild(std::move(aEndpoint),
-                                       std::move(aDebuggerChiledEp));
+    Endpoint<PRemoteWorkerServiceChild>&& aEndpoint) {
+  RemoteWorkerService::InitializeChild(std::move(aEndpoint));
   return IPC_OK();
 }
 
