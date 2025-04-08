@@ -777,6 +777,8 @@
   <string name="preferences_show_voice_search">Lêgerîna dengî nîşan bide</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Di rûniştinên veşartî de nîşan bide</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">Pêşniyarên rojevî nîşan bide</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">Pêşniyarên panoyê nîşan bide</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -789,6 +791,8 @@
   <string name="preferences_account_settings">Sazkariyên hesêb</string>
   <!-- Preference for enabling url autocomplete -->
   <string name="preferences_enable_autocomplete_urls">Navnîşanan bixweber dagire</string>
+  <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
+  <string name="preferences_show_sponsored_suggestions">Pêşniyarên ji sponsoran</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Girêdanan di sepanan de veke</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -1286,6 +1290,8 @@
   <string name="tab_crash_restore">Hilpekînê vegerîne</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Bigire</string>
+  <!-- Unsubmitted crash dialog positive button to submit crash report -->
+  <string name="unsubmitted_crash_dialog_positive_button">Rapora qezayê bişîne</string>
   <!--
     Bookmarks
 
