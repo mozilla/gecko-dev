@@ -7,8 +7,6 @@
 //   loaded) we load the page and check the flags.
 // * We change the about:config prefs (mixed active blocked, mixed display
 //   blocked), reload the page, and check the flags again.
-// * We override protection so all mixed content can load and check the
-//   flags again.
 
 const TEST_URI =
   getRootDirectory(gTestPath).replace(
@@ -54,18 +52,5 @@ add_task(async function blockMixedActiveContentTest() {
     activeLoaded: false,
     activeBlocked: true,
     passiveLoaded: false,
-  });
-});
-
-add_task(async function overrideMCB() {
-  // Disable mixed content blocking (reloads page) and retest
-  let { gIdentityHandler } = gTestBrowser.ownerGlobal;
-  gIdentityHandler.disableMixedContentProtection();
-  await BrowserTestUtils.browserLoaded(gTestBrowser);
-
-  await assertMixedContentBlockingState(gTestBrowser, {
-    activeLoaded: true,
-    activeBlocked: false,
-    passiveLoaded: true,
   });
 });

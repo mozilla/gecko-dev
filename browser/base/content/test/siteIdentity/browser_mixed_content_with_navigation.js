@@ -22,7 +22,7 @@ const kTestcases = [
     expectedIdentityMode: "mixedDisplayContent",
   },
   {
-    uri: kBaseURI + "file_bug1045809_1.html",
+    uri: kBaseURI + "file_mixedActiveContent_1.html",
     expectErrorPage: false,
     expectedIdentityMode: "mixedActiveBlocked",
   },

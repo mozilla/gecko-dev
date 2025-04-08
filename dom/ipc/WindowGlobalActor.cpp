@@ -121,19 +121,6 @@ WindowGlobalInit WindowGlobalActor::WindowInitializer(
 
   // Initialize top level permission fields
   if (aWindow->GetBrowsingContext()->IsTop()) {
-    fields.Get<Indexes::IDX_AllowMixedContent>() = [&] {
-      uint32_t permit = nsIPermissionManager::UNKNOWN_ACTION;
-      nsCOMPtr<nsIPermissionManager> permissionManager =
-          components::PermissionManager::Service();
-
-      if (permissionManager) {
-        permissionManager->TestPermissionFromPrincipal(
-            init.principal(), "mixed-content"_ns, &permit);
-      }
-
-      return permit == nsIPermissionManager::ALLOW_ACTION;
-    }();
-
     fields.Get<Indexes::IDX_ShortcutsPermission>() =
         nsGlobalWindowInner::GetShortcutsPermission(init.principal());
   }

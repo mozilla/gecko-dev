@@ -179,40 +179,6 @@ export var ControlCenter = {
       },
     },
 
-    mixedActiveUnblocked: {
-      selectors: CC_SELECTORS,
-      async applyConfig() {
-        let browserWindow =
-          Services.wm.getMostRecentWindow("navigator:browser");
-        let gBrowser = browserWindow.gBrowser;
-        await loadPage(MIXED_ACTIVE_CONTENT_URL);
-        gBrowser.ownerGlobal.gIdentityHandler.disableMixedContentProtection();
-        await BrowserTestUtils.browserLoaded(
-          gBrowser.selectedBrowser,
-          false,
-          MIXED_ACTIVE_CONTENT_URL
-        );
-        await openIdentityPopup();
-      },
-    },
-
-    mixedActiveUnblockedSubView: {
-      selectors: CC_SELECTORS,
-      async applyConfig() {
-        let browserWindow =
-          Services.wm.getMostRecentWindow("navigator:browser");
-        let gBrowser = browserWindow.gBrowser;
-        await loadPage(MIXED_ACTIVE_CONTENT_URL);
-        gBrowser.ownerGlobal.gIdentityHandler.disableMixedContentProtection();
-        await BrowserTestUtils.browserLoaded(
-          gBrowser.selectedBrowser,
-          false,
-          MIXED_ACTIVE_CONTENT_URL
-        );
-        await openIdentityPopup(true);
-      },
-    },
-
     httpPassword: {
       selectors: CC_SELECTORS,
       async applyConfig() {

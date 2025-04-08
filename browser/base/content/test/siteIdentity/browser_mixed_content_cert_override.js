@@ -45,12 +45,6 @@ add_task(async function () {
   await loadBadCertPage(MIXED_CONTENT_URL);
   checkIdentityPopup("security-warning.svg");
 
-  // check that the crossed out icon is shown when disabling mixed content protection
-  gIdentityHandler.disableMixedContentProtection();
-  await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-
-  checkIdentityPopup("security-broken.svg");
-
   // check that a warning is shown even without mixed content
   BrowserTestUtils.startLoadingURIString(
     gBrowser.selectedBrowser,

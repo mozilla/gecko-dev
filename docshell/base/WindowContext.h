@@ -62,9 +62,6 @@ class BrowsingContextGroup;
   /* Mixed-Content: If the corresponding documentURI is https,           \
    * then this flag is true. */                                          \
   FIELD(IsSecure, bool)                                                  \
-  /* Whether the user has overriden the mixed content blocker to allow   \
-   * mixed content loads to happen */                                    \
-  FIELD(AllowMixedContent, bool)                                         \
   /* Whether this window has registered a "beforeunload" event           \
    * handler */                                                          \
   FIELD(HasBeforeUnload, bool)                                           \
@@ -273,8 +270,6 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
   // Overload `CanSet` to get notifications for a particular field being set.
   bool CanSet(FieldIndex<IDX_IsSecure>, const bool& aIsSecure,
-              ContentParent* aSource);
-  bool CanSet(FieldIndex<IDX_AllowMixedContent>, const bool& aAllowMixedContent,
               ContentParent* aSource);
 
   bool CanSet(FieldIndex<IDX_HasBeforeUnload>, const bool& aHasBeforeUnload,

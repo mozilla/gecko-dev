@@ -824,7 +824,6 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   // Content
   WindowContext* topWC = requestingWindow->TopWindowContext();
   bool rootHasSecureConnection = topWC->GetIsSecure();
-  bool allowMixedContent = topWC->GetAllowMixedContent();
 
   // When navigating an iframe, the iframe may be https but its parents may not
   // be. Check the parents to see if any of them are https. If none of the
@@ -897,8 +896,7 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   // If the content is display content, and the pref says display content should
   // be blocked, block it.
   if (classification == eMixedDisplay) {
-    if (!StaticPrefs::security_mixed_content_block_display_content() ||
-        allowMixedContent) {
+    if (!StaticPrefs::security_mixed_content_block_display_content()) {
       *aDecision = nsIContentPolicy::ACCEPT;
       // User has overriden the pref and the root is not https;
       // mixed display content was allowed on an https subframe.
@@ -916,8 +914,7 @@ nsresult nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
     MOZ_ASSERT(classification == eMixedScript);
     // If the content is active content, and the pref says active content should
     // be blocked, block it unless the user has choosen to override the pref
-    if (!StaticPrefs::security_mixed_content_block_active_content() ||
-        allowMixedContent) {
+    if (!StaticPrefs::security_mixed_content_block_active_content()) {
       *aDecision = nsIContentPolicy::ACCEPT;
       // User has already overriden the pref and the root is not https;
       // mixed active content was allowed on an https subframe.
