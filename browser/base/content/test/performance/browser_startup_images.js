@@ -55,12 +55,6 @@ const knownUnshownImages = [
     // This file is not loaded on Windows 7/8.
     intermittentNotLoaded: ["win"],
   },
-
-  {
-    file: "chrome://global/skin/icons/highlights.svg",
-    platforms: ["linux"],
-    intermittentShown: ["linux"],
-  },
 ];
 
 add_task(async function () {
