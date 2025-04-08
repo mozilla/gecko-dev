@@ -1472,7 +1472,7 @@ class BrowsingContextModule extends RootBiDiModule {
 
     if (contextId !== null && userContextIds !== null) {
       throw new lazy.error.InvalidArgumentError(
-        `Providing both "contexts" and "userContexts" arguments is not supported`
+        `Providing both "context" and "userContexts" arguments is not supported`
       );
     }
 

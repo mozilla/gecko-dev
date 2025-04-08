@@ -42,15 +42,14 @@ class PermissionsModule extends RootBiDiModule {
    *     The state which will be set to the permission.
    * @param {string} options.origin
    *    The origin which is used as a target for permission update.
-   * @param {string=} options.userContext [unsupported]
+   * @param {string=} options.userContext
    *    The id of the user context which should be used as a target
    *    for permission update.
    *
    * @throws {InvalidArgumentError}
    *     Raised if an argument is of an invalid type or value.
    * @throws {UnsupportedOperationError}
-   *     Raised when unsupported permissions are set or <var>userContext</var>
-   *     argument is used.
+   *     Raised when unsupported permissions are set.
    */
   async setPermission(options = {}) {
     const {

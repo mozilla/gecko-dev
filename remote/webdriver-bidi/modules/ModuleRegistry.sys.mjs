@@ -20,6 +20,8 @@ ChromeUtils.defineESModuleGetters(modules.root, {
     "chrome://remote/content/webdriver-bidi/modules/root/browser.sys.mjs",
   browsingContext:
     "chrome://remote/content/webdriver-bidi/modules/root/browsingContext.sys.mjs",
+  emulation:
+    "chrome://remote/content/webdriver-bidi/modules/root/emulation.sys.mjs",
   input: "chrome://remote/content/webdriver-bidi/modules/root/input.sys.mjs",
   log: "chrome://remote/content/webdriver-bidi/modules/root/log.sys.mjs",
   network:
@@ -52,6 +54,8 @@ ChromeUtils.defineESModuleGetters(modules.windowglobal, {
     "chrome://remote/content/webdriver-bidi/modules/windowglobal/_configuration.sys.mjs",
   browsingContext:
     "chrome://remote/content/webdriver-bidi/modules/windowglobal/browsingContext.sys.mjs",
+  emulation:
+    "chrome://remote/content/webdriver-bidi/modules/windowglobal/emulation.sys.mjs",
   input:
     "chrome://remote/content/webdriver-bidi/modules/windowglobal/input.sys.mjs",
   log: "chrome://remote/content/webdriver-bidi/modules/windowglobal/log.sys.mjs",
