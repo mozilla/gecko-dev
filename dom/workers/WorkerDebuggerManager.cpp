@@ -71,12 +71,12 @@ static StaticRefPtr<WorkerDebuggerManager> gWorkerDebuggerManager;
 } /* anonymous namespace */
 
 class WorkerDebuggerEnumerator final : public nsSimpleEnumerator {
-  nsTArray<RefPtr<WorkerDebugger>> mDebuggers;
+  nsTArray<nsCOMPtr<nsIWorkerDebugger>> mDebuggers;
   uint32_t mIndex;
 
  public:
   explicit WorkerDebuggerEnumerator(
-      const nsTArray<RefPtr<WorkerDebugger>>& aDebuggers)
+      const nsTArray<nsCOMPtr<nsIWorkerDebugger>>& aDebuggers)
       : mDebuggers(aDebuggers.Clone()), mIndex(0) {}
 
   NS_DECL_NSISIMPLEENUMERATOR
@@ -269,6 +269,30 @@ void WorkerDebuggerManager::UnregisterDebugger(WorkerPrivate* aWorkerPrivate) {
   }
 }
 
+void WorkerDebuggerManager::RegisterDebugger(
+    nsIWorkerDebugger* aRemoteWorkerDebugger) {
+  MOZ_ASSERT_DEBUG_OR_FUZZING(XRE_IsParentProcess());
+  AssertIsOnMainThread();
+
+  mDebuggers.AppendElement(aRemoteWorkerDebugger);
+
+  for (const auto& listener : CloneListeners()) {
+    listener->OnRegister(aRemoteWorkerDebugger);
+  }
+}
+
+void WorkerDebuggerManager::UnregisterDebugger(
+    nsIWorkerDebugger* aRemoteWorkerDebugger) {
+  MOZ_ASSERT_DEBUG_OR_FUZZING(XRE_IsParentProcess());
+  AssertIsOnMainThread();
+
+  mDebuggers.RemoveElement(aRemoteWorkerDebugger);
+
+  for (const auto& listener : CloneListeners()) {
+    listener->OnUnregister(aRemoteWorkerDebugger);
+  }
+}
+
 void WorkerDebuggerManager::RegisterDebuggerMainThread(
     WorkerPrivate* aWorkerPrivate, bool aNotifyListeners) {
   AssertIsOnMainThread();
@@ -316,8 +340,21 @@ uint32_t WorkerDebuggerManager::GetDebuggersLength() const {
   return mDebuggers.Length();
 }
 
-WorkerDebugger* WorkerDebuggerManager::GetDebuggerAt(uint32_t aIndex) const {
+nsIWorkerDebugger* WorkerDebuggerManager::GetDebuggerAt(uint32_t aIndex) const {
   return mDebuggers.SafeElementAt(aIndex, nullptr);
+}
+
+nsCOMPtr<nsIWorkerDebugger> WorkerDebuggerManager::GetDebuggerById(
+    const nsString& aWorkerId) {
+  MOZ_ASSERT_DEBUG_OR_FUZZING(!aWorkerId.IsEmpty());
+  for (auto debugger : mDebuggers) {
+    nsAutoString workerId;
+    debugger->GetId(workerId);
+    if (workerId.Equals(aWorkerId)) {
+      return debugger;
+    }
+  }
+  return nullptr;
 }
 
 nsTArray<nsCOMPtr<nsIWorkerDebuggerManagerListener>>
