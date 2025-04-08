@@ -2312,7 +2312,7 @@ export var XPIProvider = {
   //
   // NOTE: XPIProvider will wait for these promises (and the startupPromises one)
   // to have settled before allowing the application to proceed with shutting down
-  // (see quitApplicationGranted blocker at the end of the XPIProvider.startup).
+  // (see appShutdownConfirmed blocker at the end of the XPIProvider.startup).
   enabledAddonsStartupPromises: [],
 
   databaseReady: Promise.all([dbReadyPromise, providerReadyPromise]),
@@ -2748,7 +2748,7 @@ export var XPIProvider = {
 
       // Let these shutdown a little earlier when they still have access to most
       // of XPCOM
-      lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+      lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
         "XPIProvider shutdown",
         async () => {
           // Do not enter shutdown before we actually finished starting as this

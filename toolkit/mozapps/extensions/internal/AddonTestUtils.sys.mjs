@@ -107,7 +107,7 @@ class MockBarrier {
 export var MockAsyncShutdown = {
   profileBeforeChange: new MockBarrier("profileBeforeChange"),
   profileChangeTeardown: new MockBarrier("profileChangeTeardown"),
-  quitApplicationGranted: new MockBarrier("quitApplicationGranted"),
+  appShutdownConfirmed: new MockBarrier("appShutdownConfirmed"),
   // We can use the real Barrier
   Barrier: AsyncShutdown.Barrier,
 };
@@ -913,10 +913,11 @@ export var AddonTestUtils = {
     Services.obs.notifyObservers(null, "test-load-xpi-database");
 
     // Note: the code here used to trigger observer notifications such as
-    // "quit-application-granted". That was removed because of unwanted side
-    // effects in other components. The MockAsyncShutdown triggers here are very
-    // specific and only affect the AddonManager/XPIProvider internals.
-    await MockAsyncShutdown.quitApplicationGranted.trigger();
+    // "quit-application-granted". That was changed in bug 1845352 because of
+    // unwanted side effects in other components. The MockAsyncShutdown
+    // triggers here are very specific and only affect the AddonManager/
+    // XPIProvider internals.
+    await MockAsyncShutdown.appShutdownConfirmed.trigger();
 
     // If XPIDatabase.asyncLoadDB() has been called before, then _dbPromise is
     // a promise, potentially still pending. Wait for it to settle before
