@@ -8100,28 +8100,38 @@ main section {
 .ads-context-menu-wrapper {
   text-align: end;
 }
-.lightWallpaper .ads-context-menu-wrapper {
-  color-scheme: light;
-}
-.darkWallpaper .ads-context-menu-wrapper {
-  color-scheme: dark;
-}
 
 .ads-context-menu {
   float: right;
   position: relative;
-}
-.ads-context-menu > moz-button {
-  padding-block-end: var(--space-small);
-}
-.ads-context-menu > moz-button::part(button) {
-  background-color: light-dark(transparent, var(--button-background-color));
 }
 .ads-context-menu .context-menu {
   width: auto;
   /* Position the menu just under and to the right of the context menu button */
   top: calc(2.25 * var(--size-item-small));
   inset-inline-start: calc(-12.25 * var(--size-item-small));
+}
+.ads-context-menu > moz-button {
+  padding-block-end: var(--space-small);
+}
+.lightWallpaper .ads-context-menu > moz-button {
+  color-scheme: light;
+}
+.darkWallpaper .ads-context-menu > moz-button {
+  color-scheme: dark;
+}
+.ads-context-menu > moz-button::part(button) {
+  background-color: transparent;
+}
+.ads-context-menu > moz-button::part(button):hover {
+  background-color: var(--button-background-color-hover);
+}
+.ads-context-menu > moz-button::part(button):active {
+  background-color: var(--button-background-color-active);
+}
+
+.context-menu-open > moz-button::part(button) {
+  background-color: var(--button-background-color);
 }
 
 .section-context-menu {

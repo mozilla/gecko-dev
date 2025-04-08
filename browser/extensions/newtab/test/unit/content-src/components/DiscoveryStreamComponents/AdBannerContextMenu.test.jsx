@@ -24,6 +24,23 @@ describe("<AdBannerContextMenu>", () => {
         wrapper.find("moz-button").exists(),
         "context menu button exists"
       );
+
+      // Make sure the menu wrapper has the correct default styles
+      assert.isFalse(
+        wrapper.find("div.ads-context-menu").hasClass("context-menu-open")
+      );
+    });
+
+    it("should render a context menu button with hover styles when context menu is open", () => {
+      let button = wrapper.find("moz-button");
+      button.simulate("click", {
+        preventDefault: () => {},
+      });
+
+      // Make sure the menu wrapper adds an extra classname when the menu is open
+      assert.isTrue(
+        wrapper.find("div.ads-context-menu").hasClass("context-menu-open")
+      );
     });
 
     it("should render LinkMenu when context menu button is clicked", () => {
