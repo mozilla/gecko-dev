@@ -2207,14 +2207,14 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
   const auto positionProperty = StyleDisplay()->mPosition;
   const auto styleISize =
       aSizeOverrides.mStyleISize
-          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleISize)
+          ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleISize)
           : stylePos->ISize(aWM, positionProperty);
 
   // TODO(dholbert): if styleBSize is 'stretch' here, we should probably
   // resolve it like we do in nsIFrame::ComputeSize. See bug 1937275.
   const auto styleBSize =
       aSizeOverrides.mStyleBSize
-          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleBSize)
+          ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleBSize)
           : stylePos->BSize(aWM, positionProperty);
   const auto& aspectRatio =
       aSizeOverrides.mAspectRatio ? *aSizeOverrides.mAspectRatio : aAspectRatio;

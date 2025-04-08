@@ -183,11 +183,11 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   auto maxISize = stylePos->MaxISize(aWM, positionProperty);
   if (nsIFrame::ToExtremumLength(*maxISize)) {
     if (!aIsCell || maxISize->BehavesLikeStretchOnInlineAxis()) {
-      maxISize = AnchorResolvedMaxSize::None();
+      maxISize = AnchorResolvedMaxSizeHelper::None();
     } else if (maxISize->IsFitContent() || maxISize->IsFitContentFunction()) {
       // TODO: Bug 1708310: Make sure fit-content() work properly in table.
       // for 'max-inline-size', '-moz-fit-content' is like 'max-content'
-      maxISize = AnchorResolvedMaxSize::MaxContent();
+      maxISize = AnchorResolvedMaxSizeHelper::MaxContent();
     }
   }
   // XXX To really implement 'max-inline-size' well, we'd need to store
@@ -212,11 +212,11 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   auto minISize = stylePos->MinISize(aWM, positionProperty);
   if (nsIFrame::ToExtremumLength(*maxISize)) {
     if (!aIsCell || minISize->BehavesLikeStretchOnInlineAxis()) {
-      minISize = AnchorResolvedSize::Zero();
+      minISize = AnchorResolvedSizeHelper::Zero();
     } else if (minISize->IsFitContent() || minISize->IsFitContentFunction()) {
       // TODO: Bug 1708310: Make sure fit-content() work properly in table.
       // for 'min-inline-size', '-moz-fit-content' is like 'min-content'
-      minISize = AnchorResolvedSize::MinContent();
+      minISize = AnchorResolvedSizeHelper::MinContent();
     }
   }
 

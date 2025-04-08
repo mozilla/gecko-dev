@@ -4687,12 +4687,12 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                            : stylePos->GetMinHeight(positionProperty);
   auto styleISize = [&]() {
     if (aFlags & MIN_INTRINSIC_ISIZE) {
-      return AnchorResolvedSize::Overridden(*styleMinISize);
+      return AnchorResolvedSizeHelper::Overridden(*styleMinISize);
     }
     const Maybe<StyleSize>& styleISizeOverride =
         isInlineAxis ? aSizeOverrides.mStyleISize : aSizeOverrides.mStyleBSize;
     return styleISizeOverride
-               ? AnchorResolvedSize::Overridden(*styleISizeOverride)
+               ? AnchorResolvedSizeHelper::Overridden(*styleISizeOverride)
                : (horizontalAxis ? stylePos->GetWidth(positionProperty)
                                  : stylePos->GetHeight(positionProperty));
   }();
@@ -4707,13 +4707,13 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
                             AnchorResolvedSize& aMinSize,
                             AnchorResolvedMaxSize& aMaxSize) {
     if (!aSize->IsLengthPercentage()) {
-      aSize = AnchorResolvedSize::Auto();
+      aSize = AnchorResolvedSizeHelper::Auto();
     }
     if (!aMinSize->IsLengthPercentage()) {
-      aMinSize = AnchorResolvedSize::Auto();
+      aMinSize = AnchorResolvedSizeHelper::Auto();
     }
     if (!aMaxSize->IsLengthPercentage()) {
-      aMaxSize = AnchorResolvedMaxSize::None();
+      aMaxSize = AnchorResolvedMaxSizeHelper::None();
     }
   };
   // According to the spec, max-content and min-content should behave as the
@@ -4758,7 +4758,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
       isInlineAxis ? aSizeOverrides.mStyleBSize : aSizeOverrides.mStyleISize;
   auto styleBSize =
       styleBSizeOverride
-          ? AnchorResolvedSize::Overridden(*styleBSizeOverride)
+          ? AnchorResolvedSizeHelper::Overridden(*styleBSizeOverride)
           : (horizontalAxis ? stylePos->GetHeight(positionProperty)
                             : stylePos->GetWidth(positionProperty));
   auto styleMinBSize = horizontalAxis ? stylePos->GetMinHeight(positionProperty)
@@ -5071,10 +5071,10 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   // if needed.
   if (aAxis != ourInlineAxis) {
     if (size->BehavesLikeInitialValueOnBlockAxis()) {
-      size = AnchorResolvedSize::Auto();
+      size = AnchorResolvedSizeHelper::Auto();
     }
     if (maxSize->BehavesLikeInitialValueOnBlockAxis()) {
-      maxSize = AnchorResolvedMaxSize::None();
+      maxSize = AnchorResolvedMaxSizeHelper::None();
     }
   }
 
@@ -5092,7 +5092,7 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
       // values in block axis.
       if (aAxis != ourInlineAxis &&
           size->BehavesLikeInitialValueOnBlockAxis()) {
-        size = AnchorResolvedSize::Auto();
+        size = AnchorResolvedSizeHelper::Auto();
       }
 
       fixedMinSize = GetAbsoluteSize(*size);

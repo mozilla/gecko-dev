@@ -286,9 +286,8 @@ static StyleRect<T> StyleRectWithAllSides(const T& aSide) {
   return {aSide, aSide, aSide, aSide};
 }
 
-AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::ResolveAnchor(
-    const mozilla::StyleMargin& aValue,
-    mozilla::StylePositionProperty aPosition) {
+AnchorResolvedMargin AnchorResolvedMarginHelper::ResolveAnchor(
+    const StyleMargin& aValue, StylePositionProperty aPosition) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
              "Calling anchor resolution without using it?");
   if (aValue.IsAnchorSizeFunction()) {
@@ -296,12 +295,15 @@ AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::ResolveAnchor(
     Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
                                     &resolved);
     if (resolved.IsInvalid()) {
-      return Invalid();
+      return AnchorResolvedMargin::Evaluated(
+          StyleMargin::LengthPercentage(StyleLengthPercentage::Zero()));
     }
     if (resolved.IsResolvedReference()) {
-      return Evaluated(*resolved.AsResolvedReference());
+      return AnchorResolvedMargin::Evaluated(
+          StyleMargin::LengthPercentage(*resolved.AsResolvedReference()));
     }
-    return Evaluated(resolved.AsResolved());
+    return AnchorResolvedMargin::Evaluated(
+        StyleMargin::LengthPercentage(resolved.AsResolved()));
   }
 
   const auto& lp = aValue.AsAnchorContainingCalcFunction();
@@ -309,9 +311,11 @@ AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::ResolveAnchor(
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
   Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, aPosition, &result);
   if (result.IsInvalid()) {
-    return Invalid();
+    return AnchorResolvedMargin::Evaluated(
+        StyleMargin::LengthPercentage(StyleLengthPercentage::Zero()));
   }
-  return Evaluated(result.AsValid());
+  return AnchorResolvedMargin::Evaluated(
+      StyleMargin::LengthPercentage(result.AsValid()));
 }
 
 nsStyleMargin::nsStyleMargin()
@@ -1363,10 +1367,9 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
   return {StyleAlignFlags::NORMAL};
 }
 
-AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::ResolveAnchor(
+AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
     const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
     mozilla::StylePositionProperty aPosition) {
-  // TODO(dshin): Maybe worth pref-gating here.
   static_assert(static_cast<uint8_t>(mozilla::PhysicalAxis::Vertical) ==
                     static_cast<uint8_t>(StylePhysicalAxis::Vertical),
                 "Vertical axis doesn't match");
@@ -1383,41 +1386,46 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::ResolveAnchor(
       Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &aAxis, aPosition,
                                                    &result);
       if (result.IsInvalid()) {
-        return Invalid();
+        return AnchorResolvedInset::Evaluated(StyleInset::Auto());
       }
-      return Evaluated(result.AsValid());
+      return AnchorResolvedInset::Evaluated(
+          StyleInset::LengthPercentage(result.AsValid()));
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
       Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), aAxis, aPosition,
                                   &resolved);
       if (resolved.IsInvalid()) {
-        return Invalid();
+        return AnchorResolvedInset::Evaluated(StyleInset::Auto());
       }
       if (resolved.IsResolvedReference()) {
-        return Evaluated(*resolved.AsResolvedReference());
+        return AnchorResolvedInset::Evaluated(
+            StyleInset::LengthPercentage(*resolved.AsResolvedReference()));
       }
-      return Evaluated(resolved.AsResolved());
+      return AnchorResolvedInset::Evaluated(
+          StyleInset::LengthPercentage(resolved.AsResolved()));
     }
     case StyleInset::Tag::AnchorSizeFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
       Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(),
                                       aPosition, &resolved);
       if (resolved.IsInvalid()) {
-        return Invalid();
+        return AnchorResolvedInset::Evaluated(StyleInset::Auto());
       }
       if (resolved.IsResolvedReference()) {
-        return Evaluated(*resolved.AsResolvedReference());
+        return AnchorResolvedInset::Evaluated(
+            StyleInset::LengthPercentage(*resolved.AsResolvedReference()));
       }
-      return Evaluated(resolved.AsResolved());
+      return AnchorResolvedInset::Evaluated(
+          StyleInset::LengthPercentage(resolved.AsResolved()));
     }
     default:
       MOZ_ASSERT_UNREACHABLE("Unhandled inset type");
-      return Invalid();
+      return AnchorResolvedInset::Evaluated(StyleInset::Auto());
   }
 }
 
-AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::ResolveAnchor(
+AnchorResolvedSize AnchorResolvedSizeHelper::ResolveAnchor(
     const mozilla::StyleSize& aValue,
     mozilla::StylePositionProperty aPosition) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
@@ -1427,12 +1435,14 @@ AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::ResolveAnchor(
     Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
                                     &resolved);
     if (resolved.IsInvalid()) {
-      return Invalid();
+      return AnchorResolvedSize::Evaluated(StyleSize::Auto());
     }
     if (resolved.IsResolvedReference()) {
-      return Evaluated(*resolved.AsResolvedReference());
+      return AnchorResolvedSize::Evaluated(
+          StyleSize::LengthPercentage(*resolved.AsResolvedReference()));
     }
-    return Evaluated(resolved.AsResolved());
+    return AnchorResolvedSize::Evaluated(
+        StyleSize::LengthPercentage(resolved.AsResolved()));
   }
 
   const auto& lp = aValue.AsAnchorContainingCalcFunction();
@@ -1441,12 +1451,13 @@ AnchorResolved<mozilla::StyleSize> AnchorResolvedSize::ResolveAnchor(
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
   Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, aPosition, &result);
   if (result.IsInvalid()) {
-    return Invalid();
+    return AnchorResolvedSize::Evaluated(StyleSize::Auto());
   }
-  return Evaluated(result.AsValid());
+  return AnchorResolvedSize::Evaluated(
+      StyleSize::LengthPercentage(result.AsValid()));
 }
 
-AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::ResolveAnchor(
+AnchorResolvedMaxSize AnchorResolvedMaxSizeHelper::ResolveAnchor(
     const mozilla::StyleMaxSize& aValue,
     mozilla::StylePositionProperty aPosition) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
@@ -1456,12 +1467,14 @@ AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::ResolveAnchor(
     Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
                                     &resolved);
     if (resolved.IsInvalid()) {
-      return Invalid();
+      return AnchorResolvedMaxSize::Evaluated(StyleMaxSize::None());
     }
     if (resolved.IsResolvedReference()) {
-      return Evaluated(*resolved.AsResolvedReference());
+      return AnchorResolvedMaxSize::Evaluated(
+          StyleMaxSize::LengthPercentage(*resolved.AsResolvedReference()));
     }
-    return Evaluated(resolved.AsResolved());
+    return AnchorResolvedMaxSize::Evaluated(
+        StyleMaxSize::LengthPercentage(resolved.AsResolved()));
   }
 
   const auto& lp = aValue.AsAnchorContainingCalcFunction();
@@ -1470,9 +1483,10 @@ AnchorResolved<mozilla::StyleMaxSize> AnchorResolvedMaxSize::ResolveAnchor(
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
   Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, aPosition, &result);
   if (result.IsInvalid()) {
-    return Invalid();
+    return AnchorResolvedMaxSize::Evaluated(StyleMaxSize::None());
   }
-  return Evaluated(result.AsValid());
+  return AnchorResolvedMaxSize::Evaluated(
+      StyleMaxSize::LengthPercentage(result.AsValid()));
 }
 
 // --------------------

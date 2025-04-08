@@ -1844,7 +1844,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMinHeight() {
 
   if (minHeight->IsAuto() &&
       !ShouldHonorMinSizeAutoInAxis(PhysicalAxis::Vertical)) {
-    minHeight = AnchorResolvedSize::Zero();
+    minHeight = AnchorResolvedSizeHelper::Zero();
   }
 
   SetValueToSize(val, minHeight);
@@ -1858,7 +1858,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMinWidth() {
 
   if (minWidth->IsAuto() &&
       !ShouldHonorMinSizeAutoInAxis(PhysicalAxis::Horizontal)) {
-    minWidth = AnchorResolvedSize::Zero();
+    minWidth = AnchorResolvedSizeHelper::Zero();
   }
 
   SetValueToSize(val, minWidth);

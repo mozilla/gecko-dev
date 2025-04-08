@@ -6473,7 +6473,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
                                 : GetAspectRatio();
   const auto styleISize =
       aSizeOverrides.mStyleISize
-          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleISize)
+          ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleISize)
           : stylePos->ISize(aWM, positionProperty);
   // For bsize, we consider overrides *and then* we resolve 'stretch' to a
   // nscoord value, for convenience (so that we can assume that either
@@ -6481,7 +6481,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
   const auto styleBSize = [&] {
     auto styleBSizeConsideringOverrides =
         (aSizeOverrides.mStyleBSize)
-            ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleBSize)
+            ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleBSize)
             : stylePos->BSize(aWM, positionProperty);
     if (styleBSizeConsideringOverrides->BehavesLikeStretchOnBlockAxis() &&
         aCBSize.BSize(aWM) != NS_UNCONSTRAINEDSIZE) {
@@ -6489,7 +6489,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       nscoord stretchBSize = nsLayoutUtils::ComputeStretchBSize(
           aCBSize.BSize(aWM), aMargin.BSize(aWM), aBorderPadding.BSize(aWM),
           stylePos->mBoxSizing);
-      return AnchorResolvedSize::LengthPercentage(
+      return AnchorResolvedSizeHelper::LengthPercentage(
           LengthPercentage::FromAppUnits(stretchBSize));
     }
     return styleBSizeConsideringOverrides;
@@ -6928,7 +6928,7 @@ LogicalSize nsIFrame::ComputeAutoSize(
   // don't bother setting it if the result won't be used
   const auto styleISize =
       aSizeOverrides.mStyleISize
-          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleISize)
+          ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleISize)
           : StylePosition()->ISize(aWM, positionProperty);
   if (styleISize->IsAuto()) {
     nscoord availBased = nsLayoutUtils::ComputeStretchContentBoxISize(
@@ -6936,7 +6936,7 @@ LogicalSize nsIFrame::ComputeAutoSize(
     const auto* stylePos = StylePosition();
     const auto styleBSize =
         aSizeOverrides.mStyleBSize
-            ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleBSize)
+            ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleBSize)
             : stylePos->BSize(aWM, positionProperty);
     const LogicalSize contentEdgeToBoxSizing =
         stylePos->mBoxSizing == StyleBoxSizing::Border ? aBorderPadding
@@ -6981,11 +6981,11 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto positionProperty = StyleDisplay()->mPosition;
   const auto& styleISize =
       aSizeOverrides.mStyleISize
-          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleISize)
+          ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleISize)
           : stylePos->ISize(aWM, positionProperty);
   const auto& styleBSize =
       aSizeOverrides.mStyleBSize
-          ? AnchorResolvedSize::Overridden(*aSizeOverrides.mStyleBSize)
+          ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleBSize)
           : stylePos->BSize(aWM, positionProperty);
   const auto iStartOffsetIsAuto =
       stylePos
