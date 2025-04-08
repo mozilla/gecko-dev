@@ -1459,12 +1459,7 @@ void RenderThread::ClearSingletonGL() {
     mProgramsForCompositorOGL->Clear();
     mProgramsForCompositorOGL = nullptr;
   }
-  if (mShaders) {
-    if (mSingletonGL) {
-      mSingletonGL->MakeCurrent();
-    }
-    mShaders = nullptr;
-  }
+  mShaders = nullptr;
   mSingletonGL = nullptr;
 }
 
@@ -1547,6 +1542,7 @@ WebRenderShaders::WebRenderShaders(gl::GLContext* gl,
 }
 
 WebRenderShaders::~WebRenderShaders() {
+  mGL->MakeCurrent();
   wr_shaders_delete(mShaders, mGL.get());
 }
 
