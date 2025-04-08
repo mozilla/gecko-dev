@@ -2868,6 +2868,25 @@ networkingDenyIpAddrAny:
         branch: default
         pref: "network.socket.ip_addr_any.disabled"
 
+cookieStore:
+  description: Enablement of cookieStore API
+  owner: edgul@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: dom.cookieStore.enabled
+      description: >-
+        Enablement of the cookie store API to CRUD and monitor cookies from window JS.
+    managerEnabled:
+      description: Enablement of ServiceWorker access to cookie-change events.
+      type: boolean
+      setPref:
+        branch: default
+        pref: dom.cookieStore.manager.enabled
+
 pingsender:
   description: "In-product usage of the pingsender telemetry reporter."
   owner: nalexander@mozilla.com
