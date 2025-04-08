@@ -1222,16 +1222,21 @@ abstract class BaseBrowserFragment :
         activity: HomeActivity,
         store: BrowserStore,
     ) = when (activity.settings().shouldUseComposableToolbar) {
-        true -> initializeBrowserToolbarComposable(activity)
+        true -> initializeBrowserToolbarComposable(activity, store)
         false -> initializeBrowserToolbarView(activity, store)
     }
 
     private fun initializeBrowserToolbarComposable(
         activity: HomeActivity,
+        store: BrowserStore,
     ) = BrowserToolbarComposable(
-        container = binding.browserLayout,
         context = activity,
+        lifecycleOwner = this,
+        container = binding.browserLayout,
+        navController = findNavController(),
+        browserStore = store,
         settings = activity.settings(),
+        customTabSession = customTabSessionId?.let { store.state.findCustomTab(it) },
         tabStripContent = buildTabStrip(activity),
     )
 

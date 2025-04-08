@@ -20,13 +20,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.CustomTabSessionState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
+import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.ext.components
@@ -37,14 +44,21 @@ import org.mozilla.fenix.utils.Settings
  * integration in the same framework as the [BrowserToolbarView]
  *
  * @param context [Context] used for various system interactions.
+ * @param lifecycleOwner [Fragment] as a [LifecycleOwner] to used to organize lifecycle dependent operations.
  * @param container [ViewGroup] which will serve as parent of this View.
+ * @param navController [NavController] to use for navigating to other in-app destinations.
+ * @param browserStore [BrowserStore] used for observing the browsing details.
  * @param settings [Settings] object to get the toolbar position and other settings.
  * @param customTabSession [CustomTabSessionState] if the toolbar is shown in a custom tab.
  * @param tabStripContent Composable content for the tab strip.
  */
+@Suppress("LongParameterList")
 class BrowserToolbarComposable(
     private val context: Context,
+    lifecycleOwner: Fragment,
     container: ViewGroup,
+    private val navController: NavController,
+    private val browserStore: BrowserStore,
     settings: Settings,
     customTabSession: CustomTabSessionState? = null,
     private val tabStripContent: @Composable () -> Unit,
@@ -55,6 +69,17 @@ class BrowserToolbarComposable(
 ) {
     private var showDivider by mutableStateOf(true)
 
+    private val middleware = ViewModelProvider(lifecycleOwner)[BrowserToolbarMiddleware::class.java].also {
+        it.updateLifecycleDependencies(navController = navController)
+    }
+
+    private val store = StoreProvider.get(lifecycleOwner) {
+        BrowserToolbarStore(
+            initialState = BrowserToolbarState(),
+            middleware = listOf(middleware),
+        )
+    }
+
     override val layout = ScrollableToolbarComposeView(context, this) {
         val shouldShowDivider by remember { mutableStateOf(showDivider) }
         val shouldShowTabStrip: Boolean = remember { shouldShowTabStrip() }
@@ -62,13 +87,11 @@ class BrowserToolbarComposable(
         DisposableEffect(context) {
             val toolbarController = ToolbarBehaviorController(
                 toolbar = this@BrowserToolbarComposable,
-                store = context.components.core.store,
+                store = browserStore,
                 customTabId = customTabSession?.id,
             )
             toolbarController.start()
-            onDispose {
-                toolbarController.stop()
-            }
+            onDispose { toolbarController.stop() }
         }
 
         AcornTheme {
@@ -108,7 +131,7 @@ class BrowserToolbarComposable(
         // Ensure the divider is shown together with the toolbar
         Box {
             BrowserToolbar(
-                store = BrowserToolbarStore(),
+                store = store,
                 browserStore = context.components.core.store,
                 onDisplayToolbarClick = {},
                 onTextEdit = {},
