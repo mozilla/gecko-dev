@@ -21,7 +21,6 @@ import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.Authenticating
 import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -256,7 +255,7 @@ class MenuNavigationMiddleware(
                 is MenuAction.Navigate.WebCompatReporter -> {
                     val session = customTab ?: currentState.browserMenuState?.selectedTab
                     session?.content?.url?.let { tabUrl ->
-                        if (FeatureFlags.webCompatReporter && settings.isTelemetryEnabled) {
+                        if (settings.isTelemetryEnabled) {
                             navController.nav(
                                 id = R.id.menuDialogFragment,
                                 directions = MenuDialogFragmentDirections

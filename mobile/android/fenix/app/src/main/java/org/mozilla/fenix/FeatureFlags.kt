@@ -79,11 +79,6 @@ object FeatureFlags {
     const val UNIFIED_TRUST_PANEL = false
 
     /**
-     * Enables native WebCompat Reporter.
-     */
-    const val webCompatReporter = true
-
-    /**
      * Enables the tab swipe to dismiss rewrite.
      */
     const val swipeToDismiss2 = true

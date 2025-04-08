@@ -32,7 +32,6 @@ import mozilla.components.support.utils.ManufacturerCodes
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.AppMenu
 import org.mozilla.fenix.GleanMetrics.Collections
 import org.mozilla.fenix.GleanMetrics.Events
@@ -408,7 +407,7 @@ class DefaultBrowserToolbarMenuController(
             }
             is ToolbarMenu.Item.ReportBrokenSite -> {
                 currentSession?.content?.url?.let { tabUrl ->
-                    if (FeatureFlags.webCompatReporter && settings.isTelemetryEnabled) {
+                    if (settings.isTelemetryEnabled) {
                         navController.navigate(
                             directions = BrowserFragmentDirections
                                 .actionBrowserFragmentToWebCompatReporterFragment(
