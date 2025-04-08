@@ -51,7 +51,7 @@ class ActivationPing(private val context: Context) {
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun markAsTriggered() {
-        prefs.edit() { putBoolean("ping_sent", true) }
+        prefs.edit { putBoolean("ping_sent", true) }
     }
 
     /**

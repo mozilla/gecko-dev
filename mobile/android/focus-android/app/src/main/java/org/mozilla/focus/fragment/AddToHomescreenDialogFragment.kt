@@ -106,7 +106,7 @@ class AddToHomescreenDialogFragment : DialogFragment() {
                 ),
             )
 
-            PreferenceManager.getDefaultSharedPreferences(requireContext()).edit() {
+            PreferenceManager.getDefaultSharedPreferences(requireContext()).edit {
                 putBoolean(
                     requireContext().getString(R.string.has_added_to_home_screen),
                     true,

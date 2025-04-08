@@ -127,7 +127,7 @@ open class MainActivity : EdgeToEdgeActivity() {
 
         val launchCount = settings.getAppLaunchCount()
         PreferenceManager.getDefaultSharedPreferences(this)
-            .edit() {
+            .edit {
                 putInt(getString(R.string.app_launch_count), launchCount + 1)
             }
 

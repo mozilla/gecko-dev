@@ -38,7 +38,7 @@ class SearchMigration(
             defaultSearchEngineName = context.settings.defaultSearchEngineName,
         )
 
-        preferences.edit() {
+        preferences.edit {
             putBoolean(PREF_KEY_MIGRATED, true)
         }
 

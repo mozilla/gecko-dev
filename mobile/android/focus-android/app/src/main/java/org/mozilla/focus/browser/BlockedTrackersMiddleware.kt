@@ -46,7 +46,7 @@ class BlockedTrackersMiddleware(
     private fun incrementCount() {
         val blockedTrackersCount = settings.getTotalBlockedTrackersCount()
         preferences
-            .edit() {
+            .edit {
                 putInt(
                     context.getString(R.string.pref_key_privacy_total_trackers_blocked_count),
                     blockedTrackersCount + 1,

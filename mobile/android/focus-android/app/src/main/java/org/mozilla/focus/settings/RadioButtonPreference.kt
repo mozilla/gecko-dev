@@ -127,7 +127,7 @@ open class RadioButtonPreference @JvmOverloads constructor(
     override fun updateRadioValue(isChecked: Boolean) {
         persistBoolean(isChecked)
         radioButton?.isChecked = isChecked
-        preferences.edit() {
+        preferences.edit {
             putBoolean(key, isChecked)
         }
         onPreferenceChangeListener?.onPreferenceChange(this, isChecked)

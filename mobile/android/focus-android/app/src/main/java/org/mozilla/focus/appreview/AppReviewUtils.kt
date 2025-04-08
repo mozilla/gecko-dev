@@ -78,7 +78,7 @@ object AppReviewUtils {
         )
 
         preferenceManage
-            .edit() {
+            .edit {
                 putInt(
                     context.getString(R.string.pref_in_app_review_openings),
                     currentOpeningsNumber,

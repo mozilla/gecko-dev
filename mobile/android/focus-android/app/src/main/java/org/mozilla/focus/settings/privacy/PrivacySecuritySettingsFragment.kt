@@ -243,7 +243,7 @@ class PrivacySecuritySettingsFragment :
             ) == true
         ) {
             sharedPreferences
-                .edit() {
+                .edit {
                     putBoolean(resources.getString(R.string.pref_key_secure), true)
                 }
 
