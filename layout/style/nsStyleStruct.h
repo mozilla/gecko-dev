@@ -372,43 +372,89 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBackground {
   mozilla::StyleColor mBackgroundColor;
 };
 
+// Wrapper types for properties that can utilize anchor positioning functions,
+// `anchor()` and `anchor-size()`. It can contain an instance of the type (i.e.
+// The value contained an anchor positioning function, a resolved value was
+// computed), or reference to another instance (i.e. The value did not use any
+// anchor positoning function, so it remains untouched).
+//
+// NOTE: It is up to the caller to ensure that the referenced instance lives at
+// least as long as this wrapper.
+//
+// NOTE: Use of `mfbt::Variant` sees a perf penalty here, especially on Windows
+// where MSVC seems reluctant to inline function calls. At least the
+// implementation here is pretty simple, and closely mirrors tagged union types
+// in `ServoStyleConsts`.
 template <typename T>
 class AnchorResolved {
  public:
-  const T* operator->() const { return Ptr(); }
-  const T& operator*() const { return *Ptr(); }
+  const T* operator->() const {
+    if (mIsValue) {
+      return &mValue.mValue;
+    }
+    return mPtr.mPtr;
+  }
 
-  AnchorResolved(AnchorResolved&& aOther) = default;
-  AnchorResolved& operator=(AnchorResolved&& aOther) = default;
+  const T& operator*() const {
+    if (mIsValue) {
+      return mValue.mValue;
+    }
+    return *mPtr.mPtr;
+  }
+
+  AnchorResolved(AnchorResolved&& aOther) : mIsValue{aOther.mIsValue} {
+    if (mIsValue) {
+      // Pointer is POD, so no explicit ctor needed
+      ::new (&mValue)(Body)(std::move(aOther.mValue));
+    } else {
+      mPtr.mPtr = aOther.mPtr.mPtr;
+    }
+  }
+
+  ~AnchorResolved() {
+    if (mIsValue) {
+      mValue.~Body();
+    }
+    // Pointer is POD, so no explicit dtor needed
+  }
+
+  AnchorResolved& operator=(AnchorResolved&& aOther) {
+    if (this != &aOther) {
+      this->~AnchorResolved();
+      new (this) AnchorResolved(std::move(aOther));
+    }
+    return *this;
+  }
   AnchorResolved(const AnchorResolved& aOther) = delete;
   AnchorResolved& operator=(const AnchorResolved& aOther) = delete;
 
  protected:
   static AnchorResolved Evaluated(T&& aValue) {
-    return AnchorResolved{V{std::move(aValue)}};
+    AnchorResolved result;
+    result.mIsValue = true;
+    ::new (&result.mValue.mValue)(T)(std::move(aValue));
+    return result;
   }
 
   static AnchorResolved Unchanged(const T& aValue) {
-    return AnchorResolved{V{std::cref(aValue)}};
+    AnchorResolved result;
+    result.mPtr.mPtr = &aValue;
+    return result;
   }
 
  private:
-  // Anchor resolution was not required, or resolves to a fallback.
-  // Note the storage of reference - Computed style values won't update in the
-  // middle of reflow, but take care not to keep this for too long.
-  using U = std::reference_wrapper<const T>;
-
-  // Resolved value & Invalid-At-Computed-Value-Time (IACVT) is stored as T.
-  using V = mozilla::Variant<U, T>;
-
-  explicit AnchorResolved(V&& aValue) : mValue{std::move(aValue)} {}
-
-  const T* Ptr() const {
-    return mValue.match([](const U& aValue) { return &aValue.get(); },
-                        [](const T& aValue) { return &aValue; });
-  }
-
-  V mValue;
+  AnchorResolved() {}
+  bool mIsValue = false;
+  struct Body {
+    T mValue;
+  };
+  struct Ptr {
+    const T* mPtr;
+  };
+  union {
+    Body mValue;
+    Ptr mPtr;
+  };
 };
 
 class AnchorResolvedMargin final : public AnchorResolved<mozilla::StyleMargin> {
@@ -787,8 +833,9 @@ class AnchorResolvedInset final : public AnchorResolved<mozilla::StyleInset> {
       : AnchorResolved<mozilla::StyleInset>{
             FromUnresolved(aValue, aAxis, aPosition)} {}
   inline AnchorResolvedInset(const mozilla::StyleInset& aValue,
-                      mozilla::LogicalAxis aAxis, mozilla::WritingMode aWM,
-                      mozilla::StylePositionProperty aPosition);
+                             mozilla::LogicalAxis aAxis,
+                             mozilla::WritingMode aWM,
+                             mozilla::StylePositionProperty aPosition);
 
  private:
   static AnchorResolved<mozilla::StyleInset> FromUnresolved(
