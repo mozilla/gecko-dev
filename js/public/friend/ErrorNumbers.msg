@@ -902,7 +902,6 @@ MSG_DEF(JSMSG_TEMPORAL_DURATION_MISSING_UNIT,       0, JSEXN_TYPEERR, "Duration-
 MSG_DEF(JSMSG_TEMPORAL_DURATION_NOT_INTEGER,        2, JSEXN_RANGEERR, "{0} isn't a valid {1} duration because it isn't an integer")
 MSG_DEF(JSMSG_TEMPORAL_DURATION_MISSING_UNIT_SPECIFIER, 0, JSEXN_RANGEERR, "at least one of \"smallestUnit\" and \"largestUnit\" must be present")
 MSG_DEF(JSMSG_TEMPORAL_DURATION_UNCOMPARABLE,       1, JSEXN_RANGEERR, "can't compare durations when \"{0}\" is undefined")
-MSG_DEF(JSMSG_TEMPORAL_DURATION_COMBINE_INVALID_SIGN, 0, JSEXN_RANGEERR, "can't combine date- and time-durations with different signs")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_INVALID_ID,         1, JSEXN_RANGEERR, "invalid calendar: {0}")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_MISSING_FIELD,      1, JSEXN_TYPEERR, "missing \"{0}\" calendar field")
 MSG_DEF(JSMSG_TEMPORAL_CALENDAR_DUPLICATE_FIELD,    1, JSEXN_RANGEERR, "duplicate calendar field \"{0}\"")
