@@ -49,8 +49,7 @@ class NavigationButtonsIntegration(
             primaryContentDescription = context.getString(R.string.content_description_back),
             primaryImageTintResource = enabledColorRes,
             isInPrimaryState = {
-                store.state.findCustomTabOrSelectedTab(customTabId)?.content?.canGoBack
-                    ?: false
+                store.state.findCustomTabOrSelectedTab(customTabId)?.content?.canGoBack == true
             },
             secondaryImageTintResource = disabledColorRes,
             disableInSecondaryState = true,
@@ -66,8 +65,7 @@ class NavigationButtonsIntegration(
             primaryContentDescription = context.getString(R.string.content_description_forward),
             primaryImageTintResource = enabledColorRes,
             isInPrimaryState = {
-                store.state.findCustomTabOrSelectedTab(customTabId)?.content?.canGoForward
-                    ?: false
+                store.state.findCustomTabOrSelectedTab(customTabId)?.content?.canGoForward == true
             },
             secondaryImageTintResource = disabledColorRes,
             disableInSecondaryState = true,
@@ -85,7 +83,7 @@ class NavigationButtonsIntegration(
             secondaryContentDescription = context.getString(R.string.content_description_reload),
             primaryImageTintResource = enabledColorRes,
             isInPrimaryState = {
-                store.state.findCustomTabOrSelectedTab(customTabId)?.content?.loading ?: false
+                store.state.findCustomTabOrSelectedTab(customTabId)?.content?.loading == true
             },
             secondaryImageTintResource = enabledColorRes,
             disableInSecondaryState = false,

@@ -94,8 +94,8 @@ class ManualAddSearchEngineSettingsFragment : BaseSettingsFragment() {
             val pref = findManualAddSearchEnginePreference(R.string.pref_key_manual_add_search_engine)
 
             val existingEngines = requireContext().components.store.state.search.searchEngines
-            val engineValid = pref?.validateEngineNameAndShowError(engineName, existingEngines) ?: false
-            val searchValid = pref?.validateSearchQueryAndShowError(searchQuery) ?: false
+            val engineValid = pref?.validateEngineNameAndShowError(engineName, existingEngines) == true
+            val searchValid = pref?.validateSearchQueryAndShowError(searchQuery) == true
             val isPartialSuccess = engineValid && searchValid
 
             if (isPartialSuccess) {

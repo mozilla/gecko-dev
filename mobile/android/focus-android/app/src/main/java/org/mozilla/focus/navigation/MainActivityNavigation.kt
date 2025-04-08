@@ -66,7 +66,7 @@ class MainActivityNavigation(
         val browserFragment = fragmentManager.findFragmentByTag(BrowserFragment.FRAGMENT_TAG) as BrowserFragment?
 
         val isShowingBrowser = browserFragment != null
-        val crashReporterIsVisible = browserFragment?.crashReporterIsVisible() ?: false
+        val crashReporterIsVisible = browserFragment?.crashReporterIsVisible() == true
 
         if (isShowingBrowser && !crashReporterIsVisible) {
             showPromoteSearchWidgetDialogOrBrandedSnackbar()

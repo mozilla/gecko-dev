@@ -701,7 +701,7 @@ class BrowserFragment :
     }
 
     fun crashReporterIsVisible(): Boolean = requireActivity().supportFragmentManager.let {
-        it.findFragmentByTag(CrashReporterFragment.FRAGMENT_TAG)?.isVisible ?: false
+        it.findFragmentByTag(CrashReporterFragment.FRAGMENT_TAG)?.isVisible == true
     }
 
     private fun handleDownloadStopped(

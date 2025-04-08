@@ -45,7 +45,7 @@ class CustomTabMenu(
             primaryContentDescription = context.getString(R.string.content_description_back),
             primaryImageTintResource = context.theme.resolveAttribute(R.attr.primaryText),
             isInPrimaryState = {
-                selectedSession?.content?.canGoBack ?: false
+                selectedSession?.content?.canGoBack == true
             },
             secondaryImageTintResource = context.theme.resolveAttribute(R.attr.disabled),
             disableInSecondaryState = true,
@@ -59,7 +59,7 @@ class CustomTabMenu(
             primaryContentDescription = context.getString(R.string.content_description_forward),
             primaryImageTintResource = context.theme.resolveAttribute(R.attr.primaryText),
             isInPrimaryState = {
-                selectedSession?.content?.canGoForward ?: true
+                selectedSession?.content?.canGoForward != false
             },
             secondaryImageTintResource = context.theme.resolveAttribute(R.attr.disabled),
             disableInSecondaryState = true,
@@ -102,7 +102,7 @@ class CustomTabMenu(
             imageResource = R.drawable.mozac_ic_device_desktop_24,
             label = context.getString(R.string.preference_performance_request_desktop_site2),
             initialState = {
-                selectedSession?.content?.desktopMode ?: true
+                selectedSession?.content?.desktopMode != false
             },
         ) { checked ->
             onItemTapped.invoke(ToolbarMenu.CustomTabItem.RequestDesktop(checked))
