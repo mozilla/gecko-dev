@@ -19,6 +19,30 @@
 #include "VPXDecoder.h"
 #include <algorithm>
 
+#ifdef MOZ_WIDGET_ANDROID
+// Create/init a H.264 encoder and check if it's SW.
+#  define SKIP_IF_ANDROID_SW()                                           \
+    do {                                                                 \
+      RefPtr<MediaDataEncoder> e = CreateH264Encoder(                    \
+          Usage::Record,                                                 \
+          EncoderConfig::SampleFormat{dom::ImageBitmapFormat::YUV420P,   \
+                                      gfx::ColorRange::LIMITED},         \
+          kImageSize, ScalabilityMode::None, Some(kH264SpecificAnnexB)); \
+      if (EnsureInit(e)) {                                               \
+        nsCString dummy;                                                 \
+        bool isSW = !e->IsHardwareAccelerated(dummy);                    \
+        WaitForShutdown(e);                                              \
+        if (isSW) {                                                      \
+          return;                                                        \
+        }                                                                \
+      }                                                                  \
+    } while (0)
+#else
+#  define SKIP_IF_ANDROID_SW() \
+    do {                       \
+    } while (0)
+#endif
+
 #define RUN_IF_SUPPORTED(codecType, test)   \
   do {                                      \
     RefPtr<PEMFactory> f(new PEMFactory()); \
@@ -467,6 +491,7 @@ TEST_F(MediaDataEncoderTest, H264EncodesAVCCRealtime) {
 }
 
 TEST_F(MediaDataEncoderTest, H264Encodes4KAnnexBRecord) {
+  SKIP_IF_ANDROID_SW();  // Android SW can't encode 4K.
   RUN_IF_SUPPORTED(CodecType::H264, [this]() {
     // Encode one frame and output in AnnexB format.
     RefPtr<MediaDataEncoder> e = CreateH264Encoder(
@@ -497,6 +522,7 @@ TEST_F(MediaDataEncoderTest, H264Encodes4KAnnexBRecord) {
 }
 
 TEST_F(MediaDataEncoderTest, H264Encodes4KAnnexBRealtime) {
+  SKIP_IF_ANDROID_SW();  // Android SW can't encode 4K.
   RUN_IF_SUPPORTED(CodecType::H264, [this]() {
     // Encode one frame and output in AnnexB format.
     RefPtr<MediaDataEncoder> e = CreateH264Encoder(
@@ -528,6 +554,7 @@ TEST_F(MediaDataEncoderTest, H264Encodes4KAnnexBRealtime) {
 }
 
 TEST_F(MediaDataEncoderTest, H264Encodes4KAVCCRecord) {
+  SKIP_IF_ANDROID_SW();  // Android SW can't encode 4K.
   RUN_IF_SUPPORTED(CodecType::H264, [this]() {
     // Encode one frame and output in avcC format.
     RefPtr<MediaDataEncoder> e = CreateH264Encoder(
@@ -567,6 +594,7 @@ TEST_F(MediaDataEncoderTest, H264Encodes4KAVCCRecord) {
 }
 
 TEST_F(MediaDataEncoderTest, H264Encodes4KAVCCRealtime) {
+  SKIP_IF_ANDROID_SW();  // Android SW can't encode 4K.
   RUN_IF_SUPPORTED(CodecType::H264, [this]() {
     // Encode one frame and output in avcC format.
     RefPtr<MediaDataEncoder> e = CreateH264Encoder(
@@ -644,8 +672,10 @@ TEST_F(MediaDataEncoderTest, InvalidSize) {
   });
 }
 
+// For Android HW encoder only.
 #ifdef MOZ_WIDGET_ANDROID
 TEST_F(MediaDataEncoderTest, AndroidNotSupportedSize) {
+  SKIP_IF_ANDROID_SW();
   RUN_IF_SUPPORTED(CodecType::H264, []() {
     RefPtr<MediaDataEncoder> e = CreateH264Encoder(
         Usage::Realtime,
