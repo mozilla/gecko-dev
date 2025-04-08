@@ -45,6 +45,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.PagerIndicator
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.onboarding.WidgetPinnedReceiver.WidgetPinnedState
 import org.mozilla.fenix.onboarding.store.OnboardingAction
@@ -121,11 +122,12 @@ fun OnboardingScreen(
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             val marketingPageIndex = pagesToDisplay.indexOfFirst { it.type == OnboardingPageUiData.Type.MARKETING_DATA }
             val shouldShowMarketingPreferenceKey = context.getString(R.string.pref_key_should_show_marketing_onboarding)
-
-            if (key == shouldShowMarketingPreferenceKey &&
+            val removeMarketingPage = key == shouldShowMarketingPreferenceKey &&
                 !settings.shouldShowMarketingOnboarding &&
-                pagerState.currentPage < marketingPageIndex
-            ) {
+                pagerState.currentPage < marketingPageIndex &&
+                !context.components.distributionIdManager.isPartnershipDistribution()
+
+            if (removeMarketingPage) {
                 pagesToDisplay.removeAt(marketingPageIndex)
             }
         }
