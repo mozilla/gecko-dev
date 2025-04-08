@@ -4,6 +4,7 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  ReviewCheckerParent: "resource:///actors/ReviewCheckerParent.sys.mjs",
   ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
 });
 
@@ -111,7 +112,10 @@ async function assertEmptyStateType(browser, messageName) {
       !content.document.getElementById("multi-stage-message-root").hidden,
       "message is shown"
     );
-    ok(content.document.querySelector(className), "Rendered correct message");
+    ok(
+      content.document.querySelector(className),
+      `Rendered correct message ${className}`
+    );
   });
 }
 
@@ -186,6 +190,9 @@ add_task(async function test_showOnboarding_notOptedIn() {
   Services.fog.testResetFOG();
   await Services.fog.testFlushAllChildren();
 
+  let sandbox = sinon.createSandbox();
+  sandbox.stub(ReviewCheckerParent, "isIgnoredURL").returns(false);
+
   await BrowserTestUtils.withNewTab(
     {
       url: "about:shoppingsidebar",
@@ -215,6 +222,7 @@ add_task(async function test_showOnboarding_notOptedIn() {
       info("Failed to get Glean value due to unknown bug. See bug 1862389.");
     }
   }
+  sandbox.restore();
 });
 
 /**
@@ -228,6 +236,9 @@ add_task(async function test_showOnboarding_notOptedIn_supported() {
 
   Services.fog.testResetFOG();
   await Services.fog.testFlushAllChildren();
+
+  let sandbox = sinon.createSandbox();
+  sandbox.stub(ReviewCheckerParent, "isIgnoredURL").returns(false);
 
   await BrowserTestUtils.withNewTab(
     {
@@ -259,6 +270,7 @@ add_task(async function test_showOnboarding_notOptedIn_supported() {
     }
   }
   await SpecialPowers.popPrefEnv();
+  sandbox.restore();
 });
 
 /**
@@ -274,6 +286,9 @@ add_task(
 
     Services.fog.testResetFOG();
     await Services.fog.testFlushAllChildren();
+
+    let sandbox = sinon.createSandbox();
+    sandbox.stub(ReviewCheckerParent, "isIgnoredURL").returns(false);
 
     await BrowserTestUtils.withNewTab(
       {
@@ -308,6 +323,7 @@ add_task(
       }
     }
     await SpecialPowers.popPrefEnv();
+    sandbox.restore();
   }
 );
 
