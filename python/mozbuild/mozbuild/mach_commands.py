@@ -35,7 +35,7 @@ from mozbuild.base import (
     MozbuildObject,
 )
 from mozbuild.base import MachCommandConditions as conditions
-from mozbuild.util import MOZBUILD_METRICS_PATH
+from mozbuild.util import MOZBUILD_METRICS_PATH, ForwardingArgumentParser
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -1427,7 +1427,7 @@ def _get_android_run_parser():
 
 
 def _get_jsshell_run_parser():
-    parser = argparse.ArgumentParser()
+    parser = ForwardingArgumentParser()
     group = parser.add_argument_group("Compiled Program Environment Options")
 
     group = parser.add_argument_group("debugging")
@@ -1457,22 +1457,12 @@ def _get_jsshell_run_parser():
         help=argparse.SUPPRESS,
     )
 
-    group = parser.add_argument_group("Compiled Program Options")
-    # Trick ArgumentParser into displaying an advice to access program help
-    group.add_argument(
-        "fake_help",
-        nargs=argparse.REMAINDER,
-        default=[],
-        metavar="-- --help",
-        help="Display the program help.",
-    )
-    group.add_argument(
-        "params",
-        nargs=argparse.REMAINDER,
-        default=[],
-        metavar="[--] params...",
+    parser.add_forwarding_group(
+        title="Compiled Program Options",
+        dest="params",
         help="Command-line arguments to be passed through to the program. "
         "Omitting --profile or -P results in a temporary profile being used.",
+        forwarding_help="Display the program help.",
     )
 
     return parser
@@ -1480,7 +1470,7 @@ def _get_jsshell_run_parser():
 
 def _get_desktop_run_parser():
 
-    parser = argparse.ArgumentParser()
+    parser = ForwardingArgumentParser()
     group = parser.add_argument_group("Compiled Program Environment Options")
     group.add_argument("--packaged", action="store_true", help="Run a packaged build.")
     group.add_argument(
@@ -1583,25 +1573,13 @@ def _get_desktop_run_parser():
         "--show-dump-stats", action="store_true", help="Show stats when doing dumps."
     )
 
-    group = parser.add_argument_group("Compiled Program Options")
-    # Trick ArgumentParser into displaying an advice to access program help
-    group.add_argument(
-        "fake_help",
-        nargs=argparse.REMAINDER,
-        default=[],
-        metavar="-- --help",
-        help="Display the program help.",
-    )
-
-    group.add_argument(
-        "params",
-        nargs=argparse.REMAINDER,
-        default=[],
-        metavar="[--] params...",
+    parser.add_forwarding_group(
+        title="Compiled Program Options",
+        dest="params",
         help="Command-line arguments to be passed through to the program. "
         "Omitting --profile or -P results in a temporary profile being used.",
+        forwarding_help="Display the program help.",
     )
-
     return parser
 
 
@@ -1623,10 +1601,6 @@ def setup_run_parser():
 )
 def run(command_context, **kwargs):
     """Run the compiled program."""
-    # Get rid of fake_help artifact
-    fake_help = kwargs.pop("fake_help", None)
-    assert not fake_help
-
     if conditions.is_android(command_context):
         return _run_android(command_context, **kwargs)
     if conditions.is_jsshell(command_context):
