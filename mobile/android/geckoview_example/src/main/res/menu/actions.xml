@@ -15,7 +15,6 @@
     <item android:title="@string/reload" android:id="@+id/action_reload"/>
     <item android:title="@string/save_pdf" android:id="@+id/save_pdf"/>
     <item android:title="@string/print_page" android:id="@+id/print_page"/>
-    <item android:title="Shopping Actions" android:id="@+id/shopping_actions"/>
     <item android:title="@string/translate" android:id="@+id/translate"/>
     <item android:title="@string/translate_restore" android:id="@+id/translate_restore"/>
     <item android:title="@string/translate_manage" android:id="@+id/translate_manage"/>

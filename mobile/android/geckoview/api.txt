@@ -53,7 +53,6 @@ import java.lang.Boolean;
 import java.lang.CharSequence;
 import java.lang.Class;
 import java.lang.Comparable;
-import java.lang.Deprecated;
 import java.lang.Double;
 import java.lang.Exception;
 import java.lang.Float;
@@ -88,7 +87,6 @@ import org.mozilla.geckoview.CompositorController;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.ContentBlockingController;
 import org.mozilla.geckoview.CrashHandler;
-import org.mozilla.geckoview.DeprecationSchedule;
 import org.mozilla.geckoview.ExperimentDelegate;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResult;
@@ -1086,23 +1084,14 @@ package org.mozilla.geckoview {
     method @AnyThread public void load(@NonNull GeckoSession.Loader);
     method @AnyThread public void loadUri(@NonNull String);
     method @UiThread public void open(@NonNull GeckoRuntime);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<String> pollForAnalysisCompleted(@NonNull String);
     method @AnyThread public void printPageContent();
     method @AnyThread public void purgeHistory();
     method @UiThread public void releaseDisplay(@NonNull GeckoDisplay);
     method @AnyThread public void reload();
     method @AnyThread public void reload(int);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<String> reportBackInStock(@NonNull String);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<GeckoSession.ReviewAnalysis> requestAnalysis(@NonNull String);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<GeckoSession.AnalysisStatusResponse> requestAnalysisStatus(@NonNull String);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<String> requestCreateAnalysis(@NonNull String);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<List<GeckoSession.Recommendation>> requestRecommendations(@NonNull String);
     method @AnyThread public void restoreState(@NonNull GeckoSession.SessionState);
     method @AnyThread @NonNull public GeckoResult<InputStream> saveAsPdf();
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<Boolean> sendClickAttributionEvent(@NonNull String);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<Boolean> sendImpressionAttributionEvent(@NonNull String);
     method @AnyThread @NonNull public GeckoResult<Void> sendMoreWebCompatInfo(@NonNull JSONObject);
-    method @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) @NonNull public GeckoResult<Boolean> sendPlacementAttributionEvent(@NonNull String);
     method @AnyThread public void setActive(boolean);
     method @UiThread public void setAutofillDelegate(@Nullable Autofill.Delegate);
     method @UiThread public void setCompositorScrollDelegate(@Nullable GeckoSession.CompositorScrollDelegate);
@@ -1146,19 +1135,6 @@ package org.mozilla.geckoview {
     field public static final int PRIORITY_DEFAULT = 0;
     field public static final int PRIORITY_HIGH = 1;
     field @Nullable protected GeckoSession.Window mWindow;
-  }
-
-  @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) public static class GeckoSession.AnalysisStatusResponse {
-    ctor protected AnalysisStatusResponse(@NonNull GeckoSession.AnalysisStatusResponse.Builder);
-    field @NonNull public final Double progress;
-    field @NonNull public final String status;
-  }
-
-  public static class GeckoSession.AnalysisStatusResponse.Builder {
-    ctor public Builder(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.AnalysisStatusResponse build();
-    method @AnyThread @NonNull public GeckoSession.AnalysisStatusResponse.Builder progress(@NonNull Double);
-    method @AnyThread @NonNull public GeckoSession.AnalysisStatusResponse.Builder status(@NonNull String);
   }
 
   @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoSession.ClipboardPermissionType {
@@ -1764,76 +1740,7 @@ package org.mozilla.geckoview {
     field @Nullable public final String message;
   }
 
-  @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) public static class GeckoSession.Recommendation {
-    ctor protected Recommendation(@NonNull GeckoSession.Recommendation.Builder);
-    field @NonNull public final Double adjustedRating;
-    field @NonNull public final String aid;
-    field @NonNull public final String analysisUrl;
-    field @NonNull public final String currency;
-    field @NonNull public final String grade;
-    field @NonNull public final String imageUrl;
-    field @NonNull public final String name;
-    field @NonNull public final String price;
-    field @NonNull public final Boolean sponsored;
-    field @NonNull public final String url;
-  }
-
-  public static class GeckoSession.Recommendation.Builder {
-    ctor public Builder(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder adjustedRating(@NonNull Double);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder aid(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder analysisUrl(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation build();
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder currency(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder grade(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder imageUrl(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder name(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder price(@NonNull String);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder sponsored(@NonNull Boolean);
-    method @AnyThread @NonNull public GeckoSession.Recommendation.Builder url(@NonNull String);
-  }
-
   @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoSession.RestartReason {
-  }
-
-  @AnyThread @Deprecated @DeprecationSchedule(id="session-shopping",version=139) public static class GeckoSession.ReviewAnalysis {
-    ctor protected ReviewAnalysis(@NonNull GeckoSession.ReviewAnalysis.Builder);
-    field @Nullable public final Double adjustedRating;
-    field @Nullable public final String analysisURL;
-    field public final boolean deletedProduct;
-    field public final boolean deletedProductReported;
-    field @Nullable public final String grade;
-    field @Nullable public final GeckoSession.ReviewAnalysis.Highlight highlights;
-    field public final long lastAnalysisTime;
-    field public final boolean needsAnalysis;
-    field public final boolean notEnoughReviews;
-    field public final boolean pageNotSupported;
-    field @Nullable public final String productId;
-  }
-
-  public static class GeckoSession.ReviewAnalysis.Builder {
-    ctor public Builder(@Nullable String);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder adjustedRating(@NonNull Double);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder analysisUrl(@Nullable String);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis build();
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder deletedProduct(@NonNull Boolean);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder deletedProductReported(@NonNull Boolean);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder grade(@Nullable String);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder highlights(@Nullable GeckoSession.ReviewAnalysis.Highlight);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder lastAnalysisTime(long);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder needsAnalysis(@NonNull Boolean);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder notEnoughReviews(@NonNull Boolean);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder pageNotSupported(@NonNull Boolean);
-    method @AnyThread @NonNull public GeckoSession.ReviewAnalysis.Builder productId(@Nullable String);
-  }
-
-  public static class GeckoSession.ReviewAnalysis.Highlight {
-    ctor protected Highlight();
-    field @Nullable public final String[] appearance;
-    field @Nullable public final String[] competitiveness;
-    field @Nullable public final String[] price;
-    field @Nullable public final String[] quality;
-    field @Nullable public final String[] shipping;
   }
 
   public static interface GeckoSession.ScrollDelegate {
