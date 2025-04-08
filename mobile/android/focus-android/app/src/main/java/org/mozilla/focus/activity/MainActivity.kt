@@ -221,10 +221,6 @@ open class MainActivity : EdgeToEdgeActivity() {
         super.onPause()
     }
 
-    override fun onStop() {
-        super.onStop()
-    }
-
     @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
     override fun onNewIntent(unsafeIntent: Intent) {
         if (Crash.isCrashIntent(unsafeIntent)) {
