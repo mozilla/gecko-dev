@@ -964,6 +964,55 @@ export const ASRouterTriggerListeners = new Map([
     },
   ],
   [
+    "tabGroupCollapsed",
+    {
+      id: "tabGroupCollapsed",
+      _initialized: false,
+      _triggerHandler: null,
+      // Number of times the user collapsed a tab group this session
+      _tabGroupsCollapsed: 0,
+
+      init(triggerHandler) {
+        this._triggerHandler = triggerHandler;
+        if (!this._initialized) {
+          lazy.EveryWindow.registerCallback(
+            this.id,
+            win => {
+              win.addEventListener("TabGroupCollapse", this);
+            },
+            win => {
+              win.removeEventListener("TabGroupCollapse", this);
+            }
+          );
+          this._initialized = true;
+        }
+      },
+      handleEvent(event) {
+        if (this._initialized) {
+          if (!event.target.ownerGlobal.gBrowser) {
+            return;
+          }
+          const { gBrowser } = event.target.ownerGlobal;
+          this._tabGroupsCollapsed++;
+          this._triggerHandler(gBrowser.selectedBrowser, {
+            id: this.id,
+            context: {
+              tabGroupsCollapsedCount: this._tabGroupsCollapsed,
+            },
+          });
+        }
+      },
+      uninit() {
+        if (this._initialized) {
+          lazy.EveryWindow.unregisterCallback(this.id);
+          this._initialized = false;
+          this._triggerHandler = null;
+          this._tabGroupsCollapsed = 0;
+        }
+      },
+    },
+  ],
+  [
     "activityAfterIdle",
     {
       id: "activityAfterIdle",
