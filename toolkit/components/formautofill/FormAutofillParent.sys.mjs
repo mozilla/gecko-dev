@@ -341,11 +341,11 @@ export class FormAutofillParent extends JSWindowActorParent {
         this.onFieldFilledModified(data);
         break;
       }
-      case "FormAutofill:FillFieldsOnFormChange": {
+      case "FormAutofill:FieldsUpdatedDuringAutofill": {
         // TODO bug 1953231: The parent should introduce profile ids, so that
         // the child can simply send a profile id instead of the whole profile data
         const { elementId, profile } = data;
-        this.onFillOnFormChange(elementId, profile);
+        this.onFieldsUpdatedDuringAutofill(elementId, profile);
         break;
       }
 
@@ -581,7 +581,7 @@ export class FormAutofillParent extends JSWindowActorParent {
    * @param {object} profile that was used for the previous autofill action
    *                         causing the form change
    */
-  async onFillOnFormChange(elementId, profile) {
+  async onFieldsUpdatedDuringAutofill(elementId, profile) {
     const section = this.getSectionByElementId(elementId);
     const msg = "FormAutofill:FillFieldsOnFormChange";
     const fields = section.getAutofillFields();

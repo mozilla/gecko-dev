@@ -615,7 +615,7 @@ export class FormAutofillChild extends JSWindowActorChild {
       !this.#handlerWaitingForFillOnFormChangeComplete.has(handler)
     ) {
       this.#handlerWaitingForFillOnFormChangeComplete.add(handler);
-      this.sendAsyncMessage("FormAutofill:FillFieldsOnFormChange", {
+      this.sendAsyncMessage("FormAutofill:FieldsUpdatedDuringAutofill", {
         elementId: handler.fillOnFormChangeData.previouslyFocusedId,
         profile: handler.fillOnFormChangeData.previouslyUsedProfile,
       });
