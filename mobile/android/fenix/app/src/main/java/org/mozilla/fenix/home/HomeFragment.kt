@@ -16,6 +16,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -141,6 +142,7 @@ import org.mozilla.fenix.home.sessioncontrol.viewholders.CollectionHeaderViewHol
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.toolbar.DefaultToolbarController
 import org.mozilla.fenix.home.toolbar.FenixHomeToolbar
+import org.mozilla.fenix.home.toolbar.HomeToolbarComposable
 import org.mozilla.fenix.home.toolbar.HomeToolbarView
 import org.mozilla.fenix.home.toolbar.SearchSelectorBinding
 import org.mozilla.fenix.home.toolbar.SearchSelectorMenuBinding
@@ -543,12 +545,7 @@ class HomeFragment : Fragment() {
             ),
         )
 
-        toolbarView = HomeToolbarView(
-            homeBinding = binding,
-            interactor = sessionControlInteractor,
-            homeFragment = this,
-            homeActivity = activity,
-        )
+        toolbarView = buildToolbar(activity)
 
         if (requireContext().settings().microsurveyFeatureEnabled) {
             listenForMicrosurveyMessage(requireContext())
@@ -581,6 +578,23 @@ class HomeFragment : Fragment() {
         )
         return binding.root
     }
+
+    private fun buildToolbar(activity: HomeActivity) =
+        when (requireContext().settings().shouldUseComposableToolbar) {
+            true -> HomeToolbarComposable(
+                context = requireContext(),
+                homeBinding = binding,
+                settings = requireContext().settings(),
+                tabStripContent = { TabStrip() },
+            )
+
+            false -> HomeToolbarView(
+                homeBinding = binding,
+                interactor = sessionControlInteractor,
+                homeFragment = this,
+                homeActivity = activity,
+            )
+        }
 
     private fun reinitializeNavBar() {
         initializeNavBar(
@@ -1302,30 +1316,33 @@ class HomeFragment : Fragment() {
         (toolbarView as? HomeToolbarView)?.configureTabStripView {
             isVisible = true
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                FirefoxTheme {
-                    TabStrip(
-                        onHome = true,
-                        onAddTabClick = {
-                            sessionControlInteractor.onNavigateSearch()
-                            TabStripMetrics.newTabTapped.record()
-                        },
-                        onSelectedTabClick = {
-                            (requireActivity() as HomeActivity).openToBrowser(BrowserDirection.FromHome)
-                            TabStripMetrics.selectTab.record()
-                        },
-                        onLastTabClose = {},
-                        onCloseTabClick = { isPrivate ->
-                            showUndoSnackbar(requireContext().tabClosedUndoMessage(isPrivate))
-                            TabStripMetrics.closeTab.record()
-                        },
-                        onPrivateModeToggleClick = { mode ->
-                            browsingModeManager.mode = mode
-                        },
-                        onTabCounterClick = { openTabsTray() },
-                    )
-                }
-            }
+            setContent { TabStrip() }
+        }
+    }
+
+    @Composable
+    private fun TabStrip() {
+        FirefoxTheme {
+            TabStrip(
+                onHome = true,
+                onAddTabClick = {
+                    sessionControlInteractor.onNavigateSearch()
+                    TabStripMetrics.newTabTapped.record()
+                },
+                onSelectedTabClick = {
+                    (requireActivity() as HomeActivity).openToBrowser(BrowserDirection.FromHome)
+                    TabStripMetrics.selectTab.record()
+                },
+                onLastTabClose = {},
+                onCloseTabClick = { isPrivate ->
+                    showUndoSnackbar(requireContext().tabClosedUndoMessage(isPrivate))
+                    TabStripMetrics.closeTab.record()
+                },
+                onPrivateModeToggleClick = { mode ->
+                    browsingModeManager.mode = mode
+                },
+                onTabCounterClick = { openTabsTray() },
+            )
         }
     }
 
