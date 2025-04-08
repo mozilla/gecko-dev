@@ -50,7 +50,7 @@ async function test() {
 
   await promiseApzFlushedRepaints();
 
-  todo(visualViewport.pageTop > expectedPageTop,
+  ok(visualViewport.pageTop > expectedPageTop,
     `visual viewport should have scrolled ` +
     `the current pageTop: ${visualViewport.pageTop}, ` +
     `the previous pageTop: ${expectedPageTop}`);
