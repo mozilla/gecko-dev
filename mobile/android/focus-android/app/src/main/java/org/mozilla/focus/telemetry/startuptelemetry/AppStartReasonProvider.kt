@@ -14,7 +14,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.focus.GleanMetrics.Metrics
-import org.mozilla.focus.telemetry.startuptelemetry.AppStartReasonProvider.StartReason
 
 private val logger = Logger("AppStartReasonProvider")
 
