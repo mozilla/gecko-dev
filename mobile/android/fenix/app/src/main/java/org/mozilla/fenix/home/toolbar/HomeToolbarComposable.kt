@@ -19,14 +19,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.updateLayoutParams
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
+import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.databinding.FragmentHomeBinding
@@ -38,17 +44,32 @@ import org.mozilla.fenix.utils.Settings
  * integration in the same framework as the [HomeToolbarView].
  *
  * @param context [Context] used for various system interactions.
+ * @param lifecycleOwner [Fragment] as a [LifecycleOwner] to used to organize lifecycle dependent operations.
+ * @param navController [NavController] to use for navigating to other in-app destinations.
  * @param homeBinding [FragmentHomeBinding] which will serve as parent for this composable.
  * @param settings [Settings] for querying various application settings.
  * @param tabStripContent [Composable] as the tab strip content to be displayed together with this toolbar.
  */
 internal class HomeToolbarComposable(
     private val context: Context,
+    lifecycleOwner: Fragment,
+    private val navController: NavController,
     private val homeBinding: FragmentHomeBinding,
     private val settings: Settings,
     private val tabStripContent: @Composable () -> Unit,
 ) : FenixHomeToolbar {
     private var showDivider by mutableStateOf(true)
+
+    private val middleware = ViewModelProvider(lifecycleOwner)[BrowserToolbarMiddleware::class.java].also {
+        it.updateLifecycleDependencies(navController = navController)
+    }
+
+    private val store = StoreProvider.get(lifecycleOwner) {
+        BrowserToolbarStore(
+            initialState = BrowserToolbarState(),
+            middleware = listOf(middleware),
+        )
+    }
 
     override val layout = ComposeView(context).apply {
         setContent {
@@ -100,7 +121,7 @@ internal class HomeToolbarComposable(
         // Ensure the divider is shown together with the toolbar
         Box {
             BrowserToolbar(
-                store = BrowserToolbarStore(),
+                store = store,
                 browserStore = context.components.core.store,
                 onDisplayToolbarClick = {},
                 onTextEdit = {},

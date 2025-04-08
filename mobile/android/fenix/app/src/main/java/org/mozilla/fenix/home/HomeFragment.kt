@@ -583,6 +583,8 @@ class HomeFragment : Fragment() {
         when (requireContext().settings().shouldUseComposableToolbar) {
             true -> HomeToolbarComposable(
                 context = requireContext(),
+                lifecycleOwner = this,
+                navController = findNavController(),
                 homeBinding = binding,
                 settings = requireContext().settings(),
                 tabStripContent = { TabStrip() },
