@@ -1,23 +1,10 @@
 .ads-context-menu-wrapper {
-  // Contrast fix for users who have wallpapers set
-  @include wallpaper-contrast-fix;
-
   text-align: end;
 }
 
 .ads-context-menu {
   float: right;
   position: relative;
-
-  > moz-button {
-    padding-block-end: var(--space-small);
-  }
-
-  // Transparent on light backgrounds as specified in Figma designs
-  // and default moz-button colours on dark backgrounds.
-  > moz-button::part(button) {
-    background-color: light-dark(transparent, var(--button-background-color));
-  }
 
   .context-menu {
     width: auto;
@@ -26,4 +13,34 @@
     top: calc(2.25 * var(--size-item-small));
     inset-inline-start: calc(-12.25 * var(--size-item-small));
   }
+
+  > moz-button {
+    // Contrast fix for users who have wallpapers set
+    @include wallpaper-contrast-fix;
+
+    padding-block-end: var(--space-small);
+  }
+
+  // The context menu button background should be transparent by default
+  // in both dark and light mode
+  > moz-button::part(button) {
+    background-color: transparent;
+  }
+
+  // Keep the default styles for hover/active states
+  > moz-button::part(button):hover {
+    background-color: var(--button-background-color-hover);
+  }
+
+  > moz-button::part(button):active {
+    background-color: var(--button-background-color-active);
+  }
 }
+
+.context-menu-open {
+  // Once the context menu is open, make sure the menu button background is reset to default
+  > moz-button::part(button) {
+    background-color: var(--button-background-color);
+  }
+}
+

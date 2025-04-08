@@ -32,19 +32,39 @@ export function AdBannerContextMenu({ dispatch, spoc, position, type, prefs }) {
   ];
 
   const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuClassNames, setContextMenuClassNames] =
+    useState("ads-context-menu");
+
+  /**
+   * Toggles the style fix for context menu hover/active styles.
+   * This allows us to have unobtrusive, transparent button background by default,
+   * yet flip it over to semi-transparent grey when the menu is visible.
+   *
+   * @param contextMenuOpen
+   */
+  const toggleContextMenuStyleSwitch = contextMenuOpen => {
+    if (contextMenuOpen) {
+      setContextMenuClassNames("ads-context-menu context-menu-open");
+    } else {
+      setContextMenuClassNames("ads-context-menu");
+    }
+  };
 
   const onClick = e => {
     e.preventDefault();
+
+    toggleContextMenuStyleSwitch(!showContextMenu);
     setShowContextMenu(!showContextMenu);
   };
 
   const onUpdate = () => {
+    toggleContextMenuStyleSwitch(!showContextMenu);
     setShowContextMenu(!showContextMenu);
   };
 
   return (
     <div className="ads-context-menu-wrapper">
-      <div className="ads-context-menu">
+      <div className={contextMenuClassNames}>
         <moz-button
           type="icon"
           size="default"

@@ -4364,17 +4364,35 @@ function AdBannerContextMenu({
   const showReporting = prefs[PREF_REPORT_CONTENT_ENABLED];
   const ADBANNER_CONTEXT_MENU_OPTIONS = ["BlockAdUrl", ...(showReporting ? ["ReportAd"] : []), "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
   const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
+  const [contextMenuClassNames, setContextMenuClassNames] = (0,external_React_namespaceObject.useState)("ads-context-menu");
+
+  /**
+   * Toggles the style fix for context menu hover/active styles.
+   * This allows us to have unobtrusive, transparent button background by default,
+   * yet flip it over to semi-transparent grey when the menu is visible.
+   *
+   * @param contextMenuOpen
+   */
+  const toggleContextMenuStyleSwitch = contextMenuOpen => {
+    if (contextMenuOpen) {
+      setContextMenuClassNames("ads-context-menu context-menu-open");
+    } else {
+      setContextMenuClassNames("ads-context-menu");
+    }
+  };
   const onClick = e => {
     e.preventDefault();
+    toggleContextMenuStyleSwitch(!showContextMenu);
     setShowContextMenu(!showContextMenu);
   };
   const onUpdate = () => {
+    toggleContextMenuStyleSwitch(!showContextMenu);
     setShowContextMenu(!showContextMenu);
   };
   return /*#__PURE__*/external_React_default().createElement("div", {
     className: "ads-context-menu-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("div", {
-    className: "ads-context-menu"
+    className: contextMenuClassNames
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "icon",
     size: "default",
