@@ -3859,8 +3859,14 @@ void PresShell::ScrollFrameIntoVisualViewport(Maybe<nsPoint>& aDestination,
     if (!NeedToVisuallyScroll(layoutViewportSize, aPositionFixedRect)) {
       return;
     }
-
-    aDestination = Some(aPositionFixedRect.TopLeft());
+    // Offset the position:fixed element position by the layout scroll
+    // position because the position:fixed origin (0, 0) is the layout scroll
+    // position. Otherwise if we've already scrolled, this scrollIntoView
+    // operaiton will jump back to near (0, 0) position.
+    // Bug 1947470: We need to calculate the destination with `WhereToScroll`
+    // options.
+    const nsPoint layoutOffset = rootScrollContainer->GetScrollPosition();
+    aDestination = Some(aPositionFixedRect.TopLeft() + layoutOffset);
   }
 
   // NOTE: It seems chrome doesn't respect the root element's
