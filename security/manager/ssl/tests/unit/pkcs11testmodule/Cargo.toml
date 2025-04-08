@@ -1,0 +1,12 @@
+[package]
+name = "pkcs11testmodule-static"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+[dependencies]
+mozilla-central-workspace-hack = { version = "0.1", features = ["pkcs11testmodule-static"], optional = true }
+pkcs11-bindings = "0.1.1"
+
+[lib]
+crate-type = ["staticlib"]
