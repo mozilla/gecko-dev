@@ -77,11 +77,6 @@ void nsInlineFrame::InvalidateFrameWithRect(const nsRect& aRect,
                                             aRebuildDisplayItems);
 }
 
-static inline bool IsMarginZero(const StyleMargin& aLength) {
-  return !aLength.IsLengthPercentage() ||
-         nsLayoutUtils::IsMarginZero(aLength.AsLengthPercentage());
-}
-
 /* virtual */
 bool nsInlineFrame::IsSelfEmpty() {
 #if 0
@@ -94,16 +89,28 @@ bool nsInlineFrame::IsSelfEmpty() {
   const nsStyleMargin* margin = StyleMargin();
   const nsStyleBorder* border = StyleBorder();
   const nsStylePadding* padding = StylePadding();
+  const auto positionProperty = StyleDisplay()->mPosition;
   // Block-start and -end ignored, since they shouldn't affect things, but this
   // doesn't really match with nsLineLayout.cpp's setting of
   // ZeroEffectiveSpanBox, anymore, so what should this really be?
   WritingMode wm = GetWritingMode();
   bool haveStart, haveEnd;
 
+  const auto IsMarginZero = [](const nsStyleMargin& aStyleMargin,
+                               StylePositionProperty aProp,
+                               mozilla::Side aSide) {
+    const auto margin = aStyleMargin.GetMargin(aSide, aProp);
+    if (!margin->IsLengthPercentage()) {
+      return true;
+    }
+    const auto& lp = margin->AsLengthPercentage();
+    return lp.Resolve(nscoord_MAX) == 0 && lp.Resolve(0) == 0;
+  };
+
   auto HaveSide = [&](mozilla::Side aSide) -> bool {
     return border->GetComputedBorderWidth(aSide) != 0 ||
            !nsLayoutUtils::IsPaddingZero(padding->mPadding.Get(aSide)) ||
-           !IsMarginZero(margin->GetMargin(aSide));
+           !IsMarginZero(*margin, positionProperty, aSide);
   };
   // Initially set up haveStart and haveEnd in terms of visual (LTR/TTB)
   // coordinates; we'll exchange them later if bidi-RTL is in effect to

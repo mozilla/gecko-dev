@@ -67,6 +67,8 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
 
   bool hasAutoMarginStart;
   bool hasAutoMarginEnd;
+  const auto* styleMargin = aRI.mStyleMargin;
+  const auto positionProperty = aRI.mStyleDisplay->mPosition;
   if (aFlags & (AlignJustifyFlags::IgnoreAutoMargins |
                 AlignJustifyFlags::AligningMarginBox)) {
     // (Note: ReflowInput will have treated "auto" margins as 0, so we
@@ -74,14 +76,18 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
     hasAutoMarginStart = hasAutoMarginEnd = false;
   } else if (aAxis == LogicalAxis::Block) {
     hasAutoMarginStart =
-        aRI.mStyleMargin->GetMargin(LogicalSide::BStart, wm).IsAuto();
+        styleMargin->GetMargin(LogicalSide::BStart, wm, positionProperty)
+            ->IsAuto();
     hasAutoMarginEnd =
-        aRI.mStyleMargin->GetMargin(LogicalSide::BEnd, wm).IsAuto();
+        styleMargin->GetMargin(LogicalSide::BEnd, wm, positionProperty)
+            ->IsAuto();
   } else { /* aAxis == LogicalAxis::Inline */
     hasAutoMarginStart =
-        aRI.mStyleMargin->GetMargin(LogicalSide::IStart, wm).IsAuto();
+        styleMargin->GetMargin(LogicalSide::IStart, wm, positionProperty)
+            ->IsAuto();
     hasAutoMarginEnd =
-        aRI.mStyleMargin->GetMargin(LogicalSide::IEnd, wm).IsAuto();
+        styleMargin->GetMargin(LogicalSide::IEnd, wm, positionProperty)
+            ->IsAuto();
   }
 
   // https://drafts.csswg.org/css-align-3/#overflow-values

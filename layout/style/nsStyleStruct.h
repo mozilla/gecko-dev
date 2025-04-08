@@ -372,10 +372,72 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBackground {
   mozilla::StyleColor mBackgroundColor;
 };
 
+template <typename T>
+class AnchorResolved {
+ public:
+  const T* operator->() const { return Ptr(); }
+
+  const T& operator*() const { return *Ptr(); }
+
+ protected:
+  static AnchorResolved Evaluated(T&& aValue) {
+    return AnchorResolved{V{std::move(aValue)}};
+  }
+
+  static AnchorResolved Unchanged(const T& aValue) {
+    return AnchorResolved{V{std::cref(aValue)}};
+  }
+
+ private:
+  // Anchor resolution was not required, or resolves to a fallback.
+  // Note the storage of reference - Computed style values won't update in the
+  // middle of reflow, but take care not to keep this for too long.
+  using U = std::reference_wrapper<const T>;
+
+  // Resolved value & Invalid-At-Computed-Value-Time (IACVT) is stored as T.
+  using V = mozilla::Variant<U, T>;
+
+  explicit AnchorResolved(V&& aValue) : mValue{std::move(aValue)} {}
+
+  const T* Ptr() const {
+    return mValue.match([](const U& aValue) { return &aValue.get(); },
+                        [](const T& aValue) { return &aValue; });
+  }
+
+  V mValue;
+};
+
+class AnchorResolvedMargin final : public AnchorResolved<mozilla::StyleMargin> {
+ public:
+  AnchorResolvedMargin(const mozilla::StyleMargin& aValue,
+                       mozilla::StylePositionProperty aPosition)
+      : AnchorResolved{FromUnresolved(aValue, aPosition)} {}
+
+ private:
+  static AnchorResolved<mozilla::StyleMargin> FromUnresolved(
+      const mozilla::StyleMargin& aValue,
+      mozilla::StylePositionProperty aPosition) {
+    if (!aValue.HasAnchorPositioningFunction()) {
+      return Unchanged(aValue);
+    }
+    return ResolveAnchor(aValue, aPosition);
+  }
+  static AnchorResolved<mozilla::StyleMargin> ResolveAnchor(
+      const mozilla::StyleMargin& aValue,
+      mozilla::StylePositionProperty aPosition);
+  static AnchorResolved<mozilla::StyleMargin> Invalid();
+  static AnchorResolved<mozilla::StyleMargin> Evaluated(
+      mozilla::StyleLengthPercentage&& aLP);
+  static AnchorResolved<mozilla::StyleMargin> Evaluated(
+      const mozilla::StyleLengthPercentage& aLP);
+};
+
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
   STYLE_STRUCT(nsStyleMargin)
   nsStyleMargin();
 
+  // Returns false if any margin is layout-dependent in any way.
+  // Percentage values and/or `anchor-size()` will do this.
   bool GetMargin(nsMargin& aMargin) const {
     bool convertsToLength = mMargin.All(
         [](const auto& aLength) { return aLength.ConvertsToLength(); });
@@ -385,7 +447,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
     }
 
     for (const auto side : mozilla::AllPhysicalSides()) {
-      aMargin.Side(side) = GetMargin(side).AsLengthPercentage().ToLength();
+      aMargin.Side(side) = mMargin.Get(side).AsLengthPercentage().ToLength();
     }
     return true;
   }
@@ -399,25 +461,25 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
 
   // Return true if either the start or end side in the axis is 'auto'.
   // (defined in WritingModes.h since we need the full WritingMode type)
-  inline bool HasBlockAxisAuto(mozilla::WritingMode aWM) const;
-  inline bool HasInlineAxisAuto(mozilla::WritingMode aWM) const;
-  inline bool HasAuto(mozilla::LogicalAxis, mozilla::WritingMode) const;
+  inline bool HasBlockAxisAuto(mozilla::WritingMode aWM,
+                               mozilla::StylePositionProperty aPosition) const;
+  inline bool HasInlineAxisAuto(mozilla::WritingMode aWM,
+                                mozilla::StylePositionProperty aPosition) const;
+  inline bool HasAuto(mozilla::LogicalAxis, mozilla::WritingMode,
+                      mozilla::StylePositionProperty) const;
 
-  // TODO(dshin): The following functions are used as shims to deal
-  // anchor size functions as if it's zero, before the computation
-  // is implemented.
-  static const mozilla::StyleMargin kZeroMargin;
-  const mozilla::StyleMargin& GetMargin(mozilla::Side aSide) const {
-    const auto& result = mMargin.Get(aSide);
-    if (MOZ_UNLIKELY(result.HasAnchorPositioningFunction())) {
-      return kZeroMargin;
-    }
-    return result;
+  // Attempt to return the resolved margin, resolving anchor functions, and
+  // using a dummy percentage basis. If the resulting value returns true for
+  // `HasPercent`, percentage value needs to be resolved with a proper basis at
+  // a later point.
+  AnchorResolvedMargin GetMargin(
+      mozilla::Side aSide, mozilla::StylePositionProperty aPosition) const {
+    return {mMargin.Get(aSide), aPosition};
   }
 
   bool MarginEquals(const nsStyleMargin& aOther) const {
     for (const auto side : mozilla::AllPhysicalSides()) {
-      if (GetMargin(side) != aOther.GetMargin(side)) {
+      if (mMargin.Get(side) != aOther.mMargin.Get(side)) {
         return false;
       }
     }
@@ -426,8 +488,9 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
 
   // As with other logical-coordinate accessors, definitions for these
   // are found in WritingModes.h.
-  inline const mozilla::StyleMargin& GetMargin(mozilla::LogicalSide aSide,
-                                               mozilla::WritingMode aWM) const;
+  inline AnchorResolvedMargin GetMargin(
+      mozilla::LogicalSide aSide, mozilla::WritingMode aWM,
+      mozilla::StylePositionProperty aPosition) const;
 
   mozilla::StyleRect<mozilla::StyleMargin> mMargin;
   mozilla::StyleRect<mozilla::StyleLength> mScrollMargin;
@@ -701,41 +764,6 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePage {
   StylePageName mPage = StylePageName::Auto();
   // page-orientation property.
   StylePageOrientation mPageOrientation = StylePageOrientation::Upright;
-};
-
-template <typename T>
-class AnchorResolved {
- public:
-  const T* operator->() const { return Ptr(); }
-
-  const T& operator*() const { return *Ptr(); }
-
- protected:
-  static AnchorResolved Evaluated(T&& aValue) {
-    return AnchorResolved{V{aValue}};
-  }
-
-  static AnchorResolved Unchanged(const T& aValue) {
-    return AnchorResolved{V{std::cref(aValue)}};
-  }
-
- private:
-  // Anchor resolution was not required, or resolves to a fallback.
-  // Note the storage of reference - Computed style values won't update in the
-  // middle of reflow, but take care not to keep this for too long.
-  using U = std::reference_wrapper<const T>;
-
-  // Resolved value & Invalid-At-Computed-Value-Time (IACVT) is stored as T.
-  using V = mozilla::Variant<U, T>;
-
-  explicit AnchorResolved(V&& aValue) : mValue{aValue} {}
-
-  const T* Ptr() const {
-    return mValue.match([](const U& aValue) { return &aValue.get(); },
-                        [](const T& aValue) { return &aValue; });
-  }
-
-  V mValue;
 };
 
 class AnchorResolvedInset final : public AnchorResolved<mozilla::StyleInset> {

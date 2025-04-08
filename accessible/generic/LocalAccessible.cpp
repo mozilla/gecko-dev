@@ -1264,9 +1264,10 @@ already_AddRefed<AccAttributes> LocalAccessible::NativeAttributes() {
   auto GetMargin = [&](mozilla::Side aSide) -> CSSCoord {
     // This is here only to guarantee that we do the same as getComputedStyle
     // does, so that we don't hit precision errors in tests.
-    const auto& margin = f->StyleMargin()->GetMargin(aSide);
-    if (margin.ConvertsToLength()) {
-      return margin.AsLengthPercentage().ToLengthInCSSPixels();
+    const auto margin =
+        f->StyleMargin()->GetMargin(aSide, f->StyleDisplay()->mPosition);
+    if (margin->ConvertsToLength()) {
+      return margin->AsLengthPercentage().ToLengthInCSSPixels();
     }
 
     nscoord coordVal = f->GetUsedMargin().Side(aSide);

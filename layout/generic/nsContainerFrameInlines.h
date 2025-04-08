@@ -14,10 +14,12 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
                                               F& aHandleChildren) {
   using namespace mozilla;
 
-  auto GetMargin = [](const mozilla::StyleMargin& aCoord) -> nscoord {
-    return !aCoord.IsLengthPercentage()
-               ? 0
-               : aCoord.AsLengthPercentage().Resolve(0);
+  auto GetMargin = [](const AnchorResolvedMargin& aCoord) -> nscoord {
+    if (!aCoord->IsLengthPercentage()) {
+      MOZ_ASSERT(aCoord->IsAuto(), "Didn't resolve anchor functions first?");
+      return 0;
+    }
+    return aCoord->AsLengthPercentage().Resolve(0);
   };
 
   if (GetPrevInFlow()) {
@@ -31,6 +33,7 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
   const nsStylePadding* stylePadding = StylePadding();
   const nsStyleBorder* styleBorder = StyleBorder();
   const nsStyleMargin* styleMargin = StyleMargin();
+  const auto positionProperty = StyleDisplay()->mPosition;
 
   // This goes at the beginning no matter how things are broken and how
   // messy the bidi situations are, since per CSS2.1 section 8.6
@@ -49,7 +52,7 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
         // clamp negative calc() to 0
         std::max(stylePadding->mPadding.Get(startSide).Resolve(0), 0) +
         styleBorder->GetComputedBorderWidth(startSide) +
-        GetMargin(styleMargin->GetMargin(startSide));
+        GetMargin(styleMargin->GetMargin(startSide, positionProperty));
     if (MOZ_LIKELY(sliceBreak)) {
       aData->mCurrentLine += startPBM;
     } else {
@@ -61,7 +64,7 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
       // clamp negative calc() to 0
       std::max(stylePadding->mPadding.Get(endSide).Resolve(0), 0) +
       styleBorder->GetComputedBorderWidth(endSide) +
-      GetMargin(styleMargin->GetMargin(endSide));
+      GetMargin(styleMargin->GetMargin(endSide, positionProperty));
   if (MOZ_UNLIKELY(!sliceBreak)) {
     clonePBM += endPBM;
     aData->mCurrentLine += clonePBM;

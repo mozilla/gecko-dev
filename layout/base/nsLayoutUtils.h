@@ -1575,11 +1575,13 @@ class nsLayoutUtils {
   }
 
   static nscoord ComputeCBDependentValue(nscoord aPercentBasis,
-                                         const mozilla::StyleMargin& aMargin) {
-    if (!aMargin.IsLengthPercentage()) {
+                                         const AnchorResolvedMargin& aMargin) {
+    if (!aMargin->IsLengthPercentage()) {
+      MOZ_ASSERT(aMargin->IsAuto(), "Didn't resolve anchor functions first?");
       return 0;
     }
-    return ComputeCBDependentValue(aPercentBasis, aMargin.AsLengthPercentage());
+    return ComputeCBDependentValue(aPercentBasis,
+                                   aMargin->AsLengthPercentage());
   }
 
   static nscoord ComputeBSizeValue(nscoord aContainingBlockBSize,
@@ -1707,10 +1709,6 @@ class nsLayoutUtils {
   static bool IsPaddingZero(const LengthPercentage& aLength) {
     // clamp negative calc() to 0
     return aLength.Resolve(nscoord_MAX) <= 0 && aLength.Resolve(0) <= 0;
-  }
-
-  static bool IsMarginZero(const LengthPercentage& aLength) {
-    return aLength.Resolve(nscoord_MAX) == 0 && aLength.Resolve(0) == 0;
   }
 
   static void MarkDescendantsDirty(nsIFrame* aSubtreeRoot);

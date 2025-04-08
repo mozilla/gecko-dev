@@ -282,8 +282,8 @@ void nsAbsoluteContainingBlock::Reflow(nsContainerFrame* aDelegatingFrame,
 static inline bool IsFixedPaddingSize(const LengthPercentage& aCoord) {
   return aCoord.ConvertsToLength();
 }
-static inline bool IsFixedMarginSize(const StyleMargin& aCoord) {
-  return aCoord.ConvertsToLength();
+static inline bool IsFixedMarginSize(const AnchorResolvedMargin& aCoord) {
+  return aCoord->ConvertsToLength();
 }
 static inline bool IsFixedOffset(const AnchorResolvedInset& aInset) {
   // For anchor positioning functions, even if the computed value may be a
@@ -307,6 +307,7 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
   const nsStylePadding* padding = f->StylePadding();
   const nsStyleMargin* margin = f->StyleMargin();
   WritingMode wm = f->GetWritingMode();
+  const auto positionProperty = f->StyleDisplay()->mPosition;
   if (wm.IsVertical() ? aCBHeightChanged : aCBWidthChanged) {
     // See if f's inline-size might have changed.
     // If margin-inline-start/end, padding-inline-start/end,
@@ -325,12 +326,13 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // See if f's position might have changed. If we're RTL then the
     // rules are slightly different. We'll assume percentage or auto
     // margins will always induce a dependency on the size
-    if (!IsFixedMarginSize(margin->GetMargin(LogicalSide::IStart, wm)) ||
-        !IsFixedMarginSize(margin->GetMargin(LogicalSide::IEnd, wm))) {
+    if (!IsFixedMarginSize(
+            margin->GetMargin(LogicalSide::IStart, wm, positionProperty)) ||
+        !IsFixedMarginSize(
+            margin->GetMargin(LogicalSide::IEnd, wm, positionProperty))) {
       return true;
     }
   }
-  const auto positionProperty = f->StyleDisplay()->mPosition;
   if (wm.IsVertical() ? aCBWidthChanged : aCBHeightChanged) {
     // See if f's block-size might have changed.
     // If margin-block-start/end, padding-block-start/end,
@@ -356,8 +358,10 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     }
 
     // See if f's position might have changed.
-    if (!IsFixedMarginSize(margin->GetMargin(LogicalSide::BStart, wm)) ||
-        !IsFixedMarginSize(margin->GetMargin(LogicalSide::BEnd, wm))) {
+    if (!IsFixedMarginSize(
+            margin->GetMargin(LogicalSide::BStart, wm, positionProperty)) ||
+        !IsFixedMarginSize(
+            margin->GetMargin(LogicalSide::BEnd, wm, positionProperty))) {
       return true;
     }
   }
@@ -764,18 +768,23 @@ void nsAbsoluteContainingBlock::ResolveAutoMarginsAfterLayout(
                        offsetsInWM.BStartEnd(wm) - marginInWM.BStartEnd(wm);
 
   const auto& styleMargin = aKidReflowInput.mStyleMargin;
+  const auto positionProperty = aKidReflowInput.mStyleDisplay->mPosition;
   if (wm.IsOrthogonalTo(outerWM)) {
     ReflowInput::ComputeAbsPosInlineAutoMargin(
         availMarginSpace, outerWM,
-        styleMargin->GetMargin(LogicalSide::IStart, outerWM).IsAuto(),
-        styleMargin->GetMargin(LogicalSide::IEnd, outerWM).IsAuto(), aMargin,
-        aOffsets);
+        styleMargin->GetMargin(LogicalSide::IStart, outerWM, positionProperty)
+            ->IsAuto(),
+        styleMargin->GetMargin(LogicalSide::IEnd, outerWM, positionProperty)
+            ->IsAuto(),
+        aMargin, aOffsets);
   } else {
     ReflowInput::ComputeAbsPosBlockAutoMargin(
         availMarginSpace, outerWM,
-        styleMargin->GetMargin(LogicalSide::BStart, outerWM).IsAuto(),
-        styleMargin->GetMargin(LogicalSide::BEnd, outerWM).IsAuto(), aMargin,
-        aOffsets);
+        styleMargin->GetMargin(LogicalSide::BStart, outerWM, positionProperty)
+            ->IsAuto(),
+        styleMargin->GetMargin(LogicalSide::BEnd, outerWM, positionProperty)
+            ->IsAuto(),
+        aMargin, aOffsets);
   }
 
   aKidReflowInput.SetComputedLogicalMargin(outerWM, aMargin);
@@ -785,8 +794,8 @@ void nsAbsoluteContainingBlock::ResolveAutoMarginsAfterLayout(
       aKidReflowInput.mFrame->GetProperty(nsIFrame::UsedMarginProperty());
   // InitOffsets should've created a UsedMarginProperty for us, if any margin is
   // auto.
-  MOZ_ASSERT_IF(styleMargin->HasInlineAxisAuto(outerWM) ||
-                    styleMargin->HasBlockAxisAuto(outerWM),
+  MOZ_ASSERT_IF(styleMargin->HasInlineAxisAuto(outerWM, positionProperty) ||
+                    styleMargin->HasBlockAxisAuto(outerWM, positionProperty),
                 propValue);
   if (propValue) {
     *propValue = aMargin.GetPhysicalMargin(outerWM);

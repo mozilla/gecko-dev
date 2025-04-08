@@ -840,7 +840,8 @@ static bool RecomputePosition(nsIFrame* aFrame) {
     if (aFrame->HasIntrinsicKeywordForBSize()) {
       WritingMode wm = aFrame->GetWritingMode();
       const auto* styleMargin = aFrame->StyleMargin();
-      if (styleMargin->HasBlockAxisAuto(wm)) {
+      const auto positionProperty = aFrame->StyleDisplay()->mPosition;
+      if (styleMargin->HasBlockAxisAuto(wm, positionProperty)) {
         return false;
       }
     }

@@ -1207,10 +1207,13 @@ void ReflowInput::CalculateBorderPaddingMargin(
     // If the margin is 'auto', ComputeCBDependentValue() will return 0. The
     // correct margin value will be computed later in InitAbsoluteConstraints
     // (which is caller of this function, via CalculateHypotheticalPosition).
+    const auto positionProperty = mStyleDisplay->mPosition;
     const nscoord start = nsLayoutUtils::ComputeCBDependentValue(
-        aContainingBlockSize, mStyleMargin->GetMargin(startSide));
+        aContainingBlockSize,
+        mStyleMargin->GetMargin(startSide, positionProperty));
     const nscoord end = nsLayoutUtils::ComputeCBDependentValue(
-        aContainingBlockSize, mStyleMargin->GetMargin(endSide));
+        aContainingBlockSize,
+        mStyleMargin->GetMargin(endSide, positionProperty));
     marginStartEnd = start + end;
   }
 
@@ -1839,10 +1842,14 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     nscoord availMarginSpace =
         aCBSize.ISize(cbwm) - offsets.IStartEnd(cbwm) - margin.IStartEnd(cbwm) -
         borderPadding.IStartEnd(cbwm) - computedSize.ISize(cbwm);
-    marginIStartIsAuto =
-        mStyleMargin->GetMargin(LogicalSide::IStart, cbwm).IsAuto();
-    marginIEndIsAuto =
-        mStyleMargin->GetMargin(LogicalSide::IEnd, cbwm).IsAuto();
+    marginIStartIsAuto = mStyleMargin
+                             ->GetMargin(LogicalSide::IStart, cbwm,
+                                         StylePositionProperty::Absolute)
+                             ->IsAuto();
+    marginIEndIsAuto = mStyleMargin
+                           ->GetMargin(LogicalSide::IEnd, cbwm,
+                                       StylePositionProperty::Absolute)
+                           ->IsAuto();
     ComputeAbsPosInlineAutoMargin(availMarginSpace, cbwm, marginIStartIsAuto,
                                   marginIEndIsAuto, margin, offsets);
   }
@@ -1885,10 +1892,14 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     //  * we're dealing with a replaced element
     //  * bsize was constrained by min- or max-bsize.
     nscoord availMarginSpace = autoBSize - computedSize.BSize(cbwm);
-    marginBStartIsAuto =
-        mStyleMargin->GetMargin(LogicalSide::BStart, cbwm).IsAuto();
-    marginBEndIsAuto =
-        mStyleMargin->GetMargin(LogicalSide::BEnd, cbwm).IsAuto();
+    marginBStartIsAuto = mStyleMargin
+                             ->GetMargin(LogicalSide::BStart, cbwm,
+                                         StylePositionProperty::Absolute)
+                             ->IsAuto();
+    marginBEndIsAuto = mStyleMargin
+                           ->GetMargin(LogicalSide::BEnd, cbwm,
+                                       StylePositionProperty::Absolute)
+                           ->IsAuto();
 
     ComputeAbsPosBlockAutoMargin(availMarginSpace, cbwm, marginBStartIsAuto,
                                  marginBEndIsAuto, margin, offsets);
@@ -2637,12 +2648,15 @@ void ReflowInput::CalculateBlockSideMargins() {
     return;
   }
 
+  const auto positionProperty = mStyleDisplay->mPosition;
   // The css2 spec clearly defines how block elements should behave
   // in section 10.3.3.
   bool isAutoStartMargin =
-      mStyleMargin->GetMargin(LogicalSide::IStart, cbWM).IsAuto();
+      mStyleMargin->GetMargin(LogicalSide::IStart, cbWM, positionProperty)
+          ->IsAuto();
   bool isAutoEndMargin =
-      mStyleMargin->GetMargin(LogicalSide::IEnd, cbWM).IsAuto();
+      mStyleMargin->GetMargin(LogicalSide::IEnd, cbWM, positionProperty)
+          ->IsAuto();
   if (!isAutoStartMargin && !isAutoEndMargin) {
     // Neither margin is 'auto' so we're over constrained. Use the
     // 'direction' property of the parent to tell which margin to
@@ -2861,8 +2875,8 @@ bool SizeComputationInput::ComputeMargin(WritingMode aCBWM,
   const nsStyleMargin* styleMargin = mFrame->StyleMargin();
 
   nsMargin margin;
-  const bool isCBDependent = !styleMargin->GetMargin(margin);
-  if (isCBDependent) {
+  const bool isLayoutDependent = !styleMargin->GetMargin(margin);
+  if (isLayoutDependent) {
     // We have to compute the value. Note that this calculation is
     // performed according to the writing mode of the containing block
     // (http://dev.w3.org/csswg/css-writing-modes-3/#orthogonal-flows)
@@ -2870,9 +2884,10 @@ bool SizeComputationInput::ComputeMargin(WritingMode aCBWM,
       aPercentBasis = 0;
     }
     LogicalMargin m(aCBWM);
+    const auto positionProperty = mFrame->StyleDisplay()->mPosition;
     for (const LogicalSide side : LogicalSides::All) {
       m.Side(side, aCBWM) = nsLayoutUtils::ComputeCBDependentValue(
-          aPercentBasis, styleMargin->GetMargin(side, aCBWM));
+          aPercentBasis, styleMargin->GetMargin(side, aCBWM, positionProperty));
     }
     SetComputedLogicalMargin(aCBWM, m);
   } else {
@@ -2889,7 +2904,7 @@ bool SizeComputationInput::ComputeMargin(WritingMode aCBWM,
     SetComputedLogicalMargin(mWritingMode, m);
   }
 
-  return isCBDependent;
+  return isLayoutDependent;
 }
 
 bool SizeComputationInput::ComputePadding(WritingMode aCBWM,

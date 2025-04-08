@@ -6308,18 +6308,18 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(UsedClear aClearType) {
   mLineIsEmpty = true;
 }
 
-static nscoord ResolveMargin(const StyleMargin& aStyle,
-                             nscoord aPercentageBasis) {
-  if (!aStyle.IsLengthPercentage()) {
-    return nscoord(0);
-  }
-  return nsLayoutUtils::ResolveToLength<false>(aStyle.AsLengthPercentage(),
-                                               aPercentageBasis);
-}
-
 static nscoord ResolvePadding(const LengthPercentage& aStyle,
                               nscoord aPercentageBasis) {
   return nsLayoutUtils::ResolveToLength<true>(aStyle, aPercentageBasis);
+}
+
+static nscoord ResolveMargin(const AnchorResolvedMargin& aStyle,
+                             nscoord aPercentageBasis) {
+  if (!aStyle->IsLengthPercentage()) {
+    return nscoord(0);
+  }
+  return nsLayoutUtils::ResolveToLength<false>(aStyle->AsLengthPercentage(),
+                                               aPercentageBasis);
 }
 
 static nsIFrame::IntrinsicSizeOffsetData IntrinsicSizeOffsets(
@@ -6328,16 +6328,18 @@ static nsIFrame::IntrinsicSizeOffsetData IntrinsicSizeOffsets(
   WritingMode wm = aFrame->GetWritingMode();
   bool verticalAxis = aForISize == wm.IsVertical();
   const auto* styleMargin = aFrame->StyleMargin();
+  const auto positionProperty = aFrame->StyleDisplay()->mPosition;
   if (verticalAxis) {
+    result.margin += ResolveMargin(
+        styleMargin->GetMargin(eSideTop, positionProperty), aPercentageBasis);
     result.margin +=
-        ResolveMargin(styleMargin->GetMargin(eSideTop), aPercentageBasis);
-    result.margin +=
-        ResolveMargin(styleMargin->GetMargin(eSideBottom), aPercentageBasis);
+        ResolveMargin(styleMargin->GetMargin(eSideBottom, positionProperty),
+                      aPercentageBasis);
   } else {
-    result.margin +=
-        ResolveMargin(styleMargin->GetMargin(eSideLeft), aPercentageBasis);
-    result.margin +=
-        ResolveMargin(styleMargin->GetMargin(eSideRight), aPercentageBasis);
+    result.margin += ResolveMargin(
+        styleMargin->GetMargin(eSideLeft, positionProperty), aPercentageBasis);
+    result.margin += ResolveMargin(
+        styleMargin->GetMargin(eSideRight, positionProperty), aPercentageBasis);
   }
 
   const auto& padding = aFrame->StylePadding()->mPadding;
@@ -6455,6 +6457,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
                       aBorderPadding, aSizeOverrides, aFlags);
   const nsStylePosition* stylePos = StylePosition();
   const nsStyleDisplay* disp = StyleDisplay();
+  const auto positionProperty = disp->mPosition;
   auto aspectRatioUsage = AspectRatioUsage::None;
 
   const auto boxSizingAdjust = stylePos->mBoxSizing == StyleBoxSizing::Border
@@ -6550,7 +6553,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
     bool isStretchAligned = false;
     bool mayUseAspectRatio = aspectRatio && !isAutoBSize;
     if (!aFlags.contains(ComputeSizeFlag::ShrinkWrap) &&
-        !StyleMargin()->HasInlineAxisAuto(aWM) &&
+        !StyleMargin()->HasInlineAxisAuto(aWM, positionProperty) &&
         !alignCB->IsMasonry(isOrthogonal ? LogicalAxis::Block
                                          : LogicalAxis::Inline)) {
       auto inlineAxisAlignment =
@@ -6757,7 +6760,7 @@ nsIFrame::SizeComputationResult nsIFrame::ComputeSize(
       bool isStretchAligned = false;
       bool mayUseAspectRatio =
           aspectRatio && result.ISize(aWM) != NS_UNCONSTRAINEDSIZE;
-      if (!StyleMargin()->HasBlockAxisAuto(aWM)) {
+      if (!StyleMargin()->HasBlockAxisAuto(aWM, positionProperty)) {
         auto blockAxisAlignment =
             isOrthogonal ? StylePosition()->UsedJustifySelf(alignCB->Style())._0
                          : StylePosition()->UsedAlignSelf(alignCB->Style())._0;

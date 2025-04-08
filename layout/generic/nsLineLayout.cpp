@@ -629,9 +629,10 @@ static bool HasPercentageUnitSide(const StyleRect<T>& aSides) {
   return aSides.Any([](const auto& aLength) { return aLength.HasPercent(); });
 }
 
-static bool HasPercentageUnitMargin(const nsStyleMargin& aStyleMargin) {
+static bool HasPercentageUnitMargin(const nsStyleMargin& aStyleMargin,
+                                    StylePositionProperty aProp) {
   for (const auto side : AllPhysicalSides()) {
-    if (aStyleMargin.GetMargin(side).HasPercent()) {
+    if (aStyleMargin.GetMargin(side, aProp)->HasPercent()) {
       return true;
     }
   }
@@ -653,7 +654,8 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
   // quite rarely.
 
   const nsStyleMargin* margin = aFrame->StyleMargin();
-  if (HasPercentageUnitMargin(*margin)) {
+  const auto positionProperty = aFrame->StyleDisplay()->mPosition;
+  if (HasPercentageUnitMargin(*margin, positionProperty)) {
     return true;
   }
 
@@ -666,7 +668,6 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
 
   const nsStylePosition* pos = aFrame->StylePosition();
 
-  const auto positionProperty = aFrame->StyleDisplay()->mPosition;
   if ((pos->ISizeDependsOnContainer(aWM) && !pos->ISize(aWM).IsAuto()) ||
       pos->MaxISizeDependsOnContainer(aWM) ||
       pos->MinISizeDependsOnContainer(aWM) ||

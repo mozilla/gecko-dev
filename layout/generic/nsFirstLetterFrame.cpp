@@ -170,18 +170,18 @@ bool nsFirstLetterFrame::UseTightBounds() const {
   }
 
   const auto wm = GetWritingMode();
-  const auto& bStart = StyleMargin()->GetMargin(LogicalSide::BStart, wm);
+  const auto* styleMargin = StyleMargin();
+  const auto positionProperty = StyleDisplay()->mPosition;
+  const auto bStart =
+      styleMargin->GetMargin(LogicalSide::BStart, wm, positionProperty);
   // Currently, we only check for margins with negative *length* values;
   // negative percentages seem unlikely to be used/useful in this context.
-  if (bStart.ConvertsToLength() && bStart.ToLength() < 0) {
+  if (bStart->ConvertsToLength() && bStart->ToLength() < 0) {
     return false;
   }
-  const auto& bEnd = StyleMargin()->GetMargin(LogicalSide::BEnd, wm);
-  if (bEnd.ConvertsToLength() && bEnd.ToLength() < 0) {
-    return false;
-  }
-
-  return true;
+  const auto bEnd =
+      styleMargin->GetMargin(LogicalSide::BEnd, wm, positionProperty);
+  return !(bEnd->ConvertsToLength() && bEnd->ToLength() < 0);
 }
 
 void nsFirstLetterFrame::Reflow(nsPresContext* aPresContext,

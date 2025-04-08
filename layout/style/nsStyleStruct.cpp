@@ -286,8 +286,48 @@ static StyleRect<T> StyleRectWithAllSides(const T& aSide) {
   return {aSide, aSide, aSide, aSide};
 }
 
-MOZ_RUNINIT const StyleMargin nsStyleMargin::kZeroMargin =
-    StyleMargin::LengthPercentage(StyleLengthPercentage::Zero());
+AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::ResolveAnchor(
+    const mozilla::StyleMargin& aValue,
+    mozilla::StylePositionProperty aPosition) {
+  MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
+             "Calling anchor resolution without using it?");
+  if (aValue.IsAnchorSizeFunction()) {
+    auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
+    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
+                                    &resolved);
+    if (resolved.IsInvalid()) {
+      return Invalid();
+    }
+    if (resolved.IsResolvedReference()) {
+      return Evaluated(*resolved.AsResolvedReference());
+    }
+    return Evaluated(resolved.AsResolved());
+  }
+
+  const auto& lp = aValue.AsAnchorContainingCalcFunction();
+  const auto& c = lp.AsCalc();
+  auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
+  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, aPosition, &result);
+  if (result.IsInvalid()) {
+    return Invalid();
+  }
+  return Evaluated(result.AsValid());
+}
+
+AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::Invalid() {
+  return AnchorResolved::Evaluated(
+      StyleMargin::LengthPercentage(StyleLengthPercentage::Zero()));
+}
+
+AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::Evaluated(
+    mozilla::StyleLengthPercentage&& aLP) {
+  return AnchorResolved::Evaluated(StyleMargin::LengthPercentage(aLP));
+}
+
+AnchorResolved<mozilla::StyleMargin> AnchorResolvedMargin::Evaluated(
+    const mozilla::StyleLengthPercentage& aLP) {
+  return AnchorResolved::Evaluated(StyleMargin::LengthPercentage(aLP));
+}
 
 nsStyleMargin::nsStyleMargin()
     : mMargin(StyleRectWithAllSides(

@@ -3500,8 +3500,9 @@ struct BoxToRect : public nsLayoutUtils::BoxCallback {
         nsMargin usedMargin =
             aFrame->GetUsedMargin().ApplySkipSides(aFrame->GetSkipSides());
         const auto* styleMargin = aFrame->StyleMargin();
+        const auto positionProperty = aFrame->StyleDisplay()->mPosition;
         for (const Side side : AllPhysicalSides()) {
-          if (styleMargin->GetMargin(side).IsAuto()) {
+          if (styleMargin->GetMargin(side, positionProperty)->IsAuto()) {
             usedMargin.Side(side) = 0;
           }
         }

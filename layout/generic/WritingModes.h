@@ -2204,25 +2204,30 @@ inline bool nsStylePosition::MaxBSizeDependsOnContainer(WritingMode aWM) const {
   return BSizeCoordDependsOnContainer(MaxBSize(aWM));
 }
 
-inline bool nsStyleMargin::HasBlockAxisAuto(mozilla::WritingMode aWM) const {
-  return GetMargin(mozilla::LogicalSide::BStart, aWM).IsAuto() ||
-         GetMargin(mozilla::LogicalSide::BEnd, aWM).IsAuto();
+inline bool nsStyleMargin::HasBlockAxisAuto(
+    mozilla::WritingMode aWM, mozilla::StylePositionProperty aPosition) const {
+  return GetMargin(mozilla::LogicalSide::BStart, aWM, aPosition)->IsAuto() ||
+         GetMargin(mozilla::LogicalSide::BEnd, aWM, aPosition)->IsAuto();
 }
 
-inline bool nsStyleMargin::HasInlineAxisAuto(mozilla::WritingMode aWM) const {
-  return GetMargin(mozilla::LogicalSide::IStart, aWM).IsAuto() ||
-         GetMargin(mozilla::LogicalSide::IEnd, aWM).IsAuto();
+inline bool nsStyleMargin::HasInlineAxisAuto(
+    mozilla::WritingMode aWM, mozilla::StylePositionProperty aPosition) const {
+  return GetMargin(mozilla::LogicalSide::IStart, aWM, aPosition)->IsAuto() ||
+         GetMargin(mozilla::LogicalSide::IEnd, aWM, aPosition)->IsAuto();
 }
 
-inline bool nsStyleMargin::HasAuto(mozilla::LogicalAxis aAxis,
-                                   mozilla::WritingMode aWM) const {
-  return aAxis == mozilla::LogicalAxis::Inline ? HasInlineAxisAuto(aWM)
-                                               : HasBlockAxisAuto(aWM);
+inline bool nsStyleMargin::HasAuto(
+    mozilla::LogicalAxis aAxis, mozilla::WritingMode aWM,
+    mozilla::StylePositionProperty aPosition) const {
+  return aAxis == mozilla::LogicalAxis::Inline
+             ? HasInlineAxisAuto(aWM, aPosition)
+             : HasBlockAxisAuto(aWM, aPosition);
 }
 
-inline const mozilla::StyleMargin& nsStyleMargin::GetMargin(
-    mozilla::LogicalSide aSide, mozilla::WritingMode aWM) const {
-  return GetMargin(aWM.PhysicalSide(aSide));
+inline AnchorResolvedMargin nsStyleMargin::GetMargin(
+    mozilla::LogicalSide aSide, mozilla::WritingMode aWM,
+    mozilla::StylePositionProperty aPosition) const {
+  return GetMargin(aWM.PhysicalSide(aSide), aPosition);
 }
 
 inline mozilla::StyleAlignFlags nsStylePosition::UsedSelfAlignment(
