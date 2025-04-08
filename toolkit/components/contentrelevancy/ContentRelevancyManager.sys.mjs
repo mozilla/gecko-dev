@@ -47,31 +47,6 @@ const NIMBUS_VARIABLE_MIN_INPUT_URLS = "minInputUrls";
 const NIMBUS_VARIABLE_TIMER_INTERVAL = "timerInterval";
 const NIMBUS_VARIABLE_INGEST_ENABLED = "ingestEnabled";
 
-// A map used to align the UniFFI Interest enum with SERP categories.
-ChromeUtils.defineLazyGetter(lazy, "SerpCategoriesToInterestEnum", () => {
-  return new Map([
-    [0, lazy.Interest.INCONCLUSIVE],
-    [1, lazy.Interest.ANIMALS],
-    [2, lazy.Interest.ARTS],
-    [3, lazy.Interest.AUTOS],
-    [4, lazy.Interest.BUSINESS],
-    [5, lazy.Interest.CAREER],
-    [6, lazy.Interest.EDUCATION],
-    [7, lazy.Interest.FASHION],
-    [8, lazy.Interest.FINANCE],
-    [9, lazy.Interest.FOOD],
-    [10, lazy.Interest.GOVERNMENT],
-    [12, lazy.Interest.HOBBIES],
-    [13, lazy.Interest.HOME],
-    [14, lazy.Interest.NEWS],
-    [15, lazy.Interest.REALESTATE],
-    [16, lazy.Interest.SOCIETY],
-    [17, lazy.Interest.SPORTS],
-    [18, lazy.Interest.TECH],
-    [19, lazy.Interest.TRAVEL],
-  ]);
-});
-
 // Setup the `lazy.log` object.  This is called on startup and also whenever `PREF_LOG_ENABLED`
 // changes.
 function setupLogging() {
@@ -443,11 +418,6 @@ class RelevancyManager {
    * Generate a score for a given interest array based on the user interest vector.
    *
    * @param {Array<Interest>} interests
-   *   An array of interests with each item of type `RustRelevancy.Interest`.
-   *   This is usually specified by the content provider representing the
-   *   interest type(s) of the content. Note that `Interest.INCONCLUSIVE`
-   *   will be ignored for scoring.
-   * @param {boolean}  adjustInterest
    *   Whether or not to adjust `interests` for off-by-1 encoding difference
    *   between the UniFFI binding and the true source. This flag will be
    *   ignored if `Interest.INCONCLUSIVE == 0` meaning the encoding behavior
@@ -458,7 +428,7 @@ class RelevancyManager {
    * @throws {Error}
    *   Thrown for any store errors or invalid interest parameters.
    */
-  async score(interests, adjustInterest = false) {
+  async score(interests) {
     const userInterestVector = await this.getUserInterestVector();
     if (userInterestVector === null) {
       throw new Error("User interest vector not ready");
@@ -467,17 +437,6 @@ class RelevancyManager {
     // Copy it for mutation below.
     let newInterests = [...interests];
 
-    // UniFFI currently uses 1-based encoding for enums regardless of how
-    // it's defined upstream. Manually adjust that until that off-by-1
-    // handling gets fixed in the future.
-    //
-    // `INCONCLUSIVE` should be 0 as defined by upstream. If not, convert the
-    // interest values via the conversion lookup table.
-    if (lazy.Interest.INCONCLUSIVE !== 0 && adjustInterest) {
-      newInterests = newInterests.map(
-        item => lazy.SerpCategoriesToInterestEnum.get(item) || item
-      );
-    }
     // `INCONCLUSIVE` is excluded from scoring.
     newInterests = newInterests.filter(
       item => item !== lazy.Interest.INCONCLUSIVE
@@ -529,7 +488,7 @@ class RelevancyManager {
 }
 
 /**
- * Holds the RustRelevancyStore and handles enabling/disabling it.
+ * Holds the RustRelevancyStore and handles enabling/disabling it.P
  */
 class RustRelevancyStoreManager {
   constructor(path, rustRelevancyStore = undefined) {

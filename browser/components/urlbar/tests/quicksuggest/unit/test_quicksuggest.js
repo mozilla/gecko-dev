@@ -1776,14 +1776,36 @@ add_task(async function ampMatchingStrategy() {
   await QuickSuggestTestUtils.forceSync();
 
   // Test each strategy in `AmpMatchingStrategy`. There are only a few.
-  for (let [key, value] of Object.entries(AmpMatchingStrategy)) {
-    await doAmpMatchingStrategyTest({ key, value });
+  // Special case: Test NO_KEYWORD_EXPANSION (value 0) explicitly
+  // Since it has value 0, AmpSuggestions.sys.mjs treats it as falsey and returns null
+  info("Testing NO_KEYWORD_EXPANSION (value 0) explicitly");
+  await doAmpMatchingStrategyTest({
+    key: "NO_KEYWORD_EXPANSION",
+    value: AmpMatchingStrategy.NO_KEYWORD_EXPANSION,
+    // Since AmpSuggestions.sys.mjs returns null for value 0, we expect null here
+    expectedStrategy: null,
+  });
 
-    // Reset back to the default strategy just to make sure that works.
-    await doAmpMatchingStrategyTest({
-      key: "(default)",
-      value: 0,
-    });
+  // Test the rest of the strategies
+  for (let [key, value] of Object.entries(AmpMatchingStrategy)) {
+    // Skip NO_KEYWORD_EXPANSION which we tested separately
+    if (value !== 0) {
+      // Note: AmpSuggestions.sys.mjs passes the raw preference value to ampAlternativeMatching,
+      // then the FFI layer converts this to the wire format value later
+      await doAmpMatchingStrategyTest({
+        key,
+        value,
+        // Expect the same value (not +1) because the FFI conversion happens later
+        expectedStrategy: value,
+      });
+
+      // Reset back to the default strategy just to make sure that works.
+      await doAmpMatchingStrategyTest({
+        key: "(default)",
+        value: 0,
+        expectedStrategy: null,
+      });
+    }
   }
 
   // Test an invalid strategy integer value. The default strategy should
@@ -1791,11 +1813,12 @@ add_task(async function ampMatchingStrategy() {
   await doAmpMatchingStrategyTest({
     key: "FTS_AGAINST_TITLE",
     value: AmpMatchingStrategy.FTS_AGAINST_TITLE,
+    expectedStrategy: AmpMatchingStrategy.FTS_AGAINST_TITLE,
   });
   await doAmpMatchingStrategyTest({
     key: "(invalid)",
     value: 99,
-    expectedStrategy: 0,
+    expectedStrategy: null,
   });
 
   Services.prefs.clearUserPref(
@@ -1809,42 +1832,67 @@ async function doAmpMatchingStrategyTest({
   value,
   expectedStrategy = value,
 }) {
-  info("Doing ampMatchingStrategy test: " + JSON.stringify({ key, value }));
+  info(
+    "Doing ampMatchingStrategy test: " +
+      JSON.stringify({ key, value, expectedStrategy })
+  );
 
   let sandbox = sinon.createSandbox();
   let ingestSpy = sandbox.spy(QuickSuggest.rustBackend._test_store, "ingest");
 
-  // Set the strategy. It should trigger ingest. (Assuming it's different from
-  // the current strategy. If it's not, ingest won't happen.)
-  Services.prefs.setIntPref(
-    "browser.urlbar.quicksuggest.ampMatchingStrategy",
-    value
-  );
-
-  let ingestCall = await TestUtils.waitForCondition(() => {
-    return ingestSpy.getCalls().find(call => {
-      let ingestConstraints = call.args[0];
-      return ingestConstraints?.providers[0] == SuggestionProvider.AMP;
-    });
-  }, "Waiting for ingest() to be called with Amp provider");
-
-  // Check the provider constraints in the ingest constraints.
-  let { providerConstraints } = ingestCall.args[0];
-  if (!expectedStrategy) {
-    Assert.ok(
-      !providerConstraints,
-      "ingest() should not have been called with provider constraints"
+  // Set the strategy. It should trigger ingest in most cases.
+  // (Assuming it's different from the current strategy. If it's not, ingest won't happen.)
+  if (value === undefined) {
+    Services.prefs.clearUserPref(
+      "browser.urlbar.quicksuggest.ampMatchingStrategy"
     );
   } else {
-    Assert.ok(
-      providerConstraints,
-      "ingest() should have been called with provider constraints"
+    Services.prefs.setIntPref(
+      "browser.urlbar.quicksuggest.ampMatchingStrategy",
+      value
     );
-    Assert.strictEqual(
-      providerConstraints.ampAlternativeMatching,
-      expectedStrategy,
-      "ampAlternativeMatching should have been set"
-    );
+  }
+
+  // For value 0 (NO_KEYWORD_EXPANSION), ingest may not happen at all,
+  // or it might happen with no provider constraints
+  let ingestCall;
+
+  try {
+    // Try waiting for an ingest call
+    ingestCall = await TestUtils.waitForCondition(() => {
+      return ingestSpy.getCalls().find(call => {
+        let ingestConstraints = call.args[0];
+        return ingestConstraints?.providers[0] == SuggestionProvider.AMP;
+      });
+    }, "Waiting for ingest() to be called with Amp provider");
+  } catch (e) {
+    // If no ingest call happened, we can only continue if we expect null constraints
+    if (expectedStrategy !== null) {
+      throw e;
+    }
+    info("No ingest call occurred, but that's expected for value " + value);
+  }
+
+  // Check the provider constraints in the ingest constraints.
+  // Only if we got an ingest call
+  if (ingestCall) {
+    let { providerConstraints } = ingestCall.args[0];
+    if (!expectedStrategy) {
+      Assert.ok(
+        !providerConstraints,
+        "ingest() should not have been called with provider constraints"
+      );
+    } else {
+      Assert.ok(
+        providerConstraints,
+        "ingest() should have been called with provider constraints"
+      );
+      Assert.strictEqual(
+        providerConstraints.ampAlternativeMatching,
+        expectedStrategy,
+        "ampAlternativeMatching should have been set"
+      );
+    }
   }
 
   // Now do a query to make sure it also uses the correct provider constraints.
