@@ -60,8 +60,12 @@ WebDriver BiDi
 --------------
 
 `The WebDriver BiDi specification <https://w3c.github.io/webdriver-bidi>`_
-extends WebDriver HTTP to add bidirectional communication. Dedicated
-documentation will be added as the Firefox implementation makes progress.
+extends WebDriver HTTP to add bidirectional communication.
+
+.. toctree::
+  :maxdepth: 1
+
+  webdriver-bidi/Extensions.md
 
 Architecture
 ============
