@@ -10,7 +10,6 @@
     <ID>OutdatedDocumentation:AppState.kt$Screen$Locked : Screen</ID>
     <ID>OutdatedDocumentation:DefaultTopSitesStorage.kt$DefaultTopSitesStorage : TopSitesStorageObservable</ID>
     <ID>OutdatedDocumentation:FocusDialog.kt$@Suppress("LongParameterList") @Composable fun FocusDialog( dialogTitle: String, dialogTextComposable: @Composable (() -&gt; Unit)? = null, dialogText: String = "", onConfirmRequest: () -&gt; Unit, onDismissRequest: () -&gt; Unit, confirmButtonText: String = "null", dismissButtonText: String = "null", isConfirmButtonEnabled: Boolean = true, isDismissButtonEnabled: Boolean = true, isConfirmButtonVisible: Boolean = true, isDismissButtonVisible: Boolean = true, )</ID>
-    <ID>OutdatedDocumentation:HtmlLoader.kt$HtmlLoader$fun loadResourceFile( context: Context, @RawRes resourceID: Int, substitutionTable: Map&lt;String, String&gt;, ): String</ID>
     <ID>OutdatedDocumentation:Language.kt$Language</ID>
     <ID>OutdatedDocumentation:LanguageListItem.kt$LanguageListItem</ID>
     <ID>OutdatedDocumentation:LanguageStorage.kt$LanguageStorage$fun saveCurrentLanguageInSharePref(languageTag: String)</ID>
@@ -105,7 +104,6 @@
     <ID>UndocumentedPublicClass:LearnMoreSwitchPreference.kt$LearnMoreSwitchPreference : SwitchPreferenceCompat</ID>
     <ID>UndocumentedPublicClass:LocaleDescriptor.kt$LocaleDescriptor : Comparable</ID>
     <ID>UndocumentedPublicClass:LocaleDescriptor.kt$LocaleDescriptor$Companion</ID>
-    <ID>UndocumentedPublicClass:LocaleManager.kt$LocaleManager$Companion</ID>
     <ID>UndocumentedPublicClass:LocalizedContent.kt$LocalizedContent</ID>
     <ID>UndocumentedPublicClass:MainActivity.kt$MainActivity : LocaleAwareAppCompatActivity</ID>
     <ID>UndocumentedPublicClass:MainActivity.kt$MainActivity$AppOpenType</ID>
@@ -116,7 +114,6 @@
     <ID>UndocumentedPublicClass:ManualAddSearchEngineSettingsFragment.kt$ManualAddSearchEngineSettingsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:MozillaPreference.kt$MozillaPreference : Preference</ID>
     <ID>UndocumentedPublicClass:MozillaSettingsFragment.kt$MozillaSettingsFragment : BaseSettingsFragment</ID>
-    <ID>UndocumentedPublicClass:MozillaSettingsFragment.kt$MozillaSettingsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:MultiselectSearchEngineListPreference.kt$MultiselectSearchEngineListPreference : SearchEngineListPreference</ID>
     <ID>UndocumentedPublicClass:NavigationButtonsIntegration.kt$NavigationButtonsIntegration : LifecycleAwareFeature</ID>
     <ID>UndocumentedPublicClass:OnboardingController.kt$DefaultOnboardingController : OnboardingController</ID>
@@ -132,17 +129,14 @@
     <ID>UndocumentedPublicClass:PreferenceSwitch.kt$PreferenceSwitch : SwitchCompat</ID>
     <ID>UndocumentedPublicClass:PreferenceToolTipCompose.kt$PreferenceToolTipCompose : Preference</ID>
     <ID>UndocumentedPublicClass:PrivacySecuritySettingsFragment.kt$PrivacySecuritySettingsFragment : BaseSettingsFragmentOnSharedPreferenceChangeListener</ID>
-    <ID>UndocumentedPublicClass:PrivacySecuritySettingsFragment.kt$PrivacySecuritySettingsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:ProfilerMarkerFactProcessor.kt$ProfilerMarkerFactProcessor$Companion</ID>
     <ID>UndocumentedPublicClass:RadioButtonPreference.kt$GroupableRadioButton</ID>
     <ID>UndocumentedPublicClass:RadioButtonPreference.kt$RadioButtonPreference : PreferenceGroupableRadioButton</ID>
     <ID>UndocumentedPublicClass:RadioButtonPreference.kt$RadioButtonPreference$Companion</ID>
     <ID>UndocumentedPublicClass:RadioSearchEngineListPreference.kt$RadioSearchEngineListPreference : SearchEngineListPreferenceOnCheckedChangeListener</ID>
     <ID>UndocumentedPublicClass:RemoveSearchEnginesSettingsFragment.kt$RemoveSearchEnginesSettingsFragment : BaseSettingsFragment</ID>
-    <ID>UndocumentedPublicClass:RemoveSearchEnginesSettingsFragment.kt$RemoveSearchEnginesSettingsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:SearchEngineListPreference.kt$SearchEngineListPreference : PreferenceCoroutineScope</ID>
     <ID>UndocumentedPublicClass:SearchSettingsFragment.kt$SearchSettingsFragment : BaseSettingsFragmentOnSharedPreferenceChangeListener</ID>
-    <ID>UndocumentedPublicClass:SearchSettingsFragment.kt$SearchSettingsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:SearchSuggestionsFragment.kt$SearchSuggestionsFragment : FragmentCoroutineScope</ID>
     <ID>UndocumentedPublicClass:SearchSuggestionsFragment.kt$SearchSuggestionsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:SearchSuggestionsPreferences.kt$SearchSuggestionsPreferences</ID>
@@ -161,7 +155,6 @@
     <ID>UndocumentedPublicClass:SessionNotificationService.kt$SessionNotificationService$Companion</ID>
     <ID>UndocumentedPublicClass:Settings.kt$Settings$Companion</ID>
     <ID>UndocumentedPublicClass:SettingsFragment.kt$SettingsFragment : BaseSettingsFragment</ID>
-    <ID>UndocumentedPublicClass:SettingsFragment.kt$SettingsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:SitePermission.kt$SitePermission : Parcelable</ID>
     <ID>UndocumentedPublicClass:SitePermissionOption.kt$AutoplayOption</ID>
     <ID>UndocumentedPublicClass:SitePermissionOption.kt$AutoplayOption$AllowAudioVideo : SitePermissionOption</ID>
@@ -211,7 +204,6 @@
     <ID>UndocumentedPublicClass:TabViewHolder.kt$TabViewHolder : ViewHolder</ID>
     <ID>UndocumentedPublicClass:TabsPopup.kt$TabsPopup : PopupWindow</ID>
     <ID>UndocumentedPublicClass:TelemetryMiddleware.kt$TelemetryMiddleware : Middleware</ID>
-    <ID>UndocumentedPublicClass:TelemetryMiddleware.kt$TelemetryMiddleware$Companion</ID>
     <ID>UndocumentedPublicClass:TextActionActivity.kt$TextActionActivity$Companion</ID>
     <ID>UndocumentedPublicClass:ToolbarMenu.kt$ToolbarMenu</ID>
     <ID>UndocumentedPublicClass:ToolbarMenu.kt$ToolbarMenu$CustomTabItem</ID>
@@ -244,7 +236,6 @@
     <ID>UndocumentedPublicClass:VisibilityLifeCycleCallback.kt$VisibilityLifeCycleCallback$Companion</ID>
     <ID>UndocumentedPublicClass:VoiceSearchActivity.kt$VoiceSearchActivity : BaseVoiceSearchActivity</ID>
     <ID>UndocumentedPublicFunction:AddToHomescreenDialogFragment.kt$AddToHomescreenDialogFragment.Companion$fun newInstance( url: String, title: String, blockingEnabled: Boolean, requestDesktop: Boolean, ): AddToHomescreenDialogFragment</ID>
-    <ID>UndocumentedPublicFunction:AdvancedSettingsFragment.kt$AdvancedSettingsFragment.Companion$fun newInstance(): AdvancedSettingsFragment</ID>
     <ID>UndocumentedPublicFunction:AutocompleteDomainFormatter.kt$AutocompleteDomainFormatter$fun format(url: String): String</ID>
     <ID>UndocumentedPublicFunction:AutocompleteListFragment.kt$AutocompleteListFragment.DomainListAdapter$fun move(from: Int, to: Int)</ID>
     <ID>UndocumentedPublicFunction:AutocompleteListFragment.kt$AutocompleteListFragment.DomainListAdapter$fun refresh(context: Context, body: (() -&gt; Unit)? = null)</ID>
@@ -304,7 +295,6 @@
     <ID>UndocumentedPublicFunction:ManualAddSearchEnginePreference.kt$ManualAddSearchEnginePreference$fun validateEngineNameAndShowError(engineName: String, existingEngines: List&lt;SearchEngine&gt;): Boolean</ID>
     <ID>UndocumentedPublicFunction:ManualAddSearchEnginePreference.kt$ManualAddSearchEnginePreference$fun validateSearchQueryAndShowError(searchQuery: String): Boolean</ID>
     <ID>UndocumentedPublicFunction:ManualAddSearchEngineSettingsFragment.kt$ManualAddSearchEngineSettingsFragment.Companion$@WorkerThread @JvmStatic fun isValidSearchQueryURL(client: Client, query: String): Boolean</ID>
-    <ID>UndocumentedPublicFunction:MozillaSettingsFragment.kt$MozillaSettingsFragment.Companion$fun newInstance(): MozillaSettingsFragment</ID>
     <ID>UndocumentedPublicFunction:MultiselectSearchEngineListPreference.kt$MultiselectSearchEngineListPreference$fun atLeastOneEngineChecked(): Boolean</ID>
     <ID>UndocumentedPublicFunction:NimbusSetup.kt$fun getNimbusAppName(): String</ID>
     <ID>UndocumentedPublicFunction:OnboardingController.kt$OnboardingController$fun handleActivityResultImplementation(activityResult: ActivityResult)</ID>
@@ -317,7 +307,6 @@
     <ID>UndocumentedPublicFunction:OnboardingInteractor.kt$OnboardingInteractor$fun onMakeFocusDefaultBrowserButtonClicked(activityResultLauncher: ActivityResultLauncher&lt;Intent&gt;)</ID>
     <ID>UndocumentedPublicFunction:Performance.kt$Performance$fun processIntentIfPerformanceTest(bundle: Bundle?, context: Context)</ID>
     <ID>UndocumentedPublicFunction:PreferenceSwitch.kt$PreferenceSwitch$fun onClickListener(listener: () -&gt; Unit)</ID>
-    <ID>UndocumentedPublicFunction:PrivacySecuritySettingsFragment.kt$PrivacySecuritySettingsFragment.Companion$fun newInstance(): PrivacySecuritySettingsFragment</ID>
     <ID>UndocumentedPublicFunction:ProfilerMarkerFactProcessor.kt$ProfilerMarkerFactProcessor.Companion$fun create(profilerProvider: () -&gt; Profiler?)</ID>
     <ID>UndocumentedPublicFunction:PromoteSearchWidgetDialogCompose.kt$@Suppress("LongMethod") @Composable fun PromoteSearchWidgetDialogCompose( onAddSearchWidgetButtonClick: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
     <ID>UndocumentedPublicFunction:RadioButtonPreference.kt$GroupableRadioButton$fun addToRadioGroup(radioButton: GroupableRadioButton)</ID>

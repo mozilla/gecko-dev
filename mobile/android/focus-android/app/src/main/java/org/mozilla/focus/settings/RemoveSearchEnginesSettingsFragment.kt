@@ -22,10 +22,6 @@ class RemoveSearchEnginesSettingsFragment : BaseSettingsFragment() {
         addPreferencesFromResource(R.xml.remove_search_engines)
     }
 
-    companion object {
-        fun newInstance() = RemoveSearchEnginesSettingsFragment()
-    }
-
     override fun onResume() {
         super.onResume()
 

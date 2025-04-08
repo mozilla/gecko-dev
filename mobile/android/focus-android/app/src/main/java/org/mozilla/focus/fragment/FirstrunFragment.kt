@@ -140,8 +140,6 @@ class FirstrunFragment : Fragment(), View.OnClickListener {
     }
 
     companion object {
-        const val FRAGMENT_TAG = "firstrun"
-
         fun create(): FirstrunFragment {
             val arguments = Bundle()
 

@@ -60,11 +60,4 @@ class SearchSettingsFragment :
                 )
         }
     }
-
-    companion object {
-
-        fun newInstance(): SearchSettingsFragment {
-            return SearchSettingsFragment()
-        }
-    }
 }

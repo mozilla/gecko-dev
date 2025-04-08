@@ -87,8 +87,4 @@ class MozillaSettingsFragment :
         }
         return super.onPreferenceTreeClick(preference)
     }
-
-    companion object {
-        fun newInstance(): MozillaSettingsFragment = MozillaSettingsFragment()
-    }
 }

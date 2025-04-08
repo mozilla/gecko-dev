@@ -3,11 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.focus.locale
 
-import android.content.Context
-import android.content.res.Configuration
-import android.content.res.Resources
-import mozilla.components.support.ktx.android.content.res.locale
-import org.mozilla.focus.locale.LocaleManager.Companion.instance
 import java.util.Locale
 
 /**
@@ -82,26 +77,5 @@ object Locales {
         }
 
         return Locale.forLanguageTag(localeCode)
-    }
-
-    /**
-     * Get a Resources instance with the currently selected locale applied.
-     */
-    fun getLocalizedResources(context: Context): Resources {
-        val currentResources = context.resources
-        val currentLocale: Locale? = instance.get()?.getCurrentLocale(context)
-        val viewLocale = currentResources.locale
-
-        if (currentLocale == null) {
-            return currentResources
-        }
-
-        if (currentLocale.toLanguageTag() == viewLocale.toLanguageTag()) {
-            return currentResources
-        }
-
-        val configuration = Configuration(currentResources.configuration)
-        configuration.setLocale(currentLocale)
-        return context.createConfigurationContext(configuration).resources
     }
 }

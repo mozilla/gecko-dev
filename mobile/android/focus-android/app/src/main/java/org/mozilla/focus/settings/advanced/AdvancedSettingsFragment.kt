@@ -70,11 +70,4 @@ class AdvancedSettingsFragment :
         }
         return super.onPreferenceTreeClick(preference)
     }
-
-    companion object {
-
-        fun newInstance(): AdvancedSettingsFragment {
-            return AdvancedSettingsFragment()
-        }
-    }
 }

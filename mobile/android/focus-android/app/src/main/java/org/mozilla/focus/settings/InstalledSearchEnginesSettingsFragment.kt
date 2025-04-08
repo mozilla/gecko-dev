@@ -30,7 +30,6 @@ class InstalledSearchEnginesSettingsFragment : BaseSettingsFragment() {
     }
 
     companion object {
-        fun newInstance() = InstalledSearchEnginesSettingsFragment()
         var languageChanged: Boolean = false
     }
 

@@ -255,12 +255,4 @@ class PrivacySecuritySettingsFragment :
             switch?.isEnabled = true
         }
     }
-
-    companion object {
-        const val FRAGMENT_TAG = "PrivacySecuritySettings"
-
-        fun newInstance(): PrivacySecuritySettingsFragment {
-            return PrivacySecuritySettingsFragment()
-        }
-    }
 }

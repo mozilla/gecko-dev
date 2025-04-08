@@ -10,7 +10,7 @@ import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import org.jetbrains.annotations.VisibleForTesting
 import org.mozilla.focus.R
-import org.mozilla.focus.locale.LocaleManager
+import org.mozilla.focus.generated.LocalesList
 
 class LanguageStorage(private val context: Context) {
     private val sharedPref: SharedPreferences =
@@ -79,7 +79,7 @@ class LanguageStorage(private val context: Context) {
      */
     @VisibleForTesting
     internal fun getUsableLocales(): Array<LocaleDescriptor?> {
-        return LocaleManager.packagedLocaleTags.map {
+        return LocalesList.BUNDLED_LOCALES.map {
             LocaleDescriptor(it)
         }.sorted().toTypedArray()
     }

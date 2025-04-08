@@ -41,10 +41,4 @@ class SettingsFragment : BaseSettingsFragment() {
 
         return super.onPreferenceTreeClick(preference)
     }
-
-    companion object {
-        fun newInstance(): SettingsFragment {
-            return SettingsFragment()
-        }
-    }
 }
