@@ -165,7 +165,7 @@ add_task(async function () {
 
   await teardown(monitor);
 
-  function testResponseTab(type) {
+  async function testResponseTab(type) {
     const tabpanel = document.querySelector("#response-panel");
 
     function checkVisibility(box) {
@@ -271,7 +271,10 @@ add_task(async function () {
       case "html": {
         checkVisibility("html");
 
-        const text = document.querySelector(".html-preview iframe").src;
+        const browser = document.querySelector(".html-preview browser");
+        await BrowserTestUtils.browserLoaded(browser);
+
+        const text = browser.currentURI.spec;
         const expectedText =
           "data:text/html;charset=UTF-8," +
           encodeURIComponent("<blink>Not Found</blink>");
@@ -279,7 +282,7 @@ add_task(async function () {
         is(
           text,
           expectedText,
-          "The text shown in the iframe is incorrect for the html request."
+          "The text shown in the browser is incorrect for the html request."
         );
         break;
       }

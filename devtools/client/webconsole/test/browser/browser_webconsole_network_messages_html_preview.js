@@ -134,41 +134,27 @@ async function expandNetworkRequestAndWaitForHtmlView({
   await onPayloadReady;
   node.querySelector("#response-tab").click();
 
-  info("Wait for the iframe to be rendered and loaded");
-  const iframe = await waitFor(() =>
-    node.querySelector("#response-panel .html-preview iframe")
+  info("Wait for the browser to be rendered and loaded");
+  const browser = await waitFor(() =>
+    node.querySelector("#response-panel .html-preview browser")
   );
 
-  // <xul:iframe type=content remote=true> don't emit "load" event.
-  // And SpecialPowsers.spawn throws if kept running during a page load.
-  // So poll for the end of the iframe load...
-  await waitFor(async () => {
-    // Note that if spawn executes early, the iframe may not yet be loading
-    // and would throw for the reason mentioned in previous comment.
-    try {
-      const rv = await SpecialPowers.spawn(iframe.browsingContext, [], () => {
-        return content.document.readyState == "complete";
-      });
-      return rv;
-    } catch (e) {
-      return false;
-    }
-  });
+  await BrowserTestUtils.browserLoaded(browser);
 
   is(
-    iframe.browsingContext.currentWindowGlobal.isInProcess,
+    browser.browsingContext.currentWindowGlobal.isInProcess,
     false,
     "The preview is loaded in a content process"
   );
 
   await SpecialPowers.spawn(
-    iframe.browsingContext,
+    browser.browsingContext,
     [expectedHtml],
     async function (_expectedHtml) {
       is(
         content.document.documentElement.outerHTML,
         _expectedHtml,
-        "iframe has the expected HTML"
+        "browser has the expected HTML"
       );
     }
   );

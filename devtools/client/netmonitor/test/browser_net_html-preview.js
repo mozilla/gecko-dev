@@ -37,6 +37,10 @@ const FETCH_CONTENT_4 = addBaseHtmlElements(`
   <a href="#" id="link1">link1</a>
   <a href="#" id="link2">link2</a>
 `);
+// This fifth page asserts that we apply inline styles
+const FETCH_CONTENT_5 = addBaseHtmlElements(`
+  <p style="color: red;">Hello World</p>
+`);
 
 // Use fetch in order to prevent actually running this code in the test page
 const TEST_HTML = addBaseHtmlElements(`<div id="to-copy">HTML</div><script>
@@ -44,6 +48,7 @@ const TEST_HTML = addBaseHtmlElements(`<div id="to-copy">HTML</div><script>
   fetch("${BASE_URL}fetch-2.html");
   fetch("${BASE_URL}fetch-3.html");
   fetch("${BASE_URL}fetch-4.html");
+  fetch("${BASE_URL}fetch-5.html");
 </script>`);
 const TEST_URL = BASE_URL + "doc-html-preview.html";
 
@@ -69,6 +74,10 @@ httpServer.registerPathHandler("/fetch-3.html", (request, response) => {
 httpServer.registerPathHandler("/fetch-4.html", (request, response) => {
   response.setStatusLine(request.httpVersion, 200, "OK");
   response.write(FETCH_CONTENT_4);
+});
+httpServer.registerPathHandler("/fetch-5.html", (request, response) => {
+  response.setStatusLine(request.httpVersion, 200, "OK");
+  response.write(FETCH_CONTENT_5);
 });
 httpServer.registerPathHandler("/redirect.html", (request, response) => {
   response.setStatusLine(request.httpVersion, 200, "OK");
@@ -98,6 +107,7 @@ add_task(async function () {
   await selectIndexAndWaitForHtmlView(2, FETCH_CONTENT_2);
   await selectIndexAndWaitForHtmlView(3, FETCH_CONTENT_3);
   await selectIndexAndWaitForHtmlView(4, FETCH_CONTENT_4);
+  await selectIndexAndWaitForHtmlView(5, FETCH_CONTENT_5);
 
   await teardown(monitor);
 
@@ -108,56 +118,53 @@ add_task(async function () {
     );
     store.dispatch(Actions.selectRequestByIndex(index));
 
-    info("Open the Response tab");
     document.querySelector("#response-tab").click();
 
-    const [iframe] = await waitForDOM(
+    const [browser] = await waitForDOM(
       document,
-      "#response-panel .html-preview iframe"
+      "#response-panel .html-preview browser"
     );
 
-    // <xul:iframe type=content remote=true> don't emit "load" event.
-    // And SpecialPowsers.spawn throws if kept running during a page load.
-    // So poll for the end of the iframe load...
-    await waitFor(async () => {
-      // Note that if spawn executes early, the iframe may not yet be loading
-      // and would throw for the reason mentioned in previous comment.
-      try {
-        const rv = await SpecialPowers.spawn(iframe.browsingContext, [], () => {
-          return content.document.readyState == "complete";
-        });
-        return rv;
-      } catch (e) {
-        return false;
-      }
-    });
+    await BrowserTestUtils.browserLoaded(browser);
 
     info("Wait for response content to be loaded");
     await onResponseContent;
 
     is(
-      iframe.browsingContext.currentWindowGlobal.isInProcess,
+      browser.browsingContext.currentWindowGlobal.isInProcess,
       false,
       "The preview is loaded in a content process"
     );
 
     await SpecialPowers.spawn(
-      iframe.browsingContext,
+      browser.browsingContext,
       [expectedHtmlPreview],
       async function (expectedHtml) {
         is(
           content.document.documentElement.outerHTML,
           expectedHtml,
-          "The text shown in the iframe is incorrect for the html request."
+          "The text shown in the browser is incorrect for the html request."
         );
       }
     );
+
+    if (expectedHtmlPreview == FETCH_CONTENT_5) {
+      await SpecialPowers.spawn(browser.browsingContext, [], async function () {
+        const p = content.document.querySelector("p");
+        const computed = content.window.getComputedStyle(p);
+        is(
+          computed.getPropertyValue("color"),
+          "rgb(255, 0, 0)",
+          "The inline style was not applied"
+        );
+      });
+    }
 
     // Only assert copy to clipboard on the first test page
     if (expectedHtmlPreview == TEST_HTML) {
       await waitForClipboardPromise(async function () {
         await SpecialPowers.spawn(
-          iframe.browsingContext,
+          browser.browsingContext,
           [],
           async function () {
             const elt = content.document.getElementById("to-copy");
@@ -170,7 +177,5 @@ add_task(async function () {
         );
       }, "HTML");
     }
-
-    return iframe;
   }
 });
