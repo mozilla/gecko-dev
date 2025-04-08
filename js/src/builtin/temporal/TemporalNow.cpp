@@ -45,7 +45,7 @@ using namespace js::temporal;
 /**
  * SystemUTCEpochNanoseconds ( )
  */
-static bool SystemUTCEpochNanoseconds(JSContext* cx, EpochNanoseconds* result) {
+static int64_t SystemUTCEpochMilliseconds(JSContext* cx) {
   // Steps 1-2.
   JS::ClippedTime nowMillis = DateNow(cx);
   MOZ_ASSERT(nowMillis.isValid());
@@ -53,8 +53,14 @@ static bool SystemUTCEpochNanoseconds(JSContext* cx, EpochNanoseconds* result) {
   MOZ_ASSERT(nowMillis.toDouble() <= js::EndOfTime);
 
   // Step 3.
-  *result = EpochNanoseconds::fromMilliseconds(int64_t(nowMillis.toDouble()));
-  return true;
+  return int64_t(nowMillis.toDouble());
+}
+
+/**
+ * SystemUTCEpochNanoseconds ( )
+ */
+static EpochNanoseconds SystemUTCEpochNanoseconds(JSContext* cx) {
+  return EpochNanoseconds::fromMilliseconds(SystemUTCEpochMilliseconds(cx));
 }
 
 /**
@@ -69,20 +75,17 @@ static bool SystemDateTime(JSContext* cx, Handle<Value> temporalTimeZoneLike,
     // Step 2. (Not applicable)
 
     // Step 3.
-    EpochNanoseconds epochNs;
-    if (!SystemUTCEpochNanoseconds(cx, &epochNs)) {
-      return false;
-    }
+    int64_t epochMillis = SystemUTCEpochMilliseconds(cx);
 
     // Step 4.
-    int64_t epochMillis = epochNs.floorToMilliseconds();
     int32_t offsetMillis = DateTimeInfo::getOffsetMilliseconds(
         DateTimeInfo::forceUTC(cx->realm()), epochMillis,
         DateTimeInfo::TimeZoneOffset::UTC);
     MOZ_ASSERT(std::abs(offsetMillis) < ToMilliseconds(TemporalUnit::Day));
 
     *dateTime = GetISODateTimeFor(
-        epochNs, offsetMillis * ToNanoseconds(TemporalUnit::Millisecond));
+        EpochNanoseconds::fromMilliseconds(epochMillis),
+        offsetMillis * ToNanoseconds(TemporalUnit::Millisecond));
     return true;
   }
 
@@ -93,10 +96,7 @@ static bool SystemDateTime(JSContext* cx, Handle<Value> temporalTimeZoneLike,
   }
 
   // Step 3.
-  EpochNanoseconds epochNs;
-  if (!SystemUTCEpochNanoseconds(cx, &epochNs)) {
-    return false;
-  }
+  auto epochNs = SystemUTCEpochNanoseconds(cx);
 
   // Step 4.
   return GetISODateTimeFor(cx, timeZone, epochNs, dateTime);
@@ -125,10 +125,7 @@ static bool Temporal_Now_instant(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1.
-  EpochNanoseconds epochNs;
-  if (!SystemUTCEpochNanoseconds(cx, &epochNs)) {
-    return false;
-  }
+  auto epochNs = SystemUTCEpochNanoseconds(cx);
 
   // Step 2.
   auto* result = CreateTemporalInstant(cx, epochNs);
@@ -184,10 +181,7 @@ static bool Temporal_Now_zonedDateTimeISO(JSContext* cx, unsigned argc,
   }
 
   // Step 3.
-  EpochNanoseconds epochNs;
-  if (!SystemUTCEpochNanoseconds(cx, &epochNs)) {
-    return false;
-  }
+  auto epochNs = SystemUTCEpochNanoseconds(cx);
 
   // Step 4.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
