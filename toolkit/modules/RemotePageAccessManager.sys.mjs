@@ -58,7 +58,6 @@ export let RemotePageAccessManager = {
       RPMGetAppBuildID: ["*"],
       RPMGetInnerMostURI: ["*"],
       RPMIsWindowPrivate: ["*"],
-      RPMAddToHistogram: ["*"],
     },
     "about:home": {
       RPMSendAsyncMessage: ["ActivityStream:ContentToMain"],
@@ -99,7 +98,6 @@ export let RemotePageAccessManager = {
         "security.certerror.hideAddException",
         "security.certerrors.felt-privacy-v1",
       ],
-      RPMAddToHistogram: ["*"],
       RPMGetInnerMostURI: ["*"],
       RPMGetHttpResponseHeader: ["*"],
       RPMIsTRROnlyFailure: ["*"],

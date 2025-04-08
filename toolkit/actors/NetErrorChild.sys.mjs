@@ -20,7 +20,6 @@ export class NetErrorChild extends RemotePageChild {
     const exportableFunctions = [
       "RPMGetAppBuildID",
       "RPMGetInnerMostURI",
-      "RPMAddToHistogram",
       "RPMRecordGleanEvent",
       "RPMCheckAlternateHostAvailable",
       "RPMGetHttpResponseHeader",
@@ -76,10 +75,6 @@ export class NetErrorChild extends RemotePageChild {
 
   RPMGetAppBuildID() {
     return Services.appinfo.appBuildID;
-  }
-
-  RPMAddToHistogram(histID, bin) {
-    Services.telemetry.getHistogramById(histID).add(bin);
   }
 
   RPMRecordGleanEvent(category, name, extra) {

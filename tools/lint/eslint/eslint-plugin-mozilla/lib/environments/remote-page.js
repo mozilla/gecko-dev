@@ -28,7 +28,6 @@ module.exports = {
     RPMAddMessageListener: false,
     RPMRecordGleanEvent: false,
     RPMCheckAlternateHostAvailable: false,
-    RPMAddToHistogram: false,
     RPMRemoveMessageListener: false,
     RPMGetHttpResponseHeader: false,
     RPMTryPingSecureWWWLink: false,
