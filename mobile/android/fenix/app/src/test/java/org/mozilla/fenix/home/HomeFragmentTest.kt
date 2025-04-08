@@ -8,7 +8,6 @@ import android.content.Context
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
-import io.mockk.verify
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SearchState
@@ -102,18 +101,6 @@ class HomeFragmentTest {
         }
         assertTrue(filteredProvidedSites.containsAll(listOf(amazonTopSite, firefoxTopSite)))
         assertFalse(filteredProvidedSites.contains(eBayTopSite))
-    }
-
-    @Test
-    fun `WHEN configuration changed THEN menu is dismissed`() {
-        val homeMenuView: HomeMenuView = mockk(relaxed = true)
-        val toolbarView = ToolbarView(mockk(), mockk(), homeFragment, mockk())
-        toolbarView.homeMenuView = homeMenuView
-        homeFragment.toolbarView = toolbarView
-
-        homeFragment.onConfigurationChanged(mockk(relaxed = true))
-
-        verify(exactly = 1) { homeMenuView.dismissMenu() }
     }
 
     fun `GIVEN the user is in normal mode WHEN checking if should enable wallpaper THEN return true`() {

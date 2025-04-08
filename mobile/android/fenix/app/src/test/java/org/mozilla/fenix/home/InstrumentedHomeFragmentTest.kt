@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.home
 
+import android.content.Context
 import android.view.LayoutInflater
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.LifecycleOwner
@@ -24,6 +25,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.databinding.FragmentHomeBinding
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.HomeFragment.Companion.TOAST_ELEVATION
 import org.mozilla.fenix.utils.Settings
@@ -32,10 +34,27 @@ import org.mozilla.fenix.utils.allowUndo
 @RunWith(FenixRobolectricTestRunner::class)
 class InstrumentedHomeFragmentTest {
     val homeFragment = spyk(HomeFragment())
-    val settings = mockk<Settings>()
+
+    @Test
+    fun `WHEN configuration changed THEN menu is dismissed`() {
+        val context: Context = mockk(relaxed = true)
+        every { homeFragment.context } answers { context }
+        every { context.components.settings } answers { mockk(relaxed = true) }
+        val homeMenuView: HomeMenuView = mockk(relaxed = true)
+        val homeBinding = FragmentHomeBinding.inflate(LayoutInflater.from(testContext))
+        val toolbarView = ToolbarView(homeBinding, mockk(), homeFragment, mockk())
+        toolbarView.homeMenuView = homeMenuView
+        homeFragment.toolbarView = toolbarView
+
+        homeFragment.onConfigurationChanged(mockk(relaxed = true))
+
+        verify(exactly = 1) { homeMenuView.dismissMenu() }
+    }
 
     @Test
     fun `WHEN a pinned top is removed THEN show the undo snackbar`() {
+        val settings = mockk<Settings>()
+
         try {
             val topSite = TopSite.Default(
                 id = 1L,

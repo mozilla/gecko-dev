@@ -5,9 +5,12 @@
 package org.mozilla.fenix.home
 
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.ui.platform.ComposeView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -23,24 +26,34 @@ import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.databinding.FragmentHomeBinding
+import org.mozilla.fenix.databinding.FragmentHomeToolbarViewLayoutBinding
 import org.mozilla.fenix.ext.increaseTapAreaVertically
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.toolbar.ToolbarInteractor
+import org.mozilla.fenix.search.toolbar.SearchSelector
 import org.mozilla.fenix.utils.ToolbarPopupWindow
 import java.lang.ref.WeakReference
 
 /**
  * View class for setting up the home screen toolbar.
  */
-class ToolbarView(
-    private val binding: FragmentHomeBinding,
+internal class ToolbarView(
+    private val homeBinding: FragmentHomeBinding,
     private val interactor: ToolbarInteractor,
     private val homeFragment: HomeFragment,
     private val homeActivity: HomeActivity,
-) {
-
+) : FenixHomeToolbar {
     private var context = homeFragment.requireContext()
+
+    override val layout: View = homeBinding.toolbarLayoutStub.inflate()
+    private val toolbarBinding = FragmentHomeToolbarViewLayoutBinding.bind(layout)
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val menuButton = toolbarBinding.menuButton
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val tabButton = toolbarBinding.tabButton
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var tabCounterView: TabCounterView? = null
@@ -53,23 +66,21 @@ class ToolbarView(
         updateMargins()
     }
 
-    /**
-     * Setups the home screen toolbar.
-     *
-     * @param browserState [BrowserState] is used to update button visibility.
-     */
-    fun build(browserState: BrowserState) {
-        binding.toolbar.compoundDrawablePadding =
+    override fun build(browserState: BrowserState) {
+        initLayoutParameters()
+        updateMargins()
+
+        toolbarBinding.toolbarText.compoundDrawablePadding =
             context.resources.getDimensionPixelSize(R.dimen.search_bar_search_engine_icon_padding)
 
-        binding.toolbarWrapper.setOnClickListener {
+        toolbarBinding.toolbarWrapper.setOnClickListener {
             interactor.onNavigateSearch()
         }
 
-        binding.toolbarWrapper.setOnLongClickListener {
+        toolbarBinding.toolbarWrapper.setOnLongClickListener {
             ToolbarPopupWindow.show(
                 WeakReference(it),
-                WeakReference(binding.dynamicSnackbarContainer),
+                WeakReference(homeBinding.dynamicSnackbarContainer),
                 handlePasteAndGo = interactor::onPasteAndGo,
                 handlePaste = interactor::onPaste,
                 copyVisible = false,
@@ -77,22 +88,18 @@ class ToolbarView(
             true
         }
 
-        binding.toolbarWrapper.increaseTapAreaVertically(TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS)
+        toolbarBinding.toolbarWrapper.increaseTapAreaVertically(
+            TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS,
+        )
 
         updateButtonVisibility(browserState, context.shouldAddNavigationBar())
     }
 
-    /**
-     * Updates the visibility of the tab counter and menu buttons.
-     *
-     * @param browserState [BrowserState] is used to update tab counter's state.
-     * @param shouldAddNavigationBar [Boolean] is used to update menu button's and tab counter's state.
-     */
-    fun updateButtonVisibility(browserState: BrowserState, shouldAddNavigationBar: Boolean) {
+    override fun updateButtonVisibility(browserState: BrowserState, shouldAddNavigationBar: Boolean) {
         val showMenu = !shouldAddNavigationBar
         val showTabCounter = !(shouldAddNavigationBar || context.isTabStripEnabled())
-        binding.menuButton.isVisible = showMenu
-        binding.tabButton.isVisible = showTabCounter
+        toolbarBinding.menuButton.isVisible = showMenu
+        toolbarBinding.tabButton.isVisible = showTabCounter
 
         tabCounterView = if (showTabCounter) {
             buildTabCounter().also {
@@ -109,25 +116,6 @@ class ToolbarView(
         }
     }
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun buildHomeMenu() = HomeMenuView(
-        context = context,
-        lifecycleOwner = homeFragment.viewLifecycleOwner,
-        homeActivity = homeActivity,
-        navController = homeFragment.findNavController(),
-        homeFragment = homeFragment,
-        menuButton = WeakReference(binding.menuButton),
-    ).also { it.build() }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun buildTabCounter() = TabCounterView(
-        context = context,
-        browsingModeManager = homeActivity.browsingModeManager,
-        navController = homeFragment.findNavController(),
-        tabCounter = binding.tabButton,
-        showLongPressMenu = !(context.settings().navigationToolbarEnabled && context.isLargeWindow()),
-    )
-
     /**
      * Dismisses the home menu.
      */
@@ -136,18 +124,59 @@ class ToolbarView(
     }
 
     /**
-     * Updates the tab counter view based on the current browser state.
+     * Configure the tab strip [ComposeView].
      *
-     * @param browserState [BrowserState] is passed down to tab counter view to calculate the view state.
+     * @param block Configuration block for the tab strip [ComposeView].
      */
-    fun updateTabCounter(browserState: BrowserState) {
+    fun configureTabStripView(block: ComposeView.() -> Unit) = block(toolbarBinding.tabStripView)
+
+    /**
+     * Configure the search selector.
+     *
+     * @param block Configuration block for the search selector.
+     */
+    fun configureSearchSelector(block: SearchSelector.() -> Unit) = block(toolbarBinding.searchSelectorButton)
+
+    /**
+     * Updates the background of the toolbar.
+     *
+     * @param id The resource ID of the drawable to use as the background.
+     */
+    fun updateBackground(@DrawableRes id: Int) {
+        toolbarBinding.toolbar.setBackgroundResource(id)
+    }
+
+    override fun updateTabCounter(browserState: BrowserState) {
         tabCounterView?.update(browserState)
     }
+
+    override fun updateDividerVisibility(isVisible: Boolean) {
+        toolbarBinding.toolbarDivider.isVisible = isVisible
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun buildHomeMenu() = HomeMenuView(
+        context = context,
+        lifecycleOwner = homeFragment.viewLifecycleOwner,
+        homeActivity = homeActivity,
+        navController = homeFragment.findNavController(),
+        homeFragment = homeFragment,
+        menuButton = WeakReference(toolbarBinding.menuButton),
+    ).also { it.build() }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun buildTabCounter() = TabCounterView(
+        context = context,
+        browsingModeManager = homeActivity.browsingModeManager,
+        navController = homeFragment.findNavController(),
+        tabCounter = toolbarBinding.tabButton,
+        showLongPressMenu = !(context.settings().navigationToolbarEnabled && context.isLargeWindow()),
+    )
 
     private fun initLayoutParameters() {
         when (context.settings().toolbarPosition) {
             ToolbarPosition.TOP -> {
-                binding.toolbarLayout.layoutParams = CoordinatorLayout.LayoutParams(
+                toolbarBinding.toolbarLayout.layoutParams = CoordinatorLayout.LayoutParams(
                     ConstraintLayout.LayoutParams.MATCH_PARENT,
                     ConstraintLayout.LayoutParams.WRAP_CONTENT,
                 ).apply {
@@ -156,46 +185,46 @@ class ToolbarView(
 
                 val isTabletAndTabStripEnabled = context.isTabStripEnabled()
                 ConstraintSet().apply {
-                    clone(binding.toolbarLayout)
-                    clear(binding.bottomBar.id, ConstraintSet.BOTTOM)
-                    clear(binding.bottomBarShadow.id, ConstraintSet.BOTTOM)
+                    clone(toolbarBinding.toolbarLayout)
+                    clear(toolbarBinding.toolbar.id, ConstraintSet.BOTTOM)
+                    clear(toolbarBinding.toolbarDivider.id, ConstraintSet.BOTTOM)
 
                     if (isTabletAndTabStripEnabled) {
                         connect(
-                            binding.bottomBar.id,
+                            toolbarBinding.toolbar.id,
                             ConstraintSet.TOP,
-                            binding.tabStripView.id,
+                            toolbarBinding.tabStripView.id,
                             ConstraintSet.BOTTOM,
                         )
                     } else {
                         connect(
-                            binding.bottomBar.id,
+                            toolbarBinding.toolbar.id,
                             ConstraintSet.TOP,
                             ConstraintSet.PARENT_ID,
                             ConstraintSet.TOP,
                         )
                     }
                     connect(
-                        binding.bottomBarShadow.id,
+                        toolbarBinding.toolbarDivider.id,
                         ConstraintSet.TOP,
-                        binding.bottomBar.id,
+                        toolbarBinding.toolbar.id,
                         ConstraintSet.BOTTOM,
                     )
                     connect(
-                        binding.bottomBarShadow.id,
+                        toolbarBinding.toolbarDivider.id,
                         ConstraintSet.BOTTOM,
                         ConstraintSet.PARENT_ID,
                         ConstraintSet.BOTTOM,
                     )
-                    applyTo(binding.toolbarLayout)
+                    applyTo(toolbarBinding.toolbarLayout)
                 }
 
-                binding.bottomBar.background = AppCompatResources.getDrawable(
+                toolbarBinding.toolbar.background = AppCompatResources.getDrawable(
                     context,
                     context.theme.resolveAttribute(R.attr.bottomBarBackgroundTop),
                 )
 
-                binding.homeAppBar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                homeBinding.homeAppBar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                     topMargin =
                         context.resources.getDimensionPixelSize(R.dimen.home_fragment_top_toolbar_header_margin) +
                         if (isTabletAndTabStripEnabled) {
@@ -219,7 +248,7 @@ class ToolbarView(
                 context.resources.getDimensionPixelSize(R.dimen.home_item_horizontal_margin)
             }
 
-            (binding.toolbarWrapper.layoutParams as ConstraintLayout.LayoutParams).apply {
+            (toolbarBinding.toolbarWrapper.layoutParams as ConstraintLayout.LayoutParams).apply {
                 this.marginStart = marginStart
                 this.marginEnd = marginEnd
             }

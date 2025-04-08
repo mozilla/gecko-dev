@@ -112,104 +112,14 @@
         tools:itemCount="3"
         app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"/>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/toolbarLayout"
-        android:elevation="5dp"
+    <ViewStub
+        android:id="@+id/toolbarLayoutStub"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        tools:context=".home.HomeFragment">
-
-        <androidx.compose.ui.platform.ComposeView
-            android:id="@+id/tabStripView"
-            android:layout_width="match_parent"
-            app:layout_constraintBottom_toTopOf="@id/bottom_bar"
-            app:layout_constraintTop_toTopOf="parent"
-            android:visibility="gone"
-            android:layout_height="@dimen/tab_strip_height" />
-
-        <View
-            android:id="@+id/bottom_bar"
-            android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:background="?bottomBarBackground"
-            android:foregroundGravity="bottom"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-        <LinearLayout
-            android:id="@+id/toolbar_wrapper"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="0dp"
-            android:background="@drawable/home_search_background"
-            android:clickable="true"
-            android:contentDescription="@string/search_hint"
-            android:focusable="true"
-            app:layout_constraintBottom_toBottomOf="@id/bottom_bar"
-            app:layout_constraintEnd_toStartOf="@+id/accessory_button_barrier"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@id/bottom_bar">
-
-            <org.mozilla.fenix.search.toolbar.SearchSelector
-                android:id="@+id/search_selector_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="start|center_vertical"
-                android:background="?selectableItemBackgroundBorderless" />
-
-            <TextView
-                android:id="@+id/toolbar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="start|center_vertical"
-                android:clickable="false"
-                android:ellipsize="end"
-                android:focusable="false"
-                android:importantForAccessibility="no"
-                android:lines="1"
-                android:text="@string/search_hint"
-                android:textColor="?attr/textPrimary"
-                android:textSize="15sp" />
-        </LinearLayout>
-
-        <androidx.constraintlayout.widget.Barrier
-            android:id="@+id/accessory_button_barrier"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:barrierDirection="start"
-            app:constraint_referenced_ids="tab_button" />
-
-        <mozilla.components.ui.tabcounter.TabCounter
-            android:id="@+id/tab_button"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:clipChildren="false"
-            app:layout_constraintTop_toTopOf="@id/bottom_bar"
-            app:layout_constraintBottom_toBottomOf="@id/bottom_bar"
-            app:layout_constraintEnd_toStartOf="@+id/menuButton" />
-
-        <mozilla.components.browser.menu.view.MenuButton
-            android:id="@+id/menuButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="16dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/bottom_bar"
-            app:layout_constraintBottom_toBottomOf="@id/bottom_bar"/>
-
-        <View
-            android:id="@+id/bottomBarShadow"
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:background="@color/bottom_bar_shadow"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/bottom_bar" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        android:elevation="5dp"
+        android:layout="@layout/fragment_home_toolbar_view_layout"
+        tools:context=".home.HomeFragment" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/dynamicSnackbarContainer"

@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
@@ -241,7 +240,7 @@ class HomeFragment : Fragment() {
     private var sessionControlView: SessionControlView? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var toolbarView: ToolbarView? = null
+    internal lateinit var toolbarView: FenixHomeToolbar
 
     private var lastAppliedWallpaperName: String = Wallpaper.defaultName
 
@@ -543,7 +542,7 @@ class HomeFragment : Fragment() {
         )
 
         toolbarView = ToolbarView(
-            binding = binding,
+            homeBinding = binding,
             interactor = sessionControlInteractor,
             homeFragment = this,
             homeActivity = activity,
@@ -591,7 +590,7 @@ class HomeFragment : Fragment() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        toolbarView?.dismissMenu()
+        (toolbarView as? ToolbarView)?.dismissMenu()
 
         // If the navbar feature could be visible, we should update it's state.
         val shouldUpdateNavBarState =
@@ -600,13 +599,13 @@ class HomeFragment : Fragment() {
             updateNavBarForConfigurationChange(
                 context = requireContext(),
                 parent = binding.homeLayout,
-                toolbarView = binding.toolbarLayout,
+                toolbarView = toolbarView.layout,
                 bottomToolbarContainerView = _bottomToolbarContainerView?.toolbarContainerView,
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt() },
             )
             context?.shouldAddNavigationBar()?.let {
-                toolbarView?.updateButtonVisibility(
+                toolbarView.updateButtonVisibility(
                     requireComponents.core.store.state,
                     it,
                 )
@@ -645,7 +644,7 @@ class HomeFragment : Fragment() {
         // Should refactor this so there is no added view to remove to begin with:
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1870976
         if (isToolbarAtBottom) {
-            binding.root.removeView(binding.toolbarLayout)
+            binding.root.removeView(toolbarView.layout)
         }
 
         val menuButton = MenuButton(context)
@@ -710,11 +709,11 @@ class HomeFragment : Fragment() {
                                     )
                                 }
                         } else {
-                            binding.bottomBarShadow.visibility = View.VISIBLE
+                            toolbarView.updateDividerVisibility(true)
                         }
 
                         if (isToolbarAtBottom) {
-                            AndroidView(factory = { _ -> binding.toolbarLayout })
+                            AndroidView(factory = { _ -> toolbarView.layout })
                         }
 
                         val showCFR = !isSearchActive &&
@@ -854,7 +853,7 @@ class HomeFragment : Fragment() {
 
     private fun showEncourageSearchCfr() {
         CFRPopup(
-            anchor = binding.toolbarWrapper,
+            anchor = toolbarView.layout,
             properties = CFRPopupProperties(
                 popupBodyColors = listOf(
                     getColor(requireContext(), R.color.fx_mobile_layer_color_gradient_end),
@@ -905,7 +904,7 @@ class HomeFragment : Fragment() {
         // The toolbar view has already been added directly to the container.
         // See initializeNavBar for more details on improving this.
         if (isToolbarAtTheBottom) {
-            binding.root.removeView(binding.toolbarLayout)
+            binding.root.removeView(toolbarView.layout)
         }
 
         _bottomToolbarContainerView = BottomToolbarContainerView(
@@ -951,11 +950,11 @@ class HomeFragment : Fragment() {
                                     )
                                 }
                         } else {
-                            binding.bottomBarShadow.visibility = View.VISIBLE
+                            toolbarView.updateDividerVisibility(true)
                         }
 
                         if (isToolbarAtTheBottom) {
-                            AndroidView(factory = { _ -> binding.toolbarLayout })
+                            AndroidView(factory = { _ -> toolbarView.layout })
                         }
                     }
                 }
@@ -964,7 +963,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateToolbarViewUIForMicrosurveyPrompt() {
-        updateToolbarViewUI(R.drawable.home_bottom_bar_background_no_divider, View.GONE, 0.0f)
+        updateToolbarViewUI(R.drawable.home_bottom_bar_background_no_divider, false, 0.0f)
     }
 
     private fun resetToolbarViewUI() {
@@ -976,7 +975,7 @@ class HomeFragment : Fragment() {
         _binding?.homeLayout?.removeView(bottomToolbarContainerView.toolbarContainerView)
         updateToolbarViewUI(
             R.drawable.home_bottom_bar_background,
-            View.VISIBLE,
+            true,
             elevation,
         )
     }
@@ -994,14 +993,11 @@ class HomeFragment : Fragment() {
         reinitializeNavBar()
     }
 
-    private fun updateToolbarViewUI(@DrawableRes id: Int, visibility: Int, elevation: Float) {
-        _binding?.bottomBar?.background = compatDrawableFor(id)
-        _binding?.bottomBarShadow?.visibility = visibility
-        _binding?.toolbarLayout?.elevation = elevation
+    private fun updateToolbarViewUI(@DrawableRes id: Int, showDivider: Boolean, elevation: Float) {
+        (toolbarView as? ToolbarView)?.updateBackground(id)
+        toolbarView.updateDividerVisibility(showDivider)
+        toolbarView.layout.elevation = elevation
     }
-
-    private fun compatDrawableFor(@DrawableRes id: Int) =
-        ResourcesCompat.getDrawable(resources, id, null)
 
     private var currentMicrosurvey: MicrosurveyUIData? = null
 
@@ -1149,7 +1145,7 @@ class HomeFragment : Fragment() {
             initializeNavBar(activity as HomeActivity)
         }
 
-        toolbarView?.build(requireComponents.core.store.state)
+        toolbarView.build(requireComponents.core.store.state)
         if (requireContext().isTabStripEnabled()) {
             initTabStrip()
         }
@@ -1160,7 +1156,7 @@ class HomeFragment : Fragment() {
         }
 
         consumeFrom(requireComponents.core.store) {
-            toolbarView?.updateTabCounter(it)
+            toolbarView.updateTabCounter(it)
             showCollectionsPlaceholder(it)
         }
 
@@ -1169,7 +1165,7 @@ class HomeFragment : Fragment() {
             requireComponents.appStore.dispatch(AppAction.TabStripAction.UpdateLastTabClosed(null))
         }
 
-        toolbarView?.updateTabCounter(requireComponents.core.store.state)
+        toolbarView.updateTabCounter(requireComponents.core.store.state)
 
         val focusOnAddressBar = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR) ||
             FxNimbus.features.oneClickSearch.value().enabled
@@ -1204,16 +1200,18 @@ class HomeFragment : Fragment() {
             }
         }
 
-        searchSelectorBinding.set(
-            feature = SearchSelectorBinding(
-                context = view.context,
-                binding = binding,
-                browserStore = requireComponents.core.store,
-                searchSelectorMenu = searchSelectorMenu,
-            ),
-            owner = viewLifecycleOwner,
-            view = binding.root,
-        )
+        (toolbarView as? ToolbarView)?.let {
+            searchSelectorBinding.set(
+                feature = SearchSelectorBinding(
+                    context = view.context,
+                    toolbarView = it,
+                    browserStore = requireComponents.core.store,
+                    searchSelectorMenu = searchSelectorMenu,
+                ),
+                owner = viewLifecycleOwner,
+                view = binding.root,
+            )
+        }
 
         searchSelectorMenuBinding.set(
             feature = SearchSelectorMenuBinding(
@@ -1299,8 +1297,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun initTabStrip() {
-        binding.tabStripView.isVisible = true
-        binding.tabStripView.apply {
+        (toolbarView as? ToolbarView)?.configureTabStripView {
+            isVisible = true
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 FirefoxTheme {
@@ -1370,7 +1368,6 @@ class HomeFragment : Fragment() {
 
         _sessionControlInteractor = null
         sessionControlView = null
-        toolbarView = null
         _bottomToolbarContainerView = null
         _binding = null
 

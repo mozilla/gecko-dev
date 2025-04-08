@@ -61,8 +61,8 @@ class ToolbarViewTest {
         every { testContext.settings().navigationToolbarEnabled } returns true
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar())
 
-        assertFalse(binding.menuButton.isVisible)
-        assertFalse(binding.tabButton.isVisible)
+        assertFalse(toolbarView.menuButton.isVisible)
+        assertFalse(toolbarView.tabButton.isVisible)
         assertNull(toolbarView.homeMenuView)
         assertNull(toolbarView.tabCounterView)
     }
@@ -73,8 +73,8 @@ class ToolbarViewTest {
         every { testContext.settings().tabStripEnabled } returns false
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar())
 
-        assertTrue(binding.menuButton.isVisible)
-        assertTrue(binding.tabButton.isVisible)
+        assertTrue(toolbarView.menuButton.isVisible)
+        assertTrue(toolbarView.tabButton.isVisible)
         assertNotNull(toolbarView.tabCounterView)
         assertNotNull(toolbarView.homeMenuView)
     }
@@ -86,8 +86,8 @@ class ToolbarViewTest {
 
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
-        assertTrue(binding.menuButton.isVisible)
-        assertTrue(binding.tabButton.isVisible)
+        assertTrue(toolbarView.menuButton.isVisible)
+        assertTrue(toolbarView.tabButton.isVisible)
         assertNotNull(toolbarView.tabCounterView)
         assertNotNull(toolbarView.homeMenuView)
 
@@ -95,8 +95,8 @@ class ToolbarViewTest {
 
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
-        assertTrue(binding.menuButton.isVisible)
-        assertTrue(binding.tabButton.isVisible)
+        assertTrue(toolbarView.menuButton.isVisible)
+        assertTrue(toolbarView.tabButton.isVisible)
         assertNotNull(toolbarView.tabCounterView)
         assertNotNull(toolbarView.homeMenuView)
     }
@@ -110,8 +110,8 @@ class ToolbarViewTest {
 
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
-        assertTrue(binding.menuButton.isVisible)
-        assertTrue(binding.tabButton.isVisible)
+        assertTrue(toolbarView.menuButton.isVisible)
+        assertTrue(toolbarView.tabButton.isVisible)
         assertNotNull(toolbarView.tabCounterView)
         assertNotNull(toolbarView.homeMenuView)
 
@@ -119,8 +119,8 @@ class ToolbarViewTest {
 
         toolbarView.updateButtonVisibility(mockk(relaxed = true), testContext.shouldAddNavigationBar(false))
 
-        assertTrue(binding.menuButton.isVisible)
-        assertTrue(binding.tabButton.isVisible)
+        assertTrue(toolbarView.menuButton.isVisible)
+        assertTrue(toolbarView.tabButton.isVisible)
         assertNotNull(toolbarView.tabCounterView)
         assertNotNull(toolbarView.homeMenuView)
     }

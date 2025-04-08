@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/toolbarLayout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    tools:context=".home.HomeFragment">
+
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/tabStripView"
+        android:layout_width="match_parent"
+        app:layout_constraintBottom_toTopOf="@id/toolbar"
+        app:layout_constraintTop_toTopOf="parent"
+        android:visibility="gone"
+        android:layout_height="@dimen/tab_strip_height" />
+
+    <View
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:background="?bottomBarBackground"
+        android:foregroundGravity="bottom"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/toolbar_wrapper"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="0dp"
+        android:background="@drawable/home_search_background"
+        android:clickable="true"
+        android:contentDescription="@string/search_hint"
+        android:focusable="true"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar"
+        app:layout_constraintEnd_toStartOf="@+id/accessory_button_barrier"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/toolbar">
+
+        <org.mozilla.fenix.search.toolbar.SearchSelector
+            android:id="@+id/search_selector_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:background="?selectableItemBackgroundBorderless" />
+
+        <TextView
+            android:id="@+id/toolbar_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:clickable="false"
+            android:ellipsize="end"
+            android:focusable="false"
+            android:importantForAccessibility="no"
+            android:lines="1"
+            android:text="@string/search_hint"
+            android:textColor="?attr/textPrimary"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/accessory_button_barrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="start"
+        app:constraint_referenced_ids="tab_button" />
+
+    <mozilla.components.ui.tabcounter.TabCounter
+        android:id="@+id/tab_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:clipChildren="false"
+        app:layout_constraintTop_toTopOf="@id/toolbar"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar"
+        app:layout_constraintEnd_toStartOf="@+id/menuButton" />
+
+    <mozilla.components.browser.menu.view.MenuButton
+        android:id="@+id/menuButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/toolbar"
+        app:layout_constraintBottom_toBottomOf="@id/toolbar"/>
+
+    <View
+        android:id="@+id/toolbar_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/bottom_bar_shadow"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/toolbar" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

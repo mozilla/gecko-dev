@@ -190,9 +190,9 @@ class NavigationToolbarRobot {
     // New unified search UI selector
     fun verifySearchBarPlaceholder(text: String) {
         Log.i(TAG, "verifySearchBarPlaceholder: Waiting for $waitingTime ms for the toolbar to exist")
-        urlBar().waitForExists(waitingTime)
+        homeUrlBar().waitForExists(waitingTime)
         Log.i(TAG, "verifySearchBarPlaceholder: Waited for $waitingTime ms for the toolbar to exist")
-        assertItemTextEquals(urlBar(), expectedText = text)
+        assertItemTextEquals(homeUrlBar(), expectedText = text)
     }
 
     // New unified search UI selector
@@ -638,6 +638,7 @@ fun openEditURLView() {
 }
 
 private fun urlBar() = mDevice.findObject(UiSelector().resourceId("$packageName:id/toolbar"))
+private fun homeUrlBar() = mDevice.findObject(UiSelector().resourceId("$packageName:id/toolbar_text"))
 private fun awesomeBar() =
     mDevice.findObject(UiSelector().resourceId("$packageName:id/mozac_browser_toolbar_edit_url_view"))
 private fun threeDotButton() = onView(withId(R.id.mozac_browser_toolbar_menu))

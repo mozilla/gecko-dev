@@ -19,17 +19,17 @@ import mozilla.components.support.ktx.android.content.getColorFromAttr
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
-import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.increaseTapAreaVertically
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.home.ToolbarView
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 
 /**
  * A binding that shows the search engine in the search selector button.
  */
-class SearchSelectorBinding(
+internal class SearchSelectorBinding(
     private val context: Context,
-    private val binding: FragmentHomeBinding,
+    private val toolbarView: ToolbarView,
     private val searchSelectorMenu: SearchSelectorMenu,
     browserStore: BrowserStore,
 ) : AbstractBinding<BrowserState>(browserStore) {
@@ -37,7 +37,7 @@ class SearchSelectorBinding(
     override fun start() {
         super.start()
 
-        binding.searchSelectorButton.apply {
+        toolbarView.configureSearchSelector {
             setOnClickListener {
                 val orientation = if (context.settings().shouldUseBottomToolbar) {
                     Orientation.UP
@@ -80,7 +80,7 @@ class SearchSelectorBinding(
                     name ?: "",
                 )
 
-                binding.searchSelectorButton.setIcon(icon, contentDescription)
+                toolbarView.configureSearchSelector { setIcon(icon, contentDescription) }
             }
     }
 
