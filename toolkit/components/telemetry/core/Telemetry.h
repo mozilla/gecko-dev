@@ -124,29 +124,6 @@ void AccumulateCategoricalKeyed(const nsCString& key, E enumValue) {
              static_cast<uint32_t>(enumValue));
 };
 
-/**
- * Adds time delta in milliseconds to a histogram defined in
- * TelemetryHistogramEnums.h
- *
- * @param id - histogram id
- * @param start - start time
- * @param end - end time
- */
-void AccumulateTimeDelta(HistogramID id, TimeStamp start,
-                         TimeStamp end = TimeStamp::Now());
-
-/**
- * Adds time delta in milliseconds to a keyed histogram defined in
- * TelemetryHistogramEnums.h
- *
- * @param id - histogram id
- * @param key - the string key
- * @param start - start time
- * @param end - end time
- */
-void AccumulateTimeDelta(HistogramID id, const nsCString& key, TimeStamp start,
-                         TimeStamp end = TimeStamp::Now());
-
 const char* GetHistogramName(HistogramID id);
 
 /**

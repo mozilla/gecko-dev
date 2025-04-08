@@ -1784,16 +1784,6 @@ void Accumulate(const char* name, const nsCString& key, uint32_t sample) {
   TelemetryHistogram::Accumulate(name, key, sample);
 }
 
-void AccumulateTimeDelta(HistogramID aHistogram, TimeStamp start,
-                         TimeStamp end) {
-  Accumulate(aHistogram, static_cast<uint32_t>((end - start).ToMilliseconds()));
-}
-
-void AccumulateTimeDelta(HistogramID aHistogram, const nsCString& key,
-                         TimeStamp start, TimeStamp end) {
-  Accumulate(aHistogram, key,
-             static_cast<uint32_t>((end - start).ToMilliseconds()));
-}
 const char* GetHistogramName(HistogramID id) {
   return TelemetryHistogram::GetHistogramName(id);
 }

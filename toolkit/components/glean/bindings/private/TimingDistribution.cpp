@@ -18,6 +18,7 @@
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "GIFFTFwd.h"
 
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
@@ -302,8 +303,10 @@ extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionStopAndAccumulate(
       // The timer might not be in the map to be removed if it's already been
       // cancelled or stop_and_accumulate'd.
       if (!NS_WARN_IF(!optStart)) {
-        AccumulateTimeDelta(mirrorId.extract(), PromiseFlatCString(aLabel),
-                            optStart.extract());
+        Accumulate(mirrorId.extract(), PromiseFlatCString(aLabel),
+                   static_cast<uint32_t>(
+                       (mozilla::TimeStamp::Now() - optStart.extract())
+                           .ToMilliseconds()));
       }
     });
   }
