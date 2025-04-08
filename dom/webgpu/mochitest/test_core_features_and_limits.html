@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      ok(
+        SpecialPowers.getBoolPref("dom.webgpu.enabled"),
+        "Pref should be enabled."
+      );
+
+      const func = async function () {
+        const adapter = await navigator.gpu.requestAdapter();
+        ok(adapter !== undefined, "adapter !== undefined");
+        ok(
+          adapter.features.has("core-features-and-limits"),
+          "Adapter should have `core-features-and-limits` feature enabled."
+        );
+
+        const device = await adapter.requestDevice();
+        ok(device !== undefined, "device !== undefined");
+        ok(
+          device.features.has("core-features-and-limits"),
+          "Adapter should have `core-features-and-limits` feature enabled."
+        );
+      };
+
+      SimpleTest.waitForExplicitFinish();
+      func()
+        .catch(e => ok(false, "Unhandled exception " + e))
+        .finally(() => SimpleTest.finish());
+    </script>
+  </body>
+</html>

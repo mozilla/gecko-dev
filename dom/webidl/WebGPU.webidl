@@ -151,6 +151,9 @@ enum GPUFeatureName {
     "clip-distances",
     "dual-source-blending",
     "subgroups",
+    // Not standard yet, but proposed with some roadmap already set aside for implementing it:
+    // <https://bugzilla.mozilla.org/show_bug.cgi?id=webgpu-compatibility-mode>
+    "core-features-and-limits",
 };
 
 [Func="mozilla::webgpu::Instance::PrefEnabled",

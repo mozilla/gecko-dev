@@ -31,6 +31,8 @@ scheme = "https"
 
 ["test_context_configure.html"]
 
+["test_core_features_and_limits.html"]
+
 ["test_device_creation.html"]
 
 ["test_device_lost.html"]
