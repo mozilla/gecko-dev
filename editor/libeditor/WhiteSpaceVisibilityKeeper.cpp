@@ -1973,6 +1973,7 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
                 "HTMLEditor::DeleteTextAndTextNodesWithTransaction() failed");
             return caretPointOrError.propagateErr();
           }
+          trackLeadingWhiteSpaceRange.FlushAndStopTracking();
           nsresult rv = caretPointOrError.unwrap().SuggestCaretPointTo(
               aHTMLEditor, {SuggestCaret::OnlyIfHasSuggestion,
                             SuggestCaret::OnlyIfTransactionsAllowedToDoIt,
@@ -2036,6 +2037,7 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
                   "ReplaceTextAndRemoveEmptyTextNodes() failed");
               return Err(rv);
             }
+            trackLeadingWhiteSpaceRange.FlushAndStopTracking();
             // Don't refer the following variables anymore unless tracking the
             // change.
             invisibleTrailingWhiteSpaceRangeOfCurrentLine.Clear();
@@ -2615,6 +2617,8 @@ WhiteSpaceVisibilityKeeper::InsertTextOrInsertOrUpdateCompositionString(
                 "HTMLEditor::DeleteTextAndTextNodesWithTransaction() failed");
             return caretPointOrError.propagateErr();
           }
+          trackInvisibleTrailingWhiteSpaceRange.FlushAndStopTracking();
+          trackInvisibleLeadingWhiteSpaceRange.FlushAndStopTracking();
           caretPointOrError.unwrap().MoveCaretPointTo(
               pointToPutCaret, {SuggestCaret::OnlyIfHasSuggestion});
         }
@@ -2685,6 +2689,7 @@ WhiteSpaceVisibilityKeeper::InsertTextOrInsertOrUpdateCompositionString(
             return caretPointOrError.propagateErr();
           }
           trackPointToPutCaret.FlushAndStopTracking();
+          trackInvisibleTrailingWhiteSpaceRange.FlushAndStopTracking();
           caretPointOrError.unwrap().MoveCaretPointTo(
               pointToPutCaret, {SuggestCaret::OnlyIfHasSuggestion});
           // Don't refer the following variables anymore unless tracking the
