@@ -76,14 +76,15 @@ class RequestListColumnTime extends Component {
 
   render() {
     const { type } = this.props;
-    const time = getFormattedTime(this.getTime(this.props));
-
+    const time = this.getTime(this.props);
+    const formattedTime =
+      isNaN(time) || time === undefined ? "" : getFormattedTime(time);
     return dom.td(
       {
         className: "requests-list-column requests-list-" + type + "-time",
-        title: time,
+        title: formattedTime,
       },
-      time
+      formattedTime
     );
   }
 }

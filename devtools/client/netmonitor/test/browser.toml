@@ -234,6 +234,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_net_domain-not-found.js"]
 
+["browser_net_duration.js"]
+
 ["browser_net_earlyhints.js"]
 
 ["browser_net_edit_resend_cancel.js"]
