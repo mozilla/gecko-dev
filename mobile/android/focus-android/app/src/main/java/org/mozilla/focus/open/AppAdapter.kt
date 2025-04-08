@@ -49,15 +49,10 @@ class AppAdapter(context: Context, infoArray: Array<ActivityInfo>, store: Activi
         fun onAppSelected(app: App)
     }
 
-    private val apps: List<App>
-    private val store: App?
+    private val apps: List<App> = infoArray.map { App(context, it) }
+        .sortedWith { app1, app2 -> app1.label.compareTo(app2.label) }
+    private val store: App? = if (store != null) App(context, store) else null
     private var listener: OnAppSelectedListener? = null
-
-    init {
-        this.apps = infoArray.map { App(context, it) }
-            .sortedWith { app1, app2 -> app1.label.compareTo(app2.label) }
-        this.store = if (store != null) App(context, store) else null
-    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)

@@ -14,14 +14,8 @@ import org.mozilla.focus.open.AppAdapter.OnAppSelectedListener
  * View holder for an app item in the [OpenWithFragment] list.
  */
 class AppViewHolder internal constructor(itemView: View) : RecyclerView.ViewHolder(itemView) {
-    private val titleView: TextView
-    private val iconView: ImageView
-
-    /* package */
-    init {
-        titleView = itemView.findViewById(R.id.title)
-        iconView = itemView.findViewById(R.id.icon)
-    }
+    private val titleView: TextView = itemView.findViewById(R.id.title)
+    private val iconView: ImageView = itemView.findViewById(R.id.icon)
 
     /**
      * Binds the [AppViewHolder] item.

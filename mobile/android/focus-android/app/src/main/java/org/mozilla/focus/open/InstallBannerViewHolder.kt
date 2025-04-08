@@ -15,10 +15,9 @@ import org.mozilla.focus.activity.FirefoxInstallationHelper.open
 class InstallBannerViewHolder(
     itemView: View,
 ) : RecyclerView.ViewHolder(itemView), View.OnClickListener {
-    private val iconView: ImageView
+    private val iconView: ImageView = itemView.findViewById(R.id.icon)
 
     init {
-        iconView = itemView.findViewById(R.id.icon)
         itemView.setOnClickListener(this)
     }
 
