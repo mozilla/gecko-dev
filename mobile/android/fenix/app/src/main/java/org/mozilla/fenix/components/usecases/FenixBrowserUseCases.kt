@@ -21,12 +21,14 @@ import mozilla.components.support.ktx.kotlin.toNormalizedUrl
  * @param addNewTabUseCase [TabsUseCases.AddNewTabUseCase] used for adding new tabs.
  * @param loadUrlUseCase [SessionUseCases.DefaultLoadUrlUseCase] used for loading a URL.
  * @param searchUseCases [SearchUseCases] used for performing a search.
+ * @param homepageTitle The title of the new homepage tab.
  * @param profiler [Profiler] used to add profiler markers.
  */
 class FenixBrowserUseCases(
     private val addNewTabUseCase: TabsUseCases.AddNewTabUseCase,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val searchUseCases: SearchUseCases,
+    private val homepageTitle: String,
     private val profiler: Profiler?,
 ) {
     /**
@@ -120,6 +122,7 @@ class FenixBrowserUseCases(
         return addNewTabUseCase.invoke(
             url = ABOUT_HOME,
             startLoading = false,
+            title = homepageTitle,
             private = private,
         )
     }

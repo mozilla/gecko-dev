@@ -28,6 +28,7 @@ import mozilla.components.feature.top.sites.TopSitesStorage
 import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.support.locale.LocaleManager
 import mozilla.components.support.locale.LocaleUseCases
+import org.mozilla.fenix.R
 import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.home.mars.MARSUseCases
@@ -133,6 +134,7 @@ class UseCases(
             addNewTabUseCase = tabsUseCases.addTab,
             loadUrlUseCase = sessionUseCases.loadUrl,
             searchUseCases = searchUseCases,
+            homepageTitle = context.getString(R.string.tab_tray_homepage_tab),
             profiler = engine.value.profiler,
         )
     }
