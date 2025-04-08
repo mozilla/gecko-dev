@@ -43,6 +43,7 @@ import org.mozilla.fenix.collections.show
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.DEFAULT_ACTIVE_DAYS
 import org.mozilla.fenix.ext.potentialInactiveTabs
 import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_NORMAL_TABS
@@ -190,6 +191,7 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
  * @param profiler [Profiler] used to add profiler markers.
  * @param navigationInteractor [NavigationInteractor] used to perform navigation actions with side effects.
  * @param tabsUseCases Use case wrapper for interacting with tabs.
+ * @param fenixBrowserUseCases [FenixBrowserUseCases] used for adding new homepage tabs.
  * @param bookmarksStorage Storage layer for retrieving and saving bookmarks.
  * @param closeSyncedTabsUseCases Use cases for closing synced tabs.
  * @param ioDispatcher [CoroutineContext] used for storage operations.
@@ -216,6 +218,7 @@ class DefaultTabsTrayController(
     private val profiler: Profiler?,
     private val navigationInteractor: NavigationInteractor,
     private val tabsUseCases: TabsUseCases,
+    private val fenixBrowserUseCases: FenixBrowserUseCases,
     private val bookmarksStorage: BookmarksStorage,
     private val closeSyncedTabsUseCases: CloseTabsUseCases,
     private val ioDispatcher: CoroutineContext,
@@ -256,9 +259,7 @@ class DefaultTabsTrayController(
         browsingModeManager.mode = BrowsingMode.fromBoolean(isPrivate)
 
         if (settings.enableHomepageAsNewTab) {
-            tabsUseCases.addTab.invoke(
-                url = "about:home",
-                startLoading = false,
+            fenixBrowserUseCases.addNewHomepageTab(
                 private = isPrivate,
             )
         }

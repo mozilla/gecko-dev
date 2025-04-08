@@ -522,6 +522,7 @@ abstract class BaseBrowserFragment :
             store = store,
             appStore = context.components.appStore,
             tabsUseCases = requireComponents.useCases.tabsUseCases,
+            fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
             activity = activity,
             settings = context.settings(),
             navController = findNavController(),

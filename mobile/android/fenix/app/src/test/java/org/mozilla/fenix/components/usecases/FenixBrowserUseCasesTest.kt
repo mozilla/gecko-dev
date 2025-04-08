@@ -304,6 +304,29 @@ class FenixBrowserUseCasesTest {
         }
     }
 
+    @Test
+    fun `WHEN add new homepage tab use case is invoked THEN create a new homepage tab`() {
+        useCases.addNewHomepageTab(private = true)
+
+        verify {
+            addNewTabUseCase.invoke(
+                url = "about:home",
+                startLoading = false,
+                private = true,
+            )
+        }
+
+        useCases.addNewHomepageTab(private = false)
+
+        verify {
+            addNewTabUseCase.invoke(
+                url = "about:home",
+                startLoading = false,
+                private = false,
+            )
+        }
+    }
+
     companion object {
         private const val PROFILER_START_TIME = Double.MAX_VALUE
     }
