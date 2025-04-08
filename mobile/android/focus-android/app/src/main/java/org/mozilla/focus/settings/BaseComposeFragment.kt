@@ -13,7 +13,7 @@ import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
@@ -92,7 +92,7 @@ abstract class BaseComposeFragment : Fragment() {
         composeView.setContent {
             FocusTheme {
                 Scaffold(
-                    modifier = Modifier.statusBarsPadding(),
+                    modifier = Modifier.systemBarsPadding(),
                 ) { paddingValues ->
                     Column(
                         modifier = Modifier
