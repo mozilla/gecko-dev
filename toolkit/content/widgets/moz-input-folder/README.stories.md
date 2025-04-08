@@ -52,7 +52,7 @@ To set a label, use the `label` attribute. In general, the label should be contr
 
 ### Setting the `description`
 
-In order to set a description, use the `discription` attribute.
+In order to set a description, use the `description` attribute.
 In general, the description should be controlled by Fluent. This is the the preferred way of setting  descriptions since it ensures consistency across instances of `moz-input-folder`.
 
 ```html

@@ -70,7 +70,7 @@ In order to have an icon appear next to the checkbox element, use the `.iconSrc`
 
 ### Setting a description
 
-In order to set a description, use the `discription` attribute.
+In order to set a description, use the `description` attribute.
 In general, the description should be controlled by Fluent (and is the preferred way of handling descriptions).
 
 ```html
