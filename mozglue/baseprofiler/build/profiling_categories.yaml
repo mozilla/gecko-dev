@@ -37,12 +37,17 @@
 # The list of available color names for categories is:
 # - transparent
 # - blue
+# - brown
+# - darkgrey
 # - green
 # - grey
 # - lightblue
+# - lightgreen
+# - lightred
 # - magenta
 # - orange
 # - purple
+# - red
 # - yellow
 #
 # subcategories [required]
@@ -254,6 +259,13 @@
   color: lightblue
   subcategories:
     - name: JAVA_BLOCKED
+      label: Other
+
+- name: MAILNEWS
+  label: Mailnews
+  color: brown
+  subcategories:
+    - name: MAILNEWS
       label: Other
 
 - name: IPC
