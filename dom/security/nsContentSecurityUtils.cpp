@@ -1952,7 +1952,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://browser/content/default-bookmarks.html"_ns,
       "chrome://browser/content/places/interactionsViewer.html"_ns,
       "chrome://browser/content/shopping/review-checker.xhtml"_ns,
-      "chrome://extensions/content/dummy.xhtml"_ns,
       "chrome://geckoview/content/geckoview.xhtml"_ns,
       "chrome://global/content/alerts/alert.xhtml"_ns,
       "chrome://global/content/appPicker.xhtml"_ns,
