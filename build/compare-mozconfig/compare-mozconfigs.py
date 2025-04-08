@@ -10,8 +10,9 @@ import logging
 import os
 import unittest
 
-import buildconfig
 import mozunit
+
+here = os.path.abspath(os.path.dirname(__file__))
 
 FAILURE_CODE = 1
 SUCCESS_CODE = 0
@@ -168,7 +169,7 @@ def compare(topsrcdir):
 
 class TestCompareMozconfigs(unittest.TestCase):
     def test_compare_mozconfigs(self):
-        topsrcdir = buildconfig.substs["top_srcdir"]
+        topsrcdir = os.path.abspath(os.path.join(here, "..", ".."))
         self.assertTrue(compare(topsrcdir))
 
 
