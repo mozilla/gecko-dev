@@ -31,17 +31,9 @@ export function FeatureHighlight({
       }
     };
 
-    const handleKeyDown = e => {
-      if (e.key === "Escape") {
-        outsideClickCallback();
-      }
-    };
-
     windowObj.document.addEventListener("click", handleOutsideClick);
-    windowObj.document.addEventListener("keydown", handleKeyDown);
     return () => {
       windowObj.document.removeEventListener("click", handleOutsideClick);
-      windowObj.document.removeEventListener("keydown", handleKeyDown);
     };
   }, [windowObj, outsideClickCallback]);
 

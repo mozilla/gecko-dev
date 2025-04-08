@@ -79,21 +79,6 @@ export class NewTabMessaging {
   }
 
   /**
-   *
-   * @param {string} id ID of message to be blocked
-   */
-  blockMessage(id) {
-    if (id) {
-      this.ASRouterDispatch?.({
-        type: "BLOCK_MESSAGE_BY_ID",
-        data: {
-          id,
-        },
-      });
-    }
-  }
-
-  /**
    * Send impression to ASRouter
    * @param {Object} message
    */
@@ -137,10 +122,7 @@ export class NewTabMessaging {
         this.sendTelemetry("DISMISS", action.data.message);
         break;
       case at.MESSAGE_CLICK:
-        this.sendTelemetry("CLICK", action.data.message, action.data.source);
-        break;
-      case at.MESSAGE_BLOCK:
-        this.blockMessage(action.data);
+        this.sendTelemetry("CLICK", action.data.source, action.data.message);
         break;
     }
   }

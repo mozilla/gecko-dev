@@ -68,18 +68,6 @@ function MessageWrapper({ children, dispatch }) {
     handleClose();
   }
 
-  function handleBlock() {
-    const { id } = message.messageData;
-    if (id) {
-      dispatch(
-        ac.OnlyToMain({
-          type: at.MESSAGE_BLOCK,
-          data: id,
-        })
-      );
-    }
-  }
-
   function handleClick(elementId) {
     const { id } = message.messageData;
     if (id) {
@@ -104,9 +92,8 @@ function MessageWrapper({ children, dispatch }) {
         {React.cloneElement(children, {
           isIntersecting,
           handleDismiss,
-          handleClick,
-          handleBlock,
           handleClose,
+          handleClick,
         })}
       </div>
     )

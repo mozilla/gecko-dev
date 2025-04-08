@@ -10,22 +10,17 @@ export function WallpaperFeatureHighlight({
   position,
   dispatch,
   handleDismiss,
+  handleClose,
   handleClick,
-  handleBlock,
 }) {
-  const onDismiss = useCallback(() => {
-    handleDismiss();
-    handleBlock();
-  }, [handleDismiss, handleBlock]);
-
   const onToggleClick = useCallback(
     elementId => {
       dispatch({ type: at.SHOW_PERSONALIZE });
       dispatch(ac.UserEvent({ event: "SHOW_PERSONALIZE" }));
       handleClick(elementId);
-      onDismiss();
+      handleDismiss();
     },
-    [dispatch, onDismiss, handleClick]
+    [dispatch, handleDismiss, handleClick]
   );
 
   return (
@@ -60,8 +55,8 @@ export function WallpaperFeatureHighlight({
         toggle={<div className="icon icon-help"></div>}
         openedOverride={true}
         showButtonIcon={false}
-        dismissCallback={onDismiss}
-        outsideClickCallback={handleDismiss}
+        dismissCallback={handleDismiss}
+        outsideClickCallback={handleClose}
       />
     </div>
   );
