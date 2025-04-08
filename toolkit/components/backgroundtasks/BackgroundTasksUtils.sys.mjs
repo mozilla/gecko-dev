@@ -36,6 +36,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
     "resource:///modules/asrouter/ASRouterDefaultConfig.sys.mjs",
 
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
 
   RemoteSettingsExperimentLoader:
@@ -300,22 +301,10 @@ export var BackgroundTasksUtils = {
    *                                     targeting from default browsing profile.
    */
   async enableNimbus(commandLine, defaultProfile = {}) {
-    try {
-      await lazy.ExperimentManager.onStartup({ defaultProfile });
-    } catch (err) {
-      lazy.log.error("Failed to initialize ExperimentManager:", err);
-      throw err;
-    }
-
-    try {
-      await lazy.RemoteSettingsExperimentLoader.enable({ forceSync: true });
-    } catch (err) {
-      lazy.log.error(
-        "Failed to initialize RemoteSettingsExperimentLoader:",
-        err
-      );
-      throw err;
-    }
+    await lazy.ExperimentAPI.init({
+      forceSync: true,
+      extraContext: { defaultProfile },
+    });
 
     // Allow manual explicit opt-in to experiment branches to facilitate testing.
     //

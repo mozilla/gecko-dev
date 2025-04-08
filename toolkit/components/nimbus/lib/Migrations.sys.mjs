@@ -31,6 +31,15 @@ export const LABS_MIGRATION_FEATURE_MAP = {
 };
 
 async function migrateFirefoxLabsEnrollments() {
+  const bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
+    Ci.nsIBackgroundTasks
+  );
+
+  if (bts?.isBackgroundTaskMode) {
+    // This migration does not apply to background task mode.
+    return;
+  }
+
   await lazy.ExperimentAPI._rsLoader.finishedUpdating();
   await lazy.ExperimentAPI._rsLoader.withUpdateLock(
     async () => {

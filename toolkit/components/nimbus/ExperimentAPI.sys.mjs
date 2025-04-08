@@ -97,19 +97,27 @@ export const ExperimentAPI = {
    * This will initialize the ExperimentManager and the
    * RemoteSettingsExperimentLoader. It will also trigger The
    * RemoteSettingsExperimentLoader to update recipes.
+   *
+   * @param {object} options
+   * @param {object?} options.extraContext
+   *        Additional context to use in the ExperimentManager's targeting
+   *        context.
+   * @param {boolean?} options.forceSync
+   *        Force the RemoteSettingsExperimentLoader to trigger a RemoteSettings
+   *        sync before updating recipes for the first time.
    */
-  async init() {
+  async init({ extraContext, forceSync = false } = {}) {
     if (!initialized) {
       initialized = true;
 
       try {
-        await this._manager.onStartup();
+        await this._manager.onStartup(extraContext);
       } catch (e) {
         lazy.log.error("Failed to initialize ExperimentManager:", e);
       }
 
       try {
-        await this._rsLoader.enable();
+        await this._rsLoader.enable({ forceSync });
       } catch (e) {
         lazy.log.error("Failed to enable RemoteSettingsExperimentLoader:", e);
       }
