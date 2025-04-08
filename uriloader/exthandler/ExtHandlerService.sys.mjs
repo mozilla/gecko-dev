@@ -198,6 +198,29 @@ HandlerService.prototype = {
    * pref around permanently.
    */
   _migrateProtocolHandlersIfNeeded() {
+    function removeMatchingHandlers(info, regex) {
+      let matches = app =>
+        app instanceof Ci.nsIWebHandlerApp && regex.test(app.uriTemplate);
+      let shouldStore = false;
+      // First remove the app from possible handlers.
+      let handlers = info.possibleApplicationHandlers;
+      for (let i = handlers.length - 1; i >= 0; i--) {
+        let app = handlers.queryElementAt(i, Ci.nsIHandlerApp);
+        if (matches(app)) {
+          shouldStore = true;
+          handlers.removeElementAt(i);
+        }
+      }
+      // Then remove as a preferred handler.
+      if (info.preferredApplicationHandler) {
+        let app = info.preferredApplicationHandler;
+        if (matches(app)) {
+          info.preferredApplicationHandler = null;
+          shouldStore = true;
+        }
+      }
+      return shouldStore;
+    }
     const kMigrations = {
       "30boxes": () => {
         const k30BoxesRegex =
@@ -206,32 +229,8 @@ HandlerService.prototype = {
           lazy.externalProtocolService.getProtocolHandlerInfo("webcal");
         if (this.exists(webcalHandler)) {
           this.fillHandlerInfo(webcalHandler, "");
-          let shouldStore = false;
-          // First remove 30boxes from possible handlers.
-          let handlers = webcalHandler.possibleApplicationHandlers;
-          for (let i = handlers.length - 1; i >= 0; i--) {
-            let app = handlers.queryElementAt(i, Ci.nsIHandlerApp);
-            if (
-              app instanceof Ci.nsIWebHandlerApp &&
-              k30BoxesRegex.test(app.uriTemplate)
-            ) {
-              shouldStore = true;
-              handlers.removeElementAt(i);
-            }
-          }
-          // Then remove as a preferred handler.
-          if (webcalHandler.preferredApplicationHandler) {
-            let app = webcalHandler.preferredApplicationHandler;
-            if (
-              app instanceof Ci.nsIWebHandlerApp &&
-              k30BoxesRegex.test(app.uriTemplate)
-            ) {
-              webcalHandler.preferredApplicationHandler = null;
-              shouldStore = true;
-            }
-          }
-          // Then store, if we changed anything.
-          if (shouldStore) {
+          // Remove any matching handlers and store the result if we did.
+          if (removeMatchingHandlers(webcalHandler, k30BoxesRegex)) {
             this.store(webcalHandler);
           }
         }
@@ -290,6 +289,20 @@ HandlerService.prototype = {
           // duplicates, so we don't have to.
           if (shouldStore) {
             this.store(mailHandler);
+          }
+        }
+      },
+      mibbit: () => {
+        const mibbitRegex = /^https?:\/\/(?:www\.)?mibbit\.com/i;
+        for (let prot of ["irc", "ircs"]) {
+          let protInfo =
+            lazy.externalProtocolService.getProtocolHandlerInfo(prot);
+          if (this.exists(protInfo)) {
+            this.fillHandlerInfo(protInfo, "");
+            // Remove any matching handlers and store the result if we did.
+            if (removeMatchingHandlers(protInfo, mibbitRegex)) {
+              this.store(protInfo);
+            }
           }
         }
       },

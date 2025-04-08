@@ -3698,7 +3698,7 @@ BrowserGlue.prototype = {
   _migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 153;
+    const UI_VERSION = 154;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -4512,6 +4512,21 @@ BrowserGlue.prototype = {
         "sidebar.main.tools",
         "aichat,syncedtabs,history"
       );
+    }
+
+    if (currentUIVersion < 154) {
+      // Remove mibbit handler.
+      // The handler service will do this. We need to wait with migrating
+      // until the handler service has started up, so just set a pref here.
+      const kPref = "browser.handlers.migrations";
+      // We might have set up another migration further up. Create an array,
+      // and drop empty strings resulting from the `split`:
+      let migrations = Services.prefs
+        .getCharPref(kPref, "")
+        .split(",")
+        .filter(x => !!x);
+      migrations.push("mibbit");
+      Services.prefs.setCharPref(kPref, migrations.join(","));
     }
 
     // Update the migration version.
