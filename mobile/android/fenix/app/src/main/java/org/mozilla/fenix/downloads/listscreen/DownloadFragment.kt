@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.downloads.listscreen
 
-import android.content.Context
 import android.os.Bundle
 import android.text.SpannableString
 import android.view.Menu
@@ -17,9 +16,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -33,9 +29,12 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.lazyStore
 import org.mozilla.fenix.compose.ComposeFragment
+import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
+import org.mozilla.fenix.downloads.listscreen.middleware.DefaultUndoDelayProvider
+import org.mozilla.fenix.downloads.listscreen.middleware.DownloadDeleteMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadTelemetryMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIShareMiddleware
@@ -43,14 +42,12 @@ import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
-import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.setTextColor
 import org.mozilla.fenix.ext.setToolbarColors
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.theme.FirefoxTheme
-import org.mozilla.fenix.utils.allowUndo
 
 /**
  * Fragment for displaying and managing the downloads list.
@@ -58,6 +55,7 @@ import org.mozilla.fenix.utils.allowUndo
 @SuppressWarnings("TooManyFunctions", "LargeClass")
 class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider {
 
+    private val undoDelayProvider by lazy { DefaultUndoDelayProvider(requireComponents.settings) }
     private val downloadStore by lazyStore { viewModelScope ->
         DownloadUIStore(
             initialState = DownloadUIState.INITIAL,
@@ -69,6 +67,10 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
                 ),
                 DownloadUIShareMiddleware(applicationContext = requireContext().applicationContext),
                 DownloadTelemetryMiddleware(),
+                DownloadDeleteMiddleware(
+                    undoDelayProvider = undoDelayProvider,
+                    removeDownloadUseCase = requireComponents.useCases.downloadUseCases.removeDownload,
+                ),
             ),
         )
     }
@@ -94,16 +96,9 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
      * (itemView.overflow_menu) this [items].size() will be 1.
      */
     private fun deleteFileItems(items: Set<FileItem>) {
-        updatePendingDownloadToDelete(items)
-        MainScope().allowUndo(
-            requireActivity().getRootView()!!,
-            getMultiSelectSnackBarMessage(items),
-            getString(R.string.download_undo_delete_snackbar_action),
-            onCancel = {
-                undoPendingDeletion(items)
-            },
-            operation = getDeleteFileItemsOperation(items),
-        )
+        val itemIds = items.map { it.id }.toSet()
+        downloadStore.dispatch(DownloadUIAction.AddPendingDeletionSet(itemIds))
+        showSnackbar(items)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -111,6 +106,24 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
         observeModeChanges()
+    }
+
+    private fun showSnackbar(items: Set<FileItem>) {
+        val rootView: View = requireActivity().getRootView() ?: return
+        Snackbar.make(
+            rootView,
+            snackbarState = SnackbarState(
+                message = getMultiSelectSnackBarMessage(items),
+                duration = SnackbarState.Duration.Custom(undoDelayProvider.undoDelay.toInt()),
+                action = Action(
+                    label = getString(R.string.download_undo_delete_snackbar_action),
+                    onClick = {
+                        val itemIds = items.mapTo(mutableSetOf()) { it.id }
+                        downloadStore.dispatch(DownloadUIAction.UndoPendingDeletionSet(itemIds))
+                    },
+                ),
+            ),
+        ).show()
     }
 
     private fun observeModeChanges() {
@@ -225,31 +238,6 @@ class DownloadFragment : ComposeFragment(), UserInteractionHandler, MenuProvider
                 ).show()
             }
         }
-    }
-
-    private fun getDeleteFileItemsOperation(
-        items: Set<FileItem>,
-    ): (suspend (context: Context) -> Unit) {
-        return { context ->
-            CoroutineScope(IO).launch {
-                context.let {
-                    for (item in items) {
-                        it.components.useCases.downloadUseCases.removeDownload(item.id)
-                        downloadStore.dispatch(DownloadUIAction.FileItemDeletedSuccessfully)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun updatePendingDownloadToDelete(items: Set<FileItem>) {
-        val ids = items.map { item -> item.id }.toSet()
-        downloadStore.dispatch(DownloadUIAction.AddPendingDeletionSet(ids))
-    }
-
-    private fun undoPendingDeletion(items: Set<FileItem>) {
-        val ids = items.map { item -> item.id }.toSet()
-        downloadStore.dispatch(DownloadUIAction.UndoPendingDeletionSet(ids))
     }
 
     private fun updateToolbarForNormalMode(title: String?) {
