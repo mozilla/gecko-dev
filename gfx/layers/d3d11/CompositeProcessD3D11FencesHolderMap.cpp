@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "GpuProcessD3D11FencesHolderMap.h"
+#include "CompositeProcessD3D11FencesHolderMap.h"
 
 #include "mozilla/layers/FenceD3D11.h"
 
@@ -12,33 +12,33 @@ namespace mozilla {
 
 namespace layers {
 
-StaticAutoPtr<GpuProcessD3D11FencesHolderMap>
-    GpuProcessD3D11FencesHolderMap::sInstance;
+StaticAutoPtr<CompositeProcessD3D11FencesHolderMap>
+    CompositeProcessD3D11FencesHolderMap::sInstance;
 
 /* static */
-void GpuProcessD3D11FencesHolderMap::Init() {
+void CompositeProcessD3D11FencesHolderMap::Init() {
   MOZ_ASSERT(XRE_IsGPUProcess() || XRE_IsParentProcess());
-  sInstance = new GpuProcessD3D11FencesHolderMap();
+  sInstance = new CompositeProcessD3D11FencesHolderMap();
 }
 
 /* static */
-void GpuProcessD3D11FencesHolderMap::Shutdown() {
+void CompositeProcessD3D11FencesHolderMap::Shutdown() {
   MOZ_ASSERT(XRE_IsGPUProcess() || XRE_IsParentProcess());
   sInstance = nullptr;
 }
 
-GpuProcessD3D11FencesHolderMap::GpuProcessD3D11FencesHolderMap()
-    : mMonitor("GpuProcessD3D11FencesHolderMap::mMonitor") {}
+CompositeProcessD3D11FencesHolderMap::CompositeProcessD3D11FencesHolderMap()
+    : mMonitor("CompositeProcessD3D11FencesHolderMap::mMonitor") {}
 
-GpuProcessD3D11FencesHolderMap::~GpuProcessD3D11FencesHolderMap() {}
+CompositeProcessD3D11FencesHolderMap::~CompositeProcessD3D11FencesHolderMap() {}
 
-void GpuProcessD3D11FencesHolderMap::Register(
+void CompositeProcessD3D11FencesHolderMap::Register(
     GpuProcessFencesHolderId aHolderId) {
   MonitorAutoLock lock(mMonitor);
 
   mFencesHolderById[aHolderId] = MakeUnique<FencesHolder>();
 }
-void GpuProcessD3D11FencesHolderMap::Unregister(
+void CompositeProcessD3D11FencesHolderMap::Unregister(
     GpuProcessFencesHolderId aHolderId) {
   MonitorAutoLock lock(mMonitor);
 
@@ -49,7 +49,7 @@ void GpuProcessD3D11FencesHolderMap::Unregister(
   mFencesHolderById.erase(it);
 }
 
-void GpuProcessD3D11FencesHolderMap::SetWriteFence(
+void CompositeProcessD3D11FencesHolderMap::SetWriteFence(
     GpuProcessFencesHolderId aHolderId, RefPtr<FenceD3D11> aWriteFence) {
   MOZ_ASSERT(aWriteFence);
 
@@ -77,7 +77,7 @@ void GpuProcessD3D11FencesHolderMap::SetWriteFence(
   it->second->mWriteFence = fence;
 }
 
-void GpuProcessD3D11FencesHolderMap::SetReadFence(
+void CompositeProcessD3D11FencesHolderMap::SetReadFence(
     GpuProcessFencesHolderId aHolderId, RefPtr<FenceD3D11> aReadFence) {
   MOZ_ASSERT(aReadFence);
 
@@ -102,7 +102,7 @@ void GpuProcessD3D11FencesHolderMap::SetReadFence(
   it->second->mReadFences.push_back(fence);
 }
 
-bool GpuProcessD3D11FencesHolderMap::WaitWriteFence(
+bool CompositeProcessD3D11FencesHolderMap::WaitWriteFence(
     GpuProcessFencesHolderId aHolderId, ID3D11Device* aDevice) {
   MOZ_ASSERT(aDevice);
 
@@ -129,7 +129,7 @@ bool GpuProcessD3D11FencesHolderMap::WaitWriteFence(
   return writeFence->Wait(aDevice);
 }
 
-bool GpuProcessD3D11FencesHolderMap::WaitAllFencesAndForget(
+bool CompositeProcessD3D11FencesHolderMap::WaitAllFencesAndForget(
     GpuProcessFencesHolderId aHolderId, ID3D11Device* aDevice) {
   MOZ_ASSERT(aDevice);
 

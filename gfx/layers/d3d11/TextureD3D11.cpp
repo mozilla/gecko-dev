@@ -24,7 +24,7 @@
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/D3D11ZeroCopyTextureImage.h"
 #include "mozilla/layers/FenceD3D11.h"
-#include "mozilla/layers/GpuProcessD3D11FencesHolderMap.h"
+#include "mozilla/layers/CompositeProcessD3D11FencesHolderMap.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #include "mozilla/layers/HelpersD3D11.h"
 #include "mozilla/layers/VideoProcessorD3D11.h"
@@ -716,7 +716,7 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
   const RefPtr<gfx::FileHandleWrapper> sharedHandleCr =
       new gfx::FileHandleWrapper(UniqueFileHandle(handleCr));
 
-  auto* fenceHolderMap = GpuProcessD3D11FencesHolderMap::Get();
+  auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
   if (!fenceHolderMap) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
@@ -766,7 +766,7 @@ DXGIYCbCrTextureData::DXGIYCbCrTextureData(
       mHandles{aHandles[0], aHandles[1], aHandles[2]} {}
 
 DXGIYCbCrTextureData::~DXGIYCbCrTextureData() {
-  auto* fenceHolderMap = GpuProcessD3D11FencesHolderMap::Get();
+  auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
   if (!fenceHolderMap) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return;
@@ -1457,7 +1457,7 @@ void DXGIYCbCrTextureHostD3D11::NotifyNotUsed() {
     return;
   }
 
-  auto* fenceHolderMap = GpuProcessD3D11FencesHolderMap::Get();
+  auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
   if (!fenceHolderMap) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return;

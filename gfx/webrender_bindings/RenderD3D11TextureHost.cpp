@@ -18,7 +18,7 @@
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/FenceD3D11.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
-#include "mozilla/layers/GpuProcessD3D11FencesHolderMap.h"
+#include "mozilla/layers/CompositeProcessD3D11FencesHolderMap.h"
 #include "mozilla/layers/TextureD3D11.h"
 
 namespace mozilla {
@@ -371,7 +371,7 @@ bool RenderDXGITextureHost::LockInternal() {
 
   if (!mLocked) {
     if (mFencesHolderId.isSome()) {
-      auto* fencesHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
+      auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
       if (!fencesHolderMap) {
         MOZ_ASSERT_UNREACHABLE("unexpected to be called");
         return false;
@@ -642,7 +642,7 @@ bool RenderDXGIYCbCrTextureHost::EnsureD3D11Texture2D(ID3D11Device* aDevice) {
 
 bool RenderDXGIYCbCrTextureHost::LockInternal() {
   if (!mLocked) {
-    auto* fencesHolderMap = layers::GpuProcessD3D11FencesHolderMap::Get();
+    auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
     if (!fencesHolderMap) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
       return false;

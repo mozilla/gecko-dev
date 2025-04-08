@@ -74,7 +74,7 @@
 #  include "gfxWindowsPlatform.h"
 #  include "mozilla/WindowsVersion.h"
 #  include "mozilla/gfx/DeviceManagerDx.h"
-#  include "mozilla/layers/GpuProcessD3D11FencesHolderMap.h"
+#  include "mozilla/layers/CompositeProcessD3D11FencesHolderMap.h"
 #  include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #  include "mozilla/layers/TextureD3D11.h"
 #  include "mozilla/widget/WinCompositorWindowThread.h"
@@ -215,7 +215,7 @@ bool GPUParent::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
 #if defined(XP_WIN)
   gfxWindowsPlatform::InitMemoryReportersForGPUProcess();
   DeviceManagerDx::Init();
-  GpuProcessD3D11FencesHolderMap::Init();
+  CompositeProcessD3D11FencesHolderMap::Init();
   GpuProcessD3D11TextureMap::Init();
   auto rv = wmf::MediaFoundationInitializer::HasInitialized();
   if (!rv) {
@@ -806,7 +806,7 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
 
 #if defined(XP_WIN)
         GpuProcessD3D11TextureMap::Shutdown();
-        GpuProcessD3D11FencesHolderMap::Shutdown();
+        CompositeProcessD3D11FencesHolderMap::Shutdown();
         DeviceManagerDx::Shutdown();
 #endif
         LayerTreeOwnerTracker::Shutdown();
