@@ -45,4 +45,6 @@ function assertEmptyStore(store) {
     [],
     "Store should have no inactive enrollments"
   );
+
+  ExperimentFakes.cleanupStorePrefCache();
 }

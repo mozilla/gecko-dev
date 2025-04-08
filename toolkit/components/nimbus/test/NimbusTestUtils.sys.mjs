@@ -268,14 +268,18 @@ export const ExperimentFakes = {
       throw new Error("Cleanup failed");
     }
   },
-  // Experiment store caches in prefs Enrollments for fast sync access
+  /**
+   * Cleanup any isEarlyStartup features cached in prefs.
+   */
   cleanupStorePrefCache() {
+    // These may throw if nothing is cached, but it is harmless.
+
     try {
       Services.prefs.deleteBranch(SYNC_DATA_PREF_BRANCH);
+    } catch (e) {}
+    try {
       Services.prefs.deleteBranch(SYNC_DEFAULTS_PREF_BRANCH);
-    } catch (e) {
-      // Expected if nothing is cached
-    }
+    } catch (e) {}
   },
   rsLoader() {
     const loader = new lazy._RemoteSettingsExperimentLoader();
