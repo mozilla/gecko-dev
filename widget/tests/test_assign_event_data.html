@@ -122,26 +122,6 @@ function observeKeyUpOnContent(aKeyCode, aCallback) {
 }
 
 const kTests = [
-  { description: "InternalScrollPortEvent (overflow, vertical)",
-    targetID: "scrollable-div", eventType: "overflow",
-    dispatchEvent() {
-      document.getElementById("scrolled-div").style.height = "500px";
-    },
-    canRun() {
-      return true;
-    },
-    todoMismatch: [],
-  },
-  { description: "InternalScrollPortEvent (overflow, horizontal)",
-    targetID: "scrollable-div", eventType: "overflow",
-    dispatchEvent() {
-      document.getElementById("scrolled-div").style.width = "500px";
-    },
-    canRun() {
-      return true;
-    },
-    todoMismatch: [],
-  },
   { description: "InternalScrollAreaEvent (MozScrolledAreaChanged, spreading)",
     target() { return document; }, eventType: "MozScrolledAreaChanged",
     dispatchEvent() {
@@ -769,7 +749,6 @@ function init() {
                                     ["mousewheel.with_meta.action", 0],
                                     ["mousewheel.with_meta.action.override_x", -1],
                                     ["dom.events.textevent.enabled", true],
-                                    ["layout.overflow-underflow.content.enabled", true],
                                     ["dom.mutation_events.enabled", true]]}, runNextTest);
 }
 

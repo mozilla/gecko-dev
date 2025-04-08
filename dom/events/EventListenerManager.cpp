@@ -473,20 +473,6 @@ void EventListenerManager::AddEventListenerInternal(
           window->SetHasFormSelectEventListeners();
         }
         break;
-      case eScrollPortOverflow:
-        if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
-          if (Document* doc = window->GetExtantDoc()) {
-            doc->SetUseCounter(eUseCounter_custom_onoverflow);
-          }
-        }
-        break;
-      case eScrollPortUnderflow:
-        if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
-          if (Document* doc = window->GetExtantDoc()) {
-            doc->SetUseCounter(eUseCounter_custom_onunderflow);
-          }
-        }
-        break;
       case eLegacyMouseLineOrPageScroll:
         if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
           if (Document* doc = window->GetExtantDoc()) {
@@ -626,14 +612,6 @@ void EventListenerManager::AddEventListenerInternal(
                                      ToChar(resolvedEventMessage))
                          .get());
         NS_ASSERTION(aTypeAtom != nsGkAtoms::onselect,
-                     nsPrintfCString("resolvedEventMessage=%s",
-                                     ToChar(resolvedEventMessage))
-                         .get());
-        NS_ASSERTION(aTypeAtom != nsGkAtoms::onoverflow,
-                     nsPrintfCString("resolvedEventMessage=%s",
-                                     ToChar(resolvedEventMessage))
-                         .get());
-        NS_ASSERTION(aTypeAtom != nsGkAtoms::onunderflow,
                      nsPrintfCString("resolvedEventMessage=%s",
                                      ToChar(resolvedEventMessage))
                          .get());
