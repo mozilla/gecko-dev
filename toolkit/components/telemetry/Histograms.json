@@ -8255,54 +8255,6 @@
     "n_values": 8,
     "description": "Result of XHR request fetching the country-code. 0=SUCCESS, 1=SUCCESS_WITHOUT_DATA, 2=XHRTIMEOUT, 3=ERROR (rest reserved for finer-grained error codes later)"
   },
-  "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_TIMEZONE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Set if the fetched country-code indicates US but the time-zone heuristic doesn't"
-  },
-  "SEARCH_SERVICE_US_TIMEZONE_MISMATCHED_COUNTRY": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Set if the time-zone heuristic indicates US but the fetched country code doesn't"
-  },
-  "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_OSX": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "If we are on OSX and either the OSX countryCode or the geoip countryCode indicates we are in the US, set to false if they both do or true otherwise"
-  },
-  "SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_OSX": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "If we are on OSX and neither the OSX countryCode nor the geoip countryCode indicates we are in the US, set to false if they both agree on the value or true otherwise"
-  },
-  "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_WIN": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "If we are on Windows and either the Windows countryCode or the geoip countryCode indicates we are in the US, set to false if they both do or true otherwise"
-  },
-  "SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_WIN": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "description": "If we are on Windows and neither the Windows countryCode nor the geoip countryCode indicates we are in the US, set to false if they both agree on the value or true otherwise"
-  },
   "SEARCH_SUGGESTIONS_LATENCY_MS": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],

@@ -1,8 +1,5 @@
 "use strict";
 
-const { AppConstants } = ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
 const { HttpServer } = ChromeUtils.importESModule(
   "resource://testing-common/httpd.sys.mjs"
 );
@@ -101,33 +98,6 @@ add_task(async function test_timeout() {
 
   await checkTelemetry(Region.TELEMETRY.TIMEOUT);
   await cleanup(srv);
-});
-
-add_task(async function test_mismatched_probe() {
-  let probeDetails = await getExpectedHistogramDetails();
-  let probeHistogram;
-  if (probeDetails) {
-    probeHistogram = Services.telemetry.getHistogramById(probeDetails.probeId);
-    probeHistogram.clear();
-  }
-  histogram.clear();
-  Region._home = null;
-
-  RegionTestUtils.setNetworkRegion("AU");
-  await Region._fetchRegion();
-  Assert.equal(Region.home, "AU", "Should have correct region");
-  await checkTelemetry(Region.TELEMETRY.SUCCESS);
-
-  // We dont store probes for linux and on treeherder +
-  // Mac there is no plaform countryCode so in these cases
-  // skip the rest of the checks.
-  if (!probeDetails) {
-    return;
-  }
-  let snapshot = probeHistogram.snapshot();
-  deepEqual(snapshot.values, probeDetails.expectedResult);
-
-  await cleanup();
 });
 
 add_task(async function test_location() {
@@ -278,56 +248,4 @@ async function checkTelemetry(aExpectedValue) {
   });
   let snapshot = histogram.snapshot();
   Assert.equal(snapshot.values[aExpectedValue], 1);
-}
-
-// Define some checks for our platform-specific telemetry.
-// We can't influence what they return (as we can't
-// influence the countryCode the platform thinks we
-// are in), but we can check the values are
-// correct given reality.
-async function getExpectedHistogramDetails() {
-  let probeUSMismatched, probeNonUSMismatched;
-  switch (AppConstants.platform) {
-    case "macosx":
-      probeUSMismatched = "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_OSX";
-      probeNonUSMismatched =
-        "SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_OSX";
-      break;
-    case "win":
-      probeUSMismatched = "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_WIN";
-      probeNonUSMismatched =
-        "SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_WIN";
-      break;
-    default:
-      break;
-  }
-
-  if (probeUSMismatched && probeNonUSMismatched) {
-    let countryCode = await Services.sysinfo.countryCode;
-    print("Platform says the country-code is", countryCode);
-    if (!countryCode) {
-      // On treeherder for Mac the countryCode is null, so the probes won't be
-      // recorded.
-      // We still let the test run for Mac, as a developer would likely
-      // eventually pick up on the issue.
-      info("No country code set on this machine, skipping rest of test");
-      return false;
-    }
-
-    if (countryCode == "US") {
-      // boolean probe so 3 buckets, expect 1 result for |1|.
-      return {
-        probeId: probeUSMismatched,
-        expectedResult: { 0: 0, 1: 1, 2: 0 },
-      };
-    }
-    // We are expecting probeNonUSMismatched with false if the platform
-    // says AU (not a mismatch) and true otherwise.
-    return {
-      probeId: probeNonUSMismatched,
-      expectedResult:
-        countryCode == "AU" ? { 0: 1, 1: 0 } : { 0: 0, 1: 1, 2: 0 },
-    };
-  }
-  return false;
 }
