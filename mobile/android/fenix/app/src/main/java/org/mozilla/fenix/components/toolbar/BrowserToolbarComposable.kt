@@ -10,14 +10,15 @@ import android.view.ViewGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
 import androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.CustomTabSessionState
@@ -25,6 +26,7 @@ import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.feature.toolbar.ToolbarBehaviorController
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.ext.components
@@ -53,25 +55,37 @@ class BrowserToolbarComposable(
 ) {
     private var showDivider by mutableStateOf(true)
 
-    override val layout = ComposeView(context).apply {
-        setContent {
-            val shouldShowDivider by remember { mutableStateOf(showDivider) }
-            val shouldShowTabStrip: Boolean = remember { shouldShowTabStrip() }
+    override val layout = ScrollableToolbarComposeView(context, this) {
+        val shouldShowDivider by remember { mutableStateOf(showDivider) }
+        val shouldShowTabStrip: Boolean = remember { shouldShowTabStrip() }
 
-            AcornTheme {
-                when (shouldShowTabStrip) {
-                    true -> Column(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        tabStripContent()
-                        BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
-                    }
-
-                    false -> BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
-                }
+        DisposableEffect(context) {
+            val toolbarController = ToolbarBehaviorController(
+                toolbar = this@BrowserToolbarComposable,
+                store = context.components.core.store,
+                customTabId = customTabSession?.id,
+            )
+            toolbarController.start()
+            onDispose {
+                toolbarController.stop()
             }
         }
 
+        AcornTheme {
+            when (shouldShowTabStrip) {
+                true -> Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                ) {
+                    tabStripContent()
+                    BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
+                }
+
+                false -> BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
+            }
+        }
+    }.apply {
         if (!shouldShowTabStrip()) {
             val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
 
@@ -86,6 +100,7 @@ class BrowserToolbarComposable(
 
     init {
         container.addView(layout)
+        setToolbarBehavior()
     }
 
     @Composable
