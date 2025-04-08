@@ -97,8 +97,9 @@ static void settings_changed_cb(GtkSettings*, GParamSpec* aSpec, void*) {
   const char* name = g_param_spec_get_name(aSpec);
   LOGLNF("settings_changed_cb(%s)", name);
 
-  const bool isTheme = !strcmp(name, "gtk-theme-name") ||
-                       !strcmp(name, "gtk-application-prefer-dark-theme");
+  const bool isThemeDependent =
+      !strcmp(name, "gtk-theme-name") || !strcmp(name, "gtk-font-name") ||
+      !strcmp(name, "gtk-application-prefer-dark-theme");
   auto* lnf = static_cast<nsLookAndFeel*>(nsLookAndFeel::GetInstance());
   auto changeKind =
       isTheme ? NativeChangeKind::GtkTheme : NativeChangeKind::OtherSettings;
