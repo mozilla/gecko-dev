@@ -102,7 +102,7 @@ static void settings_changed_cb(GtkSettings*, GParamSpec* aSpec, void*) {
       !strcmp(name, "gtk-application-prefer-dark-theme");
   auto* lnf = static_cast<nsLookAndFeel*>(nsLookAndFeel::GetInstance());
   auto changeKind =
-      isTheme ? NativeChangeKind::GtkTheme : NativeChangeKind::OtherSettings;
+      isThemeDependent ? NativeChangeKind::GtkTheme : NativeChangeKind::OtherSettings;
   OnSettingsChange(lnf, changeKind);
 }
 
