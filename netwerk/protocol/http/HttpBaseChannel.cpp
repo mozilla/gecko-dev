@@ -2948,8 +2948,9 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
 
   if (nsContentUtils::IsJavascriptMIMEType(typeString)) {
     // script load has type script
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::javaScript);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eJavascript)
+        .Add();
     return NS_OK;
   }
 
@@ -2959,8 +2960,9 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
       internalType == nsIContentPolicy::TYPE_INTERNAL_MODULE_PRELOAD;
 
   if (isModule && nsContentUtils::IsJsonMimeType(typeString)) {
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::javaScript);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eJavascript)
+        .Add();
     return NS_OK;
   }
 
@@ -2972,27 +2974,34 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
     case nsIContentPolicy::TYPE_INTERNAL_MODULE_PRELOAD:
     case nsIContentPolicy::TYPE_INTERNAL_CHROMEUTILS_COMPILED_SCRIPT:
     case nsIContentPolicy::TYPE_INTERNAL_FRAME_MESSAGEMANAGER_SCRIPT:
-      AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::script_load);
+      glean::http::script_block_incorrect_mime
+          .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eScriptLoad)
+          .Add();
       break;
     case nsIContentPolicy::TYPE_INTERNAL_WORKER:
     case nsIContentPolicy::TYPE_INTERNAL_WORKER_STATIC_MODULE:
     case nsIContentPolicy::TYPE_INTERNAL_SHARED_WORKER:
-      AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::worker_load);
+      glean::http::script_block_incorrect_mime
+          .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eWorkerLoad)
+          .Add();
       break;
     case nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER:
-      AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::serviceworker_load);
+      glean::http::script_block_incorrect_mime
+          .EnumGet(
+              glean::http::ScriptBlockIncorrectMimeLabel::eServiceworkerLoad)
+          .Add();
       break;
     case nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS:
-      AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::importScript_load);
+      glean::http::script_block_incorrect_mime
+          .EnumGet(
+              glean::http::ScriptBlockIncorrectMimeLabel::eImportscriptLoad)
+          .Add();
       break;
     case nsIContentPolicy::TYPE_INTERNAL_AUDIOWORKLET:
     case nsIContentPolicy::TYPE_INTERNAL_PAINTWORKLET:
-      AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::worklet_load);
+      glean::http::script_block_incorrect_mime
+          .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eWorkletLoad)
+          .Add();
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("unexpected script type");
@@ -3001,8 +3010,9 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
 
   if (aLoadInfo->GetLoadingPrincipal()->IsSameOrigin(aURI)) {
     // same origin
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::same_origin);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eSameOrigin)
+        .Add();
   } else {
     bool cors = false;
     nsAutoCString corsOrigin;
@@ -3023,35 +3033,41 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
     }
     if (cors) {
       // cors origin
-      AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::CORS_origin);
+      glean::http::script_block_incorrect_mime
+          .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eCorsOrigin)
+          .Add();
     } else {
       // cross origin
-      AccumulateCategorical(
-          Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::cross_origin);
+      glean::http::script_block_incorrect_mime
+          .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eCrossOrigin)
+          .Add();
     }
   }
 
   bool block = false;
   if (StringBeginsWith(contentType, "image/"_ns)) {
     // script load has type image
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::image);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eImage)
+        .Add();
     block = true;
   } else if (StringBeginsWith(contentType, "audio/"_ns)) {
     // script load has type audio
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::audio);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eAudio)
+        .Add();
     block = true;
   } else if (StringBeginsWith(contentType, "video/"_ns)) {
     // script load has type video
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::video);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eVideo)
+        .Add();
     block = true;
   } else if (StringBeginsWith(contentType, "text/csv"_ns)) {
     // script load has type text/csv
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::text_csv);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eTextCsv)
+        .Add();
     block = true;
   }
 
@@ -3063,40 +3079,49 @@ nsresult EnsureMIMEOfScript(HttpBaseChannel* aChannel, nsIURI* aURI,
 
   if (StringBeginsWith(contentType, "text/plain"_ns)) {
     // script load has type text/plain
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::text_plain);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eTextPlain)
+        .Add();
   } else if (StringBeginsWith(contentType, "text/xml"_ns)) {
     // script load has type text/xml
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::text_xml);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eTextXml)
+        .Add();
   } else if (StringBeginsWith(contentType, "application/octet-stream"_ns)) {
     // script load has type application/octet-stream
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::app_octet_stream);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eAppOctetStream)
+        .Add();
   } else if (StringBeginsWith(contentType, "application/xml"_ns)) {
     // script load has type application/xml
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::app_xml);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eAppXml)
+        .Add();
   } else if (StringBeginsWith(contentType, "application/json"_ns)) {
     // script load has type application/json
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::app_json);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eAppJson)
+        .Add();
   } else if (StringBeginsWith(contentType, "text/json"_ns)) {
     // script load has type text/json
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::text_json);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eTextJson)
+        .Add();
   } else if (StringBeginsWith(contentType, "text/html"_ns)) {
     // script load has type text/html
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::text_html);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eTextHtml)
+        .Add();
   } else if (contentType.IsEmpty()) {
     // script load has no type
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::empty);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eEmpty)
+        .Add();
   } else {
     // script load has unknown type
-    AccumulateCategorical(
-        Telemetry::LABELS_SCRIPT_BLOCK_INCORRECT_MIME_3::unknown);
+    glean::http::script_block_incorrect_mime
+        .EnumGet(glean::http::ScriptBlockIncorrectMimeLabel::eUnknown)
+        .Add();
   }
 
   // We restrict importScripts() in worker code to JavaScript MIME types.

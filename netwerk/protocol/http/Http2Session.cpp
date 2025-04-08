@@ -31,7 +31,6 @@
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "nsHttp.h"
 #include "nsHttpConnection.h"
 #include "nsHttpHandler.h"
@@ -248,8 +247,10 @@ Http2Session::~Http2Session() {
       mServerPushedResources);
   glean::spdy::goaway_local.AccumulateSingleSample(mClientGoAwayReason);
   glean::spdy::goaway_peer.AccumulateSingleSample(mPeerGoAwayReason);
-  Telemetry::Accumulate(Telemetry::HTTP2_FAIL_BEFORE_SETTINGS,
-                        mPeerFailedHandshake);
+  glean::http::http2_fail_before_settings
+      .EnumGet(static_cast<glean::http::Http2FailBeforeSettingsLabel>(
+          mPeerFailedHandshake))
+      .Add();
 }
 
 inline nsresult Http2Session::SessionError(enum errorType reason) {

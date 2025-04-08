@@ -2620,6 +2620,232 @@ http:
     expires: never
     telemetry_mirror: TRANSACTION_WAIT_TIME_HTTP2_SUP_HTTP3
 
+  tls_early_data_negotiated:
+    type: custom_distribution
+    description: >
+      Sending TLS early data was possible: 0 - not possible, 1 - possible but
+      not used, 2 - possible and used.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram TLS_EARLY_DATA_NEGOTIATED.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296288
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654309
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1749881
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296288
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654309
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1749881
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: TLS_EARLY_DATA_NEGOTIATED
+
+  tls_early_data_accepted:
+    type: labeled_counter
+    description: >
+      TLS early data was used and it was accepted (true) or rejected (false) by
+      the remote host.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram TLS_EARLY_DATA_ACCEPTED.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296288
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654309
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1749881
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1296288
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1654309
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1749881
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: h#TLS_EARLY_DATA_ACCEPTED
+
+  http2_fail_before_settings:
+    type: labeled_counter
+    description: >
+      Whether an HTTP/2 session failed because the peer did not handshake
+      properly
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP2_FAIL_BEFORE_SETTINGS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1050329
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1050329
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTTP2_FAIL_BEFORE_SETTINGS
+
+  cache_lm_inconsistent:
+    type: labeled_counter
+    description: >
+      Cache discovered inconsistent last-modified entry
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram CACHE_LM_INCONSISTENT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: h#CACHE_LM_INCONSISTENT
+
+  dnt_usage:
+    type: custom_distribution
+    description: >
+      I want to be tracked, I do NOT want to be tracked, DNT unset
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram DNT_USAGE.
+    range_min: 0
+    range_max: 3
+    bucket_count: 4
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956726
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: DNT_USAGE
+
+  dns_httpssvc_record_receiving_stage:
+    type: custom_distribution
+    description: >
+      Record at which stage an HTTPSSVC record is received
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram DNS_HTTPSSVC_RECORD_RECEIVING_STAGE.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1652667
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1652667
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_HTTPSSVC_RECORD_RECEIVING_STAGE
+
+  dns_httpssvc_connection_failed_reason:
+    type: custom_distribution
+    description: >
+      The reason why we failed to connect with an HTTPSSVC record
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram DNS_HTTPSSVC_CONNECTION_FAILED_REASON.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1652667
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1652667
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_HTTPSSVC_CONNECTION_FAILED_REASON
+
+  script_block_incorrect_mime:
+    type: labeled_counter
+    description: >
+      Whether the script load has a MIME type of ...?  (unknown, javaScript,
+      image, audio, video, text_plain, text_csv, text_xml, app_octet_stream,
+      app_xml, app_json, text_json, text_html, empty). Whether the script load
+      is from ...?  (serviceworker_load, worker_load, importSript_load,
+      script_load). Whether the script load is of ...?  (same_origin,
+      CORS_origin, cross_origin)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram SCRIPT_BLOCK_INCORRECT_MIME_3.
+    labels:
+      - unknown
+      - javaScript
+      - image
+      - audio
+      - video
+      - text_plain
+      - text_csv
+      - text_xml
+      - app_octet_stream
+      - app_xml
+      - app_json
+      - text_json
+      - text_html
+      - empty
+      - serviceworker_load
+      - worker_load
+      - importScript_load
+      - script_load
+      - same_origin
+      - CORS_origin
+      - cross_origin
+      - worklet_load
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1288361
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1299267
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1399990
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1510225
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1581559
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1288361
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1299267
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1399990
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1510225
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1581559
+    notification_emails:
+      - ckerschbaumer@mozilla.com
+    expires: never
+    telemetry_mirror: h#SCRIPT_BLOCK_INCORRECT_MIME_3
+
+  echconfig_success_rate:
+    type: labeled_counter
+    description: >
+      TLS handshake with and without EchConfig success rate.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram ECHCONFIG_SUCCESS_RATE.
+    labels:
+      - EchConfigSucceeded
+      - EchConfigFailed
+      - NoEchConfigSucceeded
+      - NoEchConfigFailed
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1682555
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1682555
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    telemetry_mirror: h#ECHCONFIG_SUCCESS_RATE
+
 http3:
   ech_outcome:
     type: labeled_custom_distribution

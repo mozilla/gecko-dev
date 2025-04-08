@@ -20,7 +20,6 @@
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/Telemetry.h"
 #include "mozpkix/pkixnss.h"
 #include "nsCRT.h"
 #include "nsHttpConnection.h"
@@ -47,13 +46,6 @@ extern const nsCString& TRRProviderKey();
 }
 
 namespace mozilla::net {
-
-enum TlsHandshakeResult : uint32_t {
-  EchConfigSuccessful = 0,
-  EchConfigFailed,
-  NoEchConfigSuccessful,
-  NoEchConfigFailed,
-};
 
 //-----------------------------------------------------------------------------
 // nsHttpConnection <public>
@@ -470,13 +462,16 @@ void nsHttpConnection::PostProcessNPNSetup(bool handshakeSucceeded,
     // Telemetry for tls failure rate with and without esni;
     bool echConfigUsed = false;
     mSocketTransport->GetEchConfigUsed(&echConfigUsed);
-    TlsHandshakeResult result =
+    glean::http::EchconfigSuccessRateLabel label =
         echConfigUsed
-            ? (handshakeSucceeded ? TlsHandshakeResult::EchConfigSuccessful
-                                  : TlsHandshakeResult::EchConfigFailed)
-            : (handshakeSucceeded ? TlsHandshakeResult::NoEchConfigSuccessful
-                                  : TlsHandshakeResult::NoEchConfigFailed);
-    Telemetry::Accumulate(Telemetry::ECHCONFIG_SUCCESS_RATE, result);
+            ? (handshakeSucceeded
+                   ? glean::http::EchconfigSuccessRateLabel::eEchconfigsucceeded
+                   : glean::http::EchconfigSuccessRateLabel::eEchconfigfailed)
+            : (handshakeSucceeded ? glean::http::EchconfigSuccessRateLabel::
+                                        eNoechconfigsucceeded
+                                  : glean::http::EchconfigSuccessRateLabel::
+                                        eNoechconfigfailed);
+    glean::http::echconfig_success_rate.EnumGet(label).Add();
   }
 }
 

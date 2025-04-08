@@ -4066,7 +4066,9 @@ nsresult nsHttpChannel::ProcessNotModified(
          lastModifiedCached.get(), lastModified304.get()));
 
     mCacheEntry->AsyncDoom(nullptr);
-    Telemetry::Accumulate(Telemetry::CACHE_LM_INCONSISTENT, true);
+    glean::http::cache_lm_inconsistent
+        .EnumGet(glean::http::CacheLmInconsistentLabel::eTrue)
+        .Add();
   }
 
   // merge any new headers with the cached response headers
@@ -8023,8 +8025,8 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
 
     uint32_t stage = mTransaction->HTTPSSVCReceivedStage();
     if (!LoadHTTPSSVCTelemetryReported() && stage != HTTPSSVC_NOT_USED) {
-      Telemetry::Accumulate(Telemetry::DNS_HTTPSSVC_RECORD_RECEIVING_STAGE,
-                            stage);
+      glean::http::dns_httpssvc_record_receiving_stage.AccumulateSingleSample(
+          stage);
     }
 
     if (HTTPS_RR_IS_USED(stage)) {
@@ -10018,10 +10020,9 @@ void nsHttpChannel::OnHTTPSRRAvailable(nsIDNSHTTPSSVCRecord* aRecord) {
         (mFirstResponseSource != RESPONSE_FROM_CACHE)) {
       bool hasIPAddress = false;
       Unused << httprr->GetHasIPAddresses(&hasIPAddress);
-      Telemetry::Accumulate(Telemetry::DNS_HTTPSSVC_RECORD_RECEIVING_STAGE,
-                            hasIPAddress
-                                ? HTTPSSVC_WITH_IPHINT_RECEIVED_STAGE_0
-                                : HTTPSSVC_WITHOUT_IPHINT_RECEIVED_STAGE_0);
+      glean::http::dns_httpssvc_record_receiving_stage.AccumulateSingleSample(
+          hasIPAddress ? HTTPSSVC_WITH_IPHINT_RECEIVED_STAGE_0
+                       : HTTPSSVC_WITHOUT_IPHINT_RECEIVED_STAGE_0);
       StoreHTTPSSVCTelemetryReported(true);
     }
   }

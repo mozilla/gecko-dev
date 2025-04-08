@@ -1235,8 +1235,8 @@ void nsHttpTransaction::MaybeReportFailedSVCDomain(
     return;
   }
 
-  Telemetry::Accumulate(Telemetry::DNS_HTTPSSVC_CONNECTION_FAILED_REASON,
-                        ErrorCodeToFailedReason(aReason));
+  glean::http::dns_httpssvc_connection_failed_reason.AccumulateSingleSample(
+      ErrorCodeToFailedReason(aReason));
 
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
   if (dns) {
@@ -1586,8 +1586,8 @@ void nsHttpTransaction::Close(nsresult reason) {
     // Use mOrigConnInfo as an indicator that this transaction is completed
     // successfully with an HTTPSSVC record.
     if (mOrigConnInfo) {
-      Telemetry::Accumulate(Telemetry::DNS_HTTPSSVC_CONNECTION_FAILED_REASON,
-                            HTTPSSVC_CONNECTION_OK);
+      glean::http::dns_httpssvc_connection_failed_reason.AccumulateSingleSample(
+          HTTPSSVC_CONNECTION_OK);
     }
   }
 
@@ -3279,10 +3279,9 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
     nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
     bool allRecordsExcluded = false;
     Unused << record->GetAllRecordsExcluded(&allRecordsExcluded);
-    Telemetry::Accumulate(Telemetry::DNS_HTTPSSVC_CONNECTION_FAILED_REASON,
-                          allRecordsExcluded
-                              ? HTTPSSVC_CONNECTION_ALL_RECORDS_EXCLUDED
-                              : HTTPSSVC_CONNECTION_NO_USABLE_RECORD);
+    glean::http::dns_httpssvc_connection_failed_reason.AccumulateSingleSample(
+        allRecordsExcluded ? HTTPSSVC_CONNECTION_ALL_RECORDS_EXCLUDED
+                           : HTTPSSVC_CONNECTION_NO_USABLE_RECORD);
     if (allRecordsExcluded &&
         StaticPrefs::network_dns_httpssvc_reset_exclustion_list() && dns) {
       Unused << dns->ResetExcludedSVCDomainName(mConnInfo->GetOrigin());

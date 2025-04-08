@@ -71,7 +71,6 @@
 #include "mozilla/net/SocketProcessChild.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/AntiTrackingRedirectHeuristic.h"
 #include "mozilla/DynamicFpiRedirectHeuristic.h"
@@ -2215,9 +2214,9 @@ nsHttpHandler::Observe(nsISupports* subject, const char* topic,
     // want to do telemetry twice.
     if (XRE_IsParentProcess()) {
       if (!StaticPrefs::privacy_donottrackheader_enabled()) {
-        Telemetry::Accumulate(Telemetry::DNT_USAGE, 2);
+        glean::http::dnt_usage.AccumulateSingleSample(2);
       } else {
-        Telemetry::Accumulate(Telemetry::DNT_USAGE, 1);
+        glean::http::dnt_usage.AccumulateSingleSample(1);
       }
     }
 
