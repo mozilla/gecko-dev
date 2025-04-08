@@ -28,6 +28,7 @@ import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.HomeFragment.Companion.TOAST_ELEVATION
+import org.mozilla.fenix.home.toolbar.HomeToolbarView
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.allowUndo
 
@@ -42,7 +43,7 @@ class InstrumentedHomeFragmentTest {
         every { context.components.settings } answers { mockk(relaxed = true) }
         val homeMenuView: HomeMenuView = mockk(relaxed = true)
         val homeBinding = FragmentHomeBinding.inflate(LayoutInflater.from(testContext))
-        val toolbarView = ToolbarView(homeBinding, mockk(), homeFragment, mockk())
+        val toolbarView = HomeToolbarView(homeBinding, mockk(), homeFragment, mockk())
         toolbarView.homeMenuView = homeMenuView
         homeFragment.toolbarView = toolbarView
 

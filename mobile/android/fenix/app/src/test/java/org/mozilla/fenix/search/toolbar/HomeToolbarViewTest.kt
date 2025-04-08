@@ -55,7 +55,7 @@ import org.mozilla.fenix.utils.Settings
 import java.util.UUID
 
 @RunWith(FenixRobolectricTestRunner::class)
-class ToolbarViewTest {
+class HomeToolbarViewTest {
     @MockK(relaxed = true)
     private lateinit var interactor: ToolbarInteractor
 

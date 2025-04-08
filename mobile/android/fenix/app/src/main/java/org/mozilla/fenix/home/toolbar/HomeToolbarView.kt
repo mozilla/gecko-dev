@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.home
+package org.mozilla.fenix.home.toolbar
 
 import android.view.Gravity
 import android.view.View
@@ -30,7 +30,8 @@ import org.mozilla.fenix.databinding.FragmentHomeToolbarViewLayoutBinding
 import org.mozilla.fenix.ext.increaseTapAreaVertically
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.home.toolbar.ToolbarInteractor
+import org.mozilla.fenix.home.HomeFragment
+import org.mozilla.fenix.home.HomeMenuView
 import org.mozilla.fenix.search.toolbar.SearchSelector
 import org.mozilla.fenix.utils.ToolbarPopupWindow
 import java.lang.ref.WeakReference
@@ -38,7 +39,7 @@ import java.lang.ref.WeakReference
 /**
  * View class for setting up the home screen toolbar.
  */
-internal class ToolbarView(
+internal class HomeToolbarView(
     private val homeBinding: FragmentHomeBinding,
     private val interactor: ToolbarInteractor,
     private val homeFragment: HomeFragment,

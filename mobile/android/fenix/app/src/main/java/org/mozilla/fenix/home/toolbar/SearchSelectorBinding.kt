@@ -21,7 +21,6 @@ import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.increaseTapAreaVertically
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.home.ToolbarView
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 
 /**
@@ -29,7 +28,7 @@ import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
  */
 internal class SearchSelectorBinding(
     private val context: Context,
-    private val toolbarView: ToolbarView,
+    private val toolbarView: HomeToolbarView,
     private val searchSelectorMenu: SearchSelectorMenu,
     browserStore: BrowserStore,
 ) : AbstractBinding<BrowserState>(browserStore) {

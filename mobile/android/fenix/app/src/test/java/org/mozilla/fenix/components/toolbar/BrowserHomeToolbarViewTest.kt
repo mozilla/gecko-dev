@@ -33,7 +33,7 @@ import org.mozilla.fenix.utils.Settings
 import mozilla.components.ui.widgets.behavior.ViewPosition as MozacToolbarPosition
 
 @RunWith(FenixRobolectricTestRunner::class)
-class BrowserToolbarViewTest {
+class BrowserHomeToolbarViewTest {
     private lateinit var toolbarView: BrowserToolbarView
     private lateinit var toolbar: BrowserToolbar
     private lateinit var behavior: EngineViewScrollingBehavior

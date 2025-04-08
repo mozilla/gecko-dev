@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.home
+package org.mozilla.fenix.home.toolbar
 
 import androidx.navigation.NavController
 import io.mockk.every
@@ -10,8 +10,6 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import io.mockk.verifyOrder
-import mozilla.components.browser.state.selector.normalTabs
-import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.support.test.robolectric.testContext
@@ -116,7 +114,7 @@ class TabCounterViewTest {
         tabCounterView.update(browserState)
 
         verify {
-            tabCounter.setCountWithAnimation(browserState.normalTabs.size)
+            tabCounter.setCountWithAnimation(2)
         }
 
         browsingModeManager.mode = BrowsingMode.Private
@@ -124,7 +122,7 @@ class TabCounterViewTest {
         tabCounterView.update(browserState)
 
         verify {
-            tabCounter.setCountWithAnimation(browserState.privateTabs.size)
+            tabCounter.setCountWithAnimation(1)
         }
     }
 

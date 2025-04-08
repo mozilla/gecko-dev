@@ -140,6 +140,8 @@ import org.mozilla.fenix.home.sessioncontrol.SessionControlView
 import org.mozilla.fenix.home.sessioncontrol.viewholders.CollectionHeaderViewHolder
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.toolbar.DefaultToolbarController
+import org.mozilla.fenix.home.toolbar.FenixHomeToolbar
+import org.mozilla.fenix.home.toolbar.HomeToolbarView
 import org.mozilla.fenix.home.toolbar.SearchSelectorBinding
 import org.mozilla.fenix.home.toolbar.SearchSelectorMenuBinding
 import org.mozilla.fenix.home.topsites.DefaultTopSitesView
@@ -541,7 +543,7 @@ class HomeFragment : Fragment() {
             ),
         )
 
-        toolbarView = ToolbarView(
+        toolbarView = HomeToolbarView(
             homeBinding = binding,
             interactor = sessionControlInteractor,
             homeFragment = this,
@@ -590,7 +592,7 @@ class HomeFragment : Fragment() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        (toolbarView as? ToolbarView)?.dismissMenu()
+        (toolbarView as? HomeToolbarView)?.dismissMenu()
 
         // If the navbar feature could be visible, we should update it's state.
         val shouldUpdateNavBarState =
@@ -994,7 +996,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateToolbarViewUI(@DrawableRes id: Int, showDivider: Boolean, elevation: Float) {
-        (toolbarView as? ToolbarView)?.updateBackground(id)
+        (toolbarView as? HomeToolbarView)?.updateBackground(id)
         toolbarView.updateDividerVisibility(showDivider)
         toolbarView.layout.elevation = elevation
     }
@@ -1200,7 +1202,7 @@ class HomeFragment : Fragment() {
             }
         }
 
-        (toolbarView as? ToolbarView)?.let {
+        (toolbarView as? HomeToolbarView)?.let {
             searchSelectorBinding.set(
                 feature = SearchSelectorBinding(
                     context = view.context,
@@ -1297,7 +1299,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun initTabStrip() {
-        (toolbarView as? ToolbarView)?.configureTabStripView {
+        (toolbarView as? HomeToolbarView)?.configureTabStripView {
             isVisible = true
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {

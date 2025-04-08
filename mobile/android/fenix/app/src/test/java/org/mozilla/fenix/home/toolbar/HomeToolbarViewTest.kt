@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package org.mozilla.fenix.home
+package org.mozilla.fenix.home.toolbar
 
 import android.view.LayoutInflater
 import androidx.core.view.isVisible
@@ -28,12 +28,14 @@ import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.home.HomeFragment
+import org.mozilla.fenix.home.HomeMenuView
 
 @RunWith(FenixRobolectricTestRunner::class)
-class ToolbarViewTest {
+class HomeToolbarViewTest {
 
     private lateinit var binding: FragmentHomeBinding
-    private lateinit var toolbarView: ToolbarView
+    private lateinit var toolbarView: HomeToolbarView
 
     @Before
     fun setup() {
@@ -45,7 +47,7 @@ class ToolbarViewTest {
         binding = FragmentHomeBinding.inflate(LayoutInflater.from(testContext))
         every { homeFragment.requireContext() } returns testContext
         every { testContext.settings() } returns mockk(relaxed = true)
-        toolbarView = spyk(ToolbarView(binding, mockk(relaxed = true), homeFragment, homeActivity))
+        toolbarView = spyk(HomeToolbarView(binding, mockk(relaxed = true), homeFragment, homeActivity))
         every { toolbarView.buildHomeMenu() } returns mockk(relaxed = true)
         every { toolbarView.buildTabCounter() } returns mockk(relaxed = true)
     }
