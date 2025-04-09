@@ -46,7 +46,7 @@ run-if = ["false"] # Only used for recreating URLSearchParams_profile.zip
 requesttimeoutfactor = 2
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && !fission && socketprocess_networking", # Bug TBD
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && opt", # Bug 1959284
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1959284
 ]
 
 ["test_connection_idle_maintenance.js"]
