@@ -735,13 +735,7 @@
   clone: true
 
 - name: WasmNewI31Ref
-  operands:
-    input: Int32
-  type_policy: none
-  result_type: WasmAnyRef
-  movable: true
-  congruent_to: if_operands_equal
-  alias_set: none
+  gen_boilerplate: false
 
 - name: WasmI31RefGet
   operands:

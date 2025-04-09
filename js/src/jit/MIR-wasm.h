@@ -172,6 +172,26 @@ class MWasmUnsignedToFloat32 : public MUnaryInstruction,
   bool canProduceFloat32() const override { return true; }
 };
 
+class MWasmNewI31Ref : public MUnaryInstruction, public NoTypePolicy::Data {
+  explicit MWasmNewI31Ref(MDefinition* input)
+      : MUnaryInstruction(classOpcode, input) {
+    MOZ_ASSERT(input->type() == MIRType::Int32);
+    setResultType(MIRType::WasmAnyRef);
+    setMovable();
+    initWasmRefType(wasm::MaybeRefType(wasm::RefType::i31().asNonNullable()));
+  }
+
+ public:
+  INSTRUCTION_HEADER(WasmNewI31Ref)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins);
+  }
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+};
+
 // The same as MWasmTruncateToInt64 but with the Instance dependency.
 // It used only for arm now because on arm we need to call builtin to truncate
 // to i64.
