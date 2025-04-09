@@ -193,6 +193,12 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         if (components.fenixOnboarding.userHasBeenOnboarded()) {
             initializeGlean(this, logger, settings.isTelemetryEnabled, components.core.client)
         }
+
+        // We avoid blocking the main thread on startup by setting startup metrics on the background thread.
+        val store = components.core.store
+        GlobalScope.launch(IO) {
+            setStartupMetrics(store, settings)
+        }
     }
 
     @VisibleForTesting
@@ -376,12 +382,11 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         }
 
         fun queueMetrics() {
-            queue.runIfReadyOrQueue {
-                setStartupMetrics(components.core.store, settings())
-                // Because it may be slow to capture the storage stats, it might be preferred to
-                // create a WorkManager task for this metric, however, I ran out of
-                // implementation time and WorkManager is harder to test.
-                if (SDK_INT >= Build.VERSION_CODES.O) { // required by StorageStatsMetrics.
+            if (SDK_INT >= Build.VERSION_CODES.O) { // required by StorageStatsMetrics.
+                queue.runIfReadyOrQueue {
+                    // Because it may be slow to capture the storage stats, it might be preferred to
+                    // create a WorkManager task for this metric, however, I ran out of
+                    // implementation time and WorkManager is harder to test.
                     StorageStatsMetrics.report(this.applicationContext)
                 }
             }
@@ -715,13 +720,12 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
      */
     @Suppress("ComplexMethod", "LongMethod")
     @VisibleForTesting
-    @OptIn(DelicateCoroutinesApi::class)
     internal fun setStartupMetrics(
         browserStore: BrowserStore,
         settings: Settings,
         browsersCache: BrowsersCache = BrowsersCache,
         mozillaProductDetector: MozillaProductDetector = MozillaProductDetector,
-    ) = GlobalScope.launch(Dispatchers.IO) {
+    ) {
         setPreferenceMetrics(settings)
         with(Metrics) {
             // Set this early to guarantee it's in every ping from here on.
