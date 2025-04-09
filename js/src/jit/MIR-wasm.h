@@ -2415,7 +2415,8 @@ class MWasmLoadField : public MBinaryInstruction, public NoTypePolicy::Data {
   MWasmLoadField(MDefinition* base, MDefinition* keepAlive, size_t offset,
                  mozilla::Maybe<uint32_t> structFieldIndex, MIRType type,
                  MWideningOp wideningOp, AliasSet aliases,
-                 wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
+                 wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing(),
+                 wasm::MaybeRefType maybeRefType = wasm::MaybeRefType())
       : MBinaryInstruction(classOpcode, base, keepAlive ? keepAlive : base),
         offset_(uint32_t(offset)),
         structFieldIndex_(structFieldIndex),
@@ -2444,6 +2445,7 @@ class MWasmLoadField : public MBinaryInstruction, public NoTypePolicy::Data {
     if (maybeTrap_) {
       setGuard();
     }
+    initWasmRefType(maybeRefType);
   }
 
  public:
@@ -2505,7 +2507,8 @@ class MWasmLoadElement : public MTernaryInstruction, public NoTypePolicy::Data {
   MWasmLoadElement(MDefinition* base, MDefinition* keepAlive,
                    MDefinition* index, MIRType type, MWideningOp wideningOp,
                    Scale scale, AliasSet aliases,
-                   wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
+                   wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing(),
+                   wasm::MaybeRefType maybeRefType = wasm::MaybeRefType())
       : MTernaryInstruction(classOpcode, base, index,
                             keepAlive ? keepAlive : base),
         wideningOp_(wideningOp),
@@ -2520,6 +2523,7 @@ class MWasmLoadElement : public MTernaryInstruction, public NoTypePolicy::Data {
     if (maybeTrap_) {
       setGuard();
     }
+    initWasmRefType(maybeRefType);
   }
 
  public:

@@ -90,6 +90,204 @@
   assertEq(numExternref, 1100);
 }
 
+// structs and struct fields
+{
+  const counts = { 100: 0, 200: 0, 300: 0, 400: 0 };
+
+  const { test1, test2 } = wasmEvalText(`(module
+    (type $a (struct (field i32)))
+    (type $s (struct (field (ref $a)) (field (ref $a))))
+
+    (import "" "dummy" (func $dummy (param anyref)))
+    (import "" "count" (func $count (param i32)))
+
+    (func (export "test1")
+      (local anyref)
+
+      (struct.new $a (i32.const 100))
+      (struct.new $a (i32.const 200))
+      struct.new $s
+      local.tee 0
+      call $dummy
+
+      local.get 0
+      ref.cast (ref $s)
+      struct.get $s 0
+      ref.cast (ref $a)
+      struct.get $a 0
+      call $count
+
+      local.get 0
+      ref.cast (ref $s)
+      struct.get $s 1
+      ref.cast (ref $a)
+      struct.get $a 0
+      call $count
+    )
+    (func (export "test2")
+      (local anyref i32)
+
+      (struct.new $a (i32.const 100))
+      (struct.new $a (i32.const 200))
+      struct.new $s
+      local.tee 0
+      call $dummy
+
+      loop
+        local.get 0
+        ref.cast (ref $s)
+        struct.get $s 0
+        ref.cast (ref $a)
+        struct.get $a 0
+        call $count
+
+        local.get 0
+        ref.cast (ref $s)
+        struct.get $s 1
+        ref.cast (ref $a)
+        struct.get $a 0
+        call $count
+
+        (i32.ge_s (local.get 1) (i32.const 4))
+        if
+          (struct.new $a (i32.const 300))
+          (struct.new $a (i32.const 400))
+          struct.new $s
+          local.set 0
+        end
+
+        (local.tee 1 (i32.add (local.get 1) (i32.const 1)))
+        (i32.lt_s (i32.const 10))
+        br_if 0
+      end
+    )
+  )`, {
+    "": {
+      dummy() {},
+      count(n) {
+        counts[n] += 1;
+      },
+    },
+  }).exports;
+
+  for (let i = 0; i < 100; i++) {
+    test1();
+  }
+
+  assertEq(counts[100], 100);
+  assertEq(counts[200], 100);
+  assertEq(counts[300], 0);
+  assertEq(counts[400], 0);
+
+  for (let i = 0; i < 100; i++) {
+    test2();
+  }
+
+  assertEq(counts[100], 600);
+  assertEq(counts[200], 600);
+  assertEq(counts[300], 500);
+  assertEq(counts[400], 500);
+}
+
+// arrays and array elems
+{
+  const counts = { 100: 0, 200: 0, 300: 0, 400: 0 };
+
+  const { test1, test2 } = wasmEvalText(`(module
+    (type $e (array i32))
+    (type $a (array (ref $e)))
+
+    (import "" "dummy" (func $dummy (param anyref)))
+    (import "" "count" (func $count (param i32)))
+
+    (func (export "test1")
+      (local anyref)
+
+      (array.new_fixed $e 1 (i32.const 100))
+      (array.new_fixed $e 1 (i32.const 200))
+      array.new_fixed $a 2
+      local.tee 0
+      call $dummy
+
+      local.get 0
+      ref.cast (ref $a)
+      (array.get $a (i32.const 0))
+      ref.cast (ref $e)
+      (array.get $e (i32.const 0))
+      call $count
+
+      local.get 0
+      ref.cast (ref $a)
+      (array.get $a (i32.const 1))
+      ref.cast (ref $e)
+      (array.get $e (i32.const 0))
+      call $count
+    )
+    (func (export "test2")
+      (local anyref i32)
+
+      (array.new_fixed $e 1 (i32.const 100))
+      (array.new_fixed $e 1 (i32.const 200))
+      array.new_fixed $a 2
+      local.tee 0
+      call $dummy
+
+      loop
+        local.get 0
+        ref.cast (ref $a)
+        (array.get $a (i32.const 0))
+        ref.cast (ref $e)
+        (array.get $e (i32.const 0))
+        call $count
+
+        local.get 0
+        ref.cast (ref $a)
+        (array.get $a (i32.const 1))
+        ref.cast (ref $e)
+        (array.get $e (i32.const 0))
+        call $count
+
+        (i32.ge_s (local.get 1) (i32.const 4))
+        if
+          (array.new_fixed $e 1 (i32.const 300))
+          (array.new_fixed $e 1 (i32.const 400))
+          array.new_fixed $a 2
+          local.set 0
+        end
+
+        (local.tee 1 (i32.add (local.get 1) (i32.const 1)))
+        (i32.lt_s (i32.const 10))
+        br_if 0
+      end
+    )
+  )`, {
+    "": {
+      dummy() {},
+      count(n) {
+        counts[n] += 1;
+      },
+    },
+  }).exports;
+
+  for (let i = 0; i < 100; i++) {
+    test1();
+  }
+
+  assertEq(counts[100], 100);
+  assertEq(counts[200], 100);
+  assertEq(counts[300], 0);
+  assertEq(counts[400], 0);
+
+  for (let i = 0; i < 100; i++) {
+    test2();
+  }
+
+  assertEq(counts[100], 600);
+  assertEq(counts[200], 600);
+  assertEq(counts[300], 500);
+  assertEq(counts[400], 500);
+}
+
 // ref.i31
 {
   const countsI31 = { 100: 0, 200: 0, 300: 0 };

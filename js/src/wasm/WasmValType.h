@@ -893,6 +893,8 @@ class PackedType : public T {
     }
   }
 
+  MaybeRefType toMaybeRefType() const;
+
   bool isValType() const {
     switch (tc_.typeCode()) {
       case TypeCode::I8:
@@ -988,6 +990,14 @@ class MaybeRefType {
     }
     return MaybeRefType();
   }
+};
+
+template <class T>
+MaybeRefType PackedType<T>::toMaybeRefType() const {
+  if (!isRefType()) {
+    return MaybeRefType();
+  }
+  return MaybeRefType(refType());
 };
 
 // ValType utilities

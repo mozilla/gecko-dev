@@ -4461,7 +4461,8 @@ class FunctionCompiler {
       auto* load =
           MWasmLoadField::New(alloc(), data, exception, offsets[i],
                               mozilla::Nothing(), params[i].toMIRType(),
-                              MWideningOp::None, AliasSet::Load(AliasSet::Any));
+                              MWideningOp::None, AliasSet::Load(AliasSet::Any),
+                              mozilla::Nothing(), params[i].toMaybeRefType());
       if (!load || !values->append(load)) {
         return false;
       }
@@ -4901,9 +4902,10 @@ class FunctionCompiler {
       maybeTrap.emplace(trapSiteDesc());
     }
 
-    auto* load = MWasmLoadField::New(
-        alloc(), base, keepAlive, offset, mozilla::Some(fieldIndex), mirType,
-        mirWideningOp, AliasSet::Load(aliasBitset), maybeTrap);
+    auto* load = MWasmLoadField::New(alloc(), base, keepAlive, offset,
+                                     mozilla::Some(fieldIndex), mirType,
+                                     mirWideningOp, AliasSet::Load(aliasBitset),
+                                     maybeTrap, type.toMaybeRefType());
     if (!load) {
       return nullptr;
     }
@@ -4927,7 +4929,8 @@ class FunctionCompiler {
     Scale scale = scaleFromFieldType(type);
     auto* load = MWasmLoadElement::New(
         alloc(), base, keepAlive, index, mirType, mirWideningOp, scale,
-        AliasSet::Load(aliasBitset), mozilla::Some(trapSiteDesc()));
+        AliasSet::Load(aliasBitset), mozilla::Some(trapSiteDesc()),
+        type.toMaybeRefType());
     if (!load) {
       return nullptr;
     }
