@@ -32,7 +32,7 @@ class RenderDXGITextureHost final : public RenderTextureHostSWGL {
       const uint32_t aArrayIndex, const gfx::SurfaceFormat aFormat,
       const gfx::ColorSpace2 aColorSpace, const gfx::ColorRange aColorRange,
       const gfx::IntSize aSize, const bool aHasKeyedMutex,
-      const Maybe<layers::GpuProcessFencesHolderId>& aFencesHolderId);
+      const Maybe<layers::CompositeProcessFencesHolderId>& aFencesHolderId);
 
   wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL) override;
   void Unlock() override;
@@ -127,7 +127,7 @@ class RenderDXGITextureHost final : public RenderTextureHostSWGL {
   const gfx::ColorRange mColorRange;
   const gfx::IntSize mSize;
   const bool mHasKeyedMutex;
-  const Maybe<layers::GpuProcessFencesHolderId> mFencesHolderId;
+  const Maybe<layers::CompositeProcessFencesHolderId> mFencesHolderId;
 
  private:
   bool mLocked;
@@ -140,7 +140,7 @@ class RenderDXGIYCbCrTextureHost final : public RenderTextureHostSWGL {
       const gfx::YUVColorSpace aYUVColorSpace,
       const gfx::ColorDepth aColorDepth, const gfx::ColorRange aColorRange,
       const gfx::IntSize aSizeY, const gfx::IntSize aSizeCbCr,
-      const layers::GpuProcessFencesHolderId aFencesHolderId);
+      const layers::CompositeProcessFencesHolderId aFencesHolderId);
 
   RenderDXGIYCbCrTextureHost* AsRenderDXGIYCbCrTextureHost() override {
     return this;
@@ -217,7 +217,7 @@ class RenderDXGIYCbCrTextureHost final : public RenderTextureHostSWGL {
   const gfx::ColorRange mColorRange;
   const gfx::IntSize mSizeY;
   const gfx::IntSize mSizeCbCr;
-  const layers::GpuProcessFencesHolderId mFencesHolderId;
+  const layers::CompositeProcessFencesHolderId mFencesHolderId;
 
   bool mLocked = false;
 };

@@ -32,17 +32,17 @@ class CompositeProcessD3D11FencesHolderMap {
   CompositeProcessD3D11FencesHolderMap();
   ~CompositeProcessD3D11FencesHolderMap();
 
-  void Register(GpuProcessFencesHolderId aHolderId);
-  void Unregister(GpuProcessFencesHolderId aHolderId);
+  void Register(CompositeProcessFencesHolderId aHolderId);
+  void Unregister(CompositeProcessFencesHolderId aHolderId);
 
-  void SetWriteFence(GpuProcessFencesHolderId aHolderId,
+  void SetWriteFence(CompositeProcessFencesHolderId aHolderId,
                      RefPtr<FenceD3D11> aWriteFence);
-  void SetReadFence(GpuProcessFencesHolderId aHolderId,
+  void SetReadFence(CompositeProcessFencesHolderId aHolderId,
                     RefPtr<FenceD3D11> aReadFence);
 
-  bool WaitWriteFence(GpuProcessFencesHolderId aHolderId,
+  bool WaitWriteFence(CompositeProcessFencesHolderId aHolderId,
                       ID3D11Device* aDevice);
-  bool WaitAllFencesAndForget(GpuProcessFencesHolderId aHolderId,
+  bool WaitAllFencesAndForget(CompositeProcessFencesHolderId aHolderId,
                               ID3D11Device* aDevice);
 
  private:
@@ -55,8 +55,8 @@ class CompositeProcessD3D11FencesHolderMap {
 
   mutable Monitor mMonitor MOZ_UNANNOTATED;
 
-  std::unordered_map<GpuProcessFencesHolderId, UniquePtr<FencesHolder>,
-                     GpuProcessFencesHolderId::HashFn>
+  std::unordered_map<CompositeProcessFencesHolderId, UniquePtr<FencesHolder>,
+                     CompositeProcessFencesHolderId::HashFn>
       mFencesHolderById;
 
   static StaticAutoPtr<CompositeProcessD3D11FencesHolderMap> sInstance;

@@ -29,7 +29,7 @@ using mozilla::layers::RemoteTextureId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::RemoteTextureOwnerId from "mozilla/layers/LayersTypes.h";
 [RefCounted] using mozilla::layers::GpuFence from "mozilla/layers/GpuFence.h";
 using mozilla::layers::GpuProcessTextureId from "mozilla/layers/LayersTypes.h";
-using mozilla::layers::GpuProcessFencesHolderId from "mozilla/layers/LayersTypes.h";
+using mozilla::layers::CompositeProcessFencesHolderId from "mozilla/layers/LayersTypes.h";
 using mozilla::wr::ExternalImageSource from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::ExternalImageId from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::layers::SurfaceDescriptorRemoteDecoderId from "mozilla/layers/LayersTypes.h";
@@ -47,7 +47,7 @@ namespace layers {
   ColorSpace2 colorSpace;
   ColorRange colorRange;
   bool hasKeyedMutex;
-  GpuProcessFencesHolderId? fencesHolderId;
+  CompositeProcessFencesHolderId? fencesHolderId;
 };
 
 [Comparable] struct SurfaceDescriptorDXGIYCbCr {
@@ -60,7 +60,7 @@ namespace layers {
   ColorDepth colorDepth;
   YUVColorSpace yUVColorSpace;
   ColorRange colorRange;
-  GpuProcessFencesHolderId fencesHolderId;
+  CompositeProcessFencesHolderId fencesHolderId;
 };
 
 [Comparable] struct SurfaceDescriptorMacIOSurface {

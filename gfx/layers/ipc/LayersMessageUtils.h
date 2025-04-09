@@ -264,8 +264,8 @@ struct ParamTraits<mozilla::layers::GpuProcessTextureId> {
 };
 
 template <>
-struct ParamTraits<mozilla::layers::GpuProcessFencesHolderId> {
-  typedef mozilla::layers::GpuProcessFencesHolderId paramType;
+struct ParamTraits<mozilla::layers::CompositeProcessFencesHolderId> {
+  typedef mozilla::layers::CompositeProcessFencesHolderId paramType;
 
   static void Write(MessageWriter* writer, const paramType& param) {
     WriteParam(writer, param.mId);

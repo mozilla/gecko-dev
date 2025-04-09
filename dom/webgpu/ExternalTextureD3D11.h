@@ -27,13 +27,14 @@ class ExternalTextureD3D11 final : public ExternalTexture {
       const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage);
 
-  ExternalTextureD3D11(const uint32_t aWidth, const uint32_t aHeight,
-                       const struct ffi::WGPUTextureFormat aFormat,
-                       const ffi::WGPUTextureUsages aUsage,
-                       const RefPtr<ID3D11Texture2D> aTexture,
-                       RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
-                       const layers::GpuProcessFencesHolderId aFencesHolderId,
-                       RefPtr<layers::FenceD3D11>&& aWriteFence);
+  ExternalTextureD3D11(
+      const uint32_t aWidth, const uint32_t aHeight,
+      const struct ffi::WGPUTextureFormat aFormat,
+      const ffi::WGPUTextureUsages aUsage,
+      const RefPtr<ID3D11Texture2D> aTexture,
+      RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
+      const layers::CompositeProcessFencesHolderId aFencesHolderId,
+      RefPtr<layers::FenceD3D11>&& aWriteFence);
   virtual ~ExternalTextureD3D11();
 
   void* GetExternalTextureHandle();
@@ -48,7 +49,7 @@ class ExternalTextureD3D11 final : public ExternalTexture {
  protected:
   const RefPtr<ID3D11Texture2D> mTexture;
   const RefPtr<gfx::FileHandleWrapper> mSharedHandle;
-  const layers::GpuProcessFencesHolderId mFencesHolderId;
+  const layers::CompositeProcessFencesHolderId mFencesHolderId;
   const RefPtr<layers::FenceD3D11> mWriteFence;
 };
 

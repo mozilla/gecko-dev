@@ -93,7 +93,7 @@ UniquePtr<ExternalTextureD3D11> ExternalTextureD3D11::Create(
   RefPtr<gfx::FileHandleWrapper> handle =
       new gfx::FileHandleWrapper(UniqueFileHandle(sharedHandle));
 
-  auto fencesHolderId = layers::GpuProcessFencesHolderId::GetNext();
+  auto fencesHolderId = layers::CompositeProcessFencesHolderId::GetNext();
   fencesHolderMap->Register(fencesHolderId);
 
   return MakeUnique<ExternalTextureD3D11>(aWidth, aHeight, aFormat, aUsage,
@@ -106,7 +106,7 @@ ExternalTextureD3D11::ExternalTextureD3D11(
     const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, const RefPtr<ID3D11Texture2D> aTexture,
     RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
-    const layers::GpuProcessFencesHolderId aFencesHolderId,
+    const layers::CompositeProcessFencesHolderId aFencesHolderId,
     RefPtr<layers::FenceD3D11>&& aWriteFence)
     : ExternalTexture(aWidth, aHeight, aFormat, aUsage),
       mTexture(aTexture),

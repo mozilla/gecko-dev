@@ -87,14 +87,14 @@ GpuProcessTextureId GpuProcessTextureId::GetNext() {
 }
 
 /* static */
-GpuProcessFencesHolderId GpuProcessFencesHolderId::GetNext() {
+CompositeProcessFencesHolderId CompositeProcessFencesHolderId::GetNext() {
   if (!XRE_IsGPUProcess()) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    return GpuProcessFencesHolderId{};
+    return CompositeProcessFencesHolderId{};
   }
 
   static std::atomic<uint64_t> sCounter = 0;
-  return GpuProcessFencesHolderId{++sCounter};
+  return CompositeProcessFencesHolderId{++sCounter};
 }
 
 std::ostream& operator<<(std::ostream& os, ScrollDirection aDirection) {

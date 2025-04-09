@@ -207,7 +207,7 @@ class DXGIYCbCrTextureData : public TextureData {
   const gfx::ColorDepth mColorDepth;
   const gfx::YUVColorSpace mYUVColorSpace;
   const gfx::ColorRange mColorRange;
-  const GpuProcessFencesHolderId mFencesHolderId;
+  const CompositeProcessFencesHolderId mFencesHolderId;
   const RefPtr<FenceD3D11> mWriteFence;
 
  protected:
@@ -218,7 +218,7 @@ class DXGIYCbCrTextureData : public TextureData {
                        const gfx::ColorDepth aColorDepth,
                        const gfx::YUVColorSpace aYUVColorSpace,
                        const gfx::ColorRange aColorRange,
-                       const GpuProcessFencesHolderId aFencesHolderId,
+                       const CompositeProcessFencesHolderId aFencesHolderId,
                        const RefPtr<FenceD3D11> aWriteFence);
   virtual ~DXGIYCbCrTextureData();
 
@@ -397,7 +397,7 @@ class DXGITextureHostD3D11 : public TextureHost {
   const gfx::IntSize mSize;
   const gfx::SurfaceFormat mFormat;
   const bool mHasKeyedMutex;
-  const Maybe<layers::GpuProcessFencesHolderId> mFencesHolderId;
+  const Maybe<layers::CompositeProcessFencesHolderId> mFencesHolderId;
   const gfx::ColorSpace2 mColorSpace;
   const gfx::ColorRange mColorRange;
 };
@@ -458,7 +458,7 @@ class DXGIYCbCrTextureHostD3D11 : public TextureHost {
   const gfx::ColorDepth mColorDepth;
   const gfx::YUVColorSpace mYUVColorSpace;
   const gfx::ColorRange mColorRange;
-  const GpuProcessFencesHolderId mFencesHolderId;
+  const CompositeProcessFencesHolderId mFencesHolderId;
 
  protected:
   // Handles will be closed automatically when `UniqueFileHandle` gets

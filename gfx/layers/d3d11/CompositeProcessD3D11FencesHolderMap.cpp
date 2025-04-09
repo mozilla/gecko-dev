@@ -33,13 +33,13 @@ CompositeProcessD3D11FencesHolderMap::CompositeProcessD3D11FencesHolderMap()
 CompositeProcessD3D11FencesHolderMap::~CompositeProcessD3D11FencesHolderMap() {}
 
 void CompositeProcessD3D11FencesHolderMap::Register(
-    GpuProcessFencesHolderId aHolderId) {
+    CompositeProcessFencesHolderId aHolderId) {
   MonitorAutoLock lock(mMonitor);
 
   mFencesHolderById[aHolderId] = MakeUnique<FencesHolder>();
 }
 void CompositeProcessD3D11FencesHolderMap::Unregister(
-    GpuProcessFencesHolderId aHolderId) {
+    CompositeProcessFencesHolderId aHolderId) {
   MonitorAutoLock lock(mMonitor);
 
   auto it = mFencesHolderById.find(aHolderId);
@@ -50,7 +50,7 @@ void CompositeProcessD3D11FencesHolderMap::Unregister(
 }
 
 void CompositeProcessD3D11FencesHolderMap::SetWriteFence(
-    GpuProcessFencesHolderId aHolderId, RefPtr<FenceD3D11> aWriteFence) {
+    CompositeProcessFencesHolderId aHolderId, RefPtr<FenceD3D11> aWriteFence) {
   MOZ_ASSERT(aWriteFence);
 
   if (!aWriteFence) {
@@ -78,7 +78,7 @@ void CompositeProcessD3D11FencesHolderMap::SetWriteFence(
 }
 
 void CompositeProcessD3D11FencesHolderMap::SetReadFence(
-    GpuProcessFencesHolderId aHolderId, RefPtr<FenceD3D11> aReadFence) {
+    CompositeProcessFencesHolderId aHolderId, RefPtr<FenceD3D11> aReadFence) {
   MOZ_ASSERT(aReadFence);
 
   if (!aReadFence) {
@@ -103,7 +103,7 @@ void CompositeProcessD3D11FencesHolderMap::SetReadFence(
 }
 
 bool CompositeProcessD3D11FencesHolderMap::WaitWriteFence(
-    GpuProcessFencesHolderId aHolderId, ID3D11Device* aDevice) {
+    CompositeProcessFencesHolderId aHolderId, ID3D11Device* aDevice) {
   MOZ_ASSERT(aDevice);
 
   if (!aDevice) {
@@ -130,7 +130,7 @@ bool CompositeProcessD3D11FencesHolderMap::WaitWriteFence(
 }
 
 bool CompositeProcessD3D11FencesHolderMap::WaitAllFencesAndForget(
-    GpuProcessFencesHolderId aHolderId, ID3D11Device* aDevice) {
+    CompositeProcessFencesHolderId aHolderId, ID3D11Device* aDevice) {
   MOZ_ASSERT(aDevice);
 
   if (!aDevice) {

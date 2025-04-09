@@ -733,7 +733,7 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
     return nullptr;
   }
 
-  auto fencesHolderId = GpuProcessFencesHolderId::GetNext();
+  auto fencesHolderId = CompositeProcessFencesHolderId::GetNext();
   fenceHolderMap->Register(fencesHolderId);
 
   RefPtr<ID3D11Texture2D> textures[3] = {aTextureY, aTextureCb, aTextureCr};
@@ -752,7 +752,7 @@ DXGIYCbCrTextureData::DXGIYCbCrTextureData(
     const gfx::IntSize& aSizeY, const gfx::IntSize& aSizeCbCr,
     const gfx::ColorDepth aColorDepth, const gfx::YUVColorSpace aYUVColorSpace,
     const gfx::ColorRange aColorRange,
-    const GpuProcessFencesHolderId aFencesHolderId,
+    const CompositeProcessFencesHolderId aFencesHolderId,
     const RefPtr<FenceD3D11> aWriteFence)
     : mSize(aSize),
       mSizeY(aSizeY),
