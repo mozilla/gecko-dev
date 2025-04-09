@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let loggingEnabled = Services.prefs.getBoolPref("toolkit.dump.emit");
-Services.prefs.addObserver("toolkit.dump.emit", {
-  observe: () => {
-    loggingEnabled = Services.prefs.getBoolPref("toolkit.dump.emit");
-  },
-});
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+
+const lazy = {};
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "loggingEnabled",
+  "toolkit.dump.emit",
+  false
+);
 
 function describeNthCaller(n) {
   let caller = Components.stack;
@@ -158,7 +162,7 @@ export class EventEmitter {
   }
 
   #logEvent(event, args) {
-    if (!loggingEnabled) {
+    if (!lazy.loggingEnabled) {
       return;
     }
 
