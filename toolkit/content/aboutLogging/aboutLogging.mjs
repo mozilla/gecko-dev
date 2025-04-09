@@ -502,10 +502,27 @@ function maybeEnsureButtonInNavbar() {
   }
 }
 
+let gProfileSaveOrUpload = null;
 async function captureProfile() {
-  if (lazy.AppConstants.platform === "android") {
-    // TODO
+  const shouldUploadToCloud = Services.prefs.getBoolPref(
+    "toolkit.aboutLogging.uploadProfileToCloud",
+    false
+  );
+  if (shouldUploadToCloud) {
+    const { profileCaptureResult } =
+      await lazy.RecordingUtils.getProfileDataAsGzippedArrayBufferThenStop();
+    if (profileCaptureResult.type === "ERROR") {
+      throw profileCaptureResult.error;
+    }
+    if (!gProfileSaveOrUpload) {
+      const { ProfileSaveOrUploadDialog } = await import(
+        "chrome://global/content/aboutLogging/profileSaveUploadLogic.mjs"
+      );
+      gProfileSaveOrUpload = new ProfileSaveOrUploadDialog();
+    }
+    gProfileSaveOrUpload.init(new Uint8Array(profileCaptureResult.profile));
   } else {
+    // Open the profiler in a new tab
     await lazy.ProfilerPopupBackground.captureProfile("aboutlogging");
   }
 }
@@ -703,6 +720,10 @@ function startStopLogging() {
 function startLogging() {
   setLogModules();
   if (gLoggingSettings.loggingOutputType === "profiler") {
+    if (gProfileSaveOrUpload) {
+      gProfileSaveOrUpload.reset();
+    }
+
     const supportedFeatures = Services.profiler.GetFeatures();
     if (
       gLoggingSettings.loggingPreset != "custom" ||

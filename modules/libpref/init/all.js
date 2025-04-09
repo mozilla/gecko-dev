@@ -3718,6 +3718,23 @@ pref("toolkit.aboutProcesses.showProfilerIcons", true);
 // profile is captured.
 pref("toolkit.aboutProcesses.profileDuration", 5);
 
+// This preference controls how about:logging handles profiles when stopping:
+// either it opens the profile in a new tab on profiler.firefox.com, or it
+// uploads it directly to the cloud storage, providing the URL.
+// On Android, it's not currently possible to capture a profile this way,
+// therefore the profile is uploaded by default.
+#if !defined(MOZ_WIDGET_ANDROID)
+  pref("toolkit.aboutLogging.uploadProfileToCloud", false);
+#else
+  pref("toolkit.aboutLogging.uploadProfileToCloud", true);
+#endif
+// The pref "toolkit.aboutlogging.uploadProfileUrl" can also be set to change
+// the upload endpoint. The comment below shows the default value. It's not
+// defined usually because we don't expect our users, even advanced, to change
+// it, and therefore this will likely only be used in our tests.
+// pref("toolkit.aboutlogging.uploadProfileUrl", "https://api.profiler.firefox.com/compressed-store");
+
+
 // When a crash happens, whether to include heap regions of the crash context
 // in the minidump. Enabled by default on nightly and aurora.
 #ifdef RELEASE_OR_BETA

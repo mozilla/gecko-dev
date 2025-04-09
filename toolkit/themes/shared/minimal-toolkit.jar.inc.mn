@@ -45,3 +45,6 @@ toolkit.jar:
 # Text recognition widget
 
   skin/classic/global/media/textrecognition.css            (../../shared/media/textrecognition.css)
+
+# used in about:logging on Android
+  skin/classic/global/icons/open-in-new.svg                (../../shared/icons/open-in-new.svg)

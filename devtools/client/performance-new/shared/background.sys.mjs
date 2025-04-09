@@ -87,9 +87,9 @@ const lazy = createLazyLoaders({
 });
 
 /**
- * This function is called when the profile is captured with the shortcut
- * keys, with the profiler toolbarbutton, or with the button inside the
- * popup.
+ * This function is called when the profile is captured with the shortcut keys,
+ * with the profiler toolbarbutton, with the button inside the popup, or with
+ * the about:logging page.
  * @param {PageContext} pageContext
  * @return {Promise<void>}
  */

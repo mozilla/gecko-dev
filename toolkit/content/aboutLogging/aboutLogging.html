@@ -6,9 +6,10 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src chrome:; object-src 'none'"
+      content="default-src chrome:; object-src 'none'; connect-src https://api.profiler.firefox.com"
     />
     <meta name="color-scheme" content="light dark" />
     <title data-l10n-id="about-logging-title"></title>
@@ -48,6 +49,61 @@
           data-l10n-id="about-logging-start-logging"
         ></button>
       </div>
+      <form id="upload-question-form" hidden>
+        <p data-l10n-id="about-logging-upload-question"></p>
+        <div class="button-row flex-and-wrap">
+          <button
+            type="button"
+            id="save-button"
+            data-l10n-id="about-logging-save-button"
+          ></button>
+          <button
+            type="button"
+            id="upload-button"
+            data-l10n-id="about-logging-upload-button"
+          ></button>
+          <div
+            id="saved-message"
+            data-l10n-id="about-logging-saved"
+            data-l10n-args='{"path": ""}'
+            hidden
+          ></div>
+          <label id="uploading-progress-container" hidden>
+            <span
+              id="uploading-progress-text"
+              data-l10n-id="about-logging-uploading-progress"
+              data-l10n-args='{"percent": ""}'
+            >
+            </span>
+            <progress id="uploading-progress-element"></progress>
+          </label>
+          <div id="uploaded-message-container" class="flex-and-wrap" hidden>
+            <div
+              id="uploaded-message-text"
+              data-l10n-id="about-logging-uploaded"
+              data-l10n-args='{"url": ""}'
+            >
+              <a
+                id="uploaded-message-url"
+                target="_blank"
+                data-l10n-name="uploaded-message-url"
+              ></a>
+            </div>
+            <button
+              type="button"
+              id="uploaded-url-share-button"
+              class="button-with-icon"
+              data-l10n-id="about-logging-share-uploaded-url"
+            >
+              <img
+                data-l10n-name="share-image"
+                src="chrome://global/skin/icons/open-in-new.svg"
+                role="presentation"
+              />
+            </button>
+          </div>
+        </div>
+      </form>
       <section id="log-module-selection">
         <h2 data-l10n-id="about-logging-log-modules-selection"></h2>
         <div class="page-subsection">

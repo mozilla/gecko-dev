@@ -4,6 +4,12 @@
 
 @import url("chrome://global/skin/in-content/common.css");
 
+[hidden] {
+  /* This page uses the hidden attribute a lot, so let's make sure we don't
+   * override it by mistake. */
+  display: none !important;
+}
+
 /** Content area **/
 .main-content {
   width: min(90%, 1024px);
@@ -57,6 +63,13 @@ input[type=text] {
   margin-inline: 0 !important;
 }
 
+.flex-and-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5em;
+}
+
 .button-row > button:first-of-type {
   /* This cancels the default margin applied to all buttons in common-shared.css. */
   margin-inline-start: 0;
@@ -79,4 +92,13 @@ input[type=text] {
 #some-elements-unavailable {
   background-color: var(--in-content-box-info-background);
   border-color: var(--in-content-box-border-color);
+}
+
+.button-with-icon {
+  display: flex;
+  gap: .5em;
+
+  /* Make sure that the icon changes color in dark mode. */
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
