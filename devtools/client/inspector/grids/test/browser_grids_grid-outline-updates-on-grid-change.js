@@ -47,7 +47,7 @@ add_task(async function () {
   is(elements.length, 2, "Grid outline is shown.");
 
   info("Changing the grid in the page");
-  const onReflow = inspector.once("reflow-in-selected-target");
+  const onReflow = inspector.once("reflow");
   const onGridOutlineChanged = waitForDOM(doc, ".grid-outline-cell", 4);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {

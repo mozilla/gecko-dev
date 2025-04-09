@@ -179,7 +179,6 @@ function Inspector(toolbox, commands) {
   this.onSidebarSelect = this.onSidebarSelect.bind(this);
   this.onSidebarShown = this.onSidebarShown.bind(this);
   this.onSidebarToggle = this.onSidebarToggle.bind(this);
-  this.onReflowInSelection = this.onReflowInSelection.bind(this);
   this.listenForSearchEvents = this.listenForSearchEvents.bind(this);
 
   this.prefObserver = new PrefObserver("devtools.");
@@ -241,6 +240,7 @@ Inspector.prototype = {
       // To observe CSS change before opening changes view.
       TYPES.CSS_CHANGE,
       TYPES.DOCUMENT_EVENT,
+      TYPES.REFLOW,
     ];
     // The root node is retrieved from onTargetSelected which is now called
     // on startup as well as on any navigation (= new top level target).
@@ -366,6 +366,16 @@ Inspector.prototype = {
         isTopLevelTarget
       ) {
         this._onWillNavigate();
+      }
+
+      if (resource.resourceType === this.toolbox.resourceCommand.TYPES.REFLOW) {
+        this.emit("reflow");
+        if (resource.targetFront === this.selection?.nodeFront?.targetFront) {
+          // This event will be fired whenever a reflow is detected in the target front of the
+          // selected node front (so when a reflow is detected inside any of the windows that
+          // belong to the BrowsingContext where the currently selected node lives).
+          this.emit("reflow-in-selected-target");
+        }
       }
     }
 
@@ -1588,7 +1598,6 @@ Inspector.prototype = {
 
     this.updateAddElementButton();
     this.updateSelectionCssSelectors();
-    this.trackReflowsInSelection();
 
     const selfUpdate = this.updating("inspector-panel");
     executeSoon(() => {
@@ -1599,56 +1608,6 @@ Inspector.prototype = {
         console.error(ex);
       }
     });
-  },
-
-  /**
-   * Starts listening for reflows in the targetFront of the currently selected nodeFront.
-   */
-  async trackReflowsInSelection() {
-    this.untrackReflowsInSelection();
-    if (!this.selection.nodeFront) {
-      return;
-    }
-
-    if (this._destroyed) {
-      return;
-    }
-
-    try {
-      await this.commands.resourceCommand.watchResources(
-        [this.commands.resourceCommand.TYPES.REFLOW],
-        {
-          onAvailable: this.onReflowInSelection,
-        }
-      );
-    } catch (e) {
-      // it can happen that watchResources fails as the client closes while we're processing
-      // some asynchronous call.
-      // In order to still get valid exceptions, we re-throw the exception if the inspector
-      // isn't destroyed.
-      if (!this._destroyed) {
-        throw e;
-      }
-    }
-  },
-
-  /**
-   * Stops listening for reflows.
-   */
-  untrackReflowsInSelection() {
-    this.commands.resourceCommand.unwatchResources(
-      [this.commands.resourceCommand.TYPES.REFLOW],
-      {
-        onAvailable: this.onReflowInSelection,
-      }
-    );
-  },
-
-  onReflowInSelection() {
-    // This event will be fired whenever a reflow is detected in the target front of the
-    // selected node front (so when a reflow is detected inside any of the windows that
-    // belong to the BrowsingContext when the currently selected node lives).
-    this.emit("reflow-in-selected-target");
   },
 
   /**
@@ -1788,7 +1747,6 @@ Inspector.prototype = {
     resourceCommand.unwatchResources(this._watchedResources, {
       onAvailable: this.onResourceAvailable,
     });
-    this.untrackReflowsInSelection();
 
     this._InspectorTabPanel = null;
     this._TabBar = null;

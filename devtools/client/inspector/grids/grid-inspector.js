@@ -165,7 +165,7 @@ class GridInspector {
     this.inspector.sidebar.off("select", this.onSidebarSelect);
     this.inspector.off("new-root", this.onNavigate);
 
-    this.inspector.off("reflow-in-selected-target", this.onReflow);
+    this.inspector.off("reflow", this.onReflow);
 
     this._highlighters = null;
     this.document = null;
@@ -629,11 +629,13 @@ class GridInspector {
    */
   onSidebarSelect() {
     if (!this.isPanelVisible()) {
-      this.inspector.off("reflow-in-selected-target", this.onReflow);
+      this.inspector.off("reflow", this.onReflow);
       return;
     }
 
-    this.inspector.on("reflow-in-selected-target", this.onReflow);
+    // The panel shows grids from all debugged document, so we need to listen for the
+    // `reflow` event (and not `reflow-in-selected-target`).
+    this.inspector.on("reflow", this.onReflow);
     this.updateGridPanel();
   }
 
