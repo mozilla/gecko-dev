@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.lintrules
+package mozilla.components.tooling.lint
 
 import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.JavaContext
