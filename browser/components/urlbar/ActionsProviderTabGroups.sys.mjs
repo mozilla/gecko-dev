@@ -12,8 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
-  TabGroupMetrics:
-    "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs",
 });
 
 const MIN_SEARCH_PREF = "tabGroups.minSearchLength";
@@ -73,13 +71,7 @@ class ProviderTabGroups extends ActionsProvider {
             l10nId: "urlbar-result-action-open-saved-tabgroup",
             l10nArgs: { group: savedGroup.name },
             onPick: (_queryContext, _controller) => {
-              let group = lazy.SessionStore.openSavedTabGroup(
-                savedGroup.id,
-                window,
-                {
-                  source: lazy.TabGroupMetrics.METRIC_SOURCE.SUGGEST,
-                }
-              );
+              let group = lazy.SessionStore.openSavedTabGroup(savedGroup.id);
               this.#switchToGroup(group);
             },
             color: savedGroup.color,

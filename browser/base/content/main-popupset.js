@@ -147,18 +147,14 @@ document.addEventListener(
         case "saved-tab-group-context-menu_openInThisWindow":
           {
             let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            SessionStore.openSavedTabGroup(tabGroupId, window, {
-              source: lazy.TabGroupMetrics.METRIC_SOURCE.RECENT_TABS,
-            });
+            SessionStore.openSavedTabGroup(tabGroupId, window);
           }
           break;
         case "saved-tab-group-context-menu_openInNewWindow":
           {
             // TODO Bug 1940112: "Open Group in New Window" should directly restore saved tab groups into a new window
             let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            let tabGroup = SessionStore.openSavedTabGroup(tabGroupId, window, {
-              source: lazy.TabGroupMetrics.METRIC_SOURCE.RECENT_TABS,
-            });
+            let tabGroup = SessionStore.openSavedTabGroup(tabGroupId, window);
             gBrowser.replaceGroupWithWindow(tabGroup);
           }
           break;

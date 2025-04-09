@@ -157,7 +157,6 @@ const kLastIndex = Number.MAX_SAFE_INTEGER - 1;
 
 import { PrivateBrowsingUtils } from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
 
-import { TabGroupMetrics } from "moz-src:///browser/components/tabbrowser/TabGroupMetrics.sys.mjs";
 import { TelemetryTimestamps } from "resource://gre/modules/TelemetryTimestamps.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
@@ -890,21 +889,7 @@ export var SessionStore = {
    * @returns {MozTabbrowserTabGroup}
    *   a reference to the restored tab group in a browser window.
    */
-  openSavedTabGroup(
-    tabGroupId,
-    targetWindow,
-    { source = TabGroupMetrics.METRIC_SOURCE.UNKNOWN } = {}
-  ) {
-    let isVerticalMode = targetWindow.gBrowser.tabContainer.verticalMode;
-    Glean.tabgroup.reopen.record({
-      id: tabGroupId,
-      source,
-      layout: isVerticalMode
-        ? TabGroupMetrics.METRIC_TABS_LAYOUT.VERTICAL
-        : TabGroupMetrics.METRIC_TABS_LAYOUT.HORIZONTAL,
-      type: TabGroupMetrics.METRIC_REOPEN_TYPE.SAVED,
-    });
-
+  openSavedTabGroup(tabGroupId, targetWindow) {
     return SessionStoreInternal.openSavedTabGroup(tabGroupId, targetWindow);
   },
 
@@ -6961,9 +6946,6 @@ var SessionStoreInternal = {
    * @returns {boolean} true if the group is saveable.
    */
   shouldSaveTabGroup: function ssi_shouldSaveTabGroup(group) {
-    if (!group) {
-      return false;
-    }
     for (let tab of group.tabs) {
       let tabState = lazy.TabState.collect(tab);
       if (this._shouldSaveTabState(tabState)) {
