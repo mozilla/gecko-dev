@@ -100,6 +100,8 @@ class DefaultBrowserToolbarMenuController(
         val sessionUseCases = activity.components.useCases.sessionUseCases
         val customTabUseCases = activity.components.useCases.customTabsUseCases
         val tabsUseCases = activity.components.useCases.tabsUseCases
+        val fenixBrowserUseCases = activity.components.useCases.fenixBrowserUseCases
+
         trackToolbarItemInteraction(item)
 
         when (item) {
@@ -372,9 +374,7 @@ class DefaultBrowserToolbarMenuController(
             }
             is ToolbarMenu.Item.NewTab -> {
                 if (settings.enableHomepageAsNewTab) {
-                    tabsUseCases.addTab.invoke(
-                        url = "about:home",
-                        startLoading = false,
+                    fenixBrowserUseCases.addNewHomepageTab(
                         private = currentSession?.content?.private ?: false,
                     )
                 }

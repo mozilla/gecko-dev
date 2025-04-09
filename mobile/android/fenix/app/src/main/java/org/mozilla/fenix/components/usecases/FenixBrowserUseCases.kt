@@ -109,4 +109,25 @@ class FenixBrowserUseCases(
             )
         }
     }
+
+    /**
+     * Adds a new homepage ("about:home") tab.
+     *
+     * @param private Whether or not the new homepage tab should be private.
+     * @return The ID of the created tab.
+     */
+    fun addNewHomepageTab(private: Boolean): String {
+        return addNewTabUseCase.invoke(
+            url = ABOUT_HOME,
+            startLoading = false,
+            private = private,
+        )
+    }
+
+    /**
+     * Contains constants used by [FenixBrowserUseCases].
+     */
+    companion object {
+        const val ABOUT_HOME = "about:home"
+    }
 }

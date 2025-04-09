@@ -60,6 +60,7 @@ import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.menu.MenuAccessPoint
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.directionsEq
 import org.mozilla.fenix.ext.settings
@@ -90,6 +91,9 @@ class DefaultBrowserToolbarControllerTest {
 
     @RelaxedMockK
     private lateinit var tabsUseCases: TabsUseCases
+
+    @RelaxedMockK
+    private lateinit var fenixBrowserUseCases: FenixBrowserUseCases
 
     @RelaxedMockK
     private lateinit var browserAnimator: BrowserAnimator
@@ -440,9 +444,7 @@ class DefaultBrowserToolbarControllerTest {
         controller.handleNewTabButtonClick()
 
         verify {
-            tabsUseCases.addTab.invoke(
-                url = "about:home",
-                startLoading = false,
+            fenixBrowserUseCases.addNewHomepageTab(
                 private = false,
             )
 
@@ -561,6 +563,7 @@ class DefaultBrowserToolbarControllerTest {
         store = store,
         appStore = appStore,
         tabsUseCases = tabsUseCases,
+        fenixBrowserUseCases = fenixBrowserUseCases,
         activity = activity,
         settings = settings,
         navController = navController,
