@@ -701,7 +701,11 @@ add_task(async function test_normalized_optional_origins() {
 
   await assertAddonWrapperPermissionsProperties(manifestV2, {
     isPrivileged: false,
-    userPermissions: { permissions: manifestV2.permissions, origins: [] },
+    userPermissions: {
+      permissions: manifestV2.permissions,
+      origins: [],
+      data_collection: [],
+    },
     optionalPermissions: {
       permissions: [],
       origins: manifestV2.optional_permissions,
@@ -745,7 +749,11 @@ add_task(async function test_normalized_optional_origins() {
 
   await assertAddonWrapperPermissionsProperties(manifestV3, {
     isPrivileged: false,
-    userPermissions: { permissions: manifestV3.permissions, origins: [] },
+    userPermissions: {
+      permissions: manifestV3.permissions,
+      origins: [],
+      data_collection: [],
+    },
     optionalPermissions: {
       permissions: [],
       origins: [...manifestV3.host_permissions, "*://*/*"],
@@ -778,6 +786,7 @@ add_task(async function test_normalized_optional_origins() {
     userPermissions: {
       permissions: manifestV2Privileged.permissions,
       origins: [],
+      data_collection: [],
     },
     optionalPermissions: {
       permissions: [],

@@ -117,7 +117,11 @@ async function testLoadManifest({ location, expectPrivileged }) {
     });
     Assert.deepEqual(
       actualPermissions,
-      { origins: [], permissions: ["mozillaAddons", "cookies"] },
+      {
+        origins: [],
+        permissions: ["mozillaAddons", "cookies"],
+        data_collection: [],
+      },
       "Privileged permission should exist"
     );
   } else if (location.isTemporary) {
@@ -142,7 +146,7 @@ async function testLoadManifest({ location, expectPrivileged }) {
     });
     Assert.deepEqual(
       actualPermissions,
-      { origins: [], permissions: ["cookies"] },
+      { origins: [], permissions: ["cookies"], data_collection: [] },
       "Privileged permission should be ignored"
     );
   }

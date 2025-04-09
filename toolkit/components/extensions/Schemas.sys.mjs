@@ -325,6 +325,20 @@ const POSTPROCESSORS = {
     throw new Error(msg);
   },
 
+  checkValidRequiredDataCollection(value, context) {
+    if (value.length > 1 && value.includes("none")) {
+      const normalizedValue = value.filter(perm => perm !== "none");
+      context.logWarning(
+        context.makeError(
+          `Data collection permission "none" is ignored because other data collection permissions have been specified. ` +
+            `Either remove "none" from the required list, or do not include other required data collection permissions.`
+        )
+      );
+      return normalizedValue;
+    }
+    return value;
+  },
+
   manifestVersionCheck(value, context) {
     if (
       value == 2 ||

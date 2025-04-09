@@ -222,6 +222,8 @@ skip-if = [
 
 ["test_ext_csp_upgrade_requests.js"]
 
+["test_ext_data_collection_permissions.js"]
+
 ["test_ext_debugging_utils.js"]
 
 ["test_ext_dnr_across_redirects.js"]

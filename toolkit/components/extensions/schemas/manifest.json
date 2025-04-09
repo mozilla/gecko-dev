@@ -508,6 +508,46 @@
         ]
       },
       {
+        "id": "CommonDataCollectionPermission",
+        "choices": [
+          {
+            "type": "string",
+            "enum": [
+              "authenticationInfo",
+              "bookmarksInfo",
+              "browsingHistory",
+              "financialAndPaymentInfo",
+              "healthInfo",
+              "locationInfo",
+              "personalCommunications",
+              "personallyIdentifyingInfo",
+              "websiteActivity",
+              "websiteContent"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "DataCollectionPermission",
+        "choices": [
+          { "$ref": "CommonDataCollectionPermission" },
+          {
+            "type": "string",
+            "enum": ["none"]
+          }
+        ]
+      },
+      {
+        "id": "OptionalDataCollectionPermission",
+        "choices": [
+          { "$ref": "CommonDataCollectionPermission" },
+          {
+            "type": "string",
+            "enum": ["technicalAndInteraction"]
+          }
+        ]
+      },
+      {
         "id": "PermissionNoPrompt",
         "choices": [
           { "$ref": "OptionalPermissionNoPrompt" },
@@ -593,6 +633,32 @@
           "admin_install_only": {
             "type": "boolean",
             "optional": true
+          },
+
+          "data_collection_permissions": {
+            "type": "object",
+            "optional": true,
+            "properties": {
+              "required": {
+                "type": "array",
+                "items": {
+                  "$ref": "DataCollectionPermission",
+                  "onError": "warn"
+                },
+                "optional": true,
+                "default": [],
+                "postprocess": "checkValidRequiredDataCollection"
+              },
+              "optional": {
+                "type": "array",
+                "items": {
+                  "$ref": "OptionalDataCollectionPermission",
+                  "onError": "warn"
+                },
+                "optional": true,
+                "default": []
+              }
+            }
           }
         },
         "additionalProperties": { "$ref": "UnrecognizedProperty" }
