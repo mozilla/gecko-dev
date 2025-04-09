@@ -748,11 +748,11 @@ nsBinaryInputStream::ReadString(nsAString& aString) {
     return rv;
   }
 
-  NS_ASSERTION(!closure.mHasCarryoverByte, "some strange stream corruption!");
-
   if (bytesRead != length * sizeof(char16_t)) {
     return NS_ERROR_FAILURE;
   }
+
+  NS_ASSERTION(!closure.mHasCarryoverByte, "some strange stream corruption!");
 
   return NS_OK;
 }

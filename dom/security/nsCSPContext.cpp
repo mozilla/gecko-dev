@@ -2115,6 +2115,8 @@ void CSPReportRedirectSink::SetInterceptController(
 
 NS_IMETHODIMP
 nsCSPContext::Read(nsIObjectInputStream* aStream) {
+  CSPCONTEXTLOG(("nsCSPContext::Read"));
+
   nsresult rv;
   nsCOMPtr<nsISupports> supports;
 
@@ -2136,44 +2138,135 @@ nsCSPContext::Read(nsIObjectInputStream* aStream) {
   rv = aStream->Read32(&numPolicies);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (numPolicies == 0) {
+    return NS_OK;
+  }
+
+  // Note: This assume that there is no other data following the CSP!
+  // E10SUtils.deserializeCSP is the only user of this logic.
+  nsTArray<uint8_t> data;
+  rv = NS_ConsumeStream(aStream, UINT32_MAX, data);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Because of accidental backwards incompatible changes we have to try and
+  // parse multiple different versions of the CSP data. Starting with the
+  // current data format.
+  if (NS_SUCCEEDED(TryReadPolicies(PolicyDataVersion::Post136, Span(data),
+                                   numPolicies))) {
+    CSPCONTEXTLOG(("nsCSPContext::Read: Data was in version ::Post136."));
+    return NS_OK;
+  }
+
+  if (NS_SUCCEEDED(TryReadPolicies(PolicyDataVersion::Pre136, Span(data),
+                                   numPolicies))) {
+    CSPCONTEXTLOG(("nsCSPContext::Read: Data was in version ::Pre136."));
+    return NS_OK;
+  }
+
+  if (NS_SUCCEEDED(TryReadPolicies(PolicyDataVersion::V138_9PreRelease,
+                                   Span(data), numPolicies))) {
+    CSPCONTEXTLOG(
+        ("nsCSPContext::Read: Data was in version ::V138_9PreRelease."));
+    return NS_OK;
+  }
+
+  CSPCONTEXTLOG(("nsCSPContext::Read: Failed to read data!"));
+  return NS_ERROR_FAILURE;
+}
+
+nsresult nsCSPContext::TryReadPolicies(PolicyDataVersion aVersion,
+                                       Span<const uint8_t> aData,
+                                       uint32_t aNumPolicies) {
+  nsCOMPtr<nsIInputStream> binaryStream;
+  nsresult rv = NS_NewByteInputStream(
+      getter_AddRefs(binaryStream),
+      Span(reinterpret_cast<const char*>(aData.Elements()), aData.Length()),
+      NS_ASSIGNMENT_DEPEND);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIObjectInputStream> stream = NS_NewObjectInputStream(binaryStream);
+
+  // Like ReadBoolean, but ensures the byte is actually 0 or 1.
+  auto ReadBooleanSafe = [stream](bool* aBoolean) {
+    uint8_t raw = 0;
+    nsresult rv = stream->Read8(&raw);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!(raw == 0 || raw == 1)) {
+      CSPCONTEXTLOG(("nsCSPContext::TryReadPolicies: Bad boolean value"));
+      return NS_ERROR_FAILURE;
+    }
+
+    *aBoolean = !!raw;
+    return NS_OK;
+  };
+
+  nsTArray<mozilla::ipc::ContentSecurityPolicy> policies;
   nsAutoString policyString;
+  while (aNumPolicies > 0) {
+    aNumPolicies--;
 
-  while (numPolicies > 0) {
-    numPolicies--;
-
-    rv = aStream->ReadString(policyString);
+    rv = stream->ReadString(policyString);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    // nsCSPParser::policy removed all non-ASCII tokens while parsing the CSP
+    // that was serialized, so we shouldn't have any in this string. A non-ASCII
+    // character is thus a strong indicator for some kind of deserialization
+    // error.
+    if (!IsAscii(Span(policyString))) {
+      CSPCONTEXTLOG(
+          ("nsCSPContext::TryReadPolicies: Unexpected non-ASCII policy "
+           "string"));
+      return NS_ERROR_FAILURE;
+    }
+
     bool reportOnly = false;
-    rv = aStream->ReadBoolean(&reportOnly);
+    rv = ReadBooleanSafe(&reportOnly);
     NS_ENSURE_SUCCESS(rv, rv);
 
     bool deliveredViaMetaTag = false;
-    rv = aStream->ReadBoolean(&deliveredViaMetaTag);
+    rv = ReadBooleanSafe(&deliveredViaMetaTag);
     NS_ENSURE_SUCCESS(rv, rv);
 
     bool hasRequireTrustedTypesForDirective = false;
-    rv = aStream->ReadBoolean(&hasRequireTrustedTypesForDirective);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsTArray<nsString> trustedTypesDirectiveExpressions;
-    uint32_t numExpressions;
-    rv = aStream->Read32(&numExpressions);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    while (numExpressions > 0) {
-      numExpressions--;
-      nsAutoString expressionString;
-      rv = aStream->ReadString(expressionString);
+    if (aVersion == PolicyDataVersion::Post136 ||
+        aVersion == PolicyDataVersion::V138_9PreRelease) {
+      // Added in bug 1901492.
+      rv = ReadBooleanSafe(&hasRequireTrustedTypesForDirective);
       NS_ENSURE_SUCCESS(rv, rv);
-      trustedTypesDirectiveExpressions.AppendElement(expressionString);
     }
 
-    AddIPCPolicy(mozilla::ipc::ContentSecurityPolicy(
-        policyString, reportOnly, deliveredViaMetaTag,
-        hasRequireTrustedTypesForDirective, trustedTypesDirectiveExpressions));
+    if (aVersion == PolicyDataVersion::V138_9PreRelease) {
+      // This was added in bug 1942306, but wasn't really necessary.
+      // Removed again in bug 1958259.
+      uint32_t numExpressions;
+      rv = stream->Read32(&numExpressions);
+      NS_ENSURE_SUCCESS(rv, rv);
+      // We assume that because Trusted Types was disabled by default
+      // that no "trusted type expressions" were written during that time.
+      if (numExpressions != 0) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+
+    // Note: The (empty) "trustedTypesDirectiveExpressions" is going to be
+    // removed completely in bug 1959034.
+    policies.AppendElement(
+        ContentSecurityPolicy(policyString, reportOnly, deliveredViaMetaTag,
+                              hasRequireTrustedTypesForDirective, {}));
   }
 
+  // Make sure all data was consumed.
+  uint64_t available = 0;
+  rv = stream->Available(&available);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (available) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // Success! Add the policies now.
+  for (auto policy : policies) {
+    AddIPCPolicy(policy);
+  }
   return NS_OK;
 }
 
@@ -2191,6 +2284,11 @@ nsCSPContext::Write(nsIObjectOutputStream* aStream) {
   // Serialize all the policies.
   aStream->Write32(mPolicies.Length() + mIPCPolicies.Length());
 
+  // WARNING: Any change here needs to be backwards compatible because
+  // the serialized CSP data is used across different Firefox versions.
+  // Better just don't touch this.
+
+  // This writes data in the PolicyDataVersion::Post136 format.
   nsAutoString polStr;
   for (uint32_t p = 0; p < mPolicies.Length(); p++) {
     polStr.Truncate();
@@ -2199,24 +2297,14 @@ nsCSPContext::Write(nsIObjectOutputStream* aStream) {
     aStream->WriteBoolean(mPolicies[p]->getReportOnlyFlag());
     aStream->WriteBoolean(mPolicies[p]->getDeliveredViaMetaTagFlag());
     aStream->WriteBoolean(mPolicies[p]->hasRequireTrustedTypesForDirective());
-    nsTArray<nsString> trustedTypesDirectiveExpressions;
-    mPolicies[p]->getTrustedTypesDirectiveExpressions(
-        trustedTypesDirectiveExpressions);
-    aStream->Write32(trustedTypesDirectiveExpressions.Length());
-    for (auto& expression : trustedTypesDirectiveExpressions) {
-      aStream->WriteWStringZ(expression.get());
-    }
   }
   for (auto& policy : mIPCPolicies) {
     aStream->WriteWStringZ(policy.policy().get());
     aStream->WriteBoolean(policy.reportOnlyFlag());
     aStream->WriteBoolean(policy.deliveredViaMetaTagFlag());
     aStream->WriteBoolean(policy.hasRequireTrustedTypesForDirective());
-    aStream->Write32(policy.trustedTypesDirectiveExpressions().Length());
-    for (auto& expression : policy.trustedTypesDirectiveExpressions()) {
-      aStream->WriteWStringZ(expression.get());
-    }
   }
+
   return NS_OK;
 }
 
