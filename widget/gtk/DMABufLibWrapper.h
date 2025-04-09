@@ -222,9 +222,13 @@ class DMABufDevice {
   void SetModifiersToGfxVars();
   void GetModifiersFromGfxVars();
 
-  // Two basic formats, always present.
+  // Formats passed to RDD process to WebGL process
+  // where we can't get formats/modifiers from Wayland display.
+  // RGBA formats are mandatory, YUV ones are optional.
   RefPtr<DRMFormat> mFormatRGBA;
   RefPtr<DRMFormat> mFormatRGBX;
+  RefPtr<DRMFormat> mFormatP010;
+  RefPtr<DRMFormat> mFormatNV12;
 
   int mDRMFd = -1;
   std::once_flag mFlagGbmDevice;

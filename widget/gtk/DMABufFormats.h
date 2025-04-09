@@ -57,6 +57,9 @@ class DRMFormat final {
     aModifiersNum = mModifiers.Length();
     return mModifiers.Elements();
   }
+  uint64_t GetModifier() {
+    return mModifiers.Length() ? mModifiers[0] : DRM_FORMAT_MOD_INVALID;
+  }
   nsTArray<uint64_t>* GetModifiers() { return &mModifiers; }
 
  private:

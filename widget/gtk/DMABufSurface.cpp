@@ -1542,7 +1542,7 @@ bool DMABufSurfaceYUV::CreateYUVPlaneGBM(int aPlane) {
   MOZ_DIAGNOSTIC_ASSERT(mGbmBufferObject[aPlane] == nullptr);
   bool useModifiers = (mBufferModifiers[aPlane] != DRM_FORMAT_MOD_INVALID);
   if (useModifiers) {
-    LOGDMABUF("    Creating with modifiers");
+    LOGDMABUF("    Creating with modifier %" PRIx64, mBufferModifiers[aPlane]);
     mGbmBufferObject[aPlane] = GbmLib::CreateWithModifiers2(
         GetDMABufDevice()->GetGbmDevice(), mWidth[aPlane], mHeight[aPlane],
         mDrmFormats[aPlane], mBufferModifiers + aPlane, 1,
@@ -1658,7 +1658,7 @@ bool DMABufSurfaceYUV::CreateYUVPlaneExport(GLContext* aGLContext, int aPlane) {
     return false;
   }
 
-  LOGDMABUF("  imported size %d x %d format %x planes %d modifiers %" PRIx64,
+  LOGDMABUF("  imported size %d x %d format %x planes %d modifier %" PRIx64,
             mWidth[aPlane], mHeight[aPlane], mFOURCCFormat, mBufferPlaneCount,
             mBufferModifiers[aPlane]);
 
@@ -1735,10 +1735,6 @@ bool DMABufSurfaceYUV::UpdateYUVData(
     ReturnSnapshotGLContext(context);
   });
 
-  // Use LINEAR modifiers
-  // TODO: Load modifiers from DMABuf
-  mBufferModifiers[0] = mBufferModifiers[1] = 0;
-
   gfx::IntSize size = aData.YPictureSize();
 
   mWidthAligned[0] = mWidth[0] = size.width;
@@ -1762,6 +1758,10 @@ bool DMABufSurfaceYUV::UpdateYUVData(
       MOZ_DIAGNOSTIC_CRASH("Unsupported target format!");
       return false;
   }
+
+  RefPtr<DRMFormat> format = GetDMABufDevice()->GetDRMFormat(mFOURCCFormat);
+  mBufferModifiers[0] = mBufferModifiers[1] =
+      format ? format->GetModifier() : DRM_FORMAT_MOD_INVALID;
 
   for (int i = 0; i < mBufferPlaneCount; i++) {
     if (!CreateYUVPlane(context, i)) {
@@ -1803,9 +1803,9 @@ bool DMABufSurfaceYUV::ImportSurfaceDescriptor(
     mStrides[i] = aDesc.strides()[i];
     mOffsets[i] = aDesc.offsets()[i];
     mBufferModifiers[i] = aDesc.modifier()[i];
-    LOGDMABUF("    plane %d fd %d size %d x %d format %x", i,
-              mDmabufFds[i]->GetHandle(), mWidth[i], mHeight[i],
-              mDrmFormats[i]);
+    LOGDMABUF("    plane %d fd %d size %d x %d format %x modifier %" PRIx64, i,
+              mDmabufFds[i]->GetHandle(), mWidth[i], mHeight[i], mDrmFormats[i],
+              mBufferModifiers[i]);
   }
 
   if (aDesc.fence().Length() > 0) {
