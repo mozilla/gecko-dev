@@ -368,7 +368,7 @@ class TestProvider extends UrlbarTestUtils.TestProvider {
       {
         name: FEEDBACK_COMMAND,
         l10n: {
-          id: "firefox-suggest-weather-command-inaccurate-location",
+          id: "urlbar-result-menu-report-inaccurate-location",
         },
       },
       {

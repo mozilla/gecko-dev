@@ -431,7 +431,7 @@ export class UrlbarView {
       return;
     }
 
-    let l10n = { id: "firefox-suggest-feedback-acknowledgment" };
+    let l10n = { id: "urlbar-feedback-acknowledgment" };
     await this.#l10nCache.ensure(l10n);
     if (row.result != result) {
       return;

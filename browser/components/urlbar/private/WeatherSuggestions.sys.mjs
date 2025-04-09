@@ -28,10 +28,10 @@ const MERINO_TIMEOUT_MS = 5000; // 5s
 const MERINO_WEATHER_CACHE_PERIOD_MS = 60000; // 1 minute
 
 const RESULT_MENU_COMMAND = {
+  DISMISS: "dismiss",
+  HELP: "help",
   INACCURATE_LOCATION: "inaccurate_location",
   MANAGE: "manage",
-  NOT_INTERESTED: "not_interested",
-  NOT_RELEVANT: "not_relevant",
   SHOW_LESS_FREQUENTLY: "show_less_frequently",
 };
 
@@ -264,6 +264,7 @@ export class WeatherSuggestions extends SuggestProvider {
             args: { provider: WEATHER_PROVIDER_DISPLAY_NAME },
             cacheable: true,
           },
+          helpUrl: lazy.QuickSuggest.HELP_URL,
         }
       ),
       {
@@ -295,6 +296,7 @@ export class WeatherSuggestions extends SuggestProvider {
           high: suggestion.forecast.high[unit],
           low: suggestion.forecast.low[unit],
           showRowLabel: true,
+          helpUrl: lazy.QuickSuggest.HELP_URL,
         }
       ),
       {
@@ -389,7 +391,7 @@ export class WeatherSuggestions extends SuggestProvider {
       {
         name: RESULT_MENU_COMMAND.INACCURATE_LOCATION,
         l10n: {
-          id: "firefox-suggest-weather-command-inaccurate-location",
+          id: "urlbar-result-menu-report-inaccurate-location",
         },
       },
     ];
@@ -398,36 +400,29 @@ export class WeatherSuggestions extends SuggestProvider {
       commands.push({
         name: RESULT_MENU_COMMAND.SHOW_LESS_FREQUENTLY,
         l10n: {
-          id: "firefox-suggest-command-show-less-frequently",
+          id: "urlbar-result-menu-show-less-frequently",
         },
       });
     }
 
     commands.push(
       {
+        name: RESULT_MENU_COMMAND.DISMISS,
         l10n: {
-          id: "firefox-suggest-command-dont-show-this",
+          id: "urlbar-result-menu-dont-show-weather-suggestions",
         },
-        children: [
-          {
-            name: RESULT_MENU_COMMAND.NOT_RELEVANT,
-            l10n: {
-              id: "firefox-suggest-command-not-relevant",
-            },
-          },
-          {
-            name: RESULT_MENU_COMMAND.NOT_INTERESTED,
-            l10n: {
-              id: "firefox-suggest-command-not-interested",
-            },
-          },
-        ],
       },
       { name: "separator" },
       {
         name: RESULT_MENU_COMMAND.MANAGE,
         l10n: {
           id: "urlbar-result-menu-manage-firefox-suggest",
+        },
+      },
+      {
+        name: RESULT_MENU_COMMAND.HELP,
+        l10n: {
+          id: "urlbar-result-menu-learn-more-about-firefox-suggest",
         },
       }
     );
@@ -438,17 +433,18 @@ export class WeatherSuggestions extends SuggestProvider {
   onEngagement(queryContext, controller, details, searchString) {
     let { result } = details;
     switch (details.selType) {
+      case RESULT_MENU_COMMAND.HELP:
       case RESULT_MENU_COMMAND.MANAGE:
-        // "manage" is handled by UrlbarInput, no need to do anything here.
+        // "help" and "manage" are handled by UrlbarInput, no need to do
+        // anything here.
         break;
-      // selType == "dismiss" when the user presses the dismiss key shortcut.
-      case "dismiss":
-      case RESULT_MENU_COMMAND.NOT_INTERESTED:
-      case RESULT_MENU_COMMAND.NOT_RELEVANT:
+      // Note that selType == "dismiss" when the user presses the dismiss key
+      // shortcut, in addition to the result menu command.
+      case RESULT_MENU_COMMAND.DISMISS:
         this.logger.info("Dismissing weather result");
         lazy.UrlbarPrefs.set("suggest.weather", false);
         result.acknowledgeDismissalL10n = {
-          id: "firefox-suggest-dismissal-acknowledgment-all",
+          id: "urlbar-dismissal-acknowledgment-weather",
         };
         controller.removeResult(result);
         break;

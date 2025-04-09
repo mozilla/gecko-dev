@@ -114,22 +114,13 @@ add_task(async function showLessFrequentlyCapReached_manySearches() {
   UrlbarPrefs.clear("weather.showLessFrequentlyCount");
 });
 
-// Tests the "Not interested" result menu dismissal command.
-add_task(async function notInterested() {
+// Tests the "Don't show weather suggestions" result menu dismissal command.
+add_task(async function dontShow() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "weather",
   });
-  await doDismissTest("not_interested");
-});
-
-// Tests the "Not relevant" result menu dismissal command.
-add_task(async function notRelevant() {
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "weather",
-  });
-  await doDismissTest("not_relevant");
+  await doDismissTest("dismiss");
 });
 
 async function doDismissTest(command) {
@@ -137,11 +128,10 @@ async function doDismissTest(command) {
   let details = await assertWeatherResultPresent();
 
   // Click the command.
-  await UrlbarTestUtils.openResultMenuAndClickItem(
-    window,
-    ["[data-l10n-id=firefox-suggest-command-dont-show-this]", command],
-    { resultIndex: EXPECTED_RESULT_INDEX, openByMouse: true }
-  );
+  await UrlbarTestUtils.openResultMenuAndClickItem(window, command, {
+    resultIndex: EXPECTED_RESULT_INDEX,
+    openByMouse: true,
+  });
 
   Assert.ok(
     !UrlbarPrefs.get("suggest.weather"),
@@ -254,7 +244,7 @@ async function doSessionOngoingCommandTest(command) {
   );
 
   info("Doing dismissal");
-  await doDismissTest("not_interested");
+  await doDismissTest("dismiss");
 }
 
 // Test for menu item to manage the suggest.

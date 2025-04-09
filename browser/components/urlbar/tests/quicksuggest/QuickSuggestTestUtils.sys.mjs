@@ -935,6 +935,7 @@ class _QuickSuggestTestUtils {
         provider,
         isSponsored: true,
         telemetryType: "weather",
+        helpUrl: lazy.QuickSuggest.HELP_URL,
       },
     };
   }
