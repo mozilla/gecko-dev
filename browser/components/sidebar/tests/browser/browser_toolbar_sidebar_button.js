@@ -204,6 +204,9 @@ add_task(async function test_states_for_hide_sidebar() {
   });
   await waitForTabstripOrientation("horizontal");
 
+  const { SidebarController } = window;
+  const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
+
   Assert.equal(
     Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "hide-sidebar",
@@ -211,18 +214,13 @@ add_task(async function test_states_for_hide_sidebar() {
   );
   // The sidebar launcher should be initially visible when visibility is "hide-sidebar"
   Assert.ok(
-    !window.SidebarController.sidebarContainer.hidden,
+    !SidebarController.sidebarContainer.hidden,
     "The launcher is initially visible"
   );
   Assert.ok(
-    window.SidebarController.toolbarButton.checked,
+    SidebarController.toolbarButton.checked,
     "The toolbar button is initially checked"
   );
-
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const { SidebarController } = win;
-  const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
-  await waitForTabstripOrientation("horizontal", win);
 
   const checkStates = async (
     { hidden },
@@ -247,7 +245,9 @@ add_task(async function test_states_for_hide_sidebar() {
       () => !component.expanded
     );
     ok(true, "Sidebar should not be expanded");
-    info("Waiting for button to be highlighted");
+    info(
+      `Waiting for button to be ${hidden ? "not highlighted" : "highlighted"}`
+    );
     await BrowserTestUtils.waitForMutationCondition(
       button,
       { attributes: true, attributeFilter: ["checked", "expanded"] },
@@ -276,7 +276,8 @@ add_task(async function test_states_for_hide_sidebar() {
   await checkStates({ hidden: false });
 
   info("Hide sidebar using the toolbar button.");
-  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  await SimpleTest.promiseFocus(window);
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, window);
   await checkStates({ hidden: true });
   Assert.ok(
     !toolbarButton.checked,
@@ -297,7 +298,6 @@ add_task(async function test_states_for_hide_sidebar() {
     "The toolbar button in the new window is unchecked when the launcher is hidden"
   );
 
-  await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
   await SpecialPowers.popPrefEnv();
   await waitForTabstripOrientation("vertical");
