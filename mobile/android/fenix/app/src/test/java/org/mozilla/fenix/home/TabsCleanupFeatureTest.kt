@@ -29,7 +29,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_NORMAL_TABS
 import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_PRIVATE_TABS
@@ -57,9 +56,6 @@ class TabsCleanupFeatureTest {
 
     @RelaxedMockK
     private lateinit var tabsUseCases: TabsUseCases
-
-    @RelaxedMockK
-    private lateinit var fenixBrowserUseCases: FenixBrowserUseCases
 
     @RelaxedMockK
     private lateinit var settings: Settings
@@ -94,7 +90,6 @@ class TabsCleanupFeatureTest {
             navController = navController,
             settings = settings,
             tabsUseCases = tabsUseCases,
-            fenixBrowserUseCases = fenixBrowserUseCases,
             snackBarParentView = snackBarParentView,
             viewLifecycleScope = testCoroutineScope,
         )
@@ -152,7 +147,9 @@ class TabsCleanupFeatureTest {
         verifyOrder {
             tabsUseCases.removeNormalTabs()
 
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = browsingModeManager.mode.isPrivate,
             )
 
@@ -178,7 +175,9 @@ class TabsCleanupFeatureTest {
         verifyOrder {
             tabsUseCases.removePrivateTabs()
 
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = browsingModeManager.mode.isPrivate,
             )
 
@@ -262,7 +261,9 @@ class TabsCleanupFeatureTest {
         verifyOrder {
             tabsUseCases.removeTab(sessionId)
 
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = private,
             )
 
@@ -309,7 +310,9 @@ class TabsCleanupFeatureTest {
         }
 
         verify(exactly = 0) {
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = private,
             )
         }

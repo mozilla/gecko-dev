@@ -151,7 +151,6 @@ class TabsUseCases(
          * @param parentId the id of the parent tab to use for the newly created tab.
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          * @param contextId the session context id to use for this tab.
-         * @param title The title of the new page.
          * @param engineSession (optional) engine session to use for this tab.
          * @param source The [SessionState.Source] of the new tab.
          * @param searchTerms The search terms of this new tab if it represents an active
@@ -174,7 +173,6 @@ class TabsUseCases(
             parentId: String? = null,
             flags: LoadUrlFlags = LoadUrlFlags.none(),
             contextId: String? = null,
-            title: String = "",
             engineSession: EngineSession? = null,
             source: SessionState.Source = SessionState.Source.Internal.NewTab,
             searchTerms: String = "",
@@ -192,7 +190,6 @@ class TabsUseCases(
                 source = source,
                 contextId = contextId,
                 parent = parentId?.let { store.state.findTab(it) },
-                title = title,
                 engineSession = engineSession,
                 searchTerms = searchTerms,
                 initialLoadFlags = flags,

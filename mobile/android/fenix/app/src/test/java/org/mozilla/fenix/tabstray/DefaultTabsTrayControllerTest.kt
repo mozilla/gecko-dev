@@ -69,7 +69,6 @@ import org.mozilla.fenix.collections.show
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.maxActiveTime
 import org.mozilla.fenix.ext.potentialInactiveTabs
 import org.mozilla.fenix.helpers.FenixGleanTestRule
@@ -101,9 +100,6 @@ class DefaultTabsTrayControllerTest {
 
     @MockK(relaxed = true)
     private lateinit var tabsUseCases: TabsUseCases
-
-    @MockK(relaxed = true)
-    private lateinit var fenixBrowserUseCases: FenixBrowserUseCases
 
     @MockK(relaxed = true)
     private lateinit var activity: HomeActivity
@@ -169,7 +165,9 @@ class DefaultTabsTrayControllerTest {
 
         verifyOrder {
             profiler.getProfilerTime()
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = true,
             )
             navController.navigate(
@@ -216,7 +214,9 @@ class DefaultTabsTrayControllerTest {
 
         verifyOrder {
             profiler.getProfilerTime()
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = false,
             )
             navController.navigate(
@@ -1346,7 +1346,6 @@ class DefaultTabsTrayControllerTest {
             profiler = profiler,
             navigationInteractor = navigationInteractor,
             tabsUseCases = tabsUseCases,
-            fenixBrowserUseCases = fenixBrowserUseCases,
             bookmarksStorage = bookmarksStorage,
             closeSyncedTabsUseCases = closeSyncedTabsUseCases,
             collectionStorage = collectionStorage,

@@ -22,6 +22,7 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.pwa.WebAppUseCases
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
@@ -42,7 +43,6 @@ import org.mozilla.fenix.components.menu.store.BrowserMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
@@ -57,7 +57,7 @@ class MenuNavigationMiddlewareTest {
     private val scope = coroutinesTestRule.scope
 
     private val navController: NavController = mockk(relaxed = true)
-    private val fenixBrowserUseCases: FenixBrowserUseCases = mockk(relaxed = true)
+    private val tabsUseCases: TabsUseCases = mockk(relaxed = true)
     private val webAppUseCases: WebAppUseCases = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
 
@@ -592,7 +592,9 @@ class MenuNavigationMiddlewareTest {
         assertEquals(BrowsingMode.Normal, browsingModeManager.mode)
 
         verifyOrder {
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = false,
             )
 
@@ -616,7 +618,9 @@ class MenuNavigationMiddlewareTest {
         assertEquals(BrowsingMode.Private, browsingModeManager.mode)
 
         verifyOrder {
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = true,
             )
 
@@ -713,7 +717,7 @@ class MenuNavigationMiddlewareTest {
                 navController = navController,
                 browsingModeManager = browsingModeManager,
                 openToBrowser = openToBrowser,
-                fenixBrowserUseCases = fenixBrowserUseCases,
+                tabsUseCases = tabsUseCases,
                 webAppUseCases = webAppUseCases,
                 settings = settings,
                 onDismiss = onDismiss,

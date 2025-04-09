@@ -79,7 +79,6 @@ import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.accounts.AccountState
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.appstate.AppAction.ShortcutAction
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.directionsEq
@@ -126,8 +125,6 @@ class DefaultBrowserToolbarMenuControllerTest {
 
     @RelaxedMockK private lateinit var tabsUseCases: TabsUseCases
 
-    @RelaxedMockK private lateinit var fenixBrowserUseCases: FenixBrowserUseCases
-
     @RelaxedMockK private lateinit var readerModeController: ReaderModeController
 
     @MockK private lateinit var sessionFeatureWrapper: ViewBoundFeatureWrapper<SessionFeature>
@@ -160,7 +157,6 @@ class DefaultBrowserToolbarMenuControllerTest {
         every { activity.components.useCases.searchUseCases } returns searchUseCases
         every { activity.components.useCases.topSitesUseCase } returns topSitesUseCase
         every { activity.components.useCases.tabsUseCases } returns tabsUseCases
-        every { activity.components.useCases.fenixBrowserUseCases } returns fenixBrowserUseCases
         every { sessionFeatureWrapper.get() } returns sessionFeature
         every { navController.currentDestination } returns mockk {
             every { id } returns R.id.browserFragment
@@ -855,7 +851,11 @@ class DefaultBrowserToolbarMenuControllerTest {
         controller.handleToolbarItemInteraction(item)
 
         verifyOrder {
-            fenixBrowserUseCases.addNewHomepageTab(private = false)
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
+                private = false,
+            )
 
             navController.navigate(
                 directionsEq(

@@ -17,7 +17,6 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.tabClosedUndoMessage
 import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_NORMAL_TABS
 import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_PRIVATE_TABS
@@ -33,7 +32,6 @@ import org.mozilla.fenix.utils.allowUndo
  * @param browsingModeManager [BrowsingModeManager] used for fetching the current browsing mode.
  * @param navController [NavController] used for navigation.
  * @param tabsUseCases The [TabsUseCases] instance to perform tab actions.
- * @param fenixBrowserUseCases [FenixBrowserUseCases] used for adding new homepage tabs.
  * @param settings [Settings] used to check the application shared preferences.
  * @param snackBarParentView The [View] to find a parent from for displaying the snackbar.
  * @param viewLifecycleScope The [CoroutineScope] to use for launching coroutines.
@@ -46,7 +44,6 @@ class TabsCleanupFeature(
     private val browsingModeManager: BrowsingModeManager,
     private val navController: NavController,
     private val tabsUseCases: TabsUseCases,
-    private val fenixBrowserUseCases: FenixBrowserUseCases,
     private val settings: Settings,
     private val snackBarParentView: View,
     private val viewLifecycleScope: CoroutineScope,
@@ -91,7 +88,9 @@ class TabsCleanupFeature(
             // Add a new tab after all the tabs are removed to ensure there's always 1 tab.
             // Hold onto the new tab ID so that the new tab can be removed if the tabs are restored
             // by the undo action.
-            tabId = fenixBrowserUseCases.addNewHomepageTab(
+            tabId = tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = browsingModeManager.mode.isPrivate,
             )
         }
@@ -140,7 +139,9 @@ class TabsCleanupFeature(
             // Add a new tab if the last tab is being removed to ensure there's always 1 tab.
             // Hold onto the new tab ID so that the new tab can be removed if the tabs are restored
             // by the undo action.
-            tabId = fenixBrowserUseCases.addNewHomepageTab(
+            tabId = tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = isPrivate,
             )
         }

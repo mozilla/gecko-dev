@@ -448,7 +448,6 @@ class HomeFragment : Fragment() {
                 browsingModeManager = browsingModeManager,
                 navController = findNavController(),
                 tabsUseCases = components.useCases.tabsUseCases,
-                fenixBrowserUseCases = components.useCases.fenixBrowserUseCases,
                 settings = components.settings,
                 snackBarParentView = binding.dynamicSnackbarContainer,
                 viewLifecycleScope = viewLifecycleOwner.lifecycleScope,

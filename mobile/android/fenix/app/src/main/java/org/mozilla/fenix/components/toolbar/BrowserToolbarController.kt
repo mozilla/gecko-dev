@@ -39,7 +39,6 @@ import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
@@ -105,7 +104,6 @@ class DefaultBrowserToolbarController(
     private val store: BrowserStore,
     private val appStore: AppStore,
     private val tabsUseCases: TabsUseCases,
-    private val fenixBrowserUseCases: FenixBrowserUseCases,
     private val activity: HomeActivity,
     private val settings: Settings,
     private val navController: NavController,
@@ -283,7 +281,9 @@ class DefaultBrowserToolbarController(
 
     override fun handleNewTabButtonClick() {
         if (settings.enableHomepageAsNewTab) {
-            fenixBrowserUseCases.addNewHomepageTab(
+            tabsUseCases.addTab.invoke(
+                url = "about:home",
+                startLoading = false,
                 private = currentSession?.content?.private ?: false,
             )
         }

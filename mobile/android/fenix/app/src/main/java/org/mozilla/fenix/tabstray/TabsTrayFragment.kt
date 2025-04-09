@@ -165,7 +165,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             navigationInteractor = navigationInteractor,
             profiler = requireComponents.core.engine.profiler,
             tabsUseCases = requireComponents.useCases.tabsUseCases,
-            fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
             closeSyncedTabsUseCases = requireComponents.useCases.closeSyncedTabsUseCases,
             bookmarksStorage = requireComponents.core.bookmarksStorage,
             ioDispatcher = Dispatchers.IO,
