@@ -6589,7 +6589,7 @@ MDefinition* WarpCacheIRTranspiler::convertWasmArg(MDefinition* arg,
           break;
         case MIRType::Null:
           arg->setImplicitlyUsedUnchecked();
-          conversion = MWasmNullConstant::New(alloc());
+          conversion = MWasmNullConstant::New(alloc(), wasm::MaybeRefType());
           break;
         default:
           conversion = MWasmAnyRefFromJSValue::New(alloc(), arg);

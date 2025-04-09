@@ -37,35 +37,33 @@ using namespace js;
 using namespace js::wasm;
 
 RefType RefType::topType() const {
-  switch (kind()) {
-    case RefType::Any:
-    case RefType::Eq:
-    case RefType::I31:
-    case RefType::Array:
-    case RefType::Struct:
-    case RefType::None:
-      return RefType::any();
-    case RefType::Func:
-    case RefType::NoFunc:
-      return RefType::func();
-    case RefType::Extern:
-    case RefType::NoExtern:
-      return RefType::extern_();
-    case RefType::Exn:
-    case RefType::NoExn:
-      return RefType::exn();
-    case RefType::TypeRef:
-      switch (typeDef()->kind()) {
-        case TypeDefKind::Array:
-        case TypeDefKind::Struct:
-          return RefType::any();
-        case TypeDefKind::Func:
-          return RefType::func();
-        case TypeDefKind::None:
-          MOZ_CRASH("should not see TypeDefKind::None at this point");
-      }
+  switch (hierarchy()) {
+    case wasm::RefTypeHierarchy::Any:
+      return wasm::RefType::any();
+    case wasm::RefTypeHierarchy::Func:
+      return wasm::RefType::func();
+    case wasm::RefTypeHierarchy::Extern:
+      return wasm::RefType::extern_();
+    case wasm::RefTypeHierarchy::Exn:
+      return wasm::RefType::exn();
+    default:
+      MOZ_CRASH("switch is exhaustive");
   }
-  MOZ_CRASH("switch is exhaustive");
+}
+
+RefType RefType::bottomType() const {
+  switch (hierarchy()) {
+    case wasm::RefTypeHierarchy::Any:
+      return wasm::RefType::none();
+    case wasm::RefTypeHierarchy::Func:
+      return wasm::RefType::nofunc();
+    case wasm::RefTypeHierarchy::Extern:
+      return wasm::RefType::noextern();
+    case wasm::RefTypeHierarchy::Exn:
+      return wasm::RefType::noexn();
+    default:
+      MOZ_CRASH("switch is exhaustive");
+  }
 }
 
 static RefType FirstCommonSuperType(RefType a, RefType b,

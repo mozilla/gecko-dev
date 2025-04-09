@@ -440,8 +440,12 @@ class RefType {
   static bool castPossible(RefType sourceType, RefType destType);
 
   // Gets the top of the given type's hierarchy, e.g. Any for structs and
-  // arrays, and Func for funcs
+  // arrays, and Func for funcs.
   RefType topType() const;
+
+  // Gets the bottom of the given type's hierarchy, e.g. None for structs and
+  // arrays, and NoFunc for funcs.
+  RefType bottomType() const;
 
   static RefType leastUpperBound(RefType a, RefType b);
 

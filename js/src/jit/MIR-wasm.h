@@ -37,9 +37,13 @@ extern uint32_t MIRTypeToABIResultSize(jit::MIRType);
 namespace jit {
 
 class MWasmNullConstant : public MNullaryInstruction {
-  explicit MWasmNullConstant() : MNullaryInstruction(classOpcode) {
+  explicit MWasmNullConstant(wasm::MaybeRefType type)
+      : MNullaryInstruction(classOpcode) {
     setResultType(MIRType::WasmAnyRef);
     setMovable();
+    if (type.isSome()) {
+      initWasmRefType(wasm::MaybeRefType(type.value().bottomType()));
+    }
   }
 
  public:
@@ -48,7 +52,7 @@ class MWasmNullConstant : public MNullaryInstruction {
 
   HashNumber valueHash() const override;
   bool congruentTo(const MDefinition* ins) const override {
-    return ins->isWasmNullConstant();
+    return ins->isWasmNullConstant() && wasmRefType() == ins->wasmRefType();
   }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 

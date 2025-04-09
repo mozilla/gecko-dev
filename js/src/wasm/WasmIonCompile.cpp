@@ -742,12 +742,12 @@ class FunctionCompiler {
   MDefinition* constantV128(T) = delete;
 #endif
 
-  MDefinition* constantNullRef() {
+  MDefinition* constantNullRef(MaybeRefType type) {
     if (inDeadCode()) {
       return nullptr;
     }
     // MConstant has a lot of baggage so we don't use that here.
-    MWasmNullConstant* constant = MWasmNullConstant::New(alloc());
+    MWasmNullConstant* constant = MWasmNullConstant::New(alloc(), type);
     curBlock_->add(constant);
     return constant;
   }
@@ -768,7 +768,7 @@ class FunctionCompiler {
       case ValType::F64:
         return constantF64(0.0);
       case ValType::Ref:
-        return constantNullRef();
+        return constantNullRef(MaybeRefType(valType.refType()));
       default:
         MOZ_CRASH();
     }
@@ -1144,7 +1144,7 @@ class FunctionCompiler {
   }
 
   MDefinition* compareIsNull(MDefinition* ref, JSOp compareOp) {
-    MDefinition* nullVal = constantNullRef();
+    MDefinition* nullVal = constantNullRef(MaybeRefType());
     if (!nullVal) {
       return nullptr;
     }
@@ -4253,7 +4253,7 @@ class FunctionCompiler {
     loadPendingExceptionState(pendingException, pendingExceptionTag);
 
     // Clear the pending exception and tag
-    auto* null = constantNullRef();
+    auto* null = constantNullRef(MaybeRefType());
     if (!setPendingExceptionState(null, null)) {
       return false;
     }
@@ -6721,7 +6721,7 @@ bool FunctionCompiler::emitGetGlobal() {
 #endif
     case ValType::Ref:
       MOZ_ASSERT(value.ref().isNull());
-      result = constantNullRef();
+      result = constantNullRef(MaybeRefType(value.type().refType()));
       break;
     default:
       MOZ_CRASH("unexpected type in EmitGetGlobal");
@@ -8173,7 +8173,7 @@ bool FunctionCompiler::emitRefNull() {
     return true;
   }
 
-  MDefinition* nullVal = constantNullRef();
+  MDefinition* nullVal = constantNullRef(MaybeRefType(type));
   if (!nullVal) {
     return false;
   }
@@ -8191,7 +8191,7 @@ bool FunctionCompiler::emitRefIsNull() {
     return true;
   }
 
-  MDefinition* nullVal = constantNullRef();
+  MDefinition* nullVal = constantNullRef(MaybeRefType());
   if (!nullVal) {
     return false;
   }
