@@ -7,6 +7,7 @@
 #define mozilla_Sandbox_h
 
 #include <string>
+#include <vector>
 #include "mozilla/ipc/UtilityProcessSandboxing.h"
 
 enum MacSandboxType {
