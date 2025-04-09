@@ -36,6 +36,8 @@ body {
 .about-translations-header {
   display: grid;
   grid-template-columns: 1fr max-content 1fr;
+  gap: var(--space-small);
+  padding: var(--space-xsmall);
 }
 
 /* Increase the selector specificity to override the base `select` styles. */
@@ -168,5 +170,8 @@ select.about-translations-select:dir(rtl) {
   }
   .about-translations-contents {
     flex: 1;
+  }
+  select.about-translations-select {
+    width: 100%;
   }
 }
