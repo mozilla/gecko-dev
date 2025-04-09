@@ -1,10 +1,4 @@
-// |jit-test| skip-if: !wasmLazyTieringEnabled()
-
-// This test can only succeed if we are running in lazy-tiering mode, because
-// it requires module compilation to hold on to the bytecode -- in this test,
-// so that we can subsequently disassemble the module using `wasmModuleToText`.
-// And that only happens in lazy tiering mode.  See comments on
-// CodeMetadata::codeSectionBytecode.
+// |jit-test| skip-if: !getPrefValue("wasm_lazy_tiering");
 
 const m1 = new WebAssembly.Module(wasmTextToBinary(`(module
   (type (struct))
