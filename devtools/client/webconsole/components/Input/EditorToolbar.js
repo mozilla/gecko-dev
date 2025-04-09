@@ -36,7 +36,6 @@ class EditorToolbar extends Component {
       reverseSearchInputVisible: PropTypes.bool.isRequired,
       serviceContainer: PropTypes.object.isRequired,
       webConsoleUI: PropTypes.object.isRequired,
-      showEvaluationContextSelector: PropTypes.bool,
     };
   }
 
@@ -60,10 +59,6 @@ class EditorToolbar extends Component {
   }
 
   renderEvaluationContextSelector() {
-    if (!this.props.showEvaluationContextSelector) {
-      return null;
-    }
-
     return EvaluationContextSelector({
       webConsoleUI: this.props.webConsoleUI,
     });

@@ -84,8 +84,6 @@ const prefs = {
       EDITOR_WIDTH: "input.editorWidth",
       // Show the Editor onboarding UI
       EDITOR_ONBOARDING: "devtools.webconsole.input.editorOnboarding",
-      // Show the Input Context the selector
-      CONTEXT_SELECTOR: "devtools.webconsole.input.context",
       // Persist the "enable network monitoring" option
       ENABLE_NETWORK_MONITORING:
         "devtools.browserconsole.enableNetworkMonitoring",

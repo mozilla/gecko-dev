@@ -303,10 +303,6 @@ export class BrowserToolboxLauncher extends EventEmitter {
       BROWSER_TOOLBOX_WINDOW_URL,
     ];
 
-    const isInputContextEnabled = Services.prefs.getBoolPref(
-      "devtools.webconsole.input.context",
-      false
-    );
     const environment = {
       // Allow recording the startup of the browser toolbox when setting
       // MOZ_BROWSER_TOOLBOX_PROFILER_STARTUP=1 when running firefox.
@@ -317,8 +313,6 @@ export class BrowserToolboxLauncher extends EventEmitter {
       MOZ_BROWSER_TOOLBOX_PROFILER_STARTUP: "0",
 
       MOZ_BROWSER_TOOLBOX_FORCE_MULTIPROCESS: forceMultiprocess ? "1" : "0",
-      // Similar, but for the WebConsole input context dropdown.
-      MOZ_BROWSER_TOOLBOX_INPUT_CONTEXT: isInputContextEnabled ? "1" : "0",
       // Disable safe mode for the new process in case this was opened via the
       // keyboard shortcut.
       MOZ_DISABLE_SAFE_MODE_KEY: "1",

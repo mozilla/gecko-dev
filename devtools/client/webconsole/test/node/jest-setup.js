@@ -51,5 +51,4 @@ pref("devtools.webconsole.input.eagerEvaluation", true);
 pref("devtools.browserconsole.enableNetworkMonitoring", false);
 pref("devtools.webconsole.input.editorWidth", 800);
 pref("devtools.webconsole.input.editorOnboarding", true);
-pref("devtools.webconsole.input.context", false);
 pref("devtools.discovery.log", false);

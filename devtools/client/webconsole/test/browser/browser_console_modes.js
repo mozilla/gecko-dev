@@ -45,7 +45,6 @@ add_task(async function () {
   await pushPref("devtools.browsertoolbox.scope", "everything");
   // Show context selector
   await pushPref("devtools.chrome.enabled", true);
-  await pushPref("devtools.webconsole.input.context", true);
 
   // Open the WebConsole on the tab to check changing mode won't focus the tab
   await openNewTabAndConsole(TEST_URI);

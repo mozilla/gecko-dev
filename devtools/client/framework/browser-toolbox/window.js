@@ -77,15 +77,9 @@ function hideStatusMessage() {
 var connect = async function () {
   // Initiate the connection
 
-  // MOZ_BROWSER_TOOLBOX_INPUT_CONTEXT is set by the target Firefox instance
-  // before opening the Browser Toolbox.
-  // If "devtools.webconsole.input.context" is true, the variable is set to "1",
-  // otherwise it is set to "0".
-  Services.prefs.setBoolPref(
-    "devtools.webconsole.input.context",
-    Services.env.get("MOZ_BROWSER_TOOLBOX_INPUT_CONTEXT") === "1"
-  );
-  // Similar, but for the Browser Toolbox mode
+  // MOZ_BROWSER_TOOLBOX_FORCE_MULTIPROCESS is set by the target Firefox instance
+  // before opening the Browser Toolbox, it's set to "1" if multiprocess mode should
+  // be forced (for example, when running mochitest with `--jsdebugger`).
   if (Services.env.get("MOZ_BROWSER_TOOLBOX_FORCE_MULTIPROCESS") === "1") {
     Services.prefs.setCharPref("devtools.browsertoolbox.scope", "everything");
   }

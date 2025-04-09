@@ -14,8 +14,6 @@ const TEST_URI =
 const dpr = "--dpr 1";
 
 add_task(async function () {
-  await pushPref("devtools.webconsole.input.context", true);
-
   const hud = await openNewTabAndConsole(TEST_URI);
 
   info("wait for the iframes to be loaded");

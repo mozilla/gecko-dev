@@ -13,7 +13,6 @@ const IFRAME_PATH = `${FILE_FOLDER}/test-console-evaluation-context-selector-chi
 
 add_task(async function () {
   await pushPref("devtools.popups.debug", true);
-  await pushPref("devtools.webconsole.input.context", true);
 
   const hud = await openNewTabWithIframesAndConsole(TEST_URI, [
     `https://example.net/${IFRAME_PATH}?id=iframe-1`,

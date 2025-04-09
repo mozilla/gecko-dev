@@ -130,7 +130,6 @@ class JSTerm extends Component {
       editorPrettifiedAt: PropTypes.number,
       showEditorOnboarding: PropTypes.bool,
       autocomplete: PropTypes.bool,
-      showEvaluationContextSelector: PropTypes.bool,
       autocompletePopupPosition: PropTypes.string,
       inputEnabled: PropTypes.bool,
     };
@@ -1524,7 +1523,7 @@ class JSTerm extends Component {
   }
 
   renderEvaluationContextSelector() {
-    if (this.props.editorMode || !this.props.showEvaluationContextSelector) {
+    if (this.props.editorMode) {
       return null;
     }
 
@@ -1604,7 +1603,6 @@ function mapStateToProps(state) {
     getValueFromHistory: direction => getHistoryValue(state, direction),
     autocompleteData: getAutocompleteState(state),
     showEditorOnboarding: state.ui.showEditorOnboarding,
-    showEvaluationContextSelector: state.ui.showEvaluationContextSelector,
     autocompletePopupPosition: state.prefs.eagerEvaluation ? "top" : "bottom",
     editorPrettifiedAt: state.ui.editorPrettifiedAt,
   };
