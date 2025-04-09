@@ -222,15 +222,174 @@ async function doMigrateTest({
 }
 
 /**
- * Does some "show less frequently" tests where the cap is set in remote
- * settings and Nimbus. See `doOneShowLessFrequentlyTest()`. This function
- * assumes the matching behavior implemented by the given `BaseFeature` is based
- * on matching prefixes of the given keyword starting at the first word. It
- * also assumes the `BaseFeature` provides suggestions in remote settings.
+ * Does a test that dismisses a single result by triggering a command on it.
  *
  * @param {object} options
  *   Options object.
- * @param {BaseFeature} options.feature
+ * @param {SuggestFeature} options.feature
+ *   The feature that provides the dismissed result.
+ * @param {UrlbarResult} options.result
+ *   The result to trigger the command on.
+ * @param {string} options.command
+ *   The name of the command to trigger. It should dismiss one result.
+ * @param {Array} options.queriesForDismissals
+ *   Array of objects: `{ query, expectedResults }`
+ *   For each object, the test will perform a search with `query` as the search
+ *   string. After dismissing the result, the query shouldn't match any results.
+ *   After clearing dismissals, the query should match the results in
+ *   `expectedResults`. If `expectedResults` is omitted, `[result]` will be
+ *   used.
+ * @param {Array} options.queriesForOthers
+ *   Array of objects: `{ query, expectedResults }`
+ *   For each object, the test will perform a search with `query` as the search
+ *   string. The query should always match `expectedResults`.
+ */
+async function doDismissOneTest({
+  feature,
+  result,
+  command,
+  queriesForDismissals,
+  queriesForOthers,
+}) {
+  triggerCommand({
+    result,
+    command,
+    feature,
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
+  });
+  await QuickSuggest.blockedSuggestions._test_readyPromise;
+
+  Assert.ok(
+    await QuickSuggest.blockedSuggestions.isResultBlocked(result),
+    "The result's URL should be dismissed"
+  );
+
+  for (let { query } of queriesForDismissals) {
+    info("Doing search for dismissed suggestions: " + JSON.stringify(query));
+    await check_results({
+      context: createContext(query, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
+  }
+
+  for (let { query, expectedResults } of queriesForOthers) {
+    info(
+      "Doing search for non-dismissed suggestions: " + JSON.stringify(query)
+    );
+    await check_results({
+      context: createContext(query, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: expectedResults,
+    });
+  }
+
+  info("Clearing dismissals");
+  await QuickSuggest.blockedSuggestions.clear();
+
+  for (let { query, expectedResults = [result] } of queriesForDismissals) {
+    info("Doing search after clearing dismissals: " + JSON.stringify(query));
+    await check_results({
+      context: createContext(query, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: expectedResults,
+    });
+  }
+}
+
+/**
+ * Does a test that dismisses a suggestion type (i.e., all suggestions of a
+ * certain type) by triggering a command on a result.
+ *
+ * @param {object} options
+ *   Options object.
+ * @param {SuggestFeature} options.feature
+ *   The feature that provides the suggestion type.
+ * @param {UrlbarResult} options.result
+ *   The result to trigger the command on.
+ * @param {string} options.command
+ *   The name of the command to trigger. It should dismiss all results of a
+ *   suggestion type.
+ * @param {string} options.pref
+ *   The name of the user-controlled pref (relative to `browser.urlbar.`) that
+ *   controls the suggestion type. Should be the same as
+ *   `feature.primaryUserControlledPreference`.
+ * @param {Array} options.queries
+ *   Array of objects: `{ query, expectedResults }`
+ *   For each object, the test will perform a search with `query` as the search
+ *   string. After dismissing the suggestion type, the query shouldn't match any
+ *   results. After clearing dismissals, the query should match the results in
+ *   `expectedResults`. If `expectedResults` is omitted, `[result]` will be
+ *   used.
+ */
+async function doDismissAllTest({ feature, result, command, pref, queries }) {
+  UrlbarPrefs.clear(pref);
+
+  triggerCommand({
+    result,
+    command,
+    feature,
+    expectedCountsByCall: {
+      removeResult: 1,
+    },
+  });
+
+  Assert.ok(
+    !UrlbarPrefs.get(pref),
+    "Pref should be false after triggering command: " + pref
+  );
+
+  for (let { query } of queries) {
+    info("Doing search after triggering command: " + JSON.stringify(query));
+    await check_results({
+      context: createContext(query, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
+  }
+
+  UrlbarPrefs.clear(pref);
+
+  Assert.ok(
+    UrlbarPrefs.get(pref),
+    "Pref should be true after clearing it: " + pref
+  );
+
+  // Clearing the pref will trigger a sync, so wait for it.
+  await QuickSuggestTestUtils.forceSync();
+
+  for (let { query, expectedResults = [result] } of queries) {
+    info("Doing search after clearing dismissals: " + JSON.stringify(query));
+    await check_results({
+      context: createContext(query, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: expectedResults,
+    });
+  }
+}
+
+/**
+ * Does some "show less frequently" tests where the cap is set in remote
+ * settings and Nimbus. See `doOneShowLessFrequentlyTest()`. This function
+ * assumes the matching behavior implemented by the given `SuggestFeature` is
+ * based on matching prefixes of the given keyword starting at the first word.
+ * It also assumes the `SuggestFeature` provides suggestions in remote settings.
+ *
+ * @param {object} options
+ *   Options object.
+ * @param {SuggestFeature} options.feature
  *   The feature that provides the suggestion matched by the searches.
  * @param {*} options.expectedResult
  *   The expected result that should be matched, for searches that are expected
@@ -346,7 +505,7 @@ async function doShowLessFrequentlyTests({
  *
  * @param {object} options
  *   Options object.
- * @param {BaseFeature} options.feature
+ * @param {SuggestFeature} options.feature
  *   The feature that provides the suggestion matched by the searches.
  * @param {*} options.expectedResult
  *   The expected result that should be matched, for searches that are expected
@@ -386,11 +545,11 @@ async function doOneShowLessFrequentlyTest({
   nimbus = {},
 }) {
   // Disable Merino so we trigger only remote settings suggestions. The
-  // `BaseFeature` is expected to add remote settings suggestions using keywords
-  // start starting with the first word in each full keyword, but the mock
-  // Merino server will always return whatever suggestion it's told to return
-  // regardless of the search string. That means Merino will return a suggestion
-  // for a keyword that's smaller than the first full word.
+  // `SuggestFeature` is expected to add remote settings suggestions using
+  // keywords start starting with the first word in each full keyword, but the
+  // mock Merino server will always return whatever suggestion it's told to
+  // return regardless of the search string. That means Merino will return a
+  // suggestion for a keyword that's smaller than the first full word.
   UrlbarPrefs.set("quicksuggest.dataCollection.enabled", false);
 
   // Set Nimbus variables and RS config.

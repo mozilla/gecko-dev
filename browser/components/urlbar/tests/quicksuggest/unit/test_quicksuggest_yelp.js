@@ -536,77 +536,36 @@ add_task(async function showSearchSuggestionsFirstDisabledSuggestedIndex() {
 
 // Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
 add_task(async function notRelevant() {
-  let result = makeExpectedResult(TOKYO_RESULT);
-
-  triggerCommand({
-    result,
+  await doDismissOneTest({
+    result: makeExpectedResult(TOKYO_RESULT),
     command: "not_relevant",
     feature: QuickSuggest.getFeature("YelpSuggestions"),
-    expectedCountsByCall: {
-      removeResult: 1,
-    },
-  });
-  await QuickSuggest.blockedSuggestions._test_readyPromise;
-
-  Assert.ok(
-    await QuickSuggest.blockedSuggestions.isResultBlocked(result),
-    "The result's URL should be blocked"
-  );
-
-  info("Doing search for blocked suggestion");
-  await check_results({
-    context: createContext("ramen in tokyo", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  // Yelp suggestions are blocked by URL excluding location, so all
-  // "ramen in <valid location>" results should be blocked.
-  await check_results({
-    context: createContext("ramen in waterloo", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  info("Doing search for a suggestion that wasn't blocked");
-  await check_results({
-    context: createContext("alongerkeyword in tokyo", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [
-      makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=Tokyo%2C+Tokyo-to",
-        title: "alongerkeyword in Tokyo, Tokyo-to",
-      }),
+    queriesForDismissals: [
+      // Yelp suggestions are dismissed by URL excluding location, so all
+      // "ramen in <valid location>" results should be dismissed.
+      {
+        query: "ramen in tokyo",
+      },
+      {
+        query: "ramen in waterloo",
+        expectedResults: [
+          makeExpectedResult({
+            url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Waterloo%2C+IA",
+            title: "ramen in Waterloo, IA",
+          }),
+        ],
+      },
     ],
-  });
-
-  info("Clearing blocked suggestions");
-  await QuickSuggest.blockedSuggestions.clear();
-
-  info("Doing search for unblocked suggestion");
-  await check_results({
-    context: createContext("ramen in tokyo", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [result],
-  });
-  await check_results({
-    context: createContext("ramen in waterloo", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [
-      makeExpectedResult({
-        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Waterloo%2C+IA",
-        title: "ramen in Waterloo, IA",
-      }),
+    queriesForOthers: [
+      {
+        query: "alongerkeyword in tokyo",
+        expectedResults: [
+          makeExpectedResult({
+            url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=Tokyo%2C+Tokyo-to",
+            title: "alongerkeyword in Tokyo, Tokyo-to",
+          }),
+        ],
+      },
     ],
   });
 });
@@ -614,42 +573,26 @@ add_task(async function notRelevant() {
 // Tests the "Not interested" command: all Yelp suggestions should be disabled
 // and not added anymore.
 add_task(async function notInterested() {
-  let result = makeExpectedResult(TOKYO_RESULT);
-
-  triggerCommand({
-    result,
+  await doDismissAllTest({
+    result: makeExpectedResult(TOKYO_RESULT),
     command: "not_interested",
     feature: QuickSuggest.getFeature("YelpSuggestions"),
-    expectedCountsByCall: {
-      removeResult: 1,
-    },
+    pref: "suggest.yelp",
+    queries: [
+      {
+        query: "ramen in tokyo",
+      },
+      {
+        query: "alongerkeyword in tokyo",
+        expectedResults: [
+          makeExpectedResult({
+            url: "https://www.yelp.com/search?find_desc=alongerkeyword&find_loc=Tokyo%2C+Tokyo-to",
+            title: "alongerkeyword in Tokyo, Tokyo-to",
+          }),
+        ],
+      },
+    ],
   });
-
-  Assert.ok(
-    !UrlbarPrefs.get("suggest.yelp"),
-    "Yelp suggestions should be disabled"
-  );
-
-  info("Doing search for the suggestion the command was used on");
-  await check_results({
-    context: createContext("ramen in tokyo", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  info("Doing search for another Yelp suggestion");
-  await check_results({
-    context: createContext("alongerkeyword in tokyo", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  UrlbarPrefs.clear("suggest.yelp");
-  await QuickSuggestTestUtils.forceSync();
 });
 
 // Tests the "show less frequently" behavior.

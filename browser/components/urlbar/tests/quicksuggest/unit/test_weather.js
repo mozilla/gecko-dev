@@ -281,62 +281,19 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
   }
 }
 
-// Blocks a result and makes sure the weather pref is disabled.
-add_task(async function block() {
-  // Sanity check initial state.
-  Assert.ok(
-    UrlbarPrefs.get("suggest.weather"),
-    "Sanity check: suggest.weather is true initially"
-  );
-
-  // Do a search so we can get an actual result.
-  let context = createContext("weather", {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
+// Tests dismissal.
+add_task(async function dismissal() {
+  await doDismissAllTest({
+    result: QuickSuggestTestUtils.weatherResult(),
+    command: "dismiss",
+    feature: QuickSuggest.getFeature("WeatherSuggestions"),
+    pref: "suggest.weather",
+    queries: [
+      {
+        query: "weather",
+      },
+    ],
   });
-  await check_results({
-    context,
-    matches: [QuickSuggestTestUtils.weatherResult()],
-  });
-
-  // Block the result.
-  const controller = UrlbarTestUtils.newMockController();
-  controller.setView({
-    get visibleResults() {
-      return context.results;
-    },
-    controller: {
-      removeResult() {},
-    },
-  });
-  let result = context.results[0];
-  let provider = UrlbarProvidersManager.getProvider(result.providerName);
-  Assert.ok(provider, "Sanity check: Result provider found");
-
-  provider.onEngagement(context, controller, {
-    result,
-    selType: "dismiss",
-    selIndex: context.results[0].rowIndex,
-  });
-  Assert.ok(
-    !UrlbarPrefs.get("suggest.weather"),
-    "suggest.weather is false after blocking the result"
-  );
-
-  // Do a second search. Nothing should be returned.
-  context = createContext("weather", {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-  await check_results({
-    context,
-    matches: [],
-  });
-
-  // Re-enable the pref and (when Rust is disabled) wait for keywords to be
-  // re-synced from remote settings.
-  UrlbarPrefs.set("suggest.weather", true);
-  await QuickSuggestTestUtils.forceSync();
 });
 
 // When a Nimbus experiment is installed, it should override the remote settings

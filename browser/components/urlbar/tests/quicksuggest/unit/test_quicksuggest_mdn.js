@@ -189,3 +189,55 @@ add_task(async function mixedCaseQuery() {
     matches: [QuickSuggestTestUtils.mdnResult(suggestion)],
   });
 });
+
+// Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
+add_task(async function notRelevant() {
+  await doDismissOneTest({
+    result: QuickSuggestTestUtils.mdnResult(
+      REMOTE_SETTINGS_DATA[0].attachment[0]
+    ),
+    command: "not_relevant",
+    feature: QuickSuggest.getFeature("MDNSuggestions"),
+    queriesForDismissals: [
+      {
+        query: REMOTE_SETTINGS_DATA[0].attachment[0].keywords[0],
+      },
+    ],
+    queriesForOthers: [
+      {
+        query: REMOTE_SETTINGS_DATA[0].attachment[1].keywords[0],
+        expectedResults: [
+          QuickSuggestTestUtils.mdnResult(
+            REMOTE_SETTINGS_DATA[0].attachment[1]
+          ),
+        ],
+      },
+    ],
+  });
+});
+
+// Tests the "Not interested" command: all MDN suggestions should be disabled
+// and not added anymore.
+add_task(async function notInterested() {
+  await doDismissAllTest({
+    result: QuickSuggestTestUtils.mdnResult(
+      REMOTE_SETTINGS_DATA[0].attachment[0]
+    ),
+    command: "not_interested",
+    feature: QuickSuggest.getFeature("MDNSuggestions"),
+    pref: "suggest.mdn",
+    queries: [
+      {
+        query: REMOTE_SETTINGS_DATA[0].attachment[0].keywords[0],
+      },
+      {
+        query: REMOTE_SETTINGS_DATA[0].attachment[1].keywords[0],
+        expectedResults: [
+          QuickSuggestTestUtils.mdnResult(
+            REMOTE_SETTINGS_DATA[0].attachment[1]
+          ),
+        ],
+      },
+    ],
+  });
+});

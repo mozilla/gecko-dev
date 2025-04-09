@@ -302,96 +302,62 @@ add_task(async function featureGate() {
 
 // Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
 add_task(async function notRelevant() {
-  let result = makeExpectedResult();
-
-  triggerCommand({
-    result,
+  await doDismissOneTest({
+    result: makeExpectedResult(),
     command: "not_relevant",
     feature: QuickSuggest.getFeature("FakespotSuggestions"),
-    expectedCountsByCall: {
-      removeResult: 1,
-    },
-  });
-  await QuickSuggest.blockedSuggestions._test_readyPromise;
-
-  Assert.ok(
-    await QuickSuggest.blockedSuggestions.isResultBlocked(result),
-    "The result's URL should be blocked"
-  );
-
-  // Do a search that matches both suggestions. The non-blocked suggestion
-  // should be returned.
-  info("Doing search for blocked suggestion");
-  await check_results({
-    context: createContext("fakespot", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [
-      makeExpectedResult({
-        url: REMOTE_SETTINGS_RECORDS[0].attachment[1].url,
-        title: REMOTE_SETTINGS_RECORDS[0].attachment[1].title,
-        rating: REMOTE_SETTINGS_RECORDS[0].attachment[1].rating,
-        totalReviews: REMOTE_SETTINGS_RECORDS[0].attachment[1].total_reviews,
-        fakespotGrade: REMOTE_SETTINGS_RECORDS[0].attachment[1].fakespot_grade,
-      }),
+    queriesForDismissals: [
+      {
+        query: "example",
+      },
     ],
-  });
-
-  info("Clearing blocked suggestions");
-  await QuickSuggest.blockedSuggestions.clear();
-
-  // Do another search that matches both suggestions. The now-unblocked
-  // suggestion should be returned since it has a higher score.
-  info("Doing search for unblocked suggestion");
-  await check_results({
-    context: createContext(PRIMARY_SEARCH_STRING, {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [result],
+    queriesForOthers: [
+      {
+        query: "another",
+        expectedResults: [
+          makeExpectedResult({
+            url: REMOTE_SETTINGS_RECORDS[0].attachment[1].url,
+            title: REMOTE_SETTINGS_RECORDS[0].attachment[1].title,
+            rating: REMOTE_SETTINGS_RECORDS[0].attachment[1].rating,
+            totalReviews:
+              REMOTE_SETTINGS_RECORDS[0].attachment[1].total_reviews,
+            fakespotGrade:
+              REMOTE_SETTINGS_RECORDS[0].attachment[1].fakespot_grade,
+          }),
+        ],
+      },
+    ],
   });
 });
 
 // Tests the "Not interested" command: all suggestions should be disabled and
 // not added anymore.
 add_task(async function notInterested() {
-  let result = makeExpectedResult();
-
-  triggerCommand({
-    result,
+  await doDismissAllTest({
+    result: makeExpectedResult(),
     command: "not_interested",
     feature: QuickSuggest.getFeature("FakespotSuggestions"),
-    expectedCountsByCall: {
-      removeResult: 1,
-    },
+    pref: "suggest.fakespot",
+    queries: [
+      {
+        query: "example",
+      },
+      {
+        query: "another",
+        expectedResults: [
+          makeExpectedResult({
+            url: REMOTE_SETTINGS_RECORDS[0].attachment[1].url,
+            title: REMOTE_SETTINGS_RECORDS[0].attachment[1].title,
+            rating: REMOTE_SETTINGS_RECORDS[0].attachment[1].rating,
+            totalReviews:
+              REMOTE_SETTINGS_RECORDS[0].attachment[1].total_reviews,
+            fakespotGrade:
+              REMOTE_SETTINGS_RECORDS[0].attachment[1].fakespot_grade,
+          }),
+        ],
+      },
+    ],
   });
-
-  Assert.ok(
-    !UrlbarPrefs.get("suggest.fakespot"),
-    "Fakespot suggestions should be disabled"
-  );
-
-  info("Doing search for the suggestion the command was used on");
-  await check_results({
-    context: createContext(PRIMARY_SEARCH_STRING, {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  info("Doing search for another Fakespot suggestion");
-  await check_results({
-    context: createContext("another", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  UrlbarPrefs.clear("suggest.fakespot");
-  await QuickSuggestTestUtils.forceSync();
 });
 
 // Tests the "show less frequently" behavior.

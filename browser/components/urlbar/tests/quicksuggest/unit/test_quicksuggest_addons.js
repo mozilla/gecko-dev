@@ -481,6 +481,63 @@ add_task(async function merinoIsTopPick() {
   });
 });
 
+// Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
+add_task(async function notRelevant() {
+  // Disable Merino suggestions to make this task simpler.
+  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", false);
+
+  await doDismissOneTest({
+    result: makeExpectedResult({
+      suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
+    }),
+    command: "not_relevant",
+    feature: QuickSuggest.getFeature("AddonSuggestions"),
+    queriesForDismissals: [
+      {
+        query: REMOTE_SETTINGS_RESULTS[0].attachment[0].keywords[0],
+      },
+    ],
+    queriesForOthers: [
+      {
+        query: REMOTE_SETTINGS_RESULTS[0].attachment[1].keywords[0],
+        expectedResults: [
+          makeExpectedResult({
+            suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[1],
+          }),
+        ],
+      },
+    ],
+  });
+
+  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", true);
+});
+
+// Tests the "Not interested" command: all addon suggestions should be disabled
+// and not added anymore.
+add_task(async function notInterested() {
+  await doDismissAllTest({
+    result: makeExpectedResult({
+      suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[0],
+    }),
+    command: "not_interested",
+    feature: QuickSuggest.getFeature("AddonSuggestions"),
+    pref: "suggest.addons",
+    queries: [
+      {
+        query: REMOTE_SETTINGS_RESULTS[0].attachment[0].keywords[0],
+      },
+      {
+        query: REMOTE_SETTINGS_RESULTS[0].attachment[1].keywords[0],
+        expectedResults: [
+          makeExpectedResult({
+            suggestion: REMOTE_SETTINGS_RESULTS[0].attachment[1],
+          }),
+        ],
+      },
+    ],
+  });
+});
+
 // Tests the "show less frequently" behavior.
 add_task(async function showLessFrequently() {
   await doShowLessFrequentlyTests({

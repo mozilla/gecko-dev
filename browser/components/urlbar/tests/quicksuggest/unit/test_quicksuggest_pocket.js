@@ -328,107 +328,60 @@ add_task(async function uppercase() {
 
 // Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
 add_task(async function notRelevant() {
-  let result = makeExpectedResult({ searchString: LOW_KEYWORD });
-
-  triggerCommand({
-    result,
+  await doDismissOneTest({
+    result: makeExpectedResult({ searchString: LOW_KEYWORD }),
     command: "not_relevant",
     feature: QuickSuggest.getFeature("PocketSuggestions"),
-    expectedCountsByCall: {
-      removeResult: 1,
-    },
-  });
-  await QuickSuggest.blockedSuggestions._test_readyPromise;
-
-  Assert.ok(
-    await QuickSuggest.blockedSuggestions.isResultBlocked(result),
-    "The result's URL should be blocked"
-  );
-
-  info("Doing search for blocked suggestion");
-  await check_results({
-    context: createContext(LOW_KEYWORD, {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  info("Doing search for blocked suggestion using high-confidence keyword");
-  await check_results({
-    context: createContext(HIGH_KEYWORD, {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  info("Doing search for a suggestion that wasn't blocked");
-  await check_results({
-    context: createContext("other low", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [
-      makeExpectedResult({
-        searchString: "other low",
-        suggestion: REMOTE_SETTINGS_DATA[0].attachment[1],
-      }),
+    queriesForDismissals: [
+      { query: LOW_KEYWORD },
+      {
+        query: HIGH_KEYWORD,
+        expectedResults: [
+          makeExpectedResult({
+            searchString: HIGH_KEYWORD,
+            suggestedIndex: 1,
+            isTopPick: true,
+          }),
+        ],
+      },
     ],
-  });
-
-  info("Clearing blocked suggestions");
-  await QuickSuggest.blockedSuggestions.clear();
-
-  info("Doing search for unblocked suggestion");
-  await check_results({
-    context: createContext(LOW_KEYWORD, {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [result],
+    queriesForOthers: [
+      {
+        query: "other low",
+        expectedResults: [
+          makeExpectedResult({
+            searchString: "other low",
+            suggestion: REMOTE_SETTINGS_DATA[0].attachment[1],
+          }),
+        ],
+      },
+    ],
   });
 });
 
-// Tests the "Not interested" command: all Pocket suggestions should be disabled
+// Tests the "Not interested" command: all Yelp suggestions should be disabled
 // and not added anymore.
 add_task(async function notInterested() {
-  let result = makeExpectedResult({ searchString: LOW_KEYWORD });
-
-  triggerCommand({
-    result,
+  await doDismissAllTest({
+    result: makeExpectedResult({ searchString: LOW_KEYWORD }),
     command: "not_interested",
     feature: QuickSuggest.getFeature("PocketSuggestions"),
-    expectedCountsByCall: {
-      removeResult: 1,
-    },
+    pref: "suggest.pocket",
+    queries: [
+      {
+        query: LOW_KEYWORD,
+      },
+      {
+        query: "other low",
+        expectedResults: [
+          makeExpectedResult({
+            searchString: "other low",
+            suggestion: REMOTE_SETTINGS_DATA[0].attachment[1],
+          }),
+        ],
+      },
+    ],
   });
-
-  Assert.ok(
-    !UrlbarPrefs.get("suggest.pocket"),
-    "Pocket suggestions should be disabled"
-  );
-
-  info("Doing search for the suggestion the command was used on");
-  await check_results({
-    context: createContext(LOW_KEYWORD, {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  info("Doing search for another Pocket suggestion");
-  await check_results({
-    context: createContext("other low", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    }),
-    matches: [],
-  });
-
-  UrlbarPrefs.clear("suggest.pocket");
-  await QuickSuggestTestUtils.forceSync();
 });
 
 // Tests the "show less frequently" behavior.
