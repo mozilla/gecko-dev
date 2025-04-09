@@ -1005,21 +1005,62 @@ function synthesizeTouchAtCenter(aTarget, aEvent = {}, aWindow = window) {
 }
 
 /**
- * Synthesize a wheel event without flush layout at a particular point in
- * aWindow.
+ * @typedef {Object} WheelEventData
+ * @property {string} [aEvent.accessKey] - The character or key associated with
+ *     the access key event. Typically a single character used to activate a UI
+ *     element via keyboard shortcuts (e.g., Alt + accessKey).
+ * @property {boolean} [aEvent.altKey] - If set to `true`, the Alt key will be
+ *     considered pressed.
+ * @property {boolean} [aEvent.asyncEnabled] - If `true`, the event is
+ *     dispatched to the parent process through APZ, without being injected
+ *     into the OS event queue.
+ * @property {boolean} [aEvent.ctrlKey] - If set to `true`, the Ctrl key will
+ *     be considered pressed.
+ * @property {number} [aEvent.deltaMode=WheelEvent.DOM_DELTA_PIXEL] - Delta Mode
+ *     for scrolling (pixel, line, or page), which must be one of the
+ *     `WheelEvent.DOM_DELTA_*` constants.
+ * @property {number} [aEvent.deltaX] - Floating-point value in CSS pixels to
+ *     scroll in the x direction.
+ * @property {number} [aEvent.deltaY] - Floating-point value in CSS pixels to
+ *     scroll in the y direction.
+ * @property {number} [aEvent.deltaZ] - Floating-point value in CSS pixels to
+ *     scroll in the z direction.
+ * @property {number} [aEvent.expectedOverflowDeltaX] - Decimal value
+ *     indicating horizontal scroll overflow. Only the sign is checked: `0`,
+ *     positive, or negative.
+ * @property {number} [aEvent.expectedOverflowDeltaY] - Decimal value
+ *     indicating vertical scroll overflow. Only the sign is checked: `0`,
+ *     positive, or negative.
+ * @property {boolean} [aEvent.isCustomizedByPrefs] - If set to `true` the
+ *     delta values are computed from preferences.
+ * @property {boolean} [aEvent.isMomentum] - If set to `true` the event will be
+ *     caused by momentum.
+ * @property {boolean} [aEvent.isNoLineOrPageDelta] - If `true`, the creator
+ *     does not set `lineOrPageDeltaX/Y`. When a widget wheel event is
+ *     generated from this object, those fields will be automatically
+ *     calculated during dispatch by the `EventStateManager`.
+ * @property {number} [aEvent.lineOrPageDeltaX] - If set to a non-zero value
+ *      for a `DOM_DELTA_PIXEL` event, the EventStateManager will dispatch a
+ *     `NS_MOUSE_SCROLL` event for a horizontal scroll.
+ * @property {number} [aEvent.lineOrPageDeltaY] - If set to a non-zero value
+ *     for a `DOM_DELTA_PIXEL` event, the EventStateManager will dispatch a
+ *     `NS_MOUSE_SCROLL` event for a vertical scroll.
+ * @property {boolean} [aEvent.metaKey] - If set to `true`, the Meta key will
+ *     be considered pressed.
+ * @property {boolean} [aEvent.shiftKey] - If set to `true`, the Shift key will
+ *     be considered pressed.
+ */
+
+/**
+ * Synthesize a wheel event in `aWindow` at a point, without flushing layout.
  *
- * aEvent is an object which may contain the properties:
- *   shiftKey, ctrlKey, altKey, metaKey, accessKey, deltaX, deltaY, deltaZ,
- *   deltaMode, lineOrPageDeltaX, lineOrPageDeltaY, isMomentum,
- *   isNoLineOrPageDelta, isCustomizedByPrefs, expectedOverflowDeltaX,
- *   expectedOverflowDeltaY
+ * `nsIDOMWindowUtils.sendWheelEvent` takes floats for the coordinates.
+ * Therefore, don't round or truncate the values.
  *
- * deltaMode must be defined, others are ok even if undefined.
- *
- * expectedOverflowDeltaX and expectedOverflowDeltaY take integer value.  The
- * value is just checked as 0 or positive or negative.
- *
- * aWindow is optional, and defaults to the current window object.
+ * @param {number} aLeft - Floating-point value for the X offset in CSS pixels.
+ * @param {number} aTop - Floating-point value for the Y offset in CSS pixels.
+ * @param {WheelEventData} aEvent - Details of the wheel event to dispatch.
+ * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
  */
 function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
   var utils = _getDOMWindowUtils(aWindow);
@@ -1029,6 +1070,7 @@ function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
 
   var modifiers = _parseModifiers(aEvent, aWindow);
   var options = 0;
+
   if (aEvent.isNoLineOrPageDelta) {
     options |= utils.WHEEL_EVENT_CAUSED_BY_NO_LINE_OR_PAGE_DELTA_DEVICE;
   }
@@ -1056,8 +1098,14 @@ function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
       options |= utils.WHEEL_EVENT_EXPECTED_OVERFLOW_DELTA_Y_NEGATIVE;
     }
   }
+  if (aEvent.asyncEnabled) {
+    options |= utils.WHEEL_EVENT_ASYNC_ENABLED;
+  }
 
   // Avoid the JS warnings "reference to undefined property"
+  if (!aEvent.deltaMode) {
+    aEvent.deltaMode = WheelEvent.DOM_DELTA_PIXEL;
+  }
   if (!aEvent.deltaX) {
     aEvent.deltaX = 0;
   }
@@ -1082,8 +1130,7 @@ function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
       : aEvent.deltaY > 0
         ? Math.floor(aEvent.deltaY)
         : Math.ceil(aEvent.deltaY);
-  // FYI: nsIDOMWindowUtils.sendWheelEvent takes floats for the coordinates.
-  // Therefore, don't round/truncate the values.
+
   utils.sendWheelEvent(
     aLeft,
     aTop,
@@ -1099,24 +1146,24 @@ function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
 }
 
 /**
- * Synthesize a wheel event on a target. The actual client point is determined
- * by taking the aTarget's client box and offseting it by aOffsetX and
- * aOffsetY.
+ * Synthesize a wheel event on a target.
  *
- * aEvent is an object which may contain the properties:
- *   shiftKey, ctrlKey, altKey, metaKey, accessKey, deltaX, deltaY, deltaZ,
- *   deltaMode, lineOrPageDeltaX, lineOrPageDeltaY, isMomentum,
- *   isNoLineOrPageDelta, isCustomizedByPrefs, expectedOverflowDeltaX,
- *   expectedOverflowDeltaY
+ * The actual client point is determined by taking the aTarget's client box
+ * and offsetting it by aOffsetX and aOffsetY.
  *
- * deltaMode must be defined, others are ok even if undefined.
- *
- * expectedOverflowDeltaX and expectedOverflowDeltaY take integer value.  The
- * value is just checked as 0 or positive or negative.
- *
- * aWindow is optional, and defaults to the current window object.
+ * @param {Element} aTarget - DOM element to dispatch the event on.
+ * @param {number} aOffsetX - X offset in CSS pixels from the element’s left edge.
+ * @param {number} aOffsetY - Y offset in CSS pixels from the element’s top edge.
+ * @param {WheelEventData} aEvent - Details of the wheel event to dispatch.
+ * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
  */
-function synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow) {
+function synthesizeWheel(
+  aTarget,
+  aOffsetX,
+  aOffsetY,
+  aEvent,
+  aWindow = window
+) {
   var rect = aTarget.getBoundingClientRect();
   synthesizeWheelAtPoint(
     rect.left + aOffsetX,
@@ -1213,16 +1260,20 @@ function _sendWheelAndPaint(
 }
 
 /**
- * This is a wrapper around synthesizeWheel that waits for the wheel event
- * to be dispatched and for the subsequent layout/paints to be flushed.
+ * Wrapper around synthesizeWheel that waits for the wheel event to be
+ * dispatched and for any resulting layout and paint operations to flush.
  *
- * This requires including paint_listener.js. Tests must call
- * DOMWindowUtils.restoreNormalRefresh() before finishing, if they use this
- * function.
+ * Requires including `paint_listener.js`. Tests using this function must call
+ * `DOMWindowUtils.restoreNormalRefresh()` before finishing.
  *
- * If no callback is provided, the caller is assumed to have its own method of
- * determining scroll completion and the refresh driver is not automatically
- * restored.
+ * @param {Element} aTarget - DOM element to dispatch the event on.
+ * @param {number} aOffsetX - X offset in CSS pixels from the element’s left edge.
+ * @param {number} aOffsetY - Y offset in CSS pixels from the element’s top edge.
+ * @param {WheelEventData} aEvent - Details of the wheel event to dispatch.
+ * @param {Function} [aCallback] - Called after paint flush, if provided. If not,
+ *     the caller is expected to handle scroll completion manually. In this case,
+ *     the refresh driver will not be restored automatically.
+ * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
  */
 function sendWheelAndPaint(
   aTarget,
@@ -1244,9 +1295,17 @@ function sendWheelAndPaint(
 }
 
 /**
- * Similar to sendWheelAndPaint but without flushing layout for obtaining
- * ``aTarget`` position in ``aWindow`` before sending the wheel event.
- * ``aOffsetX`` and ``aOffsetY`` should be offsets against aWindow.
+ * Similar to `sendWheelAndPaint()`, but skips layout flush when resolving
+ * `aTarget`'s position in `aWindow` before dispatching the wheel event.
+ *
+ * @param {Element} aTarget - DOM element to dispatch the event on.
+ * @param {number} aOffsetX - X offset in CSS pixels from the `aWindow`’s left edge.
+ * @param {number} aOffsetY - Y offset in CSS pixels from the `aWindow`’s top edge.
+ * @param {WheelEventData} aEvent - Details of the wheel event to dispatch.
+ * @param {Function} [aCallback] - Called after paint, if provided. If not,
+ *     the caller is expected to handle scroll completion manually. In this case,
+ *     the refresh driver will not be restored automatically.
+ * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
  */
 function sendWheelAndPaintNoFlush(
   aTarget,
