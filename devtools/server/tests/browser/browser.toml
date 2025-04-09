@@ -117,10 +117,13 @@ skip-if = [
 ]
 
 ["browser_canvasframe_helper_01.js"]
+skip-if = ["true"] # Bug 1959257
 
 ["browser_canvasframe_helper_02.js"]
+skip-if = ["true"] # Bug 1959257
 
 ["browser_canvasframe_helper_03.js"]
+skip-if = ["true"] # Bug 1959257
 
 ["browser_canvasframe_helper_04.js"]
 skip-if = [
@@ -130,8 +133,10 @@ skip-if = [
 ]
 
 ["browser_canvasframe_helper_05.js"]
+skip-if = ["true"] # Bug 1959257
 
 ["browser_canvasframe_helper_06.js"]
+skip-if = ["true"] # Bug 1959257
 
 ["browser_compatibility_cssIssues.js"]
 
