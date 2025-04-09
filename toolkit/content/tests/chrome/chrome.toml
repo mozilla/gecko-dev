@@ -87,6 +87,10 @@ skip-if = [
 ["test_bug263683.xhtml"]
 
 ["test_bug304188.xhtml"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1957808
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1957808
+]
 
 ["test_bug331215.xhtml"]
 skip-if = [
