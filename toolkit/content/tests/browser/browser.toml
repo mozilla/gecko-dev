@@ -25,6 +25,7 @@ support-files = [
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1804081 # Bug 1869961
 ]
+support-files = ["browser_about_logging_server.sjs"]
 
 ["browser_about_networking.js"]
 fail-if = ["a11y_checks"] # Bug 1854538 clicked #category-dns may not be focusable

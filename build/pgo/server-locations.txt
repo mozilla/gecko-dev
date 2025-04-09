@@ -405,3 +405,6 @@ https://123.123.123.123:443    privileged,nocert
 # Domain with HSTS preloaded
 http://includesubdomains.preloaded.test:80       privileged
 https://includesubdomains.preloaded.test:443     privileged
+
+# Profiler URL to test profile uploads
+https://api.profiler.firefox.com:443

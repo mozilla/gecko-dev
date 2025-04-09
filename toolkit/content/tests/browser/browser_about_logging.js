@@ -7,6 +7,43 @@ function clearLoggingPrefs() {
   }
 }
 
+/**
+ * This function will select a node from the XPath.
+ * This function has been copied from the devtools' performance panel's tests.
+ * @returns {HTMLElement?}
+ */
+function getElementByXPath(document, path) {
+  return document.evaluate(
+    path,
+    document,
+    null,
+    XPathResult.FIRST_ORDERED_NODE_TYPE,
+    null
+  ).singleNodeValue;
+}
+
+/**
+ * This function looks inside of a document for some element that contains
+ * the given text. It runs in a loop every requestAnimationFrame until it
+ * finds the element. If it doesn't find the element it throws an error.
+ * This function has been copied from the devtools' performance panel's tests.
+ *
+ * @param {HTMLDocument} document
+ * @param {string} text
+ * @returns {Promise<HTMLElement>}
+ */
+async function getElementFromDocumentByText(document, text) {
+  // Fallback on aria-label if there are no results for the text xpath.
+  const xpath = `//*[contains(text(), '${text}')] | //*[contains(@aria-label, '${text}')]`;
+  return TestUtils.waitForCondition(() => {
+    const element = getElementByXPath(document, xpath);
+    if (element && BrowserTestUtils.isVisible(element)) {
+      return element;
+    }
+    return null;
+  }, `Trying to find a visible element with the text "${text}".`);
+}
+
 // Before running, save any MOZ_LOG environment variable that might be preset,
 // and restore them at the end of this test.
 add_setup(async function saveRestoreLogModules() {
@@ -455,4 +492,100 @@ add_task(async function testLogFileFound() {
     Assert.ok(foundNonEmptyLogFile, "Found at least one non-empty log file.");
   });
   clearLoggingPrefs();
+});
+
+// Roughly test the Android-specific UI
+add_task(async function testAndroidUI() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["toolkit.aboutLogging.uploadProfileToCloud", true],
+      [
+        "toolkit.aboutlogging.uploadProfileUrl",
+        "https://api.profiler.firefox.com/browser/toolkit/content/tests/browser/browser_about_logging_server.sjs",
+      ],
+      // The value "2" tells Downloads.getPreferredDownloadsDirectory to use the
+      // pref "browser.download.dir" below.
+      ["browser.download.folderList", 2],
+      // We use a path in the temp directory for the test.
+      ["browser.download.dir", Services.dirsvc.get("TmpD", Ci.nsIFile).path],
+    ],
+  });
+  await BrowserTestUtils.withNewTab(PAGE, async browser => {
+    const document = browser.contentDocument;
+    const window = browser.contentWindow;
+
+    info("Make sure the profiler option is selected.");
+    EventUtils.synthesizeMouseAtCenter(
+      await getElementFromDocumentByText(
+        document,
+        "Logging to the Firefox Profiler"
+      ),
+      {},
+      window
+    );
+
+    info("Start logging");
+    const loggingButton = await getElementFromDocumentByText(
+      document,
+      "Start Logging"
+    );
+    EventUtils.synthesizeMouseAtCenter(loggingButton, {}, window);
+
+    // Wait for the profiler to start. This can be very slow.
+    await content.profilerPromise();
+
+    info(
+      "The profiler is started. Let's wait 1 second so that it can capture some data."
+    );
+
+    // Wait for some time for good measure while the profiler collects some
+    // data. We don't really care about the data itself.
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    await new Promise(resolve => content.setTimeout(resolve, 1000));
+
+    info("Stop logging");
+    EventUtils.synthesizeMouseAtCenter(loggingButton, {}, window);
+
+    ok(
+      await getElementFromDocumentByText(
+        document,
+        "The profile data has been captured."
+      ),
+      "The information about the profile data capture is displayed."
+    );
+
+    info("Click the save button");
+    const saveButton = await getElementFromDocumentByText(document, "Save");
+    EventUtils.synthesizeMouseAtCenter(saveButton, {}, window);
+    const savedText = await getElementFromDocumentByText(document, "Saved to");
+    ok(savedText, "The text path is being displayed");
+    info(`The text displayed is: ${savedText.textContent}`);
+    const savedPath = savedText.textContent.slice("Saved to ".length);
+    const fileinfo = await IOUtils.stat(savedPath);
+    Assert.greater(
+      fileinfo.size,
+      0,
+      `The profile has been saved to ${savedPath} and has a positive size.`
+    );
+    info("Cleaning up the saved file.");
+    await IOUtils.remove(savedPath);
+
+    await info("Click the upload button");
+    const uploadButton = await getElementFromDocumentByText(document, "Upload");
+    EventUtils.synthesizeMouseAtCenter(uploadButton, {}, window);
+    ok(
+      await getElementFromDocumentByText(document, "Uploading"),
+      "Some text is displayed while uploading."
+    );
+    const uploadedText = await getElementFromDocumentByText(
+      document,
+      "Uploaded to"
+    );
+    const uploadedUrl = uploadedText.querySelector("a").href;
+    is(
+      uploadedUrl,
+      "https://profiler.firefox.com/public/24j1wmckznh8sj22zg1tsmg47dyfdtprj0g41s8",
+      "The profiler URL is displayed."
+    );
+  });
 });
