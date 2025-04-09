@@ -650,7 +650,11 @@ static int opus_decode_frame(OpusDecoder *st, const unsigned char *data,
       for (i=0;i<frame_size*st->channels;i++)
       {
          opus_val32 x;
+#ifdef ENABLE_RES24
+         x = MULT32_32_Q16(pcm[i],gain);
+#else
          x = MULT16_32_P16(pcm[i],gain);
+#endif
          pcm[i] = SATURATE(x, 32767);
       }
    }

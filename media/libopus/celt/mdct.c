@@ -297,8 +297,8 @@ void clt_mdct_backward_c(const mdct_lookup *l, kiss_fft_scalar *in, kiss_fft_sca
          kiss_fft_scalar yr, yi;
          opus_val32 x1, x2;
          rev = *bitrev++;
-         x1 = SHL32(*xp1, IMDCT_HEADROOM);
-         x2 = SHL32(*xp2, IMDCT_HEADROOM);
+         x1 = SHL32_ovflw(*xp1, IMDCT_HEADROOM);
+         x2 = SHL32_ovflw(*xp2, IMDCT_HEADROOM);
          yr = ADD32_ovflw(S_MUL(x2, t[i]), S_MUL(x1, t[N4+i]));
          yi = SUB32_ovflw(S_MUL(x1, t[i]), S_MUL(x2, t[N4+i]));
          /* We swap real and imag because we use an FFT instead of an IFFT. */
