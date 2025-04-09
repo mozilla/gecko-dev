@@ -1084,14 +1084,20 @@ void Device::Destroy() {
     mTrackedBuffers.Clear();
   }
 
-  if (!IsBridgeAlive()) {
-    // Resolve our lost promise in the same way as if we had a successful
-    // round-trip through the bridge.
-    ResolveLost(Some(dom::GPUDeviceLostReason::Destroyed), u""_ns);
-    return;
+  if (IsBridgeAlive()) {
+    mBridge->SendDeviceDestroy(mId);
   }
 
-  mBridge->SendDeviceDestroy(mId);
+  // Resolve our lost promise in the same way as if we had a successful
+  // round-trip through the bridge. We do this to avoid timing problems
+  // with the device being cycle collected before the receiving the
+  // device lost message. Such a pattern leads to the lost promise never
+  // resolving, and we need to avoid that. There's little risk in doing
+  // this shortcut, because the WebGPU contract is that device destroy
+  // always leads to device loss. This is guaranteeing the same result
+  // as if we went through the bridge (device lost promise resolves,
+  // then the device is cycle collected).
+  ResolveLost(Some(dom::GPUDeviceLostReason::Destroyed), u""_ns);
 }
 
 void Device::PushErrorScope(const dom::GPUErrorFilter& aFilter) {
