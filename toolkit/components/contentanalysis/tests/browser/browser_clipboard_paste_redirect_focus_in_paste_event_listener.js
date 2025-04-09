@@ -50,11 +50,7 @@ async function testPasteWithElementId(elementId, browser) {
   let result = await resultPromise;
   is(result, undefined, "Got unexpected result from page");
 
-  is(
-    mockCA.calls.length,
-    1,
-    "Correct number of calls to Content Analysis"
-  );
+  is(mockCA.calls.length, 1, "Correct number of calls to Content Analysis");
   assertContentAnalysisRequest(
     mockCA.calls[0],
     CLIPBOARD_TEXT_STRING,
@@ -64,11 +60,7 @@ async function testPasteWithElementId(elementId, browser) {
   mockCA.clearCalls();
   //TODO
   let value = await getElementValue(browser, elementId);
-  is(
-    value,
-    CLIPBOARD_TEXT_STRING,
-    "element has correct value"
-  );
+  is(value, CLIPBOARD_TEXT_STRING, "element has correct value");
 }
 
 function assertContentAnalysisRequest(
@@ -137,13 +129,17 @@ add_task(async function testClipboardPasteWithRedirectFocus() {
 
   setClipboardData(CLIPBOARD_TEXT_STRING);
 
-  const transferable =
-    SpecialPowers.Cc["@mozilla.org/widget/transferable;1"].createInstance(SpecialPowers.Ci.nsITransferable);
+  const transferable = SpecialPowers.Cc[
+    "@mozilla.org/widget/transferable;1"
+  ].createInstance(SpecialPowers.Ci.nsITransferable);
   transferable.init(
-    SpecialPowers.wrap(window).docShell.QueryInterface(SpecialPowers.Ci.nsILoadContext)
+    SpecialPowers.wrap(window).docShell.QueryInterface(
+      SpecialPowers.Ci.nsILoadContext
+    )
   );
-  const supportString =
-    SpecialPowers.Cc["@mozilla.org/supports-string;1"].createInstance(SpecialPowers.Ci.nsISupportsString);
+  const supportString = SpecialPowers.Cc[
+    "@mozilla.org/supports-string;1"
+  ].createInstance(SpecialPowers.Ci.nsISupportsString);
   supportString.data = "plain text";
   transferable.setTransferData("text/plain", supportString);
 
@@ -154,73 +150,75 @@ add_task(async function testClipboardPasteWithRedirectFocus() {
     "cmd_paste",
     "cmd_pasteNoFormatting",
     "cmd_pasteQuote",
-    "cmd_pasteTransferable"
+    "cmd_pasteTransferable",
   ]) {
     for (const editableSelector of [
       "#src > input",
       "#src > textarea",
-      "#src > div[contenteditable]"
+      "#src > div[contenteditable]",
     ]) {
-      await SpecialPowers.spawn(browser, [editableSelector], async (editableSelector) => {
-        const editableElement = content.document.querySelector(editableSelector);
-        await (async () => {
-          const input = content.document.querySelector("#dest > input");
-          editableElement.focus();
-          editableElement.addEventListener(
-            "paste",
-            () => input.focus(),
-            {once: true}
-          );
-        })();
-      });
-      await BrowserTestUtils.synthesizeKey("v", { accelKey: true }, browser);
-      await SpecialPowers.spawn(browser, [command, editableSelector], async (command, editableSelector) => {
-        // Must be called from inside SpecialPowers.spawn()
-        function getElementValue(elem) {
-          let tagName = elem.tagName.toLowerCase();
-          if (tagName === "input" || tagName === "textarea") {
-            return elem.value;
-          }
-          return elem.textContent;
+      await SpecialPowers.spawn(
+        browser,
+        [editableSelector],
+        async editableSelector => {
+          const editableElement =
+            content.document.querySelector(editableSelector);
+          await (async () => {
+            const input = content.document.querySelector("#dest > input");
+            editableElement.focus();
+            editableElement.addEventListener("paste", () => input.focus(), {
+              once: true,
+            });
+          })();
         }
-        function setElementValue(elem, value) {
-          let tagName = elem.tagName.toLowerCase();
-          if (tagName === "input" || tagName === "textarea") {
-            elem.value = value;
-          } else {
-            elem.innerHTML = value;
-          }
-        }
-
-        const editableElement = content.document.querySelector(editableSelector);
-        const editableElementDesc = `<${
-          editableElement.tagName.toLocaleLowerCase()
-        }${editableElement.hasAttribute("contenteditable") ? " contenteditable" : ""}>`;
-        const input = content.document.querySelector("#dest > input");
-        is(
-          getElementValue(editableElement).replace(/\n/g, ""),
-          "",
-          `${command}: ${
-            editableElementDesc
-          } should not have the pasted text because focus is redirected to <input> in a "paste" event listener`
-        );
-        is(
-          input.value.replace("> ", ""),
-          "plain text",
-          `${command}: new focused <input> (moved from ${
-            editableElementDesc
-          }) should have the pasted text`
-        );
-
-        setElementValue(editableElement, "");
-        input.value = "";
-      });
-
-      is(
-        mockCA.calls.length,
-        1,
-        "Correct number of calls to Content Analysis"
       );
+      await BrowserTestUtils.synthesizeKey("v", { accelKey: true }, browser);
+      await SpecialPowers.spawn(
+        browser,
+        [command, editableSelector],
+        async (command, editableSelector) => {
+          // Must be called from inside SpecialPowers.spawn()
+          function getElementValue(elem) {
+            let tagName = elem.tagName.toLowerCase();
+            if (tagName === "input" || tagName === "textarea") {
+              return elem.value;
+            }
+            return elem.textContent;
+          }
+          function setElementValue(elem, value) {
+            let tagName = elem.tagName.toLowerCase();
+            if (tagName === "input" || tagName === "textarea") {
+              elem.value = value;
+            } else {
+              elem.innerHTML = value;
+            }
+          }
+
+          const editableElement =
+            content.document.querySelector(editableSelector);
+          const editableElementDesc = `<${editableElement.tagName.toLocaleLowerCase()}${editableElement.hasAttribute("contenteditable") ? " contenteditable" : ""}>`;
+          const input = content.document.querySelector("#dest > input");
+          is(
+            getElementValue(editableElement).replace(/\n/g, ""),
+            "",
+            `${command}: ${
+              editableElementDesc
+            } should not have the pasted text because focus is redirected to <input> in a "paste" event listener`
+          );
+          is(
+            input.value.replace("> ", ""),
+            "plain text",
+            `${command}: new focused <input> (moved from ${
+              editableElementDesc
+            }) should have the pasted text`
+          );
+
+          setElementValue(editableElement, "");
+          input.value = "";
+        }
+      );
+
+      is(mockCA.calls.length, 1, "Correct number of calls to Content Analysis");
       assertContentAnalysisRequest(
         mockCA.calls[0],
         CLIPBOARD_TEXT_STRING,
@@ -233,4 +231,3 @@ add_task(async function testClipboardPasteWithRedirectFocus() {
 
   BrowserTestUtils.removeTab(tab);
 });
-
