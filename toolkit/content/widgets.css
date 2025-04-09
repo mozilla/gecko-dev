@@ -14,8 +14,8 @@
 @import url("chrome://global/skin/notification.css");
 @import url("chrome://global/skin/numberinput.css");
 @import url("chrome://global/skin/popup.css");
-/* NOTE: menu-shared.css must be after popup.css, since it overrides some general menupopup rules. */
-@import url("chrome://global/skin/menu-shared.css");
+/* NOTE: menu.css must be after popup.css, since it overrides some general menupopup rules. */
+@import url("chrome://global/skin/menu.css");
 @import url("chrome://global/skin/popupnotification.css");
 @import url("chrome://global/skin/radio.css");
 @import url("chrome://global/skin/richlistbox.css");
