@@ -178,3 +178,193 @@
   assertEq(countsU32[200], 200);
   assertEq(countsU32[300], 900);
 }
+
+// parameters and calls
+{
+  let numNull = 0;
+  let numNonNull = 0;
+
+  // Note that we are ok with inlining kicking in eventually (and have
+  // constructed these tests to trigger that).
+  const { test1, test2 } = wasmEvalText(`(module
+    (type $f_anyref (func (param anyref)))
+    (type $f_nullref (func (param nullref)))
+
+    (import "" "thing" (global $thing externref))
+    (import "" "countNull" (func $countNull))
+    (import "" "countNonNull" (func $countNonNull))
+
+    (table funcref (elem
+      (ref.func $testNull_ref.is_null)
+      (ref.func $mustNull_ref.is_null)
+      (ref.func $testNull_ref.test)
+      (ref.func $mustNull_ref.test)
+    ))
+
+    (func $makeNull_Loose (result anyref)
+      ref.null any
+    )
+    (func $makeNonNull_Loose (result anyref)
+      (any.convert_extern (global.get $thing))
+    )
+    (func $makeNull_Precise (result nullref)
+      ref.null none
+    )
+    (func $makeNonNull_Precise (result (ref any))
+      (ref.as_non_null (any.convert_extern (global.get $thing)))
+    )
+
+    (func $testNull_ref.is_null (param anyref)
+      (ref.is_null (local.get 0))
+      if
+        call $countNull
+      else
+        call $countNonNull
+      end
+    )
+    (func $mustNull_ref.is_null (param nullref)
+      (ref.is_null (local.get 0)) ;; trivial!
+      if
+        call $countNull
+      end
+    )
+    (func $testNull_ref.test (param anyref)
+      (ref.test nullref (local.get 0)) ;; trivial!
+      if
+        call $countNull
+      else
+        call $countNonNull
+      end
+    )
+    (func $mustNull_ref.test (param nullref)
+      (ref.test nullref (local.get 0)) ;; trivial!
+      if
+        call $countNull
+      end
+    )
+
+    (func (export "test1")
+      (local anyref)
+
+      (local.set 0 (call $makeNull_Loose))
+      (call $testNull_ref.is_null (local.get 0))
+      (call $testNull_ref.test (local.get 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 2))
+      (ref.is_null (local.get 0)) ;; guaranteed to succeed
+      if
+        (call $mustNull_ref.is_null (ref.cast nullref (local.get 0)))
+        (call $mustNull_ref.test (ref.cast nullref (local.get 0)))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 1))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 3))
+      end
+
+      (local.set 0 (call $makeNull_Precise))
+      (call $testNull_ref.is_null (local.get 0))
+      (call $testNull_ref.test (local.get 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 2))
+      (ref.is_null (local.get 0)) ;; guaranteed to succeed
+      if
+        (call $mustNull_ref.is_null (ref.cast nullref (local.get 0)))
+        (call $mustNull_ref.test (ref.cast nullref (local.get 0)))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 1))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 3))
+      end
+
+      (local.set 0 (call $makeNonNull_Loose))
+      (call $testNull_ref.is_null (local.get 0))
+      (call $testNull_ref.test (local.get 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 2))
+      (ref.is_null (local.get 0)) ;; guaranteed to fail
+      if
+        (call $mustNull_ref.is_null (ref.cast nullref (local.get 0)))
+        (call $mustNull_ref.test (ref.cast nullref (local.get 0)))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 1))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 3))
+      end
+
+      (local.set 0 (call $makeNonNull_Precise))
+      (call $testNull_ref.is_null (local.get 0))
+      (call $testNull_ref.test (local.get 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 0))
+      (call_indirect (type $f_anyref) (local.get 0) (i32.const 2))
+      (ref.is_null (local.get 0)) ;; guaranteed to fail
+      if
+        (call $mustNull_ref.is_null (ref.cast nullref (local.get 0)))
+        (call $mustNull_ref.test (ref.cast nullref (local.get 0)))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 1))
+        (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 3))
+      end
+    )
+    (func (export "test2")
+      (local anyref i32)
+
+      block
+        loop
+          (i32.eq (local.get 1) (i32.const 0))
+          if
+            (local.set 0 (call $makeNull_Loose))
+          else
+            (i32.eq (local.get 1) (i32.const 1))
+            if
+              (local.set 0 (call $makeNull_Precise))
+            else
+              (i32.eq (local.get 1) (i32.const 2))
+              if
+                (local.set 0 (call $makeNonNull_Loose))
+              else
+                (i32.eq (local.get 1) (i32.const 3))
+                if
+                  (local.set 0 (call $makeNonNull_Precise))
+                else
+                  return
+                end
+              end
+            end
+          end
+
+          (call $testNull_ref.is_null (local.get 0))
+          (call $testNull_ref.test (local.get 0))
+          (call_indirect (type $f_anyref) (local.get 0) (i32.const 0))
+          (call_indirect (type $f_anyref) (local.get 0) (i32.const 2))
+          (ref.is_null (local.get 0))
+          if
+            (call $mustNull_ref.is_null (ref.cast nullref (local.get 0)))
+            (call $mustNull_ref.test (ref.cast nullref (local.get 0)))
+            (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 1))
+            (call_indirect (type $f_nullref) (ref.cast nullref (local.get 0)) (i32.const 3))
+          end
+
+          (local.set 1 (i32.add (local.get 1) (i32.const 1)))
+          br 0
+        end
+      end
+    )
+  )`, {
+    "": {
+      "thing": "hello I am extern guy",
+      countNull() {
+        numNull += 1;
+      },
+      countNonNull() {
+        numNonNull += 1;
+      },
+    },
+  }).exports;
+
+  for (let i = 0; i < 100; i++) {
+    test1();
+  }
+
+  assertEq(numNull, 1600);
+  assertEq(numNonNull, 800);
+
+  for (let i = 0; i < 100; i++) {
+    test2();
+  }
+
+  assertEq(numNull, 3200);
+  assertEq(numNonNull, 1600);
+}

@@ -1541,9 +1541,11 @@ class MWasmPostWriteBarrierIndex : public MAryInstruction<5>,
 class MWasmParameter : public MNullaryInstruction {
   ABIArg abi_;
 
-  MWasmParameter(ABIArg abi, MIRType mirType)
+  MWasmParameter(ABIArg abi, MIRType mirType,
+                 wasm::MaybeRefType refType = wasm::MaybeRefType())
       : MNullaryInstruction(classOpcode), abi_(abi) {
     setResultType(mirType);
+    initWasmRefType(refType);
   }
 
  public:

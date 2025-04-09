@@ -537,7 +537,8 @@ class FunctionCompiler {
 
     // Prepare the entry block for MIR generation:
 
-    const ArgTypeVector args(funcType());
+    const FuncType& ft = funcType();
+    const ArgTypeVector args(ft);
 
     if (!mirGen().ensureBallast()) {
       return false;
@@ -547,7 +548,15 @@ class FunctionCompiler {
     }
 
     for (WasmABIArgIter i(args); !i.done(); i++) {
-      MWasmParameter* ins = MWasmParameter::New(alloc(), *i, i.mirType());
+      MaybeRefType argRefType;
+      if (!args.isSyntheticStackResultPointerArg(i.index())) {
+        ValType argType = ft.arg(i.index());
+        argRefType = argType.isRefType() ? MaybeRefType(argType.refType())
+                                         : MaybeRefType();
+      }
+
+      MWasmParameter* ins =
+          MWasmParameter::New(alloc(), *i, i.mirType(), argRefType);
       curBlock_->add(ins);
       if (args.isSyntheticStackResultPointerArg(i.index())) {
         MOZ_ASSERT(stackResultPointer_ == nullptr);
