@@ -49,7 +49,7 @@ use crate::prelude::*;
 /// };
 /// let json = serde_json::json!({
 ///     "default": "SGVsbG8gV29ybGQ=",
-///     "charset_binhex": "5'8VD'mI8epaD'3=",
+///     "charset_binhex": "5'9XE'mJ9fpbE'3=",
 ///     "explicit_padding": "SGVsbG8gV29ybGQ=",
 ///     "no_padding": "QETqZE6eT07wZEO",
 /// });
@@ -59,7 +59,6 @@ use crate::prelude::*;
 /// assert_eq!(b64, serde_json::from_value(json).unwrap());
 /// # }
 /// ```
-
 // The padding might be better as `const PADDING: bool = true`
 // https://blog.rust-lang.org/inside-rust/2021/09/06/Splitting-const-generics.html#featureconst_generics_default/
 pub struct Base64<ALPHABET: Alphabet = Standard, PADDING: formats::Format = formats::Padded>(
@@ -123,7 +122,7 @@ where
     {
         struct Helper<T, ALPHABET>(PhantomData<(T, ALPHABET)>);
 
-        impl<'de, T, ALPHABET> Visitor<'de> for Helper<T, ALPHABET>
+        impl<T, ALPHABET> Visitor<'_> for Helper<T, ALPHABET>
         where
             T: TryFrom<Vec<u8>>,
             ALPHABET: Alphabet,
@@ -221,7 +220,7 @@ impl Alphabet for ImapMutf7 {
     }
 }
 
-/// The character set used in BinHex 4.0 files.
+/// The character set used in `BinHex` 4.0 files.
 ///
 /// See [BinHex 4.0 Definition](http://files.stairways.com/other/binhex-40-specs-info.txt).
 pub struct BinHex;

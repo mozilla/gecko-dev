@@ -1,10 +1,4 @@
-#![allow(
-    // clippy is broken and shows wrong warnings
-    // clippy on stable does not know yet about the lint name
-    unknown_lints,
-    // https://github.com/rust-lang/rust-clippy/issues/8867
-    clippy::derive_partial_eq_without_eq,
-)]
+//! Test Cases
 
 mod utils;
 
@@ -161,7 +155,7 @@ fn test_offset_datetime_rfc2822() {
 
     check_error_deserialization::<S>(
         r#""Foobar""#,
-        expect![[r#"the 'weekday' component could not be parsed at line 1 column 8"#]],
+        expect!["the 'day' component could not be parsed at line 1 column 8"],
     );
     check_error_deserialization::<S>(
         r#""Fri, 2000""#,
@@ -274,6 +268,6 @@ fn test_offset_datetime_iso8601() {
     );
     check_error_deserialization::<S>(
         r#""2000-AA""#,
-        expect!["unexpected trailing characters at line 1 column 9"],
+        expect!["unexpected trailing characters; the end of input was expected at line 1 column 9"],
     );
 }

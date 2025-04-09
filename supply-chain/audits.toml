@@ -4820,10 +4820,20 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.14.0 -> 3.0.0"
 
+[[audits.serde_with]]
+who = "Max Leonard Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+delta = "3.0.0 -> 3.12.0"
+
 [[audits.serde_with_macros]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.5.2 -> 3.0.0"
+
+[[audits.serde_with_macros]]
+who = "Max Leonard Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+delta = "3.0.0 -> 3.12.0"
 
 [[audits.serde_yaml]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"

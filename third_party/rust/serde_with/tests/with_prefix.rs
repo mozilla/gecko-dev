@@ -1,10 +1,4 @@
-#![allow(
-    // clippy is broken and shows wrong warnings
-    // clippy on stable does not know yet about the lint name
-    unknown_lints,
-    // https://github.com/rust-lang/rust-clippy/issues/8867
-    clippy::derive_partial_eq_without_eq,
-)]
+//! Test Cases
 
 extern crate alloc;
 
@@ -12,7 +6,6 @@ mod utils;
 
 use crate::utils::is_equal;
 use alloc::collections::BTreeMap;
-use core::iter::FromIterator;
 use expect_test::expect;
 use serde::{Deserialize, Serialize};
 use serde_with::with_prefix;
@@ -127,7 +120,7 @@ fn test_plain_with_prefix() {
     );
 }
 
-/// Ensure that with_prefix works for unit type enum variants.
+/// Ensure that `with_prefix` works for unit type enum variants.
 #[test]
 fn test_enum_unit_variant_with_prefix() {
     #[derive(Hash, PartialEq, Eq, Debug, Serialize, Deserialize, Ord, PartialOrd)]

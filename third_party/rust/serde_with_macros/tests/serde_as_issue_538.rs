@@ -1,7 +1,7 @@
-//! Check for the correct processing of ExprGroups in types
+//! Check for the correct processing of `ExprGroup`s in types
 //!
-//! They occur when the types is passed in as a macro_rules argument like here.
-//! https://github.com/jonasbb/serde_with/issues/538
+//! They occur when the types is passed in as a `macro_rules` argument like here.
+//! <https://github.com/jonasbb/serde_with/issues/538>
 
 macro_rules! t {
     ($($param:ident : $ty:ty),*) => {
@@ -25,6 +25,6 @@ t!(d: Option<bool>);
 #[test]
 fn t() {
     let expected = r#"{}"#;
-    let data: Data = Default::default();
+    let data = Data::default();
     assert_eq!(expected, serde_json::to_string(&data).unwrap());
 }

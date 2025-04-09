@@ -1,36 +1,26 @@
+// Cleanup when workspace lints can be overridden
+// https://github.com/rust-lang/cargo/issues/13157
 #![forbid(unsafe_code)]
-#![warn(
-    clippy::semicolon_if_nothing_returned,
-    missing_copy_implementations,
-    missing_debug_implementations,
-    missing_docs,
-    rust_2018_idioms,
-    rustdoc::missing_crate_level_docs,
-    trivial_casts,
-    trivial_numeric_casts,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications,
-    variant_size_differences
-)]
-#![doc(test(attr(forbid(unsafe_code))))]
-#![doc(test(attr(deny(
-    missing_copy_implementations,
-    missing_debug_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications,
-))))]
-#![doc(test(attr(warn(rust_2018_idioms))))]
+#![warn(missing_copy_implementations, missing_debug_implementations)]
+#![doc(test(attr(
+    // Problematic handling for foreign From<T> impls in tests
+    // https://github.com/rust-lang/rust/issues/121621
+    allow(unknown_lints, non_local_definitions),
+    deny(
+        missing_debug_implementations,
+        rust_2018_idioms,
+        trivial_casts,
+        trivial_numeric_casts,
+        unused_extern_crates,
+        unused_import_braces,
+        unused_qualifications,
+        warnings,
+    ),
+    forbid(unsafe_code),
+)))]
 // Not needed for 2018 edition and conflicts with `rust_2018_idioms`
 #![doc(test(no_crate_inject))]
-#![doc(html_root_url = "https://docs.rs/serde_with_macros/3.0.0/")]
-// Necessary to silence the warning about clippy::unknown_clippy_lints on nightly
-#![allow(renamed_and_removed_lints)]
-// Necessary for nightly clippy lints
-#![allow(clippy::unknown_clippy_lints)]
+#![doc(html_root_url = "https://docs.rs/serde_with_macros/3.12.0/")]
 // Tarpaulin does not work well with proc macros and marks most of the lines as uncovered.
 #![cfg(not(tarpaulin_include))]
 
@@ -41,13 +31,14 @@
 //!
 //! [`serde_with`]: https://crates.io/crates/serde_with/
 
-#[allow(unused_extern_crates)]
-extern crate proc_macro;
-
 mod apply;
+mod lazy_bool;
 mod utils;
 
-use crate::utils::{split_with_de_lifetime, DeriveOptions, IteratorExt as _};
+use crate::utils::{
+    split_with_de_lifetime, DeriveOptions, IteratorExt as _, SchemaFieldCondition,
+    SchemaFieldConfig,
+};
 use darling::{
     ast::NestedMeta,
     util::{Flag, Override},
@@ -115,7 +106,7 @@ where
     }
 }
 
-/// Like [apply_function_to_struct_and_enum_fields] but for darling errors
+/// Like [`apply_function_to_struct_and_enum_fields`] but for darling errors
 fn apply_function_to_struct_and_enum_fields_darling<F>(
     input: TokenStream,
     serde_with_crate_path: &Path,
@@ -242,6 +233,7 @@ where
 /// ```rust
 /// # use serde::Serialize;
 /// #
+/// # #[allow(dead_code)]
 /// #[derive(Serialize)]
 /// struct Data {
 ///     #[serde(skip_serializing_if = "Option::is_none")]
@@ -261,6 +253,8 @@ where
 /// ```rust
 /// # use serde::Serialize;
 /// # use serde_with_macros::skip_serializing_none;
+/// #
+/// # #[allow(dead_code)]
 /// #[skip_serializing_none]
 /// #[derive(Serialize)]
 /// struct Data {
@@ -282,8 +276,8 @@ where
 /// The `serialize_always` cannot be used together with a manual `skip_serializing_if` annotations,
 /// as these conflict in their meaning. A compile error will be generated if this occurs.
 ///
-/// The `skip_serializing_none` only works if the type is called [`Option`],
-/// [`std::option::Option`], or [`core::option::Option`]. Type aliasing an [`Option`] and giving it
+/// The `skip_serializing_none` only works if the type is called `Option`,
+/// `std::option::Option`, or `core::option::Option`. Type aliasing an [`Option`] and giving it
 /// another name, will cause this field to be ignored. This cannot be supported, as proc-macros run
 /// before type checking, thus it is not possible to determine if a type alias refers to an
 /// [`Option`].
@@ -291,8 +285,10 @@ where
 /// ```rust
 /// # use serde::Serialize;
 /// # use serde_with_macros::skip_serializing_none;
+/// # #[allow(dead_code)]
 /// type MyOption<T> = Option<T>;
 ///
+/// # #[allow(dead_code)]
 /// #[skip_serializing_none]
 /// #[derive(Serialize)]
 /// struct Data {
@@ -317,17 +313,13 @@ where
 /// ```
 #[proc_macro_attribute]
 pub fn skip_serializing_none(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let res = match apply_function_to_struct_and_enum_fields(
-        input,
-        skip_serializing_none_add_attr_to_field,
-    ) {
-        Ok(res) => res,
-        Err(err) => err.to_compile_error(),
-    };
+    let res =
+        apply_function_to_struct_and_enum_fields(input, skip_serializing_none_add_attr_to_field)
+            .unwrap_or_else(|err| err.to_compile_error());
     TokenStream::from(res)
 }
 
-/// Add the skip_serializing_if annotation to each field of the struct
+/// Add the `skip_serializing_if` annotation to each field of the struct
 fn skip_serializing_none_add_attr_to_field(field: &mut Field) -> Result<(), String> {
     if is_std_option(&field.ty) {
         let has_skip_serializing_if = field_has_attribute(field, "serde", "skip_serializing_if");
@@ -423,8 +415,8 @@ fn is_std_option(type_: &Type) -> bool {
 /// `#[serde(skip_serializing_if = "Option::is_none")]`
 ///
 /// * `serde` is the outermost path, here namespace
-/// * it contains a Meta::List
-/// * which contains in another Meta a Meta::NameValue
+/// * it contains a `Meta::List`
+/// * which contains in another Meta a `Meta::NameValue`
 /// * with the name being `skip_serializing_if`
 fn field_has_attribute(field: &Field, namespace: &str, name: &str) -> bool {
     for attr in &field.attrs {
@@ -464,7 +456,7 @@ fn field_has_attribute(field: &Field, namespace: &str, name: &str) -> bool {
 
 /// Convenience macro to use the [`serde_as`] system.
 ///
-/// The [`serde_as`] system is designed as a more flexible alternative to serde's with-annotation.
+/// The [`serde_as`] system is designed as a more flexible alternative to serde's `with` annotation.
 /// The `#[serde_as]` attribute must be placed *before* the `#[derive]` attribute.
 /// Each field of a struct or enum can be annotated with `#[serde_as(...)]` to specify which
 /// transformations should be applied. `serde_as` is *not* supported on enum variants.
@@ -550,8 +542,7 @@ fn field_has_attribute(field: &Field, namespace: &str, name: &str) -> bool {
 ///     If `#[serde(borrow)]` or `#[serde(borrow = "...")]` is already present, this step will be
 ///     skipped.
 ///
-/// 5. Restore the ability of accepting missing fields if both the field and the
-/// transformation are `Option`.
+/// 5. Restore the ability of accepting missing fields if both the field and the transformation are `Option`.
 ///
 ///     An `Option` is detected by an exact text match.
 ///     Renaming an import or type aliases can cause confusion here.
@@ -569,9 +560,9 @@ fn field_has_attribute(field: &Field, namespace: &str, name: &str) -> bool {
 ///     For example, using `#[serde_as(as = "NoneAsEmptyString")]` on `Option<String>` will not see
 ///     any change.
 ///
-///     If the automatically applied attribute is undesired, the behavior can be supressed by adding
+///     If the automatically applied attribute is undesired, the behavior can be suppressed by adding
 ///     `#[serde_as(no_default)]`.
-
+///
 ///      This can be combined like `#[serde_as(as = "Option<S>", no_default)]`.
 ///
 /// After all these steps, the code snippet will have transformed into roughly this.
@@ -590,14 +581,32 @@ fn field_has_attribute(field: &Field, namespace: &str, name: &str) -> bool {
 /// }
 /// ```
 ///
-/// [`serde_as`]: https://docs.rs/serde_with/3.0.0/serde_with/guide/index.html
-/// [re-exporting `serde_as`]: https://docs.rs/serde_with/3.0.0/serde_with/guide/serde_as/index.html#re-exporting-serde_as
+/// # A note on `schemars` integration
+/// When the `schemars_0_8` feature is enabled this macro will scan for
+/// `#[derive(JsonSchema)]` attributes and, if found, will add
+/// `#[schemars(with = "Schema<T, ...>")]` annotations to any fields with a
+/// `#[serde_as(as = ...)]` annotation. If you wish to override the default
+/// behavior here you can add `#[serde_as(schemars = true)]` or
+/// `#[serde_as(schemars = false)]`.
+///
+/// Note that this macro will check for any of the following derive paths:
+/// * `JsonSchema`
+/// * `schemars::JsonSchema`
+/// * `::schemars::JsonSchema`
+///
+/// It will also work if the relevant derive is behind a `#[cfg_attr]` attribute
+/// and propagate the `#[cfg_attr]` to the various `#[schemars]` field attributes.
+///
+/// [`serde_as`]: https://docs.rs/serde_with/3.12.0/serde_with/guide/index.html
+/// [re-exporting `serde_as`]: https://docs.rs/serde_with/3.12.0/serde_with/guide/serde_as/index.html#re-exporting-serde_as
 #[proc_macro_attribute]
 pub fn serde_as(args: TokenStream, input: TokenStream) -> TokenStream {
     #[derive(FromMeta)]
     struct SerdeContainerOptions {
         #[darling(rename = "crate")]
         alt_crate_path: Option<Path>,
+        #[darling(rename = "schemars")]
+        enable_schemars_support: Option<bool>,
     }
 
     match NestedMeta::parse_meta_list(args.into()) {
@@ -613,15 +622,19 @@ pub fn serde_as(args: TokenStream, input: TokenStream) -> TokenStream {
                 .alt_crate_path
                 .unwrap_or_else(|| syn::parse_quote!(::serde_with));
 
+            let schemars_config = match container_options.enable_schemars_support {
+                _ if cfg!(not(feature = "schemars_0_8")) => SchemaFieldConfig::False,
+                Some(condition) => condition.into(),
+                None => utils::has_derive_jsonschema(input.clone()).unwrap_or_default(),
+            };
+
             // Convert any error message into a nice compiler error
-            let res = match apply_function_to_struct_and_enum_fields_darling(
+            let res = apply_function_to_struct_and_enum_fields_darling(
                 input,
                 &serde_with_crate_path,
-                |field| serde_as_add_attr_to_field(field, &serde_with_crate_path),
-            ) {
-                Ok(res) => res,
-                Err(err) => err.write_errors(),
-            };
+                |field| serde_as_add_attr_to_field(field, &serde_with_crate_path, &schemars_config),
+            )
+            .unwrap_or_else(darling::Error::write_errors);
             TokenStream::from(res)
         }
         Err(e) => TokenStream::from(DarlingError::from(e).write_errors()),
@@ -632,10 +645,14 @@ pub fn serde_as(args: TokenStream, input: TokenStream) -> TokenStream {
 fn serde_as_add_attr_to_field(
     field: &mut Field,
     serde_with_crate_path: &Path,
+    schemars_config: &SchemaFieldConfig,
 ) -> Result<(), DarlingError> {
     #[derive(FromField)]
     #[darling(attributes(serde_as))]
     struct SerdeAsOptions {
+        /// The original type of the field
+        ty: Type,
+
         r#as: Option<Type>,
         deserialize_as: Option<Type>,
         serialize_as: Option<Type>,
@@ -747,6 +764,7 @@ fn serde_as_add_attr_to_field(
         return Err(DarlingError::multiple(errors));
     }
 
+    let type_original = &serde_as_options.ty;
     let type_same = &syn::parse_quote!(#serde_with_crate_path::Same);
     if let Some(type_) = &serde_as_options.r#as {
         emit_borrow_annotation(&serde_options, type_, field);
@@ -756,6 +774,42 @@ fn serde_as_add_attr_to_field(
         let attr_inner_tokens = quote!(#serde_with_crate_path::As::<#replacement_type>).to_string();
         let attr = parse_quote!(#[serde(with = #attr_inner_tokens)]);
         field.attrs.push(attr);
+
+        match schemars_config {
+            SchemaFieldConfig::False => {}
+            lhs => {
+                let rhs = utils::schemars_with_attr_if(
+                    &field.attrs,
+                    &["with", "serialize_with", "deserialize_with", "schema_with"],
+                )?;
+
+                match lhs & !rhs {
+                    SchemaFieldConfig::False => {}
+                    condition => {
+                        let attr_inner_tokens = quote! {
+                            #serde_with_crate_path::Schema::<#type_original, #replacement_type>
+                        };
+                        let attr_inner_tokens = attr_inner_tokens.to_string();
+                        let attr = match condition {
+                            SchemaFieldConfig::False => unreachable!(),
+                            SchemaFieldConfig::True => {
+                                parse_quote! { #[schemars(with = #attr_inner_tokens)] }
+                            }
+                            SchemaFieldConfig::Lazy(SchemaFieldCondition(condition)) => {
+                                parse_quote! {
+                                    #[cfg_attr(
+                                        #condition,
+                                        schemars(with = #attr_inner_tokens))
+                                    ]
+                                }
+                            }
+                        };
+
+                        field.attrs.push(attr);
+                    }
+                }
+            }
+        }
     }
     if let Some(type_) = &serde_as_options.deserialize_as {
         emit_borrow_annotation(&serde_options, type_, field);
@@ -768,7 +822,7 @@ fn serde_as_add_attr_to_field(
         field.attrs.push(attr);
     }
     if let Some(type_) = serde_as_options.serialize_as {
-        let replacement_type = replace_infer_type_with_type(type_, type_same);
+        let replacement_type = replace_infer_type_with_type(type_.clone(), type_same);
         let attr_inner_tokens =
             quote!(#serde_with_crate_path::As::<#replacement_type>::serialize).to_string();
         let attr = parse_quote!(#[serde(serialize_with = #attr_inner_tokens)]);
@@ -780,7 +834,7 @@ fn serde_as_add_attr_to_field(
 
 /// Recursively replace all occurrences of `_` with `replacement` in a [Type][]
 ///
-/// The [serde_as][macro@serde_as] macro allows to use the infer type, i.e., `_`, as shortcut for
+/// The [`serde_as`][macro@serde_as] macro allows to use the infer type, i.e., `_`, as shortcut for
 /// `serde_with::As`. This function replaces all occurrences of the infer type with another type.
 fn replace_infer_type_with_type(to_replace: Type, replacement: &Type) -> Type {
     match to_replace {
@@ -804,45 +858,44 @@ fn replace_infer_type_with_type(to_replace: Type, replacement: &Type) -> Type {
             Type::Paren(inner)
         }
         Type::Path(mut inner) => {
-            match inner.path.segments.pop() {
-                Some(Pair::End(mut t)) | Some(Pair::Punctuated(mut t, _)) => {
-                    t.arguments = match t.arguments {
-                        PathArguments::None => PathArguments::None,
-                        PathArguments::AngleBracketed(mut inner) => {
-                            // Iterate over the args between the angle brackets
-                            inner.args = inner
-                                .args
-                                .into_iter()
-                                .map(|generic_argument| match generic_argument {
-                                    // replace types within the generics list, but leave other stuff
-                                    // like lifetimes untouched
-                                    GenericArgument::Type(type_) => GenericArgument::Type(
-                                        replace_infer_type_with_type(type_, replacement),
-                                    ),
-                                    ga => ga,
-                                })
-                                .collect();
-                            PathArguments::AngleBracketed(inner)
-                        }
-                        PathArguments::Parenthesized(mut inner) => {
-                            inner.inputs = inner
-                                .inputs
-                                .into_iter()
-                                .map(|type_| replace_infer_type_with_type(type_, replacement))
-                                .collect();
-                            inner.output = match inner.output {
-                                ReturnType::Type(arrow, mut type_) => {
-                                    *type_ = replace_infer_type_with_type(*type_, replacement);
-                                    ReturnType::Type(arrow, type_)
-                                }
-                                default => default,
-                            };
-                            PathArguments::Parenthesized(inner)
-                        }
-                    };
-                    inner.path.segments.push(t);
-                }
-                None => {}
+            if let Some(Pair::End(mut t)) | Some(Pair::Punctuated(mut t, _)) =
+                inner.path.segments.pop()
+            {
+                t.arguments = match t.arguments {
+                    PathArguments::None => PathArguments::None,
+                    PathArguments::AngleBracketed(mut inner) => {
+                        // Iterate over the args between the angle brackets
+                        inner.args = inner
+                            .args
+                            .into_iter()
+                            .map(|generic_argument| match generic_argument {
+                                // replace types within the generics list, but leave other stuff
+                                // like lifetimes untouched
+                                GenericArgument::Type(type_) => GenericArgument::Type(
+                                    replace_infer_type_with_type(type_, replacement),
+                                ),
+                                ga => ga,
+                            })
+                            .collect();
+                        PathArguments::AngleBracketed(inner)
+                    }
+                    PathArguments::Parenthesized(mut inner) => {
+                        inner.inputs = inner
+                            .inputs
+                            .into_iter()
+                            .map(|type_| replace_infer_type_with_type(type_, replacement))
+                            .collect();
+                        inner.output = match inner.output {
+                            ReturnType::Type(arrow, mut type_) => {
+                                *type_ = replace_infer_type_with_type(*type_, replacement);
+                                ReturnType::Type(arrow, type_)
+                            }
+                            default => default,
+                        };
+                        PathArguments::Parenthesized(inner)
+                    }
+                };
+                inner.path.segments.push(t);
             }
             Type::Path(inner)
         }
@@ -1008,7 +1061,7 @@ fn has_type_embedded(type_: &Type, embedded_type: &syn::Ident) -> bool {
 /// [`Display`]: std::fmt::Display
 /// [`FromStr`]: std::str::FromStr
 /// [cargo-toml-rename]: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#renaming-dependencies-in-cargotoml
-/// [serde-as-crate]: https://docs.rs/serde_with/3.0.0/serde_with/guide/serde_as/index.html#re-exporting-serde_as
+/// [serde-as-crate]: https://docs.rs/serde_with/3.12.0/serde_with/guide/serde_as/index.html#re-exporting-serde_as
 /// [serde-crate]: https://serde.rs/container-attrs.html#crate
 #[proc_macro_derive(DeserializeFromStr, attributes(serde_with))]
 pub fn derive_deserialize_fromstr(item: TokenStream) -> TokenStream {
@@ -1128,7 +1181,7 @@ fn deserialize_fromstr(mut input: DeriveInput, serde_with_crate_path: Path) -> T
 /// [`Display`]: std::fmt::Display
 /// [`FromStr`]: std::str::FromStr
 /// [cargo-toml-rename]: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#renaming-dependencies-in-cargotoml
-/// [serde-as-crate]: https://docs.rs/serde_with/3.0.0/serde_with/guide/serde_as/index.html#re-exporting-serde_as
+/// [serde-as-crate]: https://docs.rs/serde_with/3.12.0/serde_with/guide/serde_as/index.html#re-exporting-serde_as
 /// [serde-crate]: https://serde.rs/container-attrs.html#crate
 #[proc_macro_derive(SerializeDisplay, attributes(serde_with))]
 pub fn derive_serialize_display(item: TokenStream) -> TokenStream {
@@ -1194,8 +1247,8 @@ pub fn __private_consume_serde_as_attributes(_: TokenStream) -> TokenStream {
 /// Whenever you experience the need to apply the same attributes to multiple fields, you can use
 /// this macro. It allows you to specify a list of types and a list of attributes.
 /// Each field with a "matching" type will then get the attributes applied.
-/// The `apply` attribute must be place *before* any consuming attributes, such as `derive`, because
-/// Rust expands all attributes in order.
+/// The `apply` attribute must be placed *before* any consuming attributes, such as `derive` or
+/// `serde_as`, because Rust expands all attributes in order.
 ///
 /// For example, if your struct or enum contains many `Option<T>` fields, but you do not want to
 /// serialize `None` values, you can use this macro to apply the `#[serde(skip_serializing_if =
@@ -1291,7 +1344,7 @@ pub fn __private_consume_serde_as_attributes(_: TokenStream) -> TokenStream {
 /// {
 ///     "always_serialize_this_field": null
 /// }
-/// # ), serde_json::to_value(&data).unwrap());
+/// # ), serde_json::to_value(data).unwrap());
 /// ```
 ///
 /// # Alternative path to `serde_with` crate

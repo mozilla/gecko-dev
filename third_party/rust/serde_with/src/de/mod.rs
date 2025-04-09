@@ -10,6 +10,8 @@
 #[cfg(feature = "alloc")]
 mod duplicates;
 mod impls;
+#[cfg(feature = "alloc")]
+mod skip_error;
 
 use crate::prelude::*;
 
@@ -58,7 +60,7 @@ use crate::prelude::*;
 /// ```
 ///
 /// It uses two type parameters, `T` and `U` instead of only one and performs the deserialization step using the `DeserializeAsWrap` type.
-/// The `T` type is the on the Rust side after deserialization, whereas the `U` type determines how the value will be deserialized.
+/// The `T` type is the type on the Rust side after deserialization, whereas the `U` type determines how the value will be deserialized.
 /// These two changes are usually enough to make a container type implement [`DeserializeAs`][].
 ///
 ///
@@ -72,7 +74,7 @@ use crate::prelude::*;
 /// This shows a simplified implementation for [`DisplayFromStr`].
 ///
 /// ```rust
-/// # #[cfg(all(feature = "macros"))] {
+/// # #[cfg(feature = "macros")] {
 /// # use serde::Deserialize;
 /// # use serde::de::Error;
 /// # use serde_with::{serde_as, DeserializeAs};
@@ -98,7 +100,7 @@ use crate::prelude::*;
 /// # #[derive(serde::Deserialize)]
 /// # struct S (#[serde_as(as = "DisplayFromStr")] bool);
 /// #
-/// # assert_eq!(false, serde_json::from_str::<S>(r#""false""#).unwrap().0);
+/// # assert!(!serde_json::from_str::<S>(r#""false""#).unwrap().0);
 /// # }
 /// ```
 /// [`Box`]: std::boxed::Box
@@ -145,7 +147,7 @@ where
 impl<T: ?Sized> As<T> {
     /// Deserialize type `T` using [`DeserializeAs`][]
     ///
-    /// The function signature is compatible with [serde's with-annotation][with-annotation].
+    /// The function signature is compatible with [serde's `with` annotation][with-annotation].
     ///
     /// [with-annotation]: https://serde.rs/field-attrs.html#with
     pub fn deserialize<'de, D, I>(deserializer: D) -> Result<I, D::Error>

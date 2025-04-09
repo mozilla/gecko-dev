@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use serde::Serialize;
 use serde_with_macros::serde_as;
 

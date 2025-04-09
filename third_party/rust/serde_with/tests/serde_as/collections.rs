@@ -1,7 +1,7 @@
 use super::*;
 use fnv::{FnvHashMap, FnvHashSet};
 
-/// Test that HashSets are also supported with non-default hashers.
+/// Test that `HashSet`s are also supported with non-default hashers.
 #[test]
 fn test_fnv_hashset() {
     #[serde_as]
@@ -10,7 +10,7 @@ fn test_fnv_hashset() {
 
     // Normal
     is_equal(
-        S([1, 2, 3, 4, 5].iter().cloned().collect()),
+        S([1, 2, 3, 4, 5].iter().copied().collect()),
         expect![[r#"
             [
               "5",
@@ -23,7 +23,7 @@ fn test_fnv_hashset() {
     is_equal(S(FnvHashSet::default()), expect![[r#"[]"#]]);
 }
 
-/// Test that HashSets are also supported with non-default hashers.
+/// Test that `HashSet`s are also supported with non-default hashers.
 #[test]
 fn test_fnv_hashmap() {
     #[serde_as]
@@ -32,7 +32,7 @@ fn test_fnv_hashmap() {
 
     // Normal
     is_equal(
-        S([(1, 1), (3, 3), (111, 111)].iter().cloned().collect()),
+        S([(1, 1), (3, 3), (111, 111)].iter().copied().collect()),
         expect![[r#"
             {
               "1": "1",

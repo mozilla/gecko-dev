@@ -224,7 +224,7 @@ fn test_tuple_array_as_map() {
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     struct S0(#[serde_as(as = "Map<_, _>")] [(u8, u8); 1]);
     is_equal(
-        S1([(1, 2)]),
+        S0([(1, 2)]),
         expect![[r#"
           {
             "1": 2
@@ -320,7 +320,7 @@ fn test_tuple_array_as_map() {
     );
 }
 
-// Test that the `Seq` conversion works when the inner type is explicity specified.
+// Test that the `Seq` conversion works when the inner type is explicitly specified.
 #[test]
 fn test_map_as_tuple_with_nested_complex_type() {
     #[serde_as]
@@ -353,6 +353,8 @@ fn test_map_as_tuple_with_nested_complex_type() {
     );
 }
 
+// Problematic handling around fundamental types: https://github.com/rust-lang/rust/issues/121621
+#[allow(unknown_lints, non_local_definitions)]
 #[test]
 fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_sequence() {
     use serde::{
@@ -389,7 +391,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
 
     struct TestSerializer;
 
-    impl<'a> Serializer for &'a mut TestSerializer {
+    impl Serializer for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
         type SerializeSeq = Self;
@@ -557,7 +559,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
         }
     }
 
-    impl<'a> SerializeMap for &'a mut TestSerializer {
+    impl SerializeMap for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
 
@@ -580,7 +582,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
         }
     }
 
-    impl<'a> SerializeSeq for &'a mut TestSerializer {
+    impl SerializeSeq for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
 
@@ -596,7 +598,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
         }
     }
 
-    impl<'a> SerializeStruct for &'a mut TestSerializer {
+    impl SerializeStruct for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
 
@@ -612,7 +614,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
         }
     }
 
-    impl<'a> SerializeStructVariant for &'a mut TestSerializer {
+    impl SerializeStructVariant for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
 
@@ -628,7 +630,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
         }
     }
 
-    impl<'a> SerializeTuple for &'a mut TestSerializer {
+    impl SerializeTuple for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
 
@@ -644,7 +646,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
         }
     }
 
-    impl<'a> SerializeTupleStruct for &'a mut TestSerializer {
+    impl SerializeTupleStruct for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
 
@@ -660,7 +662,7 @@ fn test_map_as_tuple_list_works_with_serializer_that_needs_length_to_serialize_s
         }
     }
 
-    impl<'a> SerializeTupleVariant for &'a mut TestSerializer {
+    impl SerializeTupleVariant for &mut TestSerializer {
         type Ok = ();
         type Error = TestError;
 

@@ -1,10 +1,4 @@
-#![allow(
-    // clippy is broken and shows wrong warnings
-    // clippy on stable does not know yet about the lint name
-    unknown_lints,
-    // https://github.com/rust-lang/rust-clippy/issues/8867
-    clippy::derive_partial_eq_without_eq,
-)]
+//! Test Cases
 
 extern crate alloc;
 
@@ -15,7 +9,7 @@ use crate::utils::{
 };
 use alloc::collections::BTreeMap;
 use chrono_0_4::{DateTime, Duration, Local, NaiveDateTime, Utc};
-use core::{iter::FromIterator, str::FromStr};
+use core::str::FromStr;
 use expect_test::expect;
 use serde::{Deserialize, Serialize};
 use serde_with::{
@@ -27,7 +21,17 @@ use serde_with::{
 };
 
 fn new_datetime(secs: i64, nsecs: u32) -> DateTime<Utc> {
-    DateTime::from_utc(NaiveDateTime::from_timestamp_opt(secs, nsecs).unwrap(), Utc)
+    DateTime::from_timestamp(secs, nsecs).unwrap()
+}
+
+fn unix_epoch_local() -> DateTime<Local> {
+    DateTime::from_timestamp(0, 0)
+        .unwrap()
+        .with_timezone(&Local)
+}
+
+fn unix_epoch_naive() -> NaiveDateTime {
+    DateTime::from_timestamp(0, 0).unwrap().naive_utc()
 }
 
 #[test]
@@ -51,7 +55,7 @@ fn json_datetime_from_any_to_string_deserialization() {
         ]"#,
     );
 
-    // floats, shows precision errors in subsecond part
+    // floats, shows precision errors in sub-second part
     check_deserialization(
         vec![
             S(new_datetime(1_478_563_200, 122_999_906)),
@@ -360,7 +364,7 @@ fn test_chrono_duration_seconds_with_frac() {
 
 #[test]
 fn test_chrono_timestamp_seconds() {
-    let zero = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(0, 0).unwrap(), Utc);
+    let zero = new_datetime(0, 0);
     let one_second = zero + Duration::seconds(1);
     let half_second = zero + Duration::nanoseconds(500_000_000);
     let minus_one_second = zero - Duration::seconds(1);
@@ -464,9 +468,9 @@ fn test_chrono_timestamp_seconds() {
         ]],
     );
     check_error_deserialization::<StructStringStrict>(
-        r#"0.0"#,
+        r#"0.1"#,
         expect![[
-            r#"invalid type: floating point `0`, expected a string containing a number at line 1 column 3"#
+            r#"invalid type: floating point `0.1`, expected a string containing a number at line 1 column 3"#
         ]],
     );
 
@@ -498,7 +502,7 @@ fn test_chrono_timestamp_seconds() {
 
 #[test]
 fn test_chrono_timestamp_seconds_with_frac() {
-    let zero = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(0, 0).unwrap(), Utc);
+    let zero = new_datetime(0, 0);
     let one_second = zero + Duration::seconds(1);
     let half_second = zero + Duration::nanoseconds(500_000_000);
     let minus_one_second = zero - Duration::seconds(1);
@@ -555,8 +559,8 @@ fn test_chrono_timestamp_seconds_with_frac() {
         expect![[r#"invalid type: integer `1`, expected a string at line 1 column 1"#]],
     );
     check_error_deserialization::<StructStringStrict>(
-        r#"0.0"#,
-        expect![[r#"invalid type: floating point `0`, expected a string at line 1 column 3"#]],
+        r#"0.1"#,
+        expect![[r#"invalid type: floating point `0.1`, expected a string at line 1 column 3"#]],
     );
 
     #[serde_as]
@@ -634,7 +638,7 @@ fn test_duration_smoketest() {
 
 #[test]
 fn test_datetime_utc_smoketest() {
-    let zero = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(0, 0).unwrap(), Utc);
+    let zero = new_datetime(0, 0);
     let one_second = zero + Duration::seconds(1);
 
     smoketest! {
@@ -670,8 +674,7 @@ fn test_datetime_utc_smoketest() {
 
 #[test]
 fn test_datetime_local_smoketest() {
-    let zero = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(0, 0).unwrap(), Utc)
-        .with_timezone(&Local);
+    let zero = unix_epoch_local();
     let one_second = zero + Duration::seconds(1);
 
     smoketest! {
@@ -707,7 +710,7 @@ fn test_datetime_local_smoketest() {
 
 #[test]
 fn test_naive_datetime_smoketest() {
-    let zero = NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
+    let zero = unix_epoch_naive();
     let one_second = zero + Duration::seconds(1);
 
     smoketest! {

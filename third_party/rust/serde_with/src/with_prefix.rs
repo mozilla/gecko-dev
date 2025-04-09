@@ -140,7 +140,7 @@ pub struct WithPrefix<'a, T> {
     pub prefix: &'a str,
 }
 
-impl<'a, T> Serialize for WithPrefix<'a, T>
+impl<T> Serialize for WithPrefix<'_, T>
 where
     T: Serialize,
 {
@@ -333,7 +333,7 @@ where
     }
 }
 
-impl<'a, S> SerializeMap for WithPrefix<'a, S>
+impl<S> SerializeMap for WithPrefix<'_, S>
 where
     S: SerializeMap,
 {
@@ -376,7 +376,7 @@ where
     }
 }
 
-impl<'a, S> SerializeStruct for WithPrefix<'a, S>
+impl<S> SerializeStruct for WithPrefix<'_, S>
 where
     S: SerializeMap,
 {
@@ -398,7 +398,7 @@ where
     }
 }
 
-impl<'de, 'a, T> DeserializeSeed<'de> for WithPrefix<'a, T>
+impl<'de, T> DeserializeSeed<'de> for WithPrefix<'_, T>
 where
     T: DeserializeSeed<'de>,
 {
@@ -415,7 +415,7 @@ where
     }
 }
 
-impl<'de, 'a, D> Deserializer<'de> for WithPrefix<'a, D>
+impl<'de, D> Deserializer<'de> for WithPrefix<'_, D>
 where
     D: Deserializer<'de>,
 {
@@ -459,7 +459,7 @@ where
     }
 }
 
-impl<'de, 'a, V> Visitor<'de> for WithPrefix<'a, V>
+impl<'de, V> Visitor<'de> for WithPrefix<'_, V>
 where
     V: Visitor<'de>,
 {
@@ -480,7 +480,7 @@ where
     }
 }
 
-impl<'de, 'a, A> MapAccess<'de> for WithPrefix<'a, A>
+impl<'de, A> MapAccess<'de> for WithPrefix<'_, A>
 where
     A: MapAccess<'de>,
 {
@@ -515,7 +515,7 @@ pub struct WithPrefixOption<'a, T> {
     prefix: &'a str,
 }
 
-impl<'de, 'a, V> Visitor<'de> for WithPrefixOption<'a, V>
+impl<'de, V> Visitor<'de> for WithPrefixOption<'_, V>
 where
     V: Visitor<'de>,
 {
@@ -550,7 +550,7 @@ where
     }
 }
 
-impl<'de, 'a, A> Deserializer<'de> for WithPrefixOption<'a, A>
+impl<'de, A> Deserializer<'de> for WithPrefixOption<'_, A>
 where
     A: MapAccess<'de>,
 {
@@ -570,7 +570,7 @@ where
     }
 }
 
-impl<'de, 'a, A> MapAccess<'de> for WithPrefixOption<'a, A>
+impl<'de, A> MapAccess<'de> for WithPrefixOption<'_, A>
 where
     A: MapAccess<'de>,
 {

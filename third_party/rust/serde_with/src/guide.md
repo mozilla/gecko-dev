@@ -8,10 +8,10 @@ For example, you can serialize [a map as a sequence of tuples][crate::guide::ser
 
 The crate offers four types of functionality.
 
-## 1. A more flexible and composable replacement for the with annotation, called `serde_as`
+## 1. A more flexible and composable replacement for the `with` annotation, called `serde_as`
 
-This is an alternative to [serde's with-annotation][with-annotation], which adds flexibility and composability to the scheme.
-The main downside is that it work with fewer types than [with-annotations][with-annotation].
+This is an alternative to [serde's `with` annotation][with-annotation], which adds flexibility and composability to the scheme.
+The main downside is that it works with fewer types than [`with` annotations][with-annotation].
 However, all types from the Rust Standard Library should be supported in all combinations and any missing entry is a bug.
 
 You mirror the type structure of the field you want to de/serialize.

@@ -138,3 +138,23 @@ impl Separator for ColonSeparator {
         ":"
     }
 }
+
+/// Predefined separator using a single linefeed.
+pub struct UnixLineSeparator;
+
+impl Separator for UnixLineSeparator {
+    #[inline]
+    fn separator() -> &'static str {
+        "\n"
+    }
+}
+
+/// Predefined separator using a DOS/Windows line ending.
+pub struct DosLineSeparator;
+
+impl Separator for DosLineSeparator {
+    #[inline]
+    fn separator() -> &'static str {
+        "\r\n"
+    }
+}

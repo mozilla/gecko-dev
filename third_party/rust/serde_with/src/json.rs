@@ -96,7 +96,7 @@ where
     {
         struct Helper<S, SAs>(PhantomData<(S, SAs)>);
 
-        impl<'de, S, SAs> Visitor<'de> for Helper<S, SAs>
+        impl<S, SAs> Visitor<'_> for Helper<S, SAs>
         where
             SAs: for<'a> DeserializeAs<'a, S>,
         {

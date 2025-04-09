@@ -11,25 +11,27 @@ This page lists the transformations implemented in this crate and supported by `
 7. [Convert to an intermediate type using `TryInto`](#convert-to-an-intermediate-type-using-tryinto)
 8. [`Default` from `null`](#default-from-null)
 9. [De/Serialize into `Vec`, ignoring errors](#deserialize-into-vec-ignoring-errors)
-10. [De/Serialize with `FromStr` and `Display`](#deserialize-with-fromstr-and-display)
-11. [`Duration` as seconds](#duration-as-seconds)
-12. [Hex encode bytes](#hex-encode-bytes)
-13. [Ignore deserialization errors](#ignore-deserialization-errors)
-14. [`Maps` to `Vec` of enums](#maps-to-vec-of-enums)
-15. [`Maps` to `Vec` of tuples](#maps-to-vec-of-tuples)
-16. [`NaiveDateTime` like UTC timestamp](#naivedatetime-like-utc-timestamp)
-17. [`None` as empty `String`](#none-as-empty-string)
-18. [One or many elements into `Vec`](#one-or-many-elements-into-vec)
-19. [Overwrite existing set values](#overwrite-existing-set-values)
-20. [Pick first successful deserialization](#pick-first-successful-deserialization)
-21. [Prefer the first map key when duplicates exist](#prefer-the-first-map-key-when-duplicates-exist)
-22. [Prevent duplicate map keys](#prevent-duplicate-map-keys)
-23. [Prevent duplicate set values](#prevent-duplicate-set-values)
-24. [Struct fields as map keys](#struct-fields-as-map-keys)
-25. [Timestamps as seconds since UNIX epoch](#timestamps-as-seconds-since-unix-epoch)
-26. [Value into JSON String](#value-into-json-string)
-27. [`Vec` of tuples to `Maps`](#vec-of-tuples-to-maps)
-28. [Well-known time formats for `OffsetDateTime`](#well-known-time-formats-for-offsetdatetime)
+10. [De/Serialize into a map, ignoring errors](#deserialize-into-a-map-ignoring-errors)
+11. [De/Serialize with `FromStr` and `Display`](#deserialize-with-fromstr-and-display)
+12. [`Duration` as seconds](#duration-as-seconds)
+13. [Hex encode bytes](#hex-encode-bytes)
+14. [Ignore deserialization errors](#ignore-deserialization-errors)
+15. [`Maps` to `Vec` of enums](#maps-to-vec-of-enums)
+16. [`Maps` to `Vec` of tuples](#maps-to-vec-of-tuples)
+17. [`NaiveDateTime` like UTC timestamp](#naivedatetime-like-utc-timestamp)
+18. [`None` as empty `String`](#none-as-empty-string)
+19. [One or many elements into `Vec`](#one-or-many-elements-into-vec)
+20. [Overwrite existing set values](#overwrite-existing-set-values)
+21. [Pick first successful deserialization](#pick-first-successful-deserialization)
+22. [Prefer the first map key when duplicates exist](#prefer-the-first-map-key-when-duplicates-exist)
+23. [Prevent duplicate map keys](#prevent-duplicate-map-keys)
+24. [Prevent duplicate set values](#prevent-duplicate-set-values)
+25. [Struct fields as map keys](#struct-fields-as-map-keys)
+26. [Timestamps as seconds since UNIX epoch](#timestamps-as-seconds-since-unix-epoch)
+27. [Value into JSON String](#value-into-json-string)
+28. [`Vec` of tuples to `Maps`](#vec-of-tuples-to-maps)
+29. [Well-known time formats for `OffsetDateTime`](#well-known-time-formats-for-offsetdatetime)
+30. [De/Serialize depending on `De/Serializer::is_human_readable`](#deserialize-depending-on-deserializeris_human_readable)
 
 ## Base64 encode bytes
 
@@ -159,7 +161,7 @@ null => 0
 
 [`VecSkipError`]
 
-For formats with heterogenous-typed sequences, we can collect only the deserializable elements.
+For formats with heterogeneously typed sequences, we can collect only the deserializable elements.
 This is also useful for unknown enum variants.
 
 ```ignore
@@ -178,6 +180,25 @@ enum Color {
 colors: Vec<Color>,
 
 // => vec![Blue, Green]
+```
+
+## De/Serialize into a map, ignoring errors
+
+[`MapSkipError`]
+
+For formats with heterogeneously typed maps, we can collect only the elements where both key and value are deserializable.
+This is also useful in conjunction to `#[serde(flatten)]` to ignore some entries when capturing additional fields.
+
+```ignore
+// JSON
+"value": {"0": "v0", "5": "v5", "str": "str", "10": 2},
+
+// Rust
+#[serde_as(as = "MapSkipError<DisplayFromStr, _>")]
+value: BTreeMap<u32, String>,
+
+// Only deserializes entries with a numerical key and a string value, i.e.,
+{0 => "v0", 5 => "v5"}
 ```
 
 ## De/Serialize with `FromStr` and `Display`
@@ -211,7 +232,7 @@ value: Duration,
 "value": 86400,
 ```
 
-[`DurationSecondsWithFrac`] supports subsecond precision:
+[`DurationSecondsWithFrac`] supports sub-second precision:
 
 ```ignore
 // Rust
@@ -381,7 +402,7 @@ value: Vec<String>,
 [`SetLastValueWins`]
 
 serdes default behavior for sets is to take the first value, when multiple "equal" values are inserted into a set.
-This changes the logic, to prefer the last value.
+This changes the logic to prefer the last value.
 
 ## Pick first successful deserialization
 
@@ -404,7 +425,7 @@ value: u32,
 
 [`MapFirstKeyWins`]
 
-serdes default behavior is to take the last key and value combination, if multiple "equal" keys exist.
+Serde's default behavior is to take the last key-value combination, if multiple "equal" keys exist.
 This changes the logic to instead prefer the first found key-value combination.
 
 ## Prevent duplicate map keys
@@ -465,7 +486,7 @@ value: SystemTime,
 "value": 86400,
 ```
 
-[`TimestampSecondsWithFrac`] supports subsecond precision:
+[`TimestampSecondsWithFrac`] supports sub-second precision:
 
 ```ignore
 // Rust
@@ -562,6 +583,21 @@ iso_8601: OffsetDateTime,
 
 These conversions are available with the `time_0_3` feature flag.
 
+## De/Serialize depending on `De/Serializer::is_human_readable`
+
+Used to specify different transformations for text-based and binary formats.
+
+[`IfIsHumanReadable`]
+
+```ignore
+// Rust
+#[serde_as(as = "serde_with::IfIsHumanReadable<serde_with::DisplayFromStr>")]
+value: u128,
+
+// JSON
+"value": "340282366920938463463374607431768211455",
+```
+
 [`Base64`]: crate::base64::Base64
 [`BoolFromInt<Flexible>`]: crate::BoolFromInt
 [`BoolFromInt<Strict>`]: crate::BoolFromInt
@@ -578,6 +614,7 @@ These conversions are available with the `time_0_3` feature flag.
 [`EnumMap`]: crate::EnumMap
 [`FromInto`]: crate::FromInto
 [`Hex`]: crate::hex::Hex
+[`IfIsHumanReadable`]: crate::IfIsHumanReadable
 [`JsonString`]: crate::json::JsonString
 [`KeyValueMap`]: crate::KeyValueMap
 [`MapFirstKeyWins`]: crate::MapFirstKeyWins
@@ -597,3 +634,4 @@ These conversions are available with the `time_0_3` feature flag.
 [`TimestampSecondsWithFrac`]: crate::TimestampSecondsWithFrac
 [`TryFromInto`]: crate::TryFromInto
 [`VecSkipError`]: crate::VecSkipError
+[`MapSkipError`]: crate::MapSkipError

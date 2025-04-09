@@ -1,8 +1,16 @@
 //! De/Serialization of [time v0.3][time] types
 //!
 //! This modules is only available if using the `time_0_3` feature of the crate.
+//! No extra types are exposed. Instead it enables support for [`time_0_3::Duration`] together with [`DurationSeconds`] and its variants.
+//! The types [`time_0_3::PrimitiveDateTime`] and [`time_0_3::OffsetDateTime`] are supported by [`TimestampSeconds`] and its variants.
+//! The well-known format descriptions [`Rfc2822`], [`Rfc3339`] and [`Iso8601`] are supported for [`OffsetDateTime`].
 //!
 //! [time]: https://docs.rs/time/0.3/
+
+// Serialization of large numbers can result in overflows
+// The time calculations are prone to this, so lint here extra
+// https://github.com/jonasbb/serde_with/issues/771
+#![warn(clippy::as_conversions)]
 
 use crate::{
     formats::{Flexible, Format, Strict, Strictness},
@@ -317,7 +325,7 @@ where
     Ok(unix_epoch_primitive() + duration_from_duration_signed::<D>(dur)?)
 }
 
-// No subsecond precision
+// No sub-second precision
 use_duration_signed_de!(
     DurationSeconds DurationSeconds,
     DurationMilliSeconds DurationMilliSeconds,
@@ -536,7 +544,7 @@ impl<'de> DeserializeAs<'de, OffsetDateTime> for Rfc2822 {
         D: Deserializer<'de>,
     {
         struct Helper;
-        impl<'de> Visitor<'de> for Helper {
+        impl Visitor<'_> for Helper {
             type Value = OffsetDateTime;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -572,7 +580,7 @@ impl<'de> DeserializeAs<'de, OffsetDateTime> for Rfc3339 {
         D: Deserializer<'de>,
     {
         struct Helper;
-        impl<'de> Visitor<'de> for Helper {
+        impl Visitor<'_> for Helper {
             type Value = OffsetDateTime;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -608,7 +616,7 @@ impl<'de, const CONFIG: EncodedConfig> DeserializeAs<'de, OffsetDateTime> for Is
         D: Deserializer<'de>,
     {
         struct Helper<const CONFIG: EncodedConfig>;
-        impl<'de, const CONFIG: EncodedConfig> Visitor<'de> for Helper<CONFIG> {
+        impl<const CONFIG: EncodedConfig> Visitor<'_> for Helper<CONFIG> {
             type Value = OffsetDateTime;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

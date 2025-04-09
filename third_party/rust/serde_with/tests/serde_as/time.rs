@@ -324,9 +324,9 @@ fn test_timestamp_seconds_systemtime() {
         ]],
     );
     check_error_deserialization::<StructStringStrict>(
-        r#"0.0"#,
+        r#"0.1"#,
         expect![[
-            r#"invalid type: floating point `0`, expected a string containing a number at line 1 column 3"#
+            r#"invalid type: floating point `0.1`, expected a string containing a number at line 1 column 3"#
         ]],
     );
 
@@ -423,8 +423,8 @@ fn test_timestamp_seconds_with_frac_systemtime() {
         expect![[r#"invalid type: integer `1`, expected a string at line 1 column 1"#]],
     );
     check_error_deserialization::<StructStringStrict>(
-        r#"0.0"#,
-        expect![[r#"invalid type: floating point `0`, expected a string at line 1 column 3"#]],
+        r#"0.1"#,
+        expect![[r#"invalid type: floating point `0.1`, expected a string at line 1 column 3"#]],
     );
 
     #[serde_as]

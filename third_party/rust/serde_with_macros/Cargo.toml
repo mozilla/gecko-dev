@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.70"
 name = "serde_with_macros"
-version = "3.0.0"
+version = "3.12.0"
 authors = ["Jonas Bushart"]
+build = false
 include = [
     "src/**/*",
     "tests/**/*",
@@ -23,6 +24,11 @@ include = [
     "README.md",
     "CHANGELOG.md",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "proc-macro library for serde_with"
 documentation = "https://docs.rs/serde_with_macros/"
 readme = "README.md"
@@ -61,7 +67,33 @@ replace = "https://docs.rs/serde_with_macros/{{version}}/"
 search = 'https://docs\.rs/serde_with_macros/[\d.]+/'
 
 [lib]
+name = "serde_with_macros"
+path = "src/lib.rs"
 proc-macro = true
+
+[[test]]
+name = "apply"
+path = "tests/apply.rs"
+
+[[test]]
+name = "compiler-messages"
+path = "tests/compiler-messages.rs"
+
+[[test]]
+name = "serde_as_issue_267"
+path = "tests/serde_as_issue_267.rs"
+
+[[test]]
+name = "serde_as_issue_538"
+path = "tests/serde_as_issue_538.rs"
+
+[[test]]
+name = "skip_serializing_null"
+path = "tests/skip_serializing_null.rs"
+
+[[test]]
+name = "version_numbers"
+path = "tests/version_numbers.rs"
 
 [dependencies.darling]
 version = "0.20.0"
@@ -75,21 +107,22 @@ version = "1.0.0"
 [dependencies.syn]
 version = "2.0.0"
 features = [
+    "extra-traits",
     "full",
     "parsing",
 ]
 
 [dev-dependencies.expect-test]
-version = "1.4.0"
+version = "1.5.0"
 
 [dev-dependencies.pretty_assertions]
-version = "1.0.0"
+version = "1.4.0"
 
 [dev-dependencies.rustversion]
 version = "1.0.0"
 
 [dev-dependencies.serde]
-version = "1.0.157"
+version = "1.0.152"
 features = ["derive"]
 
 [dev-dependencies.serde_json]
@@ -101,5 +134,40 @@ version = "1.0.80"
 [dev-dependencies.version-sync]
 version = "0.9.1"
 
+[features]
+schemars_0_8 = []
+
 [badges.maintenance]
 status = "actively-developed"
+
+[lints.clippy]
+cloned_instead_of_copied = "warn"
+default_trait_access = "warn"
+doc_markdown = "warn"
+explicit_auto_deref = "allow"
+manual-unwrap-or-default = "allow"
+redundant_closure_for_method_calls = "warn"
+semicolon_if_nothing_returned = "warn"
+
+[lints.rust]
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"
+variant_size_differences = "warn"
+
+[lints.rust.rust_2018_idioms]
+level = "warn"
+priority = -1
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = [
+    "cfg(tarpaulin)",
+    "cfg(tarpaulin_include)",
+]
+
+[lints.rustdoc]
+missing_crate_level_docs = "warn"

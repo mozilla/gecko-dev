@@ -18,7 +18,7 @@ use crate::prelude::*;
 /// This cannot work, since there is no way to tell the `Vec` to skip the inner `DoubleOption` if it is `None`.
 ///
 /// ```rust
-/// # #[cfg(FALSE)] {
+/// # #[cfg(any())] {
 /// # struct Foobar {
 /// #[serde_as(as = "Vec<DoubleOption<_>>")]
 /// data: Vec<Option<Option<i32>>>,
@@ -178,13 +178,13 @@ pub mod unwrap_or_skip {
 ///
 /// The implementation supports both the [`HashSet`] and the [`BTreeSet`] from the standard library.
 ///
-/// # Converting to serde_as
+/// # Converting to `serde_as`
 ///
 /// The same functionality can be more clearly expressed using the `serde_as` macro and [`SetPreventDuplicates`].
 /// The `_` is a placeholder which works for any type which implements [`Serialize`]/[`Deserialize`].
 ///
 /// ```rust
-/// # #[cfg(FALSE)] {
+/// # #[cfg(any())] {
 /// #[serde_as]
 /// #[derive(Deserialize, Serialize)]
 /// struct A {
@@ -294,13 +294,13 @@ pub mod sets_duplicate_value_is_error {
 ///
 /// The implementation supports both the [`HashMap`] and the [`BTreeMap`] from the standard library.
 ///
-/// # Converting to serde_as
+/// # Converting to `serde_as`
 ///
 /// The same functionality can be more clearly expressed using the `serde_as` macro and [`MapPreventDuplicates`].
 /// The `_` is a placeholder which works for any type which implements [`Serialize`]/[`Deserialize`].
 ///
 /// ```rust
-/// # #[cfg(FALSE)] {
+/// # #[cfg(any())] {
 /// #[serde_as]
 /// #[derive(Deserialize, Serialize)]
 /// struct A {
@@ -414,13 +414,13 @@ pub mod maps_duplicate_key_is_error {
 ///
 /// The implementation supports both the [`HashSet`] and the [`BTreeSet`] from the standard library.
 ///
-/// # Converting to serde_as
+/// # Converting to `serde_as`
 ///
 /// The same functionality can be more clearly expressed using the `serde_as` macro and [`SetLastValueWins`].
 /// The `_` is a placeholder which works for any type which implements [`Serialize`]/[`Deserialize`].
 ///
 /// ```rust
-/// # #[cfg(FALSE)] {
+/// # #[cfg(any())] {
 /// #[serde_as]
 /// #[derive(Deserialize, Serialize)]
 /// struct A {
@@ -502,13 +502,13 @@ pub mod sets_last_value_wins {
 /// [`HashMap`]: std::collections::HashMap
 /// [`BTreeMap`]: std::collections::HashMap
 ///
-/// # Converting to serde_as
+/// # Converting to `serde_as`
 ///
 /// The same functionality can be more clearly expressed using the `serde_as` macro and [`MapFirstKeyWins`].
 /// The `_` is a placeholder which works for any type which implements [`Serialize`]/[`Deserialize`].
 ///
 /// ```rust
-/// # #[cfg(FALSE)] {
+/// # #[cfg(any())] {
 /// #[serde_as]
 /// #[derive(Deserialize, Serialize)]
 /// struct A {
@@ -708,5 +708,5 @@ pub mod maps_first_key_wins {
 pub fn deserialize_ignore_any<'de, D: Deserializer<'de>, T: Default>(
     deserializer: D,
 ) -> Result<T, D::Error> {
-    serde::de::IgnoredAny::deserialize(deserializer).map(|_| T::default())
+    IgnoredAny::deserialize(deserializer).map(|_| T::default())
 }

@@ -10,6 +10,8 @@
 #[cfg(feature = "alloc")]
 mod duplicates;
 mod impls;
+#[cfg(feature = "alloc")]
+mod skip_error;
 
 use crate::prelude::*;
 
@@ -60,7 +62,7 @@ use crate::prelude::*;
 /// ```
 ///
 /// It uses two type parameters, `T` and `U` instead of only one and performs the serialization step using the `SerializeAsWrap` type.
-/// The `T` type is the on the Rust side before serialization, whereas the `U` type determines how the value will be serialized.
+/// The `T` type is the type on the Rust side before serialization, whereas the `U` type determines how the value will be serialized.
 /// These two changes are usually enough to make a container type implement [`SerializeAs`][].
 ///
 /// [`SerializeAsWrap`] is a piece of glue code which turns [`SerializeAs`] into a serde compatible datatype, by converting all calls to `serialize` into `serialize_as`.
@@ -73,7 +75,7 @@ use crate::prelude::*;
 /// This shows a simplified implementation for [`DisplayFromStr`].
 ///
 /// ```rust
-/// # #[cfg(all(feature = "macros"))] {
+/// # #[cfg(feature = "macros")] {
 /// # use serde_with::{serde_as, SerializeAs};
 /// # use std::fmt::Display;
 /// struct DisplayFromStr;
@@ -131,7 +133,7 @@ where
     }
 }
 
-impl<'a, T, U> Serialize for SerializeAsWrap<'a, T, U>
+impl<T, U> Serialize for SerializeAsWrap<'_, T, U>
 where
     T: ?Sized,
     U: ?Sized,
@@ -159,7 +161,7 @@ where
 impl<T: ?Sized> As<T> {
     /// Serialize type `T` using [`SerializeAs`][]
     ///
-    /// The function signature is compatible with [serde's with-annotation][with-annotation].
+    /// The function signature is compatible with [serde's `with` annotation][with-annotation].
     ///
     /// [with-annotation]: https://serde.rs/field-attrs.html#with
     pub fn serialize<S, I>(value: &I, serializer: S) -> Result<S::Ok, S::Error>

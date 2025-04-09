@@ -186,7 +186,7 @@ where
             type Value = Vec<T>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(formatter, "a map of enum values")
+                formatter.write_str("a map of enum values")
             }
 
             fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
@@ -302,9 +302,9 @@ where
         Err(SerError::custom("wrong type for EnumMap"))
     }
 
-    fn serialize_some<T: ?Sized>(self, _value: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         Err(SerError::custom("wrong type for EnumMap"))
     }
@@ -326,18 +326,18 @@ where
         Err(SerError::custom("wrong type for EnumMap"))
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
+    fn serialize_newtype_struct<T>(
         self,
         _name: &'static str,
         _value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         Err(SerError::custom("wrong type for EnumMap"))
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
         _variant_index: u32,
@@ -345,7 +345,7 @@ where
         _value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         Err(SerError::custom("wrong type for EnumMap"))
     }
@@ -422,9 +422,9 @@ where
     type Ok = M::Ok;
     type Error = M::Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         value.serialize(EnumAsMapElementSerializer {
             delegate: &mut self.delegate,
@@ -530,9 +530,9 @@ where
         Err(SerError::custom("wrong type for EnumMap"))
     }
 
-    fn serialize_some<T: ?Sized>(self, _value: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         Err(SerError::custom("wrong type for EnumMap"))
     }
@@ -555,18 +555,18 @@ where
         Ok(())
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
+    fn serialize_newtype_struct<T>(
         self,
         _name: &'static str,
         _value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         Err(SerError::custom("wrong type for EnumMap"))
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
         _variant_index: u32,
@@ -574,7 +574,7 @@ where
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         self.delegate.serialize_entry(variant, value)?;
         Ok(())
@@ -649,7 +649,7 @@ struct SerializeVariant<'a, M> {
     content: Content,
 }
 
-impl<'a, M> SerializeStructVariant for SerializeVariant<'a, M>
+impl<M> SerializeStructVariant for SerializeVariant<'_, M>
 where
     M: SerializeMap,
 {
@@ -657,13 +657,9 @@ where
 
     type Error = M::Error;
 
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<(), Self::Error>
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         // Serialize to a Content type first
         let value: Content = value.serialize(ContentSerializer::new(self.is_human_readable))?;
@@ -678,7 +674,7 @@ where
     }
 }
 
-impl<'a, M> SerializeTupleVariant for SerializeVariant<'a, M>
+impl<M> SerializeTupleVariant for SerializeVariant<'_, M>
 where
     M: SerializeMap,
 {
@@ -686,9 +682,9 @@ where
 
     type Error = M::Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         // Serialize to a Content type first
         let value: Content = value.serialize(ContentSerializer::new(self.is_human_readable))?;

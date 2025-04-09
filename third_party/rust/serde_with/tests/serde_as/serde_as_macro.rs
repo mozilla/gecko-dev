@@ -80,7 +80,7 @@ fn test_serde_as_macro_deserialize() {
             b: vec![20, 33],
             c: (40, 55),
         },
-        r##"{
+        r#"{
   "a": "10",
   "b": [
     "20",
@@ -90,7 +90,7 @@ fn test_serde_as_macro_deserialize() {
     "40",
     55
   ]
-}"##,
+}"#,
     );
 }
 

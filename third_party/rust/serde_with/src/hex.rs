@@ -72,11 +72,11 @@ use crate::prelude::*;
 ///     [u8; 12]
 /// );
 ///
-/// let b = b"Hello World!";
+/// let b = *b"Hello World!";
 ///
 /// assert_eq!(
 ///     json!("48656c6c6f20576f726c6421"),
-///     serde_json::to_value(ByteArray(b.clone())).unwrap()
+///     serde_json::to_value(ByteArray(b)).unwrap()
 /// );
 ///
 /// // Serialization always work from lower- and uppercase characters, even mixed case.

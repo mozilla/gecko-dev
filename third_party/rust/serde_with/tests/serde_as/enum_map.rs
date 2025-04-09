@@ -9,11 +9,11 @@ fn bytes_debug_readable(bytes: &[u8]) -> String {
     for &byte in bytes {
         match byte {
             non_printable if !(0x20..0x7f).contains(&non_printable) => {
-                write!(result, "\\x{byte:02x}").unwrap();
+                result.write_fmt(format_args!("\\x{byte:02x}")).unwrap();
             }
             b'\\' => result.push_str("\\\\"),
             _ => {
-                result.push(byte as char);
+                result.push(char::from(byte));
             }
         }
     }
@@ -412,7 +412,7 @@ fn rmp_round_trip() {
     };
 
     let rmp = rmp_serde::to_vec(&values).unwrap();
-    expect_test::expect![[r#"\x91\x88\xa3Int{\xa6String\xa6FooBar\xa3Int\xcd\x01\xc8\xa6String\xa3XXX\xa4Unit\xc0\xa5Tuple\x93\x01\xa6Middle\xc2\xa6Struct\x93\xcd\x02\x9a\xa3BBB\xc3\xa2Ip\x92\x81\xa2V4\x94\x7f\x00\x00\x01\x81\xa2V6\xdc\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00ww\xcc\xde\xcc\xad\xcc\xbe\xcc\xef"#]]
+    expect_test::expect![[r"\x91\x88\xa3Int{\xa6String\xa6FooBar\xa3Int\xcd\x01\xc8\xa6String\xa3XXX\xa4Unit\xc0\xa5Tuple\x93\x01\xa6Middle\xc2\xa6Struct\x93\xcd\x02\x9a\xa3BBB\xc3\xa2Ip\x92\x81\xa2V4\x94\x7f\x00\x00\x01\x81\xa2V6\xdc\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00ww\xcc\xde\xcc\xad\xcc\xbe\xcc\xef"]]
         .assert_eq(&bytes_debug_readable(&rmp));
     let deser_values: VecEnumValues = rmp_serde::from_read(&*rmp).unwrap();
     assert_eq!(values, deser_values);

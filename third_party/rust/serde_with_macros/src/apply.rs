@@ -135,7 +135,6 @@ fn ty_pattern_matches_ty(ty_pattern: &Type, ty: &Type) -> bool {
             Type::Array(TypeArray { elem: ty, len, .. }),
         ) => {
             let ty_match = ty_pattern_matches_ty(ty_pattern, ty);
-            dbg!(len_pattern);
             let len_match = len_pattern == len || len_pattern.to_token_stream().to_string() == "_";
             ty_match && len_match
         }
@@ -161,7 +160,7 @@ fn ty_pattern_matches_ty(ty_pattern: &Type, ty: &Type) -> bool {
             ///
             /// Two paths match if they are equal except for the path arguments.
             /// Path arguments are generics on types or functions.
-            /// If the pattern has no argument, it can match with everthing.
+            /// If the pattern has no argument, it can match with everything.
             /// If the pattern does have an argument, the other side must be equal.
             fn path_pattern_matches_path(path_pattern: &Path, path: &Path) -> bool {
                 if path_pattern.leading_colon != path.leading_colon
@@ -169,7 +168,7 @@ fn ty_pattern_matches_ty(ty_pattern: &Type, ty: &Type) -> bool {
                 {
                     return false;
                 }
-                // Boths parts are equal length
+                // Both parts are equal length
                 std::iter::zip(&path_pattern.segments, &path.segments).all(
                     |(path_pattern_segment, path_segment)| {
                         let ident_equal = path_pattern_segment.ident == path_segment.ident;
