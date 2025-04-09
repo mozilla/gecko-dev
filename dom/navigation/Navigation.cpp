@@ -734,6 +734,7 @@ bool Navigation::InnerFireNavigateEvent(
             self->mTransition->Finished()->MaybeResolveWithUndefined();
           }
 
+          // Step 9
           self->mTransition = nullptr;
         },
         [self = RefPtr(this), event,
@@ -760,13 +761,15 @@ bool Navigation::InnerFireNavigateEvent(
           // Step 5
           event->Finish(false);
 
-          // Step 6 and step 7 will be implemented in Bug 1949499.
-          // Step 6: Let errorInfo be the result of extracting error
-          // information from rejectionReason.
+          if (AutoJSAPI jsapi;
+              !NS_WARN_IF(!jsapi.Init(event->GetParentObject()))) {
+            // Step 6
+            RootedDictionary<ErrorEventInit> init(jsapi.cx());
+            ExtractErrorInformation(jsapi.cx(), aRejectionReason, init);
 
-          // Step 7: Fire an event named navigateerror at navigation using
-          // ErrorEvent, with additional attributes initialized according to
-          // errorInfo.
+            // Step 7
+            self->FireErrorEvent(u"navigateerror"_ns, init);
+          }
 
           // Step 8
           if (apiMethodTracker) {
@@ -778,6 +781,7 @@ bool Navigation::InnerFireNavigateEvent(
             self->mTransition->Finished()->MaybeReject(aRejectionReason);
           }
 
+          // Step 10
           self->mTransition = nullptr;
         });
   }
