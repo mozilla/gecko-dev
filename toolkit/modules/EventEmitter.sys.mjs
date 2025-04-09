@@ -27,13 +27,15 @@ function describeNthCaller(n) {
   return func + "() -> " + path;
 }
 
+/**
+ * An event emitter class that handles listeners for events being emitted.
+ */
 export class EventEmitter {
   /**
    * Decorate an object with event emitter functionality.
    *
-   * @param Object objectToDecorate
-   *        Bind all public methods of EventEmitter to
-   *        the objectToDecorate object.
+   * @param {object} objectToDecorate
+   *   Bind all public methods of EventEmitter to the objectToDecorate object.
    */
   static decorate(objectToDecorate) {
     let emitter = new EventEmitter();
@@ -46,10 +48,10 @@ export class EventEmitter {
   /**
    * Connect a listener.
    *
-   * @param string event
-   *        The event name to which we're connecting.
-   * @param function listener
-   *        Called when the event is fired.
+   * @param {string} event
+   *   The event name to which we're connecting.
+   * @param {Function} listener
+   *   The function called when the event is fired.
    */
   on(event, listener) {
     if (!this._eventEmitterListeners) {
@@ -64,16 +66,15 @@ export class EventEmitter {
   /**
    * Listen for the next time an event is fired.
    *
-   * @param string event
-   *        The event name to which we're connecting.
-   * @param function listener
-   *        (Optional) Called when the event is fired. Will be called at most
-   *        one time.
-   * @return promise
-   *        A promise which is resolved when the event next happens. The
-   *        resolution value of the promise is the first event argument. If
-   *        you need access to second or subsequent event arguments (it's rare
-   *        that this is needed) then use listener
+   * @param {string} event
+   *   The event name to which we're connecting.
+   * @param {Function} [listener]
+   *   Called when the event is fired. Will be called at most one time.
+   * @returns {Promise}
+   *   A promise which is resolved when the event next happens. The resolution
+   *   value of the promise is the first event argument. If you need access to
+   *   second or subsequent event arguments (it's rare that this is needed) then
+   *   use listener
    */
   once(event, listener) {
     return new Promise(resolve => {
@@ -94,10 +95,10 @@ export class EventEmitter {
    * Remove a previously-registered event listener.  Works for events
    * registered with either on or once.
    *
-   * @param string event
-   *        The event name whose listener we're disconnecting.
-   * @param function listener
-   *        The listener to remove.
+   * @param {string} event
+   *   The event name whose listener we're disconnecting.
+   * @param {Function} listener
+   *   The listener to remove.
    */
   off(event, listener) {
     if (!this._eventEmitterListeners) {
@@ -117,9 +118,14 @@ export class EventEmitter {
   /**
    * Emit an event.  All arguments to this method will
    * be sent to listener functions.
+   *
+   * @param {string} event
+   *   The event name whose listener we're disconnecting.
+   * @param {...any} args
+   *   Arguments to be passed to the event listeners.
    */
-  emit(event) {
-    this.logEvent(event, arguments);
+  emit(event, ...args) {
+    this.#logEvent(event, args);
 
     if (
       !this._eventEmitterListeners ||
@@ -143,7 +149,7 @@ export class EventEmitter {
         this._eventEmitterListeners.get(event).some(l => l === listener)
       ) {
         try {
-          listener.apply(null, arguments);
+          listener(event, ...args);
         } catch (ex) {
           console.error(ex);
         }
@@ -151,7 +157,7 @@ export class EventEmitter {
     }
   }
 
-  logEvent(event, args) {
+  #logEvent(event, args) {
     if (!loggingEnabled) {
       return;
     }

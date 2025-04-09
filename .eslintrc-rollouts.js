@@ -391,7 +391,7 @@ const rollouts = [
       "toolkit/components/workerloader/require.js",
       "toolkit/content/**",
       "toolkit/crashreporter/**",
-      "toolkit/modules/{A,C,D,E,F,G,I,J,K,L,N,O,P,R,S,U,W}*.sys.mjs",
+      "toolkit/modules/{A,C,D,E10SUtils,F,G,I,J,K,L,N,O,P,R,S,U,W}*.sys.mjs",
       "toolkit/modules/sessionstore/**",
       "toolkit/modules/subprocess/**",
       "toolkit/modules/tests/**",
