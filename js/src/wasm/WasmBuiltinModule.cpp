@@ -174,7 +174,7 @@ bool CompileBuiltinModule(JSContext* cx,
   }
 
   // Add (type (func (params ...))) for each func. The function types will
-  // be deduplicated by the runtime
+  // be deduplicated by the runtime.
   for (uint32_t funcIndex = 0; funcIndex < ids.size(); funcIndex++) {
     const BuiltinModuleFuncId& id = ids[funcIndex];
     const BuiltinModuleFunc& builtinModuleFunc =
@@ -186,6 +186,14 @@ bool CompileBuiltinModule(JSContext* cx,
       ReportOutOfMemory(cx);
       return false;
     }
+  }
+
+  // Add all static type defs to the type context so that we can always look up
+  // their index. This must come after the func types so as not to interfere
+  // with funcIndex.
+  if (!StaticTypeDefs::addAllToTypeContext(codeMeta->types)) {
+    ReportOutOfMemory(cx);
+    return false;
   }
 
   // Add (func (type $i)) declarations. Do this after all types have been added

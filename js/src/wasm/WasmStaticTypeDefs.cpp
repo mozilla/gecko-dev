@@ -61,3 +61,15 @@ void StaticTypeDefs::destroy() {
     jsTag = nullptr;
   }
 }
+
+bool StaticTypeDefs::addAllToTypeContext(TypeContext* types) {
+  for (const TypeDef* type : {arrayMutI16, jsTag}) {
+    MOZ_ASSERT(type, "static TypeDef was not initialized");
+    SharedRecGroup recGroup = &type->recGroup();
+    MOZ_ASSERT(recGroup->numTypes() == 1);
+    if (!types->addRecGroup(recGroup)) {
+      return false;
+    }
+  }
+  return true;
+}

@@ -19,6 +19,8 @@
 #ifndef wasm_static_type_defs
 #define wasm_static_type_defs
 
+#include "wasm/WasmTypeDef.h"
+
 namespace js {
 namespace wasm {
 
@@ -34,6 +36,8 @@ struct StaticTypeDefs {
 
   [[nodiscard]] static bool init();
   static void destroy();
+
+  [[nodiscard]] static bool addAllToTypeContext(TypeContext* types);
 };
 
 }  // namespace wasm
