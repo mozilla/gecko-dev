@@ -1281,10 +1281,12 @@ class MWasmLoadGlobalCell : public MUnaryInstruction,
 
 class MWasmLoadTableElement : public MBinaryInstruction,
                               public NoTypePolicy::Data {
-  MWasmLoadTableElement(MDefinition* elements, MDefinition* index)
+  MWasmLoadTableElement(MDefinition* elements, MDefinition* index,
+                        wasm::RefType refType)
       : MBinaryInstruction(classOpcode, elements, index) {
     setResultType(MIRType::WasmAnyRef);
     setMovable();
+    initWasmRefType(wasm::MaybeRefType(refType));
   }
 
  public:
