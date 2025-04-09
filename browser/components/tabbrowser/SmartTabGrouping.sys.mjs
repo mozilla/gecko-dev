@@ -54,7 +54,7 @@ const EXPECTED_EMBEDDING_MODEL_OBJECTS = 4;
 
 export const DIM_REDUCTION_METHODS = {};
 const MISSING_ANCHOR_IN_CLUSTER_PENALTY = 0.2;
-const NEAREST_NEIGHBOR_DEFAULT_THRESHOLD = 0.21;
+const NEAREST_NEIGHBOR_DEFAULT_THRESHOLD = 0.275;
 const MAX_NN_GROUPED_TABS = 4;
 const MAX_SUGGESTED_TABS = 10;
 
@@ -250,7 +250,7 @@ export class SmartTabGroupingManager {
     groupLabel = "",
     threshold = NEAREST_NEIGHBOR_DEFAULT_THRESHOLD,
     precomputedEmbeddings = [],
-    depth = 1,
+    depth = 0,
   }) {
     // get embeddings for all the tabs
     const tabData = await this._prepareTabData(allTabs);
@@ -258,7 +258,7 @@ export class SmartTabGroupingManager {
     if (precomputedEmbeddings.length === 0) {
       embeddings = await this._generateEmbeddings(
         tabData.map((td, index) => {
-          let text = td[EMBED_TEXT_KEY];
+          let text = SmartTabGroupingManager.preprocessText(td[EMBED_TEXT_KEY]);
           // augment with group name if it's present
           if (groupLabel && groupedIndices.includes(index)) {
             text = `${groupLabel.slice(0, 100)}. ${td[EMBED_TEXT_KEY]}`;
@@ -770,6 +770,42 @@ export class SmartTabGroupingManager {
       wordsSet.add(baseWord);
     }
     return phrase; // return original phrase
+  }
+
+  /**
+   * Removes trailing domain-related text such as '... - Mail' or '... | News'
+   * If there's not enough information remaining after, we keep the text as is
+   * @param {string} text tab title with potential domain information
+   * @return {string}
+   */
+  static preprocessText(text) {
+    // Matches 'xyz - Domain' or 'xyz | Domain'
+    // with a space before and after delimiter
+    // or if there are multiple delimiters next to each other
+    const delimiters = /(?<=\s)[|–-]+(?=\s)/;
+    const splitText = text.split(delimiters);
+
+    // ensure there's enough info without the last element
+    const hasEnoughInfo =
+      !!splitText.length && splitText.slice(0, -1).join(" ").length > 5;
+
+    // domain related texts are usually shorter, this takes care of the most common cases
+    const isPotentialDomainInfo =
+      splitText.length > 1 && splitText[splitText.length - 1].length < 20;
+
+    // If both conditions are met, remove the last chunk, filter out empty strings,
+    // join on space, trim, and lowercase
+    if (hasEnoughInfo && isPotentialDomainInfo) {
+      return splitText
+        .slice(0, -1) // everything except the last element
+        .map(t => t.trim())
+        .filter(Boolean) // remove empty strings
+        .join(" ") // join with spaces
+        .trim(); // remove leading/trailing spaces
+    }
+
+    // Otherwise, just return the text
+    return text;
   }
 
   /**

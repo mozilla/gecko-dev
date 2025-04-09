@@ -121,7 +121,7 @@ add_task(async function test_clustering() {
   const titles = similarTabs.map(s => s.label);
   Assert.equal(
     titles.length,
-    6,
+    4,
     "Proper number of similar tabs should be returned"
   );
   Assert.equal(
@@ -136,11 +136,6 @@ add_task(async function test_clustering() {
   Assert.equal(
     titles[3],
     "The Influence of Travel Restrictions on the Spread of COVID-19 - Nature"
-  );
-  Assert.equal(titles[4], "Hotel Deals: Save Big on Hotels with Expedia");
-  Assert.equal(
-    titles[5],
-    "Mental Health Trends During COVID-19 - ScienceDirect"
   );
   reportMetrics(singleTabMetrics);
   generateEmbeddingsStub.restore();
