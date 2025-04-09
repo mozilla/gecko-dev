@@ -390,6 +390,13 @@ MDefinition* MWasmLoadInstanceDataField::foldsTo(TempAllocator& alloc) {
   return store->value();
 }
 
+MDefinition* MWasmSelect::foldsTo(TempAllocator& alloc) {
+  if (condExpr()->isConstant()) {
+    return condExpr()->toConstant()->toInt32() != 0 ? trueExpr() : falseExpr();
+  }
+  return this;
+}
+
 bool MWasmLoadGlobalCell::congruentTo(const MDefinition* ins) const {
   if (!ins->isWasmLoadGlobalCell()) {
     return false;

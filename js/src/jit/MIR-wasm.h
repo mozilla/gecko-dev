@@ -1989,6 +1989,13 @@ class MWasmSelect : public MTernaryInstruction, public NoTypePolicy::Data {
     return congruentIfOperandsEqual(ins);
   }
 
+  wasm::MaybeRefType computeWasmRefType() const override {
+    return wasm::MaybeRefType::leastUpperBound(trueExpr()->wasmRefType(),
+                                               falseExpr()->wasmRefType());
+  }
+
+  MDefinition* foldsTo(TempAllocator& alloc) override;
+
   ALLOW_CLONE(MWasmSelect)
 };
 
