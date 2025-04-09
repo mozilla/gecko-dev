@@ -1615,8 +1615,11 @@ class MWasmResultBase : public MNullaryInstruction {
 };
 
 class MWasmRegisterResult : public MWasmResultBase<Register> {
-  MWasmRegisterResult(MIRType type, Register reg)
-      : MWasmResultBase(classOpcode, type, reg) {}
+  MWasmRegisterResult(MIRType type, Register reg,
+                      wasm::MaybeRefType maybeRefType = wasm::MaybeRefType())
+      : MWasmResultBase(classOpcode, type, reg) {
+    initWasmRefType(maybeRefType);
+  }
 
  public:
   INSTRUCTION_HEADER(WasmRegisterResult)

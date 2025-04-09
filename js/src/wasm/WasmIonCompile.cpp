@@ -2514,7 +2514,8 @@ class FunctionCompiler {
             break;
           case wasm::ValType::Ref:
             def = MWasmRegisterResult::New(alloc(), MIRType::WasmAnyRef,
-                                           result.gpr());
+                                           result.gpr(),
+                                           result.type().toMaybeRefType());
             break;
           case wasm::ValType::V128:
 #ifdef ENABLE_WASM_SIMD
