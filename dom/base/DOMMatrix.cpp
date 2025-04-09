@@ -127,12 +127,19 @@ static bool ValidateAndFixupMatrixInit(DOMMatrixInit& aMatrixInit,
 void DOMMatrixReadOnly::SetDataFromMatrix2DInit(
     const DOMMatrix2DInit& aMatrixInit) {
   MOZ_ASSERT(Is2D());
-  mMatrix2D->_11 = aMatrixInit.mM11.Value();
-  mMatrix2D->_12 = aMatrixInit.mM12.Value();
-  mMatrix2D->_21 = aMatrixInit.mM21.Value();
-  mMatrix2D->_22 = aMatrixInit.mM22.Value();
-  mMatrix2D->_31 = aMatrixInit.mM41.Value();
-  mMatrix2D->_32 = aMatrixInit.mM42.Value();
+  *mMatrix2D = ToMatrixDouble(aMatrixInit);
+}
+
+gfx::MatrixDouble DOMMatrixReadOnly::ToMatrixDouble(
+    const DOMMatrix2DInit& aMatrixInit) {
+  gfx::MatrixDouble matrix{};
+  matrix._11 = aMatrixInit.mM11.Value();
+  matrix._12 = aMatrixInit.mM12.Value();
+  matrix._21 = aMatrixInit.mM21.Value();
+  matrix._22 = aMatrixInit.mM22.Value();
+  matrix._31 = aMatrixInit.mM41.Value();
+  matrix._32 = aMatrixInit.mM42.Value();
+  return matrix;
 }
 
 void DOMMatrixReadOnly::SetDataFromMatrixInit(
@@ -173,6 +180,16 @@ already_AddRefed<DOMMatrixReadOnly> DOMMatrixReadOnly::FromMatrix(
       new DOMMatrixReadOnly(aParent, /* is2D */ true);
   matrix->SetDataFromMatrix2DInit(matrixInit);
   return matrix.forget();
+}
+
+gfx::MatrixDouble DOMMatrixReadOnly::ToValidatedMatrixDouble(
+    const DOMMatrix2DInit& aMatrixInit, ErrorResult& aRv) {
+  DOMMatrix2DInit matrixInit(aMatrixInit);
+  if (!ValidateAndFixupMatrix2DInit(matrixInit, aRv)) {
+    return gfx::MatrixDouble{};
+  };
+
+  return ToMatrixDouble(matrixInit);
 }
 
 already_AddRefed<DOMMatrixReadOnly> DOMMatrixReadOnly::FromMatrix(

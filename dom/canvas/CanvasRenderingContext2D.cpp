@@ -7084,13 +7084,10 @@ void CanvasPath::AddPath(CanvasPath& aCanvasPath, const DOMMatrix2DInit& aInit,
   RefPtr<gfx::Path> tempPath =
       aCanvasPath.GetPath(CanvasWindingRule::Nonzero, drawTarget.get());
 
-  RefPtr<DOMMatrixReadOnly> matrix =
-      DOMMatrixReadOnly::FromMatrix(GetParentObject(), aInit, aError);
+  Matrix transform(DOMMatrixReadOnly::ToValidatedMatrixDouble(aInit, aError));
   if (aError.Failed()) {
     return;
   }
-
-  Matrix transform(*(matrix->GetInternal2D()));
 
   if (!transform.IsFinite()) {
     return;
