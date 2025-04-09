@@ -75,7 +75,7 @@ LOCAL_INCLUDES += [ 'lib/decompress' ]
 
 # .S assembler format is incompatible with Microsoft MASM, disable for now
 if CONFIG["OS_ARCH"] == "WINNT":
-    CXXFLAGS += [ '-DZSTD_DISABLE_ASM=1' ]
+    DEFINES["ZSTD_DISABLE_ASM"] = 1
 else:
     # If the assembler format is made compatible, we still need to preprocess it
     if CONFIG["TARGET_CPU"] == "x86_64" and CONFIG["OS_ARCH"] == "WINNT":
