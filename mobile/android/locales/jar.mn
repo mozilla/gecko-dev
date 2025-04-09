@@ -48,6 +48,8 @@ relativesrcdir toolkit/locales:
   toolkit/about                                    (%toolkit/about/*Compat.ftl)
 #about:webrtc
   toolkit/about                                    (%toolkit/about/*Webrtc.ftl)
+#about:logging
+  toolkit/about                                    (%toolkit/about/*Logging.ftl)
 #endif
 # Do not add files below the endif. Reviewers, expand more context above
 # for comments.
