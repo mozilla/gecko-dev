@@ -6,6 +6,8 @@
 
 #include "mozilla/dom/Navigation.h"
 
+#include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/RootedDictionary.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
@@ -310,7 +312,7 @@ void LogEntry(NavigationHistoryEntry* aEntry, uint64_t aIndex, uint64_t aTotal,
 
 // https://html.spec.whatwg.org/#fire-a-traverse-navigate-event
 bool Navigation::FireTraverseNavigateEvent(
-    SessionHistoryInfo* aDestinationSessionHistoryInfo,
+    JSContext* aCx, SessionHistoryInfo* aDestinationSessionHistoryInfo,
     Maybe<UserNavigationInvolvement> aUserInvolvement) {
   // aDestinationSessionHistoryInfo corresponds to
   // https://html.spec.whatwg.org/#fire-navigate-traverse-destinationshe
@@ -348,7 +350,7 @@ bool Navigation::FireTraverseNavigateEvent(
 
   // Step 9
   return InnerFireNavigateEvent(
-      NavigationType::Traverse, destination,
+      aCx, NavigationType::Traverse, destination,
       aUserInvolvement.valueOr(UserNavigationInvolvement::None),
       /* aSourceElement */ nullptr,
       /* aFormDataEntryList*/ Nothing(),
@@ -358,7 +360,7 @@ bool Navigation::FireTraverseNavigateEvent(
 
 // https://html.spec.whatwg.org/#fire-a-push/replace/reload-navigate-event
 bool Navigation::FirePushReplaceReloadNavigateEvent(
-    NavigationType aNavigationType, nsIURI* aDestinationURL,
+    JSContext* aCx, NavigationType aNavigationType, nsIURI* aDestinationURL,
     bool aIsSameDocument, Maybe<UserNavigationInvolvement> aUserInvolvement,
     Element* aSourceElement, Maybe<const FormData&> aFormDataEntryList,
     nsIStructuredCloneContainer* aNavigationAPIState,
@@ -376,7 +378,7 @@ bool Navigation::FirePushReplaceReloadNavigateEvent(
 
   // Step 8
   return InnerFireNavigateEvent(
-      aNavigationType, destination,
+      aCx, aNavigationType, destination,
       aUserInvolvement.valueOr(UserNavigationInvolvement::None), aSourceElement,
       aFormDataEntryList, aClassicHistoryAPIState,
       /* aDownloadRequestFilename */ u""_ns);
@@ -384,8 +386,9 @@ bool Navigation::FirePushReplaceReloadNavigateEvent(
 
 // https://html.spec.whatwg.org/#fire-a-download-request-navigate-event
 bool Navigation::FireDownloadRequestNavigateEvent(
-    nsIURI* aDestinationURL, UserNavigationInvolvement aUserInvolvement,
-    Element* aSourceElement, const nsAString& aFilename) {
+    JSContext* aCx, nsIURI* aDestinationURL,
+    UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
+    const nsAString& aFilename) {
   // To not unnecessarily create an event that's never used, step 1 and step 2
   // in #fire-a-download-request-navigate-event have been moved to after step
   // 25 in #inner-navigate-event-firing-algorithm in our implementation.
@@ -399,7 +402,7 @@ bool Navigation::FireDownloadRequestNavigateEvent(
 
   // Step 8
   return InnerFireNavigateEvent(
-      NavigationType::Push, destination, aUserInvolvement, aSourceElement,
+      aCx, NavigationType::Push, destination, aUserInvolvement, aSourceElement,
       /* aFormDataEntryList */ Nothing(),
       /* aClassicHistoryAPIState */ nullptr, aFilename);
 }
@@ -462,9 +465,29 @@ nsresult Navigation::FireEvent(const nsAString& aName) {
   return rv.StealNSResult();
 }
 
+static void ExtractErrorInformation(JSContext* aCx,
+                                    JS::Handle<JS::Value> aError,
+                                    ErrorEventInit& aErrorEventInitDict) {
+  nsContentUtils::ExtractErrorValues(
+      aCx, aError, aErrorEventInitDict.mFilename, &aErrorEventInitDict.mLineno,
+      &aErrorEventInitDict.mColno, aErrorEventInitDict.mMessage);
+  aErrorEventInitDict.mError = aError;
+  aErrorEventInitDict.mBubbles = false;
+  aErrorEventInitDict.mCancelable = false;
+}
+
+nsresult Navigation::FireErrorEvent(const nsAString& aName,
+                                    const ErrorEventInit& aEventInitDict) {
+  RefPtr<Event> event = ErrorEvent::Constructor(this, aName, aEventInitDict);
+  ErrorResult rv;
+  DispatchEvent(*event, rv);
+  return rv.StealNSResult();
+}
+
 // https://html.spec.whatwg.org/#inner-navigate-event-firing-algorithm
 bool Navigation::InnerFireNavigateEvent(
-    NavigationType aNavigationType, NavigationDestination* aDestination,
+    JSContext* aCx, NavigationType aNavigationType,
+    NavigationDestination* aDestination,
     UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
     Maybe<const FormData&> aFormDataEntryList,
     nsIStructuredCloneContainer* aClassicHistoryAPIState,
@@ -580,7 +603,7 @@ bool Navigation::InnerFireNavigateEvent(
   mOngoingNavigateEvent = event;
 
   // Step 27
-  mFocusChangedDUringOngoingNavigation = false;
+  mFocusChangedDuringOngoingNavigation = false;
 
   // Step 28
   mSuppressNormalScrollRestorationDuringOngoingNavigation = false;
@@ -594,7 +617,7 @@ bool Navigation::InnerFireNavigateEvent(
 
     // Step 30.2
     if (!abortController->Signal()->Aborted()) {
-      AbortOngoingNavigation();
+      AbortOngoingNavigation(aCx);
     }
 
     // Step 30.3
@@ -824,15 +847,71 @@ void Navigation::PromoteUpcomingAPIMethodTrackerToOngoing(
 }
 
 // https://html.spec.whatwg.org/#abort-the-ongoing-navigation
-void Navigation::AbortOngoingNavigation() {}
+void Navigation::AbortOngoingNavigation(JSContext* aCx,
+                                        JS::Handle<JS::Value> aError) {
+  // Step 1
+  RefPtr<NavigateEvent> event = mOngoingNavigateEvent;
+
+  // Step 2
+  MOZ_DIAGNOSTIC_ASSERT(event);
+
+  // Step 3
+  mFocusChangedDuringOngoingNavigation = false;
+
+  // Step 4
+  mSuppressNormalScrollRestorationDuringOngoingNavigation = false;
+
+  JS::Rooted<JS::Value> error(aCx, aError);
+
+  // Step 5
+  if (aError.isUndefined()) {
+    RefPtr<DOMException> exception =
+        DOMException::Create(NS_ERROR_DOM_ABORT_ERR);
+    // It's OK if this fails, it just means that we'll get an empty error
+    // dictionary below.
+    GetOrCreateDOMReflector(aCx, exception, &error);
+  }
+
+  // Step 6
+  if (event->HasBeenDispatched()) {
+    event->PreventDefault();
+  }
+
+  // Step 7
+  event->AbortController()->Abort(aCx, error);
+
+  // Step 8
+  mOngoingNavigateEvent = nullptr;
+
+  // Step 9
+  RootedDictionary<ErrorEventInit> init(aCx);
+  ExtractErrorInformation(aCx, error, init);
+
+  // Step 10
+  FireErrorEvent(u"navigateerror"_ns, init);
+
+  // Step 11
+  if (mOngoingAPIMethodTracker) {
+    mOngoingAPIMethodTracker->mFinishedPromise->MaybeReject(error);
+  }
+
+  // Step 12
+  if (mTransition) {
+    // Step 12.1
+    mTransition->Finished()->MaybeReject(error);
+
+    // Step 12.2
+    mTransition = nullptr;
+  }
+}
 
 bool Navigation::FocusedChangedDuringOngoingNavigation() const {
-  return mFocusChangedDUringOngoingNavigation;
+  return mFocusChangedDuringOngoingNavigation;
 }
 
 void Navigation::SetFocusedChangedDuringOngoingNavigation(
     bool aFocusChangedDUringOngoingNavigation) {
-  mFocusChangedDUringOngoingNavigation = aFocusChangedDUringOngoingNavigation;
+  mFocusChangedDuringOngoingNavigation = aFocusChangedDUringOngoingNavigation;
 }
 
 void Navigation::LogHistory() const {
