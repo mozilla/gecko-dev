@@ -28,7 +28,7 @@ export class SharedDataMap extends EventEmitter {
 
     if (this.isParent) {
       if (!this._checkIfShutdownStarted()) {
-        lazy.AsyncShutdown.quitApplicationGranted.addBlocker(
+        lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
           "SharedDataMap: shutting down before init finished",
           this._shutdownBlocker
         );
@@ -62,7 +62,7 @@ export class SharedDataMap extends EventEmitter {
         this._checkIfReady();
 
         // Once we finished init, we do not need the blocker anymore.
-        lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+        lazy.AsyncShutdown.appShutdownConfirmed.removeBlocker(
           this._shutdownBlocker
         );
       } catch (e) {
@@ -186,7 +186,7 @@ export class SharedDataMap extends EventEmitter {
       // This will unblock anybody waiting for our init and leave data == null
       // if it was not yet initialized, making get() return null.
       this._readyDeferred.reject();
-      lazy.AsyncShutdown.quitApplicationGranted.removeBlocker(
+      lazy.AsyncShutdown.appShutdownConfirmed.removeBlocker(
         this._shutdownBlocker
       );
       return true;
