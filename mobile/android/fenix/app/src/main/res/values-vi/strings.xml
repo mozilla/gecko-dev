@@ -770,6 +770,10 @@
   <string name="preferences_add_private_browsing_shortcut">Thêm lối tắt duyệt web riêng tư</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Chế độ chỉ HTTPS</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">Sử dụng khóa màn hình để ẩn các thẻ trong chế độ duyệt riêng tư</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary">Xem các thẻ bằng cách mở khoá dùng dấu vân tay, khuôn mặt hoặc mã PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Trình chặn biểu ngữ cookie</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -3432,8 +3436,40 @@
   <string name="text_field_eye_trailing_icon_default_content_description">Hiển thị văn bản bị ẩn</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Xoá văn bản</string>
+  <!--
+    Setup checklist feature
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser">Đặt làm trình duyệt mặc định</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync">Đăng nhập vào tài khoản của bạn</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection">Chọn một chủ đề</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">Chọn vị trí thanh công cụ</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions">Khám phá tiện ích mở rộng</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">Cài đặt widget tìm kiếm</string>
+  <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_essentials">Cài đặt cơ bản cho %1$s</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize">Tuỳ chỉnh %1$s của bạn</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools">Công cụ hữu ích</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Tác vụ đã hoàn thành</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Biểu tượng tác vụ</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">Rời khỏi các thẻ riêng tư</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Mở khóa</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Mở khóa thẻ riêng tư</string>
 </resources>
