@@ -3440,23 +3440,23 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Varsayılan tarayıcı yap</string>
+  <string name="setup_checklist_task_default_browser">Varsayılan tarayıcı yap</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Hesabınıza giriş yapın</string>
+  <string name="setup_checklist_task_account_sync">Hesabınıza giriş yapın</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Tema seçin</string>
+  <string name="setup_checklist_task_theme_selection">Tema seçin</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Araç çubuğu konumunu seçin</string>
+  <string name="setup_checklist_task_toolbar_selection">Araç çubuğu konumunu seçin</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Uzantıları keşfedin</string>
+  <string name="setup_checklist_task_explore_extensions">Uzantıları keşfedin</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Arama widget’ını yükleyin</string>
+  <string name="setup_checklist_task_search_widget">Arama widget’ını yükleyin</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">%1$s temelleri</string>
+  <string name="setup_checklist_group_essentials">%1$s temelleri</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">%1$s tarayıcınızı özelleştirin</string>
+  <string name="setup_checklist_group_customize">%1$s tarayıcınızı özelleştirin</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Faydalı araçlar</string>
+  <string name="setup_checklist_group_helpful_tools">Faydalı araçlar</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Tamamlanmış görev</string>
   <!-- Accessibility description for the task icon -->

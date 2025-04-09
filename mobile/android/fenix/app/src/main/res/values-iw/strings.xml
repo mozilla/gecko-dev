@@ -3432,21 +3432,21 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">הגדרה כדפדפן ברירת המחדל</string>
+  <string name="setup_checklist_task_default_browser">הגדרה כדפדפן ברירת המחדל</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">כניסה לחשבון שלך</string>
+  <string name="setup_checklist_task_account_sync">כניסה לחשבון שלך</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">בחירת ערכת נושא</string>
+  <string name="setup_checklist_task_theme_selection">בחירת ערכת נושא</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">בחירת מיקום סרגל הכלים</string>
+  <string name="setup_checklist_task_toolbar_selection">בחירת מיקום סרגל הכלים</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">עיון בהרחבות</string>
+  <string name="setup_checklist_task_explore_extensions">עיון בהרחבות</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">התקנת ווידג’ט חיפוש</string>
+  <string name="setup_checklist_task_search_widget">התקנת ווידג’ט חיפוש</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">התאמה אישית של ה־%1$s שלך</string>
+  <string name="setup_checklist_group_customize">התאמה אישית של ה־%1$s שלך</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">כלים מועילים</string>
+  <string name="setup_checklist_group_helpful_tools">כלים מועילים</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">משימה שהושלמה</string>
   <!-- Accessibility description for the task icon -->

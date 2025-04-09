@@ -3441,23 +3441,23 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Ezarri nabigatzaile lehenetsi gisa</string>
+  <string name="setup_checklist_task_default_browser">Ezarri nabigatzaile lehenetsi gisa</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Hasi saioa zure kontuan</string>
+  <string name="setup_checklist_task_account_sync">Hasi saioa zure kontuan</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Hautatu itxura</string>
+  <string name="setup_checklist_task_theme_selection">Hautatu itxura</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Aukeratu tresna-barraren kokapena</string>
+  <string name="setup_checklist_task_toolbar_selection">Aukeratu tresna-barraren kokapena</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Arakatu hedapenak</string>
+  <string name="setup_checklist_task_explore_extensions">Arakatu hedapenak</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Instalatu bilaketarako widgeta</string>
+  <string name="setup_checklist_task_search_widget">Instalatu bilaketarako widgeta</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">%1$s funtsezkoak</string>
+  <string name="setup_checklist_group_essentials">%1$s funtsezkoak</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">Pertsonalizatu zure %1$s</string>
+  <string name="setup_checklist_group_customize">Pertsonalizatu zure %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Tresna lagungarriak</string>
+  <string name="setup_checklist_group_helpful_tools">Tresna lagungarriak</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Burututako zeregina</string>
   <!-- Accessibility description for the task icon -->

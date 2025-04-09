@@ -3421,17 +3421,17 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Nastavi kot privzeti brskalnik</string>
+  <string name="setup_checklist_task_default_browser">Nastavi kot privzeti brskalnik</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Prijavite se v račun</string>
+  <string name="setup_checklist_task_account_sync">Prijavite se v račun</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Izberite temo</string>
+  <string name="setup_checklist_task_theme_selection">Izberite temo</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Izberite postavitev orodne vrstice</string>
+  <string name="setup_checklist_task_toolbar_selection">Izberite postavitev orodne vrstice</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Razišči razširitve</string>
+  <string name="setup_checklist_task_explore_extensions">Razišči razširitve</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Koristna orodja</string>
+  <string name="setup_checklist_group_helpful_tools">Koristna orodja</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Dokončano opravilo</string>
   <!-- Accessibility description for the task icon -->

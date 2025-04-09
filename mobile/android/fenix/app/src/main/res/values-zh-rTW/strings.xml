@@ -3440,23 +3440,23 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">設為預設瀏覽器</string>
+  <string name="setup_checklist_task_default_browser">設為預設瀏覽器</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">登入帳號</string>
+  <string name="setup_checklist_task_account_sync">登入帳號</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">選擇一套佈景主題</string>
+  <string name="setup_checklist_task_theme_selection">選擇一套佈景主題</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">選擇工具列放置位置</string>
+  <string name="setup_checklist_task_toolbar_selection">選擇工具列放置位置</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">探索擴充套件</string>
+  <string name="setup_checklist_task_explore_extensions">探索擴充套件</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">安裝搜尋小工具</string>
+  <string name="setup_checklist_task_search_widget">安裝搜尋小工具</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">%1$s 必備設定</string>
+  <string name="setup_checklist_group_essentials">%1$s 必備設定</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">自訂您的 %1$s</string>
+  <string name="setup_checklist_group_customize">自訂您的 %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">有用工具</string>
+  <string name="setup_checklist_group_helpful_tools">有用工具</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">已完成的任務</string>
   <!-- Accessibility description for the task icon -->

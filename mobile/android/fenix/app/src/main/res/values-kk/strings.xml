@@ -3360,7 +3360,7 @@
   <!-- The default content description for the cross trailing icon button in TextField -->
   <string name="text_field_cross_trailing_icon_default_content_description">Мәтінді тазарту</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Пайдалы құралдар</string>
+  <string name="setup_checklist_group_helpful_tools">Пайдалы құралдар</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Аяқталған тапсырма</string>
 </resources>

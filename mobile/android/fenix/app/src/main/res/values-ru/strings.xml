@@ -3441,23 +3441,23 @@
 
     The title of the default browser task for the setup checklist
   -->
-  <string name="setup_checklist_task_default_browser" tools:ignore="UnusedResources">Установить браузером по умолчанию</string>
+  <string name="setup_checklist_task_default_browser">Установить браузером по умолчанию</string>
   <!-- The title of the sign-in task for the setup checklist -->
-  <string name="setup_checklist_task_account_sync" tools:ignore="UnusedResources">Войдите в свой аккаунт</string>
+  <string name="setup_checklist_task_account_sync">Войдите в свой аккаунт</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection" tools:ignore="UnusedResources">Выберите тему</string>
+  <string name="setup_checklist_task_theme_selection">Выберите тему</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
-  <string name="setup_checklist_task_toolbar_selection" tools:ignore="UnusedResources">Выберите расположение панели инструментов</string>
+  <string name="setup_checklist_task_toolbar_selection">Выберите расположение панели инструментов</string>
   <!-- The title of the explore extensions task for the setup checklist -->
-  <string name="setup_checklist_task_explore_extensions" tools:ignore="UnusedResources">Откройте для себя расширения</string>
+  <string name="setup_checklist_task_explore_extensions">Откройте для себя расширения</string>
   <!-- The title of the search widget task for the setup checklist -->
-  <string name="setup_checklist_task_search_widget" tools:ignore="UnusedResources">Установить виджет поиска</string>
+  <string name="setup_checklist_task_search_widget">Установить виджет поиска</string>
   <!-- The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_essentials" tools:ignore="UnusedResources">Основное для %1$s</string>
+  <string name="setup_checklist_group_essentials">Основное для %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_group_customize" tools:ignore="UnusedResources">Настройте свой %1$s</string>
+  <string name="setup_checklist_group_customize">Настройте свой %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
-  <string name="setup_checklist_group_helpful_tools" tools:ignore="UnusedResources">Полезные инструменты</string>
+  <string name="setup_checklist_group_helpful_tools">Полезные инструменты</string>
   <!-- Accessibility description for a check mark on a completed task -->
   <string name="a11y_completed_task_description">Выполненная задача</string>
   <!-- Accessibility description for the task icon -->
