@@ -18426,6 +18426,13 @@
   type: RelaxedAtomicBool
   value: false
   mirror: always
+
+# Get DMABuf format feedback from compositor.
+# For testing only
+- name: widget.dmabuf-feedback.enabled
+  type: bool
+  value: true
+  mirror: once
 #endif
 
 # Use DMABuf backend for WebGL.

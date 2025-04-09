@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include "ScreenHelperGTK.h"
 #include "DMABufFormats.h"
+#include "mozilla/gfx/gfxVars.h"
 
 #undef LOG
 #ifdef MOZ_LOGGING
@@ -447,6 +448,12 @@ bool WaylandSurface::CreateViewportLocked(
 void WaylandSurface::EnableDMABufFormatsLocked(
     const WaylandSurfaceLock& aProofOfLock,
     const std::function<void(DMABufFormats*)>& aFormatRefreshCB) {
+  // Ignore DMABuf feedback requests if we export dmabuf surfaces
+  // directly from EGLImage.
+  if (gfx::gfxVars::UseDMABufSurfaceExport()) {
+    return;
+  }
+
   mUseDMABufFormats = true;
   mDMABufFormatRefreshCallback = aFormatRefreshCB;
 
