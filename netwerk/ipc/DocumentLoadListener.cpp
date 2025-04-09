@@ -159,9 +159,9 @@ static auto CreateDocumentLoadInfo(CanonicalBrowsingContext* aBrowsingContext,
         sandboxFlags);
   }
 
-  bool isPrivateWin = aBrowsingContext->UsePrivateBrowsing();
   if (aLoadState->IsExemptFromHTTPSFirstMode() &&
-      nsHTTPSOnlyUtils::IsHttpsFirstModeEnabled(isPrivateWin)) {
+      nsHTTPSOnlyUtils::GetUpgradeMode(loadInfo) ==
+          nsHTTPSOnlyUtils::HTTPS_FIRST_MODE) {
     uint32_t httpsOnlyStatus = loadInfo->GetHttpsOnlyStatus();
     httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_EXEMPT;
     loadInfo->SetHttpsOnlyStatus(httpsOnlyStatus);
@@ -2627,8 +2627,8 @@ nsresult DocumentLoadListener::DoOnStartRequest(nsIRequest* aRequest) {
   // do not kick in.
   if (httpChannel) {
     nsCOMPtr<nsILoadInfo> loadInfo = httpChannel->LoadInfo();
-    bool isPrivateWin = loadInfo->GetOriginAttributes().IsPrivateBrowsing();
-    if (nsHTTPSOnlyUtils::IsHttpsOnlyModeEnabled(isPrivateWin)) {
+    if (nsHTTPSOnlyUtils::GetUpgradeMode(loadInfo) ==
+        nsHTTPSOnlyUtils::HTTPS_ONLY_MODE) {
       uint32_t httpsOnlyStatus = loadInfo->GetHttpsOnlyStatus();
       httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_TOP_LEVEL_LOAD_IN_PROGRESS;
       loadInfo->SetHttpsOnlyStatus(httpsOnlyStatus);

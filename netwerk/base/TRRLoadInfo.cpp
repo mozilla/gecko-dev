@@ -904,7 +904,8 @@ TRRLoadInfo::SetHasInjectedCookieForCookieBannerHandling(
 NS_IMETHODIMP
 TRRLoadInfo::GetSchemelessInput(
     nsILoadInfo::SchemelessInputType* aSchemelessInput) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *aSchemelessInput = nsILoadInfo::SchemelessInputTypeUnset;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
