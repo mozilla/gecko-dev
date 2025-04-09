@@ -266,10 +266,20 @@ function displayErrorMessage(error) {
   err.hidden = false;
 
   var errorDescription = $("#error-description");
-  document.l10n.setAttributes(errorDescription, error.l10nId, {
-    k: error.key,
-    v: error.value,
-  });
+  if (error instanceof ParseError) {
+    document.l10n.setAttributes(errorDescription, error.l10nId, {
+      k: error.key,
+      v: error.value,
+    });
+  } else {
+    document.l10n.setAttributes(
+      errorDescription,
+      "about-logging-unknown-error",
+      {
+        errorText: String(error),
+      }
+    );
+  }
 }
 
 class ParseError extends Error {
@@ -782,14 +792,19 @@ function startLogging() {
 }
 
 async function stopLogging() {
-  if (gLoggingSettings.loggingOutputType === "profiler") {
-    await captureProfile();
-  } else {
-    Services.prefs.clearUserPref("logging.config.LOG_FILE");
-    updateLogFile();
+  try {
+    if (gLoggingSettings.loggingOutputType === "profiler") {
+      await captureProfile();
+    } else {
+      Services.prefs.clearUserPref("logging.config.LOG_FILE");
+      updateLogFile();
+    }
+    Services.prefs.setBoolPref("logging.config.running", false);
+    clearLogModules();
+  } catch (e) {
+    console.error("Unknown error when stopping the logging", e);
+    displayErrorMessage(e);
   }
-  Services.prefs.setBoolPref("logging.config.running", false);
-  clearLogModules();
 }
 
 // We use the pageshow event instead of onload. This is needed because sometimes

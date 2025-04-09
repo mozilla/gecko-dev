@@ -587,5 +587,26 @@ add_task(async function testAndroidUI() {
       "https://profiler.firefox.com/public/24j1wmckznh8sj22zg1tsmg47dyfdtprj0g41s8",
       "The profiler URL is displayed."
     );
+
+    // Test the error case
+    info("Test the error case, uploading to a 404");
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "toolkit.aboutlogging.uploadProfileUrl",
+          "https://api.profiler.firefox.com/NONEXISTENT",
+        ],
+      ],
+    });
+    EventUtils.synthesizeMouseAtCenter(uploadButton, {}, window);
+    const errorText = await getElementFromDocumentByText(
+      document,
+      "An error happened while uploading the profile"
+    );
+    is(
+      errorText.textContent,
+      "An error happened while uploading the profile: Error: xhr onload with status != 200, xhr.statusText: Not Found",
+      "The error is output to the user."
+    );
   });
 });

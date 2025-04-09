@@ -69,8 +69,15 @@ about-logging-invalid-output = Invalid value “{ $v }“ for key “{ $k }“
 about-logging-unknown-logging-preset = Unknown logging preset “{ $v }“
 about-logging-unknown-profiler-preset = Unknown profiler preset “{ $v }“
 about-logging-unknown-option = Unknown about:logging option “{ $k }“
+
+##
+
 about-logging-configuration-url-ignored = Configuration URL ignored
 about-logging-file-and-profiler-override = Can’t force file output and override profiler options at the same time
+
+# Variables:
+#   $errorText (string) - The received error message, inserted as is.
+about-logging-unknown-error = An error happened: { $errorText }
 
 about-logging-configured-via-url = Option configured via URL
 
@@ -93,3 +100,9 @@ about-logging-uploading-progress = Uploading profile data: { NUMBER($percent, ma
 #   $url (string) - The URL where the profile can be found
 about-logging-uploaded = Uploaded to <a data-l10n-name="uploaded-message-url">{ $url }</a>
 about-logging-share-uploaded-url = <img data-l10n-name="share-image"/> Share URL
+# Variables:
+#   $errorText (string) - The received error message, inserted as is.
+about-logging-upload-error = An error happened while uploading the profile: { $errorText }
+# Variables:
+#   $errorText (string) - The received error message, inserted as is.
+about-logging-save-error = An error happened while saving the file: { $errorText }

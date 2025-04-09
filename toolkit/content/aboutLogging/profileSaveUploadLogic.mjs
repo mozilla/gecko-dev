@@ -70,6 +70,7 @@ export class ProfileSaveOrUploadDialog {
   #uploadingProgressElement = $("#uploading-progress-element");
   // The message after saving a profile to a file.
   #savedMessage = $("#saved-message");
+  #errorElement = $("#save-upload-error");
   /**
    * The gzipped profile data
    * @type {Uint8Array | null}
@@ -77,7 +78,7 @@ export class ProfileSaveOrUploadDialog {
   #profileData = null;
   /**
    * This controls which elements are displayed. See #updateVisibilities.
-   * @type {"idle" | "uploading" | "uploaded" | "saved"}
+   * @type {"idle" | "uploading" | "uploaded" | "saved" | "error"}
    */
   #state = "idle";
 
@@ -108,7 +109,7 @@ export class ProfileSaveOrUploadDialog {
 
   /**
    * Set the state and update the visibility of the various elements.
-   * @param {"idle" | "uploading" | "uploaded" | "saved"} state
+   * @param {"idle" | "uploading" | "uploaded" | "saved" | "error"} state
    */
   #setState(state) {
     this.#state = state;
@@ -125,6 +126,7 @@ export class ProfileSaveOrUploadDialog {
       this.#uploadedMessageContainer,
       this.#uploadingProgressContainer,
       this.#savedMessage,
+      this.#errorElement,
     ].forEach(elt => (elt.hidden = true));
     switch (this.#state) {
       case "idle":
@@ -139,6 +141,9 @@ export class ProfileSaveOrUploadDialog {
         break;
       case "saved":
         this.#savedMessage.hidden = false;
+        break;
+      case "error":
+        this.#errorElement.hidden = false;
         break;
       default:
         throw new Error(`Unknown state "${this.#state}"`);
@@ -227,16 +232,26 @@ export class ProfileSaveOrUploadDialog {
    * @returns {Promise<void>}
    */
   #saveProfileLocally = async () => {
-    const dirPath = await lazy.Downloads.getPreferredDownloadsDirectory();
-    const filePath = await IOUtils.createUniqueFile(
-      dirPath,
-      "profile-" + getStringifiedDateAndTime(new Date()) + ".json.gz"
-    );
-    await IOUtils.write(filePath, this.#profileData);
-    document.l10n.setArgs(this.#savedMessage, {
-      path: filePath,
-    });
-    this.#setState("saved");
+    try {
+      const dirPath = await lazy.Downloads.getPreferredDownloadsDirectory();
+      const filePath = await IOUtils.createUniqueFile(
+        dirPath,
+        "profile-" + getStringifiedDateAndTime(new Date()) + ".json.gz"
+      );
+      await IOUtils.write(filePath, this.#profileData);
+      document.l10n.setArgs(this.#savedMessage, {
+        path: filePath,
+      });
+      this.#setState("saved");
+    } catch (e) {
+      console.error("Error while saving", e);
+      this.#setState("error");
+      document.l10n.setAttributes(
+        this.#errorElement,
+        "about-logging-save-error",
+        { errorText: String(e) }
+      );
+    }
   };
 
   /**
@@ -247,23 +262,33 @@ export class ProfileSaveOrUploadDialog {
     if (this.#state === "uploading") {
       return;
     }
-    this.#setState("uploading");
-    const uploadResult = await this.#doUploadProfileData({
-      onProgress: val => {
-        this.#setProgressValue(val);
-      },
-    });
+    try {
+      this.#setState("uploading");
+      const uploadResult = await this.#doUploadProfileData({
+        onProgress: val => {
+          this.#setProgressValue(val);
+        },
+      });
 
-    const { extractProfileTokenFromJwt } = await import(
-      "chrome://global/content/aboutLogging/jwt.mjs"
-    );
-    const hash = extractProfileTokenFromJwt(uploadResult);
-    const profileUrl = "https://profiler.firefox.com/public/" + hash;
-    document.l10n.setArgs(this.#uploadedMessageText, {
-      url: profileUrl,
-    });
-    this.#uploadedUrl.href = profileUrl;
-    this.#setState("uploaded");
+      const { extractProfileTokenFromJwt } = await import(
+        "chrome://global/content/aboutLogging/jwt.mjs"
+      );
+      const hash = extractProfileTokenFromJwt(uploadResult);
+      const profileUrl = "https://profiler.firefox.com/public/" + hash;
+      document.l10n.setArgs(this.#uploadedMessageText, {
+        url: profileUrl,
+      });
+      this.#uploadedUrl.href = profileUrl;
+      this.#setState("uploaded");
+    } catch (e) {
+      console.error("Error while uploading", e);
+      this.#setState("error");
+      document.l10n.setAttributes(
+        this.#errorElement,
+        "about-logging-upload-error",
+        { errorText: String(e) }
+      );
+    }
   };
 
   /**
