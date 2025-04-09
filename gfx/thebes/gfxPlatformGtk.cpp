@@ -323,7 +323,7 @@ void gfxPlatformGtk::InitWebRenderConfig() {
   // HDR requires compositor to work
 #if defined(MOZ_WAYLAND)
   if (StaticPrefs::gfx_wayland_hdr_AtStartup()) {
-    feature.EnableByDefault();
+    feature.UserForceEnable("Requested for HDR");
   }
   if (feature.IsEnabled()) {
     if (!StaticPrefs::gfx_wayland_hdr_AtStartup()) {
