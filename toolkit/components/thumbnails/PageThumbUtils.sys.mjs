@@ -174,10 +174,12 @@ export var PageThumbUtils = {
     context.fillRect(0, 0, width, canvasHeight);
     context.drawImage(image, 0, 0, width, height);
 
+    let imgData = context.getImageData(0, 0, width, canvasHeight);
+
     return {
       width,
       height: canvasHeight,
-      imageData: canvas.toDataURL(),
+      imageData: imgData.data,
     };
   },
 

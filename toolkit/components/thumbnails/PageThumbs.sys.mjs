@@ -355,16 +355,17 @@ export var PageThumbs = {
       "canvas"
     );
 
-    let image;
+    let ctx = thumbnail.getContext("2d");
     if (contentInfo.imageData) {
       thumbnail.width = contentWidth;
       thumbnail.height = contentHeight;
 
-      image = new aBrowser.ownerGlobal.Image();
-      await new Promise(resolve => {
-        image.onload = resolve;
-        image.src = contentInfo.imageData;
-      });
+      let imageData = new aBrowser.ownerGlobal.ImageData(
+        contentInfo.imageData,
+        contentWidth,
+        contentHeight
+      );
+      ctx.putImageData(imageData, 0, 0);
     } else {
       let fullScale = aArgs ? aArgs.fullScale : false;
       let targetWidth = aArgs.targetWidth ? aArgs.targetWidth : aWidth;
@@ -383,7 +384,7 @@ export var PageThumbs = {
         scale = Math.min(targetScale, 1);
       }
 
-      image = await aBrowser.drawSnapshot(
+      let image = await aBrowser.drawSnapshot(
         0,
         0,
         contentWidth,
@@ -403,9 +404,8 @@ export var PageThumbs = {
         thumbnail.width = fullScale ? contentWidth : aWidth;
         thumbnail.height = fullScale ? contentHeight : aHeight;
       }
+      ctx.drawImage(image, 0, 0);
     }
-
-    thumbnail.getContext("2d").drawImage(image, 0, 0);
 
     return thumbnail;
   },
