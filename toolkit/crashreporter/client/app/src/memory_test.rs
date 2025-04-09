@@ -28,7 +28,7 @@ pub fn main() {
             std::process::exit(1);
         }
     };
-    let mut memory = vec![0; mem_usize_count];
+    let mut memory = allocate_memory(mem_usize_count);
 
     let memtest_runner_result = MemtestRunner::from_test_kinds(&memtest_runner_args, memtest_kinds)
         .run(&mut memory)
@@ -95,6 +95,15 @@ fn get_memtest_kinds() -> anyhow::Result<Vec<MemtestKind>> {
     }
 
     Ok(kinds)
+}
+
+fn allocate_memory(mut mem_usize_count: usize) -> Vec<usize> {
+    let mut memory = Vec::new();
+    while mem_usize_count > 0 && memory.try_reserve_exact(mem_usize_count).is_err() {
+        mem_usize_count /= 2;
+    }
+    memory.resize(mem_usize_count, 0);
+    memory
 }
 
 /// Encapsulated logic for launching and interacting with a memory testing process.
