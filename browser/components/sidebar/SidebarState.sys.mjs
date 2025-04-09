@@ -44,6 +44,7 @@ const SIDEBAR_MAXIMUM_WIDTH = "75vw";
 
 const LEGACY_USED_PREF = "sidebar.old-sidebar.has-used";
 const REVAMP_USED_PREF = "sidebar.new-sidebar.has-used";
+const DEFAULT_LAUNCHER_VISIBLE_PREF = "sidebar.revamp.defaultLauncherVisible";
 
 /**
  * A reactive data store for the sidebar's UI state. Similar to Lit's
@@ -54,16 +55,15 @@ export class SidebarState {
   #controller = null;
   /** @type {SidebarStateProps} */
   #props = {
-    panelOpen: false,
-    launcherVisible: true,
-    launcherExpanded: false,
-    launcherDragActive: false,
-    launcherHoverActive: false,
+    ...SidebarState.defaultProperties,
   };
 
+  /** @type {SidebarStateProps} */
   static defaultProperties = Object.freeze({
     command: "",
+    launcherDragActive: false,
     launcherExpanded: false,
+    launcherHoverActive: false,
     launcherVisible: false,
     panelOpen: false,
   });
@@ -80,6 +80,10 @@ export class SidebarState {
     this.#controller = controller;
     this.revampEnabled = controller.sidebarRevampEnabled;
     this.revampVisibility = controller.sidebarRevampVisibility;
+
+    if (this.revampEnabled) {
+      this.#props.launcherVisible = this.defaultLauncherVisible;
+    }
   }
 
   /**
@@ -135,7 +139,7 @@ export class SidebarState {
       // Don't show launcher if we're in a popup window.
       this.launcherVisible = false;
     } else {
-      this.launcherVisible = true;
+      this.launcherVisible = this.defaultLauncherVisible;
     }
 
     // Explicitly trigger effects to ensure that the UI is kept up to date.
@@ -153,6 +157,11 @@ export class SidebarState {
    *   New properties to overwrite the default state with.
    */
   loadInitialState(props) {
+    // Override any initial launcher visible state when the pref is defined
+    if (Services.prefs.prefHasUserValue(DEFAULT_LAUNCHER_VISIBLE_PREF)) {
+      props.launcherVisible = this.defaultLauncherVisible;
+      delete props.hidden;
+    }
     for (const [key, value] of Object.entries(props)) {
       if (value === undefined) {
         // `undefined` means we should use the default value.
@@ -267,6 +276,18 @@ export class SidebarState {
     this.#launcherContainerEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
   }
 
+  get defaultLauncherVisible() {
+    if (!this.revampEnabled) {
+      return false;
+    }
+
+    // default/fallback value for vertical tabs is to always be visible initially
+    if (lazy.verticalTabsEnabled) {
+      return true;
+    }
+    return this.#controller.revampDefaultLauncherVisible;
+  }
+
   get launcherVisible() {
     return this.#props.launcherVisible;
   }
@@ -275,9 +296,13 @@ export class SidebarState {
    * Update the launcher `visible` and `expanded` states
    *
    * @param {boolean} visible
+   *                  Show or hide the launcher. Defaults to the value returned by the defaultLauncherVisible getter
    * @param {boolean} forceExpandValue
    */
-  updateVisibility(visible, forceExpandValue = null) {
+  updateVisibility(
+    visible = this.defaultLauncherVisible,
+    forceExpandValue = null
+  ) {
     switch (this.revampVisibility) {
       case "hide-sidebar":
         if (lazy.verticalTabsEnabled) {

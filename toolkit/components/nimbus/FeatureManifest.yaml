@@ -4328,6 +4328,12 @@ sidebar:
   owner: elee@mozilla.com
   hasExposure: false
   variables:
+    defaultLauncherVisible:
+      type: boolean
+      setPref:
+        branch: user
+        pref: sidebar.revamp.defaultLauncherVisible
+      description: Change the initial visibleness of the sidebar launcher with horizontal tabs; true to make the launcher visible by default
     minVersion:
       type: string
       description: Minimum Firefox version to apply prefs

@@ -797,7 +797,9 @@ var SidebarController = {
         Services.prefs.setBoolPref("sidebar.verticalTabs", false);
       }
     } else {
-      this._state.launcherVisible = true;
+      // initial launcher visibleness with sidebar.revamp is is one of the
+      // default properties managed by SidebarState
+      this._state.launcherVisible = this._state.defaultLauncherVisible;
     }
     if (!this._sidebars.get(this.lastOpenedId)) {
       this.lastOpenedId = this.DEFAULT_SIDEBAR_ID;
@@ -2169,6 +2171,21 @@ XPCOMUtils.defineLazyPreferenceGetter(
       !SidebarController.inSingleTabWindow
     ) {
       SidebarController.recordTabsLayoutSetting(newValue);
+    }
+  }
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  SidebarController,
+  "revampDefaultLauncherVisible",
+  "sidebar.revamp.defaultLauncherVisible",
+  false,
+  (_aPreference, _previousValue, _newValue) => {
+    if (
+      !SidebarController.uninitializing &&
+      !SidebarController.inSingleTabWindow
+    ) {
+      SidebarController._state.updateVisibility();
     }
   }
 );
