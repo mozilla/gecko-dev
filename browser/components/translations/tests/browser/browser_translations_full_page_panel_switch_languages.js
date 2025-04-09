@@ -22,7 +22,7 @@ add_task(async function test_translations_panel_switch_language() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   const { translateButton } = FullPageTranslationsPanel.elements;

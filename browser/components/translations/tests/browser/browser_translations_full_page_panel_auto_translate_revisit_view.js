@@ -32,7 +32,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
 

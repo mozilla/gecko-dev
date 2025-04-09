@@ -20,7 +20,7 @@ add_task(async function test_translations_telemetry_retranslate() {
   await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.changeSelectedFromLanguage({

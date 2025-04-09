@@ -28,7 +28,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     ok(
       !fromMenuList.querySelector('[value="ja"]'),
@@ -53,7 +53,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     ok(
       fromMenuList.querySelector('[value="ja"]'),
@@ -75,7 +75,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     ok(
       !fromMenuList.querySelector('[value="ja"]'),
@@ -97,7 +97,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     ok(
       !fromMenuList.querySelector('[value="ja"]'),
@@ -119,7 +119,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     ok(
       fromMenuList.querySelector('[value="ja"]'),

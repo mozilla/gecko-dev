@@ -27,7 +27,7 @@ add_task(async function test_translations_panel_auto_offer_settings() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
   await FullPageTranslationsTestUtils.assertIsAlwaysOfferTranslationsEnabled(
@@ -61,7 +61,7 @@ add_task(async function test_translations_panel_auto_offer_settings() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
   await FullPageTranslationsTestUtils.assertIsAlwaysOfferTranslationsEnabled(
     true
@@ -97,7 +97,7 @@ add_task(async function test_translations_panel_auto_offer_settings() {
     "Wait for the popup to be shown when navigating to a different host.",
     {
       url: SPANISH_PAGE_URL_DOT_ORG,
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     }
   );
 

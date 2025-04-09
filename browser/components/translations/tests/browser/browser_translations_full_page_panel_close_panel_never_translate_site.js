@@ -20,7 +20,7 @@ add_task(async function test_panel_closes_on_toggle_never_translate_site() {
     openFromAppMenu: true,
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
@@ -60,7 +60,7 @@ add_task(
       openFromAppMenu: true,
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
 
@@ -128,7 +128,7 @@ add_task(
       openFromAppMenu: true,
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
 
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
@@ -145,7 +145,7 @@ add_task(
       openFromAppMenu: true,
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
 

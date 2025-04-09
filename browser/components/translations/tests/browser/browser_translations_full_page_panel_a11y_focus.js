@@ -21,7 +21,7 @@ add_task(async function test_translations_panel_a11y_focus() {
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
     openWithKeyboard: true,
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   is(

@@ -36,14 +36,14 @@ add_task(async function test_translations_moz_extension() {
       "The button is available."
     );
 
-  is(button.getAttribute("data-l10n-id"), "urlbar-translations-button2");
+  is(button.getAttribute("data-l10n-id"), "urlbar-translations-button-intro");
 
   await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.clickTranslateButton({

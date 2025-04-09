@@ -75,7 +75,7 @@ add_task(async function test_translations_persist_in_reader_mode() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.clickTranslateButton({

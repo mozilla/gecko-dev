@@ -21,7 +21,7 @@ add_task(
       openFromAppMenu: true,
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
 
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
@@ -86,7 +86,7 @@ add_task(
       openFromAppMenu: true,
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
 
     await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();

@@ -22,8 +22,10 @@ add_task(async function test_unsupported_lang() {
       FullPageTranslationsTestUtils.assertPanelViewUnsupportedLanguage,
   });
 
-  await FullPageTranslationsTestUtils.clickChangeSourceLanguageButton();
-  FullPageTranslationsTestUtils.assertPanelViewDefault();
+  await FullPageTranslationsTestUtils.clickChangeSourceLanguageButton({
+    intro: true,
+  });
+  FullPageTranslationsTestUtils.assertPanelViewIntro();
   FullPageTranslationsTestUtils.assertSelectedFromLanguage({ langTag: "" });
   FullPageTranslationsTestUtils.assertSelectedToLanguage({ langTag: "en" });
 

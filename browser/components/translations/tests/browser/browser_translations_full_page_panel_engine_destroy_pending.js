@@ -25,7 +25,7 @@ add_task(async function test_translations_engine_destroy_pending() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.clickTranslateButton({

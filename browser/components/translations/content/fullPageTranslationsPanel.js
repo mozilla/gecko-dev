@@ -655,19 +655,10 @@ var FullPageTranslationsPanel = new (class {
         "full-page-translations-panel-view-default"
       );
 
-      if (!this._hasShownPanel) {
-        actor.firstShowUriSpec = gBrowser.currentURI.spec;
-      }
-
-      if (
-        this._hasShownPanel &&
-        gBrowser.currentURI.spec !== actor.firstShowUriSpec
-      ) {
-        document.l10n.setAttributes(header, "translations-panel-header");
-        actor.firstShowUriSpec = null;
+      if (TranslationsParent.hasUserEverTranslated()) {
         intro.hidden = true;
+        document.l10n.setAttributes(header, "translations-panel-header");
       } else {
-        Services.prefs.setBoolPref("browser.translations.panelShown", true);
         intro.hidden = false;
         document.l10n.setAttributes(header, "translations-panel-intro-header");
       }
@@ -1450,11 +1441,9 @@ var FullPageTranslationsPanel = new (class {
   async #showEngineError(actor) {
     const { button } = this.buttonElements;
     await this.#ensureLangListsBuilt();
-    if (!this.#isShowingDefaultView()) {
-      await this.#showDefaultView(actor).catch(e => {
-        this.console?.error(e);
-      });
-    }
+    await this.#showDefaultView(actor).catch(e => {
+      this.console?.error(e);
+    });
     this.elements.error.hidden = false;
     this.#showError({
       message: "translations-panel-error-translating",
@@ -1647,10 +1636,7 @@ var FullPageTranslationsPanel = new (class {
 
             // Follow the same rules for displaying the first-run intro text for the
             // button's accessible tooltip label.
-            if (
-              this._hasShownPanel &&
-              gBrowser.currentURI.spec !== actor.firstShowUriSpec
-            ) {
+            if (TranslationsParent.hasUserEverTranslated()) {
               document.l10n.setAttributes(
                 button,
                 "urlbar-translations-button2"
@@ -1688,10 +1674,3 @@ var FullPageTranslationsPanel = new (class {
     }
   };
 })();
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  FullPageTranslationsPanel,
-  "_hasShownPanel",
-  "browser.translations.panelShown",
-  false
-);

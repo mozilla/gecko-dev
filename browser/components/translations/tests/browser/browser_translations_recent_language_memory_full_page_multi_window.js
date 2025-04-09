@@ -36,7 +36,7 @@ add_task(
       win: window1,
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
 
     await FullPageTranslationsTestUtils.changeSelectedToLanguage({

@@ -23,7 +23,7 @@ add_task(async function test_weblanguage_differs_app_locale() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "en",
     expectedToLanguage: "fr",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();

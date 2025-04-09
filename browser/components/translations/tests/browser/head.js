@@ -1531,10 +1531,10 @@ class FullPageTranslationsTestUtils {
   }
 
   /**
-   * Asserts that panel element visibility matches the panel first-show view.
+   * Asserts that panel element visibility matches the panel intro view.
    */
-  static assertPanelViewFirstShow() {
-    info("Checking that the panel shows the first-show view");
+  static assertPanelViewIntro() {
+    info("Checking that the panel shows the intro view");
     FullPageTranslationsTestUtils.#assertPanelMainViewId(
       "full-page-translations-panel-view-default"
     );
@@ -1549,10 +1549,10 @@ class FullPageTranslationsTestUtils {
   }
 
   /**
-   * Asserts that panel element visibility matches the panel first-show error view.
+   * Asserts that panel element visibility matches the panel intro error view.
    */
-  static assertPanelViewFirstShowError() {
-    info("Checking that the panel shows the first-show error view");
+  static assertPanelViewIntroError() {
+    info("Checking that the panel shows the intro error view");
     FullPageTranslationsTestUtils.#assertPanelMainViewId(
       "full-page-translations-panel-view-default"
     );
@@ -1742,11 +1742,11 @@ class FullPageTranslationsTestUtils {
    * Simulates clicking the change-source-language button.
    *
    * @param {object} config
-   * @param {boolean} config.firstShow
-   *  - True if the first-show view should be expected
+   * @param {boolean} config.intro
+   *  - True if the intro view should be expected
    *    False if the default view should be expected
    */
-  static async clickChangeSourceLanguageButton({ firstShow = false } = {}) {
+  static async clickChangeSourceLanguageButton({ intro = false } = {}) {
     logAction();
     const { changeSourceLanguageButton } = FullPageTranslationsPanel.elements;
     assertVisibility({ visible: { changeSourceLanguageButton } });
@@ -1758,8 +1758,8 @@ class FullPageTranslationsTestUtils {
           "Click the change-source-language button"
         );
       },
-      firstShow
-        ? FullPageTranslationsTestUtils.assertPanelViewFirstShow
+      intro
+        ? FullPageTranslationsTestUtils.assertPanelViewIntro
         : FullPageTranslationsTestUtils.assertPanelViewDefault
     );
   }

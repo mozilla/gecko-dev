@@ -24,7 +24,7 @@ add_task(async function test_toggle_always_translate_language_menuitem() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
 

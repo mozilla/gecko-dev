@@ -16,7 +16,7 @@ add_task(async function test_always_translate_with_bad_data() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "en",
     expectedToLanguage: "",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     openFromAppMenu: true,
   });
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();

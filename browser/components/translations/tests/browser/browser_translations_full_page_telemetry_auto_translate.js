@@ -24,7 +24,7 @@ add_task(async function test_translations_telemetry_auto_translate() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewFirstShow,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
   await FullPageTranslationsTestUtils.openTranslationsSettingsMenu();
   await FullPageTranslationsTestUtils.clickAlwaysTranslateLanguage({

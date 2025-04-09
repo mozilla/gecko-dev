@@ -27,7 +27,7 @@ add_task(async function test_translations_panel_source_lang_has_script_tag() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
@@ -76,7 +76,7 @@ add_task(async function test_translations_panel_target_lang_has_script_tag() {
   await FullPageTranslationsTestUtils.openPanel({
     expectedFromLanguage: "es",
     expectedToLanguage: "en",
-    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+    onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
   });
 
   await FullPageTranslationsTestUtils.changeSelectedToLanguage({
@@ -125,7 +125,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
 
     await FullPageTranslationsTestUtils.changeSelectedFromLanguage({

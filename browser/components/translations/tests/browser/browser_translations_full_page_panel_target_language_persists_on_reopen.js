@@ -25,7 +25,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "en",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
 
     await FullPageTranslationsTestUtils.changeSelectedToLanguage({
@@ -38,7 +38,7 @@ add_task(
     await FullPageTranslationsTestUtils.openPanel({
       expectedFromLanguage: "es",
       expectedToLanguage: "uk",
-      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
     });
 
     await cleanup();
