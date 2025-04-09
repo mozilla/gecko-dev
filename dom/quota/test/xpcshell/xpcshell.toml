@@ -30,16 +30,16 @@ support-files = [
 ]
 
 ["make_getCachedUsageForPrincipal.js"]
-skip-if = ["true"] # Only used for recreating getCachedUsageForPrincipal_profile.zip
+run-if = ["false"] # Only used for recreating getCachedUsageForPrincipal_profile.zip
 
 ["make_getUsageForPrincipal.js"]
-skip-if = ["true"] # Only used for recreating getUsageForPrincipal_profile.zip
+run-if = ["false"] # Only used for recreating getCachedUsageForPrincipal_profile.zip
 
 ["make_unknownFiles.js"]
-skip-if = ["true"] # Only used for recreating unknownFiles_profile.zip
+run-if = ["false"] # Only used for recreating unknownFiles_profile.zip
 
 ["make_unsetLastAccessTime.js"]
-skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
+run-if = ["false"] # Only used for recreating unsetLastAccessTime_profile.zip
 
 ["test_allowListFiles.js"]
 
@@ -74,12 +74,11 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 ["test_groupInitializationStarted.js"]
 
 ["test_groupMismatch.js"]
-skip-if = ["true"] # The group is now always empty, so metadata can't differ anymore.
+run-if = ["false"] # The group is now always empty, so metadata can't differ anymore.
 
 ["test_idle_maintenance.js"]
 
 ["test_initTemporaryStorage.js"]
-skip-if = ["condprof"] # frequent perma fail, then goes away.
 
 ["test_initializeAllTemporaryOrigins.js"]
 # The test cannot function correctly with incremental origin initialization
@@ -108,13 +107,13 @@ skip-if = ["inc_origin_init"]
 
 ["test_originEndsWithDot.js"]
 
+["test_originInitializationStarted.js"]
+
 ["test_originMismatch.js"]
 # bug 1942793
 skip-if = ["inc_origin_init"]
 
 ["test_originWithCaret.js"]
-
-["test_originInitializationStarted.js"]
 
 ["test_orpahnedQuotaObject.js"]
 
@@ -132,8 +131,6 @@ skip-if = ["inc_origin_init"]
 
 ["test_removeLocalStorage.js"]
 
-["test_simpledb.js"]
-
 ["test_shutdownDuringAllTemporaryOriginsInitialization.js"]
 # The test cannot function correctly with incremental origin initialization
 # enabled  because incremental origin initialization automatically triggers
@@ -148,14 +145,12 @@ skip-if = ["inc_origin_init"]
 # initialization is complete.
 skip-if = ["inc_origin_init"]
 
+["test_simpledb.js"]
+
 ["test_specialOrigins.js"]
 
 ["test_storagePressure.js"]
-skip-if = [
-  "condprof",
-  # bug 1942794
-  "inc_origin_init",
-]
+skip-if = ["inc_origin_init"]
 
 ["test_tempMetadataCleanup.js"]
 

@@ -5,4 +5,3 @@
 ["test_createFile.js"]
 
 ["test_ipc_messagemanager_blob.js"]
-skip-if = ["os == 'android'"]

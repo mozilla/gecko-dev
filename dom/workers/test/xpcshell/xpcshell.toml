@@ -1,5 +1,4 @@
 [DEFAULT]
-skip-if = ["os == 'android'"]
 support-files = [
   "data/worker.js",
   "data/worker_fileReader.js",
@@ -8,6 +7,7 @@ support-files = [
   "data/base_uri_module.mjs",
   "data/base_uri_module2.mjs",
 ]
+skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
 ["test_ext_redirects_sw_scripts.js"]
 # The following firefox-appdir make sure that ExtensionTestUtils.loadExtension
@@ -30,7 +30,6 @@ firefox-appdir = "browser"
 firefox-appdir = "browser"
 # Disable plugin loading to make it rr able to record and replay this test.
 prefs = ["plugin.disable=true"]
-skip-if = ["socketprocess_networking"] # Bug 1759035
 
 
 ["test_workers.js"]

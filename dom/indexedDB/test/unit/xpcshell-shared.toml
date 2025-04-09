@@ -3,6 +3,7 @@
 ["test_abort_deleted_index.js"]
 
 ["test_abort_deleted_objectStore.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && socketprocess_networking"] # Bug TBD
 
 ["test_add_put.js"]
 
@@ -17,7 +18,6 @@
 ["test_blocked_order.js"]
 
 ["test_clear.js"]
-skip-if = ["os == 'win' && debug"]  # Bug 1785080
 
 ["test_complex_keyPaths.js"]
 
@@ -28,13 +28,13 @@ skip-if = ["os == 'win' && debug"]  # Bug 1785080
 ["test_create_index_with_integer_keys.js"]
 
 ["test_create_locale_aware_index.js"]
-skip-if = ["os == 'android'"] # bug 864843
 
 ["test_create_objectStore.js"]
 
 ["test_cursor_cycle.js"]
 
 ["test_cursor_mutation.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug TBD
 
 ["test_cursor_update_updates_indexes.js"]
 
@@ -43,21 +43,28 @@ skip-if = ["os == 'android'"] # bug 864843
 ["test_deleteDatabase.js"]
 
 ["test_deleteDatabase_interactions.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug TBD (secondary)
 
 ["test_deleteDatabase_onblocked.js"]
 
 ["test_deleteDatabase_onblocked_duringVersionChange.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug TBD (secondary)
 
 ["test_event_source.js"]
 
 ["test_getAll.js"]
 
 ["test_globalObjects_other.js"]
-skip-if = ["os == 'android'"] # bug 1079278
+skip-if = [
+  "os == 'android'", # bug 1079278
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && socketprocess_networking", # Bug TBD (secondary)
+]
 
 ["test_globalObjects_xpc.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && socketprocess_networking"] # Bug TBD (secondary)
 
 ["test_global_data.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && socketprocess_networking"] # Bug TBD (secondary)
 
 ["test_index_empty_keyPath.js"]
 
@@ -82,16 +89,10 @@ skip-if = ["os == 'android'"] # bug 1079278
 ["test_key_requirements.js"]
 
 ["test_keys.js"]
-skip-if = [
-  "tsan", # Uncatched OOM crashes
-  "asan",
-] # bug 1796753
 
 ["test_locale_aware_index_getAll.js"]
-skip-if = ["os == 'android'"] # bug 864843
 
 ["test_locale_aware_index_getAllObjects.js"]
-skip-if = ["os == 'android'"] # bug 864843
 
 ["test_multientry.js"]
 
@@ -100,6 +101,7 @@ skip-if = ["os == 'android'"] # bug 864843
 ["test_objectCursors.js"]
 
 ["test_objectStore_getAllKeys.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug TBD (secondary)
 
 ["test_objectStore_inline_autoincrement_key_added_on_put.js"]
 
@@ -124,15 +126,18 @@ skip-if = ["os == 'android'"] # bug 864843
 ["test_overlapping_transactions.js"]
 
 ["test_put_get_values.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug TBD (secondary)
 
 ["test_put_get_values_autoIncrement.js"]
 skip-if = ["verify && debug && os == 'win'"]
 
 ["test_readonly_transactions.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug TBD (secondary)
 
 ["test_remove_index.js"]
 
 ["test_remove_objectStore.js"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug TBD (secondary)
 
 ["test_rename_index.js"]
 

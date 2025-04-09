@@ -7,7 +7,7 @@ support-files = [
 ]
 
 ["make_unsetLastAccessTime.js"]
-skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
+run-if = ["false"] # Only used for recreating unsetLastAccessTime_profile.zip
 
 ["test_groupMismatch.js"]
 

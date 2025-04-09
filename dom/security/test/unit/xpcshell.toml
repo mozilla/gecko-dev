@@ -9,10 +9,10 @@ head = ""
 
 ["test_deserialization_format_before_100.js"]
 
+["test_get_trusted_types_compliant_string.js"]
+
 ["test_https_only_https_first_default_port.js"]
 
 ["test_https_only_https_first_prefs.js"]
 
 ["test_isOriginPotentiallyTrustworthy.js"]
-
-["test_get_trusted_types_compliant_string.js"]

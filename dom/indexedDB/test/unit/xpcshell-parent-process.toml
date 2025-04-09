@@ -30,7 +30,7 @@ support-files = [
 ["include:xpcshell-shared.toml"]
 
 ["make_URLSearchParams.js"]
-skip-if = ["true"] # Only used for recreating URLSearchParams_profile.zip
+run-if = ["false"] # Only used for recreating URLSearchParams_profile.zip
 
 ["test_URLSearchParams.js"]
 
@@ -44,7 +44,7 @@ skip-if = ["true"] # Only used for recreating URLSearchParams_profile.zip
 
 ["test_clear_object_store_with_indexes.js"]
 requesttimeoutfactor = 2
-skip-if = ["tsan"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && !fission && socketprocess_networking"] # Bug TBD
 
 ["test_connection_idle_maintenance.js"]
 
@@ -61,7 +61,6 @@ skip-if = ["tsan"]
 ["test_file_copy_failure.js"]
 
 ["test_globalObjects_ipc.js"]
-skip-if = ["os == 'android'"]
 
 ["test_idbSubdirUpgrade.js"]
 
@@ -111,17 +110,11 @@ skip-if = ["true"]
 
 ["test_temporary_storage.js"]
 skip-if = [
-  # bug 951017: intermittent failure on Android x86 emulator
-  "os == 'android' && processor == 'x86'",
-  # bug 1942783
-  "inc_origin_init",
+  "inc_origin_init", # bug 1942783
 ]
 
 ["test_transaction_durability.js"]
 run-sequentially = "very high failure rate in parallel"
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
-]
 
 ["test_unexpectedDirectory.js"]
 

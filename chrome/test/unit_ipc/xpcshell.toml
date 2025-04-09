@@ -1,6 +1,5 @@
 [DEFAULT]
 head = ""
-skip-if = ["os == 'android'"]
 support-files = [
   "!/chrome/test/unit/data/**",
   "!/chrome/test/unit/test_resolve_uris.js",
@@ -8,3 +7,4 @@ support-files = [
 ]
 
 ["test_resolve_uris_ipc.js"]
+# skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && !socketprocess_networking"] # Bug TBD

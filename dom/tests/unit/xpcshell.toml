@@ -13,10 +13,6 @@
 ["test_geolocation_position_unavailable.js"]
 
 ["test_geolocation_position_unavailable_wrap.js"]
-skip-if = [
-  "os == 'mac'",
-  "os == 'android'",
-]
 
 ["test_geolocation_provider.js"]
 
@@ -24,22 +20,16 @@ skip-if = [
 
 ["test_geolocation_reset_accuracy.js"]
 skip-if = [
-  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt && msix", # Bug 1822179
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && msix", # Bug 1822179
 ]
 
 ["test_geolocation_reset_accuracy_wrap.js"]
 skip-if = [
-  "os == 'mac'",
-  "os == 'android'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && msix", # Bug 1822179
 ]
 
 ["test_geolocation_timeout.js"]
 
 ["test_geolocation_timeout_wrap.js"]
-skip-if = [
-  "os == 'mac'",
-  "os == 'android'",
-]
 
 ["test_xhr_init.js"]

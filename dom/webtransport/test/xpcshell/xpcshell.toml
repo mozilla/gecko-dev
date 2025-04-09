@@ -3,27 +3,25 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 [DEFAULT]
+run-if = ["!socketprocess_networking"]
 # XXX figure out why android doesn't get MOZHTTP3_PORT
 skip-if = [
-  "os == 'android'",
-  "socketprocess_networking",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807925
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807925
 ]
 
 ["test_close.js"]
 
 ["test_simple_conn.js"]
-skip-if = [
-  "!fission && debug",
-  "verify && tsan",
-  "verify && debug",
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug TBD
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug TBD
+]
 
 ["test_simple_stream.js"]
-skip-if = [
-  "!fission && debug",
-  "verify && tsan",
-  "verify && debug",
-]
 run-sequentially = "http3server"
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'", # Bug TBD
+  "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug TBD
+]

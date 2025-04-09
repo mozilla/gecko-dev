@@ -1,8 +1,7 @@
 [DEFAULT]
 head = "head.js"
-# Push notifications and alarms are currently disabled on Android.
-skip-if = ["os == 'android'"]
 support-files = ["broadcast_handler.sys.mjs"]
+skip-if = ["os == 'android'"] # Push notifications and alarms are currently disabled on Android.
 
 ["test_broadcast_success.js"]
 
@@ -11,10 +10,6 @@ support-files = ["broadcast_handler.sys.mjs"]
 # silently disabled, so now we explicitly call out the platforms not known
 # to have node installed.
 run-sequentially = "This will delete all existing push subscriptions."
-skip-if = [
-  "os == 'android'",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
-]
 
 ["test_clear_forgetAboutSite.js"]
 
@@ -47,9 +42,6 @@ skip-if = ["true"]
 
 ["test_permissions.js"]
 run-sequentially = "This will delete all existing push subscriptions."
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
-]
 
 ["test_quota_exceeded.js"]
 
@@ -106,8 +98,7 @@ skip-if = [
 ["test_unregister_invalid_json.js"]
 run-sequentially = "very high failure rate in parallel"
 skip-if = [
-  "os == 'win'", # Bug 1627379
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1933914
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1933914
 ]
 
 ["test_unregister_not_found.js"]
@@ -115,4 +106,3 @@ skip-if = [
 ["test_unregister_success.js"]
 
 ["test_updateRecordNoEncryptionKeys_ws.js"]
-skip-if = ["os == 'linux'"] # Bug 1265233

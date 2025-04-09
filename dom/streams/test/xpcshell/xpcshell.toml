@@ -1,6 +1,5 @@
 [DEFAULT]
 head = "head.js"
-skip-if = ["os == 'android'"]
 support-files = ""
 
 ["bug-1387503-1.js"]
@@ -15,10 +14,6 @@ prefs = ["security.allow_parent_unrestricted_js_loads=true"]
 ["fetch.js"]
 
 ["large-pipeto.js"]
-skip-if = [
-  "os == 'win'",
-  "tsan", # Causes claim expired errors; see Bug 1770170.
-]
 run-sequentially = "very high failure rate in parallel"
 
 ["proper-realm-cancel.js"]

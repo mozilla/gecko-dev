@@ -16,15 +16,13 @@ support-files = [
 
 ["test_dom_quota_try.js"]
 skip-if = [
-  "os == 'android'",
-  "appname == 'thunderbird'",
-  # bug 1942789
+  "appname == 'thunderbird'", # bug 1942789
   "inc_origin_init",
+  "os == 'android' && android_version == '24' && processor == 'x86_64'",
 ]
 
 ["test_qm_first_initialization_attempt.js"]
 skip-if = [
-  "appname == 'thunderbird'",
-  # bug 1942790
+  "appname == 'thunderbird'", # bug 1942790
   "inc_origin_init",
 ]

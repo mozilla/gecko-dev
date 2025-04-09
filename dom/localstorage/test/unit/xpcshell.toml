@@ -19,10 +19,10 @@ support-files = [
 ]
 
 ["make_migration_emptyValue.js"]
-skip-if = ["true"] # Only used for recreating migration_emptyValue_profile.zip
+run-if = ["false"] # Only used for recreating migration_emptyValue_profile.zip
 
 ["make_somedata.js"]
-skip-if = ["true"] # Only used for recreating somedata_profile.zip
+run-if = ["false"] # Only used for recreating somedata_profile.zip
 
 ["test_archive.js"]
 
@@ -104,7 +104,6 @@ support-files = ["migration_emptyValue_profile.zip",]
 ["test_slowStorageInitialization.js"]
 
 ["test_snapshotting.js"]
-skip-if = ["tsan"] # Unreasonably slow, bug 1612707
 requesttimeoutfactor = 4
 
 ["test_stringLength.js"]

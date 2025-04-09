@@ -6,10 +6,9 @@ support-files = [
   "schema_15_profile.zip",
   "schema_25_profile.zip",
 ]
-# dummy test entry to generate profile zip files
 
 ["make_profile.js"]
-skip-if = ["true"]
+run-if = ["false"] # dummy test entry to generate profile zip files
 
 ["test_bug1425146.js"]
 

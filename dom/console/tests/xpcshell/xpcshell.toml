@@ -7,14 +7,14 @@ support-files = ""
 ["test_console_shouldLog.js"]
 
 ["test_failing_console_listener.js"]
-skip-if = ["tsan"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan"]
 
 ["test_formatting.js"]
 
 ["test_reportForServiceWorkerScope.js"]
 
 ["test_worker.js"]
-skip-if = ["os == 'android'"] # Uses ChromeWorker.
 support-files = [
   "worker.mjs",
 ]
+run-if = ["os != 'android'"] # Uses ChromeWorker.
