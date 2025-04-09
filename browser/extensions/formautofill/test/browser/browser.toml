@@ -106,6 +106,8 @@ skip-if = [
 
 ["browser_iframe_update_fields.js"]
 
+["browser_label_matching.js"]
+
 ["browser_manageAddressesDialog.js"]
 
 ["browser_ml_model.js"]

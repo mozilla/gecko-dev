@@ -51,7 +51,7 @@ const TESTCASES = [
                <label id="labelE4" for="  typeE  ">label type E4</label>
                <input id="   typeE  " type="text">`,
     inputId: "   typeE  ",
-    expectedLabelIds: [[]],
+    expectedLabelIds: [["labelE4"]],
   },
   {
     description: "Input contains in a label element.",
