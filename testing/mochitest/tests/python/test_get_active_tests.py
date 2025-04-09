@@ -259,7 +259,7 @@ def test_prefs_validation_with_ancestor_manifest(get_active_tests, create_manife
     assert len(prefs) == 1
     assert (
         prefs.pop()
-        == "\nbrowser.dom.foo=fleem\nflower=rose \nfoo=bar\nbrowser.dom.foo=baz"
+        == "\nbrowser.dom.foo=fleem\nflower=rose\n\nfoo=bar\nbrowser.dom.foo=baz"
     )
 
 
