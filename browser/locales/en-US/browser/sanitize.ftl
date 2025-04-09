@@ -75,7 +75,7 @@ item-history-and-downloads =
     .label = Browsing & download history
     .accesskey = B
 
-item-history-and-downloads-description = Clears search, site and download history
+item-history-and-downloads-description2 = Clears site and download history
 
 item-cookies =
     .label = Cookies
