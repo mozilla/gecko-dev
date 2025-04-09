@@ -19954,7 +19954,7 @@ void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
   MOZ_ASSERT(gen->compilingWasm());
 
   MWasmNewStructObject* mir = lir->mir();
-  uint32_t typeDefIndex = mir->typeDefIndex();
+  uint32_t typeDefIndex = wasmCodeMeta()->types->indexOf(mir->typeDef());
 
   Register allocSite = ToRegister(lir->allocSite());
   Register output = ToRegister(lir->output());
@@ -19984,7 +19984,8 @@ void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
     });
     addOutOfLineCode(ool, lir->mir());
 
-    size_t offsetOfTypeDefData = mir->offsetOfTypeDefData();
+    size_t offsetOfTypeDefData = wasm::Instance::offsetInData(
+        wasmCodeMeta()->offsetOfTypeDefInstanceData(typeDefIndex));
     masm.wasmNewStructObject(instance, output, allocSite, temp,
                              offsetOfTypeDefData, ool->entry(),
                              mir->allocKind(), mir->zeroFields());
@@ -20037,7 +20038,7 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
   MOZ_ASSERT(gen->compilingWasm());
 
   MWasmNewArrayObject* mir = lir->mir();
-  uint32_t typeDefIndex = mir->typeDefIndex();
+  uint32_t typeDefIndex = wasmCodeMeta()->types->indexOf(mir->typeDef());
 
   Register allocSite = ToRegister(lir->allocSite());
   Register output = ToRegister(lir->output());
@@ -20077,7 +20078,8 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
       });
       addOutOfLineCode(ool, lir->mir());
 
-      size_t offsetOfTypeDefData = mir->offsetOfTypeDefData();
+      size_t offsetOfTypeDefData = wasm::Instance::offsetInData(
+          wasmCodeMeta()->offsetOfTypeDefInstanceData(typeDefIndex));
       masm.wasmNewArrayObjectFixed(
           instance, output, allocSite, temp0, temp1, offsetOfTypeDefData,
           ool->entry(), numElements, storageBytes.value(), mir->zeroFields());
@@ -20099,8 +20101,8 @@ void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {
     });
     addOutOfLineCode(ool, lir->mir());
 
-    size_t offsetOfTypeDefData = mir->offsetOfTypeDefData();
-
+    size_t offsetOfTypeDefData = wasm::Instance::offsetInData(
+        wasmCodeMeta()->offsetOfTypeDefInstanceData(typeDefIndex));
     masm.wasmNewArrayObject(instance, output, numElements, allocSite, temp1,
                             offsetOfTypeDefData, ool->entry(), mir->elemSize(),
                             mir->zeroFields());

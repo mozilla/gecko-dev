@@ -24,6 +24,7 @@
 
 #include "jit/MIR.h"
 #include "util/DifferentialTesting.h"
+#include "wasm/WasmGcObject.h"
 
 namespace js {
 
@@ -2903,28 +2904,21 @@ class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
 class MWasmNewStructObject : public MBinaryInstruction,
                              public NoTypePolicy::Data {
  private:
-  uint32_t typeDefIndex_;
-  size_t offsetOfTypeDefData_;
-  bool isOutline_;
+  const wasm::TypeDef* typeDef_;
   bool zeroFields_;
-  gc::AllocKind allocKind_;
-  const wasm::StructType& structType_;
   wasm::TrapSiteDesc trapSiteDesc_;
 
   MWasmNewStructObject(MDefinition* instance, MDefinition* allocSite,
-                       uint32_t typeDefIndex, size_t offsetOfTypeDefData,
-                       const wasm::StructType& structType_, bool isOutline,
-                       bool zeroFields, gc::AllocKind allocKind,
+                       const wasm::TypeDef* typeDef, bool zeroFields,
                        const wasm::TrapSiteDesc& trapSiteDesc)
       : MBinaryInstruction(classOpcode, instance, allocSite),
-        typeDefIndex_(typeDefIndex),
-        offsetOfTypeDefData_(offsetOfTypeDefData),
-        isOutline_(isOutline),
+        typeDef_(typeDef),
         zeroFields_(zeroFields),
-        allocKind_(allocKind),
-        structType_(structType_),
         trapSiteDesc_(trapSiteDesc) {
+    MOZ_ASSERT(typeDef->isStructType());
     setResultType(MIRType::WasmAnyRef);
+    initWasmRefType(
+        wasm::MaybeRefType(wasm::RefType::fromTypeDef(typeDef_, false)));
   }
 
  public:
@@ -2939,35 +2933,36 @@ class MWasmNewStructObject : public MBinaryInstruction,
     }
     return AliasSet::None();
   }
-  uint32_t typeDefIndex() const { return typeDefIndex_; }
-  size_t offsetOfTypeDefData() const { return offsetOfTypeDefData_; }
-  bool isOutline() const { return isOutline_; }
+  const wasm::TypeDef& typeDef() { return *typeDef_; }
+  const wasm::StructType& structType() const { return typeDef_->structType(); }
+  bool isOutline() const {
+    return WasmStructObject::requiresOutlineBytes(typeDef_->structType().size_);
+  }
   bool zeroFields() const { return zeroFields_; }
-  gc::AllocKind allocKind() const { return allocKind_; }
   const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
-  const wasm::StructType& structType() { return structType_; }
+  gc::AllocKind allocKind() const {
+    return WasmStructObject::allocKindForTypeDef(typeDef_);
+  }
 };
 
 class MWasmNewArrayObject : public MTernaryInstruction,
                             public NoTypePolicy::Data {
  private:
-  uint32_t typeDefIndex_;
-  size_t offsetOfTypeDefData_;
-  uint32_t elemSize_;
+  const wasm::TypeDef* typeDef_;
   bool zeroFields_;
   wasm::TrapSiteDesc trapSiteDesc_;
 
   MWasmNewArrayObject(MDefinition* instance, MDefinition* numElements,
-                      MDefinition* allocSite, uint32_t typeDefIndex,
-                      size_t offsetOfTypeDefData, uint32_t elemSize,
+                      MDefinition* allocSite, const wasm::TypeDef* typeDef,
                       bool zeroFields, const wasm::TrapSiteDesc& trapSiteDesc)
       : MTernaryInstruction(classOpcode, instance, numElements, allocSite),
-        typeDefIndex_(typeDefIndex),
-        offsetOfTypeDefData_(offsetOfTypeDefData),
-        elemSize_(elemSize),
+        typeDef_(typeDef),
         zeroFields_(zeroFields),
         trapSiteDesc_(trapSiteDesc) {
+    MOZ_ASSERT(typeDef->isArrayType());
     setResultType(MIRType::WasmAnyRef);
+    initWasmRefType(
+        wasm::MaybeRefType(wasm::RefType::fromTypeDef(typeDef_, false)));
   }
 
  public:
@@ -2982,9 +2977,11 @@ class MWasmNewArrayObject : public MTernaryInstruction,
     }
     return AliasSet::None();
   }
-  uint32_t typeDefIndex() const { return typeDefIndex_; }
-  size_t offsetOfTypeDefData() const { return offsetOfTypeDefData_; }
-  uint32_t elemSize() const { return elemSize_; }
+  const wasm::TypeDef& typeDef() { return *typeDef_; }
+  const wasm::ArrayType& arrayType() const { return typeDef_->arrayType(); }
+  uint32_t elemSize() const {
+    return typeDef_->arrayType().elementType().size();
+  }
   bool zeroFields() const { return zeroFields_; }
   const wasm::TrapSiteDesc& trapSiteDesc() const { return trapSiteDesc_; }
 };

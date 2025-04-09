@@ -4979,22 +4979,16 @@ class FunctionCompiler {
   [[nodiscard]] MDefinition* createStructObject(uint32_t typeIndex,
                                                 uint32_t allocSiteIndex,
                                                 bool zeroFields) {
-    const TypeDef& typeDef = (*codeMeta().types)[typeIndex];
-    gc::AllocKind allocKind = WasmStructObject::allocKindForTypeDef(&typeDef);
-    bool isOutline =
-        WasmStructObject::requiresOutlineBytes(typeDef.structType().size_);
-
     // Allocate an uninitialized struct.
     MDefinition* allocSite = loadAllocSiteInstanceData(allocSiteIndex);
     if (!allocSite) {
       return nullptr;
     }
 
-    size_t offsetOfTypeDefData = wasm::Instance::offsetInData(
-        codeMeta().offsetOfTypeDefInstanceData(typeIndex));
-    auto* structObject = MWasmNewStructObject::New(
-        alloc(), instancePointer_, allocSite, typeIndex, offsetOfTypeDefData,
-        typeDef.structType(), isOutline, zeroFields, allocKind, trapSiteDesc());
+    const TypeDef* typeDef = &(*codeMeta().types)[typeIndex];
+    auto* structObject =
+        MWasmNewStructObject::New(alloc(), instancePointer_, allocSite, typeDef,
+                                  zeroFields, trapSiteDesc());
     if (!structObject) {
       return nullptr;
     }
@@ -5183,18 +5177,16 @@ class FunctionCompiler {
   [[nodiscard]] MDefinition* createArrayObject(uint32_t typeIndex,
                                                uint32_t allocSiteIndex,
                                                MDefinition* numElements,
-                                               uint32_t elemSize,
                                                bool zeroFields) {
     MDefinition* allocSite = loadAllocSiteInstanceData(allocSiteIndex);
     if (!allocSite) {
       return nullptr;
     }
 
-    size_t offsetOfTypeDefData = wasm::Instance::offsetInData(
-        codeMeta().offsetOfTypeDefInstanceData(typeIndex));
+    const TypeDef* typeDef = &(*codeMeta().types)[typeIndex];
     auto* arrayObject = MWasmNewArrayObject::New(
-        alloc(), instancePointer_, numElements, allocSite, typeIndex,
-        offsetOfTypeDefData, elemSize, zeroFields, trapSiteDesc());
+        alloc(), instancePointer_, numElements, allocSite, typeDef, zeroFields,
+        trapSiteDesc());
     if (!arrayObject) {
       return nullptr;
     }
@@ -5369,12 +5361,10 @@ class FunctionCompiler {
                                                        uint32_t allocSiteIndex,
                                                        MDefinition* numElements,
                                                        MDefinition* fillValue) {
-    const ArrayType& arrayType = (*codeMeta().types)[typeIndex].arrayType();
-
     // Create the array object, uninitialized.
     MDefinition* arrayObject =
         createArrayObject(typeIndex, allocSiteIndex, numElements,
-                          arrayType.elementType().size(), /*zeroFields=*/false);
+                          /*zeroFields=*/false);
     if (!arrayObject) {
       return nullptr;
     }
@@ -5385,6 +5375,7 @@ class FunctionCompiler {
     // reftyped case, that would be a big win since each iteration requires a
     // call to the post-write barrier routine.
 
+    const ArrayType& arrayType = (*codeMeta().types)[typeIndex].arrayType();
     if (!fillArray(lineOrBytecode, arrayType, arrayObject, constantI32(0),
                    numElements, fillValue, WasmPreBarrierKind::None)) {
       return nullptr;
@@ -8731,10 +8722,9 @@ bool FunctionCompiler::emitArrayNewDefault() {
   }
 
   // Create the array object, default-initialized.
-  const ArrayType& arrayType = (*codeMeta().types)[typeIndex].arrayType();
   MDefinition* arrayObject =
       createArrayObject(typeIndex, allocSiteIndex, numElements,
-                        arrayType.elementType().size(), /*zeroFields=*/true);
+                        /*zeroFields=*/true);
   if (!arrayObject) {
     return false;
   }
@@ -8770,7 +8760,7 @@ bool FunctionCompiler::emitArrayNewFixed() {
   StorageType elemType = arrayType.elementType();
   uint32_t elemSize = elemType.size();
   MDefinition* arrayObject =
-      createArrayObject(typeIndex, allocSiteIndex, numElementsDef, elemSize,
+      createArrayObject(typeIndex, allocSiteIndex, numElementsDef,
                         /*zeroFields=*/false);
   if (!arrayObject) {
     return false;

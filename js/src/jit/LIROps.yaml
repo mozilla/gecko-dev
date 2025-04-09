@@ -406,8 +406,6 @@
   operands:
     instance: WordSized
     allocSite: WordSized
-  arguments:
-    typeDefIndex: uint32_t
   result_type: WordSized
   num_temps: 1
 
@@ -417,8 +415,6 @@
     instance: WordSized
     numElements: WordSized
     allocSite: WordSized
-  arguments:
-    typeDefIndex: uint32_t
   result_type: WordSized
   num_temps: 2
 
