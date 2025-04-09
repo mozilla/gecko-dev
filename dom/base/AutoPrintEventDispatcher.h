@@ -38,7 +38,7 @@ class AutoPrintEventDispatcher {
         // Ensure media query listeners fire.
         // FIXME(emilio): This is hacky, at best, but is required for compat
         // with some pages, see bug 774398.
-        doc->EvaluateMediaQueriesAndReportChanges(/* aRecurse = */ false);
+        doc->EvaluateMediaQueriesAndReportChanges();
       }
     }
   }

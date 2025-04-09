@@ -7373,17 +7373,12 @@ already_AddRefed<PresShell> Document::CreatePresShell(
 
   mExternalResourceMap.ShowViewers();
 
-  MaybeScheduleFrameRequestCallbacks();
-
   if (mDocumentL10n) {
     // In case we already accumulated mutations,
     // we'll trigger the refresh driver now.
     mDocumentL10n->OnCreatePresShell();
   }
 
-  if (HasAutoFocusCandidates()) {
-    ScheduleFlushAutoFocusCandidates();
-  }
   // Now that we have a shell, we might have @font-face rules (the presence of a
   // shell may change which rules apply to us). We don't need to do anything
   // like EnsureStyleFlush or such, there's nothing to update yet and when stuff
@@ -7399,13 +7394,45 @@ already_AddRefed<PresShell> Document::CreatePresShell(
   return presShell.forget();
 }
 
-void Document::MaybeScheduleFrameRequestCallbacks() {
-  if (!HasFrameRequestCallbacks() || !ShouldFireFrameRequestCallbacks()) {
+// This roughly matches https://html.spec.whatwg.org/#update-the-rendering
+// step 3:
+//
+//     Remove from docs any Document object doc for which any of the
+//     following are true.
+//
+// If this function changes make sure to call MaybeScheduleRendering at the
+// right places.
+bool Document::IsRenderingSuppressed() const {
+  // TODO(emilio): Per spec we should suppress when doc's visibility state is
+  // "hidden", but tests rely on throttling at least (otherwise webdriver tests
+  // that test minimized windows and so on time out). Maybe we can do it only in
+  // content or something along those lines?
+  // if (Hidden()) {
+  //   return true;
+  // }
+
+  // doc's rendering is suppressed for view transitions
+  if (mRenderingSuppressedForViewTransitions) {
+    return true;
+  }
+  // The user agent believes that updating the rendering of doc's node navigable
+  // would have no visible effect.
+  if (!IsEventHandlingEnabled()) {
+    return true;
+  }
+  if (!mPresShell || !mPresShell->DidInitialize()) {
+    return true;
+  }
+  return false;
+}
+
+void Document::MaybeScheduleRenderingPhases(RenderingPhases aPhases) {
+  if (IsRenderingSuppressed()) {
     return;
   }
   MOZ_ASSERT(mPresShell);
   nsRefreshDriver* rd = mPresShell->GetPresContext()->RefreshDriver();
-  rd->EnsureFrameRequestCallbacksHappen();
+  rd->ScheduleRenderingPhases(aPhases);
 }
 
 void Document::TakeVideoFrameRequestCallbacks(
@@ -7482,7 +7509,6 @@ void Document::DeletePresShell() {
   mExternalResourceMap.HideViewers();
   if (nsPresContext* presContext = mPresShell->GetPresContext()) {
     presContext->RefreshDriver()->CancelPendingFullscreenEvents(this);
-    presContext->RefreshDriver()->CancelFlushAutoFocus(this);
   }
 
   // When our shell goes away, request that all our images be immediately
@@ -13360,11 +13386,8 @@ void Document::ElementWithAutoFocusInserted(Element* aAutoFocusCandidate) {
 }
 
 void Document::ScheduleFlushAutoFocusCandidates() {
-  MOZ_ASSERT(mPresShell && mPresShell->DidInitialize());
-  MOZ_ASSERT(GetBrowsingContext()->IsTop());
-  if (nsRefreshDriver* rd = mPresShell->GetRefreshDriver()) {
-    rd->ScheduleAutoFocusFlush(this);
-  }
+  MOZ_ASSERT(HasAutoFocusCandidates());
+  MaybeScheduleRenderingPhases({RenderingPhase::FlushAutoFocusCandidates});
 }
 
 void Document::AppendAutoFocusCandidateToTopDocument(
@@ -13374,16 +13397,13 @@ void Document::AppendAutoFocusCandidateToTopDocument(
     return;
   }
 
-  if (!HasAutoFocusCandidates()) {
-    // PresShell may be initialized later
-    if (mPresShell && mPresShell->DidInitialize()) {
-      ScheduleFlushAutoFocusCandidates();
-    }
-  }
-
+  const bool hadCandidates = HasAutoFocusCandidates();
   nsWeakPtr element = do_GetWeakReference(aAutoFocusCandidate);
   mAutoFocusCandidates.RemoveElement(element);
   mAutoFocusCandidates.AppendElement(element);
+  if (!hadCandidates) {
+    ScheduleFlushAutoFocusCandidates();
+  }
 }
 
 void Document::SetAutoFocusFired() {
@@ -14671,7 +14691,7 @@ void Document::SetDevToolsWatchingDOMMutations(bool aValue) {
 }
 
 void EvaluateMediaQueryLists(nsTArray<RefPtr<MediaQueryList>>& aListsToNotify,
-                             Document& aDocument, bool aRecurse) {
+                             Document& aDocument) {
   if (nsPresContext* pc = aDocument.GetPresContext()) {
     pc->FlushPendingMediaFeatureValuesChanged();
   }
@@ -14681,18 +14701,11 @@ void EvaluateMediaQueryLists(nsTArray<RefPtr<MediaQueryList>>& aListsToNotify,
       aListsToNotify.AppendElement(mql);
     }
   }
-  if (!aRecurse) {
-    return;
-  }
-  aDocument.EnumerateSubDocuments([&](Document& aSubDoc) {
-    EvaluateMediaQueryLists(aListsToNotify, aSubDoc, true);
-    return CallState::Continue;
-  });
 }
 
-void Document::EvaluateMediaQueriesAndReportChanges(bool aRecurse) {
+void Document::EvaluateMediaQueriesAndReportChanges() {
   AutoTArray<RefPtr<MediaQueryList>, 32> mqls;
-  EvaluateMediaQueryLists(mqls, *this, aRecurse);
+  EvaluateMediaQueryLists(mqls, *this);
   for (auto& mql : mqls) {
     mql->FireChangeEvent();
   }
@@ -16310,6 +16323,7 @@ void Document::UpdateVisibilityState(DispatchVisibilityChange aDispatchEvent) {
 
   NotifyActivityChanged();
   if (visible) {
+    MaybeScheduleRendering();
     MaybeActiveMediaComponents();
   }
 
@@ -17078,8 +17092,7 @@ WindowContext* Document::GetWindowContextForPageUseCounters() const {
 }
 
 void Document::UpdateIntersections(TimeStamp aNowTime) {
-  if (!mIntersectionObservers.IsEmpty() &&
-      !RenderingSuppressedForViewTransitions()) {
+  if (!mIntersectionObservers.IsEmpty()) {
     DOMHighResTimeStamp time = 0;
     if (nsPIDOMWindowInner* win = GetInnerWindow()) {
       if (Performance* perf = win->GetPerformance()) {
@@ -17092,10 +17105,6 @@ void Document::UpdateIntersections(TimeStamp aNowTime) {
     Dispatch(NewRunnableMethod("Document::NotifyIntersectionObservers", this,
                                &Document::NotifyIntersectionObservers));
   }
-  EnumerateSubDocuments([aNowTime](Document& aDoc) {
-    aDoc.UpdateIntersections(aNowTime);
-    return CallState::Continue;
-  });
 }
 
 static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
@@ -17986,13 +17995,8 @@ PermissionDelegateHandler* Document::GetPermissionDelegateHandler() {
   return mPermissionDelegateHandler;
 }
 
-void Document::ScheduleResizeObserversNotification() const {
-  if (!mPresShell) {
-    return;
-  }
-  if (nsRefreshDriver* rd = mPresShell->GetRefreshDriver()) {
-    rd->EnsureResizeObserverUpdateHappens();
-  }
+void Document::ScheduleResizeObserversNotification() {
+  MaybeScheduleRenderingPhases({RenderingPhase::ResizeObservers});
 }
 
 static void FlushLayoutForWholeBrowsingContextTree(Document& aDoc) {
@@ -18189,8 +18193,8 @@ void Document::SetRenderingSuppressedForViewTransitions(bool aValue) {
   if (aValue) {
     return;
   }
-  MaybeScheduleFrameRequestCallbacks();
-  EnsureViewTransitionOperationsHappen();
+  // We might have missed virtually all rendering steps, ensure we run them.
+  MaybeScheduleRendering();
 }
 
 void Document::PerformPendingViewTransitionOperations() {
@@ -18207,15 +18211,7 @@ void Document::PerformPendingViewTransitionOperations() {
 }
 
 void Document::EnsureViewTransitionOperationsHappen() {
-  if (!mPresShell) {
-    return;
-  }
-
-  nsRefreshDriver* rd = mPresShell->GetRefreshDriver();
-  if (!rd) {
-    return;
-  }
-  rd->EnsureViewTransitionOperationsHappen();
+  MaybeScheduleRenderingPhases({RenderingPhase::ViewTransitionOperations});
 }
 
 Selection* Document::GetSelection(ErrorResult& aRv) {

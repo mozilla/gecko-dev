@@ -1829,9 +1829,7 @@ nsresult PresShell::Initialize() {
     NS_ENSURE_STATE(!mHaveShutDown);
   }
 
-  if (mDocument->HasAutoFocusCandidates()) {
-    mDocument->ScheduleFlushAutoFocusCandidates();
-  }
+  mDocument->MaybeScheduleRendering();
 
   NS_ASSERTION(rootFrame, "How did that happen?");
 

@@ -4863,7 +4863,7 @@ nsDOMWindowUtils::GetEffectivelyThrottlesFrameRequests(bool* aResult) {
   if (!doc) {
     return NS_ERROR_FAILURE;
   }
-  *aResult = !doc->ShouldFireFrameRequestCallbacks() ||
+  *aResult = doc->IsRenderingSuppressed() ||
              doc->ShouldThrottleFrameRequests();
   return NS_OK;
 }

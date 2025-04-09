@@ -88,6 +88,7 @@ EXPORTS.mozilla += [
     "PresShellForwards.h",
     "PresShellInlines.h",
     "RelativeTo.h",
+    "RenderingPhase.h",
     "RestyleManager.h",
     "ScrollStyles.h",
     "ScrollTypes.h",
