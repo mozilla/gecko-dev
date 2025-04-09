@@ -1420,6 +1420,9 @@ static nsLiteralCString sConnectSrcAddonsAllowList[] = {
     "about:addons"_ns,
     // STOP! Do not add anything to this list.
 };
+// connect-src https://example.org
+//  Any https host source.
+static nsLiteralCString sConnectSrcHttpsHostAllowList[] = {"about:logging"_ns};
 
 class DisallowingVisitor : public nsCSPSrcVisitor {
  public:
@@ -1662,6 +1665,11 @@ class ConnectSrcVisitor : public AllowBuiltinSrcVisitor {
     }
 
     return AllowBuiltinSrcVisitor::visitSchemeSrc(src);
+  }
+
+  bool visitHostSrc(const nsCSPHostSrc& src) override {
+    return VisitHostSrcWithWildcardAndHttpsHostAllowLists(
+        src, nullptr, sConnectSrcHttpsHostAllowList);
   }
 };
 
