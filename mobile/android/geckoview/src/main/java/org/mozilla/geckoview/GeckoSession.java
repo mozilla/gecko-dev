@@ -411,6 +411,9 @@ public class GeckoSession {
     public native void onSafeAreaInsetsChanged(int top, int right, int bottom, int left);
 
     @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
+    public native void onPipModeChanged(boolean enabled);
+
+    @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
     public native void onKeyboardHeightChanged(int height);
 
     @WrapForJNI(calledFrom = "ui")

@@ -257,6 +257,8 @@ class nsWindow final : public nsBaseWidget {
 
   void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight);
 
+  void PipModeChanged(bool aPipMode);
+
   mozilla::jni::NativeWeakPtr<mozilla::widget::NPZCSupport>
   GetNPZCSupportWeakPtr();
 

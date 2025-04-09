@@ -703,6 +703,8 @@ child:
 
     async KeyboardHeightChanged(ScreenIntCoord height);
 
+    async AndroidPipModeChanged(bool aPipMode);
+
     /**
      * StopIMEStateManagement() is called when the process loses focus and
      * should stop managing IME state.

@@ -390,10 +390,11 @@ class nsView final : public nsIWidgetListener {
                    ByMoveToRect) override;
   bool WindowResized(nsIWidget* aWidget, int32_t aWidth,
                      int32_t aHeight) override;
-#if defined(MOZ_WIDGET_ANDROID)
+#ifdef MOZ_WIDGET_ANDROID
   void DynamicToolbarMaxHeightChanged(mozilla::ScreenIntCoord aHeight) override;
   void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset) override;
   void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight) override;
+  void AndroidPipModeChanged(bool) override;
 #endif
   bool RequestWindowClose(nsIWidget* aWidget) override;
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
