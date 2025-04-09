@@ -17,12 +17,7 @@
     visible: true
   });
 
-  async function hasH264() {
-    const pc = new RTCPeerConnection();
-    const offer = await pc.createOffer({offerToReceiveVideo: true});
-    return offer.sdp.match(/a=rtpmap:[1-9][0-9]* H264/);
-  }
-
+  const isAndroid = navigator.userAgent.includes("Android");
   async function doTest(codec) {
     const recvCodecs = RTCRtpReceiver.getCapabilities("video")?.codecs;
     isnot(recvCodecs, null, "Expected recv capabilities");
@@ -81,7 +76,7 @@
         // average color of all pixels and decodes a frame at the correct
         // resolution filled with that color. Thus, for H264, fill the entire
         // frame with the given color.
-        fillEntireFrame: codec.mimeType.match(/H264/i)
+        fillEntireFrame: !isAndroid && codec.mimeType.match(/H264/i)
       }
     );
     const videoStream = emitter.stream();
@@ -127,11 +122,13 @@
     const statsReady =
       Promise.all([waitForSyncedRtcp(offerer), waitForSyncedRtcp(answerer)]);
 
-    const helper = new VideoStreamHelper();
-    info('Waiting for first video element to start playing');
-    await helper.checkVideoPlaying(videoElems[0]);
-    info('Waiting for second video element to start playing');
-    await helper.checkVideoPlaying(videoElems[1]);
+    if (!codec.mimeType.includes("H264") || !isAndroid) {
+      const helper = new VideoStreamHelper();
+      info('Waiting for first video element to start playing');
+      await helper.checkVideoPlaying(videoElems[0]);
+      info('Waiting for second video element to start playing');
+      await helper.checkVideoPlaying(videoElems[1]);
+    }
 
     is(videoElems[0].videoWidth, 64,
        "sink is same width as source, modulo our cropping algorithm");
@@ -166,26 +163,27 @@
         ["media.navigator.video.disable_h264_baseline", false],
       );
 
-    // [TODO] re-enable HW decoder after bug 1526207 is fixed.
-    const isAndroid = navigator.userAgent.includes("Android");
     if (isAndroid) {
-      await pushPrefs(["media.navigator.mediadatadecoder_vpx_enabled", false],
-                      ["media.webrtc.hw.h264.enabled", false]);
+      await pushPrefs(
+          // [TODO] re-enable HW decoder after bug 1526207 is fixed.
+          ["media.navigator.mediadatadecoder_vpx_enabled", false],
+          ["media.webrtc.hw.h264.enabled", false],
+        );
     }
 
     const codecs = [
       {mimeType: "video/VP8"},
       {mimeType: "video/VP9"},
       {mimeType: "video/AV1"},
+      {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*packetization-mode=1/},
+      {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*packetization-mode=1/},
     ];
 
-    if (!isAndroid || await hasH264()) {
-      // Can't check for emulator explicitly, but that's where we expect no
-      // h264 support currently.
+    if (!isAndroid) {
+      // Android uses only MediaDataEncoder for H264, and it does not support
+      // packetization-mode=0.
       codecs.push(
-        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*packetization-mode=1/},
         {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*asymmetry-allowed=1$/},
-        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*packetization-mode=1/},
         {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*asymmetry-allowed=1$/},
       );
     }

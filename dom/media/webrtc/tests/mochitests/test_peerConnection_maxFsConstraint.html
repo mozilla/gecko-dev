@@ -32,12 +32,6 @@
     return d;
   };
 
-  const checkForH264Support = async () => {
-    const pc = new RTCPeerConnection();
-    const offer = await pc.createOffer({offerToReceiveVideo: true});
-    return offer.sdp.match(/a=rtpmap:[1-9][0-9]* H264/);
-  };
-
   let resolutionAlignment = 1;
 
   function testScale(codec) {
@@ -51,7 +45,7 @@
     pc1.onicecandidate = e => add(pc2, e.candidate, generateErrorCallback());
     pc2.onicecandidate = e => add(pc1, e.candidate, generateErrorCallback());
 
-    info("testing max-fs with" + codec);
+    info("testing max-fs with " + codec);
 
     pc1.onnegotiationneeded = e =>
       pc1.createOffer()
@@ -94,19 +88,26 @@
   }
 
   runNetworkTest(async () => {
-    await pushPrefs(['media.peerconnection.video.lock_scaling', true]);
-    if (await checkForH264Support()) {
-      if (navigator.userAgent.includes("Android")) {
-        // Android only has a hw encoder for h264
-        resolutionAlignment = 16;
-      }
-      await matchPlatformH264CodecPrefs();
-      await testScale("H264");
-    }
+    await pushPrefs(
+        ['media.peerconnection.video.lock_scaling', true],
+        // Disable h264 hardware support, to ensure it is not prioritized over VP8
+        ["media.webrtc.hw.h264.enabled", false],
+      );
 
-    // Disable h264 hardware support, to ensure it is not prioritized over VP8
-    await pushPrefs(["media.webrtc.hw.h264.enabled", false]);
+    await pushPrefs(
+        // Use libwebrtc VP8 encoder to avoid unexpected resolution alignment on
+        // some devices.
+        ["media.webrtc.encoder_creation_strategy", 0],
+      );
     await testScale("VP8");
+    await SpecialPowers.popPrefEnv();
+
+    await matchPlatformH264CodecPrefs();
+    if (navigator.userAgent.includes("Android")) {
+      // Android only has a hw encoder for h264
+      resolutionAlignment = 16;
+    }
+    await testScale("H264");
   });
 </script>
 </pre>
