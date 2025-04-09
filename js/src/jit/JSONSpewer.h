@@ -13,6 +13,7 @@
 
 #  include "js/TypeDecls.h"
 #  include "vm/JSONPrinter.h"
+#  include "wasm/WasmTypeDef.h"
 
 namespace js {
 namespace jit {
@@ -24,8 +25,14 @@ class MResumePoint;
 class LNode;
 
 class JSONSpewer : JSONPrinter {
+ private:
+  // Optional; wasm type information to be used when dumping MIR nodes.
+  const wasm::TypeContext* wasmTypes_;
+
  public:
-  explicit JSONSpewer(GenericPrinter& out) : JSONPrinter(out) {}
+  explicit JSONSpewer(GenericPrinter& out,
+                      const wasm::TypeContext* wasmTypes = nullptr)
+      : JSONPrinter(out), wasmTypes_(wasmTypes) {}
 
   void beginFunction(JSScript* script);
   void beginWasmFunction(unsigned funcIndex);

@@ -337,7 +337,7 @@ class RootCompiler {
         alloc_(alloc),
         mirGraph_(&alloc),
         mirGen_(nullptr, options_, &alloc_, &mirGraph_, &compileInfo_,
-                IonOptimizations.get(OptimizationLevel::Wasm)),
+                IonOptimizations.get(OptimizationLevel::Wasm), codeMeta.types),
         loopDepth_(0),
         inliningBudget_(0),
         tryNotes_(tryNotes) {}

@@ -3480,12 +3480,11 @@ static void AssertResumePointDominatedByOperands(MResumePoint* resume) {
 }
 #endif  // DEBUG
 
+// Checks the basic GraphCoherency but also other conditions that
+// do not hold immediately (such as the fact that critical edges
+// are split, or conditions related to wasm semantics)
 void jit::AssertExtendedGraphCoherency(MIRGraph& graph, bool underValueNumberer,
                                        bool force) {
-  // Checks the basic GraphCoherency but also other conditions that
-  // do not hold immediately (such as the fact that critical edges
-  // are split)
-
 #ifdef DEBUG
   if (!JitOptions.checkGraphConsistency) {
     return;
@@ -3593,6 +3592,12 @@ void jit::AssertExtendedGraphCoherency(MIRGraph& graph, bool underValueNumberer,
     if (MResumePoint* resume = block->outerResumePoint()) {
       AssertResumePointDominatedByOperands(resume);
       AssertResumableOperands(resume);
+    }
+
+    // Verify that any nodes with a wasm ref type have MIRType WasmAnyRef.
+    for (MDefinitionIterator def(*block); def; def++) {
+      MOZ_ASSERT_IF(def->wasmRefType().isSome(),
+                    def->type() == MIRType::WasmAnyRef);
     }
   }
 #endif
@@ -4280,6 +4285,78 @@ bool jit::MarkLoadsUsedAsPropertyKeys(MIRGraph& graph) {
       } else {
         JitSpew(JitSpew_MarkLoadsUsedAsPropertyKeys, "- SKIP: %s not supported",
                 idVal->opName());
+      }
+    }
+  }
+
+  return true;
+}
+
+// Since wasm has a fairly rich type system enforced in validation, we can use
+// this type system within MIR to robustly track the types of ref values. This
+// allows us to make MIR-level optimizations such as eliding null checks or
+// omitting redundant casts.
+//
+// This analysis pass performs simple data flow analysis by assigning ref types
+// to each definition, then revisiting phis and their uses as necessary until
+// the types have narrowed to a fixed point.
+bool jit::TrackWasmRefTypes(MIRGraph& graph) {
+  // The worklist tracks nodes whose types have changed and whose uses must
+  // therefore be re-evaluated.
+  Vector<MDefinition*, 16, SystemAllocPolicy> worklist;
+
+  // Assign an initial ref type to each definition. Reverse postorder ensures
+  // that nodes are always visited before their uses, with the exception of loop
+  // backedge phis.
+  for (ReversePostorderIterator blockIter = graph.rpoBegin();
+       blockIter != graph.rpoEnd(); blockIter++) {
+    MBasicBlock* block = *blockIter;
+    for (MDefinitionIterator def(block); def; def++) {
+      // Set the initial type on all nodes. If a type is produced, then any
+      // loop backedge phis that use this node must have been previously
+      // visited, and must be updated and possibly added to the worklist. (Any
+      // other uses of this node will be visited later in this first pass.)
+
+      if (def->type() != MIRType::WasmAnyRef) {
+        continue;
+      }
+
+      bool hasType = def->updateWasmRefType();
+      if (hasType) {
+        for (MUseIterator use(def->usesBegin()); use != def->usesEnd(); use++) {
+          MNode* consumer = use->consumer();
+          if (!consumer->isDefinition() || !consumer->toDefinition()->isPhi()) {
+            continue;
+          }
+          MPhi* phi = consumer->toDefinition()->toPhi();
+          if (phi->block()->isLoopHeader() &&
+              *def == phi->getLoopBackedgeOperand()) {
+            bool changed = phi->updateWasmRefType();
+            if (changed && !worklist.append(phi)) {
+              return false;
+            }
+          } else {
+            // Any other type of use must not have a ref type yet, because we
+            // are yet to hit it in this forward pass.
+            MOZ_ASSERT(consumer->toDefinition()->wasmRefType().isNothing());
+          }
+        }
+      }
+    }
+  }
+
+  // Until the worklist is empty, update the uses of any worklist nodes and
+  // track the ones whose types change.
+  while (!worklist.empty()) {
+    MDefinition* def = worklist.popCopy();
+
+    for (MUseIterator use(def->usesBegin()); use != def->usesEnd(); use++) {
+      if (!use->consumer()->isDefinition()) {
+        continue;
+      }
+      bool changed = use->consumer()->toDefinition()->updateWasmRefType();
+      if (changed && !worklist.append(use->consumer()->toDefinition())) {
+        return false;
       }
     }
   }

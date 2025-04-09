@@ -56,6 +56,7 @@ bool ValueNumberer::VisibleValues::ValueHasher::match(Key k, Lookup l) {
 
   bool congruent =
       k->congruentTo(l);  // Ask the values themselves what they think.
+  MOZ_ASSERT_IF(congruent, k->wasmRefType() == l->wasmRefType());
 #ifdef JS_JITSPEW
   if (congruent != l->congruentTo(k)) {
     JitSpew(

@@ -336,3 +336,7 @@ UniqueChars wasm::ToString(const mozilla::Maybe<ValType>& type,
                            const TypeContext* types) {
   return type ? ToString(type.ref(), types) : JS_smprintf("%s", "void");
 }
+
+UniqueChars wasm::ToString(const MaybeRefType& type, const TypeContext* types) {
+  return type ? ToString(type.value(), types) : JS_smprintf("%s", "void");
+}

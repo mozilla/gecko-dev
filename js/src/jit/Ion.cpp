@@ -1130,6 +1130,18 @@ bool OptimizeMIR(MIRGenerator* mir) {
     }
   }
 
+  if (mir->compilingWasm()) {
+    if (!TrackWasmRefTypes(graph)) {
+      return false;
+    }
+    gs.spewPass("Track Wasm ref types");
+    AssertExtendedGraphCoherency(graph);
+
+    if (mir->shouldCancel("Track Wasm ref types")) {
+      return false;
+    }
+  }
+
   if (mir->optimizationInfo().amaEnabled()) {
     AlignmentMaskAnalysis ama(graph);
     if (!ama.analyze()) {

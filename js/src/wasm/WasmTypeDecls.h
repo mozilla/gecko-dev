@@ -93,6 +93,19 @@ using UTF8Bytes = Vector<char, 0, SystemAllocPolicy>;
 using InstanceVector = Vector<Instance*, 0, SystemAllocPolicy>;
 using UniqueCharsVector = Vector<UniqueChars, 0, SystemAllocPolicy>;
 
+class RecGroup;
+class TypeDef;
+class TypeContext;
+enum class TypeDefKind : uint8_t;
+
+template <class T>
+class PackedType;
+
+class ValTypeTraits;
+using ValType = PackedType<ValTypeTraits>;
+class RefType;
+class MaybeRefType;
+
 }  // namespace wasm
 }  // namespace js
 

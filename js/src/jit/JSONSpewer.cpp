@@ -111,6 +111,9 @@ void JSONSpewer::spewMDef(MDefinition* def) {
     def->range()->dump(out_);
     out_.printf(": ");
   }
+  if (def->wasmRefType().isSome()) {
+    out_.printf("%s: ", wasm::ToString(def->wasmRefType(), wasmTypes_).get());
+  }
   out_.printf("%s", StringFromMIRType(def->type()));
   if (isTruncated) {
     out_.printf(" (t)");
