@@ -29,12 +29,9 @@
       var(--theme-splitter-color)
     );
   --console-message-color: var(--theme-text-color-strong);
-  --console-error-background: light-dark(hsl(344, 73%, 97%), hsl(345, 23%, 24%));
-  --console-error-border: light-dark(
-      rgb(from var(--red-60) r g b / 0.12),
-      hsl(345, 30%, 35%)
-    );
-  --console-error-color: light-dark(var(--red-70), var(--red-20));
+  --console-error-background: var(--theme-error-background);
+  --console-error-border: var(--theme-error-border);
+  --console-error-color: var(--theme-error-color);
   --console-navigation-color: var(--theme-highlight-blue);
   --console-navigation-border: light-dark(var(--blue-30), var(--blue-60));
   --console-indent-border-color: var(--theme-highlight-blue);

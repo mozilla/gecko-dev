@@ -272,6 +272,14 @@
     );
   --theme-warning-color: light-dark(var(--yellow-80), hsl(43, 94%, 81%));
 
+  /* Error colors */
+  --theme-error-background: light-dark(hsl(344, 73%, 97%), hsl(345, 23%, 24%));
+  --theme-error-border: light-dark(
+      rgb(from var(--red-60) r g b / 0.12),
+      hsl(345, 30%, 35%)
+    );
+  --theme-error-color: light-dark(var(--red-70), var(--red-20));
+
 /* Flashing colors used to highlight updates */
   --theme-contrast-background: light-dark(
     /* = Yellow 50-a40 on white */

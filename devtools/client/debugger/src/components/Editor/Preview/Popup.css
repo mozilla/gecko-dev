@@ -29,7 +29,7 @@
   }
 }
 
-/* Tooltip is used when previewing primitives */
+/* Tooltip is used when previewing primitives and exceptions */
 .tooltip .preview-popup {
   max-width: inherit;
   min-height: inherit;
@@ -48,6 +48,12 @@
     .objectBox {
       padding: 0 5px;
     }
+  }
+
+  &.exception-popup {
+    padding: 5px;
+    color: var(--theme-error-color);
+    background-color: var(--theme-error-background);
   }
 }
 
