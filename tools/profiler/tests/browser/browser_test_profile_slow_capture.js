@@ -68,6 +68,11 @@ add_task(async function browser_test_profile_slow_capture() {
 });
 
 add_task(async function browser_test_profile_very_slow_capture() {
+  await SpecialPowers.pushPrefEnv({
+    // Use a small value for a faster test.
+    set: [["devtools.performance.recording.child.timeout_s", 1]],
+  });
+
   Assert.ok(!Services.profiler.IsActive());
   info("Clear the previous pages just in case we still some open tabs.");
   await Services.profiler.ClearAllPages();
