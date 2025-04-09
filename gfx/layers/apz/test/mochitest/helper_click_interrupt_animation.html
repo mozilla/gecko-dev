@@ -37,6 +37,11 @@ async function test() {
   let utils = SpecialPowers.getDOMWindowUtils(window);
   utils.advanceTimeAndRefresh(0);
 
+  // Waiting for stability before starting the test
+  for (let i = 0; i < 5; i++) {
+    utils.advanceTimeAndRefresh(16);
+  }
+
   // Click at the bottom of the scrollbar track to trigger a page-down kind of
   // scroll. This should use "desktop zooming" scrollbar code which should
   // trigger an APZ scroll animation.
