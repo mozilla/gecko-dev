@@ -9,6 +9,9 @@
 #include "nsAccessibilityService.h"
 #include "DocAccessible.h"
 #include "nsCoreUtils.h"
+#include "nsFocusManager.h"
+
+#include "mozilla/a11y/DocAccessibleParent.h"
 #include "mozilla/a11y/Role.h"
 #include "States.h"
 
@@ -139,4 +142,47 @@ bool XULComboboxAccessible::AreItemsOperable() const {
   }
 
   return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// XULContentSelectDropdownAccessible
+////////////////////////////////////////////////////////////////////////////////
+
+Accessible* XULContentSelectDropdownAccessible::Parent() const {
+  // We render the expanded dropdown for <select>s in the parent process
+  // as a child of the application accessible. This confuses some
+  // ATs which expect the select to _always_ parent the dropdown (in
+  // both expanded and collapsed states).
+  // To rectify this, we spoof the <select> as the parent of the
+  // expanded dropdown here. Note that we do not spoof the child relationship.
+
+  // First, try to find the select that spawned this dropdown.
+  // The select that was activated does not get states::EXPANDED, but
+  // it should still have focus.
+  Accessible* focusedAcc = nullptr;
+  if (auto* focusedNode = FocusMgr()->FocusedDOMNode()) {
+    // If we get a node here, we're in a non-remote browser.
+    DocAccessible* doc =
+        GetAccService()->GetDocAccessible(focusedNode->OwnerDoc());
+    focusedAcc = doc->GetAccessible(focusedNode);
+  } else {
+    nsFocusManager* focusManagerDOM = nsFocusManager::GetFocusManager();
+    dom::BrowsingContext* focusedContext =
+        focusManagerDOM->GetFocusedBrowsingContextInChrome();
+
+    DocAccessibleParent* focusedDoc =
+        DocAccessibleParent::GetFrom(focusedContext);
+    MOZ_ASSERT(focusedDoc && focusedDoc->IsDoc(), "No focused document found");
+    focusedAcc = focusedDoc->AsDoc()->GetFocusedAcc();
+  }
+
+  if (!NS_WARN_IF(focusedAcc && focusedAcc->IsHTMLCombobox())) {
+    // We can sometimes get a document here if the select that
+    // this dropdown should anchor to loses focus. This can happen when
+    // calling AXPressed on macOS. Call into the regular parent
+    // function instead.
+    return LocalParent();
+  }
+
+  return focusedAcc;
 }

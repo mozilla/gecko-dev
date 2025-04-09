@@ -30,6 +30,8 @@ skip-if = [
 
 ["browser_searchbar.js"]
 
+["browser_select.js"]
+
 ["browser_shadowdom.js"]
 
 ["browser_test_nsIAccessibleDocument_URL.js"]
