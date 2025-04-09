@@ -74,6 +74,9 @@ support-files = [
 ["browser_accessibility_text_label_audit_frame.js"]
 
 ["browser_accessibility_walker.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1959257
+]
 
 ["browser_accessibility_walker_audit.js"]
 
