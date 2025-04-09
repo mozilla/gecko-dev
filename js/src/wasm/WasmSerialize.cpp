@@ -160,8 +160,7 @@ enum class Marker : uint32_t {
   Metadata,
   ModuleMetadata,
   CodeMetadata,
-  CodeBlock,
-  CodeSegment,
+  CodeBlock
 };
 
 template <CoderMode mode>
@@ -1128,59 +1127,6 @@ CoderResult CodeLinkData(Coder<mode>& coder,
   return Ok();
 }
 
-CoderResult CodeCodeSegment(Coder<MODE_DECODE>& coder,
-                            wasm::SharedCodeSegment* item,
-                            const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeSegment, 40);
-  // Assert we're decoding a CodeSegment
-  MOZ_TRY(Magic(coder, Marker::CodeSegment));
-
-  // Decode the code bytes length
-  size_t length;
-  MOZ_TRY(CodePod(coder, &length));
-
-  // Decode the code bytes
-  const uint8_t* codeBytes;
-  MOZ_TRY(coder.readBytesRef(length, &codeBytes));
-
-  // Initialize the CodeSegment
-  *item = CodeSegment::createFromBytes(codeBytes, length, linkData);
-  if (!*item) {
-    return Err(OutOfMemory());
-  }
-  return Ok();
-}
-
-template <CoderMode mode>
-CoderResult CodeCodeSegment(Coder<mode>& coder,
-                            CoderArg<mode, wasm::SharedCodeSegment> item,
-                            const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeSegment, 40);
-  STATIC_ASSERT_ENCODING_OR_SIZING;
-
-  // Mark that we're encoding a CodeSegment
-  MOZ_TRY(Magic(coder, Marker::CodeSegment));
-
-  // Encode the length
-  size_t length = (*item)->lengthBytes();
-  MOZ_TRY(CodePod(coder, &length));
-
-  if constexpr (mode == MODE_SIZE) {
-    // Just calculate the length of bytes written
-    MOZ_TRY(coder.writeBytes((*item)->base(), length));
-  } else {
-    // Get the start of where the code bytes will be written
-    uint8_t* serializedBase = coder.buffer_;
-
-    // Write the code bytes
-    MOZ_TRY(coder.writeBytes((*item)->base(), length));
-
-    // Unlink the code bytes written to the buffer
-    StaticallyUnlink(serializedBase, linkData);
-  }
-  return Ok();
-}
-
 // WasmMetadata.h
 
 template <CoderMode mode>
@@ -1351,11 +1297,26 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
     return Err(OutOfMemory());
   }
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
-  SharedCodeSegment codeSegment;
-  MOZ_TRY(CodeCodeSegment(coder, &codeSegment, linkData));
-  (*item)->segment = codeSegment;
-  (*item)->codeBase = codeSegment->base();
-  (*item)->codeLength = codeSegment->lengthBytes();
+
+  // Decode the code byte range
+  size_t codeBytesLength;
+  const uint8_t* codeBytes;
+  MOZ_TRY(CodePod(coder, &codeBytesLength));
+  MOZ_TRY(coder.readBytesRef(codeBytesLength, &codeBytes));
+
+  // Allocate a code segment using the code bytes
+  uint8_t* codeStart;
+  uint32_t allocationLength;
+  CodeSource codeSource(codeBytes, codeBytesLength, linkData, nullptr);
+  (*item)->segment =
+      CodeSegment::allocate(codeSource, nullptr, /* allowLastDitchGC */ true,
+                            &codeStart, &allocationLength);
+  if (!(*item)->segment) {
+    return Err(OutOfMemory());
+  }
+  (*item)->codeBase = codeStart;
+  (*item)->codeLength = codeSource.lengthBytes();
+
   MOZ_TRY(CodeFuncToCodeRangeMap(coder, &(*item)->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &(*item)->codeRanges));
   MOZ_TRY(CodeCallSites(coder, &(*item)->callSites));
@@ -1374,11 +1335,21 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
   WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2576);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
-  // We don't support serializing sub-ranges yet. These only happen with
-  // lazy stubs, which we don't serialize.
-  MOZ_ASSERT(item->codeBase == item->segment->base() &&
-             item->codeLength == item->segment->lengthBytes());
-  MOZ_TRY(CodeCodeSegment(coder, &item->segment, linkData));
+
+  // Encode the code bytes
+  MOZ_TRY(CodePod(coder, &item->codeLength));
+  if constexpr (mode == MODE_SIZE) {
+    // Just calculate the length of bytes written
+    MOZ_TRY(coder.writeBytes(item->codeBase, item->codeLength));
+  } else {
+    // Get the start of where the code bytes will be written
+    uint8_t* serializedBase = coder.buffer_;
+    // Write the code bytes
+    MOZ_TRY(coder.writeBytes(item->codeBase, item->codeLength));
+    // Unlink the code bytes written to the buffer
+    StaticallyUnlink(serializedBase, linkData);
+  }
+
   MOZ_TRY(CodeFuncToCodeRangeMap(coder, &item->funcToCodeRange));
   MOZ_TRY(CodePodVector(coder, &item->codeRanges));
   MOZ_TRY(CodeCallSites(coder, &item->callSites));

@@ -186,6 +186,49 @@ enum class CodeBlockKind {
   LazyStubs
 };
 
+// A source of machine code for creating an executable code segment.
+class CodeSource {
+  // The macro assembler to use as the source. If this is set then there is
+  // no `bytes_` pointer.
+  jit::MacroAssembler* masm_ = nullptr;
+  // A raw pointer to the unlinked machine code bytes. If this is set then
+  // there is no `masm_` pointer.
+  const uint8_t* bytes_ = nullptr;
+
+  // The length in bytes for either case. This is always valid and set to
+  // masm.bytesNeeded() if masm_ is present.
+  uint32_t length_ = 0;
+
+  // The link data to use, if any. This is always present if we are linking
+  // from raw bytes. Otherwise it may or may not be present when we are linking
+  // masm. If it is not present for masm we will fall back to basic linking of
+  // code labels and debug symbolic accesses.
+  const LinkData* linkData_;
+
+  // The code object to use, if any, for linking. This is optionally present
+  // in either case. This will not be present if we are doing basic linking
+  // without a link data.
+  const Code* code_;
+
+ public:
+  // Get the machine code from a macro assembler, optional link data, and
+  // optional code object.
+  CodeSource(jit::MacroAssembler& masm, const LinkData* linkData,
+             const Code* code);
+
+  // Get the machine code from a raw bytes range, link data, and optional code
+  // object.
+  CodeSource(const uint8_t* bytes, uint32_t length, const LinkData& linkData,
+             const Code* code);
+
+  // The length of machine code in bytes.
+  uint32_t lengthBytes() const { return length_; }
+
+  // Copy and link the machine code into `codeStart`.
+  bool copyAndLink(jit::AutoMarkJitCodeWritableForThread& writable,
+                   uint8_t* codeStart) const;
+};
+
 // CodeSegment is a fixed-size chunk of executable memory that we can
 // bump-allocate smaller allocations from.
 class CodeSegment : public ShareableBase<CodeSegment> {
@@ -195,6 +238,31 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   const uint32_t capacityBytes_;
   const Code* code_;
 
+  // Create a new, empty code segment with a given capacity. The capacity must
+  // have granularity of ExecutableCodePageSize (64KB).
+  static RefPtr<CodeSegment> create(
+      mozilla::Maybe<jit::AutoMarkJitCodeWritableForThread>& writable,
+      size_t capacityBytes, bool allowLastDitchGC = true);
+
+  // Returns the alignment that all allocations within a code segment must be.
+  //
+  // If we are write-protecting code, then we must start every new allocation
+  // on a new system page, otherwise we can re-use system pages for new
+  // allocations.
+  static size_t AllocationAlignment();
+  // Align `bytes` to be at least the allocation alignment. See above.
+  static size_t AlignAllocationBytes(uintptr_t bytes);
+  // Returns whether `bytes` is aligned to the allocation alignment.
+  static bool IsAligned(uintptr_t bytes);
+
+  // Checks if this code segment has enough room for an allocation of bytes.
+  // The bytes must be aligned to allocation alignment.
+  bool hasSpace(size_t bytes) const;
+
+  // Claims space in this code segment for an allocation of bytes. The bytes
+  // must be aligned to allocation alignment.
+  void claimSpace(size_t bytes, uint8_t** claimedBase);
+
  public:
   CodeSegment(UniqueCodeBytes bytes, uint32_t lengthBytes,
               uint32_t capacityBytes)
@@ -203,30 +271,9 @@ class CodeSegment : public ShareableBase<CodeSegment> {
         capacityBytes_(capacityBytes),
         code_(nullptr) {}
 
-  // Create a new, empty code segment.  Allocation granularity is
-  // ExecutableCodePageSize (64KB).
-  static RefPtr<CodeSegment> createEmpty(size_t capacityBytes,
-                                         bool allowLastDitchGC = true);
-
-  // Create a new code segment and copy/link code from `masm` into it.
-  // Allocation granularity is ExecutableCodePageSize (64KB).
-  static RefPtr<CodeSegment> createFromMasm(jit::MacroAssembler& masm,
-                                            const LinkData& linkData,
-                                            const Code* maybeCode,
-                                            bool allowLastDitchGC = true);
-
-  // Create a new code segment and copy/link code from `unlinkedBytes` into
-  // it.  Allocation granularity is ExecutableCodePageSize (64KB).
-  static RefPtr<CodeSegment> createFromBytes(const uint8_t* unlinkedBytes,
-                                             size_t unlinkedBytesLength,
-                                             const LinkData& linkData,
-                                             bool allowLastDitchGC = true);
-
-  // Claims space for `codeLength` from an existing code segment in a pool, or
-  // else creates a new code segment and adds it to the pool.
-  //
-  // Returns the code segment along with details of the allocation. The caller
-  // must copy, link, and make the code executable.
+  // Copies, links, and makes the machine code executable from the given code
+  // source. Returns the code segment the code was allocated into. An optional
+  // pool of code segments may be provided to allocate from.
   //
   // There are two important ranges created, an 'allocation' range and a 'code
   // range'.
@@ -273,29 +320,11 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   //                         :          codeStart
   //                         :
   //                         allocationStart
-  static RefPtr<CodeSegment> claimSpaceFromPool(
-      uint32_t codeLength,
+  static RefPtr<CodeSegment> allocate(
+      const CodeSource& codeSource,
       Vector<RefPtr<CodeSegment>, 0, SystemAllocPolicy>* segmentPool,
-      bool allowLastDitchGC, uint8_t** allocationStartOut,
-      uint8_t** codeStartOut, uint32_t* allocationLengthOut);
-
-  // For this CodeSegment, link the code given at `codeStart` and make the
-  // range of `[allocationStart, allocationLength)` executable.
-  bool linkAndMakeExecutableSubRange(
-      jit::AutoMarkJitCodeWritableForThread& writable, const LinkData& linkData,
-      const Code* maybeCode, uint8_t* allocationStart, uint8_t* codeStart,
-      uint32_t allocationLength);
-  // Same as above, but only does the minimum necessary linking using a given
-  // masm.
-  bool linkAndMakeExecutableSubRange(
-      jit::AutoMarkJitCodeWritableForThread& writable,
-      jit::MacroAssembler& masm, uint8_t* allocationStart, uint8_t* codeStart,
-      uint32_t allocationLength);
-
-  // For this CodeSegment, perform linking on the entire code area, then make
-  // it executable.
-  bool linkAndMakeExecutable(jit::AutoMarkJitCodeWritableForThread& writable,
-                             const LinkData& linkData, const Code* maybeCode);
+      bool allowLastDitchGC, uint8_t** codeStartOut,
+      uint32_t* allocationLengthOut);
 
   void setCode(const Code& code) { code_ = &code; }
 
@@ -308,25 +337,6 @@ class CodeSegment : public ShareableBase<CodeSegment> {
     MOZ_ASSERT(capacityBytes_ != UINT32_MAX);
     return capacityBytes_;
   }
-
-  // Returns the alignment that all allocations within a code segment must be.
-  //
-  // If we are write-protecting code, then we must start every new allocation
-  // on a new system page, otherwise we can re-use system pages for new
-  // allocations.
-  static size_t AllocationAlignment();
-  // Align `bytes` to be at least the allocation alignment. See above.
-  static size_t AlignAllocationBytes(uintptr_t bytes);
-  // Returns whether `bytes` is aligned to the allocation alignment.
-  static bool IsAligned(uintptr_t bytes);
-
-  // Checks if this code segment has enough room for an allocation of bytes.
-  // The bytes must be aligned to allocation alignment.
-  bool hasSpace(size_t bytes) const;
-
-  // Claims space in this code segment for an allocation of bytes. The bytes
-  // must be aligned to allocation alignment.
-  void claimSpace(size_t bytes, uint8_t** claimedBase);
 
   const Code& code() const { return *code_; }
 
@@ -568,14 +578,7 @@ class CodeBlock {
 
   // Metadata about the code we have contributed to the segment.
   //
-  // * `funcToCodeRange` does not involve code locations.
-  //
-  // * `stackMaps` specifies code locations directly, in nextInsnAddr.
-  //
-  // * All 6 other fields specify a code locations in by carrying an offset
-  //   which is interpreted to be relative to the start of the containing
-  //   CodeBlock::codeBase.
-  //
+  // All offsets are relative to `codeBase` not the segment base.
   FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
   CallSites callSites;
@@ -600,6 +603,8 @@ class CodeBlock {
       : code(nullptr),
         codeBlockIndex((size_t)-1),
         kind(kind),
+        codeBase(nullptr),
+        codeLength(0),
         unregisterOnDestroy_(false) {}
   ~CodeBlock();
 

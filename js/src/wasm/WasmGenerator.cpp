@@ -932,6 +932,8 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   // Allocate the code storage, copy/link the code from `masm_` into it, set up
   // `codeBlock_->segment / codeBase / codeLength`, and adjust the metadata
   // offsets on `codeBlock_` accordingly.
+  uint8_t* codeStart = nullptr;
+  uint32_t codeLength = 0;
   if (partialTieringCode_) {
     // We're compiling a single function during tiering.  Place it in its own
     // hardware page, inside an existing CodeSegment if possible, or allocate a
@@ -941,28 +943,26 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
 
     // Try to allocate from Code::lazyFuncSegments. We do not allow a last-ditch
     // GC here as we may be running in OOL-code that is not ready for a GC.
-    uint8_t* codeStart = nullptr;
-    uint32_t codeLength = 0;
     codeBlock_->segment = partialTieringCode_->createFuncCodeSegmentFromPool(
         *masm_, *linkData_, /* allowLastDitchGC = */ false, &codeStart,
         &codeLength);
-    if (!codeBlock_->segment) {
-      warnf("failed to allocate executable memory for module");
-      return nullptr;
-    }
-    codeBlock_->codeBase = codeStart;
-    codeBlock_->codeLength = codeLength;
   } else {
     // Create a new CodeSegment for the code and use that.
-    codeBlock_->segment = CodeSegment::createFromMasm(
-        *masm_, *linkData_, partialTieringCode_.get());
-    if (!codeBlock_->segment) {
-      warnf("failed to allocate executable memory for module");
-      return nullptr;
-    }
-    codeBlock_->codeBase = codeBlock_->segment->base();
-    codeBlock_->codeLength = codeBlock_->segment->lengthBytes();
+    CodeSource codeSource(*masm_, linkData_.get(), nullptr);
+    codeLength = codeSource.lengthBytes();
+    uint32_t allocationLength;
+    codeBlock_->segment = CodeSegment::allocate(codeSource, nullptr,
+                                                /* allowLastDitchGC */ true,
+                                                &codeStart, &allocationLength);
   }
+
+  if (!codeBlock_->segment) {
+    warnf("failed to allocate executable memory for module");
+    return nullptr;
+  }
+
+  codeBlock_->codeBase = codeStart;
+  codeBlock_->codeLength = codeLength;
 
   // Check that metadata is consistent with the actual code we generated,
   // linked, and loaded.

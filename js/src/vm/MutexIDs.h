@@ -24,9 +24,8 @@
   _(WellKnownParserAtomsInit, 100)    \
                                       \
   _(ExecutionTracerInstanceLock, 250) \
-  _(WasmInitBuiltinThunks, 250)       \
   _(WasmCodeProtected, 250)           \
-  _(WasmLazyStubsTier2, 251)          \
+  _(WasmInitBuiltinThunks, 251)       \
                                       \
   _(StoreBuffer, 275)                 \
                                       \
