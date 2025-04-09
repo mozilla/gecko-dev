@@ -43,6 +43,11 @@ support-files = [
   "clipboard_paste_prompt.html",
 ]
 
+["browser_clipboard_paste_redirect_focus_in_paste_event_listener.js"]
+support-files = [
+  "clipboard_paste_redirect_focus_in_paste_event_listener.html",
+]
+
 ["browser_clipboard_read_async_content_analysis.js"]
 support-files = [
   "clipboard_read_async.html",

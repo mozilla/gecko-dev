@@ -1855,13 +1855,10 @@ nsresult EditorBase::PasteAsAction(nsIClipboard::ClipboardType aClipboardType,
   // the clipboard event and the call to HandlePaste below. This prevents
   // race conditions with Content Analysis on like we see in bug 1918027.
   // Note that this is not needed if we're not going to dispatch the paste
-  // event.
-  RefPtr<DataTransfer> dataTransfer;
-  if (aDispatchPasteEvent == DispatchPasteEvent::Yes) {
-    dataTransfer = aDataTransfer
-                       ? RefPtr<DataTransfer>(aDataTransfer)
-                       : RefPtr<DataTransfer>(CreateDataTransferForPaste(
-                             ePaste, aClipboardType));
+  // event and no aDataTransfer was passed in.
+  RefPtr<DataTransfer> dataTransfer = aDataTransfer;
+  if (!aDataTransfer && aDispatchPasteEvent == DispatchPasteEvent::Yes) {
+    dataTransfer = CreateDataTransferForPaste(ePaste, aClipboardType);
   }
   AutoEditActionDataSetter editActionData(*this, EditAction::ePaste,
                                           aPrincipal);
