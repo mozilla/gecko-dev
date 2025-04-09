@@ -1,8 +1,6 @@
 [DEFAULT]
 head = ""
 
-["test_csp_deserialization.js"]
-
 ["test_csp_reports.js"]
 
 ["test_csp_upgrade_insecure_request_header.js"]
