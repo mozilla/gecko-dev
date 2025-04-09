@@ -1852,28 +1852,6 @@
     </issue>
 
     <issue
-        id="SmallSp"
-        message="Avoid using sizes smaller than `11sp`: `10sp`"
-        errorLine1="        android:textSize=&quot;10sp&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/account_share_list_item.xml"
-            line="39"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="SmallSp"
-        message="Avoid using sizes smaller than `11sp`: `10sp`"
-        errorLine1="        android:textSize=&quot;10sp&quot;"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/layout/app_share_list_item.xml"
-            line="37"
-            column="9"/>
-    </issue>
-
-    <issue
         id="ClickableViewAccessibility"
         message="Custom view ``SearchDialogFragmentConstraintLayout`` has `setOnTouchListener` called on it but does not override `performClick`"
         errorLine1="                binding.searchWrapper.setOnTouchListener { _, _ ->"
