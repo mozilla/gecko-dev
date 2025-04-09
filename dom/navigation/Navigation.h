@@ -107,20 +107,19 @@ class Navigation final : public DOMEventTargetHelper {
   // https://html.spec.whatwg.org/#navigate-event-firing
 
   MOZ_CAN_RUN_SCRIPT bool FireTraverseNavigateEvent(
-      JSContext* aCx, SessionHistoryInfo* aDestinationSessionHistoryInfo,
+      SessionHistoryInfo* aDestinationSessionHistoryInfo,
       Maybe<UserNavigationInvolvement> aUserInvolvement);
 
   MOZ_CAN_RUN_SCRIPT bool FirePushReplaceReloadNavigateEvent(
-      JSContext* aCx, NavigationType aNavigationType, nsIURI* aDestinationURL,
+      NavigationType aNavigationType, nsIURI* aDestinationURL,
       bool aIsSameDocument, Maybe<UserNavigationInvolvement> aUserInvolvement,
       Element* aSourceElement, Maybe<const FormData&> aFormDataEntryList,
       nsIStructuredCloneContainer* aNavigationAPIState,
       nsIStructuredCloneContainer* aClassicHistoryAPIState);
 
   MOZ_CAN_RUN_SCRIPT bool FireDownloadRequestNavigateEvent(
-      JSContext* aCx, nsIURI* aDestinationURL,
-      UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
-      const nsAString& aFilename);
+      nsIURI* aDestinationURL, UserNavigationInvolvement aUserInvolvement,
+      Element* aSourceElement, const nsAString& aFilename);
 
   bool FocusedChangedDuringOngoingNavigation() const;
   void SetFocusedChangedDuringOngoingNavigation(
@@ -142,13 +141,9 @@ class Navigation final : public DOMEventTargetHelper {
 
   nsresult FireEvent(const nsAString& aName);
 
-  nsresult FireErrorEvent(const nsAString& aName,
-                          const ErrorEventInit& aEventInitDict);
-
   // https://html.spec.whatwg.org/#inner-navigate-event-firing-algorithm
   MOZ_CAN_RUN_SCRIPT bool InnerFireNavigateEvent(
-      JSContext* aCx, NavigationType aNavigationType,
-      NavigationDestination* aDestination,
+      NavigationType aNavigationType, NavigationDestination* aDestination,
       UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
       Maybe<const FormData&> aFormDataEntryList,
       nsIStructuredCloneContainer* aClassicHistoryAPIState,
@@ -161,8 +156,7 @@ class Navigation final : public DOMEventTargetHelper {
 
   static void CleanUp(NavigationAPIMethodTracker* aNavigationAPIMethodTracker);
 
-  void AbortOngoingNavigation(
-      JSContext* aCx, JS::Handle<JS::Value> aError = JS::UndefinedHandleValue);
+  void AbortOngoingNavigation();
 
   void LogHistory() const;
 
@@ -176,7 +170,7 @@ class Navigation final : public DOMEventTargetHelper {
   RefPtr<NavigateEvent> mOngoingNavigateEvent;
 
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#focus-changed-during-ongoing-navigation
-  bool mFocusChangedDuringOngoingNavigation = false;
+  bool mFocusChangedDUringOngoingNavigation = false;
 
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#suppress-normal-scroll-restoration-during-ongoing-navigation
   bool mSuppressNormalScrollRestorationDuringOngoingNavigation = false;

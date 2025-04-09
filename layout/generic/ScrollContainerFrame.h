@@ -1020,8 +1020,6 @@ class ScrollContainerFrame : public nsContainerFrame,
 
   void AppendScrollUpdate(const ScrollPositionUpdate& aUpdate);
 
-  bool HasBeenScrolled() const { return mHasBeenScrolled; }
-
  protected:
   ScrollContainerFrame(ComputedStyle* aStyle, nsPresContext* aPresContext,
                        bool aIsRoot)

@@ -262,14 +262,11 @@ class Promise : public SupportsWeakPtr, public JSHolderBase {
       PropagateUserInteraction aPropagateUserInteraction =
           eDontPropagateUserInteraction);
 
-  using SuccessSteps =
-      const std::function<void(const Span<JS::Heap<JS::Value>>&)>&;
-  using FailureSteps = const std::function<void(JS::Handle<JS::Value>)>&;
-  MOZ_CAN_RUN_SCRIPT
-  static void WaitForAll(nsIGlobalObject* aGlobal,
-                         const Span<RefPtr<Promise>>& aPromises,
-                         SuccessSteps aSuccessSteps,
-                         FailureSteps aFailureSteps);
+  static void WaitForAll(
+      nsIGlobalObject* aGlobal, const Span<RefPtr<Promise>>& aPromises,
+      const std::function<void(const Span<JS::Heap<JS::Value>>&)>&
+          aSuccessSteps,
+      const std::function<void(JS::Handle<JS::Value>)>& aFailureSteps);
 
   template <typename Callback, typename... Args>
   using IsHandlerCallback =

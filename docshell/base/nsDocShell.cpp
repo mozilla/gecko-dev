@@ -11357,8 +11357,7 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
     if (RefPtr<Navigation> navigation = window->Navigation();
         navigation &&
         navigation->FirePushReplaceReloadNavigateEvent(
-            aCx, aReplace ? NavigationType::Replace : NavigationType::Push,
-            newURI,
+            aReplace ? NavigationType::Replace : NavigationType::Push, newURI,
             /* aIsSameDocument */ true, /* aUserInvolvement */ Nothing(),
             /* aSourceElement */ nullptr, /* aFormDataEntryList */ Nothing(),
             /* aNavigationAPIState */ nullptr, scContainer)) {

@@ -74,7 +74,6 @@ class NavigateEvent final : public Event {
 
   void Intercept(const NavigationInterceptOptions& aOptions, ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT
   void Scroll(ErrorResult& aRv);
 
   void InitNavigateEvent(const NavigateEventInit& aEventInitDict);
@@ -97,22 +96,13 @@ class NavigateEvent final : public Event {
 
   nsTArray<RefPtr<NavigationInterceptHandler>>& NavigationHandlerList();
 
-  AbortController* AbortController() const;
-
-  bool HasBeenDispatched() const;
-
-  MOZ_CAN_RUN_SCRIPT
   void Finish(bool aDidFulfill);
 
  private:
-  void PerformSharedChecks(ErrorResult& aRv);
-
   void PotentiallyResetFocus();
 
-  MOZ_CAN_RUN_SCRIPT
   void PotentiallyProcessScrollBehavior();
 
-  MOZ_CAN_RUN_SCRIPT
   void ProcessScrollBehavior();
 
   explicit NavigateEvent(EventTarget* aOwner);
@@ -143,7 +133,7 @@ class NavigateEvent final : public Event {
   Maybe<NavigationScrollBehavior> mScrollBehavior;
 
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-6
-  RefPtr<dom::AbortController> mAbortController;
+  RefPtr<AbortController> mAbortController;
 
   // https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigateevent-interface:navigateevent-7
   nsCOMPtr<nsIStructuredCloneContainer> mClassicHistoryAPIState;
