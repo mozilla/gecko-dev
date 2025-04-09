@@ -155,6 +155,11 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
   WindowRenderer* renderer = GetWindowRenderer();
   KnowsCompositor* knowsCompositor = renderer->AsKnowsCompositor();
   WebRenderLayerManager* layerManager = renderer->AsWebRender();
+  const bool isFallback =
+      renderer->GetBackendType() == LayersBackend::LAYERS_NONE;
+  MOZ_ASSERT(
+      isFallback || renderer->GetBackendType() == LayersBackend::LAYERS_WR,
+      "Unknown layers backend");
 
   const bool didResize = mBounds.Size() != mLastPaintBounds.Size();
 
@@ -203,11 +208,11 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
     // We clear the whole window below anyways, and doing so could cause
     // flicker, as Windows doesn't guarantee atomicity even between
     // ::BeginPaint and ::EndPaint, see bug 1958631.
-    if (!regionToClear.IsEmpty() &&
-        renderer->GetBackendType() != LayersBackend::LAYERS_NONE) {
+    if (!regionToClear.IsEmpty() && !isFallback) {
       auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
-      // We could use RegionToHRGN, but at least for simple regions (and possibly
-      // for complex ones too?) FillRect is faster; see bug 1946365 comment 12.
+      // We could use RegionToHRGN, but at least for simple regions (and
+      // possibly for complex ones too?) FillRect is faster; see bug 1946365
+      // comment 12.
       for (auto it = regionToClear.RectIter(); !it.Done(); it.Next()) {
         auto rect = WinUtils::ToWinRect(it.Get());
         ::FillRect(hDC, &rect, black);
@@ -246,51 +251,44 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
 #endif  // WIDGET_DEBUG_OUTPUT
 
   bool result = true;
-  switch (renderer->GetBackendType()) {
-    case LayersBackend::LAYERS_NONE: {
-      uint32_t flags = mTransparencyMode == TransparencyMode::Opaque
-                           ? 0
-                           : gfxWindowsSurface::FLAG_IS_TRANSPARENT;
-      RefPtr<gfxASurface> targetSurface = new gfxWindowsSurface(hDC, flags);
-      RECT paintRect;
-      ::GetClientRect(mWnd, &paintRect);
-      RefPtr<DrawTarget> dt = gfxPlatform::CreateDrawTargetForSurface(
-          targetSurface, IntSize(paintRect.right - paintRect.left,
-                                 paintRect.bottom - paintRect.top));
-      if (!dt || !dt->IsValid()) {
-        gfxWarning()
-            << "nsWindow::OnPaint failed in CreateDrawTargetForSurface";
-        return false;
-      }
+  if (isFallback) {
+    uint32_t flags = mTransparencyMode == TransparencyMode::Opaque
+                         ? 0
+                         : gfxWindowsSurface::FLAG_IS_TRANSPARENT;
+    RefPtr<gfxASurface> targetSurface = new gfxWindowsSurface(hDC, flags);
+    RECT paintRect;
+    ::GetClientRect(mWnd, &paintRect);
+    RefPtr<DrawTarget> dt = gfxPlatform::CreateDrawTargetForSurface(
+        targetSurface, IntSize(paintRect.right - paintRect.left,
+                               paintRect.bottom - paintRect.top));
+    if (!dt || !dt->IsValid()) {
+      gfxWarning() << "nsWindow::OnPaint failed in CreateDrawTargetForSurface";
+      return false;
+    }
 
-      if (mTransparencyMode == TransparencyMode::Transparent) {
-        // If we're rendering with translucency, we're going to be
-        // rendering the whole window; make sure we clear it first
-        dt->ClearRect(Rect(dt->GetRect()));
-      }
+    if (mTransparencyMode == TransparencyMode::Transparent) {
+      // If we're rendering with translucency, we're going to be
+      // rendering the whole window; make sure we clear it first
+      dt->ClearRect(Rect(dt->GetRect()));
+    }
 
-      gfxContext thebesContext(dt);
+    gfxContext thebesContext(dt);
 
-      {
-        AutoLayerManagerSetup setupLayerManager(this, &thebesContext);
-        if (nsIWidgetListener* listener = GetPaintListener()) {
-          result = listener->PaintWindow(this, region);
-        }
-      }
-    } break;
-    case LayersBackend::LAYERS_WR: {
+    {
+      AutoLayerManagerSetup setupLayerManager(this, &thebesContext);
       if (nsIWidgetListener* listener = GetPaintListener()) {
         result = listener->PaintWindow(this, region);
       }
-      if (!gfxEnv::MOZ_DISABLE_FORCE_PRESENT()) {
-        nsCOMPtr<nsIRunnable> event = NewRunnableMethod(
-            "nsWindow::ForcePresent", this, &nsWindow::ForcePresent);
-        NS_DispatchToMainThread(event);
-      }
-    } break;
-    default:
-      NS_ERROR("Unknown layers backend used!");
-      break;
+    }
+  } else {
+    if (nsIWidgetListener* listener = GetPaintListener()) {
+      result = listener->PaintWindow(this, region);
+    }
+    if (!gfxEnv::MOZ_DISABLE_FORCE_PRESENT()) {
+      nsCOMPtr<nsIRunnable> event = NewRunnableMethod(
+          "nsWindow::ForcePresent", this, &nsWindow::ForcePresent);
+      NS_DispatchToMainThread(event);
+    }
   }
 
   didPaint = true;
