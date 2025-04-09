@@ -36,8 +36,9 @@ using mozilla::DebugOnly;
 using mozilla::FloatingPoint;
 
 CodeGeneratorX86::CodeGeneratorX86(MIRGenerator* gen, LIRGraph* graph,
-                                   MacroAssembler* masm)
-    : CodeGeneratorX86Shared(gen, graph, masm) {}
+                                   MacroAssembler* masm,
+                                   const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorX86Shared(gen, graph, masm, wasmCodeMeta) {}
 
 void CodeGenerator::visitBox(LBox* box) {
   const LDefinition* type = box->getDef(TYPE_INDEX);

@@ -36,10 +36,10 @@ using mozilla::FloorLog2;
 using mozilla::NegativeInfinity;
 
 // shared
-CodeGeneratorMIPSShared::CodeGeneratorMIPSShared(MIRGenerator* gen,
-                                                 LIRGraph* graph,
-                                                 MacroAssembler* masm)
-    : CodeGeneratorShared(gen, graph, masm) {}
+CodeGeneratorMIPSShared::CodeGeneratorMIPSShared(
+    MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+    const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorShared(gen, graph, masm, wasmCodeMeta) {}
 
 Operand CodeGeneratorMIPSShared::ToOperand(const LAllocation& a) {
   if (a.isGeneralReg()) {

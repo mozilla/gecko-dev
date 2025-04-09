@@ -86,7 +86,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
  public:
   CodeGenerator(MIRGenerator* gen, LIRGraph* graph,
-                MacroAssembler* masm = nullptr);
+                MacroAssembler* masm = nullptr,
+                const wasm::CodeMetadata* wasmCodeMeta = nullptr);
   ~CodeGenerator();
 
   [[nodiscard]] bool generate(const WarpSnapshot* snapshot);
@@ -381,6 +382,7 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void emitDebugResultChecks(LInstruction* ins);
   void emitGCThingResultChecks(LInstruction* lir, MDefinition* mir);
   void emitValueResultChecks(LInstruction* lir, MDefinition* mir);
+  void emitWasmAnyrefResultChecks(LInstruction* lir, MDefinition* mir);
 #endif
 
   // Script counts created during code generation.

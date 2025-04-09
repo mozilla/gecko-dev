@@ -68,6 +68,6 @@ for (let [n1, n2, numInstr] of [
 
 // Utils.
 function getFuncBody(dis) {
-    const parts = dis.split(/mov %rsp, %rbp\n|^[0-9A-Fa-f ]+pop %rbp/gm);
+    const parts = dis.split(/mov %rsp, %rbp\n|movq %r14, 0x[13]0\(%rbp\)\n|^[0-9A-Fa-f ]+pop %rbp/gm);
     return parts.at(-2).replace(/[0-9A-F]{8} (?: [0-9a-f]{2})+[\s\n]+/g, "");
 }

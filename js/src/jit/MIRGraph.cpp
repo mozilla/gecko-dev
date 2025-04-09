@@ -13,6 +13,7 @@
 #include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
 #include "jit/MIRGenerator.h"
+#include "wasm/WasmMetadata.h"
 
 using namespace js;
 using namespace js::jit;
@@ -22,7 +23,7 @@ MIRGenerator::MIRGenerator(CompileRealm* realm,
                            TempAllocator* alloc, MIRGraph* graph,
                            const CompileInfo* info,
                            const OptimizationInfo* optimizationInfo,
-                           const wasm::TypeContext* wasmTypes)
+                           const wasm::CodeMetadata* wasmCodeMeta)
     : realm(realm),
       runtime(realm ? realm->runtime() : nullptr),
       outerInfo_(info),
@@ -42,7 +43,7 @@ MIRGenerator::MIRGenerator(CompileRealm* realm,
                                    : false),
       minWasmMemory0Length_(0),
       options(options),
-      gs_(alloc, wasmTypes) {}
+      gs_(alloc, wasmCodeMeta) {}
 
 bool MIRGenerator::licmEnabled() const {
   return optimizationInfo().licmEnabled() && !disableLICM_ &&

@@ -23,8 +23,9 @@ using namespace js::jit;
 using mozilla::DebugOnly;
 
 CodeGeneratorX64::CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph,
-                                   MacroAssembler* masm)
-    : CodeGeneratorX86Shared(gen, graph, masm) {}
+                                   MacroAssembler* masm,
+                                   const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorX86Shared(gen, graph, masm, wasmCodeMeta) {}
 
 Operand CodeGeneratorX64::ToOperand64(const LInt64Allocation& a64) {
   const LAllocation& a = a64.value();

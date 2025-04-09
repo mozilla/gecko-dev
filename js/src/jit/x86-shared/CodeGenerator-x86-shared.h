@@ -28,7 +28,8 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared {
 
  protected:
   CodeGeneratorX86Shared(MIRGenerator* gen, LIRGraph* graph,
-                         MacroAssembler* masm);
+                         MacroAssembler* masm,
+                         const wasm::CodeMetadata* wasmCodeMeta);
 
   NonAssertingLabel deoptLabel_;
 

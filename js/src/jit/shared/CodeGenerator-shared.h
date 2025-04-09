@@ -45,6 +45,7 @@ class CodeGeneratorShared : public LElementVisitor {
  protected:
   MIRGenerator* gen;
   LIRGraph& graph;
+  const wasm::CodeMetadata* wasmCodeMeta_;
   LBlock* current;
   SnapshotWriter snapshots_;
   RecoverWriter recovers_;
@@ -154,6 +155,7 @@ class CodeGeneratorShared : public LElementVisitor {
 
  public:
   MIRGenerator& mirGen() const { return *gen; }
+  const wasm::CodeMetadata* wasmCodeMeta() const { return wasmCodeMeta_; }
 
   // When appending to runtimeData_, the vector might realloc, leaving pointers
   // int the origianl vector stale and unusable. DataPtr acts like a pointer,
@@ -389,7 +391,8 @@ class CodeGeneratorShared : public LElementVisitor {
   void generateInvalidateEpilogue();
 
  public:
-  CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
+  CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                      const wasm::CodeMetadata* wasmCodeMeta);
 
  public:
   void visitOutOfLineTruncateSlow(OutOfLineTruncateSlow* ool);

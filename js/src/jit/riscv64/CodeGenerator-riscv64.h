@@ -24,8 +24,8 @@ class CodeGeneratorRiscv64 : public CodeGeneratorShared {
   friend class MoveResolverLA;
 
  protected:
-  CodeGeneratorRiscv64(MIRGenerator* gen, LIRGraph* graph,
-                       MacroAssembler* masm);
+  CodeGeneratorRiscv64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                       const wasm::CodeMetadata* wasmCodeMeta);
 
   NonAssertingLabel deoptLabel_;
 

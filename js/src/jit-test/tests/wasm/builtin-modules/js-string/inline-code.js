@@ -1,5 +1,7 @@
 // |jit-test| skip-if: !wasmJSStringBuiltinsEnabled() || !hasDisassembler() || wasmCompileMode() != "ion" || !getBuildConfiguration("arm64"); include:codegen-arm64-test.js
 
+setJitCompilerOption("jit.full-debug-checks", 0);
+
 codegenTestARM64_adhoc(`
   (func $testImp
     (import "wasm:js-string" "test")

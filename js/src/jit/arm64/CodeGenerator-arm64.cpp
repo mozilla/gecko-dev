@@ -37,8 +37,9 @@ using mozilla::Some;
 
 // shared
 CodeGeneratorARM64::CodeGeneratorARM64(MIRGenerator* gen, LIRGraph* graph,
-                                       MacroAssembler* masm)
-    : CodeGeneratorShared(gen, graph, masm) {}
+                                       MacroAssembler* masm,
+                                       const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorShared(gen, graph, masm, wasmCodeMeta) {}
 
 bool CodeGeneratorARM64::generateOutOfLineCode() {
   AutoCreatedBy acb(masm, "CodeGeneratorARM64::generateOutOfLineCode");

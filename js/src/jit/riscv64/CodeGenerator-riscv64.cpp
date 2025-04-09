@@ -31,9 +31,10 @@ using mozilla::FloorLog2;
 using mozilla::NegativeInfinity;
 
 // shared
-CodeGeneratorRiscv64::CodeGeneratorRiscv64(MIRGenerator* gen, LIRGraph* graph,
-                                           MacroAssembler* masm)
-    : CodeGeneratorShared(gen, graph, masm) {}
+CodeGeneratorRiscv64::CodeGeneratorRiscv64(
+    MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+    const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorShared(gen, graph, masm, wasmCodeMeta) {}
 
 Operand CodeGeneratorRiscv64::ToOperand(const LAllocation& a) {
   if (a.isGeneralReg()) {

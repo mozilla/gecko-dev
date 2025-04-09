@@ -23,7 +23,8 @@ class CodeGeneratorMIPSShared : public CodeGeneratorShared {
 
  protected:
   CodeGeneratorMIPSShared(MIRGenerator* gen, LIRGraph* graph,
-                          MacroAssembler* masm);
+                          MacroAssembler* masm,
+                          const wasm::CodeMetadata* wasmCodeMeta);
 
   NonAssertingLabel deoptLabel_;
 

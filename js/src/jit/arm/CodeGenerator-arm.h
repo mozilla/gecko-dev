@@ -24,7 +24,8 @@ class CodeGeneratorARM : public CodeGeneratorShared {
   friend class MoveResolverARM;
 
  protected:
-  CodeGeneratorARM(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
+  CodeGeneratorARM(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                   const wasm::CodeMetadata* wasmCodeMeta);
 
   NonAssertingLabel deoptLabel_;
 

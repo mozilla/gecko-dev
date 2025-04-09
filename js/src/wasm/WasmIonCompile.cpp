@@ -337,7 +337,7 @@ class RootCompiler {
         alloc_(alloc),
         mirGraph_(&alloc),
         mirGen_(nullptr, options_, &alloc_, &mirGraph_, &compileInfo_,
-                IonOptimizations.get(OptimizationLevel::Wasm), codeMeta.types),
+                IonOptimizations.get(OptimizationLevel::Wasm), &codeMeta),
         loopDepth_(0),
         inliningBudget_(0),
         tryNotes_(tryNotes) {}
@@ -10675,7 +10675,7 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
 
       size_t unwindInfoBefore = masm.codeRangeUnwindInfos().length();
 
-      CodeGenerator codegen(&rootCompiler.mirGen(), lir, &masm);
+      CodeGenerator codegen(&rootCompiler.mirGen(), lir, &masm, &codeMeta);
 
       TrapSiteDesc prologueTrapSiteDesc(
           wasm::BytecodeOffset(func.lineOrBytecode));

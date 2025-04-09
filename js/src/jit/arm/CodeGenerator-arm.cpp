@@ -41,8 +41,9 @@ using mozilla::NegativeInfinity;
 
 // shared
 CodeGeneratorARM::CodeGeneratorARM(MIRGenerator* gen, LIRGraph* graph,
-                                   MacroAssembler* masm)
-    : CodeGeneratorShared(gen, graph, masm) {}
+                                   MacroAssembler* masm,
+                                   const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorShared(gen, graph, masm, wasmCodeMeta) {}
 
 Register64 CodeGeneratorARM::ToOperandOrRegister64(
     const LInt64Allocation& input) {

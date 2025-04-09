@@ -42,7 +42,7 @@ class MIRGenerator final {
                TempAllocator* alloc, MIRGraph* graph,
                const CompileInfo* outerInfo,
                const OptimizationInfo* optimizationInfo,
-               const wasm::TypeContext* wasmTypes = nullptr);
+               const wasm::CodeMetadata* wasmCodeMeta = nullptr);
 
   void initMinWasmMemory0Length(uint64_t init) { minWasmMemory0Length_ = init; }
 

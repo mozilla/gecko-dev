@@ -150,7 +150,7 @@ class GraphSpewer {
 
  public:
   explicit GraphSpewer(TempAllocator* alloc,
-                       const wasm::TypeContext* wasmTypes = nullptr);
+                       const wasm::CodeMetadata* wasmCodeMeta = nullptr);
 
   bool isSpewing() const { return graph_; }
   void init(MIRGraph* graph, JSScript* function);
@@ -236,7 +236,7 @@ void EnableIonDebugAsyncLogging();
 class GraphSpewer {
  public:
   explicit GraphSpewer(TempAllocator* alloc,
-                       const wasm::TypeContext* wasmTypes = nullptr) {}
+                       const wasm::CodeMetadata* wasmCodeMeta = nullptr) {}
 
   bool isSpewing() { return false; }
   void init(MIRGraph* graph, JSScript* function) {}

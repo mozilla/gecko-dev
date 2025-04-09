@@ -23,8 +23,8 @@ class CodeGeneratorLOONG64 : public CodeGeneratorShared {
   friend class MoveResolverLA;
 
  protected:
-  CodeGeneratorLOONG64(MIRGenerator* gen, LIRGraph* graph,
-                       MacroAssembler* masm);
+  CodeGeneratorLOONG64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                       const wasm::CodeMetadata* wasmCodeMeta);
 
   NonAssertingLabel deoptLabel_;
 

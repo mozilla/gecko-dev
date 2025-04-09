@@ -32,10 +32,10 @@ using JS::GenericNaN;
 namespace js {
 namespace jit {
 
-CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator* gen,
-                                               LIRGraph* graph,
-                                               MacroAssembler* masm)
-    : CodeGeneratorShared(gen, graph, masm) {}
+CodeGeneratorX86Shared::CodeGeneratorX86Shared(
+    MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+    const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorShared(gen, graph, masm, wasmCodeMeta) {}
 
 #ifdef JS_PUNBOX64
 Operand CodeGeneratorX86Shared::ToOperandOrRegister64(

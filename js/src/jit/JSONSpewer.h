@@ -27,12 +27,12 @@ class LNode;
 class JSONSpewer : JSONPrinter {
  private:
   // Optional; wasm type information to be used when dumping MIR nodes.
-  const wasm::TypeContext* wasmTypes_;
+  const wasm::CodeMetadata* wasmCodeMeta_;
 
  public:
   explicit JSONSpewer(GenericPrinter& out,
-                      const wasm::TypeContext* wasmTypes = nullptr)
-      : JSONPrinter(out), wasmTypes_(wasmTypes) {}
+                      const wasm::CodeMetadata* wasmCodeMeta = nullptr)
+      : JSONPrinter(out), wasmCodeMeta_(wasmCodeMeta) {}
 
   void beginFunction(JSScript* script);
   void beginWasmFunction(unsigned funcIndex);

@@ -48,10 +48,12 @@ MacroAssembler& CodeGeneratorShared::ensureMasm(MacroAssembler* masmArg,
 }
 
 CodeGeneratorShared::CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph,
-                                         MacroAssembler* masmArg)
+                                         MacroAssembler* masmArg,
+                                         const wasm::CodeMetadata* wasmCodeMeta)
     : masm(ensureMasm(masmArg, gen->alloc(), gen->realm)),
       gen(gen),
       graph(*graph),
+      wasmCodeMeta_(wasmCodeMeta),
       current(nullptr),
       recovers_(),
 #ifdef DEBUG

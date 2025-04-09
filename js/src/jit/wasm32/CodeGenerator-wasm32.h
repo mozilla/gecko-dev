@@ -13,8 +13,9 @@ namespace js::jit {
 
 class CodeGeneratorWasm32 : public CodeGeneratorShared {
  protected:
-  CodeGeneratorWasm32(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm)
-      : CodeGeneratorShared(gen, graph, masm) {
+  CodeGeneratorWasm32(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                      const wasm::CodeMetadata* wasmCodeMeta)
+      : CodeGeneratorShared(gen, graph, masm, wasmCodeMeta) {
     MOZ_CRASH();
   }
 

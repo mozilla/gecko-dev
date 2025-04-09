@@ -989,8 +989,9 @@ StringObject* MNewStringObject::templateObj() const {
 }
 
 CodeGenerator::CodeGenerator(MIRGenerator* gen, LIRGraph* graph,
-                             MacroAssembler* masm)
-    : CodeGeneratorSpecific(gen, graph, masm),
+                             MacroAssembler* masm,
+                             const wasm::CodeMetadata* wasmCodeMeta)
+    : CodeGeneratorSpecific(gen, graph, masm, wasmCodeMeta),
       ionScriptLabels_(gen->alloc()),
       ionNurseryObjectLabels_(gen->alloc()),
       scriptCounts_(nullptr) {}
@@ -7779,6 +7780,93 @@ void CodeGenerator::emitValueResultChecks(LInstruction* lir, MDefinition* mir) {
   emitAssertResultV(output, mir);
 }
 
+void CodeGenerator::emitWasmAnyrefResultChecks(LInstruction* lir,
+                                               MDefinition* mir) {
+  MOZ_ASSERT(mir->type() == MIRType::WasmAnyRef);
+
+  wasm::MaybeRefType destType = mir->wasmRefType();
+  if (!destType) {
+    return;
+  }
+
+  if (!JitOptions.fullDebugChecks) {
+    return;
+  }
+
+  if (lir->numDefs() == 0) {
+    return;
+  }
+
+  MOZ_ASSERT(lir->numDefs() == 1);
+  if (lir->getDef(0)->isBogusTemp()) {
+    return;
+  }
+
+  if (lir->getDef(0)->output()->isMemory()) {
+    return;
+  }
+  Register output = ToRegister(lir->getDef(0));
+
+  AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
+  regs.take(output);
+
+  BranchWasmRefIsSubtypeRegisters needs =
+      MacroAssembler::regsForBranchWasmRefIsSubtype(destType.value());
+
+  Register temp1;
+  Register temp2;
+  Register temp3;
+  if (needs.needSuperSTV) {
+    temp1 = regs.takeAny();
+    masm.push(temp1);
+  }
+  if (needs.needScratch1) {
+    temp2 = regs.takeAny();
+    masm.push(temp2);
+  }
+  if (needs.needScratch2) {
+    temp3 = regs.takeAny();
+    masm.push(temp3);
+  }
+
+  if (needs.needSuperSTV) {
+    uint32_t typeIndex =
+        wasmCodeMeta()->types->indexOf(*destType.value().typeDef());
+
+    // When full debug checks are enabled, we always write the callee instance
+    // pointer into its usual slot in the frame in our function prologue, so
+    // that we can get it even if the InstanceReg is currently being used for
+    // something else.
+    masm.loadPtr(
+        Address(FramePointer, wasm::FrameWithInstances::calleeInstanceOffset()),
+        temp1);
+    masm.loadPtr(
+        Address(temp1, wasm::Instance::offsetInData(
+                           wasmCodeMeta()->offsetOfSuperTypeVector(typeIndex))),
+        temp1);
+  }
+
+  Label ok;
+  masm.branchWasmRefIsSubtype(output, destType.value().topType(),
+                              destType.value(), &ok, true, temp1, temp2, temp3);
+  masm.breakpoint();
+  masm.bind(&ok);
+
+  if (needs.needScratch2) {
+    masm.pop(temp3);
+  }
+  if (needs.needScratch1) {
+    masm.pop(temp2);
+  }
+  if (needs.needSuperSTV) {
+    masm.pop(temp1);
+  }
+
+#  ifdef JS_CODEGEN_ARM64
+  masm.syncStackPtr();
+#  endif
+}
+
 void CodeGenerator::emitDebugResultChecks(LInstruction* ins) {
   // In debug builds, check that LIR instructions return valid values.
 
@@ -7796,6 +7884,9 @@ void CodeGenerator::emitDebugResultChecks(LInstruction* ins) {
       break;
     case MIRType::Value:
       emitValueResultChecks(ins, mir);
+      break;
+    case MIRType::WasmAnyRef:
+      emitWasmAnyrefResultChecks(ins, mir);
       break;
     default:
       break;
@@ -7840,7 +7931,7 @@ void CodeGenerator::emitDebugForceBailing(LInstruction* lir) {
   }
   masm.bind(&done);
 }
-#endif
+#endif  // DEBUG
 
 bool CodeGenerator::generateBody() {
   JitSpewCont(JitSpew_Codegen, "\n");
@@ -16125,6 +16216,17 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
   perfSpewer_.recordOffset(masm, "Prologue");
   wasm::GenerateFunctionPrologue(masm, callIndirectId, mozilla::Nothing(),
                                  offsets);
+
+#ifdef DEBUG
+  // If we are doing full debug checks, always load the instance pointer into
+  // the usual spot in the frame so that it can be loaded later regardless of
+  // what is in InstanceReg. See CodeGenerator::emitDebugResultChecks.
+  if (JitOptions.fullDebugChecks) {
+    masm.storePtr(InstanceReg,
+                  Address(FramePointer,
+                          wasm::FrameWithInstances::calleeInstanceOffset()));
+  }
+#endif
 
   MOZ_ASSERT(masm.framePushed() == 0);
 

@@ -12,13 +12,15 @@ var ABS = `0x${HEXES}`;
 // Absolute address (disp32) in the binary encoding.
 var ABSADDR = `${HEX}{2} ${HEX}{2} ${HEX}{2} ${HEX}{2}`;
 
-// End of prologue.  The mov to eax is debug code, inserted by the register
-// allocator to clobber eax before a move group.  But it is only present if
-// there is a move group there.
+// End of prologue. The move from esi to rbp is writing the callee's wasm
+// instance into the frame for debug checks -- see WasmFrame.h. The mov to eax
+// is debug code, inserted by the register allocator to clobber eax before a
+// move group. But it is only present if there is a move group there.
 //
 // -0x21524111 is 0xDEADBEEF.
 var x86_prefix = `
 8b ec            mov %esp, %ebp(
+89 75 08         movl %esi, 0x08\\(%rbp\\))?(
 b8 ef be ad de   mov \\$-0x21524111, %eax)?
 `
 

@@ -16,7 +16,8 @@ class OutOfLineTruncate;
 
 class CodeGeneratorX64 : public CodeGeneratorX86Shared {
  protected:
-  CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
+  CodeGeneratorX64(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                   const wasm::CodeMetadata* wasmCodeMeta);
 
   Operand ToOperand64(const LInt64Allocation& a);
 

@@ -14,8 +14,9 @@ namespace jit {
 
 class CodeGeneratorNone : public CodeGeneratorShared {
  protected:
-  CodeGeneratorNone(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm)
-      : CodeGeneratorShared(gen, graph, masm) {
+  CodeGeneratorNone(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                    const wasm::CodeMetadata* wasmCodeMeta)
+      : CodeGeneratorShared(gen, graph, masm, wasmCodeMeta) {
     MOZ_CRASH();
   }
 

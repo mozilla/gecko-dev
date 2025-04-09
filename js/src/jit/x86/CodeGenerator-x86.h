@@ -18,7 +18,8 @@ class OutOfLineTruncateFloat32;
 
 class CodeGeneratorX86 : public CodeGeneratorX86Shared {
  protected:
-  CodeGeneratorX86(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm);
+  CodeGeneratorX86(MIRGenerator* gen, LIRGraph* graph, MacroAssembler* masm,
+                   const wasm::CodeMetadata* wasmCodeMeta);
 
   void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
                         Register output);

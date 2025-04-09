@@ -36,8 +36,12 @@ var RIPR = `0x${HEXES}`;
 // RIP-relative address in the binary encoding
 var RIPRADDR = `${HEX}{2} ${HEX}{2} ${HEX}{2} ${HEX}{2}`;
 
-// End of prologue
-var x64_prefix = `48 89 e5                  mov %rsp, %rbp`
+// End of prologue. The move from r14 to rbp is writing the callee's wasm
+// instance into the frame for debug checks -- see WasmFrame.h.
+var x64_prefix = `
+48 89 e5                  mov %rsp, %rbp(
+4c 89 75 .0               movq %r14, (0x10|0x30)\\(%rbp\\))?
+`
 
 // Start of epilogue
 var x64_suffix = `5d                        pop %rbp`;
