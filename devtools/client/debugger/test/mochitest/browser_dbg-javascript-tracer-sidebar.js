@@ -14,8 +14,6 @@ add_task(async function () {
 
   info("Force the log method to be the debugger sidebar");
   await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-debugger-sidebar");
-  info("Also enable values recording");
-  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
 
   info("Enable the tracing");
   await toggleJsTracer(dbg.toolbox);
@@ -26,12 +24,34 @@ add_task(async function () {
     "The tracer sidebar is automatically shown on start"
   );
 
+  const argumentSearchInput = findElementWithSelector(
+    dbg,
+    `#tracer-tab-panel .call-tree-container input`
+  );
+  is(
+    argumentSearchInput.disabled,
+    true,
+    "The input to search by values is disabled"
+  );
+
+  info("Toggle off and on in order to record with values");
+  await toggleJsTracer(dbg.toolbox);
+  info("Enable values recording");
+  await toggleJsTracerMenuItem(dbg, "#jstracer-menu-item-log-values");
+  await toggleJsTracer(dbg.toolbox);
+
   const topLevelThreadActorID =
     dbg.toolbox.commands.targetCommand.targetFront.threadFront.actorID;
   info("Wait for tracing to be enabled");
   await waitForState(dbg, () => {
     return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
   });
+
+  is(
+    argumentSearchInput.disabled,
+    false,
+    "The input to search by values is no longer disabled"
+  );
 
   let tracerMessage = findElementWithSelector(
     dbg,
