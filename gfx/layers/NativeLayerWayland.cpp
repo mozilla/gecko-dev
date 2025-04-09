@@ -101,7 +101,18 @@ already_AddRefed<NativeLayerRootWayland> NativeLayerRootWayland::Create(
 
 void NativeLayerRootWayland::Init() {
   mTmpBuffer = widget::WaylandBufferSHM::Create(LayoutDeviceIntSize(1, 1));
-  mDRMFormat = new DRMFormat(GBM_FORMAT_ARGB8888);
+
+  // Get DRM format for surfaces created by GBM.
+  if (!gfx::gfxVars::UseDMABufSurfaceExport()) {
+    RefPtr<DMABufFormats> formats = WaylandDisplayGet()->GetDMABufFormats();
+    if (formats) {
+      mDRMFormat = formats->GetFormat(GBM_FORMAT_ARGB8888,
+                                      /* aScanoutFormat */ true);
+    }
+    if (!mDRMFormat) {
+      mDRMFormat = new DRMFormat(GBM_FORMAT_ARGB8888);
+    }
+  }
 
   // Unmap all layers if nsWindow is unmapped
   WaylandSurfaceLock lock(mSurface);
