@@ -2,29 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-export function EventEmitter() {}
-
 let loggingEnabled = Services.prefs.getBoolPref("toolkit.dump.emit");
 Services.prefs.addObserver("toolkit.dump.emit", {
   observe: () => {
     loggingEnabled = Services.prefs.getBoolPref("toolkit.dump.emit");
   },
 });
-
-/**
- * Decorate an object with event emitter functionality.
- *
- * @param Object objectToDecorate
- *        Bind all public methods of EventEmitter to
- *        the objectToDecorate object.
- */
-EventEmitter.decorate = function (objectToDecorate) {
-  let emitter = new EventEmitter();
-  objectToDecorate.on = emitter.on.bind(emitter);
-  objectToDecorate.off = emitter.off.bind(emitter);
-  objectToDecorate.once = emitter.once.bind(emitter);
-  objectToDecorate.emit = emitter.emit.bind(emitter);
-};
 
 function describeNthCaller(n) {
   let caller = Components.stack;
@@ -44,7 +27,22 @@ function describeNthCaller(n) {
   return func + "() -> " + path;
 }
 
-EventEmitter.prototype = {
+export class EventEmitter {
+  /**
+   * Decorate an object with event emitter functionality.
+   *
+   * @param Object objectToDecorate
+   *        Bind all public methods of EventEmitter to
+   *        the objectToDecorate object.
+   */
+  static decorate(objectToDecorate) {
+    let emitter = new EventEmitter();
+    objectToDecorate.on = emitter.on.bind(emitter);
+    objectToDecorate.off = emitter.off.bind(emitter);
+    objectToDecorate.once = emitter.once.bind(emitter);
+    objectToDecorate.emit = emitter.emit.bind(emitter);
+  }
+
   /**
    * Connect a listener.
    *
@@ -61,7 +59,7 @@ EventEmitter.prototype = {
       this._eventEmitterListeners.set(event, []);
     }
     this._eventEmitterListeners.get(event).push(listener);
-  },
+  }
 
   /**
    * Listen for the next time an event is fired.
@@ -90,7 +88,7 @@ EventEmitter.prototype = {
       handler._originalListener = listener;
       this.on(event, handler);
     });
-  },
+  }
 
   /**
    * Remove a previously-registered event listener.  Works for events
@@ -114,7 +112,7 @@ EventEmitter.prototype = {
         })
       );
     }
-  },
+  }
 
   /**
    * Emit an event.  All arguments to this method will
@@ -151,7 +149,7 @@ EventEmitter.prototype = {
         }
       }
     }
-  },
+  }
 
   logEvent(event, args) {
     if (!loggingEnabled) {
@@ -199,5 +197,5 @@ EventEmitter.prototype = {
     out += "emit" + argOut + " from " + description + "\n";
 
     dump(out);
-  },
-};
+  }
+}

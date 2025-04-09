@@ -189,7 +189,6 @@ class DeletionHandler {
  * format. All the previews are saved into a "places-previews" folder under
  * the roaming profile folder.
  */
-// @ts-ignore TypeScript doesn't like mixing prototype and classes
 export const PlacesPreviews = new (class extends EventEmitter {
   #placesObserver = null;
   #deletionHandler = null;
