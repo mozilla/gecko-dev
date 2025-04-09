@@ -3,9 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { UITour } from "moz-src:///browser/components/uitour/UITour.sys.mjs";
+import { UITourUtils } from "moz-src:///browser/components/uitour/UITourUtils.sys.mjs";
 
 export class UITourParent extends JSWindowActorParent {
   receiveMessage(message) {
+    if (!UITourUtils.ensureTrustedOrigin(this.manager)) {
+      return;
+    }
     switch (message.name) {
       case "UITour:onPageEvent":
         if (this.manager.rootFrameLoader) {

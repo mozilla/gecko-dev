@@ -178,6 +178,7 @@ interface WindowGlobalChild {
   readonly attribute boolean isInProcess;
   readonly attribute BrowsingContext browsingContext;
   readonly attribute WindowContext windowContext;
+  readonly attribute WindowProxy? contentWindow;
 
   readonly attribute boolean isCurrentGlobal;
 

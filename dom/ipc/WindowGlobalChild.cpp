@@ -258,6 +258,13 @@ dom::BrowsingContext* WindowGlobalChild::BrowsingContext() {
   return mWindowContext->GetBrowsingContext();
 }
 
+Nullable<WindowProxyHolder> WindowGlobalChild::GetContentWindow() {
+  if (IsCurrentGlobal()) {
+    return WindowProxyHolder(BrowsingContext());
+  }
+  return nullptr;
+}
+
 uint64_t WindowGlobalChild::InnerWindowId() {
   return mWindowContext->InnerWindowId();
 }
