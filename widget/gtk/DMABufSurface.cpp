@@ -1669,9 +1669,13 @@ bool DMABufSurfaceYUV::CreateYUVPlaneExport(GLContext* aGLContext, int aPlane) {
 }
 
 bool DMABufSurfaceYUV::CreateYUVPlane(GLContext* aGLContext, int aPlane) {
-  return UseDmaBufExportExtension(aGLContext)
-             ? CreateYUVPlaneExport(aGLContext, aPlane)
-             : CreateYUVPlaneGBM(aPlane);
+  if (gfx::gfxVars::UseDMABufSurfaceExport()) {
+    if (!UseDmaBufExportExtension(aGLContext)) {
+      return false;
+    }
+    return CreateYUVPlaneExport(aGLContext, aPlane);
+  }
+  return CreateYUVPlaneGBM(aPlane);
 }
 
 bool DMABufSurfaceYUV::CopyYUVDataImpl(const VADRMPRIMESurfaceDescriptor& aDesc,
