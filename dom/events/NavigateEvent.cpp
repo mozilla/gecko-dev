@@ -110,9 +110,82 @@ bool NavigateEvent::HasUAVisualTransition() const {
 
 Element* NavigateEvent::GetSourceElement() const { return mSourceElement; }
 
+template <typename OptionEnum>
+static void MaybeReportWarningToConsole(Document* aDocument,
+                                        const nsString& aOption,
+                                        OptionEnum aPrevious, OptionEnum aNew) {
+  if (!aDocument) {
+    return;
+  }
+
+  nsTArray<nsString> params = {aOption,
+                               NS_ConvertUTF8toUTF16(GetEnumString(aNew)),
+                               NS_ConvertUTF8toUTF16(GetEnumString(aPrevious))};
+  nsContentUtils::ReportToConsole(
+      nsIScriptError::warningFlag, "DOM"_ns, aDocument,
+      nsContentUtils::eDOM_PROPERTIES,
+      "PreviousInterceptCallOptionOverriddenWarning", params);
+}
+
 void NavigateEvent::Intercept(const NavigationInterceptOptions& aOptions,
                               ErrorResult& aRv) {
-  // This will be implemented in Bug 1897439.
+  // Step 1
+  if (PerformSharedChecks(aRv); aRv.Failed()) {
+    return;
+  }
+
+  // Step 2
+  if (!mCanIntercept) {
+    aRv.ThrowSecurityError("Event's canIntercept was initialized to false");
+    return;
+  }
+
+  // Step 3
+  if (!HasBeenDispatched()) {
+    aRv.ThrowInvalidStateError("Event has never been dispatched");
+    return;
+  }
+
+  // Step 4
+  MOZ_DIAGNOSTIC_ASSERT(mInterceptionState == InterceptionState::None ||
+                        mInterceptionState == InterceptionState::Intercepted);
+
+  // Step 5
+  mInterceptionState = InterceptionState::Intercepted;
+
+  // Step 6
+  if (aOptions.mHandler.WasPassed()) {
+    mNavigationHandlerList.AppendElement(
+        aOptions.mHandler.InternalValue().get());
+  }
+
+  // Step 7
+  if (aOptions.mFocusReset.WasPassed()) {
+    // Step 7.1
+    if (mFocusResetBehavior &&
+        *mFocusResetBehavior != aOptions.mFocusReset.Value()) {
+      RefPtr<Document> document = GetDocument();
+      MaybeReportWarningToConsole(document, u"focusReset"_ns,
+                                  *mFocusResetBehavior,
+                                  aOptions.mFocusReset.Value());
+    }
+
+    // Step 7.2
+    mFocusResetBehavior.emplace(aOptions.mFocusReset.Value());
+  }
+
+  // Step 8
+  if (aOptions.mScroll.WasPassed()) {
+    // Step 8.1
+    if (mScrollBehavior && *mScrollBehavior != aOptions.mScroll.Value()) {
+      RefPtr<Document> document = GetDocument();
+      MaybeReportWarningToConsole(document, u"scroll"_ns, *mScrollBehavior,
+                                  aOptions.mScroll.Value());
+    }
+
+    // Step 8.2
+    mScrollBehavior.emplace(aOptions.mScroll.Value());
+  }
 }
 
 // https://html.spec.whatwg.org/#dom-navigateevent-scroll
