@@ -909,6 +909,15 @@ add_task(
       await Glean.networking.trrRequestCount.private.testGetValue(),
       2
     );
+    // We've made 4 TRR requests.
+    Assert.equal(
+      await Glean.networking.trrRequestSize.other.testGetValue().count,
+      4
+    );
+    Assert.equal(
+      await Glean.networking.trrResponseSize.other.testGetValue().count,
+      4
+    );
   }
 );
 

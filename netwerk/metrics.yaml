@@ -534,6 +534,45 @@ networking:
       In TRR channel, overall load time.
     expires: never
 
+  trr_response_size: &trr_response_size
+    type: labeled_memory_distribution
+    memory_unit: byte
+    description: >
+      In TRR channel, the size of the HTTP response.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957859
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1957859
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    labels:
+      - mozilla.cloudflare-dns.com
+      - firefox.dns.nextdns.io
+      - private.canadianshield.cira.ca
+      - doh.xfinity.com
+      - dns.shaw.ca
+      - dooh.cloudflare-dns.com
+      - mozilla.cloudflare-dns.com_2
+      - firefox.dns.nextdns.io_2
+      - private.canadianshield.cira.ca_2
+      - doh.xfinity.com_2
+      - dns.shaw.ca_2
+      - dooh.cloudflare-dns.com_2
+      - mozilla.cloudflare-dns.com_3
+      - firefox.dns.nextdns.io_3
+      - private.canadianshield.cira.ca_3
+      - doh.xfinity.com_3
+      - dns.shaw.ca_3
+      - dooh.cloudflare-dns.com_3
+    expires: never
+
+  trr_request_size:
+    <<: *trr_response_size
+    description: >
+      In TRR channel, the size of the HTTP request.
+    expires: never
+
   dns_renewal_time:
     type: timing_distribution
     time_unit: millisecond
