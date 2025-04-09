@@ -1990,14 +1990,13 @@ class FunctionCompiler {
 
   /************************************************ Global variable accesses */
 
-  MDefinition* loadGlobalVar(unsigned instanceDataOffset, bool isConst,
-                             bool isIndirect, MIRType type) {
+  MDefinition* loadGlobalVar(const GlobalDesc& global) {
     if (inDeadCode()) {
       return nullptr;
     }
 
     MInstruction* load;
-    if (isIndirect) {
+    if (global.isIndirect()) {
       // Pull a pointer to the value out of Instance::globalArea, then
       // load from that pointer.  Note that the pointer is immutable
       // even though the value it points at may change, hence the use of
@@ -2005,14 +2004,17 @@ class FunctionCompiler {
       // the |isConst| formal parameter to this method.  The latter
       // applies to the denoted value as a whole.
       auto* cellPtr = MWasmLoadInstanceDataField::New(
-          alloc(), MIRType::Pointer, instanceDataOffset,
+          alloc(), MIRType::Pointer, global.offset(),
           /*isConst=*/true, instancePointer_);
       curBlock_->add(cellPtr);
-      load = MWasmLoadGlobalCell::New(alloc(), type, cellPtr);
+      load = MWasmLoadGlobalCell::New(alloc(), global.type().toMIRType(),
+                                      cellPtr, global.type().toMaybeRefType());
     } else {
       // Pull the value directly out of Instance::globalArea.
-      load = MWasmLoadInstanceDataField::New(alloc(), type, instanceDataOffset,
-                                             isConst, instancePointer_);
+      load = MWasmLoadInstanceDataField::New(
+          alloc(), global.type().toMIRType(), global.offset(),
+          !global.isMutable(), instancePointer_,
+          global.type().toMaybeRefType());
     }
     curBlock_->add(load);
     return load;
@@ -6710,9 +6712,7 @@ bool FunctionCompiler::emitGetGlobal() {
 
   const GlobalDesc& global = codeMeta().globals[id];
   if (!global.isConstant()) {
-    iter().setResult(loadGlobalVar(global.offset(), !global.isMutable(),
-                                   global.isIndirect(),
-                                   global.type().toMIRType()));
+    iter().setResult(loadGlobalVar(global));
     return true;
   }
 

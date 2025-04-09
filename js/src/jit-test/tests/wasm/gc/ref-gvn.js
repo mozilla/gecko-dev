@@ -671,6 +671,77 @@
   assertEq(numNonNull, 1600);
 }
 
+// globals
+{
+  const counts = { 100: 0, 200: 0 };
+
+  const { test1, test2 } = wasmEvalText(`(module
+    (type $f (func))
+
+    (import "" "dummy" (func $dummy (param anyref)))
+    (import "" "count" (func $count (param i32)))
+
+    (global $a (mut (ref $f)) (ref.func $count100))
+    (global $b (mut (ref $f)) (ref.func $count200))
+
+    (func $count100 (type $f)
+      (call $count (i32.const 100))
+    )
+    (func $count200 (type $f)
+      (call $count (i32.const 200))
+    )
+
+    (func (export "test1")
+      global.get $a
+      call_ref $f
+
+      global.get $b
+      call_ref $f
+    )
+    (func (export "test2")
+      (local funcref i32)
+
+      (local.set 0 (global.get $a))
+
+      loop
+        local.get 0
+        ref.cast (ref $f)
+        call_ref $f
+
+        (i32.ge_s (local.get 1) (i32.const 4))
+        if
+          (local.set 0 (global.get $b))
+        end
+
+        (local.tee 1 (i32.add (local.get 1) (i32.const 1)))
+        (i32.lt_s (i32.const 10))
+        br_if 0
+      end
+    )
+  )`, {
+    "": {
+      dummy() {},
+      count(n) {
+        counts[n] += 1;
+      },
+    },
+  }).exports;
+
+  for (let i = 0; i < 100; i++) {
+    test1();
+  }
+
+  assertEq(counts[100], 100);
+  assertEq(counts[200], 100);
+
+  for (let i = 0; i < 100; i++) {
+    test2();
+  }
+
+  assertEq(counts[100], 600);
+  assertEq(counts[200], 600);
+}
+
 // any.convert_extern and extern.convert_any
 {
   let numAnyref = 0;

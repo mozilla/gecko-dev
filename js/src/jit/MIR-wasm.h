@@ -1212,8 +1212,13 @@ class MWasmAtomicBinopHeap : public MVariadicInstruction,
 
 class MWasmLoadInstanceDataField : public MUnaryInstruction,
                                    public NoTypePolicy::Data {
-  MWasmLoadInstanceDataField(MIRType type, unsigned instanceDataOffset,
-                             bool isConstant, MDefinition* instance)
+  unsigned instanceDataOffset_;
+  bool isConstant_;
+
+  MWasmLoadInstanceDataField(
+      MIRType type, unsigned instanceDataOffset, bool isConstant,
+      MDefinition* instance,
+      wasm::MaybeRefType maybeRefType = wasm::MaybeRefType())
       : MUnaryInstruction(classOpcode, instance),
         instanceDataOffset_(instanceDataOffset),
         isConstant_(isConstant) {
@@ -1221,10 +1226,8 @@ class MWasmLoadInstanceDataField : public MUnaryInstruction,
                type == MIRType::Pointer || type == MIRType::WasmAnyRef);
     setResultType(type);
     setMovable();
+    initWasmRefType(maybeRefType);
   }
-
-  unsigned instanceDataOffset_;
-  bool isConstant_;
 
  public:
   INSTRUCTION_HEADER(WasmLoadInstanceDataField)
@@ -1257,10 +1260,12 @@ class MWasmLoadInstanceDataField : public MUnaryInstruction,
 
 class MWasmLoadGlobalCell : public MUnaryInstruction,
                             public NoTypePolicy::Data {
-  MWasmLoadGlobalCell(MIRType type, MDefinition* cellPtr)
+  MWasmLoadGlobalCell(MIRType type, MDefinition* cellPtr,
+                      wasm::MaybeRefType maybeRefType = wasm::MaybeRefType())
       : MUnaryInstruction(classOpcode, cellPtr) {
     setResultType(type);
     setMovable();
+    initWasmRefType(maybeRefType);
   }
 
  public:
