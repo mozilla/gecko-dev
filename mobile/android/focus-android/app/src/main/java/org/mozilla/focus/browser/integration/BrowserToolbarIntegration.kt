@@ -68,7 +68,6 @@ class BrowserToolbarIntegration(
     private val tabCounterListener: () -> Unit,
     private val customTabId: String? = null,
     isOnboardingTab: Boolean = false,
-    inTesting: Boolean = false,
 ) : LifecycleAwareFeature {
     private val presenter = ToolbarPresenter(
         toolbar,
@@ -203,9 +202,7 @@ class BrowserToolbarIntegration(
 
         if (isCustomTab == false) {
             toolbar.addNavigationAction(eraseAction)
-            if (!inTesting) {
-                setUrlBackground()
-            }
+            setUrlBackground()
         }
     }
 
