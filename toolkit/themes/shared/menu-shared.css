@@ -85,6 +85,12 @@ menulist > menupopup {
       }
     }
   }
+
+  @media (-moz-platform: windows) {
+    > menuitem[_moz-menuactive][disabled="true"] {
+      color: GrayText;
+    }
+  }
 }
 
 /* Menu separator */
@@ -299,4 +305,94 @@ menucaption {
 .menu-iconic-icon {
   width: 16px;
   height: 16px;
+}
+
+@media (-moz-platform: linux) {
+  .menu-text {
+    /* This is (18 + the size of end-padding on .menu-iconic-left)px */
+    margin-inline-start: 21px;
+  }
+}
+
+.menu-iconic-left {
+  @media (-moz-platform: linux) {
+    /* We can only hardcode this, to make the default GTK icon<->label spacing */
+    padding-inline-end: 3px;
+  }
+  @media (-moz-platform: windows) {
+    padding-top: 2px;
+    margin-inline-end: 8px;
+  }
+}
+
+/* checkbox / radio rendering */
+
+/* On linux, we use regular checkboxes and radio buttons */
+@media (-moz-platform: linux) {
+  menuitem:is([type="checkbox"], [checked="true"]) .menu-iconic-icon {
+    appearance: auto;
+    -moz-default-appearance: checkbox;
+  }
+
+  menuitem[type="radio"] .menu-iconic-icon {
+    appearance: auto;
+    -moz-default-appearance: radio;
+  }
+}
+
+/* On windows we use a checkmark */
+@media (-moz-platform: windows) {
+  menuitem:is([type="checkbox"], [type="radio"]):not([checked="true"]) > .menu-iconic-left > .menu-iconic-icon {
+    display: none;
+  }
+
+  menuitem[checked="true"] {
+    padding-inline-start: 12px;
+
+    /* We need to do something to override the default style for selected
+       checkboxes and radio buttons because the native drawing we use on other
+       Windows versions looks pretty bad with the Win10 styles, so for now we'll
+       insert a generic checkmark icon for both types. */
+    > .menu-iconic-left {
+      -moz-context-properties: fill, fill-opacity;
+      fill: currentColor;
+      fill-opacity: var(--menu-icon-opacity);
+      list-style-image: url("chrome://global/skin/icons/menu-check.svg");
+      width: 16px;
+      margin-inline-end: 8px;
+    }
+  }
+}
+
+menupopup[needsgutter] {
+  @media (-moz-platform: windows) {
+    > menu:not([icon], .menu-iconic),
+    > menuitem:not([checked="true"], [icon], .menuitem-iconic) {
+      padding-inline-start: 36px;
+    }
+  }
+
+  @media (-moz-platform: macos) {
+    /* although only menuitems may be checked, apply this to
+       menus and menucaptions as well to maintain alignment */
+    > menu,
+    > menuitem,
+    > menucaption {
+      padding-inline-start: 0;
+
+      &::before {
+        content: '\2713'; /* a checkmark */
+        display: inline-block;
+        vertical-align: middle;
+        line-height: 0;
+        visibility: hidden;
+        padding-inline: 4px;
+        font-weight: bold;
+      }
+    }
+
+    > menuitem:is([checked="true"], [selected="true"])::before {
+      visibility: inherit;
+    }
+  }
 }
