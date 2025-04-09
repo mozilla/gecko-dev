@@ -4,7 +4,6 @@ android-gradle-plugin = "8.9.1" # Keep lint version in sync
 lint = "31.9.1"
 
 python-envs-plugin = "0.0.31"
-mozilla-glean = "64.0.1"
 maven-ant-tasks = "2.1.3"
 jacoco = "0.8.12"
 okhttp = "4.12.0"
@@ -77,6 +76,10 @@ kotlin = "2.1.20" # remember to change ksp-plugin
 ksp-plugin = "2.1.20-1.0.32"
 serialization = "1.8.1"
 
+# Mozilla versions
+apilint = "0.5.4"
+mozilla-glean = "64.0.1"
+
 # Testing versions
 androidx-test = "1.6.1"
 androidx-test-espresso = "3.6.1"
@@ -94,7 +97,6 @@ robolectric = "4.14.1"
 adjust = "5.1.0"
 sentry = "8.6.0"
 
-apilint = "0.5.3"
 commons-exec = "1.3"
 spotless = "6.25.0"
 tomlj = "1.1.0"
