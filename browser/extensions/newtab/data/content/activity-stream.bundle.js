@@ -5993,14 +5993,14 @@ const ReportContent = spocs => {
     id: "report-group",
     "data-l10n-id": "newtab-report-content-why-reporting"
   }, /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    value: "Unsafe content",
+    value: "unsafe_content",
     "data-l10n-id": "newtab-report-ads-reason-unsafe"
   }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
     "data-l10n-id": "newtab-report-ads-reason-inappropriate",
-    value: "Inappropriate content"
+    value: "inappropriate_content"
   }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
     "data-l10n-id": "newtab-report-ads-reason-seen-it-too-many-times",
-    value: "Seen too many times"
+    value: "seen_too_many_times"
   }))), /*#__PURE__*/external_React_default().createElement("moz-button-group", null, /*#__PURE__*/external_React_default().createElement("moz-button", {
     "data-l10n-id": "newtab-topic-selection-cancel-button",
     onClick: handleCancel
