@@ -16,8 +16,12 @@ import com.android.tools.lint.detector.api.SourceCodeScanner
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UFile
 
+/**
+ * A lint check for missing MPL licenses at the top of source code files.
+ */
 class LicenseDetector : Detector(), SourceCodeScanner {
 
+    @Suppress("UndocumentedPublicClass")
     companion object {
 
         private val Implementation = Implementation(
@@ -29,7 +33,7 @@ class LicenseDetector : Detector(), SourceCodeScanner {
             id = "MissingLicense",
             briefDescription = "File doesn't start with the license comment",
             explanation = "Every file must start with the license comment:\n" +
-                    LicenseCommentChecker.ValidLicenseForKotlinFiles,
+                LicenseCommentChecker.ValidLicenseForKotlinFiles,
             category = Category.CORRECTNESS,
             severity = Severity.WARNING,
             implementation = Implementation,

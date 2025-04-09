@@ -20,6 +20,8 @@ import org.w3c.dom.Element
  * A custom lint check that prohibits not using the style attribute on buttons
  */
 class ButtonStyleXmlDetector : ResourceXmlDetector() {
+
+    @Suppress("UndocumentedPublicClass")
     companion object {
         const val ERROR_MESSAGE =
             "All buttons must have a style, try using NeutralButton or similar."
