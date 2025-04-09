@@ -3728,6 +3728,9 @@
 - name: WasmRefIsSubtypeOfAbstract
   gen_boilerplate: false
 
+- name: WasmRefConvertAnyExtern
+  gen_boilerplate: false
+
 - name: WasmNewStructObject
   gen_boilerplate: false
 

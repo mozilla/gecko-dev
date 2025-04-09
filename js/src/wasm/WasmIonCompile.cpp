@@ -5687,6 +5687,16 @@ class FunctionCompiler {
     return true;
   }
 
+  [[nodiscard]] MDefinition* convertAnyExtern(MDefinition* ref,
+                                              wasm::RefType::Kind kind) {
+    auto* converted = MWasmRefConvertAnyExtern::New(alloc(), ref, kind);
+    if (!converted) {
+      return nullptr;
+    }
+    curBlock_->add(converted);
+    return converted;
+  }
+
   /************************************************************ DECODING ***/
 
   // AsmJS adds a line number to `callSiteLineNums` for certain operations that
@@ -9219,26 +9229,40 @@ bool FunctionCompiler::emitBrOnCast(bool onSuccess) {
 }
 
 bool FunctionCompiler::emitAnyConvertExtern() {
-  // any.convert_extern is a no-op because anyref and extern share the same
-  // representation
   MDefinition* ref;
   if (!iter().readRefConversion(RefType::extern_(), RefType::any(), &ref)) {
     return false;
   }
 
-  iter().setResult(ref);
+  if (inDeadCode()) {
+    return true;
+  }
+
+  MDefinition* conversion = convertAnyExtern(ref, wasm::RefType::Kind::Any);
+  if (!conversion) {
+    return false;
+  }
+
+  iter().setResult(conversion);
   return true;
 }
 
 bool FunctionCompiler::emitExternConvertAny() {
-  // extern.convert_any is a no-op because anyref and extern share the same
-  // representation
   MDefinition* ref;
   if (!iter().readRefConversion(RefType::any(), RefType::extern_(), &ref)) {
     return false;
   }
 
-  iter().setResult(ref);
+  if (inDeadCode()) {
+    return true;
+  }
+
+  MDefinition* conversion = convertAnyExtern(ref, wasm::RefType::Kind::Extern);
+  if (!conversion) {
+    return false;
+  }
+
+  iter().setResult(conversion);
   return true;
 }
 

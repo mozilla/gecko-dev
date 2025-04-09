@@ -368,3 +368,98 @@
   assertEq(numNull, 3200);
   assertEq(numNonNull, 1600);
 }
+
+// any.convert_extern and extern.convert_any
+{
+  let numAnyref = 0;
+  let numExternref = 0;
+
+  const { test1, test2 } = wasmEvalText(`(module
+    (import "" "thing" (global $extern1 externref))
+    (import "" "thing" (global $extern2 externref))
+    (import "" "dummy1" (func $dummy1 (param anyref)))
+    (import "" "dummy2" (func $dummy2 (param externref)))
+    (import "" "countAnyref" (func $countAnyref))
+    (import "" "countExternref" (func $countExternref))
+
+    (global $any1 anyref (any.convert_extern (global.get $extern1)))
+    (global $any2 anyref (any.convert_extern (global.get $extern2)))
+
+    (func (export "test1")
+      (call $dummy1 (any.convert_extern (global.get $extern1)))
+      (call $dummy2 (extern.convert_any (global.get $any1)))
+
+      ;; These tests are trivial.
+
+      (ref.test anyref (any.convert_extern (global.get $extern1)))
+      if
+        call $countAnyref
+      end
+
+      (ref.test externref (extern.convert_any (global.get $any1)))
+      if
+        call $countExternref
+      end
+    )
+    (func (export "test2")
+      (local i32 anyref externref)
+
+      (local.tee 1 (any.convert_extern (global.get $extern1)))
+      call $dummy1
+      (local.tee 2 (extern.convert_any (global.get $any1)))
+      call $dummy2
+
+      loop
+        ;; These tests are again trivial.
+
+        (ref.test anyref (local.get 1))
+        if
+          call $countAnyref
+        end
+
+        (ref.test externref (local.get 2))
+        if
+          call $countExternref
+        end
+
+        (i32.ge_s (local.get 0) (i32.const 5))
+        if
+          ;; These are different values but have the same type. It will not
+          ;; affect the types that flow into the tests.
+          (local.set 1 (any.convert_extern (global.get $extern2)))
+          (local.set 2 (extern.convert_any (global.get $any2)))
+        end
+
+        (local.tee 0 (i32.add (local.get 0) (i32.const 1)))
+        (i32.lt_s (i32.const 10))
+        br_if 0
+      end
+    )
+  )`, {
+    "": {
+      "thing": "hello I am extern guy",
+      dummy1() {},
+      dummy2() {},
+      countAnyref() {
+        numAnyref += 1;
+      },
+      countExternref() {
+        numExternref += 1;
+      },
+    },
+  }).exports;
+
+  for (let i = 0; i < 100; i++) {
+    test1();
+  }
+
+  assertEq(numAnyref, 100);
+  assertEq(numExternref, 100);
+
+  for (let i = 0; i < 100; i++) {
+    test2();
+  }
+
+  assertEq(numAnyref, 1100);
+  assertEq(numExternref, 1100);
+}

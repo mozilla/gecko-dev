@@ -346,6 +346,11 @@ class RefType {
   RefType() : ptc_(PackedTypeCode::invalid()) {}
   explicit RefType(PackedTypeCode ptc) : ptc_(ptc) { MOZ_ASSERT(isValid()); }
 
+  static RefType fromKind(Kind kind, bool nullable) {
+    MOZ_ASSERT(kind != TypeRef);
+    return RefType(kind, nullable);
+  }
+
   static RefType fromTypeCode(TypeCode tc, bool nullable) {
     MOZ_ASSERT(tc != AbstractTypeRefCode);
     return RefType(Kind(tc), nullable);

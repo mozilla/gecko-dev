@@ -2903,6 +2903,47 @@ class MWasmRefIsSubtypeOfConcrete : public MBinaryInstruction,
   MDefinition* foldsTo(TempAllocator& alloc) override;
 };
 
+class MWasmRefConvertAnyExtern : public MUnaryInstruction,
+                                 public NoTypePolicy::Data {
+  wasm::RefType::Kind destTypeKind_;
+
+  MWasmRefConvertAnyExtern(MDefinition* ref, wasm::RefType::Kind destTypeKind)
+      : MUnaryInstruction(classOpcode, ref), destTypeKind_(destTypeKind) {
+    MOZ_ASSERT(destTypeKind_ == wasm::RefType::Kind::Any ||
+               destTypeKind_ == wasm::RefType::Kind::Extern);
+    setResultType(MIRType::WasmAnyRef);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(WasmRefConvertAnyExtern)
+  TRIVIAL_NEW_WRAPPERS
+  NAMED_OPERANDS((0, ref))
+
+  wasm::RefType::Kind destTypeKind() const { return destTypeKind_; }
+
+  wasm::MaybeRefType computeWasmRefType() const override {
+    bool nullable = true;
+    if (ref()->wasmRefType().isSome()) {
+      nullable = ref()->wasmRefType().value().isNullable();
+    };
+    return wasm::MaybeRefType(wasm::RefType::fromKind(destTypeKind_, nullable));
+  }
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins) &&
+           destTypeKind() == ins->toWasmRefConvertAnyExtern()->destTypeKind();
+  }
+
+  HashNumber valueHash() const override {
+    HashNumber hn = MUnaryInstruction::valueHash();
+    hn = addU32ToHash(hn, destTypeKind());
+    return hn;
+  }
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+};
+
 class MWasmNewStructObject : public MBinaryInstruction,
                              public NoTypePolicy::Data {
  private:
