@@ -24,6 +24,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://devtools/client/performance-new/popup/menu-button.sys.mjs",
   RecordingUtils:
     "resource://devtools/shared/performance-new/recording-utils.sys.mjs",
+  AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
 });
 
 const $ = document.querySelector.bind(document);
@@ -493,6 +494,22 @@ function init() {
   }
 }
 
+function maybeEnsureButtonInNavbar() {
+  if (lazy.AppConstants.platform !== "android") {
+    // Force displaying the profiler button in the navbar if not preset, so
+    // that there is a visual indication profiling is in progress.
+    lazy.ProfilerMenuButton.ensureButtonInNavbar();
+  }
+}
+
+async function captureProfile() {
+  if (lazy.AppConstants.platform === "android") {
+    // TODO
+  } else {
+    await lazy.ProfilerPopupBackground.captureProfile("aboutlogging");
+  }
+}
+
 function updateLogFile(file) {
   let logPath = "";
 
@@ -727,9 +744,7 @@ function startLogging() {
       }
     }
 
-    // Force displaying the profiler button in the navbar if not preset, so
-    // that there is a visual indication profiling is in progress.
-    lazy.ProfilerMenuButton.ensureButtonInNavbar();
+    maybeEnsureButtonInNavbar();
 
     gProfilerPromise = Services.profiler.StartProfiler(
       entries,
@@ -747,7 +762,7 @@ function startLogging() {
 
 async function stopLogging() {
   if (gLoggingSettings.loggingOutputType === "profiler") {
-    await lazy.ProfilerPopupBackground.captureProfile("aboutlogging");
+    await captureProfile();
   } else {
     Services.prefs.clearUserPref("logging.config.LOG_FILE");
     updateLogFile();
