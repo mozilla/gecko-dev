@@ -3,12 +3,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 -->
-<?csp default-src chrome:; img-src chrome: moz-icon:; object-src 'none'; ?>
-
 <!doctype html>
 
 <html>
   <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src chrome:; img-src chrome: moz-icon:; style-src chrome: 'unsafe-inline'; object-src 'none';"
+    />
     <title>Interactions Debug Viewer</title>
     <script
       type="module"

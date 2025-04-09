@@ -1247,6 +1247,7 @@ static nsLiteralCString sStyleSrcUnsafeInlineAllowList[] = {
     "chrome://browser/content/places/bookmarkProperties.xhtml"_ns,
     "chrome://browser/content/places/bookmarksSidebar.xhtml"_ns,
     "chrome://browser/content/places/historySidebar.xhtml"_ns,
+    "chrome://browser/content/places/interactionsViewer.html"_ns,
     "chrome://browser/content/places/places.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/browserLanguages.xhtml"_ns,
@@ -1958,7 +1959,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
 
   static nsLiteralCString sAllowedChromePagesWithNoCSP[] = {
       "chrome://browser/content/default-bookmarks.html"_ns,
-      "chrome://browser/content/places/interactionsViewer.html"_ns,
       "chrome://browser/content/shopping/review-checker.xhtml"_ns,
       "chrome://geckoview/content/geckoview.xhtml"_ns,
       "chrome://global/content/alerts/alert.xhtml"_ns,
