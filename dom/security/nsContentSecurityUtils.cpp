@@ -1502,7 +1502,8 @@ class AllowBuiltinSrcVisitor : public DisallowingVisitor {
   bool visitSchemeSrc(const nsCSPSchemeSrc& src) override {
     nsAutoString scheme;
     src.getScheme(scheme);
-    if (scheme == u"chrome"_ns || scheme == u"moz-src" || scheme == u"resource"_ns) {
+    if (scheme == u"chrome"_ns || scheme == u"moz-src" ||
+        scheme == u"resource"_ns) {
       return true;
     }
 
@@ -1836,8 +1837,7 @@ void nsContentSecurityUtils::AssertAboutPageHasCSP(Document* aDocument) {
 
   const nsCSPPolicy* policy = csp->GetPolicy(0);
   {
-    AllowBuiltinSrcVisitor visitor(CSPDirective::DEFAULT_SRC_DIRECTIVE,
-                                          spec);
+    AllowBuiltinSrcVisitor visitor(CSPDirective::DEFAULT_SRC_DIRECTIVE, spec);
     if (!visitor.visit(policy)) {
       MOZ_ASSERT(false, "about: page must contain a secure default-src");
     }
@@ -1914,8 +1914,7 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
     const nsCSPPolicy* policy =
         static_cast<nsCSPContext*>(csp.get())->GetPolicy(0);
     {
-      AllowBuiltinSrcVisitor visitor(CSPDirective::DEFAULT_SRC_DIRECTIVE,
-                                            spec);
+      AllowBuiltinSrcVisitor visitor(CSPDirective::DEFAULT_SRC_DIRECTIVE, spec);
       if (!visitor.visit(policy)) {
         MOZ_CRASH_UNSAFE_PRINTF(
             "Document (%s) CSP does not have a default-src!", spec.get());
@@ -1962,7 +1961,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://geckoview/content/geckoview.xhtml"_ns,
       "chrome://global/content/alerts/alert.xhtml"_ns,
       "chrome://global/content/appPicker.xhtml"_ns,
-      "chrome://global/content/megalist/megalist.html"_ns,
       // Test files
       "chrome://mochikit/"_ns,
       "chrome://mochitests/"_ns,
