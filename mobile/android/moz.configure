@@ -45,9 +45,17 @@ option(
     help="Enable generating content process services with isolatedProcess=true",
     default=False,
 )
+
+isIsolatedProcessEnabled = depends_if("MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS")(
+    lambda _: True
+)
 set_config(
     "MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS",
-    depends_if("MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS")(lambda x: True),
+    isIsolatedProcessEnabled,
+)
+set_define(
+    "MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS",
+    isIsolatedProcessEnabled,
 )
 
 option(

@@ -143,9 +143,6 @@ class MediaDelegateTest : BaseSessionTest() {
     }
 
     @Test fun testDeviceRecordingEventVideo() {
-        // TODO: needs bug 1700243
-        assumeThat(sessionRule.env.isIsolatedProcess, Matchers.equalTo(false))
-
         mainSession.loadTestPath(HELLO_HTML_PATH)
         mainSession.waitForPageStop()
 
