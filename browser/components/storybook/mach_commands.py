@@ -2,9 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
 import subprocess
 import threading
 import time
+from pathlib import Path
 
 import mozpack.path as mozpath
 from mach.decorators import Command, CommandArgument, SubCommand
@@ -41,6 +43,19 @@ def storybook_build(command_context):
 
 
 @SubCommand(
+    "storybook",
+    "upgrade",
+    description="Upgrade all storybook dependencies to latest of ranges in package.json",
+)
+def storybook_upgrade(command_context):
+    delete_storybook_node_modules()
+    package_lock_path = "browser/components/storybook/package-lock.json"
+    if os.path.exists(package_lock_path):
+        os.unlink(package_lock_path)
+    return run_npm(command_context, args=["install"])
+
+
+@SubCommand(
     "storybook", "launch", description="Launch the Storybook site in your local build."
 )
 def storybook_launch(command_context):
@@ -53,6 +68,21 @@ def storybook_launch(command_context):
             "layout.css.light-dark.enabled=true",
         ],
     )
+
+
+def delete_path(path):
+    if path.is_file() or path.is_symlink():
+        path.unlink()
+        return
+    for p in path.iterdir():
+        delete_path(p)
+    path.rmdir()
+
+
+def delete_storybook_node_modules():
+    node_modules_path = Path("browser/components/storybook/node_modules")
+    if node_modules_path.exists():
+        delete_path(node_modules_path)
 
 
 def start_browser(command_context):
