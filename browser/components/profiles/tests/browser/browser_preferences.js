@@ -6,7 +6,6 @@
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
 });
 
@@ -231,12 +230,10 @@ add_task(async function testReactivateProfileGroupID() {
     "upload should be disabled after unchecking checkbox"
   );
 
-  // TODO: what could we explicitly await, rather than resorting to a timeout?
-  await new Promise(resolve => lazy.setTimeout(resolve, 100));
-
-  Assert.equal(
-    Services.prefs.getStringPref("toolkit.telemetry.cachedProfileGroupID"),
-    lazy.TelemetryUtils.knownProfileGroupID,
+  await TestUtils.waitForCondition(
+    () =>
+      Services.prefs.getStringPref("toolkit.telemetry.cachedProfileGroupID") ===
+      lazy.TelemetryUtils.knownProfileGroupID,
     "after disabling data collection, the profile group ID pref should have the canary value"
   );
 
