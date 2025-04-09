@@ -97,12 +97,12 @@ open class RadioButtonPreference @JvmOverloads constructor(
 
     override fun setEnabled(enabled: Boolean) {
         super.setEnabled(enabled)
-        if (!enabled) {
-            summaryView?.alpha = HALF_ALPHA
-            titleView?.alpha = HALF_ALPHA
-        } else {
+        if (enabled) {
             summaryView?.alpha = FULL_ALPHA
             titleView?.alpha = FULL_ALPHA
+        } else {
+            summaryView?.alpha = HALF_ALPHA
+            titleView?.alpha = HALF_ALPHA
         }
     }
 
@@ -149,8 +149,8 @@ open class RadioButtonPreference @JvmOverloads constructor(
         titleView = holder.findViewById(R.id.title) as TextView
         titleView?.alpha = if (isEnabled) FULL_ALPHA else HALF_ALPHA
 
-        if (!title.isNullOrEmpty()) {
-            titleView?.text = title
+        title?.takeIf { it.isNotEmpty() }?.let {
+            titleView?.text = it
         }
     }
 
@@ -159,7 +159,9 @@ open class RadioButtonPreference @JvmOverloads constructor(
 
         summaryView?.alpha = if (isEnabled) FULL_ALPHA else HALF_ALPHA
         summaryView?.let {
-            if (!summary.isNullOrEmpty()) {
+            if (summary.isNullOrEmpty()) {
+                it.isVisible = false
+            } else {
                 it.text = if (shouldSummaryBeParsedAsHtmlContent) {
                     HtmlCompat.fromHtml(summary.toString(), HtmlCompat.FROM_HTML_MODE_COMPACT)
                 } else {
@@ -167,8 +169,6 @@ open class RadioButtonPreference @JvmOverloads constructor(
                 }
 
                 it.isVisible = true
-            } else {
-                it.isVisible = false
             }
         }
     }

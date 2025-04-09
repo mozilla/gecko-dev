@@ -191,9 +191,10 @@ open class MainActivity : EdgeToEdgeActivity() {
     }
 
     final override fun onUserLeaveHint() {
-        // The notification permission prompt will trigger onUserLeaveHint too.
-        // We shouldn't treat this situation as user leaving.
-        if (!components.notificationsDelegate.isRequestingPermission) {
+        if (components.notificationsDelegate.isRequestingPermission) {
+            // The notification permission prompt will trigger onUserLeaveHint too.
+            // We shouldn't treat this situation as user leaving.
+        } else {
             val browserFragment =
                 supportFragmentManager.findFragmentByTag(BrowserFragment.FRAGMENT_TAG) as BrowserFragment?
             if (browserFragment is UserInteractionHandler && browserFragment.onHomePressed()) {
@@ -267,27 +268,22 @@ open class MainActivity : EdgeToEdgeActivity() {
     }
 
     private fun handleAppRestoreFromBackground(intent: SafeIntent) {
-        if (!intent.extras?.getString(BaseVoiceSearchActivity.SPEECH_PROCESSING).isNullOrEmpty()) {
-            handleAppNavigation(intent)
+        if (intent.extras?.getString(BaseVoiceSearchActivity.SPEECH_PROCESSING).isNullOrEmpty()) {
+            val currentScreen = components.appStore.state.screen
+            when (currentScreen) {
+                is Screen.Settings -> components.appStore.dispatch(
+                    AppAction.OpenSettings(page = currentScreen.page),
+                )
+                is Screen.SitePermissionOptionsScreen -> components.appStore.dispatch(
+                    AppAction.OpenSitePermissionOptionsScreen(sitePermission = currentScreen.sitePermission),
+                )
+                else -> {
+                    handleAppNavigation(intent)
+                }
+            }
             return
         }
-        when (components.appStore.state.screen) {
-            is Screen.Settings -> components.appStore.dispatch(
-                AppAction.OpenSettings(
-                    page =
-                    (components.appStore.state.screen as Screen.Settings).page,
-                ),
-            )
-            is Screen.SitePermissionOptionsScreen -> components.appStore.dispatch(
-                AppAction.OpenSitePermissionOptionsScreen(
-                    sitePermission =
-                    (components.appStore.state.screen as Screen.SitePermissionOptionsScreen).sitePermission,
-                ),
-            )
-            else -> {
-                handleAppNavigation(intent)
-            }
-        }
+        handleAppNavigation(intent)
     }
 
     private fun handleAppNavigation(intent: SafeIntent) {
@@ -373,8 +369,10 @@ open class MainActivity : EdgeToEdgeActivity() {
 
     // Handles the edge case of a user removing all enrolled prints while auth was enabled
     private fun checkBiometricStillValid() {
-        // Disable biometrics if the user is no longer eligible due to un-enrolling fingerprints:
-        if (!canUseBiometricFeature()) {
+        if (canUseBiometricFeature()) {
+            return
+        } else {
+            // Disable biometrics if the user is no longer eligible due to un-enrolling fingerprints:
             PreferenceManager.getDefaultSharedPreferences(this)
                 .edit {
                     putBoolean(
@@ -386,7 +384,9 @@ open class MainActivity : EdgeToEdgeActivity() {
     }
 
     fun getToolbar(): ActionBar {
-        if (!isToolbarInflated) {
+        return if (isToolbarInflated) {
+            supportActionBar!!
+        } else {
             val toolbar = binding.toolbar.inflate() as Toolbar
 
             StatusBarUtils.getStatusBarHeight(toolbar) { statusBarHeight ->
@@ -399,8 +399,8 @@ open class MainActivity : EdgeToEdgeActivity() {
             setSupportActionBar(toolbar)
             setNavigationIcon(R.drawable.ic_back_button)
             isToolbarInflated = true
+            supportActionBar!!
         }
-        return supportActionBar!!
     }
 
     override fun onDestroy() {

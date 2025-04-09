@@ -32,11 +32,11 @@ object FirefoxInstallationHelper {
         val resolveInfo =
             context.packageManager.resolveActivityCompat(storeIntent, 0) ?: return null
 
-        return if (!resolveInfo.activityInfo.exported) {
+        return if (resolveInfo.activityInfo.exported) {
+            resolveInfo.activityInfo
+        } else {
             // We are not allowed to launch this activity.
             null
-        } else {
-            resolveInfo.activityInfo
         }
     }
 

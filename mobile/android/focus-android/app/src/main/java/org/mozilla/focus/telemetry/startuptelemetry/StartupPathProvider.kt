@@ -75,9 +75,8 @@ class StartupPathProvider {
         // the foreground so we can't say <= STARTED
         // - onIntentReceived can be called from the CREATED or STARTED state so we can't say == CREATED
         // So we're forced to track this state ourselves.
-        if (!wasResumedSinceStartedState && intent != null) {
-            startupPathForActivity = getStartupPathFromIntent(intent)
-        }
+        if (wasResumedSinceStartedState || intent == null) return
+        startupPathForActivity = getStartupPathFromIntent(intent)
     }
 
     @VisibleForTesting(otherwise = NONE)

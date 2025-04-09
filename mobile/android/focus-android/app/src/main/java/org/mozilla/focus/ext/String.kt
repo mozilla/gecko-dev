@@ -9,6 +9,7 @@ import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 import mozilla.components.support.ktx.util.URLStringUtils
+import kotlin.text.append
 
 // Extension functions for the String class
 
@@ -45,17 +46,14 @@ fun String.beautifyUrl(): String {
     // And then append (only) the first query parameter
 
     val query = uri.query
-    if (!query.isNullOrEmpty()) {
-        beautifulUrl.append("?")
-        beautifulUrl.append(query.split("&").first())
+    query?.takeIf { it.isNotEmpty() }?.let {
+        beautifulUrl.append("?").append(it.split("&").first())
     }
 
     // We always append a fragment if there's one
 
-    val fragment = uri.fragment
-    if (!fragment.isNullOrEmpty()) {
-        beautifulUrl.append("#")
-        beautifulUrl.append(fragment)
+    uri.fragment?.takeIf { it.isNotEmpty() }?.let {
+        beautifulUrl.append("#").append(it)
     }
 
     return beautifulUrl.toString()

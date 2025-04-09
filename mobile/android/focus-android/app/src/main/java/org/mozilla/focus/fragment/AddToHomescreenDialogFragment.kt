@@ -5,7 +5,6 @@
 package org.mozilla.focus.fragment
 
 import android.os.Bundle
-import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -60,8 +59,8 @@ class AddToHomescreenDialogFragment : DialogFragment() {
 
         val editableTitle = dialogView.findViewById<EditText>(R.id.edit_title)
 
-        if (!TextUtils.isEmpty(title)) {
-            editableTitle.setText(title)
+        title?.takeIf { it.isNotEmpty() }?.let {
+            editableTitle.setText(it)
         }
 
         setButtons(dialogView, editableTitle, url, blockingEnabled, requestDesktop, title)

@@ -71,7 +71,9 @@ class CfrMiddleware(private val appContext: Context) : Middleware<BrowserState, 
             isCurrentTabSecure = action.securityInfo.secure
         }
         if (shouldShowCfrForTrackingProtection(action = action, browserState = context.state)) {
-            if (!tpExposureAlreadyRecorded) {
+            if (tpExposureAlreadyRecorded) {
+                // do not record exposure twice
+            } else {
                 FocusNimbus.features.onboarding.recordExposure()
                 tpExposureAlreadyRecorded = true
             }

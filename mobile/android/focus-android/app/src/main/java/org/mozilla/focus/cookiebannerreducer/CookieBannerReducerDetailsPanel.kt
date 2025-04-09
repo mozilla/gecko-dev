@@ -150,8 +150,8 @@ class CookieBannerReducerDetailsPanel(
             dismiss()
         }
         binding.requestSupport.setOnClickListener {
-            if (!siteDomain.isNullOrEmpty()) {
-                defaultCookieBannerInteractor.handleRequestReportSiteDomain(siteDomain!!)
+            siteDomain?.takeIf { it.isNotEmpty() }?.let {
+                defaultCookieBannerInteractor.handleRequestReportSiteDomain(it)
             }
             dismiss()
         }

@@ -109,14 +109,14 @@ class IntentProcessor(
 
                 return if (dataString == null || !URLStringUtils.isURLLike(dataString)) {
                     val bestURL = WebURLFinder(dataString).bestWebURL()
-                    if (!TextUtils.isEmpty(bestURL)) {
-                        createSession(SessionState.Source.External.ActionSend(null), bestURL ?: "")
-                    } else {
+                    if (TextUtils.isEmpty(bestURL)) {
                         createSearchSession(
                             SessionState.Source.External.ActionSend(null),
                             SearchUtils.createSearchUrl(context, dataString ?: ""),
                             dataString ?: "",
                         )
+                    } else {
+                        createSession(SessionState.Source.External.ActionSend(null), bestURL ?: "")
                     }
                 } else {
                     createSession(SessionState.Source.External.ActionSend(null), dataString)

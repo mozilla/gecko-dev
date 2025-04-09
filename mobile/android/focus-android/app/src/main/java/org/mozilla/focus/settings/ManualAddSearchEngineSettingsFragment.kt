@@ -222,7 +222,9 @@ class ManualAddSearchEngineSettingsFragment : BaseSettingsFragment() {
         val isValidSearchQuery = isValidSearchQueryURL(client, query)
 
         withContext(Dispatchers.Main) {
-            if (!isActive) {
+            if (isActive) {
+                // continue validation
+            } else {
                 return@withContext
             }
 

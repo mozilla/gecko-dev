@@ -120,12 +120,14 @@ object IconGenerator {
         if (url == null || url.isEmpty()) return null
 
         val uri = url.toUri()
-        val snippet = if (!uri.host.isNullOrEmpty()) {
-            uri.host // cached by Uri class.
-        } else if (!uri.path.isNullOrEmpty()) { // The uri may not have a host for e.g. file:// uri
-            uri.path // cached by Uri class.
+        val snippet = if (uri.host.isNullOrEmpty()) {
+            if (uri.path.isNullOrEmpty()) {
+                return null
+            } else { // The uri may not have a host for e.g. file:// uri
+                uri.path // cached by Uri class.
+            }
         } else {
-            return null
+            uri.host // cached by Uri class.
         }
 
         // Strip common prefixes that we do not want to use to determine the representative characters

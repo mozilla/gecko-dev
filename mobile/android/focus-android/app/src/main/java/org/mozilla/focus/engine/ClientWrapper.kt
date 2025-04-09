@@ -15,11 +15,11 @@ class ClientWrapper(
     private val actual: Client,
 ) : Client() {
     override fun fetch(request: Request): Response {
-        if (!request.private) {
+        if (request.private) {
+            return actual.fetch(request)
+        } else {
             throw IllegalStateException("Non-private request")
         }
-
-        return actual.fetch(request)
     }
 
     @Deprecated("Non-private Client usage should be prevented")

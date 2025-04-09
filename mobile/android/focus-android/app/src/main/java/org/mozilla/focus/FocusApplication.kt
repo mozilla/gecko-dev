@@ -210,31 +210,29 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
 
     private fun enableStrictMode() {
         // Only enable StrictMode in debug builds
-        if (!AppConstants.isDevBuild) {
-            return
+        if (AppConstants.isDevBuild) {
+            val threadPolicyBuilder = StrictMode.ThreadPolicy.Builder().detectAll()
+            val vmPolicyBuilder = StrictMode.VmPolicy.Builder()
+                .detectActivityLeaks()
+                .detectFileUriExposure()
+                .detectLeakedClosableObjects()
+                .detectLeakedRegistrationObjects()
+                .detectLeakedSqlLiteObjects()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                vmPolicyBuilder.detectNonSdkApiUsage()
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                vmPolicyBuilder.detectUnsafeIntentLaunch()
+            }
+
+            threadPolicyBuilder.penaltyLog()
+            vmPolicyBuilder.penaltyLog()
+
+            StrictMode.setThreadPolicy(threadPolicyBuilder.build())
+            StrictMode.setVmPolicy(vmPolicyBuilder.build())
         }
-
-        val threadPolicyBuilder = StrictMode.ThreadPolicy.Builder().detectAll()
-        val vmPolicyBuilder = StrictMode.VmPolicy.Builder()
-            .detectActivityLeaks()
-            .detectFileUriExposure()
-            .detectLeakedClosableObjects()
-            .detectLeakedRegistrationObjects()
-            .detectLeakedSqlLiteObjects()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            vmPolicyBuilder.detectNonSdkApiUsage()
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            vmPolicyBuilder.detectUnsafeIntentLaunch()
-        }
-
-        threadPolicyBuilder.penaltyLog()
-        vmPolicyBuilder.penaltyLog()
-
-        StrictMode.setThreadPolicy(threadPolicyBuilder.build())
-        StrictMode.setVmPolicy(vmPolicyBuilder.build())
     }
 
     @VisibleForTesting
