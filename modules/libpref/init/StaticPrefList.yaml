@@ -8879,7 +8879,7 @@
 # enable this for GC modules.
 -   name: javascript.options.wasm_lazy_tiering
     type: bool
-    value: false
+    value: true
     mirror: always
     set_spidermonkey_pref: always
 
