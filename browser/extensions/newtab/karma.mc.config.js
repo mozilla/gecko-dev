@@ -174,6 +174,12 @@ module.exports = function (config) {
                 functions: 0,
                 branches: 0,
               },
+            "content-src/components/DiscoveryStreamComponents/FeatureHighlight/FeatureHighlight.jsx":
+              {
+                statements: 88,
+                lines: 88,
+                functions: 80,
+              },
             "content-src/components/DiscoveryStreamComponents/ReportContent/ReportContent.jsx":
               {
                 statements: 0,
