@@ -1425,35 +1425,35 @@ inline bool RefType::isSubTypeOf(RefType subType, RefType superType) {
     return true;
   }
 
-  // eqref is a subtype of anyref
+  // eq is a subtype of any
   if (subType.isEq() && superType.isAny()) {
     return true;
   }
 
-  // i31ref is a subtype of eqref
+  // i31 is a subtype of eq and any
   if (subType.isI31() && (superType.isAny() || superType.isEq())) {
     return true;
   }
 
-  // structref/arrayref are subtypes of eqref and anyref
+  // Abstract struct/array are subtypes of eq and any
   if ((subType.isStruct() || subType.isArray()) &&
       (superType.isAny() || superType.isEq())) {
     return true;
   }
 
-  // Structs are subtypes of structref, eqref and anyref
+  // Concrete struct types are subtypes of struct, eq, and any
   if (subType.isTypeRef() && subType.typeDef()->isStructType() &&
       (superType.isAny() || superType.isEq() || superType.isStruct())) {
     return true;
   }
 
-  // Arrays are subtypes of arrayref, eqref and anyref
+  // Concrete array types are subtypes of array, eq, and any
   if (subType.isTypeRef() && subType.typeDef()->isArrayType() &&
       (superType.isAny() || superType.isEq() || superType.isArray())) {
     return true;
   }
 
-  // Funcs are subtypes of funcref
+  // Concrete func types are subtypes of func
   if (subType.isTypeRef() && subType.typeDef()->isFuncType() &&
       superType.isFunc()) {
     return true;
@@ -1464,23 +1464,23 @@ inline bool RefType::isSubTypeOf(RefType subType, RefType superType) {
     return TypeDef::isSubTypeOf(subType.typeDef(), superType.typeDef());
   }
 
-  // No func is the bottom type of the func hierarchy
+  // nofunc is the bottom type of the func hierarchy
   if (subType.isNoFunc() && superType.hierarchy() == RefTypeHierarchy::Func) {
     return true;
   }
 
-  // No extern is the bottom type of the extern hierarchy
+  // noextern is the bottom type of the extern hierarchy
   if (subType.isNoExtern() &&
       superType.hierarchy() == RefTypeHierarchy::Extern) {
     return true;
   }
 
-  // None is the bottom type of the any hierarchy
+  // none is the bottom type of the any hierarchy
   if (subType.isNone() && superType.hierarchy() == RefTypeHierarchy::Any) {
     return true;
   }
 
-  // No exn is the bottom type of the exn hierarchy
+  // noexn is the bottom type of the exn hierarchy
   if (subType.isNoExn() && superType.hierarchy() == RefTypeHierarchy::Exn) {
     return true;
   }

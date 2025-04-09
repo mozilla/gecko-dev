@@ -6287,6 +6287,28 @@ class MPhi final : public MDefinition,
     usageAnalysis_ = pu;
     MOZ_ASSERT(usageAnalysis_ != PhiUsage::Unknown);
   }
+
+  wasm::MaybeRefType computeWasmRefType() const override {
+    if (numOperands() == 0) {
+      return wasm::MaybeRefType();
+    }
+    wasm::MaybeRefType firstRefType = getOperand(0)->wasmRefType();
+    if (firstRefType.isNothing()) {
+      return wasm::MaybeRefType();
+    }
+
+    wasm::RefType topTypeOfOperands = firstRefType.value();
+    for (size_t i = 1; i < numOperands(); i++) {
+      MDefinition* op = getOperand(i);
+      wasm::MaybeRefType opType = op->wasmRefType();
+      if (opType.isNothing()) {
+        return wasm::MaybeRefType();
+      }
+      topTypeOfOperands =
+          wasm::RefType::leastUpperBound(topTypeOfOperands, opType.value());
+    }
+    return wasm::MaybeRefType(topTypeOfOperands);
+  }
 };
 
 // The goal of a Beta node is to split a def at a conditionally taken

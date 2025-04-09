@@ -149,6 +149,7 @@ UNIFIED_SOURCES += [
     "testWasmEncoder.cpp",
     "testWasmLEB128.cpp",
     "testWasmMasm.cpp",
+    "testWasmRefSubtypes.cpp",
     "testWasmReturnCalls.cpp",
     "testWeakMap.cpp",
     "testWindowNonConfigurable.cpp",

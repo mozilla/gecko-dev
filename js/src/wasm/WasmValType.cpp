@@ -68,6 +68,83 @@ RefType RefType::topType() const {
   MOZ_CRASH("switch is exhaustive");
 }
 
+static RefType FirstCommonSuperType(RefType a, RefType b,
+                                    std::initializer_list<RefType> supers) {
+  for (RefType super : supers) {
+    if (RefType::isSubTypeOf(a, super) && RefType::isSubTypeOf(b, super)) {
+      return super;
+    }
+  }
+  MOZ_CRASH("failed to find common super type");
+}
+
+RefType RefType::leastUpperBound(RefType a, RefType b) {
+  // Types in different hierarchies have no common bound. Validation should
+  // always prevent two such types from being compared.
+  MOZ_RELEASE_ASSERT(a.hierarchy() == b.hierarchy());
+
+  // Whether the LUB is nullable can be determined by the nullability of a and
+  // b, regardless of their actual types.
+  bool nullable = a.isNullable() || b.isNullable();
+
+  // If one type is a subtype of the other, the higher type is the LUB - and we
+  // can capture nulls here too, as we know the nullability of the LUB.
+  if (RefType::isSubTypeOf(a, b.withIsNullable(nullable))) {
+    return b.withIsNullable(nullable);
+  }
+  if (RefType::isSubTypeOf(b, a.withIsNullable(nullable))) {
+    return a.withIsNullable(nullable);
+  }
+
+  // Concrete types may share a concrete parent type. We can test b against all
+  // of a's parent types to see if this is true.
+  if (a.isTypeRef() && b.isTypeRef()) {
+    const TypeDef* aSuper = a.typeDef()->superTypeDef();
+    while (aSuper) {
+      if (TypeDef::isSubTypeOf(b.typeDef(), aSuper)) {
+        return RefType(aSuper, nullable);
+      }
+      aSuper = aSuper->superTypeDef();
+    }
+  }
+
+  // Because wasm type hierarchies are pretty small and simple, we can
+  // essentially brute-force the LUB by simply iterating over all the abstract
+  // types bottom-to-top. The first one that is a super type of both a and b is
+  // the LUB. We are guaranteed to find a common bound because we have verified
+  // that the types have the same hierarchy and we will therefore at least find
+  // the hierarchy's top type.
+  //
+  // We test against the nullable versions of these types, and then apply the
+  // true nullability afterward. This is ok -- this finds the *kind* of the LUB
+  // (which we now know to be abstract), and applying the correct nullability
+  // will not affect this. For example, for the non-nullable types
+  // (ref $myStruct) and (ref $myArray), we will find (ref null eq), and then
+  // modify it to (ref eq), which is the correct LUB.
+  RefType common;
+  switch (a.hierarchy()) {
+    case RefTypeHierarchy::Any:
+      common = FirstCommonSuperType(
+          a, b,
+          {RefType::none(), RefType::i31(), RefType::struct_(),
+           RefType::array(), RefType::eq(), RefType::any()});
+      break;
+    case RefTypeHierarchy::Func:
+      common = FirstCommonSuperType(a, b, {RefType::nofunc(), RefType::func()});
+      break;
+    case RefTypeHierarchy::Extern:
+      common =
+          FirstCommonSuperType(a, b, {RefType::noextern(), RefType::extern_()});
+      break;
+    case RefTypeHierarchy::Exn:
+      common = FirstCommonSuperType(a, b, {RefType::noexn(), RefType::exn()});
+      break;
+    default:
+      MOZ_CRASH("unknown type hierarchy");
+  }
+  return common.withIsNullable(nullable);
+}
+
 TypeDefKind RefType::typeDefKind() const {
   switch (kind()) {
     case RefType::Struct:
