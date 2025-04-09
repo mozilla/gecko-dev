@@ -143,23 +143,15 @@ export class SmartTabGroupingManager {
   async smartTabGroupingForGroup(group, tabs) {
     // Add tabs to suggested group
     const groupTabs = group.tabs;
-    const uniqueSpecs = new Set();
     const allTabs = tabs.filter(tab => {
       // Don't include tabs already pinned
       if (tab.pinned) {
         return false;
       }
-
-      const spec = tab?.linkedBrowser?.currentURI?.spec;
-      if (!spec) {
+      if (!tab?.linkedBrowser?.currentURI?.spec) {
         return false;
       }
-      if (!uniqueSpecs.has(spec)) {
-        uniqueSpecs.add(spec);
-        return true;
-      }
-
-      return false;
+      return true;
     });
 
     // find tabs that are part of the group
