@@ -22,9 +22,11 @@ import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.search.ext.createSearchEngine
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.R
 
 @RunWith(AndroidJUnit4::class)
 class FenixBrowserUseCasesTest {
@@ -79,6 +81,7 @@ class FenixBrowserUseCasesTest {
             addNewTabUseCase = addNewTabUseCase,
             loadUrlUseCase = loadUrlUseCase,
             searchUseCases = searchUseCases,
+            homepageTitle = testContext.getString(R.string.tab_tray_homepage_tab),
             profiler = profiler,
         )
     }
@@ -312,6 +315,7 @@ class FenixBrowserUseCasesTest {
             addNewTabUseCase.invoke(
                 url = "about:home",
                 startLoading = false,
+                title = testContext.getString(R.string.tab_tray_homepage_tab),
                 private = true,
             )
         }
@@ -322,6 +326,7 @@ class FenixBrowserUseCasesTest {
             addNewTabUseCase.invoke(
                 url = "about:home",
                 startLoading = false,
+                title = testContext.getString(R.string.tab_tray_homepage_tab),
                 private = false,
             )
         }

@@ -236,6 +236,23 @@ class TabsUseCasesTest {
     }
 
     @Test
+    fun `AddNewTabUseCase uses provided title`() {
+        val title = "Mozilla"
+        tabsUseCases.addTab.invoke(
+            "https://www.mozilla.org",
+            flags = LoadUrlFlags.external(),
+            startLoading = true,
+            title = title,
+        )
+
+        store.waitUntilIdle()
+
+        assertEquals(1, store.state.tabs.size)
+        assertEquals("https://www.mozilla.org", store.state.tabs[0].content.url)
+        assertEquals(title, store.state.tabs[0].content.title)
+    }
+
+    @Test
     fun `AddNewTabUseCase uses provided history metadata`() {
         val historyMetadata = HistoryMetadataKey(
             "https://www.mozilla.org",
