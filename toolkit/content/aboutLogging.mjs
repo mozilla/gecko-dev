@@ -2,42 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
 const gDashboard = Cc["@mozilla.org/network/dashboard;1"].getService(
   Ci.nsIDashboard
 );
-const gDirServ = Cc["@mozilla.org/file/directory_service;1"].getService(
-  Ci.nsIDirectoryServiceProvider
-);
 
-const { ProfilerMenuButton } = ChromeUtils.importESModule(
-  "resource://devtools/client/performance-new/popup/menu-button.sys.mjs"
-);
-const { CustomizableUI } = ChromeUtils.importESModule(
-  "resource:///modules/CustomizableUI.sys.mjs"
-);
-
-ChromeUtils.defineLazyGetter(this, "ProfilerPopupBackground", function () {
+const lazy = {};
+ChromeUtils.defineLazyGetter(lazy, "ProfilerPopupBackground", function () {
   return ChromeUtils.importESModule(
     "resource://devtools/client/performance-new/shared/background.sys.mjs"
   );
 });
 
-ChromeUtils.defineLazyGetter(this, "ProfilerPrefsPresets", function () {
+ChromeUtils.defineLazyGetter(lazy, "ProfilerPrefsPresets", function () {
   return ChromeUtils.importESModule(
     "resource://devtools/shared/performance-new/prefs-presets.sys.mjs"
   );
 });
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  ProfilerMenuButton:
+    "resource://devtools/client/performance-new/popup/menu-button.sys.mjs",
+  RecordingUtils:
+    "resource://devtools/shared/performance-new/recording-utils.sys.mjs",
+});
+
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
-
-function fileEnvVarPresent() {
-  return Services.env.get("MOZ_LOG_FILE") || Services.env.get("NSPR_LOG_FILE");
-}
 
 function moduleEnvVarPresent() {
   return Services.env.get("MOZ_LOG") || Services.env.get("NSPR_LOG");
@@ -204,20 +194,10 @@ const gLoggingSettings = {
 // effectively started.
 let gProfilerPromise = null;
 
-// Used in tests
-function presets() {
-  return gLoggingPresets;
-}
-
-// Used in tests
-function settings() {
-  return gLoggingSettings;
-}
-
-// Used in tests
-function profilerPromise() {
-  return gProfilerPromise;
-}
+// These functions are used in tests
+globalThis.presets = () => gLoggingPresets;
+globalThis.settings = () => gLoggingSettings;
+globalThis.profilerPromise = () => gProfilerPromise;
 
 function populatePresets() {
   let dropdown = $("#logging-preset-dropdown");
@@ -343,7 +323,7 @@ function parseURL() {
           threadsOverriden = v;
           break;
         case "profiler-preset":
-          if (!Object.keys(ProfilerPrefsPresets.presets).includes(v)) {
+          if (!Object.keys(lazy.ProfilerPrefsPresets.presets).includes(v)) {
             throw new Error(["about-logging-unknown-profiler-preset", k, v]);
           }
           profilerPresetOverriden = v;
@@ -488,7 +468,7 @@ function init() {
   } catch {}
 
   try {
-    let file = gDirServ.getFile("TmpD", {});
+    let file = Services.dirsvc.get("TmpD", Ci.nsIFile);
     file.append("log.txt");
     $("#log-file").value = file.path;
   } catch (e) {
@@ -534,7 +514,7 @@ function updateLogFile(file) {
     currentLogFile.innerText = file;
   } else {
     try {
-      let file = gDirServ.getFile("TmpD", {});
+      let file = Services.dirsvc.get("TmpD", Ci.nsIFile);
       file.append("log.txt");
       $("#log-file").value = file.path;
     } catch (e) {
@@ -706,7 +686,6 @@ function startStopLogging() {
 function startLogging() {
   setLogModules();
   if (gLoggingSettings.loggingOutputType === "profiler") {
-    const pageContext = "aboutlogging";
     const supportedFeatures = Services.profiler.GetFeatures();
     if (
       gLoggingSettings.loggingPreset != "custom" ||
@@ -719,22 +698,22 @@ function startLogging() {
       const profilerPreset =
         gLoggingSettings.profilerPreset ??
         gLoggingPresets[gLoggingSettings.loggingPreset].profilerPreset;
-      ProfilerPrefsPresets.changePreset(
+      lazy.ProfilerPrefsPresets.changePreset(
         "aboutlogging",
         profilerPreset,
         supportedFeatures
       );
     } else {
       // a baseline set of threads, and possibly others, overriden by the URL
-      ProfilerPrefsPresets.changePreset(
+      lazy.ProfilerPrefsPresets.changePreset(
         "aboutlogging",
         "firefox-platform",
         supportedFeatures
       );
     }
     let { entries, interval, features, threads, duration } =
-      ProfilerPrefsPresets.getRecordingSettings(
-        pageContext,
+      lazy.ProfilerPrefsPresets.getRecordingSettings(
+        "aboutlogging",
         Services.profiler.GetFeatures()
       );
 
@@ -747,19 +726,17 @@ function startLogging() {
         features.push("audiocallbacktracing");
       }
     }
-    const win = Services.wm.getMostRecentWindow("navigator:browser");
-    const windowid = win?.gBrowser?.selectedBrowser?.browsingContext?.browserId;
 
     // Force displaying the profiler button in the navbar if not preset, so
     // that there is a visual indication profiling is in progress.
-    ProfilerMenuButton.ensureButtonInNavbar();
+    lazy.ProfilerMenuButton.ensureButtonInNavbar();
 
     gProfilerPromise = Services.profiler.StartProfiler(
       entries,
       interval,
       features,
       threads,
-      windowid,
+      lazy.RecordingUtils.getActiveBrowserID(),
       duration
     );
   } else {
@@ -770,7 +747,7 @@ function startLogging() {
 
 async function stopLogging() {
   if (gLoggingSettings.loggingOutputType === "profiler") {
-    await ProfilerPopupBackground.captureProfile("aboutlogging");
+    await lazy.ProfilerPopupBackground.captureProfile("aboutlogging");
   } else {
     Services.prefs.clearUserPref("logging.config.LOG_FILE");
     updateLogFile();

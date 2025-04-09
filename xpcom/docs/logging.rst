@@ -174,7 +174,7 @@ preset. If no preset is selected, then a generic profiling preset is used,
 
 will profile the threads in the ``Media`` profiler preset, but will only log
 specific log modules (instead of the `long list
-<https://searchfox.org/mozilla-central/search?q="media-playback"&path=toolkit%2Fcontent%2FaboutLogging.js>`_
+<https://searchfox.org/mozilla-central/search?q="media-playback"&path=toolkit%2Fcontent%2FaboutLogging.mjs>`_
 in the ``media-playback`` preset). In addition, it disallows logging to a file.
 
 Enabling logging using environment variables
