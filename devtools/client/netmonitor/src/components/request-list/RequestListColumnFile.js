@@ -16,7 +16,6 @@ const {
   connect,
 } = require("resource://devtools/client/shared/vendor/react-redux.js");
 const {
-  getUrlToolTip,
   propertiesEqual,
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
 const {
@@ -59,8 +58,21 @@ class RequestListColumnFile extends Component {
       overriddenUrl,
     } = this.props;
 
+    const originalFileURL = urlDetails.url;
+    const decodedFileURL = urlDetails.unicodeUrl;
+    const ORIGINAL_FILE_URL = L10N.getFormatStr(
+      "netRequest.originalFileURL.tooltip",
+      originalFileURL
+    );
+    const DECODED_FILE_URL = L10N.getFormatStr(
+      "netRequest.decodedFileURL.tooltip",
+      decodedFileURL
+    );
     const requestedFile = urlDetails.baseNameWithQuery;
-    const fileToolTip = getUrlToolTip(urlDetails);
+    const fileToolTip =
+      originalFileURL === decodedFileURL
+        ? originalFileURL
+        : ORIGINAL_FILE_URL + "\n\n" + DECODED_FILE_URL;
 
     const isSlow = slowLimit > 0 && !!waitingTime && waitingTime > slowLimit;
 
