@@ -282,3 +282,4 @@ load 1896225.html
 load 1897248.html
 load 1907464.html
 asserts(0-1) load 1907228.html # see bug 1908485 for assert
+load 1922153.html

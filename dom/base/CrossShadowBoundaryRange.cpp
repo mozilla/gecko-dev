@@ -152,8 +152,17 @@ void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
 
   const nsINode* startContainer = mStart.GetContainer();
   const nsINode* endContainer = mEnd.GetContainer();
+  MOZ_ASSERT(startContainer && endContainer);
 
   if (startContainer == aChild || endContainer == aChild) {
+    mOwner->ResetCrossShadowBoundaryRange();
+    return;
+  }
+
+  // This is a special case that the startContainer and endContainer could
+  // anonymous contents created by the frame of aChild, and they are
+  // unbounded from the document now.
+  if (!startContainer->IsInComposedDoc() || !endContainer->IsInComposedDoc()) {
     mOwner->ResetCrossShadowBoundaryRange();
     return;
   }
@@ -165,8 +174,8 @@ void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
     }
   }
 
-  if (mStart.GetContainer()->IsShadowIncludingInclusiveDescendantOf(aChild) ||
-      mEnd.GetContainer()->IsShadowIncludingInclusiveDescendantOf(aChild)) {
+  if (startContainer->IsShadowIncludingInclusiveDescendantOf(aChild) ||
+      endContainer->IsShadowIncludingInclusiveDescendantOf(aChild)) {
     mOwner->ResetCrossShadowBoundaryRange();
     return;
   }
