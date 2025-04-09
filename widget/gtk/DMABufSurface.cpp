@@ -174,33 +174,36 @@ void DMABufSurface::DeleteSnapshotGLContext() {
 }
 
 bool DMABufSurface::UseDmaBufGL(GLContext* aGLContext) {
-  static bool useDmabufGL =
-      [&]() {
-        if (!aGLContext->IsAtLeast(gl::ContextProfile::OpenGLCore, 300) &&
-            !aGLContext->IsAtLeast(gl::ContextProfile::OpenGLES, 300)) {
-          gfxCriticalNoteOnce
-              << "DMABufSurface::UseDmaBufExportExtension(): old GL version!";
-          return false;
-        }
+  if (!aGLContext) {
+    LOGDMABUFS("DMABufSurface::UseDmaBufGL(): Missing GLContext!");
+    return false;
+  }
 
-        if (!aGLContext->IsExtensionSupported(gl::GLContext::OES_EGL_image)) {
-          gfxCriticalNoteOnce
-              << "DMABufSurface::UseDmaBufExportExtension(): no OES_EGL_image.";
-          return false;
-        }
-        return true;
-      }();
+  static bool useDmabufGL = [&]() {
+    if (!aGLContext->IsExtensionSupported(gl::GLContext::OES_EGL_image)) {
+      gfxCriticalNote << "DMABufSurface::UseDmaBufGL(): no OES_EGL_image.";
+      return false;
+    }
+    return true;
+  }();
 
-  return aGLContext && useDmabufGL;
+  return useDmabufGL;
 }
 
 bool DMABufSurface::UseDmaBufExportExtension(GLContext* aGLContext) {
   static bool useDmabufExport = [&]() {
+    if (!gfx::gfxVars::UseDMABufSurfaceExport()) {
+      return false;
+    }
+
     if (!UseDmaBufGL(aGLContext)) {
       return false;
     }
 
-    if (!gfx::gfxVars::UseDMABufSurfaceExport()) {
+    if (!aGLContext->IsAtLeast(gl::ContextProfile::OpenGLCore, 300) &&
+        !aGLContext->IsAtLeast(gl::ContextProfile::OpenGLES, 300)) {
+      gfxCriticalNote
+          << "DMABufSurface::UseDmaBufExportExtension(): old GL version!";
       return false;
     }
 
@@ -212,8 +215,8 @@ bool DMABufSurface::UseDmaBufExportExtension(GLContext* aGLContext) {
             EGLExtension::EXT_image_dma_buf_import_modifiers) &&
         egl->IsExtensionSupported(EGLExtension::MESA_image_dma_buf_export);
     if (!extensionsAvailable) {
-      gfxCriticalNoteOnce << "DMABufSurface::UseDmaBufExportExtension(): "
-                             "MESA_image_dma_buf import/export extensions!";
+      gfxCriticalNote << "DMABufSurface::UseDmaBufExportExtension(): "
+                         "MESA_image_dma_buf import/export extensions!";
     }
     return extensionsAvailable;
   }();
