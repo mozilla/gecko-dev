@@ -810,12 +810,11 @@ export class Tracer extends Component {
       this.props;
     return [
       React.createElement(SearchInput, {
-        count: tracesMatchingSearch.length,
+        // <SearchInput> only use `count` to show the arrow icons,
+        // force it to always display them with such count.
+        count: 2,
 
-        placeholder: this.props.traceValues
-          ? `Search for function call argument values ("foo", 42, $0, $("canvas"), …)`
-          : "Enable tracing values to search for values",
-        disabled: !this.props.traceValues,
+        placeholder: `Search for function call argument values ("foo", 42, $0, $("canvas"), …)`,
         size: "small",
         showClose: false,
         onChange: this.searchInputOnChange,
@@ -833,6 +832,13 @@ export class Tracer extends Component {
       // and show the exception, if one was thrown
       searchExceptionMessage
         ? div({ className: "search-exception" }, searchExceptionMessage)
+        : null,
+
+      this.props.allTraces.length && !this.props.traceValues
+        ? div(
+            { className: "search-exception" },
+            "Need to enable tracing values to search for values"
+          )
         : null,
 
       // When we have a valid search string, either matching a primitive type or an object,

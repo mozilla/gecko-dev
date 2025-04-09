@@ -81,7 +81,6 @@ export class SearchInput extends Component {
       excludePatternsPlaceholder: PropTypes.string,
       showErrorEmoji: PropTypes.bool.isRequired,
       size: PropTypes.string,
-      disabled: PropTypes.bool,
       summaryMsg: PropTypes.string,
       searchKey: PropTypes.string.isRequired,
       searchOptions: PropTypes.object,
@@ -305,14 +304,12 @@ export class SearchInput extends Component {
       selectedItemId,
       showErrorEmoji,
       size,
-      disabled,
     } = this.props;
 
     const inputProps = {
       className: classnames({
         empty: showErrorEmoji,
       }),
-      disabled,
       onChange,
       onKeyDown: e => this.onKeyDown(e),
       onKeyUp,

@@ -17,12 +17,6 @@ const { isBrowsingContextPartOfContext } = ChromeUtils.importESModule(
   "resource://devtools/server/actors/watcher/browsing-context-helpers.sys.mjs",
   { global: "contextual" }
 );
-loader.lazyRequireGetter(
-  this,
-  "TRACER_LOG_METHODS",
-  "resource://devtools/shared/specs/tracer.js",
-  true
-);
 const { SUPPORTED_DATA } = SessionDataHelpers;
 const { TARGET_CONFIGURATION } = SUPPORTED_DATA;
 const LOG_DISABLED = -1;
@@ -544,13 +538,6 @@ class TargetConfigurationActor extends Actor {
       this.#pageMessagesPrefValue = undefined;
       return;
     }
-
-    // Only enable the MOZ_LOG's when recording to the profiler,
-    // otherwise it would pollute firefox stdout unexpectedly.
-    if (options.logMethod != TRACER_LOG_METHODS.PROFILER) {
-      return;
-    }
-
     // Enable `MOZ_LOG=console:5` via the logging.console so that all console API calls
     // are stored in the profiler when recording JS Traces via the profiler.
     //

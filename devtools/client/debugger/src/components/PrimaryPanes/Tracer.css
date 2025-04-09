@@ -122,10 +122,6 @@
     input:not(:placeholder-shown) {
       font-family: var(--monospace-font-family);
     }
-
-    input[disabled] {
-      background-color: var(--theme-body-emphasized-background);
-    }
   }
   .search-exception {
     color: var(--theme-text-color-error);
