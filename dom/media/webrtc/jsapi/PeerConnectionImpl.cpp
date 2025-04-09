@@ -652,7 +652,15 @@ class ConfigureCodec {
         mUseTransportCC(false),
         mUseAudioFec(false),
         mRedUlpfecEnabled(false) {
+#ifdef MOZ_WIDGET_ANDROID
+    // Although Play Store policy doesn't allow GMP plugin, Android has H.264 SW
+    // codec.
+    MOZ_ASSERT(!PeerConnectionCtx::GetInstance()->gmpHasH264(),
+               "GMP plugin not allowed on Android");
+    mSoftwareH264Enabled = true;
+#else
     mSoftwareH264Enabled = PeerConnectionCtx::GetInstance()->gmpHasH264();
+#endif
 
     if (WebrtcVideoConduit::HasH264Hardware()) {
       glean::webrtc::has_h264_hardware
