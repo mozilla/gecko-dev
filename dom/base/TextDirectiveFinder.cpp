@@ -7,7 +7,6 @@
 #include "Document.h"
 #include "TextDirectiveUtil.h"
 #include "mozilla/glean/DomMetrics.h"
-#include "mozilla/glean/DomUseCounterMetrics.h"
 #include "nsRange.h"
 #include "fragmentdirectives_ffi_generated.h"
 #include "mozilla/ResultVariant.h"
@@ -28,7 +27,7 @@ TextDirectiveFinder::~TextDirectiveFinder() {
                       mFindTextDirectivesDuration.ToMilliseconds());
   }
   if (HasUninvokedDirectives()) {
-    glean::use_counter_page::invalid_text_directives.Add();
+    mDocument.SetUseCounter(eUseCounter_custom_InvalidTextDirectives);
   }
 }
 

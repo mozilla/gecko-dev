@@ -107,8 +107,8 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2390 use counter metrics (excludes denominators).
-# Total of 353 'page' use counters.
+# Total of 2389 use counter metrics (excludes denominators).
+# Total of 354 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -6079,50 +6079,56 @@ use.counter.page:
 
   text_directive_pages:
     type: counter
-    description: |
-      Number of opened pages using text-fragments.
-    expires: never
+    description: >
+      Whether a page used text fragments.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     notification_emails:
       - dom-core@mozilla.com
-      - jjaschke@mozilla.com
+      - emilio@mozilla.com
+    expires: never
     send_in_pings:
       - use-counters
 
   invalid_text_directives:
     type: counter
-    description: |
-      Amount of pages where a text directive could be found after loading has finished
-    expires: never
+    description: >
+      Whether a page had a text fragment that could not be found after loading has finished.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     notification_emails:
       - dom-core@mozilla.com
-      - jjaschke@mozilla.com
+      - emilio@mozilla.com
+    expires: never
     send_in_pings:
       - use-counters
 
   text_directive_not_created:
     type: counter
-    description: |
-      How often does FragmentDirective::CreateTextDirective() not find a text fragment
-    expires: never
+    description: >
+      Whether a page has not succeeded in creating a text fragment.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1942117
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     notification_emails:
       - dom-core@mozilla.com
-      - jjaschke@mozilla.com
+      - emilio@mozilla.com
+    expires: never
     send_in_pings:
       - use-counters
 
-# Total of 353 'document' use counters.
+# Total of 354 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -6451,40 +6457,6 @@ use.counter.doc:
     type: counter
     description: >
       Whether a document set DataTransfer.mozSourceNode.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  onoverflow:
-    type: counter
-    description: >
-      Whether a document sets an element onoverflow event listener.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  onunderflow:
-    type: counter
-    description: >
-      Whether a document sets an element onunderflow event listener.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -12112,6 +12084,57 @@ use.counter.doc:
     type: counter
     description: >
       Whether a document found sectioned h1 element with no font-size or no margins.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  text_directive_pages:
+    type: counter
+    description: >
+      Whether a document used text fragments.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  invalid_text_directives:
+    type: counter
+    description: >
+      Whether a document had a text fragment that could not be found after loading has finished.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  text_directive_not_created:
+    type: counter
+    description: >
+      Whether a document has not succeeded in creating a text fragment.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -40715,3 +40738,4 @@ use.counter.css.doc:
     expires: never
     send_in_pings:
       - use-counters
+

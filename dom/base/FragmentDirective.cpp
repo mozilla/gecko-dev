@@ -21,7 +21,6 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/glean/DomMetrics.h"
-#include "mozilla/glean/DomUseCounterMetrics.h"
 #include "mozilla/PresShell.h"
 #include "nsContentUtils.h"
 #include "nsDocShell.h"
@@ -83,7 +82,6 @@ bool FragmentDirective::ParseAndRemoveFragmentDirectiveFromFragmentString(
       StaticPrefs::dom_text_fragments_enabled() &&
       parse_fragment_directive(&aFragment, &fragmentDirective);
   if (hasRemovedFragmentDirective) {
-    glean::use_counter_page::text_directive_pages.Add();
     TEXT_FRAGMENT_LOG(
         "Found a fragment directive '{}', which was removed from the fragment. "
         "New fragment is '{}'.",
@@ -452,7 +450,7 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirective(
   if (textDirective.isOk()) {
     nsCString textDirectiveString = textDirective.unwrap();
     if (textDirectiveString.IsEmpty()) {
-      glean::use_counter_page::text_directive_not_created.Add();
+      mDocument->SetUseCounter(eUseCounter_custom_TextDirectiveNotCreated);
       resultPromise->MaybeResolve(JS::NullHandleValue);
     } else {
       resultPromise->MaybeResolve(std::move(textDirectiveString));
