@@ -340,7 +340,6 @@ void DMABufSurface::ReleaseDMABuf() {
 DMABufSurface::DMABufSurface(SurfaceType aSurfaceType)
     : mSurfaceType(aSurfaceType),
       mBufferPlaneCount(0),
-      mDrmFormats(),
       mStrides(),
       mOffsets(),
       mGbmBufferObject(),
@@ -828,8 +827,8 @@ bool DMABufSurfaceRGBA::CreateExport(mozilla::gl::GLContext* aGLContext,
     return false;
   }
 
-  if (!egl->fExportDMABUFImageQuery(mEGLImage, mDrmFormats, &mBufferPlaneCount,
-                                    &mBufferModifier)) {
+  if (!egl->fExportDMABUFImageQuery(mEGLImage, &mFOURCCFormat,
+                                    &mBufferPlaneCount, &mBufferModifier)) {
     LOGDMABUF("  ExportDMABUFImageQueryMESA failed, quit\n");
     return false;
   }
@@ -859,8 +858,6 @@ bool DMABufSurfaceRGBA::CreateExport(mozilla::gl::GLContext* aGLContext,
       return false;
     }
   }
-  // TODO: remove mDrmFormats array from RGBA
-  mFOURCCFormat = mDrmFormats[0];
 
   if (GetFormat() == gfx::SurfaceFormat::UNKNOWN) {
     LOGDMABUF("  failed, unsupported drm format %x", mFOURCCFormat);
@@ -929,7 +926,6 @@ bool DMABufSurfaceRGBA::ImportSurfaceDescriptor(
     mDmabufFds[i] = desc.fds()[i];
     mStrides[i] = desc.strides()[i];
     mOffsets[i] = desc.offsets()[i];
-    mDrmFormats[i] = desc.format()[i];
   }
 
   if (desc.fence().Length() > 0) {
@@ -957,7 +953,6 @@ bool DMABufSurfaceRGBA::Serialize(
     mozilla::layers::SurfaceDescriptor& aOutDescriptor) {
   AutoTArray<uint32_t, DMABUF_BUFFER_PLANES> width;
   AutoTArray<uint32_t, DMABUF_BUFFER_PLANES> height;
-  AutoTArray<uint32_t, DMABUF_BUFFER_PLANES> format;
   AutoTArray<NotNull<RefPtr<gfx::FileHandleWrapper>>, DMABUF_BUFFER_PLANES> fds;
   AutoTArray<uint32_t, DMABUF_BUFFER_PLANES> strides;
   AutoTArray<uint32_t, DMABUF_BUFFER_PLANES> offsets;
@@ -980,7 +975,6 @@ bool DMABufSurfaceRGBA::Serialize(
     fds.AppendElement(WrapNotNull(mDmabufFds[i]));
     strides.AppendElement(mStrides[i]);
     offsets.AppendElement(mOffsets[i]);
-    format.AppendElement(mDrmFormats[i]);
   }
 
   CloseFileDescriptors(lockFD);
@@ -995,8 +989,8 @@ bool DMABufSurfaceRGBA::Serialize(
 
   aOutDescriptor = SurfaceDescriptorDMABuf(
       mSurfaceType, mFOURCCFormat, modifiers, mGbmBufferFlags, fds, width,
-      height, width, height, format, strides, offsets, GetYUVColorSpace(),
-      mColorRange, mozilla::gfx::ColorSpace2::UNKNOWN,
+      height, width, height, nsTArray<uint32_t>(), strides, offsets,
+      GetYUVColorSpace(), mColorRange, mozilla::gfx::ColorSpace2::UNKNOWN,
       mozilla::gfx::TransferFunction::Default, fenceFDs, mUID, refCountFDs,
       /* semaphoreFd */ nullptr);
   return true;
@@ -1429,6 +1423,7 @@ DMABufSurfaceYUV::DMABufSurfaceYUV()
       mHeight(),
       mWidthAligned(),
       mHeightAligned(),
+      mDrmFormats(),
       mTexture() {
   for (int i = 0; i < DMABUF_BUFFER_PLANES; i++) {
     mEGLImage[i] = LOCAL_EGL_NO_IMAGE;
