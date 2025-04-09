@@ -212,7 +212,7 @@ with Files("aboutNetError*"):
 with Files("aboutNetworking*"):
     BUG_COMPONENT = ("Core", "Networking")
 
-with Files("aboutLogging*"):
+with Files("aboutLogging/*"):
     BUG_COMPONENT = ("Core", "XPCOM")
 
 with Files("aboutProfile*"):
