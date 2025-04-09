@@ -24,6 +24,10 @@
           "minumum": 0,
           "exclusiveMaximum": 10
         },
+        "dismissable": {
+          "description": "Should the infobar include an X dismiss button, defaults to true",
+          "type": "boolean"
+        },
         "buttons": {
           "type": "array",
           "items": {
