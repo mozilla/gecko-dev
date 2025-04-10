@@ -197,7 +197,8 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig,
   // Step 1. For each element of configuration["elements"] do:
   if (aConfig.mElements.WasPassed()) {
     for (const auto& element : aConfig.mElements.Value()) {
-      // Step 1.1. Call allow an element with element and sanitizer.
+      // Step 1.1. Call allow an element with element and sanitizer’s
+      // configuration.
       AllowElement(element);
     }
   }
@@ -205,7 +206,8 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig,
   // Step 2. For each element of configuration["removeElements"] do:
   if (aConfig.mRemoveElements.WasPassed()) {
     for (const auto& element : aConfig.mRemoveElements.Value()) {
-      // Step 2.1. Call remove an element with element and sanitizer.
+      // Step 2.1. Call remove an element with element and sanitizer’s
+      // configuration.
       RemoveElement(element);
     }
   }
@@ -215,7 +217,7 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig,
   if (aConfig.mReplaceWithChildrenElements.WasPassed()) {
     for (const auto& element : aConfig.mReplaceWithChildrenElements.Value()) {
       // Step 3.1. Call replace an element with its children with element and
-      // sanitizer.
+      // sanitizer’s configuration.
       ReplaceElementWithChildren(element);
     }
   }
@@ -223,7 +225,8 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig,
   // Step 4. For each attribute of configuration["attributes"] do:
   if (aConfig.mAttributes.WasPassed()) {
     for (const auto& attribute : aConfig.mAttributes.Value()) {
-      // Step 4.1. Call allow an attribute with attribute and sanitizer.
+      // Step 4.1. Call allow an attribute with attribute and sanitizer’s
+      // configuration.
       AllowAttribute(attribute);
     }
   }
@@ -231,7 +234,8 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig,
   // Step 5. For each attribute of configuration["removeAttributes"] do:
   if (aConfig.mRemoveAttributes.WasPassed()) {
     for (const auto& attribute : aConfig.mRemoveAttributes.Value()) {
-      // Step 5.1. Call remove an attribute with attribute and sanitizer.
+      // Step 5.1. Call remove an attribute with attribute and sanitizer’s
+      // configuration.
       RemoveAttribute(attribute);
     }
   }
@@ -269,36 +273,36 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig,
 
   // TODO: Better error messages. (e.g. show difference before and after?)
 
-  // size of configuration["elements"] equals size of this’s
+  // size of configuration["elements"] equals size of sanitizer’s
   // configuration["elements"].
   if (!isSameSize(aConfig.mElements, mElements)) {
     aRv.ThrowTypeError("'elements' changed");
     return;
   }
 
-  // size of configuration["removeElements"] equals size of this’s
+  // size of configuration["removeElements"] equals size of sanitizer’s
   // configuration["removeElements"].
   if (!isSameSize(aConfig.mRemoveElements, mRemoveElements)) {
     aRv.ThrowTypeError("'removeElements' changed");
     return;
   }
 
-  // size of configuration["replaceWithChildrenElements"] equals size of this’s
-  // configuration["replaceWithChildrenElements"].
+  // size of configuration["replaceWithChildrenElements"] equals size of
+  // sanitizer’s configuration["replaceWithChildrenElements"].
   if (!isSameSize(aConfig.mReplaceWithChildrenElements,
                   mReplaceWithChildrenElements)) {
     aRv.ThrowTypeError("'replaceWithChildrenElements' changed");
     return;
   }
 
-  // size of configuration["attributes"] equals size of this’s
+  // size of configuration["attributes"] equals size of sanitizer’s
   // configuration["attributes"].
   if (!isSameSize(aConfig.mAttributes, mAttributes)) {
     aRv.ThrowTypeError("'attributes' changed");
     return;
   }
 
-  // size of configuration["removeAttributes"] equals size of this’s
+  // size of configuration["removeAttributes"] equals size of sanitizer’s
   // configuration["removeAttributes"].
   if (!isSameSize(aConfig.mRemoveAttributes, mRemoveAttributes)) {
     aRv.ThrowTypeError("'removeAttributes' changed");
