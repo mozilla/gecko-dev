@@ -49,9 +49,6 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
 
   static Maybe<TimeDuration> GetFastestVsyncRate();
 
-  void EnableVSyncSource();
-  void DisableVSyncSource();
-
   // Regular VSync callback. Runs for visible windows only.
   // aTime = 0 means emulated frame and use current time.
   void VisibleWindowCallback(uint32_t aTime = 0);
@@ -69,6 +66,11 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
   bool IsVsyncEnabled() override;
   void Shutdown() override;
 
+  // Enable/Disable this particular VSync source. Called from widget code
+  // if we know that nsWindow become visible/hidden.
+  void EnableVSyncSource();
+  void DisableVSyncSource();
+
   // We addref/unref this during init so we should not
   // call it from constructor.
   void Init();
@@ -81,6 +83,8 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
   void* GetWindowForLogging() { return mWindow; };
 
   void SetHiddenWindowVSync();
+
+  void SetVSyncEventsLocked(const MutexAutoLock& aProofOfLock, bool aEnabled);
 
   Mutex mMutex;
 
