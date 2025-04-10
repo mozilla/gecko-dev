@@ -179,12 +179,13 @@ network:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1687364
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1902182
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1958158
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1687364
     notification_emails:
       - necko@mozilla.com
       - kershaw@mozilla.com
-    expires: 140
+    expires: 156
 
   cache_hit_time:
     type: timing_distribution
