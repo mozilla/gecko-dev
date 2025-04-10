@@ -46,16 +46,31 @@ add_task(async function () {
   // There is only one top level trace being displayed for `foo`  and one immediate children call to `bar`
   await waitFor(() => tracerTree.querySelectorAll(".trace-line").length == 2);
 
+  ok(
+    !findElementWithSelector(
+      dbg,
+      `#tracer-tab-panel .call-tree-container .search-exception`
+    ),
+    "No exception is shown after receiving the first traces"
+  );
+
   const argumentSearchInput = findElementWithSelector(
     dbg,
     `#tracer-tab-panel .call-tree-container input`
   );
+  is(
+    argumentSearchInput.disabled,
+    false,
+    "The input to search by values isn't disabled"
+  );
+
   async function checkSearchExpression(
     searchQuery,
     previewString,
     matchesCount
   ) {
     argumentSearchInput.value = "";
+    argumentSearchInput.focus();
     type(dbg, searchQuery);
 
     await waitFor(() => {
