@@ -295,11 +295,16 @@ menucaption {
 .menu-iconic-accel {
   margin-inline: 0.74em 0.35em;
   @media (-moz-platform: macos) {
-    margin-inline: 0 25px;
+    margin-inline: 25px 0;
   }
   @media (-moz-platform: linux) {
     margin-inline: 0 7px;
   }
+}
+
+/* On macOS, empty acceltext shouldn't take up any space */
+:is(menu, menuitem):not([acceltext]) > .menu-accel-container {
+  display: none;
 }
 
 .menu-iconic-icon {
@@ -322,6 +327,16 @@ menucaption {
   @media (-moz-platform: windows) {
     padding-top: 2px;
     margin-inline-end: 8px;
+  }
+  @media (-moz-platform: macos) {
+    margin-block: -2px;
+    margin-inline-end: 6px;
+
+    /* On macOS, empty icons shouldn't take up any space */
+    menuitem:not(.menuitem-iconic, [image]) > &,
+    menu:not(.menu-iconic) > & {
+      display: none;
+    }
   }
 }
 
