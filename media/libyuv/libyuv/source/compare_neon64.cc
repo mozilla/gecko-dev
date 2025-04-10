@@ -29,7 +29,7 @@ uint32_t HammingDistance_NEON(const uint8_t* src_a,
   asm volatile(
       "movi        v4.8h, #0                     \n"
 
-      "1:                                        \n"
+      "1:          \n"
       "ld1         {v0.16b, v1.16b}, [%0], #32   \n"
       "ld1         {v2.16b, v3.16b}, [%1], #32   \n"
       "eor         v0.16b, v0.16b, v2.16b        \n"
@@ -61,7 +61,7 @@ uint32_t SumSquareError_NEON(const uint8_t* src_a,
       "movi        v18.16b, #0                   \n"
       "movi        v19.16b, #0                   \n"
 
-      "1:                                        \n"
+      "1:          \n"
       "ld1         {v0.16b}, [%0], #16           \n"
       "ld1         {v1.16b}, [%1], #16           \n"
       "subs        %w2, %w2, #16                 \n"
@@ -122,7 +122,7 @@ uint32_t HashDjb2_NEON(const uint8_t* src, int count, uint32_t seed) {
       // count is always a multiple of 16.
       // maintain two accumulators, reduce and then final sum in scalar since
       // this has better performance on little cores.
-      "1:                                        \n"
+      "1:          \n"
       "ldr         q0, [%[src]], #16             \n"
       "subs        %w[count], %w[count], #16     \n"
       "tbl         v3.16b, {v0.16b}, v19.16b     \n"
@@ -162,7 +162,7 @@ uint32_t HammingDistance_NEON_DotProd(const uint8_t* src_a,
       "movi        v5.4s, #0                     \n"
       "movi        v6.16b, #1                    \n"
 
-      "1:                                        \n"
+      "1:          \n"
       "ldp         q0, q1, [%0], #32             \n"
       "ldp         q2, q3, [%1], #32             \n"
       "eor         v0.16b, v0.16b, v2.16b        \n"
@@ -194,7 +194,7 @@ uint32_t SumSquareError_NEON_DotProd(const uint8_t* src_a,
       "movi        v4.4s, #0                     \n"
       "movi        v5.4s, #0                     \n"
 
-      "1:                                        \n"
+      "1:          \n"
       "ldp         q0, q2, [%0], #32             \n"
       "ldp         q1, q3, [%1], #32             \n"
       "subs        %w2, %w2, #32                 \n"

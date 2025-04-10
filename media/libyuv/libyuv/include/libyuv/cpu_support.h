@@ -44,21 +44,24 @@ extern "C" {
 #endif  // __clang__
 
 // GCC >= 4.7.0 required for AVX2.
-#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__GNUC__) && !defined(LIBYUV_ENABLE_ROWWIN) && \
+    (defined(__x86_64__) || defined(__i386__))
 #if (__GNUC__ > 4) || (__GNUC__ == 4 && (__GNUC_MINOR__ >= 7))
 #define GCC_HAS_AVX2 1
 #endif  // GNUC >= 4.7
 #endif  // __GNUC__
 
 // clang >= 3.4.0 required for AVX2.
-#if defined(__clang__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__clang__) && !defined(LIBYUV_ENABLE_ROWWIN) && \
+    (defined(__x86_64__) || defined(__i386__))
 #if (__clang_major__ > 3) || (__clang_major__ == 3 && (__clang_minor__ >= 4))
 #define CLANG_HAS_AVX2 1
 #endif  // clang >= 3.4
 #endif  // __clang__
 
 // clang >= 6.0.0 required for AVX512.
-#if defined(__clang__) && (defined(__x86_64__) || defined(__i386__))
+#if defined(__clang__) && !defined(LIBYUV_ENABLE_ROWWIN) && \
+    (defined(__x86_64__) || defined(__i386__))
 // clang in xcode follows a different versioning scheme.
 // TODO(fbarchard): fix xcode 9 ios b/789.
 #if (__clang_major__ >= 7) && !defined(__APPLE__)
@@ -67,8 +70,9 @@ extern "C" {
 #endif  // __clang__
 
 // Visual C 2012 required for AVX2.
-#if defined(_M_IX86) && !defined(__clang__) && defined(_MSC_VER) && \
-    _MSC_VER >= 1700
+#if defined(_M_IX86) &&                                       \
+    (!defined(__clang__) || defined(LIBYUV_ENABLE_ROWWIN)) && \
+    defined(_MSC_VER) && _MSC_VER >= 1700
 #define VISUALC_HAS_AVX2 1
 #endif  // VisualStudio >= 2012
 

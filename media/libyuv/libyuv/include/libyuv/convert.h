@@ -924,6 +924,19 @@ int RAWToI420(const uint8_t* src_raw,
               int width,
               int height);
 
+// RGB big endian (rgb in memory) to I444.
+LIBYUV_API
+int RAWToI444(const uint8_t* src_raw,
+              int src_stride_raw,
+              uint8_t* dst_y,
+              int dst_stride_y,
+              uint8_t* dst_u,
+              int dst_stride_u,
+              uint8_t* dst_v,
+              int dst_stride_v,
+              int width,
+              int height);
+
 // RGB big endian (rgb in memory) to J420.
 LIBYUV_API
 int RAWToJ420(const uint8_t* src_raw,

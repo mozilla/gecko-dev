@@ -203,34 +203,51 @@ void NV21ToRGB24Row_SVE2(const uint8_t* src_y,
 // elements flipped to account for the interleaving nature of the widening
 // addition instructions.
 
+// RGB to BT601 coefficients
+// UB   0.875 coefficient = 112
+// UG -0.5781 coefficient = -74
+// UR -0.2969 coefficient = -38
+// VB -0.1406 coefficient = -18
+// VG -0.7344 coefficient = -94
+// VR   0.875 coefficient = 112
+
+// SVE constants are not negated
 static const int16_t kARGBToUVCoefficients[] = {
     // UB, -UR, -UG, 0, -VB, VR, -VG, 0
-    56, -19, -37, 0, -9, 56, -47, 0,
+    112, -38, -74, 0, -18, 112, -94, 0,
 };
 
 static const int16_t kRGBAToUVCoefficients[] = {
     // 0, -UG, UB, -UR, 0, -VG, -VB, VR
-    0, -37, 56, -19, 0, -47, -9, 56,
+    0, -74, 112, -38, 0, -94, -18, 112,
 };
 
 static const int16_t kBGRAToUVCoefficients[] = {
     // 0, -UG, -UR, UB, 0, -VG, VR, -VB
-    0, -37, -19, 56, 0, -47, 56, -9,
+    0, -74, -38, 112, 0, -94, 112, -18,
 };
 
 static const int16_t kABGRToUVCoefficients[] = {
     // -UR, UB, -UG, 0, VR, -VB, -VG, 0
-    -19, 56, -37, 0, 56, -9, -47, 0,
+    -38, 112, -74, 0, 112, -18, -94, 0,
 };
+
+// RGB to JPEG coefficients
+// UB  0.500    coefficient = 128
+// UG -0.33126  coefficient = -85
+// UR -0.16874  coefficient = -43
+// VB -0.08131  coefficient = -21
+// VG -0.41869  coefficient = -107
+// VR 0.500     coefficient = 128
 
 static const int16_t kARGBToUVJCoefficients[] = {
     // UB, -UR, -UG, 0, -VB, VR, -VG, 0
-    63, -21, -42, 0, -10, 63, -53, 0,
+    128, -43, -85, 0, -21, 128, -107, 0,
 };
 
 static const int16_t kABGRToUVJCoefficients[] = {
     // -UR, UB, -UG, 0, VR, -VB, -VG, 0
-    -21, 63, -42, 0, 63, -10, -53, 0,
+    -43, 128, -85, 0, 128, -21, -107, 0,
 };
 
 static void ARGBToUVMatrixRow_SVE2(const uint8_t* src_argb,
@@ -245,8 +262,7 @@ static void ARGBToUVMatrixRow_SVE2(const uint8_t* src_argb,
       "ptrue    p0.b                                \n"
       "ld1rd    {z24.d}, p0/z, [%[uvconstants]]     \n"
       "ld1rd    {z25.d}, p0/z, [%[uvconstants], #8] \n"
-      "mov      z26.b, #0x80                        \n"
-
+      "mov      z26.h, #0x8000                      \n"  // 128.0 (0x8000)
       "cntb     %[vl]                               \n"
       "subs     %w[width], %w[width], %w[vl]        \n"
       "b.lt     2f                                  \n"
@@ -285,10 +301,15 @@ static void ARGBToUVMatrixRow_SVE2(const uint8_t* src_argb,
 
       "subs     %w[width], %w[width], %w[vl]        \n"  // 4*VL per loop
 
-      "urhadd   z0.h, p0/m, z0.h, z1.h              \n"  // brgabrga
-      "urhadd   z2.h, p0/m, z2.h, z3.h              \n"  // brgabrga
-      "urhadd   z4.h, p0/m, z4.h, z5.h              \n"  // brgabrga
-      "urhadd   z6.h, p0/m, z6.h, z7.h              \n"  // brgabrga
+      "add      z0.h, p0/m, z0.h, z1.h              \n"  // brgabrga
+      "add      z2.h, p0/m, z2.h, z3.h              \n"  // brgabrga
+      "add      z4.h, p0/m, z4.h, z5.h              \n"  // brgabrga
+      "add      z6.h, p0/m, z6.h, z7.h              \n"  // brgabrga
+
+      "urshr    z0.h, p0/m, z0.h, #2                \n"  // brgabrga
+      "urshr    z2.h, p0/m, z2.h, #2                \n"  // brgabrga
+      "urshr    z4.h, p0/m, z4.h, #2                \n"  // brgabrga
+      "urshr    z6.h, p0/m, z6.h, #2                \n"  // brgabrga
 
       "movi     v16.8h, #0                          \n"
       "movi     v17.8h, #0                          \n"
@@ -350,7 +371,9 @@ static void ARGBToUVMatrixRow_SVE2(const uint8_t* src_argb,
       "trn1     z0.s, z16.s, z17.s                  \n"  // brgabgra
       "trn2     z1.s, z16.s, z17.s                  \n"  // brgabgra
 
-      "urhadd   z0.h, p0/m, z0.h, z1.h              \n"  // brgabrga
+      "add      z0.h, p0/m, z0.h, z1.h              \n"  // brgabrga
+
+      "urshr    z0.h, p0/m, z0.h, #2                \n"  // brgabrga
 
       "subs     %w[width], %w[width], %w[vl]        \n"  // VL per loop
 

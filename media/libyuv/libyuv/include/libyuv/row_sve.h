@@ -1765,8 +1765,8 @@ static inline void Convert8To8Row_SVE_SC(const uint8_t* src_y,
       "b.eq     99f                                     \n"
 
       // Calculate predicates for the final iteration to deal with the tail.
-      "whilelt     p0.b, wzr, %w2                       \n"
-      "whilelt     p1.b, %w[vl], %w2                    \n"  //
+      "whilelt     p0.b, wzr, %w[width]                 \n"
+      "whilelt     p1.b, %w[vl], %w[width]              \n"  //
       CONVERT8TO8_SVE
 
       "99:                                              \n"

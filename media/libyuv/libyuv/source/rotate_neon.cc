@@ -33,7 +33,7 @@ void TransposeWx8_NEON(const uint8_t* src,
       // at w-8 allow for this
       "sub         %[width], #8                  \n"
 
-      "1:                                        \n"
+      "1:          \n"
       "mov         %[temp], %[src]               \n"
       "vld1.8      {d0}, [%[temp]], %[src_stride] \n"
       "vld1.8      {d1}, [%[temp]], %[src_stride] \n"
@@ -101,7 +101,7 @@ void TransposeUVWx8_NEON(const uint8_t* src,
       // at w-8 allow for this
       "sub         %[width], #8                  \n"
 
-      "1:                                        \n"
+      "1:          \n"
       "mov         %[temp], %[src]               \n"
       "vld2.8      {d0,  d1},  [%[temp]], %[src_stride] \n"
       "vld2.8      {d2,  d3},  [%[temp]], %[src_stride] \n"
@@ -186,7 +186,7 @@ void Transpose4x4_32_NEON(const uint8_t* src,
   uint8_t* dst3 = dst2 + dst_stride;
   asm volatile(
       // Main loop transpose 4x4.  Read a column, write a row.
-      "1:                                        \n"
+      "1:          \n"
       "vld4.32     {d0[0], d2[0], d4[0], d6[0]}, [%0], %9 \n"
       "vld4.32     {d0[1], d2[1], d4[1], d6[1]}, [%1], %9 \n"
       "vld4.32     {d1[0], d3[0], d5[0], d7[0]}, [%2], %9 \n"
