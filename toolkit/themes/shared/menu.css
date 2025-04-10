@@ -385,6 +385,9 @@ menupopup[needsgutter] {
   @media (-moz-platform: windows) {
     > menu:not([icon], .menu-iconic),
     > menuitem:not([checked="true"], [icon], .menuitem-iconic) {
+      > .menu-iconic-left {
+        display: none;
+      }
       padding-inline-start: 36px;
     }
   }
