@@ -519,10 +519,11 @@ static bool SerializeJSONObject(JSContext* cx, HandleObject obj,
                  prop.propertyInfo().isDataDescriptor());
     }
 #endif  // DEBUG
-
-    RootedValue objValue(cx, ObjectValue(*obj));
-    if (!GetProperty(cx, obj, objValue, id, &outputValue)) {
-      return false;
+    {
+      RootedValue objValue(cx, ObjectValue(*obj));
+      if (!GetProperty(cx, obj, objValue, id, &outputValue)) {
+        return false;
+      }
     }
 
     if (!PreprocessValue(cx, obj, HandleId(id), &outputValue, scx)) {
