@@ -473,6 +473,7 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
     return DrawTargetType::HARDWARE_RASTER;
   }
   BackendType GetBackendType() const override { return BackendType::WEBGL; }
+  BackendType GetPathType() const override { return BackendType::SKIA; }
   IntSize GetSize() const override { return mSize; }
   const RefPtr<SharedContextWebgl>& GetSharedContext() const {
     return mSharedContext;

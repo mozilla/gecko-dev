@@ -1225,7 +1225,6 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   bool IsWriteOnly() const { return mWriteOnly; }
 
   bool mWriteOnly;
-  bool mClipsNeedConverting = false;
 
   uint8_t mFillTextCalls = 0;
   // Flags used by the fingerprinting detection heuristic
