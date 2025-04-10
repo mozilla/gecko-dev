@@ -5,13 +5,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsGlobalWindowInner.h"
+#include "nsDocShell.h"
 
 #include "mozilla/HoldDropJSObjects.h"
+#include "mozilla/PresShell.h"
 
 #include "mozilla/dom/AbortController.h"
 #include "mozilla/dom/NavigateEvent.h"
 #include "mozilla/dom/NavigateEventBinding.h"
 #include "mozilla/dom/Navigation.h"
+#include "mozilla/dom/SessionHistoryEntry.h"
 
 namespace mozilla::dom {
 
@@ -112,8 +115,21 @@ void NavigateEvent::Intercept(const NavigationInterceptOptions& aOptions,
   // This will be implemented in Bug 1897439.
 }
 
+// https://html.spec.whatwg.org/#dom-navigateevent-scroll
 void NavigateEvent::Scroll(ErrorResult& aRv) {
-  // This will be implemented in Bug 1897439.
+  // Step 1
+  if (PerformSharedChecks(aRv); aRv.Failed()) {
+    return;
+  }
+
+  // Step 2
+  if (mInterceptionState != InterceptionState::Committed) {
+    aRv.ThrowInvalidStateError("NavigateEvent was not committed");
+    return;
+  }
+
+  // Step 3
+  ProcessScrollBehavior();
 }
 
 NavigateEvent::NavigateEvent(EventTarget* aOwner)
@@ -192,6 +208,27 @@ void NavigateEvent::Finish(bool aDidFulfill) {
 
   // Step 5
   mInterceptionState = InterceptionState::Finished;
+}
+
+// https://html.spec.whatwg.org/#navigateevent-perform-shared-checks
+void NavigateEvent::PerformSharedChecks(ErrorResult& aRv) {
+  // Step 1
+  if (RefPtr document = GetDocument();
+      !document || !document->IsFullyActive()) {
+    aRv.ThrowInvalidStateError("Document isn't fully active");
+    return;
+  }
+
+  // Step 2
+  if (!IsTrusted()) {
+    aRv.ThrowSecurityError("Event is untrusted");
+    return;
+  }
+
+  // Step 3
+  if (DefaultPrevented()) {
+    aRv.ThrowInvalidStateError("Event was canceled");
+  }
 }
 
 // https://html.spec.whatwg.org/#potentially-reset-the-focus
@@ -282,6 +319,31 @@ void NavigateEvent::PotentiallyProcessScrollBehavior() {
   ProcessScrollBehavior();
 }
 
+// Here we want to scroll to the beginning of the document, as described in
+// https://drafts.csswg.org/cssom-view/#scroll-to-the-beginning-of-the-document
+MOZ_CAN_RUN_SCRIPT
+static void ScrollToBeginningOfDocument(Document& aDocument) {
+  RefPtr<PresShell> presShell = aDocument.GetPresShell();
+  if (!presShell) {
+    return;
+  }
+
+  RefPtr<Element> rootElement = aDocument.GetRootElement();
+  ScrollAxis vertical(WhereToScroll::Start, WhenToScroll::Always);
+  presShell->ScrollContentIntoView(rootElement, vertical, ScrollAxis(),
+                                   ScrollFlags::TriggeredByScript);
+}
+
+// https://html.spec.whatwg.org/#restore-scroll-position-data
+static void RestoreScrollPositionData(Document* aDocument) {
+  if (!aDocument || aDocument->HasBeenScrolled()) {
+    return;
+  }
+
+  // This will be implemented in Bug 1955947. Make sure to move this to
+  // `SessionHistoryEntry`/`SessionHistoryInfo`.
+}
+
 // https://html.spec.whatwg.org/#process-scroll-behavior
 void NavigateEvent::ProcessScrollBehavior() {
   // Step 1
@@ -290,24 +352,31 @@ void NavigateEvent::ProcessScrollBehavior() {
   // Step 2
   mInterceptionState = InterceptionState::Scrolled;
 
-  switch (mNavigationType) {
-      // Step 3
-    case NavigationType::Traverse:
-    case NavigationType::Reload:
-      // Restore scroll position data given event's relevant global object's
-      // navigable's active session history entry.
-
-      // The remaining steps will be implemented in Bug 1948249.
-      return;
-    default:
-      // Step 4
-      break;
+  // Step 3
+  if (mNavigationType == NavigationType::Traverse ||
+      mNavigationType == NavigationType::Reload) {
+    RefPtr<Document> document = GetDocument();
+    RestoreScrollPositionData(document);
+    return;
   }
 
-  // The remaining steps will be implemented in Bug 1948249.
-
-  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(GetParentObject());
   // Step 4.1
-  /* Document* document = */ Unused << window->GetExtantDoc();
+  RefPtr<Document> document = GetDocument();
+  // If there is no document there's not much to do.
+  if (!document) {
+    return;
+  }
+
+  // Step 4.2
+  nsAutoCString ref;
+  if (nsIURI* uri = document->GetDocumentURI();
+      NS_SUCCEEDED(uri->GetRef(ref)) &&
+      !nsContentUtils::GetTargetElement(document, NS_ConvertUTF8toUTF16(ref))) {
+    ScrollToBeginningOfDocument(*document);
+    return;
+  }
+
+  // Step 4.3
+  document->ScrollToRef();
 }
 }  // namespace mozilla::dom

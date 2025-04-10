@@ -106,6 +106,7 @@
 #include "mozilla/SMILAnimationController.h"
 #include "mozilla/SMILTimeContainer.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/Components.h"
 #include "mozilla/SVGUtils.h"
 #include "mozilla/ServoStyleConsts.h"
@@ -13269,6 +13270,18 @@ void Document::SetSuppressedEventListener(EventListener* aListener) {
 bool Document::IsActive() const {
   return mDocumentContainer && !mRemovedFromDocShell && GetBrowsingContext() &&
          !GetBrowsingContext()->IsInBFCache();
+}
+
+bool Document::HasBeenScrolled() const {
+  nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(GetInnerWindow());
+  if (!window) {
+    return false;
+  }
+  if (ScrollContainerFrame* frame = window->GetScrollContainerFrame()) {
+    return frame->HasBeenScrolled();
+  }
+
+  return false;
 }
 
 nsISupports* Document::GetCurrentContentSink() {

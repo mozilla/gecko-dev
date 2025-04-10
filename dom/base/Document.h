@@ -2696,6 +2696,23 @@ class Document : public nsINode,
   }
 
   /**
+   * Return true if this document is fully active as described by spec.
+   * https://html.spec.whatwg.org/multipage/document-sequences.html#fully-active
+   */
+  bool IsFullyActive() const {
+    nsPIDOMWindowInner* inner = GetInnerWindow();
+    return inner && inner->IsFullyActive();
+  }
+
+  /*
+   * Return if this document ever has been scrolled.
+   * We'd like this to be
+   * https://html.spec.whatwg.org/#has-been-scrolled-by-the-user, but better to
+   * check for any scroll than no scroll.
+   */
+  bool HasBeenScrolled() const;
+
+  /**
    * Returns whether this document should perform image loads.
    */
   bool ShouldLoadImages() const {
