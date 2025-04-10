@@ -291,7 +291,7 @@ add_task(async function resultMenu_not_relevant() {
     },
   });
 
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
 });
 
 // Tests the "Not interested" result menu dismissal command.

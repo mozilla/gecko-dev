@@ -154,8 +154,6 @@ Preferences.addAll([
   { id: "browser.urlbar.suggest.quicksuggest.nonsponsored", type: "bool" },
   { id: "browser.urlbar.suggest.quicksuggest.sponsored", type: "bool" },
   { id: "browser.urlbar.quicksuggest.dataCollection.enabled", type: "bool" },
-  { id: PREF_URLBAR_QUICKSUGGEST_BLOCKLIST, type: "string" },
-  { id: PREF_URLBAR_WEATHER_USER_ENABLED, type: "bool" },
 
   // History
   { id: "places.history.enabled", type: "bool" },

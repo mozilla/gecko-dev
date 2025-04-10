@@ -81,6 +81,8 @@ export class BlockedSuggestions extends SuggestFeature {
         this.#updatingDigests = false;
       }
       this.logger.debug("All blocked suggestions", json);
+
+      Services.obs.notifyObservers(null, "quicksuggest-dismissals-changed");
     });
   }
 
@@ -102,6 +104,16 @@ export class BlockedSuggestions extends SuggestFeature {
   }
 
   /**
+   * Returns true if no URLs are blocked.
+   *
+   * @returns {boolean}
+   *   Whether no URLs are blocked.
+   */
+  async isEmpty() {
+    return this.#taskQueue.queue(() => this.#digests.size == 0);
+  }
+
+  /**
    * Unblocks all URLs.
    */
   async clear() {
@@ -109,6 +121,8 @@ export class BlockedSuggestions extends SuggestFeature {
       this.logger.info("Clearing all blocked suggestions");
       this.#digests.clear();
       lazy.UrlbarPrefs.clear("quicksuggest.blockedDigests");
+
+      Services.obs.notifyObservers(null, "quicksuggest-dismissals-changed");
     });
   }
 

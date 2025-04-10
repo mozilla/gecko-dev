@@ -92,6 +92,10 @@ export class FakespotSuggestions extends SuggestProvider {
     ];
   }
 
+  get primaryUserControlledPreference() {
+    return "suggest.fakespot";
+  }
+
   get rustSuggestionType() {
     return "Fakespot";
   }

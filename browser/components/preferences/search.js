@@ -14,10 +14,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UserSearchEngine: "resource://gre/modules/UserSearchEngine.sys.mjs",
 });
 
-const PREF_URLBAR_QUICKSUGGEST_BLOCKLIST =
-  "browser.urlbar.quicksuggest.blockedDigests";
-const PREF_URLBAR_WEATHER_USER_ENABLED = "browser.urlbar.suggest.weather";
-
 Preferences.addAll([
   { id: "browser.search.suggest.enabled", type: "bool" },
   { id: "browser.urlbar.suggest.searches", type: "bool" },
@@ -74,9 +70,11 @@ var gSearchPane = {
 
     Services.obs.addObserver(this, "browser-search-engine-modified");
     Services.obs.addObserver(this, "intl:app-locales-changed");
+    Services.obs.addObserver(this, "quicksuggest-dismissals-changed");
     window.addEventListener("unload", () => {
       Services.obs.removeObserver(this, "browser-search-engine-modified");
       Services.obs.removeObserver(this, "intl:app-locales-changed");
+      Services.obs.removeObserver(this, "quicksuggest-dismissals-changed");
     });
 
     let suggestsPref = Preferences.get("browser.search.suggest.enabled");
@@ -365,14 +363,8 @@ var gSearchPane = {
         QuickSuggest.SETTINGS_UI.FULL;
 
       this._updateDismissedSuggestionsStatus();
-      Preferences.get(PREF_URLBAR_QUICKSUGGEST_BLOCKLIST).on("change", () =>
-        this._updateDismissedSuggestionsStatus()
-      );
-      Preferences.get(PREF_URLBAR_WEATHER_USER_ENABLED).on("change", () =>
-        this._updateDismissedSuggestionsStatus()
-      );
       setEventListener("restoreDismissedSuggestions", "command", () =>
-        this.restoreDismissedSuggestions()
+        QuickSuggest.clearDismissedSuggestions()
       );
 
       container.hidden = false;
@@ -414,21 +406,9 @@ var gSearchPane = {
    * Enables/disables the "Restore" button for dismissed Firefox Suggest
    * suggestions.
    */
-  _updateDismissedSuggestionsStatus() {
+  async _updateDismissedSuggestionsStatus() {
     document.getElementById("restoreDismissedSuggestions").disabled =
-      !Services.prefs.prefHasUserValue(PREF_URLBAR_QUICKSUGGEST_BLOCKLIST) &&
-      !(
-        Services.prefs.prefHasUserValue(PREF_URLBAR_WEATHER_USER_ENABLED) &&
-        !Services.prefs.getBoolPref(PREF_URLBAR_WEATHER_USER_ENABLED)
-      );
-  },
-
-  /**
-   * Restores Firefox Suggest suggestions dismissed by the user.
-   */
-  restoreDismissedSuggestions() {
-    Services.prefs.clearUserPref(PREF_URLBAR_QUICKSUGGEST_BLOCKLIST);
-    Services.prefs.clearUserPref(PREF_URLBAR_WEATHER_USER_ENABLED);
+      !(await QuickSuggest.canClearDismissedSuggestions());
   },
 
   handleEvent(aEvent) {
@@ -481,7 +461,11 @@ var gSearchPane = {
           default:
             this._engineStore.browserSearchEngineModified(engine, data);
         }
+        break;
       }
+      case "quicksuggest-dismissals-changed":
+        this._updateDismissedSuggestionsStatus();
+        break;
     }
   },
 

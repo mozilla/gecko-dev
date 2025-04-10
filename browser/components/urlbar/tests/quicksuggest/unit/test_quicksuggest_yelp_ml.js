@@ -529,7 +529,7 @@ add_task(async function notRelevant() {
   });
 
   info("Clearing blocked suggestions");
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
 
   info("Doing search for unblocked suggestion");
   gMakeSuggestionsStub.returns(burgersIntent);

@@ -22,6 +22,12 @@ export class OfflineWikipediaSuggestions extends SuggestProvider {
     return ["suggest.quicksuggest.nonsponsored"];
   }
 
+  get primaryUserControlledPreference() {
+    // Wikipedia suggestions can't be toggled separately from nonsponsored
+    // suggestions.
+    return null;
+  }
+
   get rustSuggestionType() {
     return "Wikipedia";
   }

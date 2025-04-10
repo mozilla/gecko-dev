@@ -32,6 +32,10 @@ export class PocketSuggestions extends SuggestProvider {
     ];
   }
 
+  get primaryUserControlledPreference() {
+    return "suggest.pocket";
+  }
+
   get merinoProvider() {
     return "pocket";
   }

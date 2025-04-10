@@ -122,7 +122,7 @@ add_task(async function resultMenu_notRelevant() {
   );
   Assert.ok(exists);
 
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
 });
 
 // Tests the "Manage" result menu.

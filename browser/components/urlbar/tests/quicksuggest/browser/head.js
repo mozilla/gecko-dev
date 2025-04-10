@@ -443,7 +443,7 @@ async function doCommandTest({
   );
 
   if (command == "dismiss") {
-    await QuickSuggest.blockedSuggestions.clear();
+    await QuickSuggest.clearDismissedSuggestions();
   }
   await PlacesUtils.history.clear();
 

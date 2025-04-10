@@ -251,6 +251,17 @@ async function doDismissOneTest({
   queriesForDismissals,
   queriesForOthers,
 }) {
+  await QuickSuggest.clearDismissedSuggestions();
+  await QuickSuggestTestUtils.forceSync();
+  Assert.ok(
+    !(await QuickSuggest.canClearDismissedSuggestions()),
+    "Sanity check: canClearDismissedSuggestions should return false initially"
+  );
+
+  let changedPromise = TestUtils.topicObserved(
+    "quicksuggest-dismissals-changed"
+  );
+
   triggerCommand({
     result,
     command,
@@ -261,6 +272,13 @@ async function doDismissOneTest({
   });
   await QuickSuggest.blockedSuggestions._test_readyPromise;
 
+  info("Awaiting dismissals-changed promise");
+  await changedPromise;
+
+  Assert.ok(
+    await QuickSuggest.canClearDismissedSuggestions(),
+    "canClearDismissedSuggestions should return true after triggering command"
+  );
   Assert.ok(
     await QuickSuggest.blockedSuggestions.isResultBlocked(result),
     "The result's URL should be dismissed"
@@ -290,8 +308,22 @@ async function doDismissOneTest({
     });
   }
 
+  let clearedPromise = TestUtils.topicObserved(
+    "quicksuggest-dismissals-cleared"
+  );
+
   info("Clearing dismissals");
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
+
+  // It's not necessary to await this -- awaiting `clearDismissedSuggestions()`
+  // is sufficient -- but we do it to make sure the notification is sent.
+  info("Awaiting dismissals-cleared promise");
+  await clearedPromise;
+
+  Assert.ok(
+    !(await QuickSuggest.canClearDismissedSuggestions()),
+    "canClearDismissedSuggestions should return false after clearing dismissals"
+  );
 
   for (let { query, expectedResults = [result] } of queriesForDismissals) {
     info("Doing search after clearing dismissals: " + JSON.stringify(query));
@@ -331,7 +363,16 @@ async function doDismissOneTest({
  *   used.
  */
 async function doDismissAllTest({ feature, result, command, pref, queries }) {
-  UrlbarPrefs.clear(pref);
+  await QuickSuggest.clearDismissedSuggestions();
+  await QuickSuggestTestUtils.forceSync();
+  Assert.ok(
+    !(await QuickSuggest.canClearDismissedSuggestions()),
+    "Sanity check: canClearDismissedSuggestions should return false initially"
+  );
+
+  let changedPromise = TestUtils.topicObserved(
+    "quicksuggest-dismissals-changed"
+  );
 
   triggerCommand({
     result,
@@ -342,6 +383,13 @@ async function doDismissAllTest({ feature, result, command, pref, queries }) {
     },
   });
 
+  info("Awaiting dismissals-changed promise");
+  await changedPromise;
+
+  Assert.ok(
+    await QuickSuggest.canClearDismissedSuggestions(),
+    "canClearDismissedSuggestions should return true after triggering command"
+  );
   Assert.ok(
     !UrlbarPrefs.get(pref),
     "Pref should be false after triggering command: " + pref
@@ -358,8 +406,22 @@ async function doDismissAllTest({ feature, result, command, pref, queries }) {
     });
   }
 
-  UrlbarPrefs.clear(pref);
+  let clearedPromise = TestUtils.topicObserved(
+    "quicksuggest-dismissals-cleared"
+  );
 
+  info("Clearing dismissals");
+  await QuickSuggest.clearDismissedSuggestions();
+
+  // It's not necessary to await this -- awaiting `clearDismissedSuggestions()`
+  // is sufficient -- but we do it to make sure the notification is sent.
+  info("Awaiting dismissals-cleared promise");
+  await clearedPromise;
+
+  Assert.ok(
+    !(await QuickSuggest.canClearDismissedSuggestions()),
+    "canClearDismissedSuggestions should return false after clearing dismissals"
+  );
   Assert.ok(
     UrlbarPrefs.get(pref),
     "Pref should be true after clearing it: " + pref

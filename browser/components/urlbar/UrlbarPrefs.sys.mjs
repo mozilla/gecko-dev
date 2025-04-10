@@ -843,6 +843,19 @@ class Preferences {
   }
 
   /**
+   * Returns whether the given preference has a value on the user branch.
+   *
+   * @param {string} pref
+   *   The name of the preference.
+   * @returns {boolean}
+   *   Whether the pref has a value on the user branch.
+   */
+  hasUserValue(pref) {
+    let { hasUserValue } = this._getPrefDescriptor(pref);
+    return hasUserValue(pref);
+  }
+
+  /**
    * Builds the standard result groups.  See makeResultGroups.
    *
    * @param {object} options
@@ -1111,6 +1124,7 @@ class Preferences {
       // Float prefs are stored as Char.
       set: branch[`set${type == "Float" ? "Char" : type}Pref`],
       clear: branch.clearUserPref,
+      hasUserValue: branch.prefHasUserValue,
     };
   }
 
@@ -1138,6 +1152,11 @@ class Preferences {
       },
       clear() {
         throw new Error(`'${name}' is a Nimbus value and cannot be cleared`);
+      },
+      hasUserValue() {
+        throw new Error(
+          `'${name}' is a Nimbus value and does not have a user value`
+        );
       },
     };
   }

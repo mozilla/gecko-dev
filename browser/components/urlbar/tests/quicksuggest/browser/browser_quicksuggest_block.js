@@ -48,7 +48,7 @@ add_setup(async function () {
   await UrlbarTestUtils.formHistory.clear();
 
   await QuickSuggest.blockedSuggestions._test_readyPromise;
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
 
   let isAmp = suggestion => suggestion.iab_category == "22 - Shopping";
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
@@ -139,7 +139,7 @@ async function doOneBasicBlockTest({ result, block }) {
   );
 
   await UrlbarTestUtils.promisePopupClose(window);
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
 }
 
 // Blocks multiple suggestions one after the other.
@@ -183,5 +183,5 @@ add_task(async function blockMultiple() {
   }
 
   await UrlbarTestUtils.promisePopupClose(window);
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
 });

@@ -43,6 +43,30 @@ export class SuggestFeature {
   }
 
   /**
+   * @returns {string | null}
+   *   If there is a feature-specific pref that is controlled by the user and
+   *   toggles the feature on and off, the subclass should override this getter
+   *   and return its name. It should also be included in `enablingPreferences`.
+   *   The name should be recognized by `UrlbarPrefs`, i.e., it should be
+   *   relative to the `browser.urlbar.` branch.
+   *
+   *   If the feature is a `SuggestProvider`, typically this should be the pref
+   *   that's named `suggest.mySuggestionType` and set to `false` when the user
+   *   dismisses the entire suggestion type, i.e., the relevant
+   *   `browser.urlbar.suggest.` pref.
+   *
+   *   The pref should be controlled by the user, so it should never be the
+   *   feature's feature-gate pref.
+   *
+   *   The pref should control this feature specifically, so it should never be
+   *   `suggest.quicksuggest.sponsored` or `suggest.quicksuggest.nonsponsored`.
+   *   If the feature has no such pref, this getter should return null.
+   */
+  get primaryUserControlledPreference() {
+    return null;
+  }
+
+  /**
    * @returns {boolean}
    *   If the feature is conditioned on any predicate other than the prefs and
    *   Nimbus variables in `enablingPreferences`, the subclass should override

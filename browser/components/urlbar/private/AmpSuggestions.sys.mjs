@@ -40,6 +40,11 @@ export class AmpSuggestions extends SuggestProvider {
     return ["suggest.quicksuggest.sponsored"];
   }
 
+  get primaryUserControlledPreference() {
+    // AMP suggestions can't be toggled separately from sponsored suggestions.
+    return null;
+  }
+
   get merinoProvider() {
     return "adm";
   }

@@ -357,18 +357,99 @@ class _QuickSuggest {
   }
 
   /**
+   * Clears all dismissed suggestions, including individually dismissed
+   * suggestions and dismissed suggestion types.
+   */
+  async clearDismissedSuggestions() {
+    // Clear the user value of each feature's primary user-controlled pref if
+    // its value is `false`.
+    for (let [name, feature] of this.#featuresByName) {
+      let pref = feature.primaryUserControlledPreference;
+      // This should never throw, but try-catch to avoid breaking the entire
+      // loop if `UrlbarPrefs` doesn't recognize a pref in one iteration.
+      try {
+        if (pref && !lazy.UrlbarPrefs.get(pref)) {
+          lazy.UrlbarPrefs.clear(pref);
+        }
+      } catch (error) {
+        this.logger.error("Error clearing primaryEnablingPreference", {
+          "feature.name": name,
+          pref,
+          error,
+        });
+      }
+    }
+
+    // Clear individually dismissed suggestions.
+    await this.blockedSuggestions?.clear();
+
+    Services.obs.notifyObservers(null, "quicksuggest-dismissals-cleared");
+  }
+
+  /**
+   * Whether there are any dismissed suggestions that can be cleared, including
+   * individually dismissed suggestions and dismissed suggestion types.
+   *
+   * @returns {boolean}
+   *   Whether dismissals can be cleared.
+   */
+  async canClearDismissedSuggestions() {
+    // Return true if any feature's primary user-controlled pref is `false` on
+    // the user branch.
+    for (let [name, feature] of this.#featuresByName) {
+      let pref = feature.primaryUserControlledPreference;
+      // This should never throw, but try-catch to avoid breaking the entire
+      // loop if `UrlbarPrefs` doesn't recognize a pref in one iteration.
+      try {
+        if (
+          pref &&
+          !lazy.UrlbarPrefs.get(pref) &&
+          lazy.UrlbarPrefs.hasUserValue(pref)
+        ) {
+          return true;
+        }
+      } catch (error) {
+        this.logger.error("Error accessing primaryUserControlledPreference", {
+          "feature.name": name,
+          pref,
+          error,
+        });
+      }
+    }
+
+    // Return true if there are any individually dismissed suggestions.
+    let { blockedSuggestions } = this;
+    if (blockedSuggestions && !(await blockedSuggestions.isEmpty())) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Called when a urlbar pref changes.
    *
    * @param {string} pref
    *   The name of the pref relative to `browser.urlbar`.
    */
   onPrefChanged(pref) {
-    // If any feature's enabling preference changed, update it now.
+    // If any feature's enabling preferences changed, update it now.
     let features = this.#featuresByEnablingPrefs.get(pref);
-    if (features) {
-      for (let f of features) {
-        f.update();
+    if (!features) {
+      return;
+    }
+
+    let isPrimaryUserControlledPref = false;
+
+    for (let f of features) {
+      f.update();
+      if (pref == f.primaryUserControlledPreference) {
+        isPrimaryUserControlledPref = true;
       }
+    }
+
+    if (isPrimaryUserControlledPref) {
+      Services.obs.notifyObservers(null, "quicksuggest-dismissals-changed");
     }
   }
 

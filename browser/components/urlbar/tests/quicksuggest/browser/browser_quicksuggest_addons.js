@@ -392,7 +392,7 @@ async function doDismissTest(command, allDismissed) {
   await UrlbarTestUtils.promisePopupClose(window);
 
   UrlbarPrefs.clear("suggest.addons");
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
 }
 
 function makeExpectedUrl(originalUrl) {

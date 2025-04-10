@@ -361,7 +361,7 @@ add_task(async function block() {
     matches: [EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT],
   });
 
-  await QuickSuggest.blockedSuggestions.clear();
+  await QuickSuggest.clearDismissedSuggestions();
   MerinoTestUtils.server.reset();
   merinoClient().resetSession();
 });

@@ -20,6 +20,10 @@ export class ExposureSuggestions extends SuggestProvider {
     return ["quicksuggest.exposureSuggestionTypes"];
   }
 
+  get primaryUserControlledPreference() {
+    return null;
+  }
+
   get additionalEnablingPredicate() {
     return !!this.exposureSuggestionTypes.size;
   }
