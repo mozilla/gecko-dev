@@ -97,7 +97,7 @@ class NavigateEvent final : public Event {
 
   nsTArray<RefPtr<NavigationInterceptHandler>>& NavigationHandlerList();
 
-  AbortController* AbortController() const;
+  dom::AbortController* AbortController() const;
 
   bool HasBeenDispatched() const;
 
