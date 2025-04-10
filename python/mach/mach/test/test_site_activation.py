@@ -4,6 +4,7 @@
 
 import ast
 import functools
+import importlib.metadata
 import os
 import subprocess
 import sys
@@ -14,7 +15,6 @@ from typing import List
 
 import buildconfig
 import mozunit
-import pkg_resources
 import pytest
 
 from mach.site import MozSiteMetadata, PythonVirtualenv, activate_virtualenv
@@ -49,16 +49,16 @@ class ActivationContext:
         return PythonVirtualenv(str(base_path / name))
 
 
-def test_new_package_appears_in_pkg_resources():
+def test_new_package_metadta_is_found():
     try:
         # "carrot" was chosen as the package to use because:
         # * It has to be a package that doesn't exist in-scope at the start (so,
         #   all vendored modules included in the test virtualenv aren't usage).
         # * It must be on our internal PyPI mirror.
         # Of the options, "carrot" is a small install that fits these requirements.
-        pkg_resources.get_distribution("carrot")
+        importlib.metadata.distribution("carrot")
         assert False, "Expected to not find 'carrot' as the initial state of the test"
-    except pkg_resources.DistributionNotFound:
+    except importlib.metadata.PackageNotFoundError:
         pass
 
     with tempfile.TemporaryDirectory() as venv_dir:
@@ -80,7 +80,7 @@ def test_new_package_appears_in_pkg_resources():
             with metadata.update_current_site(venv.python_path):
                 activate_virtualenv(venv)
 
-            assert pkg_resources.get_distribution("carrot").version == "0.10.7"
+            assert importlib.metadata.distribution("carrot").version == "0.10.7"
         finally:
             MozSiteMetadata.current = initial_metadata
 

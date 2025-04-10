@@ -12,46 +12,7 @@ import sys
 
 import mozinfo
 
-__all__ = ["findInPath", "get_metadata_from_egg"]
-
-
-# python package method metadata by introspection
-try:
-    import pkg_resources
-
-    def get_metadata_from_egg(module):
-        ret = {}
-        try:
-            dist = pkg_resources.get_distribution(module)
-        except pkg_resources.DistributionNotFound:
-            return {}
-        if dist.has_metadata("PKG-INFO"):
-            key = None
-            value = ""
-            for line in dist.get_metadata("PKG-INFO").splitlines():
-                # see http://www.python.org/dev/peps/pep-0314/
-                if key == "Description":
-                    # descriptions can be long
-                    if not line or line[0].isspace():
-                        value += "\n" + line
-                        continue
-                    else:
-                        key = key.strip()
-                        value = value.strip()
-                        ret[key] = value
-
-                key, value = line.split(":", 1)
-                key = key.strip()
-                value = value.strip()
-                ret[key] = value
-        if dist.has_metadata("requires.txt"):
-            ret["Dependencies"] = "\n" + dist.get_metadata("requires.txt")
-        return ret
-
-except ImportError:
-    # package resources not avaialable
-    def get_metadata_from_egg(module):
-        return {}
+__all__ = ["findInPath"]
 
 
 def findInPath(fileName, path=os.environ["PATH"]):

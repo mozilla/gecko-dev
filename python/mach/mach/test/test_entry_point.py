@@ -1,6 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+import importlib.metadata  # noqa: F401
 import sys
 import types
 from pathlib import Path
@@ -13,7 +14,7 @@ from mach.test.conftest import TestBase
 
 
 class Entry:
-    """Stub replacement for pkg_resources.EntryPoint"""
+    """Stub replacement for importlib.metadata.EntryPoint"""
 
     def __init__(self, providers):
         self.providers = providers
@@ -26,14 +27,14 @@ class Entry:
 
 
 class TestEntryPoints(TestBase):
-    """Test integrating with setuptools entry points"""
+    """Test integrating with entry points"""
 
     provider_dir = Path(__file__).parent.resolve() / "providers"
 
     def _run_help(self):
         return self._run_mach(["help"], entry_point="mach.providers")
 
-    @patch("pkg_resources.iter_entry_points")
+    @patch("importlib.metadata.entry_points")
     def test_load_entry_point_from_directory(self, mock):
         # Ensure parent module is present otherwise we'll (likely) get
         # an error due to unknown parent.
@@ -46,7 +47,7 @@ class TestEntryPoints(TestBase):
         with self.assertRaises(MachError):
             self._run_help()
 
-    @patch("pkg_resources.iter_entry_points")
+    @patch("importlib.metadata.entry_points")
     def test_load_entry_point_from_file(self, mock):
         mock.return_value = [Entry([self.provider_dir / "basic.py"])]
 
