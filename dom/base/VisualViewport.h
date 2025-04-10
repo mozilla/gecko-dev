@@ -41,23 +41,10 @@ class VisualViewport final : public mozilla::DOMEventTargetHelper {
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
 
   void PostResizeEvent();
+  MOZ_CAN_RUN_SCRIPT void FireResizeEvent();
+
   void PostScrollEvent(const nsPoint& aPrevVisualOffset,
                        const nsPoint& aPrevLayoutOffset);
-
-  // These two events are modelled after the ScrollEvent class in
-  // ScrollContainerFrame.h.
-  class VisualViewportResizeEvent : public Runnable {
-   public:
-    NS_DECL_NSIRUNNABLE
-    VisualViewportResizeEvent(VisualViewport* aViewport,
-                              nsPresContext* aPresContext);
-    bool HasPresContext(nsPresContext* aContext) const;
-    void Revoke();
-
-   private:
-    VisualViewport* mViewport;
-    WeakPtr<nsPresContext> mPresContext;
-  };
 
   class VisualViewportScrollEvent : public Runnable {
    public:
@@ -97,10 +84,8 @@ class VisualViewport final : public mozilla::DOMEventTargetHelper {
   PresShell* GetPresShell() const;
   nsPresContext* GetPresContext() const;
 
-  MOZ_CAN_RUN_SCRIPT void FireResizeEvent();
   MOZ_CAN_RUN_SCRIPT void FireScrollEvent();
 
-  RefPtr<VisualViewportResizeEvent> mResizeEvent;
   RefPtr<VisualViewportScrollEvent> mScrollEvent;
 };
 

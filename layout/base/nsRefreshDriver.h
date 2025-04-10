@@ -52,8 +52,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
                               public nsARefreshObserver {
   using Document = mozilla::dom::Document;
   using TransactionId = mozilla::layers::TransactionId;
-  using VVPResizeEvent =
-      mozilla::dom::VisualViewport::VisualViewportResizeEvent;
   using VVPScrollEvent =
       mozilla::dom::VisualViewport::VisualViewportScrollEvent;
   using LogPresShellObserver = mozilla::LogPresShellObserver;
@@ -106,13 +104,9 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   bool RemoveRefreshObserver(nsARefreshObserver* aObserver,
                              mozilla::FlushType aFlushType);
 
-  void PostVisualViewportResizeEvent(VVPResizeEvent* aResizeEvent);
-  void DispatchVisualViewportResizeEvents();
 
   void PostScrollEvent(mozilla::Runnable* aScrollEvent, bool aDelayed = false);
   void DispatchScrollEvents();
-
-  MOZ_CAN_RUN_SCRIPT void DispatchResizeEvents();
   MOZ_CAN_RUN_SCRIPT void FlushLayoutOnPendingDocsAndFixUpFocus();
 
   /**
@@ -148,28 +142,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void ExitUserInputProcessing() {
     MOZ_ASSERT(mUserInputProcessingCount > 0);
     mUserInputProcessingCount--;
-  }
-
-  /**
-   * Add / remove presshells which have pending resize event.
-   */
-  void AddResizeEventFlushObserver(mozilla::PresShell* aPresShell,
-                                   bool aDelayed = false) {
-    MOZ_DIAGNOSTIC_ASSERT(
-        !mResizeEventFlushObservers.Contains(aPresShell) &&
-            !mDelayedResizeEventFlushObservers.Contains(aPresShell),
-        "Double-adding resize event flush observer");
-    if (aDelayed) {
-      mDelayedResizeEventFlushObservers.AppendElement(aPresShell);
-    } else {
-      mResizeEventFlushObservers.AppendElement(aPresShell);
-      ScheduleRenderingPhase(mozilla::RenderingPhase::ResizeSteps);
-    }
-  }
-
-  void RemoveResizeEventFlushObserver(mozilla::PresShell* aPresShell) {
-    mResizeEventFlushObservers.RemoveElement(aPresShell);
-    mDelayedResizeEventFlushObservers.RemoveElement(aPresShell);
   }
 
   void AddStyleFlushObserver(mozilla::PresShell* aPresShell) {
@@ -448,7 +420,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void FinishedVsyncTick() { mAttemptedExtraTickSinceLastVsync = false; }
 
  private:
-  using VisualViewportResizeEventArray = nsTArray<RefPtr<VVPResizeEvent>>;
   using ScrollEventArray = nsTArray<RefPtr<mozilla::Runnable>>;
   using RequestTable = nsTHashSet<RefPtr<imgIRequest>>;
   struct ImageStartData {
@@ -674,14 +645,9 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   RequestTable mRequests;
   ImageStartTable mStartTable;
   AutoTArray<nsCOMPtr<nsIRunnable>, 16> mEarlyRunners;
-  VisualViewportResizeEventArray mVisualViewportResizeEvents;
-
   ScrollEventArray mScrollEvents;
   // Scroll events on documents that might have events suppressed.
   ScrollEventArray mDelayedScrollEvents;
-
-  AutoTArray<mozilla::PresShell*, 16> mResizeEventFlushObservers;
-  AutoTArray<mozilla::PresShell*, 16> mDelayedResizeEventFlushObservers;
   AutoTArray<mozilla::PresShell*, 16> mStyleFlushObservers;
   nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
   nsTArray<mozilla::UniquePtr<mozilla::PendingFullscreenEvent>>

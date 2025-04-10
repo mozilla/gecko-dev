@@ -357,11 +357,9 @@ class PresShell final : public nsStubDocumentObserver,
       ResizeReflowOptions = ResizeReflowOptions::NoOption);
   MOZ_CAN_RUN_SCRIPT void ForceResizeReflowWithCurrentDimensions();
 
-  /**
-   * Add this pres shell to the refresh driver to be observed for resize
-   * event if applicable.
-   */
-  void AddResizeEventFlushObserverIfNeeded();
+  /** Schedule a resize event if applicable. */
+  enum class ResizeEventKind : uint8_t { Regular, Visual };
+  void ScheduleResizeEventIfNeeded(ResizeEventKind = ResizeEventKind::Regular);
 
   /**
    * Returns true if the document hosted by this presShell is in a devtools
@@ -1176,8 +1174,7 @@ class PresShell final : public nsStubDocumentObserver,
    */
   bool HasHandledUserInput() const { return mHasHandledUserInput; }
 
-  MOZ_CAN_RUN_SCRIPT void FireResizeEvent();
-  MOZ_CAN_RUN_SCRIPT void FireResizeEventSync();
+  MOZ_CAN_RUN_SCRIPT void RunResizeSteps();
 
   void NativeAnonymousContentWillBeRemoved(nsIContent* aAnonContent);
 
@@ -3245,6 +3242,7 @@ class PresShell final : public nsStubDocumentObserver,
   bool mObservingStyleFlushes : 1;
 
   bool mResizeEventPending : 1;
+  bool mVisualViewportResizeEventPending : 1;
 
   bool mFontSizeInflationForceEnabled : 1;
   bool mFontSizeInflationDisabledInMasterProcess : 1;

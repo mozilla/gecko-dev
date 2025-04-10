@@ -26,10 +26,6 @@ VisualViewport::VisualViewport(nsPIDOMWindowInner* aWindow)
     : DOMEventTargetHelper(aWindow) {}
 
 VisualViewport::~VisualViewport() {
-  if (mResizeEvent) {
-    mResizeEvent->Revoke();
-  }
-
   if (mScrollEvent) {
     mScrollEvent->Revoke();
   }
@@ -163,58 +159,13 @@ nsPresContext* VisualViewport::GetPresContext() const {
 /* ================= Resize event handling ================= */
 
 void VisualViewport::PostResizeEvent() {
-  VVP_LOG("%p: PostResizeEvent (pre-existing: %d)\n", this, !!mResizeEvent);
-  nsPresContext* presContext = GetPresContext();
-  if (mResizeEvent && mResizeEvent->HasPresContext(presContext)) {
-    return;
+  VVP_LOG("%p: PostResizeEvent", this);
+  if (PresShell* ps = GetPresShell()) {
+    ps->ScheduleResizeEventIfNeeded(PresShell::ResizeEventKind::Visual);
   }
-  if (mResizeEvent) {
-    // prescontext changed, so discard the old resize event and queue a new one
-    mResizeEvent->Revoke();
-    mResizeEvent = nullptr;
-  }
-
-  // The event constructor will register itself with the refresh driver.
-  if (presContext) {
-    mResizeEvent = new VisualViewportResizeEvent(this, presContext);
-    VVP_LOG("%p: PostResizeEvent, created new event\n", this);
-  }
-}
-
-VisualViewport::VisualViewportResizeEvent::VisualViewportResizeEvent(
-    VisualViewport* aViewport, nsPresContext* aPresContext)
-    : Runnable("VisualViewport::VisualViewportResizeEvent"),
-      mViewport(aViewport),
-      mPresContext(aPresContext) {
-  VVP_LOG("%p: Registering PostResize on %p %p\n", aViewport, aPresContext,
-          aPresContext->RefreshDriver());
-  aPresContext->RefreshDriver()->PostVisualViewportResizeEvent(this);
-}
-
-bool VisualViewport::VisualViewportResizeEvent::HasPresContext(
-    nsPresContext* aContext) const {
-  return mPresContext.get() == aContext;
-}
-
-void VisualViewport::VisualViewportResizeEvent::Revoke() {
-  mViewport = nullptr;
-  mPresContext = nullptr;
-}
-
-// TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230, bug 1535398)
-MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
-VisualViewport::VisualViewportResizeEvent::Run() {
-  if (RefPtr<VisualViewport> viewport = mViewport) {
-    viewport->FireResizeEvent();
-  }
-  return NS_OK;
 }
 
 void VisualViewport::FireResizeEvent() {
-  MOZ_ASSERT(mResizeEvent);
-  mResizeEvent->Revoke();
-  mResizeEvent = nullptr;
-
   RefPtr<nsPresContext> presContext = GetPresContext();
 
   VVP_LOG("%p, FireResizeEvent, fire mozvisualresize\n", this);

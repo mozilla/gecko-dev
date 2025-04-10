@@ -1556,23 +1556,6 @@ bool nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver* aObserver,
   return true;
 }
 
-void nsRefreshDriver::PostVisualViewportResizeEvent(
-    VVPResizeEvent* aResizeEvent) {
-  mVisualViewportResizeEvents.AppendElement(aResizeEvent);
-  ScheduleRenderingPhase(RenderingPhase::ResizeSteps);
-}
-
-void nsRefreshDriver::DispatchVisualViewportResizeEvents() {
-  // We're taking a hint from scroll events and only dispatch the current set
-  // of queued resize events. If additional events are posted in response to
-  // the current events being dispatched, we'll dispatch them on the next tick.
-  VisualViewportResizeEventArray events =
-      std::move(mVisualViewportResizeEvents);
-  for (auto& event : events) {
-    event->Run();
-  }
-}
-
 void nsRefreshDriver::PostScrollEvent(mozilla::Runnable* aScrollEvent,
                                       bool aDelayed) {
   if (aDelayed) {
@@ -1679,12 +1662,7 @@ void nsRefreshDriver::RunDelayedEventsSoon() {
 
   mScrollEvents.AppendElements(mDelayedScrollEvents);
   mDelayedScrollEvents.Clear();
-
-  mResizeEventFlushObservers.AppendElements(mDelayedResizeEventFlushObservers);
-  mDelayedResizeEventFlushObservers.Clear();
-
   ScheduleRenderingPhase(RenderingPhase::ScrollSteps);
-  ScheduleRenderingPhase(RenderingPhase::ResizeSteps);
 }
 
 bool nsRefreshDriver::CanDoCatchUpTick() {
@@ -2091,27 +2069,6 @@ void nsRefreshDriver::DoTick() {
     Tick(VsyncId(), mMostRecentRefresh);
   } else {
     Tick(VsyncId(), TimeStamp::Now());
-  }
-}
-
-void nsRefreshDriver::DispatchResizeEvents() {
-  AutoTArray<RefPtr<PresShell>, 16> observers;
-  observers.AppendElements(mResizeEventFlushObservers);
-  for (RefPtr<PresShell>& presShell : Reversed(observers)) {
-    if (!mPresContext || !mPresContext->GetPresShell()) {
-      break;
-    }
-    // Make sure to not process observers which might have been removed during
-    // previous iterations.
-    if (!mResizeEventFlushObservers.RemoveElement(presShell)) {
-      continue;
-    }
-    // MOZ_KnownLive because 'observers' is guaranteed to keep it alive.
-    //
-    // Fixing https://bugzilla.mozilla.org/show_bug.cgi?id=1620312 on its own
-    // won't help here, because 'observers' is non-const and we have the
-    // Reversed() going on too...
-    MOZ_KnownLive(presShell)->FireResizeEvent();
   }
 }
 
@@ -2619,11 +2576,12 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
       [](const Document& aDoc) { return aDoc.HasAutoFocusCandidates(); });
 
   // Step 8. For each doc of docs, run the resize steps for doc.
-  RunRenderingPhaseLegacy(RenderingPhase::ResizeSteps,
-                          [&]() MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
-                            DispatchResizeEvents();
-                            DispatchVisualViewportResizeEvents();
-                          });
+  RunRenderingPhase(RenderingPhase::ResizeSteps,
+                    [](Document& aDoc) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+                      if (RefPtr<PresShell> ps = aDoc.GetPresShell()) {
+                        ps->RunResizeSteps();
+                      }
+                    });
 
   // Step 9. For each doc of docs, run the scroll steps for doc.
   RunRenderingPhaseLegacy(
