@@ -32,8 +32,6 @@ function handleRequest(request, response) {
   let content = {
     accounts_endpoint:
       "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_TESTNAME_accounts.sjs",
-    client_metadata_endpoint:
-      "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_metadata.json",
     id_assertion_endpoint:
       "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_TESTNAME_idtoken.sjs",
   };

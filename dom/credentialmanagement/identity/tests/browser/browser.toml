@@ -18,8 +18,6 @@ support-files = [
   "server_manifest_disconnect_failure.json^headers^",
   "server_manifest.json",
   "server_manifest.json^headers^",
-  "server_metadata.json",
-  "server_metadata.json^headers^",
 ]
 
 ["browser_close_prompt_on_timeout.js"]

@@ -15,6 +15,4 @@ support-files = ["custom.svg"]
 
 ["browser_credential_chooser.js"]
 
-["browser_policy_dialog.js"]
-
 ["browser_provider_dialog.js"]

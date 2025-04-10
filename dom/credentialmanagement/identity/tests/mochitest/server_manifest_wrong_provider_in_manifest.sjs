@@ -8,8 +8,6 @@ function handleRequest(request, response) {
   let content = {
     accounts_endpoint:
       "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_simple_accounts.sjs",
-    client_metadata_endpoint:
-      "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_simple_metadata.sjs",
     id_assertion_endpoint:
       "https://example.net/tests/dom/credentialmanagement/identity/tests/mochitest/server_simple_idtoken.sjs",
   };
