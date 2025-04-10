@@ -1360,6 +1360,7 @@ static nsLiteralCString sImgSrcHttpsAllowList[] = {
     "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
+    "chrome://global/content/alerts/alert.xhtml"_ns,
     "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
 };
 // img-src http:
@@ -1959,7 +1960,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
   static nsLiteralCString sAllowedChromePagesWithNoCSP[] = {
       "chrome://browser/content/shopping/review-checker.xhtml"_ns,
       "chrome://geckoview/content/geckoview.xhtml"_ns,
-      "chrome://global/content/alerts/alert.xhtml"_ns,
       "chrome://global/content/appPicker.xhtml"_ns,
       // Test files
       "chrome://mochikit/"_ns,

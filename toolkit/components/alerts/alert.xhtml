@@ -3,6 +3,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome: resource:; img-src chrome: resource: https: ?>
+
 <!DOCTYPE window>
 
 <window
@@ -13,9 +15,6 @@
   role="alert"
   pack="start"
   hidechrome="true"
-  onload="onAlertLoad();"
-  onclick="onAlertClick();"
-  onbeforeunload="onAlertBeforeUnload();"
 >
   <linkset>
     <xhtml:link
@@ -35,9 +34,8 @@
       <vbox>
         <toolbarbutton
           class="close-icon"
+          id="alert-close"
           data-l10n-id="alert-close"
-          onclick="event.stopPropagation();"
-          oncommand="onAlertClose();"
         />
       </vbox>
     </box>
@@ -62,24 +60,14 @@
             data-l10n-id="alert-settings-title"
           >
             <menupopup position="after_end">
-              <menuitem id="doNotDisturbMenuItem" oncommand="doNotDisturb();" />
+              <menuitem id="doNotDisturbMenuItem" />
               <menuseparator />
-              <menuitem
-                id="disableForOriginMenuItem"
-                oncommand="disableForOrigin();"
-              />
-              <menuitem id="openSettingsMenuItem" oncommand="openSettings();" />
+              <menuitem id="disableForOriginMenuItem" />
+              <menuitem id="openSettingsMenuItem" />
             </menupopup>
           </button>
         </box>
       </vbox>
     </box>
   </vbox>
-
-  <!-- This method is called inline because we want to make sure we establish the width
-       and height of the alert before we fire the onload handler. -->
-  <script>
-    /* eslint-disable no-undef */
-    prefillAlertInfo();
-  </script>
 </window>

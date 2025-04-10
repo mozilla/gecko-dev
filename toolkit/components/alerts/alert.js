@@ -193,6 +193,8 @@ function onAlertLoad() {
     moveWindowToEnd();
   }
 
+  window.addEventListener("click", onAlertClick);
+  window.addEventListener("beforeunload", onAlertBeforeUnload);
   window.addEventListener("XULAlertClose", function () {
     window.close();
   });
@@ -222,6 +224,22 @@ function onAlertLoad() {
   let alertSettings = document.getElementById("alertSettings");
   alertSettings.addEventListener("focus", onAlertSettingsFocus);
   alertSettings.addEventListener("click", onAlertSettingsClick);
+
+  document
+    .getElementById("alert-close")
+    .addEventListener("click", event => event.stopPropagation());
+  document
+    .getElementById("alert-close")
+    .addEventListener("command", onAlertClose);
+  document
+    .getElementById("doNotDisturbMenuItem")
+    .addEventListener("command", doNotDisturb);
+  document
+    .getElementById("disableForOriginMenuItem")
+    .addEventListener("command", disableForOrigin);
+  document
+    .getElementById("openSettingsMenuItem")
+    .addEventListener("command", openSettings);
 
   gIsActive = true;
 
@@ -381,3 +399,6 @@ function onAlertClose() {
     window.close();
   }
 }
+
+window.addEventListener("DOMContentLoaded", prefillAlertInfo);
+window.addEventListener("load", onAlertLoad);
