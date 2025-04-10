@@ -3283,12 +3283,11 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
 #endif
     auto result = GdkRectToDevicePixels(b);
 #ifdef MOZ_X11
-    if (isX11) {
+    if (isX11 && !gtk_check_version(3, 24, 50)) {
       if (auto border = GetXWindowBorder(aWin)) {
         // Workaround for
         // https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/8423
         // Bug 1958174 Gtk doesn't account for window border sizes on X11.
-        // TODO(emilio): Add GTK version check once that is merged.
         result.width += 2 * border;
         result.height += 2 * border;
       }
