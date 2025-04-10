@@ -188,7 +188,6 @@ class AwesomeBarView(
 
         defaultTrendingSearchProvider =
             TrendingSearchProvider(
-                store = components.core.store,
                 fetchClient = components.core.client,
                 privateMode = when (activity.browsingModeManager.mode) {
                     BrowsingMode.Normal -> false
@@ -196,16 +195,7 @@ class AwesomeBarView(
                 },
                 searchUseCase = searchUseCase,
                 limit = FxNimbus.features.trendingSearches.value().maxSuggestions,
-                engine = engineForSpeculativeConnects,
                 icon = searchBitmap,
-                suggestionsHeader = components.core.store.state.search
-                    .selectedOrDefaultSearchEngine?.name?.let { searchEngineName ->
-                        getString(
-                            activity,
-                            R.string.trending_searches_header_2,
-                            searchEngineName,
-                        )
-                    },
             )
 
         defaultSearchActionProvider =
@@ -417,6 +407,17 @@ class AwesomeBarView(
         }
 
         if (state.showTrendingSearches) {
+            val suggestionHeader = state.searchEngineSource.searchEngine?.name?.let { searchEngineName ->
+                getString(
+                    activity,
+                    R.string.trending_searches_header_2,
+                    searchEngineName,
+                )
+            }
+            defaultTrendingSearchProvider.setSearchEngine(
+                state.searchEngineSource.searchEngine,
+                suggestionHeader,
+            )
             providersToAdd.add(defaultTrendingSearchProvider)
         }
 

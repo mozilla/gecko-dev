@@ -4,8 +4,7 @@
 
 package mozilla.components.feature.search.trendingsearches
 
-import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
-import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.feature.search.ext.buildTrendingURL
 import mozilla.components.feature.search.ext.canProvideTrendingSearches
 import mozilla.components.feature.search.suggestions.selectResponseParser
@@ -22,11 +21,10 @@ typealias TrendingSearchFetcher = suspend (url: String) -> String?
  *  Provides an interface to get trending searches from a given SearchEngine.
  */
 class TrendingSearchClient(
-    store: BrowserStore,
     private val fetcher: TrendingSearchFetcher,
 ) {
     private val logger = Logger("TrendingSearchClient")
-    val searchEngine = store.state.search.selectedOrDefaultSearchEngine
+    private var searchEngine: SearchEngine? = null
 
     /**
      * Exception types for errors caught while getting a list of trending searches.
@@ -42,30 +40,44 @@ class TrendingSearchClient(
      * Returns a list of trending searches from the search engine's trending search URL endpoint.
      */
     suspend fun getTrendingSearches(): List<String>? {
-        if (searchEngine == null) {
-            logger.warn("No default search engine for fetching trending searches")
-            return emptyList()
+        searchEngine?.let {
+            if (!it.canProvideTrendingSearches) {
+                // This search engine doesn't support trending searches.
+                return emptyList()
+            }
+
+            val trendingURL = it.buildTrendingURL()
+
+            val parser = selectResponseParser(it)
+
+            val trendingSearchResults = try {
+                trendingURL?.let { url -> fetcher(url) }
+            } catch (_: IOException) {
+                throw FetchException()
+            }
+
+            return try {
+                trendingSearchResults?.let(parser)
+            } catch (_: JSONException) {
+                throw ResponseParserException()
+            }
         }
 
-        if (!searchEngine.canProvideTrendingSearches) {
-            // This search engine doesn't support trending searches.
-            return emptyList()
-        }
+        logger.warn("No default search engine for fetching trending searches")
+        return emptyList()
+    }
 
-        val trendingURL = searchEngine.buildTrendingURL()
+    /**
+     * Sets the search engine used to fetch trending suggestions.
+     */
+    fun setSearchEngine(searchEngine: SearchEngine?) {
+        this.searchEngine = searchEngine
+    }
 
-        val parser = selectResponseParser(searchEngine)
-
-        val trendingSearchResults = try {
-            trendingURL?.let { fetcher(it) }
-        } catch (_: IOException) {
-            throw FetchException()
-        }
-
-        return try {
-            trendingSearchResults?.let(parser)
-        } catch (_: JSONException) {
-            throw ResponseParserException()
-        }
+    /**
+     * Returns the search engine used to fetch trending suggestions.
+     */
+    fun getSearchEngine(): SearchEngine? {
+        return this.searchEngine
     }
 }

@@ -37,7 +37,7 @@ class TrendingSearchProvider private constructor(
     private val limit: Int = DEFAULT_TRENDING_SEARCHES_LIMIT,
     internal val engine: Engine? = null,
     private val icon: Bitmap? = null,
-    private val suggestionsHeader: String? = null,
+    private var suggestionsHeader: String? = null,
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = UUID.randomUUID().toString()
     private val logger = Logger("TrendingSearchProvider")
@@ -50,7 +50,6 @@ class TrendingSearchProvider private constructor(
      * Creates a [TrendingSearchProvider] using the default engine as provided by the given
      * [BrowserStore].
      *
-     * @param store The [BrowserStore] to look up search engines.
      * @param fetchClient The HTTP client for requesting suggestions from the search engine.
      * @param privateMode When set to `true` then all requests to search engines will be made in private mode.
      * @param searchUseCase The use case to invoke for searches.
@@ -61,7 +60,6 @@ class TrendingSearchProvider private constructor(
      * @param suggestionsHeader Optional suggestions header to display.
      */
     constructor(
-        store: BrowserStore,
         fetchClient: Client,
         privateMode: Boolean,
         searchUseCase: SearchUseCases.SearchUseCase,
@@ -70,7 +68,7 @@ class TrendingSearchProvider private constructor(
         icon: Bitmap? = null,
         suggestionsHeader: String? = null,
     ) : this (
-        TrendingSearchClient(store) { url -> fetch(fetchClient, url, privateMode) },
+        TrendingSearchClient { url -> fetch(fetchClient, url, privateMode) },
         searchUseCase,
         limit,
         engine,
@@ -99,8 +97,19 @@ class TrendingSearchProvider private constructor(
         }
     }
 
+    /**
+     * Sets the search engine used to fetch trending suggestions.
+     *
+     * @param searchEngine The [SearchEngine] instance used to retrieve trending suggestions.
+     * @param suggestionsHeader An optional header to display above the suggestions.
+     */
+    fun setSearchEngine(searchEngine: SearchEngine?, suggestionsHeader: String? = null) {
+        client.setSearchEngine(searchEngine)
+        this.suggestionsHeader = suggestionsHeader
+    }
+
     private fun maybeCallSpeculativeConnect(searchTerms: String) {
-        client.searchEngine?.let { searchEngine ->
+        client.getSearchEngine()?.let { searchEngine ->
             engine?.speculativeConnect(searchEngine.buildSearchUrl(searchTerms))
         }
     }
@@ -126,7 +135,7 @@ class TrendingSearchProvider private constructor(
                 id = item,
                 title = item,
                 editSuggestion = item,
-                icon = icon ?: client.searchEngine?.icon,
+                icon = icon ?: client.getSearchEngine()?.icon,
                 // Reducing MAX_VALUE to allow other providers to go above these suggestions,
                 // for which they need additional spots to be available.
                 score = Int.MAX_VALUE - (index + TRENDING_SEARCHES_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT + 2),
