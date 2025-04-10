@@ -213,7 +213,11 @@ export class UrlbarInput {
     // If the toolbar is not visible in this window or the urlbar is readonly,
     // we'll stop here, so that most properties of the input object are valid,
     // but we won't handle events.
-    if (!this.window.toolbar.visible || this.readOnly) {
+    if (
+      !this.window.toolbar.visible ||
+      this.window.document.documentElement.hasAttribute("taskbartab") ||
+      this.readOnly
+    ) {
       return;
     }
 

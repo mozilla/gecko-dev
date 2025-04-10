@@ -77,11 +77,13 @@
    * fields can be styled differently from the toolbar, we need to use the
    * correct color scheme in toolbar fields.
    */
-  :root[lwt-toolbar-field="light"] & {
-    color-scheme: light;
-  }
-  :root[lwt-toolbar-field="dark"] & {
-    color-scheme: dark;
+   :root:is([lwtheme-image], :not([taskbartab], [chromehidden~="toolbar"])) & {
+    :root[lwt-toolbar-field="light"] & {
+      color-scheme: light;
+    }
+    :root[lwt-toolbar-field="dark"] & {
+      color-scheme: dark;
+    }
   }
 }
 
@@ -101,6 +103,19 @@
   background-clip: border-box;
   border: 1px solid var(--toolbar-field-border-color);
   border-radius: var(--toolbarbutton-border-radius);
+}
+
+/* Make the urlbar background transparent for
+ * taskbar tab and popup windows */
+:root:is([taskbartab], [chromehidden~="toolbar"]):not([lwtheme-image]) {
+  #urlbar-background {
+    background-color: transparent;
+    border-color: transparent;
+  }
+
+  #urlbar {
+    color: inherit;
+  }
 }
 
 .urlbar-input-container,
