@@ -20,12 +20,12 @@ win64-nasm:
         arguments: ['win64']
     fetches:
         fetch:
-            - nasm-2.15.05
+            - nasm-2.16.03
         toolchain:
             - linux64-clang-mingw-x64
 
 macosx64-nasm:
-    description: "nasm macosx64 build"
+    description: "nasm macos x64 build"
     attributes:
         local-toolchain: true
     treeherder:
@@ -35,13 +35,13 @@ macosx64-nasm:
         arguments: ['macosx64']
     fetches:
         fetch:
-            - nasm-2.15.05
+            - nasm-2.16.03
         toolchain:
             - linux64-clang-toolchain
             - macosx64-sdk-toolchain
 
 macosx64-aarch64-nasm:
-    description: "nasm macosx64 build"
+    description: "nasm macos aarch64 build"
     attributes:
         local-toolchain: true
     treeherder:
@@ -51,7 +51,7 @@ macosx64-aarch64-nasm:
         arguments: ['macosx64-aarch64']
     fetches:
         fetch:
-            - nasm-2.14.02
+            - nasm-2.16.03
         toolchain:
             - linux64-clang-toolchain
             - macosx64-sdk-toolchain
@@ -67,7 +67,7 @@ linux64-nasm:
         arguments: ['linux64']
     fetches:
         fetch:
-            - nasm-2.15.05
+            - nasm-2.16.03
         toolchain:
             - linux64-clang-toolchain
             - sysroot-x86_64-linux-gnu

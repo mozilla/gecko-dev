@@ -155,13 +155,13 @@ nasm-2.14.02:
         sha256: e24ade3e928f7253aa8c14aa44726d1edf3f98643f87c9d72ec1df44b26be8f5
         size: 827620
 
-nasm-2.15.05:
-    description: nasm 2.15.05 source code
+nasm-2.16.03:
+    description: nasm 2.16.03 source code
     fetch:
         type: static-url
-        url: https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.xz
-        sha256: 3caf6729c1073bf96629b57cee31eeb54f4f8129b01902c73428836550b30a3f
-        size: 995732
+        url: https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz
+        sha256: 1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148
+        size: 1032388
 
 wix-3.14.0:
     description: wix 3.14.0 binary release
