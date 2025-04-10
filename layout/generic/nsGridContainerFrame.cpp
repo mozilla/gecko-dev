@@ -731,9 +731,11 @@ struct nsGridContainerFrame::GridItemInfo {
     eAllBaselineBits = eIsBaselineAligned | eSelfBaseline | eContentBaseline |
                        eEndSideBaseline,
 
-    // Should apply Automatic Minimum Size per:
+    // Automatic Minimum Size is content based. If not set, automatic minimum
+    // size is zero.
     // https://drafts.csswg.org/css-grid-2/#min-size-auto
-    eApplyAutoMinSize = 0x40,
+    // https://drafts.csswg.org/css-grid-2/#content-based-minimum-size
+    eContentBasedAutoMinSize = 0x40,
     // Clamp per https://drafts.csswg.org/css-grid-2/#min-size-auto
     eClampMarginBoxMinSize = 0x80,
     eIsSubgrid = 0x100,
@@ -837,7 +839,7 @@ struct nsGridContainerFrame::GridItemInfo {
 
   // Return true if we should use MinContribution on items that do not span
   // any flex tracks to determine the minimum contribution, and if we should
-  // set the eApplyAutoMinSize flag on grid items.
+  // set the eContentBasedAutoMinSize flag on grid items.
   //
   // In part this is determined by whether or not the minimum contribution
   // of the item is content-based.
@@ -1170,7 +1172,7 @@ void nsGridContainerFrame::GridItemInfo::Dump() const {
     if (state & ItemState::eIsFlexing) {
       printf("flexing ");
     }
-    if (state & ItemState::eApplyAutoMinSize) {
+    if (state & ItemState::eContentBasedAutoMinSize) {
       printf("auto-min-size ");
     }
     if (state & ItemState::eClampMarginBoxMinSize) {
@@ -5980,11 +5982,14 @@ static nscoord MinContribution(const GridItemInfo& aGridItem,
 
   // Check if the min-size style of the grid item is auto and the minimum
   // contribution is content-based.
-  // While the eApplyAutoMinSize flag is not synonymous with an item having
-  // content-based automatic minimum contribution, the previous checks should
-  // catch the other cases in which the automatic minimum contribution is zero
-  // instead.
-  if (!isAuto || (aGridItem.mState[aAxis] & ItemState::eApplyAutoMinSize)) {
+  // While the eContentBasedAutoMinSize flag is not synonymous with an item
+  // having content-based automatic minimum contribution, the previous checks
+  // should catch the other cases in which the automatic minimum contribution
+  // is zero instead.
+  // See bug 1951821 for this discrepency between the flag's usage and the
+  // specification: https://drafts.csswg.org/css-grid-2/#min-size-auto
+  if (!isAuto ||
+      (aGridItem.mState[aAxis] & ItemState::eContentBasedAutoMinSize)) {
     sz += nsLayoutUtils::MinSizeContributionForAxis(
         axis, aRC, child, IntrinsicISizeType::MinISize,
         *aCache->mPercentageBasis);
@@ -6078,7 +6083,10 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
     nscoord s;
     // Check if we need to apply "Automatic Minimum Size" and cache it.
     if (aGridItem.ShouldApplyAutoMinSize(wm, mAxis)) {
-      aGridItem.mState[mAxis] |= ItemState::eApplyAutoMinSize;
+      // TODO alaskanemily: This sometimes sets the flag when it wouldn't be
+      // per spec. This is needed for when MinContribution checks the flag.
+      // See bug 1951821 for this discrepency.
+      aGridItem.mState[mAxis] |= ItemState::eContentBasedAutoMinSize;
       // Clamp it if it's spanning a definite track max-sizing function.
       if (TrackSize::IsDefiniteMaxSizing(sz.mState)) {
         cache.mMinSizeClamp = aFunctions.MaxSizingFor(aRange.mStart)
@@ -6777,7 +6785,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
 
   for (auto& gridItem : aGridItems) {
     MOZ_ASSERT(!(gridItem.mState[mAxis] &
-                 (ItemState::eApplyAutoMinSize | ItemState::eIsFlexing |
+                 (ItemState::eContentBasedAutoMinSize | ItemState::eIsFlexing |
                   ItemState::eClampMarginBoxMinSize)),
                "Why are any of these bits set already?");
 
@@ -6829,6 +6837,21 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
       continue;
     }
 
+    // Set eContentBasedAutoMinSize if and only if the grid item has
+    // content-based automatic minimum size. This is the case if all of the
+    // following are true of the item:
+    // 1. its computed overflow is not a scrollable overflow value
+    // 2. it spans at least one track in that axis whose min track sizing
+    // function is auto
+    // 3. if it spans more than one track in that axis, none of those tracks
+    // are flexible
+    // https://drafts.csswg.org/css-grid-2/#min-size-auto
+    if (!gridItem.mFrame->StyleDisplay()->IsScrollableOverflow() &&
+        state & TrackSize::eAutoMinSizing &&
+        (span == 1 || !(state & TrackSize::eFlexMaxSizing))) {
+      gridItem.mState[mAxis] |= ItemState::eContentBasedAutoMinSize;
+    }
+
     if (span == 1) {
       // Step 2. Size tracks to fit non-spanning items.
       // https://drafts.csswg.org/css-grid-2/#algo-single-span-items
@@ -6838,13 +6861,6 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
     } else {
       // Collect information for step 3.
       // https://drafts.csswg.org/css-grid-2/#algo-spanning-items
-
-      // Check if we need to apply "Automatic Minimum Size" and cache it.
-      if ((state & TrackSize::eAutoMinSizing) &&
-          !(state & TrackSize::eFlexMaxSizing) &&
-          gridItem.ShouldApplyAutoMinSize(wm, mAxis)) {
-        gridItem.mState[mAxis] |= ItemState::eApplyAutoMinSize;
-      }
 
       nsTArray<SpanningItemData>* items = &nonFlexSpanningItems;
       if (state & TrackSize::eFlexMaxSizing) {
@@ -6865,7 +6881,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
 
         // Calculate data for "Automatic Minimum Size" clamping, if needed.
         if (TrackSize::IsDefiniteMaxSizing(state) &&
-            (gridItem.mState[mAxis] & ItemState::eApplyAutoMinSize)) {
+            (gridItem.mState[mAxis] & ItemState::eContentBasedAutoMinSize)) {
           nscoord minSizeClamp = 0;
           for (auto i : lineRange.Range()) {
             minSizeClamp += aFunctions.MaxSizingFor(i).AsBreadth().Resolve(
@@ -6900,9 +6916,10 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
       }
     }
 
-    MOZ_ASSERT(!(gridItem.mState[mAxis] & ItemState::eClampMarginBoxMinSize) ||
-                   (gridItem.mState[mAxis] & ItemState::eApplyAutoMinSize),
-               "clamping only applies to Automatic Minimum Size");
+    MOZ_ASSERT(
+        !(gridItem.mState[mAxis] & ItemState::eClampMarginBoxMinSize) ||
+            (gridItem.mState[mAxis] & ItemState::eContentBasedAutoMinSize),
+        "clamping only applies to Automatic Minimum Size");
   }
 
   MOZ_ASSERT(maxSpan != 1, "Should only count spans greater than 1");
@@ -7848,7 +7865,7 @@ void nsGridContainerFrame::ReflowInFlowChild(
     }
 
     if ((aGridItemInfo->mState[childIAxisInWM] &
-         ItemState::eApplyAutoMinSize)) {
+         ItemState::eContentBasedAutoMinSize)) {
       csFlags += ComputeSizeFlag::IApplyAutoMinSize;
     }
   }
