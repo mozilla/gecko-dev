@@ -7724,7 +7724,7 @@ dependencies = [
 
 [[package]]
 name = "wr_malloc_size_of"
-version = "0.0.2"
+version = "0.2.0"
 dependencies = [
  "app_units",
  "euclid",

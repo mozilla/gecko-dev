@@ -46,7 +46,7 @@ smallvec = "1"
 time = "0.1"
 api = { version = "0.62.0", path = "../webrender_api", package = "webrender_api" }
 webrender_build = { version = "0.0.2", path = "../webrender_build" }
-malloc_size_of = { version = "0.0.2", path = "../wr_malloc_size_of", package = "wr_malloc_size_of" }
+malloc_size_of = { version = "0.2.0", path = "../wr_malloc_size_of", package = "wr_malloc_size_of" }
 glyph_rasterizer = { version = "0.1.0", path = "../wr_glyph_rasterizer", package = "wr_glyph_rasterizer", default-features = false }
 svg_fmt = "0.4"
 tracy-rs = "0.1.2"

@@ -10,7 +10,9 @@
 
 //! A reduced fork of Firefox's malloc_size_of crate, for bundling with WebRender.
 
+#[cfg(feature = "app_units")]
 extern crate app_units;
+#[cfg(feature = "euclid")]
 extern crate euclid;
 
 use std::hash::{BuildHasher, Hash};
@@ -320,36 +322,42 @@ impl MallocSizeOf for PathBuf {
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, Unit> MallocSizeOf for euclid::Length<T, Unit> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::Scale<T, Src, Dst> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Point2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.x.size_of(ops) + self.y.size_of(ops)
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Rect<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.origin.size_of(ops) + self.size.size_of(ops)
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Box2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.min.size_of(ops) + self.max.size_of(ops)
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::SideOffsets2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.top.size_of(ops) +
@@ -359,12 +367,14 @@ impl<T: MallocSizeOf, U> MallocSizeOf for euclid::SideOffsets2D<T, U> {
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Size2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.width.size_of(ops) + self.height.size_of(ops)
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::Transform2D<T, Src, Dst> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.m11.size_of(ops) +
@@ -376,6 +386,7 @@ impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::Transform2D<T, Src, Dst
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::Transform3D<T, Src, Dst> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.m11.size_of(ops) +
@@ -397,6 +408,7 @@ impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::Transform3D<T, Src, Dst
     }
 }
 
+#[cfg(feature = "euclid")]
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Vector2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.x.size_of(ops) + self.y.size_of(ops)
@@ -448,4 +460,26 @@ malloc_size_of_is_0!(Range<u8>, Range<u16>, Range<u32>, Range<u64>, Range<usize>
 malloc_size_of_is_0!(Range<i8>, Range<i16>, Range<i32>, Range<i64>, Range<isize>);
 malloc_size_of_is_0!(Range<f32>, Range<f64>);
 
+#[cfg(feature = "app_units")]
 malloc_size_of_is_0!(app_units::Au);
+
+#[cfg(feature = "once_cell")]
+impl<T: MallocSizeOf, F: FnOnce() -> T> MallocSizeOf for once_cell::sync::Lazy<T, F> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        once_cell::sync::Lazy::get(self).map(|obj| obj.size_of(ops)).unwrap_or(0)
+    }
+}
+
+#[cfg(feature = "once_cell")]
+impl<T: MallocSizeOf> MallocSizeOf for once_cell::sync::OnceCell<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        once_cell::sync::OnceCell::get(self).map(|obj| obj.size_of(ops)).unwrap_or(0)
+    }
+}
+
+#[cfg(feature = "once_cell")]
+impl<T: MallocSizeOf, F: FnOnce() -> T> MallocSizeOf for &'static once_cell::sync::Lazy<T, F> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        once_cell::sync::Lazy::get(self).map(|obj| obj.size_of(ops)).unwrap_or(0)
+    }
+}
