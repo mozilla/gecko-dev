@@ -159,7 +159,7 @@ function audioTestData() {
     {
       src: "small-shot.m4a",
       expectations: {
-        // Add Android after Bug 1934009
+        // Add Android after Bug 1771196
         Linux: {
           process: "Utility Generic",
           decoder: "ffmpeg audio decoder",
