@@ -43,6 +43,9 @@ Keyed Scalars
 browser.searchinit.engine_invalid_webextension
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+  NOTE: This telemetry is no longer reported to legacy Telemetry. See changelog
+  below.
+
   Records the WebExtension ID of a search engine where the saved search engine
   settings do not match the WebExtension.
 
@@ -51,6 +54,15 @@ browser.searchinit.engine_invalid_webextension
   1. Associated WebExtension is not installed.
   2. Associated WebExtension is disabled.
   3. The submission URL of the associated WebExtension is different to that of the saved settings.
+
+  Changelog
+    Firefox 134
+      Legacy ``browser.searchinit.engine_invalid_webextension`` telemetry
+      mirrored to Glean. (See bug 1927093)
+
+    Firefox 139
+      Legacy ``browser.searchinit.engine_invalid_webextension`` telemetry
+      removed completely. (See bug 1958170)
 
 Histograms
 ----------

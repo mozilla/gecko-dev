@@ -370,7 +370,8 @@ browser.searchinit:
       WebExtension (= 6). The value '3' has been replaced by '6' to
       distinguish newer entries.
       This metric was generated to correspond to the Legacy Telemetry
-      scalar browser.searchinit.engine_invalid_webextension.
+      scalar browser.searchinit.engine_invalid_webextension, which was removed
+      in Fx 139.
     bugs:
       - https://bugzil.la/1665938
       - https://bugzil.la/1691050
@@ -394,9 +395,8 @@ browser.searchinit:
     notification_emails:
       - fx-search-telemetry@mozilla.com
       - mbanner@mozilla.com
-    expires: 143
+    expires: 147
     unit: custom enum value
-    telemetry_mirror: BROWSER_SEARCHINIT_ENGINE_INVALID_WEBEXTENSION
 
   secure_opensearch_engine_count:
     type: quantity

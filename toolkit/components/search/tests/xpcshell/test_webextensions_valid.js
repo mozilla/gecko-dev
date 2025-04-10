@@ -3,18 +3,12 @@
 
 "use strict";
 
-const { TelemetryTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TelemetryTestUtils.sys.mjs"
-);
-
 let extension;
 let extensionPostData;
 let oldRemoveEngineFunc;
 
 add_setup(async function () {
   SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
-
-  Services.telemetry.canRecordExtended = true;
 
   await Services.search.init();
   await promiseAfterSettings();
@@ -47,7 +41,7 @@ add_setup(async function () {
 });
 
 add_task(async function test_valid_extensions_do_nothing() {
-  Services.telemetry.clearScalars();
+  Services.fog.testResetFOG();
 
   Assert.ok(
     Services.search.getEngineByName("Example"),
@@ -60,13 +54,21 @@ add_task(async function test_valid_extensions_do_nothing() {
 
   await Services.search.runBackgroundChecks();
 
-  let scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
+  let labels = ["1", "2", "4", "5", "6"];
+  for (let label of labels) {
+    let recordedQuantity =
+      Glean.browserSearchinit.engineInvalidWebextension[label].testGetValue();
 
-  Assert.deepEqual(scalars, {}, "Should not have recorded any issues");
+    Assert.equal(
+      recordedQuantity,
+      null,
+      `Should not have recorded any issues for label ${label}`
+    );
+  }
 });
 
 add_task(async function test_different_name() {
-  Services.telemetry.clearScalars();
+  Services.fog.testResetFOG();
 
   let engine = Services.search.getEngineByName("Example");
 
@@ -74,18 +76,22 @@ add_task(async function test_different_name() {
 
   await Services.search.runBackgroundChecks();
 
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    "browser.searchinit.engine_invalid_webextension",
-    extension.id,
-    5
+  let recordedQuantity =
+    Glean.browserSearchinit.engineInvalidWebextension[
+      extension.id
+    ].testGetValue();
+
+  Assert.equal(
+    recordedQuantity,
+    5,
+    "Should record an invalid web extension because the addon has a different name"
   );
 
   engine.wrappedJSObject._name = "Example";
 });
 
 add_task(async function test_different_url() {
-  Services.telemetry.clearScalars();
+  Services.fog.testResetFOG();
 
   let engine = Services.search.getEngineByName("Example");
 
@@ -97,16 +103,20 @@ add_task(async function test_different_url() {
 
   await Services.search.runBackgroundChecks();
 
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    "browser.searchinit.engine_invalid_webextension",
-    extension.id,
-    6
+  let recordedQuantity =
+    Glean.browserSearchinit.engineInvalidWebextension[
+      extension.id
+    ].testGetValue();
+
+  Assert.equal(
+    recordedQuantity,
+    6,
+    "Should record an invalid web extension because the addon has a different submission url"
   );
 });
 
 add_task(async function test_different_url_post_data() {
-  Services.telemetry.clearScalars();
+  Services.fog.testResetFOG();
 
   let engine = Services.search.getEngineByName("PostData");
 
@@ -118,16 +128,20 @@ add_task(async function test_different_url_post_data() {
 
   await Services.search.runBackgroundChecks();
 
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    "browser.searchinit.engine_invalid_webextension",
-    extensionPostData.id,
-    6
+  let recordedQuantity =
+    Glean.browserSearchinit.engineInvalidWebextension[
+      extensionPostData.id
+    ].testGetValue();
+
+  Assert.equal(
+    recordedQuantity,
+    6,
+    "Should record an invalid web extension because the addon has different url POST data"
   );
 });
 
 add_task(async function test_extension_no_longer_specifies_engine() {
-  Services.telemetry.clearScalars();
+  Services.fog.testResetFOG();
 
   let extensionInfo = {
     useAddonManager: "permanent",
@@ -145,16 +159,20 @@ add_task(async function test_extension_no_longer_specifies_engine() {
 
   await Services.search.runBackgroundChecks();
 
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    "browser.searchinit.engine_invalid_webextension",
-    extension.id,
-    4
+  let recordedQuantity =
+    Glean.browserSearchinit.engineInvalidWebextension[
+      extension.id
+    ].testGetValue();
+
+  Assert.equal(
+    recordedQuantity,
+    4,
+    "Should record an invalid web extension because the search engine is no longer specified"
   );
 });
 
 add_task(async function test_disabled_extension() {
-  // We don't clear scalars between tests to ensure the scalar gets set
+  // We don't reset Glean across tasks this time, ensuring the metric gets set
   // to the new value, rather than added.
 
   // Disable the extension, this won't remove the search engine because we've
@@ -163,11 +181,15 @@ add_task(async function test_disabled_extension() {
 
   await Services.search.runBackgroundChecks();
 
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    "browser.searchinit.engine_invalid_webextension",
-    extension.id,
-    2
+  let recordedQuantity =
+    Glean.browserSearchinit.engineInvalidWebextension[
+      extension.id
+    ].testGetValue();
+
+  Assert.equal(
+    recordedQuantity,
+    2,
+    "Should record an invalid web extension because the addon is disabled"
   );
 
   extension.addon.enable();
@@ -175,7 +197,7 @@ add_task(async function test_disabled_extension() {
 });
 
 add_task(async function test_missing_extension() {
-  // We don't clear scalars between tests to ensure the scalar gets set
+  // We don't reset Glean across tasks this time, ensuring the metric gets set
   // to the new value, rather than added.
 
   let extensionId = extension.id;
@@ -185,11 +207,15 @@ add_task(async function test_missing_extension() {
 
   await Services.search.runBackgroundChecks();
 
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    "browser.searchinit.engine_invalid_webextension",
-    extensionId,
-    1
+  let recordedQuantity =
+    Glean.browserSearchinit.engineInvalidWebextension[
+      extensionId
+    ].testGetValue();
+
+  Assert.equal(
+    recordedQuantity,
+    1,
+    "Should record an invalid web extension because the addon is no longer installed"
   );
 
   await oldRemoveEngineFunc(Services.search.getEngineByName("Example"));
