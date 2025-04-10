@@ -132,6 +132,49 @@
           "icon-star layout uses a larger icon width."
         );
       });
+
+      add_task(async function testMozBoxItemActionsSlots() {
+        let slottedTemplate = testHelpers.templateFn();
+        let renderTarget = await testHelpers.renderTemplate(slottedTemplate);
+        let item = renderTarget.firstElementChild;
+
+        let slottedAction = document.createElement("moz-button");
+        slottedAction.label = "Click me!";
+        slottedAction.slot = "actions";
+
+        item.append(slottedAction);
+        await item.updateComplete;
+
+        is(
+          item.actionsSlotEl.assignedElements()[0],
+          slottedAction,
+          "The expected action is slotted."
+        );
+
+        slottedAction.remove();
+        slottedAction = null;
+        await item.updateComplete;
+
+        is(
+          item.actionsSlotEl.assignedElements().length,
+          0,
+          "The actions slot doesn't have assigned elements."
+        );
+
+        slottedAction = document.createElement("moz-button");
+        slottedAction.iconSrc = "chrome://global/skin/icons/delete.svg";
+        slottedAction.title = "Delete";
+        slottedAction.slot = "actions-start";
+
+        item.append(slottedAction);
+        await item.updateComplete;
+
+        is(
+          item.actionsStartSlotEl.assignedElements()[0],
+          slottedAction,
+          "The expected action is slotted."
+        );
+      });
     </script>
   </head>
   <body>

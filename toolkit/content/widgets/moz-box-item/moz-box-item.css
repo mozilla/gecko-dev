@@ -16,6 +16,11 @@
   padding: var(--box-padding);
   display: flex;
   align-items: center;
+  gap: var(--space-small);
   font-size: inherit;
   text-align: start;
+}
+
+.box-content {
+  flex: 1 1 auto;
 }
