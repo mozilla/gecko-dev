@@ -19,6 +19,9 @@
 # a port number.  The colon and port number must be present even if the port
 # number is the default for the protocol.
 #
+# After adding a new https host, it's necessary to generate the default cert
+# again by running ./mach python build/pgo/genpgocert.py, and commit the result.
+#
 # Unrecognized options are ignored.  Recognized options are "primary" and
 # "privileged", "nocert", "cert=some_cert_nickname", "redir=hostname" and
 # "failHandshake".
