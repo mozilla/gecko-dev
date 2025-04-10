@@ -18,11 +18,74 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  IndexedDB: "resource://gre/modules/IndexedDB.sys.mjs",
 });
+
+const MAX_REPORTS = 1;
+const MAX_VISIT_COUNT = 1;
+const DAY_IN_MILLI = 1000 * 60 * 60 * 24;
+const CONVERSION_RESET_MILLI = 7 * DAY_IN_MILLI;
+const BUDGET_STORE = "budgets";
+const DB_NAME = "ReportCounter";
+const DB_VERSION = 1;
 
 export const DAPVisitCounter = new (class {
   counters = null;
   timerId = null;
+
+  get db() {
+    return this._db || (this._db = this.createOrOpenDb());
+  }
+
+  async createOrOpenDb() {
+    try {
+      return await this.openDatabase();
+    } catch {
+      throw new Error("DAPVisitCounter unable to load database.");
+    }
+  }
+
+  async openDatabase() {
+    return await lazy.IndexedDB.open(DB_NAME, DB_VERSION, db => {
+      if (!db.objectStoreNames.contains(BUDGET_STORE)) {
+        db.createObjectStore(BUDGET_STORE);
+      }
+    });
+  }
+
+  async getBudgetStore() {
+    return await this.getStore(BUDGET_STORE);
+  }
+
+  async clearBudgetStore() {
+    const budgetStore = await this.getBudgetStore();
+    await budgetStore.clear();
+  }
+
+  async getStore(storeName) {
+    return (await this.db).objectStore(storeName, "readwrite");
+  }
+
+  async getBudget(task) {
+    const now = Date.now();
+    const budgetStore = await this.getBudgetStore();
+    const budget = await budgetStore.get(task);
+
+    if (!budget || now > budget.nextReset) {
+      return {
+        reportCount: 0,
+        nextReset: now + CONVERSION_RESET_MILLI,
+      };
+    }
+
+    return budget;
+  }
+
+  async updateBudget(budget, value, task) {
+    const budgetStore = await this.getBudgetStore();
+    budget.reportCount += Math.min(budget.reportCount + 1, MAX_REPORTS);
+    await budgetStore.put(budget, task);
+  }
 
   async startup() {
     if (
@@ -54,7 +117,7 @@ export const DAPVisitCounter = new (class {
           for (const pattern of counter.patterns) {
             if (pattern.matches(event.url)) {
               lazy.logConsole.debug(`${pattern.pattern} matched!`);
-              counter.count += 1;
+              counter.count = Math.min(counter.count + 1, MAX_VISIT_COUNT);
             }
           }
         }
@@ -96,6 +159,8 @@ export const DAPVisitCounter = new (class {
           () => this.timed_send(),
           this.timeout_value()
         );
+      } else {
+        await this.clearBudgetStore();
       }
     });
   }
@@ -152,6 +217,10 @@ export const DAPVisitCounter = new (class {
   }
 
   async send(timeout, reason) {
+    if (!Array.isArray(this.counters)) {
+      return;
+    }
+
     let collected_measurements = new Map();
     for (const counter of this.counters) {
       if (!collected_measurements.has(counter.experiment.task_id)) {
@@ -168,6 +237,19 @@ export const DAPVisitCounter = new (class {
 
     let send_promises = [];
     for (const [task_id, measurement] of collected_measurements) {
+      // Check if this is a non-zero report, zero reports are always sent.
+      if (measurement.some(num => num !== 0)) {
+        // Retrieve the budget for this task and check if we are within the budget.
+        const budget = await this.getBudget(task_id);
+
+        if (budget.reportCount >= MAX_REPORTS) {
+          // Already reached the budget, do not send the non-zero report.
+          continue;
+        } else {
+          await this.updateBudget(budget, 1, task_id);
+        }
+      }
+
       let task = {
         id: task_id,
         time_precision: 60,

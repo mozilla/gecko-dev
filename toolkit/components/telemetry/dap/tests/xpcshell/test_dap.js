@@ -176,15 +176,28 @@ add_task(
       "Submission timer should be armed"
     );
 
-    // Unenroll experiment
+    // Need to submit 2 non-zero reports, only 1 registered
     server_requests = 0;
+    lazy.DAPVisitCounter.counters[0].count = 1;
+    await lazy.DAPVisitCounter.send(30 * 1000, "test");
+
+    lazy.DAPVisitCounter.counters[0].count = 1;
+    await lazy.DAPVisitCounter.send(30 * 1000, "test");
+
+    lazy.DAPVisitCounter.counters[0].count = 0;
+    await lazy.DAPVisitCounter.send(30 * 1000, "test");
+
+    // Unenroll experiment
     doExperimentCleanup();
     Services.tm.spinEventLoopUntil(
       "Wait for DAPVisitCounter to flush",
       () => lazy.DAPVisitCounter.counters === null
     );
-    Assert.equal(server_requests, 1, "Unenrollment should flush reports");
-
+    // The 3 server requests are:
+    // 1.  The first DAPVisitCounter.send call (the second DAPVisitCounter.send has reached the submission cap)
+    // 2.  The third DAPVisitCounter.send call (an empty report which is not capped)
+    // 3.  The flush of reports on unenrollment.
+    Assert.equal(server_requests, 3, "Unenrollment should flush reports");
     Assert.ok(
       lazy.DAPVisitCounter.timerId === null,
       "Submission timer should not exist after unenrollment"
