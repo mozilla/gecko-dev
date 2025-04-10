@@ -1,27 +1,23 @@
 diff --git a/include/libyuv/row.h b/include/libyuv/row.h
 --- a/include/libyuv/row.h
 +++ b/include/libyuv/row.h
-@@ -176,8 +176,9 @@ extern "C" {
- 
+@@ -116,7 +116,8 @@ extern "C" {
+
  // The following functions fail on gcc/clang 32 bit with fpic and framepointer.
  // caveat: clangcl uses row_win.cc which works.
--#if defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
--    defined(_MSC_VER)
+-#if (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
 +#if !defined(MOZ_PROFILING) && \
-+     (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
-+      defined(_MSC_VER))
++    (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
+      defined(_MSC_VER)) &&                                             \
+     !defined(LIBYUV_ENABLE_ROWWIN)
  // TODO(fbarchard): fix build error on android_full_debug=1
- // https://code.google.com/p/libyuv/issues/detail?id=517
+@@ -124,7 +125,8 @@ extern "C" {
  #define HAS_I422ALPHATOARGBROW_SSSE3
-@@ -246,8 +247,9 @@ extern "C" {
- #define HAS_ARGBATTENUATEROW_AVX2
+ #define HAS_I444ALPHATOARGBROW_SSSE3
  #endif
- 
--#if defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
--    defined(_MSC_VER)
+-#if (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
 +#if !defined(MOZ_PROFILING) && \
-+  (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
-+   defined(_MSC_VER))
++    (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
+      defined(_MSC_VER)) &&                                             \
+     !defined(LIBYUV_ENABLE_ROWWIN)
  // TODO(fbarchard): fix build error on android_full_debug=1
- // https://code.google.com/p/libyuv/issues/detail?id=517
- #define HAS_I422ALPHATOARGBROW_AVX2

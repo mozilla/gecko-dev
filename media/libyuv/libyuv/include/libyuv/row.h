@@ -116,7 +116,8 @@ extern "C" {
 
 // The following functions fail on gcc/clang 32 bit with fpic and framepointer.
 // caveat: clangcl uses row_win.cc which works.
-#if (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
+#if !defined(MOZ_PROFILING) && \
+    (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
      defined(_MSC_VER)) &&                                             \
     !defined(LIBYUV_ENABLE_ROWWIN)
 // TODO(fbarchard): fix build error on android_full_debug=1
@@ -124,7 +125,8 @@ extern "C" {
 #define HAS_I422ALPHATOARGBROW_SSSE3
 #define HAS_I444ALPHATOARGBROW_SSSE3
 #endif
-#if (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
+#if !defined(MOZ_PROFILING) && \
+    (defined(__x86_64__) || !defined(__pic__) || defined(__clang__) || \
      defined(_MSC_VER)) &&                                             \
     !defined(LIBYUV_ENABLE_ROWWIN)
 // TODO(fbarchard): fix build error on android_full_debug=1
