@@ -509,6 +509,20 @@ BounceTrackingState::OnStateChange(nsIWebProgress* aWebProgress,
     return NS_OK;
   }
 
+  // TODO: use MOZ_LOG_FMT with the x formatter (see matrix)
+
+  MOZ_LOG_FMT(gBounceTrackingProtectionLog, LogLevel::Verbose,
+              "{}: Top level window load: aStateFlags: {}, aStatus: {:#x}",
+              __PRETTY_FUNCTION__, aStateFlags, static_cast<uint32_t>(aStatus));
+
+  // Discard failed loads. Those are not valid destinations.
+  if (NS_FAILED(aStatus)) {
+    MOZ_LOG_FMT(gBounceTrackingProtectionLog, LogLevel::Verbose,
+                "{}: Discarding failed load. aStatus: {:#x}",
+                __PRETTY_FUNCTION__, static_cast<uint32_t>(aStatus));
+    return NS_OK;
+  }
+
   // Get the document principal via the current window global.
   dom::BrowsingContext* browsingContext = aWebProgress->GetBrowsingContext();
   NS_ENSURE_TRUE(browsingContext, NS_ERROR_FAILURE);
