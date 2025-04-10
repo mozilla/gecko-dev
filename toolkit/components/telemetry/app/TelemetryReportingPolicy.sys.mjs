@@ -786,10 +786,7 @@ var TelemetryReportingPolicyImpl = {
   async _configureFromNimbus() {
     this._nimbusVariables = lazy.NimbusFeatures.preonboarding.getAllVariables();
 
-    if (
-      this._nimbusVariables.enabled === null &&
-      this._nimbusVariables.onTrainRolloutEnabled
-    ) {
+    if (this._nimbusVariables.enabled === null) {
       await this._configureFromOnTrainRollout();
     }
 
