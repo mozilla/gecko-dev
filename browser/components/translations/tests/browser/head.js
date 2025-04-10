@@ -730,7 +730,7 @@ class TranslationsBencher {
       );
 
       await FullPageTranslationsTestUtils.openPanel({
-        onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+        onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
       });
 
       await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
@@ -809,7 +809,7 @@ class TranslationsBencher {
       );
 
       await FullPageTranslationsTestUtils.openPanel({
-        onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+        onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewIntro,
       });
 
       await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
