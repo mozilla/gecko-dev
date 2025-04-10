@@ -16,6 +16,8 @@ support-files = [
   "file_web_worker.js",
 ]
 
+["browser_bouncetracking_clearingPurgeLogCrash.js"]
+
 ["browser_bouncetracking_cookie_behavior.js"]
 
 ["browser_bouncetracking_dry_run.js"]

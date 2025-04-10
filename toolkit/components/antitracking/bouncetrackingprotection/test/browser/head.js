@@ -281,6 +281,8 @@ async function waitForRecordBounces(browser) {
  * @param {boolean} [options.skipBounceTrackingProtectionCleanup=false] - Skip
  * the cleanup of BounceTrackingProtection state. When this is enabled the
  * caller is responsible for cleaning BTP state.
+ * @param {boolean} [options.skipStateChecks=false] - Only run a bounce,
+ * skipping BTP state checks.
  * @param {boolean} [options.closeTabAfterBounce=false] - Close the tab right
  * after the bounce completes before the extended navigation ends as the result
  * of a timeout or user interaction.
@@ -299,6 +301,7 @@ async function runTestBounce(options = {}) {
     expectPurge = true,
     originAttributes = {},
     postBounceCallback = () => {},
+    skipStateChecks = false,
     skipSiteDataCleanup = false,
     skipBounceTrackingProtectionCleanup = false,
     closeTabAfterBounce = false,
@@ -322,34 +325,36 @@ async function runTestBounce(options = {}) {
     }
   }
 
-  if (btpIsDisabled) {
-    Assert.ok(!expectCandidate, "Expect no classification in disabled mode.");
-    Assert.ok(
-      !expectRecordBounces,
-      "Expect no record bounces in disabled mode."
-    );
-    Assert.ok(!expectPurge, "Expect no purge in disabled mode.");
-  } else {
-    Assert.ok(
-      bounceTrackingProtection,
-      "BTP singleton must be available in any of the 'enabled' modes."
-    );
-  }
+  if (!skipStateChecks) {
+    if (btpIsDisabled) {
+      Assert.ok(!expectCandidate, "Expect no classification in disabled mode.");
+      Assert.ok(
+        !expectRecordBounces,
+        "Expect no record bounces in disabled mode."
+      );
+      Assert.ok(!expectPurge, "Expect no purge in disabled mode.");
+    } else {
+      Assert.ok(
+        bounceTrackingProtection,
+        "BTP singleton must be available in any of the 'enabled' modes."
+      );
+    }
 
-  if (bounceTrackingProtection) {
-    Assert.equal(
-      bounceTrackingProtection.testGetBounceTrackerCandidateHosts(
-        originAttributes
-      ).length,
-      0,
-      "No bounce tracker hosts initially."
-    );
-    Assert.equal(
-      bounceTrackingProtection.testGetUserActivationHosts(originAttributes)
-        .length,
-      0,
-      "No user activation hosts initially."
-    );
+    if (bounceTrackingProtection) {
+      Assert.equal(
+        bounceTrackingProtection.testGetBounceTrackerCandidateHosts(
+          originAttributes
+        ).length,
+        0,
+        "No bounce tracker hosts initially."
+      );
+      Assert.equal(
+        bounceTrackingProtection.testGetUserActivationHosts(originAttributes)
+          .length,
+        0,
+        "No user activation hosts initially."
+      );
+    }
   }
 
   let win = window;
@@ -448,55 +453,57 @@ async function runTestBounce(options = {}) {
     await new Promise(resolve => setTimeout(resolve, 0));
   }
 
-  if (btpIsDisabled) {
-    // In MODE_DISABLED `bounceTrackingProtection` may still be defined if it
-    // was previously accessed in an enabled state. In that case make sure
-    // nothing is recorded.
-    if (bounceTrackingProtection) {
+  if (!skipStateChecks) {
+    if (btpIsDisabled) {
+      // In MODE_DISABLED `bounceTrackingProtection` may still be defined if it
+      // was previously accessed in an enabled state. In that case make sure
+      // nothing is recorded.
+      if (bounceTrackingProtection) {
+        Assert.deepEqual(
+          bounceTrackingProtection
+            .testGetBounceTrackerCandidateHosts(originAttributes)
+            .map(entry => entry.siteHost),
+          [],
+          "Should not have identified any bounce trackers"
+        );
+        Assert.deepEqual(
+          bounceTrackingProtection
+            .testGetUserActivationHosts(originAttributes)
+            .map(entry => entry.siteHost),
+          [],
+          "Should not have recorded any user activation"
+        );
+      } else {
+        info("BTP singleton is unavailable because mode is MODE_DISABLED.");
+      }
+    } else {
+      // Any of the "enabled" modes.
       Assert.deepEqual(
         bounceTrackingProtection
           .testGetBounceTrackerCandidateHosts(originAttributes)
           .map(entry => entry.siteHost),
-        [],
-        "Should not have identified any bounce trackers"
+        expectCandidate ? [SITE_TRACKER] : [],
+        `Should ${
+          expectCandidate ? "" : "not "
+        }have identified ${SITE_TRACKER} as a bounce tracker.`
       );
+
+      let expectedUserActivationHosts = [SITE_A];
+      if (!closeTabAfterBounce) {
+        // If we didn't close the tab early we should have user activation for the
+        // destination site.
+        expectedUserActivationHosts.push(SITE_B);
+      }
+
       Assert.deepEqual(
         bounceTrackingProtection
           .testGetUserActivationHosts(originAttributes)
-          .map(entry => entry.siteHost),
-        [],
-        "Should not have recorded any user activation"
+          .map(entry => entry.siteHost)
+          .sort(),
+        expectedUserActivationHosts.sort(),
+        "Should only have user activation for sites where we clicked links."
       );
-    } else {
-      info("BTP singleton is unavailable because mode is MODE_DISABLED.");
     }
-  } else {
-    // Any of the "enabled" modes.
-    Assert.deepEqual(
-      bounceTrackingProtection
-        .testGetBounceTrackerCandidateHosts(originAttributes)
-        .map(entry => entry.siteHost),
-      expectCandidate ? [SITE_TRACKER] : [],
-      `Should ${
-        expectCandidate ? "" : "not "
-      }have identified ${SITE_TRACKER} as a bounce tracker.`
-    );
-
-    let expectedUserActivationHosts = [SITE_A];
-    if (!closeTabAfterBounce) {
-      // If we didn't close the tab early we should have user activation for the
-      // destination site.
-      expectedUserActivationHosts.push(SITE_B);
-    }
-
-    Assert.deepEqual(
-      bounceTrackingProtection
-        .testGetUserActivationHosts(originAttributes)
-        .map(entry => entry.siteHost)
-        .sort(),
-      expectedUserActivationHosts.sort(),
-      "Should only have user activation for sites where we clicked links."
-    );
   }
 
   // If the caller specified a function to run after the bounce, run it now.
@@ -518,53 +525,61 @@ async function runTestBounce(options = {}) {
         "testRunPurgeBounceTrackers should reject when BTP is disabled."
       );
     } else {
-      Assert.deepEqual(
-        await bounceTrackingProtection.testRunPurgeBounceTrackers(),
-        expectPurge ? [SITE_TRACKER] : [],
-        `Should ${expectPurge ? "" : "not "}purge state for ${SITE_TRACKER}.`
-      );
+      let purgedHosts =
+        await bounceTrackingProtection.testRunPurgeBounceTrackers();
 
-      info("Testing the purge log.");
-      let purgeLog =
-        bounceTrackingProtection.testGetRecentlyPurgedTrackers(
-          originAttributes
+      if (!skipStateChecks) {
+        Assert.deepEqual(
+          purgedHosts,
+          expectPurge ? [SITE_TRACKER] : [],
+          `Should ${expectPurge ? "" : "not "}purge state for ${SITE_TRACKER}.`
         );
-      // Purges are only logged in (fully) enabled mode. Dry-run mode does not
-      // log purges.
-      if (expectPurge && mode == Ci.nsIBounceTrackingProtection.MODE_ENABLED) {
-        Assert.equal(
-          purgeLog.length,
-          1,
-          "Should have one tracker in purge log."
-        );
-        let { siteHost, timeStamp, purgeTime } = purgeLog[0];
 
-        Assert.equal(
-          siteHost,
-          SITE_TRACKER,
-          `The purge log entry should be for site host '${SITE_TRACKER}'`
-        );
-        Assert.greater(
-          timeStamp,
-          0,
-          "The purge log entry should have a valid timestamp for bounce time."
-        );
-        Assert.greater(
-          purgeTime,
-          0,
-          "The purge log entry should have a valid timestamp for purge time."
-        );
-        Assert.greaterOrEqual(
-          purgeTime,
-          timeStamp,
-          "The purge time should be greater or equal to bounce time."
-        );
-      } else {
-        Assert.equal(
-          purgeLog.length,
-          0,
-          "Should have no trackers in purge log."
-        );
+        info("Testing the purge log.");
+        let purgeLog =
+          bounceTrackingProtection.testGetRecentlyPurgedTrackers(
+            originAttributes
+          );
+        // Purges are only logged in (fully) enabled mode. Dry-run mode does not
+        // log purges.
+        if (
+          expectPurge &&
+          mode == Ci.nsIBounceTrackingProtection.MODE_ENABLED
+        ) {
+          Assert.equal(
+            purgeLog.length,
+            1,
+            "Should have one tracker in purge log."
+          );
+          let { siteHost, timeStamp, purgeTime } = purgeLog[0];
+
+          Assert.equal(
+            siteHost,
+            SITE_TRACKER,
+            `The purge log entry should be for site host '${SITE_TRACKER}'`
+          );
+          Assert.greater(
+            timeStamp,
+            0,
+            "The purge log entry should have a valid timestamp for bounce time."
+          );
+          Assert.greater(
+            purgeTime,
+            0,
+            "The purge log entry should have a valid timestamp for purge time."
+          );
+          Assert.greaterOrEqual(
+            purgeTime,
+            timeStamp,
+            "The purge time should be greater or equal to bounce time."
+          );
+        } else {
+          Assert.equal(
+            purgeLog.length,
+            0,
+            "Should have no trackers in purge log."
+          );
+        }
       }
     }
   } else {
