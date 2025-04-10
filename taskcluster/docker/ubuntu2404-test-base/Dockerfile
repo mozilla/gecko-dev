@@ -5,13 +5,14 @@
 # of such recent breakages)
 FROM          $DOCKER_IMAGE_PARENT
 
+ARG ARCH=amd64
 ARG TASKCLUSTER_ROOT_URL
 ARG DOCKER_IMAGE_PACKAGES
 RUN /usr/local/sbin/setup_packages.sh $TASKCLUSTER_ROOT_URL $DOCKER_IMAGE_PACKAGES
 
 # %include taskcluster/docker/recipes/ubuntu2404-test-system-setup-base.sh
 ADD topsrcdir/taskcluster/docker/recipes/ubuntu2404-test-system-setup-base.sh /setup/system-setup.sh
-RUN     bash /setup/system-setup.sh
+RUN     bash /setup/system-setup.sh $ARCH
 RUN /usr/local/sbin/clean_packages.sh $DOCKER_IMAGE_PACKAGES
 
 # Set a default command useful for debugging
