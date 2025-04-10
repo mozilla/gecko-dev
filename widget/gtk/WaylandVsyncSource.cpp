@@ -141,14 +141,51 @@ void WaylandVsyncSource::SetHiddenWindowVSync() {
   }
 }
 
+void WaylandVsyncSource::SetVSyncEventsLocked(const MutexAutoLock& aProofOfLock,
+                                              bool aEnabled) {
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+  mMutex.AssertCurrentThreadOwns();
+  if (aEnabled) {
+    mLastVsyncTimeStamp = TimeStamp::Now();
+  } else {
+    MozClearHandleID(mHiddenWindowTimerID, g_source_remove);
+  }
+  mWaylandSurface->SetFrameCallbackState(aEnabled);
+}
+
+void WaylandVsyncSource::EnableVsync() {
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(mMutex);
+  LOG("WaylandVsyncSource::EnableVsync fps %f\n", GetFPS(mVsyncRate));
+  if (mVsyncEnabled || mIsShutdown) {
+    LOG("  early quit");
+    return;
+  }
+  mVsyncEnabled = true;
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
+}
+
+void WaylandVsyncSource::DisableVsync() {
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(mMutex);
+  LOG("WaylandVsyncSource::DisableVsync fps %f\n", GetFPS(mVsyncRate));
+  if (!mVsyncEnabled || mIsShutdown) {
+    LOG("  early quit");
+    return;
+  }
+  mVsyncEnabled = false;
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
+}
+
 void WaylandVsyncSource::EnableVSyncSource() {
   MutexAutoLock lock(mMutex);
   LOG("WaylandVsyncSource::EnableVSyncSource() WaylandSurface [%p] fps %f",
       mWaylandSurface.get(), GetFPS(mVsyncRate));
   mVsyncSourceEnabled = true;
 
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(mWaylandSurface);
-  mWaylandSurface->SetFrameCallbackState(mVsyncEnabled && mVsyncSourceEnabled);
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
 }
 
 void WaylandVsyncSource::DisableVSyncSource() {
@@ -157,8 +194,9 @@ void WaylandVsyncSource::DisableVSyncSource() {
       mWaylandSurface.get());
   mVsyncSourceEnabled = false;
 
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(mWaylandSurface);
-  mWaylandSurface->SetFrameCallbackState(mVsyncEnabled && mVsyncSourceEnabled);
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
 }
 
 bool WaylandVsyncSource::HiddenWindowCallback() {
@@ -299,29 +337,6 @@ void WaylandVsyncSource::CalculateVsyncRateLocked(
   }
 
   LOG("  new fps %f correction %f\n", GetFPS(mVsyncRate), correction);
-}
-
-void WaylandVsyncSource::EnableVsync() {
-  MOZ_ASSERT(NS_IsMainThread());
-  MutexAutoLock lock(mMutex);
-  LOG("WaylandVsyncSource::EnableVsync fps %f\n", GetFPS(mVsyncRate));
-  if (mVsyncEnabled || mIsShutdown) {
-    LOG("  early quit");
-    return;
-  }
-  mVsyncEnabled = true;
-  mWaylandSurface->SetFrameCallbackState(mVsyncEnabled && mVsyncSourceEnabled);
-}
-
-void WaylandVsyncSource::DisableVsync() {
-  MutexAutoLock lock(mMutex);
-  LOG("WaylandVsyncSource::DisableVsync fps %f\n", GetFPS(mVsyncRate));
-  if (!mVsyncEnabled || mIsShutdown) {
-    LOG("  early quit");
-    return;
-  }
-  mVsyncEnabled = false;
-  mWaylandSurface->SetFrameCallbackState(mVsyncEnabled && mVsyncSourceEnabled);
 }
 
 bool WaylandVsyncSource::IsVsyncEnabled() {
