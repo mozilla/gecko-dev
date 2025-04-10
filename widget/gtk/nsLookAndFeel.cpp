@@ -101,8 +101,8 @@ static void settings_changed_cb(GtkSettings*, GParamSpec* aSpec, void*) {
       !strcmp(name, "gtk-theme-name") || !strcmp(name, "gtk-font-name") ||
       !strcmp(name, "gtk-application-prefer-dark-theme");
   auto* lnf = static_cast<nsLookAndFeel*>(nsLookAndFeel::GetInstance());
-  auto changeKind =
-      isThemeDependent ? NativeChangeKind::GtkTheme : NativeChangeKind::OtherSettings;
+  auto changeKind = isThemeDependent ? NativeChangeKind::GtkTheme
+                                     : NativeChangeKind::OtherSettings;
   OnSettingsChange(lnf, changeKind);
 }
 
@@ -1481,7 +1481,7 @@ bool nsLookAndFeel::ConfigureAltTheme() {
 
 // We override some adwaita colors from GTK3 to LibAdwaita, see:
 // https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/named-colors.html
-void nsLookAndFeel::MaybeApplyAdwaitaOverrides() {
+void nsLookAndFeel::MaybeApplyColorOverrides() {
   auto& dark = mSystemTheme.mIsDark ? mSystemTheme : mAltTheme;
   auto& light = mSystemTheme.mIsDark ? mAltTheme : mSystemTheme;
 
@@ -1512,52 +1512,42 @@ void nsLookAndFeel::MaybeApplyAdwaitaOverrides() {
     light.mSelectedText = light.mAccent;
   }
 
-  if (!StaticPrefs::widget_gtk_libadwaita_colors_enabled()) {
-    return;
+  if (StaticPrefs::widget_gtk_libadwaita_colors_enabled()) {
+    if (light.mFamily == ThemeFamily::Adwaita) {
+      // #323232 is rgba(0,0,0,.8) over #fafafa.
+      light.mWindow =
+          light.mDialog = {NS_RGB(0xfa, 0xfa, 0xfa), NS_RGB(0x32, 0x32, 0x32)};
+      light.mField = {NS_RGB(0xff, 0xff, 0xff), NS_RGB(0x32, 0x32, 0x32)};
+
+      // We use the sidebar colors for the headerbar in light mode background
+      // because it creates much better contrast. GTK headerbar colors are
+      // white, and meant to "blend" with the contents otherwise. #2f2f2f is
+      // rgba(0,0,0,.8) over #ebebeb.
+      light.mSidebar = light.mHeaderBar = light.mTitlebar = {
+          NS_RGB(0xeb, 0xeb, 0xeb), NS_RGB(0x2f, 0x2f, 0x2f)};
+      light.mHeaderBarInactive = light.mTitlebarInactive = {
+          NS_RGB(0xf2, 0xf2, 0xf2), NS_RGB(0x2f, 0x2f, 0x2f)};
+      light.mThreeDShadow = NS_RGB(0xe0, 0xe0, 0xe0);
+      light.mSidebarBorder = NS_RGBA(0, 0, 0, 18);
+    }
+
+    if (dark.mFamily == ThemeFamily::Adwaita) {
+      dark.mWindow = {NS_RGB(0x24, 0x24, 0x24), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mDialog = {NS_RGB(0x38, 0x38, 0x38), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mField = {NS_RGB(0x3a, 0x3a, 0x3a), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mSidebar = dark.mHeaderBar =
+          dark.mTitlebar = {NS_RGB(0x30, 0x30, 0x30), NS_RGB(0xff, 0xff, 0xff)};
+      dark.mHeaderBarInactive = dark.mTitlebarInactive = {
+          NS_RGB(0x24, 0x24, 0x24), NS_RGB(0xff, 0xff, 0xff)};
+      // headerbar_shade_color
+      dark.mThreeDShadow = NS_RGB(0x1f, 0x1f, 0x1f);
+      dark.mSidebarBorder = NS_RGBA(0, 0, 0, 92);
+    }
   }
-
-  if (light.mFamily == ThemeFamily::Adwaita) {
-    // #323232 is rgba(0,0,0,.8) over #fafafa.
-    light.mWindow =
-        light.mDialog = {NS_RGB(0xfa, 0xfa, 0xfa), NS_RGB(0x32, 0x32, 0x32)};
-    light.mField = {NS_RGB(0xff, 0xff, 0xff), NS_RGB(0x32, 0x32, 0x32)};
-
-    // We use the sidebar colors for the headerbar in light mode background
-    // because it creates much better contrast. GTK headerbar colors are white,
-    // and meant to "blend" with the contents otherwise.
-    // #2f2f2f is rgba(0,0,0,.8) over #ebebeb.
-    light.mSidebar = light.mHeaderBar =
-        light.mTitlebar = {NS_RGB(0xeb, 0xeb, 0xeb), NS_RGB(0x2f, 0x2f, 0x2f)};
-    light.mHeaderBarInactive = light.mTitlebarInactive = {
-        NS_RGB(0xf2, 0xf2, 0xf2), NS_RGB(0x2f, 0x2f, 0x2f)};
-    light.mThreeDShadow = NS_RGB(0xe0, 0xe0, 0xe0);
-    light.mSidebarBorder = NS_RGBA(0, 0, 0, 18);
-  }
-
-  if (dark.mFamily == ThemeFamily::Adwaita) {
-    dark.mWindow = {NS_RGB(0x24, 0x24, 0x24), NS_RGB(0xff, 0xff, 0xff)};
-    dark.mDialog = {NS_RGB(0x38, 0x38, 0x38), NS_RGB(0xff, 0xff, 0xff)};
-    dark.mField = {NS_RGB(0x3a, 0x3a, 0x3a), NS_RGB(0xff, 0xff, 0xff)};
-    dark.mSidebar = dark.mHeaderBar =
-        dark.mTitlebar = {NS_RGB(0x30, 0x30, 0x30), NS_RGB(0xff, 0xff, 0xff)};
-    dark.mHeaderBarInactive = dark.mTitlebarInactive = {
-        NS_RGB(0x24, 0x24, 0x24), NS_RGB(0xff, 0xff, 0xff)};
-    // headerbar_shade_color
-    dark.mThreeDShadow = NS_RGB(0x1f, 0x1f, 0x1f);
-    dark.mSidebarBorder = NS_RGBA(0, 0, 0, 92);
-  }
-}
-
-void nsLookAndFeel::ConfigureAndInitializeAltTheme() {
-  const bool fellBackToDefaultTheme = !ConfigureAltTheme();
-
-  mAltTheme.Init();
-
-  MaybeApplyAdwaitaOverrides();
 
   // Some of the alt theme colors we can grab from the system theme, if we fell
   // back to the default light / dark themes.
-  if (fellBackToDefaultTheme) {
+  if (mAltTheme.mIsDefaultThemeFallback) {
     if (StaticPrefs::widget_gtk_alt_theme_selection()) {
       mAltTheme.mSelectedText = mSystemTheme.mSelectedText;
     }
@@ -1573,6 +1563,13 @@ void nsLookAndFeel::ConfigureAndInitializeAltTheme() {
       mAltTheme.mAccent = mSystemTheme.mAccent;
     }
   }
+}
+
+void nsLookAndFeel::ConfigureAndInitializeAltTheme() {
+  const bool fellBackToDefaultTheme = !ConfigureAltTheme();
+
+  mAltTheme.Init();
+  mAltTheme.mIsDefaultThemeFallback = fellBackToDefaultTheme;
 
   // Right now we're using the opposite color-scheme theme, make sure to record
   // it.
@@ -1671,6 +1668,8 @@ void nsLookAndFeel::Initialize() {
     LOGLNF("System Theme: %s. Alt Theme: %s\n", mSystemTheme.mName.get(),
            mAltTheme.mName.get());
   }
+
+  MaybeApplyColorOverrides();
 
   // Go back to the system theme or keep the alt theme configured, depending on
   // Firefox theme or user color-scheme preference.
