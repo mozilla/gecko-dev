@@ -449,9 +449,13 @@ static CanonicalName CanonicalizeElement(const SanitizerElement& aElement) {
   MOZ_ASSERT(!elem.mName.IsVoid());
 
   RefPtr<nsAtom> namespaceAtom;
-  // Step 4. Let namespace be name["namespace"] if it exists, otherwise defaultNamespace.
+  // Step 4. Let namespace be name["namespace"] if it exists, otherwise
+  // defaultNamespace.
+  //
   // Note: "namespace" always exists due to the WebIDL default value.
+  //
   // Step 5. If namespace is the empty string, then set it to null.
+  // defaultNamespace.
   if (!elem.mNamespace.IsEmpty()) {
     namespaceAtom = NS_AtomizeMainThread(elem.mNamespace);
   }
@@ -487,8 +491,11 @@ static CanonicalName CanonicalizeAttribute(
   MOZ_ASSERT(!attr.mName.IsVoid());
 
   RefPtr<nsAtom> namespaceAtom;
-  // Step 4. Let namespace be name["namespace"] if it exists, otherwise defaultNamespace.
-  // Step 5. If namespace is the empty string, then set it to null.
+  // Step 4. Let namespace be name["namespace"] if it exists, otherwise
+  // defaultNamespace.
+
+  // Step 5. If namespace is the empty string, then set it to
+  // null.
   if (!attr.mNamespace.IsEmpty()) {
     namespaceAtom = NS_AtomizeMainThread(attr.mNamespace);
   }
@@ -712,13 +719,8 @@ void Sanitizer::RemoveUnsafe() {
 // https://wicg.github.io/sanitizer-api/#sanitize
 RefPtr<DocumentFragment> Sanitizer::SanitizeFragment(
     RefPtr<DocumentFragment> aFragment, bool aSafe, ErrorResult& aRv) {
-  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mGlobal);
-  if (!window || !window->GetDoc()) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
-  }
-  // FIXME(freddyb)
-  // (how) can we assert that the supplied doc is indeed inert?
+  MOZ_ASSERT(aFragment->OwnerDoc()->IsLoadedAsData(),
+             "SanitizeChildren relies on the document being inert to be safe");
 
   // Step 1. Let configuration be the value of sanitizer’s configuration.
 
@@ -777,7 +779,7 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     next = child->GetNextSibling();
 
     // Step 1.1. Assert: child implements Text, Comment, or Element.
-    // TODO
+    MOZ_ASSERT(child->IsText() || child->IsComment() || child->IsElement());
 
     // Step 1.2. If child implements Text, then continue.
     if (child->IsText()) {
@@ -817,7 +819,6 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     // elements so we can skip this.
     if constexpr (!IsDefaultConfig) {
       if (aSafe && IsUnsafeElement(nameAtom, namespaceID)) {
-        // TODO: Complex removal
         child->RemoveFromParent();
         continue;
       }
@@ -857,7 +858,6 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
     if constexpr (!IsDefaultConfig) {
       if (mRemoveElements.Contains(*elementName) ||
           (!mElements.IsEmpty() && !mElements.Contains(*elementName))) {
-        // TODO: Do the more complex remove node stuff from nsTreeSanitizer.
         // Step 1.4.3.1. Remove child.
         child->RemoveFromParent();
         // Step 1.4.3.2. Continue.
