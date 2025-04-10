@@ -93,7 +93,7 @@ the interactive setup process.
 
 .. code-block:: shell
 
-    curl https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
+    curl -L https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
 
     # To use Git as your VCS
     python3 bootstrap.py --vcs=git

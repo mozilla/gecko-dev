@@ -69,7 +69,7 @@ To Setup Firefox On macOS and Linux
 
 .. code-block:: shell
 
-    $ curl https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
+    $ curl -L https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
 
     # To use Git as your VCS
     $ python3 bootstrap.py --vcs=git
@@ -84,7 +84,7 @@ To Setup Firefox for Android
 
 .. code-block:: shell
 
-    $ curl https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
+    $ curl -L https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
 
     # To use Git as your VCS
     $ python3 bootstrap.py --vcs=git

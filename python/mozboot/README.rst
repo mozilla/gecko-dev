@@ -13,7 +13,7 @@ If you have a copy of the source tree, you run:
 
 If you don't have a copy of the source tree, you can run:
 
-    curl https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -o bootstrap.py
+    curl -L https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -o bootstrap.py
     python bootstrap.py
 
 The bootstrap script will download everything it needs from hg.mozilla.org
