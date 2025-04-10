@@ -127,7 +127,9 @@ export var AboutReader = function (
   this._innerWindowId = win.windowGlobalChild.innerWindowId;
 
   this._article = null;
-  this._languageDeferred = Promise.withResolvers();
+  this._languagePromise = new Promise(resolve => {
+    this._foundLanguage = resolve;
+  });
 
   if (articlePromise) {
     this._articlePromise = articlePromise;
@@ -423,7 +425,7 @@ export var AboutReader = function (
   this._setupFontSizeButtons();
 
   if (win.speechSynthesis && Services.prefs.getBoolPref("narrate.enabled")) {
-    new lazy.NarrateControls(win, this._languageDeferred.promise);
+    new lazy.NarrateControls(win, this._languagePromise);
   }
 
   this._loadArticle(docContentType);
@@ -1500,7 +1502,7 @@ AboutReader.prototype = {
     this._contentElement.innerHTML = "";
     this._contentElement.appendChild(contentFragment);
     this._maybeSetTextDirection(article);
-    this._languageDeferred.resolve(article.detectedLanguage);
+    this._foundLanguage(article.language);
 
     this._contentElement.classList.add("reader-show-element");
     this._updateImageMargins();
