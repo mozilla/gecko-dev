@@ -48,7 +48,6 @@ test-ohttp-ping:
   include_client_id: false
   metadata:
     include_info_sections: false
-    use_ohttp: true
   send_if_empty: true
   uploader_capabilities:
     - ohttp

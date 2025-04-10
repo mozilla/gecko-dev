@@ -12,7 +12,8 @@ bounce-tracking-protection:
   include_client_id: false
   metadata:
     include_info_sections: false
-    use_ohttp: true
+  uploader_capabilities:
+    - ohttp
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1889444
   data_reviews:

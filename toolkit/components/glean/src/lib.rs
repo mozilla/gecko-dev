@@ -33,7 +33,6 @@ extern crate cstr;
 extern crate xpcom;
 
 mod init;
-mod ohttp_pings;
 
 pub use init::fog_init;
 

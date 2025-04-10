@@ -275,16 +275,6 @@ if CONFIG["MOZ_GLEAN_INTERESTING_METRICS_FILES"]:
     # Once generated, it needs to be placed in GreD so it can be found.
     FINAL_TARGET_FILES += ["!interesting_serverknobs.json"]
 
-# OHTTP support requires the fog_control crate know which pings wish to be sent
-# using OHTTP. fog_control has no access to the firefox_on_glean crate, so it
-# needs its own codegen.
-GeneratedFile(
-    "src/ohttp_pings.rs",
-    script="build_scripts/glean_parser_ext/run_glean_parser.py",
-    entry_point="ohttp_pings",
-    flags=glean_parser_flags,
-    inputs=["!pings_yamls.cached"],
-)
 
 DIRS += [
     "tests",  # Must be in DIRS, not TEST_DIRS or python-test won't find it.

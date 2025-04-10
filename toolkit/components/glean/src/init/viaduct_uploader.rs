@@ -23,9 +23,11 @@ impl PingUploader for ViaductUploader {
     ///
     /// * `upload_request` - the ping and its metadata to upload.
     fn upload(&self, upload_request: CapablePingUploadRequest) -> UploadResult {
-        let upload_request = match upload_request
-            .capable(|capabilities| capabilities.is_empty() || capabilities == ["ohttp"])
-        {
+        let mut requires_ohttp = false;
+        let upload_request = match upload_request.capable(|capabilities| {
+            requires_ohttp = capabilities == ["ohttp"];
+            capabilities.is_empty() || requires_ohttp
+        }) {
             Some(req) => req,
             None => return UploadResult::incapable(),
         };
@@ -51,12 +53,12 @@ impl PingUploader for ViaductUploader {
 
         // Localhost-destined pings are sent without OHTTP,
         // even if configured to use OHTTP.
-        // TODO(bug 1955943): Replace with ping capabilities check
-        let result = if localhost_port == 0 && should_ohttp_upload(&upload_request) {
-            ohttp_upload(upload_request)
-        } else {
-            viaduct_upload(upload_request)
-        };
+        let result =
+            if localhost_port == 0 && requires_ohttp && should_ohttp_upload(&upload_request) {
+                ohttp_upload(upload_request)
+            } else {
+                viaduct_upload(upload_request)
+            };
 
         log::trace!(
             "FOG Ping Uploader completed uploading (Result {:?})",
@@ -98,8 +100,7 @@ fn viaduct_upload(upload_request: PingUploadRequest) -> Result<UploadResult, Via
 }
 
 fn should_ohttp_upload(upload_request: &PingUploadRequest) -> bool {
-    crate::ohttp_pings::uses_ohttp(&upload_request.ping_name)
-        && !upload_request.body_has_info_sections
+    !upload_request.body_has_info_sections
 }
 
 fn ohttp_upload(upload_request: PingUploadRequest) -> Result<UploadResult, ViaductUploaderError> {

@@ -35,15 +35,16 @@ Any data collection that meets the following criteria can use OHTTP:
 ### Short Version: add two metadata fields to your ping definition
 
 Most simply, you opt a ping into using OHTTP by augmenting its
-`pings.yaml` definition with these three lines:
+`pings.yaml` definition with these four lines:
 
 ```yaml
   metadata:
     include_info_sections: false
-    use_ohttp: true
+  uploader_capabilities:
+    - ohttp
 ```
 
-[Here is a convenience link to a searchfox search for `use_ohttp: true`][use-ohttp-searchfox]
+[Here is a convenience link to a searchfox search for `- ohttp`][ohttp-searchfox]
 if you'd like to see existing uses in tree.
 
 ### Longer Version
@@ -72,6 +73,6 @@ And that's it!
 [custom-ping-doc]: https://mozilla.github.io/glean/book/reference/pings/index.html
 [data-review]: https://wiki.mozilla.org/Data_Collection
 [sensitive-review]: https://wiki.mozilla.org/Data_Collection#Step_3:_Sensitive_Data_Collection_Review_Process
-[use-ohttp-searchfox]: https://searchfox.org/mozilla-central/search?q=use_ohttp%3A%20true
+[ohttp-searchfox]: https://searchfox.org/mozilla-central/search?q=-%20ohttp
 [new-instrumentation-doc]: ./new_definitions_file.md
 [instrumentation-tests]: ./instrumentation_tests.md
