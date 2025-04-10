@@ -4,12 +4,12 @@
 
 def frametree(debugger, command, result, dict):
     """Dumps the frame tree containing the given nsIFrame*."""
-    debugger.HandleCommand("expr (" + command + ")->DumpFrameTree()")
+    debugger.HandleCommand("expr (" + command + ")->DumpFrameTree(false)")
 
 
 def frametree_pixels(debugger, command, result, dict):
     """Dumps the frame tree containing the given nsIFrame* in CSS pixels."""
-    debugger.HandleCommand("expr (" + command + ")->DumpFrameTreeInCSSPixels()")
+    debugger.HandleCommand("expr (" + command + ")->DumpFrameTreeInCSSPixels(false)")
 
 
 def frametreelimited(debugger, command, result, dict):
