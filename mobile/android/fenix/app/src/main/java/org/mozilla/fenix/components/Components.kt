@@ -260,7 +260,7 @@ class Components(private val context: Context) {
 
     private fun setupChecklistState() = if (settings.showSetupChecklist) {
         val type = FxNimbus.features.setupChecklist.value().setupChecklistType
-        SetupChecklistState(checklistItems = getSetupChecklistCollection(type))
+        SetupChecklistState(checklistItems = getSetupChecklistCollection(settings, type))
     } else {
         null
     }
