@@ -45,7 +45,9 @@ class InfoBarNotification {
         priority,
         eventCallback: this.infobarCallback,
       },
-      content.buttons.map(b => this.formatButtonConfig(b))
+      content.buttons.map(b => this.formatButtonConfig(b)),
+      false,
+      content.dismissable
     );
 
     this.addImpression();

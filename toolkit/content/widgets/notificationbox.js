@@ -139,7 +139,8 @@
       aType,
       aNotification,
       aButtons,
-      aDisableClickJackingDelay = false
+      aDisableClickJackingDelay = false,
+      dismissable = true
     ) {
       if (
         aNotification.priority < this.PRIORITY_SYSTEM ||
@@ -160,13 +161,14 @@
         // Wrapped in a try/catch to handle rare cases where we start creating
         // a notification but then the window gets closed/goes away.
         try {
-          await createNotificationMessageElement();
+          await createNotificationMessageElement(dismissable);
         } catch (err) {
           console.warn(err);
           throw err;
         }
       }
       newitem = document.createElement("notification-message");
+      newitem.dismissable = dismissable;
       newitem.setAttribute("message-bar-type", "infobar");
 
       // Append or prepend notification, based on stack preference.
@@ -381,7 +383,7 @@
     PRIORITY_CRITICAL_HIGH: 9,
   });
 
-  async function createNotificationMessageElement() {
+  async function createNotificationMessageElement(dismissable) {
     document.createElement("moz-message-bar");
     let MozMessageBar = await customElements.whenDefined("moz-message-bar");
     class NotificationMessage extends MozMessageBar {
@@ -396,7 +398,7 @@
         this.persistence = 0;
         this.priority = 0;
         this.timeout = 0;
-        this.dismissable = true;
+        this.dismissable = dismissable;
 
         // Variables used for security delay / clickjacking protection.
         this._clickjackingDelayActive = false;

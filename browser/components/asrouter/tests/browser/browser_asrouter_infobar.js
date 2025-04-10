@@ -177,3 +177,78 @@ add_task(async function prevent_multiple_messages() {
   infobar.notification.closeButton.click();
   Assert.equal(InfoBar._activeInfobar, null, "Cleared the active notification");
 });
+
+add_task(async function default_dismissable_button_shows() {
+  let message = (await CFRMessageProvider.getMessages()).find(
+    m => m.id === "INFOBAR_ACTION_86"
+  );
+  Assert.ok(message, "Found the message");
+
+  // Use the base message which has no dismissable property by default.
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  Assert.ok(
+    infobar.notification.closeButton,
+    "Default message should display a close button"
+  );
+
+  infobar.notification.closeButton.click();
+  await BrowserTestUtils.waitForCondition(
+    () => infobar.notification === null,
+    "Wait for default message notification to be dismissed."
+  );
+});
+
+add_task(
+  async function non_dismissable_notification_does_not_show_close_button() {
+    let baseMessage = (await CFRMessageProvider.getMessages()).find(
+      m => m.id === "INFOBAR_ACTION_86"
+    );
+    Assert.ok(baseMessage, "Found the base message");
+
+    let message = {
+      ...baseMessage,
+      content: {
+        ...baseMessage.content,
+        dismissable: false,
+      },
+    };
+
+    // Add a footer button we can close the infobar with
+    message.content.buttons.push({
+      label: "Cancel",
+      action: {
+        type: "CANCEL",
+      },
+    });
+
+    let dispatchStub = sinon.stub();
+    let infobar = await InfoBar.showInfoBarMessage(
+      BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+      message,
+      dispatchStub
+    );
+
+    Assert.ok(
+      !infobar.notification.closeButton,
+      "Non-dismissable message should not display a close button"
+    );
+
+    let cancelButton = infobar.notification.querySelector(
+      ".footer-button:not(.primary)"
+    );
+
+    Assert.ok(cancelButton, "Non-primary footer button exists");
+
+    cancelButton.click();
+    await BrowserTestUtils.waitForCondition(
+      () => infobar.notification === null,
+      "Wait for default message notification to close."
+    );
+  }
+);
