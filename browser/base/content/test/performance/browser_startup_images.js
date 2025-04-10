@@ -60,6 +60,14 @@ const knownUnshownImages = [
     file: "chrome://global/skin/icons/highlights.svg",
     platforms: ["win", "linux", "macosx"],
     intermittentShown: ["win", "linux"],
+    // this file is not loaded in beta since the pref is only
+    // turned on in nightly
+    intermittentNotLoaded: Services.prefs.getBoolPref(
+      "browser.tabs.groups.smart.enabled",
+      true
+    )
+      ? []
+      : ["win", "linux", "macosx"],
   },
 ];
 
