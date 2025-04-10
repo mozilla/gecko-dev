@@ -597,7 +597,9 @@ function push_repo {
     echo '{"transactions": [{"type":"abandon", "value": true}], "objectIdentifier": "'"${diff}"'"}' | $ARC call-conduit -- differential.revision.edit
   done
 
-  $ARC diff --verbatim --reviewers "${REVIEWERS}"
+  # bug 1959683: using /dev/null as stdin causes arcanist to fail quickly
+  # instead of hang if user input is requested.
+  $ARC diff --verbatim --reviewers "${REVIEWERS}" < /dev/null
 }
 
 
