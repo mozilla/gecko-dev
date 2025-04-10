@@ -207,7 +207,8 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
     regionToClear.OrWith(ComputeNonClientRegion());
     mNeedsNCAreaClear = false;
   }
-  if (!regionToClear.IsEmpty()) {
+  if (!regionToClear.IsEmpty() &&
+      renderer->GetBackendType() != LayersBackend::LAYERS_NONE) {
     auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
     // We could use RegionToHRGN, but at least for simple regions (and possibly
     // for complex ones too?) FillRect is faster; see bug 1946365 comment 12.
