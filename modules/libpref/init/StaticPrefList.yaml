@@ -8623,7 +8623,7 @@
   # Experimental support for Temporal in JavaScript.
 - name: javascript.options.experimental.temporal
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   set_spidermonkey_pref: startup
 #endif  // JS_HAS_TEMPORAL_API
