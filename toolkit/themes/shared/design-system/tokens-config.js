@@ -500,6 +500,7 @@ module.exports = {
     "css/variables/brand": createDesktopFormat("brand"),
     "css/variables/platform": createDesktopFormat("platform"),
     "javascript/storybook": storybookJSFormat,
+    ...figmaConfig.formats,
   },
   platforms: {
     css: {
@@ -548,6 +549,6 @@ module.exports = {
         },
       ],
     },
-    figma: figmaConfig,
+    figma: figmaConfig.platform,
   },
 };
