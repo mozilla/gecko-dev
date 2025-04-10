@@ -59,6 +59,7 @@ CycleCollectedJSContext::CycleCollectedJSContext()
       mDoingStableStates(false),
       mTargetedMicroTaskRecursionDepth(0),
       mMicroTaskLevel(0),
+      mSyncOperations(0),
       mSuppressionGeneration(0),
       mDebuggerRecursionDepth(0),
       mMicroTaskRecursionDepth(0),
@@ -783,7 +784,10 @@ bool CycleCollectedJSContext::PerformMicroTaskCheckPoint(bool aForce) {
       break;
     }
 
-    if (runnable->Suppressed()) {
+    // No need to check Suppressed if there aren't ongoing sync operations nor
+    // pending mSuppressedMicroTasks.
+    if ((IsInSyncOperation() || mSuppressedMicroTasks) &&
+        runnable->Suppressed()) {
       // Microtasks in worker shall never be suppressed.
       // Otherwise, mPendingMicroTaskRunnables will be replaced later with
       // all suppressed tasks in mDebuggerMicroTaskQueue unexpectedly.

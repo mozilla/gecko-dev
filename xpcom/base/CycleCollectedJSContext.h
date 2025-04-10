@@ -246,6 +246,10 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
 
   void SetMicroTaskLevel(uint32_t aLevel) { mMicroTaskLevel = aLevel; }
 
+  void EnterSyncOperation() { ++mSyncOperations; }
+  void LeaveSyncOperation() { --mSyncOperations; }
+  bool IsInSyncOperation() const { return mSyncOperations > 0; }
+
   MOZ_CAN_RUN_SCRIPT
   bool PerformMicroTaskCheckPoint(bool aForce = false);
 
@@ -338,6 +342,8 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   uint32_t mTargetedMicroTaskRecursionDepth;
 
   uint32_t mMicroTaskLevel;
+
+  uint32_t mSyncOperations;
 
   std::deque<RefPtr<MicroTaskRunnable>> mPendingMicroTaskRunnables;
   std::deque<RefPtr<MicroTaskRunnable>> mDebuggerMicroTaskQueue;
