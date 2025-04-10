@@ -124,7 +124,10 @@ class RegionDetector {
   // Keep track of how many times we have tried to fetch
   // the users region during failure.
   _retryCount = 0;
-  // Let tests wait for init to complete.
+  /**
+   * @type {Promise}
+   *   Allow tests to wait for init to be complete.
+   */
   _initPromise = null;
   // Topic for Observer events fired by Region.sys.mjs.
   REGION_TOPIC = "browser-region-updated";
@@ -140,11 +143,18 @@ class RegionDetector {
    * Read currently stored region data and if needed trigger background
    * region detection.
    */
-  async init() {
+  init() {
+    // If we're running in the child process, then all `Region` does is act
+    // as a proxy for the browser.search.region preference.
+    if (inChildProcess) {
+      this._home = Services.prefs.getCharPref(REGION_PREF, null);
+      return Promise.resolve();
+    }
+
     if (this._initPromise) {
       return this._initPromise;
     }
-    if (lazy.cacheBustEnabled && !inChildProcess) {
+    if (lazy.cacheBustEnabled) {
       Services.tm.idleDispatchToMainThread(() => {
         lazy.timerManager.registerTimer(
           UPDATE_CHECK_NAME,
@@ -155,10 +165,13 @@ class RegionDetector {
     }
     let promises = [];
     this._home = Services.prefs.getCharPref(REGION_PREF, null);
-    if (!this._home && !inChildProcess) {
+    if (this._home) {
+      // On startup, ensure the Glean probe knows the home region from preferences.
+      Glean.region.homeRegion.set(this._home);
+    } else {
       promises.push(this._idleDispatch(() => this._fetchRegion()));
     }
-    if (lazy.localGeocodingEnabled && !inChildProcess) {
+    if (lazy.localGeocodingEnabled) {
       promises.push(this._idleDispatch(() => this._setupRemoteSettings()));
     }
     return (this._initPromise = Promise.all(promises));
@@ -167,7 +180,7 @@ class RegionDetector {
   /**
    * Get the region we currently consider the users home.
    *
-   * @returns {string}
+   * @returns {?string}
    *   The users current home region.
    */
   get home() {
@@ -314,6 +327,7 @@ class RegionDetector {
     log.info("Updating home region:", region);
     this._home = region;
     Services.prefs.setCharPref("browser.search.region", region);
+    Glean.region.homeRegion.set(region);
     if (notify) {
       Services.obs.notifyObservers(
         this._createSupportsString(region),

@@ -71,6 +71,30 @@ region:
     no_lint:
       - COMMON_PREFIX
 
+  home_region:
+    type: string
+    lifetime: application
+    description: >
+      Records the detected home region of the user. This is the general region
+      of the user's machine.
+
+      If a machine moves location, there is a minimum 2-week delay before this
+      will be updated.
+
+      See the [Region documentation](https://firefox-source-docs.mozilla.org/toolkit/modules/toolkit_modules/Region.html)
+      for more information about updates.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1419788
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929411
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1419788
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929411
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    data_sensitivity:
+      - interaction
+    expires: never
+
   store_region_result:
     type: labeled_counter
     description: >

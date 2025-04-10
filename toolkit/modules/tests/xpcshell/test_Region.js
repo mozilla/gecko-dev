@@ -3,9 +3,6 @@
 const { HttpServer } = ChromeUtils.importESModule(
   "resource://testing-common/httpd.sys.mjs"
 );
-const { Region } = ChromeUtils.importESModule(
-  "resource://gre/modules/Region.sys.mjs"
-);
 const { setTimeout } = ChromeUtils.importESModule(
   "resource://gre/modules/Timer.sys.mjs"
 );
@@ -17,6 +14,7 @@ const { sinon } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
+  Region: "resource://gre/modules/Region.sys.mjs",
   RegionTestUtils: "resource://testing-common/RegionTestUtils.sys.mjs",
 });
 
@@ -29,13 +27,50 @@ const histogram = Services.telemetry.getHistogramById(
   "SEARCH_SERVICE_COUNTRY_FETCH_RESULT"
 );
 
+add_setup(async () => {
+  Services.prefs.setBoolPref("browser.region.log", true);
+});
+
 // Region.sys.mjs will call init() on being loaded and set a background
 // task to fetch the region, ensure we have completed this before
 // running the rest of the tests.
-add_task(async function test_startup() {
-  RegionTestUtils.setNetworkRegion("UK");
+add_task(async function test_startup_with_no_pref() {
+  Services.fog.testResetFOG();
+
+  RegionTestUtils.setNetworkRegion("AT");
+
+  // Region.sys.mjs is lazily loaded, so referencing `Region.` here will load
+  // it and automatically call the `Region.init()` function.
   await checkTelemetry(Region.TELEMETRY.SUCCESS);
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "AT",
+    "Should have correctly stored the region in home region after getting it"
+  );
+
   await cleanup();
+});
+
+add_task(async function test_startup_with_pref() {
+  Services.fog.testResetFOG();
+
+  Services.prefs.setCharPref("browser.search.region", "GB");
+
+  // If we failed to read the pref, we'd kick off a network connection. So set
+  // up the network to return a different region here so that we'd be able to
+  // detect that case.
+  RegionTestUtils.setNetworkRegion("DE");
+
+  // Use a different instance of region for testing this.
+  let region = Region.newInstance();
+  await region.init();
+
+  Assert.equal(region.home, "GB", "Should have loaded the correct region");
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "GB",
+    "Should have correctly stored the region in home region after getting it"
+  );
 });
 
 add_task(async function test_basic() {
@@ -60,6 +95,12 @@ add_task(async function test_basic() {
   );
 
   assertStoredResultTelemetry({ restOfWorld: 1 });
+
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "UK",
+    "Should have correctly set the region in home region after getting it"
+  );
 
   await cleanup(srv);
 });
@@ -123,23 +164,45 @@ add_task(async function test_location() {
 });
 
 add_task(async function test_update() {
-  Region._home = null;
   RegionTestUtils.setNetworkRegion("FR");
   await Region._fetchRegion();
   Assert.equal(Region.home, "FR", "Should have correct region");
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "FR",
+    "Should have correctly set the region in home region after getting it"
+  );
+
   RegionTestUtils.setNetworkRegion("DE");
   await Region._fetchRegion();
   Assert.equal(Region.home, "FR", "Shouldnt have changed yet");
-  // Thie first fetchRegion will set the prefs to determine when
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "FR",
+    "Should not have updated the home region telemetry yet"
+  );
+
+  // The first fetchRegion will set the prefs to determine when
   // to update the home region, we need to do 2 fetchRegions to test
   // it isnt updating when it shouldnt.
   await Region._fetchRegion();
   Assert.equal(Region.home, "FR", "Shouldnt have changed yet again");
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "FR",
+    "Should not have updated the home region telemetry yet (again)"
+  );
+
   Services.prefs.setIntPref(INTERVAL_PREF, 1);
   /* eslint-disable mozilla/no-arbitrary-setTimeout */
   await new Promise(resolve => setTimeout(resolve, 1100));
   await Region._fetchRegion();
   Assert.equal(Region.home, "DE", "Should have updated now");
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "DE",
+    "Should have correctly set the home region telemetry"
+  );
 
   await cleanup();
 });
@@ -155,6 +218,11 @@ add_task(async function test_update_us() {
 
   assertStoredResultTelemetry({ unitedStates: 1 });
   Assert.equal(Region.home, "US", "Should have correct region");
+  Assert.equal(
+    Glean.region.homeRegion.testGetValue(),
+    "US",
+    "Should have correctly set the home region telemetry"
+  );
 
   Services.fog.testResetFOG();
 
@@ -268,6 +336,7 @@ function send(res, json) {
 
 async function cleanup(srv = null) {
   Services.prefs.clearUserPref("browser.search.region");
+  Region._home = null;
   if (srv) {
     await new Promise(r => srv.stop(r));
   }
@@ -277,7 +346,7 @@ async function checkTelemetry(aExpectedValue) {
   // Wait until there is 1 result.
   await TestUtils.waitForCondition(() => {
     let snapshot = histogram.snapshot();
-    return Object.values(snapshot.values).reduce((a, b) => a + b) == 1;
+    return Object.values(snapshot.values).reduce((a, b) => a + b, 0) == 1;
   });
   let snapshot = histogram.snapshot();
   Assert.equal(snapshot.values[aExpectedValue], 1);
