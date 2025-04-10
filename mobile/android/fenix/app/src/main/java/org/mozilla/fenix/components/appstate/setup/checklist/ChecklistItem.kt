@@ -66,11 +66,11 @@ sealed class ChecklistItem(@StringRes open val title: Int) {
  * @property completedTasks the number of completed tasks.
  */
 data class Progress(
-    var totalTasks: Int = 0,
-    var completedTasks: Int = 0,
+    val totalTasks: Int = 0,
+    val completedTasks: Int = 0,
 ) {
     /**
-     * Checks if all tasks in the checklist are completed.
+     * Returns `true` if all tasks in the checklist are completed.
      */
     fun allTasksCompleted() = totalTasks == completedTasks
 }
@@ -93,6 +93,11 @@ fun List<ChecklistItem>.getTaskProgress(): Progress {
 }
 
 /**
+ * Returns true if all checklist items are groups.
+ */
+fun List<ChecklistItem>.checklistItemsAreGroups() = all { it is ChecklistItem.Group }
+
+/**
  * Gets the checklist items for the given [SetupChecklistType].
  */
 fun getSetupChecklistCollection(collection: SetupChecklistType) = when (collection) {
@@ -106,19 +111,19 @@ private fun createTasksCollection() =
 private fun defaultBrowserTask() = ChecklistItem.Task(
     type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
     title = R.string.setup_checklist_task_default_browser,
-    icon = R.drawable.mozac_ic_web_extension_default_icon,
+    icon = R.drawable.mozac_ic_globe_24,
 )
 
 private fun exploreExtensionTask() = ChecklistItem.Task(
     type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
     title = R.string.setup_checklist_task_explore_extensions,
-    icon = R.drawable.mozac_ic_web_extension_default_icon,
+    icon = R.drawable.ic_addons_extensions,
 )
 
 private fun signInTask() = ChecklistItem.Task(
     type = ChecklistItem.Task.Type.SIGN_IN,
     title = R.string.setup_checklist_task_account_sync,
-    icon = R.drawable.mozac_ic_web_extension_default_icon,
+    icon = R.drawable.ic_fx_accounts_avatar,
 )
 
 private fun createGroupsCollection() =
@@ -135,12 +140,12 @@ private fun customizeGroup() = ChecklistItem.Group(
         ChecklistItem.Task(
             type = ChecklistItem.Task.Type.SELECT_THEME,
             title = R.string.setup_checklist_task_theme_selection,
-            icon = R.drawable.mozac_ic_web_extension_default_icon,
+            icon = R.drawable.mozac_ic_themes_24,
         ),
         ChecklistItem.Task(
             type = ChecklistItem.Task.Type.CHANGE_TOOLBAR_PLACEMENT,
-            title = R.string.setup_checklist_task_theme_selection,
-            icon = R.drawable.mozac_ic_web_extension_default_icon,
+            title = R.string.setup_checklist_task_toolbar_selection,
+            icon = R.drawable.mozac_ic_tool_24,
         ),
     ),
 )
@@ -150,8 +155,8 @@ private fun helpfulToolsGroup() = ChecklistItem.Group(
     tasks = listOf(
         ChecklistItem.Task(
             type = ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET,
-            title = R.string.setup_checklist_task_theme_selection,
-            icon = R.drawable.mozac_ic_web_extension_default_icon,
+            title = R.string.setup_checklist_task_search_widget,
+            icon = R.drawable.ic_search,
         ),
         exploreExtensionTask(),
     ),

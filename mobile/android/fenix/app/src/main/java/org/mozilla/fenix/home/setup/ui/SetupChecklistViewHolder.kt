@@ -36,9 +36,6 @@ class SetupChecklistViewHolder(
             SetupChecklist(
                 setupChecklistState = setupChecklistState,
                 interactor = interactor,
-                title = "Finish setting up Firefox",
-                subtitle = "Complete all 6 steps to set up Firefox for the best browsing experience.",
-                labelRemoveChecklistButton = "Remove checklist",
             )
         }
     }

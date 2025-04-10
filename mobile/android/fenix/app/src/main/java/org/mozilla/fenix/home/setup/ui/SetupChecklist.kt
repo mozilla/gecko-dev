@@ -21,6 +21,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -32,8 +34,10 @@ import mozilla.components.compose.base.button.PrimaryButton
 import mozilla.components.compose.base.theme.layout.AcornLayout
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.setup.checklist.ChecklistItem
-import org.mozilla.fenix.components.appstate.setup.checklist.Progress
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
+import org.mozilla.fenix.components.appstate.setup.checklist.checklistItemsAreGroups
+import org.mozilla.fenix.components.appstate.setup.checklist.getSetupChecklistSubtitle
+import org.mozilla.fenix.components.appstate.setup.checklist.getSetupChecklistTitle
 import org.mozilla.fenix.home.sessioncontrol.SetupChecklistInteractor
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -45,18 +49,9 @@ private val shapeChecklist = RoundedCornerShape(size = AcornLayout.AcornCorner.l
  *
  * @param setupChecklistState The [SetupChecklistState] used to manage the state of feature.
  * @param interactor The [SetupChecklistInteractor] used to handle user interactions.
- * @param title The checklist's title.
- * @param subtitle The checklist's subtitle.
- * @param labelRemoveChecklistButton The label of the checklist's button to remove it.
  */
 @Composable
-fun SetupChecklist(
-    setupChecklistState: SetupChecklistState,
-    interactor: SetupChecklistInteractor,
-    title: String,
-    subtitle: String,
-    labelRemoveChecklistButton: String,
-) {
+fun SetupChecklist(setupChecklistState: SetupChecklistState, interactor: SetupChecklistInteractor) {
     Card(
         modifier = Modifier.padding(16.dp),
         shape = shapeChecklist,
@@ -67,7 +62,7 @@ fun SetupChecklist(
             verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.Start,
         ) {
-            Header(title = title, subtitle = subtitle, progress = setupChecklistState.progress)
+            Header(setupChecklistState)
 
             ChecklistView(
                 interactor = interactor,
@@ -77,10 +72,7 @@ fun SetupChecklist(
             if (setupChecklistState.progress.allTasksCompleted()) {
                 Divider()
 
-                RemoveChecklistButton(
-                    interactor = interactor,
-                    labelRemoveChecklistButton = labelRemoveChecklistButton,
-                )
+                RemoveChecklistButton(interactor)
             }
         }
     }
@@ -90,28 +82,37 @@ fun SetupChecklist(
  * The header for setup checklist that contains the title, the subtitle and the progress bar.
  */
 @Composable
-private fun Header(
-    title: String,
-    subtitle: String,
-    progress: Progress,
-) {
+private fun Header(state: SetupChecklistState) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top),
         horizontalAlignment = Alignment.Start,
     ) {
+        val progress = state.progress
+
         Text(
-            text = title,
+            text = getSetupChecklistTitle(
+                context = context,
+                allTasksCompleted = progress.allTasksCompleted(),
+            ),
             style = FirefoxTheme.typography.headline7,
             color = FirefoxTheme.colors.textPrimary,
             modifier = Modifier.semantics { heading() },
         )
 
-        Text(
-            text = subtitle,
-            style = FirefoxTheme.typography.body2,
-            color = FirefoxTheme.colors.textPrimary,
+        getSetupChecklistSubtitle(
+            context = context,
+            progress = progress,
+            isGroups = state.checklistItems.checklistItemsAreGroups(),
         )
+            ?.let {
+                Text(
+                    text = it,
+                    style = FirefoxTheme.typography.body2,
+                    color = FirefoxTheme.colors.textPrimary,
+                )
+            }
 
         ProgressBarSetupChecklistView(progress.totalTasks, progress.completedTasks)
     }
@@ -121,10 +122,7 @@ private fun Header(
  * The button that will remove the setup checklist from homepage.
  */
 @Composable
-private fun RemoveChecklistButton(
-    interactor: SetupChecklistInteractor,
-    labelRemoveChecklistButton: String,
-) {
+private fun RemoveChecklistButton(interactor: SetupChecklistInteractor) {
     Column(
         modifier = Modifier.padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
@@ -135,7 +133,7 @@ private fun RemoveChecklistButton(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PrimaryButton(
-                text = labelRemoveChecklistButton,
+                text = stringResource(R.string.setup_checklist_button_remove),
                 modifier = Modifier.width(width = FirefoxTheme.layout.size.maxWidth.small),
                 onClick = { interactor.onRemoveChecklistButtonClicked() },
             )
@@ -243,9 +241,6 @@ private fun SetupChecklistPreview(
                     override fun onChecklistItemClicked(item: ChecklistItem) { /* no op */ }
                     override fun onRemoveChecklistButtonClicked() { /* no op */ }
                 },
-                title = "Finish setting up Firefox",
-                subtitle = "Complete all 6 steps to set up Firefox for the best browsing experience.",
-                labelRemoveChecklistButton = "Remove checklist",
             )
         }
     }
