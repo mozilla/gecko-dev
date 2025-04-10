@@ -1,7 +1,7 @@
 [DEFAULT]
 subsuite = "media"
 tags = "media-engine-compatible"
-run-if = ["os == 'android' && !isolated_process"] # Bug 1771452
+run-if = ["os == 'android'"]
 support-files = [
   "head.js",
   "../../../../dom/media/test/small-shot.ogg",
@@ -15,3 +15,5 @@ prefs = [
 ]
 
 ["test_utility_audio_on.html"]
+["test_android_audio_on.html"]
+run-if = ["!isolated_process"]
