@@ -5,6 +5,7 @@ lint = "31.9.1"
 
 python-envs-plugin = "0.0.31"
 maven-ant-tasks = "2.1.3"
+jacoco = "0.8.12"
 okhttp = "4.12.0"
 okio = "3.10.1"
 androidsvg = "1.4"
@@ -65,7 +66,6 @@ play-services-fido = "21.2.0"
 protobuf = "4.30.2" # Keep Protobuf in sync with the version used by AppServices.
 
 # Gradle plugins
-jacoco = "0.8.13"
 kotlin-dsl = "5.2.0"
 protobuf-plugin = "0.9.5"
 scip-java = "0.10.4"
