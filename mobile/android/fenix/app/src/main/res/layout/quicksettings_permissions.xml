@@ -217,7 +217,7 @@
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
         android:gravity="end|center_vertical"
-        android:backgroundTint="?accentUsedOnDarkBackground"
+        android:backgroundTint="?textPrimary"
         app:layout_constraintBottom_toTopOf="@id/mediaKeySystemAccessStatus"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/autoplayLabel"
