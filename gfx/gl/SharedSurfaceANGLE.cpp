@@ -10,6 +10,8 @@
 #include "GLLibraryEGL.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/FileHandleWrapper.h"
+#include "mozilla/layers/CompositeProcessD3D11FencesHolderMap.h"
+#include "mozilla/layers/FenceD3D11.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
 
 namespace mozilla {
@@ -71,12 +73,19 @@ SharedSurface_ANGLEShareHandle::Create(const SharedSurfaceDesc& desc) {
   }
 
   // Create a texture in case we need to readback.
+  auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+  const bool useFence =
+      fencesHolderMap && layers::FenceD3D11::IsSupported(device);
   const DXGI_FORMAT format = DXGI_FORMAT_B8G8R8A8_UNORM;
   CD3D11_TEXTURE2D_DESC texDesc(
       format, desc.size.width, desc.size.height, 1, 1,
       D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
-  texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE |
-                      D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+  texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+  if (useFence) {
+    texDesc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
+  } else {
+    texDesc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+  }
 
   RefPtr<ID3D11Texture2D> texture2D;
   auto hr =
@@ -100,10 +109,20 @@ SharedSurface_ANGLEShareHandle::Create(const SharedSurfaceDesc& desc) {
   RefPtr<gfx::FileHandleWrapper> handle =
       new gfx::FileHandleWrapper(UniqueFileHandle(sharedHandle));
 
+  Maybe<layers::CompositeProcessFencesHolderId> fencesHolderId;
+  RefPtr<layers::FenceD3D11> fence;
   RefPtr<IDXGIKeyedMutex> keyedMutex;
-  texture2D->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(keyedMutex));
-  if (!keyedMutex) {
-    return nullptr;
+  if (useFence) {
+    fence = layers::FenceD3D11::Create(device);
+    if (!fence) {
+      return nullptr;
+    }
+    fencesHolderId = Some(layers::CompositeProcessFencesHolderId::GetNext());
+  } else {
+    texture2D->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(keyedMutex));
+    if (!keyedMutex) {
+      return nullptr;
+    }
   }
 
   const auto& config = gle->mSurfaceConfig;
@@ -113,19 +132,35 @@ SharedSurface_ANGLEShareHandle::Create(const SharedSurfaceDesc& desc) {
       CreatePBufferSurface(egl.get(), config, desc.size, texture2D);
   if (!pbuffer) return nullptr;
 
+  if (useFence) {
+    auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+    fencesHolderMap->Register(fencesHolderId.ref());
+  }
+
   return AsUnique(new SharedSurface_ANGLEShareHandle(
-      desc, egl, pbuffer, std::move(handle), keyedMutex));
+      desc, device, egl, pbuffer, std::move(handle), fencesHolderId, fence,
+      keyedMutex));
 }
 
 SharedSurface_ANGLEShareHandle::SharedSurface_ANGLEShareHandle(
-    const SharedSurfaceDesc& desc, const std::weak_ptr<EglDisplay>& egl,
-    EGLSurface pbuffer, RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
+    const SharedSurfaceDesc& desc, const RefPtr<ID3D11Device> aDevice,
+    const std::weak_ptr<EglDisplay>& egl, EGLSurface pbuffer,
+    RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
+    const Maybe<layers::CompositeProcessFencesHolderId> aFencesHolderId,
+    const RefPtr<layers::FenceD3D11>& aWriteFence,
     const RefPtr<IDXGIKeyedMutex>& keyedMutex)
     : SharedSurface(desc, nullptr),
+      mDevice(aDevice),
       mEGL(egl),
       mPBuffer(pbuffer),
       mSharedHandle(std::move(aSharedHandle)),
-      mKeyedMutex(keyedMutex) {}
+      mFencesHolderId(aFencesHolderId),
+      mWriteFence(std::move(aWriteFence)),
+      mKeyedMutex(keyedMutex) {
+  MOZ_ASSERT((mKeyedMutex && mFencesHolderId.isNothing()) ||
+             (!mKeyedMutex && mFencesHolderId.isSome()));
+  MOZ_ASSERT_IF(mFencesHolderId.isSome(), mWriteFence);
+}
 
 SharedSurface_ANGLEShareHandle::~SharedSurface_ANGLEShareHandle() {
   const auto& gl = mDesc.gl;
@@ -147,9 +182,15 @@ void SharedSurface_ANGLEShareHandle::LockProdImpl() {
 void SharedSurface_ANGLEShareHandle::UnlockProdImpl() {}
 
 void SharedSurface_ANGLEShareHandle::ProducerAcquireImpl() {
-  HRESULT hr = mKeyedMutex->AcquireSync(0, 10000);
-  if (hr == WAIT_TIMEOUT) {
-    MOZ_CRASH("GFX: ANGLE share handle timeout");
+  if (mFencesHolderId.isSome()) {
+    auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+    fencesHolderMap->WaitAllFencesAndForget(mFencesHolderId.ref(), mDevice);
+  }
+  if (mKeyedMutex) {
+    HRESULT hr = mKeyedMutex->AcquireSync(0, 10000);
+    if (hr == WAIT_TIMEOUT) {
+      MOZ_CRASH("GFX: ANGLE share handle timeout");
+    }
   }
 }
 
@@ -159,7 +200,14 @@ void SharedSurface_ANGLEShareHandle::ProducerReleaseImpl() {
   // whether we need Flush() or not depends on the ANGLE semantics.
   // For now, we'll just do it
   gl->fFlush();
-  mKeyedMutex->ReleaseSync(0);
+  if (mFencesHolderId.isSome()) {
+    mWriteFence->IncrementAndSignal();
+    auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+    fencesHolderMap->SetWriteFence(mFencesHolderId.ref(), mWriteFence);
+  }
+  if (mKeyedMutex) {
+    mKeyedMutex->ReleaseSync(0);
+  }
 }
 
 void SharedSurface_ANGLEShareHandle::ProducerReadAcquireImpl() {
@@ -167,7 +215,9 @@ void SharedSurface_ANGLEShareHandle::ProducerReadAcquireImpl() {
 }
 
 void SharedSurface_ANGLEShareHandle::ProducerReadReleaseImpl() {
-  mKeyedMutex->ReleaseSync(0);
+  if (mKeyedMutex) {
+    mKeyedMutex->ReleaseSync(0);
+  }
 }
 
 Maybe<layers::SurfaceDescriptor>
@@ -176,8 +226,7 @@ SharedSurface_ANGLEShareHandle::ToSurfaceDescriptor() {
   return Some(layers::SurfaceDescriptorD3D10(
       mSharedHandle, /* gpuProcessTextureId */ Nothing(),
       /* arrayIndex */ 0, format, mDesc.size, mDesc.colorSpace,
-      gfx::ColorRange::FULL, /* hasKeyedMutex */ true,
-      /* fencesHolderId */ Nothing()));
+      gfx::ColorRange::FULL, !!mKeyedMutex, mFencesHolderId));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
