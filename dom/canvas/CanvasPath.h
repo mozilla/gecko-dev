@@ -66,7 +66,7 @@ class CanvasPath final : public nsWrapperCache {
                                       gfx::BackendType aBackendType) const;
   already_AddRefed<gfx::Path> GetPath(const CanvasWindingRule& aWinding,
                                       const gfx::DrawTarget* aTarget) const {
-    return GetPath(aWinding, aTarget->GetBackendType());
+    return GetPath(aWinding, aTarget->GetPathType());
   }
 
   explicit CanvasPath(nsISupports* aParent);
