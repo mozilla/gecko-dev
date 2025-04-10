@@ -266,6 +266,8 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "GPUOutOfMemoryError", nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "GPUPipelineError", nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "GPUPipelineLayout", nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "GPUQuerySet", nightly: true },
