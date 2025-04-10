@@ -127,7 +127,8 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
       return "WebGPU is disabled by blocklist.";
     }
     if (!StaticPrefs::dom_webgpu_enabled()) {
-      return "WebGPU is disabled by dom.webgpu.enabled:false.";
+      return "WebGPU is disabled because the `dom.webgpu.enabled` pref. is set "
+             "to `false`.";
     }
     return {};
   }();
