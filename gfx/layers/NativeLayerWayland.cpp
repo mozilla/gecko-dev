@@ -309,8 +309,15 @@ void NativeLayerRootWayland::SetLayers(
   WaylandSurfaceLock surfaceLock(mSurface, /* force commit */ true);
   if (mSurface->IsMapped()) {
     for (const RefPtr<NativeLayerWayland>& layer : newLayers) {
-      if (layer->IsNew() && layer->Map(&surfaceLock) && layer->IsOpaque()) {
-        mMainThreadUpdateSublayers.AppendElement(layer);
+      if (layer->IsNew()) {
+        LOG("  Map new child layer [%p]", layer.get());
+        if (!layer->Map(&surfaceLock)) {
+          continue;
+        }
+        if (layer->IsOpaque()) {
+          LOG("  adding new opaque layer [%p]", layer.get());
+          mMainThreadUpdateSublayers.AppendElement(layer);
+        }
       }
     }
   }
@@ -568,7 +575,7 @@ void NativeLayerWayland::PlaceAbove(NativeLayerWayland* aLowerLayer) {
 
 void NativeLayerWayland::SetTransform(const Matrix4x4& aTransform) {
   MutexAutoLock lock(mMutex);
-  MOZ_ASSERT(aTransform.IsRectilinear());
+  MOZ_DIAGNOSTIC_ASSERT(aTransform.IsRectilinear());
   if (aTransform != mTransform) {
     mTransform = aTransform;
   }
@@ -741,9 +748,6 @@ void NativeLayerWayland::Unmap() {
   MutexAutoLock lock(mMutex);
   LOG("NativeLayerWayland::Unmap()");
 
-  // Release all buffer now.
-  DiscardBackbuffersLocked(lock);
-
   WaylandSurfaceLock surfaceLock(mSurface);
   mSurface->UnmapLocked(surfaceLock);
 
@@ -811,7 +815,7 @@ RefPtr<DrawTarget> NativeLayerWaylandRender::NextSurfaceAsDrawTarget(
   mDisplayRect = IntRect(aDisplayRect);
   mDirtyRegion = IntRegion(aUpdateRegion);
 
-  MOZ_ASSERT(!mInProgressBuffer);
+  MOZ_DIAGNOSTIC_ASSERT(!mInProgressBuffer);
   if (mFrontBuffer && !mFrontBuffer->IsAttached()) {
     // the Wayland compositor released the buffer early, we can reuse it
     mInProgressBuffer = std::move(mFrontBuffer);
@@ -845,7 +849,7 @@ Maybe<GLuint> NativeLayerWaylandRender::NextSurfaceAsFramebuffer(
   mDisplayRect = IntRect(aDisplayRect);
   mDirtyRegion = IntRegion(aUpdateRegion);
 
-  MOZ_ASSERT(!mInProgressBuffer);
+  MOZ_DIAGNOSTIC_ASSERT(!mInProgressBuffer);
   if (mFrontBuffer && !mFrontBuffer->IsAttached()) {
     // the Wayland compositor released the buffer early, we can reuse it
     mInProgressBuffer = std::move(mFrontBuffer);
@@ -934,10 +938,9 @@ void NativeLayerWaylandRender::CommitSurfaceToScreenLocked(
 void NativeLayerWaylandRender::NotifySurfaceReady() {
   LOG("NativeLayerWaylandRender::NotifySurfaceReady()");
   MutexAutoLock lock(mMutex);
-  MOZ_ASSERT(!mFrontBuffer);
-  MOZ_ASSERT(mInProgressBuffer);
-  mFrontBuffer = mInProgressBuffer;
-  mInProgressBuffer = nullptr;
+  MOZ_DIAGNOSTIC_ASSERT(!mFrontBuffer);
+  MOZ_DIAGNOSTIC_ASSERT(mInProgressBuffer);
+  mFrontBuffer = std::move(mInProgressBuffer);
 }
 
 void NativeLayerWaylandRender::DiscardBackbuffersLocked(
@@ -971,7 +974,7 @@ void NativeLayerWaylandExternal::AttachExternalImage(
 
   wr::RenderDMABUFTextureHost* texture =
       aExternalImage->AsRenderDMABUFTextureHost();
-  MOZ_ASSERT(texture);
+  MOZ_DIAGNOSTIC_ASSERT(texture);
   if (!texture) {
     LOG("NativeLayerWayland::AttachExternalImage() failed.");
     gfxCriticalNoteOnce << "ExternalImage is not RenderDMABUFTextureHost";
