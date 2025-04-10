@@ -110,6 +110,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     bool mIsDark = false;
     bool mHighContrast = false;
     bool mPreferDarkTheme = false;
+    bool mIsDefaultThemeFallback = false;
 
     ThemeFamily mFamily{0};
 
@@ -255,7 +256,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   bool ConfigureAltTheme();
   void ConfigureAndInitializeAltTheme();
   void ConfigureFinalEffectiveTheme();
-  void MaybeApplyAdwaitaOverrides();
+  void MaybeApplyColorOverrides();
 };
 
 #endif
