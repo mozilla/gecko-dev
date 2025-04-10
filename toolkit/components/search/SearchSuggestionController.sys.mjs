@@ -386,8 +386,8 @@ export class SearchSuggestionController {
    *   The search context.
    */
   #reportTelemetryForEngine(context) {
-    // Stop the latency stopwatch.
     if (!context.telemetryHandled) {
+      // Stop the latency stopwatch.
       if (context.abort) {
         Glean.search.suggestionsLatency[context.engineId].cancel(
           context.gleanTimerId
@@ -399,6 +399,15 @@ export class SearchSuggestionController {
       }
       context.gleanTimerId = 0;
       context.telemetryHandled = true;
+      if (context.engine.isAppProvided) {
+        if (context.abort) {
+          Glean.searchSuggestions.abortedRequests[context.engine.id].add();
+        } else if (context.error) {
+          Glean.searchSuggestions.failedRequests[context.engine.id].add();
+        } else {
+          Glean.searchSuggestions.successfulRequests[context.engine.id].add();
+        }
+      }
     }
   }
 
@@ -480,6 +489,7 @@ export class SearchSuggestionController {
     });
 
     request.addEventListener("error", () => {
+      this.#context.error = true;
       this.#reportTelemetryForEngine(context);
       deferredResponse.resolve("HTTP error");
     });
