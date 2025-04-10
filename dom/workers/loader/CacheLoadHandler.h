@@ -105,7 +105,7 @@ class CacheLoadHandler final : public PromiseNativeHandler,
                                  const nsACString& aCSPHeaderValue,
                                  const nsACString& aCSPReportOnlyHeaderValue,
                                  const nsACString& aReferrerPolicyHeaderValue);
-  void DataReceived();
+  nsresult DataReceived();
 
   RefPtr<ThreadSafeRequestHandle> mRequestHandle;
   const RefPtr<WorkerScriptLoader> mLoader;

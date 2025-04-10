@@ -20,6 +20,7 @@ EXPORTS.mozilla.dom += [
     "nsContentSecurityManager.h",
     "nsContentSecurityUtils.h",
     "nsCSPContext.h",
+    "nsCSPParser.h",
     "nsCSPService.h",
     "nsCSPUtils.h",
     "nsHTTPSOnlyStreamListener.h",

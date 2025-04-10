@@ -927,7 +927,7 @@ class WorkerPrivate final
     return mLoadInfo.mCSP;
   }
 
-  void SetCsp(nsIContentSecurityPolicy* aCSP);
+  nsresult SetCsp(nsIContentSecurityPolicy* aCSP);
 
   nsresult SetCSPFromHeaderValues(const nsACString& aCSPHeaderValue,
                                   const nsACString& aCSPReportOnlyHeaderValue);
@@ -935,7 +935,11 @@ class WorkerPrivate final
   void StoreCSPOnClient();
 
   const mozilla::ipc::CSPInfo& GetCSPInfo() const {
-    return *mLoadInfo.mCSPInfo;
+    return mLoadInfo.mCSPContext->CSPInfo();
+  }
+
+  WorkerCSPContext* GetCSPContext() const {
+    return mLoadInfo.mCSPContext.get();
   }
 
   void UpdateReferrerInfoFromHeader(

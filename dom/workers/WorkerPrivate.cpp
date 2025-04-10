@@ -1433,19 +1433,20 @@ void WorkerPrivate::EvictFromBFCache() {
   runnable->Dispatch(this);
 }
 
-void WorkerPrivate::SetCsp(nsIContentSecurityPolicy* aCSP) {
+nsresult WorkerPrivate::SetCsp(nsIContentSecurityPolicy* aCSP) {
   AssertIsOnMainThread();
   if (!aCSP) {
-    return;
+    return NS_OK;
   }
   aCSP->EnsureEventTarget(mMainThreadEventTarget);
 
   mLoadInfo.mCSP = aCSP;
-  mLoadInfo.mCSPInfo = MakeUnique<CSPInfo>();
-  nsresult rv = CSPToCSPInfo(mLoadInfo.mCSP, mLoadInfo.mCSPInfo.get());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
+  auto ctx = WorkerCSPContext::CreateFromCSP(aCSP);
+  if (NS_WARN_IF(ctx.isErr())) {
+    return ctx.unwrapErr();
   }
+  mLoadInfo.mCSPContext = ctx.unwrap();
+  return NS_OK;
 }
 
 nsresult WorkerPrivate::SetCSPFromHeaderValues(
@@ -1535,11 +1536,11 @@ nsresult WorkerPrivate::SetCSPFromHeaderValues(
   mLoadInfo.mWasmEvalAllowed = wasmEvalAllowed;
   mLoadInfo.mReportWasmEvalCSPViolations = reportWasmEvalViolations;
 
-  mLoadInfo.mCSPInfo = MakeUnique<CSPInfo>();
-  rv = CSPToCSPInfo(csp, mLoadInfo.mCSPInfo.get());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+  auto ctx = WorkerCSPContext::CreateFromCSP(csp);
+  if (NS_WARN_IF(ctx.isErr())) {
+    return ctx.unwrapErr();
   }
+  mLoadInfo.mCSPContext = ctx.unwrap();
   return NS_OK;
 }
 
@@ -1556,8 +1557,9 @@ bool WorkerPrivate::IsFrozen() const {
 void WorkerPrivate::StoreCSPOnClient() {
   auto data = mWorkerThreadAccessible.Access();
   MOZ_ASSERT(data->mScope);
-  if (mLoadInfo.mCSPInfo) {
-    data->mScope->MutableClientSourceRef().SetCspInfo(*mLoadInfo.mCSPInfo);
+  if (mLoadInfo.mCSPContext) {
+    data->mScope->MutableClientSourceRef().SetCspInfo(
+        mLoadInfo.mCSPContext->CSPInfo());
   }
 }
 

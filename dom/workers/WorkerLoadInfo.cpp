@@ -118,11 +118,12 @@ nsresult WorkerLoadInfo::SetPrincipalsAndCSPOnMainThread(
   if (mCSP) {
     mCSP->GetAllowsEval(&mReportEvalCSPViolations, &mEvalAllowed);
     mCSP->GetAllowsWasmEval(&mReportWasmEvalCSPViolations, &mWasmEvalAllowed);
-    mCSPInfo = MakeUnique<CSPInfo>();
-    nsresult rv = CSPToCSPInfo(aCsp, mCSPInfo.get());
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+    Result<UniquePtr<WorkerCSPContext>, nsresult> ctx =
+        WorkerCSPContext::CreateFromCSP(aCsp);
+    if (NS_WARN_IF(ctx.isErr())) {
+      return ctx.unwrapErr();
     }
+    mCSPContext = ctx.unwrap();
   } else {
     mEvalAllowed = true;
     mReportEvalCSPViolations = false;
