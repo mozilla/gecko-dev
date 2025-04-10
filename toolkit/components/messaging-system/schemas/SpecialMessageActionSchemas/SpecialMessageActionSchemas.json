@@ -541,10 +541,10 @@
                       "type": "string"
                     },
                     "value": {
-                      "type": ["boolean", "string", "number", "null"]
+                      "type": ["boolean", "string", "number", "null", "object"]
                     }
                   },
-                  "description": "An object representing a pref containing a name and a value."
+                  "description": "An object representing a pref containing a name and a value. The value can be an object with the property `timestamp` with a truthy value to set the pref to a string of the current time in ms."
                 }
               },
               "required": ["pref"],

@@ -6,10 +6,12 @@
 const HOMEPAGE_PREF = "browser.startup.homepage";
 const PRIVACY_SEGMENTATION_PREF = "browser.dataFeatureRecommendations.enabled";
 const MESSAGING_ACTION_PREF = "special-message-testpref";
+const TIMESTAMP_PREF = "browser.shopping.experience2023.survey.optedInTime";
 
 const PREFS_TO_CLEAR = [
   HOMEPAGE_PREF,
   PRIVACY_SEGMENTATION_PREF,
+  TIMESTAMP_PREF,
   `messaging-system-action.${MESSAGING_ACTION_PREF}`,
 ];
 
@@ -163,5 +165,36 @@ add_task(async function test_clear_messaging_system_pref() {
       `messaging-system-action.${MESSAGING_ACTION_PREF}`
     ),
     `messaging-system-action.${MESSAGING_ACTION_PREF} pref successfully cleared`
+  );
+});
+
+add_task(async function test_set_pref_to_timestamp_string() {
+  Assert.ok(!Services.prefs.prefHasUserValue(TIMESTAMP_PREF), "Test setup ok");
+
+  const action = {
+    type: "SET_PREF",
+    data: {
+      pref: {
+        name: TIMESTAMP_PREF,
+        value: { timestamp: true },
+      },
+    },
+  };
+
+  const before = Date.now();
+  await SMATestUtils.executeAndValidateAction(action);
+  const after = Date.now();
+
+  Assert.ok(
+    Services.prefs.prefHasUserValue(TIMESTAMP_PREF),
+    "Timestamp pref successfully set"
+  );
+
+  const value = Services.prefs.getStringPref(TIMESTAMP_PREF);
+  const timestamp = parseInt(value, 10);
+  Assert.ok(!isNaN(timestamp), "Timestamp value is a valid number");
+  Assert.ok(
+    timestamp >= before && timestamp <= after,
+    "Timestamp is within the expected time range"
   );
 });
