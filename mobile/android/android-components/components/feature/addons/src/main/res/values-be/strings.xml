@@ -30,8 +30,6 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Доступ да вашых дадзеных у %1$d іншых даменах</string>
-  <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
-  <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Доступ да вашых дадзеных у %1$d даменах</string>
   <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d з %3$d</string>
   <!-- Description for tabs add-on permission. -->
@@ -88,10 +86,6 @@
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Неправераныя скрыпты могуць пагражаць бяспецы і прыватнасці. Запускайце скрыпты толькі з пашырэнняў ці крыніц, якім давяраеце.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Дазвол інструментам распрацоўшчыка атрымліваць доступ да вашых дадзеных у адкрытых картках</string>
-  <!-- Description for text button that expands the list of domain permissions -->
-  <string name="mozac_feature_addons_permissions_show_all_sites">Паказваць усе сайты</string>
-  <!-- Description for text button that hides the majority of the list of domain permissions -->
-  <string name="mozac_feature_addons_permissions_show_fewer_sites">Паказваць менш сайтаў</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Версія</string>
   <!-- The author of an add-on. -->
@@ -222,10 +216,6 @@
   <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Гэтае пашырэнне не можа быць усталявана, бо яно не праверана.</string>
   <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
   <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s не можа быць усталяваны, бо ён несумяшчальны з %2$s %3$s.</string>
-  <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
-  <string name="mozac_feature_addons_blocklisted_2">%1$s парушае палітыкі Mozilla і не можа быць усталяваны на %2$s.</string>
-  <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
-  <string name="mozac_feature_addons_soft_blocked_1">%1$s парушае палітыкі Mozilla і не можа быць усталяваны на %2$s.</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_successfully_enabled">Паспяхова ўключана %1$s</string>
   <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->

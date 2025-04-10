@@ -6,7 +6,7 @@
     Text shown on the second row of an in progress download notification.
     %1$s will be replaced with the percentage of download completed so far.
   -->
-  <string name="mozac_feature_downloads_percentage_notification_text" moz:removedIn="139" tools:ignore="UnusedResources">%1$s dokóńcone</string>
+  <string name="mozac_feature_downloads_percentage_notification_text">%1$s dokóńcone</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Ześěgnjenje jo se zastajiło</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
