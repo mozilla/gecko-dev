@@ -11,12 +11,19 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const kWebAppWindowFeatures =
   "chrome,dialog=no,titlebar,close,toolbar,location,personalbar=no,status,menubar=no,resizable,minimizable,scrollbars";
 
+let lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+});
+
 export let TaskbarTabs = {
   async init(window) {
     if (
       AppConstants.platform != "win" ||
       !Services.prefs.getBoolPref(kEnabledPref, false) ||
-      window.document.documentElement.hasAttribute("taskbartab")
+      window.document.documentElement.hasAttribute("taskbartab") ||
+      !window.toolbar.visible ||
+      lazy.PrivateBrowsingUtils.isWindowPrivate(window)
     ) {
       return;
     }
