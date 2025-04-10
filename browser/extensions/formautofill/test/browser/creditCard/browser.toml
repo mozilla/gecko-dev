@@ -96,7 +96,20 @@ skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"
 ["browser_creditCard_submission_normalized.js"]
 skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"]
 
-["browser_creditCard_telemetry.js"]
+["browser_creditCard_telemetry_autofill.js"]
+support-files = ["browser_telemetry_utils.js"]
+
+["browser_creditCard_telemetry_manage.js"]
+support-files = ["browser_telemetry_utils.js"]
+
+["browser_creditCard_telemetry_popup.js"]
+support-files = ["browser_telemetry_utils.js"]
+
+["browser_creditCard_telemetry_submit_new.js"]
+support-files = ["browser_telemetry_utils.js"]
+
+["browser_creditCard_telemetry_submit_update.js"]
+support-files = ["browser_telemetry_utils.js"]
 
 ["browser_editCreditCardDialog.js"]
 skip-if = ["true"] # perma-fail see Bug 1600059
