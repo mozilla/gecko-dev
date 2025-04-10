@@ -202,10 +202,14 @@ def use_system_python(config, jobs):
                 platform = "win64"
             elif "linux" in job["worker"]["os"]:
                 platform = "linux64"
+                if "aarch64" in job["worker-type"] or "arm64" in job["worker-type"]:
+                    platform = f"{platform}-aarch64"
             elif "macosx" in job["worker"]["os"]:
                 platform = "macosx64"
             else:
-                raise ValueError("unexpected worker.os value {}".format(platform))
+                raise ValueError(
+                    "unexpected worker.os value {}".format(job["worker"]["os"])
+                )
 
             toolchain.append(f"{platform}-{python_version}")
 

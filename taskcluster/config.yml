@@ -855,6 +855,11 @@ workers:
             implementation: generic-worker
             os: linux
             worker-type: 't-linux-2404-wayland-snap'
+        t-linux-arm64-docker:
+            provisioner: '{trust-domain}-t'
+            implementation: docker-worker
+            os: linux
+            worker-type: '{alias}'
         t-osx-1015-r8:
             provisioner: releng-hardware
             implementation: generic-worker

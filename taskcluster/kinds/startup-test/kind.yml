@@ -77,6 +77,25 @@ tasks:
         treeherder:
             platform: linux64-shippable/opt
 
+    linux64-aarch64:
+        dependencies:
+            build-signing: build-signing-linux64-aarch64-shippable/opt
+        run:
+            using: run-task
+            cwd: "{checkout}"
+        extra-config:
+            upstream_kind: build-signing
+            upstream_artifact: target.tar.xz
+            binary: firefox
+        worker-type: t-linux-arm64-docker
+        worker:
+            docker-image: {in-tree: ubuntu2404-arm64-test}
+        shipping-product: firefox
+        attributes:
+            build_platform: linux64-aarch64-shippable
+        treeherder:
+            platform: linux64-aarch64-shippable/opt
+
     macosx64:
         dependencies:
             repackage: repackage-macosx64-shippable/opt
