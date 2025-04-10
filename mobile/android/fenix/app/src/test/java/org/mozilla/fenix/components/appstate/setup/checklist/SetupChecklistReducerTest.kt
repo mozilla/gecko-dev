@@ -93,7 +93,7 @@ class SetupChecklistReducerTest {
     }
 
     @Test
-    fun `WHEN a task item is clicked THEN the reduced state has the task marked completed`() {
+    fun `WHEN an un-completed task item is clicked THEN the reduced state has the task marked completed and is not un-completed in subsequent clicks`() {
         val task = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.EXPLORE_EXTENSION,
             title = R.string.setup_checklist_task_explore_extensions,
@@ -109,10 +109,17 @@ class SetupChecklistReducerTest {
         )
 
         assertTrue((reducedState.setupChecklistState!!.checklistItems[0] as ChecklistItem.Task).isCompleted)
+
+        val reducedState2 = SetupChecklistReducer.reduce(
+            reducedState,
+            AppAction.SetupChecklistAction.ChecklistItemClicked(task),
+        )
+
+        assertTrue((reducedState2.setupChecklistState!!.checklistItems[0] as ChecklistItem.Task).isCompleted)
     }
 
     @Test
-    fun `WHEN a task item within a group is clicked THEN the reduced state has only the clicked task marked completed`() {
+    fun `WHEN an uncompleted group task is clicked THEN the reduced state has only the clicked task marked completed and is not un-completed in subsequent clicks`() {
         val taskToClick = ChecklistItem.Task(
             type = ChecklistItem.Task.Type.SET_AS_DEFAULT,
             title = R.string.setup_checklist_task_default_browser,
@@ -140,5 +147,13 @@ class SetupChecklistReducerTest {
 
         assertTrue((reducedState.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).tasks[0].isCompleted)
         assertFalse((reducedState.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).tasks[1].isCompleted)
+
+        val reducedState2 = SetupChecklistReducer.reduce(
+            reducedState,
+            AppAction.SetupChecklistAction.ChecklistItemClicked(taskToClick),
+        )
+
+        assertTrue((reducedState2.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).tasks[0].isCompleted)
+        assertFalse((reducedState2.setupChecklistState!!.checklistItems[0] as ChecklistItem.Group).tasks[1].isCompleted)
     }
 }
