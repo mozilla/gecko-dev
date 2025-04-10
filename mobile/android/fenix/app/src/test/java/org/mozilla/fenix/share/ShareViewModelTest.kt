@@ -16,7 +16,6 @@ import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.flow.first
@@ -33,7 +32,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.ext.application
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isOnline
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.share.DefaultShareController.Companion.ACTION_COPY_LINK_TO_CLIPBOARD
 import org.mozilla.fenix.share.ShareViewModel.Companion.RECENT_APPS_LIMIT
@@ -63,8 +61,6 @@ class ShareViewModelTest {
         connectivityManager = mockk(relaxed = true)
         fxaAccountManager = mockk(relaxed = true)
         storage = mockk(relaxUnitFun = true)
-
-        mockkStatic("org.mozilla.fenix.ext.ConnectivityManagerKt")
 
         every { application.packageName } returns packageName
         every { application.packageManager } returns packageManager
@@ -134,7 +130,7 @@ class ShareViewModelTest {
 
     @Test
     fun `buildDevicesList returns offline option`() {
-        every { connectivityManager.isOnline() } returns false
+        every { viewModel.isOffline(any()) } returns true
         assertEquals(listOf(SyncShareOption.Offline), viewModel.buildDeviceList(fxaAccountManager))
 
         every { connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork) } returns null
@@ -143,7 +139,7 @@ class ShareViewModelTest {
 
     @Test
     fun `buildDevicesList returns sign-in option`() {
-        every { connectivityManager.isOnline() } returns true
+        every { viewModel.isOffline(any()) } returns false
         every { fxaAccountManager.authenticatedAccount() } returns null
 
         assertEquals(listOf(SyncShareOption.SignIn), viewModel.buildDeviceList(fxaAccountManager))
@@ -151,7 +147,7 @@ class ShareViewModelTest {
 
     @Test
     fun `buildDevicesList returns reconnect option`() {
-        every { connectivityManager.isOnline() } returns true
+        every { viewModel.isOffline(any()) } returns false
         every { fxaAccountManager.authenticatedAccount() } returns mockk()
         every { fxaAccountManager.accountNeedsReauth() } returns true
 
