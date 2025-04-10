@@ -1900,10 +1900,7 @@ uint32_t nsRefreshDriver::ObserverCount() const {
   // changes can trigger transitions which fire events when they complete, and
   // layout changes can affect media queries on child documents, triggering
   // style changes, etc.
-  sum += mAnimationEventFlushObservers.Length();
-  sum += mResizeEventFlushObservers.Length();
   sum += mStyleFlushObservers.Length();
-  sum += mPendingFullscreenEvents.Length();
   sum += mViewManagerFlushIsPending;
   sum += mEarlyRunners.Length();
   return sum;
@@ -1918,9 +1915,7 @@ bool nsRefreshDriver::HasObservers() const {
 
   return (mViewManagerFlushIsPending && !mThrottled) ||
          !mStyleFlushObservers.IsEmpty() ||
-         !mAnimationEventFlushObservers.IsEmpty() ||
-         !mResizeEventFlushObservers.IsEmpty() ||
-         !mPendingFullscreenEvents.IsEmpty() || !mEarlyRunners.IsEmpty();
+         !mEarlyRunners.IsEmpty();
 }
 
 void nsRefreshDriver::AppendObserverDescriptionsToString(
@@ -1934,21 +1929,9 @@ void nsRefreshDriver::AppendObserverDescriptionsToString(
   if (mViewManagerFlushIsPending && !mThrottled) {
     aStr.AppendLiteral("View manager flush pending, ");
   }
-  if (!mAnimationEventFlushObservers.IsEmpty()) {
-    aStr.AppendPrintf("%zux Animation event flush observer, ",
-                      mAnimationEventFlushObservers.Length());
-  }
-  if (!mResizeEventFlushObservers.IsEmpty()) {
-    aStr.AppendPrintf("%zux Resize event flush observer, ",
-                      mResizeEventFlushObservers.Length());
-  }
   if (!mStyleFlushObservers.IsEmpty()) {
     aStr.AppendPrintf("%zux Style flush observer, ",
                       mStyleFlushObservers.Length());
-  }
-  if (!mPendingFullscreenEvents.IsEmpty()) {
-    aStr.AppendPrintf("%zux Pending fullscreen event, ",
-                      mPendingFullscreenEvents.Length());
   }
   if (!mEarlyRunners.IsEmpty()) {
     aStr.AppendPrintf("%zux Early runner, ", mEarlyRunners.Length());
