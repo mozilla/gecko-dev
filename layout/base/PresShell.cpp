@@ -1997,6 +1997,16 @@ bool PresShell::CanHandleUserInputEvents(WidgetGUIEvent* aGUIEvent) {
   return true;
 }
 
+void PresShell::PostScrollEvent(Runnable* aEvent) {
+  MOZ_ASSERT(aEvent);
+  const bool hadEvents = !mPendingScrollEvents.IsEmpty();
+  mPendingScrollEvents.AppendElement(aEvent);
+  if (!hadEvents) {
+    mPresContext->RefreshDriver()->ScheduleRenderingPhase(
+        RenderingPhase::ScrollSteps);
+  }
+}
+
 void PresShell::ScheduleResizeEventIfNeeded(ResizeEventKind aKind) {
   if (mIsDestroying) {
     return;
@@ -2011,7 +2021,7 @@ void PresShell::ScheduleResizeEventIfNeeded(ResizeEventKind aKind) {
     mVisualViewportResizeEventPending = true;
   }
   mPresContext->RefreshDriver()->ScheduleRenderingPhase(
-        mozilla::RenderingPhase::ResizeSteps);
+      RenderingPhase::ResizeSteps);
 }
 
 bool PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight,
@@ -2162,6 +2172,19 @@ void PresShell::RunResizeSteps() {
     mVisualViewportResizeEventPending = false;
     RefPtr vv = window->VisualViewport();
     vv->FireResizeEvent();
+  }
+}
+
+// https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps
+// But note: https://github.com/w3c/csswg-drafts/issues/11164
+void PresShell::RunScrollSteps() {
+  // Scroll events are one-shot, so after running them we can drop them.
+  // However, dispatching a scroll event can potentially cause more scroll
+  // events to be posted, so we move the initial set into a temporary array
+  // first. (Newly posted scroll events will be dispatched on the next tick.)
+  auto events = std::move(mPendingScrollEvents);
+  for (auto& event : events) {
+    event->Run();
   }
 }
 

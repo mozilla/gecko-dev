@@ -26,7 +26,6 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/dom/VisualViewport.h"
 #include "mozilla/layers/TransactionIdAllocator.h"
 #include "LayersTypes.h"
 
@@ -46,14 +45,17 @@ class PresShell;
 class RefreshDriverTimer;
 class Runnable;
 class Task;
+
+namespace dom {
+class Document;
+}
+
 }  // namespace mozilla
 
 class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
                               public nsARefreshObserver {
   using Document = mozilla::dom::Document;
   using TransactionId = mozilla::layers::TransactionId;
-  using VVPScrollEvent =
-      mozilla::dom::VisualViewport::VisualViewportScrollEvent;
   using LogPresShellObserver = mozilla::LogPresShellObserver;
 
  public:
@@ -105,8 +107,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
                              mozilla::FlushType aFlushType);
 
 
-  void PostScrollEvent(mozilla::Runnable* aScrollEvent, bool aDelayed = false);
-  void DispatchScrollEvents();
   MOZ_CAN_RUN_SCRIPT void FlushLayoutOnPendingDocsAndFixUpFocus();
 
   /**
@@ -341,9 +341,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   static void DispatchIdleTaskAfterTickUnlessExists(mozilla::Task* aTask);
   static void CancelIdleTask(mozilla::Task* aTask);
 
-  // Schedule a refresh so that any delayed events will run soon.
-  void RunDelayedEventsSoon();
-
   void InitializeTimer() {
     MOZ_ASSERT(!mActiveTimer);
     EnsureTimerStarted();
@@ -420,7 +417,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void FinishedVsyncTick() { mAttemptedExtraTickSinceLastVsync = false; }
 
  private:
-  using ScrollEventArray = nsTArray<RefPtr<mozilla::Runnable>>;
   using RequestTable = nsTHashSet<RefPtr<imgIRequest>>;
   struct ImageStartData {
     ImageStartData() = default;
@@ -450,10 +446,10 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   MOZ_CAN_RUN_SCRIPT
   void RunVideoAndFrameRequestCallbacks(mozilla::TimeStamp aNowTime);
   MOZ_CAN_RUN_SCRIPT
-  void RunVideoFrameCallbacks(const nsTArray<RefPtr<mozilla::dom::Document>>&,
+  void RunVideoFrameCallbacks(const nsTArray<RefPtr<Document>>&,
                               mozilla::TimeStamp aNowTime);
   MOZ_CAN_RUN_SCRIPT
-  void RunFrameRequestCallbacks(const nsTArray<RefPtr<mozilla::dom::Document>>&,
+  void RunFrameRequestCallbacks(const nsTArray<RefPtr<Document>>&,
                                 mozilla::TimeStamp aNowTime);
   void UpdateRemoteFrameEffects();
   void UpdateRelevancyOfContentVisibilityAutoFrames();
@@ -645,9 +641,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   RequestTable mRequests;
   ImageStartTable mStartTable;
   AutoTArray<nsCOMPtr<nsIRunnable>, 16> mEarlyRunners;
-  ScrollEventArray mScrollEvents;
-  // Scroll events on documents that might have events suppressed.
-  ScrollEventArray mDelayedScrollEvents;
   AutoTArray<mozilla::PresShell*, 16> mStyleFlushObservers;
   nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
   nsTArray<mozilla::UniquePtr<mozilla::PendingFullscreenEvent>>

@@ -1556,27 +1556,6 @@ bool nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver* aObserver,
   return true;
 }
 
-void nsRefreshDriver::PostScrollEvent(mozilla::Runnable* aScrollEvent,
-                                      bool aDelayed) {
-  if (aDelayed) {
-    mDelayedScrollEvents.AppendElement(aScrollEvent);
-  } else {
-    mScrollEvents.AppendElement(aScrollEvent);
-    ScheduleRenderingPhase(RenderingPhase::ScrollSteps);
-  }
-}
-
-void nsRefreshDriver::DispatchScrollEvents() {
-  // Scroll events are one-shot, so after running them we can drop them.
-  // However, dispatching a scroll event can potentially cause more scroll
-  // events to be posted, so we move the initial set into a temporary array
-  // first. (Newly posted scroll events will be dispatched on the next tick.)
-  ScrollEventArray events = std::move(mScrollEvents);
-  for (auto& event : events) {
-    event->Run();
-  }
-}
-
 void nsRefreshDriver::AddPostRefreshObserver(
     nsAPostRefreshObserver* aObserver) {
   MOZ_ASSERT(!mPostRefreshObservers.Contains(aObserver));
@@ -1652,17 +1631,6 @@ void nsRefreshDriver::FlushForceNotifyContentfulPaintPresContext() {
       presContext->NotifyContentfulPaint();
     }
   }
-}
-
-void nsRefreshDriver::RunDelayedEventsSoon() {
-  // Place entries for delayed events into their corresponding normal list,
-  // and schedule a refresh. When these delayed events run, if their document
-  // still has events suppressed then they will be readded to the delayed
-  // events list.
-
-  mScrollEvents.AppendElements(mDelayedScrollEvents);
-  mDelayedScrollEvents.Clear();
-  ScheduleRenderingPhase(RenderingPhase::ScrollSteps);
 }
 
 bool nsRefreshDriver::CanDoCatchUpTick() {
@@ -2584,9 +2552,12 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
                     });
 
   // Step 9. For each doc of docs, run the scroll steps for doc.
-  RunRenderingPhaseLegacy(
-      RenderingPhase::ScrollSteps,
-      [&]() MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA { DispatchScrollEvents(); });
+  RunRenderingPhase(RenderingPhase::ScrollSteps,
+                    [](Document& aDoc) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+                      if (RefPtr<PresShell> ps = aDoc.GetPresShell()) {
+                        ps->RunScrollSteps();
+                      }
+                    });
 
   // Step 10. For each doc of docs, evaluate media queries and report changes
   // for doc.

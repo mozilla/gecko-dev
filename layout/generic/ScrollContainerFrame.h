@@ -1083,7 +1083,7 @@ class ScrollContainerFrame : public nsContainerFrame,
   PhysicalAxes GetOverflowAxes() const;
 
   MOZ_CAN_RUN_SCRIPT nsresult FireScrollPortEvent();
-  void PostScrollEndEvent(bool aDelayed = false);
+  void PostScrollEndEvent();
   MOZ_CAN_RUN_SCRIPT void FireScrollEndEvent();
   void PostOverflowEvent();
 
@@ -1111,7 +1111,7 @@ class ScrollContainerFrame : public nsContainerFrame,
    */
   void CurPosAttributeChangedInternal(nsIContent*, bool aDoScroll = true);
 
-  void PostScrollEvent(bool aDelayed = false);
+  void PostScrollEvent();
   MOZ_CAN_RUN_SCRIPT void FireScrollEvent();
   void PostScrolledAreaEvent();
   MOZ_CAN_RUN_SCRIPT void FireScrolledAreaEvent();

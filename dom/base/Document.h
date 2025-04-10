@@ -2810,8 +2810,6 @@ class Document : public nsINode,
    */
   void FireOrClearPostMessageEvents(bool aFireEvents);
 
-  void SetHasDelayedRefreshEvent() { mHasDelayedRefreshEvent = true; }
-
   /**
    * Flag whether we're about to fire the window's load event for this document.
    */
@@ -4919,10 +4917,6 @@ class Document : public nsINode,
   bool mReportedDocumentUseCounters : 1;
 
   bool mHasReportedShadowDOMUsage : 1;
-
-  // Whether an event triggered by the refresh driver was delayed because this
-  // document has suppressed events.
-  bool mHasDelayedRefreshEvent : 1;
 
   // The HTML spec has a "iframe load in progress" flag, but that doesn't seem
   // to have the right semantics.  See
