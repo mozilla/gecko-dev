@@ -703,9 +703,8 @@ bool Navigation::InnerFireNavigateEvent(
             MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
               // Success steps
               // Step 1
-              if (nsCOMPtr<nsPIDOMWindowInner> window =
-                      do_QueryInterface(event->GetParentObject());
-                  window && !window->IsFullyActive()) {
+              if (RefPtr document = event->GetDocument();
+                  !document || !document->IsFullyActive()) {
                 return;
               }
 
@@ -744,9 +743,8 @@ bool Navigation::InnerFireNavigateEvent(
             MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
               // Failure steps
               // Step 1
-              if (nsCOMPtr<nsPIDOMWindowInner> window =
-                      do_QueryInterface(event->GetParentObject());
-                  window && !window->IsFullyActive()) {
+              if (RefPtr document = event->GetDocument();
+                  !document || !document->IsFullyActive()) {
                 return;
               }
 
