@@ -6,9 +6,6 @@ package mozilla.components.feature.search.trendingsearches
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.test.runTest
-import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.SearchState
-import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.search.ext.createSearchEngine
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -30,17 +27,10 @@ class TrendingSearchClientTest {
         icon = mock(),
     )
 
-    private val store = BrowserStore(
-        initialState = BrowserState(
-            search = SearchState(
-                regionSearchEngines = listOf(searchEngine),
-            ),
-        ),
-    )
-
     @Test
     fun `GIVEN a search engine WHEN getting trending searches THEN the corresponding response is returned`() = runTest {
-        val client = TrendingSearchClient(store, GOOGLE_MOCK_RESPONSE)
+        val client = TrendingSearchClient(GOOGLE_MOCK_RESPONSE)
+        client.setSearchEngine(searchEngine)
         val expectedResults = listOf("firefox", "firefox for mac", "firefox quantum", "firefox update", "firefox esr", "firefox focus", "firefox addons", "firefox extensions", "firefox nightly", "firefox clear cache")
 
         val results = client.getTrendingSearches()
@@ -50,14 +40,16 @@ class TrendingSearchClientTest {
 
     @Test(expected = TrendingSearchClient.ResponseParserException::class)
     fun `GIVEN a bad server response WHEN getting trending searches THEN throw a parser exception`() = runTest {
-        val client = TrendingSearchClient(store, SERVER_ERROR_RESPONSE)
+        val client = TrendingSearchClient(SERVER_ERROR_RESPONSE)
+        client.setSearchEngine(searchEngine)
 
         client.getTrendingSearches()
     }
 
     @Test(expected = TrendingSearchClient.FetchException::class)
     fun `GIVEN an exception in the trending search fetcher WHEN getting trending searches THEN re-throw an IOException`() = runTest {
-        val client = TrendingSearchClient(store) { throw IOException() }
+        val client = TrendingSearchClient { throw IOException() }
+        client.setSearchEngine(searchEngine)
 
         client.getTrendingSearches()
     }
@@ -70,15 +62,8 @@ class TrendingSearchClientTest {
             icon = mock(),
         )
 
-        val testStore = BrowserStore(
-            initialState = BrowserState(
-                search = SearchState(
-                    regionSearchEngines = listOf(testSearchEngine),
-                ),
-            ),
-        )
-
-        val client = TrendingSearchClient(testStore) { "no-op" }
+        val client = TrendingSearchClient { "no-op" }
+        client.setSearchEngine(testSearchEngine)
 
         val results = client.getTrendingSearches()
 

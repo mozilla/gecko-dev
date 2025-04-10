@@ -9,9 +9,6 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.SearchState
-import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
@@ -61,21 +58,13 @@ class TrendingSearchProviderTest {
 
             val useCase: SearchUseCases.SearchUseCase = mock()
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val provider = TrendingSearchProvider(
-                store = store,
                 fetchClient = HttpURLConnectionClient(),
                 privateMode = false,
                 searchUseCase = useCase,
                 limit = 11,
             )
+            provider.setSearchEngine(searchEngine)
 
             try {
                 val suggestions = provider.onInputChanged("")
@@ -137,21 +126,13 @@ class TrendingSearchProviderTest {
 
             val useCase: SearchUseCases.SearchUseCase = mock()
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val provider = TrendingSearchProvider(
-                store = store,
                 fetchClient = HttpURLConnectionClient(),
                 privateMode = false,
                 searchUseCase = useCase,
                 limit = 4,
             )
+            provider.setSearchEngine(searchEngine)
 
             try {
                 val suggestions = provider.onInputChanged("")
@@ -194,21 +175,13 @@ class TrendingSearchProviderTest {
                 trendingUrl = server.url("/").toString(),
             )
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val provider = TrendingSearchProvider(
-                store = store,
                 fetchClient = HttpURLConnectionClient(),
                 privateMode = false,
                 searchUseCase = mock(),
                 limit = 4,
             )
+            provider.setSearchEngine(searchEngine)
 
             try {
                 val suggestions = provider.onInputChanged("")
@@ -236,24 +209,16 @@ class TrendingSearchProviderTest {
                 trendingUrl = server.url("/").toString(),
             )
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val paramIcon = getSearchIcon()
 
             val provider = TrendingSearchProvider(
-                store = store,
                 fetchClient = HttpURLConnectionClient(),
                 privateMode = false,
                 searchUseCase = mock(),
                 limit = 4,
                 icon = paramIcon,
             )
+            provider.setSearchEngine(searchEngine)
 
             try {
                 val suggestions = provider.onInputChanged("")
@@ -268,13 +233,7 @@ class TrendingSearchProviderTest {
 
     @Test
     fun `GIVEN text is not empty WHEN input is changed THEN provider returns an empty list`() = runTest {
-        val store = BrowserStore(
-            initialState = BrowserState(
-                search = SearchState(),
-            ),
-        )
-
-        val provider = TrendingSearchProvider(store, mock(), false, mock())
+        val provider = TrendingSearchProvider(mock(), false, mock())
 
         val suggestions = provider.onInputChanged("fire")
         assertTrue(suggestions.isEmpty())
@@ -289,15 +248,7 @@ class TrendingSearchProviderTest {
                 icon = mock(),
             )
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
-            val provider = TrendingSearchProvider(store, mock(), false, mock())
+            val provider = TrendingSearchProvider(mock(), false, mock())
 
             val suggestions = provider.onInputChanged("fire")
             assertEquals(0, suggestions.size)
@@ -319,16 +270,8 @@ class TrendingSearchProviderTest {
 
             val useCase: SearchUseCases.SearchUseCase = mock()
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val provider =
-                TrendingSearchProvider(store, HttpURLConnectionClient(), false, useCase)
+                TrendingSearchProvider(HttpURLConnectionClient(), false, useCase)
 
             try {
                 val suggestions = provider.onInputChanged("")
@@ -355,14 +298,6 @@ class TrendingSearchProviderTest {
 
             val useCase: SearchUseCases.SearchUseCase = mock()
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val client = object : Client() {
                 override fun fetch(request: Request): Response {
                     throw IOException()
@@ -370,7 +305,6 @@ class TrendingSearchProviderTest {
             }
 
             val provider = TrendingSearchProvider(
-                store = store,
                 fetchClient = client,
                 privateMode = false,
                 searchUseCase = useCase,
@@ -384,15 +318,7 @@ class TrendingSearchProviderTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun `GIVEN a limit less than 1 WHEN initializing the provider THEN constructor throws an exception`() {
-        val store = BrowserStore(
-            initialState = BrowserState(
-                search = SearchState(
-                    regionSearchEngines = listOf(),
-                ),
-            ),
-        )
-
-        TrendingSearchProvider(store, mock(), false, mock(), limit = 0)
+        TrendingSearchProvider(mock(), false, mock(), limit = 0)
     }
 
     @Test
@@ -411,21 +337,13 @@ class TrendingSearchProviderTest {
 
             val useCase: SearchUseCases.SearchUseCase = mock()
 
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val provider = TrendingSearchProvider(
-                store = store,
                 fetchClient = HttpURLConnectionClient(),
                 privateMode = false,
                 searchUseCase = useCase,
                 limit = 11,
             )
+            provider.setSearchEngine(searchEngine)
 
             try {
                 val suggestions = provider.onInputChanged("")
@@ -454,6 +372,7 @@ class TrendingSearchProviderTest {
             val server = MockWebServer()
             server.enqueue(MockResponse().setBody(GOOGLE_MOCK_RESPONSE))
             server.start()
+            val engine: Engine = mock()
 
             val searchEngine = createSearchEngine(
                 name = "Test",
@@ -462,24 +381,14 @@ class TrendingSearchProviderTest {
                 trendingUrl = server.url("/").toString(),
             )
 
-            val engine: Engine = mock()
-
-            val store = BrowserStore(
-                initialState = BrowserState(
-                    search = SearchState(
-                        regionSearchEngines = listOf(searchEngine),
-                    ),
-                ),
-            )
-
             val provider = TrendingSearchProvider(
-                store = store,
                 fetchClient = HttpURLConnectionClient(),
                 privateMode = false,
                 searchUseCase = mock(),
                 limit = 4,
                 engine = engine,
             )
+            provider.setSearchEngine(searchEngine)
 
             try {
                 val suggestions = provider.onInputChanged("")
