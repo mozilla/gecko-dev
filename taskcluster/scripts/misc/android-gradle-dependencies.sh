@@ -24,7 +24,7 @@ pushd mobile/android/focus-android
 ./gradlew lint
 popd
 pushd mobile/android/android-components
-./gradlew -Pcoverage detekt lint service-nimbus:assembleAndroidTest samples-browser:testGeckoDebugUnitTest tooling-lint:test
+./gradlew -Pcoverage detekt lint service-nimbus:testReleaseUnitTest samples-browser:testGeckoDebugUnitTest tooling-lint:test
 popd
 
 . taskcluster/scripts/misc/android-gradle-dependencies/after.sh
