@@ -17,16 +17,19 @@
     let elem2 = document.getElementById("elem2");
     is(elem.textContent.length, 0);
     is(elem2.textContent.includes("Initial string"), true);
+
+    let promiseMutations = new Promise(r => {
+      document.addEventListener("L10nMutationsFinished", r, { once: true });
+    });
+
     document.l10n.setAttributes(elem, "crash-reports-title");
     elem2.setAttribute("data-l10n-args", JSON.stringify({bug: "New string"}));
 
-    let verifyL10n = () => {
-      if (elem.textContent.length && elem2.textContent.includes("New string")) {
-        window.removeEventListener("MozAfterPaint", verifyL10n);
-        SimpleTest.finish();
-      }
-    };
-    window.addEventListener("MozAfterPaint", verifyL10n);
+    await promiseMutations;
+
+    isnot(elem.textContent.length, 0);
+    ok(elem2.textContent.includes("New string"), "Should include new string");
+    SimpleTest.finish();
   });
   </script>
 </head>
