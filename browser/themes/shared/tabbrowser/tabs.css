@@ -17,6 +17,7 @@
   --tab-group-label-height: max(1.5em, var(--tab-min-height) - 14px);
   --tab-group-label-padding: 4px;
   --tab-group-line-thickness: 2px;
+  --tab-group-line-toolbar-border-distance: 1px;
   /* Collapsed tabs should be square, so set width to match the min height */
   --tab-collapsed-background-width: var(--tab-min-height);
   --tab-collapsed-width: calc(var(--tab-collapsed-background-width) + 2 * var(--tab-inner-inline-margin));
@@ -938,14 +939,16 @@
  */
 .tab-group-line {
   display: none;
+  position: absolute;
   background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
 
   #tabbrowser-tabs[orient="horizontal"] & {
     height: var(--tab-group-line-thickness);
-    margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) calc(-1 * var(--tab-block-margin));
+    inset-inline: calc(-1 * var(--tab-overflow-clip-margin));
+    inset-block-end: var(--tab-group-line-toolbar-border-distance);
 
     .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
-      margin-inline-end: 0;
+      inset-inline-end: 0;
       border-start-end-radius: calc(var(--tab-group-line-thickness) / 2);
       border-end-end-radius: calc(var(--tab-group-line-thickness) / 2);
     }
@@ -955,7 +958,6 @@
     width: var(--tab-group-line-thickness);
     inset-block: -3px -2px;
     inset-inline: 2px 0;
-    position: absolute;
 
     #tabbrowser-tabs[expanded] & {
       inset-inline-start: 0;
@@ -1054,7 +1056,7 @@ tab-group {
 
   #tabbrowser-tabs[orient="horizontal"] tab-group:not([collapsed]) > &::after {
     height: var(--tab-group-line-thickness);
-    inset: auto 0 0;
+    inset: auto 0 var(--tab-group-line-toolbar-border-distance);
     border-start-start-radius: 1px;
     border-end-start-radius: 1px;
   }
