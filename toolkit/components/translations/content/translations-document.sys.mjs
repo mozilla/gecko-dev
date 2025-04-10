@@ -220,9 +220,6 @@ const EXCLUDED_TAGS = new Set([
   "NOEMBED",
   "NOFRAMES",
 
-  // The title is handled separately, and a HEAD tag should not be considered.
-  "HEAD",
-
   // These are not user-visible tags.
   "STYLE",
   "SCRIPT",
@@ -258,25 +255,43 @@ const EXCLUDED_TAGS = new Set([
  * @type {Map<string, Array<{ tagName: string, conditions?: Record<string, Array<string>> }> | null>}
  */
 const TRANSLATABLE_ATTRIBUTES = new Map([
+  ["abbr", [{ tagName: "TH" }]],
   [
     "alt",
-    [{ tagName: "IMG" }, { tagName: "INPUT", conditions: { type: ["image"] } }],
+    [
+      { tagName: "AREA" },
+      { tagName: "IMAGE" },
+      { tagName: "IMG" },
+      { tagName: "INPUT" },
+    ],
   ],
-  ["aria-brailledescription", null],
   ["aria-braillelabel", null],
+  ["aria-brailleroledescription", null],
+  ["aria-colindextext", null],
   ["aria-description", null],
   ["aria-label", null],
   ["aria-placeholder", null],
   ["aria-roledescription", null],
+  ["aria-rowindextext", null],
   ["aria-valuetext", null],
-  ["label", [{ tagName: "TRACK" }]],
-  ["placeholder", null],
+  [
+    "content",
+    [{ tagName: "META", conditions: { name: ["description", "keywords"] } }],
+  ],
+  ["download", [{ tagName: "A" }, { tagName: "AREA" }]],
+  [
+    "label",
+    [{ tagName: "TRACK" }, { tagName: "OPTGROUP" }, { tagName: "OPTION" }],
+  ],
+  ["placeholder", [{ tagName: "INPUT" }]],
   ["title", null],
   [
     // We only want to translate value attributes for button-like <input> elements.
     // See https://bugzilla.mozilla.org/show_bug.cgi?id=1919230#c10
+    // type: submit is not translated because it may affect form submission, depending on how the server is configured.
+    // See https://github.com/whatwg/html/issues/3396#issue-291182587
     "value",
-    [{ tagName: "INPUT", conditions: { type: ["button", "reset", "submit"] } }],
+    [{ tagName: "INPUT", conditions: { type: ["button", "reset"] } }],
   ],
 ]);
 
@@ -683,6 +698,7 @@ export class TranslationsDocument {
     const addRootElements = () => {
       this.addRootElement(document.querySelector("title"));
       this.addRootElement(document.body);
+      this.addRootElement(document.head);
     };
 
     if (document.body) {

@@ -98,10 +98,7 @@ add_task(async function test_translated_title() {
   translate();
 
   const translatedTitle = "THIS IS AN ACTUAL FULL PAGE.";
-  try {
-    await waitForCondition(() => document.title === translatedTitle);
-  } catch (error) {}
-  is(document.title, translatedTitle, "The title was changed.");
+  await waitForCondition(() => document.title === translatedTitle);
 
   cleanup();
 });
@@ -1004,15 +1001,19 @@ add_task(async function test_tables() {
   const { translate, htmlMatches, cleanup } =
     await createTranslationsDoc(/* html */ `
     <table>
+    <tbody>
       <tr>
-        <th>Table header 1</th>
-        <th>Table header 2</th>
+        <th abbr="table_header1_abbr">Table header 1</th>
+        <th abbr="table_header2_abbr">Table header 2</th>
       </tr>
       <tr>
         <td>Table data 1</td>
         <td>Table data 2</td>
       </tr>
+      </tbody>
     </table>
+
+
   `);
 
   translate();
@@ -1023,10 +1024,10 @@ add_task(async function test_tables() {
       <table>
         <tbody>
           <tr>
-            <th>
+            <th abbr="TABLE_HEADER1_ABBR">
               TABLE HEADER 1
             </th>
-            <th>
+            <th abbr="TABLE_HEADER2_ABBR">
               TABLE HEADER 2
             </th>
           </tr>
@@ -1175,10 +1176,7 @@ add_task(async function test_html_lang_attribute() {
 
   translate();
 
-  try {
-    await waitForCondition(() => document.documentElement.lang === "EN");
-  } catch (error) {}
-  is(document.documentElement.lang, "EN", "The lang attribute was changed");
+  await waitForCondition(() => document.documentElement.lang === "EN");
 
   cleanup();
 });
@@ -1222,6 +1220,32 @@ add_task(async function test_multiple_attributes() {
   cleanup();
 });
 
+add_task(async function test_meta_content_translation() {
+  const { cleanup, document, translate } =
+    await createTranslationsDoc(/* html */ `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="description" content="some page description">
+      <meta name="keywords" content="some page keywords">
+    </head>
+    <body></body>
+    </html>
+  `);
+
+  translate();
+
+  const metaDescription = document.querySelector('meta[name="description"]');
+  const metaKeywords = document.querySelector('meta[name="keywords"]');
+
+  await waitForCondition(
+    () => metaDescription?.content === "SOME PAGE DESCRIPTION"
+  );
+  await waitForCondition(() => metaKeywords?.content === "SOME PAGE KEYWORDS");
+
+  cleanup();
+});
+
 add_task(async function test_translated_title() {
   const { translate, htmlMatches, cleanup } =
     await createTranslationsDoc(/* html */ `
@@ -1247,7 +1271,7 @@ add_task(async function test_translated_title() {
 add_task(async function test_translated_aria_attributes() {
   const { translate, htmlMatches, cleanup } =
     await createTranslationsDoc(/* html */ `
-    <div aria-label="label" aria-description="description">
+    <div aria-label="label" aria-description="description" aria-brailleroledescription="brailleroledescription" aria-braillelabel="braillelabel" aria-placeholder="aria_placeholder" aria-roledescription="roledescription" aria-valuetext="valuetext" aria-colindextext="colindextext" aria-rowindextext="rowindextext">
       Content
     </div>
   `);
@@ -1257,7 +1281,7 @@ add_task(async function test_translated_aria_attributes() {
   await htmlMatches(
     "ARIA attributes are translated",
     /* html */ `
-    <div aria-label="LABEL" aria-description="DESCRIPTION">
+    <div aria-label="LABEL" aria-description="DESCRIPTION" aria-brailleroledescription="BRAILLEROLEDESCRIPTION" aria-braillelabel="BRAILLELABEL" aria-placeholder="ARIA_PLACEHOLDER" aria-roledescription="ROLEDESCRIPTION" aria-valuetext="VALUETEXT" aria-colindextext="COLINDEXTEXT" aria-rowindextext="ROWINDEXTEXT">
       CONTENT
     </div>
     `
@@ -1430,15 +1454,15 @@ add_task(async function test_attribute_translation_for_input_elements() {
   const { translate, htmlMatches, cleanup } =
     await createTranslationsDoc(/* html */ `
       <div>
-        <!-- Translate [title] and [value] attributes -->
+        <!-- Translate [title], [value] and [alt] attributes -->
         <input type="button" title="button_title" value="button_value" alt="button_alt">
         <input type="reset" title="reset_title" value="reset_value" alt="reset_alt">
+
+        <!-- Do not translate type of submit for value attributes -->
         <input type="submit" title="submit_title" value="submit_value" alt="submit_alt">
 
         <!-- Translate [title] and [alt] attributes -->
         <input type="image" title="image_title" value="image_value" alt="image_alt">
-
-        <!-- Translate [title] attribute only -->
         <input type="checkbox" title="checkbox_title" value="checkbox_value" alt="checkbox_alt">
         <input type="color" title="color_title" value="color_value" alt="color_alt">
         <input type="date" title="date_title" value="date_value" alt="date_alt">
@@ -1467,34 +1491,80 @@ add_task(async function test_attribute_translation_for_input_elements() {
     "Translations: Attribute Translation for <input> elements",
     /* html */ `
     <div>
-      <!-- Translate [title] and [value] attributes -->
-      <input type="button" title="BUTTON_TITLE" value="BUTTON_VALUE" alt="button_alt">
-      <input type="reset" title="RESET_TITLE" value="RESET_VALUE" alt="reset_alt">
-      <input type="submit" title="SUBMIT_TITLE" value="SUBMIT_VALUE" alt="submit_alt">
+      <!-- Translate [title], [value] and [alt] attributes -->
+      <input type="button" title="BUTTON_TITLE" value="BUTTON_VALUE" alt="BUTTON_ALT">
+      <input type="reset" title="RESET_TITLE" value="RESET_VALUE" alt="RESET_ALT">
+
+      <!-- Do not translate type of submit for value attributes -->
+      <input type="submit" title="SUBMIT_TITLE" value="submit_value" alt="SUBMIT_ALT">
 
       <!-- Translate [title] and [alt] attributes -->
       <input type="image" title="IMAGE_TITLE" value="image_value" alt="IMAGE_ALT">
+      <input type="checkbox" title="CHECKBOX_TITLE" value="checkbox_value" alt="CHECKBOX_ALT">
+      <input type="color" title="COLOR_TITLE" value="color_value" alt="COLOR_ALT">
+      <input type="date" title="DATE_TITLE" value="date_value" alt="DATE_ALT">
+      <input type="datetime" title="DATETIME_OBSOLETE_TITLE" value="datetime_value" alt="DATETIME_OBSOLETE_ALT">
+      <input type="datetime-local" title="DATETIME-LOCAL_TITLE" value="datetime-local_value" alt="DATETIME-LOCAL_ALT">
+      <input type="email" title="EMAIL_TITLE" value="email_value" alt="EMAIL_ALT">
+      <input type="file" title="FILE_TITLE" value="file_value" alt="FILE_ALT">
+      <input type="hidden" title="HIDDEN_TITLE" value="hidden_value" alt="HIDDEN_ALT">
+      <input type="month" title="MONTH_TITLE" value="month_value" alt="MONTH_ALT">
+      <input type="number" title="NUMBER_TITLE" value="number_value" alt="NUMBER_ALT">
+      <input type="password" title="PASSWORD_TITLE" value="password_value" alt="PASSWORD_ALT">
+      <input type="radio" title="RADIO_TITLE" value="radio_value" alt="RADIO_ALT">
+      <input type="range" title="RANGE_TITLE" value="range_value" alt="RANGE_ALT">
+      <input type="search" title="SEARCH_TITLE" value="search_value" alt="SEARCH_ALT">
+      <input type="tel" title="TEL_TITLE" value="tel_value" alt="TEL_ALT">
+      <input type="text" title="TEXT_TITLE" value="text_value" alt="TEXT_ALT">
+      <input type="time" title="TIME_TITLE" value="time_value" alt="TIME_ALT">
+      <input type="url" title="URL_TITLE" value="url_value" alt="URL_ALT">
+      <input type="week" title="WEEK_TITLE" value="week_value" alt="WEEK_ALT">
+    </div>
+    `
+  );
 
-      <!-- Translate [title] attribute only -->
-      <input type="checkbox" title="CHECKBOX_TITLE" value="checkbox_value" alt="checkbox_alt">
-      <input type="color" title="COLOR_TITLE" value="color_value" alt="color_alt">
-      <input type="date" title="DATE_TITLE" value="date_value" alt="date_alt">
-      <input type="datetime" title="DATETIME_OBSOLETE_TITLE" value="datetime_value" alt="datetime_obsolete_alt">
-      <input type="datetime-local" title="DATETIME-LOCAL_TITLE" value="datetime-local_value" alt="datetime-local_alt">
-      <input type="email" title="EMAIL_TITLE" value="email_value" alt="email_alt">
-      <input type="file" title="FILE_TITLE" value="file_value" alt="file_alt">
-      <input type="hidden" title="HIDDEN_TITLE" value="hidden_value" alt="hidden_alt">
-      <input type="month" title="MONTH_TITLE" value="month_value" alt="month_alt">
-      <input type="number" title="NUMBER_TITLE" value="number_value" alt="number_alt">
-      <input type="password" title="PASSWORD_TITLE" value="password_value" alt="password_alt">
-      <input type="radio" title="RADIO_TITLE" value="radio_value" alt="radio_alt">
-      <input type="range" title="RANGE_TITLE" value="range_value" alt="range_alt">
-      <input type="search" title="SEARCH_TITLE" value="search_value" alt="search_alt">
-      <input type="tel" title="TEL_TITLE" value="tel_value" alt="tel_alt">
-      <input type="text" title="TEXT_TITLE" value="text_value" alt="text_alt">
-      <input type="time" title="TIME_TITLE" value="time_value" alt="time_alt">
-      <input type="url" title="URL_TITLE" value="url_value" alt="url_alt">
-      <input type="week" title="WEEK_TITLE" value="week_value" alt="week_alt">
+  cleanup();
+});
+
+add_task(async function test_attribute_translation_for_area_elements() {
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
+    <map>
+      <area alt="area_alt" href="#" target="_blank" shape="area_shape" coords="area_coords" download="area.png" rel="area_rel">
+    </map>
+    `);
+
+  translate();
+
+  await htmlMatches(
+    "Translations: Attribute Translation for <area> elements",
+    /* html */ `
+    <map>
+      <area alt="AREA_ALT" href="#" target="_blank" shape="area_shape" coords="area_coords" download="AREA.PNG" rel="area_rel">
+    </map>
+    `
+  );
+
+  cleanup();
+});
+
+add_task(async function test_translated_download_attributes() {
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
+    <div>
+      <a download="filename.txt" href="#file_url">Link</a>
+      <area download="area.png" href="#image_url" shape="rect" coords="area_coords" target="_blank" rel="area_rel">
+    </div>
+  `);
+
+  translate();
+
+  await htmlMatches(
+    "Download attributes are translated on <a> and <area> elements",
+    /* html */ `
+    <div>
+      <a download="FILENAME.TXT" href="#file_url">LINK</a>
+      <area download="AREA.PNG" href="#image_url" shape="rect" coords="area_coords" target="_blank" rel="area_rel">
     </div>
     `
   );
@@ -1507,16 +1577,26 @@ add_task(async function test_attribute_translation_for_track_elements() {
     await createTranslationsDoc(/* html */ `
       <div>
         <track kind="captions" label="Track label">
+        <select>
+          <optgroup label="Group 1">
+            <option label="option label" value="option_value">Option 1.1</option>
+          </optgroup>
+        </select>
       </div>
     `);
 
   translate();
 
   await htmlMatches(
-    "Translations: Attribute Translation for <track> elements",
+    "Label attributes are translated on <track>, <optgroup>, and <option> elements",
     /* html */ `
     <div>
       <track kind="captions" label="TRACK LABEL">
+      <select>
+        <optgroup label="GROUP 1">
+          <option label="OPTION LABEL" value="option_value">OPTION 1.1</option>
+        </optgroup>
+      </select>
     </div>
     `
   );
