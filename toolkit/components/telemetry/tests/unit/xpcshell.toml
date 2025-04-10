@@ -92,8 +92,6 @@ skip-if = [
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807929
 ]
 
-["test_TelemetryFlagClear.js"]
-
 ["test_TelemetryHistograms.js"]
 
 ["test_TelemetryLateWrites.js"]

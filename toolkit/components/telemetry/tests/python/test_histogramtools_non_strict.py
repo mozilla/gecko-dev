@@ -82,11 +82,11 @@ class TestParser(unittest.TestCase):
             parse_histograms.from_files([HISTOGRAMS_PATH], strict_type_checks=False)
         )
         test_histogram = [
-            i for i in all_histograms if i.name() == "TELEMETRY_TEST_FLAG"
+            i for i in all_histograms if i.name() == "TELEMETRY_TEST_LINEAR"
         ][0]
 
         self.assertEqual(test_histogram.expiration(), "never")
-        self.assertEqual(test_histogram.kind(), "flag")
+        self.assertEqual(test_histogram.kind(), "linear")
         self.assertEqual(test_histogram.record_in_processes(), ["main", "content"])
         self.assertEqual(test_histogram.keyed(), False)
 

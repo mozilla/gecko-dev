@@ -12,8 +12,6 @@ const MESSAGE_CHILD_TEST_DONE = "ChildTest:Done";
 
 function run_child_test() {
   // Setup histograms with some fixed values.
-  let flagHist = Telemetry.getHistogramById("TELEMETRY_TEST_FLAG");
-  flagHist.add(1);
   let countHist = Telemetry.getHistogramById("TELEMETRY_TEST_COUNT");
   countHist.add();
   countHist.add();
@@ -21,9 +19,6 @@ function run_child_test() {
   categHist.add("Label2");
   categHist.add("Label3");
 
-  let flagKeyed = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_FLAG");
-  flagKeyed.add("a", 1);
-  flagKeyed.add("b", 1);
   let countKeyed = Telemetry.getKeyedHistogramById(
     "TELEMETRY_TEST_KEYED_COUNT"
   );
@@ -40,12 +35,6 @@ function run_child_test() {
     "TELEMETRY_TEST_KEYED_CONTENT_PROCESS"
   );
   contentKeyed.add("content", 1);
-  let contentFlag = Telemetry.getHistogramById(
-    "TELEMETRY_TEST_FLAG_CONTENT_PROCESS"
-  );
-  contentFlag.add(true);
-  let mainFlag = Telemetry.getHistogramById("TELEMETRY_TEST_FLAG_MAIN_PROCESS");
-  mainFlag.add(true);
   let allLinear = Telemetry.getHistogramById("TELEMETRY_TEST_ALL_PROCESSES");
   allLinear.add(10);
   let allChildLinear = Telemetry.getHistogramById(
@@ -96,7 +85,6 @@ function run_child_test() {
 function check_histogram_values(payload) {
   const hs = payload.histograms;
   Assert.ok("TELEMETRY_TEST_COUNT" in hs, "Should have count test histogram.");
-  Assert.ok("TELEMETRY_TEST_FLAG" in hs, "Should have flag test histogram.");
   Assert.ok(
     "TELEMETRY_TEST_CATEGORICAL" in hs,
     "Should have categorical test histogram."
@@ -105,11 +93,6 @@ function check_histogram_values(payload) {
     hs.TELEMETRY_TEST_COUNT.sum,
     2,
     "Count test histogram should have the right value."
-  );
-  Assert.equal(
-    hs.TELEMETRY_TEST_FLAG.sum,
-    1,
-    "Flag test histogram should have the right value."
   );
   Assert.equal(
     hs.TELEMETRY_TEST_CATEGORICAL.sum,
@@ -122,10 +105,6 @@ function check_histogram_values(payload) {
     "TELEMETRY_TEST_KEYED_COUNT" in kh,
     "Should have keyed count test histogram."
   );
-  Assert.ok(
-    "TELEMETRY_TEST_KEYED_FLAG" in kh,
-    "Should have keyed flag test histogram."
-  );
   Assert.equal(
     kh.TELEMETRY_TEST_KEYED_COUNT.a.sum,
     1,
@@ -135,16 +114,6 @@ function check_histogram_values(payload) {
     kh.TELEMETRY_TEST_KEYED_COUNT.b.sum,
     2,
     "Keyed count test histogram should have the right value."
-  );
-  Assert.equal(
-    kh.TELEMETRY_TEST_KEYED_FLAG.a.sum,
-    1,
-    "Keyed flag test histogram should have the right value."
-  );
-  Assert.equal(
-    kh.TELEMETRY_TEST_KEYED_FLAG.b.sum,
-    1,
-    "Keyed flag test histogram should have the right value."
   );
 }
 
@@ -192,12 +161,6 @@ add_task(async function () {
     "TELEMETRY_TEST_KEYED_CONTENT_PROCESS"
   );
   contentKeyed.add("parent", 1);
-  let contentFlag = Telemetry.getHistogramById(
-    "TELEMETRY_TEST_FLAG_CONTENT_PROCESS"
-  );
-  contentFlag.add(true);
-  let mainFlag = Telemetry.getHistogramById("TELEMETRY_TEST_FLAG_MAIN_PROCESS");
-  mainFlag.add(true);
   let allLinear = Telemetry.getHistogramById("TELEMETRY_TEST_ALL_PROCESSES");
   allLinear.add(20);
   let allChildLinear = Telemetry.getHistogramById(
@@ -248,15 +211,6 @@ add_task(async function () {
     "Should have correct value"
   );
   Assert.ok(
-    "TELEMETRY_TEST_FLAG_CONTENT_PROCESS" in hs,
-    "Should have content process histogram"
-  );
-  Assert.equal(
-    hs.TELEMETRY_TEST_FLAG_CONTENT_PROCESS.sum,
-    1,
-    "Should have correct value"
-  );
-  Assert.ok(
     "TELEMETRY_TEST_ALL_PROCESSES" in hs,
     "Should have content process histogram"
   );
@@ -274,10 +228,6 @@ add_task(async function () {
     10,
     "Should have correct value"
   );
-  Assert.ok(
-    !("TELEMETRY_TEST_FLAG_MAIN_PROCESS" in hs),
-    "Should not have main process histogram in child process payload"
-  );
 
   // Main Process
   let mainHs = payload.histograms;
@@ -291,10 +241,6 @@ add_task(async function () {
     "Should not have keyed content process histogram in main process payload"
   );
   Assert.ok(
-    !("TELEMETRY_TEST_FLAG_CONTENT_PROCESS" in mainHs),
-    "Should not have content process histogram in main process payload"
-  );
-  Assert.ok(
     "TELEMETRY_TEST_ALL_PROCESSES" in mainHs,
     "Should have all-process histogram in main process payload"
   );
@@ -306,15 +252,6 @@ add_task(async function () {
   Assert.ok(
     !("TELEMETRY_TEST_ALL_CHILD_PROCESSES" in mainHs),
     "Should not have all-child process histogram in main process payload"
-  );
-  Assert.ok(
-    "TELEMETRY_TEST_FLAG_MAIN_PROCESS" in mainHs,
-    "Should have main process histogram in main process payload"
-  );
-  Assert.equal(
-    mainHs.TELEMETRY_TEST_FLAG_MAIN_PROCESS.sum,
-    1,
-    "Should have correct value"
   );
   Assert.equal(
     mainKhs.TELEMETRY_TEST_KEYED_COUNT.a.sum,

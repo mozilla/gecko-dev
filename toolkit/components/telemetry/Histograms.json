@@ -7632,14 +7632,6 @@
     "labels": ["UnknownEvent", "Expired", "ExtraKey", "Value", "Extra"],
     "description": "Number of event recording failures, by type of failure"
   },
-  "TELEMETRY_TEST_FLAG": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "a testing histogram; not meant to be touched"
-  },
   "TELEMETRY_TEST_COUNT": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "thunderbird"],
@@ -7705,15 +7697,6 @@
     "kind": "count",
     "keyed": true,
     "description": "a testing histogram; not meant to be touched - initially not recording"
-  },
-  "TELEMETRY_TEST_KEYED_FLAG": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "keyed": true,
-    "description": "a testing histogram; not meant to be touched"
   },
   "TELEMETRY_TEST_KEYED_COUNT": {
     "record_in_processes": ["main", "content"],
@@ -7926,24 +7909,6 @@
     "high": 10000,
     "n_buckets": 10,
     "keyed": true,
-    "bug_numbers": [1335343],
-    "description": "a testing histogram; not meant to be touched"
-  },
-  "TELEMETRY_TEST_FLAG_CONTENT_PROCESS": {
-    "record_in_processes": ["content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "bug_numbers": [1335343],
-    "description": "a testing histogram; not meant to be touched"
-  },
-  "TELEMETRY_TEST_FLAG_MAIN_PROCESS": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "flag",
     "bug_numbers": [1335343],
     "description": "a testing histogram; not meant to be touched"
   },

@@ -360,29 +360,15 @@ function checkPayload(payload, reason, successfulPings) {
 
   const TELEMETRY_SEND_SUCCESS = "TELEMETRY_SEND_SUCCESS";
   const TELEMETRY_SUCCESS = "TELEMETRY_SUCCESS";
-  const TELEMETRY_TEST_FLAG = "TELEMETRY_TEST_FLAG";
   const TELEMETRY_TEST_COUNT = "TELEMETRY_TEST_COUNT";
-  const TELEMETRY_TEST_KEYED_FLAG = "TELEMETRY_TEST_KEYED_FLAG";
   const TELEMETRY_TEST_KEYED_COUNT = "TELEMETRY_TEST_KEYED_COUNT";
 
   if (successfulPings > 0) {
     Assert.ok(TELEMETRY_SEND_SUCCESS in payload.histograms);
   }
-  Assert.ok(TELEMETRY_TEST_FLAG in payload.histograms);
   Assert.ok(TELEMETRY_TEST_COUNT in payload.histograms);
 
   Assert.ok(!(IGNORE_CLONED_HISTOGRAM in payload.histograms));
-
-  // Flag histograms should automagically spring to life.
-  const expected_flag = {
-    range: [1, 2],
-    bucket_count: 3,
-    histogram_type: 3,
-    values: { 0: 1, 1: 0 },
-    sum: 0,
-  };
-  let flag = payload.histograms[TELEMETRY_TEST_FLAG];
-  Assert.deepEqual(flag, expected_flag);
 
   // We should have a test count.
   const expected_count = {
@@ -430,7 +416,6 @@ function checkPayload(payload, reason, successfulPings) {
 
   Assert.ok("keyedHistograms" in payload);
   let keyedHistograms = payload.keyedHistograms;
-  Assert.ok(!(TELEMETRY_TEST_KEYED_FLAG in keyedHistograms));
   Assert.ok(TELEMETRY_TEST_KEYED_COUNT in keyedHistograms);
 
   const expected_keyed_count = {
