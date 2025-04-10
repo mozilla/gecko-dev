@@ -66,6 +66,10 @@ add_setup(async function () {
   sinon.stub(NimbusFeatures.searchConfiguration, "ready").resolves();
   await test.setup();
 
+  // This is needed to make sure the search settings can be loaded
+  // when the search service is initialized.
+  do_get_profile();
+
   registerCleanupFunction(async () => {
     sinon.restore();
   });

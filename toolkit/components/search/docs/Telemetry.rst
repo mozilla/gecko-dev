@@ -84,12 +84,13 @@ search.service.startup_time
 
   The time duration it takes for the search service to start up.
 
-search.service.initializaitonStatus
+search.service.initializationStatus
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   A labeled counter for the type of initialization statuses that can occur on
   start up. Labels include: ``failedSettings``, ``failedFetchEngines``,
-  ``failedLoadEngines``, ``failedLoadSettingsAddonManager``, ``success``.
+  ``failedLoadEngines``, ``failedLoadSettingsAddonManager``, ``settingsCorrupt``,
+  ``success``.
 
   A counter for initialization successes on start up.
 

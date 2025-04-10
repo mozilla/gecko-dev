@@ -65,6 +65,10 @@ export class SearchSettings {
   // Delay for batching invalidation of the JSON settings (ms)
   static SETTINGS_INVALIDATION_DELAY = 1000;
 
+  get #settingsFilePath() {
+    return PathUtils.join(PathUtils.profileDir, SETTINGS_FILENAME);
+  }
+
   /**
    * A reference to the pending DeferredTask, if there is one.
    */
@@ -143,6 +147,11 @@ export class SearchSettings {
   }
 
   /**
+   * Whether the last `get` reset the settings because they were corrupt.
+   */
+  lastGetCorrupt = false;
+
+  /**
    * Reads the settings file.
    *
    * @param {string} origin
@@ -153,28 +162,24 @@ export class SearchSettings {
    *   Returns the settings file data.
    */
   async get(origin = "") {
+    this.lastGetCorrupt = false;
+
     let json;
     await this._ensurePendingWritesCompleted(origin);
     try {
-      let settingsFilePath = PathUtils.join(
-        PathUtils.profileDir,
-        SETTINGS_FILENAME
-      );
-      json = await IOUtils.readJSON(settingsFilePath, { decompress: true });
+      json = await IOUtils.readJSON(this.#settingsFilePath, {
+        decompress: true,
+      });
       if (!json.engines || !json.engines.length) {
         throw new Error("no engine in the file");
       }
     } catch (ex) {
       if (DOMException.isInstance(ex) && ex.name === "NotFoundError") {
         lazy.logConsole.debug("get: No settings file exists, new profile?", ex);
-      } else {
-        lazy.logConsole.error("get: Settings file empty or corrupt.", ex);
-        Services.prefs.setIntPref(
-          lazy.SearchUtils.BROWSER_SEARCH_PREF + "lastSettingsCorruptTime",
-          Date.now() / 1000
-        );
+        return this.#resetSettings(false);
       }
-      json = {};
+      lazy.logConsole.error("get: Settings file empty or corrupt.", ex);
+      return this.#resetSettings(true);
     }
 
     this.#settings = json;
@@ -184,9 +189,52 @@ export class SearchSettings {
       this.#settings.metaData = {};
     }
 
-    await this.#migrateSettings();
+    try {
+      await this.#migrateSettings();
+    } catch (ex) {
+      lazy.logConsole.error("get: Migration failed.", ex);
+      return this.#resetSettings(true);
+    }
 
     return structuredClone(json);
+  }
+
+  /**
+   * Resets the search settings without writing to disk yet.
+   *
+   * If the reset is due to a corrupt settings file, the corrupt file is
+   * backed up, the lastSettingsCorruptTime pref is set to the current time,
+   * and this.lastGetCorrupt is set to true.
+   *
+   * @param {boolean} corrupt
+   *   Whether the reset is carried out because the settings are corrupt.
+   * @returns {Promise<object>}
+   *   New empty search settings.
+   */
+  async #resetSettings(corrupt) {
+    this.#settings = { metaData: {} };
+    this.#cachedSettings = {};
+
+    if (corrupt) {
+      this.lastGetCorrupt = true;
+      Services.prefs.setIntPref(
+        lazy.SearchUtils.BROWSER_SEARCH_PREF + "lastSettingsCorruptTime",
+        Date.now() / 1000
+      );
+      try {
+        await IOUtils.move(
+          this.#settingsFilePath,
+          this.#settingsFilePath + ".bak"
+        );
+      } catch (ex) {
+        lazy.logConsole.warn(
+          "#resetSettings: Unable to create backup of corrupt settings file.",
+          ex
+        );
+      }
+    }
+
+    return structuredClone(this.#settings);
   }
 
   /**
@@ -303,10 +351,9 @@ export class SearchSettings {
       this.#cachedSettings = structuredClone(this.#settings);
 
       lazy.logConsole.debug("_write: Writing to settings file.");
-      let path = PathUtils.join(PathUtils.profileDir, SETTINGS_FILENAME);
-      await IOUtils.writeJSON(path, settings, {
+      await IOUtils.writeJSON(this.#settingsFilePath, settings, {
         compress: true,
-        tmpPath: path + ".tmp",
+        tmpPath: this.#settingsFilePath + ".tmp",
       });
       lazy.logConsole.debug("_write: settings file written to disk.");
       Services.obs.notifyObservers(

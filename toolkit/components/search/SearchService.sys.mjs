@@ -1400,6 +1400,7 @@ export class SearchService {
     try {
       initSection = "Settings";
       this.#maybeThrowErrorInTest(initSection);
+      this.#maybeThrowErrorInTest("LoadSettingsAddonManager");
       const settings = await this._settings.get();
 
       initSection = "FetchEngines";
@@ -1408,7 +1409,6 @@ export class SearchService {
 
       initSection = "LoadEngines";
       this.#maybeThrowErrorInTest(initSection);
-      this.#maybeThrowErrorInTest("LoadSettingsAddonManager");
       await this.#loadEngines(settings, refinedConfig);
     } catch (ex) {
       if (ex.message.startsWith("Addon manager")) {
@@ -1453,7 +1453,12 @@ export class SearchService {
     }
 
     this.#initializationStatus = "success";
-    Glean.searchService.initializationStatus.success.add();
+    if (!this._settings.lastGetCorrupt) {
+      Glean.searchService.initializationStatus.success.add();
+    } else {
+      Glean.searchService.initializationStatus.settingsCorrupt.add();
+      this._showSearchSettingsResetNotificationBox(this.defaultEngine.name);
+    }
     this.#initDeferredPromise.resolve();
     this.#addObservers();
 
@@ -3608,6 +3613,21 @@ export class SearchService {
       "search-engine-removal",
       prevCurrentEngineName,
       newCurrentEngineName
+    );
+  }
+
+  /**
+   * Infobar informing the user that the search settings had to be reset
+   * and what their new default engine is.
+   *
+   * @param {string} newEngine
+   *   The name of the new default search engine.
+   */
+  _showSearchSettingsResetNotificationBox(newEngine) {
+    lazy.BrowserUtils.callModulesFromCategory(
+      { categoryName: "search-service-notification" },
+      "search-settings-reset",
+      newEngine
     );
   }
 

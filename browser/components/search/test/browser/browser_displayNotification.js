@@ -27,3 +27,27 @@ add_task(async function test_removalMessage() {
 
   notificationBox.close();
 });
+
+add_task(async function test_resetMessage() {
+  Assert.ok(
+    !gNotificationBox.getNotificationWithValue("search-settings-reset"),
+    "Message is not displayed initially."
+  );
+
+  BrowserUtils.callModulesFromCategory(
+    { categoryName: "search-service-notification" },
+    "search-settings-reset",
+    "Engine 1"
+  );
+
+  await TestUtils.waitForCondition(
+    () => gNotificationBox.getNotificationWithValue("search-settings-reset"),
+    "Waiting for message to be displayed"
+  );
+  let notificationBox = gNotificationBox.getNotificationWithValue(
+    "search-settings-reset"
+  );
+  Assert.ok(notificationBox, "Message is displayed.");
+
+  notificationBox.close();
+});

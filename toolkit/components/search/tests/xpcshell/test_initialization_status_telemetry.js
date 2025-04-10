@@ -5,6 +5,10 @@
  * Tests telemetry is captured when search service initialization has failed or
  * succeeded.
  */
+ChromeUtils.defineESModuleGetters(this, {
+  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
+});
+
 const searchService = Services.search.wrappedJSObject;
 
 add_setup(async () => {
@@ -57,7 +61,7 @@ add_task(async function test_init_failure_telemetry() {
     "Should have incremented load engines failure by one."
   );
 
-  // This error is recognized based on the error message so we set it explicitly.
+  // This error is recognized based on the error message, so we set it explicitly.
   await startInitFailure("LoadSettingsAddonManager", "Addon manager failed");
   Assert.equal(
     1,
@@ -65,6 +69,7 @@ add_task(async function test_init_failure_telemetry() {
     "Should have incremented get settings addon manager failure by one."
   );
 
+  // This type of failure should not be reported in telemetry.
   await startInitFailure(
     "LoadSettingsAddonManager",
     "Addon manager shutting down"
@@ -74,6 +79,42 @@ add_task(async function test_init_failure_telemetry() {
     await Glean.searchService.initializationStatus.failedLoadSettingsAddonManager.testGetValue(),
     "Should not have incremented load get settings addon manager failure."
   );
+});
+
+add_task(async function test_corrupt_settings() {
+  consoleAllowList.push("get: Settings file empty or corrupt.");
+  searchService.reset();
+
+  // Prevents unhandled error in promise because there is no window.
+  let notificationBoxStub = sinon.stub(
+    SearchUIUtils,
+    "searchSettingsResetNotificationBox"
+  );
+
+  await IOUtils.writeJSON(
+    PathUtils.join(PathUtils.profileDir, SETTINGS_FILENAME),
+    "{invalid json",
+    { compress: true }
+  );
+
+  Assert.equal(
+    searchService.isInitialized,
+    false,
+    "Search Service should not be initialized."
+  );
+  await Services.search.init();
+  Assert.equal(
+    searchService.hasSuccessfullyInitialized,
+    true,
+    "Search Service should have initialized successfully."
+  );
+
+  Assert.equal(
+    1,
+    await Glean.searchService.initializationStatus.settingsCorrupt.testGetValue(),
+    "Should have incremented settings corrupt by one."
+  );
+  notificationBoxStub.reset();
 });
 
 async function startInitFailure(errorType, errorMessage) {
