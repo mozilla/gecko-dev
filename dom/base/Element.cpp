@@ -5308,17 +5308,8 @@ void Element::SetHTML(const nsAString& aInnerHTML,
     aError.ThrowInvalidStateError("Missing owner global.");
     return;
   }
-
-  RefPtr<Sanitizer> sanitizer;
-  if (aOptions.mSanitizer.IsSanitizer()) {
-    sanitizer = aOptions.mSanitizer.GetAsSanitizer();
-  } else if (aOptions.mSanitizer.IsSanitizerConfig()) {
-    sanitizer = Sanitizer::New(
-        global, aOptions.mSanitizer.GetAsSanitizerConfig(), aError);
-  } else {
-    sanitizer = Sanitizer::New(
-        global, aOptions.mSanitizer.GetAsSanitizerPresets(), aError);
-  }
+  RefPtr<Sanitizer> sanitizer =
+      Sanitizer::GetInstance(global, aOptions.mSanitizer, true, aError);
   if (aError.Failed()) {
     return;
   }

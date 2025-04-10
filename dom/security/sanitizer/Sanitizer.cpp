@@ -45,15 +45,76 @@ JSObject* Sanitizer::WrapObject(JSContext* aCx,
   return Sanitizer_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-// https://wicg.github.io/sanitizer-api/#sanitizer-constructor
 /* static */
-already_AddRefed<Sanitizer> Sanitizer::New(nsIGlobalObject* aGlobal,
-                                           const SanitizerConfig& aConfig,
-                                           ErrorResult& aRv) {
-  RefPtr<Sanitizer> sanitizer = new Sanitizer(aGlobal);
+// https://wicg.github.io/sanitizer-api/#sanitizerconfig-get-a-sanitizer-instance-from-options
+already_AddRefed<Sanitizer> Sanitizer::GetInstance(
+    nsIGlobalObject* aGlobal,
+    const OwningSanitizerOrSanitizerConfigOrSanitizerPresets& aOptions,
+    bool aSafe, ErrorResult& aRv) {
+  // Step 4. If sanitizerSpec is a string:
+  if (aOptions.IsSanitizerPresets()) {
+    // Step 4.1. Assert: sanitizerSpec is "default"
+    MOZ_ASSERT(aOptions.GetAsSanitizerPresets() == SanitizerPresets::Default);
 
-  // Step 2. Let valid be the return value of setting configuration on this.
-  sanitizer->SetConfig(aConfig, aRv);
+    // Step 4.2. Set sanitizerSpec to the built-in safe default configuration.
+    // NOTE: The built-in safe default configuration is complete and not
+    // influenced by |safe|.
+    RefPtr<Sanitizer> sanitizer = new Sanitizer(aGlobal);
+    sanitizer->SetDefaultConfig();
+    return sanitizer.forget();
+  }
+
+  // Step 5. Assert: sanitizerSpec is either a Sanitizer instance, or a
+  // dictionary. Step 6. If sanitizerSpec is a dictionary:
+  if (aOptions.IsSanitizerConfig()) {
+    // Step 6.1. Let sanitizer be a new Sanitizer instance.
+    RefPtr<Sanitizer> sanitizer = new Sanitizer(aGlobal);
+
+    // Step 6.2. Let setConfigurationResult be the result of set a configuration
+    // with sanitizerSpec and not safe on sanitizer.
+    sanitizer->SetConfig(aOptions.GetAsSanitizerConfig(), !aSafe, aRv);
+
+    // Step 6.3. If setConfigurationResult is false, throw a TypeError.
+    if (aRv.Failed()) {
+      return nullptr;
+    }
+
+    // Step 6.4. Set sanitizerSpec to sanitizer.
+    return sanitizer.forget();
+  }
+
+  // Step 7. Assert: sanitizerSpec is a Sanitizer instance.
+  MOZ_ASSERT(aOptions.IsSanitizer());
+
+  // Step 8. Return sanitizerSpec.
+  RefPtr<Sanitizer> sanitizer = aOptions.GetAsSanitizer();
+  return sanitizer.forget();
+}
+
+/* static */
+// https://wicg.github.io/sanitizer-api/#sanitizer-constructor
+already_AddRefed<Sanitizer> Sanitizer::Constructor(
+    const GlobalObject& aGlobal,
+    const SanitizerConfigOrSanitizerPresets& aConfig, ErrorResult& aRv) {
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  RefPtr<Sanitizer> sanitizer = new Sanitizer(global);
+
+  // Step 1. If configuration is a SanitizerPresets string, then:
+  if (aConfig.IsSanitizerPresets()) {
+    // Step 1.1. Assert: configuration is default.
+    MOZ_ASSERT(aConfig.GetAsSanitizerPresets() == SanitizerPresets::Default);
+
+    // Step 1.2. Set configuration to the built-in safe default configuration .
+    sanitizer->SetDefaultConfig();
+
+    // NOTE: Early return because we don't need to do any
+    // processing/verification of the default config.
+    return sanitizer.forget();
+  }
+
+  // Step 2. Let valid be the return value of set a configuration with
+  // configuration and true on this.
+  sanitizer->SetConfig(aConfig.GetAsSanitizerConfig(), true, aRv);
 
   // Step 3. If valid is false, then throw a TypeError.
   if (aRv.Failed()) {
@@ -63,39 +124,20 @@ already_AddRefed<Sanitizer> Sanitizer::New(nsIGlobalObject* aGlobal,
   return sanitizer.forget();
 }
 
-// https://wicg.github.io/sanitizer-api/#sanitizer-constructor
-/* static */
-already_AddRefed<Sanitizer> Sanitizer::New(nsIGlobalObject* aGlobal,
-                                           const SanitizerPresets aConfig,
-                                           ErrorResult& aRv) {
-  // Step 1. If configuration is a SanitizerPresets string, then:
-  RefPtr<Sanitizer> sanitizer = new Sanitizer(aGlobal);
-
-  // Step 1.1. Assert: configuration is default.
-  MOZ_ASSERT(aConfig == SanitizerPresets::Default);
-
-  // Step 1.2. Set configuration to the built-in safe default configuration.
-  sanitizer->SetDefaultConfig();
-
-  return sanitizer.forget();
-}
-
-/* static */
-already_AddRefed<Sanitizer> Sanitizer::Constructor(
-    const GlobalObject& aGlobal,
-    const SanitizerConfigOrSanitizerPresets& aConfig, ErrorResult& aRv) {
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  if (aConfig.IsSanitizerConfig()) {
-    return New(global, aConfig.GetAsSanitizerConfig(), aRv);
-  }
-  return New(global, aConfig.GetAsSanitizerPresets(), aRv);
-}
-
 void Sanitizer::SetDefaultConfig() {
   MOZ_ASSERT(NS_IsMainThread());
   AssertNoLists();
 
   mIsDefaultConfig = true;
+
+  // https://wicg.github.io/sanitizer-api/#built-in-safe-default-configuration
+  // {
+  //   ...
+  //   "comments": false,
+  //   "dataAttributes": false
+  // }
+  MOZ_ASSERT(!mComments);
+  MOZ_ASSERT(!mDataAttributes);
 
   if (sDefaultHTMLElements) {
     // Already initialized.
@@ -149,7 +191,9 @@ void Sanitizer::SetDefaultConfig() {
 }
 
 // https://wicg.github.io/sanitizer-api/#sanitizer-set-a-configuration
-void Sanitizer::SetConfig(const SanitizerConfig& aConfig, ErrorResult& aRv) {
+void Sanitizer::SetConfig(const SanitizerConfig& aConfig,
+                          bool aAllowCommentsAndDataAttributes,
+                          ErrorResult& aRv) {
   // Step 1. For each element of configuration["elements"] do:
   if (aConfig.mElements.WasPassed()) {
     for (const auto& element : aConfig.mElements.Value()) {
@@ -192,17 +236,26 @@ void Sanitizer::SetConfig(const SanitizerConfig& aConfig, ErrorResult& aRv) {
     }
   }
 
-  // Step 6. Call set comments with configuration["comments"] and sanitizer.
-
-  // TODO: This is changing in https://github.com/WICG/sanitizer-api/pull/254
+  // Step 6. If configuration["comments"] exists:
   if (aConfig.mComments.WasPassed()) {
+    // Step 6.1. Then call set comments with configuration["comments"] and
+    // sanitizer’s configuration.
     SetComments(aConfig.mComments.Value());
+  } else {
+    // Step 6.2. Otherwise call set comments with allowCommentsAndDataAttributes
+    // and sanitizer’s configuration.
+    SetComments(aAllowCommentsAndDataAttributes);
   }
 
-  // Step 7. Call set data attributes with configuration["dataAttributes"] and
-  // sanitizer.
+  // Step 7. If configuration["dataAttributes"] exists:
   if (aConfig.mDataAttributes.WasPassed()) {
+    // Step 7.1. Then call set data attributes with
+    // configuration["dataAttributes"] and sanitizer’s configuration.
     SetDataAttributes(aConfig.mDataAttributes.Value());
+  } else {
+    // Step 7.2. Otherwise call set data attributes with
+    // allowCommentsAndDataAttributes and sanitizer’s configuration.
+    SetDataAttributes(aAllowCommentsAndDataAttributes);
   }
 
   // Step 8. Return whether all of the following are true:

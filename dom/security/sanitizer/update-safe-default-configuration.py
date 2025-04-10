@@ -5,7 +5,7 @@
 import json
 from urllib.request import urlretrieve
 
-REVISION = "8240cdeb454c602b235907f52dac593f557d829b"
+REVISION = "c7cb19fe8a174bd22ced1a84b3ad84bafd78496f"
 
 urlretrieve(
     f"https://raw.githubusercontent.com/WICG/sanitizer-api/{REVISION}/builtins/safe-default-configuration.json",
@@ -14,7 +14,10 @@ urlretrieve(
 config = json.load(open("safe-default-configuration.json"))
 
 # Make sure there are no unexpected keys (like removeAttributes)
-assert set(config.keys()) == {"elements", "attributes"}
+assert set(config.keys()) == {"elements", "attributes", "comments", "dataAttributes"}
+
+assert config["comments"] is False
+assert config["dataAttributes"] is False
 
 
 def attributes_list(attributes):

@@ -783,5 +783,7 @@
       "name": "scriptlevel",
       "namespace": null
     }
-  ]
+  ],
+  "comments": false,
+  "dataAttributes": false
 }
