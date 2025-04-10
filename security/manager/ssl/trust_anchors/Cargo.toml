@@ -5,6 +5,12 @@ authors = ["John Schanck <jschanck@mozilla.com>"]
 edition = "2021"
 license = "MPL-2.0"
 
+[features]
+# Used during build.
+# Not actually used in this crate.
+# Overwritten by the `test_trust_anchors` crate.
+testlib = []
+
 [dependencies]
 pkcs11-bindings = "0.1.1"
 smallvec = { version = "1.9.0", features = ["const_new"] }
