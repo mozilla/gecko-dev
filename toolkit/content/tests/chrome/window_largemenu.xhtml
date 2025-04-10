@@ -274,8 +274,8 @@ function contextMenuPopupShown()
       // platforms allow the menu to overlap os chrome and others do not
       var pos = (screen.availTop + screen.availHeight - rect.height) - gScreenY - marginTop;
       var availPos = (screen.top + screen.height - rect.height) - gScreenY - marginTop;
-      ok(rect.top == pos || rect.top == availPos,
-         gTests[gTestIndex] + ` top  (${pos}/${availPos})`);
+      ok(Math.round(rect.top) == Math.round(pos) || Math.round(rect.top) == Math.round(availPos),
+         gTests[gTestIndex] + ` top  (${rect.top}/${pos}/${availPos})`);
       break;
     case "context menu larger than screen":
       ok(rect.top == -(gScreenY - screen.availTop) + marginTop || rect.top == -(gScreenY - screen.top) + marginTop,

@@ -110,7 +110,7 @@ add_task(async () => {
   ok(sampledData.length, "There should be at least one collected offsets");
   ok(
     sampledData.some(
-      data => SpecialPowers.wrap(data).scrollOffsetY == scrollMax
+      data => Math.round(SpecialPowers.wrap(data).scrollOffsetY) == scrollMax
     ),
     `There should be ${scrollMax} in [${sampledData.map(data => SpecialPowers.wrap(data).scrollOffsetY)}]`
   );

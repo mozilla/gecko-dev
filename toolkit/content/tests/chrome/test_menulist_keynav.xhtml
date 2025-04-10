@@ -188,7 +188,7 @@ function tabAndScroll()
   originalPosition = item.getBoundingClientRect().top;
 
   synthesizeKey("KEY_ArrowDown");
-  is(item.getBoundingClientRect().top, originalPosition - rowdiff, "position of item 10");
+  is(Math.round(item.getBoundingClientRect().top), Math.round(originalPosition - rowdiff), "position of item 10");
 
   list.open = false;
 

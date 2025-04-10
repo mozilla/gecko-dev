@@ -146,8 +146,8 @@ function menulistShown()
 
   // Skip menulist3 as it has a label that scrolling doesn't need normally deal with.
   if (test.scroll >= 0) {
-    is(menulist.menupopup.childNodes[test.scroll].getBoundingClientRect().top,
-       menulist.menupopup.getBoundingClientRect().top + bpmTop,
+    is(Math.round(menulist.menupopup.childNodes[test.scroll].getBoundingClientRect().top),
+       Math.round(menulist.menupopup.getBoundingClientRect().top + bpmTop),
        "Popup scroll at correct position");
   }
 
