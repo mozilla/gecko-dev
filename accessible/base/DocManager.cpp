@@ -554,6 +554,7 @@ void DocManager::ClearDocCache() {
 }
 
 void DocManager::RemoteDocAdded(DocAccessibleParent* aDoc) {
+  MOZ_ASSERT(aDoc->IsTopLevel());
   if (!sRemoteDocuments) {
     sRemoteDocuments = new nsTArray<DocAccessibleParent*>;
     ClearOnShutdown(&sRemoteDocuments);
@@ -563,6 +564,12 @@ void DocManager::RemoteDocAdded(DocAccessibleParent* aDoc) {
              "How did we already have the doc!");
   sRemoteDocuments->AppendElement(aDoc);
   ProxyCreated(aDoc);
+  // Fire a reorder event on the OuterDocAccessible.
+  if (LocalAccessible* outerDoc = aDoc->OuterDocOfRemoteBrowser()) {
+    MOZ_ASSERT(outerDoc->Document());
+    RefPtr<AccReorderEvent> reorder = new AccReorderEvent(outerDoc);
+    outerDoc->Document()->FireDelayedEvent(reorder);
+  }
 }
 
 DocAccessible* mozilla::a11y::GetExistingDocAccessible(

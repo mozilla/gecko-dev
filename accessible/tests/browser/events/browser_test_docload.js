@@ -31,17 +31,13 @@ function urlChecker(url) {
 }
 
 async function runTests(browser) {
-  let onLoadEvents = waitForEvents({
-    expected: [
-      [EVENT_REORDER, getAccessible(browser)],
-      [EVENT_DOCUMENT_LOAD_COMPLETE, "body2"],
-      [EVENT_STATE_CHANGE, busyChecker(false)],
-    ],
-    unexpected: [
-      [EVENT_DOCUMENT_LOAD_COMPLETE, inIframeChecker("iframe1")],
-      [EVENT_STATE_CHANGE, inIframeChecker("iframe1")],
-    ],
-  });
+  let onLoadEvents = waitForEvents([
+    [EVENT_REORDER, getAccessible(browser)],
+    [EVENT_DOCUMENT_LOAD_COMPLETE, "body2"],
+    [EVENT_STATE_CHANGE, busyChecker(false)],
+    [EVENT_DOCUMENT_LOAD_COMPLETE, inIframeChecker("iframe1")],
+    [EVENT_STATE_CHANGE, inIframeChecker("iframe1")],
+  ]);
 
   BrowserTestUtils.startLoadingURIString(
     browser,
@@ -123,6 +119,6 @@ async function runTests(browser) {
 }
 
 /**
- * Test caching of accessible object states
+ * Test events when a document loads.
  */
 addAccessibleTask("", runTests);
