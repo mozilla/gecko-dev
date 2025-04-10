@@ -126,6 +126,32 @@ describe("<DSLinkMenu>", () => {
       ]);
     });
 
+    it("should pass through ReportContent as a link menu option when section is defined", () => {
+      wrapper = mount(
+        <Provider store={store}>
+          <DSLinkMenu
+            {...ValidDSLinkMenuProps}
+            pocket_button_enabled={false}
+            section="abc"
+          />
+        </Provider>
+      );
+
+      wrapper
+        .find(ContextMenuButton)
+        .simulate("click", { preventDefault: () => {} });
+      const linkMenuProps = wrapper.find(LinkMenu).props();
+      assert.deepEqual(linkMenuProps.options, [
+        "CheckBookmark",
+        "ReportContent",
+        "Separator",
+        "OpenInNewWindow",
+        "OpenInPrivateWindow",
+        "Separator",
+        "BlockUrl",
+      ]);
+    });
+
     it("should pass through the correct menu options to LinkMenu for SPOCs", () => {
       wrapper = mount(
         <Provider store={store}>
@@ -138,6 +164,41 @@ describe("<DSLinkMenu>", () => {
       const linkMenuProps = wrapper.find(LinkMenu).props();
       assert.deepEqual(linkMenuProps.options, [
         "BlockUrl",
+        "ManageSponsoredContent",
+        "OurSponsorsAndYourPrivacy",
+      ]);
+    });
+
+    it("should pass through the correct menu options to LinkMenu for SPOCs when ReportAds enabled", () => {
+      const stateWithReporting = {
+        ...INITIAL_STATE,
+        Prefs: {
+          ...INITIAL_STATE.Prefs,
+          values: {
+            ...INITIAL_STATE.Prefs.values,
+            "discoverystream.reportAds.enabled": true,
+          },
+        },
+      };
+
+      store = createStore(combineReducers(reducers), stateWithReporting);
+
+      wrapper = mount(
+        <Provider store={store}>
+          <DSLinkMenu
+            {...ValidDSLinkMenuProps}
+            card_type="spoc"
+            shim={{ report: {} }}
+          />
+        </Provider>
+      );
+      wrapper
+        .find(ContextMenuButton)
+        .simulate("click", { preventDefault: () => {} });
+      const linkMenuProps = wrapper.find(LinkMenu).props();
+      assert.deepEqual(linkMenuProps.options, [
+        "BlockUrl",
+        "ReportAd",
         "ManageSponsoredContent",
         "OurSponsorsAndYourPrivacy",
       ]);

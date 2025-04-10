@@ -5977,7 +5977,8 @@ const ReportContent = spocs => {
     name: "report",
     ref: radioGroupRef,
     id: "report-group",
-    "data-l10n-id": "newtab-report-ads-why-reporting"
+    "data-l10n-id": "newtab-report-ads-why-reporting",
+    className: "report-ads-options"
   }, /*#__PURE__*/external_React_default().createElement("moz-radio", {
     "data-l10n-id": "newtab-report-ads-reason-not-interested",
     value: "not_interested"
@@ -5991,10 +5992,11 @@ const ReportContent = spocs => {
     name: "report",
     ref: radioGroupRef,
     id: "report-group",
-    "data-l10n-id": "newtab-report-content-why-reporting"
+    "data-l10n-id": "newtab-report-content-why-reporting",
+    className: "report-content-options"
   }, /*#__PURE__*/external_React_default().createElement("moz-radio", {
-    value: "unsafe_content",
-    "data-l10n-id": "newtab-report-ads-reason-unsafe"
+    "data-l10n-id": "newtab-report-ads-reason-unsafe",
+    value: "unsafe_content"
   }), /*#__PURE__*/external_React_default().createElement("moz-radio", {
     "data-l10n-id": "newtab-report-ads-reason-inappropriate",
     value: "inappropriate_content"
@@ -6003,12 +6005,14 @@ const ReportContent = spocs => {
     value: "seen_too_many_times"
   }))), /*#__PURE__*/external_React_default().createElement("moz-button-group", null, /*#__PURE__*/external_React_default().createElement("moz-button", {
     "data-l10n-id": "newtab-topic-selection-cancel-button",
-    onClick: handleCancel
+    onClick: handleCancel,
+    className: "cancel-report-btn"
   }), /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "primary",
     "data-l10n-id": "newtab-report-submit",
     ref: submitButtonRef,
-    onClick: handleSubmit
+    onClick: handleSubmit,
+    className: "submit-report-btn"
   }))));
 };
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSSignup/DSSignup.jsx
