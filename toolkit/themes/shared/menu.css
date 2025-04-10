@@ -13,7 +13,7 @@ panel {
   --menuitem-padding: 0.5em 1em;
 
   @media (-moz-platform: linux) {
-    --menuitem-padding: 4px 6px;
+    --menuitem-padding: .25em .5em;
   }
   @media (-moz-platform: macos) {
     --menuitem-padding: 3px 9px;
@@ -166,7 +166,7 @@ menubar > menu {
     color: inherit;
     background-color: transparent;
     border-radius: 0;
-    padding: 4px 6px;
+    padding: .25em .5em;
     padding-bottom: 1px;
     border-bottom: 3px solid transparent;
 
@@ -270,7 +270,7 @@ menucaption {
 
   @media (-moz-platform: linux) {
     margin-block: 0;
-    margin-inline: 6px 0;
+    margin-inline: .5em 0;
   }
 
   @media (-moz-platform: macos) {
@@ -298,7 +298,8 @@ menucaption {
     margin-inline: 25px 0;
   }
   @media (-moz-platform: linux) {
-    margin-inline: 0 7px;
+    /* Matches the margin-inline-end on iconic-left */
+    margin-inline: 0.5em 0;
   }
 }
 
@@ -316,15 +317,14 @@ menucaption {
 
 @media (-moz-platform: linux) {
   .menu-text {
-    /* This is (18 + the size of end-padding on .menu-iconic-left)px */
-    margin-inline-start: 21px;
+    /* This is 16px (of icons / checkbox) + the size of end-margin on .menu-iconic-left */
+    margin-inline-start: calc(16px + .5em);
   }
 }
 
 .menu-iconic-left {
   @media (-moz-platform: linux) {
-    /* We can only hardcode this, to make the default GTK icon<->label spacing */
-    padding-inline-end: 3px;
+    margin-inline-end: .5em;
   }
   @media (-moz-platform: windows) {
     padding-top: 2px;
