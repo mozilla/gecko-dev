@@ -1862,6 +1862,9 @@ impl crate::Device for super::Device {
                     .map_err(|e| crate::ShaderError::Compilation(format!("{e}")))?,
                 )
             }
+            crate::ShaderInput::Msl { .. } => {
+                panic!("MSL_SHADER_PASSTHROUGH is not enabled for this backend")
+            }
             crate::ShaderInput::SpirV(spv) => Cow::Borrowed(spv),
         };
 
@@ -2531,7 +2534,7 @@ impl crate::Device for super::Device {
         self.shared.wait_for_fence(fence, wait_value, timeout_ns)
     }
 
-    unsafe fn start_capture(&self) -> bool {
+    unsafe fn start_graphics_debugger_capture(&self) -> bool {
         #[cfg(feature = "renderdoc")]
         {
             // Renderdoc requires us to give us the pointer that vkInstance _points to_.
@@ -2546,7 +2549,7 @@ impl crate::Device for super::Device {
         #[cfg(not(feature = "renderdoc"))]
         false
     }
-    unsafe fn stop_capture(&self) {
+    unsafe fn stop_graphics_debugger_capture(&self) {
         #[cfg(feature = "renderdoc")]
         {
             // Renderdoc requires us to give us the pointer that vkInstance _points to_.

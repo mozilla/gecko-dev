@@ -47,6 +47,8 @@ arbitrary = [
     "dep:arbitrary",
     "bitflags/arbitrary",
     "indexmap/arbitrary",
+    "half/arbitrary",
+    "half/std",
 ]
 compact = []
 default = []
@@ -91,7 +93,6 @@ path = "src/lib.rs"
 
 [dependencies]
 log = "0.4"
-num-traits = "0.2.16"
 
 [dependencies.arbitrary]
 version = "1.4"
@@ -119,15 +120,13 @@ default-features = false
 
 [dependencies.half]
 version = "2.5"
-features = [
-    "arbitrary",
-    "num-traits",
-]
+features = ["num-traits"]
+default-features = false
 
 [dependencies.hashbrown]
-version = "0.14.5"
+version = "0.15.2"
 features = [
-    "ahash",
+    "default-hasher",
     "inline-more",
 ]
 default-features = false
@@ -137,11 +136,15 @@ version = "0.2.1"
 optional = true
 
 [dependencies.indexmap]
-version = "2.5.0"
+version = "2.7.1"
+default-features = false
+
+[dependencies.num-traits]
+version = "0.2.16"
 default-features = false
 
 [dependencies.petgraph]
-version = "0.7"
+version = "0.8"
 optional = true
 
 [dependencies.pp-rs]
@@ -186,9 +189,9 @@ toml = "0.8"
 version = "0.11"
 
 [dev-dependencies.hashbrown]
-version = "0.14.5"
+version = "0.15.2"
 features = [
-    "ahash",
+    "default-hasher",
     "inline-more",
     "serde",
 ]

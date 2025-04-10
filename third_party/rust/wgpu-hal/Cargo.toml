@@ -183,9 +183,9 @@ version = "0.16"
 optional = true
 
 [dependencies.hashbrown]
-version = "0.14.5"
+version = "0.15.2"
 features = [
-    "ahash",
+    "default-hasher",
     "inline-more",
 ]
 optional = true
@@ -200,7 +200,7 @@ version = "24.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
-version = "1.21.1"
+version = "1.21.3"
 optional = true
 default-features = false
 

@@ -131,15 +131,15 @@ optional = true
 version = "0.2.11"
 
 [dependencies.hashbrown]
-version = "0.14.5"
+version = "0.15.2"
 features = [
-    "ahash",
+    "default-hasher",
     "inline-more",
 ]
 default-features = false
 
 [dependencies.indexmap]
-version = "2.5.0"
+version = "2.7.1"
 default-features = false
 
 [dependencies.log]
@@ -150,7 +150,7 @@ version = "24.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
-version = "1.21.1"
+version = "1.21.3"
 features = ["std"]
 default-features = false
 
