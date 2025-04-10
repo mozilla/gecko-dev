@@ -3390,9 +3390,9 @@ Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp
 
     The default content description for the eye trailing icon button in TextField
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description">Afichar lo tèxt rescondut</string>
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Afichar lo tèxt rescondut</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description">Escafar lo tèxt</string>
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Escafar lo tèxt</string>
   <!--
     Setup checklist feature
 

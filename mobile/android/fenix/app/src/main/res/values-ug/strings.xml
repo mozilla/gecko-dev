@@ -3432,9 +3432,9 @@
 
     The default content description for the eye trailing icon button in TextField
   -->
-  <string name="text_field_eye_trailing_icon_default_content_description">يوشۇرۇن تېكىستنى كۆرسەت</string>
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">يوشۇرۇن تېكىستنى كۆرسەت</string>
   <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description">تېكىستنى تازىلا</string>
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">تېكىستنى تازىلا</string>
   <!--
     Setup checklist feature
 

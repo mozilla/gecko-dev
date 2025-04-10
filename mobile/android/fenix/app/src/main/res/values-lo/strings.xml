@@ -1519,6 +1519,11 @@
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ລໍຖ້າຢູ່</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed" tools:ignore="UnusedResources">ການດາວໂຫຼດລົ້ມເຫລວ</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder" tools:ignore="UnusedResources">ຄົ້ນຫາການດາວໂຫຼດ</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found" tools:ignore="UnusedResources">ບໍ່ພົບຜົນການຄົ້ນຫາ
+</string>
   <!--
     Downloads Content Type Filters
 
@@ -1533,6 +1538,8 @@
   <string name="download_content_type_filter_document">ເອກະສານ</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">ອື່ນໆ</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">ອື່ນໆ</string>
   <!--
     Description of a downloaded item, displayed in the downloads list.
     %1$s: The size of the downloaded file.
@@ -1643,6 +1650,10 @@
   <string name="bookmark_menu_delete_button">ລຶບ</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">ບັນທຶກ</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">ຈັດຮຽງຕາມອັນໃໝ່ສຸດ</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">ຈັດຮຽງຕາມທີ່ເກົ່າທີ່ສຸດ</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -1705,6 +1716,8 @@
   <string name="bookmark_item_menu_button_content_description">ເມນູລາຍການສຳລັບ %s</string>
   <!-- Title for the bookmark list empty state -->
   <string name="bookmark_empty_list_title">ບໍ່ທັນມີບຸກມາກເທື່ອ</string>
+  <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+  <string name="bookmark_empty_list_guest_description">ບັນທຶກເວັບໄຊໃນຂະນະທີ່ທ່ານທ່ອງເວັບ. ເຂົ້າສູ່ລະບົບເພື່ອເອົາບຸກມາກຈາກອຸປະກອນອື່ນທີ່ຊິ້ງແລ້ວ.</string>
   <!-- Text for the button to navigate to sync authentication -->
   <string name="bookmark_empty_list_guest_cta">ເຂົ້າສູ່ລະບົບເພື່ອ Sync</string>
   <!-- Description for the bookmark list empty state when you're signed into sync. -->
