@@ -10,6 +10,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterTargeting: "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
+  ContentAnalysisUtils: "resource://gre/modules/ContentAnalysisUtils.sys.mjs",
   EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -551,6 +552,16 @@ export const GenAI = {
                 hide();
               }
             });
+
+            // For Content Analysis, we need to specify the URL that the data is being sent to.
+            // In this case it's not the URL in the browsingContext (like it is in other cases),
+            // but the URL of the chatProvider is close enough to where the content will eventually
+            // be sent.
+            lazy.ContentAnalysisUtils.setupContentAnalysisEventsForTextElement(
+              textAreaEl,
+              browser.browsingContext,
+              Services.io.newURI(lazy.chatProvider)
+            );
 
             const resetHeight = () => {
               textAreaEl.style.height = "auto";
