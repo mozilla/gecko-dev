@@ -18,7 +18,7 @@ export MOZCONFIG=mobile/android/config/mozconfigs/android-arm-gradle-dependencie
 ./mach gradle downloadDependencies --no-configuration-cache
 ./mach android gradle-dependencies --no-configuration-cache
 pushd mobile/android/fenix
-./gradlew detekt lint assembleDebug :benchmark:assembleBenchmark
+./gradlew detekt lint assembleDebug mozilla-lint-rules:test :benchmark:assembleBenchmark
 popd
 pushd mobile/android/focus-android
 ./gradlew lint

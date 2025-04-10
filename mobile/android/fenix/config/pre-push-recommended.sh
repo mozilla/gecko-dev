@@ -32,4 +32,5 @@ fi
         assembleDebug \
         assembleDebugAndroidTest \
         mozilla-detekt-rules:test \
+        mozilla-lint-rules:test \
         testDebug

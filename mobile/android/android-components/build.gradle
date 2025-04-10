@@ -152,13 +152,6 @@ subprojects {
             }
 
             android {
-                // We can't have one baseline file at the root of android-components because
-                // this is not a project module and we would have to coordinate every module to
-                // merge baselines.
-                lint {
-                    baseline = file("${projectDir}/lint-baseline.xml")
-                }
-
                 buildToolsVersion gradle.mozconfig.substs.ANDROID_BUILD_TOOLS_VERSION
 
                 testOptions {

@@ -46,6 +46,7 @@ System.setProperty('android.home', gradle.mozconfig.substs.ANDROID_SDK_ROOT)
 include ':annotations', ':messaging_example', ':port_messaging_example'
 include ':geckoview'
 include ':exoplayer2'
+include ':mozilla-lint-rules'
 include ':android-components'
 
 project(':annotations').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/annotations")

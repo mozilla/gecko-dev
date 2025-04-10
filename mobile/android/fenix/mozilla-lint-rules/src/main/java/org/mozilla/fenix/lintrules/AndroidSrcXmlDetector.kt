@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.tooling.lint
+package org.mozilla.fenix.lintrules
 
 import com.android.SdkConstants.ATTR_SRC
 import com.android.SdkConstants.FQCN_IMAGE_BUTTON
@@ -17,7 +17,6 @@ import com.android.tools.lint.detector.api.ResourceXmlDetector
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.XmlContext
-import com.google.common.annotations.VisibleForTesting
 import org.w3c.dom.Element
 
 /**
@@ -35,7 +34,6 @@ class AndroidSrcXmlDetector : ResourceXmlDetector() {
 
         const val ERROR_MESSAGE = "Using android:src to define resource instead of app:srcCompat"
 
-        @VisibleForTesting
         val ISSUE_XML_SRC_USAGE = Issue.create(
             id = "AndroidSrcXmlDetector",
             briefDescription = "Prohibits using android:src in ImageViews and ImageButtons",
