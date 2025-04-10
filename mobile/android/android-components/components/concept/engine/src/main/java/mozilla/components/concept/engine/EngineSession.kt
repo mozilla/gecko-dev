@@ -1019,4 +1019,11 @@ abstract class EngineSession(
      * @param displayMode the display mode value for this session.
      */
     open fun setDisplayMode(displayMode: WebAppManifest.DisplayMode) = Unit
+
+    /**
+     * Should be called by PictureInPictureFeature on changes to and from picture-in-picture mode.
+     *
+     * @param enabled True if the activity is in picture-in-picture mode.
+     */
+    open fun onPipModeChanged(enabled: Boolean) = Unit
 }
