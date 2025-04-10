@@ -8,6 +8,7 @@
 #define nsHtml5OplessBuilder_h
 
 #include "nsHtml5DocumentBuilder.h"
+#include "nsTArray.h"
 
 class nsParserBase;
 
@@ -27,6 +28,16 @@ class nsHtml5OplessBuilder : public nsHtml5DocumentBuilder {
   void Start();
   void Finish();
   void SetParser(nsParserBase* aParser);
+
+ private:
+  // Speedometer 3.1 first goes to 600 and then
+  // right at the end of the run to 1461 and 17232.
+  // Let's round 600 up to the next power of two,
+  // which results in 1024, but then in order to actually
+  // get a power-of-two allocation, we need to take
+  // the size of `nsTArrayHeader` into account.
+  const size_t kRecyclableLength =
+      ((1024 * sizeof(size_t)) - sizeof(nsTArrayHeader)) / sizeof(size_t);
 };
 
 #endif  // nsHtml5OplessBuilder_h

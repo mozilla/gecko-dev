@@ -29,7 +29,11 @@ void nsHtml5OplessBuilder::Finish() {
   mCSSLoader = nullptr;
   mDocumentURI = nullptr;
   mDocShell = nullptr;
-  mOwnedElements.Clear();
+  if (mOwnedElements.Length() <= kRecyclableLength) {
+    mOwnedElements.ClearAndRetainStorage();
+  } else {
+    mOwnedElements.Clear();
+  }
 }
 
 void nsHtml5OplessBuilder::SetParser(nsParserBase* aParser) {
