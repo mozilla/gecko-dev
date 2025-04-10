@@ -168,6 +168,34 @@ tabgroup:
         type: string
     expires: never
 
+  reopen:
+    type: event
+    description: >
+      Recorded when a user reopens a saved tab group
+    notification_emails:
+      - dao@mozilla.com
+      - dwalker@mozilla.com
+      - jswinarton@mozilla.com
+      - dwalker@mozilla.com
+    bugs:
+      - https://bugzil.la/1938425
+    data_reviews:
+      - https://bugzil.la/1938425
+    extra_keys:
+      source:
+        description: The surface used to find and recall the saved group
+        type: string
+      layout:
+        description: The tabs layout (horizontal or vertical)
+        type: string
+      id:
+        description: The ID of the tab group. Tab group IDs are derived from their creation timestamps and have no other relationship to any tab group metadata.
+        type: string
+      type:
+        description: Whether the user reopened a saved group or a deleted group.
+        type: string
+    expires: never
+
   active_groups:
     type: labeled_quantity
     description: >
