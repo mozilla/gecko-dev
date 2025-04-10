@@ -8,15 +8,14 @@ const { CommonDialog } = ChromeUtils.importESModule(
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
-
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
 const lazy = {};
 
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "gContentAnalysis",
-  "@mozilla.org/contentanalysis;1",
-  Ci.nsIContentAnalysis
-);
+ChromeUtils.defineESModuleGetters(lazy, {
+  ContentAnalysisUtils: "resource://gre/modules/ContentAnalysisUtils.sys.mjs",
+});
 
 // imported by adjustableTitle.js loaded in the same context:
 /* globals PromptUtils, goDoCommand, goUpdateCommand */
@@ -154,70 +153,11 @@ function commonDialogOnLoad() {
   // If the icon hasn't loaded yet, size the window to the content again when
   // it does, as its layout can change.
   ui.infoIcon.addEventListener("load", () => window.sizeToContent());
-  if (lazy.gContentAnalysis.isActive && args.owningBrowsingContext?.isContent) {
-    let caEventChecker = async event => {
-      let isPaste = event.type == "paste";
-      let dataTransfer = isPaste ? event.clipboardData : event.dataTransfer;
-      let data = dataTransfer.getData("text/plain");
-      if (!data || !data.length) {
-        return;
-      }
-
-      // Prevent the paste/drop from happening until content analysis returns a response
-      event.preventDefault();
-      // Selections can be forward or backward, so use min/max
-      const startIndex = Math.min(
-        ui.loginTextbox.selectionStart,
-        ui.loginTextbox.selectionEnd
-      );
-      const endIndex = Math.max(
-        ui.loginTextbox.selectionStart,
-        ui.loginTextbox.selectionEnd
-      );
-      const selectionDirection = endIndex < startIndex ? "backward" : "forward";
-      try {
-        const response = await lazy.gContentAnalysis.analyzeContentRequests(
-          [
-            {
-              analysisType: Ci.nsIContentAnalysisRequest.eBulkDataEntry,
-              reason: isPaste
-                ? Ci.nsIContentAnalysisRequest.eClipboardPaste
-                : Ci.nsIContentAnalysisRequest.eDragAndDrop,
-              resources: [],
-              operationTypeForDisplay: isPaste
-                ? Ci.nsIContentAnalysisRequest.eClipboard
-                : Ci.nsIContentAnalysisRequest.eDroppedText,
-              url: lazy.gContentAnalysis.getURIForBrowsingContext(
-                args.owningBrowsingContext
-              ),
-              textContent: data,
-              windowGlobalParent:
-                args.owningBrowsingContext.currentWindowContext,
-            },
-          ],
-          true
-        );
-        if (response.shouldAllowContent) {
-          ui.loginTextbox.value =
-            ui.loginTextbox.value.slice(0, startIndex) +
-            data +
-            ui.loginTextbox.value.slice(endIndex);
-          ui.loginTextbox.focus();
-          if (startIndex !== endIndex) {
-            // Select the pasted text
-            ui.loginTextbox.setSelectionRange(
-              startIndex,
-              startIndex + data.length,
-              selectionDirection
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Content analysis request returned error: ", error);
-      }
-    };
-    ui.loginTextbox?.addEventListener("paste", caEventChecker);
-    ui.loginTextbox?.addEventListener("drop", caEventChecker);
+  if (args.owningBrowsingContext?.isContent) {
+    lazy.ContentAnalysisUtils.setupContentAnalysisEventsForTextElement(
+      ui.loginTextbox,
+      args.owningBrowsingContext
+    );
   }
 
   window.getAttention();

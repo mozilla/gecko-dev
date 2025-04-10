@@ -17,6 +17,11 @@ support-files = [
   "clipboard_paste_changingclipboardinternal.html",
 ]
 
+["browser_clipboard_paste_chat_shortcuts.js"]
+support-files = [
+  "clipboard_paste_chat_shortcuts.html",
+]
+
 ["browser_clipboard_paste_file_content_analysis.js"]
 support-files = [
   "clipboard_paste_file.html",
