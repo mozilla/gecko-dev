@@ -33,7 +33,8 @@ RefPtr<OriginDirectoryLock> OriginDirectoryLock::CreateForEviction(
   return MakeRefPtr<OriginDirectoryLock>(
       std::move(aQuotaManager),
       PersistenceScope::CreateFromValue(aPersistenceType),
-      OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
+      OriginScope::FromOrigin(aOriginMetadata),
+      ClientStorageScope::CreateFromNull(),
       /* aExclusive */ true, /* aInternal */ true,
       ShouldUpdateLockIdTableFlag::No, DirectoryLockCategory::UninitOrigins);
 }

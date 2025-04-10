@@ -5200,7 +5200,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeStorage() {
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
       PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-      Nullable<Client::Type>(),
+      ClientStorageScope::CreateFromNull(),
       /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
@@ -5384,7 +5384,7 @@ RefPtr<BoolPromise> QuotaManager::TemporaryStorageInitialized() {
 
 RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
     const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
-    const Nullable<Client::Type>& aClientType, bool aExclusive,
+    const ClientStorageScope& aClientStorageScope, bool aExclusive,
     bool aInitializeOrigins, DirectoryLockCategory aCategory,
     Maybe<RefPtr<UniversalDirectoryLock>&> aPendingDirectoryLockOut) {
   AssertIsOnOwningThread();
@@ -5432,8 +5432,8 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
   }
 
   RefPtr<UniversalDirectoryLock> universalDirectoryLock =
-      CreateDirectoryLockInternal(aPersistenceScope, aOriginScope, aClientType,
-                                  aExclusive, aCategory);
+      CreateDirectoryLockInternal(aPersistenceScope, aOriginScope,
+                                  aClientStorageScope, aExclusive, aCategory);
 
   RefPtr<BoolPromise> universalDirectoryLockPromise =
       universalDirectoryLock->Acquire();
@@ -5634,13 +5634,13 @@ RefPtr<ClientDirectoryLock> QuotaManager::CreateDirectoryLock(
 
 RefPtr<UniversalDirectoryLock> QuotaManager::CreateDirectoryLockInternal(
     const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
-    const Nullable<Client::Type>& aClientType, bool aExclusive,
+    const ClientStorageScope& aClientStorageScope, bool aExclusive,
     DirectoryLockCategory aCategory) {
   AssertIsOnOwningThread();
 
   return UniversalDirectoryLock::CreateInternal(
-      WrapNotNullUnchecked(this), aPersistenceScope, aOriginScope, aClientType,
-      aExclusive, aCategory);
+      WrapNotNullUnchecked(this), aPersistenceScope, aOriginScope,
+      aClientStorageScope, aExclusive, aCategory);
 }
 
 bool QuotaManager::IsPendingOrigin(
@@ -5658,7 +5658,7 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentStorage() {
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
       PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-      OriginScope::FromNull(), Nullable<Client::Type>(),
+      OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
       /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
@@ -5772,7 +5772,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
       PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                       PERSISTENCE_TYPE_DEFAULT),
       OriginScope::FromGroup(aPrincipalMetadata.mGroup),
-      Nullable<Client::Type>(),
+      ClientStorageScope::CreateFromNull(),
       /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
@@ -5931,7 +5931,8 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
       PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-      OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
+      OriginScope::FromOrigin(aOriginMetadata),
+      ClientStorageScope::CreateFromNull(),
       /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
@@ -6102,7 +6103,8 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
       PersistenceScope::CreateFromValue(aOriginMetadata.mPersistenceType),
-      OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
+      OriginScope::FromOrigin(aOriginMetadata),
+      ClientStorageScope::CreateFromNull(),
       /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
@@ -6370,7 +6372,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage() {
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
       PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                       PERSISTENCE_TYPE_DEFAULT),
-      OriginScope::FromNull(), Nullable<Client::Type>(),
+      OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
       /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
@@ -6950,17 +6952,18 @@ Result<bool, nsresult> QuotaManager::EnsureOriginDirectory(
 
 nsresult QuotaManager::AboutToClearOrigins(
     const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
-    const Nullable<Client::Type>& aClientType) {
+    const ClientStorageScope& aClientStorageScope) {
   AssertIsOnIOThread();
 
-  if (aClientType.IsNull()) {
+  if (aClientStorageScope.IsNull()) {
     for (Client::Type type : AllClientTypes()) {
       QM_TRY(MOZ_TO_RESULT((*mClients)[type]->AboutToClearOrigins(
           aPersistenceScope, aOriginScope)));
     }
   } else {
-    QM_TRY(MOZ_TO_RESULT((*mClients)[aClientType.Value()]->AboutToClearOrigins(
-        aPersistenceScope, aOriginScope)));
+    QM_TRY(MOZ_TO_RESULT(
+        (*mClients)[aClientStorageScope.GetClientType()]->AboutToClearOrigins(
+            aPersistenceScope, aOriginScope)));
   }
 
   return NS_OK;
@@ -6968,10 +6971,10 @@ nsresult QuotaManager::AboutToClearOrigins(
 
 void QuotaManager::OriginClearCompleted(
     const OriginMetadata& aOriginMetadata,
-    const Nullable<Client::Type>& aClientType) {
+    const ClientStorageScope& aClientStorageScope) {
   AssertIsOnIOThread();
 
-  if (aClientType.IsNull()) {
+  if (aClientStorageScope.IsNull()) {
     if (aOriginMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {
       mInitializedOriginsInternal.RemoveElement(aOriginMetadata.mOrigin);
     } else {
@@ -6982,7 +6985,8 @@ void QuotaManager::OriginClearCompleted(
       (*mClients)[type]->OnOriginClearCompleted(aOriginMetadata);
     }
   } else {
-    (*mClients)[aClientType.Value()]->OnOriginClearCompleted(aOriginMetadata);
+    (*mClients)[aClientStorageScope.GetClientType()]->OnOriginClearCompleted(
+        aOriginMetadata);
   }
 }
 
@@ -7521,7 +7525,7 @@ void QuotaManager::ClearOrigins(
   }
 
   for (const auto& clearedOrigin : clearedOrigins) {
-    OriginClearCompleted(clearedOrigin, Nullable<Client::Type>());
+    OriginClearCompleted(clearedOrigin, ClientStorageScope::CreateFromNull());
   }
 }
 

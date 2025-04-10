@@ -13104,7 +13104,7 @@ RefPtr<UniversalDirectoryLockPromise> Maintenance::OpenStorageDirectory(
   // Return a shared lock for <profile>/storage/*/*/idb
   return quotaManager->OpenStorageDirectory(
       aPersistenceScope, OriginScope::FromNull(),
-      Nullable<Client::Type>(Client::IDB),
+      ClientStorageScope::CreateFromClient(Client::IDB),
       /* aExclusive */ false, aInitializeOrigins, DirectoryLockCategory::None,
       SomeRef(mPendingDirectoryLock));
 }

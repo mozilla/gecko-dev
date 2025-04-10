@@ -33,14 +33,14 @@ const uint32_t kAcquireTimeoutMs = 30000;
 DirectoryLockImpl::DirectoryLockImpl(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
-    const Nullable<Client::Type>& aClientType, const bool aExclusive,
+    const ClientStorageScope& aClientStorageScope, const bool aExclusive,
     const bool aInternal,
     const ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
     const DirectoryLockCategory aCategory)
     : mQuotaManager(std::move(aQuotaManager)),
       mPersistenceScope(aPersistenceScope),
       mOriginScope(aOriginScope),
-      mClientType(aClientType),
+      mClientStorageScope(aClientStorageScope),
       mId(mQuotaManager->GenerateDirectoryLockId()),
       mExclusive(aExclusive),
       mInternal(aInternal),
@@ -54,8 +54,9 @@ DirectoryLockImpl::DirectoryLockImpl(
   MOZ_ASSERT_IF(!aInternal,
                 aPersistenceScope.GetValue() != PERSISTENCE_TYPE_INVALID);
   MOZ_ASSERT_IF(!aInternal, aOriginScope.IsOrigin());
-  MOZ_ASSERT_IF(!aInternal, !aClientType.IsNull());
-  MOZ_ASSERT_IF(!aInternal, aClientType.Value() < Client::TypeMax());
+  MOZ_ASSERT_IF(!aInternal, !aClientStorageScope.IsNull());
+  MOZ_ASSERT_IF(!aInternal,
+                aClientStorageScope.GetClientType() < Client::TypeMax());
 }
 
 DirectoryLockImpl::~DirectoryLockImpl() {
@@ -199,10 +200,11 @@ void DirectoryLockImpl::Log() const {
   }
   QM_LOG(("  mOriginScope: %s", originScope.get()));
 
-  const auto clientType = mClientType.IsNull()
-                              ? nsAutoCString{"null"_ns}
-                              : Client::TypeToText(mClientType.Value());
-  QM_LOG(("  mClientType: %s", clientType.get()));
+  const auto clientStorageScope =
+      mClientStorageScope.IsNull()
+          ? nsAutoCString{"null"_ns}
+          : Client::TypeToText(mClientStorageScope.GetClientType());
+  QM_LOG(("  mClientStorageScope: %s", clientStorageScope.get()));
 
   nsCString blockedOnString;
   for (auto blockedOn : mBlockedOn) {
@@ -245,9 +247,9 @@ bool DirectoryLockImpl::Overlaps(const DirectoryLockImpl& aLock) const {
     return false;
   }
 
-  // If the client types don't overlap, the op can proceed.
-  if (!aLock.mClientType.IsNull() && !mClientType.IsNull() &&
-      aLock.mClientType.Value() != mClientType.Value()) {
+  // If the client storage scopes don't overlap, the op can proceed.
+  match = aLock.mClientStorageScope.Matches(mClientStorageScope);
+  if (!match) {
     return false;
   }
 

@@ -21,6 +21,7 @@
 #include "mozilla/dom/FlippedOnce.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/ClientStorageScope.h"
 #include "mozilla/dom/quota/CommonMetadata.h"
 #include "mozilla/dom/quota/DirectoryLockCategory.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
@@ -53,7 +54,7 @@ class DirectoryLockImpl {
 
   const PersistenceScope mPersistenceScope;
   const OriginScope mOriginScope;
-  const Nullable<Client::Type> mClientType;
+  const ClientStorageScope mClientStorageScope;
 
   MozPromiseHolder<BoolPromise> mAcquirePromiseHolder;
   nsCOMPtr<nsITimer> mAcquireTimer;
@@ -85,8 +86,8 @@ class DirectoryLockImpl {
   DirectoryLockImpl(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                     const PersistenceScope& aPersistenceScope,
                     const OriginScope& aOriginScope,
-                    const Nullable<Client::Type>& aClientType, bool aExclusive,
-                    bool aInternal,
+                    const ClientStorageScope& aClientStorageScope,
+                    bool aExclusive, bool aInternal,
                     ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
                     DirectoryLockCategory aCategory);
 
@@ -100,8 +101,8 @@ class DirectoryLockImpl {
 
   const OriginScope& GetOriginScope() const { return mOriginScope; }
 
-  const Nullable<Client::Type>& NullableClientType() const {
-    return mClientType;
+  const ClientStorageScope& ClientStorageScopeRef() const {
+    return mClientStorageScope;
   }
 
   DirectoryLockCategory Category() const { return mCategory; }
@@ -170,10 +171,11 @@ class DirectoryLockImpl {
   }
 
   Client::Type ClientType() const {
-    MOZ_DIAGNOSTIC_ASSERT(!mClientType.IsNull());
-    MOZ_DIAGNOSTIC_ASSERT(mClientType.Value() < Client::TypeMax());
+    MOZ_DIAGNOSTIC_ASSERT(!mClientStorageScope.IsNull());
+    MOZ_DIAGNOSTIC_ASSERT(mClientStorageScope.GetClientType() <
+                          Client::TypeMax());
 
-    return mClientType.Value();
+    return mClientStorageScope.GetClientType();
   }
 
   bool IsInternal() const { return mInternal; }

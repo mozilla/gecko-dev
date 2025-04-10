@@ -70,6 +70,7 @@ namespace mozilla::dom::quota {
 class CanonicalQuotaObject;
 class ClearDataOp;
 class ClearRequestBase;
+class ClientStorageScope;
 class ClientUsageArray;
 class ClientDirectoryLock;
 class DirectoryLockImpl;
@@ -294,7 +295,7 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<UniversalDirectoryLockPromise> OpenStorageDirectory(
       const PersistenceScope& aPersistenceScope,
       const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive,
+      const ClientStorageScope& aClientStorageScope, bool aExclusive,
       bool aInitializeOrigins = false,
       DirectoryLockCategory aCategory = DirectoryLockCategory::None,
       Maybe<RefPtr<UniversalDirectoryLock>&> aPendingDirectoryLockOut =
@@ -330,7 +331,7 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<UniversalDirectoryLock> CreateDirectoryLockInternal(
       const PersistenceScope& aPersistenceScope,
       const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive,
+      const ClientStorageScope& aClientStorageScope, bool aExclusive,
       DirectoryLockCategory aCategory = DirectoryLockCategory::None);
 
   // Collect inactive and the least recently used origins.
@@ -565,10 +566,10 @@ class QuotaManager final : public BackgroundThreadObject {
 
   nsresult AboutToClearOrigins(const PersistenceScope& aPersistenceScope,
                                const OriginScope& aOriginScope,
-                               const Nullable<Client::Type>& aClientType);
+                               const ClientStorageScope& aClientStorageScope);
 
   void OriginClearCompleted(const OriginMetadata& aOriginMetadata,
-                            const Nullable<Client::Type>& aClientType);
+                            const ClientStorageScope& aClientStorageScope);
 
   void RepositoryClearCompleted(PersistenceType aPersistenceType);
 

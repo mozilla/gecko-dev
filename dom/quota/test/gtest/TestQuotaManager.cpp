@@ -85,7 +85,7 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_OngoingWithScheduledShutdown) {
         quotaManager
             ->OpenStorageDirectory(
                 PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-                OriginScope::FromNull(), Nullable<Client::Type>(),
+                OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
                 /* aExclusive */ false)
             ->Then(GetCurrentSerialEventTarget(), __func__,
                    [&directoryLock](
@@ -136,7 +136,7 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_OngoingWithScheduledShutdown) {
         quotaManager
             ->OpenStorageDirectory(
                 PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-                OriginScope::FromNull(), Nullable<Client::Type>(),
+                OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
                 /* aExclusive */ false)
             ->Then(GetCurrentSerialEventTarget(), __func__,
                    [](UniversalDirectoryLockPromise::ResolveOrRejectValue&&
@@ -182,7 +182,7 @@ TEST_F(TestQuotaManager,
     RefPtr<UniversalDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     nsTArray<RefPtr<BoolPromise>> promises;
@@ -191,7 +191,7 @@ TEST_F(TestQuotaManager,
         quotaManager
             ->OpenStorageDirectory(
                 PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-                OriginScope::FromNull(), Nullable<Client::Type>(),
+                OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
                 /* aExclusive */ false)
             ->Then(GetCurrentSerialEventTarget(), __func__,
                    [&directoryLock](
@@ -215,7 +215,7 @@ TEST_F(TestQuotaManager,
         quotaManager
             ->OpenStorageDirectory(
                 PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-                OriginScope::FromNull(), Nullable<Client::Type>(),
+                OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
                 /* aExclusive */ false)
             ->Then(GetCurrentSerialEventTarget(), __func__,
                    [](UniversalDirectoryLockPromise::ResolveOrRejectValue&&
@@ -260,7 +260,7 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_Finished) {
     {
       auto value = Await(quotaManager->OpenStorageDirectory(
           PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-          OriginScope::FromNull(), Nullable<Client::Type>(),
+          OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
           /* aExclusive */ false));
       ASSERT_TRUE(value.IsResolve());
 
@@ -274,7 +274,7 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_Finished) {
     {
       auto value = Await(quotaManager->OpenStorageDirectory(
           PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-          OriginScope::FromNull(), Nullable<Client::Type>(),
+          OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
           /* aExclusive */ false));
       ASSERT_TRUE(value.IsResolve());
 
@@ -305,7 +305,7 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_FinishedWithScheduledShutdown) {
     {
       auto value = Await(quotaManager->OpenStorageDirectory(
           PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-          OriginScope::FromNull(), Nullable<Client::Type>(),
+          OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
           /* aExclusive */ false));
       ASSERT_TRUE(value.IsResolve());
 
@@ -323,7 +323,7 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_FinishedWithScheduledShutdown) {
         quotaManager
             ->OpenStorageDirectory(
                 PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-                OriginScope::FromNull(), Nullable<Client::Type>(),
+                OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
                 /* aExclusive */ false)
             ->Then(GetCurrentSerialEventTarget(), __func__,
                    [](UniversalDirectoryLockPromise::ResolveOrRejectValue&&
@@ -370,7 +370,7 @@ TEST_F(TestQuotaManager,
     {
       auto value = Await(quotaManager->OpenStorageDirectory(
           PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-          OriginScope::FromNull(), Nullable<Client::Type>(),
+          OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
           /* aExclusive */ false));
       ASSERT_TRUE(value.IsResolve());
 
@@ -393,7 +393,7 @@ TEST_F(TestQuotaManager,
     {
       auto value = Await(quotaManager->OpenStorageDirectory(
           PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-          OriginScope::FromNull(), Nullable<Client::Type>(),
+          OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
           /* aExclusive */ false));
       ASSERT_TRUE(value.IsResolve());
 
@@ -520,7 +520,7 @@ TEST_F(TestQuotaManager,
     RefPtr<UniversalDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     nsTArray<RefPtr<BoolPromise>> promises;
@@ -958,7 +958,7 @@ TEST_F(TestQuotaManager, InitializeStorage_OngoingWithExclusiveDirectoryLock) {
     RefPtr<UniversalDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     nsTArray<RefPtr<BoolPromise>> promises;
@@ -1296,7 +1296,7 @@ TEST_F(TestQuotaManager,
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                             PERSISTENCE_TYPE_DEFAULT),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
+            OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     {
@@ -1334,7 +1334,7 @@ TEST_F(TestQuotaManager,
     RefPtr<UniversalDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     nsTArray<RefPtr<BoolPromise>> promises;
@@ -1483,7 +1483,7 @@ TEST_F(TestQuotaManager,
     RefPtr<UniversalDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
+            OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     {
@@ -1521,7 +1521,7 @@ TEST_F(TestQuotaManager,
     RefPtr<UniversalDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     nsTArray<RefPtr<BoolPromise>> promises;
@@ -1680,7 +1680,7 @@ TEST_F(TestQuotaManager,
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
             OriginScope::FromGroup(testOriginMetadata.mGroup),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     {
@@ -1724,7 +1724,7 @@ TEST_F(TestQuotaManager,
             PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                             PERSISTENCE_TYPE_DEFAULT),
             OriginScope::FromGroup(testOriginMetadata.mGroup),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true);
 
     nsTArray<RefPtr<BoolPromise>> promises;

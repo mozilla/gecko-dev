@@ -64,7 +64,7 @@ class ClientDirectoryLock final : public OriginDirectoryLock {
       MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
       const PersistenceScope& aPersistenceScope,
       const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive,
+      const ClientStorageScope& aClientStorageScope, bool aExclusive,
       bool aInternal, ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
       DirectoryLockCategory aCategory);
 };

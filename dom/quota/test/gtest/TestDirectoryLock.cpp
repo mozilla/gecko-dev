@@ -29,7 +29,7 @@ TEST_F(DOM_Quota_DirectoryLock, Drop_Timing) {
     RefPtr<UniversalDirectoryLock> exclusiveDirectoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ true, DirectoryLockCategory::None);
 
     bool done = false;
@@ -48,7 +48,7 @@ TEST_F(DOM_Quota_DirectoryLock, Drop_Timing) {
     RefPtr<UniversalDirectoryLock> sharedDirectoryLock =
         quotaManager->CreateDirectoryLockInternal(
             PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-            Nullable<Client::Type>(),
+            ClientStorageScope::CreateFromNull(),
             /* aExclusive */ false, DirectoryLockCategory::None);
 
     ASSERT_TRUE(sharedDirectoryLock->MustWait());

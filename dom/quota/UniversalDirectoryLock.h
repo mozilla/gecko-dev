@@ -63,7 +63,7 @@ class UniversalDirectoryLock final : public DirectoryLockImpl {
       MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
       const PersistenceScope& aPersistenceScope,
       const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive,
+      const ClientStorageScope& aClientStorageScope, bool aExclusive,
       DirectoryLockCategory aCategory);
 };
 
