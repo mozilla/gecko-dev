@@ -5,7 +5,7 @@
 import json
 from urllib.request import urlretrieve
 
-REVISION = "c7cb19fe8a174bd22ced1a84b3ad84bafd78496f"
+REVISION = "d4a6cff1ad499ac66bcfdf4b5a08dd0cec160225"
 
 urlretrieve(
     f"https://raw.githubusercontent.com/WICG/sanitizer-api/{REVISION}/builtins/safe-default-configuration.json",

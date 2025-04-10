@@ -248,22 +248,12 @@
     {
       "name": "dfn",
       "namespace": "http://www.w3.org/1999/xhtml",
-      "attributes": [
-        {
-          "name": "title",
-          "namespace": null
-        }
-      ]
+      "attributes": []
     },
     {
       "name": "abbr",
       "namespace": "http://www.w3.org/1999/xhtml",
-      "attributes": [
-        {
-          "name": "title",
-          "namespace": null
-        }
-      ]
+      "attributes": []
     },
     {
       "name": "ruby",
@@ -353,22 +343,12 @@
     {
       "name": "bdi",
       "namespace": "http://www.w3.org/1999/xhtml",
-      "attributes": [
-        {
-          "name": "dir",
-          "namespace": null
-        }
-      ]
+      "attributes": []
     },
     {
       "name": "bdo",
       "namespace": "http://www.w3.org/1999/xhtml",
-      "attributes": [
-        {
-          "name": "dir",
-          "namespace": null
-        }
-      ]
+      "attributes": []
     },
     {
       "name": "span",
