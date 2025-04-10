@@ -595,6 +595,9 @@ function accessibleTask(doc, task, options = {}) {
         } else {
           ({ accessible: docAccessible } = await onContentDocLoad);
         }
+        // The test may want to access document methods/attributes such as URL
+        // and browsingContext.
+        docAccessible.QueryInterface(nsIAccessibleDocument);
         let iframeDocAccessible;
         if (gIsIframe) {
           if (!options.skipFissionDocLoad) {
@@ -603,6 +606,7 @@ function accessibleTask(doc, task, options = {}) {
               ? (await onIframeDocLoad).accessible
               : findAccessibleChildByID(docAccessible, DEFAULT_IFRAME_ID)
                   .firstChild;
+            iframeDocAccessible.QueryInterface(nsIAccessibleDocument);
           }
         }
 
