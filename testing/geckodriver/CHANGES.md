@@ -51,6 +51,10 @@ All notable changes to this program are documented in this file.
 - Updated the type of the `x` and `y` fields of pointer move actions (mouse and touch)
   from integer to fractional numbers to ensure a more precise input control.
 
+  Note: Support for fractional values is available starting with Firefox 137.
+  For older versions, clients or tests must explicitly pass integer values for
+  both fields.
+
 - Replaced `serde_yaml` with `yaml-rust` because it's no longer officially supported.
 
 - The `--enable-crash-reporter` command line argument has been deprecated to
