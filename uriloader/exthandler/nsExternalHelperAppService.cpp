@@ -3768,6 +3768,17 @@ nsExternalHelperAppService::ShouldModifyExtension(nsIMIMEInfo* aMimeInfo,
     return ModifyExtension_Append;
   }
 
+  // MIME type video/3gpp is a special case as 3gpp is (mostly) MP4 compatible
+  // and often saved as .mp4. If so, we want to avoid changing the extension
+  // since .3gpp is uncommon and confuses users (see: bug 1749294)
+  if (MIMEType.Equals("video/3gpp")) {
+    nsAutoCString fileExtLowerCase(aFileExt);
+    ToLowerCase(fileExtLowerCase);
+    if (fileExtLowerCase.Equals("mp4")) {
+      return ModifyExtension_Ignore;
+    }
+  }
+
   // Determine whether the extensions should be appended or replaced depending
   // on the content type.
   bool canForce = StringBeginsWith(MIMEType, "image/"_ns) ||
