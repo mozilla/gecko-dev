@@ -2294,13 +2294,16 @@ impl RenderTask {
                             adjusted_blur_std_deviation.width * BLUR_SAMPLE_SCALE,
                             adjusted_blur_std_deviation.height * BLUR_SAMPLE_SCALE)
                         .round_out();
-                    let blur_task_size = blur_subregion.size().cast_unit();
+                    let blur_task_size = blur_subregion
+                        .size()
+                        .cast_unit()
+                        .max(DeviceSize::new(1.0, 1.0));
                     // Adjust task size to prevent potential sampling errors
                     let adjusted_blur_task_size =
                         BlurTask::adjusted_blur_source_size(
                             blur_task_size,
                             adjusted_blur_std_deviation,
-                        ).to_f32();
+                        ).to_f32().max(DeviceSize::new(1.0, 1.0));
                     // Now change the subregion to match the revised task size,
                     // keeping it centered should keep animated radius smooth.
                     let corner = LayoutPoint::new(
@@ -2412,13 +2415,16 @@ impl RenderTask {
                             adjusted_blur_std_deviation.width * BLUR_SAMPLE_SCALE,
                             adjusted_blur_std_deviation.height * BLUR_SAMPLE_SCALE)
                         .round_out();
-                    let blur_task_size = blur_subregion.size().cast_unit();
+                    let blur_task_size = blur_subregion
+                        .size()
+                        .cast_unit()
+                        .max(DeviceSize::new(1.0, 1.0));
                     // Adjust task size to prevent potential sampling errors
                     let adjusted_blur_task_size =
                         BlurTask::adjusted_blur_source_size(
                             blur_task_size,
                             adjusted_blur_std_deviation,
-                        ).to_f32();
+                        ).to_f32().max(DeviceSize::new(1.0, 1.0));
                     // Now change the subregion to match the revised task size,
                     // keeping it centered should keep animated radius smooth.
                     let corner = LayoutPoint::new(
