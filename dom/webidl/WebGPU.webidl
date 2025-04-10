@@ -659,22 +659,6 @@ interface GPUCompilationInfo {
     readonly attribute sequence<GPUCompilationMessage> messages;
 };
 
-[Func="mozilla::webgpu::Instance::PrefEnabled",
- Exposed=(Window, Worker), SecureContext]
-interface GPUPipelineError : DOMException {
-    constructor(optional DOMString message = "", GPUPipelineErrorInit options);
-    readonly attribute GPUPipelineErrorReason reason;
-};
-
-dictionary GPUPipelineErrorInit {
-    required GPUPipelineErrorReason reason;
-};
-
-enum GPUPipelineErrorReason {
-    "validation",
-    "internal",
-};
-
 enum GPUAutoLayoutMode {
     "auto",
 };

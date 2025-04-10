@@ -35,7 +35,6 @@ h_and_cpp = [
     "InternalError",
     "ObjectModel",
     "OutOfMemoryError",
-    "PipelineError",
     "PipelineLayout",
     "QuerySet",
     "Queue",
