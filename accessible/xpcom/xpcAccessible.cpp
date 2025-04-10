@@ -173,13 +173,8 @@ xpcAccessible::GetId(nsAString& aID) {
     return NS_ERROR_FAILURE;
   }
 
-  RemoteAccessible* proxy = IntlGeneric()->AsRemote();
-  if (!proxy) {
-    return NS_ERROR_FAILURE;
-  }
-
   nsString id;
-  proxy->DOMNodeID(id);
+  IntlGeneric()->DOMNodeID(id);
   aID.Assign(id);
 
   return NS_OK;
