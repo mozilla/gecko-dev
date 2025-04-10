@@ -165,7 +165,7 @@ export class SearchModeSwitcher {
 
   handleEvent(event) {
     if (event.type == "focus") {
-      this.#input.toggleAttribute("unifiedsearchbutton-available", true);
+      this.#input.setUnifiedSearchButtonAvailability(true);
       return;
     }
 

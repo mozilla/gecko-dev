@@ -704,7 +704,7 @@ export class UrlbarController {
   }
 
   #focusOnUnifiedSearchButton() {
-    this.input.toggleAttribute("unifiedsearchbutton-available", true);
+    this.input.setUnifiedSearchButtonAvailability(true);
 
     const switcher = this.input.document.getElementById(
       "urlbar-searchmode-switcher"
