@@ -182,6 +182,15 @@ class StreamFilterParent final : public PStreamFilterParent,
   // to late to be set, which leads out of sync.
   bool mDisconnectedByOnStartRequest = false;
 
+  // When in mState Disconnecting, data from ODA is buffered, and flushed when
+  // FinishDisconnect() is called. After this, mState is set to Disconnected,
+  // and any subsequent data to ODA are written directly to mOrigListener.
+  // Between flushing the data (on the IO thread) and updating mState (on the
+  // actor thread), it is theoretically possible to receive another ODA (on the
+  // IO thread). This flag here ensures that ODA knows that data should be
+  // written instead of buffered.
+  bool mDisconnectedByFinishDisconnect = false;
+
   bool mBeforeOnStartRequest = true;
 
   nsCOMPtr<nsISupports> mContext;

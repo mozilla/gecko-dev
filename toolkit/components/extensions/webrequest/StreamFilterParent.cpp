@@ -389,6 +389,7 @@ IPCResult StreamFilterParent::RecvFlushedData() {
 void StreamFilterParent::FinishDisconnect() {
   RefPtr<StreamFilterParent> self(this);
   RunOnIOThread(FUNC, [=] {
+    self->mDisconnectedByFinishDisconnect = true;
     self->FlushBufferedData();
 
     RunOnMainThread(FUNC, [=] {
@@ -700,7 +701,8 @@ StreamFilterParent::OnDataAvailable(nsIRequest* aRequest,
                                     uint64_t aOffset, uint32_t aCount) {
   AssertIsIOThread();
 
-  if (mDisconnectedByOnStartRequest || mState == State::Disconnected) {
+  if (mDisconnectedByOnStartRequest || mDisconnectedByFinishDisconnect ||
+      mState == State::Disconnected) {
     // If we're offloading data in a thread pool, it's possible that we'll
     // have buffered some additional data while waiting for the buffer to
     // flush. So, if there's any buffered data left, flush that before we
