@@ -40,13 +40,21 @@ const OBSERVER_DEBOUNCE_TIMEOUT_MS = 5000;
  */
 
 /**
+ * Sorting by date or site, cache is stored as: (Date/Site) => List of Visits.
+ * Sorting by date and site, cache is stored as: (Date) => (Site) => List of Visits.
+ * Sorting by last visited, cache is stored as: List of Visits.
+ *
+ * @typedef {Map<CacheKey, HistoryVisit[]> | Map<CacheKey, Map<CacheKey, HistoryVisit[]>> | HistoryVisit[]} CachedHistory
+ */
+
+/**
  * Queries the places database using an async read only connection. Maintains
  * an internal cache of query results which is live-updated by adding listeners
  * to `PlacesObservers`. When the results are no longer needed, call `close` to
  * remove the listeners.
  */
 export class PlacesQuery {
-  /** @type {Map<CacheKey, HistoryVisit[]>} */
+  /** @type {CachedHistory} */
   cachedHistory = null;
   /** @type {object} */
   cachedHistoryOptions = null;
@@ -54,7 +62,7 @@ export class PlacesQuery {
   #cachedHistoryPerUrl = null;
   /** @type {function(PlacesEvent[])} */
   #historyListener = null;
-  /** @type {function(HistoryVisit[])} */
+  /** @type {function(CachedHistory)} */
   #historyListenerCallback = null;
   /** @type {DeferredTask} */
   #historyObserverTask = null;
@@ -83,7 +91,9 @@ export class PlacesQuery {
    *   The sorting order of history visits:
    *   - "date": Group visits based on the date they occur.
    *   - "site": Group visits based on host, excluding any "www." prefix.
-   * @returns {Map<any, HistoryVisit[]>}
+   *   - "datesite": Group visits based on date, then sub-group based on host.
+   *   - "lastvisited": Ungrouped list of visits sorted by recency.
+   * @returns {CachedHistory}
    *   History visits obtained from the database query.
    */
   async getHistory({ daysOld = 60, limit, sortBy = "date" } = {}) {
@@ -108,7 +118,11 @@ export class PlacesQuery {
    *   The database query options.
    */
   initializeCache(options = this.cachedHistoryOptions) {
-    this.cachedHistory = new Map();
+    if (options.sortBy === "lastvisited") {
+      this.cachedHistory = [];
+    } else {
+      this.cachedHistory = new Map();
+    }
     this.cachedHistoryOptions = options;
     this.#cachedHistoryPerUrl = new Map();
     this.#isClosed = false;
@@ -123,9 +137,11 @@ export class PlacesQuery {
     let groupBy;
     switch (sortBy) {
       case "date":
+      case "datesite":
         groupBy = "url, date(visit_date / 1000000, 'unixepoch', 'localtime')";
         break;
       case "site":
+      case "lastvisited":
         groupBy = "url";
         break;
     }
@@ -274,17 +290,41 @@ export class PlacesQuery {
    *   The container it belongs to.
    */
   #getContainerForVisit(visit) {
-    const mapKey = this.#getMapKeyForVisit(visit);
-    let container = this.cachedHistory?.get(mapKey);
-    if (!container) {
-      container = [];
-      this.cachedHistory?.set(mapKey, container);
+    switch (this.cachedHistoryOptions.sortBy) {
+      case "datesite": {
+        const dateKey = this.#getMapKeyForVisit(visit, "date");
+        const siteKey = this.#getMapKeyForVisit(visit, "site");
+        if (!this.cachedHistory.has(dateKey)) {
+          const siteContainer = [];
+          this.cachedHistory.set(dateKey, new Map([[siteKey, siteContainer]]));
+          return siteContainer;
+        }
+        const dateContainer = this.cachedHistory.get(dateKey);
+        if (!dateContainer.has(siteKey)) {
+          const siteContainer = [];
+          dateContainer.set(siteKey, siteContainer);
+          return siteContainer;
+        }
+        return dateContainer.get(siteKey);
+      }
+      case "lastvisited":
+        return this.cachedHistory;
+      case "date":
+      case "site":
+      default: {
+        const mapKey = this.#getMapKeyForVisit(visit);
+        let container = this.cachedHistory?.get(mapKey);
+        if (!container) {
+          container = [];
+          this.cachedHistory?.set(mapKey, container);
+        }
+        return container;
+      }
     }
-    return container;
   }
 
-  #getMapKeyForVisit(visit) {
-    switch (this.cachedHistoryOptions.sortBy) {
+  #getMapKeyForVisit(visit, sortBy = this.cachedHistoryOptions.sortBy) {
+    switch (sortBy) {
       case "date":
         return this.getStartOfDayTimestamp(visit.date);
       case "site": {
@@ -302,7 +342,7 @@ export class PlacesQuery {
    * is given the new list of visits. Only one callback can be active at a time
    * (per instance). If one already exists, it will be replaced.
    *
-   * @param {function(HistoryVisit[])} callback
+   * @param {function(CachedHistory)} callback
    *   The function to call when changes are made.
    */
   observeHistory(callback) {

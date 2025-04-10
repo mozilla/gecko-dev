@@ -276,3 +276,110 @@ add_task(async function test_search_interrupt() {
 
   stub.restore();
 });
+
+add_task(async function test_sort_by_date_and_site() {
+  const today = new Date();
+  const yesterday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() - 1
+  );
+  await PlacesUtils.history.insertMany([
+    {
+      url: "https://en.wikipedia.org/wiki/Mozilla",
+      visits: [{ date: yesterday }],
+    },
+    {
+      url: "https://en.wikipedia.org/wiki/Mozilla",
+      visits: [{ date: today }],
+    },
+    {
+      url: "https://en.wikipedia.org/wiki/Firefox",
+      visits: [{ date: today }],
+    },
+    {
+      url: "https://www.example.com/",
+      visits: [{ date: today }],
+    },
+  ]);
+
+  let history = await placesQuery.getHistory({ sortBy: "datesite" });
+  const sitesFromYesterday = history.get(
+    placesQuery.getStartOfDayTimestamp(yesterday)
+  );
+  Assert.equal(sitesFromYesterday.size, 1, "One site was visited yesterday.");
+  Assert.equal(
+    sitesFromYesterday.get("en.wikipedia.org").length,
+    1,
+    "One visit was made to en.wikipedia.org."
+  );
+
+  let sitesFromToday = history.get(placesQuery.getStartOfDayTimestamp(today));
+  Assert.equal(sitesFromToday.size, 2, "Two sites were visited today.");
+  Assert.equal(
+    sitesFromToday.get("en.wikipedia.org").length,
+    2,
+    "Two visits were made to en.wikipedia.org."
+  );
+  Assert.equal(
+    sitesFromToday.get("example.com").length,
+    1,
+    "One visit was made to example.com."
+  );
+
+  info("Insert the next visit.");
+  history = await waitForUpdateHistoryTask(() =>
+    PlacesUtils.history.insert({
+      url: "https://example.net/",
+      visits: [{ date: today }],
+    })
+  );
+  sitesFromToday = history.get(placesQuery.getStartOfDayTimestamp(today));
+  Assert.equal(sitesFromToday.size, 3, "Three sites were visited today.");
+  Assert.equal(
+    sitesFromToday.get("example.net").length,
+    1,
+    "One visit was made to example.net."
+  );
+
+  await PlacesUtils.history.clear();
+});
+
+add_task(async function test_sort_by_last_visited() {
+  const today = new Date();
+  const yesterday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() - 1
+  );
+
+  info("Insert multiple visits to the same URL.");
+  await PlacesUtils.history.insertMany([
+    {
+      url: "https://www.example.com/",
+      visits: [{ date: yesterday }],
+    },
+    {
+      url: "https://www.example.com/",
+      visits: [{ date: today }],
+    },
+  ]);
+
+  let history = await placesQuery.getHistory({ sortBy: "lastvisited" });
+  Assert.equal(history.length, 1, "Visits to the same URL are deduped.");
+
+  info("Insert a more recent visit.");
+  history = await waitForUpdateHistoryTask(() =>
+    PlacesUtils.history.insert({
+      url: "https://www.reddit.com/",
+      visits: [{ date: new Date() }],
+    })
+  );
+  Assert.deepEqual(
+    history.map(({ url }) => url),
+    ["https://www.reddit.com/", "https://www.example.com/"],
+    "History is sorted by recency."
+  );
+
+  await PlacesUtils.history.clear();
+});
