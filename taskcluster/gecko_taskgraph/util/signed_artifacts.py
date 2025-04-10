@@ -42,14 +42,14 @@ def generate_specifications_of_artifacts_to_sign(
         artifacts_specifications = [
             {
                 "artifacts": [get_artifact_path(job, "source.tar.xz")],
-                "formats": ["gcp_prod_autograph_gpg"],
+                "formats": ["autograph_gpg"],
             }
         ]
     elif "android" in build_platform:
         artifacts_specifications = [
             {
                 "artifacts": get_geckoview_artifacts_to_sign(config, job),
-                "formats": ["gcp_prod_autograph_gpg"],
+                "formats": ["autograph_gpg"],
             }
         ]
     # XXX: Mars aren't signed here (on any platform) because internals will be
@@ -78,14 +78,10 @@ def generate_specifications_of_artifacts_to_sign(
                     "artifacts": [
                         get_artifact_path(job, f"{{locale}}/target.{extension}")
                     ],
-                    "formats": [
-                        "macapp",
-                        "gcp_prod_autograph_widevine",
-                        "gcp_prod_autograph_omnija",
-                    ],
+                    "formats": ["macapp", "autograph_widevine", "autograph_omnija"],
                 }
             ]
-            langpack_formats = ["gcp_prod_autograph_langpack"]
+            langpack_formats = ["autograph_langpack"]
 
         if "ja-JP-mac" in locales and build_platform in LANGPACK_SIGN_PLATFORMS:
             artifacts_specifications += [
@@ -102,16 +98,16 @@ def generate_specifications_of_artifacts_to_sign(
                 "artifacts": [
                     get_artifact_path(job, "{locale}/setup.exe"),
                 ],
-                "formats": ["gcp_prod_autograph_authenticode_202412"],
+                "formats": ["autograph_authenticode_202404"],
             },
             {
                 "artifacts": [
                     get_artifact_path(job, "{locale}/target.zip"),
                 ],
                 "formats": [
-                    "gcp_prod_autograph_authenticode_202412",
-                    "gcp_prod_autograph_widevine",
-                    "gcp_prod_autograph_omnija",
+                    "autograph_authenticode_202404",
+                    "autograph_widevine",
+                    "autograph_omnija",
                 ],
             },
         ]
@@ -124,11 +120,7 @@ def generate_specifications_of_artifacts_to_sign(
         artifacts_specifications = [
             {
                 "artifacts": [get_artifact_path(job, "{locale}/target.tar.bz2")],
-                "formats": [
-                    "gcp_prod_autograph_gpg",
-                    "gcp_prod_autograph_widevine",
-                    "gcp_prod_autograph_omnija",
-                ],
+                "formats": ["autograph_gpg", "autograph_widevine", "autograph_omnija"],
             }
         ]
         if build_platform in LANGPACK_SIGN_PLATFORMS:
@@ -137,7 +129,7 @@ def generate_specifications_of_artifacts_to_sign(
                     "artifacts": [
                         get_artifact_path(job, "{locale}/target.langpack.xpi")
                     ],
-                    "formats": ["gcp_prod_autograph_langpack"],
+                    "formats": ["autograph_langpack"],
                 }
             ]
     else:
@@ -169,10 +161,10 @@ def _strip_widevine_for_partners(artifacts_specifications):
     updates
     """
     for spec in artifacts_specifications:
-        if "gcp_prod_autograph_widevine" in spec["formats"]:
-            spec["formats"].remove("gcp_prod_autograph_widevine")
-        if "gcp_prod_autograph_omnija" in spec["formats"]:
-            spec["formats"].remove("gcp_prod_autograph_omnija")
+        if "autograph_widevine" in spec["formats"]:
+            spec["formats"].remove("autograph_widevine")
+        if "autograph_omnija" in spec["formats"]:
+            spec["formats"].remove("autograph_omnija")
 
     return artifacts_specifications
 
@@ -188,7 +180,7 @@ def get_signed_artifacts(input, formats, behavior=None):
             artifacts.add(input.replace(".dmg", ".pkg"))
     else:
         artifacts.add(input)
-    if "gcp_prod_autograph_gpg" in formats:
+    if "autograph_gpg" in formats:
         artifacts.add(f"{input}.asc")
 
     return artifacts

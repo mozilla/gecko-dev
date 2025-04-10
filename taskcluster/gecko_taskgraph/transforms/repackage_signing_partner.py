@@ -75,10 +75,7 @@ def make_repackage_signing_description(config, jobs):
                     "paths": [
                         get_artifact_path(dep_job, f"{repack_id}/target.installer.exe"),
                     ],
-                    "formats": [
-                        "gcp_prod_autograph_authenticode_202412",
-                        "gcp_prod_autograph_gpg",
-                    ],
+                    "formats": ["autograph_authenticode_202404", "autograph_gpg"],
                 }
             ]
 
@@ -98,10 +95,7 @@ def make_repackage_signing_description(config, jobs):
                                 f"{repack_id}/target.stub-installer.exe",
                             ),
                         ],
-                        "formats": [
-                            "gcp_prod_autograph_authenticode_202412",
-                            "gcp_prod_autograph_gpg",
-                        ],
+                        "formats": ["autograph_authenticode_202404", "autograph_gpg"],
                     }
                 )
         elif "mac" in build_platform:
@@ -112,7 +106,7 @@ def make_repackage_signing_description(config, jobs):
                     "paths": [
                         get_artifact_path(dep_job, f"{repack_id}/target.dmg"),
                     ],
-                    "formats": ["gcp_prod_autograph_gpg"],
+                    "formats": ["autograph_gpg"],
                 }
             ]
         elif "linux" in build_platform:
@@ -123,7 +117,7 @@ def make_repackage_signing_description(config, jobs):
                     "paths": [
                         get_artifact_path(dep_job, f"{repack_id}/target.tar.bz2"),
                     ],
-                    "formats": ["gcp_prod_autograph_gpg"],
+                    "formats": ["autograph_gpg"],
                 }
             ]
 
