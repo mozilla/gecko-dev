@@ -1910,6 +1910,14 @@ var SidebarController = {
     // Re-render sidebar-main so that templating is updated
     // for proper keyboard navigation for Tools
     this.sidebarMain.requestUpdate();
+    if (
+      !this.verticalTabsEnabled &&
+      this.sidebarRevampVisibility == "hide-sidebar"
+    ) {
+      // the sidebar.visibility pref didn't change so updateVisbility hasn't
+      // been called; we need to call it here to un-expand the launcher
+      this._state.updateVisibility(undefined, false);
+    }
   },
 
   debouncedMouseEnter() {

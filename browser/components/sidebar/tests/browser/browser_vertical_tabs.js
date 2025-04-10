@@ -585,3 +585,57 @@ add_task(async function test_vertical_tabs_min_width() {
   }
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(
+  async function test_launcher_collapsed_entering_horiz_tabs_with_hide_sidebar() {
+    const { sidebarMain } = SidebarController;
+    await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
+    await waitForTabstripOrientation("vertical");
+    ok(
+      BrowserTestUtils.isVisible(sidebarMain),
+      "Revamped sidebar main is shown initially."
+    );
+    ok(
+      sidebarMain.expanded,
+      "Launcher is expanded with vertical tabs and always-show"
+    );
+
+    await SpecialPowers.pushPrefEnv({
+      set: [["sidebar.visibility", "hide-sidebar"]],
+    });
+    await sidebarMain.updateComplete;
+    ok(
+      BrowserTestUtils.isHidden(sidebarMain),
+      "Revamped sidebar main hidden when we switch to hide-sidebar."
+    );
+
+    // toggle the launcher back open.
+    document.getElementById("sidebar-button").doCommand();
+    await sidebarMain.updateComplete;
+    ok(
+      BrowserTestUtils.isVisible(sidebarMain),
+      "Revamped sidebar main visible again."
+    );
+    ok(
+      sidebarMain.expanded,
+      "Launcher is still expanded as vertical tabs are still enabled"
+    );
+
+    // switch back to horizontal tabs and confirm the launcher get un-expanded
+    await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", false]] });
+    await waitForTabstripOrientation("horizontal");
+
+    ok(
+      BrowserTestUtils.isVisible(sidebarMain),
+      "Revamped sidebar main is still visible when we switch to horizontal tabs."
+    );
+    ok(
+      !sidebarMain.expanded,
+      "Launcher is collapsed when we switch to horizontal tabs with hide-sidebar"
+    );
+
+    await SpecialPowers.popPrefEnv();
+    await SpecialPowers.popPrefEnv();
+    await SpecialPowers.popPrefEnv();
+  }
+);
