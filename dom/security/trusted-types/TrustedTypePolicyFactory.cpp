@@ -117,6 +117,14 @@ class LogPolicyCreationViolationsRunnable final
 auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
     JSContext* aJSContext, const nsAString& aPolicyName) const
     -> PolicyCreation {
+  auto shouldBlock = [this, &aPolicyName](const nsCSPPolicy* aPolicy) {
+    return aPolicy->hasDirective(
+               nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE) &&
+           aPolicy->getDisposition() == nsCSPPolicy::Disposition::Enforce &&
+           aPolicy->ShouldCreateViolationForNewTrustedTypesPolicy(
+               aPolicyName, mCreatedPolicyNames);
+  };
+
   auto result = PolicyCreation::Allowed;
   auto location = JSCallingLocation::Get(aJSContext);
   if (auto* piDOMWindowInner = mGlobalObject->GetAsInnerWindow()) {
@@ -128,11 +136,7 @@ auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
       csp->GetPolicyCount(&numPolicies);
       for (uint64_t i = 0; i < numPolicies; ++i) {
         const nsCSPPolicy* policy = csp->GetPolicy(i);
-        if (policy->hasDirective(
-                nsIContentSecurityPolicy::TRUSTED_TYPES_DIRECTIVE) &&
-            policy->getDisposition() == nsCSPPolicy::Disposition::Enforce &&
-            policy->ShouldCreateViolationForNewTrustedTypesPolicy(
-                aPolicyName, mCreatedPolicyNames)) {
+        if (shouldBlock(policy)) {
           result = PolicyCreation::Blocked;
           break;
         }
@@ -151,18 +155,13 @@ auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
     if (NS_WARN_IF(rv.Failed())) {
       rv.SuppressException();
     }
-    const mozilla::ipc::CSPInfo& cspInfo = workerPrivate->GetCSPInfo();
-    for (auto& policy : cspInfo.policyInfos()) {
-      if (!policy.reportOnlyFlag()) {
-        auto& trustedTypesDirectiveExpressions = policy.trustedTypesDirectiveExpressions();
-        if (!trustedTypesDirectiveExpressions.IsEmpty() &&
-            nsCSPDirective::ShouldCreateViolationForNewTrustedTypesPolicy(
-              trustedTypesDirectiveExpressions, aPolicyName,
-              mCreatedPolicyNames)) {
+    if (WorkerCSPContext* ctx = workerPrivate->GetCSPContext()) {
+      for (const UniquePtr<const nsCSPPolicy>& policy : ctx->Policies()) {
+        if (shouldBlock(policy.get())) {
           result = PolicyCreation::Blocked;
           break;
         }
-      };
+      }
     }
   }
 
