@@ -7416,7 +7416,7 @@ bool Document::IsRenderingSuppressed() const {
   }
   // The user agent believes that updating the rendering of doc's node navigable
   // would have no visible effect.
-  if (!IsEventHandlingEnabled()) {
+  if (!IsEventHandlingEnabled() && !IsBeingUsedAsImage()) {
     return true;
   }
   if (!mPresShell || !mPresShell->DidInitialize()) {

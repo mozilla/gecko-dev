@@ -236,7 +236,7 @@ struct AnimationEventInfo {
 class AnimationEventDispatcher final {
  public:
   explicit AnimationEventDispatcher(nsPresContext* aPresContext)
-      : mPresContext(aPresContext), mIsSorted(true), mIsObserving(false) {}
+      : mPresContext(aPresContext), mIsSorted(true) {}
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(AnimationEventDispatcher)
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(AnimationEventDispatcher)
@@ -249,7 +249,6 @@ class AnimationEventDispatcher final {
   // This will call SortEvents automatically if it has not already been
   // called.
   void DispatchEvents() {
-    mIsObserving = false;
     if (!mPresContext || mPendingEvents.IsEmpty()) {
       return;
     }
@@ -288,15 +287,7 @@ class AnimationEventDispatcher final {
   }
 
  private:
-#ifndef DEBUG
   ~AnimationEventDispatcher() = default;
-#else
-  ~AnimationEventDispatcher() {
-    MOZ_ASSERT(!mIsObserving,
-               "AnimationEventDispatcher should have disassociated from "
-               "nsRefreshDriver");
-  }
-#endif
 
   // Sort all pending CSS animation/transition events by scheduled event time
   // and composite order.
@@ -324,7 +315,6 @@ class AnimationEventDispatcher final {
   using EventArray = nsTArray<AnimationEventInfo>;
   EventArray mPendingEvents;
   bool mIsSorted;
-  bool mIsObserving;
 };
 
 }  // namespace mozilla

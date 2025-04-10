@@ -18,6 +18,7 @@
 #include "gfxUtils.h"
 #include "MobileViewportManager.h"
 #include "mozilla/AccessibleCaretEventHub.h"
+#include "mozilla/AnimationEventDispatcher.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -1349,7 +1350,7 @@ void PresShell::Destroy() {
   }
 
   if (mPresContext) {
-    rd->CancelPendingAnimationEvents(mPresContext->AnimationEventDispatcher());
+    mPresContext->AnimationEventDispatcher()->ClearEventQueue();
   }
 
   // Revoke any pending events.  We need to do this and cancel pending reflows

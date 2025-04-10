@@ -193,24 +193,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void CancelPendingFullscreenEvents(Document* aDocument);
 
   /**
-   * Queue new animation events to dispatch in next tick.
-   */
-  void ScheduleAnimationEventDispatch(
-      mozilla::AnimationEventDispatcher* aDispatcher) {
-    NS_ASSERTION(!mAnimationEventFlushObservers.Contains(aDispatcher),
-                 "Double-adding animation event flush observer");
-    mAnimationEventFlushObservers.AppendElement(aDispatcher);
-    ScheduleRenderingPhase(
-        mozilla::RenderingPhase::UpdateAnimationsAndSendEvents);
-  }
-
-  /**
-   * Cancel all pending animation events associated with |aDispatcher|.
-   */
-  void CancelPendingAnimationEvents(
-      mozilla::AnimationEventDispatcher* aDispatcher);
-
-  /**
    * Schedule a frame visibility update "soon", subject to the heuristics and
    * throttling we apply to visibility updates.
    */
@@ -441,7 +423,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   };
   using ObserverArray = nsTObserverArray<ObserverData>;
   void RunFullscreenSteps();
-  void UpdateAnimationsAndSendEvents();
 
   MOZ_CAN_RUN_SCRIPT
   void RunVideoAndFrameRequestCallbacks(mozilla::TimeStamp aNowTime);
@@ -645,8 +626,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
   nsTArray<mozilla::UniquePtr<mozilla::PendingFullscreenEvent>>
       mPendingFullscreenEvents;
-  AutoTArray<mozilla::AnimationEventDispatcher*, 16>
-      mAnimationEventFlushObservers;
 
   // nsPresContexts which `NotifyContentfulPaint` have been called,
   // however the corresponding paint doesn't come from a regular
