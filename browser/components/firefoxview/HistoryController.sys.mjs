@@ -38,12 +38,21 @@ const HISTORY_MAP_L10N_IDS = {
 };
 
 /**
+ * When sorting by date or site, each card "item" is a single visit.
+ *
+ * When sorting by date *and* site, each card "item" is a mapping of site
+ * domains to their respective list of visits.
+ *
+ * @typedef {HistoryVisit | [string, HistoryVisit[]]} CardItem
+ */
+
+/**
  * A list of visits displayed on a card.
  *
  * @typedef {object} CardEntry
  *
  * @property {string} domain
- * @property {HistoryVisit[]} items
+ * @property {CardItem[]} items
  * @property {string} l10nId
  */
 
@@ -127,7 +136,7 @@ export class HistoryController {
   /**
    * Update cached history.
    *
-   * @param {Map<CacheKey, HistoryVisit[]>} [historyMap]
+   * @param {CachedHistory} [historyMap]
    *   If provided, performs an update using the given data (instead of fetching
    *   it from the db).
    */
@@ -146,7 +155,19 @@ export class HistoryController {
     }
     for (const { items } of entries) {
       for (const item of items) {
-        this.#normalizeVisit(item);
+        switch (sortOption) {
+          case "datesite": {
+            // item is a [ domain, visit[] ] entry.
+            const [, visits] = item;
+            for (const visit of visits) {
+              this.#normalizeVisit(visit);
+            }
+            break;
+          }
+          default:
+            // item is a single visit.
+            this.#normalizeVisit(item);
+        }
       }
     }
     this.historyCache = { entries, searchQuery, sortOption };
@@ -203,6 +224,11 @@ export class HistoryController {
         return this.#getVisitsForDate(historyMap);
       case "site":
         return this.#getVisitsForSite(historyMap);
+      case "datesite":
+        this.#setTodaysDate();
+        return this.#getVisitsForDateSite(historyMap);
+      case "lastvisited":
+        return this.#getVisitsForLastVisited(historyMap);
       default:
         return [];
     }
@@ -285,9 +311,9 @@ export class HistoryController {
    * Get a list of visits per day for each day on this month, excluding today
    * and yesterday.
    *
-   * @param {Map<number, HistoryVisit[]>} cachedHistory
+   * @param {CachedHistory} cachedHistory
    *   The history cache to process.
-   * @returns {HistoryVisit[][]}
+   * @returns {CardItem[]}
    *   A list of visits for each day.
    */
   #getVisitsByDay(cachedHistory) {
@@ -313,9 +339,9 @@ export class HistoryController {
    * excluding yesterday's visits if yesterday happens to fall on the previous
    * month.
    *
-   * @param {Map<number, HistoryVisit[]>} cachedHistory
+   * @param {CachedHistory} cachedHistory
    *   The history cache to process.
-   * @returns {HistoryVisit[][]}
+   * @returns {CardItem[]}
    *   A list of visits for each month.
    */
   #getVisitsByMonth(cachedHistory) {
@@ -332,6 +358,12 @@ export class HistoryController {
       const month = this.placesQuery.getStartOfMonthTimestamp(date);
       if (month !== previousMonth) {
         visitsPerMonth.push(visits);
+      } else if (this.sortOption === "datesite") {
+        // CardItem type is currently Map<string, HistoryVisit[]>.
+        visitsPerMonth[visitsPerMonth.length - 1] = this.#mergeMaps(
+          visitsPerMonth.at(-1),
+          visits
+        );
       } else {
         visitsPerMonth[visitsPerMonth.length - 1] = visitsPerMonth
           .at(-1)
@@ -373,6 +405,22 @@ export class HistoryController {
   }
 
   /**
+   * Merge two maps of (domain: string) => HistoryVisit[] into a single map.
+   *
+   * @param {Map<string, HistoryVisit[]>} oldMap
+   * @param {Map<string, HistoryVisit[]>} newMap
+   * @returns {Map<string, HistoryVisit[]>}
+   */
+  #mergeMaps(oldMap, newMap) {
+    const map = new Map(oldMap);
+    for (const [domain, newVisits] of newMap) {
+      const oldVisits = map.get(domain);
+      map.set(domain, oldVisits?.concat(newVisits) ?? newVisits);
+    }
+    return map;
+  }
+
+  /**
    * Get a list of visits, sorted by site, in alphabetical order.
    *
    * @param {Map<string, HistoryVisit[]>} historyMap
@@ -384,6 +432,75 @@ export class HistoryController {
       items,
       l10nId: domain ? null : "firefoxview-history-site-localhost",
     })).sort((a, b) => a.domain.localeCompare(b.domain));
+  }
+
+  /**
+   * Get a list of visits, sorted by date and site, in reverse chronological
+   * order.
+   *
+   * @param {Map<number, Map<string, HistoryVisit[]>>} historyMap
+   * @returns {CardEntry[]}
+   */
+  #getVisitsForDateSite(historyMap) {
+    const entries = [];
+    const visitsFromToday = this.#getVisitsFromToday(historyMap);
+    const visitsFromYesterday = this.#getVisitsFromYesterday(historyMap);
+    const visitsByDay = this.#getVisitsByDay(historyMap);
+    const visitsByMonth = this.#getVisitsByMonth(historyMap);
+
+    /**
+     * Sorts items alphabetically by domain name.
+     *
+     * @param {[string, HistoryVisit[]][]} items
+     * @returns {[string, HistoryVisit[]][]} The items in sorted order.
+     */
+    function sortItems(items) {
+      return items.sort(([aDomain], [bDomain]) =>
+        aDomain.localeCompare(bDomain)
+      );
+    }
+
+    // Add visits from today and yesterday.
+    if (visitsFromToday.length) {
+      entries.push({
+        l10nId: HISTORY_MAP_L10N_IDS[this.component]["history-date-today"],
+        items: sortItems(visitsFromToday),
+      });
+    }
+    if (visitsFromYesterday.length) {
+      entries.push({
+        l10nId: HISTORY_MAP_L10N_IDS[this.component]["history-date-yesterday"],
+        items: sortItems(visitsFromYesterday),
+      });
+    }
+
+    // Add visits from this month, grouped by day.
+    visitsByDay.forEach(visits => {
+      entries.push({
+        l10nId: HISTORY_MAP_L10N_IDS[this.component]["history-date-this-month"],
+        items: sortItems([...visits]),
+      });
+    });
+
+    // Add visits from previous months, grouped by month.
+    visitsByMonth.forEach(visits => {
+      entries.push({
+        l10nId: HISTORY_MAP_L10N_IDS[this.component]["history-date-prev-month"],
+        items: sortItems([...visits]),
+      });
+    });
+
+    return entries;
+  }
+
+  /**
+   * Get a list of visits sorted by recency.
+   *
+   * @param {HistoryVisit[]} items
+   * @returns {CardEntry[]}
+   */
+  #getVisitsForLastVisited(items) {
+    return [{ items }];
   }
 
   async #fetchHistory() {

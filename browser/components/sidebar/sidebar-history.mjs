@@ -45,6 +45,12 @@ export class SidebarHistory extends SidebarPage {
     this._menu = doc.getElementById("sidebar-history-menu");
     this._menuSortByDate = doc.getElementById("sidebar-history-sort-by-date");
     this._menuSortBySite = doc.getElementById("sidebar-history-sort-by-site");
+    this._menuSortByDateSite = doc.getElementById(
+      "sidebar-history-sort-by-date-and-site"
+    );
+    this._menuSortByLastVisited = doc.getElementById(
+      "sidebar-history-sort-by-last-visited"
+    );
     this._menu.addEventListener("command", this);
     this._menu.addEventListener("popuphidden", this.handlePopupEvent);
     this.addContextMenuListeners();
@@ -74,6 +80,12 @@ export class SidebarHistory extends SidebarPage {
         break;
       case "sidebar-history-sort-by-site":
         this.controller.onChangeSortOption(e, "site");
+        break;
+      case "sidebar-history-sort-by-date-and-site":
+        this.controller.onChangeSortOption(e, "datesite");
+        break;
+      case "sidebar-history-sort-by-last-visited":
+        this.controller.onChangeSortOption(e, "lastvisited");
         break;
       case "sidebar-history-clear":
         lazy.Sanitizer.showUI(this.topWindow);
@@ -161,37 +173,61 @@ export class SidebarHistory extends SidebarPage {
     const { historyVisits } = this.controller;
     switch (this.controller.sortOption) {
       case "date":
-        return historyVisits.map(({ l10nId, items }, i) => {
-          let tabIndex = i > 0 ? "-1" : undefined;
-          return html` <moz-card
-            type="accordion"
-            ?expanded=${i < DAYS_EXPANDED_INITIALLY}
-            data-l10n-id=${l10nId}
-            data-l10n-args=${JSON.stringify({
-              date: items[0].time,
-            })}
-            @keydown=${this.handleCardKeydown}
-            tabindex=${ifDefined(tabIndex)}
-          >
-            ${this.#tabListTemplate(this.getTabItems(items))}
-          </moz-card>`;
-        });
+        return historyVisits.map(({ l10nId, items }, i) =>
+          this.#dateCardTemplate(l10nId, i, items)
+        );
       case "site":
-        return historyVisits.map(({ domain, items }, i) => {
-          let tabIndex = i > 0 ? "-1" : undefined;
-          return html` <moz-card
-            type="accordion"
-            expanded
-            heading=${domain}
-            @keydown=${this.handleCardKeydown}
-            tabindex=${ifDefined(tabIndex)}
-          >
-            ${this.#tabListTemplate(this.getTabItems(items))}
-          </moz-card>`;
-        });
+        return historyVisits.map(({ domain, items }, i) =>
+          this.#siteCardTemplate(domain, i, items)
+        );
+      case "datesite":
+        return historyVisits.map(({ l10nId, items }, i) =>
+          this.#dateCardTemplate(l10nId, i, items, true)
+        );
+      case "lastvisited":
+        return historyVisits.map(
+          ({ items }) =>
+            html`<moz-card>
+              ${this.#tabListTemplate(this.getTabItems(items))}
+            </moz-card>`
+        );
       default:
         return [];
     }
+  }
+
+  #dateCardTemplate(l10nId, index, items, isDateSite = false) {
+    const tabIndex = index > 0 ? "-1" : undefined;
+    return html` <moz-card
+      type="accordion"
+      ?expanded=${index < DAYS_EXPANDED_INITIALLY}
+      data-l10n-id=${l10nId}
+      data-l10n-args=${JSON.stringify({
+        date: isDateSite ? items[0][1][0].time : items[0].time,
+      })}
+      @keydown=${this.handleCardKeydown}
+      tabindex=${ifDefined(tabIndex)}
+    >
+      ${isDateSite
+        ? items.map(([domain, visits], i) =>
+            this.#siteCardTemplate(domain, i, visits, true)
+          )
+        : this.#tabListTemplate(this.getTabItems(items))}
+    </moz-card>`;
+  }
+
+  #siteCardTemplate(domain, index, items, isDateSite = false) {
+    let tabIndex = index > 0 ? "-1" : undefined;
+    return html` <moz-card
+      class=${isDateSite ? "nested-card" : ""}
+      type="accordion"
+      ?expanded=${!isDateSite}
+      heading=${domain}
+      @keydown=${this.handleCardKeydown}
+      tabindex=${ifDefined(tabIndex)}
+    >
+      ${this.#tabListTemplate(this.getTabItems(items))}
+    </moz-card>`;
   }
 
   #emptyMessageTemplate() {
@@ -301,6 +337,14 @@ export class SidebarHistory extends SidebarPage {
     this._menuSortBySite.setAttribute(
       "checked",
       this.controller.sortOption == "site"
+    );
+    this._menuSortByDateSite.setAttribute(
+      "checked",
+      this.controller.sortOption == "datesite"
+    );
+    this._menuSortByLastVisited.setAttribute(
+      "checked",
+      this.controller.sortOption == "lastvisited"
     );
   }
 

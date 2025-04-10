@@ -66,10 +66,10 @@ summary {
   border-radius: var(--card-border-radius);
 
   .chevron-icon {
-    background-image: url("chrome://global/skin/icons/arrow-down.svg");
+    background-image: var(--card-accordion-closed-icon, url("chrome://global/skin/icons/arrow-down.svg"));
 
     details[open] & {
-      background-image: url("chrome://global/skin/icons/arrow-up.svg");
+      background-image: var(--card-accordion-open-icon, url("chrome://global/skin/icons/arrow-up.svg"));
     }
   }
 

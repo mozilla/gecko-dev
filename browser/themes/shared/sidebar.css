@@ -355,3 +355,15 @@ sidebar-main,
       }
     }
   }
+
+/* History Menu */
+#sidebar-history-sort-by-heading {
+  margin-block: var(--space-xsmall);
+}
+
+#sidebar-history-clear {
+  padding: var(--menuitem-padding);
+  &::before {
+    content: unset;
+  }
+}

@@ -15,3 +15,8 @@ fxview-search-textbox {
 .menu-button::part(button) {
   margin-inline-start: var(--space-small);
 }
+
+.nested-card {
+  --card-accordion-closed-icon: url("chrome://global/skin/icons/arrow-right.svg");
+  --card-accordion-open-icon: url("chrome://global/skin/icons/arrow-down.svg");
+}
