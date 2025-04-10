@@ -54,7 +54,7 @@ DirectoryLockImpl::DirectoryLockImpl(
   MOZ_ASSERT_IF(!aInternal,
                 aPersistenceScope.GetValue() != PERSISTENCE_TYPE_INVALID);
   MOZ_ASSERT_IF(!aInternal, aOriginScope.IsOrigin());
-  MOZ_ASSERT_IF(!aInternal, !aClientStorageScope.IsNull());
+  MOZ_ASSERT_IF(!aInternal, aClientStorageScope.IsClient());
   MOZ_ASSERT_IF(!aInternal,
                 aClientStorageScope.GetClientType() < Client::TypeMax());
 }
@@ -200,10 +200,16 @@ void DirectoryLockImpl::Log() const {
   }
   QM_LOG(("  mOriginScope: %s", originScope.get()));
 
-  const auto clientStorageScope =
-      mClientStorageScope.IsNull()
-          ? nsAutoCString{"null"_ns}
-          : Client::TypeToText(mClientStorageScope.GetClientType());
+  nsCString clientStorageScope;
+  if (mClientStorageScope.IsNull()) {
+    clientStorageScope.AssignLiteral("null");
+  } else if (mClientStorageScope.IsClient()) {
+    clientStorageScope.Assign(
+        Client::TypeToText(mClientStorageScope.GetClientType()));
+  } else {
+    MOZ_ASSERT(mClientStorageScope.IsMetadata());
+    clientStorageScope.AssignLiteral("metadata");
+  }
   QM_LOG(("  mClientStorageScope: %s", clientStorageScope.get()));
 
   nsCString blockedOnString;

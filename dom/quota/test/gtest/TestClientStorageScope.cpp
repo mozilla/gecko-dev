@@ -21,6 +21,11 @@ TEST(DOM_Quota_ClientStorageScope, SanityChecks)
   }
 
   {
+    const auto clientStorageScope(ClientStorageScope::CreateFromMetadata());
+    ASSERT_TRUE(clientStorageScope.IsMetadata());
+  }
+
+  {
     const auto clientStorageScope(ClientStorageScope::CreateFromNull());
     ASSERT_TRUE(clientStorageScope.IsNull());
   }
@@ -47,6 +52,21 @@ TEST(DOM_Quota_ClientStorageScope, MatchesClient)
   }
 
   {
+    const auto clientStorageScope(ClientStorageScope::CreateFromMetadata());
+
+    ASSERT_FALSE(clientStorageScope.Matches(
+        ClientStorageScope::CreateFromClient(Client::IDB)));
+    ASSERT_FALSE(clientStorageScope.Matches(
+        ClientStorageScope::CreateFromClient(Client::DOMCACHE)));
+    ASSERT_FALSE(clientStorageScope.Matches(
+        ClientStorageScope::CreateFromClient(Client::SDB)));
+    ASSERT_FALSE(clientStorageScope.Matches(
+        ClientStorageScope::CreateFromClient(Client::FILESYSTEM)));
+    ASSERT_FALSE(clientStorageScope.Matches(
+        ClientStorageScope::CreateFromClient(Client::LS)));
+  }
+
+  {
     const auto clientStorageScope(ClientStorageScope::CreateFromNull());
 
     ASSERT_TRUE(clientStorageScope.Matches(
@@ -59,6 +79,33 @@ TEST(DOM_Quota_ClientStorageScope, MatchesClient)
         ClientStorageScope::CreateFromClient(Client::FILESYSTEM)));
     ASSERT_TRUE(clientStorageScope.Matches(
         ClientStorageScope::CreateFromClient(Client::LS)));
+  }
+}
+
+TEST(DOM_Quota_ClientStorageScope, MatchesMetadata)
+{
+  // Test each client storage scope type against particular client types.
+
+  {
+    const auto clientStorageScope(
+        ClientStorageScope::CreateFromClient(Client::IDB));
+
+    ASSERT_FALSE(
+        clientStorageScope.Matches(ClientStorageScope::CreateFromMetadata()));
+  }
+
+  {
+    const auto clientStorageScope(ClientStorageScope::CreateFromMetadata());
+
+    ASSERT_TRUE(
+        clientStorageScope.Matches(ClientStorageScope::CreateFromMetadata()));
+  }
+
+  {
+    const auto clientStorageScope(ClientStorageScope::CreateFromNull());
+
+    ASSERT_TRUE(
+        clientStorageScope.Matches(ClientStorageScope::CreateFromMetadata()));
   }
 }
 

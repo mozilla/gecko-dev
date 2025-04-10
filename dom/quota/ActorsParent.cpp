@@ -6954,6 +6954,7 @@ nsresult QuotaManager::AboutToClearOrigins(
     const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
     const ClientStorageScope& aClientStorageScope) {
   AssertIsOnIOThread();
+  MOZ_ASSERT(aClientStorageScope.IsClient() || aClientStorageScope.IsNull());
 
   if (aClientStorageScope.IsNull()) {
     for (Client::Type type : AllClientTypes()) {
@@ -6973,6 +6974,7 @@ void QuotaManager::OriginClearCompleted(
     const OriginMetadata& aOriginMetadata,
     const ClientStorageScope& aClientStorageScope) {
   AssertIsOnIOThread();
+  MOZ_ASSERT(aClientStorageScope.IsClient() || aClientStorageScope.IsNull());
 
   if (aClientStorageScope.IsNull()) {
     if (aOriginMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {

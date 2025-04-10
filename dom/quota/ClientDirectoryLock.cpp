@@ -46,7 +46,7 @@ RefPtr<ClientDirectoryLock> ClientDirectoryLock::Create(
   MOZ_ASSERT_IF(!aInternal,
                 aPersistenceScope.GetValue() != PERSISTENCE_TYPE_INVALID);
   MOZ_ASSERT_IF(!aInternal, aOriginScope.IsOrigin());
-  MOZ_ASSERT_IF(!aInternal, !aClientStorageScope.IsNull());
+  MOZ_ASSERT_IF(!aInternal, aClientStorageScope.IsClient());
   MOZ_ASSERT_IF(!aInternal,
                 aClientStorageScope.GetClientType() < Client::TypeMax());
 

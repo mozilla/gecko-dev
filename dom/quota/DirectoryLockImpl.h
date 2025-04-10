@@ -171,7 +171,7 @@ class DirectoryLockImpl {
   }
 
   Client::Type ClientType() const {
-    MOZ_DIAGNOSTIC_ASSERT(!mClientStorageScope.IsNull());
+    MOZ_DIAGNOSTIC_ASSERT(mClientStorageScope.IsClient());
     MOZ_DIAGNOSTIC_ASSERT(mClientStorageScope.GetClientType() <
                           Client::TypeMax());
 

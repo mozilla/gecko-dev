@@ -15,7 +15,8 @@ namespace mozilla::dom::quota {
 
 /**
  * Represents a scope within an origin directory, currently covering either a
- * specific client (`Client`) or a match-all scope (`Null`).
+ * specific client (`Client`), metadata (`Metadata`), or a match-all scope
+ * (`Null`).
  *
  * The use of "Storage" in the class name is intentional. Unlike
  * `PersistenceScope` and `OriginScope`, which match only specific directories,
@@ -23,9 +24,16 @@ namespace mozilla::dom::quota {
  * includes client specific folders (e.g., idb/, fs/) and, in the future, files
  * like metadata that exist alongside them.
  *
+ * The special `Metadata` scope exists because adding the metadata type to
+ * client types would complicate other aspects of the system. A special client
+ * implementation just for working with the metadata file would be overkill.
+ * However, we need a way to lock just the metadata file. Since metadata files
+ * reside alongside client directories under the same origin directory, it
+ * makes sense to include them in the `ClientStorageScope`.
+ *
  * This class provides operations to check the current scope type
- * (`Client` or `Null`), set the scope type, retrieve a client type, and match
- * it with another scope.
+ * (`Client`, `Metadata`, or `Null`), set the scope type, retrieve a client
+ * type, and match it with another scope.
  */
 class ClientStorageScope {
   class Client {
@@ -38,9 +46,11 @@ class ClientStorageScope {
     quota::Client::Type GetClientType() const { return mClientType; }
   };
 
+  struct Metadata {};
+
   struct Null {};
 
-  using DataType = Variant<Client, Null>;
+  using DataType = Variant<Client, Metadata, Null>;
 
   DataType mData;
 
@@ -51,11 +61,17 @@ class ClientStorageScope {
     return ClientStorageScope(std::move(Client(aClientType)));
   }
 
+  static ClientStorageScope CreateFromMetadata() {
+    return ClientStorageScope(std::move(Metadata()));
+  }
+
   static ClientStorageScope CreateFromNull() {
     return ClientStorageScope(std::move(Null()));
   }
 
   bool IsClient() const { return mData.is<Client>(); }
+
+  bool IsMetadata() const { return mData.is<Metadata>(); }
 
   bool IsNull() const { return mData.is<Null>(); }
 
@@ -81,6 +97,10 @@ class ClientStorageScope {
         return mThis.MatchesClient(aOther);
       }
 
+      bool operator()(const Metadata& aOther) {
+        return mThis.MatchesMetadata(aOther);
+      }
+
       bool operator()(const Null& aOther) { return true; }
     };
 
@@ -90,6 +110,8 @@ class ClientStorageScope {
  private:
   // Move constructors
   explicit ClientStorageScope(const Client&& aClient) : mData(aClient) {}
+
+  explicit ClientStorageScope(const Metadata&& aMetadata) : mData(aMetadata) {}
 
   explicit ClientStorageScope(const Null&& aNull) : mData(aNull) {}
 
@@ -106,6 +128,8 @@ class ClientStorageScope {
         return aThis.GetClientType() == mOther.GetClientType();
       }
 
+      bool operator()(const Metadata& aThis) { return false; }
+
       bool operator()(const Null& aThis) {
         // Null covers everything.
         return true;
@@ -113,6 +137,25 @@ class ClientStorageScope {
     };
 
     return mData.match(ClientMatcher(aOther));
+  }
+
+  bool MatchesMetadata(const Metadata& aOther) const {
+    struct MetadataMatcher {
+      const Metadata& mOther;
+
+      explicit MetadataMatcher(const Metadata& aOther) : mOther(aOther) {}
+
+      bool operator()(const Client& aThis) { return false; }
+
+      bool operator()(const Metadata& aThis) { return true; }
+
+      bool operator()(const Null& aThis) {
+        // Null covers everything.
+        return true;
+      }
+    };
+
+    return mData.match(MetadataMatcher(aOther));
   }
 
   bool operator==(const ClientStorageScope& aOther) = delete;
