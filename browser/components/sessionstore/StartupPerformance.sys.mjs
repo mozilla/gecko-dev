@@ -109,11 +109,9 @@ export var StartupPerformance = {
             delta
           );
         } else {
-          Services.telemetry
-            .getHistogramById(
-              "FX_SESSION_RESTORE_MANUAL_RESTORE_DURATION_UNTIL_EAGER_TABS_RESTORED_MS"
-            )
-            .add(delta);
+          Glean.sessionRestore.manualRestoreDurationUntilEagerTabsRestored.accumulateSingleSample(
+            delta
+          );
         }
         Glean.sessionRestore.numberOfEagerTabsRestored.accumulateSingleSample(
           this._totalNumberOfEagerTabs
