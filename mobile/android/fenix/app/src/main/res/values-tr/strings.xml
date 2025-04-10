@@ -151,7 +151,7 @@
     Text for the body for the auto-close dialog of the inactive tabs.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="tab_tray_inactive_auto_close_body_2">%1$s, bir aydır bakmadığınız sekmeleri kapatabilir.</string>
+  <string name="tab_tray_inactive_auto_close_body_2">%1$s bir aydır bakmadığınız sekmeleri kapatabilir.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
   <string name="tab_tray_inactive_auto_close_button_content_description">Kapat</string>
   <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
