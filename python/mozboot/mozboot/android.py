@@ -310,6 +310,14 @@ def ensure_android(
 
     `os_name` can be 'linux', 'macosx' or 'windows'.
     """
+
+    if os_name == "windows" and os_arch == "ARM64":
+        raise NotImplementedError(
+            "Building for Android is not supported on ARM64 Windows because "
+            "Google does not distribute emulator binary for ARM64 Windows. "
+            "See also https://issuetracker.google.com/issues/264614669."
+        )
+
     # The user may have an external Android SDK (in which case we
     # save them a lengthy download), or they may have already
     # completed the download. We unpack to
@@ -789,7 +797,7 @@ def main(argv):
     return 0
 
 
-def ensure_java(os_name, os_arch):
+def ensure_java(os_name: str, os_arch: str):
     mozbuild_path, _, _, _ = get_paths(os_name)
 
     if os_name == "macosx":
@@ -799,7 +807,7 @@ def ensure_java(os_name, os_arch):
 
     if os_arch == "x86_64":
         arch = "x64"
-    elif os_arch == "arm64":
+    elif os_arch.lower() == "arm64":
         arch = "aarch64"
     else:
         arch = os_arch
