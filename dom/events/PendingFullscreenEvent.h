@@ -27,16 +27,12 @@ enum class FullscreenEventType {
  */
 class PendingFullscreenEvent {
  public:
-  PendingFullscreenEvent(FullscreenEventType aType, dom::Document* aDocument,
-                         nsINode* aTarget)
-      : mDocument(aDocument), mTarget(aTarget), mType(aType) {
-    MOZ_ASSERT(aDocument);
+  PendingFullscreenEvent(FullscreenEventType aType, nsINode* aTarget)
+      : mTarget(aTarget), mType(aType) {
     MOZ_ASSERT(aTarget);
   }
 
-  dom::Document* Document() const { return mDocument; }
-
-  void Dispatch() {
+  MOZ_CAN_RUN_SCRIPT void Dispatch(dom::Document* aDoc) {
 #ifdef DEBUG
     MOZ_ASSERT(!mDispatched);
     mDispatched = true;
@@ -50,21 +46,32 @@ class PendingFullscreenEvent {
         name = u"fullscreenerror"_ns;
         break;
     }
-    nsINode* target = mTarget->GetComposedDoc() == mDocument ? mTarget.get()
-                                                             : mDocument.get();
+    nsINode* target = mTarget->GetComposedDoc() == aDoc ? mTarget.get() : aDoc;
     Unused << nsContentUtils::DispatchTrustedEvent(
-        mDocument, target, name, CanBubble::eYes, Cancelable::eNo,
-        Composed::eYes);
+        aDoc, target, name, CanBubble::eYes, Cancelable::eNo, Composed::eYes);
   }
 
+  void Unlink() { mTarget = nullptr; }
+
+  nsINode* Target() const { return mTarget.get(); }
+
  private:
-  RefPtr<dom::Document> mDocument;
   nsCOMPtr<nsINode> mTarget;
   FullscreenEventType mType;
 #ifdef DEBUG
   bool mDispatched = false;
 #endif
 };
+
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    PendingFullscreenEvent& aField, const char* aName, uint32_t aFlags = 0) {
+  CycleCollectionNoteChild(aCallback, aField.Target(), aName, aFlags);
+}
+
+inline void ImplCycleCollectionUnlink(PendingFullscreenEvent& aField) {
+  aField.Unlink();
+}
 
 }  // namespace mozilla
 

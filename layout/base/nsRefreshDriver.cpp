@@ -2089,16 +2089,6 @@ void nsRefreshDriver::MaybeIncreaseMeasuredTicksSinceLoading() {
   }
 }
 
-// https://fullscreen.spec.whatwg.org/#run-the-fullscreen-steps
-void nsRefreshDriver::RunFullscreenSteps() {
-  // Swap out the current pending events
-  nsTArray<UniquePtr<PendingFullscreenEvent>> pendings(
-      std::move(mPendingFullscreenEvents));
-  for (UniquePtr<PendingFullscreenEvent>& event : pendings) {
-    event->Dispatch();
-  }
-}
-
 void nsRefreshDriver::UpdateRemoteFrameEffects() {
   mPresContext->Document()->UpdateRemoteFrameEffects();
 }
@@ -2558,9 +2548,10 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
                     });
 
   // Step 12. For each doc of docs, run the fullscreen steps for doc.
-  RunRenderingPhaseLegacy(
-      RenderingPhase::FullscreenSteps,
-      [&]() MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA { RunFullscreenSteps(); });
+  RunRenderingPhase(RenderingPhase::FullscreenSteps,
+                    [&](Document& aDoc) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+                      MOZ_KnownLive(aDoc).RunFullscreenSteps();
+                    });
 
   // TODO: Step 13. For each doc of docs, if the user agent detects that the
   // backing storage associated with a CanvasRenderingContext2D or an
@@ -3045,20 +3036,6 @@ void nsRefreshDriver::ScheduleViewManagerFlush() {
   }
   mHasScheduleFlush = true;
   EnsureTimerStarted(eNeverAdjustTimer);
-}
-
-void nsRefreshDriver::ScheduleFullscreenEvent(
-    UniquePtr<PendingFullscreenEvent> aEvent) {
-  mPendingFullscreenEvents.AppendElement(std::move(aEvent));
-  ScheduleRenderingPhase(RenderingPhase::FullscreenSteps);
-}
-
-void nsRefreshDriver::CancelPendingFullscreenEvents(Document* aDocument) {
-  for (auto i : Reversed(IntegerRange(mPendingFullscreenEvents.Length()))) {
-    if (mPendingFullscreenEvents[i]->Document() == aDocument) {
-      mPendingFullscreenEvents.RemoveElementAt(i);
-    }
-  }
 }
 
 /* static */

@@ -40,7 +40,6 @@ struct DocumentFrameCallbacks;
 
 namespace mozilla {
 class AnimationEventDispatcher;
-class PendingFullscreenEvent;
 class PresShell;
 class RefreshDriverTimer;
 class Runnable;
@@ -178,19 +177,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void ClearHasScheduleFlush() { mHasScheduleFlush = false; }
   // Returns true if a paint actually occurred.
   MOZ_CAN_RUN_SCRIPT bool FlushViewManagerIfNeeded();
-
-  /**
-   * Queue a new fullscreen event to be dispatched in next tick before
-   * the style flush
-   */
-  void ScheduleFullscreenEvent(
-      mozilla::UniquePtr<mozilla::PendingFullscreenEvent> aEvent);
-
-  /**
-   * Cancel all pending fullscreen events scheduled by ScheduleFullscreenEvent
-   * which targets any node in aDocument.
-   */
-  void CancelPendingFullscreenEvents(Document* aDocument);
 
   /**
    * Schedule a frame visibility update "soon", subject to the heuristics and
@@ -624,8 +610,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   AutoTArray<nsCOMPtr<nsIRunnable>, 16> mEarlyRunners;
   AutoTArray<mozilla::PresShell*, 16> mStyleFlushObservers;
   nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
-  nsTArray<mozilla::UniquePtr<mozilla::PendingFullscreenEvent>>
-      mPendingFullscreenEvents;
 
   // nsPresContexts which `NotifyContentfulPaint` have been called,
   // however the corresponding paint doesn't come from a regular

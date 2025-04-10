@@ -200,6 +200,7 @@ class FullscreenExit;
 class FullscreenRequest;
 class HTMLEditor;
 struct LangGroupFontPrefs;
+class PendingFullscreenEvent;
 class PermissionDelegateHandler;
 class PresShell;
 class ScrollTimelineAnimationTracker;
@@ -1888,6 +1889,10 @@ class Document : public nsINode,
 
   // Whether we has pending fullscreen request.
   bool HasPendingFullscreenRequests();
+
+  void AddPendingFullscreenEvent(UniquePtr<PendingFullscreenEvent>);
+
+  MOZ_CAN_RUN_SCRIPT void RunFullscreenSteps();
 
   /**
    * When Esc key is pressed, cancel the dialog element if the document is
@@ -5481,6 +5486,9 @@ class Document : public nsINode,
   // This is mutable so that we can keep EffectiveCookiePrincipal() const
   // which is required due to its CloneDocHelper() call site.  :-(
   mutable nsCOMPtr<nsIPrincipal> mActiveCookiePrincipal;
+
+  // https://fullscreen.spec.whatwg.org/#list-of-pending-fullscreen-events
+  nsTArray<UniquePtr<PendingFullscreenEvent>> mPendingFullscreenEvents;
 
   // See GetNextFormNumber and GetNextControlNumber.
   int32_t mNextFormNumber;

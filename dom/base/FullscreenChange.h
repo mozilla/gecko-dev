@@ -97,12 +97,8 @@ class FullscreenRequest : public FullscreenChange {
   // Reject the fullscreen request with the given reason.
   // It will dispatch the fullscreenerror event.
   void Reject(const char* aReason) {
-    if (nsPresContext* presContext = Document()->GetPresContext()) {
-      auto pendingEvent = MakeUnique<PendingFullscreenEvent>(
-          FullscreenEventType::Error, Document(), mElement);
-      presContext->RefreshDriver()->ScheduleFullscreenEvent(
-          std::move(pendingEvent));
-    }
+    Document()->AddPendingFullscreenEvent(MakeUnique<PendingFullscreenEvent>(
+        FullscreenEventType::Error, mElement));
     MayRejectPromise("Fullscreen request denied");
     nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
                                     Document(), nsContentUtils::eDOM_PROPERTIES,
