@@ -54,11 +54,12 @@ ChromeUtils.defineLazyGetter(lazy, "AboutLoginsL10n", () => {
   return new Localization(["branding/brand.ftl", "browser/aboutLogins.ftl"]);
 });
 
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "gParentalControlsService",
-  "@mozilla.org/parental-controls-service;1",
-  "nsIParentalControlsService"
+ChromeUtils.defineLazyGetter(lazy, "gParentalControlsService", () =>
+  "@mozilla.org/parental-controls-service;1" in Cc
+    ? Cc["@mozilla.org/parental-controls-service;1"].getService(
+        Ci.nsIParentalControlsService
+      )
+    : null
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -707,7 +708,7 @@ var gPrivacyPane = {
         mode == Ci.nsIDNSService.MODE_TRRFIRST ||
         mode == Ci.nsIDNSService.MODE_TRRONLY
       ) {
-        if (lazy.gParentalControlsService.parentalControlsEnabled) {
+        if (lazy.gParentalControlsService?.parentalControlsEnabled) {
           return "preferences-doh-status-not-active";
         }
         let confirmationState = Services.dns.currentTrrConfirmationState;
@@ -730,7 +731,7 @@ var gPrivacyPane = {
     if (
       (mode == Ci.nsIDNSService.MODE_TRRFIRST ||
         mode == Ci.nsIDNSService.MODE_TRRONLY) &&
-      lazy.gParentalControlsService.parentalControlsEnabled
+      lazy.gParentalControlsService?.parentalControlsEnabled
     ) {
       errReason = Services.dns.getTRRSkipReasonName(
         Ci.nsITRRSkipReason.TRR_PARENTAL_CONTROL

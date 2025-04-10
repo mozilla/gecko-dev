@@ -46,7 +46,7 @@ XPCOMUtils.defineLazyServiceGetter(
 
 ChromeUtils.defineLazyGetter(lazy, "gParentalControlsService", function () {
   if ("@mozilla.org/parental-controls-service;1" in Cc) {
-    return Cc["@mozilla.org/parental-controls-service;1"].createInstance(
+    return Cc["@mozilla.org/parental-controls-service;1"].getService(
       Ci.nsIParentalControlsService
     );
   }
