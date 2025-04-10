@@ -1,0 +1,15 @@
+# Ensure that a RGB compositor surface is correctly clipped when
+# compositing with a shared rounded clip on the tile cache.
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      complex:
+        - rect: [100, 100, 200, 200]
+          radius: 32
+
+    - bounds: [100, 100, 200, 200]
+      image: checkerboard(4, 16, 12)
+      clip-chain: [2]
+      prefer-compositor-surface: true

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, DebugFlags, PrimitiveFlags, QualitySettings, RasterSpace, ClipId};
+use api::{BorderRadius, ClipId, ClipMode, ColorF, DebugFlags, PrimitiveFlags, QualitySettings, RasterSpace};
 use api::units::*;
 use crate::clip::{ClipItemKeyKind, ClipNodeId, ClipTreeBuilder};
 use crate::frame_builder::FrameBuilderConfig;
@@ -561,19 +561,26 @@ fn create_tile_cache(
 
         let node_valid = if is_rcs {
             match clip_node_data.key.kind {
-                ClipItemKeyKind::BoxShadow(..) | ClipItemKeyKind::ImageMask(..) => {
+                ClipItemKeyKind::BoxShadow(..) |
+                ClipItemKeyKind::ImageMask(..) |
+                ClipItemKeyKind::Rectangle(_, ClipMode::ClipOut) |
+                ClipItemKeyKind::RoundedRectangle(_, _, ClipMode::ClipOut) => {
                     // Has a box-shadow / image-mask, we can't handle this as a shared clip
                     false
                 }
-                ClipItemKeyKind::RoundedRectangle(..) => {
-                    rounded_rect_count += 1;
+                ClipItemKeyKind::RoundedRectangle(rect, radius, ClipMode::Clip) => {
+                    // The shader and CoreAnimation rely on certain constraints such
+                    // as uniform radii to be able to apply the clip during compositing.
+                    if BorderRadius::from(radius).can_use_fast_path_in(&rect.into()) {
+                        rounded_rect_count += 1;
 
-                    // TODO(gw): This initial patch retains existing behavior by not
-                    //           allowing a rounded-rect clip to be part of the shared
-                    //           clip. Follow up patch in this series will relax this.
-                    false
+                        // TODO(gw): Enable this once also supported by native and swgl compositors
+                        false
+                    } else {
+                        false
+                    }
                 }
-                ClipItemKeyKind::Rectangle(..) => {
+                ClipItemKeyKind::Rectangle(_, ClipMode::Clip) => {
                     // We can apply multiple (via combining) axis-aligned rectangle
                     // clips to the shared compositing clip.
                     true

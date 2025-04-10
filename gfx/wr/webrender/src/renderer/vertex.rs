@@ -776,6 +776,16 @@ pub mod desc {
                 count: 2,
                 kind: VertexAttributeKind::F32,
             },
+            VertexAttribute {
+                name: "aDeviceRoundedClipRect",
+                count: 4,
+                kind: VertexAttributeKind::F32,
+            },
+            VertexAttribute {
+                name: "aDeviceRoundedClipRadii",
+                count: 4,
+                kind: VertexAttributeKind::F32,
+            },
         ],
     };
 

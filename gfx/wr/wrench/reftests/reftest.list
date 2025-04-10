@@ -4,6 +4,7 @@ include blend/reftest.list
 include border/reftest.list
 include boxshadow/reftest.list
 include clip/reftest.list
+include compositor/reftest.list
 include compositor-surface/reftest.list
 include crash/reftest.list
 include filters/reftest.list

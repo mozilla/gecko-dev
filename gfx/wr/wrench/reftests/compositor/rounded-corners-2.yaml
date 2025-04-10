@@ -1,0 +1,21 @@
+# Since the clip-chain is shared between the two prims, the rounded
+# clip will be applied to the tile cache, so no mask surface will be allocated.
+# The second prim is clipped out to make it match the reference.
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      complex:
+        - rect: [50, 50, 200, 200]
+          radius: 32
+
+    - type: rect
+      bounds: 50 50 200 200
+      color: red
+      clip-chain: [2]
+
+    - type: rect
+      bounds: 300 50 200 200
+      color: red
+      clip-chain: [2]

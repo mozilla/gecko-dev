@@ -1,0 +1,25 @@
+# Ensure that a compositor surface with a rounded clip applied
+# doesn't incorrectly occlude tile(s) behind it.
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      complex:
+        - rect: [100, 100, 200, 200]
+          radius: 64
+
+    - type: rect
+      bounds: [100, 100, 200, 200]
+      color: green
+
+    -
+      type: "scroll-frame"
+      id: 3
+      bounds: [0, 0, 300, 300]
+
+    - type: rect
+      spatial-id: 3
+      bounds: [100, 100, 200, 200]
+      color: red
+      clip-chain: [2]

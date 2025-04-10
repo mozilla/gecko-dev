@@ -1,0 +1,19 @@
+# Ensure that a YUV compositor surface is correctly clipped when
+# compositing with a shared rounded clip on the tile cache.
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      complex:
+        - rect: [100, 100, 299, 299]
+          radius: 32
+
+    - type: yuv-image
+      format: planar
+      src-y: barn-y.png
+      src-u: barn-u.png
+      src-v: barn-v.png
+      bounds: [100, 100, 299, 299]
+      clip-chain: [2]
+      prefer-compositor-surface: true

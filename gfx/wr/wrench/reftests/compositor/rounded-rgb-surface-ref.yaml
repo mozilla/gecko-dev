@@ -1,0 +1,12 @@
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      complex:
+        - rect: [100, 100, 200, 200]
+          radius: 32
+
+    - bounds: [100, 100, 200, 200]
+      image: checkerboard(4, 16, 12)
+      clip-chain: [2]

@@ -15,6 +15,13 @@
 #include yuv
 #endif
 
+#ifndef WR_FEATURE_FAST_PATH
+// Parameters for compositor clip
+varying highp vec2 vNormalizedWorldPos;
+flat varying highp vec2 vRoundedClipParams;
+flat varying highp vec4 vRoundedClipRadii;
+#endif
+
 #ifdef WR_FEATURE_YUV
 flat varying YUV_PRECISION vec3 vYcbcrBias;
 flat varying YUV_PRECISION mat3 vRgbFromDebiasedYcbcr;
@@ -51,6 +58,11 @@ PER_INSTANCE attribute vec4 aColor;
 PER_INSTANCE attribute vec4 aParams;
 PER_INSTANCE attribute vec2 aFlip;
 
+#ifndef WR_FEATURE_FAST_PATH
+PER_INSTANCE attribute vec4 aDeviceRoundedClipRect;
+PER_INSTANCE attribute vec4 aDeviceRoundedClipRadii;
+#endif
+
 #ifdef WR_FEATURE_YUV
 // YUV treats these as a UV clip rect (clamp)
 PER_INSTANCE attribute vec4 aUvRect0;
@@ -79,6 +91,13 @@ void main(void) {
 
     // Clip the position to the world space clip rect
     vec2 clipped_world_pos = clamp(world_pos, aDeviceClipRect.xy, aDeviceClipRect.zw);
+
+#ifndef WR_FEATURE_FAST_PATH
+    vec2 half_clip_box_size = 0.5 * (aDeviceRoundedClipRect.zw - aDeviceRoundedClipRect.xy);
+    vNormalizedWorldPos = aDeviceRoundedClipRect.xy + half_clip_box_size - clipped_world_pos;
+    vRoundedClipParams = half_clip_box_size;
+    vRoundedClipRadii = aDeviceRoundedClipRadii;
+#endif
 
     // Derive the normalized UV from the clipped vertex position
     vec2 uv = (clipped_world_pos - device_rect.xy) / (device_rect.zw - device_rect.xy);
@@ -160,6 +179,20 @@ void main(void) {
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
+
+#ifndef WR_FEATURE_FAST_PATH
+// See https://www.shadertoy.com/view/4llXD7
+// Notes:
+//  * pos is centered in the origin (so 0,0 is the center of the box).
+//  * The border radii must not be larger than half_box_size.
+float sd_round_box(in vec2 pos, in vec2 half_box_size, in vec4 radii) {
+    radii.xy = (pos.x > 0.0) ? radii.xy : radii.zw;
+    radii.x  = (pos.y > 0.0) ? radii.x  : radii.y;
+    vec2 q = abs(pos) - half_box_size + radii.x;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radii.x;
+}
+#endif
+
 void main(void) {
 #ifdef WR_FEATURE_YUV
     vec4 color = sample_yuv(
@@ -188,6 +221,27 @@ void main(void) {
     vec4 color = vColor * texel;
 #endif
 #endif
+
+// TODO(gw): Do we need to support this on ESSL1?
+#ifndef WR_FEATURE_TEXTURE_EXTERNAL_ESSL1
+#ifndef WR_FEATURE_FAST_PATH
+    // Apply compositor clip
+    float aa_range = compute_aa_range(vNormalizedWorldPos);
+
+    float dist = sd_round_box(
+        vNormalizedWorldPos,
+        vRoundedClipParams,
+        vRoundedClipRadii
+    );
+
+    // Compute AA for the given dist and range.
+    float clip_alpha =  distance_aa(aa_range, dist);
+
+    // Apply clip alpha
+    color *= clip_alpha;
+#endif
+#endif
+
     write_output(color);
 }
 
@@ -225,6 +279,27 @@ void swgl_drawSpanRGBA8() {
     vec4 color = vColor;
     vec4 uvBounds = vUVBounds;
 #endif
+
+// TODO(gw): Do we need to support this on ESSL1?
+#ifndef WR_FEATURE_TEXTURE_EXTERNAL_ESSL1
+#ifndef WR_FEATURE_FAST_PATH
+    // Apply compositor clip
+    float aa_range = compute_aa_range(vNormalizedWorldPos);
+
+    float dist = sd_round_box(
+        vNormalizedWorldPos,
+        vRoundedClipParams,
+        vRoundedClipRadii
+    );
+
+    // Compute AA for the given dist and range.
+    float clip_alpha =  distance_aa(aa_range, dist);
+
+    // Apply clip alpha
+    color *= clip_alpha;
+#endif
+#endif
+
     if (color != vec4(1.0)) {
         swgl_commitTextureColorRGBA8(sColor0, vUv, uvBounds, color);
     } else {

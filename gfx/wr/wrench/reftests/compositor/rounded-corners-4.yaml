@@ -1,0 +1,27 @@
+# Ensure that shared (compositor applied) clip correctly handles transform from
+# (axis-aligned) local coordinate system to device coordinate system
+---
+root:
+  items:
+    - type: stacking-context
+      transform: scale(0.5)
+      items:
+        - type: clip
+          id: 2
+          complex:
+            - rect: [50, 50, 200, 200]
+              radius: 100
+
+        - type: clip
+          id: 3
+          bounds: [300, 50, 0, 0]
+
+        - type: rect
+          bounds: 50 50 200 200
+          color: red
+          clip-chain: [2]
+
+        - type: rect
+          bounds: 300 50 200 200
+          color: red
+          clip-chain: [2]

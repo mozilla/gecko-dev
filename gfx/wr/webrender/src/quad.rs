@@ -1119,8 +1119,8 @@ pub enum QuadTileKind {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[derive(Copy, Clone, Debug)]
 pub struct QuadTileInfo {
-    rect: LayoutRect,
-    kind: QuadTileKind,
+    pub rect: LayoutRect,
+    pub kind: QuadTileKind,
 }
 
 impl Default for QuadTileInfo {

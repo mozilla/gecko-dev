@@ -1,0 +1,17 @@
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      complex:
+        - rect: [100, 100, 200, 200]
+          radius: 64
+
+    - type: rect
+      bounds: [100, 100, 200, 200]
+      color: green
+
+    - type: rect
+      bounds: [100, 100, 200, 200]
+      color: red
+      clip-chain: [2]

@@ -34,7 +34,7 @@
 //! up the scissor, are accepting already transformed coordinates, which we can get by
 //! calling `DrawTarget::to_framebuffer_rect`
 
-use api::{ColorF, ColorU, MixBlendMode};
+use api::{ClipMode, ColorF, ColorU, MixBlendMode};
 use api::{DocumentId, Epoch, ExternalImageHandler, RenderReasons};
 #[cfg(feature = "replay")]
 use api::ExternalImageId;
@@ -58,6 +58,7 @@ use crate::composite::{CompositeState, CompositeTileSurface, CompositorInputLaye
 use crate::composite::{CompositorKind, Compositor, NativeTileId, CompositeFeatures, CompositeSurfaceFormat, ResolvedExternalSurfaceColorData};
 use crate::composite::{CompositorConfig, NativeSurfaceOperationDetails, NativeSurfaceId, NativeSurfaceOperation};
 use crate::composite::TileKind;
+use crate::segment::SegmentBuilder;
 use crate::{debug_colors, CompositorInputConfig, CompositorSurfaceUsage};
 use crate::device::{DepthFunction, Device, DrawTarget, ExternalTexture, GpuFrameId, UploadPBOPool};
 use crate::device::{ReadTarget, ShaderError, Texture, TextureFilter, TextureFlags, TextureSlot, Texel};
@@ -265,11 +266,21 @@ const GPU_TAG_COMPOSITE: GpuProfileTag = GpuProfileTag {
     color: debug_colors::TOMATO,
 };
 
+// Key used when adding compositing tiles to the occlusion tracker.
+// Since an entire tile may have a mask, but we may segment that in
+// to masked and non-masked regions, we need to track which of the
+// occlusion tracker outputs need a mask
+#[derive(Debug, Copy, Clone)]
+struct OcclusionItemKey {
+    tile_index: usize,
+    needs_mask: bool,
+}
+
 // Defines the content that we will draw to a given swapchain / layer, calculated
 // after occlusion culling.
 struct SwapChainLayer {
-    occlusion: occlusion::FrontToBackBuilder<usize>,
-    clear_tiles: Vec<occlusion::Item<usize>>,
+    occlusion: occlusion::FrontToBackBuilder<OcclusionItemKey>,
+    clear_tiles: Vec<occlusion::Item<OcclusionItemKey>>,
 }
 
 /// The clear color used for the texture cache when the debug display is enabled.
@@ -3068,21 +3079,6 @@ impl Renderer {
                 ResolvedExternalSurfaceColorData::Yuv{
                         ref planes, color_space, format, channel_bit_depth, .. } => {
 
-                    // Bind an appropriate YUV shader for the texture format kind
-                    self.shaders
-                        .borrow_mut()
-                        .get_composite_shader(
-                            CompositeSurfaceFormat::Yuv,
-                            surface.image_buffer_kind,
-                            CompositeFeatures::empty(),
-                        ).bind(
-                            &mut self.device,
-                            &projection,
-                            None,
-                            &mut self.renderer_errors,
-                            &mut self.profile,
-                        );
-
                     let textures = BatchTextures::composite_yuv(
                         planes[0].texture,
                         planes[1].texture,
@@ -3110,17 +3106,16 @@ impl Renderer {
                         channel_bit_depth,
                         uv_rects,
                         (false, false),
+                        None,
                     );
 
-                    ( textures, instance )
-                },
-                ResolvedExternalSurfaceColorData::Rgb{ ref plane, .. } => {
+                    // Bind an appropriate YUV shader for the texture format kind
                     self.shaders
                         .borrow_mut()
                         .get_composite_shader(
-                            CompositeSurfaceFormat::Rgba,
+                            CompositeSurfaceFormat::Yuv,
                             surface.image_buffer_kind,
-                            CompositeFeatures::empty(),
+                            instance.get_yuv_features(),
                         ).bind(
                             &mut self.device,
                             &projection,
@@ -3128,7 +3123,10 @@ impl Renderer {
                             &mut self.renderer_errors,
                             &mut self.profile,
                         );
-
+                
+                    ( textures, instance )
+                },
+                ResolvedExternalSurfaceColorData::Rgb{ ref plane, .. } => {
                     let textures = BatchTextures::composite_rgb(plane.texture);
                     let uv_rect = self.texture_resolver.get_uv_rect(&textures.input.colors[0], plane.uv_rect);
                     let instance = CompositeInstance::new_rgb(
@@ -3138,7 +3136,23 @@ impl Renderer {
                         uv_rect,
                         plane.texture.uses_normalized_uvs(),
                         (false, false),
+                        None,
                     );
+                    let features = instance.get_rgb_features();
+
+                    self.shaders
+                        .borrow_mut()
+                        .get_composite_shader(
+                            CompositeSurfaceFormat::Rgba,
+                            surface.image_buffer_kind,
+                            features,
+                        ).bind(
+                            &mut self.device,
+                            &projection,
+                            None,
+                            &mut self.renderer_errors,
+                            &mut self.profile,
+                        );
 
                     ( textures, instance )
                 },
@@ -3161,7 +3175,7 @@ impl Renderer {
     }
 
     /// Draw a list of tiles to the framebuffer
-    fn draw_tile_list<'a, I: Iterator<Item = &'a occlusion::Item<usize>>>(
+    fn draw_tile_list<'a, I: Iterator<Item = &'a occlusion::Item<OcclusionItemKey>>>(
         &mut self,
         tiles_iter: I,
         composite_state: &CompositeState,
@@ -3193,12 +3207,20 @@ impl Renderer {
             );
 
         for item in tiles_iter {
-            let tile = &composite_state.tiles[item.key];
+            let tile = &composite_state.tiles[item.key.tile_index];
 
             let clip_rect = item.rectangle;
             let tile_rect = composite_state.get_device_rect(&tile.local_rect, tile.transform_index);
             let transform = composite_state.get_device_transform(tile.transform_index);
             let flip = (transform.scale.x < 0.0, transform.scale.y < 0.0);
+
+            let clip = if item.key.needs_mask {
+                tile.clip_index.map(|index| {
+                    composite_state.get_compositor_clip(index)
+                })
+            } else {
+                None
+            };
 
             // Work out the draw params based on the tile surface
             let (instance, textures, shader_params) = match tile.surface {
@@ -3210,6 +3232,7 @@ impl Renderer {
                         clip_rect,
                         color.premultiplied(),
                         flip,
+                        clip,
                     );
                     let features = instance.get_rgb_features();
                     (
@@ -3224,6 +3247,7 @@ impl Renderer {
                         clip_rect,
                         PremultipliedColorF::WHITE,
                         flip,
+                        clip,
                     );
                     let features = instance.get_rgb_features();
                     (
@@ -3259,21 +3283,25 @@ impl Renderer {
                                 self.texture_resolver.get_uv_rect(&textures.input.colors[2], planes[2].uv_rect),
                             ];
 
+                            let instance = CompositeInstance::new_yuv(
+                                tile_rect,
+                                clip_rect,
+                                color_space,
+                                format,
+                                channel_bit_depth,
+                                uv_rects,
+                                flip,
+                                clip,
+                            );
+                            let features = instance.get_yuv_features();
+
                             (
-                                CompositeInstance::new_yuv(
-                                    tile_rect,
-                                    clip_rect,
-                                    color_space,
-                                    format,
-                                    channel_bit_depth,
-                                    uv_rects,
-                                    flip,
-                                ),
+                                instance,
                                 textures,
                                 (
                                     CompositeSurfaceFormat::Yuv,
                                     surface.image_buffer_kind,
-                                    CompositeFeatures::empty(),
+                                    features,
                                     None
                                 ),
                             )
@@ -3287,6 +3315,7 @@ impl Renderer {
                                 uv_rect,
                                 plane.texture.uses_normalized_uvs(),
                                 flip,
+                                clip,
                             );
                             let features = instance.get_rgb_features();
                             (
@@ -3310,6 +3339,7 @@ impl Renderer {
                         clip_rect,
                         PremultipliedColorF::BLACK,
                         flip,
+                        clip,
                     );
                     let features = instance.get_rgb_features();
                     (
@@ -3503,6 +3533,7 @@ impl Renderer {
         let mut input_layers: Vec<CompositorInputLayer> = Vec::new();
         let mut swapchain_layers = Vec::new();
         let cap = composite_state.tiles.len();
+        let mut segment_builder = SegmentBuilder::new();
 
         // NOTE: Tiles here are being iterated in front-to-back order by
         //       z-id, due to the sort in composite_state.end_frame()
@@ -3646,20 +3677,48 @@ impl Renderer {
 
             // Clear tiles overwrite whatever is under them, so they are treated as opaque.
             match tile.kind {
-                TileKind::Opaque => {
-                    // Store (index of tile, index of layer) so we can segment them below
-                    layer.occlusion.add(&rect, true, idx);
-                }
-                TileKind::Alpha => {
-                    // Store (index of tile, index of layer) so we can segment them below
-                    layer.occlusion.add(&rect, false, idx);
+                TileKind::Opaque | TileKind::Alpha => {
+                    let is_opaque = tile.kind != TileKind::Alpha;
+
+                    match tile.clip_index {
+                        Some(clip_index) => {
+                            let clip = composite_state.get_compositor_clip(clip_index);
+
+                                // TODO(gw): Make segment builder generic on unit to avoid casts below.
+                            segment_builder.initialize(
+                                rect.cast_unit(),
+                                None,
+                                rect.cast_unit(),
+                            );
+                            segment_builder.push_clip_rect(
+                                clip.rect.cast_unit(),
+                                Some(clip.radius),
+                                ClipMode::Clip,
+                            );
+                            segment_builder.build(|segment| {
+                                let key = OcclusionItemKey { tile_index: idx, needs_mask: segment.has_mask };
+
+                                layer. occlusion.add(
+                                    &segment.rect.cast_unit(),
+                                    is_opaque && !segment.has_mask,
+                                    key,
+                                );
+                            });
+                        }
+                        None => {
+                            layer.occlusion.add(&rect, is_opaque, OcclusionItemKey {
+                                tile_index: idx,
+                                needs_mask: false,
+                            });
+                        }
+                    }
                 }
                 TileKind::Clear => {
                     // Clear tiles are specific to how we render the window buttons on
                     // Windows 8. They clobber what's under them so they can be treated as opaque,
                     // but require a different blend state so they will be rendered after the opaque
                     // tiles and before transparent ones.
-                    layer.clear_tiles.push(occlusion::Item { rectangle: rect, key: idx });
+                    layer.clear_tiles.push(occlusion::Item { rectangle: rect, key: OcclusionItemKey { tile_index: idx, needs_mask: false } });
                 }
             }
         }

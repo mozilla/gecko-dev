@@ -4,7 +4,7 @@
 
 use api::{AlphaType, PremultipliedColorF, YuvFormat, YuvRangedColorSpace};
 use api::units::*;
-use crate::composite::CompositeFeatures;
+use crate::composite::{CompositeFeatures, CompositorClip};
 use crate::segment::EdgeAaSegmentMask;
 use crate::spatial_tree::{SpatialTree, SpatialNodeIndex};
 use crate::gpu_cache::{GpuCacheAddress, GpuDataRequest};
@@ -14,7 +14,7 @@ use crate::render_task::RenderTaskAddress;
 use crate::render_task_graph::RenderTaskId;
 use crate::renderer::{ShaderColorMode, GpuBufferAddress};
 use std::i32;
-use crate::util::{TransformedRectKind, MatrixHelpers};
+use crate::util::{MatrixHelpers, TransformedRectKind};
 use glyph_rasterizer::SubpixelDirection;
 use crate::util::{ScaleOffset, pack_as_float};
 
@@ -307,6 +307,10 @@ pub struct CompositeInstance {
 
     // Whether to flip the x and y axis respectively, where 0.0 is no-flip and 1.0 is flip.
     flip: (f32, f32),
+
+    // Optional rounded rect clip to apply during compositing
+    rounded_clip_rect: DeviceRect,
+    rounded_clip_radii: [f32; 4],
 }
 
 impl CompositeInstance {
@@ -315,8 +319,12 @@ impl CompositeInstance {
         clip_rect: DeviceRect,
         color: PremultipliedColorF,
         flip: (bool, bool),
+        clip: Option<&CompositorClip>,
     ) -> Self {
         let uv = TexelRect::new(0.0, 0.0, 1.0, 1.0);
+
+        let (rounded_clip_rect, rounded_clip_radii) = Self::vertex_clip_params(clip, rect);
+
         CompositeInstance {
             rect,
             clip_rect,
@@ -327,6 +335,8 @@ impl CompositeInstance {
             yuv_channel_bit_depth: 0.0,
             uv_rects: [uv, uv, uv],
             flip: (flip.0.into(), flip.1.into()),
+            rounded_clip_rect,
+            rounded_clip_radii,
         }
     }
 
@@ -337,7 +347,10 @@ impl CompositeInstance {
         uv_rect: TexelRect,
         normalized_uvs: bool,
         flip: (bool, bool),
+        clip: Option<&CompositorClip>,
     ) -> Self {
+        let (rounded_clip_rect, rounded_clip_radii) = Self::vertex_clip_params(clip, rect);
+
         let uv_type = match normalized_uvs {
             true => UV_TYPE_NORMALIZED,
             false => UV_TYPE_UNNORMALIZED,
@@ -352,6 +365,8 @@ impl CompositeInstance {
             yuv_channel_bit_depth: 0.0,
             uv_rects: [uv_rect, uv_rect, uv_rect],
             flip: (flip.0.into(), flip.1.into()),
+            rounded_clip_rect,
+            rounded_clip_radii,
         }
     }
 
@@ -363,7 +378,11 @@ impl CompositeInstance {
         yuv_channel_bit_depth: u32,
         uv_rects: [TexelRect; 3],
         flip: (bool, bool),
+        clip: Option<&CompositorClip>,
     ) -> Self {
+
+        let (rounded_clip_rect, rounded_clip_radii) = Self::vertex_clip_params(clip, rect);
+
         CompositeInstance {
             rect,
             clip_rect,
@@ -374,6 +393,8 @@ impl CompositeInstance {
             yuv_channel_bit_depth: pack_as_float(yuv_channel_bit_depth),
             uv_rects,
             flip: (flip.0.into(), flip.1.into()),
+            rounded_clip_rect,
+            rounded_clip_radii,
         }
     }
 
@@ -394,7 +415,47 @@ impl CompositeInstance {
             features |= CompositeFeatures::NO_COLOR_MODULATION
         }
 
+        // If all the clip radii are <= 0.0, then we don't need clip masking
+        if self.rounded_clip_radii.iter().all(|r| *r <= 0.0) {
+            features |= CompositeFeatures::NO_CLIP_MASK
+        }
+
         features
+    }
+
+    // Returns the CompositeFeatures that can be used to composite
+    // this YUV instance.
+    pub fn get_yuv_features(&self) -> CompositeFeatures {
+        let mut features = CompositeFeatures::empty();
+
+        // If all the clip radii are <= 0.0, then we don't need clip masking
+        if self.rounded_clip_radii.iter().all(|r| *r <= 0.0) {
+            features |= CompositeFeatures::NO_CLIP_MASK
+        }
+
+        features
+    }
+
+    fn vertex_clip_params(
+        clip: Option<&CompositorClip>,
+        default_rect: DeviceRect,
+    ) -> (DeviceRect, [f32; 4]) {
+        match clip {
+            Some(clip) => {
+                (
+                    clip.rect.cast_unit(),
+                    [
+                        clip.radius.top_left.width,
+                        clip.radius.bottom_left.width,
+                        clip.radius.top_right.width,
+                        clip.radius.bottom_right.width,
+                    ],
+                )
+            }
+            None => {
+                (default_rect, [0.0; 4])
+            }
+        }
     }
 }
 

@@ -209,6 +209,14 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
         }
         list.add("FAST_PATH");
         composite_features.push(list.finish());
+
+        // YUV shaders are not compatible with ESSL1
+        if *texture_type == "TEXTURE_EXTERNAL_ESSL1" {
+            continue;
+        }
+
+        list.add("YUV");
+        composite_features.push(list.finish());
     }
     shaders.insert("composite", composite_features);
 

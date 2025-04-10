@@ -1,0 +1,25 @@
+# Since there is no clip-chain shared between the two prims, the rounded
+# clip will be applied to the primitive, causing allocation of a mask surface.
+# The second prim is clipped out to make it match the reference.
+---
+root:
+  items:
+    - type: clip
+      id: 2
+      complex:
+        - rect: [50, 50, 200, 200]
+          radius: 32
+
+    - type: clip
+      id: 3
+      bounds: [300, 50, 0, 0]
+
+    - type: rect
+      bounds: 50 50 200 200
+      color: red
+      clip-chain: [2]
+
+    - type: rect
+      bounds: 300 50 200 200
+      color: red
+      clip-chain: [3]

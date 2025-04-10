@@ -1382,7 +1382,8 @@ pub struct CompositorShaders {
     // or color modulation.
     rgba_fast_path: Vec<Option<LazilyCompiledShader>>,
     // The same set of composite shaders but with WR_FEATURE_YUV added.
-    yuv: Vec<Option<LazilyCompiledShader>>,
+    yuv_clip: Vec<Option<LazilyCompiledShader>>,
+    yuv_fast: Vec<Option<LazilyCompiledShader>>,
 }
 
 impl CompositorShaders {
@@ -1395,12 +1396,14 @@ impl CompositorShaders {
         // so use a dummy one.
         let mut profile = TransactionProfile::new();
 
-        let mut yuv_features = Vec::new();
+        let mut yuv_clip_features = Vec::new();
+        let mut yuv_fast_features = Vec::new();
         let mut rgba_features = Vec::new();
         let mut fast_path_features = Vec::new();
         let mut rgba = Vec::new();
         let mut rgba_fast_path = Vec::new();
-        let mut yuv = Vec::new();
+        let mut yuv_clip = Vec::new();
+        let mut yuv_fast = Vec::new();
 
         let texture_external_version = if device.get_capabilities().supports_image_external_essl3 {
             TextureExternalVersion::ESSL3
@@ -1412,7 +1415,8 @@ impl CompositorShaders {
         let shader_list = get_shader_features(feature_flags);
 
         for _ in 0..IMAGE_BUFFER_KINDS.len() {
-            yuv.push(None);
+            yuv_clip.push(None);
+            yuv_fast.push(None);
             rgba.push(None);
             rgba_fast_path.push(None);
         }
@@ -1422,7 +1426,9 @@ impl CompositorShaders {
                 continue;
             }
 
-            yuv_features.push("YUV");
+            yuv_clip_features.push("YUV");
+            yuv_fast_features.push("YUV");
+            yuv_fast_features.push("FAST_PATH");
             fast_path_features.push("FAST_PATH");
     
             let index = Self::get_shader_index(*image_buffer_kind);
@@ -1432,7 +1438,8 @@ impl CompositorShaders {
                 texture_external_version,
             );
             if feature_string != "" {
-                yuv_features.push(feature_string);
+                yuv_clip_features.push(feature_string);
+                yuv_fast_features.push(feature_string);
                 rgba_features.push(feature_string);
                 fast_path_features.push(feature_string);
             }
@@ -1441,10 +1448,20 @@ impl CompositorShaders {
             if *image_buffer_kind != ImageBufferKind::TextureExternal ||
                 texture_external_version == TextureExternalVersion::ESSL3 {
 
-                yuv[index] = Some(LazilyCompiledShader::new(
+                yuv_clip[index] = Some(LazilyCompiledShader::new(
                     ShaderKind::Composite,
                     "composite",
-                    &yuv_features,
+                    &yuv_clip_features,
+                    device,
+                    precache_flags,
+                    &shader_list,
+                    &mut profile,
+                )?);
+
+                yuv_fast[index] = Some(LazilyCompiledShader::new(
+                    ShaderKind::Composite,
+                    "composite",
+                    &yuv_fast_features,
                     device,
                     precache_flags,
                     &shader_list,
@@ -1472,7 +1489,8 @@ impl CompositorShaders {
                 &mut profile,
             )?);
 
-            yuv_features.clear();
+            yuv_fast_features.clear();
+            yuv_clip_features.clear();
             rgba_features.clear();
             fast_path_features.clear();
         }
@@ -1480,7 +1498,8 @@ impl CompositorShaders {
         Ok(CompositorShaders {
             rgba,
             rgba_fast_path,
-            yuv,
+            yuv_clip,
+            yuv_fast,
         })
     }
 
@@ -1494,6 +1513,7 @@ impl CompositorShaders {
             CompositeSurfaceFormat::Rgba => {
                 if features.contains(CompositeFeatures::NO_UV_CLAMP)
                     && features.contains(CompositeFeatures::NO_COLOR_MODULATION)
+                    && features.contains(CompositeFeatures::NO_CLIP_MASK)
                 {
                     let shader_index = Self::get_shader_index(buffer_kind);
                     self.rgba_fast_path[shader_index]
@@ -1508,9 +1528,15 @@ impl CompositorShaders {
             }
             CompositeSurfaceFormat::Yuv => {
                 let shader_index = Self::get_shader_index(buffer_kind);
-                self.yuv[shader_index]
-                    .as_mut()
-                    .expect("bug: unsupported yuv shader requested")
+                if features.contains(CompositeFeatures::NO_CLIP_MASK) {
+                    self.yuv_fast[shader_index]
+                        .as_mut()
+                        .expect("bug: unsupported yuv shader requested")
+                } else {
+                    self.yuv_clip[shader_index]
+                        .as_mut()
+                        .expect("bug: unsupported yuv shader requested")
+                }
             }
         }
     }
@@ -1530,7 +1556,12 @@ impl CompositorShaders {
                 shader.deinit(device);
             }
         }
-        for shader in self.yuv.drain(..) {
+        for shader in self.yuv_clip.drain(..) {
+            if let Some(shader) = shader {
+                shader.deinit(device);
+            }
+        }
+        for shader in self.yuv_fast.drain(..) {
             if let Some(shader) = shader {
                 shader.deinit(device);
             }
