@@ -62,7 +62,7 @@ already_AddRefed<NavigateEvent> NavigateEvent::Constructor(
     EventTarget* aEventTarget, const nsAString& aType,
     const NavigateEventInit& aEventInitDict,
     nsIStructuredCloneContainer* aClassicHistoryAPIState,
-    AbortController* aAbortController) {
+    class AbortController* aAbortController) {
   RefPtr<NavigateEvent> event =
       Constructor(aEventTarget, aType, aEventInitDict);
 
@@ -157,6 +157,14 @@ nsIStructuredCloneContainer* NavigateEvent::ClassicHistoryAPIState() const {
 nsTArray<RefPtr<NavigationInterceptHandler>>&
 NavigateEvent::NavigationHandlerList() {
   return mNavigationHandlerList;
+}
+
+AbortController* NavigateEvent::AbortController() const {
+  return mAbortController;
+}
+
+bool NavigateEvent::HasBeenDispatched() const {
+  return mEvent->mFlags.mDispatchedAtLeastOnce;
 }
 
 // https://html.spec.whatwg.org/#navigateevent-finish
