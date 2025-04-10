@@ -1190,6 +1190,19 @@ newtabContextualContent:
       description: >-
         currently selected feed to display in the Contextual Content component
 
+newtabAdsReporting:
+  description: about:newtab reporting ads feature
+  owner: rhamoui@mozilla.com
+  hasExposure: false
+  variables:
+    reportAdsEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref:  browser.newtabpage.activity-stream.discoverystream.reportAds.enabled
+      description: >-
+        Enable reporting for ads
+
 newTabSectionsExperiment:
   description: about:newtab section UI update
   owner: nbarrett@mozilla.com, mcrawford@mozilla.com
@@ -1224,13 +1237,6 @@ newTabSectionsExperiment:
         pref:  browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.enabled
       description: >-
         Enable the inferred personalization for topics
-    reportAdsEnabled:
-      type: boolean
-      setPref:
-        branch: user
-        pref:  browser.newtabpage.activity-stream.discoverystream.reportAds.enabled
-      description: >-
-        Enable reporting for ads
     localeSectionstConfig:
       type: string
       setPref:
