@@ -1074,7 +1074,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvInit(
   MFCDM_REJECT_IF_FAILED(CreateContentDecryptionModule(
                              mFactory, MapKeySystem(mKeySystem), aParams, mCDM),
                          NS_ERROR_FAILURE);
-  MOZ_ASSERT(mCDM);
+  MFCDM_REJECT_IF(!mCDM, NS_ERROR_FAILURE);
   MFCDM_PARENT_LOG("Created a CDM!");
   PROFILER_MARKER_UNTYPED("MFCDMParent::RecvInit(created CDM)", MEDIA_PLAYBACK);
 
@@ -1123,6 +1123,11 @@ mozilla::ipc::IPCResult MFCDMParent::RecvCreateSessionAndGenerateRequest(
     PROFILER_MARKER_TEXT(
         "MFCDMParent::RecvCreateSessionAndGenerateRequest(creating)",
         MEDIA_PLAYBACK, {}, msg);
+  }
+  if (!mCDM) {
+    MFCDM_PARENT_LOG("Cannot create CDM session, already shutdown");
+    aResolver(NS_ERROR_DOM_MEDIA_CDM_NO_SESSION_ERR);
+    return IPC_OK();
   }
   UniquePtr<MFCDMSession> session{
       MFCDMSession::Create(aParams.sessionType(), mCDM.Get(), mManagerThread)};
@@ -1257,6 +1262,7 @@ mozilla::ipc::IPCResult MFCDMParent::RecvSetServerCertificate(
   MFCDM_PARENT_LOG("Set server certificate");
   PROFILER_MARKER_UNTYPED("MFCDMParent::RecvSetServerCertificate",
                           MEDIA_PLAYBACK);
+  MFCDM_REJECT_IF(!mCDM, NS_ERROR_DOM_MEDIA_CDM_ERR);
   MFCDM_REJECT_IF_FAILED(mCDM->SetServerCertificate(
                              static_cast<const BYTE*>(aCertificate.Elements()),
                              aCertificate.Length()),
