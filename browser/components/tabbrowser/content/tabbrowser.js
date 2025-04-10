@@ -3946,8 +3946,8 @@
           this.moveTabToGroup(tab, tabGroup);
         }
       } else if (
-        this.isTab(itemAfter) &&
-        itemAfter?.group?.tabs[0] == itemAfter
+        (this.isTab(itemAfter) && itemAfter.group?.tabs[0] == itemAfter) ||
+        this.isTabGroupLabel(itemAfter)
       ) {
         // If there is ambiguity around whether or not a tab should be inserted
         // into a group (i.e. because the new tab is being inserted on the

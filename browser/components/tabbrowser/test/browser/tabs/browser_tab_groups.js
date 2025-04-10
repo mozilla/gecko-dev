@@ -2195,3 +2195,33 @@ add_task(async function test_bug1957723_addTabsByIndex() {
 
   gBrowser.removeAllTabsBut(initialTab);
 });
+
+add_task(async function test_bug1959438_duplicateTabJustBeforeGroup() {
+  let initialTab = gBrowser.tabs[0];
+  let triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+  const tabs = createManyTabs(3);
+
+  gBrowser.addTabGroup(tabs);
+
+  Assert.equal(gBrowser.tabs.length, 4, "Tab strip starts with four tabs");
+
+  gBrowser.selectTabAtIndex(0);
+
+  // Simulate an addTab call similar to what would be called when a tab is
+  // duplicated. This produces a situation where addTab has no index, but knows
+  // it needs to create one next to the currently selected tab, and guesses for
+  // itself.
+  // If this happens next to a tab group, the resulting element index will
+  // point to the tab group label.
+  gBrowser.addTab("https://example.com", {
+    index: undefined,
+    relatedToCurrent: true,
+    ownerTab: gBrowser.selectedTab,
+    triggeringPrincipal,
+  });
+
+  // This will fail if the tab ends up merged with the tab label.
+  Assert.equal(gBrowser.tabs.length, 5, "A new tab was added to the tab strip");
+
+  gBrowser.removeAllTabsBut(initialTab);
+});
