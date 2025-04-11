@@ -151,13 +151,14 @@ security.ui.protectionspopup:
         type: boolean
     bugs:
       - https://bugzil.la/1920735
+      - https://bugzil.la/1958162
     data_reviews:
       - https://bugzil.la/1920735
     notification_emails:
       - wwen@mozilla.com
       - emz@mozilla.com
     expires:
-      140
+      146
 
   open_protectionspopup_cfr:
     type: event
@@ -389,13 +390,14 @@ security.ui.protectionspopup:
         type: string
     bugs:
       - https://bugzil.la/1920735
+      - https://bugzil.la/1958162
     data_reviews:
       - https://bugzil.la/1920735
     notification_emails:
       - wwen@mozilla.com
       - emz@mozilla.com
     expires:
-      140
+      146
 
   smartblockembeds_shown:
     type: counter
@@ -403,13 +405,14 @@ security.ui.protectionspopup:
       How many times the SmartBlock placeholders are shown on the page
     bugs:
       - https://bugzil.la/1920735
+      - https://bugzil.la/1958162
     data_reviews:
       - https://bugzil.la/1920735
     notification_emails:
       - wwen@mozilla.com
       - emz@mozilla.com
     expires:
-      140
+      146
 
 browser.engagement:
   bookmarks_toolbar_bookmark_added:
