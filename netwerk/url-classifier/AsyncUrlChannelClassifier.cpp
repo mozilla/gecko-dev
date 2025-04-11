@@ -291,7 +291,6 @@ class FeatureData {
 
   State mState{eUnclassified};
   nsCOMPtr<nsIUrlClassifierFeature> mFeature;
-  nsCOMPtr<nsIChannel> mChannel;
 
   nsTArray<RefPtr<TableData>> mBlocklistTables;
   nsTArray<RefPtr<TableData>> mEntitylistTables;
@@ -321,7 +320,6 @@ nsresult FeatureData::Initialize(FeatureTask* aTask, nsIChannel* aChannel,
   }
 
   mFeature = aFeature;
-  mChannel = aChannel;
 
   nsresult rv = InitializeList(
       aTask, aChannel, nsIUrlClassifierFeature::blocklist, mBlocklistTables);
