@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/ProcessIsolation.h"
 
+#include "mozilla/AppShutdown.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
@@ -1176,6 +1177,12 @@ bool ValidatePrincipalCouldPotentiallyBeLoadedBy(
   // If we have a system principal, only allow it if AllowSystem is passed.
   if (aPrincipal->IsSystemPrincipal()) {
     return aOptions.contains(ValidatePrincipalOptions::AllowSystem);
+  }
+
+  // Performing checks against the remote type requires the IOService and
+  // ThirdPartyService to be available, check we're not late in shutdown.
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMShutdownFinal)) {
+    return true;
   }
 
   // We can load a `resource://` URI in any process. This usually comes up due
