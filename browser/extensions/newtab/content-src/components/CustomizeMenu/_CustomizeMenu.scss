@@ -298,17 +298,27 @@
   }
 
   .external-link {
-    font-size: 14px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    border-radius: 4px;
     -moz-context-properties: fill;
-    fill: var(--newtab-text-primary-color);
     background: url('chrome://global/skin/icons/settings.svg') left no-repeat;
     background-size: 16px;
-    padding-inline-start: 21px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--link-color);
+    cursor: pointer;
+    fill: var(--newtab-text-primary-color);
+    font-size: var(--font-size-small);
     margin-bottom: 20px;
+    padding-inline-start: 21px;
     text-decoration: underline;
+
+    &:hover {
+      color: var(--link-color-hover);
+      text-decoration: none;
+    }
+
+    &:active {
+      color: var(--link-color-active);
+    }
 
     @media (forced-colors: active) {
       padding: 8px 10px;
@@ -318,10 +328,6 @@
     &:dir(rtl) {
       background-position-x: right;
     }
-  }
-
-  .external-link:hover {
-    text-decoration: none;
   }
 }
 
