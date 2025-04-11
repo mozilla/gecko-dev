@@ -332,6 +332,14 @@ class HomeDeepLinkIntentProcessorTest {
         verify { out wasNot Called }
     }
 
+    @Test
+    fun `process settings_private_browsing deep link`() {
+        assertTrue(processorHome.process(testIntent("settings_private_browsing"), navController, out))
+
+        verify { navController.navigate(NavGraphDirections.actionGlobalPrivateBrowsingFragment()) }
+        verify { out wasNot Called }
+    }
+
     private fun testIntent(uri: String) = Intent("", "$DEEP_LINK_SCHEME://$uri".toUri())
 
     private fun showAddSearchWidgetPrompt(activity: Activity) {

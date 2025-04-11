@@ -66,6 +66,7 @@ class HomeDeepLinkIntentProcessor(
             "settings_privacy" -> GlobalDirections.Settings
             "settings_wallpapers" -> GlobalDirections.WallpaperSettings
             "home_collections" -> GlobalDirections.Home
+            "settings_private_browsing" -> GlobalDirections.SettingsPrivateBrowsing
 
             else -> return
         }
