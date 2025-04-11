@@ -583,6 +583,8 @@ skip-if = [
 
 ["browser_ext_tabs_onUpdated_filter.js"]
 
+["browser_ext_tabs_onUpdated_groupId.js"]
+
 ["browser_ext_tabs_opener.js"]
 
 ["browser_ext_tabs_printPreview.js"]
