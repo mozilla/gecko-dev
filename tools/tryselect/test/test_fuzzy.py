@@ -160,7 +160,12 @@ def test_query_tags(run_mach, capfd, tag):
         index = output.find(delim)
         result = json.loads(output[index + len(delim) :])
         tasks = result["parameters"]["try_task_config"]["tasks"]
-        assert sorted(tasks) == sorted(expected)
+
+        # If enough test files change, the test-verify task may get chunked.
+        def canonical(tasks):
+            return sorted(t.rstrip("-*") for t in tasks)
+
+        assert canonical(tasks) == canonical(expected)
 
 
 @pytest.mark.skipif(os.name == "nt", reason="fzf not installed on host")
