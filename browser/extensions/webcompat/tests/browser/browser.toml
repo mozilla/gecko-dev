@@ -22,8 +22,9 @@ support-files = [
 https_first_disabled = true
 skip-if = ["verify"]
 
-["browser_smartblockembeds_mutation.js"]
-
 ["browser_smartblockembeds.js"]
+
+["browser_smartblockembeds_mutation.js"]
+skip-if = ["os == 'linux' && asan"] # Bug 1858919
 
 ["browser_ua_helpers.js"]
