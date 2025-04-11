@@ -61,6 +61,7 @@ void CommandEncoder::ConvertTextureCopyViewToFFI(
   } else {
     MOZ_CRASH("Unexpected origin type");
   }
+  aViewFFI->aspect = ConvertTextureAspect(aCopy.mAspect);
 }
 
 static ffi::WGPUTexelCopyTextureInfo ConvertTextureCopyView(

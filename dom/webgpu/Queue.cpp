@@ -152,11 +152,6 @@ void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
   ConvertExtent3DToFFI(aSize, &extent);
 
   dom::ProcessTypedArraysFixed(aData, [&](const Span<const uint8_t>& aData) {
-    if (aData.IsEmpty()) {
-      aRv.ThrowOperationError("Input size cannot be zero.");
-      return;
-    }
-
     const auto checkedSize =
         CheckedInt<size_t>(aData.Length()) - aDataLayout.mOffset;
     if (!checkedSize.isValid()) {
@@ -176,6 +171,8 @@ void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
 
       memcpy(mapping.DataAs<uint8_t>(), aData.Elements() + aDataLayout.mOffset,
              size);
+    } else {
+      handle = mozilla::ipc::MutableSharedMemoryHandle();
     }
 
     ipc::ByteBuf bb;

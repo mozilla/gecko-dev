@@ -41,6 +41,9 @@ ffi::WGPUCompareFunction ConvertCompareFunction(
 ffi::WGPUTextureFormat ConvertTextureFormat(
     const dom::GPUTextureFormat& aFormat);
 
+ffi::WGPUTextureAspect ConvertTextureAspect(
+    const dom::GPUTextureAspect& aAspect);
+
 ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat);
 
 ffi::WGPUMultisampleState ConvertMultisampleState(
