@@ -43,11 +43,6 @@ fxa-menu-sign-out =
 
 fxa-menu-sync-description = Access your web anywhere
 
-fxa-avatar-sign-in = Sign in
-fxa-avatar-sign-up = Sign up
-fxa-avatar-tooltip =
-    .tooltiptext = Sign in to your account
-
 ## Dialog strings that we show the user when signing into Mozilla account/setting up sync
 
 sync-setup-verify-continue = Continue

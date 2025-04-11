@@ -173,10 +173,6 @@ toolbar .toolbarbutton-1 {
       }
     }
   }
-
-  &.avatar-button-background  > .toolbarbutton-badge-stack {
-      border: 1px solid var(--border-color-card);
-    }
 }
 
 #TabsToolbar .toolbarbutton-1 {

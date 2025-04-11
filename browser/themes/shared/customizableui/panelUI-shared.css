@@ -929,10 +929,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
     border-radius: 50%;
   }
 
-  &[fxastatus="signedin"] #fxa-avatar-label {
-    display: none;
-  }
-
   &:not([fxastatus="signedin"]) #PanelUI-fxa-menu-connect-device-button {
     color: var(--text-color-disabled);
   }
@@ -940,10 +936,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 #fxa-avatar-image {
   list-style-image: var(--avatar-image-url);
-}
-
-#fxa-avatar-label {
-  margin-inline: 6px 0;
 }
 
 .PanelUI-fxa-service-description-label,
