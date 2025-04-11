@@ -10,7 +10,12 @@ add_setup(async function () {
 });
 
 add_task(async function test_submit_creditCard_new() {
-  async function test_per_command(command, idx, expectChanged = undefined) {
+  async function test_per_command(
+    command,
+    idx,
+    useCount = {},
+    expectChanged = undefined
+  ) {
     await SpecialPowers.pushPrefEnv({
       set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
     });
@@ -56,9 +61,13 @@ add_task(async function test_submit_creditCard_new() {
       }
     );
 
+    await assertHistogram(CC_NUM_USES_HISTOGRAM, useCount);
+
     await removeAllRecords();
     await SpecialPowers.popPrefEnv();
   }
+
+  await clearTelemetry(CC_NUM_USES_HISTOGRAM);
 
   let expectedFormInteractionEvents = [
     ccFormArgsv2("detected", buildccFormv2Extra({ cc_exp: "false" }, "true")),
@@ -68,7 +77,7 @@ add_task(async function test_submit_creditCard_new() {
     ),
   ];
 
-  await test_per_command(MAIN_BUTTON, undefined, 1);
+  await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
 
   await assertTelemetry(undefined, [
     ...expectedFormInteractionEvents,

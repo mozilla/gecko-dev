@@ -19,6 +19,8 @@ add_task(async function test_removingCreditCardsViaKeyboardDelete() {
     {
       set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
     },
+    true,
+    undefined,
     TEST_CREDIT_CARD_1
   );
 
@@ -49,9 +51,12 @@ add_task(async function test_removingCreditCardsViaKeyboardDelete() {
 });
 
 add_task(async function test_saveCreditCard() {
-  const cleanupFunc = await setupTask({
-    set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
-  });
+  const cleanupFunc = await setupTask(
+    {
+      set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
+    },
+    true
+  );
 
   await testDialog(EDIT_CREDIT_CARD_DIALOG_URL, win => {
     EventUtils.synthesizeKey("VK_TAB", {}, win);
@@ -87,6 +92,8 @@ add_task(async function test_editCreditCard() {
     {
       set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
     },
+    true,
+    undefined,
     TEST_CREDIT_CARD_1
   );
 
@@ -128,6 +135,8 @@ add_task(async function test_histogram() {
     {
       set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
     },
+    true,
+    CC_NUM_USES_HISTOGRAM,
     TEST_CREDIT_CARD_1,
     TEST_CREDIT_CARD_2,
     TEST_CREDIT_CARD_3,
@@ -137,15 +146,43 @@ add_task(async function test_histogram() {
   let creditCards = await getCreditCards();
   Assert.equal(creditCards.length, 4, "4 credit cards in storage");
 
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {
+    0: 4,
+  });
+
   await openTabAndUseCreditCard(0, TEST_CREDIT_CARD_1);
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {
+    0: 3,
+    1: 1,
+  });
 
   await openTabAndUseCreditCard(1, TEST_CREDIT_CARD_2);
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {
+    0: 2,
+    1: 2,
+  });
 
   await openTabAndUseCreditCard(0, TEST_CREDIT_CARD_2);
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {
+    0: 2,
+    1: 1,
+    2: 1,
+  });
 
   await openTabAndUseCreditCard(1, TEST_CREDIT_CARD_1);
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {
+    0: 2,
+    2: 2,
+  });
 
   await openTabAndUseCreditCard(2, TEST_CREDIT_CARD_5);
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {
+    0: 1,
+    1: 1,
+    2: 2,
+  });
 
   await cleanupFunc();
+
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {});
 });

@@ -16,6 +16,9 @@ const EVENT_CATEGORY = "address";
 const SCALAR_AUTOFILL_PROFILE_COUNT =
   "formautofill.addresses.autofill_profiles_count";
 
+const HISTOGRAM_PROFILE_NUM_USES = "AUTOFILL_PROFILE_NUM_USES";
+const HISTOGRAM_PROFILE_NUM_USES_KEY = "address";
+
 // Autofill UI
 const MANAGE_DIALOG_URL = MANAGE_ADDRESSES_DIALOG_URL;
 const EDIT_DIALOG_URL = EDIT_ADDRESS_DIALOG_URL;
@@ -309,7 +312,12 @@ add_task(async function test_popup_opened_form_without_autocomplete() {
 });
 
 add_task(async function test_submit_autofill_profile_new() {
-  async function test_per_command(command, idx, expectChanged = undefined) {
+  async function test_per_command(
+    command,
+    idx,
+    useCount = {},
+    expectChanged = undefined
+  ) {
     await BrowserTestUtils.withNewTab(
       { gBrowser, url: TEST_BASIC_ADDRESS_FORM_URL },
       async function (browser) {
@@ -338,11 +346,18 @@ add_task(async function test_submit_autofill_profile_new() {
       }
     );
 
+    assertKeyedHistogram(
+      HISTOGRAM_PROFILE_NUM_USES,
+      HISTOGRAM_PROFILE_NUM_USES_KEY,
+      useCount
+    );
+
     await removeAllRecords();
   }
 
   Services.telemetry.clearEvents();
   Services.telemetry.clearScalars();
+  Services.telemetry.getKeyedHistogramById(HISTOGRAM_PROFILE_NUM_USES).clear();
 
   const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
   const expected_parent = [
@@ -367,7 +382,7 @@ add_task(async function test_submit_autofill_profile_new() {
     ),
   ];
 
-  await test_per_command(MAIN_BUTTON, undefined, 1);
+  await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
   await assertTelemetry(undefined, [
     ...expected_parent,
     [EVENT_CATEGORY, "show", "capture_doorhanger"],
@@ -379,7 +394,12 @@ add_task(async function test_submit_autofill_profile_new() {
 });
 
 add_task(async function test_submit_autofill_profile_update() {
-  async function test_per_command(command, idx, expectChanged = undefined) {
+  async function test_per_command(
+    command,
+    idx,
+    useCount = {},
+    expectChanged = undefined
+  ) {
     await setStorage(TEST_PROFILE_2);
     let profiles = await getProfiles();
     Assert.equal(profiles.length, 1, "1 entry in storage");
@@ -420,12 +440,19 @@ add_task(async function test_submit_autofill_profile_update() {
       }
     );
 
+    assertKeyedHistogram(
+      HISTOGRAM_PROFILE_NUM_USES,
+      HISTOGRAM_PROFILE_NUM_USES_KEY,
+      useCount
+    );
+
     SpecialPowers.clearUserPref(ENABLED_AUTOFILL_ADDRESSES_PREF);
 
     await removeAllRecords();
   }
   Services.telemetry.clearEvents();
   Services.telemetry.clearScalars();
+  Services.telemetry.getKeyedHistogramById(HISTOGRAM_PROFILE_NUM_USES).clear();
 
   const fields = TEST_BASIC_ADDRESS_FORM_FIELDS;
   const expected_parent = [
@@ -456,14 +483,14 @@ add_task(async function test_submit_autofill_profile_update() {
     ),
   ];
 
-  await test_per_command(MAIN_BUTTON, undefined, 1);
+  await test_per_command(MAIN_BUTTON, undefined, { 1: 1 }, 1);
   await assertTelemetry(undefined, [
     ...expected_parent,
     [EVENT_CATEGORY, "show", "update_doorhanger"],
     [EVENT_CATEGORY, "update", "update_doorhanger"],
   ]);
 
-  await test_per_command(SECONDARY_BUTTON);
+  await test_per_command(SECONDARY_BUTTON, undefined, { 0: 1 });
   await assertTelemetry(undefined, [
     ...expected_parent,
     [EVENT_CATEGORY, "show", "update_doorhanger"],
@@ -560,21 +587,60 @@ add_task(async function test_editAutofillProfile() {
 });
 
 add_task(async function test_histogram() {
+  Services.telemetry.getKeyedHistogramById(HISTOGRAM_PROFILE_NUM_USES).clear();
+
   await setStorage(TEST_PROFILE_1, TEST_PROFILE_2, TEST_PROFILE_3);
   let profiles = await getProfiles();
   Assert.equal(profiles.length, 3, "3 entry in storage");
 
+  assertKeyedHistogram(
+    HISTOGRAM_PROFILE_NUM_USES,
+    HISTOGRAM_PROFILE_NUM_USES_KEY,
+    { 0: 3 }
+  );
+
   await openTabAndUseAutofillProfile(0, TEST_PROFILE_1);
+  assertKeyedHistogram(
+    HISTOGRAM_PROFILE_NUM_USES,
+    HISTOGRAM_PROFILE_NUM_USES_KEY,
+    { 0: 2, 1: 1 }
+  );
 
   await openTabAndUseAutofillProfile(1, TEST_PROFILE_2);
+  assertKeyedHistogram(
+    HISTOGRAM_PROFILE_NUM_USES,
+    HISTOGRAM_PROFILE_NUM_USES_KEY,
+    { 0: 1, 1: 2 }
+  );
 
   await openTabAndUseAutofillProfile(0, TEST_PROFILE_2);
+  assertKeyedHistogram(
+    HISTOGRAM_PROFILE_NUM_USES,
+    HISTOGRAM_PROFILE_NUM_USES_KEY,
+    { 0: 1, 1: 1, 2: 1 }
+  );
 
   await openTabAndUseAutofillProfile(1, TEST_PROFILE_1);
+  assertKeyedHistogram(
+    HISTOGRAM_PROFILE_NUM_USES,
+    HISTOGRAM_PROFILE_NUM_USES_KEY,
+    { 0: 1, 2: 2 }
+  );
 
   await openTabAndUseAutofillProfile(2, TEST_PROFILE_3);
+  assertKeyedHistogram(
+    HISTOGRAM_PROFILE_NUM_USES,
+    HISTOGRAM_PROFILE_NUM_USES_KEY,
+    { 1: 1, 2: 2 }
+  );
 
   await removeAllRecords();
+
+  assertKeyedHistogram(
+    HISTOGRAM_PROFILE_NUM_USES,
+    HISTOGRAM_PROFILE_NUM_USES_KEY,
+    undefined
+  );
 
   Services.telemetry.clearEvents();
   Services.telemetry.clearScalars();

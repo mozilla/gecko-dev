@@ -19,6 +19,7 @@ add_task(async function test_submit_creditCard_autofill() {
       set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
     },
     true,
+    CC_NUM_USES_HISTOGRAM,
     TEST_CREDIT_CARD_1
   );
 
@@ -26,6 +27,10 @@ add_task(async function test_submit_creditCard_autofill() {
   Assert.equal(creditCards.length, 1, "1 credit card in storage");
 
   await openTabAndUseCreditCard(0, TEST_CREDIT_CARD_1);
+
+  await assertHistogram(CC_NUM_USES_HISTOGRAM, {
+    1: 1,
+  });
 
   SpecialPowers.clearUserPref(ENABLED_AUTOFILL_CREDITCARDS_PREF);
 
@@ -66,6 +71,7 @@ add_task(async function test_clear_creditCard_autofill() {
       set: [[ENABLED_AUTOFILL_CREDITCARDS_PREF, true]],
     },
     true,
+    CC_NUM_USES_HISTOGRAM,
     TEST_CREDIT_CARD_1
   );
 
