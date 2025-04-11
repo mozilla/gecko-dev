@@ -571,7 +571,7 @@ fn copy_from_staging_to_cache_using_draw_calls(
 
             renderer.shaders
                 .borrow_mut()
-                .ps_copy
+                .ps_copy()
                 .bind(
                     &mut renderer.device,
                     &Transform3D::identity(),

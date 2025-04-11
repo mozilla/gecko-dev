@@ -588,17 +588,17 @@ pub struct Shaders {
     // draw intermediate results to cache targets. The results
     // of these shaders are then used by the primitive shaders.
     cs_blur_a8: LazilyCompiledShader,
-    pub cs_blur_rgba8: LazilyCompiledShader,
-    pub cs_border_segment: LazilyCompiledShader,
-    pub cs_border_solid: LazilyCompiledShader,
+    cs_blur_rgba8: LazilyCompiledShader,
+    cs_border_segment: LazilyCompiledShader,
+    cs_border_solid: LazilyCompiledShader,
     cs_scale: Vec<Option<LazilyCompiledShader>>,
-    pub cs_line_decoration: LazilyCompiledShader,
-    pub cs_fast_linear_gradient: LazilyCompiledShader,
-    pub cs_linear_gradient: LazilyCompiledShader,
-    pub cs_radial_gradient: LazilyCompiledShader,
-    pub cs_conic_gradient: LazilyCompiledShader,
-    pub cs_svg_filter: LazilyCompiledShader,
-    pub cs_svg_filter_node: LazilyCompiledShader,
+    cs_line_decoration: LazilyCompiledShader,
+    cs_fast_linear_gradient: LazilyCompiledShader,
+    cs_linear_gradient: LazilyCompiledShader,
+    cs_radial_gradient: LazilyCompiledShader,
+    cs_conic_gradient: LazilyCompiledShader,
+    cs_svg_filter: LazilyCompiledShader,
+    cs_svg_filter_node: LazilyCompiledShader,
 
     // Brush shaders
     brush_solid: BrushShader,
@@ -614,9 +614,9 @@ pub struct Shaders {
     /// These are "cache clip shaders". These shaders are used to
     /// draw clip instances into the cached clip mask. The results
     /// of these shaders are also used by the primitive shaders.
-    pub cs_clip_rectangle_slow: LazilyCompiledShader,
-    pub cs_clip_rectangle_fast: LazilyCompiledShader,
-    pub cs_clip_box_shadow: LazilyCompiledShader,
+    cs_clip_rectangle_slow: LazilyCompiledShader,
+    cs_clip_rectangle_fast: LazilyCompiledShader,
+    cs_clip_box_shadow: LazilyCompiledShader,
 
     // The are "primitive shaders". These shaders draw and blend
     // final results on screen. They are aware of tile boundaries.
@@ -629,13 +629,13 @@ pub struct Shaders {
     ps_text_run_dual_source: Option<TextShader>,
 
     ps_split_composite: LazilyCompiledShader,
-    pub ps_quad_textured: LazilyCompiledShader,
+    ps_quad_textured: LazilyCompiledShader,
     ps_quad_radial_gradient: LazilyCompiledShader,
     ps_quad_conic_gradient: LazilyCompiledShader,
-    pub ps_mask: LazilyCompiledShader,
-    pub ps_mask_fast: LazilyCompiledShader,
-    pub ps_clear: LazilyCompiledShader,
-    pub ps_copy: LazilyCompiledShader,
+    ps_mask: LazilyCompiledShader,
+    ps_mask_fast: LazilyCompiledShader,
+    ps_clear: LazilyCompiledShader,
+    ps_copy: LazilyCompiledShader,
 
     composite: CompositorShaders,
 }
@@ -1261,6 +1261,25 @@ impl Shaders {
             }
         }
     }
+
+    pub fn cs_blur_rgba8(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_blur_rgba8 }
+    pub fn cs_border_segment(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_border_segment }
+    pub fn cs_border_solid(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_border_solid }
+    pub fn cs_line_decoration(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_line_decoration }
+    pub fn cs_fast_linear_gradient(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_fast_linear_gradient }
+    pub fn cs_linear_gradient(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_linear_gradient }
+    pub fn cs_radial_gradient(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_radial_gradient }
+    pub fn cs_conic_gradient(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_conic_gradient }
+    pub fn cs_svg_filter(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_svg_filter }
+    pub fn cs_svg_filter_node(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_svg_filter_node }
+    pub fn cs_clip_rectangle_slow(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_clip_rectangle_slow }
+    pub fn cs_clip_rectangle_fast(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_clip_rectangle_fast }
+    pub fn cs_clip_box_shadow(&mut self) -> &mut LazilyCompiledShader { &mut self.cs_clip_box_shadow }
+    pub fn ps_quad_textured(&mut self) -> &mut LazilyCompiledShader { &mut self.ps_quad_textured }
+    pub fn ps_mask(&mut self) -> &mut LazilyCompiledShader { &mut self.ps_mask }
+    pub fn ps_mask_fast(&mut self) -> &mut LazilyCompiledShader { &mut self.ps_mask_fast }
+    pub fn ps_clear(&mut self) -> &mut LazilyCompiledShader { &mut self.ps_clear }
+    pub fn ps_copy(&mut self) -> &mut LazilyCompiledShader { &mut self.ps_copy }
 
     pub fn deinit(mut self, device: &mut Device) {
         for shader in self.cs_scale {

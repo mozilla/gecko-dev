@@ -1874,7 +1874,7 @@ impl Renderer {
 
                 self.shaders
                     .borrow_mut()
-                    .ps_copy
+                    .ps_copy()
                     .bind(
                         &mut self.device,
                         &Transform3D::identity(),
@@ -2340,7 +2340,7 @@ impl Renderer {
             self.set_blend_mode_multiply(FramebufferKind::Other);
 
             if !masks.mask_instances_fast.is_empty() {
-                self.shaders.borrow_mut().ps_mask_fast.bind(
+                self.shaders.borrow_mut().ps_mask_fast().bind(
                     &mut self.device,
                     projection,
                     None,
@@ -2357,7 +2357,7 @@ impl Renderer {
             }
 
             if !masks.mask_instances_fast_with_scissor.is_empty() {
-                self.shaders.borrow_mut().ps_mask_fast.bind(
+                self.shaders.borrow_mut().ps_mask_fast().bind(
                     &mut self.device,
                     projection,
                     None,
@@ -2382,7 +2382,7 @@ impl Renderer {
             }
 
             if !masks.image_mask_instances.is_empty() {
-                self.shaders.borrow_mut().ps_quad_textured.bind(
+                self.shaders.borrow_mut().ps_quad_textured().bind(
                     &mut self.device,
                     projection,
                     None,
@@ -2403,7 +2403,7 @@ impl Renderer {
             if !masks.image_mask_instances_with_scissor.is_empty() {
                 self.device.enable_scissor();
 
-                self.shaders.borrow_mut().ps_quad_textured.bind(
+                self.shaders.borrow_mut().ps_quad_textured().bind(
                     &mut self.device,
                     projection,
                     None,
@@ -2426,7 +2426,7 @@ impl Renderer {
             }
 
             if !masks.mask_instances_slow.is_empty() {
-                self.shaders.borrow_mut().ps_mask.bind(
+                self.shaders.borrow_mut().ps_mask().bind(
                     &mut self.device,
                     projection,
                     None,
@@ -2443,7 +2443,7 @@ impl Renderer {
             }
 
             if !masks.mask_instances_slow_with_scissor.is_empty() {
-                self.shaders.borrow_mut().ps_mask.bind(
+                self.shaders.borrow_mut().ps_mask().bind(
                     &mut self.device,
                     projection,
                     None,
@@ -2586,7 +2586,7 @@ impl Renderer {
 
         let _timer = self.gpu_profiler.start_timer(GPU_TAG_SVG_FILTER);
 
-        self.shaders.borrow_mut().cs_svg_filter.bind(
+        self.shaders.borrow_mut().cs_svg_filter().bind(
             &mut self.device,
             &projection,
             None,
@@ -2615,7 +2615,7 @@ impl Renderer {
 
         let _timer = self.gpu_profiler.start_timer(GPU_TAG_SVG_FILTER_NODES);
 
-        self.shaders.borrow_mut().cs_svg_filter_node.bind(
+        self.shaders.borrow_mut().cs_svg_filter_node().bind(
             &mut self.device,
             &projection,
             None,
@@ -2772,7 +2772,7 @@ impl Renderer {
                         ],
                         color: clear_color.unwrap_or([0.0; 4]),
                     };
-                    self.shaders.borrow_mut().ps_clear.bind(
+                    self.shaders.borrow_mut().ps_clear().bind(
                         &mut self.device,
                         &projection,
                         None,
@@ -3979,7 +3979,7 @@ impl Renderer {
         }
 
         if !clear_instances.is_empty() {
-            self.shaders.borrow_mut().ps_clear.bind(
+            self.shaders.borrow_mut().ps_clear().bind(
                 &mut self.device,
                 &projection,
                 None,
@@ -4111,7 +4111,7 @@ impl Renderer {
             self.set_blend_mode_premultiplied_alpha(FramebufferKind::Other);
 
             if !target.border_segments_solid.is_empty() {
-                self.shaders.borrow_mut().cs_border_solid.bind(
+                self.shaders.borrow_mut().cs_border_solid().bind(
                     &mut self.device,
                     &projection,
                     None,
@@ -4128,7 +4128,7 @@ impl Renderer {
             }
 
             if !target.border_segments_complex.is_empty() {
-                self.shaders.borrow_mut().cs_border_segment.bind(
+                self.shaders.borrow_mut().cs_border_segment().bind(
                     &mut self.device,
                     &projection,
                     None,
@@ -4154,7 +4154,7 @@ impl Renderer {
             self.set_blend(true, FramebufferKind::Other);
             self.set_blend_mode_premultiplied_alpha(FramebufferKind::Other);
 
-            self.shaders.borrow_mut().cs_line_decoration.bind(
+            self.shaders.borrow_mut().cs_line_decoration().bind(
                 &mut self.device,
                 &projection,
                 None,
@@ -4178,7 +4178,7 @@ impl Renderer {
 
             self.set_blend(false, FramebufferKind::Other);
 
-            self.shaders.borrow_mut().cs_fast_linear_gradient.bind(
+            self.shaders.borrow_mut().cs_fast_linear_gradient().bind(
                 &mut self.device,
                 &projection,
                 None,
@@ -4200,7 +4200,7 @@ impl Renderer {
 
             self.set_blend(false, FramebufferKind::Other);
 
-            self.shaders.borrow_mut().cs_linear_gradient.bind(
+            self.shaders.borrow_mut().cs_linear_gradient().bind(
                 &mut self.device,
                 &projection,
                 None,
@@ -4226,7 +4226,7 @@ impl Renderer {
 
             self.set_blend(false, FramebufferKind::Other);
 
-            self.shaders.borrow_mut().cs_radial_gradient.bind(
+            self.shaders.borrow_mut().cs_radial_gradient().bind(
                 &mut self.device,
                 &projection,
                 None,
@@ -4252,7 +4252,7 @@ impl Renderer {
 
             self.set_blend(false, FramebufferKind::Other);
 
-            self.shaders.borrow_mut().cs_conic_gradient.bind(
+            self.shaders.borrow_mut().cs_conic_gradient().bind(
                 &mut self.device,
                 &projection,
                 None,
@@ -4282,7 +4282,7 @@ impl Renderer {
             let _timer = self.gpu_profiler.start_timer(GPU_TAG_BLUR);
 
             self.set_blend(false, framebuffer_kind);
-            self.shaders.borrow_mut().cs_blur_rgba8
+            self.shaders.borrow_mut().cs_blur_rgba8()
                 .bind(&mut self.device, &projection, None, &mut self.renderer_errors, &mut self.profile);
 
             if !target.vertical_blurs.is_empty() {
@@ -4422,7 +4422,7 @@ impl Renderer {
         // draw rounded cornered rectangles
         if !list.slow_rectangles.is_empty() {
             let _gm2 = self.gpu_profiler.start_marker("slow clip rectangles");
-            self.shaders.borrow_mut().cs_clip_rectangle_slow.bind(
+            self.shaders.borrow_mut().cs_clip_rectangle_slow().bind(
                 &mut self.device,
                 projection,
                 None,
@@ -4438,7 +4438,7 @@ impl Renderer {
         }
         if !list.fast_rectangles.is_empty() {
             let _gm2 = self.gpu_profiler.start_marker("fast clip rectangles");
-            self.shaders.borrow_mut().cs_clip_rectangle_fast.bind(
+            self.shaders.borrow_mut().cs_clip_rectangle_fast().bind(
                 &mut self.device,
                 projection,
                 None,
@@ -4457,7 +4457,7 @@ impl Renderer {
         for (mask_texture_id, items) in list.box_shadows.iter() {
             let _gm2 = self.gpu_profiler.start_marker("box-shadows");
             let textures = BatchTextures::composite_rgb(*mask_texture_id);
-            self.shaders.borrow_mut().cs_clip_box_shadow
+            self.shaders.borrow_mut().cs_clip_box_shadow()
                 .bind(&mut self.device, projection, None, &mut self.renderer_errors, &mut self.profile);
             self.draw_instanced_batch(
                 items,
