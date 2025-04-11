@@ -6743,6 +6743,19 @@ void MacroAssembler::branchWasmRefIsSubtypeAny(
   Label* failLabel = onSuccess ? &fallthrough : label;
   Label* nullLabel = destType.isNullable() ? successLabel : failLabel;
 
+  auto finishSuccess = [&]() {
+    if (successLabel != &fallthrough) {
+      jump(successLabel);
+    }
+    bind(&fallthrough);
+  };
+  auto finishFail = [&]() {
+    if (failLabel != &fallthrough) {
+      jump(failLabel);
+    }
+    bind(&fallthrough);
+  };
+
   // Check for null.
   if (sourceType.isNullable()) {
     branchWasmAnyRefIsNull(true, ref, nullLabel);
@@ -6751,15 +6764,13 @@ void MacroAssembler::branchWasmRefIsSubtypeAny(
   // The only value that can inhabit 'none' is null. So, early out if we got
   // not-null.
   if (destType.isNone()) {
-    jump(failLabel);
-    bind(&fallthrough);
+    finishFail();
     return;
   }
 
   if (destType.isAny()) {
     // No further checks for 'any'
-    jump(successLabel);
-    bind(&fallthrough);
+    finishSuccess();
     return;
   }
 
@@ -6773,8 +6784,7 @@ void MacroAssembler::branchWasmRefIsSubtypeAny(
 
     if (destType.isI31()) {
       // No further checks for 'i31'
-      jump(failLabel);
-      bind(&fallthrough);
+      finishFail();
       return;
     }
   }
@@ -6789,8 +6799,7 @@ void MacroAssembler::branchWasmRefIsSubtypeAny(
 
   if (destType.isEq()) {
     // No further checks for 'eq'
-    jump(successLabel);
-    bind(&fallthrough);
+    finishSuccess();
     return;
   }
 
@@ -6805,23 +6814,22 @@ void MacroAssembler::branchWasmRefIsSubtypeAny(
   loadPtr(Address(ref, int32_t(WasmGcObject::offsetOfSuperTypeVector())),
           scratch1);
   if (destType.isTypeRef()) {
-    // concrete type, do superTypeVector check
+    // Concrete type, do superTypeVector check.
     branchWasmSTVIsSubtype(scratch1, superSTV, scratch2,
-                           destType.typeDef()->subTypingDepth(), successLabel,
-                           true);
-  } else {
-    // abstract type, do kind check
-    loadPtr(Address(scratch1,
-                    int32_t(wasm::SuperTypeVector::offsetOfSelfTypeDef())),
-            scratch1);
-    load8ZeroExtend(Address(scratch1, int32_t(wasm::TypeDef::offsetOfKind())),
-                    scratch1);
-    branch32(Assembler::Equal, scratch1, Imm32(int32_t(destType.typeDefKind())),
-             successLabel);
+                           destType.typeDef()->subTypingDepth(), label,
+                           onSuccess);
+    bind(&fallthrough);
+    return;
   }
 
-  // The cast failed.
-  jump(failLabel);
+  // Abstract type, do kind check
+  loadPtr(
+      Address(scratch1, int32_t(wasm::SuperTypeVector::offsetOfSelfTypeDef())),
+      scratch1);
+  load8ZeroExtend(Address(scratch1, int32_t(wasm::TypeDef::offsetOfKind())),
+                  scratch1);
+  branch32(onSuccess ? Assembler::Equal : Assembler::NotEqual, scratch1,
+           Imm32(int32_t(destType.typeDefKind())), label);
   bind(&fallthrough);
 }
 
@@ -6845,6 +6853,19 @@ void MacroAssembler::branchWasmRefIsSubtypeFunc(
   Label* failLabel = onSuccess ? &fallthrough : label;
   Label* nullLabel = destType.isNullable() ? successLabel : failLabel;
 
+  auto finishSuccess = [&]() {
+    if (successLabel != &fallthrough) {
+      jump(successLabel);
+    }
+    bind(&fallthrough);
+  };
+  auto finishFail = [&]() {
+    if (failLabel != &fallthrough) {
+      jump(failLabel);
+    }
+    bind(&fallthrough);
+  };
+
   // Check for null.
   if (sourceType.isNullable()) {
     branchTestPtr(Assembler::Zero, ref, ref, nullLabel);
@@ -6853,15 +6874,13 @@ void MacroAssembler::branchWasmRefIsSubtypeFunc(
   // The only value that can inhabit 'nofunc' is null. So, early out if we got
   // not-null.
   if (destType.isNoFunc()) {
-    jump(failLabel);
-    bind(&fallthrough);
+    finishFail();
     return;
   }
 
   if (destType.isFunc()) {
     // No further checks for 'func' (any func)
-    jump(successLabel);
-    bind(&fallthrough);
+    finishSuccess();
     return;
   }
 
@@ -6870,11 +6889,8 @@ void MacroAssembler::branchWasmRefIsSubtypeFunc(
   loadPrivate(Address(ref, int32_t(FunctionExtended::offsetOfWasmSTV())),
               scratch1);
   branchWasmSTVIsSubtype(scratch1, superSTV, scratch2,
-                         destType.typeDef()->subTypingDepth(), successLabel,
-                         true);
-
-  // If we didn't branch away, the cast failed.
-  jump(failLabel);
+                         destType.typeDef()->subTypingDepth(), label,
+                         onSuccess);
   bind(&fallthrough);
 }
 
@@ -6893,6 +6909,19 @@ void MacroAssembler::branchWasmRefIsSubtypeExtern(Register ref,
   Label* failLabel = onSuccess ? &fallthrough : label;
   Label* nullLabel = destType.isNullable() ? successLabel : failLabel;
 
+  auto finishSuccess = [&]() {
+    if (successLabel != &fallthrough) {
+      jump(successLabel);
+    }
+    bind(&fallthrough);
+  };
+  auto finishFail = [&]() {
+    if (failLabel != &fallthrough) {
+      jump(failLabel);
+    }
+    bind(&fallthrough);
+  };
+
   // Check for null.
   if (sourceType.isNullable()) {
     branchTestPtr(Assembler::Zero, ref, ref, nullLabel);
@@ -6901,14 +6930,12 @@ void MacroAssembler::branchWasmRefIsSubtypeExtern(Register ref,
   // The only value that can inhabit 'noextern' is null. So, early out if we got
   // not-null.
   if (destType.isNoExtern()) {
-    jump(failLabel);
-    bind(&fallthrough);
+    finishFail();
     return;
   }
 
   // There are no other possible types except externref, so succeed!
-  jump(successLabel);
-  bind(&fallthrough);
+  finishSuccess();
 }
 
 void MacroAssembler::branchWasmRefIsSubtypeExn(Register ref,
@@ -6925,6 +6952,19 @@ void MacroAssembler::branchWasmRefIsSubtypeExn(Register ref,
   Label* failLabel = onSuccess ? &fallthrough : label;
   Label* nullLabel = destType.isNullable() ? successLabel : failLabel;
 
+  auto finishSuccess = [&]() {
+    if (successLabel != &fallthrough) {
+      jump(successLabel);
+    }
+    bind(&fallthrough);
+  };
+  auto finishFail = [&]() {
+    if (failLabel != &fallthrough) {
+      jump(failLabel);
+    }
+    bind(&fallthrough);
+  };
+
   // Check for null.
   if (sourceType.isNullable()) {
     branchTestPtr(Assembler::Zero, ref, ref, nullLabel);
@@ -6933,14 +6973,12 @@ void MacroAssembler::branchWasmRefIsSubtypeExn(Register ref,
   // The only value that can inhabit 'noexn' is null. So, early out if we got
   // not-null.
   if (destType.isNoExn()) {
-    jump(failLabel);
-    bind(&fallthrough);
+    finishFail();
     return;
   }
 
   // There are no other possible types except exnref, so succeed!
-  jump(successLabel);
-  bind(&fallthrough);
+  finishSuccess();
 }
 
 void MacroAssembler::branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
@@ -6950,7 +6988,7 @@ void MacroAssembler::branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
   MOZ_ASSERT_IF(superDepth >= wasm::MinSuperTypeVectorLength,
                 scratch != Register::Invalid());
   Label fallthrough;
-  Label* failed = onSuccess ? &fallthrough : label;
+  Label* failLabel = onSuccess ? &fallthrough : label;
 
   // At this point, we could generate a fast success check which jumps to
   // `success` if `subSTV == superSTV`.  However,
@@ -6961,7 +6999,7 @@ void MacroAssembler::branchWasmSTVIsSubtype(Register subSTV, Register superSTV,
   // Emit a bounds check if the super type depth may be out-of-bounds.
   if (superDepth >= wasm::MinSuperTypeVectorLength) {
     load32(Address(subSTV, wasm::SuperTypeVector::offsetOfLength()), scratch);
-    branch32(Assembler::BelowOrEqual, scratch, Imm32(superDepth), failed);
+    branch32(Assembler::BelowOrEqual, scratch, Imm32(superDepth), failLabel);
   }
 
   // Load the `superTypeDepth` entry from subSTV. This will be `superSTV` if
