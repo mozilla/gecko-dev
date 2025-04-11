@@ -5,6 +5,8 @@
 :host(.infobar) {
   --info-bar-background-color: light-dark(var(--color-white), rgb(66, 65, 77));
   --info-bar-text-color: light-dark(var(--color-gray-100), var(--color-gray-05));
+  --message-bar-border-color: color-mix(in srgb, currentColor 9%, transparent);
+
   position: relative;
 
   &::before {
