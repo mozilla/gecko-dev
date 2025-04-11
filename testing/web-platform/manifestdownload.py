@@ -51,6 +51,7 @@ def get_commits(logger, repo_root):
                 "--format=%H",
                 "-n50",
                 base_rev,
+                "--",
                 "testing/web-platform/tests",
                 "testing/web-platform/mozilla/tests",
             ).splitlines()
