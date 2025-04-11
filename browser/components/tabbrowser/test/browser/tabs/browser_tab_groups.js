@@ -1814,7 +1814,8 @@ add_task(async function test_tabGroupCreatePanel() {
   info("Removing group via delete button");
   panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
-  tabgroupPanel.querySelector("#tabGroupEditor_deleteGroup").click();
+  tabgroupPanel.querySelector("#tabGroupEditor_deleteGroup").focus();
+  EventUtils.synthesizeKey("VK_RETURN");
   await Promise.all([panelHidden, removePromise]);
   tabGroupCreatedTrigger.uninit();
 });
