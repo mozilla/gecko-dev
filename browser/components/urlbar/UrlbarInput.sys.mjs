@@ -101,6 +101,7 @@ export class UrlbarInput {
     this.textbox.appendChild(
       this.window.MozXULElement.parseXULToFragment(`
         <vbox class="urlbarView"
+              context=""
               role="group"
               tooltip="aHTMLTooltip">
           <html:div class="urlbarView-body-outer">
