@@ -13,7 +13,7 @@
 #  include "TrackBuffersManager.h"
 #  include "mozilla/Atomics.h"
 #  include "mozilla/Maybe.h"
-#  include "mozilla/Mutex.h"
+#  include "mozilla/EventTargetAndLockCapability.h"
 #  include "mozilla/TaskQueue.h"
 #  include "mozilla/dom/MediaDebugInfoBinding.h"
 
@@ -101,15 +101,12 @@ class MediaSourceDemuxer : public MediaDataDemuxer,
 
 class MediaSourceTrackDemuxer
     : public MediaTrackDemuxer,
-      public DecoderDoctorLifeLogger<MediaSourceTrackDemuxer>,
-      public SingleWriterLockOwner {
+      public DecoderDoctorLifeLogger<MediaSourceTrackDemuxer> {
  public:
   MediaSourceTrackDemuxer(MediaSourceDemuxer* aParent,
                           TrackInfo::TrackType aType,
                           TrackBuffersManager* aManager)
       MOZ_REQUIRES(aParent->mMutex);
-
-  bool OnWritingThread() const override { return OnTaskQueue(); }
 
   UniquePtr<TrackInfo> GetInfo() const override;
 
@@ -134,7 +131,13 @@ class MediaSourceTrackDemuxer
   void DetachManager();
 
  private:
-  bool OnTaskQueue() const { return mTaskQueue->IsCurrentThreadIn(); }
+  mozilla::Mutex& Mutex() MOZ_RETURN_CAPABILITY(mLock.Lock()) {
+    return mLock.Lock();
+  }
+  const EventTargetCapability<mozilla::TaskQueue>& TaskQueue() const
+      MOZ_RETURN_CAPABILITY(mLock.Target()) {
+    return mLock.Target();
+  }
 
   RefPtr<SeekPromise> DoSeek(const media::TimeUnit& aTime);
   RefPtr<SamplesPromise> DoGetSamples(int32_t aNumSamples);
@@ -145,16 +148,15 @@ class MediaSourceTrackDemuxer
   media::TimeUnit GetNextRandomAccessPoint();
 
   RefPtr<MediaSourceDemuxer> mParent;
-  const RefPtr<TaskQueue> mTaskQueue;
 
   TrackInfo::TrackType mType;
   // Mutex protecting members below accessed from multiple threads.
-  MutexSingleWriter mMutex;
-  media::TimeUnit mNextRandomAccessPoint MOZ_GUARDED_BY(mMutex);
+  EventTargetAndLockCapability<mozilla::TaskQueue, mozilla::Mutex> mLock;
+  media::TimeUnit mNextRandomAccessPoint MOZ_GUARDED_BY(mLock);
   // Would be accessed in MFR's demuxer proxy task queue and TaskQueue, and
   // only be set on the TaskQueue. It can be accessed while on TaskQueue without
   // the need for the lock.
-  RefPtr<TrackBuffersManager> mManager MOZ_GUARDED_BY(mMutex);
+  RefPtr<TrackBuffersManager> mManager MOZ_GUARDED_BY(mLock);
 
   // Only accessed on TaskQueue
   Maybe<RefPtr<MediaRawData>> mNextSample;
