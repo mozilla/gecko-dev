@@ -62,7 +62,7 @@ Values which have more complex access requirements (see single-writer
 and time-based-locking below) need clear documentation where they’re
 defined: ::
 
-  MutexSingleWriter mMutex;
+  MainThreadAndLockCapability<Mutex> mMutex;
 
   // mResource should only be modified on the main thread with the lock.
   // So it can be read without lock on the main thread or on other threads
@@ -116,55 +116,53 @@ prefer using Always Lock in non-performance-sensitive code, especially
 since these mutexes are almost always uncontended and therefore cheap to
 lock.
 
-To support this fairly common pattern in Mozilla code, we’ve added
-MutexSingleWriter and MonitorSingleWriter subclasses. To use these, you
-need to subclass SingleWriterLockOwner on one object (typically the
-object containing the Mutex), implement ::OnWritingThread(), and pass
-the object to the constructor for MutexSingleWriter. In code that
-accesses the guarded value from the writing thread, you need to add
-mMutex.AssertIsOnWritingThread(), which both does a debug-only runtime
-assertion by calling OnWritingThread(), and also asserts to the static
-analyzer that the lock is held (which it isn’t).
+To support this fairly common pattern in Mozilla code, there is a special
+EventTargetAndLockCapability thread-safety capability. This wraps a
+EventTargetCapability, and a lock into a single capability, such that each can
+be checked independently or combined together. For the common case where the
+main-thread is the writer thread, the MainThreadAndLockCapability can be used.
 
-There is one case this causes problems with: when a method needs to
-access the value (without the lock), and then decides to write to the
-value from the same method, taking the lock. To the static analyzer,
-this looks like a double-lock. Either you will need to add
-MOZ_NO_THREAD_SAFETY_ANALYSIS to the method, move the write into another
-method you call, or locally disable the warning with
-MOZ_PUSH_IGNORE_THREAD_SAFETY and MOZ_POP_THREAD_SAFETY. We’re discussing with
-the clang static analysis developers how to better handle this.
+To get shared (i.e. read-only) access to the underlying data, one first either
+acquires the lock (which can be accessed using the Lock() method), or asserts
+that they are on the given EventTarget. ::
 
-Note also that this provides no checking that the lock is taken to write
-to the value: ::
-
-  MutexSingleWriter mMutex;
-  // mResource should only be modified on the main thread with the lock.
-  // So it can be read without lock on the main thread or on other threads
-  // with the lock.
-  RefPtr<ChannelMediaResource> mResource MOZ_GUARDED_BY(mMutex);
-  ...
-  nsresult ChannelMediaResource::Listener::OnStartRequest(nsIRequest *aRequest) {
-    mMutex.AssertOnWritingThread();
-
-    // Read from the only writing thread; no lock needed
-    if (!mResource) {
-      return NS_OK;
-    }
-    return mResource->OnStartRequest(aRequest, mOffset);
+  MainThreadAndLockCapability<Mutex> cap{"..."};
+  // ...
+  {
+    MutexAutoLock lock(cap.Lock());
+    cap.NoteLockHeld();
+    // .. At this point, you have shared access to data guarded by cap.
+  }
+  // .. or ..
+  {
+    AssertIsOnMainThread();
+    cap.NoteOnMainThread();
+    // .. At this point, you have shared access to data guarded by cap.
+  }
+  // .. or ..
+  {
+    AssertIsOnMainThread();
+    MutexAutoLock lock(cap.Lock());
+    cap.NoteExclusiveAccess();
+    // .. At this point, you have exclusive access to data guarded by cap.
   }
 
-If you need to assert you’re on the writing thread, then later take a
-lock to modify a value, it will cause a warning: ”acquiring mutex
-'mMutex' that is already held”. You can resolve this by turning off
-thread-safety analysis for the lock: ::
+When not using the main thread, the EventTargetCapability to assert can be
+accessed with the Target() method.
 
-  mMutex.AssertOnWritingThread();
-  ...
-  {
-    MOZ_PUSH_IGNORE_THREAD_SAFETY
-    MutexSingleWriterAutoLock lock(mMutex);
-    MOZ_POP_THREAD_SAFETY
+In some cases, this check can misbehave - specifically when a method both
+accesses the value (without the lock held), then later acquires the lock to
+perform a mutation. In this case, you must call ClearCurrentAccess() to drop the
+Shared access before noting exclusive access. ::
+
+  MainThreadAndLockCapability<Mutex> cap{"..."};
+  // ...
+  AssertIsOnMainThread();
+  cap.NoteOnMainThread();
+  // .. access some data guarded by cap
+  MutexAutoLock lock(cap.Lock());
+  cap.ClearCurrentAccess();  // <- required to satisfy the static analysis
+  cap.NoteExclusiveAccess();
 
 **Out-of-band Invariants** is used in a number of places (and may be
 combined with either of the above patterns). It's using other knowledge
