@@ -45,7 +45,6 @@ apply from: file('../autopublish-settings.gradle')
 
 include ':app'
 include ':mozilla-detekt-rules'
-include ':mozilla-lint-rules'
 include ':benchmark'
 
 gradle.projectsLoaded { ->

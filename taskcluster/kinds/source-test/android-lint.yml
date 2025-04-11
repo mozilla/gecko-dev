@@ -69,7 +69,7 @@ fenix:
     run:
         pre-gradlew:
             - ["cd", "mobile/android/fenix"]
-        gradlew: ['lintDebug', 'mozilla-lint-rules:test']
+        gradlew: ['lintDebug']
     treeherder:
         symbol: lint(fenix)
     worker:
