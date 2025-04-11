@@ -1811,9 +1811,9 @@ pref("browser.partnerlink.campaign.topsites", "amzn_2020_a1");
 pref("browser.newtab.preload", true);
 
 // If an on-train limited rollout of the preonboarding modal is enabled, the
-// percentage of the Mac, Linux, and MSIX population to enroll. Default to 1% of
-// population (100 / 10000).
-pref("browser.preonboarding.onTrainRolloutPopulation",  100);
+// percentage of the Mac, Linux, and MSIX population to enroll. Default to 25% of
+// population (2500 / 10000).
+pref("browser.preonboarding.onTrainRolloutPopulation",  2500);
 
 // Mozilla Ad Routing Service (MARS) unified ads service
 pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", true);
